@@ -8,7 +8,7 @@ import { useNodeStore } from "../../stores/NodeStore";
 import { useCopyPaste } from "../../hooks/handlers/useCopyPaste";
 import { useDuplicateNodes } from "../../hooks/useDuplicate";
 import useAlignNodes from "../../hooks/useAlignNodes";
-import { useAddToGroup } from "../../hooks/nodes/useAddToGroup";
+import { useSurroundWithGroup } from "../../hooks/nodes/useSurroundWithGroup";
 import { useRemoveFromGroup } from "../../hooks/nodes/useRemoveFromGroup";
 //icons
 import QueueIcon from "@mui/icons-material/Queue";
@@ -31,9 +31,10 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
   const findNode = useNodeStore((state) => state.findNode);
   const duplicateNodes = useDuplicateNodes();
   const alignNodes = useAlignNodes();
-  const addToGroup = useAddToGroup();
+  const surroundWithGroup = useSurroundWithGroup();
   const removeFromGroup = useRemoveFromGroup();
   const menuPosition = useContextMenuStore((state) => state.menuPosition);
+  const selectedNodes = useNodeStore((state) => state.getSelectedNodes());
   const selectedNodeIds = useNodeStore((state) =>
     state.getSelectedNodes().map((node) => node.id)
   );
@@ -183,9 +184,9 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
       {!anyHasParent && (
         <ContextMenuItem
           onClick={() => {
-            addToGroup({ selectedNodeIds: selectedNodeIds });
+            surroundWithGroup({ selectedNodeIds: selectedNodeIds });
           }}
-          label="Add To Group"
+          label="Surrround With Group"
           IconComponent={<GroupWorkIcon />}
           tooltip={<span className="tooltip-1">Space+G</span>}
           addButtonClassName={`action ${
@@ -197,7 +198,7 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
       {anyHasParent && (
         <ContextMenuItem
           onClick={() => {
-            removeFromGroup(selectedNodeIds);
+            removeFromGroup(selectedNodes);
           }}
           label="Remove From Group"
           IconComponent={<GroupWorkIcon />}

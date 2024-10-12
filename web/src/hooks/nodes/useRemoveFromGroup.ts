@@ -1,17 +1,16 @@
 import { useCallback } from "react";
 import { useNodeStore } from "../../stores/NodeStore";
 import { useReactFlow } from "@xyflow/react";
-
+import { NodeData } from "../../stores/NodeData";
+import { Node } from "@xyflow/react";
 export const useRemoveFromGroup = () => {
-  const findNode = useNodeStore((state) => state.findNode);
   const updateNode = useNodeStore((state) => state.updateNode);
   const { getNode } = useReactFlow();
 
   const removeFromGroup = useCallback(
-    (selectedNodeIds: string[]) => {
-      if (selectedNodeIds?.length) {
-        selectedNodeIds.forEach((id) => {
-          const node = findNode(id);
+    (nodes?: Node<NodeData>[]) => {
+      if (nodes && nodes.length) {
+        nodes.forEach((node) => {
           if (node && node.parentId) {
             const parentNode = getNode(node.parentId);
             if (parentNode) {
@@ -21,6 +20,7 @@ export const useRemoveFromGroup = () => {
               };
               updateNode(node.id, {
                 parentId: undefined,
+                expandParent: false,
                 position: newPosition
               });
             }
@@ -28,7 +28,7 @@ export const useRemoveFromGroup = () => {
         });
       }
     },
-    [findNode, getNode, updateNode]
+    [getNode, updateNode]
   );
 
   return removeFromGroup;

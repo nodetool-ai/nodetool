@@ -31,6 +31,8 @@ import { devLog } from "../../utils/DevLog";
 import { useMetadata } from "../../serverState/useMetadata";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { useRemoveFromGroup } from "../../hooks/nodes/useRemoveFromGroup";
+//reactflow
+import { Node } from "@xyflow/react";
 
 const NodeContextMenu: React.FC = () => {
   const menuPosition = useContextMenuStore((state) => state.menuPosition);
@@ -43,7 +45,6 @@ const NodeContextMenu: React.FC = () => {
   );
   const { getNode } = useReactFlow();
   const deleteNode = useNodeStore((state: NodeStore) => state.deleteNode);
-  const updateNode = useNodeStore((state: NodeStore) => state.updateNode);
   const updateNodeData = useNodeStore(
     (state: NodeStore) => state.updateNodeData
   );
@@ -166,7 +167,7 @@ const NodeContextMenu: React.FC = () => {
 
       {node?.parentId && (
         <ContextMenuItem
-          onClick={() => removeFromGroup([node.id])}
+          onClick={() => removeFromGroup([node as Node<NodeData>])}
           label="Remove from Group"
           IconComponent={<GroupRemoveIcon />}
           tooltip="Remove this node from the group"

@@ -138,13 +138,11 @@ const LoopNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const { spaceKeyPressed } = useKeyPressedStore((state) => ({
     spaceKeyPressed: state.isKeyPressed(" ")
   }));
-  const getInputEdges = useNodeStore((state) => state.getInputEdges);
   const updateNodeData = useNodeStore((state) => state.updateNodeData);
   const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
   const nodeHovered = useNodeStore((state) =>
     state.hoveredNodes.includes(props.id)
   );
-  const edges = getInputEdges(props.id);
   const handleResize = useCallback(
     (event: ResizeDragEvent) => {
       const newWidth = event.x;

@@ -1,11 +1,10 @@
 /** @jsxImportSource @emotion/react */
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { MoreHoriz } from "@mui/icons-material";
-import { css, keyframes } from "@emotion/react";
+import { css } from "@emotion/react";
 import { useMetadata } from "../../serverState/useMetadata";
 import { NodeStore, useNodeStore } from "../../stores/NodeStore";
-import { useStore } from "@xyflow/react";
-import { memo, useCallback, useEffect, useMemo } from "react";
+import { memo, useCallback, useMemo } from "react";
 import ThemeNodes from "../themes/ThemeNodes";
 import { isEqual } from "lodash";
 

@@ -1,12 +1,12 @@
 /** @jsxImportSource @emotion/react */
 import { css, keyframes } from "@emotion/react";
-import { colorForType, datatypeByName } from "../../config/data_types";
+import { colorForType } from "../../config/data_types";
 
 import ThemeNodes from "../themes/ThemeNodes";
-import { memo, useEffect, useState, useMemo, useCallback } from "react";
+import { memo, useEffect, useState, useMemo } from "react";
 import { Node, NodeProps, NodeResizer, ResizeParams } from "@xyflow/react";
 import { isEqual } from "lodash";
-import { Container, Tooltip } from "@mui/material";
+import { Container } from "@mui/material";
 import { NodeData } from "../../stores/NodeData";
 import { useMetadata } from "../../serverState/useMetadata";
 import { useNodeStore } from "../../stores/NodeStore";

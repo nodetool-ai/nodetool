@@ -81,7 +81,11 @@ export function graphNodeToReactFlowNode(
     id: node.id,
     parentId: node.parent_id || undefined,
     dragHandle: ".node-header",
-    expandParent: true,
+    expandParent: !(
+      node.type === "nodetool.group.Loop" ||
+      node.type === "nodetool.workflows.base_node.Comment" ||
+      node.type === "nodetool.workflows.base_node.Group"
+    ),
     selectable: ui_properties?.selectable,
     data: {
       properties: node.data || {},
@@ -649,11 +653,11 @@ export const useNodeStore = create<NodeStore>()(
        */
       updateNode: (id: string, node: Partial<Node<NodeData>>) => {
         get().setWorkflowDirty(true);
-        set({
-          nodes: get().nodes.map(
-            (n) => (n.id === id ? { ...n, ...node } : n) as Node<NodeData>
+        set((state) => ({
+          nodes: state.nodes.map((n) =>
+            n.id === id ? ({ ...n, ...node } as Node<NodeData>) : n
           )
-        });
+        }));
       },
 
       /**

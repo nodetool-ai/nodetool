@@ -1,104 +1,73 @@
-import { useCallback, useMemo } from "react";
-import { NodeMetadata } from "../../stores/ApiTypes";
+import { useCallback } from "react";
+import { Node } from "@xyflow/react";
 import { useNodeStore } from "../../stores/NodeStore";
-import useMetadataStore from "../../stores/MetadataStore";
-import { useNotificationStore } from "../../stores/NotificationStore";
-import { HistoryManager } from "../../HistoryManager";
-import { useTemporalStore } from "../../stores/NodeStore";
-const GROUP_NODE_TYPE = "nodetool.workflows.base_node.Group";
+import { useKeyPressedStore } from "../../stores/KeyPressedStore";
+import { NodeData } from "../../stores/NodeData";
+import { useIsGroupable } from "./useIsGroupable";
 
-export const useAddToGroup = () => {
-  const addNode = useNodeStore((state) => state.addNode);
-  const createNode = useNodeStore((state) => state.createNode);
-  const getMetadata = useMetadataStore.getState().getMetadata;
+export function useAddToGroup() {
   const updateNode = useNodeStore((state) => state.updateNode);
   const findNode = useNodeStore((state) => state.findNode);
-  const history: HistoryManager = useTemporalStore((state) => state);
-  const addNotification = useNotificationStore(
-    (state) => state.addNotification
-  );
-
-  const getBounds = useMemo(() => {
-    return (selectedNodeIds: string[]) => {
-      const nodes = selectedNodeIds.map((id) => findNode(id)).filter(Boolean);
-      return nodes.reduce(
-        (bounds, node) => {
-          if (!node) return bounds;
-          return {
-            x: Math.min(bounds.x, node.position.x),
-            y: Math.min(bounds.y, node.position.y),
-            width: Math.max(
-              bounds.width,
-              node.position.x + (node.measured?.width || 0) + 40
-            ),
-            height: Math.max(
-              bounds.height,
-              node.position.y + (node.measured?.height || 0) + 50
-            )
-          };
-        },
-        { x: Infinity, y: Infinity, width: -Infinity, height: -Infinity }
-      );
-    };
-  }, [findNode]);
-
+  const setHoveredNodes = useNodeStore((state) => state.setHoveredNodes);
+  const hoveredNodes = useNodeStore((state) => state.hoveredNodes);
+  const { isKeyPressed } = useKeyPressedStore();
+  const spaceKeyPressed = isKeyPressed(" ");
+  const { isGroupable, isGroup } = useIsGroupable();
   const addToGroup = useCallback(
-    ({ selectedNodeIds }: { selectedNodeIds: string[] }) => {
-      const canAddToGroup = selectedNodeIds.every((id) => {
-        const node = findNode(id);
-        return node && !node.parentId;
-      });
-      if (!canAddToGroup) {
-        addNotification({
-          type: "warning",
-          alert: true,
-          content: "Nodes already in a group cannot be added."
-        });
-        return;
-      }
-      history.pause();
-      const groupMetadata = getMetadata(GROUP_NODE_TYPE) as NodeMetadata;
-      const bounds = getBounds(selectedNodeIds);
-
-      const groupNode = createNode(groupMetadata, {
-        x: bounds.x - 20,
-        y: bounds.y - 50
-      });
-      groupNode.width = Math.max(bounds.width - bounds.x + 40, 400);
-      groupNode.height = Math.max(bounds.height - bounds.y + 40, 250);
-      groupNode.style = {
-        width: Math.max(bounds.width - bounds.x + 40, 400),
-        height: Math.max(bounds.height - bounds.y + 40, 250)
-      };
-
-      addNode(groupNode);
-
-      selectedNodeIds.forEach((nodeId) => {
-        const node = findNode(nodeId);
-        if (node) {
-          updateNode(nodeId, {
-            parentId: groupNode.id,
-            expandParent: true,
-            position: {
-              x: node.position.x - bounds.x + 20,
-              y: node.position.y - bounds.y + 50
-            }
-          });
+    (nodes: Node<NodeData>[], lastParentNode?: Node | undefined) => {
+      const parentId = hoveredNodes[0];
+      const parentNode = findNode(parentId);
+      nodes.forEach((node) => {
+        if (
+          parentNode &&
+          hoveredNodes.length > 0 &&
+          isGroupable(node) &&
+          isGroup(parentNode)
+        ) {
+          if (!node.parentId && !spaceKeyPressed) {
+            updateNode(node.id, {
+              position: {
+                x: node.position.x - parentNode.position.x,
+                y: node.position.y - parentNode.position.y
+              },
+              parentId: parentId,
+              expandParent: true
+            });
+          }
+          if (node.parentId && !spaceKeyPressed) {
+            // already in group
+            updateNode(node.id, {
+              expandParent: true
+            });
+          }
+        } else {
+          // not hovered over group node
+          if (node.parentId) {
+            // remove from group and adjust position
+            updateNode(node.id, {
+              position: {
+                x: node.position.x + (lastParentNode?.position.x || 0),
+                y: node.position.y + (lastParentNode?.position.y || 0)
+              },
+              parentId: undefined,
+              expandParent: false
+            });
+          }
         }
       });
-      history.resume();
+
+      setHoveredNodes([]);
     },
     [
-      history,
-      getMetadata,
-      getBounds,
-      createNode,
-      addNode,
+      hoveredNodes,
       findNode,
-      addNotification,
+      setHoveredNodes,
+      isGroupable,
+      isGroup,
+      spaceKeyPressed,
       updateNode
     ]
   );
 
   return addToGroup;
-};
+}

@@ -74,7 +74,7 @@ import useModelStore from "../../stores/ModelStore";
 import { tryCacheFiles } from "../../serverState/tryCacheFiles";
 import GroupNode from "../node/GroupNode";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
-import { useAddToGroup } from "../../hooks/nodes/useAddToGroup";
+import { useSurroundWithGroup } from "../../hooks/nodes/useSurroundWithGroup";
 import { isEqual } from "lodash";
 import ThemeNodes from "../themes/ThemeNodes";
 
@@ -157,7 +157,7 @@ const NodeEditor: React.FC<unknown> = () => {
   );
 
   const duplicateNodes = useDuplicateNodes();
-  const addToGroup = useAddToGroup();
+  const surroundWithGroup = useSurroundWithGroup();
 
   /* DUPLICATE SELECTION */
   const handleDuplicate = useCallback(() => {
@@ -310,7 +310,7 @@ const NodeEditor: React.FC<unknown> = () => {
   useHotkeys("Space+d", handleDuplicate);
   // group
   useHotkeys("Space+g", () => {
-    addToGroup({ selectedNodeIds });
+    surroundWithGroup({ selectedNodeIds });
   });
   // history
   useHotkeys("Control+z", () => nodeHistory.undo());
@@ -348,6 +348,7 @@ const NodeEditor: React.FC<unknown> = () => {
   // DRAG HANDLER
   const {
     onSelectionDragStart,
+    onSelectionDrag,
     onSelectionDragStop,
     onSelectionStart,
     onSelectionEnd,
@@ -524,6 +525,7 @@ const NodeEditor: React.FC<unknown> = () => {
                 onDragOver={onDragOver}
                 onNodeDrag={onNodeDrag}
                 onSelectionDragStart={onSelectionDragStart}
+                onSelectionDrag={onSelectionDrag}
                 onSelectionDragStop={onSelectionDragStop}
                 onSelectionStart={onSelectionStart}
                 onSelectionEnd={onSelectionEnd}
