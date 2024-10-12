@@ -7,7 +7,7 @@ import { client, isProduction } from "../../stores/ApiClient";
 import ModelIcon from "../../icons/model.svg";
 import DownloadIcon from "@mui/icons-material/Download";
 import { useQuery } from "@tanstack/react-query";
-import { fetchModelInfo } from "../../utils/huggingFaceUtils";
+import { fetchHuggingFaceRepoInfo } from "../../utils/huggingFaceUtils";
 
 export type OllamaModel = {
   name: string;
@@ -212,13 +212,21 @@ export const renderModelActions = (
       <ModelDownloadButton onClick={props.onDownload} />
     )}
     {downloaded && (
-      <Tooltip title="Model downloaded">
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          gap: ".5em",
+          marginRight: "1em"
+        }}
+      >
         <CheckCircleIcon
           className="model-downloaded-icon"
           fontSize="small"
           color="success"
         />
-      </Tooltip>
+        Downloaded
+      </Box>
     )}
     {props.handleDelete && (
       <ModelDeleteButton onClick={() => props.handleDelete!(props.model.id)} />
@@ -271,14 +279,17 @@ export const useModelInfo = (model: UnifiedModel) => {
     queryKey: ["modelInfo", model.id],
     queryFn: () => {
       if (isHuggingFace) {
-        return fetchModelInfo(model.id);
+        if (!model.repo_id) {
+          throw new Error("repo_id is required for Hugging Face models");
+        }
+        return fetchHuggingFaceRepoInfo(model.repo_id);
       } else if (isOllama) {
         return fetchOllamaModelInfo(model.id);
       }
       return null;
     },
     staleTime: Infinity,
-    gcTime: 1000 * 60
+    gcTime: Infinity
   });
 
   return {

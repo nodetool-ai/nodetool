@@ -53,8 +53,11 @@ const styles = (theme: any) =>
       "& .model-name": {
         fontWeight: "bold",
         textTransform: "uppercase",
-        color: theme.palette.c_hl1
+        color: theme.palette.c_hl1,
+        width: "400px",
+        display: "inline-block"
       },
+      "& .model-path": {},
       "& .model-info": {
         color: theme.palette.text.secondary,
         fontSize: "0.875rem"
@@ -160,9 +163,16 @@ const ModelListItem: React.FC<ModelComponentProps> = ({
       <ListItem>
         <ListItemText
           primary={
-            <Typography component="span" className="model-name">
-              {model.id}{" "}
-            </Typography>
+            <>
+              <Typography component="span" className="model-name">
+                {model.repo_id ? model.repo_id : model.id}{" "}
+              </Typography>
+              {model.path && (
+                <Typography component="span" className="model-path">
+                  {model.path}
+                </Typography>
+              )}
+            </>
           }
           secondary={
             <React.Fragment>

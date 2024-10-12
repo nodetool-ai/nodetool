@@ -109,7 +109,7 @@ const styles = (theme: any) =>
       fontSize: theme.fontSizeSmaller
     },
     ".text-license": {
-      margin: 0,
+      margin: "0 0 .5em 0",
       padding: 0,
       fontFamily: theme.fontFamily2,
       color: theme.palette.c_gray3,
