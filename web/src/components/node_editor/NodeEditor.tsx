@@ -1,7 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { useCallback, useState, useRef, useEffect, useMemo, memo } from "react";
 import {
-  useStore,
   useReactFlow,
   Node,
   Background,
@@ -69,10 +68,8 @@ import HuggingFaceDownloadDialog from "../hugging_face/HuggingFaceDownloadDialog
 import DraggableNodeDocumentation from "../content/Help/DraggableNodeDocumentation";
 import { ErrorBoundary } from "@sentry/react";
 import GroupNode from "../node/GroupNode";
-import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 import { useSurroundWithGroup } from "../../hooks/nodes/useSurroundWithGroup";
 import { useCombo } from "../../stores/KeyPressedStore";
-import { useAddToGroup } from "../../hooks/nodes/useAddToGroup";
 import { isEqual } from "lodash";
 import ThemeNodes from "../themes/ThemeNodes";
 import { useRenderLogger } from "../../hooks/useRenderLogger";
@@ -83,7 +80,18 @@ declare global {
   }
 }
 
-const NodeEditor: React.FC<unknown> = () => {
+// FIT SCREEN
+const fitViewOptions = {
+  maxZoom: MAX_ZOOM,
+  minZoom: MIN_ZOOM,
+  padding: 0.6
+};
+
+interface NodeEditorProps {
+  isMinZoom?: boolean;
+}
+
+const NodeEditor: React.FC<NodeEditorProps> = ({ isMinZoom }) => {
   const {
     nodes,
     edges,
@@ -387,22 +395,7 @@ const NodeEditor: React.FC<unknown> = () => {
   );
 
   /* VIEWPORT */
-  const currentZoom = useStore((state) => state.transform[2]);
   const defaultViewport = useMemo(() => ({ x: 0, y: 0, zoom: 1.5 }), []);
-
-  /* ZOOM BOUNDS */
-  // const isMaxZoom = currentZoom === MAX_ZOOM;
-  const isMinZoom = useMemo(() => currentZoom === MIN_ZOOM, [currentZoom]);
-
-  // FIT SCREEN
-  const fitViewOptions = useMemo<FitViewOptions>(
-    () => ({
-      maxZoom: MAX_ZOOM,
-      minZoom: MIN_ZOOM,
-      padding: 0.6
-    }),
-    []
-  );
 
   const fitScreen = useCallback(() => {
     const fitOptions: FitViewOptions = {
@@ -471,7 +464,6 @@ const NodeEditor: React.FC<unknown> = () => {
     documentationPosition,
     showDocumentation,
     openMenuType,
-    isMinZoom,
     openCommandMenu,
     setOpenCommandMenu,
     handleCopy,
@@ -483,8 +475,7 @@ const NodeEditor: React.FC<unknown> = () => {
     openNodeMenu,
     closeNodeMenu,
     closeDocumentation,
-    fitScreen,
-    currentZoom
+    fitScreen
   });
 
   // LOADING OVERLAY
