@@ -27,7 +27,6 @@ import useConnectionStore from "../../stores/ConnectionStore";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import useContextMenuStore from "../../stores/ContextMenuStore";
-import { shallow } from "zustand/shallow";
 // components
 import CommandMenu from "../menus/CommandMenu";
 import ConnectionLine from "./ConnectionLine";
@@ -76,32 +75,13 @@ import { useCombo } from "../../stores/KeyPressedStore";
 import { useAddToGroup } from "../../hooks/nodes/useAddToGroup";
 import { isEqual } from "lodash";
 import ThemeNodes from "../themes/ThemeNodes";
+import { useRenderLogger } from "../../hooks/useRenderLogger";
 
 declare global {
   interface Window {
     __beforeUnloadListenerAdded?: boolean;
   }
 }
-
-// Custom hook for logging render triggers
-const useRenderLogger = (dependencies: Record<string, any>) => {
-  const prevDeps = useRef(dependencies);
-
-  return useMemo(() => {
-    const changedDeps = Object.entries(dependencies).filter(
-      ([key, value]) => prevDeps.current[key] !== value
-    );
-
-    if (changedDeps.length > 0) {
-      console.log(
-        "Render triggered by:",
-        changedDeps.map(([key]) => key).join(", ")
-      );
-    }
-
-    prevDeps.current = dependencies;
-  }, [dependencies]);
-};
 
 const NodeEditor: React.FC<unknown> = () => {
   const {
@@ -248,7 +228,7 @@ const NodeEditor: React.FC<unknown> = () => {
       event.stopPropagation();
       openContextMenu(
         "node-context-menu",
-        node.id,
+        "",
         event.clientX,
         event.clientY,
         "node-header"
@@ -264,14 +244,14 @@ const NodeEditor: React.FC<unknown> = () => {
       requestAnimationFrame(() => {
         openContextMenu(
           "pane-context-menu",
-          nodes.length > 0 ? nodes[0].id : "",
+          "",
           event.clientX,
           event.clientY,
           "react-flow__pane"
         );
       });
     },
-    [nodes, openContextMenu]
+    [openContextMenu]
   );
 
   const handleSelectionContextMenu = useCallback(
@@ -279,13 +259,13 @@ const NodeEditor: React.FC<unknown> = () => {
       event.preventDefault();
       openContextMenu(
         "selection-context-menu",
-        nodes[0].id,
+        "",
         event.clientX,
         event.clientY,
         "react-flow__nodesselection"
       );
     },
-    [nodes, openContextMenu]
+    [openContextMenu]
   );
 
   // ON MOVE START | DRAG PANE
@@ -410,7 +390,7 @@ const NodeEditor: React.FC<unknown> = () => {
 
   /* ZOOM BOUNDS */
   // const isMaxZoom = currentZoom === MAX_ZOOM;
-  const isMinZoom = currentZoom === MIN_ZOOM;
+  const isMinZoom = useMemo(() => currentZoom === MIN_ZOOM, [currentZoom]);
 
   // FIT SCREEN
   const fitViewOptions = useMemo<FitViewOptions>(
@@ -465,8 +445,7 @@ const NodeEditor: React.FC<unknown> = () => {
   }, [fitScreen]);
 
   // Use the custom hook to log render triggers
-  useRenderLogger({
-    nodes,
+  useRenderLogger("NodeEditor", {
     edges,
     onConnect,
     onNodesChange,
@@ -484,8 +463,7 @@ const NodeEditor: React.FC<unknown> = () => {
     documentationPosition,
     showDocumentation,
     openMenuType,
-    currentZoom
-    // Add other dependencies you want to track
+    isMinZoom
   });
 
   // LOADING OVERLAY

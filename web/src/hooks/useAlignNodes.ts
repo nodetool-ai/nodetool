@@ -12,13 +12,13 @@ type AlignNodesOptions = {
 const useAlignNodes = () => {
   const VERTICAL_SPACING = 20;
   const HORIZONTAL_SPACING = 40;
-  const nodes = useNodeStore((state) => state.nodes);
   const setNodes = useNodeStore((state) => state.setNodes);
   const setExplicitSave = useNodeStore((state) => state.setExplicitSave);
-  const selectedNodes = useNodeStore((state) => state.getSelectedNodes());
 
   const alignNodes = useCallback(
     ({ arrangeSpacing, collapsed }: AlignNodesOptions) => {
+      const nodes = useNodeStore.getState().nodes;
+      const selectedNodes = useNodeStore.getState().getSelectedNodes();
       if (selectedNodes.length < 2) return;
       setExplicitSave(true);
 
@@ -76,7 +76,7 @@ const useAlignNodes = () => {
       );
       setExplicitSave(false);
     },
-    [nodes, setNodes, setExplicitSave, selectedNodes]
+    [setNodes, setExplicitSave]
   );
 
   return alignNodes;

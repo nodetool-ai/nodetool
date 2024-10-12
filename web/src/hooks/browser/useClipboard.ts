@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { devLog } from "../../utils/DevLog";
 import useSessionStateStore from "../../stores/SessionStateStore";
 
@@ -14,7 +14,10 @@ export const useClipboard = () => {
     isClipboardValid: state.isClipboardValid,
     setIsClipboardValid: state.setIsClipboardValid
   }));
-  const isFirefox = navigator.userAgent.toLowerCase().includes("firefox");
+  const isFirefox = useMemo(
+    () => navigator.userAgent.toLowerCase().includes("firefox"),
+    []
+  );
 
   useEffect(() => {
     if (isFirefox) {
@@ -22,7 +25,7 @@ export const useClipboard = () => {
     }
   }, [isFirefox, setClipboardData]);
 
-  const validateData = (data: string): boolean => {
+  const validateData = useCallback((data: string): boolean => {
     try {
       const parsedData = JSON.parse(data);
       const hasNodes =
@@ -37,9 +40,9 @@ export const useClipboard = () => {
       devLog("useClipboard: Validating data error:", error);
       return false;
     }
-  };
+  }, []);
 
-  const readClipboard = async (): Promise<{
+  const readClipboard = useCallback(async (): Promise<{
     data: string | null;
     isValid: boolean;
   }> => {
@@ -59,29 +62,38 @@ export const useClipboard = () => {
     setIsClipboardValid(isValid);
     setClipboardData(isValid ? data : null);
     return { data: isValid ? data : null, isValid };
-  };
+  }, [
+    clipboardData,
+    isFirefox,
+    setClipboardData,
+    setIsClipboardValid,
+    validateData
+  ]);
 
-  const writeClipboard = async (
-    data: string,
-    allowArbitrary: boolean = false,
-    formatJson: boolean = false
-  ) => {
-    const isValid = allowArbitrary ? true : validateData(data);
+  const writeClipboard = useCallback(
+    async (
+      data: string,
+      allowArbitrary: boolean = false,
+      formatJson: boolean = false
+    ) => {
+      const isValid = allowArbitrary ? true : validateData(data);
 
-    setIsClipboardValid(isValid);
-    if (isValid) {
-      devLog("Attempting to write to clipboard.");
-      const outputData = formatJson
-        ? JSON.stringify(JSON.parse(data), null, 2)
-        : data;
+      setIsClipboardValid(isValid);
+      if (isValid) {
+        devLog("Attempting to write to clipboard.");
+        const outputData = formatJson
+          ? JSON.stringify(JSON.parse(data), null, 2)
+          : data;
 
-      if (isFirefox) {
+        if (isFirefox) {
+          setClipboardData(outputData);
+        }
         setClipboardData(outputData);
+        await navigator.clipboard.writeText(outputData);
       }
-      setClipboardData(outputData);
-      await navigator.clipboard.writeText(outputData);
-    }
-  };
+    },
+    [isFirefox, setClipboardData, setIsClipboardValid, validateData]
+  );
 
   return { clipboardData, readClipboard, writeClipboard, isClipboardValid };
 };

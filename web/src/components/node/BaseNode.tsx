@@ -235,6 +235,26 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     return allColors.slice(0, 5);
   }, [nodeMetadata]);
 
+  const resizer = useMemo(
+    () => (
+      <div className="node-resizer">
+        <div className="resizer">
+          <NodeResizer
+            shouldResize={(
+              event,
+              params: ResizeParams & { direction: number[] }
+            ) => {
+              const [dirX, dirY] = params.direction;
+              return dirX !== 0 && dirY === 0;
+            }}
+            minWidth={100}
+            maxWidth={MAX_NODE_WIDTH}
+          />
+        </div>
+      </div>
+    ),
+    []
+  );
   if (!nodeMetadata || metadataLoading || metadataError) {
     return (
       <Container className={className}>
@@ -282,21 +302,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         workflowId={workflowId}
         renderedResult={renderedResult}
       />
-      <div className="node-resizer">
-        <div className="resizer">
-          <NodeResizer
-            shouldResize={(
-              event,
-              params: ResizeParams & { direction: number[] }
-            ) => {
-              const [dirX, dirY] = params.direction;
-              return dirX !== 0 && dirY === 0;
-            }}
-            minWidth={100}
-            maxWidth={MAX_NODE_WIDTH}
-          />
-        </div>
-      </div>
+      {resizer}
     </Container>
   );
 };

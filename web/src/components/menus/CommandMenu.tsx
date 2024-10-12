@@ -3,7 +3,7 @@ import { Command, CommandInput } from "cmdk";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import { useCallback, useEffect, useState, useRef, memo, useMemo } from "react";
 import { useNodeStore } from "../../stores/NodeStore";
-import { css, Dialog, Theme } from "@mui/material";
+import { css, Dialog } from "@mui/material";
 import { getMousePosition } from "../../utils/MousePosition";
 import useAlignNodes from "../../hooks/useAlignNodes";
 import useWorkflowRunnner from "../../stores/WorkflowRunner";
