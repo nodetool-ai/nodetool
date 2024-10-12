@@ -129,13 +129,9 @@ class Graph(BaseModel):
         - Nodes are only included in the output if their parent_id matches the given parent_id.
         - If a cycle exists, some nodes may be omitted from the result.
         """
-        # handle special case for top level nodes
-        # child nodes of regular groups can be executed like top level nodes
+        # child nodes of regular groups (no loops) can be executed like top level nodes
         if parent_id is None:
-            group_nodes = {
-                node.id for node in self.nodes if isinstance(node, GroupNode)
-            }
-            print(group_nodes)
+            group_nodes = {node.id for node in self.nodes if type(node) is GroupNode}
         else:
             group_nodes = set()
 

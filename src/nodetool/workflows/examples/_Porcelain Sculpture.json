@@ -5,7 +5,8 @@
   "updated_at": "2024-08-12T12:33:08.480280",
   "name": "Porcelain Sculpture",
   "tags": [
-    "batch_processing"
+    "batch_processing",
+    "start"
   ],
   "description": "Generate a seriese of images showing sculptures with different emotional and mental states.\n",
   "thumbnail": "",
@@ -217,19 +218,32 @@
       },
       {
         "id": "10",
-        "type": "stable_diffusion.Flux",
+        "type": "huggingface.text_to_image.StableDiffusion",
         "data": {
-          "model": "flux1-schnell",
-          "width": 1024,
-          "height": 1024,
-          "batch_size": 1,
-          "steps": 4,
-          "guidance_scale": 3.5,
-          "realism_strength": 1,
-          "scheduler": "karras",
-          "sampler": "dpmpp_2m_sde",
-          "noise_seed": 3606830119,
-          "denoise": 1
+          "model": {
+            "type": "hf.stable_diffusion",
+            "repo_id": "SG161222/Realistic_Vision_V5.1_noVAE",
+            "path": "Realistic_Vision_V5.1_fp16-no-ema.safetensors"
+          },
+          "negative_prompt": "nsfw, naked, nude, deformed, bad anatomy, mutated, ugly, disgusting",
+          "seed": -1,
+          "num_inference_steps": 50,
+          "guidance_scale": 7.5,
+          "scheduler": "HeunDiscreteScheduler",
+          "lora_scale": 0,
+          "ip_adapter_model": "",
+          "ip_adapter_image": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null
+          },
+          "ip_adapter_scale": 0.5,
+          "hires": true,
+          "enable_tiling": false,
+          "width": 512,
+          "height": 512,
+          "detail_level": 0.8
         },
         "parent_id": "11",
         "ui_properties": {
