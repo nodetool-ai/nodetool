@@ -35,7 +35,6 @@ type NodeMenuStore = {
   menuHeight: number;
   searchTerm: string;
   metadata: NodeMetadata[];
-  setMetadata: (metadata: NodeMetadata[]) => void;
   selectedInputType: string;
   setSelectedInputType: (inputType: string) => void;
   selectedOutputType: string;
@@ -84,10 +83,6 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => ({
   dropType: "",
   dragToCreate: false,
   metadata: [],
-  setMetadata: (metadata) => {
-    set({ metadata });
-    get().performSearch(get().searchTerm);
-  },
   selectedInputType: "",
   setSelectedInputType: (inputType) => {
     set({ selectedInputType: inputType });

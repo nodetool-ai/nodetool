@@ -4,15 +4,8 @@ import { css } from "@emotion/react";
 import { useEffect, useMemo, useRef } from "react";
 
 // mui
-import {
-  IconButton,
-  Box,
-  Button,
-  CircularProgress,
-  Tooltip
-} from "@mui/material";
+import { IconButton, Box, Button, Tooltip } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
-import ErrorOutlineRounded from "@mui/icons-material/ErrorOutlineRounded";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { ExpandCircleDown } from "@mui/icons-material";
 
@@ -28,7 +21,6 @@ import { TOOLTIP_ENTER_DELAY } from "../node/BaseNode";
 // theme
 import ThemeNodetool from "../themes/ThemeNodetool";
 import useNamespaceTree from "../../hooks/useNamespaceTree";
-import { useMetadata } from "../../serverState/useMetadata";
 import SearchInput from "../search/SearchInput";
 import { useCombo } from "../../stores/KeyPressedStore";
 
@@ -139,7 +131,6 @@ export default function NodeMenu({ focusSearchInput = false }: NodeMenuProps) {
     setSelectedOutputType,
     searchTerm,
     setSearchTerm,
-    setMetadata,
     showNamespaceTree,
     toggleNamespaceTree
   } = useNodeMenuStore((state) => ({
@@ -158,7 +149,6 @@ export default function NodeMenu({ focusSearchInput = false }: NodeMenuProps) {
     searchTerm: state.searchTerm,
     setSearchTerm: state.setSearchTerm,
     setSelectedPath: state.setSelectedPath,
-    setMetadata: state.setMetadata,
     showNamespaceTree: state.showNamespaceTree,
     toggleNamespaceTree: state.toggleNamespaceTree
   }));
@@ -177,18 +167,6 @@ export default function NodeMenu({ focusSearchInput = false }: NodeMenuProps) {
       setSelectedOutputType(dropType);
     }
   }, [dropType, connectDirection, setSelectedInputType, setSelectedOutputType]);
-
-  const {
-    data: metadata,
-    isLoading: metadataLoading,
-    error: metadataError
-  } = useMetadata();
-
-  useEffect(() => {
-    if (metadata) {
-      setMetadata(metadata?.metadata);
-    }
-  }, [metadata, setMetadata]);
 
   const memoizedStyles = useMemo(
     () => treeStyles(ThemeNodetool),
@@ -226,26 +204,6 @@ export default function NodeMenu({ focusSearchInput = false }: NodeMenuProps) {
           </IconButton>
         </div>
         <Box className="node-menu-container">
-          {metadataLoading && (
-            <CircularProgress
-              size={20}
-              sx={{
-                position: "absolute",
-                top: "3em",
-                right: "1.5em"
-              }}
-            />
-          )}
-          {!!metadataError && (
-            <ErrorOutlineRounded
-              sx={{
-                position: "absolute",
-                top: "1.9em",
-                right: "0.9em",
-                color: ThemeNodetool.palette.error.main
-              }}
-            />
-          )}
           <Box className="search-toolbar">
             <Tooltip
               title={showNamespaceTree ? "Hide namespaces" : "Show namespaces"}

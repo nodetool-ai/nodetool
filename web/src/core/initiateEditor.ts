@@ -8,6 +8,8 @@ const initiateEditor = async (workflowId: string | undefined) => {
   const syncWorkflow = useNodeStore.getState().syncWithWorkflowStore;
   const setWorkflow = useNodeStore.getState().setWorkflow;
 
+  console.log("load workflowId", workflowId);
+
   if (!workflowId) {
     return { workflow: null };
   }

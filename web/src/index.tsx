@@ -34,7 +34,6 @@ import NodeMenu from "./components/node_menu/NodeMenu";
 import AssetExplorer from "./components/assets/AssetExplorer";
 import WorkflowGrid from "./components/workflows/WorkflowGrid";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { useAssetStore } from "./stores/AssetStore";
 import { useWorkflowStore } from "./stores/WorkflowStore";
 import Login from "./components/Login";
@@ -51,7 +50,12 @@ import useRemoteSettingsStore from "./stores/RemoteSettingStore";
 import ModelsManager from "./components/hugging_face/ModelsManager";
 import useModelStore from "./stores/ModelStore";
 import NodeDocumentation from "./components/content/Help/NodeDocumentation";
-import { MAX_ZOOM, MIN_ZOOM } from "./config/constants";
+import { MIN_ZOOM } from "./config/constants";
+import MetadataLoader from "./components/MetadataProvider";
+import MetadataProvider from "./components/MetadataProvider";
+import { useMetadata } from "./serverState/useMetadata";
+import { metadataQuery } from "./serverState/useMetadata";
+import useMetadataStore from "./stores/MetadataStore";
 
 initSentry();
 
@@ -65,6 +69,10 @@ const queryClient = new QueryClient();
 useAssetStore.getState().setQueryClient(queryClient);
 useWorkflowStore.getState().setQueryClient(queryClient);
 useModelStore.getState().setQueryClient(queryClient);
+
+const metadata = await metadataQuery();
+queryClient.setQueryData(["metadata"], metadata);
+useMetadataStore.getState().setMetadata(metadata.metadataByType);
 
 const NavigateToStart = () => {
   const { state } = useAuth();
@@ -228,7 +236,6 @@ root.render(
     <ReactFlowProvider>
       <QueryClientProvider client={queryClient}>
         <RouterProvider router={router} />
-        <ReactQueryDevtools />
       </QueryClientProvider>
     </ReactFlowProvider>
   </React.StrictMode>
