@@ -1,5 +1,4 @@
 import { useCallback } from "react";
-import { useReactFlow } from "@xyflow/react";
 import { useNodeStore } from "../stores/NodeStore";
 import { v4 as uuidv4 } from "uuid";
 import { DUPLICATE_SPACING_X } from "../config/constants";
@@ -7,72 +6,38 @@ import { Node } from "@xyflow/react";
 import { NodeData } from "../stores/NodeData";
 
 export const useDuplicateNodes = () => {
-  const reactFlowInstance = useReactFlow();
-  const addNode = useNodeStore((state) => state.addNode);
+  const nodes = useNodeStore((state) => state.nodes);
+  const setNodes = useNodeStore((state) => state.setNodes);
+  const getSelectedNodes = useNodeStore((state) => state.getSelectedNodes);
 
-  return useCallback(
-    (nodeIds: string[]) => {
-      const duplicatedNodesIds: string[] = [];
+  return useCallback(() => {
+    let minX = Infinity;
+    let maxX = -Infinity;
 
-      let minX = Infinity;
-      let maxX = -Infinity;
-      let minY = Infinity;
-      let maxY = -Infinity;
+    const selectedNodes = JSON.parse(JSON.stringify(getSelectedNodes()));
 
-      nodeIds.forEach((nodeId) => {
-        const node = reactFlowInstance.getNode(nodeId);
-        if (node) {
-          minX = Math.min(minX, node.position.x);
-          maxX = Math.max(maxX, node.position.x);
-          minY = Math.min(minY, node.position.y);
-          maxY = Math.max(maxY, node.position.y);
-        }
-      });
+    for (const node of selectedNodes) {
+      minX = Math.min(minX, node.position.x);
+      maxX = Math.max(maxX, node.position.x + (node.measured?.width || 0));
+    }
 
-      // selection bounds
-      const boundsWidth = maxX - minX;
-      // const boundsHeight = maxY - minY;
+    // selection bounds
+    const boundsWidth = maxX - minX;
 
-      reactFlowInstance.setNodes((nds) =>
-        nds.map((node) => ({
-          ...node,
-          selected: nodeIds.includes(node.id) ? false : node.selected
-        }))
-      );
+    const newNodes = selectedNodes.map((node: Node<NodeData>) => ({
+      ...node,
+      id: uuidv4(),
+      position: {
+        x: node.position.x + boundsWidth + DUPLICATE_SPACING_X,
+        y: node.position.y
+      },
+      selected: true
+    }));
 
-      // duplicate nodes with offset based on bounds
-      nodeIds.forEach((nodeId) => {
-        const originalNode = reactFlowInstance.getNode(nodeId);
-        if (!originalNode) return;
+    for (const node of nodes) {
+      node.selected = false;
+    }
 
-        const newNodeId = uuidv4();
-        duplicatedNodesIds.push(newNodeId);
-
-        const newNode: Node = {
-          ...originalNode,
-          id: newNodeId,
-          position: {
-            x: originalNode.position.x + boundsWidth + DUPLICATE_SPACING_X,
-            y: originalNode.position.y
-          },
-          selected: true,
-          data: {
-            ...originalNode.data,
-            workflow_id: originalNode.data.workflow_id
-          } as NodeData
-        };
-
-        addNode({
-          ...newNode,
-          data: {
-            ...newNode.data,
-            properties: {},
-            selectable: true,
-            workflow_id: ""
-          }
-        } as Node<NodeData>);
-      });
-    },
-    [addNode, reactFlowInstance]
-  );
+    setNodes([...nodes, ...newNodes]);
+  }, [nodes, setNodes, getSelectedNodes]);
 };

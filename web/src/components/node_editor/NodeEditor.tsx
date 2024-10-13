@@ -160,14 +160,6 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ isMinZoom }) => {
   const duplicateNodes = useDuplicateNodes();
   const surroundWithGroup = useSurroundWithGroup();
 
-  /* DUPLICATE SELECTION */
-  const handleDuplicate = useCallback(() => {
-    const selectedNodeIds = getSelectedNodeIds();
-    if (selectedNodeIds.length) {
-      duplicateNodes(selectedNodeIds);
-    }
-  }, [getSelectedNodeIds, duplicateNodes]);
-
   /* SETTINGS */
   const settings = useSettingsStore((state) => state.settings);
 
@@ -296,9 +288,12 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ isMinZoom }) => {
   //   spaceKeyPressed: state.isKeyPressed(" ")
   // }));
 
-  useCombo(["Space", "a"], () => {
-    alignNodes({ arrangeSpacing: true });
-  });
+  useCombo(
+    ["Space", "a"],
+    useCallback(() => {
+      alignNodes({ arrangeSpacing: true });
+    }, [alignNodes])
+  );
 
   useCombo(["Meta", "a"], () => alignNodes({ arrangeSpacing: true }));
 
@@ -309,9 +304,9 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ isMinZoom }) => {
   useCombo(["Meta", "v"], handlePaste); // for mac
   useCombo(["Meta", "x"], handleCut); // for mac
 
-  useCombo(["Meta", "d"], handleDuplicate);
-  useCombo(["Alt", "d"], handleDuplicate);
-  useCombo(["Control", "d"], handleDuplicate);
+  useCombo(["Meta", "d"], duplicateNodes);
+  useCombo(["Alt", "d"], duplicateNodes);
+  useCombo(["Control", "d"], duplicateNodes);
 
   useCombo(
     ["Space", "g"],
@@ -469,7 +464,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ isMinZoom }) => {
     handleCopy,
     handlePaste,
     handleCut,
-    handleDuplicate,
+    duplicateNodes,
     surroundWithGroup,
     getSelectedNodeIds,
     openNodeMenu,

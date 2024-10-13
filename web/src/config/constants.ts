@@ -19,6 +19,6 @@ export const NOTIFICATIONS_LIST_MAX_ITEMS = 100;
 export const CHAT_HISTORY_AMOUNT = 10;
 
 // EDITOR
-export const DUPLICATE_SPACING_X = 200;
+export const DUPLICATE_SPACING_X = 50;
 export const MIN_ZOOM = 0.38;
 export const MAX_ZOOM = 3.5;
