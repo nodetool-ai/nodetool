@@ -39,11 +39,7 @@
   min-width: 35px;
 }
 
-/* Default and changed value */
-.value-default label {
-  color: var(--c_gray5) !important;
-}
-
+/* values */
 .value-changed .value {
   color: var(--c_hl1);
 }
@@ -147,10 +143,71 @@
   border: 0;
 }
 
-/* select */
- .node-property select::-ms-expand {
+/* REFACTORED PROPERTY STYLES */
+
+
+.property-label label{
+  font-weight: 300;
+  color: var(--c_gray6);
+  font-size: var(--font-size-smaller);
+}
+.image-property .property-label {
+  margin-bottom: 5px;
+}
+
+/* STRING */
+.string-property .container {
+  position: relative;
+  /* box-sizing: content-box; */
+  display: flex;
+  gap: 0.25em;
+  align-items: center;
+  width: 100%;
+  /* margin-bottom: 2px; */
+}
+.value-changed .string-property .expand-button {
+  
+  border-right: 2px solid var(--c_hl1);
+}
+
+.string-property input {
+  width: 100%;
+  outline: none;
+  margin: 0;
+  padding: 0 .5em;
+  color: var(--c_white);
+  background-color: var(--c_gray2);
+  border: none;
+  border-radius: .1em;
+  font-family: var(--font-family-1);
+  font-weight: 300;
+  font-size: var(--font-size-smaller);
+  line-height: 1.3em;
+}
+.string-property .expand-button {
+  cursor: pointer;
+  width: 1em;
+  height: auto;
+  font-size: 1em;
+  padding: 0 .5em;
+  display: flex;
+  justify-content: center;
+  border-radius: .1em;
+  border: none;
+  color: var(--c-gray6);
+  background-color: var(--c_gray2);
+  font-weight: bold;
+  transition: color 0.2s;
+}
+.string-property .expand-button:hover{
+  color: var(--c_hl1);
+}
+
+/* SELECT */
+.node-property select::-ms-expand {
   display: none;
 }
+
 .node-property select {
   /* appearance: none; */
   position: relative;
@@ -167,12 +224,144 @@
   font-size: var(--font-size-smaller);
   padding: 0.2em 0.1em;
 }
+
 .node-property select option {
   font-size: var(--font-size-bigger);
 }
+
 .node-property select option:checked,
 .node-property select option:active {
-  
-  color: var(--c_black);
-  background-color: var(--c_hl1);
+  color: var(--c_white);
+  background-color: var(--c_gray2);
+}
+.enum-property select,
+.model-property select {
+  width: 100%;
+  margin: .1em 0 0;
+  padding: 0;
+  background-color: var(--c_gray2);
+  color: var(--c_white);
+  border-radius: .1em;
+  font-family: var(--font-family-1);
+  font-size: var(--font-size-small);
+  /* box-sizing: content-box; */
+}
+.value-changed .enum-property select,
+.value-changed .model-property select  {
+  border-right: 2px solid var(--c_hl1);
+}
+.enum-property select option,
+.model-property select option {
+  background-color: var(--c_gray1);
+  padding: 2em 1em;
+}
+
+/* NUMBER */
+.number-input {
+  cursor: ew-resize !important;
+}
+
+.number-input label {
+  cursor: ew-resize !important;
+}
+
+.number-input .slider-value {
+  position: relative;
+  width: auto;
+  top: -1px;
+  left: 0;
+}
+
+.number-input .slider-value .name {
+  position: relative;
+  text-transform: uppercase;
+  display: block;
+  top: 1px;
+  width: 100%;
+  max-width: 200px;
+  min-height: 15px;
+  word-spacing: -0.3em;
+  margin-right: 45px;
+  white-space: normal;
+  padding-bottom: 3px;
+  line-height: 0.86em;
+}
+
+.number-input .slider-value .value {
+  position: absolute;
+  color: var(--c_gray6);
+  max-width: 80px;
+  height: 1em;
+  top: 0px;
+  right: 0px;
+  line-height: 1em;
+  font-family: var(--font_family2);
+  background-color: transparent;
+  padding: 0px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.value-changed .number-input .value {
+  color: var(--c_hl1);
+}
+.number-input .edit-value {
+  position: absolute;
+  outline: none;
+  color: var(--c_white);
+  background-color: var(--c_gray1);
+  border: none;
+  border-radius: 0;
+  font-family: var(--font_family2);
+  font-size: var(--font-size-smaller);
+  line-height: 1.5em;
+  width: 10px;  
+  height: 10px;
+  top: 2px;
+  right: 0;
+  margin: 0;
+  padding: 0 1em 0 0.2em;
+  text-align: right;
+  max-width: 100px;
+}
+
+.number-input .edit-value input::selection {
+  background-color: var(--c-hl1);
+}
+
+.number-input .MuiSlider-root .MuiSlider-thumb {
+  opacity: 0;
+}
+
+.number-input:hover .MuiSlider-root .MuiSlider-thumb {
+  opacity: 1;
+}
+
+.number-input .MuiSlider-root .MuiSlider-track {
+  background-color: transparent;
+  transition: background-color 0.2s 0.2s;
+}
+
+.number-input .MuiSlider-root:hover .MuiSlider-track,
+.number-input .MuiSlider-root:active .MuiSlider-track,
+.number-input .MuiSlider-root:focus .MuiSlider-track {
+  background-color: #8eaca733;
+  transition: background-color 0.2s 0s;
+}
+
+.number-input .range-container {
+  transition: opacity 0.2s;
+  position: absolute;
+  bottom: 0.4em;
+  width: calc(100% - 20px);
+  height: 2px;
+  border-radius: 2px;
+  font-size: 0.5em;
+  overflow: hidden;
+}
+
+.number-input .range-indicator {
+  position: absolute;
+  left: 0;
+  height: 2px;
+  min-width: 1px;
 }

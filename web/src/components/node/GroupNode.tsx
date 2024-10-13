@@ -104,7 +104,7 @@ const styles = (theme: any, minWidth: number, minHeight: number) =>
         padding: ".1em 0 0 .2em",
         border: 0,
         fontSize: theme.fontSizeGiant,
-        textShadow: "0 0 2px #2b2b2b",
+        // textShadow: "0 0 2px #2b2b2b",
         fontWeight: 300
       }
     },
@@ -297,7 +297,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
             onChange={handleHeadlineChange}
             onFocus={onFocus}
             onBlur={onBlur}
-            placeholder="Group"
+            placeholder=""
           />
         </div>
         <div className="workflow-actions">

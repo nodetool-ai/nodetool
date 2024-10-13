@@ -20,13 +20,14 @@
   cursor: default !important;
   padding: 0;
   border-radius: 0.3em;
-  background-color: var(--c_node_bg);
+  background-color: transparent;
   transition: background-color 0.05s;
   box-shadow: 0.1em 0.1em 0.5em 0px rgba(30, 30, 30, 0.4);
 }
 
-.react-flow__node.has-parent {
-  background-color: var(--c_node_bg_group);
+.react-flow__node .node-body.has-parent {
+  background-color: rgba(55, 55, 55, 0.65) !important;
+
 }
 
 /* Node header */
@@ -125,174 +126,6 @@
 
 .react-flow.zoomed-out .comment-node input {
   font-size: 2.5em;
-}
-
-.image-property .property-label {
-  margin-bottom: 5px;
-}
-
-.string-property .container {
-  position: relative;
-  display: flex;
-  gap: 0.5em;
-  align-items: center;
-  width: 100%;
-}
-.string-property input {
-  outline: none;
-  margin: 3px 0;
-  padding: 3px 6px;
-  color: var(--c_white);
-  background-color: var(--c_gray1);
-  border: 1px solid var(--c-gray2);
-  border-radius: 3px;
-  font-family: var(--font-family-1);
-  font-size: var(--font-size-smaller);
-  line-height: 1.5em;
-  width: calc(100% - 2em);
-}
-.string-property .expand-button {
-  cursor: pointer;
-  width: 1em;
-  height: 1em;
-  font-size: 1em;
-  padding: 0;
-  border: none;
-  color: var(--c-gray6);
-  background-color: var(--c-gray2);
-  font-weight: bold;
-}
-.string-property .expand-button:hover {
-  color: var(--c-hl1);
-  background-color: var(--c-gray1);
-}
-
-.model-property select {
-  margin: 3px 0;
-  padding: 3px 6px;
-  width: 100%;
-  background-color: var(--c_gray1);
-  color: var(--c_white);
-  border: 1px solid var(--c-gray2);
-  border-radius: 3px;
-  font-family: var(--font-family-1);
-  font-size: var(--font-size-small);
-}
-.enum-property select {
-  width: 100%;
-  margin: 3px 0;
-  padding: 3px 3px;
-  background-color: var(--c_gray1);
-  color: var(--c_white);
-  border: 1px solid var(--c-gray2);
-  border-radius: 3px;
-  font-family: var(--font-family-1);
-  font-size: var(--font-size-small);
-}
-
-.number-input {
-  cursor: ew-resize !important;
-}
-
-.number-input label {
-  cursor: ew-resize !important;
-}
-
-.number-input .slider-value {
-  position: relative;
-  width: auto;
-  top: -1px;
-  left: 0;
-}
-
-.number-input .slider-value .name {
-  position: relative;
-  text-transform: uppercase;
-  display: block;
-  top: 1px;
-  width: 100%;
-  max-width: 200px;
-  min-height: 15px;
-  word-spacing: -0.3em;
-  margin-right: 45px;
-  white-space: normal;
-  padding-bottom: 3px;
-  line-height: 0.86em;
-}
-
-.number-input .slider-value .value {
-  position: absolute;
-  max-width: 80px;
-  height: 1em;
-  top: 2px;
-  right: 0px;
-  line-height: 1em;
-  background-color: transparent;
-  padding: 0px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.number-input .edit-value {
-  position: absolute;
-  outline: none;
-  color: var(--c_white);
-  background-color: var(--c_gray1);
-  border: 1px solid var(--c-gray2);
-  border-radius: 0;
-  font-family: var(--font-family-1);
-  font-size: var(--font-size-smaller);
-  line-height: 1.5em;
-  width: 40px;
-  height: 10px;
-  top: 0px;
-  right: 0px;
-  margin: 0;
-  padding: 0 1em 0 0.2em;
-  text-align: right;
-  max-width: 100px;
-}
-
-.number-input .edit-value input::selection {
-  background-color: var(--c-hl1);
-}
-
-.number-input .MuiSlider-root .MuiSlider-thumb {
-  opacity: 0;
-}
-
-.number-input:hover .MuiSlider-root .MuiSlider-thumb {
-  opacity: 1;
-}
-
-.number-input .MuiSlider-root .MuiSlider-track {
-  background-color: transparent;
-  transition: background-color 0.2s 0.2s;
-}
-
-.number-input .MuiSlider-root:hover .MuiSlider-track,
-.number-input .MuiSlider-root:active .MuiSlider-track,
-.number-input .MuiSlider-root:focus .MuiSlider-track {
-  background-color: #8eaca733;
-  transition: background-color 0.2s 0s;
-}
-
-.number-input .range-container {
-  transition: opacity 0.2s;
-  position: absolute;
-  bottom: 0.4em;
-  width: calc(100% - 20px);
-  height: 2px;
-  border-radius: 2px;
-  font-size: 0.5em;
-  overflow: hidden;
-}
-
-.number-input .range-indicator {
-  position: absolute;
-  left: 0;
-  height: 2px;
-  min-width: 1px;
 }
 
 @keyframes gradientAnimation {
