@@ -245,7 +245,7 @@
 .enum-property select,
 .model-property select {
   width: 100%;
-  margin: 0.1em 0 0;
+  margin: 0;
   padding: 0;
   background-color: var(--c_gray2);
   color: var(--c_white);
@@ -267,6 +267,7 @@
 .model-property select option {
   background-color: var(--c_gray1);
   padding: 2em 1em;
+  font-size: var(--font-size-bigger);
 }
 
 /* NUMBER */
