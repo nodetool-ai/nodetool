@@ -142,15 +142,10 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
           data={nodeData || {}}
           onlyFields={false}
           onlyHandles={false}
-          edges={relevantEdges}
         />
       )}
       <NodeOutputs id={props.id} outputs={mockMetadata.outputs} />
-      <NodeFooter
-        nodeNamespace={nodeNamespace || ""}
-        type={nodeType || ""}
-        metadata={mockMetadata}
-      />
+      <NodeFooter nodeNamespace={nodeNamespace || ""} metadata={mockMetadata} />
     </Container>
   );
 };
