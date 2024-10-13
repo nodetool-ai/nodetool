@@ -81,6 +81,7 @@
 .node-body.collapsed .process-timer,
 .node-body.collapsed .node-logs,
 .node-body.collapsed .audio-controls-container,
+.node-body.collapsed .node-property select,
 .node-body.collapsed .MuiSwitch-root {
   visibility: hidden;
   display: none;
