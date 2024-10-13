@@ -20,7 +20,6 @@ import FileProperty from "../properties/FileProperty";
 import AssetProperty from "../properties/AssetProperty";
 import FolderProperty from "../properties/FolderProperty";
 import WorkflowProperty from "../properties/WorkflowProperty";
-import NodeListProperty from "../properties/NodeListProperty";
 import WorkflowListProperty from "../properties/WorkflowListProperty";
 import NonEditableProperty from "../properties/NonEditableProperty";
 import DataframeProperty from "../properties/DataframeProperty";
@@ -132,8 +131,6 @@ function handleListType(
     switch (type_args[0].type) {
       case "workflow":
         return WorkflowListProperty;
-      case "node":
-        return NodeListProperty;
     }
   }
   return ListProperty;
