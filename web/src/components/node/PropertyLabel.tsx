@@ -2,6 +2,7 @@
 import React, { useMemo } from "react";
 import { css } from "@emotion/react";
 import InputLabel from "@mui/material/InputLabel";
+import { titleizeString } from "../../utils/titleizeString";
 // import Tooltip from "@mui/material/Tooltip";
 // import {
 //   TOOLTIP_ENTER_DELAY,
@@ -18,12 +19,14 @@ interface PropertyLabelProps {
 const PropertyLabel: React.FC<PropertyLabelProps> = React.memo(
   ({ id, name, description }) => {
     const formattedName = useMemo(() => {
-      return name
-        .split("_")
-        .map(
-          (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
-        )
-        .join(" ");
+      return titleizeString(name);
+      // console.log("titleize param", name);
+      // return name
+      //   .split("_")
+      //   .map(
+      //     (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+      //   )
+      //   .join(" ");
     }, [name]);
 
     return (
