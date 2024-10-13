@@ -3,6 +3,7 @@ import { persist } from "zustand/middleware";
 import { client } from "./ApiClient";
 import { Workflow, WorkflowList, WorkflowRequest } from "./ApiTypes";
 import { QueryClient, QueryKey } from "@tanstack/react-query";
+import { uuidv4 } from "./uuidv4";
 
 export interface WorkflowStore {
   shouldFitToScreen: boolean;
@@ -96,9 +97,15 @@ export const useWorkflowStore = create<WorkflowStore>()(
        */
       add: (workflow: Workflow) => {
         const unsavedWorkflow = get().unsavedWorkflows[workflow.id];
-        if (unsavedWorkflow && new Date(unsavedWorkflow.updated_at) > new Date(workflow.updated_at)) {
+        if (
+          unsavedWorkflow &&
+          new Date(unsavedWorkflow.updated_at) > new Date(workflow.updated_at)
+        ) {
           // Use the unsaved version if it's more recent
-          get().queryClient?.setQueryData(["workflows", workflow.id], unsavedWorkflow);
+          get().queryClient?.setQueryData(
+            ["workflows", workflow.id],
+            unsavedWorkflow
+          );
         } else {
           get().queryClient?.setQueryData(["workflows", workflow.id], workflow);
         }
@@ -111,10 +118,14 @@ export const useWorkflowStore = create<WorkflowStore>()(
        */
       getFromCache: (id: string) => {
         const unsavedWorkflow = get().unsavedWorkflows[id];
-        const cachedWorkflow = get().queryClient?.getQueryData(["workflows", id]) as Workflow | undefined;
+        const cachedWorkflow = get().queryClient?.getQueryData([
+          "workflows",
+          id
+        ]) as Workflow | undefined;
 
         if (unsavedWorkflow && cachedWorkflow) {
-          return new Date(unsavedWorkflow.updated_at) > new Date(cachedWorkflow.updated_at)
+          return new Date(unsavedWorkflow.updated_at) >
+            new Date(cachedWorkflow.updated_at)
             ? unsavedWorkflow
             : cachedWorkflow;
         }
@@ -288,13 +299,18 @@ export const useWorkflowStore = create<WorkflowStore>()(
        * @returns A promise that resolves to the newly created Workflow.
        */
       copy: async (workflow: Workflow) => {
-        return await get().create({
+        const newWorkflow = {
+          id: uuidv4(),
           name: workflow.name,
           description: workflow.description,
           thumbnail: workflow.thumbnail,
           access: "private",
-          graph: workflow.graph
-        });
+          graph: workflow.graph,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+        get().addUnsavedWorkflow(newWorkflow);
+        return newWorkflow;
       },
 
       /**
@@ -316,7 +332,7 @@ export const useWorkflowStore = create<WorkflowStore>()(
     }),
     {
       name: "workflow-storage",
-      partialize: (state) => ({ unsavedWorkflows: state.unsavedWorkflows }),
+      partialize: (state) => ({ unsavedWorkflows: state.unsavedWorkflows })
     }
   )
 );

@@ -53,23 +53,18 @@ type NodeSelection = {
   edges: Edge[];
 };
 
-function sanitizeNodes(nodes: Node<NodeData>[]): Node<NodeData>[] {
-  const nodeMap = new Map(nodes.map((node) => [node.id, node]));
+const DEFAULT_NODE_WIDTH = 140;
 
-  return nodes.map((node) => {
-    const sanitizedNode = { ...node };
-
-    // Check for parentId
-    if (sanitizedNode.parentId && !nodeMap.has(sanitizedNode.parentId)) {
-      devWarn(
-        `Node ${sanitizedNode.id} references non-existent parent ${sanitizedNode.parentId}. Removing parent reference.`
-      );
-      delete sanitizedNode.parentId;
-    }
-
-    return sanitizedNode;
-  });
-}
+const graphEdgeToReactFlowEdge = (edge: GraphEdge): Edge => {
+  return {
+    id: edge.id || uuidv4(),
+    source: edge.source,
+    sourceHandle: edge.sourceHandle,
+    target: edge.target,
+    targetHandle: edge.targetHandle,
+    className: edge.ui_properties?.className
+  };
+};
 
 export function graphNodeToReactFlowNode(
   workflow: Workflow,
@@ -96,7 +91,7 @@ export function graphNodeToReactFlowNode(
     },
     position: ui_properties?.position || { x: 0, y: 0 },
     style: {
-      width: ui_properties?.width,
+      width: ui_properties?.width || DEFAULT_NODE_WIDTH,
       height: ui_properties?.height
     },
     zIndex:
@@ -123,8 +118,7 @@ export function reactFlowNodeToGraphNode(node: Node<NodeData>): GraphNode {
     node.type === "nodetool.workflows.base_node.Comment" ||
     node.type === "nodetool.workflows.base_node.Preview"
   ) {
-    ui_properties.width = node.measured?.width || 200;
-    ui_properties.height = node.measured?.height || 200;
+    ui_properties.width = node.measured?.width || DEFAULT_NODE_WIDTH;
   }
 
   if (node.type === "nodetool.group.Loop") {
@@ -209,8 +203,12 @@ export interface NodeStore {
     srcMetadata: NodeMetadata,
     targetMetadata: NodeMetadata
   ) => boolean;
+  sanitizeGraph: (
+    nodes: Node<NodeData>[],
+    edges: Edge[],
+    metadata: Record<string, NodeMetadata>
+  ) => { nodes: Node<NodeData>[]; edges: Edge[] };
   workflowJSON: () => string;
-  loadJSON: (json: string) => void;
   createNode: (
     metadata: NodeMetadata,
     position: XYPosition,
@@ -363,6 +361,11 @@ export const useNodeStore = create<NodeStore>()(
        * @param id The id of the node to delete.
        */
       deleteNode: (id: string) => {
+        const nodeToDelete = get().findNode(id);
+        if (!nodeToDelete) {
+          console.warn(`Node with id ${id} not found`);
+          return;
+        }
         const focusedElement = document.activeElement as HTMLElement;
         if (
           focusedElement.classList.contains("MuiInput-input") ||
@@ -399,14 +402,6 @@ export const useNodeStore = create<NodeStore>()(
       },
 
       /**
-       * Load a workflow from a JSON string.
-       */
-      loadJSON: (json: string) => {
-        const workflow = JSON.parse(json) as Workflow;
-        get().setWorkflow(workflow);
-      },
-
-      /**
        * Set the explicit save flag.
        */
       setExplicitSave: (value: boolean) => {
@@ -429,31 +424,33 @@ export const useNodeStore = create<NodeStore>()(
        * Set the current workflow.
        */
       setWorkflow: (workflow: Workflow) => {
+        console.log("setWorkflow", workflow);
+
         get().syncWithWorkflowStore();
 
-        const generateEdgeId = get().generateEdgeId;
         const shouldAutoLayout = get().shouldAutoLayout;
-        const graphEdgeToReactFlowEdge = (edge: GraphEdge): Edge => {
-          return {
-            id: edge.id || generateEdgeId(),
-            source: edge.source,
-            sourceHandle: edge.sourceHandle,
-            target: edge.target,
-            targetHandle: edge.targetHandle,
-            className: edge.ui_properties?.className
-          };
-        };
+        const metadata = useMetadataStore.getState().metadata;
+
+        if (!metadata) {
+          throw new Error("Metadata not loaded");
+        }
 
         const unsanitizedNodes = (workflow.graph?.nodes || []).map(
           (n: GraphNode) => graphNodeToReactFlowNode(workflow, n)
         );
-        const sanitizedNodes = sanitizeNodes(unsanitizedNodes);
+        const unsanitizedEdges = (workflow.graph?.edges || []).map(
+          (e: GraphEdge) => graphEdgeToReactFlowEdge(e)
+        );
+        console.log("metadata", metadata);
+
+        const { nodes: sanitizedNodes, edges: sanitizedEdges } =
+          get().sanitizeGraph(unsanitizedNodes, unsanitizedEdges, metadata);
 
         set({
           workflow: workflow,
           lastWorkflow: workflow,
           shouldAutoLayout: false,
-          edges: (workflow.graph?.edges || []).map(graphEdgeToReactFlowEdge),
+          edges: sanitizedEdges,
           nodes: sanitizedNodes
         });
 
@@ -577,7 +574,8 @@ export const useNodeStore = create<NodeStore>()(
        */
       addNode: (node: Node<NodeData>) => {
         if (get().findNode(node.id)) {
-          throw Error("node already exists");
+          console.warn(`Node with id ${node.id} already exists`);
+          return;
         }
         node.data.dirty = true;
         node.expandParent = true;
@@ -880,7 +878,12 @@ export const useNodeStore = create<NodeStore>()(
         srcMetadata: NodeMetadata,
         targetMetadata: NodeMetadata
       ) => {
-        if (!srcMetadata || !targetMetadata) {
+        if (
+          !srcMetadata ||
+          !targetMetadata ||
+          !connection.sourceHandle ||
+          !connection.targetHandle
+        ) {
           return false;
         }
         const edges = get().edges;
@@ -915,6 +918,50 @@ export const useNodeStore = create<NodeStore>()(
       connectionAttempted: false,
       setConnectionAttempted: (value: boolean) => {
         set({ connectionAttempted: value });
+      },
+
+      sanitizeGraph: (
+        nodes: Node<NodeData>[],
+        edges: Edge[],
+        metadata: Record<string, NodeMetadata>
+      ): { nodes: Node<NodeData>[]; edges: Edge[] } => {
+        const nodeMap = new Map(nodes.map((node) => [node.id, node]));
+        const sanitizedNodes = nodes.map((node) => {
+          const sanitizedNode = { ...node };
+          if (sanitizedNode.parentId && !nodeMap.has(sanitizedNode.parentId)) {
+            devWarn(
+              `Node ${sanitizedNode.id} references non-existent parent ${sanitizedNode.parentId}. Removing parent reference.`
+            );
+            delete sanitizedNode.parentId;
+          }
+
+          return sanitizedNode;
+        });
+        const sanitizedEdges = edges.reduce((acc, edge) => {
+          const sourceNode = nodeMap.get(edge.source);
+          const targetNode = nodeMap.get(edge.target);
+          if (sourceNode && targetNode && sourceNode.type && targetNode.type) {
+            const sourceMetadata = metadata[sourceNode.type];
+            const targetMetadata = metadata[targetNode.type];
+            if (!sourceMetadata || !targetMetadata) {
+              return acc;
+            }
+            if (
+              sourceMetadata.outputs.some(
+                (output) => output.name === edge.sourceHandle
+              ) &&
+              targetMetadata.properties.some(
+                (prop) => prop.name === edge.targetHandle
+              )
+            ) {
+              acc.push(edge);
+            }
+          }
+          return acc;
+        }, [] as Edge[]);
+        console.log("sanitizedEdges", sanitizedEdges);
+
+        return { nodes: sanitizedNodes, edges: sanitizedEdges };
       },
       /**
        * Handle a connection between two nodes.

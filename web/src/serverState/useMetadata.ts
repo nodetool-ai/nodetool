@@ -79,11 +79,6 @@ export const useMetadata = () =>
     staleTime: 1000 * 60 * 60 * 24
   });
 
-// export const useMetadatas = () => {
-//   const { data } = useFetchMetadata();
-//   return data?.metadata || [];
-// };
-
 export const useMetadataOrNull = (nodeType: string) => {
   const { data } = useMetadata();
   return data?.metadataByType[nodeType];
