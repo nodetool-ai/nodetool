@@ -2,7 +2,7 @@
 import { css, useTheme } from "@emotion/react";
 
 import ReactDOM from "react-dom";
-import { useCallback, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import TextareaAutosize from "react-textarea-autosize";
 import { useClipboard } from "../../hooks/browser/useClipboard";
 import CloseIcon from "@mui/icons-material/Close";
@@ -135,7 +135,6 @@ export default function TextEditorModal({
   const modalOverlayRef = useRef<HTMLDivElement>(null);
   const { writeClipboard } = useClipboard();
 
-  // Focus the textarea when the modal opens, but only if not loading
   useEffect(() => {
     if (textareaRef.current && !isLoading) {
       textareaRef.current.focus();

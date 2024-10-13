@@ -82,7 +82,7 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
           backgroundColor: colorForType(property.type.type),
           color: textColorForType(property.type.type),
           borderRadius: ".5em",
-          fontSize: ThemeNodetool.fontSizeSmall
+          fontSize: ThemeNodetool.fontSizeBig
         }}
       >
         {property.name}:{typeToString(property.type)}

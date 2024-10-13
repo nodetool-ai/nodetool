@@ -72,7 +72,7 @@ const NodeOutput: React.FC<NodeOutputProps> = ({ id, output }) => {
           backgroundColor: colorForType(output.type.type),
           color: textColorForType(output.type.type),
           borderRadius: ".5em",
-          fontSize: ThemeNodetool.fontSizeSmall
+          fontSize: ThemeNodetool.fontSizeBig
         }}
       >
         {output.name} :{typeToString(output.type)}
