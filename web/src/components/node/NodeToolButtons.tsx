@@ -10,7 +10,8 @@ import { useNodeStore, NodeStore } from "../../stores/NodeStore";
 import { useDuplicateNodes } from "../../hooks/useDuplicate";
 import { useCopyPaste } from "../../hooks/handlers/useCopyPaste";
 import { useRemoveFromGroup } from "../../hooks/nodes/useRemoveFromGroup";
-
+import { NodeData } from "../../stores/NodeData";
+import { Node } from "@xyflow/react";
 interface NodeToolbarProps {
   nodeId: string | null;
 }
@@ -46,7 +47,7 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
     <Toolbar variant="dense">
       {node?.parentId && (
         <Tooltip title="Remove from Group">
-          <IconButton onClick={() => removeFromGroup([node.id])}>
+          <IconButton onClick={() => removeFromGroup([node as Node<NodeData>])}>
             <GroupRemoveIcon />
           </IconButton>
         </Tooltip>
@@ -62,7 +63,7 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
         </IconButton>
       </Tooltip>
       <Tooltip title="Delete (Backspace | Del)">
-        <IconButton onClick={handleDelete}>
+        <IconButton className="delete" onClick={handleDelete}>
           <RemoveCircleIcon />
         </IconButton>
       </Tooltip>
