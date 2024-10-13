@@ -24,7 +24,7 @@ import {
   ToggleButtonGroup
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
-import { onFocus } from "../../stores/KeyPressedStore";
+import { onBlur, onFocus } from "../../stores/KeyPressedStore";
 
 function Inputs() {
   const [radioValue, setRadioValue] = useState("option1");
