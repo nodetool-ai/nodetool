@@ -28,7 +28,7 @@ export const useDuplicateNodes = () => {
       ...node,
       id: uuidv4(),
       position: {
-        x: node.position.x + boundsWidth + DUPLICATE_SPACING_X,
+        x: node.position.x + boundsWidth,
         y: node.position.y
       },
       selected: true
