@@ -9,6 +9,7 @@ import AssetViewer from "../assets/AssetViewer";
 import WaveRecorder from "../audio/WaveRecorder";
 import AudioPlayer from "../audio/AudioPlayer";
 import { PropertyProps } from "../node/PropertyInput";
+import { onBlur, onFocus } from "../../stores/KeyPressedStore";
 
 interface PropertyDropzoneProps {
   asset: Asset | undefined;
@@ -197,6 +198,8 @@ const PropertyDropzone = ({
             autoCorrect="off"
             autoCapitalize="off"
             spellCheck="false"
+            onFocus={onFocus}
+            onBlur={onBlur}
             onChange={(e) =>
               onChange({ uri: e.target.value, type: contentType })
             }

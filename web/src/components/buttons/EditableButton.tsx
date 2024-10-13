@@ -5,6 +5,7 @@ import { useWorkflowStore } from "../../stores/WorkflowStore";
 import { useNodeStore } from "../../stores/NodeStore";
 import { devLog } from "../../utils/DevLog";
 import { MenuItem } from "@mui/material";
+import { onBlur, onFocus } from "../../stores/KeyPressedStore";
 
 type EditWorkflowButtonProps = {
   workflow: Workflow;
@@ -55,6 +56,7 @@ function EditWorkflowButton({
           }}
           value={workflowName}
           variant="filled"
+          onFocus={onFocus}
           onKeyDown={(e) => {
             if (e.key === "Enter") {
               setIsEditing(false);
@@ -63,6 +65,7 @@ function EditWorkflowButton({
           }}
           onChange={(e) => setWorkflowName(e.target.value)}
           onBlur={() => {
+            onBlur();
             setIsEditing(false);
             saveWorkflow();
           }}

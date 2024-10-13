@@ -26,6 +26,7 @@ import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { isProduction } from "../../stores/ApiClient";
 import RemoteSettingsMenu from "./RemoteSettingsMenu";
 import { useNotificationStore } from "../../stores/NotificationStore";
+import { onBlur, onFocus } from "../../stores/KeyPressedStore";
 
 const styles = (theme: any) =>
   css({
@@ -348,6 +349,8 @@ function SettingsMenu() {
               label="Grid Snap Precision"
               value={settings.gridSnap}
               onChange={(e) => setGridSnap(Number(e.target.value))}
+              onFocus={onFocus}
+              onBlur={onBlur}
               variant="standard"
               InputLabelProps={{
                 shrink: true
@@ -367,6 +370,8 @@ function SettingsMenu() {
               label="Connection Snap Range"
               value={settings.connectionSnap}
               onChange={(e) => setConnectionSnap(Number(e.target.value))}
+              onFocus={onFocus}
+              onBlur={onBlur}
               variant="standard"
             />
             <Typography className="description">
@@ -426,6 +431,8 @@ function SettingsMenu() {
               label="Asset item size"
               value={settings.assetItemSize}
               onChange={(e) => setAssetItemSize(Number(e.target.value))}
+              onFocus={onFocus}
+              onBlur={onBlur}
               variant="standard"
               InputLabelProps={{
                 shrink: true

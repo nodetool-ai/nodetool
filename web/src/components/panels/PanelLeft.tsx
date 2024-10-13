@@ -46,19 +46,7 @@ const PanelLeft: React.FC = () => {
 
   const workflowId = useNodeStore((state) => state.workflow.id);
 
-  useCombo(
-    ["1"],
-    useCallback(() => {
-      if (
-        document.activeElement &&
-        document.activeElement.tagName.toLowerCase() !== "input" &&
-        document.activeElement.tagName.toLowerCase() !== "div" &&
-        document.activeElement.tagName.toLowerCase() !== "textarea"
-      ) {
-        handlePanelToggle();
-      }
-    }, [handlePanelToggle])
-  );
+  useCombo(["1"], handlePanelToggle);
 
   const handleTabChange = useCallback(
     (event: React.SyntheticEvent, newValue: number) => {

@@ -4,7 +4,7 @@ import { PropertyProps } from "../node/PropertyInput";
 import TextEditorModal from "./TextEditorModal";
 import { TOOLTIP_ENTER_DELAY } from "../node/BaseNode";
 import { Tooltip } from "@mui/material";
-
+import { onFocus, onBlur } from "../../stores/KeyPressedStore";
 export default function StringProperty({
   property,
   propertyIndex,
@@ -40,6 +40,8 @@ export default function StringProperty({
           className="nodrag"
           value={value || ""}
           onChange={handleChange}
+          onFocus={onFocus}
+          onBlur={onBlur}
           autoComplete="off"
           autoCorrect="off"
           autoCapitalize="off"

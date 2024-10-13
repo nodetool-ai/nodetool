@@ -1,5 +1,10 @@
 import React, { useState, useEffect, useCallback, memo, useMemo } from "react";
-import { useCombo, useKeyPressedStore } from "../../stores/KeyPressedStore";
+import {
+  onBlur,
+  onFocus,
+  useCombo,
+  useKeyPressedStore
+} from "../../stores/KeyPressedStore";
 import PropertyLabel from "../node/PropertyLabel";
 import { TextField } from "@mui/material";
 import ThemeNodes from "../themes/ThemeNodes";
@@ -181,29 +186,48 @@ const EditableInput: React.FC<{
   onBlur: () => void;
   onFocus: (event: React.FocusEvent<HTMLInputElement>) => void;
   isDefault: boolean;
-}> = ({ value, onChange, onBlur, onFocus, isDefault }) => (
-  <TextField
-    type="text"
-    className={`edit-value nodrag${isDefault ? " default" : ""}`}
-    inputProps={{
-      className: "edit-value-input",
-      style: { width: Math.max(value.length * 9, 12) }
-    }}
-    variant="standard"
-    value={value}
-    onChange={onChange}
-    onBlur={onBlur}
-    onFocus={onFocus}
-    autoFocus
-    onKeyDown={(e) => {
-      if (e.key === "Enter" || e.code === "NumpadEnter") {
-        e.preventDefault();
-        e.stopPropagation();
-        onBlur();
-      }
-    }}
-  />
-);
+}> = ({
+  value,
+  onChange,
+  onBlur: onBlurProp,
+  onFocus: onFocusProp,
+  isDefault
+}) => {
+  const _onFocus = useCallback(
+    (event: React.FocusEvent<HTMLInputElement>) => {
+      onFocusProp(event);
+      onFocus();
+    },
+    [onFocusProp]
+  );
+
+  const _onBlur = useCallback(() => {
+    onBlurProp();
+    onBlur();
+  }, [onBlurProp]);
+
+  return (
+    <input
+      type="text"
+      className={`edit-value nodrag${
+        isDefault ? " default" : ""
+      } edit-value-input`}
+      style={{ width: `${Math.max(value.length * 5, 40)}px` }}
+      value={value}
+      onChange={onChange}
+      onBlur={_onBlur}
+      onFocus={_onFocus}
+      autoFocus
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.code === "NumpadEnter") {
+          e.preventDefault();
+          e.stopPropagation();
+          onBlur();
+        }
+      }}
+    />
+  );
+};
 
 const DisplayValue: React.FC<{
   value: number;
