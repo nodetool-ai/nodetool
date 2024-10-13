@@ -12,8 +12,12 @@
   max-width: 250px;
   min-height: 15px;
   border: 0;
-  padding: 0.25em 0.75em;
-  margin: 1px 0 0;
+  padding: 0 0.75em;
+  margin: 3px 0 5px;
+}
+
+.node-property .react-flow__handle {
+  margin-top: 1px;
 }
 
 .node-output {
@@ -56,19 +60,27 @@
 }
 
 /* Property tooltip */
-.property-tooltip {
-  background-color: var(--c_gray1) !important;
-  border: 1px solid var(--c_gray2);
-}
-
-.property-tooltip span {
-  font-family: var(--font_family);
+.property-label [role~="tooltip"][data-microtip-position|="bottom"]::after {
+  position: absolute;
+  bottom: 2.2em;
+  top: unset;
+  left: 50px;
+  transform: none;
+  background: var(--c_gray2);
+  color: var(--c-white);
+  font-family: var(--font-family-1);
+  line-height: 1.5em;
+  padding: 0.75em 0.75em;
+  display: block;
+  z-index: 1000;
+  max-width: 250px;
+  word-wrap: break-word;
+  white-space: normal;
   font-size: var(--font-size-normal);
-  color: var(--c_white) !important;
-  display: inline-block;
-  white-space: pre-wrap;
-  text-align: left;
-  line-height: 1.2em;
+  pointer-events: none;
+  transition: none;
+  /* transition: all var(--microtip-transition-duration)
+    var(--microtip-transition-easing) 0.1s; */
 }
 
 /* Textarea */
@@ -82,7 +94,7 @@
   max-width: 100%;
   overflow-y: auto !important;
   margin-top: 0.2em;
-  padding: 0.2em .5em;
+  padding: 0.2em 0.5em;
   font-family: var(--font_family);
   font-size: var(--font-size-tiny);
   line-height: 1.1em;
@@ -119,7 +131,7 @@
 .dropzone p.centered {
   margin: auto;
   text-align: left;
-  padding: .4em .5em 0;
+  padding: 0.4em 0.5em 0;
   min-width: 60px;
   min-height: 14px;
   line-height: 1.1em;
@@ -145,11 +157,13 @@
 
 /* REFACTORED PROPERTY STYLES */
 
-
-.property-label label{
+.property-label label {
   font-weight: 300;
   color: var(--c_gray6);
-  font-size: var(--font-size-smaller);
+  font-family: var(--font-family-1);
+  font-size: var(--font-size-normal);
+  padding: 0;
+  margin: 0;
 }
 .image-property .property-label {
   margin-bottom: 5px;
@@ -166,7 +180,6 @@
   /* margin-bottom: 2px; */
 }
 .value-changed .string-property .expand-button {
-  
   border-right: 2px solid var(--c_hl1);
 }
 
@@ -174,14 +187,14 @@
   width: 100%;
   outline: none;
   margin: 0;
-  padding: 0 .5em;
+  padding: 0 0.5em;
   color: var(--c_white);
   background-color: var(--c_gray2);
   border: none;
-  border-radius: .1em;
+  border-radius: 0.1em;
   font-family: var(--font-family-1);
   font-weight: 300;
-  font-size: var(--font-size-smaller);
+  font-size: var(--font-size-normal);
   line-height: 1.3em;
 }
 .string-property .expand-button {
@@ -189,17 +202,17 @@
   width: 1em;
   height: auto;
   font-size: 1em;
-  padding: 0 .5em;
+  padding: 0 0.5em;
   display: flex;
   justify-content: center;
-  border-radius: .1em;
+  border-radius: 0.1em;
   border: none;
   color: var(--c-gray6);
   background-color: var(--c_gray2);
   font-weight: bold;
   transition: color 0.2s;
 }
-.string-property .expand-button:hover{
+.string-property .expand-button:hover {
   color: var(--c_hl1);
 }
 
@@ -221,12 +234,8 @@
   cursor: inherit;
   line-height: inherit;
   outline: none;
-  font-size: var(--font-size-smaller);
+  font-size: var(--font-size-normal);
   padding: 0.2em 0.1em;
-}
-
-.node-property select option {
-  font-size: var(--font-size-bigger);
 }
 
 .node-property select option:checked,
@@ -237,17 +246,22 @@
 .enum-property select,
 .model-property select {
   width: 100%;
-  margin: .1em 0 0;
+  margin: 0.1em 0 0;
   padding: 0;
   background-color: var(--c_gray2);
   color: var(--c_white);
-  border-radius: .1em;
+  border-radius: 0.1em;
   font-family: var(--font-family-1);
-  font-size: var(--font-size-small);
+  font-size: var(--font-size-normal);
   /* box-sizing: content-box; */
 }
+.enum-property select:hover,
+.model-property select:hover {
+  background-color: var(--c_gray3);
+}
+
 .value-changed .enum-property select,
-.value-changed .model-property select  {
+.value-changed .model-property select {
   border-right: 2px solid var(--c_hl1);
 }
 .enum-property select option,
@@ -263,6 +277,11 @@
 
 .number-input label {
   cursor: ew-resize !important;
+}
+
+.number-input .value {
+  margin-top: 3px;
+  font-size: var(--font-size-normal);
 }
 
 .number-input .slider-value {
@@ -312,14 +331,14 @@
   border: none;
   border-radius: 0;
   font-family: var(--font_family2);
-  font-size: var(--font-size-smaller);
+  font-size: var(--font-size-normal);
   line-height: 1.5em;
-  width: 10px;  
-  height: 10px;
+  width: 10px;
+  height: 12px;
   top: 2px;
   right: 0;
   margin: 0;
-  padding: 0 1em 0 0.2em;
+  padding: 0 10px 0 10px;
   text-align: right;
   max-width: 100px;
 }
