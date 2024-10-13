@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { Message } from "./ApiTypes";
 import { ToolCall } from "./ApiTypes";
 import { tutorials, useTutorialStore } from "./TutorialStore";
+import { BASE_URL } from "./ApiClient";
 
 interface ChatStore {
   messages: Message[];
@@ -24,21 +25,16 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     const messages = get().messages.concat(message);
     get().addMessages([message]);
     try {
-      const response = await fetch(
-        // "http://localhost:8000/api/messages/help",
-        // "http://dev.nodetool.ai:8000/api/messages/help",
-        "https://api.nodetool.ai/api/messages/help",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            messages,
-            available_tutorials: Object.keys(tutorials)
-          })
-        }
-      );
+      const response = await fetch(BASE_URL + "/api/messages/help", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          messages,
+          available_tutorials: Object.keys(tutorials)
+        })
+      });
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
