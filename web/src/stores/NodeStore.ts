@@ -107,19 +107,10 @@ export function reactFlowNodeToGraphNode(node: Node<NodeData>): GraphNode {
     selected: node.selected,
     position: node.position,
     zIndex: node.zIndex || 0,
-    width: undefined,
+    width: node.measured?.width || DEFAULT_NODE_WIDTH,
     height: undefined,
     selectable: true
   };
-
-  if (
-    node.type === "nodetool.group.Loop" ||
-    node.type === "nodetool.workflows.base_node.Group" ||
-    node.type === "nodetool.workflows.base_node.Comment" ||
-    node.type === "nodetool.workflows.base_node.Preview"
-  ) {
-    ui_properties.width = node.measured?.width || DEFAULT_NODE_WIDTH;
-  }
 
   if (node.type === "nodetool.group.Loop") {
     ui_properties.selectable = false;
