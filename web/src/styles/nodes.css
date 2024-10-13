@@ -131,6 +131,13 @@
   margin-bottom: 5px;
 }
 
+.string-property .container {
+  position: relative;
+  display: flex;
+  gap: 0.5em;
+  align-items: center;
+  width: 100%;
+}
 .string-property input {
   outline: none;
   margin: 3px 0;
@@ -142,19 +149,9 @@
   font-family: var(--font-family-1);
   font-size: var(--font-size-smaller);
   line-height: 1.5em;
-  width: 100%;
+  width: calc(100% - 2em);
 }
-
-.string-property .container {
-  position: relative;
-  width: 100%;
-}
-
 .string-property .expand-button {
-  position: absolute;
-  z-index: 0;
-  top: 5px;
-  right: 5px;
   cursor: pointer;
   width: 1em;
   height: 1em;
@@ -165,10 +162,9 @@
   background-color: var(--c-gray2);
   font-weight: bold;
 }
-
 .string-property .expand-button:hover {
   color: var(--c-hl1);
-  background-color: var(--c-gray2);
+  background-color: var(--c-gray1);
 }
 
 .model-property select {
