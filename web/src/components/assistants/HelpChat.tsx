@@ -8,7 +8,9 @@ import { useNodeStore } from "../../stores/NodeStore";
 import useWorkflowRunnner from "../../stores/WorkflowRunner";
 import { tutorials } from "../../stores/TutorialStore";
 import useModelStore from "../../stores/ModelStore";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { fetchOllamaModelInfo } from "../hugging_face/ModelUtils";
+import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 
 const HelpChat: React.FC = () => {
   const { messages, isLoading, sendMessage, setMessages } = useChatStore();
@@ -21,16 +23,21 @@ const HelpChat: React.FC = () => {
     (state) => state.loadHuggingFaceModels
   );
   const loadLlamaModels = useModelStore((state) => state.loadLlamaModels);
+  const { startDownload, openDialog } = useModelDownloadStore();
 
-  const { data: huggingfaceModels, isLoading: isLoadingHuggingFaceModels } =
-    useQuery({
-      queryKey: ["huggingfaceModels"],
-      queryFn: loadHuggingFaceModels
-    });
+  const { data: huggingfaceModels } = useQuery({
+    queryKey: ["huggingfaceModels"],
+    queryFn: loadHuggingFaceModels
+  });
 
-  const { data: llamaModels, isLoading: isLoadingLlamaModels } = useQuery({
+  const { data: llamaModels } = useQuery({
     queryKey: ["llamaModels"],
     queryFn: loadLlamaModels
+  });
+
+  const { data: ollamaModelInfo, isLoading: isLoadingOllamaModel } = useQuery({
+    queryKey: ["ollamaModel", "qwen2.5:1.5b"],
+    queryFn: () => fetchOllamaModelInfo("qwen2.5:1.5b")
   });
 
   const handleSendMessage = useCallback(
@@ -47,6 +54,26 @@ const HelpChat: React.FC = () => {
     setMessages([]);
     useTutorialStore.getState().endTutorial();
   }, [setMessages]);
+
+  const handleDownloadModel = useCallback(() => {
+    startDownload("qwen2.5:1.5b", "llama_model");
+    openDialog();
+  }, [startDownload, openDialog]);
+
+  const isModelAvailable = Boolean(ollamaModelInfo);
+  const { downloads } = useModelDownloadStore();
+  const isDownloading = downloads["qwen2.5:1.5b"]?.status === "running";
+
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const downloadStatus = downloads["qwen2.5:1.5b"]?.status;
+    if (downloadStatus === "completed") {
+      queryClient.invalidateQueries({
+        queryKey: ["ollamaModel", "qwen2.5:1.5b"]
+      });
+    }
+  }, [downloads, queryClient]);
 
   useEffect(() => {
     if (isInTutorial) {
@@ -95,7 +122,7 @@ const HelpChat: React.FC = () => {
           </Button>
         </Box>
       )}
-      {messages.length === 0 && (
+      {messages.length === 0 && isModelAvailable && (
         <>
           <Typography variant="h4">Hello</Typography>
           <Box sx={{ mb: 2 }}>
@@ -132,14 +159,33 @@ const HelpChat: React.FC = () => {
           </Box>
         </>
       )}
-      <ChatView
-        status={isLoading ? "loading" : "connected"}
-        messages={messages}
-        sendMessage={handleSendMessage}
-        currentNodeName={null}
-        progress={0}
-        total={0}
-      />
+      {isLoadingOllamaModel ? (
+        <Typography>Checking model availability...</Typography>
+      ) : isDownloading ? (
+        <Typography>Downloading model...</Typography>
+      ) : !isModelAvailable ? (
+        <Box sx={{ mb: 2 }}>
+          <Typography>
+            You need to download the Qwen2.5 model to use the Help Chat.
+          </Typography>
+          <Button
+            variant="outlined"
+            onClick={handleDownloadModel}
+            sx={{ mt: 1 }}
+          >
+            Download Qwen2.5 1.5B Model
+          </Button>
+        </Box>
+      ) : (
+        <ChatView
+          status={isLoading ? "loading" : "connected"}
+          messages={messages}
+          sendMessage={handleSendMessage}
+          currentNodeName={null}
+          progress={0}
+          total={0}
+        />
+      )}
     </div>
   );
 };

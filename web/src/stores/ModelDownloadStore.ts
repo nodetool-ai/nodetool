@@ -187,8 +187,7 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
       ignorePatterns = [];
     }
     const id = path ? repoId + "/" + path : repoId;
-    const cancelTokenSource = axios.CancelToken.source();
-    get().addDownload(id, { cancelTokenSource });
+
     if (modelType.startsWith("hf.")) {
       const ws = await get().connectWebSocket();
       get().addDownload(id);
@@ -203,6 +202,7 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
       );
     } else if (modelType === "llama_model") {
       try {
+        get().addDownload(id);
         const response = await fetch(
           BASE_URL + "/api/models/pull_ollama_model?model_name=" + id,
           {
@@ -257,15 +257,9 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
   },
 
   cancelDownload: async (id) => {
-    const download = get().downloads[id];
-    if (download && download.cancelTokenSource) {
-      download.cancelTokenSource.cancel("Download cancelled by user");
-      get().updateDownload(id, { status: "cancelled" });
-    } else {
-      const ws = await get().connectWebSocket();
-      ws.send(JSON.stringify({ command: "cancel_download", id: id }));
-      get().updateDownload(id, { status: "cancelled" });
-    }
+    const ws = await get().connectWebSocket();
+    ws.send(JSON.stringify({ command: "cancel_download", id: id }));
+    get().updateDownload(id, { status: "cancelled" });
   },
 
   isDialogOpen: false,
