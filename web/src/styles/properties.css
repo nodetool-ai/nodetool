@@ -65,7 +65,7 @@
   bottom: 2.2em;
   top: unset;
   left: 50px;
-  transform: none;
+  /* transform: none; */
   background: var(--c_gray2);
   color: var(--c-white);
   font-family: var(--font-family-1);
@@ -74,13 +74,12 @@
   display: block;
   z-index: 1000;
   max-width: 250px;
+  min-width: 150px;
   word-wrap: break-word;
   white-space: normal;
   font-size: var(--font-size-normal);
   pointer-events: none;
-  transition: none;
-  /* transition: all var(--microtip-transition-duration)
-    var(--microtip-transition-easing) 0.1s; */
+  --microtip-transition-delay: 0.5s;
 }
 
 /* Textarea */
