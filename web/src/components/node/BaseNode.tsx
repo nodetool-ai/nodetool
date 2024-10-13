@@ -303,11 +303,8 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           : ThemeNodes.palette.c_node_bg
       }}
     >
-      <NodeToolbar offset={0}>
-        <NodeToolButtons nodeId={props.id} />
-      </NodeToolbar>
       {node?.selected && (
-        <NodeToolbar>
+        <NodeToolbar position={Position.Bottom} offset={0}>
           <NodeToolButtons nodeId={props.id} />
         </NodeToolbar>
       )}
