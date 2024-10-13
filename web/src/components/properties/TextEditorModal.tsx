@@ -2,7 +2,7 @@
 import { css, useTheme } from "@emotion/react";
 
 import ReactDOM from "react-dom";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import TextareaAutosize from "react-textarea-autosize";
 import { useClipboard } from "../../hooks/browser/useClipboard";
 import CloseIcon from "@mui/icons-material/Close";
@@ -10,7 +10,7 @@ import { TOOLTIP_ENTER_DELAY } from "../node/BaseNode";
 import { Tooltip } from "@mui/material";
 import ThemeNodes from "../themes/ThemeNodes";
 import CircularProgress from "@mui/material/CircularProgress";
-import { useCombo } from "../../stores/KeyPressedStore";
+import { onBlur, onFocus, useCombo } from "../../stores/KeyPressedStore";
 
 interface TextEditorModalProps {
   value: string;
@@ -210,6 +210,8 @@ export default function TextEditorModal({
               <TextareaAutosize
                 ref={textareaRef}
                 value={value}
+                onFocus={onFocus}
+                onBlur={onBlur}
                 onChange={(e) => onChange && onChange(e.target.value)}
                 autoComplete="off"
                 autoCorrect="off"

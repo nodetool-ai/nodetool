@@ -6,6 +6,7 @@ import { Button, TextField, Typography } from "@mui/material";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
+import { onBlur, onFocus } from "../../stores/KeyPressedStore";
 
 const styles = (theme: any) =>
   css({
@@ -129,6 +130,8 @@ const RemoteSettings = () => {
               onChange={(e) =>
                 handleChange("REPLICATE_API_TOKEN", e.target.value)
               }
+              onFocus={onFocus}
+              onBlur={onBlur}
               variant="standard"
             />
             <div className="text-and-button">
@@ -155,6 +158,8 @@ const RemoteSettings = () => {
               autoComplete="off"
               value={settings.OPENAI_API_KEY}
               onChange={(e) => handleChange("OPENAI_API_KEY", e.target.value)}
+              onFocus={onFocus}
+              onBlur={onBlur}
               variant="standard"
             />
             <div className="text-and-button">
@@ -180,6 +185,8 @@ const RemoteSettings = () => {
               onChange={(e) =>
                 handleChange("ANTHROPIC_API_KEY", e.target.value)
               }
+              onFocus={onFocus}
+              onBlur={onBlur}
               variant="standard"
             />
 
@@ -204,6 +211,8 @@ const RemoteSettings = () => {
               label="Enter your HuggingFace token"
               value={settings.HF_TOKEN}
               onChange={(e) => handleChange("HF_TOKEN", e.target.value)}
+              onFocus={onFocus}
+              onBlur={onBlur}
               variant="standard"
             />
             <div className="text-and-button">
@@ -227,6 +236,8 @@ const RemoteSettings = () => {
               label="Comfy Folder"
               value={settings.COMFY_FOLDER}
               onChange={(e) => handleChange("COMFY_FOLDER", e.target.value)}
+              onFocus={onFocus}
+              onBlur={onBlur}
               variant="standard"
             />
             <Typography className="description">

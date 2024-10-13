@@ -13,6 +13,7 @@ import { useClipboard } from "../../hooks/browser/useClipboard";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { isEqual } from "lodash";
 import React from "react";
+import { onBlur, onFocus } from "../../stores/KeyPressedStore";
 
 type CommandMenuProps = {
   open: boolean;
@@ -135,7 +136,7 @@ const CommandMenu: React.FC<CommandMenuProps> = ({
       css={styles}
     >
       <Command label="Command Menu" className="command-menu">
-        <CommandInput ref={input} />
+        <CommandInput ref={input} onFocus={onFocus} onBlur={onBlur} />
         <Command.List>
           <Command.Empty>No results found.</Command.Empty>
           <Command.Group heading="Workflow">

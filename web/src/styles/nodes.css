@@ -239,24 +239,18 @@
 
 .number-input .edit-value {
   position: absolute;
-  width: auto;
-  min-width: 40px;
+  outline: none;
+  color: var(--c_white);
+  background-color: var(--c_gray1);
+  border: 1px solid var(--c-gray2);
+  border-radius: 0;
+  font-family: var(--font-family-1);
+  font-size: var(--font-size-smaller);
+  line-height: 1.5em;
+  width: 40px;
   height: 10px;
-  top: -0.2em;
-  right: 0;
-  z-index: 10;
-  overflow: hidden;
-  resize: none;
-  -webkit-appearance: none;
-  appearance: none;
-}
-
-.number-input .edit-value input {
-  position: absolute;
-  width: auto;
-  height: 10px;
-  top: 1px;
-  right: -1em;
+  top: 0px;
+  right: 0px;
   margin: 0;
   padding: 0 1em 0 0.2em;
   text-align: right;

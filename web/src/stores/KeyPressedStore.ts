@@ -5,6 +5,7 @@ type Callback = () => void;
 
 // Module-level variables and functions
 const comboCallbacks = new Map<string, Callback>();
+let disabledCombo = false;
 
 const registerComboCallback = (combo: string, callback: Callback) => {
   comboCallbacks.set(combo, callback);
@@ -14,14 +15,21 @@ const unregisterComboCallback = (combo: string) => {
   comboCallbacks.delete(combo);
 };
 
+const onFocus = () => {
+  disabledCombo = true;
+};
+
+const onBlur = () => {
+  disabledCombo = false;
+};
+
 const executeComboCallbacks = (
   pressedKeys: Set<string>,
   event: KeyboardEvent | undefined
 ) => {
-  // console.log("pressedKeys", pressedKeys);
   const pressedKeysString = Array.from(pressedKeys).sort().join("+");
   comboCallbacks.forEach((callback, combo) => {
-    if (pressedKeysString.includes(combo)) {
+    if (pressedKeysString.includes(combo) && !disabledCombo) {
       callback();
       if (event) {
         event.preventDefault();
@@ -188,4 +196,4 @@ const useCombo = (combo: string[], callback: () => void) => {
   }, [memoizedCombo, memoizedCallback]);
 };
 
-export { useKeyPressedStore, initKeyListeners, useCombo };
+export { useKeyPressedStore, initKeyListeners, useCombo, onFocus, onBlur };

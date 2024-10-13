@@ -310,13 +310,13 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
     }, [changeAsset])
   );
   useCombo(
-    ["ctrl+left"],
+    ["ctrl", "left"],
     useCallback(() => {
       changeAsset("left", true);
     }, [changeAsset])
   );
   useCombo(
-    ["ctrl+right"],
+    ["ctrl", "right"],
     useCallback(() => {
       changeAsset("right", true);
     }, [changeAsset])

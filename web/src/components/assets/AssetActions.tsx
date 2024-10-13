@@ -34,6 +34,7 @@ import SliderBasic from "../inputs/SliderBasic";
 import dialogStyles from "../../styles/DialogStyles";
 import useAuth from "../../stores/useAuth";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
+import { onBlur, onFocus } from "../../stores/KeyPressedStore";
 
 interface AssetActionsProps {
   setSelectedAssetIds: (assetIds: string[]) => void;
@@ -318,6 +319,8 @@ const AssetActions = ({
               autoFocus
               autoComplete="off"
               id="name"
+              onBlur={onBlur}
+              onFocus={onFocus}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   handleCreateFolder();
