@@ -71,3 +71,16 @@ export function createLinearGradient(
   const rgbaModifiedColor = hexToRgba(modifiedHexColor, 1);
   return `linear-gradient(${direction}, ${rgbaColor}, ${rgbaModifiedColor})`;
 }
+
+export function simulateOpacity(
+  hexColor: string,
+  alpha: number,
+  backgroundColor: string = "#fff"
+): string {
+  const foregroundColor = chroma(hexColor);
+  const bgColor = chroma(backgroundColor);
+
+  const blendedColor = chroma.mix(bgColor, foregroundColor, alpha, "rgb");
+
+  return blendedColor.hex();
+}

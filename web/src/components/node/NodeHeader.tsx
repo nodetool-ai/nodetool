@@ -13,6 +13,7 @@ export interface NodeHeaderProps {
   nodeTitle: string;
   hasParent?: boolean;
   showMenu?: boolean;
+  backgroundColor?: string;
 }
 const tooltipStyle = css({
   '[role~="tooltip"][data-microtip-position|="top"]::after': {
@@ -88,6 +89,7 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
   id,
   nodeTitle,
   hasParent,
+  backgroundColor,
   showMenu = true
 }: NodeHeaderProps) => {
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
@@ -146,6 +148,9 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
       className="node-header"
       css={memoizedHeaderStyle}
       onClick={handleHeaderClick}
+      style={{
+        backgroundColor: backgroundColor
+      }}
     >
       {showMenu && (
         <>

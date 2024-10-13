@@ -30,6 +30,7 @@ import NodeContent from "./NodeContent";
 import { titleizeString } from "../../utils/titleizeString";
 import NodeToolButtons from "./NodeToolButtons";
 import { useRenderLogger } from "../../hooks/useRenderLogger";
+import { simulateOpacity } from "../../utils/ColorUtils";
 
 // Tooltip timing constants
 export const TOOLTIP_ENTER_DELAY = 650;
@@ -154,6 +155,14 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const parentNode = useNodeStore((state) =>
     hasParent ? state.findNode(node?.parentId || "") : null
   );
+  const parentColor = useMemo(() => {
+    if (!hasParent || !parentNode?.data?.properties?.group_color) return "";
+    return simulateOpacity(
+      parentNode?.data?.properties?.group_color,
+      0.1,
+      ThemeNodes.palette.c_editor_bg_color
+    );
+  }, [hasParent, parentNode]);
 
   // Workflow and status
   const workflowId = useMemo(() => nodedata?.workflow_id || "", [nodedata]);
@@ -312,6 +321,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         id={props.id}
         nodeTitle={titleizedType}
         hasParent={hasParent}
+        backgroundColor={parentColor}
       />
       <NodeErrors id={props.id} workflow_id={workflowId} />
       <NodeStatus status={status} />

@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useCallback, createElement, useMemo, memo } from "react";
+import React, { useCallback, createElement, memo } from "react";
 import { Property } from "../../stores/ApiTypes";
 import { useNodeStore } from "../../stores/NodeStore";
 import PropertyLabel from "./PropertyLabel";

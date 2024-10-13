@@ -5,6 +5,7 @@ import useMetadataStore from "../../stores/MetadataStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { HistoryManager } from "../../HistoryManager";
 import { useTemporalStore } from "../../stores/NodeStore";
+import ThemeNodes from "../../components/themes/ThemeNodes";
 const GROUP_NODE_TYPE = "nodetool.workflows.base_node.Group";
 
 export const useSurroundWithGroup = () => {
@@ -64,6 +65,7 @@ export const useSurroundWithGroup = () => {
         x: bounds.x - 20,
         y: bounds.y - 50
       });
+      groupNode.data.properties.group_color = ThemeNodes.palette.c_bg_group;
       groupNode.width = Math.max(bounds.width - bounds.x + 40, 200);
       groupNode.height = Math.max(bounds.height - bounds.y + 40, 200);
       groupNode.style = {

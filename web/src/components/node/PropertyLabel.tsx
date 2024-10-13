@@ -20,13 +20,6 @@ const PropertyLabel: React.FC<PropertyLabelProps> = React.memo(
   ({ id, name, description }) => {
     const formattedName = useMemo(() => {
       return titleizeString(name);
-      // console.log("titleize param", name);
-      // return name
-      //   .split("_")
-      //   .map(
-      //     (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
-      //   )
-      //   .join(" ");
     }, [name]);
 
     return (
