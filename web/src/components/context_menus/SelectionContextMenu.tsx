@@ -46,10 +46,8 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
 
   //duplicate
   const handleDuplicateNodes = useCallback(() => {
-    if (selectedNodeIds?.length) {
-      duplicateNodes(selectedNodeIds);
-    }
-  }, [duplicateNodes, selectedNodeIds]);
+    duplicateNodes();
+  }, [duplicateNodes]);
 
   //delete
   const handleDelete = useCallback(() => {

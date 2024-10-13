@@ -1,9 +1,9 @@
 import { useCallback } from "react";
 import { useNodeStore } from "../stores/NodeStore";
 import { v4 as uuidv4 } from "uuid";
-import { DUPLICATE_SPACING_X } from "../config/constants";
 import { Node } from "@xyflow/react";
 import { NodeData } from "../stores/NodeData";
+import { DUPLICATE_SPACING_X } from "../config/constants";
 
 export const useDuplicateNodes = () => {
   const nodes = useNodeStore((state) => state.nodes);
@@ -18,7 +18,10 @@ export const useDuplicateNodes = () => {
 
     for (const node of selectedNodes) {
       minX = Math.min(minX, node.position.x);
-      maxX = Math.max(maxX, node.position.x + (node.measured?.width || 0));
+      maxX = Math.max(
+        maxX,
+        node.position.x + (node.measured?.width || 0) + DUPLICATE_SPACING_X
+      );
     }
 
     // selection bounds

@@ -123,11 +123,9 @@ const NodeContextMenu: React.FC = () => {
   );
 
   const handleDuplicateNodes = useCallback(() => {
-    const nodeIdsToDuplicate =
-      nodeId !== null && getNode(nodeId) ? [nodeId] : [];
-    duplicateNodes(nodeIdsToDuplicate);
+    duplicateNodes();
     closeContextMenu();
-  }, [nodeId, closeContextMenu, getNode, duplicateNodes]);
+  }, [closeContextMenu, duplicateNodes]);
 
   const handleCollapse = (
     event: React.ChangeEvent<HTMLInputElement>,
