@@ -222,7 +222,7 @@ const EditableInput: React.FC<{
         if (e.key === "Enter" || e.code === "NumpadEnter") {
           e.preventDefault();
           e.stopPropagation();
-          onBlur();
+          _onBlur();
         }
       }}
     />

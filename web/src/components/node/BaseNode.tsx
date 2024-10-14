@@ -221,7 +221,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     if (!metadata) return BASE_HEIGHT;
     const outputCount = metadata?.outputs?.length || 0;
     return BASE_HEIGHT + outputCount * INCREMENT_PER_OUTPUT;
-  }, [metadata, props.type]);
+  }, [metadata]);
 
   // Node metadata and properties
   const node_namespace = metadata?.namespace || "";

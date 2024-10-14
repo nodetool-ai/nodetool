@@ -119,7 +119,8 @@ export function reactFlowNodeToGraphNode(node: Node<NodeData>): GraphNode {
 
   if (
     node.type === "nodetool.workflows.base_node.Comment" ||
-    node.type === "nodetool.workflows.base_node.Group"
+    node.type === "nodetool.workflows.base_node.Group" ||
+    node.type === "nodetool.workflows.base_node.Preview"
   ) {
     ui_properties.height = node.measured?.height;
   }
