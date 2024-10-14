@@ -205,7 +205,7 @@ export interface NodeStore {
     position: XYPosition,
     properties?: Record<string, any>
   ) => Node<NodeData>;
-  autoLayout: () => void;
+  autoLayout: () => Promise<void>;
 }
 
 export const useTemporalStore = <T>(
@@ -292,14 +292,14 @@ export const useNodeStore = create<NodeStore>()(
       /**
        * Automatically layout the workflow or selected nodes if any.
        */
-      autoLayout: () => {
+      autoLayout: async () => {
         const allNodes = get().nodes;
         let selectedNodes = allNodes.filter((node) => node.selected);
         const edges = get().edges;
         if (selectedNodes.length === 0) {
           selectedNodes = allNodes;
         }
-        const layoutedNodes = autoLayout(edges, selectedNodes);
+        const layoutedNodes = await autoLayout(edges, selectedNodes);
         const updatedNodes = allNodes.map((node) => {
           const layoutedNode = layoutedNodes.find((n) => n.id === node.id);
           return layoutedNode ? layoutedNode : node;
@@ -309,7 +309,7 @@ export const useNodeStore = create<NodeStore>()(
       },
 
       /**
-       * Create a new node. The nodes is not added to the workflow.
+       * Create a new node. The node is not added to the workflow.
        *
        * @param metadata The metadata of the node to create.
        * @param position The position of the node.

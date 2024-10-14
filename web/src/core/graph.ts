@@ -1,7 +1,8 @@
 import { Edge, Node } from "@xyflow/react";
 import { devWarn } from "../utils/DevLog";
-import dagre from "dagre";
 import { NodeData } from "../stores/NodeData";
+import ELK from "elkjs";
+import { zip } from "lodash";
 
 /**
  * Topological sort of a graph.
@@ -144,81 +145,50 @@ export function subgraph(
   return result;
 }
 
-type NodePosition = { x: number; y: number };
-type NodePositions = { [id: string]: NodePosition };
-
-export const autoLayout = (
+export const autoLayout = async (
   edges: Edge[],
   nodes: Node<NodeData>[]
-): Node<NodeData>[] => {
-  const dagreGraph = new dagre.graphlib.Graph();
-  dagreGraph.setDefaultEdgeLabel(() => ({}));
-  dagreGraph.setGraph({
-    rankdir: "LR",
-    align: "UL",
-    ranker: "tight-tree",
-    ranksep: 50,
-    marginx: 0,
-    marginy: 0
-  });
+): Promise<Node<NodeData>[]> => {
+  const elk = new ELK();
 
-  const originalPositions: NodePositions = nodes.reduce(
-    (acc: NodePositions, node) => {
-      acc[node.id] = { x: node.position.x, y: node.position.y };
-      return acc;
-    },
-    {}
-  );
-
-  nodes.forEach((node) => {
-    if (node.type === "comment") return;
-    dagreGraph.setNode(node.id, {
-      x: node.position.x,
-      y: node.position.y,
+  const graph = {
+    id: "root",
+    layoutOptions: { "elk.algorithm": "layered", "elk.direction": "RIGHT" },
+    children: nodes.map((node) => ({
+      id: node.id,
       width: node.measured?.width ? node.measured.width * 1.2 : 100,
       height: node.measured?.height ? node.measured.height : 100
-    });
-  });
-
-  edges.forEach((el) => {
-    dagreGraph.setEdge(el.source, el.target);
-  });
-
-  dagre.layout(dagreGraph);
-
-  let minX = Infinity;
-  let minY = Infinity;
-
-  nodes.forEach((node) => {
-    if (node.type === "nodetool.workflows.base_node.Comment") return;
-    if (node.parentId) return;
-    const dnode = dagreGraph.node(node.id);
-    minX = Math.min(minX, dnode.x - dnode.width / 2);
-    minY = Math.min(minY, dnode.y - dnode.height / 2);
-  });
-
-  const originalTopLeft = {
-    x: Math.min(
-      ...Object.values(originalPositions).map((pos: NodePosition) => pos.x)
-    ),
-    y: Math.min(
-      ...Object.values(originalPositions).map((pos: NodePosition) => pos.y)
-    )
+    })),
+    edges: edges.map((edge) => ({
+      id: edge.id,
+      sources: [edge.source],
+      targets: [edge.target]
+    }))
   };
 
-  const layoutedNodes = nodes.map((node: Node<NodeData>) => {
-    if (node.type === "nodetool.workflows.base_node.Comment") return node;
-    if (node.parentId) return node;
-    const dnode = dagreGraph.node(node.id);
-    const position = {
-      x: dnode.x - minX + originalTopLeft.x - 100,
-      y: dnode.y - minY + originalTopLeft.y - 120
-    };
-    return {
-      ...node,
-      position: position
-    };
-  });
+  try {
+    const layout = await elk.layout(graph);
 
-  return layoutedNodes;
+    const originalTopLeft = {
+      x: Math.min(...nodes.map((node) => node.position.x)),
+      y: Math.min(...nodes.map((node) => node.position.y))
+    };
+
+    return zip(nodes, layout.children || []).map(([node, layoutNode]) => {
+      const position =
+        node?.type === "nodetool.workflows.base_node.Comment"
+          ? node.position
+          : {
+              x: (layoutNode?.x || 0) + originalTopLeft.x,
+              y: (layoutNode?.y || 0) + originalTopLeft.y
+            };
+      return {
+        ...(node as Node<NodeData>),
+        position: position
+      };
+    });
+  } catch (error) {
+    console.error("Error in ELK layout:", error);
+    return nodes;
+  }
 };
