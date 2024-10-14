@@ -518,7 +518,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ isMinZoom }) => {
               )}
             >
               <ReactFlow
-                onlyRenderVisibleElements={true}
+                onlyRenderVisibleElements={false}
                 ref={ref}
                 className={
                   isMinZoom
