@@ -85,10 +85,10 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
           fontSize: ThemeNodetool.fontSizeBig
         }}
       >
-        {property.name}:{typeToString(property.type)}
+        {typeToString(property.type)}
       </span>
     ),
-    [property.name, property.type]
+    [property.type]
   );
 
   const tooltipProps = useMemo(
