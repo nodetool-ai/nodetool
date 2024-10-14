@@ -149,79 +149,131 @@ export const autoLayout = async (
   edges: Edge[],
   nodes: Node<NodeData>[]
 ): Promise<Node<NodeData>[]> => {
-  const elk = new ELK();
-
-  // Create a map of parent nodes to their children
-  const parentChildMap: Record<string, Node<NodeData>[]> = {};
-  nodes.forEach((node) => {
-    if (node.parentId) {
-      if (!parentChildMap[node.parentId]) {
-        parentChildMap[node.parentId] = [];
-      }
-      parentChildMap[node.parentId].push(node);
+  const elk = new ELK({
+    defaultLayoutOptions: {
+      "elk.layered.spacing.nodeNodeBetweenLayers": "30",
+      "elk.algorithm": "layered",
+      "elk.direction": "RIGHT",
+      "elk.spacing.nodeNode": "50",
+      "elk.layered.spacing.edgeNodeBetweenLayers": "30",
+      "elk.hierarchyHandling": "INCLUDE_CHILDREN",
+      "elk.layered.nodePlacement.strategy": "NETWORK_SIMPLEX"
     }
   });
 
+  // Group nodes by parentId
+  const nodeGroups: Record<string, Node<NodeData>[]> = {};
+  nodes.forEach((node) => {
+    const groupId = node.parentId || "root";
+    if (!nodeGroups[groupId]) {
+      nodeGroups[groupId] = [];
+    }
+    nodeGroups[groupId].push(node);
+  });
+
   // Helper function to create ELK node structure
-  const createElkNode = (node: Node<NodeData>): any => ({
+  const createElkNode = (node: Node<NodeData>, children?: any[]): any => ({
     id: node.id,
     width: node.measured?.width ?? 100,
     height: node.measured?.height ?? 100,
-    children: parentChildMap[node.id]?.map(createElkNode) ?? []
+    ...(children && { children })
   });
 
-  const graph = {
-    id: "root",
+  // Helper function to create ELK graph for a group of nodes
+  const createElkGraph = (
+    groupNodes: Node<NodeData>[],
+    groupEdges: Edge[],
+    isRoot = false
+  ) => ({
+    id: isRoot ? "root" : groupNodes[0].parentId || "root",
     layoutOptions: {
-      "elk.algorithm": "layered",
-      "elk.direction": "RIGHT"
+      "elk.padding": "[top=50,left=50,bottom=50,right=50]"
     },
-    children: nodes.filter((node) => !node.parentId).map(createElkNode),
-    edges: edges.map((edge) => ({
+    children: groupNodes.map((node) => createElkNode(node)),
+    edges: groupEdges.map((edge) => ({
       id: edge.id,
       sources: [edge.source],
       targets: [edge.target]
     }))
+  });
+
+  // Helper function to update node positions
+  const updateNodePositions = (
+    layoutNode: any,
+    parentX = 0,
+    parentY = 0
+  ): Node<NodeData> => {
+    const originalNode = nodes.find((n) => n.id === layoutNode.id)!;
+    const newPosition =
+      originalNode.type === "nodetool.workflows.base_node.Comment"
+        ? originalNode.position
+        : {
+            x: (layoutNode.x ?? 0) + parentX,
+            y: (layoutNode.y ?? 0) + parentY
+          };
+
+    return { ...originalNode, position: newPosition };
   };
 
-  try {
-    const layout = await elk.layout(graph);
+  // Process groups in topological order
+  const processedGroups: Record<string, Node<NodeData>[]> = {};
+  const groupOrder = [
+    "root",
+    ...Object.keys(nodeGroups).filter((id) => id !== "root")
+  ].reverse();
 
-    const originalTopLeft = {
-      x: Math.min(...nodes.map((node) => node.position.x)),
-      y: Math.min(...nodes.map((node) => node.position.y))
-    };
+  // root group is processed last to ensure all group nodes are processed
+  for (const groupId of groupOrder) {
+    const groupNodes = nodeGroups[groupId] || [];
+    const groupEdges = edges.filter(
+      (edge) =>
+        groupNodes.some((n) => n.id === edge.source) &&
+        groupNodes.some((n) => n.id === edge.target)
+    );
 
-    // Helper function to update node positions recursively
-    const updateNodePositions = (layoutNode: any): Node<NodeData> => {
-      const originalNode = nodes.find((n) => n.id === layoutNode.id)!;
-      const newPosition =
-        originalNode.type === "nodetool.workflows.base_node.Comment"
-          ? originalNode.position
-          : {
-              x: (layoutNode.x ?? 0) + originalTopLeft.x,
-              y: (layoutNode.y ?? 0) + originalTopLeft.y
-            };
+    const graph = createElkGraph(groupNodes, groupEdges, groupId === "root");
 
-      const updatedNode = {
-        ...originalNode,
-        position: newPosition
-      };
+    try {
+      const layout = await elk.layout(graph);
+      const groupUpdatedNodes = layout.children!.map((layoutNode) =>
+        updateNodePositions(layoutNode)
+      );
 
-      if (layoutNode.children) {
-        layoutNode.children.forEach((childLayoutNode: any) => {
-          updateNodePositions(childLayoutNode);
-        });
+      // Update group node dimensions based on children
+      if (groupId !== "root") {
+        const parentNode = nodes.find(
+          (n) => n.id === groupId
+        ) as Node<NodeData>;
+        if (parentNode) {
+          const xExtent = Math.max(
+            ...groupUpdatedNodes.map(
+              (n) => n.position.x + (n.measured?.width ?? 100)
+            )
+          );
+          const yExtent = Math.max(
+            ...groupUpdatedNodes.map(
+              (n) => n.position.y + (n.measured?.height ?? 100)
+            )
+          );
+          parentNode.width = xExtent + 50;
+          parentNode.height = yExtent + 50;
+          parentNode.measured = {
+            width: parentNode.width,
+            height: parentNode.height
+          };
+        }
       }
 
-      return updatedNode;
-    };
-
-    return (layout.children ?? []).map((layoutNode) =>
-      updateNodePositions(layoutNode)
-    );
-  } catch (error) {
-    console.error("Error in ELK layout:", error);
-    return nodes;
+      processedGroups[groupId] = groupUpdatedNodes;
+    } catch (error) {
+      console.error(`Error in ELK layout for group ${groupId}:`, error);
+    }
   }
+
+  // Flatten the processed groups
+  const updatedNodes = Object.values(processedGroups).flat();
+
+  return nodes.map(
+    (node) => updatedNodes.find((n) => n.id === node.id) ?? node
+  );
 };
