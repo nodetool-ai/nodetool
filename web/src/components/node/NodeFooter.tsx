@@ -23,7 +23,7 @@ const PrettyNamespace = memo<{ namespace: string }>(({ namespace }) => {
                 : "inherit"
           }}
         >
-          {part}
+          {part.replace("huggingface", "HF").replace("nodetool", "NT")}
           {index < parts.length - 1 && "."}
         </Typography>
       ))}
