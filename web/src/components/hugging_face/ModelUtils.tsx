@@ -8,6 +8,7 @@ import ModelIcon from "../../icons/model.svg";
 import DownloadIcon from "@mui/icons-material/Download";
 import { useQuery } from "@tanstack/react-query";
 import { fetchHuggingFaceRepoInfo } from "../../utils/huggingFaceUtils";
+import ThemeNodetool from "../themes/ThemeNodetool";
 
 export type OllamaModel = {
   name: string;
@@ -217,7 +218,10 @@ export const renderModelActions = (
           display: "flex",
           alignItems: "center",
           gap: ".5em",
-          marginRight: "1em"
+          marginRight: "1em",
+          padding: "0 0 0 1em",
+          fontFamily: ThemeNodetool.fontFamily2,
+          color: ThemeNodetool.palette.c_gray5
         }}
       >
         <CheckCircleIcon
@@ -225,7 +229,8 @@ export const renderModelActions = (
           fontSize="small"
           color="success"
         />
-        Downloaded
+
+        <Typography>DOWNLOADED</Typography>
       </Box>
     )}
     {props.handleDelete && (

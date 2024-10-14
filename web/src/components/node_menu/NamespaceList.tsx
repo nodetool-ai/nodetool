@@ -86,7 +86,8 @@ const namespaceStyles = (theme: any) =>
     ".explanation": {
       overflowY: "scroll",
       fontFamily: theme.fontFamily1,
-      fontSize: theme.fontSizeSmall,
+      fontSize: theme.fontSizeNormal,
+      fontWeight: "300",
       margin: "0",
       padding: "0 2em 2em 0"
     },
@@ -100,7 +101,7 @@ const namespaceStyles = (theme: any) =>
       margin: 0,
       "& li": {
         fontFamily: theme.fontFamily1,
-        fontSize: theme.fontSizeSmall,
+        fontSize: theme.fontSizeNormal,
         margin: "0.25em 0",
         padding: "0"
       }
@@ -168,11 +169,12 @@ const namespaceStyles = (theme: any) =>
     },
     ".namespaces .list-item": {
       cursor: "pointer",
-      padding: "8px 16px",
+      padding: ".2em .5em",
       backgroundColor: "transparent",
       borderLeft: `3px solid ${theme.palette.c_gray2}`,
       fontFamily: theme.fontFamily1,
-      fontSize: theme.fontSizeSmaller,
+      fontSize: theme.fontSizeNormal,
+      fontWeight: "300",
       transition: "all 0.3s ease-in-out",
       maxHeight: "40px",
       overflow: "hidden"

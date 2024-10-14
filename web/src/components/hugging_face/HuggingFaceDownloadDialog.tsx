@@ -8,6 +8,7 @@ import {
   Box,
   Typography
 } from "@mui/material";
+import AnnouncementIcon from "@mui/icons-material/Announcement";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { DownloadProgress } from "./DownloadProgress";
 import ThemeNodetool from "../themes/ThemeNodetool";
@@ -36,9 +37,18 @@ const HuggingFaceDownloadDialog: React.FC = () => {
           variant="body1"
           style={{
             padding: "0 1.5em .5em",
-            color: ThemeNodetool.palette.c_warning
+            fontWeight: "200"
           }}
         >
+          <AnnouncementIcon
+            fontSize="small"
+            sx={{
+              verticalAlign: "middle",
+              marginRight: "0.5em",
+
+              color: ThemeNodetool.palette.c_warning
+            }}
+          />
           Downloads will continue in the background after closing this dialog.
         </Typography>
         <Button onClick={closeDialog} variant="contained">

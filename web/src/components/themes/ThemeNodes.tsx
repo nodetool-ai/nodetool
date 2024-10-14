@@ -106,8 +106,8 @@ const ThemeNodes: Theme = createTheme({
     c_selection: "#8EACA777",
     c_input: "#374f4f",
     c_output: "#493f4d",
-    c_link: "#d8f85f",
-    c_link_visited: "#e9ffc0",
+    c_link: "##e4ffde",
+    c_link_visited: "#d1e2cd",
 
     c_success: "#50fa7b",
     c_attention: "#e35bff",

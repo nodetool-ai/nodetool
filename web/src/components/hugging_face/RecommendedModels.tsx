@@ -15,6 +15,7 @@ import { useQuery } from "@tanstack/react-query";
 import { tryCacheFiles } from "../../serverState/tryCacheFiles";
 import { client } from "../../stores/ApiClient";
 import ThemeNodes from "../themes/ThemeNodes";
+import AnnouncementIcon from "@mui/icons-material/Announcement";
 
 interface RecommendedModelsProps {
   recommendedModels: UnifiedModel[];
@@ -181,6 +182,15 @@ const RecommendedModels: React.FC<RecommendedModelsProps> = ({
         variant="body1"
         sx={{ marginTop: "1em", color: ThemeNodes.palette.c_gray6 }}
       >
+        <AnnouncementIcon
+          fontSize="small"
+          sx={{
+            verticalAlign: "middle",
+            marginRight: "0.5em",
+
+            color: ThemeNodes.palette.c_warning
+          }}
+        />
         Models will be downloaded to your local cache folder in the standard
         location for Huggingface and Ollama.
       </Typography>

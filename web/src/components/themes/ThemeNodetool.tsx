@@ -126,8 +126,8 @@ const ThemeNodetool: Theme = createTheme({
     c_success: "#50FA7B",
     c_warn: "#FFB86C",
     c_warning: "#FFB86C",
-    c_link: "#d8f85f",
-    c_link_visited: "#e9ffc0",
+    c_link: "##e4ffde",
+    c_link_visited: "#d1e2cd",
     /* Scrollbar*/
     c_scroll_bg: "#484848",
     c_scroll_hover: "#383838",
