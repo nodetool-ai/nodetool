@@ -156,7 +156,7 @@ export const autoLayout = async (
     layoutOptions: { "elk.algorithm": "layered", "elk.direction": "RIGHT" },
     children: nodes.map((node) => ({
       id: node.id,
-      width: node.measured?.width ? node.measured.width * 1.2 : 100,
+      width: node.measured?.width ? node.measured.width : 100,
       height: node.measured?.height ? node.measured.height : 100
     })),
     edges: edges.map((edge) => ({
