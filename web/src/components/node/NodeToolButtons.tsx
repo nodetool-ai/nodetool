@@ -37,7 +37,7 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
 
   const handleDuplicateNodes = useCallback(() => {
     if (nodeId !== null && getNode(nodeId)) {
-      duplicateNodes([nodeId]);
+      duplicateNodes();
     }
   }, [nodeId, getNode, duplicateNodes]);
 
