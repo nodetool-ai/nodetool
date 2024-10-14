@@ -45,13 +45,13 @@
         }
 
         #log-container {
-            position: fixed;
+            /* position: fixed; */
             bottom: 0;
             left: 0;
             right: 0;
             background-color: #212121;
             transition: height 0.3s ease-out;
-            height: 30px;
+            height: 0px;
             overflow: hidden;
             z-index: 1000;
         }
@@ -63,18 +63,26 @@
         #log-toggle {
             width: 100%;
             height: 30px;
-            background-color: #111;
+            background-color: #2a2a2a;
             color: #ffffff;
             border: none;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 14px;
+            font-size: 12px;
+            font-family: 'Inter', sans-serif;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(to right, #2a2a2a, #3a3a3a);
         }
 
         #log-toggle:hover {
-            background-color: #555555;
+            background: linear-gradient(to right, #3a3a3a, #2a2a2a);
         }
         
         #log {
@@ -199,7 +207,7 @@
         <div class="boot-text">installing nodetool</div>
     </div>
     <iframe id="content"></iframe>
-    <button id="log-toggle" style="display: none;">Hide Log</button>
+    <button id="log-toggle">Hide Log</button>
     <div id="log-container" class="expanded">
         <div id="log"></div>
     </div>
@@ -249,6 +257,11 @@
         function toggleLog() {
             logContainer.classList.toggle('expanded');
             logToggle.textContent = logContainer.classList.contains('expanded') ? 'Hide Log' : 'Show Log';
+            
+            // Add this line to update the button text with an icon
+            logToggle.innerHTML = logContainer.classList.contains('expanded') 
+                ? '<span>▼ Hide Log</span>' 
+                : '<span>▲ Show Log</span>';
         }
         
         const matrixLogger = createMatrixLogger(logElement);
@@ -264,7 +277,6 @@
                 if (isStarted) {
                     loadContentWithNoCaching();
                     bootMessage.style.display = 'none';
-                    logToggle.style.display = 'block';
                 } else {
                     const bootTextElement = document.querySelector('.boot-text');
                     bootTextElement.textContent = bootMsg;
@@ -277,7 +289,6 @@
         api.onServerStarted(() => {
             loadContentWithNoCaching();
             bootMessage.style.display = 'none';
-            toggleLog();
         });
 
         api.onBootMessage((message) => {
