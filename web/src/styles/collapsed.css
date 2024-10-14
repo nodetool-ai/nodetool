@@ -82,6 +82,8 @@
 .node-body.collapsed .node-logs,
 .node-body.collapsed .audio-controls-container,
 .node-body.collapsed .node-property select,
+.node-body.collapsed .string-property input,
+.node-body.collapsed .string-property .expand-button,
 .node-body.collapsed .MuiSwitch-root {
   visibility: hidden;
   display: none;

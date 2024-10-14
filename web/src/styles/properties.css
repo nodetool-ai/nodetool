@@ -186,14 +186,14 @@
   width: 100%;
   outline: none;
   margin: 0;
-  padding: 0 0.5em;
+  padding: 0 0.3em;
   color: var(--c_white);
   background-color: var(--c_gray2);
   border: none;
   border-radius: 0.1em;
   font-family: var(--font-family-1);
   font-weight: 300;
-  font-size: var(--font-size-normal);
+  font-size: var(--font-size-small);
   line-height: 1.3em;
 }
 .string-property .expand-button {
