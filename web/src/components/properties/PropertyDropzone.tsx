@@ -45,7 +45,7 @@ const PropertyDropzone = ({
       ".drop-container": {
         position: "relative",
         width: "100%",
-        maxWidth: "140px",
+        // maxWidth: "140px",
         marginTop: "-3px",
         display: "flex",
         flexDirection: "column",
@@ -124,7 +124,7 @@ const PropertyDropzone = ({
             <img
               src={asset?.get_url || uri || ""}
               alt=""
-              style={{ width: "100%" }}
+              style={{ width: "100%", height: "auto" }}
               onDoubleClick={() => setOpenViewer(true)}
             />
           </>
