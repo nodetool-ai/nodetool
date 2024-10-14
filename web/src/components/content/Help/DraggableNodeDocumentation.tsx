@@ -1,6 +1,5 @@
 /** @jsxImportSource @emotion/react */
 import React, { useMemo, useRef, useCallback } from "react";
-import { useMetadata } from "../../../serverState/useMetadata";
 import NodeInfo from "../../node_menu/NodeInfo";
 import { css } from "@emotion/react";
 import Draggable from "react-draggable";
@@ -10,6 +9,7 @@ import { useReactFlow } from "@xyflow/react";
 import useNodeMenuStore from "../../../stores/NodeMenuStore";
 import ThemeNodetool from "../../themes/ThemeNodetool";
 import useSessionStateStore from "../../../stores/SessionStateStore";
+import useMetadataStore from "../../../stores/MetadataStore";
 
 const styles = (theme: any) => css`
   position: absolute;
@@ -78,8 +78,9 @@ const DraggableNodeDocumentation: React.FC<DraggableNodeDocumentationProps> = ({
   position,
   onClose
 }) => {
-  const { data, isLoading } = useMetadata();
-  const nodeMetadata = nodeType ? data?.metadataByType[nodeType] : null;
+  const nodeMetadata = useMetadataStore((state) =>
+    state.getMetadata(nodeType ?? "")
+  );
   const nodeRef = useRef<HTMLDivElement>(null);
   const { createNode, addNode } = useNodeStore();
   const reactFlowInstance = useReactFlow();
@@ -108,7 +109,6 @@ const DraggableNodeDocumentation: React.FC<DraggableNodeDocumentationProps> = ({
   }, [nodeType, openNodeMenu, leftPanelWidth]);
 
   const content = useMemo(() => {
-    if (isLoading) return <div className="loading">Loading...</div>;
     if (!nodeMetadata)
       return (
         <div className="warning">

@@ -5,8 +5,8 @@ import RecommendedModelsDialog from "../hugging_face/RecommendedModelsDialog";
 import { TOOLTIP_ENTER_DELAY } from "./BaseNode";
 import { UnifiedModel } from "../../stores/ApiTypes";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
-import { useMetadata } from "../../serverState/useMetadata";
 import { llama_models } from "../../config/models";
+import useMetadataStore from "../../stores/MetadataStore";
 
 interface ModelRecommendationsProps {
   nodeType: string;
@@ -16,12 +16,10 @@ const ModelRecommendations: React.FC<ModelRecommendationsProps> = React.memo(
   ({ nodeType }) => {
     const [openModelDialog, setOpenModelDialog] = useState(false);
     const { startDownload, openDialog } = useModelDownloadStore();
-    const { data: metadata } = useMetadata();
+    const getMetadata = useMetadataStore((state) => state.getMetadata);
 
     const recommendedModels: UnifiedModel[] = useMemo(() => {
-      if (!metadata) return [];
-
-      const nodeMetadata = metadata.metadataByType[nodeType];
+      const nodeMetadata = getMetadata(nodeType);
       const node_namespace = nodeMetadata?.namespace || "";
 
       if (node_namespace.startsWith("ollama.")) {
@@ -47,7 +45,7 @@ const ModelRecommendations: React.FC<ModelRecommendationsProps> = React.memo(
           };
         });
       }
-    }, [metadata, nodeType]);
+    }, [getMetadata, nodeType]);
 
     const handleOpenModelDialog = useCallback(
       () => setOpenModelDialog(true),
@@ -69,14 +67,13 @@ const ModelRecommendations: React.FC<ModelRecommendationsProps> = React.memo(
           title="Find models to download."
         >
           <Button
-            variant="text"
+            variant="outlined"
             className="model-button"
-            size="small"
             sx={{
-              fontSize: ThemeNodetool.fontSizeTiny,
+              fontSize: ThemeNodetool.fontSizeSmall,
               color: ThemeNodetool.palette.c_gray5,
               margin: "0",
-              lineHeight: "1em",
+              lineHeight: "1.5em",
               borderRadius: "0"
             }}
             onClick={handleOpenModelDialog}

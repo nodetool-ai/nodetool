@@ -7,13 +7,13 @@ import { css, Dialog } from "@mui/material";
 import { getMousePosition } from "../../utils/MousePosition";
 import useAlignNodes from "../../hooks/useAlignNodes";
 import useWorkflowRunnner from "../../stores/WorkflowRunner";
-import { useMetadata } from "../../serverState/useMetadata";
 import { useCreateNode } from "../../hooks/useCreateNode";
 import { useClipboard } from "../../hooks/browser/useClipboard";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { isEqual } from "lodash";
 import React from "react";
 import { onBlur, onFocus } from "../../stores/KeyPressedStore";
+import useMetadataStore from "../../stores/MetadataStore";
 
 type CommandMenuProps = {
   open: boolean;
@@ -67,10 +67,9 @@ const CommandMenu: React.FC<CommandMenuProps> = ({
 
   const [pastePosition, setPastePosition] = useState({ x: 0, y: 0 });
   const alignNodes = useAlignNodes();
-  const { data } = useMetadata();
   const input = useRef<HTMLInputElement>(null);
   const { writeClipboard } = useClipboard();
-
+  const metadata = useMetadataStore((state) => state.getAllMetadata());
   useEffect(() => {
     const focusInput = () => {
       const inputElement = document.querySelector("input[cmdk-input]");
@@ -90,11 +89,11 @@ const CommandMenu: React.FC<CommandMenuProps> = ({
 
   const groupedByCategory = useMemo(
     () =>
-      data?.metadata.reduce<Record<string, NodeMetadata[]>>((acc, curr) => {
+      metadata.reduce<Record<string, NodeMetadata[]>>((acc, curr) => {
         (acc[curr.namespace] = acc[curr.namespace] || []).push(curr);
         return acc;
       }, {}),
-    [data?.metadata]
+    [metadata]
   );
 
   const close = useCallback(() => {

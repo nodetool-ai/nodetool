@@ -51,11 +51,9 @@ import ModelsManager from "./components/hugging_face/ModelsManager";
 import useModelStore from "./stores/ModelStore";
 import NodeDocumentation from "./components/content/Help/NodeDocumentation";
 import { MIN_ZOOM } from "./config/constants";
-import MetadataLoader from "./components/MetadataProvider";
-import MetadataProvider from "./components/MetadataProvider";
-import { useMetadata } from "./serverState/useMetadata";
 import { metadataQuery } from "./serverState/useMetadata";
 import useMetadataStore from "./stores/MetadataStore";
+import NodeMenuStore from "./stores/NodeMenuStore";
 
 initSentry();
 

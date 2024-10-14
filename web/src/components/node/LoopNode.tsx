@@ -33,6 +33,7 @@ import {
   TOOLTIP_LEAVE_DELAY
 } from "./BaseNode";
 import { isEqual } from "lodash";
+import useMetadataStore from "../../stores/MetadataStore";
 
 const styles = (theme: any) =>
   css({
@@ -132,8 +133,8 @@ const styles = (theme: any) =>
   });
 
 const LoopNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
-  const { data: metadata } = useMetadata();
   const nodeRef = useRef<HTMLDivElement>(null);
+  const getMetadata = useMetadataStore((state) => state.getMetadata);
   const updateNode = useNodeStore((state: NodeStore) => state.updateNode);
   const { spaceKeyPressed } = useKeyPressedStore((state) => ({
     spaceKeyPressed: state.isKeyPressed(" ")
@@ -221,10 +222,10 @@ const LoopNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     }
   }, [updateNode, props.id, spaceKeyPressed]);
 
-  if (!metadata) {
-    return <div>Loading...</div>;
+  const nodeMetadata = getMetadata(props.type);
+  if (!nodeMetadata) {
+    throw new Error("No metadata for node type: " + props.type);
   }
-  const nodeMetadata = metadata?.metadataByType[props.type];
 
   return (
     <div

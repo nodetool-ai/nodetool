@@ -15,9 +15,6 @@ import SouthEastIcon from "@mui/icons-material/SouthEast";
 // utils
 import { getMousePosition } from "../../utils/MousePosition";
 
-// hooks
-import { useMetadata } from "../../serverState/useMetadata";
-
 // store
 import { NodeStore, useNodeStore } from "../../stores/NodeStore";
 import { NodeData } from "../../stores/NodeData";
@@ -151,7 +148,6 @@ const styles = (theme: any, minWidth: number, minHeight: number) =>
   });
 
 const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
-  const { data: metadata } = useMetadata();
   const nodeRef = useRef<HTMLDivElement>(null);
   const headerInputRef = useRef<HTMLInputElement>(null);
   const updateNodeData = useNodeStore((state) => state.updateNodeData);
@@ -257,10 +253,6 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       updateNode(props.id, { selectable: false });
     }
   }, [updateNode, props.id, spaceKeyPressed]);
-
-  if (!metadata) {
-    return <div>Loading...</div>;
-  }
 
   return (
     <div

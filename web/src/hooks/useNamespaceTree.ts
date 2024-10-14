@@ -1,5 +1,6 @@
-import { useCallback, useMemo } from "react";
+import { useMemo } from "react";
 import { useMetadata } from "../serverState/useMetadata";
+import useMetadataStore from "../stores/MetadataStore";
 
 /**
  * `createNamespaceTree` is a memoized function that builds a hierarchical grouping of the nodes based on their namespaces.
@@ -51,15 +52,15 @@ const sortNamespaceChildren = (tree: NamespaceTree): NamespaceTree => {
 };
 
 const useNamespaceTree = (): NamespaceTree => {
-  const { data, error, isLoading } = useMetadata();
+  const metadata = useMetadataStore((state) => state.getAllMetadata());
   const uniqueNamespaces: string[] = useMemo(
     () =>
-      data?.metadata
+      metadata
         .map((node) => node.namespace)
         .filter(
           (value, index, self) => index === self.findIndex((t) => t === value)
         ) ?? [],
-    [data]
+    [metadata]
   );
 
   const makeNamespaceTree = useMemo(() => {
@@ -69,13 +70,6 @@ const useNamespaceTree = (): NamespaceTree => {
     });
     return sortNamespaceChildren(ret);
   }, [uniqueNamespaces]);
-
-  if (error) {
-    throw error;
-  }
-  if (!data || isLoading) {
-    return {};
-  }
 
   return makeNamespaceTree;
 };

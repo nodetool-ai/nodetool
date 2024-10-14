@@ -15,7 +15,6 @@ import {
 import { isEqual } from "lodash";
 import { Container } from "@mui/material";
 import { NodeData } from "../../stores/NodeData";
-import { useMetadata } from "../../serverState/useMetadata";
 import { useNodeStore } from "../../stores/NodeStore";
 import { NodeHeader } from "./NodeHeader";
 import { NodeErrors } from "./NodeErrors";
@@ -31,6 +30,7 @@ import { titleizeString } from "../../utils/titleizeString";
 import NodeToolButtons from "./NodeToolButtons";
 import { useRenderLogger } from "../../hooks/useRenderLogger";
 import { simulateOpacity } from "../../utils/ColorUtils";
+import useMetadataStore from "../../stores/MetadataStore";
 
 // Tooltip timing constants
 export const TOOLTIP_ENTER_DELAY = 650;
@@ -141,13 +141,6 @@ const styles = (colors: string[]) =>
   });
 
 const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
-  // Metadata and loading state
-  const {
-    data: metadata,
-    isLoading: metadataLoading,
-    error: metadataError
-  } = useMetadata();
-
   // Node-specific data and relationships
   const nodedata = useNodeStore((state) => state.findNode(props.id)?.data);
   const node = useNodeStore((state) => state.findNode(props.id));
@@ -221,35 +214,32 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     }
   }, [result]);
 
+  const metadata = useMetadataStore((state) => state.getMetadata(props.type));
+
   // Node height calculation
   const minHeight = useMemo(() => {
     if (!metadata) return BASE_HEIGHT;
-    const outputCount =
-      metadata.metadataByType[props.type]?.outputs.length || 0;
+    const outputCount = metadata?.outputs?.length || 0;
     return BASE_HEIGHT + outputCount * INCREMENT_PER_OUTPUT;
   }, [metadata, props.type]);
 
   // Node metadata and properties
-  const nodeMetadata = metadata?.metadataByType[props.type];
-  const node_namespace = nodeMetadata?.namespace || "";
+  const node_namespace = metadata?.namespace || "";
   const titleizedType = useMemo(
-    () => (nodeMetadata?.title ? titleizeString(nodeMetadata.title) : ""),
-    [nodeMetadata?.title]
+    () => (metadata?.title ? titleizeString(metadata.title) : ""),
+    [metadata?.title]
   );
 
   const nodeColors = useMemo(() => {
     const outputColors = [
       ...new Set(
-        nodeMetadata?.outputs?.map((output) =>
-          colorForType(output.type.type)
-        ) || []
+        metadata?.outputs?.map((output) => colorForType(output.type.type)) || []
       )
     ];
     const inputColors = [
       ...new Set(
-        nodeMetadata?.properties?.map((input) =>
-          colorForType(input.type.type)
-        ) || []
+        metadata?.properties?.map((input) => colorForType(input.type.type)) ||
+          []
       )
     ];
     const allColors = [...outputColors];
@@ -262,14 +252,12 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       allColors.push(allColors[allColors.length % allColors.length]);
     }
     return allColors.slice(0, 5);
-  }, [nodeMetadata]);
+  }, [metadata]);
 
   const memoizedStyles = useMemo(() => styles(nodeColors), [nodeColors]);
 
-  useRenderLogger(nodeMetadata?.title || "", {
-    nodeMetadata,
-    metadataLoading,
-    metadataError,
+  useRenderLogger(metadata?.title || "", {
+    metadata,
     parentIsCollapsed,
     className,
     props,
@@ -288,7 +276,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     resizer
   });
 
-  if (!nodeMetadata || metadataLoading || metadataError) {
+  if (!metadata) {
     return (
       <Container className={className}>
         <NodeHeader id={props.id} nodeTitle={titleizedType || ""} />
@@ -330,7 +318,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       <NodeContent
         id={props.id}
         nodeType={props.type}
-        nodeMetadata={nodeMetadata}
+        nodeMetadata={metadata}
         isConstantNode={isConstantNode}
         isOutputNode={isOutputNode}
         data={props.data}

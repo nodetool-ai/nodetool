@@ -9,8 +9,8 @@ import { useCreateDataframe } from "./useCreateDataframe";
 import { constantForType } from "./useConnectionHandlers";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import useAuth from "../../stores/useAuth";
-import { useMetadata } from "../../serverState/useMetadata";
 import { Asset } from "../../stores/ApiTypes";
+import useMetadataStore from "../../stores/MetadataStore";
 
 export type FileHandlerResult = {
   success: boolean;
@@ -134,8 +134,8 @@ export const useFileHandlers = () => {
   const { createNode, addNode } = useNodeStore();
   const { addNotification } = useNotificationStore();
   const { user } = useAuth();
-  const { data: metadata } = useMetadata();
-  const createDataframe = useCreateDataframe(createNode, addNode, metadata);
+  const createDataframe = useCreateDataframe(createNode, addNode);
+  const getMetadata = useMetadataStore((state) => state.getMetadata);
 
   const handleGenericFile = useCallback(
     async (file: File, position: XYPosition): Promise<FileHandlerResult> => {
@@ -157,10 +157,10 @@ export const useFileHandlers = () => {
               return;
             }
 
-            if (metadata === undefined) {
-              throw new Error("metadata is undefined");
+            const nodeMetadata = getMetadata(nodeType);
+            if (!nodeMetadata) {
+              throw new Error("No metadata for node type: " + nodeType);
             }
-            const nodeMetadata = metadata.metadataByType[nodeType];
             const newNode = createNode(nodeMetadata, position);
 
             // Set the node's value to the uploaded asset
@@ -187,7 +187,7 @@ export const useFileHandlers = () => {
       workflow.id,
       currentFolderId,
       user?.id,
-      metadata,
+      getMetadata,
       createNode,
       addNode,
       addNotification

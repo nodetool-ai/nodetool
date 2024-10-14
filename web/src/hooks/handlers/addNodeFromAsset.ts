@@ -5,12 +5,12 @@ import { XYPosition } from "@xyflow/react";
 import { Asset, NodeMetadata } from "../../stores/ApiTypes";
 import { useNodeStore } from "../../stores/NodeStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import { useMetadata } from "../../serverState/useMetadata";
 import axios from "axios";
 import { constantForType } from "./useConnectionHandlers";
 import { devError } from "../../utils/DevLog";
 import { nodeTypeFor } from "./dropHandlerUtils";
 import Papa from "papaparse";
+import useMetadataStore from "../../stores/MetadataStore";
 interface ParsedCSV {
   data: string[][];
   errors: Papa.ParseError[];
@@ -19,7 +19,7 @@ interface ParsedCSV {
 export const useAddNodeFromAsset = () => {
   const addNode = useNodeStore((state) => state.addNode);
   const createNode = useNodeStore((state) => state.createNode);
-  const { data: metadata } = useMetadata();
+  const getMetadata = useMetadataStore((state) => state.getMetadata);
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
@@ -79,14 +79,12 @@ export const useAddNodeFromAsset = () => {
         return;
       }
 
-      if (metadata === undefined) {
-        devError("metadata is undefined");
-        return;
-      }
-      let nodeMetadata = metadata.metadataByType[nodeType];
-
-      const createNodeWithAsset = (content?: string) => {
-        const newNode = createNode(nodeMetadata, position);
+      const createNodeWithAsset = (nodeType: string, content?: string) => {
+        const metadata = getMetadata(nodeType);
+        if (!metadata) {
+          throw new Error("metadata for node type " + nodeType + " is missing");
+        }
+        const newNode = createNode(metadata, position);
         newNode.data.properties.value = {
           type: assetType,
           asset_id: asset.id,
@@ -96,12 +94,16 @@ export const useAddNodeFromAsset = () => {
         addNode(newNode);
         return newNode;
       };
+      let nodeMetadata: NodeMetadata | undefined;
 
       switch (assetType) {
         case "dataframe":
-          nodeMetadata = metadata.metadataByType["nodetool.constant.DataFrame"];
+          nodeMetadata = getMetadata("nodetool.constant.DataFrame");
           downloadAssetContent(asset)
             .then((csvContent) => {
+              if (nodeMetadata === undefined) {
+                throw new Error("metadata for DataFrame is undefined");
+              }
               createDataframeNode(csvContent, position, nodeMetadata);
             })
             .catch((error) => {
@@ -109,21 +111,25 @@ export const useAddNodeFromAsset = () => {
             });
           break;
         case "str":
-          nodeMetadata = metadata.metadataByType["nodetool.constant.String"];
           downloadAssetContent(asset)
             .then((content) => {
-              createNodeWithAsset(content);
+              createNodeWithAsset("nodetool.constant.String", content);
             })
             .catch((error) => {
               devError("Failed to download asset content", error);
             });
           break;
         case "text":
-          nodeMetadata = metadata.metadataByType["nodetool.constant.Text"];
-          createNodeWithAsset();
+          downloadAssetContent(asset)
+            .then((content) => {
+              createNodeWithAsset("nodetool.constant.Text", content);
+            })
+            .catch((error) => {
+              devError("Failed to download asset content", error);
+            });
           break;
         default:
-          createNodeWithAsset();
+          createNodeWithAsset(nodeType);
       }
     },
     [
@@ -132,7 +138,7 @@ export const useAddNodeFromAsset = () => {
       createDataframeNode,
       createNode,
       downloadAssetContent,
-      metadata
+      getMetadata
     ]
   );
 

@@ -19,6 +19,7 @@ import ThemeNodetool from "../themes/ThemeNodetool";
 import { useCallback } from "react";
 import { useCreateLoopNode } from "../../hooks/nodes/useCreateLoopNode";
 import { useMetadata } from "../../serverState/useMetadata";
+import useMetadataStore from "../../stores/MetadataStore";
 
 interface PaneContextMenuProps {
   top?: number;
@@ -98,7 +99,9 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
   );
 
   const createLoopNode = useCreateLoopNode();
-  const { data: metadata } = useMetadata();
+  const loopMetadata = useMetadataStore((state) =>
+    state.getMetadata("nodetool.group.Loop")
+  );
 
   const addLoopNode = useCallback(
     (event: React.MouseEvent) => {
@@ -106,14 +109,11 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
         x: event.clientX,
         y: event.clientY
       };
-      if (metadata) {
-        createLoopNode(
-          metadata.metadataByType["nodetool.group.Loop"],
-          position
-        );
+      if (loopMetadata) {
+        createLoopNode(loopMetadata, position);
       }
     },
-    [createLoopNode, metadata]
+    [createLoopNode, loopMetadata]
   );
 
   if (!menuPosition) {

@@ -54,7 +54,7 @@ import "../../styles/handle_edge_tooltip.css";
 
 //hooks
 import { useAssetUpload } from "../../serverState/useAssetUpload";
-import { useMetadata, useNodeTypes } from "../../serverState/useMetadata";
+import { useNodeTypes } from "../../serverState/useMetadata";
 import { useDropHandler } from "../../hooks/handlers/useDropHandler";
 import { useCopyPaste } from "../../hooks/handlers/useCopyPaste";
 import { useDuplicateNodes } from "../../hooks/useDuplicate";
@@ -134,8 +134,6 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ isMinZoom }) => {
   const reactFlowInstance = useReactFlow();
 
   /* USE STORE */
-  const { data: queryMetadata, isLoading: loadingMetadata } = useMetadata();
-  const metadata = queryMetadata?.metadata;
   const nodeTypes = useNodeTypes();
   const { isUploading } = useAssetUpload();
   const nodeHistory: HistoryManager = useTemporalStore((state) => state);
@@ -168,9 +166,6 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ isMinZoom }) => {
 
   /* HISTORY */
   const history: HistoryManager = useTemporalStore((state) => state);
-
-  /* LOADING*/
-  const showLoading = loadingMetadata || metadata?.length === 0;
 
   // OPEN NODE MENU
   const {
@@ -447,7 +442,6 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ isMinZoom }) => {
     onConnectStart,
     onConnectEnd,
     connecting,
-    metadata,
     nodeTypes,
     isUploading,
     nodeHistory,
@@ -473,14 +467,6 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ isMinZoom }) => {
     fitScreen
   });
 
-  // LOADING OVERLAY
-  if (showLoading) {
-    return (
-      <div className="loading-overlay">
-        <CircularProgress size={48} style={{ margin: "auto" }} />
-      </div>
-    );
-  }
   return (
     <>
       <CommandMenu

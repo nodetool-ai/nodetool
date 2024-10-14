@@ -1,9 +1,9 @@
 /** @jsxImportSource @emotion/react */
 import React from "react";
 import { useParams } from "react-router-dom";
-import { useMetadata } from "../../../serverState/useMetadata";
 import NodeInfo from "../../node_menu/NodeInfo";
 import { css } from "@emotion/react";
+import useMetadataStore from "../../../stores/MetadataStore";
 
 const styles = (theme: any) =>
   css`
@@ -24,10 +24,10 @@ const styles = (theme: any) =>
 
 const NodeDocumentation: React.FC = () => {
   const { nodeType } = useParams<{ nodeType: string }>();
-  const { data, isLoading } = useMetadata();
-  const nodeMetadata = nodeType ? data?.metadataByType[nodeType] : null;
+  const nodeMetadata = useMetadataStore((state) =>
+    state.getMetadata(nodeType ?? "")
+  );
   const renderContent = () => {
-    if (isLoading) return <div className="loading">Loading...</div>;
     if (!nodeMetadata)
       return <div className="error">No data available for this node type.</div>;
     return <NodeInfo nodeMetadata={nodeMetadata} />;

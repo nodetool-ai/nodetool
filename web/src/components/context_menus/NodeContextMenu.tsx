@@ -28,11 +28,11 @@ import { useCopyPaste } from "../../hooks/handlers/useCopyPaste";
 //utils
 import { useClipboard } from "../../hooks/browser/useClipboard";
 import { devLog } from "../../utils/DevLog";
-import { useMetadata } from "../../serverState/useMetadata";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { useRemoveFromGroup } from "../../hooks/nodes/useRemoveFromGroup";
 //reactflow
 import { Node } from "@xyflow/react";
+import useMetadataStore from "../../stores/MetadataStore";
 
 const NodeContextMenu: React.FC = () => {
   const menuPosition = useContextMenuStore((state) => state.menuPosition);
@@ -51,8 +51,9 @@ const NodeContextMenu: React.FC = () => {
   const node = nodeId !== null ? getNode(nodeId) : null;
   const nodeData = node?.data as NodeData;
   const removeFromGroup = useRemoveFromGroup();
-  const { data } = useMetadata();
-  const metadata = node?.type ? data?.metadataByType[node?.type] : null;
+  const metadata = useMetadataStore((state) =>
+    state.getMetadata(node?.type ?? "")
+  );
   const { handleCopy } = useCopyPaste();
   const isCollapsed = nodeData?.collapsed || false;
   const duplicateNodes = useDuplicateNodes();

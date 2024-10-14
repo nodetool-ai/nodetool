@@ -3,6 +3,7 @@ import { NodeMetadata, TypeName } from "./ApiTypes";
 import { ConnectDirection } from "./ConnectionStore";
 import Fuse from "fuse.js";
 import { filterDataByType } from "../components/node_menu/typeFilterUtils";
+import useMetadataStore from "./MetadataStore";
 const fuseOptions = {
   keys: [
     { name: "title", weight: 0.5 },
@@ -34,7 +35,6 @@ type NodeMenuStore = {
   menuWidth: number;
   menuHeight: number;
   searchTerm: string;
-  metadata: NodeMetadata[];
   selectedInputType: string;
   setSelectedInputType: (inputType: string) => void;
   selectedOutputType: string;
@@ -82,7 +82,6 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => ({
   openedByDrop: false,
   dropType: "",
   dragToCreate: false,
-  metadata: [],
   selectedInputType: "",
   setSelectedInputType: (inputType) => {
     set({ selectedInputType: inputType });
@@ -177,7 +176,7 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => ({
   },
 
   performSearch: (term: string) => {
-    const metadata = get().metadata;
+    const metadata = useMetadataStore.getState().getAllMetadata();
     if (metadata.length === 0) {
       set({ searchResults: metadata });
       return;

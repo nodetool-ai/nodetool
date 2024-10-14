@@ -2,11 +2,11 @@
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { MoreHoriz } from "@mui/icons-material";
 import { css } from "@emotion/react";
-import { useMetadata } from "../../serverState/useMetadata";
 import { NodeStore, useNodeStore } from "../../stores/NodeStore";
 import { memo, useCallback, useMemo } from "react";
 import ThemeNodes from "../themes/ThemeNodes";
 import { isEqual } from "lodash";
+import useMetadataStore from "../../stores/MetadataStore";
 
 export interface NodeHeaderProps {
   id: string;
@@ -93,14 +93,11 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
   showMenu = true
 }: NodeHeaderProps) => {
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
-  const { data } = useMetadata();
+  const getMetadata = useMetadataStore((state) => state.getMetadata);
   const findNode = useNodeStore((state) => state.findNode);
 
   const node = useMemo(() => findNode(id), [findNode, id]);
-  const metadata = useMemo(
-    () => (node?.type ? data?.metadataByType[node?.type] : null),
-    [node, data]
-  );
+  const metadata = getMetadata(node?.type || "");
   const description = useMemo(
     () => metadata?.description.split("\n")[0] || "",
     [metadata]

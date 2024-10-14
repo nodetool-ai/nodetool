@@ -10,10 +10,11 @@
   position: relative;
   width: auto;
   max-width: 250px;
-  min-height: 15px;
+  min-height: 18px;
   border: 0;
-  padding: 0 0.75em;
-  margin: 3px 0 5px;
+  padding: 0 9px;
+  margin-bottom: 9px;
+  line-height: 18px;
 }
 
 .node-property .react-flow__handle {
@@ -62,22 +63,23 @@
 /* Property tooltip */
 .property-label [role~="tooltip"][data-microtip-position|="bottom"]::after {
   position: absolute;
-  bottom: 2.2em;
-  top: unset;
-  left: 50px;
+  /* bottom: 2.2em; */
+  /* top: unset; */
+  /* left: 50px; */
   /* transform: none; */
+  outline: 1px solid var(--c_gray4);
   background: var(--c_gray2);
   color: var(--c-white);
   font-family: var(--font-family-1);
-  line-height: 1.5em;
-  padding: 0.75em 0.75em;
+  line-height: 18px;
+  padding: 5px 10px;
   display: block;
   z-index: 1000;
   max-width: 250px;
   min-width: 150px;
   word-wrap: break-word;
   white-space: normal;
-  font-size: var(--font-size-normal);
+  font-size: var(--font-size-small);
   pointer-events: none;
   --microtip-transition-delay: 0.5s;
 }
@@ -156,6 +158,10 @@
 
 /* REFACTORED PROPERTY STYLES */
 
+.property-label {
+  height: 18px;
+}
+
 .property-label label {
   font-weight: 300;
   color: var(--c_gray6);
@@ -163,6 +169,8 @@
   font-size: var(--font-size-normal);
   padding: 0;
   margin: 0;
+  line-height: 18px;
+  height: 18px;
 }
 .image-property .property-label {
   margin-bottom: 5px;
@@ -173,13 +181,21 @@
   position: relative;
   /* box-sizing: content-box; */
   display: flex;
-  gap: 0.25em;
+  gap: 5px;
   align-items: center;
   width: 100%;
+  /* margin-top: 5px; */
   /* margin-bottom: 2px; */
 }
-.value-changed .string-property .expand-button {
+
+.value-changed .string-property input {
   border-right: 2px solid var(--c_hl1);
+}
+
+.string-property .container .expand-button {
+  width: 20px;
+  border: 1px solid var(--c_gray4);
+  border-radius: 2px;
 }
 
 .string-property input {
@@ -193,8 +209,9 @@
   border-radius: 0.1em;
   font-family: var(--font-family-1);
   font-weight: 300;
-  font-size: var(--font-size-small);
-  line-height: 1.3em;
+  font-size: var(--font-size-normal);
+  line-height: 18px;
+  height: 18px;
 }
 .string-property .expand-button {
   cursor: pointer;
@@ -234,7 +251,6 @@
   line-height: inherit;
   outline: none;
   font-size: var(--font-size-normal);
-  padding: 0.2em 0.1em;
 }
 
 .node-property select option:checked,
@@ -245,8 +261,9 @@
 .enum-property select,
 .model-property select {
   width: 100%;
-  margin: 0;
-  padding: 0;
+  height: 18px;
+  margin: 0px;
+  padding: 0px;
   background-color: var(--c_gray2);
   color: var(--c_white);
   border-radius: 0.1em;

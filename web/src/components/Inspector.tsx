@@ -1,11 +1,11 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React from "react";
-import { useMetadataOrNull } from "../serverState/useMetadata";
 import PropertyField from "./node/PropertyField";
 import { Button, Tooltip, Typography } from "@mui/material";
 import { useNodeStore } from "../stores/NodeStore";
 import useNodeMenuStore from "../stores/NodeMenuStore";
+import useMetadataStore from "../stores/MetadataStore";
 
 const styles = (theme: any) =>
   css({
@@ -130,7 +130,6 @@ const styles = (theme: any) =>
 const Inspector: React.FC = () => {
   const selectedNodes = useNodeStore((state) => state.getSelectedNodes());
   const getNode = useNodeStore((state) => state.findNode);
-  const getInputEdges = useNodeStore((state) => state.getInputEdges);
   const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
   const setHighlightedNamespaces = useNodeMenuStore(
     (state) => state.setHighlightedNamespaces
@@ -140,7 +139,9 @@ const Inspector: React.FC = () => {
 
   const selectedNodeId = selectedNodes[0]?.id;
   const selectedNode = selectedNodeId ? getNode(selectedNodeId) : null;
-  const metadata = useMetadataOrNull(selectedNode?.type ?? "");
+  const metadata = useMetadataStore((state) =>
+    state.getMetadata(selectedNode?.type ?? "")
+  );
 
   if (!selectedNode || !metadata) {
     return <Typography>Select a node to edit</Typography>;

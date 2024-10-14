@@ -79,11 +79,6 @@ export const useMetadata = () =>
     staleTime: 1000 * 60 * 60 * 24
   });
 
-export const useMetadataOrNull = (nodeType: string) => {
-  const { data } = useMetadata();
-  return data?.metadataByType[nodeType];
-};
-
 export const useNodeTypes = (): Record<string, any> => {
   const { data } = useMetadata();
   return data?.nodeTypes || [];

@@ -3,11 +3,11 @@ import { OnConnectStartParams, Connection } from "@xyflow/react";
 import useConnectionStore from "../../stores/ConnectionStore";
 import { useNodeStore } from "../../stores/NodeStore";
 import { TypeName } from "../../stores/ApiTypes";
-import { useMetadata } from "../../serverState/useMetadata";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { devLog } from "../../utils/DevLog";
 import { isConnectable } from "../../utils/TypeHandler";
 import { useNotificationStore } from "../../stores/NotificationStore";
+import useMetadataStore from "../../stores/MetadataStore";
 
 export const inputForType = (type: TypeName) => {
   switch (type) {
@@ -106,13 +106,13 @@ export default function useConnectionHandlers() {
   const setConnectionAttempted = useNodeStore(
     (state) => state.setConnectionAttempted
   );
-  const { data: metadata } = useMetadata();
+  const getMetadata = useMetadataStore((state) => state.getMetadata);
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
 
   /* CONNECT START */
   const onConnectStart = useCallback(
     (event: any, { nodeId, handleId, handleType }: OnConnectStartParams) => {
-      if (!nodeId || !handleId || !handleType || !metadata) {
+      if (!nodeId || !handleId || !handleType) {
         console.warn("Missing required data for connection start");
         return;
       }
@@ -123,7 +123,7 @@ export default function useConnectionHandlers() {
         return;
       }
 
-      const nodeMetadata = metadata.metadataByType[node.type || ""];
+      const nodeMetadata = getMetadata(node.type || "");
       if (!nodeMetadata) {
         console.warn(`Metadata for node type ${node.type} not found`);
         return;
@@ -138,7 +138,7 @@ export default function useConnectionHandlers() {
         endConnecting();
       }
     },
-    [metadata, findNode, startConnecting, endConnecting]
+    [findNode, startConnecting, endConnecting, getMetadata]
   );
 
   /* ON CONNECT */
@@ -169,12 +169,13 @@ export default function useConnectionHandlers() {
       if (!connectionCreated.current && targetIsNode) {
         const nodeId = event.target.closest(".react-flow__node").dataset.id;
         const node = findNode(nodeId);
-        if (!node || !metadata) {
+        if (!node) {
           return;
         }
 
-        const nodeMetadata = metadata.metadataByType[node.type || ""];
+        const nodeMetadata = getMetadata(node.type || "");
         if (!nodeMetadata) {
+          console.warn(`Metadata for node type ${node.type} not found`);
           return;
         }
         if (connectDirection === "source") {
@@ -263,8 +264,9 @@ export default function useConnectionHandlers() {
       setConnectionAttempted,
       endConnecting,
       findNode,
-      metadata,
+      getMetadata,
       handleOnConnect,
+      addNotification,
       openContextMenu
     ]
   );

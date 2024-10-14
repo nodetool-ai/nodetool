@@ -4,6 +4,7 @@ import { useCallback } from "react";
 import { XYPosition } from "@xyflow/react";
 import Papa from "papaparse";
 import { devError } from "../../utils/DevLog";
+import useMetadataStore from "../../stores/MetadataStore";
 
 interface ParsedCSV {
   data: string[][];
@@ -11,22 +12,18 @@ interface ParsedCSV {
   meta: Papa.ParseMeta;
 }
 
-export const useCreateDataframe = (
-  createNode: any,
-  addNode: any,
-  metadata: any
-) => {
+export const useCreateDataframe = (createNode: any, addNode: any) => {
+  const getMetadata = useMetadataStore((state) => state.getMetadata);
   return useCallback(
     (files: File[], position: XYPosition) => {
-      if (metadata === undefined) {
-        devError("metadata is undefined");
-        return [];
-      }
       return files.reduce((acc: File[], file: File) => {
         if (file.type === "text/csv") {
           const nodeType = "nodetool.constant.DataFrame";
-          const nodeMetadata = metadata.metadataByType[nodeType];
+          const nodeMetadata = getMetadata(nodeType);
           const reader = new FileReader();
+          if (nodeMetadata === undefined) {
+            throw new Error("metadata for dataframe node is missing");
+          }
           reader.onload = (event) => {
             if (event.target) {
               const csv = event.target.result as string;
@@ -59,6 +56,6 @@ export const useCreateDataframe = (
         return acc;
       }, [] as File[]);
     },
-    [createNode, addNode, metadata]
+    [createNode, addNode, getMetadata]
   );
 };
