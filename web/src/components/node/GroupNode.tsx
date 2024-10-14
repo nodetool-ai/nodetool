@@ -237,19 +237,16 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     [props.data, props.id, updateNodeData]
   );
 
-  const handleColorChange = useCallback(
-    (newColor: string) => {
-      setColor(newColor);
-      updateNodeData(props.id, {
-        ...props.data,
-        properties: {
-          ...props.data.properties,
-          group_color: newColor
-        }
-      });
-    },
-    [props.data, props.id, updateNodeData]
-  );
+  const handleColorChange = useCallback((newColor: string) => {
+    setColor(newColor);
+    updateNodeData(props.id, {
+      // ...props.data,
+      properties: {
+        // ...props.data.properties,
+        group_color: newColor
+      }
+    });
+  }, []);
 
   useEffect(() => {
     // Selectable group nodes when spacekey is pressed

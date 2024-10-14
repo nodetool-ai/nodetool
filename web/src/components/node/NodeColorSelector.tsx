@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -103,27 +103,26 @@ export const NodeColorSelector: React.FC<NodeColorSelectorProps> = ({
   alwaysVisible = false
 }) => {
   const [modalOpen, setModalOpen] = useState(false);
-  const [dataTypesFiltered, setDataTypesFiltered] = useState(DATA_TYPES);
+  const [searchTerm, setSearchTerm] = useState("");
 
-  const handleSearchChange = useCallback(
-    (search: string) => {
-      if (search === "") {
-        setDataTypesFiltered(DATA_TYPES);
-      } else {
-        setDataTypesFiltered(
-          DATA_TYPES.filter((datatype) =>
-            datatype.label.toLowerCase().includes(search.toLowerCase())
-          )
-        );
-      }
+  const dataTypesFiltered = useMemo(() => {
+    if (searchTerm === "") return DATA_TYPES;
+    return DATA_TYPES.filter((datatype) =>
+      datatype.label.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [searchTerm]);
+
+  const handleSearchChange = useCallback((search: string) => {
+    setSearchTerm(search);
+  }, []);
+
+  const handleColorChangeAndClose = useCallback(
+    (color: string) => {
+      onColorChange(color);
+      setModalOpen(false);
     },
-    [setDataTypesFiltered]
+    [onColorChange]
   );
-
-  const handleColorChangeAndClose = (color: string) => {
-    onColorChange(color);
-    setModalOpen(false);
-  };
 
   return (
     <div css={colorPickerButtonStyles(ThemeNodetool, alwaysVisible)}>
