@@ -28,6 +28,7 @@ export interface WorkflowStore {
   copy: (workflow: Workflow) => Promise<Workflow>;
   update: (workflow: Workflow) => Promise<Workflow>;
   delete: (id: string) => Promise<void>;
+  saveExample: (id: string, workflow: Workflow) => Promise<Workflow>;
 }
 
 export const useWorkflowStore = create<WorkflowStore>()(
@@ -328,6 +329,36 @@ export const useWorkflowStore = create<WorkflowStore>()(
         }
         get().invalidateQueries(["workflows"]);
         get().removeUnsavedWorkflow(id);
+      },
+
+      /**
+       * Saves a workflow as an example (only in development mode).
+       * @param id - The ID of the workflow to save as an example.
+       * @param workflow - The workflow to save as an example.
+       * @returns A promise that resolves to the saved example Workflow.
+       * @throws Will throw an error if not in development mode or if the server request fails.
+       */
+      saveExample: async (id: string, workflow: Workflow) => {
+        const { data, error } = await client.PUT(
+          "/api/workflows/examples/{id}",
+          {
+            params: { path: { id } },
+            body: {
+              name: workflow.name,
+              description: workflow.description,
+              thumbnail: workflow.thumbnail,
+              access: "public",
+              graph: workflow.graph
+            }
+          }
+        );
+
+        if (error) {
+          throw error;
+        }
+
+        get().invalidateQueries(["workflows", "examples"]);
+        return data;
       }
     }),
     {

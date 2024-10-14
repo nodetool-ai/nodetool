@@ -44,3 +44,29 @@ def load_examples() -> List[Workflow]:
             load_example(name) for name in os.listdir(examples_folder) if name[0] != "_"
         ]
     return examples
+
+
+def find_example(id: str) -> Workflow | None:
+    examples = load_examples()
+    return next((example for example in examples if example.id == id), None)
+
+
+def save_example(id: str, workflow: Workflow) -> Workflow:
+    example = find_example(id)
+    if example is None:
+        raise ValueError(f"Example with id {id} not found")
+
+    workflow_dict = workflow.model_dump()
+
+    # Remove unnecessary fields
+    workflow_dict.pop("user_id", None)
+
+    example_path = os.path.join(examples_folder, f"{workflow.name}.json")
+    with open(example_path, "w") as f:
+        json.dump(workflow_dict, f, indent=2)
+
+    # Invalidate the cached examples
+    global examples
+    examples = None
+
+    return workflow

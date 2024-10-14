@@ -164,6 +164,10 @@ export interface paths {
     /** Delete Workflow */
     delete: operations["delete_workflow_api_workflows__id__delete"];
   };
+  "/api/workflows/examples/{id}": {
+    /** Save Example Workflow */
+    put: operations["save_example_workflow_api_workflows_examples__id__put"];
+  };
   "/api/storage/{bucket}/{key}": {
     /**
      * Get
@@ -612,12 +616,6 @@ export interface components {
     HFFileInfo: {
       /** Size */
       size: number;
-      /** Blob Id */
-      blob_id: string;
-      /** Lfs */
-      lfs?: Record<string, never> | null;
-      /** Last Modified */
-      last_modified: string;
       /** Repo Id */
       repo_id: string;
       /** Path */
@@ -3493,6 +3491,39 @@ export interface operations {
       200: {
         content: {
           "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Save Example Workflow */
+  save_example_workflow_api_workflows_examples__id__put: {
+    parameters: {
+      header?: {
+        authorization?: string | null;
+      };
+      path: {
+        id: string;
+      };
+      cookie?: {
+        auth_cookie?: string | null;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["WorkflowRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["Workflow-Output"];
         };
       };
       /** @description Validation Error */

@@ -8,7 +8,7 @@ from nodetool.types.workflow import WorkflowList, Workflow, WorkflowRequest
 from nodetool.api.utils import current_user, User
 from nodetool.common.environment import Environment
 from typing import Optional
-from nodetool.workflows.examples import load_examples
+from nodetool.workflows.examples import load_examples, save_example
 from nodetool.workflows.read_graph import read_graph
 from nodetool.models.workflow import Workflow as WorkflowModel
 
@@ -141,3 +141,31 @@ async def delete_workflow(id: str, user: User = Depends(current_user)) -> None:
     if workflow.user_id != user.id:
         raise HTTPException(status_code=404, detail="Workflow not found")
     workflow.delete()
+
+
+@router.put("/examples/{id}")
+async def save_example_workflow(
+    id: str, workflow_request: WorkflowRequest, user: User = Depends(current_user)
+) -> Workflow:
+    if Environment.is_production():
+        raise HTTPException(
+            status_code=403,
+            detail="Saving example workflows is only allowed in dev mode",
+        )
+
+    if workflow_request.graph is None:
+        raise HTTPException(status_code=400, detail="Invalid workflow")
+
+    workflow = Workflow(
+        id=id,
+        name=workflow_request.name,
+        description=workflow_request.description or "",
+        thumbnail=workflow_request.thumbnail,
+        access="public",
+        graph=remove_connected_slots(workflow_request.graph),
+        created_at=datetime.now().isoformat(),
+        updated_at=datetime.now().isoformat(),
+    )
+
+    saved_workflow = save_example(id, workflow)
+    return saved_workflow
