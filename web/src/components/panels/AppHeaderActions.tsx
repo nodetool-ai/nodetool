@@ -46,7 +46,7 @@ const actionsStyles = (
       alignItems: "center",
       gap: "0.5em",
       backgroundColor: theme.palette.c_gray1,
-      borderRadius: "0 0 .5em 0.5em",
+      borderRadius: "0 0 .3em 0.3em",
       margin: "-.25em 0 0",
       padding: "0 .5em .2em .5em"
     },
