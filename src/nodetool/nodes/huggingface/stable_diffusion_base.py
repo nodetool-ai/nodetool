@@ -422,6 +422,10 @@ def load_loras(pipeline: Any, loras: list[HFLoraSDConfig] | list[HFLoraSDXLConfi
     pipeline.set_adapters(lora_names, adapter_weights=lora_weights)
 
 
+def quantize_to_multiple_of_64(value):
+    return round(value / 64) * 64
+
+
 class StableDiffusionBaseNode(HuggingFacePipelineNode):
     model: HFStableDiffusion = Field(
         default=HFStableDiffusion(),
@@ -459,6 +463,12 @@ class StableDiffusionBaseNode(HuggingFacePipelineNode):
     ip_adapter_image: ImageRef = Field(
         default=ImageRef(),
         description="When provided the image will be fed into the IP adapter",
+    )
+    ip_adapter_scale: float = Field(
+        default=0.5,
+        ge=0.0,
+        le=1.0,
+        description="The strength of the IP adapter",
     )
     detail_level: float = Field(
         default=0.5,
@@ -519,7 +529,6 @@ class StableDiffusionBaseNode(HuggingFacePipelineNode):
                 subfolder="models",
                 weight_name=self.ip_adapter_model.value,
             )
-            self._pipeline.set_ip_adapter_scale(1.0)
 
     def _set_scheduler(self, scheduler_type: StableDiffusionScheduler):
         scheduler_class = get_scheduler_class(scheduler_type)
@@ -579,8 +588,19 @@ class StableDiffusionBaseNode(HuggingFacePipelineNode):
         else:
             ip_adapter_image = None
 
+        self._pipeline.set_ip_adapter_scale(self.ip_adapter_scale)
+
         width = kwargs.get("width", None)
         height = kwargs.get("height", None)
+
+        if width is not None:
+            width = quantize_to_multiple_of_64(width)
+            kwargs["width"] = width
+
+        if height is not None:
+            height = quantize_to_multiple_of_64(height)
+            kwargs["height"] = height
+
         hires = (
             width is not None
             and height is not None
@@ -656,15 +676,19 @@ class StableDiffusionBaseNode(HuggingFacePipelineNode):
             ]
 
             # Prepare img2img pipeline for hi-res pass
-            img2img_pipe = StableDiffusionImg2ImgPipeline(
-                vae=self._pipeline.vae,
-                text_encoder=self._pipeline.text_encoder,
-                tokenizer=self._pipeline.tokenizer,
-                unet=self._pipeline.unet,
-                scheduler=self._pipeline.scheduler,
-                safety_checker=self._pipeline.safety_checker,
-                feature_extractor=self._pipeline.feature_extractor,
-            )
+            if "image" in kwargs:
+                img2img_pipe = self._pipeline
+            else:
+                img2img_pipe = StableDiffusionImg2ImgPipeline(
+                    vae=self._pipeline.vae,
+                    text_encoder=self._pipeline.text_encoder,
+                    image_encoder=self._pipeline.image_encoder,
+                    tokenizer=self._pipeline.tokenizer,
+                    unet=self._pipeline.unet,
+                    scheduler=self._pipeline.scheduler,
+                    safety_checker=self._pipeline.safety_checker,
+                    feature_extractor=self._pipeline.feature_extractor,
+                )
             if hires:
                 img2img_pipe.vae.enable_tiling()
 
@@ -676,7 +700,7 @@ class StableDiffusionBaseNode(HuggingFacePipelineNode):
 
             image = img2img_pipe(
                 image=upscaled_latents.unsqueeze(0),  # type: ignore
-                prompt=self.prompt + ", detailed, 4k, hires, high resolution",
+                prompt=self.prompt + ", hires",
                 negative_prompt=self.negative_prompt,
                 num_inference_steps=hi_res_steps,
                 guidance_scale=hi_res_guidance_scale,
