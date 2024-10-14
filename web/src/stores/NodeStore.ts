@@ -53,7 +53,7 @@ type NodeSelection = {
   edges: Edge[];
 };
 
-const DEFAULT_NODE_WIDTH = 140;
+const DEFAULT_NODE_WIDTH = 200;
 
 const graphEdgeToReactFlowEdge = (edge: GraphEdge): Edge => {
   return {

@@ -40,26 +40,20 @@ export interface NodeFooterProps {
 export const footerStyles = (theme: any) =>
   css({
     display: "flex",
-    height: "1.1em",
+    height: "24px",
     alignItems: "flex-start",
-    margin: "0.4em 0 0 0",
-    padding: 0,
     background: theme.palette.c_node_header_bg,
     borderRadius: "0 0 0.3em 0.3em",
     overflow: "hidden",
-    ".pretty-namespace": {
-      marginTop: "-0.4em",
-      fontSize: theme.fontSizeSmall
-    },
     ".namespace-button": {
       display: "block",
-      margin: 0,
-      padding: "0.2em 0.5em 0.2em 1em",
+      margin: "0 0 0 0",
+      padding: "4px 10px",
       borderRadius: 0,
       backgroundColor: "transparent",
       color: theme.palette.c_gray5,
       fontFamily: theme.fontFamily1,
-      fontSize: theme.fontSizeTiny,
+      fontSize: theme.fontSizeSmall,
       textTransform: "uppercase",
       textAlign: "left",
       flexGrow: 1,
@@ -71,10 +65,6 @@ export const footerStyles = (theme: any) =>
     },
     ".namespace-button:hover .pretty-namespace span": {
       color: theme.palette.c_hl1
-    },
-    ".icon": {
-      paddingLeft: "auto",
-      height: "1.2em"
     }
   });
 
@@ -112,11 +102,7 @@ export const NodeFooter: React.FC<NodeFooterProps> = ({
   return (
     <div className="node-footer" css={footerStyles}>
       <Tooltip title="Click to show in NodeMenu" placement="bottom-start">
-        <Button
-          className="namespace-button"
-          size="small"
-          onClick={handleOpenNodeMenu}
-        >
+        <Button className="namespace-button" onClick={handleOpenNodeMenu}>
           <PrettyNamespace namespace={nodeNamespace} />
         </Button>
       </Tooltip>

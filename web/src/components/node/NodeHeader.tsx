@@ -31,7 +31,7 @@ export const headerStyle = (theme: any, hasParent: boolean) =>
     justifyContent: "space-between",
     alignItems: "flex-start",
     width: "100%",
-    minHeight: "2em",
+    minHeight: "24px",
     backgroundColor: hasParent
       ? theme.palette.c_node_header_bg_group
       : theme.palette.c_node_header_bg,
@@ -55,8 +55,7 @@ export const headerStyle = (theme: any, hasParent: boolean) =>
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeNormal,
       fontFeatureSettings: '"smcp"',
-      margin: 0,
-      padding: "0.5em 0.5em 0.5em .6em"
+      padding: "8px 10px"
     },
     ".big": {
       flex: 1,
