@@ -15,15 +15,15 @@ export interface NodeHeaderProps {
   showMenu?: boolean;
   backgroundColor?: string;
 }
-const tooltipStyle = css({
-  '[role~="tooltip"][data-microtip-position|="top"]::after': {
-    fontSize: "1.1em",
-    maxWidth: "250px",
-    padding: "1em",
-    textAlign: "left",
-    transform: "translate3d(-90%, -5px, 0)"
-  }
-});
+// const tooltipStyle = css({
+//   '[role~="tooltip"][data-microtip-position|="top"]::after': {
+//     fontSize: "1.1em",
+//     maxWidth: "250px",
+//     padding: "1em",
+//     textAlign: "left",
+//     transform: "translate3d(-90%, -5px, 0)"
+//   }
+// });
 
 export const headerStyle = (theme: any, hasParent: boolean) =>
   css({
@@ -97,23 +97,23 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
 
   const node = useMemo(() => findNode(id), [findNode, id]);
   const metadata = getMetadata(node?.type || "");
-  const description = useMemo(
-    () => metadata?.description.split("\n")[0] || "",
-    [metadata]
-  );
+  // const description = useMemo(
+  //   () => metadata?.description.split("\n")[0] || "",
+  //   [metadata]
+  // );
 
-  const tooltipAttributes = useMemo(
-    () =>
-      description
-        ? {
-            "aria-label": description,
-            "data-microtip-position": "top",
-            "data-microtip-size": "medium",
-            role: "tooltip"
-          }
-        : {},
-    [description]
-  );
+  // const tooltipAttributes = useMemo(
+  //   () =>
+  //     description
+  //       ? {
+  //           "aria-label": description,
+  //           "data-microtip-position": "top",
+  //           "data-microtip-size": "medium",
+  //           role: "tooltip"
+  //         }
+  //       : {},
+  //   [description]
+  // );
 
   const memoizedHeaderStyle = useMemo(
     () => headerStyle(ThemeNodes, hasParent || false),
@@ -151,10 +151,11 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
       {showMenu && (
         <>
           <span className="node-title">{nodeTitle}</span>
-          <div className="menu-button" css={tooltipStyle}>
+          <div className="menu-button">
+            {/* css={tooltipStyle}> */}
             <button
               className="menu-button"
-              {...tooltipAttributes}
+              // {...tooltipAttributes}
               onClick={handleOpenContextMenu}
             >
               <MoreHoriz />

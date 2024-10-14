@@ -5,6 +5,7 @@ import QueueIcon from "@mui/icons-material/Queue";
 import CopyAllIcon from "@mui/icons-material/CopyAll";
 import RemoveCircleIcon from "@mui/icons-material/RemoveCircle";
 import GroupRemoveIcon from "@mui/icons-material/GroupRemove";
+import HelpIcon from "@mui/icons-material/Help";
 
 import { useNodeStore, NodeStore } from "../../stores/NodeStore";
 import { useDuplicateNodes } from "../../hooks/useDuplicate";
@@ -12,6 +13,8 @@ import { useCopyPaste } from "../../hooks/handlers/useCopyPaste";
 import { useRemoveFromGroup } from "../../hooks/nodes/useRemoveFromGroup";
 import { NodeData } from "../../stores/NodeData";
 import { Node } from "@xyflow/react";
+import useNodeMenuStore from "../../stores/NodeMenuStore";
+import { getMousePosition } from "../../utils/MousePosition";
 interface NodeToolbarProps {
   nodeId: string | null;
 }
@@ -23,6 +26,9 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
   const removeFromGroup = useRemoveFromGroup();
   const { handleCopy } = useCopyPaste();
   const duplicateNodes = useDuplicateNodes();
+  const openDocumentation = useNodeMenuStore(
+    (state) => state.openDocumentation
+  );
   const handleCopyClicked = useCallback(() => {
     if (nodeId) {
       handleCopy(nodeId);
@@ -41,6 +47,14 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
     }
   }, [nodeId, getNode, duplicateNodes]);
 
+  const handleOpenDocumentation = useCallback(() => {
+    const mousePosition = getMousePosition();
+    openDocumentation(node?.type || "", {
+      x: mousePosition.x,
+      y: mousePosition.y
+    });
+  }, [node?.type, openDocumentation]);
+
   if (!nodeId) return null;
 
   return (
@@ -55,6 +69,11 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
       <Tooltip title="Duplicate (Space+D)">
         <IconButton onClick={handleDuplicateNodes}>
           <QueueIcon />
+        </IconButton>
+      </Tooltip>
+      <Tooltip title="Documentation">
+        <IconButton onClick={handleOpenDocumentation}>
+          <HelpIcon />
         </IconButton>
       </Tooltip>
       <Tooltip title="Copy (CTRL+C | Meta+C)">

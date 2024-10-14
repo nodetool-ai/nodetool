@@ -16,7 +16,6 @@ import { useReactFlow } from "@xyflow/react";
 import useMetadataStore from "../../stores/MetadataStore";
 import { labelForType } from "../../config/data_types";
 import { Slugify } from "../../utils/TypeHandler";
-import useConnectionStore from "../../stores/ConnectionStore";
 import { getTimestampForFilename } from "../../utils/formatDateAndTime";
 
 const OutputContextMenu: React.FC = () => {

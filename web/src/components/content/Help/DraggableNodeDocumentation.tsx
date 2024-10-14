@@ -139,7 +139,7 @@ const DraggableNodeDocumentation: React.FC<DraggableNodeDocumentationProps> = ({
         </Button>
       </>
     );
-  }, [isLoading, nodeMetadata, nodeType, handleAddNode, handleOpenNodeMenu]);
+  }, [nodeMetadata, nodeType, handleAddNode, handleOpenNodeMenu]);
 
   return (
     <Draggable handle=".handle" defaultPosition={position} nodeRef={nodeRef}>
