@@ -114,6 +114,14 @@ export function reactFlowNodeToGraphNode(node: Node<NodeData>): GraphNode {
 
   if (node.type === "nodetool.group.Loop") {
     ui_properties.selectable = false;
+    ui_properties.height = node.measured?.height;
+  }
+
+  if (
+    node.type === "nodetool.workflows.base_node.Comment" ||
+    node.type === "nodetool.workflows.base_node.Group"
+  ) {
+    ui_properties.height = node.measured?.height;
   }
 
   return {
