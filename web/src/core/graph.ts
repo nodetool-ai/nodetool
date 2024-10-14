@@ -151,14 +151,32 @@ export const autoLayout = async (
 ): Promise<Node<NodeData>[]> => {
   const elk = new ELK();
 
+  // Create a map of parent nodes to their children
+  const parentChildMap: Record<string, Node<NodeData>[]> = {};
+  nodes.forEach((node) => {
+    if (node.parentId) {
+      if (!parentChildMap[node.parentId]) {
+        parentChildMap[node.parentId] = [];
+      }
+      parentChildMap[node.parentId].push(node);
+    }
+  });
+
+  // Helper function to create ELK node structure
+  const createElkNode = (node: Node<NodeData>): any => ({
+    id: node.id,
+    width: node.measured?.width ?? 100,
+    height: node.measured?.height ?? 100,
+    children: parentChildMap[node.id]?.map(createElkNode) ?? []
+  });
+
   const graph = {
     id: "root",
-    layoutOptions: { "elk.algorithm": "layered", "elk.direction": "RIGHT" },
-    children: nodes.map((node) => ({
-      id: node.id,
-      width: node.measured?.width ? node.measured.width : 100,
-      height: node.measured?.height ? node.measured.height : 100
-    })),
+    layoutOptions: {
+      "elk.algorithm": "layered",
+      "elk.direction": "RIGHT"
+    },
+    children: nodes.filter((node) => !node.parentId).map(createElkNode),
     edges: edges.map((edge) => ({
       id: edge.id,
       sources: [edge.source],
@@ -174,19 +192,34 @@ export const autoLayout = async (
       y: Math.min(...nodes.map((node) => node.position.y))
     };
 
-    return zip(nodes, layout.children || []).map(([node, layoutNode]) => {
-      const position =
-        node?.type === "nodetool.workflows.base_node.Comment"
-          ? node.position
+    // Helper function to update node positions recursively
+    const updateNodePositions = (layoutNode: any): Node<NodeData> => {
+      const originalNode = nodes.find((n) => n.id === layoutNode.id)!;
+      const newPosition =
+        originalNode.type === "nodetool.workflows.base_node.Comment"
+          ? originalNode.position
           : {
-              x: (layoutNode?.x || 0) + originalTopLeft.x,
-              y: (layoutNode?.y || 0) + originalTopLeft.y
+              x: (layoutNode.x ?? 0) + originalTopLeft.x,
+              y: (layoutNode.y ?? 0) + originalTopLeft.y
             };
-      return {
-        ...(node as Node<NodeData>),
-        position: position
+
+      const updatedNode = {
+        ...originalNode,
+        position: newPosition
       };
-    });
+
+      if (layoutNode.children) {
+        layoutNode.children.forEach((childLayoutNode: any) => {
+          updateNodePositions(childLayoutNode);
+        });
+      }
+
+      return updatedNode;
+    };
+
+    return (layout.children ?? []).map((layoutNode) =>
+      updateNodePositions(layoutNode)
+    );
   } catch (error) {
     console.error("Error in ELK layout:", error);
     return nodes;
