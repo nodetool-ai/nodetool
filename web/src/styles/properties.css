@@ -60,30 +60,6 @@
   opacity: 0.4;
 }
 
-/* Property tooltip */
-.property-label [role~="tooltip"][data-microtip-position|="bottom"]::after {
-  position: absolute;
-  /* bottom: 2.2em; */
-  /* top: unset; */
-  /* left: 50px; */
-  /* transform: none; */
-  outline: 1px solid var(--c_gray4);
-  background: var(--c_gray2);
-  color: var(--c-white);
-  font-family: var(--font-family-1);
-  line-height: 18px;
-  padding: 5px 10px;
-  display: block;
-  z-index: 1000;
-  max-width: 250px;
-  min-width: 150px;
-  word-wrap: break-word;
-  white-space: normal;
-  font-size: var(--font-size-small);
-  pointer-events: none;
-  --microtip-transition-delay: 0.5s;
-}
-
 /* Textarea */
 .node-property .MuiTextField-root textarea {
   font-size: var(--font-size-smaller);

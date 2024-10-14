@@ -24,21 +24,9 @@ const PropertyLabel: React.FC<PropertyLabelProps> = React.memo(
 
     return (
       <div className="property-label">
-        {description ? (
-          <div
-            aria-label={description}
-            data-microtip-position="bottom"
-            role="tooltip"
-          >
-            <label draggable={false} htmlFor={id}>
-              {formattedName}
-            </label>
-          </div>
-        ) : (
-          <label draggable={false} htmlFor={id}>
-            {formattedName}
-          </label>
-        )}
+        <label draggable={false} htmlFor={id} title={description ?? ""}>
+          {formattedName}
+        </label>
       </div>
     );
   }
