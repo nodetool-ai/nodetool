@@ -1,17 +1,16 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import React, { useMemo, useCallback, useState } from "react";
+import React, { useCallback, useState } from "react";
 import { MuiColorInput } from "mui-color-input";
 import { styled } from "@mui/system";
 import { Popover, IconButton } from "@mui/material";
 import ThemeNodetool from "../themes/ThemeNodetool";
 import ColorizeIcon from "@mui/icons-material/Colorize";
-import { DATA_TYPES } from "../../config/data_types";
 
 const ColorMatrix = styled("div")({
   display: "grid",
-  gridTemplateColumns: "repeat(10, 1fr)",
+  gridTemplateColumns: "repeat(4, 1fr)",
   gap: "4px",
   padding: "16px",
   marginBottom: "16px"
@@ -37,6 +36,7 @@ const CustomSection = styled("div")({
 interface ColorPickerProps {
   color: string;
   onColorChange: (newColor: string) => void;
+  showCustom?: boolean;
 }
 
 export const colorPickerButtonStyles = (theme: any, alwaysVisible: boolean) =>
@@ -70,29 +70,11 @@ export const colorPickerButtonStyles = (theme: any, alwaysVisible: boolean) =>
     }
   });
 
-export const styles = (theme: any) =>
-  css({
-    ".color-button": {
-      width: "98%",
-      height: "2em",
-      borderRadius: "2px",
-      alignItems: "center",
-      justifyContent: "start",
-      border: "none",
-      "&:hover": {
-        opacity: 0.6
-      },
-      p: {
-        fontSize: ThemeNodetool.fontSizeSmall,
-        fontFamily: ThemeNodetool.fontFamily2,
-        wordSpacing: "-3px",
-        textAlign: "left",
-        fontWeight: "bold"
-      }
-    }
-  });
-
-const ColorPicker: React.FC<ColorPickerProps> = ({ color, onColorChange }) => {
+const ColorPicker: React.FC<ColorPickerProps> = ({
+  color,
+  onColorChange,
+  showCustom = true
+}) => {
   const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     setAnchorEl(event.currentTarget);
@@ -105,9 +87,37 @@ const ColorPicker: React.FC<ColorPickerProps> = ({ color, onColorChange }) => {
   const open = Boolean(anchorEl);
   const id = open ? "color-picker-popover" : undefined;
 
-  const colorMatrix = useMemo(() => {
-    return DATA_TYPES.map((datatype) => datatype.color).sort();
-  }, []);
+  const colorMatrix = [
+    "#002b36",
+    "#073642",
+    "#586e75",
+    "#657b83",
+    "#839496",
+    "#93a1a1",
+    "#eee8d5",
+    "#fdf6e3",
+    "#b58900",
+    "#cb4b16",
+    // "#d30102",
+    "#d33682",
+    "#6c71c4",
+    "#268bd2",
+    "#2aa198",
+    "#859900"
+  ];
+
+  // Monokai
+  //   const colorMatrix = [
+  //     "#2e2e2e", // Background
+  //     "#797979", // Comments
+  //     "#d6d6d6", // White
+  //     "#e5b567", // Yellow
+  //     "#b4d273", // Green
+  //     "#e87d3e", // Orange
+  //     "#9e86c8", // Purple
+  //     "#b05279", // Pink
+  //     "#6c99bb"  // Blue
+  // ];
 
   const handleColorCellClick = useCallback(
     (newColor: string) => {
@@ -150,16 +160,18 @@ const ColorPicker: React.FC<ColorPickerProps> = ({ color, onColorChange }) => {
               />
             ))}
           </ColorMatrix>
-          <CustomSection>
-            <div>CUSTOM</div>
-            <MuiColorInput
-              format="hex"
-              value={color}
-              onChange={(newColor) => {
-                onColorChange(newColor);
-              }}
-            />
-          </CustomSection>
+          {showCustom && (
+            <CustomSection>
+              <div>CUSTOM</div>
+              <MuiColorInput
+                format="hex"
+                value={color}
+                onChange={(newColor) => {
+                  onColorChange(newColor);
+                }}
+              />
+            </CustomSection>
+          )}
         </div>
       </Popover>
     </div>

@@ -48,6 +48,8 @@ const styles = (theme: any) =>
       alignItems: "center",
       input: {
         wordSpacing: "-3px",
+        fontSize: theme.fontSizeBigger,
+        fontWeight: "bold",
         fontFamily: theme.fontFamily2,
         pointerEvents: "none"
       }
@@ -56,7 +58,7 @@ const styles = (theme: any) =>
       width: "100%",
       color: theme.palette.c_black,
       height: "calc(100% - 40px)",
-      fontSize: theme.fontSizeNormal,
+      fontSize: theme.fontSizeBigger,
       fontFamily: theme.fontFamily1,
       lineHeight: "1.2em",
       position: "absolute",
@@ -213,7 +215,11 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           />
         </Slate>
       </div>
-      <ColorPicker color={color} onColorChange={handleColorChange} />
+      <ColorPicker
+        color={color}
+        onColorChange={handleColorChange}
+        showCustom={false}
+      />
     </Container>
   );
 };
