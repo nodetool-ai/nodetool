@@ -1,7 +1,6 @@
 import { useCallback } from "react";
 import { useNodeStore } from "../stores/NodeStore";
 import { Node } from "@xyflow/react";
-import useSessionStateStore from "../stores/SessionStateStore";
 import { NodeData } from "../stores/NodeData";
 
 type AlignNodesOptions = {

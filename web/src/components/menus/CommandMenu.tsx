@@ -12,7 +12,6 @@ import { useClipboard } from "../../hooks/browser/useClipboard";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { isEqual } from "lodash";
 import React from "react";
-import { onBlur, onFocus } from "../../stores/KeyPressedStore";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useWorkflowStore } from "../../stores/WorkflowStore";
 import { useQuery } from "@tanstack/react-query";
@@ -186,7 +185,7 @@ const CommandMenu: React.FC<CommandMenuProps> = ({
       css={styles}
     >
       <Command label="Command Menu" className="command-menu">
-        <CommandInput ref={input} onFocus={onFocus} onBlur={onBlur} />
+        <CommandInput ref={input} />
         <Command.List>
           <Command.Empty>No results found.</Command.Empty>
           <Command.Group heading="Workflow">

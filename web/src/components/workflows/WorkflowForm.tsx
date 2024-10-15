@@ -193,7 +193,6 @@ const WorkflowForm = () => {
             autoCorrect="off"
             value={localWorkflow.name}
             onChange={handleChange}
-            onBlur={handleBlur}
           />
         </FormControl>
         <FormControl>
@@ -202,7 +201,6 @@ const WorkflowForm = () => {
             name="description"
             value={localWorkflow.description}
             onChange={handleChange}
-            onBlur={handleBlur}
             multiline
             spellCheck={false}
             autoComplete="off"

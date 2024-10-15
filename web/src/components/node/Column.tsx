@@ -3,7 +3,6 @@ import { ColumnDef } from "../../stores/ApiTypes";
 import CloseIcon from "@mui/icons-material/Close";
 import { isEqual } from "lodash";
 import { memo } from "react";
-import { onBlur, onFocus } from "../../stores/KeyPressedStore";
 
 interface ColumnProps {
   index: number;
@@ -34,8 +33,6 @@ const Column: React.FC<ColumnProps> = ({
         margin="dense"
         value={field.name}
         onChange={(e) => handleNameChange(index, e.target.value)}
-        onFocus={onFocus}
-        onBlur={onBlur}
       />
     </div>
     <div className="item-description">
@@ -44,8 +41,6 @@ const Column: React.FC<ColumnProps> = ({
         margin="dense"
         value={field.description}
         onChange={(e) => handleDescriptionChange(index, e.target.value)}
-        onFocus={onFocus}
-        onBlur={onBlur}
       />
     </div>
 

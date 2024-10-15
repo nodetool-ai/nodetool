@@ -3,11 +3,7 @@ import { css } from "@emotion/react";
 
 import React, { useCallback, useRef, useState } from "react";
 import BackspaceIcon from "@mui/icons-material/Backspace";
-import {
-  onBlur,
-  onFocus,
-  useKeyPressedStore
-} from "../../stores/KeyPressedStore";
+import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 import { useDebouncedCallback } from "use-debounce";
 
 const styles = (theme: any) =>
@@ -184,8 +180,6 @@ const SearchInput: React.FC<SearchInputProps> = ({
         type="text"
         placeholder={placeholder}
         value={localSearchTerm}
-        onFocus={onFocus}
-        onBlur={onBlur}
         onChange={handleInputChange}
         autoCorrect="off"
         autoCapitalize="none"

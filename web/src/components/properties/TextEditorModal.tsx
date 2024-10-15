@@ -10,7 +10,7 @@ import { TOOLTIP_ENTER_DELAY } from "../node/BaseNode";
 import { Tooltip } from "@mui/material";
 import ThemeNodes from "../themes/ThemeNodes";
 import CircularProgress from "@mui/material/CircularProgress";
-import { onBlur, onFocus, useCombo } from "../../stores/KeyPressedStore";
+import { useCombo } from "../../stores/KeyPressedStore";
 import { isEqual } from "lodash";
 
 interface TextEditorModalProps {
@@ -210,8 +210,6 @@ const TextEditorModal = ({
               <TextareaAutosize
                 ref={textareaRef}
                 value={value}
-                onFocus={onFocus}
-                onBlur={onBlur}
                 onChange={(e) => onChange && onChange(e.target.value)}
                 autoComplete="off"
                 autoCorrect="off"

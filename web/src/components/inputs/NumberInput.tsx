@@ -1,12 +1,6 @@
 import React, { useState, useEffect, useCallback, memo, useMemo } from "react";
-import {
-  onBlur,
-  onFocus,
-  useCombo,
-  useKeyPressedStore
-} from "../../stores/KeyPressedStore";
+import { useCombo, useKeyPressedStore } from "../../stores/KeyPressedStore";
 import PropertyLabel from "../node/PropertyLabel";
-import { TextField } from "@mui/material";
 import ThemeNodes from "../themes/ThemeNodes";
 import RangeIndicator from "./RangeIndicator";
 
@@ -196,14 +190,12 @@ const EditableInput: React.FC<{
   const _onFocus = useCallback(
     (event: React.FocusEvent<HTMLInputElement>) => {
       onFocusProp(event);
-      onFocus();
     },
     [onFocusProp]
   );
 
   const _onBlur = useCallback(() => {
     onBlurProp();
-    onBlur();
   }, [onBlurProp]);
 
   return (

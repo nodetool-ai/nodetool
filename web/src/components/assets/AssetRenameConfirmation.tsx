@@ -18,7 +18,6 @@ import dialogStyles from "../../styles/DialogStyles";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useAssetUpdate } from "../../serverState/useAssetUpdate";
 import useAssets from "../../serverState/useAssets";
-import { onBlur, onFocus } from "../../stores/KeyPressedStore";
 
 interface AssetRenameConfirmationProps {
   assets: string[];
@@ -165,8 +164,6 @@ const AssetRenameConfirmation: React.FC<AssetRenameConfirmationProps> = (
               handleRename();
             }
           }}
-          onBlur={onBlur}
-          onFocus={onFocus}
           onChange={(e) => setBaseNewName(e.target.value)}
           fullWidth
           autoCorrect="off"

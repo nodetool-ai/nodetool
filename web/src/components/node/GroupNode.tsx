@@ -19,11 +19,7 @@ import { getMousePosition } from "../../utils/MousePosition";
 import { NodeStore, useNodeStore } from "../../stores/NodeStore";
 import { NodeData } from "../../stores/NodeData";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
-import {
-  onBlur,
-  onFocus,
-  useKeyPressedStore
-} from "../../stores/KeyPressedStore";
+import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 import { debounce, isEqual } from "lodash";
 import { NodeColorSelector } from "./NodeColorSelector";
 import { hexToRgba } from "../../utils/ColorUtils";
@@ -284,8 +280,6 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
             type="text"
             value={headline}
             onChange={handleHeadlineChange}
-            onFocus={onFocus}
-            onBlur={onBlur}
             placeholder=""
           />
         </div>

@@ -1,11 +1,10 @@
 import { create } from "zustand";
-import { useCallback, useMemo } from "react";
+import { useMemo } from "react";
 
 type Callback = () => void;
 
 // Module-level variables and functions
 const comboCallbacks = new Map<string, Callback>();
-let disabledCombo = false;
 
 const registerComboCallback = (combo: string, callback: Callback) => {
   comboCallbacks.set(combo, callback);
@@ -15,27 +14,18 @@ const unregisterComboCallback = (combo: string) => {
   comboCallbacks.delete(combo);
 };
 
-const onFocus = () => {
-  disabledCombo = true;
-};
-
-const onBlur = () => {
-  disabledCombo = false;
-};
-
 const executeComboCallbacks = (
   pressedKeys: Set<string>,
   event: KeyboardEvent | undefined
 ) => {
   const pressedKeysString = Array.from(pressedKeys).sort().join("+");
-  comboCallbacks.forEach((callback, combo) => {
-    if (pressedKeysString.includes(combo) && !disabledCombo) {
-      callback();
-      if (event) {
-        event.preventDefault();
-      }
-    }
-  });
+  const callback = comboCallbacks.get(pressedKeysString);
+  if (callback) {
+    callback();
+  }
+  if (event) {
+    event.preventDefault();
+  }
 };
 
 type KeyPressedState = {
@@ -118,6 +108,13 @@ const initKeyListeners = () => {
     const { key, shiftKey, ctrlKey, altKey, metaKey, repeat } = event;
     const normalizedKey = key.toLowerCase();
 
+    if (event.target instanceof HTMLInputElement) {
+      return;
+    }
+    if (event.target instanceof HTMLTextAreaElement) {
+      return;
+    }
+
     // Prevent key repeat events
     if (isPressed && repeat) return;
 
@@ -177,10 +174,6 @@ const initKeyListeners = () => {
 
 // Modify the useCombo hook to use useCallback and useMemo
 const useCombo = (combo: string[], callback: () => void) => {
-  const memoizedCallback = useCallback(() => {
-    callback();
-  }, [callback]);
-
   const memoizedCombo = useMemo(
     () =>
       combo
@@ -191,9 +184,9 @@ const useCombo = (combo: string[], callback: () => void) => {
   );
 
   useMemo(() => {
-    registerComboCallback(memoizedCombo, memoizedCallback);
+    registerComboCallback(memoizedCombo, callback);
     return () => unregisterComboCallback(memoizedCombo);
-  }, [memoizedCombo, memoizedCallback]);
+  }, [memoizedCombo, callback]);
 };
 
-export { useKeyPressedStore, initKeyListeners, useCombo, onFocus, onBlur };
+export { useKeyPressedStore, initKeyListeners, useCombo };

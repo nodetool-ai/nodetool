@@ -4,7 +4,6 @@ import { PropertyProps } from "../node/PropertyInput";
 import TextEditorModal from "./TextEditorModal";
 import { TOOLTIP_ENTER_DELAY } from "../node/BaseNode";
 import { Tooltip } from "@mui/material";
-import { onFocus, onBlur } from "../../stores/KeyPressedStore";
 import { isEqual } from "lodash";
 
 const StringProperty = ({
@@ -42,8 +41,6 @@ const StringProperty = ({
           className="nodrag"
           value={value || ""}
           onChange={handleChange}
-          onFocus={onFocus}
-          onBlur={onBlur}
           autoComplete="off"
           autoCorrect="off"
           autoCapitalize="off"

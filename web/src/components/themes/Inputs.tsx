@@ -24,7 +24,6 @@ import {
   ToggleButtonGroup
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
-import { onBlur, onFocus } from "../../stores/KeyPressedStore";
 
 function Inputs() {
   const [radioValue, setRadioValue] = useState("option1");
@@ -79,12 +78,7 @@ function Inputs() {
       </FormControl>
       <Slider defaultValue={30} aria-label="Slider" />
       <Switch color="primary" />
-      <TextField
-        label="Text Field"
-        variant="outlined"
-        onFocus={onFocus}
-        onBlur={onBlur}
-      />
+      <TextField label="Text Field" variant="outlined" />
       <ToggleButtonGroup
         value={toggleValue}
         exclusive
