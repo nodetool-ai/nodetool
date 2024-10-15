@@ -6,16 +6,16 @@ import { filterDataByType } from "../components/node_menu/typeFilterUtils";
 import useMetadataStore from "./MetadataStore";
 const fuseOptions = {
   keys: [
-    { name: "title", weight: 0.5 },
-    { name: "namespace", weight: 0.3 },
-    { name: "tags", weight: 0.2 }
+    { name: "title", weight: 0.8 },
+    { name: "namespace", weight: 0.1 },
+    { name: "tags", weight: 0.1 }
   ],
   includeMatches: true,
   ignoreLocation: true,
   threshold: 0.2,
-  distance: 100,
-  shouldSort: true,
+  distance: 30,
   includeScore: true,
+  shouldSort: true,
   minMatchCharLength: 2,
   useExtendedSearch: true,
   tokenize: true,
@@ -227,26 +227,10 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => ({
     });
 
     const fuse = new Fuse(entries, fuseOptions);
+    const searchResults = fuse
+      .search(term)
+      .map((result) => result.item.metadata);
 
-    const searchTermWords = Array.from(new Set(term.trim().split(" ")));
-
-    const searchResults = searchTermWords.reduce(
-      (acc: NodeMetadata[], word: string) => {
-        const searchResults = fuse
-          .search(word)
-          .map((result) => result.item.metadata)
-          .sort((a, b) => a.node_type.localeCompare(b.node_type));
-
-        if (acc.length === 0) {
-          return searchResults;
-        } else {
-          return [...acc, ...searchResults].filter(
-            (v, i, a) => a.findIndex((t) => t.title === v.title) === i
-          );
-        }
-      },
-      [] as NodeMetadata[]
-    );
     set({ searchResults });
   },
 
