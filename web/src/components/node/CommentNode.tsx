@@ -12,8 +12,8 @@ import { Slate, Editable, withReact, ReactEditor } from "slate-react";
 import { BaseEditor, Descendant } from "slate";
 import SouthEastIcon from "@mui/icons-material/SouthEast";
 import { hexToRgba } from "../../utils/ColorUtils";
-import { NodeColorSelector } from "./NodeColorSelector";
 import ThemeNodes from "../../components/themes/ThemeNodes";
+import ColorPicker from "../inputs/ColorPicker";
 
 type CustomElement = { type: "paragraph"; children: CustomText[] };
 type CustomText = { text: string };
@@ -152,16 +152,19 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     headerInputRef.current?.select();
   };
 
-  const handleColorChange = (newColor: string) => {
-    setColor(newColor);
-    updateNodeData(props.id, {
-      ...props.data,
-      properties: {
-        ...props.data.properties,
-        comment_color: newColor
-      }
-    });
-  };
+  const handleColorChange = useCallback(
+    (newColor: string) => {
+      setColor(newColor);
+      updateNodeData(props.id, {
+        ...props.data,
+        properties: {
+          ...props.data.properties,
+          comment_color: newColor
+        }
+      });
+    },
+    [props.id, props.data, updateNodeData]
+  );
 
   return (
     <Container
@@ -176,7 +179,6 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       >
         <SouthEastIcon />
       </NodeResizeControl>
-      <NodeColorSelector onColorChange={handleColorChange} />
       <div
         className="node-header"
         onClick={handleHeaderClick}
@@ -211,6 +213,7 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           />
         </Slate>
       </div>
+      <ColorPicker color={color} onColorChange={handleColorChange} />
     </Container>
   );
 };
