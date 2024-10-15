@@ -1,5 +1,5 @@
 import { PropertyProps } from "../node/PropertyInput";
-import { useCallback, useState } from "react";
+import { memo, useCallback, useState } from "react";
 import {
   FormControl,
   InputLabel,
@@ -9,6 +9,7 @@ import {
 } from "@mui/material";
 import DictTable, { DictDataType } from "../node/DataTable/DictTable";
 import PropertyLabel from "../node/PropertyLabel";
+import { isEqual } from "lodash";
 
 const detectTypeFromDict = (dict: any) => {
   if (!Array.isArray(dict) || dict.length === 0) {
@@ -28,7 +29,7 @@ const detectTypeFromDict = (dict: any) => {
   return "string";
 };
 
-export default function DictProperty(props: PropertyProps) {
+const DictProperty = (props: PropertyProps) => {
   const id = `list-${props.property.name}-${props.propertyIndex}`;
   const dataTypes = ["int", "string", "datetime", "float"];
   const [dataType, setDataType] = useState<DictDataType>(
@@ -91,4 +92,6 @@ export default function DictProperty(props: PropertyProps) {
       />
     </>
   );
-}
+};
+
+export default memo(DictProperty, isEqual);

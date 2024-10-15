@@ -4,7 +4,6 @@ import { css } from "@emotion/react";
 import { useClipboard } from "../../hooks/browser/useClipboard";
 import { Button } from "@mui/material";
 import useErrorStore from "../../stores/ErrorStore";
-import { useNodeStore } from "../../stores/NodeStore";
 import { isEqual } from "lodash";
 
 export const errorStyles = (theme: any) =>
@@ -12,14 +11,15 @@ export const errorStyles = (theme: any) =>
     position: "relative",
     backgroundColor: theme.palette.c_error,
     borderRadius: "1px",
-    padding: "0",
-    margin: "1em",
+    padding: "10px",
     transition: "background-color 0.2s",
-    maxWidth: "140px",
+    display: "flex",
+    maxWidth: "300px",
 
     ".error-text": {
       maxHeight: "4em",
-      fontSize: theme.fontSizeTiny,
+      fontFamily: theme.fontFamily1,
+      fontSize: theme.fontSizeNormal,
       color: theme.palette.c_black,
       cursor: "auto",
       userSelect: "text",
@@ -33,12 +33,12 @@ export const errorStyles = (theme: any) =>
     },
     button: {
       position: "absolute",
-      left: "-.3em",
-      top: "-1.1em",
+      left: "-1px",
+      top: "-1px",
       height: "1em",
-      padding: ".1em .4em 0",
+      padding: "4px",
       borderRadius: "1px",
-      fontSize: theme.fontSizeTinyer,
+      fontSize: theme.fontSizeSmall,
       color: theme.palette.c_black,
       backgroundColor: theme.palette.c_white,
       "&:hover": {

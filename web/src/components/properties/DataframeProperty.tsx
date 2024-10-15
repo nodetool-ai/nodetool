@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import { useCallback } from "react";
+import { memo, useCallback } from "react";
 import { PropertyProps } from "../node/PropertyInput";
 import { ColumnDef, DataframeRef } from "../../stores/ApiTypes";
 import DataTable from "../node/DataTable/DataTable";
@@ -11,6 +11,7 @@ import { Button, ButtonGroup } from "@mui/material";
 // icons
 import TableRowsIcon from "@mui/icons-material/TableRows";
 import { tableStyles } from "../../styles/TableStyles";
+import { isEqual } from "lodash";
 
 const styles = (theme: any) =>
   css([
@@ -23,7 +24,7 @@ const styles = (theme: any) =>
       backgroundColor: "transparent",
       ".button-group": {
         display: "flex",
-        marginBottom: "0.5em",
+        marginBottom: "0.5em"
       },
       ".button-group button": {
         fontSize: theme.fontSizeSmall,
@@ -35,26 +36,26 @@ const styles = (theme: any) =>
         margin: 0,
         gap: "0.25em",
         padding: ".1em 1em 0 .5em",
-        borderRadius: "0",
+        borderRadius: "0"
       },
       "button.add-column:hover": {
-        color: theme.palette.c_white + " !important",
+        color: theme.palette.c_white + " !important"
       },
       "button.add-column svg": {
         fontSize: theme.fontSizeSmall,
-        marginRight: "0.5em",
-      },
+        marginRight: "0.5em"
+      }
     },
-    tableStyles(theme),
+    tableStyles(theme)
   ]);
 
-export default function DataframeProperty({
+const DataframeProperty = ({
   value,
   onChange,
   nodeType,
   property,
-  propertyIndex,
-}: PropertyProps) {
+  propertyIndex
+}: PropertyProps) => {
   const id = `${property.name}-${propertyIndex}`;
 
   const onCellChange = useCallback(
@@ -68,7 +69,7 @@ export default function DataframeProperty({
     (columns: ColumnDef[]) => {
       onChange({
         ...value,
-        columns,
+        columns
       });
     },
     [value, onChange]
@@ -85,11 +86,11 @@ export default function DataframeProperty({
     const newColumn: ColumnDef = {
       name: newColumnName,
       data_type: "string",
-      description: "",
+      description: ""
     };
     onChange({
       ...value,
-      columns: [...columns, newColumn],
+      columns: [...columns, newColumn]
     });
   }, [onChange, value]);
 
@@ -120,4 +121,6 @@ export default function DataframeProperty({
       </>
     );
   }
-}
+};
+
+export default memo(DataframeProperty, isEqual);

@@ -168,10 +168,7 @@ export default function NodeMenu({ focusSearchInput = false }: NodeMenuProps) {
     }
   }, [dropType, connectDirection, setSelectedInputType, setSelectedOutputType]);
 
-  const memoizedStyles = useMemo(
-    () => treeStyles(ThemeNodetool),
-    [ThemeNodetool]
-  );
+  const memoizedStyles = useMemo(() => treeStyles(ThemeNodetool), []);
 
   return isMenuOpen ? (
     <Draggable
@@ -182,7 +179,7 @@ export default function NodeMenu({ focusSearchInput = false }: NodeMenuProps) {
         bottom: window.innerHeight
       }}
       nodeRef={nodeRef}
-      defaultPosition={{ x: menuPosition.x - 50, y: menuPosition.y - 100 }}
+      defaultPosition={{ x: menuPosition.x, y: menuPosition.y }}
       handle=".draggable-header"
     >
       <Box

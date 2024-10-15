@@ -3,8 +3,10 @@ import { PropertyProps } from "../node/PropertyInput";
 import ComfyModelSelect from "./ComfyModelSelect";
 import LlamaModelSelect from "./LlamaModelSelect";
 import HuggingFaceModelSelect from "./HuggingFaceModelSelect";
+import { isEqual } from "lodash";
+import { memo } from "react";
 
-export default function ModelProperty(props: PropertyProps) {
+const ModelProperty = (props: PropertyProps) => {
   const id = `folder-${props.property.name}-${props.propertyIndex}`;
   const modelType = props.property.type.type;
 
@@ -48,4 +50,6 @@ export default function ModelProperty(props: PropertyProps) {
       {renderModelSelect()}
     </div>
   );
-}
+};
+
+export default memo(ModelProperty, isEqual);

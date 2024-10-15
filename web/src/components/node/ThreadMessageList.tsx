@@ -1,9 +1,10 @@
 /** @jsxImportSource @emotion/react */
-import React, { useRef } from "react";
+import React, { memo, useRef } from "react";
 
 import { Message } from "../../stores/ApiTypes";
 import MarkdownRenderer from "../../utils/MarkdownRenderer";
 import { css } from "@emotion/react";
+import { isEqual } from "lodash";
 
 const styles = (theme: any) =>
   css({
@@ -96,4 +97,4 @@ const ThreadMessageList: React.FC<ChatViewProps> = ({ messages }) => {
   );
 };
 
-export default ThreadMessageList;
+export default memo(ThreadMessageList, isEqual);

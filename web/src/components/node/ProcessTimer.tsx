@@ -1,11 +1,8 @@
 import React, { memo, useEffect, useState } from "react";
 import { Box } from "@mui/material";
+import { isEqual } from "lodash";
 
-export const ProcessTimer = memo(function ProcessTimer({
-  status
-}: {
-  status: string;
-}) {
+export const ProcessTimer = ({ status }: { status: string }) => {
   const [seconds, setSeconds] = useState("");
 
   useEffect(() => {
@@ -47,4 +44,6 @@ export const ProcessTimer = memo(function ProcessTimer({
       {status === "failed" && <Box sx={{ color: "red" }}>failed</Box>}
     </div>
   );
-});
+};
+
+export default memo(ProcessTimer, isEqual);

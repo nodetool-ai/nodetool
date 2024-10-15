@@ -1,15 +1,13 @@
-import React, { useState, useEffect, useCallback } from "react";
-import useWorkflowRunnner from "../../stores/WorkflowRunner";
+import React, { useState, useEffect, useCallback, memo } from "react";
 import "../../styles/loading_animation.css";
+import { isEqual } from "lodash";
 
 const gradients = ["gradient1", "gradient2", "gradient3", "gradient4"];
 
-const LoadingAnimation: React.FC<{}> = () => {
+const LoadingAnimation = () => {
   const duration = 4000;
   const [currentGradient, setCurrentGradient] = useState(gradients[0]);
   const [randomWidth, setRandomWidth] = useState("140px");
-  const state = useWorkflowRunnner((state) => state.state);
-  const isObjectEmpty = (obj: object) => Object.keys(obj).length === 0;
   const isLoading = true; //state === "running";
 
   const getRandomGradient = useCallback(() => {
@@ -47,4 +45,4 @@ const LoadingAnimation: React.FC<{}> = () => {
   );
 };
 
-export default LoadingAnimation;
+export default memo(LoadingAnimation, isEqual);

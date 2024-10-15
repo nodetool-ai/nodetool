@@ -442,8 +442,8 @@ const WorkflowGrid = () => {
         </div>
         <div className="explanations">
           <Typography>
-            Select multiple workflows for deletion by holding SHIFT or CONTROL
-            keys.
+            <strong>Double-click a workflow</strong> to open it. Select multiple
+            workflows for deletion by holding SHIFT or CONTROL keys.
           </Typography>
         </div>
 

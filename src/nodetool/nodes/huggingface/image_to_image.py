@@ -392,8 +392,8 @@ class StableDiffusionControlNetNode(StableDiffusionBaseNode):
     _pipeline: StableDiffusionControlNetPipeline | None = None
 
     @classmethod
-    def get_recommended_models(cls) -> list[HFControlNet]:
-        return HF_CONTROLNET_MODELS
+    def get_recommended_models(cls):
+        return HF_CONTROLNET_MODELS + super().get_recommended_models()
 
     def required_inputs(self):
         return ["control_image"]
@@ -402,14 +402,19 @@ class StableDiffusionControlNetNode(StableDiffusionBaseNode):
     def get_title(cls):
         return "Stable Diffusion ControlNet"
 
+    async def move_to_device(self, device: str):
+        if self._pipeline is not None:
+            self._pipeline.controlnet.to(device)
+            self._pipeline.model.to(device)
+
     async def initialize(self, context: ProcessingContext):
         await super().initialize(context)
         controlnet = await self.load_model(
             context=context,
             model_class=ControlNetModel,
             model_id=self.controlnet.repo_id,
-            path=self.controlnet.path,
-            variant=None,
+            torch_dtype=torch.float16,
+            variant="fp16",
         )
         self._pipeline = await self.load_model(
             context=context,
@@ -417,8 +422,9 @@ class StableDiffusionControlNetNode(StableDiffusionBaseNode):
             model_id=self.model.repo_id,
             path=self.model.path,
             controlnet=controlnet,
-            config="Lykon/DreamShaper",
+            config="Lykon/DreamShaper",  # workaround for missing SD15 repo
         )
+        self._set_scheduler(self.scheduler)
         self._load_ip_adapter()
 
     async def process(self, context: ProcessingContext) -> ImageRef:
@@ -548,7 +554,7 @@ class StableDiffusionControlNetInpaintNode(StableDiffusionBaseNode):
             self.model.repo_id,
             controlnet=controlnet,
             device=context.device,
-        )
+        )  # type: ignore
         assert self._pipeline is not None
         self._set_scheduler(self.scheduler)
         self._load_ip_adapter()
@@ -662,6 +668,10 @@ class StableDiffusionControlNetImg2ImgNode(StableDiffusionBaseNode):
         return ["image", "control_image"]
 
     @classmethod
+    def get_recommended_models(cls):
+        return HF_CONTROLNET_MODELS + super().get_recommended_models()
+
+    @classmethod
     def get_title(cls):
         return "Stable Diffusion ControlNet (Img2Img)"
 
@@ -674,15 +684,21 @@ class StableDiffusionControlNetImg2ImgNode(StableDiffusionBaseNode):
         if not context.is_huggingface_model_cached(self.model.repo_id):
             raise ValueError(f"Model {self.model.repo_id} must be downloaded first")
 
-        controlnet = ControlNetModel.from_pretrained(
-            self.controlnet.repo_id, torch_dtype=torch.float16, local_files_only=True
+        controlnet = await self.load_model(
+            context=context,
+            model_class=ControlNetModel,
+            model_id=self.controlnet.repo_id,
+            torch_dtype=torch.float16,
+            variant="fp16",
         )
         self._pipeline = await self.load_model(
             context=context,
             model_class=StableDiffusionControlNetImg2ImgPipeline,
             model_id=self.model.repo_id,
+            path=self.model.path,
             controlnet=controlnet,
-        )  # type: ignore
+            config="Lykon/DreamShaper",  # workaround for missing SD15 repo
+        )
         self._set_scheduler(self.scheduler)
         self._load_ip_adapter()
 
@@ -699,6 +715,7 @@ class StableDiffusionControlNetImg2ImgNode(StableDiffusionBaseNode):
             control_image=control_image,
             width=input_image.width,
             height=input_image.height,
+            strength=self.strength,
         )
 
 

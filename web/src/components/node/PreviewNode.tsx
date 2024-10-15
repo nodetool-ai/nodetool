@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import { useCallback, useEffect, useState } from "react";
+import { memo, useCallback, useEffect, useState } from "react";
 import { NodeProps, NodeResizeControl } from "@xyflow/react";
 import { Container, Typography } from "@mui/material";
 import { NodeData } from "../../stores/NodeData";
@@ -22,6 +22,7 @@ import { useNotificationStore } from "../../stores/NotificationStore";
 import { devLog, devWarn, devError } from "../../utils/DevLog";
 import { createAssetFile } from "../../utils/createAssetFile";
 import JSZip from "jszip";
+import { isEqual } from "lodash";
 
 const styles = (theme: any) =>
   css([
@@ -310,5 +311,4 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
   );
 };
 
-PreviewNode.displayName = "PreviewNode";
-export default PreviewNode;
+export default memo(PreviewNode, isEqual);

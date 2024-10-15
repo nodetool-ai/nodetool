@@ -1,10 +1,11 @@
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, memo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
 import { useAssetStore } from "../../stores/AssetStore";
 import { Typography, Tooltip } from "@mui/material";
 import TextEditorModal from "./TextEditorModal";
 import { TOOLTIP_ENTER_DELAY } from "../node/BaseNode";
+import { isEqual } from "lodash";
 
 const MAX_TEXT_LENGTH = 1000;
 const MAX_TEXT_HEIGHT = 50;
@@ -13,7 +14,7 @@ interface TextAssetDisplayProps {
   assetId: string;
 }
 
-function TextAssetDisplay({ assetId }: TextAssetDisplayProps) {
+const TextAssetDisplay = ({ assetId }: TextAssetDisplayProps) => {
   const getAsset = useAssetStore((state) => state.get);
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -77,6 +78,6 @@ function TextAssetDisplay({ assetId }: TextAssetDisplayProps) {
       )}
     </div>
   );
-}
+};
 
-export default TextAssetDisplay;
+export default memo(TextAssetDisplay, isEqual);

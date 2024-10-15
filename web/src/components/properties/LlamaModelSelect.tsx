@@ -1,17 +1,15 @@
-import { useMemo, useCallback } from "react";
+import { useMemo, useCallback, memo } from "react";
 import useModelStore from "../../stores/ModelStore";
 import { useQuery } from "@tanstack/react-query";
 import { LlamaModel } from "../../stores/ApiTypes";
+import { isEqual } from "lodash";
 
 interface LlamaModelSelectProps {
   onChange: (value: any) => void;
   value: string;
 }
 
-export default function LlamaModelSelect({
-  onChange,
-  value
-}: LlamaModelSelectProps) {
+const LlamaModelSelect = ({ onChange, value }: LlamaModelSelectProps) => {
   const loadLlamaModels = useModelStore((state) => state.loadLlamaModels);
 
   const {
@@ -78,4 +76,6 @@ export default function LlamaModelSelect({
       ))}
     </select>
   );
-}
+};
+
+export default memo(LlamaModelSelect, isEqual);

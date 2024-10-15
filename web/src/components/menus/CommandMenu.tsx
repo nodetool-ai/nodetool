@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { Command, CommandInput } from "cmdk";
-import { NodeMetadata } from "../../stores/ApiTypes";
+import { NodeMetadata, Workflow } from "../../stores/ApiTypes";
 import { useCallback, useEffect, useState, useRef, memo, useMemo } from "react";
 import { useNodeStore } from "../../stores/NodeStore";
 import { css, Dialog } from "@mui/material";
@@ -14,6 +14,9 @@ import { isEqual } from "lodash";
 import React from "react";
 import { onBlur, onFocus } from "../../stores/KeyPressedStore";
 import useMetadataStore from "../../stores/MetadataStore";
+import { useWorkflowStore } from "../../stores/WorkflowStore";
+import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 
 type CommandMenuProps = {
   open: boolean;
@@ -44,6 +47,7 @@ const CommandMenu: React.FC<CommandMenuProps> = ({
   const newWorkflow = useNodeStore((state) => state.newWorkflow);
   const runWorkflow = useWorkflowRunnner((state) => state.run);
   const cancelWorkflow = useWorkflowRunnner((state) => state.cancel);
+  const saveExample = useWorkflowStore((state) => state.saveExample);
   const autoLayout = useNodeStore((state) => state.autoLayout);
   const workflowJSON = useNodeStore((state) => state.workflowJSON);
   const workflow = useNodeStore((state) => state.workflow);
@@ -126,6 +130,53 @@ const CommandMenu: React.FC<CommandMenuProps> = ({
     },
     [close]
   );
+  const navigate = useNavigate();
+  const copy = useWorkflowStore((state) => state.copy);
+  const loadExamples = useWorkflowStore((state) => state.loadExamples);
+  const { data: examples } = useQuery({
+    queryKey: ["examples"],
+    queryFn: loadExamples
+  });
+
+  const loadExample = useCallback(
+    (workflow: Workflow) => {
+      copy(workflow).then((workflow) => {
+        navigate("/editor/" + workflow.id);
+      });
+    },
+    [copy, navigate]
+  );
+
+  const saveAsExample = useCallback(() => {
+    const currentWorkflow = useNodeStore.getState().getWorkflow();
+    const existingExample = examples?.workflows.find(
+      (w) => w.name === currentWorkflow.name
+    );
+
+    if (existingExample) {
+      // Ask for confirmation before overwriting
+      if (
+        window.confirm(
+          `An example with the name "${currentWorkflow.name}" already exists. Do you want to overwrite it?`
+        )
+      ) {
+        saveExample(existingExample.id, currentWorkflow);
+        addNotification({
+          type: "info",
+          alert: true,
+          content: "Updated existing example workflow!"
+        });
+      }
+    } else {
+      // Save as a new example
+      saveExample(currentWorkflow.id, currentWorkflow);
+      addNotification({
+        type: "info",
+        alert: true,
+        content: "Saved workflow as a new example!"
+      });
+    }
+  }, [addNotification, saveExample, examples]);
 
   return (
     <Dialog
@@ -160,6 +211,11 @@ const CommandMenu: React.FC<CommandMenuProps> = ({
             <Command.Item onSelect={() => executeAndClose(autoLayout)}>
               Auto Layout
             </Command.Item>
+            {process.env.NODE_ENV === "development" && (
+              <Command.Item onSelect={() => executeAndClose(saveAsExample)}>
+                Save as Example
+              </Command.Item>
+            )}
           </Command.Group>
 
           <Command.Group heading="Undo">
@@ -206,6 +262,19 @@ const CommandMenu: React.FC<CommandMenuProps> = ({
                 </Command.Group>
               );
             })}
+
+          {examples && (
+            <Command.Group heading="Examples">
+              {examples.workflows.map((example, idx) => (
+                <Command.Item
+                  key={idx}
+                  onSelect={() => executeAndClose(() => loadExample(example))}
+                >
+                  {example.name}
+                </Command.Item>
+              ))}
+            </Command.Group>
+          )}
         </Command.List>
       </Command>
     </Dialog>

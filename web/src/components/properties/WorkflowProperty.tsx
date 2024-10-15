@@ -5,8 +5,10 @@ import PropertyLabel from "../node/PropertyLabel";
 import { useQuery } from "@tanstack/react-query";
 import { useWorkflowStore } from "../../stores/WorkflowStore";
 import { PropertyProps } from "../node/PropertyInput";
+import { memo } from "react";
+import { isEqual } from "lodash";
 
-export default function WorkflowProperty(props: PropertyProps) {
+const WorkflowProperty = (props: PropertyProps) => {
   const id = `workflow-${props.property.name}-${props.propertyIndex}`;
   const load = useWorkflowStore((state) => state.load);
 
@@ -15,25 +17,27 @@ export default function WorkflowProperty(props: PropertyProps) {
     queryFn: async () => {
       return await load("", 200);
     }
-  }
-  );
+  });
 
   return (
     <>
       <PropertyLabel
         name={props.property.name}
         description={props.property.description}
-        id={id} />
+        id={id}
+      />
       <Select
         id={id}
         labelId={id}
         name=""
         value={props.value?.id || ""}
         variant="standard"
-        onChange={(e) => props.onChange({
-          type: "workflow",
-          id: e.target.value
-        })}
+        onChange={(e) =>
+          props.onChange({
+            type: "workflow",
+            id: e.target.value
+          })
+        }
         className="mui-select nodrag"
         disableUnderline={true}
         MenuProps={{
@@ -58,4 +62,6 @@ export default function WorkflowProperty(props: PropertyProps) {
       </Select>
     </>
   );
-}
+};
+
+export default memo(WorkflowProperty, isEqual);

@@ -192,14 +192,12 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
   controlKeyPressed,
   hideInput
 }: PropertyInputProps) => {
-  const updateNodeProperties = useNodeStore(
-    (state) => state.updateNodeProperties
-  );
   const onChange = useCallback(
     (value: any) => {
+      const updateNodeProperties = useNodeStore.getState().updateNodeProperties;
       updateNodeProperties(id, { [property.name]: value });
     },
-    [id, property.name, updateNodeProperties]
+    [id, property.name]
   );
 
   const propertyProps = {

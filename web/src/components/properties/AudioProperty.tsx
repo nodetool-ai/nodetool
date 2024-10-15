@@ -5,6 +5,8 @@ import { useAsset } from "../../serverState/useAsset";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import PropertyDropzone from "./PropertyDropzone";
+import { memo } from "react";
+import { isEqual } from "lodash";
 
 const styles = (theme: any) =>
   css({
@@ -23,7 +25,7 @@ const styles = (theme: any) =>
     }
   });
 
-export default function AudioProperty(props: PropertyProps) {
+const AudioProperty = (props: PropertyProps) => {
   const id = `audio-${props.property.name}-${props.propertyIndex}`;
   const { asset, uri } = useAsset({ audio: props.value });
 
@@ -45,4 +47,6 @@ export default function AudioProperty(props: PropertyProps) {
       )}
     </div>
   );
-}
+};
+
+export default memo(AudioProperty, isEqual);

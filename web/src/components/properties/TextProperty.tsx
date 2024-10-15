@@ -1,10 +1,11 @@
 /** @jsxImportSource @emotion/react */
 import { css, useTheme } from "@emotion/react";
-import React, { useMemo } from "react";
+import React, { memo, useMemo } from "react";
 
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import TextAssetDisplay from "./TextAssetDisplay";
+import { isEqual } from "lodash";
 
 const styles = (theme: any) =>
   css({
@@ -41,7 +42,7 @@ const styles = (theme: any) =>
     }
   });
 
-const TextProperty = React.memo((props: PropertyProps) => {
+const TextProperty = (props: PropertyProps) => {
   const id = `textfield-${props.property.name}-${props.propertyIndex}`;
   const assetId = props.value.asset_id;
   const theme = useTheme();
@@ -68,8 +69,6 @@ const TextProperty = React.memo((props: PropertyProps) => {
       )}
     </div>
   );
-});
+};
 
-TextProperty.displayName = "TextProperty";
-
-export default TextProperty;
+export default memo(TextProperty, isEqual);

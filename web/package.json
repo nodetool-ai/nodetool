@@ -40,6 +40,7 @@
     "lodash.debounce": "^4.0.8",
     "luxon": "^3.4.2",
     "msgpack-lite": "^0.1.26",
+    "mui-color-input": "^4.0.1",
     "openapi-fetch": "^0.9.7",
     "openapi-typescript": "^6.7.6",
     "papaparse": "^5.4.1",

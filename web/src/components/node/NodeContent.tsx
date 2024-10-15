@@ -1,12 +1,13 @@
-import React from "react";
+import React, { memo } from "react";
 import { NodeInputs } from "./NodeInputs";
 import { NodeOutputs } from "./NodeOutputs";
 import { ProcessTimer } from "./ProcessTimer";
-import { NodeProgress } from "./NodeProgress";
 import { NodeLogs } from "./NodeLogs";
 import { NodeFooter } from "./NodeFooter";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import { NodeData } from "../../stores/NodeData";
+import { isEqual } from "lodash";
+import NodeProgress from "./NodeProgress";
 
 interface NodeContentProps {
   id: string;
@@ -61,4 +62,4 @@ const NodeContent: React.FC<NodeContentProps> = ({
   );
 };
 
-export default NodeContent;
+export default memo(NodeContent, isEqual);

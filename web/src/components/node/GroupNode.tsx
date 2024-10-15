@@ -244,15 +244,15 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     });
   }, []);
 
-  useEffect(() => {
-    // Selectable group nodes when spacekey is pressed
-    // (enables the use of the selection rectangle inside group nodes)
-    if (spaceKeyPressed) {
-      updateNode(props.id, { selectable: true });
-    } else {
-      updateNode(props.id, { selectable: false });
-    }
-  }, [updateNode, props.id, spaceKeyPressed]);
+  // useEffect(() => {
+  // Selectable group nodes when spacekey is pressed
+  // (enables the use of the selection rectangle inside group nodes)
+  //   if (spaceKeyPressed) {
+  //     updateNode(props.id, { selectable: true });
+  //   } else {
+  //     updateNode(props.id, { selectable: false });
+  //   }
+  // }, [updateNode, props.id, spaceKeyPressed]);
 
   return (
     <div

@@ -6,20 +6,20 @@ import { filterDataByType } from "../components/node_menu/typeFilterUtils";
 import useMetadataStore from "./MetadataStore";
 const fuseOptions = {
   keys: [
-    { name: "title", weight: 0.5 },
-    { name: "namespace", weight: 0.3 },
-    { name: "tags", weight: 0.2 }
+    { name: "title", weight: 0.8 },
+    { name: "namespace", weight: 0.1 },
+    { name: "tags", weight: 0.1 }
   ],
   includeMatches: true,
   ignoreLocation: true,
   threshold: 0.2,
-  distance: 100,
-  shouldSort: true,
+  distance: 30,
   includeScore: true,
+  shouldSort: true,
   minMatchCharLength: 2,
   useExtendedSearch: true,
   tokenize: true,
-  matchAllTokens: false
+  matchAllTokens: true
 };
 
 type NodeMenuStore = {
@@ -135,17 +135,33 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => ({
     connectDirection: ConnectDirection = null,
     searchTerm: string = ""
   ) => {
-    const maxPosX = window.innerWidth - get().menuWidth + 150;
-    const maxPosY = window.innerHeight - get().menuHeight + 100;
-    const constrainedX = Math.min(Math.max(x, 0), maxPosX) - 20;
-    const constrainedY = Math.min(Math.max(y, 0), maxPosY) + 90;
+    const { menuWidth, menuHeight } = get();
+    const maxPosX = window.innerWidth - menuWidth + 150;
+    const maxPosY = window.innerHeight - menuHeight;
+
+    // Calculate vertical center
+    const centerY = Math.max(0, (window.innerHeight - menuHeight) / 2 + 100);
+
+    // Calculate horizontal center, respecting menuWidth
+    const centerX = Math.max(0, (window.innerWidth - menuWidth) / 2 + 60);
+
+    // Constrain X position to center, respecting bounds
+    const constrainedX = Math.min(Math.max(centerX, 0), maxPosX);
+
+    // Try to center vertically, but respect bounds
+    const constrainedY = Math.min(Math.max(y - menuHeight / 2, 0), maxPosY);
+
+    // Use centered Y if there's enough space, otherwise use constrained Y
+    const finalY =
+      y < centerY || y > window.innerHeight - centerY ? constrainedY : centerY;
+
     set({
       isMenuOpen: true,
-      menuPosition: { x: constrainedX, y: constrainedY },
-      openedByDrop: openedByDrop,
-      dropType: dropType,
-      connectDirection: connectDirection,
-      searchTerm: searchTerm,
+      menuPosition: { x: constrainedX, y: finalY },
+      openedByDrop,
+      dropType,
+      connectDirection,
+      searchTerm,
       selectedPath: [],
       highlightedNamespaces: []
     });
@@ -211,26 +227,10 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => ({
     });
 
     const fuse = new Fuse(entries, fuseOptions);
+    const searchResults = fuse
+      .search(term)
+      .map((result) => result.item.metadata);
 
-    const searchTermWords = Array.from(new Set(term.trim().split(" ")));
-
-    const searchResults = searchTermWords.reduce(
-      (acc: NodeMetadata[], word: string) => {
-        const searchResults = fuse
-          .search(word)
-          .map((result) => result.item.metadata)
-          .sort((a, b) => a.node_type.localeCompare(b.node_type));
-
-        if (acc.length === 0) {
-          return searchResults;
-        } else {
-          return [...acc, ...searchResults].filter(
-            (v, i, a) => a.findIndex((t) => t.title === v.title) === i
-          );
-        }
-      },
-      [] as NodeMetadata[]
-    );
     set({ searchResults });
   },
 

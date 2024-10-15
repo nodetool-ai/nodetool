@@ -85,8 +85,8 @@ class HuggingFacePipelineNode(HuggingfaceNode):
         if path:
             cache_path = try_to_load_from_cache(model_id, path)
             if not cache_path:
-                raise ValueError(f"Model {model_id} must be downloaded first")
-            log.info(f"Loading model {model_id} from {cache_path}")
+                raise ValueError(f"Model {model_id}/{path} must be downloaded first")
+            log.info(f"Loading model {model_id}/{path} from {cache_path}")
             context.post_message(
                 JobUpdate(
                     status="running",

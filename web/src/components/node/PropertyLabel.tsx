@@ -1,8 +1,9 @@
 /** @jsxImportSource @emotion/react */
-import React, { useMemo } from "react";
+import React, { memo, useMemo } from "react";
 import { css } from "@emotion/react";
 import InputLabel from "@mui/material/InputLabel";
 import { titleizeString } from "../../utils/titleizeString";
+import { isEqual } from "lodash";
 // import Tooltip from "@mui/material/Tooltip";
 // import {
 //   TOOLTIP_ENTER_DELAY,
@@ -16,22 +17,22 @@ interface PropertyLabelProps {
   description?: string | null;
 }
 
-const PropertyLabel: React.FC<PropertyLabelProps> = React.memo(
-  ({ id, name, description }) => {
-    const formattedName = useMemo(() => {
-      return titleizeString(name);
-    }, [name]);
+const PropertyLabel: React.FC<PropertyLabelProps> = ({
+  id,
+  name,
+  description
+}) => {
+  const formattedName = useMemo(() => {
+    return titleizeString(name);
+  }, [name]);
 
-    return (
-      <div className="property-label">
-        <label draggable={false} htmlFor={id} title={description ?? ""}>
-          {formattedName}
-        </label>
-      </div>
-    );
-  }
-);
+  return (
+    <div className="property-label">
+      <label draggable={false} htmlFor={id} title={description ?? ""}>
+        {formattedName}
+      </label>
+    </div>
+  );
+};
 
-PropertyLabel.displayName = "PropertyLabel";
-
-export default PropertyLabel;
+export default memo(PropertyLabel, isEqual);

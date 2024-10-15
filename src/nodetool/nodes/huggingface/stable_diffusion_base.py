@@ -422,6 +422,10 @@ def load_loras(pipeline: Any, loras: list[HFLoraSDConfig] | list[HFLoraSDXLConfi
     pipeline.set_adapters(lora_names, adapter_weights=lora_weights)
 
 
+def quantize_to_multiple_of_64(value):
+    return round(value / 64) * 64
+
+
 class StableDiffusionBaseNode(HuggingFacePipelineNode):
     model: HFStableDiffusion = Field(
         default=HFStableDiffusion(),
@@ -452,12 +456,6 @@ class StableDiffusionBaseNode(HuggingFacePipelineNode):
         default=[],
         description="The LoRA models to use for image processing",
     )
-    lora_scale: float = Field(
-        default=0.5,
-        ge=0.0,
-        le=1.0,
-        description="Strength of the LoRAs",
-    )
     ip_adapter_model: IPAdapter_SD15_Model = Field(
         default=IPAdapter_SD15_Model.NONE,
         description="The IP adapter model to use for image processing",
@@ -470,16 +468,7 @@ class StableDiffusionBaseNode(HuggingFacePipelineNode):
         default=0.5,
         ge=0.0,
         le=1.0,
-        description="Strength of the IP adapter image",
-    )
-    hires: bool = Field(
-        default=False,
-        title="Hires (2x)",
-        description="Enable hires mode, doubles the image size",
-    )
-    enable_tiling: bool = Field(
-        default=False,
-        description="Enable tiling to save VRAM",
+        description="The strength of the IP adapter",
     )
     detail_level: float = Field(
         default=0.5,
@@ -514,15 +503,6 @@ class StableDiffusionBaseNode(HuggingFacePipelineNode):
     def is_visible(cls) -> bool:
         return cls is not StableDiffusionBaseNode
 
-    async def initialize(self, context: ProcessingContext):
-        if self.hires:
-            self._upscaler = await self.load_model(
-                context=context,
-                model_class=StableDiffusionLatentUpscalePipeline,
-                model_id="stabilityai/sd-x2-latent-upscaler",
-                variant=None,
-            )
-
     async def pre_process(self, context: ProcessingContext):
         if self.seed == -1:
             self.seed = randint(0, 2**32 - 1)
@@ -549,7 +529,6 @@ class StableDiffusionBaseNode(HuggingFacePipelineNode):
                 subfolder="models",
                 weight_name=self.ip_adapter_model.value,
             )
-            self._pipeline.set_ip_adapter_scale(self.ip_adapter_scale)
 
     def _set_scheduler(self, scheduler_type: StableDiffusionScheduler):
         scheduler_class = get_scheduler_class(scheduler_type)
@@ -609,7 +588,33 @@ class StableDiffusionBaseNode(HuggingFacePipelineNode):
         else:
             ip_adapter_image = None
 
-        if self.hires:
+        self._pipeline.set_ip_adapter_scale(self.ip_adapter_scale)
+
+        width = kwargs.get("width", None)
+        height = kwargs.get("height", None)
+
+        if width is not None:
+            width = quantize_to_multiple_of_64(width)
+            kwargs["width"] = width
+
+        if height is not None:
+            height = quantize_to_multiple_of_64(height)
+            kwargs["height"] = height
+
+        hires = (
+            width is not None
+            and height is not None
+            and (width >= 1024 or height >= 1024)
+        )
+
+        if hires:
+            self._upscaler = await self.load_model(
+                context=context,
+                model_class=StableDiffusionLatentUpscalePipeline,
+                model_id="stabilityai/sd-x2-latent-upscaler",
+                variant=None,
+            )
+            self._upscaler.to(context.device)
             # Calculate ratio on a continuous scale
             if self.num_inference_steps <= 50:
                 low_res_ratio = 1 / 3 + (self.num_inference_steps - 25) / 75
@@ -634,6 +639,10 @@ class StableDiffusionBaseNode(HuggingFacePipelineNode):
             denoising_strength = max(0.0, min(1.0, denoising_strength))
             hi_res_guidance_scale = max(0.0, hi_res_guidance_scale)
 
+            low_res_kwargs = kwargs.copy()
+            low_res_kwargs["width"] = int(width / 2)
+            low_res_kwargs["height"] = int(height / 2)
+
             # Generate low-res latents
             low_res_result = self._pipeline(
                 prompt=self.prompt,
@@ -645,7 +654,7 @@ class StableDiffusionBaseNode(HuggingFacePipelineNode):
                 callback=self.progress_callback(context, 0, total),
                 callback_steps=1,
                 output_type="latent",
-                **kwargs,
+                **low_res_kwargs,
             )
             low_res_latents = low_res_result.images
 
@@ -667,16 +676,20 @@ class StableDiffusionBaseNode(HuggingFacePipelineNode):
             ]
 
             # Prepare img2img pipeline for hi-res pass
-            img2img_pipe = StableDiffusionImg2ImgPipeline(
-                vae=self._pipeline.vae,
-                text_encoder=self._pipeline.text_encoder,
-                tokenizer=self._pipeline.tokenizer,
-                unet=self._pipeline.unet,
-                scheduler=self._pipeline.scheduler,
-                safety_checker=self._pipeline.safety_checker,
-                feature_extractor=self._pipeline.feature_extractor,
-            )
-            if self.enable_tiling:
+            if "image" in kwargs:
+                img2img_pipe = self._pipeline
+            else:
+                img2img_pipe = StableDiffusionImg2ImgPipeline(
+                    vae=self._pipeline.vae,
+                    text_encoder=self._pipeline.text_encoder,
+                    image_encoder=self._pipeline.image_encoder,
+                    tokenizer=self._pipeline.tokenizer,
+                    unet=self._pipeline.unet,
+                    scheduler=self._pipeline.scheduler,
+                    safety_checker=self._pipeline.safety_checker,
+                    feature_extractor=self._pipeline.feature_extractor,
+                )
+            if hires:
                 img2img_pipe.vae.enable_tiling()
 
             # Generate final high-res image
@@ -687,13 +700,13 @@ class StableDiffusionBaseNode(HuggingFacePipelineNode):
 
             image = img2img_pipe(
                 image=upscaled_latents.unsqueeze(0),  # type: ignore
-                prompt=self.prompt + ", detailed, 4k, hires, high resolution",
+                prompt=self.prompt + ", hires",
                 negative_prompt=self.negative_prompt,
                 num_inference_steps=hi_res_steps,
                 guidance_scale=hi_res_guidance_scale,
                 generator=generator,
                 ip_adapter_image=ip_adapter_image,
-                cross_attention_kwargs={"scale": self.lora_scale},
+                cross_attention_kwargs={"scale": 1.0},
                 callback=self.progress_callback(context, low_res_steps + 20, total),
                 callback_steps=1,
                 **hires_kwargs,
@@ -701,7 +714,7 @@ class StableDiffusionBaseNode(HuggingFacePipelineNode):
                 0
             ]
         else:
-            if self.enable_tiling:
+            if hires:
                 self._pipeline.vae.enable_tiling()
             image = self._pipeline(
                 prompt=self.prompt,
@@ -710,7 +723,7 @@ class StableDiffusionBaseNode(HuggingFacePipelineNode):
                 guidance_scale=self.guidance_scale,
                 generator=generator,
                 ip_adapter_image=ip_adapter_image,
-                cross_attention_kwargs={"scale": self.lora_scale},
+                cross_attention_kwargs={"scale": 1.0},
                 callback=self.progress_callback(context, 0, self.num_inference_steps),
                 callback_steps=1,
                 **kwargs,

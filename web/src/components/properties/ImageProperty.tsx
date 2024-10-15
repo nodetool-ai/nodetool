@@ -2,8 +2,10 @@ import { useAsset } from "../../serverState/useAsset";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import PropertyDropzone from "./PropertyDropzone";
+import { memo } from "react";
+import { isEqual } from "lodash";
 
-export default function ImageProperty(props: PropertyProps) {
+const ImageProperty = (props: PropertyProps) => {
   const id = `image-${props.property.name}-${props.propertyIndex}`;
 
   const { asset, uri } = useAsset({ image: props.value });
@@ -31,4 +33,6 @@ export default function ImageProperty(props: PropertyProps) {
       )}
     </div>
   );
-}
+};
+
+export default memo(ImageProperty, isEqual);

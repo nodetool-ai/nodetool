@@ -1,8 +1,6 @@
 /** @jsxImportSource @emotion/react */
 
 import { create } from "zustand";
-import { Node } from "@xyflow/react";
-import { NodeData } from "./NodeData";
 
 type SessionStateStore = {
   clipboardData: string | null;

@@ -1,82 +1,22 @@
 {
   "id": "style_transfer",
-  "access": "private",
-  "created_at": "2024-08-18T18:14:40.909434",
-  "updated_at": "2024-08-18T18:33:51.638639",
+  "access": "public",
+  "created_at": "2024-10-14T23:58:46.099293",
+  "updated_at": "2024-10-14T23:58:46.099318",
   "name": "Style Transfer",
   "tags": [
     "huggingface",
     "start"
   ],
   "description": "Apply the style of an image to another image",
+  "tags": null,
   "thumbnail": "",
-  "thumbnail_url": "/examples/style_transfer.jpg",
+  "thumbnail_url": null,
   "graph": {
-    "edges": [
-      {
-        "id": "852829a8-6978-496b-bf56-21112fb510b2",
-        "source": "13",
-        "sourceHandle": "output",
-        "target": "14",
-        "targetHandle": "control_image",
-        "ui_properties": {
-          "className": "image"
-        }
-      },
-      {
-        "id": "3219b7c0-2743-4f05-8cab-ca1c4dec2ccc",
-        "source": "14",
-        "sourceHandle": "output",
-        "target": "4",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "image"
-        }
-      },
-      {
-        "id": "c71c3532-031f-4a37-b77b-ffdaaaf89e6b",
-        "source": "13",
-        "sourceHandle": "output",
-        "target": "12",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "image"
-        }
-      },
-      {
-        "id": "3007fa12-05c1-4fef-b591-239b2bcc2a45",
-        "source": "2",
-        "sourceHandle": "output",
-        "target": "13",
-        "targetHandle": "image",
-        "ui_properties": {
-          "className": "image"
-        }
-      },
-      {
-        "id": "1b406ca5-b337-4fbc-855b-51426dd7645c",
-        "source": "3",
-        "sourceHandle": "output",
-        "target": "14",
-        "targetHandle": "ip_adapter_image",
-        "ui_properties": {
-          "className": "image"
-        }
-      },
-      {
-        "id": "499f203b-b410-441d-8123-07b114b235c3",
-        "source": "2",
-        "sourceHandle": "output",
-        "target": "14",
-        "targetHandle": "image",
-        "ui_properties": {
-          "className": "image"
-        }
-      }
-    ],
     "nodes": [
       {
         "id": "2",
+        "parent_id": null,
         "type": "nodetool.constant.Image",
         "data": {
           "value": {
@@ -86,15 +26,17 @@
         },
         "ui_properties": {
           "position": {
-            "x": -23,
-            "y": 379
+            "x": 167,
+            "y": 277
           },
           "zIndex": 0,
+          "width": 200,
           "selectable": true
         }
       },
       {
         "id": "3",
+        "parent_id": null,
         "type": "nodetool.constant.Image",
         "data": {
           "value": {
@@ -104,23 +46,26 @@
         },
         "ui_properties": {
           "position": {
-            "x": 172,
-            "y": 207
+            "x": 427,
+            "y": 88
           },
           "zIndex": 0,
+          "width": 200,
           "selectable": true
         }
       },
       {
         "id": "4",
+        "parent_id": null,
         "type": "nodetool.workflows.base_node.Preview",
         "data": {
           "name": "image_output_2024-08-18"
         },
         "ui_properties": {
+          "selected": false,
           "position": {
-            "x": 615,
-            "y": 145
+            "x": 917,
+            "y": 199
           },
           "zIndex": 0,
           "width": 271,
@@ -130,6 +75,7 @@
       },
       {
         "id": "9",
+        "parent_id": null,
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
           "headline": "Style Transfer",
@@ -213,14 +159,15 @@
       },
       {
         "id": "12",
+        "parent_id": null,
         "type": "nodetool.workflows.base_node.Preview",
         "data": {
           "name": "image_output_2024-09-23"
         },
         "ui_properties": {
           "position": {
-            "x": 386,
-            "y": 615
+            "x": 687,
+            "y": 738
           },
           "zIndex": 0,
           "width": 160,
@@ -230,6 +177,7 @@
       },
       {
         "id": "13",
+        "parent_id": null,
         "type": "nodetool.image.transform.Canny",
         "data": {
           "low_threshold": 84,
@@ -237,23 +185,25 @@
         },
         "ui_properties": {
           "position": {
-            "x": 184,
-            "y": 530
+            "x": 427,
+            "y": 483
           },
           "zIndex": 0,
+          "width": 200,
           "selectable": true
         }
       },
       {
         "id": "14",
+        "parent_id": null,
         "type": "huggingface.image_to_image.StableDiffusionControlNetImg2Img",
         "data": {
           "model": {
             "type": "hf.stable_diffusion",
-            "repo_id": "Yntec/HyperRemix",
-            "path": "HyperRemix.safetensors"
+            "repo_id": "SG161222/Realistic_Vision_V5.1_noVAE",
+            "path": "Realistic_Vision_V5.1_fp16-no-ema.safetensors"
           },
-          "prompt": "",
+          "prompt": "cyborg lady",
           "negative_prompt": "",
           "seed": -1,
           "num_inference_steps": 25,
@@ -261,24 +211,93 @@
           "scheduler": "HeunDiscreteScheduler",
           "loras": [],
           "lora_scale": 0.5,
-          "ip_adapter_model": "ip-adapter_sd15.bing",
+          "ip_adapter_model": "ip-adapter_sd15.bin",
           "ip_adapter_scale": 0.5,
           "hires": false,
           "enable_tiling": true,
           "controlnet": {
             "type": "hf.controlnet",
-            "repo_id": "lllyasviel/sd-controlnet-canny"
-          }
+            "repo_id": "lllyasviel/control_v11p_sd15_canny",
+            "path": "diffusion_pytorch_model.fp16.safetensors"
+          },
+          "detail_level": 0.8,
+          "strength": 0.7
         },
         "ui_properties": {
+          "selected": false,
           "position": {
-            "x": 384,
-            "y": 75
+            "x": 687,
+            "y": 50
           },
           "zIndex": 0,
+          "width": 200,
           "selectable": true
         }
       }
+    ],
+    "edges": [
+      {
+        "id": "852829a8-6978-496b-bf56-21112fb510b2",
+        "source": "13",
+        "sourceHandle": "output",
+        "target": "14",
+        "targetHandle": "control_image",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "3219b7c0-2743-4f05-8cab-ca1c4dec2ccc",
+        "source": "14",
+        "sourceHandle": "output",
+        "target": "4",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "c71c3532-031f-4a37-b77b-ffdaaaf89e6b",
+        "source": "13",
+        "sourceHandle": "output",
+        "target": "12",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "3007fa12-05c1-4fef-b591-239b2bcc2a45",
+        "source": "2",
+        "sourceHandle": "output",
+        "target": "13",
+        "targetHandle": "image",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "499f203b-b410-441d-8123-07b114b235c3",
+        "source": "2",
+        "sourceHandle": "output",
+        "target": "14",
+        "targetHandle": "image",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "1b406ca5-b337-4fbc-855b-51426dd7645c",
+        "source": "3",
+        "sourceHandle": "output",
+        "target": "14",
+        "targetHandle": "ip_adapter_image",
+        "ui_properties": {
+          "className": "image"
+        }
+      }
     ]
-  }
+  },
+  "input_schema": null,
+  "output_schema": null
 }

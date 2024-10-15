@@ -2,8 +2,10 @@ import { Typography } from "@mui/material";
 import { Message, MessageContent } from "../../stores/ApiTypes";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
+import { memo } from "react";
+import { isEqual } from "lodash";
 
-export default function ThreadMessageProperty(props: PropertyProps) {
+const ThreadMessageProperty = (props: PropertyProps) => {
   const id = `thread-message-${props.property.name}-${props.propertyIndex}`;
   const msg = props.value as Message;
   return (
@@ -28,4 +30,6 @@ export default function ThreadMessageProperty(props: PropertyProps) {
         })}
     </>
   );
-}
+};
+
+export default memo(ThreadMessageProperty, isEqual);

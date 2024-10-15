@@ -1,9 +1,10 @@
 /* @jsxImportSource @emotion/react */
-import React from "react";
+import React, { memo } from "react";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { List, ListItem, ListItemText, Box } from "@mui/material";
 import { NOTIFICATIONS_LIST_MAX_ITEMS } from "../../config/constants";
 import { css } from "@emotion/react";
+import { isEqual } from "lodash";
 
 const styles = (theme: any) =>
   css({
@@ -74,7 +75,7 @@ const styles = (theme: any) =>
     }
   });
 
-export const NotificationsList: React.FC = () => {
+const NotificationsList: React.FC = () => {
   const notifications = useNotificationStore((state) => state.notifications);
   const recentNotifications = [...notifications]
     .sort(
@@ -112,3 +113,5 @@ export const NotificationsList: React.FC = () => {
     </Box>
   );
 };
+
+export default memo(NotificationsList, isEqual);
