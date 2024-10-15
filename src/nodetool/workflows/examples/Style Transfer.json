@@ -9,9 +9,8 @@
     "start"
   ],
   "description": "Apply the style of an image to another image",
-  "tags": null,
   "thumbnail": "",
-  "thumbnail_url": null,
+  "thumbnail_url": "/images/style_transfer.jpg",
   "graph": {
     "nodes": [
       {

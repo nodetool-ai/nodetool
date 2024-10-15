@@ -347,6 +347,7 @@ export const useWorkflowStore = create<WorkflowStore>()(
               name: workflow.name,
               description: workflow.description,
               thumbnail: workflow.thumbnail,
+              thumbnail_url: workflow.thumbnail_url,
               access: "public",
               graph: workflow.graph
             }

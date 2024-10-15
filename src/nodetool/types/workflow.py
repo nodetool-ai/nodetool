@@ -52,6 +52,7 @@ class WorkflowRequest(BaseModel):
     tags: list[str] | None = None
     description: str | None = None
     thumbnail: str | None = None
+    thumbnail_url: str | None = None
     access: str
     graph: Graph | None = None
     comfy_workflow: dict[str, Any] | None = None
