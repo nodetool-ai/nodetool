@@ -40,12 +40,13 @@ import useErrorStore from "./ErrorStore";
 import useResultsStore from "./ResultsStore";
 
 type NodeUIProperties = {
-  selected: boolean | undefined;
-  selectable: boolean | undefined;
+  selected?: boolean;
+  selectable?: boolean;
   position: XYPosition;
-  width: number | undefined;
-  height: number | undefined;
-  zIndex: number | undefined;
+  width?: number;
+  height?: number;
+  zIndex?: number;
+  title?: string;
 };
 
 type NodeSelection = {
@@ -87,7 +88,8 @@ export function graphNodeToReactFlowNode(
       selectable: ui_properties?.selectable,
       dirty: true,
       collapsed: false,
-      workflow_id: workflow.id
+      workflow_id: workflow.id,
+      title: ui_properties?.title
     },
     position: ui_properties?.position || { x: 0, y: 0 },
     style: {
@@ -109,6 +111,7 @@ export function reactFlowNodeToGraphNode(node: Node<NodeData>): GraphNode {
     zIndex: node.zIndex || 0,
     width: node.measured?.width || DEFAULT_NODE_WIDTH,
     height: undefined,
+    title: node.data.title,
     selectable: true
   };
 

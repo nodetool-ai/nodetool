@@ -228,6 +228,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     () => (metadata?.title ? titleizeString(metadata.title) : ""),
     [metadata?.title]
   );
+  const nodeTitle = props.data.title ?? titleizedType;
 
   const nodeColors = useMemo(() => {
     const outputColors = [
@@ -305,7 +306,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       )}
       <NodeHeader
         id={props.id}
-        nodeTitle={titleizedType}
+        nodeTitle={nodeTitle}
         hasParent={hasParent}
         backgroundColor={parentColor}
       />

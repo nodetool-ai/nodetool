@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { useCallback, useRef, useEffect, useMemo, memo } from "react";
+import { useCallback, useRef, useEffect, useMemo, memo, useState } from "react";
 import {
   useReactFlow,
   Node,
@@ -57,6 +57,7 @@ import ThemeNodes from "../themes/ThemeNodes";
 import { useRenderLogger } from "../../hooks/useRenderLogger";
 import AxisMarker from "../node_editor/AxisMarker";
 import ConnectionLine from "../node_editor/ConnectionLine";
+import NodeTitleEditor from "./NodeTitleEditor";
 
 declare global {
   interface Window {
@@ -293,19 +294,28 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     onDragOver
   } = useDragHandlers(resumeHistoryAndSave);
 
+  const [editNodeTitle, setEditNodeTitle] = useState<string | undefined>(
+    undefined
+  );
+  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+
+  const finishNodeTitle = useCallback(() => setEditNodeTitle(undefined), []);
+
   /* COLLAPSE NODE */
   const onNodeDoubleClick = useCallback(
     (event: React.MouseEvent, node: Node) => {
       const clickedElement = event.target as HTMLElement;
       if (clickedElement.classList.contains("node-title")) {
-        updateNodeData(node.id, {
-          properties: node.data.properties ? { ...node.data.properties } : {},
-          workflow_id: node.data.workflow_id as any,
-          collapsed: !node.data.collapsed
-        });
+        setEditNodeTitle(node.id);
+        setAnchorEl(clickedElement);
+        // updateNodeData(node.id, {
+        //   properties: node.data.properties ? { ...node.data.properties } : {},
+        //   workflow_id: node.data.workflow_id as any,
+        //   collapsed: !node.data.collapsed
+        // });
       }
     },
-    [updateNodeData]
+    []
   );
 
   /* VIEWPORT */
@@ -461,6 +471,13 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
             variant={BackgroundVariant.Cross}
           />
           {reactFlowInstance && <AxisMarker />}
+          {editNodeTitle && anchorEl && (
+            <NodeTitleEditor
+              nodeId={editNodeTitle}
+              onClose={finishNodeTitle}
+              anchorEl={anchorEl}
+            />
+          )}
           {openMenuType === "node-context-menu" && <NodeContextMenu />}
           {openMenuType === "pane-context-menu" && <PaneContextMenu />}
           {openMenuType === "property-context-menu" && <PropertyContextMenu />}

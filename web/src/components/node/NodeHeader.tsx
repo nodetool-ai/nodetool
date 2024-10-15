@@ -3,10 +3,9 @@ import useContextMenuStore from "../../stores/ContextMenuStore";
 import { MoreHoriz } from "@mui/icons-material";
 import { css } from "@emotion/react";
 import { NodeStore, useNodeStore } from "../../stores/NodeStore";
-import { memo, useCallback, useMemo } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 import ThemeNodes from "../themes/ThemeNodes";
-import { isEqual } from "lodash";
-import useMetadataStore from "../../stores/MetadataStore";
+import { isEqual, set } from "lodash";
 
 export interface NodeHeaderProps {
   id: string;
@@ -65,7 +64,7 @@ export const headerStyle = (theme: any, hasParent: boolean) =>
       fontSize: 28
     },
     ".menu-button": {
-      height: "2em",
+      height: "28px",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
@@ -148,9 +147,9 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
         backgroundColor: backgroundColor
       }}
     >
+      <span className="node-title">{nodeTitle}</span>
       {showMenu && (
         <>
-          <span className="node-title">{nodeTitle}</span>
           <div className="menu-button">
             {/* css={tooltipStyle}> */}
             <button
