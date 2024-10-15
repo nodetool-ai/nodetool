@@ -5,6 +5,8 @@ import { useAsset } from "../../serverState/useAsset";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import PropertyDropzone from "./PropertyDropzone";
+import { isEqual } from "lodash";
+import { memo } from "react";
 
 const styles = (theme: any) =>
   css({
@@ -12,7 +14,8 @@ const styles = (theme: any) =>
       marginBottom: "5px"
     }
   });
-export default function VideoProperty(props: PropertyProps) {
+
+const VideoProperty = (props: PropertyProps) => {
   const id = `video-${props.property.name}-${props.propertyIndex}`;
   const { asset, uri } = useAsset({ video: props.value });
 
@@ -34,4 +37,6 @@ export default function VideoProperty(props: PropertyProps) {
       )}
     </div>
   );
-}
+};
+
+export default memo(VideoProperty, isEqual);

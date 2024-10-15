@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import { useState } from "react";
+import { memo, useState } from "react";
 import { Asset } from "../../stores/ApiTypes";
 import { useFileDrop } from "../../hooks/handlers/useFileDrop";
 import { Button, TextField } from "@mui/material";
@@ -10,6 +10,7 @@ import WaveRecorder from "../audio/WaveRecorder";
 import AudioPlayer from "../audio/AudioPlayer";
 import { PropertyProps } from "../node/PropertyInput";
 import { onBlur, onFocus } from "../../stores/KeyPressedStore";
+import { isEqual } from "lodash";
 
 interface PropertyDropzoneProps {
   asset: Asset | undefined;
@@ -239,4 +240,4 @@ const PropertyDropzone = ({
   );
 };
 
-export default PropertyDropzone;
+export default memo(PropertyDropzone, isEqual);

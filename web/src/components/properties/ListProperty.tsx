@@ -1,6 +1,6 @@
 import { PropertyProps } from "../node/PropertyInput";
 import ListTable, { ListDataType } from "../node/DataTable/ListTable";
-import { useCallback, useState } from "react";
+import { memo, useCallback, useState } from "react";
 import {
   FormControl,
   InputLabel,
@@ -9,6 +9,7 @@ import {
   SelectChangeEvent
 } from "@mui/material";
 import PropertyLabel from "../node/PropertyLabel";
+import { isEqual } from "lodash";
 
 const detectTypeFromList = (list: any[]) => {
   if (list.length === 0) {
@@ -28,7 +29,7 @@ const detectTypeFromList = (list: any[]) => {
   return "string";
 };
 
-export default function ListProperty(props: PropertyProps) {
+const ListProperty = (props: PropertyProps) => {
   const id = `list-${props.property.name}-${props.propertyIndex}`;
   const dataTypes = ["int", "string", "datetime", "float"];
 
@@ -81,7 +82,7 @@ export default function ListProperty(props: PropertyProps) {
           data_type={dataType}
         />
       </>
-    )
+    );
   } else {
     return (
       <>
@@ -93,4 +94,6 @@ export default function ListProperty(props: PropertyProps) {
       </>
     );
   }
-}
+};
+
+export default memo(ListProperty, isEqual);

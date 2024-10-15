@@ -1,16 +1,14 @@
-import { useCallback } from "react";
-import {
-  Select,
-  OutlinedInput
-} from "@mui/material";
+import { memo, useCallback } from "react";
+import { Select, OutlinedInput } from "@mui/material";
 import MenuItem from "@mui/material/MenuItem";
 import { WorkflowList } from "../../stores/ApiTypes";
 import PropertyLabel from "../node/PropertyLabel";
 import { useQuery } from "@tanstack/react-query";
 import { useWorkflowStore } from "../../stores/WorkflowStore";
 import { PropertyProps } from "../node/PropertyInput";
+import { isEqual } from "lodash";
 
-export default function WorkflowListProperty(props: PropertyProps) {
+const WorkflowListProperty = (props: PropertyProps) => {
   const id = `workflow-list-${props.property.name}-${props.propertyIndex}`;
   const workflowIds = props.value?.map((workflow: any) => workflow.id);
   const load = useWorkflowStore((state) => state.load);
@@ -44,7 +42,8 @@ export default function WorkflowListProperty(props: PropertyProps) {
       <PropertyLabel
         name={props.property.name}
         description={props.property.description}
-        id={id} />
+        id={id}
+      />
       <Select
         id={id}
         multiple
@@ -52,7 +51,9 @@ export default function WorkflowListProperty(props: PropertyProps) {
         onChange={(e) => onChange(e.target.value)}
         className="mui-select nodrag"
         input={<OutlinedInput id="select-multiple-chip" label="Chip" />}
-        renderValue={(selected) => selected.map((id: string) => findWorkflow(id).name).join(", ")}
+        renderValue={(selected) =>
+          selected.map((id: string) => findWorkflow(id).name).join(", ")
+        }
       >
         {isLoading && <MenuItem disabled>Loading...</MenuItem>}
         {error && <MenuItem disabled>Error: {error.message}</MenuItem>}
@@ -65,4 +66,6 @@ export default function WorkflowListProperty(props: PropertyProps) {
       </Select>
     </>
   );
-}
+};
+
+export default memo(WorkflowListProperty, isEqual);

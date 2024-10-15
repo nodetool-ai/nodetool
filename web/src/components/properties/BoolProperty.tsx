@@ -1,8 +1,10 @@
 import { Switch } from "@mui/material";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
+import { memo } from "react";
+import { isEqual } from "lodash";
 
-export default function BoolProperty(props: PropertyProps) {
+const BoolProperty = (props: PropertyProps) => {
   const id = `switch-${props.property.name}-${props.propertyIndex}`;
 
   return (
@@ -10,7 +12,8 @@ export default function BoolProperty(props: PropertyProps) {
       <PropertyLabel
         name={props.property.name}
         description={props.property.description}
-        id={id} />
+        id={id}
+      />
       <Switch
         id={id}
         inputProps={{ "aria-labelledby": id }}
@@ -18,7 +21,10 @@ export default function BoolProperty(props: PropertyProps) {
         onChange={(e) => props.onChange(e.target.checked)}
         name={props.property.name}
         className="nodrag"
-        size="small" />
+        size="small"
+      />
     </>
   );
-}
+};
+
+export default memo(BoolProperty, isEqual);

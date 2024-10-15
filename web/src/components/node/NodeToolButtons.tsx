@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { memo, useCallback } from "react";
 import { useReactFlow } from "@xyflow/react";
 import { Toolbar, IconButton, Tooltip } from "@mui/material";
 import QueueIcon from "@mui/icons-material/Queue";
@@ -15,6 +15,7 @@ import { NodeData } from "../../stores/NodeData";
 import { Node } from "@xyflow/react";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { getMousePosition } from "../../utils/MousePosition";
+import { isEqual } from "lodash";
 interface NodeToolbarProps {
   nodeId: string | null;
 }
@@ -90,4 +91,4 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
   );
 };
 
-export default NodeToolButtons;
+export default memo(NodeToolButtons, isEqual);

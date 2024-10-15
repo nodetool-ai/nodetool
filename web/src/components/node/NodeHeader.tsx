@@ -92,11 +92,11 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
   showMenu = true
 }: NodeHeaderProps) => {
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
-  const getMetadata = useMetadataStore((state) => state.getMetadata);
-  const findNode = useNodeStore((state) => state.findNode);
+  // const getMetadata = useMetadataStore((state) => state.getMetadata);
+  // const findNode = useNodeStore((state) => state.findNode);
 
-  const node = useMemo(() => findNode(id), [findNode, id]);
-  const metadata = getMetadata(node?.type || "");
+  // const node = useMemo(() => findNode(id), [findNode, id]);
+  // const metadata = getMetadata(node?.type || "");
   // const description = useMemo(
   //   () => metadata?.description.split("\n")[0] || "",
   //   [metadata]

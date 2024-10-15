@@ -5,8 +5,10 @@ import { useAssetStore } from "../../stores/AssetStore";
 import PropertyLabel from "../node/PropertyLabel";
 import { useQuery } from "@tanstack/react-query";
 import { PropertyProps } from "../node/PropertyInput";
+import { memo } from "react";
+import { isEqual } from "lodash";
 
-export default function FolderProperty(props: PropertyProps) {
+const FolderProperty = (props: PropertyProps) => {
   const id = `folder-${props.property.name}-${props.propertyIndex}`;
   const load = useAssetStore((state) => state.load);
   const fetchFolders = async () => {
@@ -14,7 +16,7 @@ export default function FolderProperty(props: PropertyProps) {
   };
   const { data, error, isLoading } = useQuery<AssetList, Error>({
     queryKey: ["assets", { content_type: "folder" }],
-    queryFn: fetchFolders,
+    queryFn: fetchFolders
   });
   const selectValue = props.value?.asset_id || "";
 
@@ -41,12 +43,12 @@ export default function FolderProperty(props: PropertyProps) {
         MenuProps={{
           anchorOrigin: {
             vertical: "bottom",
-            horizontal: "left",
+            horizontal: "left"
           },
           transformOrigin: {
             vertical: "top",
-            horizontal: "left",
-          },
+            horizontal: "left"
+          }
         }}
       >
         {data?.assets.map((folder) => (
@@ -57,4 +59,6 @@ export default function FolderProperty(props: PropertyProps) {
       </Select>
     </>
   );
-}
+};
+
+export default memo(FolderProperty, isEqual);

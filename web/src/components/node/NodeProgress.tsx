@@ -2,14 +2,15 @@
 import { memo, useEffect, useState, useRef } from "react";
 import { LinearProgress, Typography } from "@mui/material";
 import useResultsStore from "../../stores/ResultsStore";
+import { isEqual } from "lodash";
 
-export const NodeProgress = memo(function NodeProgress({
+const NodeProgress = ({
   id,
   workflowId
 }: {
   id: string;
   workflowId: string;
-}) {
+}) => {
   const progress = useResultsStore((state) =>
     state.getProgress(workflowId, id)
   );
@@ -53,4 +54,6 @@ export const NodeProgress = memo(function NodeProgress({
       </Typography>
     </div>
   );
-});
+};
+
+export default memo(NodeProgress, isEqual);

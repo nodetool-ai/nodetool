@@ -1,6 +1,7 @@
-import React, { useMemo } from "react";
+import React, { memo, useMemo } from "react";
 import { Tensor } from "../../stores/ApiTypes";
 import { Typography, Paper, Box } from "@mui/material";
+import { isEqual } from "lodash";
 
 interface TensorViewProps {
   tensor: Tensor;
@@ -39,4 +40,4 @@ const TensorView: React.FC<TensorViewProps> = ({ tensor }) => {
   );
 };
 
-export default React.memo(TensorView);
+export default memo(TensorView, isEqual);

@@ -7,12 +7,16 @@ export const useResizePanel = (panelPosition: "left" | "right" = "left") => {
   const { size, isDragging, hasDragged, maxWidth, minWidth } =
     panels[panelPosition];
 
-  const {
-    leftPanelWidth,
-    rightPanelWidth,
-    setLeftPanelWidth,
-    setRightPanelWidth
-  } = useSessionStateStore();
+  const leftPanelWidth = useSessionStateStore((state) => state.leftPanelWidth);
+  const rightPanelWidth = useSessionStateStore(
+    (state) => state.rightPanelWidth
+  );
+  const setLeftPanelWidth = useSessionStateStore(
+    (state) => state.setLeftPanelWidth
+  );
+  const setRightPanelWidth = useSessionStateStore(
+    (state) => state.setRightPanelWidth
+  );
 
   const ref = useRef<HTMLDivElement>(null);
   const dragThreshold = 20;

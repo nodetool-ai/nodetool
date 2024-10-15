@@ -2,7 +2,7 @@
 import { css, useTheme } from "@emotion/react";
 
 import ReactDOM from "react-dom";
-import { useEffect, useRef } from "react";
+import { memo, useEffect, useRef } from "react";
 import TextareaAutosize from "react-textarea-autosize";
 import { useClipboard } from "../../hooks/browser/useClipboard";
 import CloseIcon from "@mui/icons-material/Close";
@@ -11,6 +11,7 @@ import { Tooltip } from "@mui/material";
 import ThemeNodes from "../themes/ThemeNodes";
 import CircularProgress from "@mui/material/CircularProgress";
 import { onBlur, onFocus, useCombo } from "../../stores/KeyPressedStore";
+import { isEqual } from "lodash";
 
 interface TextEditorModalProps {
   value: string;
@@ -121,7 +122,7 @@ const modalStyles = (theme: any) =>
     }
   });
 
-export default function TextEditorModal({
+const TextEditorModal = ({
   value,
   onChange,
   onClose,
@@ -129,7 +130,7 @@ export default function TextEditorModal({
   propertyDescription,
   readOnly = false,
   isLoading = false
-}: TextEditorModalProps) {
+}: TextEditorModalProps) => {
   const theme = useTheme();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const modalOverlayRef = useRef<HTMLDivElement>(null);
@@ -228,4 +229,6 @@ export default function TextEditorModal({
   );
 
   return ReactDOM.createPortal(content, document.body);
-}
+};
+
+export default memo(TextEditorModal, isEqual);

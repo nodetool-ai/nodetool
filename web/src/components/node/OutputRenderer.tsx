@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useMemo, useCallback, useRef, useEffect } from "react";
+import React, { useMemo, useCallback, useRef, useEffect, memo } from "react";
 import { css } from "@emotion/react";
 
 import { Asset, DataframeRef, Message, Tensor } from "../../stores/ApiTypes";
@@ -19,6 +19,7 @@ import { uint8ArrayToDataUri } from "../../utils/binary";
 import TensorView from "./TensorView"; // We'll create this component
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { TOOLTIP_ENTER_DELAY } from "./BaseNode";
+import { isEqual } from "lodash";
 
 export type OutputRendererProps = {
   value: any;
@@ -342,4 +343,4 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
   return renderContent;
 };
 
-export default React.memo(OutputRenderer);
+export default memo(OutputRenderer, isEqual);

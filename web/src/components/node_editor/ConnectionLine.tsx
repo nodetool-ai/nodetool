@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo } from "react";
 import {
   ConnectionLineComponent,
   ConnectionLineType,
@@ -8,6 +8,7 @@ import {
 } from "@xyflow/react";
 import useConnectionStore from "../../stores/ConnectionStore";
 import { Slugify } from "../../utils/TypeHandler";
+import { isEqual } from "lodash";
 
 const ConnectionLine: ConnectionLineComponent = ({
   fromX,
@@ -72,4 +73,4 @@ const ConnectionLine: ConnectionLineComponent = ({
   );
 };
 
-export default ConnectionLine;
+export default memo(ConnectionLine, isEqual);

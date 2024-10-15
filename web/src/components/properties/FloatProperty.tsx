@@ -1,7 +1,9 @@
+import { memo } from "react";
 import NumberInput from "../inputs/NumberInput";
 import { PropertyProps } from "../node/PropertyInput";
+import { isEqual } from "lodash";
 
-export default function FloatProperty(props: PropertyProps) {
+const FloatProperty = (props: PropertyProps) => {
   const id = `slider-${props.property.name}-${props.propertyIndex}`;
 
   return (
@@ -16,7 +18,10 @@ export default function FloatProperty(props: PropertyProps) {
         size="small"
         color="secondary"
         inputType="float"
-        onChange={(_, value) => props.onChange(value)} />
+        onChange={(_, value) => props.onChange(value)}
+      />
     </>
   );
-}
+};
+
+export default memo(FloatProperty, isEqual);

@@ -142,23 +142,22 @@ const styles = (colors: string[]) =>
 
 const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   // Node-specific data and relationships
-  const nodedata = useNodeStore((state) => state.findNode(props.id)?.data);
-  const node = useNodeStore((state) => state.findNode(props.id));
-  const hasParent = node?.parentId !== undefined;
+  const parentId = props.parentId;
   const parentNode = useNodeStore((state) =>
-    hasParent ? state.findNode(node?.parentId || "") : null
+    props.parentId ? state.findNode(props.parentId || "") : null
   );
+  const hasParent = Boolean(parentId);
   const parentColor = useMemo(() => {
-    if (!hasParent || !parentNode?.data?.properties?.group_color) return "";
+    if (!parentNode?.data?.properties?.group_color) return "";
     return simulateOpacity(
       parentNode?.data?.properties?.group_color,
       0.1,
       ThemeNodes.palette.c_editor_bg_color
     );
-  }, [hasParent, parentNode]);
+  }, [parentNode]);
 
   // Workflow and status
-  const workflowId = useMemo(() => nodedata?.workflow_id || "", [nodedata]);
+  const workflowId = props.data.workflow_id;
   const status = useStatusStore((state) =>
     state.getStatus(workflowId, props.id)
   );
@@ -181,7 +180,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     if (hasParent) {
       setParentIsCollapsed(parentNode?.data.collapsed || false);
     }
-  }, [hasParent, node?.parentId, parentNode?.data.collapsed]);
+  }, [hasParent, parentId, parentNode?.data.collapsed]);
 
   const className = useMemo(
     () =>
@@ -194,10 +193,10 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         .trim(),
     [
       props.data.collapsed,
+      props.data.dirty,
       hasParent,
       isInputNode,
       isOutputNode,
-      props.data.dirty,
       isLoading
     ]
   );
@@ -262,7 +261,6 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     className,
     props,
     titleizedType,
-    hasParent,
     ThemeNodes,
     nodeColors,
     minHeight,
@@ -300,7 +298,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           : ThemeNodes.palette.c_node_bg
       }}
     >
-      {node?.selected && (
+      {props.selected && (
         <NodeToolbar position={Position.Bottom} offset={0}>
           <NodeToolButtons nodeId={props.id} />
         </NodeToolbar>
@@ -326,7 +324,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         workflowId={workflowId}
         renderedResult={renderedResult}
       />
-      {node?.selected && resizer}
+      {props.selected && resizer}
     </Container>
   );
 };

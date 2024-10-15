@@ -1,9 +1,10 @@
-import { useMemo, useCallback } from "react";
+import { useMemo, useCallback, memo } from "react";
 import { HuggingFaceModel } from "../../stores/ApiTypes";
 import useModelStore from "../../stores/ModelStore";
 import { useQuery } from "@tanstack/react-query";
 import { tryCacheFiles } from "../../serverState/tryCacheFiles";
 import { useMetadata } from "../../serverState/useMetadata";
+import { isEqual } from "lodash";
 
 interface HuggingFaceModelSelectProps {
   modelType: string;
@@ -11,11 +12,11 @@ interface HuggingFaceModelSelectProps {
   value: any;
 }
 
-export default function HuggingFaceModelSelect({
+const HuggingFaceModelSelect = ({
   modelType,
   onChange,
   value
-}: HuggingFaceModelSelectProps) {
+}: HuggingFaceModelSelectProps) => {
   const { data: metadata } = useMetadata();
   const loadHuggingFaceModels = useModelStore(
     (state) => state.loadHuggingFaceModels
@@ -124,4 +125,6 @@ export default function HuggingFaceModelSelect({
       ))}
     </select>
   );
-}
+};
+
+export default memo(HuggingFaceModelSelect, isEqual);

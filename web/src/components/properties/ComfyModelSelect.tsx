@@ -1,7 +1,8 @@
-import { useMemo, useCallback } from "react";
+import { useMemo, useCallback, memo } from "react";
 import useModelStore from "../../stores/ModelStore";
 import { useQuery } from "@tanstack/react-query";
 import { ModelFile } from "../../stores/ApiTypes";
+import { isEqual } from "lodash";
 
 interface ComfyModelSelectProps {
   modelType: string;
@@ -9,11 +10,11 @@ interface ComfyModelSelectProps {
   value: string;
 }
 
-export default function ComfyModelSelect({
+const ComfyModelSelect = ({
   modelType,
   onChange,
   value
-}: ComfyModelSelectProps) {
+}: ComfyModelSelectProps) => {
   const loadComfyModels = useModelStore((state) => state.loadComfyModels);
 
   const {
@@ -71,4 +72,6 @@ export default function ComfyModelSelect({
       ))}
     </select>
   );
-}
+};
+
+export default memo(ComfyModelSelect, isEqual);

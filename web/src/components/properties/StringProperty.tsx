@@ -1,16 +1,18 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, memo } from "react";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import TextEditorModal from "./TextEditorModal";
 import { TOOLTIP_ENTER_DELAY } from "../node/BaseNode";
 import { Tooltip } from "@mui/material";
 import { onFocus, onBlur } from "../../stores/KeyPressedStore";
-export default function StringProperty({
+import { isEqual } from "lodash";
+
+const StringProperty = ({
   property,
   propertyIndex,
   value,
   onChange
-}: PropertyProps) {
+}: PropertyProps) => {
   const id = `textfield-${property.name}-${propertyIndex}`;
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -64,4 +66,6 @@ export default function StringProperty({
       )}
     </div>
   );
-}
+};
+
+export default memo(StringProperty, isEqual);
