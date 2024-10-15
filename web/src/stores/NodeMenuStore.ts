@@ -19,7 +19,7 @@ const fuseOptions = {
   minMatchCharLength: 2,
   useExtendedSearch: true,
   tokenize: true,
-  matchAllTokens: false
+  matchAllTokens: true
 };
 
 type NodeMenuStore = {
@@ -135,17 +135,33 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => ({
     connectDirection: ConnectDirection = null,
     searchTerm: string = ""
   ) => {
-    const maxPosX = window.innerWidth - get().menuWidth + 150;
-    const maxPosY = window.innerHeight - get().menuHeight + 100;
-    const constrainedX = Math.min(Math.max(x, 0), maxPosX) - 20;
-    const constrainedY = Math.min(Math.max(y, 0), maxPosY) + 90;
+    const { menuWidth, menuHeight } = get();
+    const maxPosX = window.innerWidth - menuWidth + 150;
+    const maxPosY = window.innerHeight - menuHeight;
+
+    // Calculate vertical center
+    const centerY = Math.max(0, (window.innerHeight - menuHeight) / 2 + 100);
+
+    // Calculate horizontal center, respecting menuWidth
+    const centerX = Math.max(0, (window.innerWidth - menuWidth) / 2 + 60);
+
+    // Constrain X position to center, respecting bounds
+    const constrainedX = Math.min(Math.max(centerX, 0), maxPosX);
+
+    // Try to center vertically, but respect bounds
+    const constrainedY = Math.min(Math.max(y - menuHeight / 2, 0), maxPosY);
+
+    // Use centered Y if there's enough space, otherwise use constrained Y
+    const finalY =
+      y < centerY || y > window.innerHeight - centerY ? constrainedY : centerY;
+
     set({
       isMenuOpen: true,
-      menuPosition: { x: constrainedX, y: constrainedY },
-      openedByDrop: openedByDrop,
-      dropType: dropType,
-      connectDirection: connectDirection,
-      searchTerm: searchTerm,
+      menuPosition: { x: constrainedX, y: finalY },
+      openedByDrop,
+      dropType,
+      connectDirection,
+      searchTerm,
       selectedPath: [],
       highlightedNamespaces: []
     });
