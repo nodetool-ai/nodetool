@@ -112,8 +112,6 @@ websockets = "*"
 yacs = "*"
 yapf = "*"
 zipp = "*"
-RealESRGAN = { git = "https://github.com/ai-forever/Real-ESRGAN.git" }
-# parler-tts = { git = "https://github.com/huggingface/parler-tts.git" }
 
 [tool.poetry.group.test.dependencies]
 pytest = "*"
