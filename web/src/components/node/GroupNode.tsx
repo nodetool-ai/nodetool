@@ -229,26 +229,27 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     [props.data, props.id, updateNodeData]
   );
 
-  const handleColorChange = useCallback((newColor: string) => {
-    setColor(newColor);
-    updateNodeData(props.id, {
-      // ...props.data,
-      properties: {
-        // ...props.data.properties,
-        group_color: newColor
-      }
-    });
-  }, []);
+  const handleColorChange = useCallback(
+    (newColor: string) => {
+      setColor(newColor);
+      updateNodeData(props.id, {
+        properties: {
+          group_color: newColor
+        }
+      });
+    },
+    [props.id, updateNodeData]
+  );
 
-  // useEffect(() => {
-  // Selectable group nodes when spacekey is pressed
-  // (enables the use of the selection rectangle inside group nodes)
-  //   if (spaceKeyPressed) {
-  //     updateNode(props.id, { selectable: true });
-  //   } else {
-  //     updateNode(props.id, { selectable: false });
-  //   }
-  // }, [updateNode, props.id, spaceKeyPressed]);
+  useEffect(() => {
+    // Selectable group nodes when spacekey is pressed
+    // (enables the use of the selection rectangle inside group nodes)
+    if (spaceKeyPressed) {
+      updateNode(props.id, { selectable: true });
+    } else {
+      updateNode(props.id, { selectable: false });
+    }
+  }, [updateNode, props.id, spaceKeyPressed]);
 
   return (
     <div

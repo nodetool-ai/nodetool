@@ -213,7 +213,7 @@ const LoopNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   }, []);
 
   useEffect(() => {
-    // Selectable group nodes when spacekey is pressed
+    // Selectable loop nodes when spacekey is pressed
     // (enables the use of the selection rectangle inside group nodes)
     if (spaceKeyPressed) {
       updateNode(props.id, { selectable: true });
