@@ -50,6 +50,16 @@ jobs:
         run: |
           python build.py --platform ${{ matrix.platform }} --arch ${{ matrix.arch }} --step setup
 
+      - name: Package ollama
+        shell: bash -l {0}
+        run: |
+          python build.py --platform ${{ matrix.platform }} --arch ${{ matrix.arch }} --step ollama
+
+      - name: Package ffmpeg
+        shell: bash -l {0}
+        run: |
+          python build.py --platform ${{ matrix.platform }} --arch ${{ matrix.arch }} --step ffmpeg
+
       - name: Package python
         shell: bash -l {0}
         run: |

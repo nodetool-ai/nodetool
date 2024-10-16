@@ -10,14 +10,6 @@ const path = require("path");
 const fs = require("fs").promises;
 const { spawn } = require("child_process");
 
-/**
- * Log a message with a timestamp
- * @param {string} message - The message to log
- */
-function log(message) {
-  console.log(`[${new Date().toISOString()}] ${message}`);
-}
-
 /** @type {BrowserWindow|null} */
 let mainWindow;
 /** @type {import('child_process').ChildProcess|null} */
@@ -360,4 +352,12 @@ function emitServerLog(message) {
   if (mainWindow && mainWindow.webContents) {
     mainWindow.webContents.send("server-log", message);
   }
+}
+/**
+ * Log a message with a timestamp
+ * @param {string} message - The message to log
+ */
+function log(message) {
+  console.log(`[${new Date().toISOString()}] ${message}`);
+  emitServerLog(message);
 }
