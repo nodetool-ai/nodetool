@@ -1,3 +1,5 @@
+Here's the updated CHANGELOG.md content:
+
 # Changelog
 
 All notable changes to this project will be documented in this file.
@@ -11,34 +13,56 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Settings and secrets management
-- Consolidated download progress functionality
-- HuggingFace model management improvements
-- New workflow runner implementation
-- API demo and token settings
-- Electron build process
-- Welcome screen with "What's New" section
-- Audio and video processing nodes
-- Improved asset management and viewing
-- Loop node implementation
-- Enhanced error handling and logging
+- Custom select component
+- Tab key functionality: fit view bounds to selected nodes, fitView when no nodes are selected
+- Color picker for nodes
+- Editable node titles
+- Example saving functionality
+- Node documentation button to toolbar
+- Sub graph layouting capabilities
+- Ability to save comment and group height
+- Layout group nodes feature
+- Use of elkjs for layouting
+- Draggable node documentation
+- Node toolbar for improved node management
+- System for node width saving
+- Validation for graphs when loaded
+- Default node width setting
+- Title casing for parameters
+- Handle tooltips enhancement
+- Group colors made transparent
+- Zoomed-out node style improvements with CSS
+- New node loading animation
 
 ### Changed
 
+- Improved node menu search optimization
+- Better menu positioning
+- Streamlined memo and dependencies
+- Split out ReactFlowWrapper for better organization
+- Disabled onlyRenderVisibleElements for performance
+- Simplified stable diffusion node
+- Increased font size for comments
+- Adjusted node width for layouting
+- Optimized BaseNode component
 - Updated inspector UI and functionality
-- Improved node menu search and functionality
-- Refactored asset store and grid components
-- Enhanced workflow running and job management
-- Updated ComfyUI integration
-- Improved handling of input/output schemas
-- Refined user interface for various components
+- Refined footer size and node width adjustments
+- Improved handling of metadata loading
+- Enhanced duplicateNodes functionality
+- Optimized Group and NodeColorSelector components
+- Styled group, appHeader, and link components
+- Updated collapsed and string input styles
+- Modified NodeFooter: shortened huggingface to HF, nodetool to NT
+- Improved models, links, and node menu styling
 
 ### Fixed
 
-- Various bug fixes in model downloading and management
-- Corrections to image and audio processing nodes
-- Resolved issues with workflow saving and loading
-- Fixed asset uploading and management bugs
+- Fixed workflow saving mechanism
+- Corrected log toggle functionality
+- Resolved issues with controlnet, img2img, and img2img hires
+- Fixed node width for layouting purposes
+- Addressed metadata loading issues
+- Rectified duplicateNodes functionality
 
 ## [0.3.1] - 2024-08-29
 
@@ -184,3 +208,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Various bug fixes and improvements
+
+[Unreleased]: https://github.com/olivierlacan/keep-a-changelog/compare/v1.1.1...HEAD
+[0.3.1]: https://github.com/olivierlacan/keep-a-changelog/compare/v0.3.0...v0.3.1
+[0.3.0]: https://github.com/olivierlacan/keep-a-changelog/compare/v0.2.9...v0.3.0
+[0.2.9]: https://github.com/olivierlacan/keep-a-changelog/compare/v0.2.8...v0.2.9
+[0.2.8]: https://github.com/olivierlacan/keep-a-changelog/compare/v0.2.7...v0.2.8
+[0.2.7]: https://github.com/olivierlacan/keep-a-changelog/compare/v0.2.6...v0.2.7
+[0.2.6]: https://github.com/olivierlacan/keep-a-changelog/compare/v0.2.5...v0.2.6
+[0.2.5]: https://github.com/olivierlacan/keep-a-changelog/compare/v0.2.3...v0.2.5
+[0.2.3]: https://github.com/olivierlacan/keep-a-changelog/compare/v0.2.2...v0.2.3
+[0.2.2]: https://github.com/olivierlacan/keep-a-changelog/compare/v0.2.1...v0.2.2
+[0.2.1]: https://github.com/olivierlacan/keep-a-changelog/compare/v0.2.0...v0.2.1
+[0.2.0]: https://github.com/olivierlacan/keep-a-changelog/releases/tag/v0.2.0

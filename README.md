@@ -413,7 +413,7 @@ Please adhere to our contribution guidelines.
 
 ## License 📄
 
-NodeTool is licensed under the [GPLv3 License](LICENSE.txt)
+NodeTool is licensed under the [AGPLv3 License](LICENSE.txt)
 
 ## Contact 📬
 
