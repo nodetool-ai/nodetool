@@ -10,7 +10,7 @@
     "build": "electron-builder"
   },
   "author": "matti.georgi@gmail.com",
-  "license": "GPL-3.0-only",
+  "license": "AGPL-3.0-only",
   "devDependencies": {
     "electron": "29.4.6",
     "electron-builder": "^24.13.3"

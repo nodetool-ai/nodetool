@@ -2,6 +2,7 @@ import React, { memo, useMemo, useCallback } from "react";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import { isEqual } from "lodash";
+import Select from "../inputs/Select";
 
 const EnumProperty: React.FC<PropertyProps> = ({
   property,
@@ -20,13 +21,6 @@ const EnumProperty: React.FC<PropertyProps> = ({
       : property.type.type_args?.[0].values;
   }, [property.type]);
 
-  const handleChange = useCallback(
-    (event: React.ChangeEvent<HTMLSelectElement>) => {
-      onChange(event.target.value);
-    },
-    [onChange]
-  );
-
   return (
     <div className="enum-property">
       <PropertyLabel
@@ -35,19 +29,16 @@ const EnumProperty: React.FC<PropertyProps> = ({
         id={id}
       />
       <div className="select-wrapper">
-        <select
-          id={id}
-          name={property.name}
+        <Select
           value={value || ""}
-          onChange={handleChange}
-          className="nodrag"
-        >
-          {values?.map((value) => (
-            <option key={value} value={value}>
-              {value}
-            </option>
-          ))}
-        </select>
+          onChange={onChange}
+          options={
+            values?.map((value) => ({
+              label: value.toString(),
+              value: value
+            })) || []
+          }
+        />
       </div>
     </div>
   );

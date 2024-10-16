@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { tryCacheFiles } from "../../serverState/tryCacheFiles";
 import { useMetadata } from "../../serverState/useMetadata";
 import { isEqual } from "lodash";
+import Select from "../inputs/Select";
 
 interface HuggingFaceModelSelectProps {
   modelType: string;
@@ -69,17 +70,22 @@ const HuggingFaceModelSelect = ({
     }
   });
 
-  const values = useMemo(() => {
+  const options = useMemo(() => {
     if (!models || isLoading || isError) return [];
-    return (models as HuggingFaceModel[]).map((model) => ({
-      value: model.path ? `${model.repo_id}:${model.path}` : model.repo_id,
-      label: model.path ? `${model.repo_id}:${model.path}` : model.repo_id
-    }));
+    return [
+      { value: "", label: "None" },
+      ...(models as HuggingFaceModel[]).map((model) => ({
+        value: model.path ? `${model.repo_id}:${model.path}` : model.repo_id,
+        label: model.path
+          ? `${model.repo_id}:${model.path}`
+          : model.repo_id || ""
+      }))
+    ];
   }, [models, isLoading, isError]);
 
   const handleChange = useCallback(
-    (e: React.ChangeEvent<HTMLSelectElement>) => {
-      const [repo_id, path] = e.target.value.split(":");
+    (selectedValue: string) => {
+      const [repo_id, path] = selectedValue.split(":");
       onChange({
         type: modelType,
         repo_id,
@@ -97,33 +103,31 @@ const HuggingFaceModelSelect = ({
   }, [value]);
 
   const isValueMissing =
-    selectValue && !values.some((v) => v.value === selectValue);
+    selectValue && !options.some((opt) => opt.value === selectValue);
+
+  const placeholder = useMemo(() => {
+    if (isLoading) return "Loading models...";
+    if (isError) return "Error loading models";
+    if (isSuccess && options.length === 1)
+      return "No models found. Click RECOMMENDED MODELS above to find models.";
+    if (isValueMissing) return `${selectValue} (missing)`;
+    return "Select a model";
+  }, [
+    isLoading,
+    isError,
+    isSuccess,
+    options.length,
+    isValueMissing,
+    selectValue
+  ]);
 
   return (
-    <select
+    <Select
+      options={options}
       value={isValueMissing ? "" : selectValue}
       onChange={handleChange}
-      className="nodrag"
-    >
-      {isLoading && <option value="">Loading models...</option>}
-      {isError && <option value="">Error loading models</option>}
-      {isSuccess && values.length === 0 && (
-        <option value="">
-          No models found. Click RECOMMENDED MODELS above to find models.
-        </option>
-      )}
-      {isSuccess && values.length > 0 && <option value="">None</option>}
-      {isValueMissing && (
-        <option value="" disabled style={{ color: "red" }}>
-          {selectValue} (missing)
-        </option>
-      )}
-      {values?.map(({ value, label }) => (
-        <option key={value} value={value}>
-          {label}
-        </option>
-      ))}
-    </select>
+      placeholder={placeholder}
+    />
   );
 };
 
