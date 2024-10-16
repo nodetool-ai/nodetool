@@ -3,6 +3,7 @@ import useModelStore from "../../stores/ModelStore";
 import { useQuery } from "@tanstack/react-query";
 import { LlamaModel } from "../../stores/ApiTypes";
 import { isEqual } from "lodash";
+import Select from "../inputs/Select";
 
 interface LlamaModelSelectProps {
   onChange: (value: any) => void;
@@ -22,59 +23,53 @@ const LlamaModelSelect = ({ onChange, value }: LlamaModelSelectProps) => {
     queryFn: loadLlamaModels
   });
 
-  const values = useMemo(() => {
+  const options = useMemo(() => {
     if (!models || isLoading || isError) return [];
-    return (models as LlamaModel[]).map((model) => ({
-      value: model.repo_id,
-      label: model.name
-    }));
+    return [
+      { value: "", label: "Select a model" },
+      ...(models as LlamaModel[]).map((model) => ({
+        value: model.repo_id || "",
+        label: model.name || ""
+      }))
+    ];
   }, [models, isLoading, isError]);
 
   const handleChange = useCallback(
-    (e: React.ChangeEvent<HTMLSelectElement>) => {
+    (selectedValue: string) => {
       onChange({
         type: "llama_model",
-        repo_id: e.target.value
+        repo_id: selectedValue
       });
     },
     [onChange]
   );
 
-  const isValueMissing = value && !values.some((v) => v.value === value);
+  const isValueMissing = value && !options.some((v) => v.value === value);
+
+  if (isLoading) {
+    return <div>Loading models...</div>;
+  }
+
+  if (isError) {
+    return <div>Error loading models</div>;
+  }
+
+  if (isSuccess && options.length === 1) {
+    return (
+      <div>No models found. Click RECOMMENDED MODELS above to find models.</div>
+    );
+  }
 
   return (
-    <select
-      value={isValueMissing ? "" : value || ""}
+    <Select
+      options={[
+        ...options,
+        ...(isValueMissing ? [{ value, label: `${value} (missing)` }] : [])
+      ]}
+      value={value}
       onChange={handleChange}
-      className="nodrag"
-    >
-      <option value="">Select a model</option>
-      {isLoading && (
-        <option value="" disabled>
-          Loading models...
-        </option>
-      )}
-      {isError && (
-        <option value="" disabled>
-          Error loading models
-        </option>
-      )}
-      {isSuccess && values.length === 0 && (
-        <option value="" disabled>
-          No models found. Click RECOMMENDED MODELS above to find models.
-        </option>
-      )}
-      {isValueMissing && (
-        <option value="" disabled style={{ color: "red" }}>
-          {value} (missing)
-        </option>
-      )}
-      {values?.map(({ value: modelValue, label }) => (
-        <option key={`model-${modelValue}`} value={modelValue}>
-          {label}
-        </option>
-      ))}
-    </select>
+      placeholder="Select a model"
+    />
   );
 };
 
