@@ -268,7 +268,7 @@
 
         function loadContentWithNoCaching() {
             const timestamp = new Date().getTime();
-            contentElement.src = `http://localhost:8000?nocache=${timestamp}`;
+            contentElement.src = `http://127.0.0.1:8000?nocache=${timestamp}`;
         }
 
         function initializeApp() {
