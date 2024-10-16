@@ -32,6 +32,7 @@ import { useSurroundWithGroup } from "../../hooks/nodes/useSurroundWithGroup";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { isEqual } from "lodash";
 import ReactFlowWrapper from "../node/ReactFlowWrapper";
+import { useReactFlow } from "@xyflow/react";
 
 declare global {
   interface Window {
@@ -48,13 +49,15 @@ interface NodeEditorProps {
 const NodeEditor: React.FC<NodeEditorProps> = ({ isMinZoom }) => {
   /* REACTFLOW */
   const reactFlowWrapper = useRef<HTMLDivElement | null>(null);
+  const reactFlowInstance = useReactFlow();
 
   /* USE STORE */
   const { isUploading } = useAssetUpload();
   const nodeHistory: HistoryManager = useTemporalStore((state) => state);
-
+  const setSelectedNodes = useNodeStore((state) => state.setSelectedNodes);
   /* STATE */
   const [openCommandMenu, setOpenCommandMenu] = useState(false);
+  const selectedNodes = useNodeStore((state) => state.getSelectedNodes());
 
   /* UTILS */
   const { handleCopy, handlePaste, handleCut } = useCopyPaste();
@@ -79,6 +82,38 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ isMinZoom }) => {
     showDocumentation: state.showDocumentation,
     closeDocumentation: state.closeDocumentation
   }));
+
+  useCombo(["TAB"], () => {
+    // fit view bounds to selected nodes, fitView when no nodes are selected
+    if (selectedNodes.length) {
+      setTimeout(() => {
+        setSelectedNodes([]);
+      }, 1000);
+      const nodePositions = selectedNodes.map((node) => ({
+        x: node.position.x,
+        y: node.position.y,
+        width: node.measured?.width || 0,
+        height: node.measured?.height || 0
+      }));
+
+      const xMin = Math.min(...nodePositions.map((pos) => pos.x));
+      const xMax = Math.max(...nodePositions.map((pos) => pos.x + pos.width));
+      const yMin = Math.min(...nodePositions.map((pos) => pos.y));
+      const yMax = Math.max(...nodePositions.map((pos) => pos.y + pos.height));
+
+      const padding = 0;
+      const bounds = {
+        x: xMin - padding,
+        y: yMin - padding,
+        width: xMax - xMin + padding * 2,
+        height: yMax - yMin + padding * 2
+      };
+
+      reactFlowInstance.fitBounds(bounds, { duration: 1000, padding: 0.2 });
+    } else {
+      reactFlowInstance.fitView({ duration: 1000, padding: 0.1 });
+    }
+  });
 
   useCombo(
     ["Space", "a"],
