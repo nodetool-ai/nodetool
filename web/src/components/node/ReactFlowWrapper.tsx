@@ -286,7 +286,6 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     onSelectionDrag,
     onSelectionDragStop,
     onSelectionStart,
-    onSelectionChange,
     onSelectionEnd,
     onNodeDragStart,
     onNodeDragStop,
