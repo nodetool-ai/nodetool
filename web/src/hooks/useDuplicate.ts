@@ -11,22 +11,22 @@ export const useDuplicateNodes = () => {
   const getSelectedNodes = useNodeStore((state) => state.getSelectedNodes);
 
   return useCallback(() => {
-    const selectedNodes = JSON.parse(JSON.stringify(getSelectedNodes()));
+    const selectedNodes = getSelectedNodes();
 
-    let minSelectedX = Infinity;
+    let boundsLeft = Infinity;
     for (const node of selectedNodes) {
-      minSelectedX = Math.min(minSelectedX, node.position.x);
+      boundsLeft = Math.min(boundsLeft, node.position.x);
     }
 
-    let maxXAmongAllNodes = -Infinity;
+    let boundsRight = -Infinity;
     for (const node of nodes) {
-      maxXAmongAllNodes = Math.max(
-        maxXAmongAllNodes,
+      boundsRight = Math.max(
+        boundsRight,
         node.position.x + (node.measured?.width || 0)
       );
     }
 
-    const offset = maxXAmongAllNodes + DUPLICATE_SPACING_X;
+    const offset = boundsRight + DUPLICATE_SPACING_X - boundsLeft;
 
     const newNodes = selectedNodes.map((node: Node<NodeData>) => ({
       ...node,
