@@ -218,7 +218,9 @@ class Build:
                     "ollama.zip",
                 ]
             )
-            self.run_command(["unzip", "ollama.zip", "-d", self.BUILD_DIR / "ollama"])
+            self.run_command(
+                ["unzip", "ollama.zip", "-d", str(self.BUILD_DIR / "ollama")]
+            )
             # remove cuda11 dlls
             self.remove_file(
                 self.BUILD_DIR / "ollama" / "lib" / "ollama" / "rocblas.dll"
