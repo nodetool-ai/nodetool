@@ -1,5 +1,5 @@
 import React from "react";
-import { useReactFlow } from "@xyflow/react";
+import { FitViewOptions, useReactFlow } from "@xyflow/react";
 
 import { Divider, Menu } from "@mui/material";
 import ContextMenuItem from "./ContextMenuItem";
@@ -18,7 +18,6 @@ import { useNodeStore } from "../../stores/NodeStore";
 import ThemeNodetool from "../themes/ThemeNodetool";
 import { useCallback } from "react";
 import { useCreateLoopNode } from "../../hooks/nodes/useCreateLoopNode";
-import { useMetadata } from "../../serverState/useMetadata";
 import useMetadataStore from "../../stores/MetadataStore";
 
 interface PaneContextMenuProps {
@@ -40,11 +39,17 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
   const addNode = useNodeStore.getState().addNode;
 
   // fit screen
-  const fitScreen = () => {
-    reactFlowInstance.fitView({
-      padding: 0.6
-    });
-  };
+  const fitScreen = useCallback(() => {
+    const fitOptions: FitViewOptions = {
+      maxZoom: 8,
+      minZoom: 0.01,
+      padding: 0.5
+    };
+
+    if (reactFlowInstance) {
+      reactFlowInstance.fitView(fitOptions);
+    }
+  }, [reactFlowInstance]);
 
   // add comment
   const addComment = (event: React.MouseEvent) => {

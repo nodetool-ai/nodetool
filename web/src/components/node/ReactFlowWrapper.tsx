@@ -286,6 +286,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     onSelectionDrag,
     onSelectionDragStop,
     onSelectionStart,
+    onSelectionChange,
     onSelectionEnd,
     onNodeDragStart,
     onNodeDragStop,
@@ -323,8 +324,8 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
 
   const fitScreen = useCallback(() => {
     const fitOptions: FitViewOptions = {
-      maxZoom: 2,
-      minZoom: 0.5,
+      maxZoom: 8,
+      minZoom: 0.01,
       padding: 0.6
     };
 
@@ -430,7 +431,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
           onSelectionDrag={onSelectionDrag}
           onSelectionDragStop={onSelectionDragStop}
           onSelectionStart={onSelectionStart}
-          onSelectionEnd={onSelectionEnd}
+          // onSelectionChange={onSelectionChange}
           onSelectionContextMenu={handleSelectionContextMenu}
           selectionMode={settings.selectionMode as SelectionMode}
           onEdgesChange={onEdgesChange}
