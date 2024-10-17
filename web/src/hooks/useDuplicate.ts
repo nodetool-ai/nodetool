@@ -11,36 +11,35 @@ export const useDuplicateNodes = () => {
   const getSelectedNodes = useNodeStore((state) => state.getSelectedNodes);
 
   return useCallback(() => {
-    let minX = Infinity;
-    let maxX = -Infinity;
-
     const selectedNodes = JSON.parse(JSON.stringify(getSelectedNodes()));
 
+    let minSelectedX = Infinity;
     for (const node of selectedNodes) {
-      minX = Math.min(minX, node.position.x);
-      maxX = Math.max(
-        maxX,
-        node.position.x + (node.measured?.width || 0) + DUPLICATE_SPACING_X
+      minSelectedX = Math.min(minSelectedX, node.position.x);
+    }
+
+    let maxXAmongAllNodes = -Infinity;
+    for (const node of nodes) {
+      maxXAmongAllNodes = Math.max(
+        maxXAmongAllNodes,
+        node.position.x + (node.measured?.width || 0)
       );
     }
 
-    // selection bounds
-    const boundsWidth = maxX - minX;
+    const offset = maxXAmongAllNodes + DUPLICATE_SPACING_X;
 
     const newNodes = selectedNodes.map((node: Node<NodeData>) => ({
       ...node,
       id: uuidv4(),
       position: {
-        x: node.position.x + boundsWidth,
+        x: node.position.x + offset,
         y: node.position.y
       },
       selected: true
     }));
 
-    for (const node of nodes) {
-      node.selected = false;
-    }
+    const updatedNodes = nodes.map((node) => ({ ...node, selected: false }));
 
-    setNodes([...nodes, ...newNodes]);
+    setNodes([...updatedNodes, ...newNodes]);
   }, [nodes, setNodes, getSelectedNodes]);
 };
