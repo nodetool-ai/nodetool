@@ -55,6 +55,7 @@ const ApiKeyValidation: React.FC<ApiKeyValidationProps> = React.memo(
             {missingAPIKeys} is missing!
           </Typography>
           <Button
+            className="api-key-button"
             variant="contained"
             color="primary"
             size="small"

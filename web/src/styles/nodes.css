@@ -114,8 +114,11 @@
 .react-flow.zoomed-out .node-header span,
 .react-flow.zoomed-out .node-header .menu-button,
 .react-flow.zoomed-out .node-footer,
+.react-flow.zoomed-out .node-status,
+.react-flow.zoomed-out .api-key-button,
 .react-flow.zoomed-out .model-button {
   opacity: 0;
+  visibility: hidden;
   pointer-events: none;
 }
 

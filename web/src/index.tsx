@@ -90,9 +90,7 @@ const NavigateToStart = () => {
 
 const NodeEditorWrapper = () => {
   const currentZoom = useStore((state) => state.transform[2]);
-  // const isMaxZoom = currentZoom === MAX_ZOOM;
-  const isMinZoom = currentZoom === MIN_ZOOM;
-
+  const isMinZoom = currentZoom <= MIN_ZOOM;
   return <NodeEditor isMinZoom={isMinZoom} />;
 };
 
