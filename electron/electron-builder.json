@@ -10,17 +10,6 @@
         "preload.js",
         "index.html"
     ],
-    "extraResources": [
-        "ollama",	
-        "python_env",
-        "src",
-        "web",
-        "ffmpeg.exe",
-        "ffprobe.exe",
-        "ffmpeg",
-        "ffprobe",
-        "requirements.txt"
-    ],
     "mac": {
         "category": "public.app-category.developer-tools",
         "target": [

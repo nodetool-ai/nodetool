@@ -2,8 +2,6 @@ name: Package and Release
 
 on:
   push:
-    branches:
-      - main
     tags:
       - "v*" # Push events to matching v*, i.e. v1.0, v20.15.10
 
@@ -77,11 +75,23 @@ jobs:
             build/dist/*.deb
             build/dist/*.rpm
 
-      # - name: Create Release
-      #   uses: ncipollo/release-action@v1
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #   with:
-      #     draft: false
-      #     prerelease: false
-      #     artifacts: build/electron-app/*
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
+
+      - name: Upload Release Assets
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: build/*.tar
+          asset_name: ${{ basename }}
+          asset_content_type: application/gzip

@@ -11,9 +11,11 @@ const fs = require("fs").promises;
 const { spawn } = require("child_process");
 const https = require("https");
 const { createWriteStream } = require("fs");
-const { pipeline } = require("stream").promises;
-const { createGunzip } = require("zlib");
-const extract = require("extract-zip");
+const crypto = require("crypto");
+const tar = require("tar");
+
+// For making HTTP requests (GitHub API)
+const fetch = require("node-fetch");
 
 /** @type {BrowserWindow|null} */
 let mainWindow;
@@ -232,91 +234,12 @@ async function downloadFile(url, dest) {
 }
 
 /**
- * Download and extract Ollama
- * @returns {Promise<void>}
- */
-async function downloadOllama() {
-  const ollamaDir = path.join(app.getPath("userData"), "ollama");
-  await fs.mkdir(ollamaDir, { recursive: true });
-
-  let url, destPath;
-  if (process.platform === "win32") {
-    url =
-      "https://github.com/ollama/ollama/releases/download/v0.3.9/ollama-windows-amd64.zip";
-    destPath = path.join(ollamaDir, "ollama.zip");
-  } else if (process.platform === "darwin") {
-    url =
-      "https://github.com/ollama/ollama/releases/download/v0.3.9/ollama-darwin";
-    destPath = path.join(ollamaDir, "ollama");
-  } else {
-    throw new Error("Unsupported platform");
-  }
-
-  await downloadFile(url, destPath);
-
-  if (process.platform === "win32") {
-    await extract(destPath, { dir: ollamaDir });
-    await fs.unlink(destPath);
-  } else {
-    await fs.chmod(destPath, 0o755);
-  }
-}
-
-/**
- * Download FFmpeg
- * @returns {Promise<void>}
- */
-async function downloadFFmpeg() {
-  const ffmpegDir = path.join(app.getPath("userData"), "ffmpeg");
-  await fs.mkdir(ffmpegDir, { recursive: true });
-
-  let ffmpegUrl, ffprobeUrl, ffmpegDest, ffprobeDest;
-  if (process.platform === "win32") {
-    ffmpegUrl =
-      "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip";
-    ffmpegDest = path.join(ffmpegDir, "ffmpeg.zip");
-  } else if (process.platform === "darwin") {
-    ffmpegUrl = "https://evermeet.cx/ffmpeg/ffmpeg-7.0.2.zip";
-    ffprobeUrl = "https://evermeet.cx/ffmpeg/ffprobe-7.0.2.zip";
-    ffmpegDest = path.join(ffmpegDir, "ffmpeg.zip");
-    ffprobeDest = path.join(ffmpegDir, "ffprobe.zip");
-  } else {
-    throw new Error("Unsupported platform");
-  }
-
-  await downloadFile(ffmpegUrl, ffmpegDest);
-  if (process.platform === "darwin") {
-    await downloadFile(ffprobeUrl, ffprobeDest);
-  }
-
-  await extract(ffmpegDest, { dir: ffmpegDir });
-  if (process.platform === "darwin") {
-    await extract(ffprobeDest, { dir: ffmpegDir });
-  }
-
-  await fs.unlink(ffmpegDest);
-  if (process.platform === "darwin") {
-    await fs.unlink(ffprobeDest);
-  }
-}
-
-/**
- * Ensure Ollama and FFmpeg are available
+ * Ensure dependencies are available
  * @returns {Promise<void>}
  */
 async function ensureDependencies() {
-  const ollamaDir = path.join(app.getPath("userData"), "ollama");
-  const ffmpegDir = path.join(app.getPath("userData"), "ffmpeg");
-
-  if (!(await checkFileExists(ollamaDir))) {
-    emitBootMessage("Downloading Ollama...");
-    await downloadOllama();
-  }
-
-  if (!(await checkFileExists(ffmpegDir))) {
-    emitBootMessage("Downloading FFmpeg...");
-    await downloadFFmpeg();
-  }
+  // No need to check for Ollama and FFmpeg
+  log("Skipping dependency check for Ollama and FFmpeg");
 }
 
 /**
@@ -326,28 +249,27 @@ async function startServer() {
   try {
     log("Starting server");
 
-    // Ensure Ollama and FFmpeg are available
-    await ensureDependencies();
-
+    // Ensure dependencies are available
     let pythonEnvExecutable, pipEnvExecutable;
+    const componentsDir = path.join(app.getPath("userData"), "components");
 
     // Set up paths for Python and pip executables based on the platform
     if (process.platform === "darwin") {
       pythonEnvExecutable = path.join(
-        resourcesPath,
+        componentsDir,
         "python_env",
         "bin",
         "python"
       );
-      pipEnvExecutable = path.join(resourcesPath, "python_env", "bin", "pip");
+      pipEnvExecutable = path.join(componentsDir, "python_env", "bin", "pip");
     } else {
       pythonEnvExecutable = path.join(
-        resourcesPath,
+        componentsDir,
         "python_env",
         "python.exe"
       );
       pipEnvExecutable = path.join(
-        resourcesPath,
+        componentsDir,
         "python_env",
         "Scripts",
         "pip.exe"
@@ -363,57 +285,32 @@ async function startServer() {
     sitePackagesDir = pythonEnvExists
       ? process.platform === "darwin"
         ? path.join(
-            resourcesPath,
+            componentsDir,
             "python_env",
             "lib",
             "python3.11",
             "site-packages"
           )
-        : path.join(resourcesPath, "python_env", "Lib", "site-packages")
+        : path.join(componentsDir, "python_env", "Lib", "site-packages")
       : null;
 
     log(`Site-packages directory: ${sitePackagesDir}`);
 
-    if (sitePackagesDir) {
-      const fastApiPath = path.join(sitePackagesDir, "fastapi");
-      log(`Checking for FastAPI installation at: ${fastApiPath}`);
-      if (await checkFileExists(fastApiPath)) {
-        log("FastAPI is installed");
-      } else {
-        log("FastAPI is not installed, running installRequirements");
-        await installRequirements();
-      }
-    }
-
-    emitBootMessage("Initializing NodeTool");
     if (pythonEnvExists) {
-      log("Using conda env");
-      env.PYTHONPATH = path.join(resourcesPath, "src");
+      log("Using downloaded Python environment");
+      env.PYTHONPATH = path.join(componentsDir, "src");
       log(`Set PYTHONPATH to: ${env.PYTHONPATH}`);
 
-      if (process.platform === "darwin") {
-        env.PATH = `${resourcesPath}:${env.PATH}`;
-      } else {
-        env.PATH = `${resourcesPath};${env.PATH}`;
-      }
+      env.PATH = `${path.join(componentsDir, "ollama")}:${env.PATH}`;
       log(`Updated PATH: ${env.PATH}`);
-      webDir = path.join(resourcesPath, "web");
+
+      webDir = path.join(componentsDir, "web");
     } else {
-      log("Running from source");
-      env.PYTHONPATH = path.join("..", "src");
-      log(`Set PYTHONPATH to: ${env.PYTHONPATH}`);
-      webDir = path.join("..", "web", "dist");
+      throw new Error("Python environment is not available");
     }
-    log(`Web directory set to: ${webDir}`);
 
     log("Attempting to run NodeTool");
     runNodeTool(env);
-    try {
-      await startOllama();
-    } catch (error) {
-      log(`Error starting Ollama: ${error.message}`);
-      console.error("Error starting Ollama", error);
-    }
   } catch (error) {
     log(`Critical error starting server: ${error.message}`);
     dialog.showErrorBox(
@@ -421,76 +318,6 @@ async function startServer() {
       `Failed to start the server: ${error.message}`
     );
     app.exit(1);
-  }
-}
-
-/**
- * Start the Ollama binary
- */
-async function startOllama() {
-  log("Starting Ollama process");
-  const ollamaDir = path.join(app.getPath("userData"), "ollama");
-  const ollamaPath =
-    process.platform === "win32"
-      ? path.join(ollamaDir, "ollama.exe")
-      : path.join(ollamaDir, "ollama");
-
-  log(`Ollama executable path: ${ollamaPath}`);
-
-  if (!(await checkFileExists(ollamaPath))) {
-    log("Ollama executable not found", "error");
-    emitServerLog("Ollama executable not found. Skipping Ollama start.");
-    return;
-  }
-
-  log(`Spawning Ollama process: ${ollamaPath} serve`);
-  ollamaProcess = spawn(ollamaPath, ["serve"]);
-
-  log(`Ollama process spawned with PID: ${ollamaProcess.pid}`);
-
-  function handleOllamaOutput(data) {
-    const output = data.toString().trim();
-    log(`Ollama output: ${output}`);
-    emitServerLog(`[Ollama] ${output}`);
-  }
-
-  ollamaProcess.stdout.on("data", (data) => {
-    handleOllamaOutput(data);
-    log("Received data on Ollama stdout");
-  });
-
-  ollamaProcess.stderr.on("data", (data) => {
-    handleOllamaOutput(data);
-    log("Received data on Ollama stderr", "warn");
-  });
-
-  ollamaProcess.on("error", (error) => {
-    log(`Ollama process error: ${error.message}`, "error");
-    emitServerLog(`[Ollama Error] ${error.message}`);
-  });
-
-  ollamaProcess.on("close", (code) => {
-    log(
-      `Ollama process exited with code ${code}`,
-      code === 0 ? "info" : "warn"
-    );
-    emitServerLog(`[Ollama] Process exited with code ${code}`);
-  });
-
-  // Wait for a short time to check if the process is still running
-  await new Promise((resolve) => setTimeout(resolve, 1000));
-
-  if (ollamaProcess.exitCode === null) {
-    log("Ollama process started successfully");
-    emitServerLog("[Ollama] Process started successfully");
-  } else {
-    log(
-      `Ollama process failed to start (exit code: ${ollamaProcess.exitCode})`,
-      "error"
-    );
-    emitServerLog(
-      `[Ollama] Failed to start (exit code: ${ollamaProcess.exitCode})`
-    );
   }
 }
 
@@ -518,18 +345,22 @@ async function gracefulShutdown() {
     await new Promise((resolve) => serverProcess.on("exit", resolve));
   }
 
-  if (ollamaProcess) {
-    log("Stopping Ollama process");
-    ollamaProcess.kill();
-    await new Promise((resolve) => ollamaProcess.on("exit", resolve));
-  }
+  // Remove Ollama process shutdown
+  // if (ollamaProcess) {
+  //   log("Stopping Ollama process");
+  //   ollamaProcess.kill();
+  //   await new Promise((resolve) => ollamaProcess.on("exit", resolve));
+  // }
 
   log("Graceful shutdown complete");
 }
 
-app.on("ready", () => {
+app.on("ready", async () => {
   log("Electron app is ready");
   createWindow();
+  emitBootMessage("Checking for updates...");
+  await checkForUpdates();
+  emitBootMessage("Starting Nodetool...");
   startServer();
 });
 
@@ -555,10 +386,11 @@ app.on("quit", () => {
     log("Killing server process");
     serverProcess.kill();
   }
-  if (ollamaProcess) {
-    log("Killing Ollama process");
-    ollamaProcess.kill();
-  }
+  // Remove Ollama process kill
+  // if (ollamaProcess) {
+  //   log("Killing Ollama process");
+  //   ollamaProcess.kill();
+  // }
 });
 
 ipcMain.handle("get-server-state", () => serverState);
@@ -615,4 +447,200 @@ function log(message, level = "info") {
   } catch (error) {
     console.error(`Error in log function: ${error.message}`);
   }
+}
+
+/**
+ * Check for updates and download necessary packages
+ * @returns {Promise<void>}
+ */
+async function checkForUpdates() {
+  try {
+    log("Checking for updates");
+
+    const owner = "your-github-username";
+    const repo = "your-repo-name";
+
+    const latestRelease = await fetchLatestRelease(owner, repo);
+    const assets = latestRelease.assets;
+
+    // Read local manifest or construct it from existing files
+    const localManifest = await getLocalManifest();
+
+    // Map assets by component name
+    const remoteComponents = {};
+
+    for (const asset of assets) {
+      const match = asset.name.match(/^(.+?)_(.+?)\.tar$/);
+      if (match) {
+        const name = match[1];
+        const hash = match[2];
+        remoteComponents[name] = {
+          name,
+          hash,
+          url: asset.browser_download_url,
+        };
+      }
+    }
+
+    // Determine which components need updates
+    const componentsToUpdate = [];
+
+    for (const [name, component] of Object.entries(remoteComponents)) {
+      const localComponent = localManifest.components.find(
+        (c) => c.name === name
+      );
+
+      if (!localComponent || localComponent.hash !== component.hash) {
+        componentsToUpdate.push(component);
+      }
+    }
+
+    if (componentsToUpdate.length > 0) {
+      log(
+        `Components to update: ${componentsToUpdate
+          .map((c) => c.name)
+          .join(", ")}`
+      );
+
+      for (const component of componentsToUpdate) {
+        await downloadAndExtractComponent(component);
+      }
+    } else {
+      log("All components are up to date");
+    }
+  } catch (error) {
+    log(`Error checking for updates: ${error.message}`);
+  }
+}
+
+/**
+ * Download a file from a URL and return as a string
+ * @param {string} url - The URL to download from
+ * @returns {Promise<string>}
+ */
+function downloadFileToString(url) {
+  return new Promise((resolve, reject) => {
+    let data = "";
+    https
+      .get(url, (response) => {
+        response.on("data", (chunk) => {
+          data += chunk;
+        });
+        response.on("end", () => resolve(data));
+      })
+      .on("error", (err) => reject(err));
+  });
+}
+
+/**
+ * Get the local manifest by reading existing component files
+ * @returns {Promise<{components: Array<{name: string, hash: string}>}>}
+ */
+async function getLocalManifest() {
+  const componentsDir = path.join(app.getPath("userData"), "components");
+  const components = [];
+
+  // List of component names
+  const componentNames = ["python_env", "src", "web", "ollama", "ffmpeg"];
+
+  for (const name of componentNames) {
+    const files = await fs.readdir(componentsDir).catch(() => []);
+    const regex = new RegExp(`^${name}_(.+)\\.tar$`);
+    const file = files.find((f) => regex.test(f));
+
+    if (file) {
+      const match = file.match(regex);
+      const hash = match[1];
+      components.push({ name, hash });
+    }
+  }
+
+  return { components };
+}
+
+/**
+ * Download and extract a component package
+ * @param {{name: string, url: string, hash: string}} component - The component to download
+ * @returns {Promise<void>}
+ */
+async function downloadAndExtractComponent(component) {
+  const componentsDir = path.join(app.getPath("userData"), "components");
+  await fs.mkdir(componentsDir, { recursive: true });
+
+  const tempFile = path.join(componentsDir, `${component.name}.tmp`);
+  const finalFile = path.join(
+    componentsDir,
+    `${component.name}_${component.hash}.tar`
+  );
+
+  log(`Downloading ${component.name} from ${component.url}`);
+
+  await downloadFile(component.url, tempFile);
+
+  // Verify hash
+  const fileHash = await computeFileHash(tempFile);
+  if (fileHash !== component.hash) {
+    throw new Error(
+      `Hash mismatch for ${component.name}. Expected ${component.hash}, got ${fileHash}`
+    );
+  }
+
+  // Rename temp file to final file
+  await fs.rename(tempFile, finalFile);
+
+  // Extract the component
+  await extractTar(finalFile, componentsDir);
+
+  log(`${component.name} updated successfully`);
+}
+
+/**
+ * Compute SHA256 hash of a file
+ * @param {string} filePath - Path to the file
+ * @returns {Promise<string>}
+ */
+async function computeFileHash(filePath) {
+  return new Promise((resolve, reject) => {
+    const hash = crypto.createHash("sha256");
+    const stream = require("fs").createReadStream(filePath);
+    stream.on("data", (data) => hash.update(data));
+    stream.on("end", () => resolve(hash.digest("hex")));
+    stream.on("error", (err) => reject(err));
+  });
+}
+
+/**
+ * Extract a tar archive
+ * @param {string} archivePath - Path to the tar file
+ * @param {string} extractTo - Directory to extract to
+ * @returns {Promise<void>}
+ */
+async function extractTar(archivePath, extractTo) {
+  return tar.x({
+    file: archivePath,
+    cwd: extractTo,
+  });
+}
+
+/**
+ * Fetch the latest release from GitHub
+ * @param {string} owner - GitHub repository owner
+ * @param {string} repo - GitHub repository name
+ * @returns {Promise<any>}
+ */
+async function fetchLatestRelease(owner, repo) {
+  const apiUrl = `https://api.github.com/repos/${owner}/${repo}/releases/latest`;
+
+  const response = await fetch(apiUrl, {
+    headers: {
+      Accept: "application/vnd.github.v3+json",
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch latest release: ${response.statusText}`);
+  }
+
+  const releaseData = await response.json();
+  return releaseData;
 }

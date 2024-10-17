@@ -19,7 +19,7 @@
     "dmg-license": "^1.0.11"
   },
   "dependencies": {
-    "tar": "^7.4.3",
-    "extract-zip": "^2.0.1"
+    "node-fetch": "^3.3.2",
+    "tar": "^7.4.3"
   }
 }

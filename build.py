@@ -11,6 +11,7 @@ import threading
 import tarfile
 import zipfile
 from typing import List, Optional, Callable
+import hashlib
 
 # Set up logging
 logging.basicConfig(
@@ -68,6 +69,47 @@ class Build:
                 zip_ref.extract(path, self.BUILD_DIR)
                 if move_to_build_dir:
                     self.move_file(self.BUILD_DIR / path, self.BUILD_DIR)
+
+    def ffmpeg(self) -> None:
+        """Download and package FFmpeg binaries."""
+        logger.info("Downloading FFmpeg")
+        system = platform.system().lower()
+
+        if system == "windows":
+            url = "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip"
+            paths = [
+                "ffmpeg-master-latest-win64-gpl/bin/ffmpeg.exe",
+                "ffmpeg-master-latest-win64-gpl/bin/ffprobe.exe",
+            ]
+            self.download_and_unzip(url, paths)
+
+            # Package FFmpeg executables
+            ffmpeg_files = [
+                self.BUILD_DIR / "ffmpeg.exe",
+                self.BUILD_DIR / "ffprobe.exe",
+            ]
+            for file in ffmpeg_files:
+                component_hash = self.compute_hash(file)
+                hashed_file = (
+                    self.BUILD_DIR / f"{file.stem}_{component_hash}{file.suffix}"
+                )
+                self.move_file(file, hashed_file)
+        elif system == "darwin":
+            self.download_and_unzip(
+                "https://evermeet.cx/ffmpeg/ffmpeg-7.0.2.zip", ["ffmpeg"], False
+            )
+            self.download_and_unzip(
+                "https://evermeet.cx/ffmpeg/ffprobe-7.0.2.zip", ["ffprobe"], False
+            )
+
+            # Package FFmpeg binaries
+            ffmpeg_files = [self.BUILD_DIR / "ffmpeg", self.BUILD_DIR / "ffprobe"]
+            for file in ffmpeg_files:
+                component_hash = self.compute_hash(file)
+                hashed_file = self.BUILD_DIR / f"{file.stem}_{component_hash}"
+                self.move_file(file, hashed_file)
+        else:
+            raise BuildError(f"Unsupported platform: {system}")
 
     def run_command(
         self,
@@ -183,13 +225,71 @@ class Build:
             logger.error(f"Failed to create build directory: {e}")
             sys.exit(1)
 
+    def ollama(self) -> None:
+        """Download and package Ollama."""
+        logger.info("Downloading Ollama")
+        system = platform.system().lower()
+        if system == "windows":
+            self.run_command(
+                [
+                    "curl",
+                    "-L",
+                    "https://github.com/ollama/ollama/releases/download/v0.3.9/ollama-windows-amd64.zip",
+                    "-o",
+                    "ollama.zip",
+                ]
+            )
+            self.run_command(
+                ["unzip", "ollama.zip", "-d", str(self.BUILD_DIR / "ollama")]
+            )
+            # remove cuda11 dlls
+            self.remove_file(
+                self.BUILD_DIR / "ollama" / "lib" / "ollama" / "rocblas.dll"
+            )
+            self.remove_file(
+                self.BUILD_DIR / "ollama" / "lib" / "ollama" / "cublas64_11.dll"
+            )
+            self.remove_file(
+                self.BUILD_DIR / "ollama" / "lib" / "ollama" / "cublasLt64_11.dll"
+            )
+            self.remove_directory(
+                self.BUILD_DIR / "ollama" / "lib" / "ollama" / "runners" / "cuda_v11"
+            )
+            self.remove_directory(
+                self.BUILD_DIR / "ollama" / "lib" / "ollama" / "rocblas"
+            )
+            self.remove_directory(
+                self.BUILD_DIR / "ollama" / "lib" / "ollama" / "runners" / "rocm_v6.1"
+            )
+
+            # Package the ollama directory
+            self.package_component("ollama", self.BUILD_DIR / "ollama")
+        elif system == "darwin":
+            self.run_command(
+                [
+                    "curl",
+                    "-L",
+                    "https://github.com/ollama/ollama/releases/download/v0.3.9/ollama-darwin",
+                    "-o",
+                    str(self.BUILD_DIR / "ollama"),
+                ]
+            )
+            self.run_command(["chmod", "+x", str(self.BUILD_DIR / "ollama")])
+
+            # Package the ollama binary
+            self.package_component("ollama", self.BUILD_DIR / "ollama")
+        else:
+            raise BuildError(f"Unsupported platform: {system}")
+
     def python(self) -> None:
         """Package Python environment."""
         logger.info("Packing Python environment")
 
         self.run_command(["conda", "install", "-n", CONDA_ENV, "conda-pack", "-y"])
 
-        # Use conda-pack with exclusions
+        # Use conda-pack to create an environment directory
+        python_env_dir = self.BUILD_DIR / "python_env"
+
         self.run_command(
             [
                 "conda",
@@ -204,12 +304,12 @@ class Build:
             ],
         )
 
-        # Unpack the tar file
-        with tarfile.open(str(self.BUILD_DIR / "python_env.tar")) as tar:
-            tar.extractall(self.BUILD_DIR / "python_env")
+        # Package the python_env directory
+        self.package_component("python_env", python_env_dir)
 
-        self.remove_file(self.BUILD_DIR / "python_env.tar")
+        # Copy and package the src directory
         self.copy_tree(self.SRC_DIR, self.BUILD_DIR / "src")
+        self.package_component("src", self.BUILD_DIR / "src")
 
     def react(self) -> None:
         """Build React app."""
@@ -218,8 +318,11 @@ class Build:
         self.run_command(["npm", "ci"], cwd=web_dir)
         self.run_command(["npm", "run", "build"], cwd=web_dir)
 
-        # Bundle the build output using tarfile
+        # Copy the build output to BUILD_DIR / "web"
         self.copy_tree(self.WEB_DIR / "dist", self.BUILD_DIR / "web")
+
+        # Package the web directory
+        self.package_component("web", self.BUILD_DIR / "web")
 
     def electron(self) -> None:
         """Build Electron app."""
@@ -282,6 +385,8 @@ class Build:
             self.setup,
             self.python,
             self.react,
+            self.ffmpeg,
+            self.ollama,
             self.electron,
         ]
         try:
@@ -301,6 +406,52 @@ class Build:
             logger.error("Stacktrace:")
             logger.error(traceback.format_exc())
             sys.exit(1)
+
+    def compute_hash(self, path: Path) -> str:
+        """Compute SHA256 hash of the file or directory content."""
+        hash_sha256 = hashlib.sha256()
+        if path.is_file():
+            with open(path, "rb") as f:
+                for chunk in iter(lambda: f.read(4096), b""):
+                    hash_sha256.update(chunk)
+        elif path.is_dir():
+            for subpath in sorted(path.rglob("*")):
+                if subpath.is_file():
+                    with open(subpath, "rb") as f:
+                        for chunk in iter(lambda: f.read(4096), b""):
+                            hash_sha256.update(chunk)
+        return hash_sha256.hexdigest()
+
+    def package_component(self, name: str, source_dir: Path) -> None:
+        """Package a component directory into an archive with hash in filename."""
+        logger.info(f"Packing {name}")
+
+        # Create archive of the source_dir
+        archive_name = f"{name}.tar"
+        archive_path = self.BUILD_DIR / archive_name
+
+        self.run_command(
+            [
+                "tar",
+                "-cf",
+                str(archive_path),
+                "-C",
+                str(source_dir.parent),
+                source_dir.name,
+            ]
+        )
+
+        # Compute hash of the archive
+        component_hash = self.compute_hash(archive_path)
+
+        # Rename the archive to include the hash
+        hashed_archive_name = f"{name}_{component_hash}.tar"
+        hashed_archive_path = self.BUILD_DIR / hashed_archive_name
+
+        self.move_file(archive_path, hashed_archive_path)
+
+        # Remove the source directory
+        self.remove_directory(source_dir)
 
 
 def main() -> None:
@@ -328,7 +479,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--step",
-        choices=["setup", "python", "react", "electron"],
+        choices=["setup", "python", "react", "electron", "ffmpeg", "ollama"],
         help="Run a specific build step",
     )
 
