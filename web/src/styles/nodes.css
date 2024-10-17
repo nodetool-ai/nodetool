@@ -132,10 +132,6 @@
   }
 }
 
-.base-node {
-  /* Resizer styles */
-}
-
 .base-node .node-resizer .react-flow__resize-control.top.line,
 .base-node .node-resizer .react-flow__resize-control.bottom.line {
   display: none;

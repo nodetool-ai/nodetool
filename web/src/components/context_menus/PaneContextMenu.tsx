@@ -9,8 +9,8 @@ import useContextMenuStore from "../../stores/ContextMenuStore";
 import SouthEastIcon from "@mui/icons-material/SouthEast";
 import FitScreenIcon from "@mui/icons-material/FitScreen";
 import AddCommentIcon from "@mui/icons-material/AddComment";
-import GroupWorkIcon from "@mui/icons-material/GroupWork"; // Add this import for the group icon
-import LoopIcon from "@mui/icons-material/Loop"; // Add this import for the loop icon
+import GroupWorkIcon from "@mui/icons-material/GroupWork";
+import LoopIcon from "@mui/icons-material/Loop";
 //behaviours
 import { useCopyPaste } from "../../hooks/handlers/useCopyPaste";
 import { useClipboard } from "../../hooks/browser/useClipboard";
