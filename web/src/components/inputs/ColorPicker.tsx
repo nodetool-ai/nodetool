@@ -1,37 +1,45 @@
+/** @jsxImportSource @emotion/react */
+import { css } from "@emotion/react";
+
 import React, { useCallback, useState } from "react";
 import { MuiColorInput } from "mui-color-input";
-import { styled } from "@mui/system";
-import { Popover, IconButton, Button } from "@mui/material";
+import styled from "@emotion/styled";
+import { Popover, Button } from "@mui/material";
 import ColorizeIcon from "@mui/icons-material/Colorize";
 
-const ColorMatrix = styled("div")({
-  display: "grid",
-  gridTemplateColumns: "repeat(4, 1fr)",
-  gap: "4px",
-  padding: "16px",
-  marginBottom: "16px"
-});
+const colorMatrixStyle = (theme: any) => css`
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  padding: 16px;
+  margin-bottom: 16px;
+`;
 
-const ColorCell = styled("button")(({ color }) => ({
-  width: "24px",
-  height: "24px",
-  borderRadius: "50%",
-  border: "none",
-  backgroundColor: color,
-  cursor: "pointer",
-  "&:hover": {
-    transform: "scale(1.1)"
+const ColorCell = styled.button<{ color: string | null; isEmpty: boolean }>`
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: ${({ isEmpty }) => (isEmpty ? "2px solid red" : "none")};
+  background-color: ${({ color }) => color || "transparent"};
+  cursor: pointer;
+  &:hover {
+    transform: scale(1.1);
   }
-}));
+`;
 
-const CustomSection = styled("div")({
-  marginTop: "16px",
-  padding: "16px"
-});
+const customSectionStyle = css`
+  margin-top: 16px;
+  padding: 16px;
+`;
+
+const emptyColorButtonStyle = css`
+  margin-bottom: 16px;
+  width: 100%;
+`;
 
 interface ColorPickerProps {
-  color: string;
-  onColorChange: (newColor: string) => void;
+  color: string | null;
+  onColorChange: (newColor: string | null) => void;
   label?: string;
   showCustom?: boolean;
 }
@@ -55,6 +63,7 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
   const id = open ? "color-picker-popover" : undefined;
 
   const colorMatrix = [
+    null, // Empty color
     "#002b36",
     "#073642",
     "#586e75",
@@ -65,7 +74,6 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
     "#fdf6e3",
     "#b58900",
     "#cb4b16",
-    // "#d30102",
     "#d33682",
     "#6c71c4",
     "#268bd2",
@@ -87,7 +95,7 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
   // ];
 
   const handleColorCellClick = useCallback(
-    (newColor: string) => {
+    (newColor: string | null) => {
       onColorChange(newColor);
       handleClose();
     },
@@ -115,26 +123,27 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
         }}
       >
         <div>
-          <ColorMatrix>
+          <div css={colorMatrixStyle}>
             {colorMatrix.map((cellColor, index) => (
               <ColorCell
                 key={index}
-                color={cellColor}
+                color={cellColor || ""}
+                isEmpty={cellColor === null}
                 onClick={() => handleColorCellClick(cellColor)}
               />
             ))}
-          </ColorMatrix>
+          </div>
           {showCustom && (
-            <CustomSection>
+            <div css={customSectionStyle}>
               <div>CUSTOM</div>
               <MuiColorInput
                 format="hex"
-                value={color}
+                value={color || ""}
                 onChange={(newColor) => {
                   onColorChange(newColor);
                 }}
               />
-            </CustomSection>
+            </div>
           )}
         </div>
       </Popover>
