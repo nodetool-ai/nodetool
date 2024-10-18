@@ -6,10 +6,12 @@ import { NodeStore, useNodeStore } from "../../stores/NodeStore";
 import { memo, useCallback, useMemo, useState } from "react";
 import ThemeNodes from "../themes/ThemeNodes";
 import { isEqual, set } from "lodash";
+import { titleizeString } from "../../utils/titleizeString";
 
 export interface NodeHeaderProps {
   id: string;
-  nodeTitle: string;
+  metadataTitle: string;
+  nodeTitle?: string;
   hasParent?: boolean;
   showMenu?: boolean;
   backgroundColor?: string;
@@ -85,6 +87,7 @@ export const headerStyle = (theme: any, hasParent: boolean) =>
 
 export const NodeHeader: React.FC<NodeHeaderProps> = ({
   id,
+  metadataTitle,
   nodeTitle,
   hasParent,
   backgroundColor,
@@ -113,6 +116,10 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
   //       : {},
   //   [description]
   // );
+  const titleizedType = useMemo(
+    () => (metadataTitle ? titleizeString(metadataTitle) : ""),
+    [metadataTitle]
+  );
 
   const memoizedHeaderStyle = useMemo(
     () => headerStyle(ThemeNodes, hasParent || false),
@@ -147,7 +154,12 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
         backgroundColor: backgroundColor
       }}
     >
-      <span className="node-title">{nodeTitle}</span>
+      {nodeTitle && (
+        <span className="node-title">
+          {nodeTitle} ({titleizedType})
+        </span>
+      )}
+      {!nodeTitle && <span className="node-title">{titleizedType}</span>}
       {showMenu && (
         <>
           <div className="menu-button">

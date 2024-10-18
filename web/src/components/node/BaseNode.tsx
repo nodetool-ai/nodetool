@@ -26,7 +26,6 @@ import { isProduction } from "../../stores/ApiClient";
 import ApiKeyValidation from "./ApiKeyValidation";
 import NodeStatus from "./NodeStatus";
 import NodeContent from "./NodeContent";
-import { titleizeString } from "../../utils/titleizeString";
 import NodeToolButtons from "./NodeToolButtons";
 import { useRenderLogger } from "../../hooks/useRenderLogger";
 import { simulateOpacity } from "../../utils/ColorUtils";
@@ -224,11 +223,6 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 
   // Node metadata and properties
   const node_namespace = metadata?.namespace || "";
-  const titleizedType = useMemo(
-    () => (metadata?.title ? titleizeString(metadata.title) : ""),
-    [metadata?.title]
-  );
-  const nodeTitle = props.data.title ?? titleizedType;
 
   const nodeColors = useMemo(() => {
     const outputColors = [
@@ -261,7 +255,6 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     parentIsCollapsed,
     className,
     props,
-    titleizedType,
     ThemeNodes,
     nodeColors,
     minHeight,
@@ -278,7 +271,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   if (!metadata) {
     return (
       <Container className={className}>
-        <NodeHeader id={props.id} nodeTitle={titleizedType || ""} />
+        {/* <NodeHeader id={props.id} nodeTitle={nodeTitle} /> */}
       </Container>
     );
   }
@@ -306,7 +299,8 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       )}
       <NodeHeader
         id={props.id}
-        nodeTitle={nodeTitle}
+        nodeTitle={props.data.title}
+        metadataTitle={metadata.title}
         hasParent={hasParent}
         backgroundColor={parentColor}
       />
