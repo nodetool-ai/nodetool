@@ -228,7 +228,7 @@ class Build:
                 [
                     "curl",
                     "-L",
-                    "https://github.com/ollama/ollama/releases/download/v0.3.9/ollama-windows-64.zip",
+                    "https://github.com/ollama/ollama/releases/download/v0.3.13/ollama-windows-amd64.zip"
                     "-o",
                     "ollama.zip",
                 ]
