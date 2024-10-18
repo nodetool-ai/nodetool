@@ -63,6 +63,16 @@ jobs:
         run: |
           python build.py --platform ${{ matrix.platform }} --arch ${{ matrix.arch }} --step electron
 
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: build-artifacts-${{ matrix.platform }}-${{ matrix.arch }}
+          path: |
+            build/*.tar
+            build/*.exe
+            build/*.dmg
+            build/*.zip
+
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
@@ -74,35 +84,21 @@ jobs:
           draft: false
           prerelease: false
 
+  upload_assets:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v2
+        with:
+          path: build
+
       - name: Upload Release Assets
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ${{ matrix.asset }}
-          asset_name: ${{ basename(matrix.asset) }}
-          asset_content_type: application/octet-stream
-
-  upload_assets:
-    needs: build
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        asset: [python_env.tar, ffmpeg.tar, ollama.tar, src.tar, web.tar]
-
-    steps:
-      - name: Download artifacts
-        uses: actions/download-artifact@v2
-        with:
-          name: build-artifacts
-
-      - name: Upload Release Asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
           upload_url: ${{ needs.build.outputs.upload_url }}
-          asset_path: ./build/${{ matrix.asset }}
-          asset_name: ${{ matrix.asset }}
-          asset_content_type: application/x-tar
+          asset_path: ./build/**/*
+          asset_name: ${{ matrix.platform }}-${{ matrix.arch }}-${{ matrix.asset }}
+          asset_content_type: application/octet-stream
