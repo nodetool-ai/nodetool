@@ -206,10 +206,18 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   );
 
   const handleHeaderClick = () => {
+    updateNode(props.id, { selected: true });
+  };
+  const handleHeaderDoubleClick = (e: React.MouseEvent) => {
     headerInputRef.current?.focus();
     headerInputRef.current?.select();
+    // e.preventDefault();
+    // e.stopPropagation();
+    // const clickedElement = e.target as HTMLElement;
+    // if (clickedElement.classList.contains("node-header")) {
+    //   updateNodeData(props.id, { collapsed: !props.data.collapsed });
+    // }
   };
-
   const handleHeadlineChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
       const newHeadline = event.target.value;
@@ -271,7 +279,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       <div
         className="node-header"
         onClick={handleHeaderClick}
-        onDoubleClick={(e) => e.stopPropagation()}
+        onDoubleClick={handleHeaderDoubleClick}
       >
         <div className="title-input">
           <input
