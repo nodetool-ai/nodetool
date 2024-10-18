@@ -43,6 +43,9 @@ class Build:
         if arch is None:
             arch = machine().lower()
 
+        if platform == "amd64":
+            platform = "x64"
+
         # Normalize architecture
         if arch == "x86_64":
             arch = "x64"
@@ -225,7 +228,7 @@ class Build:
                 [
                     "curl",
                     "-L",
-                    "https://github.com/ollama/ollama/releases/download/v0.3.9/ollama-windows-amd64.zip",
+                    "https://github.com/ollama/ollama/releases/download/v0.3.9/ollama-windows-64.zip",
                     "-o",
                     "ollama.zip",
                 ]
