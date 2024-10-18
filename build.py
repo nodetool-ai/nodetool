@@ -81,7 +81,7 @@ class Build:
         ffmpeg_dir = self.BUILD_DIR / "ffmpeg"
         self.create_directory(ffmpeg_dir)
 
-        if self.platform == "win":
+        if self.platform == "windows":
             url = "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip"
             paths = [
                 "ffmpeg-master-latest-win64-gpl/bin/ffmpeg.exe",
@@ -220,7 +220,7 @@ class Build:
     def ollama(self) -> None:
         """Download and package Ollama."""
         logger.info("Downloading Ollama")
-        if self.platform == "win":
+        if self.platform == "windows":
             self.run_command(
                 [
                     "curl",
@@ -488,8 +488,8 @@ def main() -> None:
     )
     parser.add_argument(
         "--platform",
-        choices=["darwin", "linux", "win"],
-        help="Target platform for the build (darwin, linux, or win)",
+        choices=["darwin", "linux", "windows"],
+        help="Target platform for the build (darwin, linux, or windows)",
     )
     parser.add_argument(
         "--arch",
