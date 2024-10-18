@@ -292,8 +292,8 @@ class Build:
             ],
         )
 
-        # Package the python_env directory
-        self.package_component("python_env.tar", python_env_dir)
+        # Write manifest entry for python_env.tar
+        self.write_manifest_entry("python_env.tar", python_env_tar)
 
         # Copy and package the src directory
         self.copy_tree(self.SRC_DIR, self.BUILD_DIR / "src")
@@ -411,35 +411,9 @@ class Build:
                             hash_sha256.update(chunk)
         return hash_sha256.hexdigest()
 
-    def package_component(self, name: str, source_dir: Path | None = None) -> None:
-        """Package a component directory into an archive and update manifest."""
-        logger.info(f"Packing {name}")
-
-        if name.endswith(".tar"):
-            archive_path = self.BUILD_DIR / name
-        else:
-            if source_dir is None:
-                raise BuildError("source_dir is required for non-tar archives")
-
-            # Create archive of the source_dir
-            archive_name = f"{name}.tar"
-            archive_path = self.BUILD_DIR / archive_name
-
-            self.run_command(
-                [
-                    "tar",
-                    "-cf",
-                    str(archive_path),
-                    "-C",
-                    str(source_dir.parent),
-                    source_dir.name,
-                ]
-            )
-
-        # Compute hash of the archive
-        component_hash = self.compute_hash(archive_path)
-
-        # Update manifest with the hash
+    def write_manifest_entry(self, name: str, file_path: Path) -> None:
+        """Write a single entry to the manifest file."""
+        component_hash = self.compute_hash(file_path)
         manifest_path = self.BUILD_DIR / "manifest.json"
         manifest = {}
         if manifest_path.exists():
@@ -451,9 +425,33 @@ class Build:
         with open(manifest_path, "w") as f:
             json.dump(manifest, f, indent=2)
 
+    def package_component(self, name: str, source_dir: Path | None = None) -> None:
+        """Package a component directory into an archive and update manifest."""
+        logger.info(f"Packing {name}")
+
+        if source_dir is None:
+            raise BuildError("source_dir is required for non-tar archives")
+
+        # Create archive of the source_dir
+        archive_name = f"{name}.tar"
+        archive_path = self.BUILD_DIR / archive_name
+
+        self.run_command(
+            [
+                "tar",
+                "-cf",
+                str(archive_path),
+                "-C",
+                str(source_dir.parent),
+                source_dir.name,
+            ]
+        )
+
+        # Update manifest with the hash
+        self.write_manifest_entry(name, archive_path)
+
         # Remove the source directory if it's not a .tar file
-        if not name.endswith(".tar"):
-            self.remove_directory(source_dir)
+        self.remove_directory(source_dir)
 
 
 def main() -> None:
