@@ -89,7 +89,7 @@ class Build:
             ]
             self.download_and_unzip(url, paths, ffmpeg_dir)
 
-        elif self.platform == "mac":
+        elif self.platform == "darwin":
 
             self.download_and_unzip(
                 "https://evermeet.cx/ffmpeg/ffmpeg-7.0.2.zip", ["ffmpeg"], ffmpeg_dir
@@ -488,7 +488,7 @@ def main() -> None:
     parser.add_argument(
         "--platform",
         choices=["darwin", "linux", "win"],
-        help="Target platform for the build (mac, linux, or win)",
+        help="Target platform for the build (darwin, linux, or win)",
     )
     parser.add_argument(
         "--arch",
