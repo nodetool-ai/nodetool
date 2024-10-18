@@ -3,7 +3,7 @@ import { useNodeStore } from "../stores/NodeStore";
 import { v4 as uuidv4 } from "uuid";
 import { Node, Edge, useReactFlow } from "@xyflow/react";
 import { NodeData } from "../stores/NodeData";
-import { DUPLICATE_SPACING_X } from "../config/constants";
+import { DUPLICATE_SPACING } from "../config/constants";
 
 export const useDuplicateNodes = (vertical: boolean = false) => {
   const nodes = useNodeStore((state) => state.nodes);
@@ -21,8 +21,8 @@ export const useDuplicateNodes = (vertical: boolean = false) => {
     }
 
     const nodeBounds = getNodesBounds(selectedNodes);
-    const offsetX = vertical ? 0 : nodeBounds.width + DUPLICATE_SPACING_X;
-    const offsetY = vertical ? nodeBounds.height + DUPLICATE_SPACING_X : 0;
+    const offsetX = vertical ? 0 : nodeBounds.width + DUPLICATE_SPACING;
+    const offsetY = vertical ? nodeBounds.height + DUPLICATE_SPACING : 0;
     const oldToNewIds = new Map<string, string>();
     selectedNodes.forEach((node) => {
       oldToNewIds.set(node.id, uuidv4());
@@ -31,28 +31,35 @@ export const useDuplicateNodes = (vertical: boolean = false) => {
     const newNodes: Node<NodeData>[] = [];
     for (const node of selectedNodes) {
       const newId = oldToNewIds.get(node.id)!;
-      let newParentId: string | undefined;
 
-      // Check if parent exists in selected nodes
-      if (node.parentId && oldToNewIds.has(node.parentId)) {
-        newParentId = oldToNewIds.get(node.parentId);
-      } else {
-        newParentId = undefined;
-      }
+      // Determine if the parent node is also being duplicated
+      const parentId = node.parentId;
+      const isParentDuplicated = parentId ? oldToNewIds.has(parentId) : false;
+
+      const newParentId = parentId
+        ? isParentDuplicated
+          ? oldToNewIds.get(parentId)!
+          : parentId
+        : undefined;
+
+      // Apply offset only if the parent is not duplicated
+      const positionOffsetX = isParentDuplicated ? 0 : offsetX;
+      const positionOffsetY = isParentDuplicated ? 0 : offsetY;
+
       const newNode: Node<NodeData> = {
         ...node,
         id: newId,
         parentId: newParentId,
         position: {
-          x: node.position.x + (newParentId ? 0 : offsetX),
-          y: node.position.y + (newParentId ? 0 : offsetY)
+          x: node.position.x + positionOffsetX,
+          y: node.position.y + positionOffsetY
         },
         data: {
           ...node.data,
           positionAbsolute: node.data.positionAbsolute
             ? {
-                x: node.data.positionAbsolute.x + (newParentId ? 0 : offsetX),
-                y: node.data.positionAbsolute.y + (newParentId ? 0 : offsetY)
+                x: node.data.positionAbsolute.x + positionOffsetX,
+                y: node.data.positionAbsolute.y + positionOffsetY
               }
             : undefined
         },
@@ -70,7 +77,6 @@ export const useDuplicateNodes = (vertical: boolean = false) => {
         selectedNodeIds.includes(edge.target)
     );
 
-    // Update edges to connect duplicated nodes
     const newEdges: Edge[] = [];
     for (const edge of connectedEdges) {
       const newSource = oldToNewIds.get(edge.source) || edge.source;
@@ -96,7 +102,6 @@ export const useDuplicateNodes = (vertical: boolean = false) => {
       selected: false
     }));
 
-    // Update state with new nodes and edges
     setNodes([...updatedNodes, ...newNodes]);
     setEdges([...edges, ...newEdges]);
   }, [
