@@ -35,8 +35,8 @@ class Build:
         self,
         in_docker: bool = False,
         clean_build: bool = False,
-        platform: Optional[str] = None,
-        arch: Optional[str] = None,
+        platform: str = platform.system().lower(),
+        arch: str = platform.machine().lower(),
     ):
         """Initialize Build configuration."""
         self.in_docker = in_docker
@@ -414,7 +414,7 @@ class Build:
     def write_manifest_entry(self, name: str, file_path: Path) -> None:
         """Write a single entry to the manifest file."""
         component_hash = self.compute_hash(file_path)
-        manifest_path = self.BUILD_DIR / "manifest.json"
+        manifest_path = self.BUILD_DIR / f"manifest-{self.platform}-{self.arch}.json"
         manifest = {}
         if manifest_path.exists():
             with open(manifest_path, "r") as f:
@@ -433,7 +433,7 @@ class Build:
             raise BuildError("source_dir is required for non-tar archives")
 
         # Create archive of the source_dir
-        archive_name = f"{name}.tar"
+        archive_name = f"{name}-{self.platform}-{self.arch}.tar"
         archive_path = self.BUILD_DIR / archive_name
 
         if platform.system().lower() == "windows":
