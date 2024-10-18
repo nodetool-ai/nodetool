@@ -64,6 +64,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ isMinZoom }) => {
   const alignNodes = useAlignNodes();
   const getSelectedNodeIds = useNodeStore((state) => state.getSelectedNodeIds);
   const duplicateNodes = useDuplicateNodes();
+  const duplicateNodesVertical = useDuplicateNodes(true);
   const surroundWithGroup = useSurroundWithGroup();
   const nodes = useNodeStore((state) => state.nodes);
 
@@ -148,8 +149,10 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ isMinZoom }) => {
   useCombo(["Meta", "x"], handleCut); // for mac
 
   useCombo(["Meta", "d"], duplicateNodes);
+  useCombo(["Meta", "Shift", "d"], duplicateNodesVertical);
   useCombo(["Alt", "d"], duplicateNodes);
   useCombo(["Control", "d"], duplicateNodes);
+  useCombo(["Control", "Shift", "d"], duplicateNodesVertical);
 
   useCombo(
     ["Space", "g"],
