@@ -134,7 +134,6 @@ const WorkflowGrid = () => {
     })
   );
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const { shiftKeyPressed, controlKeyPressed } = useKeyPressedStore(
     (state) => ({
       shiftKeyPressed: state.isKeyPressed("Shift"),
@@ -142,7 +141,6 @@ const WorkflowGrid = () => {
     })
   );
   const loadMyWorkflows = useWorkflowStore((state) => state.load);
-  const loadExampleWorkflows = useWorkflowStore((state) => state.loadExamples);
   const createNewWorkflow = useWorkflowStore((state) => state.createNew);
   const copyWorkflow = useWorkflowStore((state) => state.copy);
   const updateWorkflow = useWorkflowStore((state) => state.update);

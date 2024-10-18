@@ -3,17 +3,21 @@ import useContextMenuStore from "../../stores/ContextMenuStore";
 import { MoreHoriz } from "@mui/icons-material";
 import { css } from "@emotion/react";
 import { NodeStore, useNodeStore } from "../../stores/NodeStore";
-import { memo, useCallback, useMemo, useState } from "react";
+import { memo, useCallback, useMemo } from "react";
 import ThemeNodes from "../themes/ThemeNodes";
-import { isEqual, set } from "lodash";
+import { isEqual } from "lodash";
 import { titleizeString } from "../../utils/titleizeString";
+import ColorPicker from "../inputs/ColorPicker";
+import { NodeData } from "../../stores/NodeData";
+import { Tooltip } from "@mui/material";
 
 export interface NodeHeaderProps {
   id: string;
   metadataTitle: string;
-  nodeTitle?: string;
   hasParent?: boolean;
+  parentColor?: string;
   showMenu?: boolean;
+  data: NodeData;
   backgroundColor?: string;
 }
 // const tooltipStyle = css({
@@ -82,14 +86,34 @@ export const headerStyle = (theme: any, hasParent: boolean) =>
     },
     ".menu-button svg": {
       scale: "0.5"
+    },
+    ".color-picker-button": {
+      position: "absolute",
+      right: "0.5em",
+      pointerEvents: "all",
+      margin: "5px",
+      height: "1.1em",
+      zIndex: 10000,
+      backgroundColor: "transparent",
+      borderRadius: "0",
+      "& svg": {
+        color: theme.palette.c_gray5,
+        width: ".5em",
+        height: ".5em",
+        // scale: ".5",
+        rotate: "-86deg"
+      },
+      "&:hover svg": {
+        color: theme.palette.c_hl1
+      }
     }
   });
 
 export const NodeHeader: React.FC<NodeHeaderProps> = ({
   id,
   metadataTitle,
-  nodeTitle,
   hasParent,
+  data,
   backgroundColor,
   showMenu = true
 }: NodeHeaderProps) => {
@@ -145,6 +169,21 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
     updateNode(id, { selected: true });
   }, [updateNode, id]);
 
+  const updateNodeData = useNodeStore(
+    (state: NodeStore) => state.updateNodeData
+  );
+
+  const handleColorChange = useCallback(
+    (newColor: string) => {
+      if (id) {
+        updateNodeData(id, {
+          color: newColor
+        });
+      }
+    },
+    [id, updateNodeData]
+  );
+
   return (
     <div
       className="node-header"
@@ -154,21 +193,21 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
         backgroundColor: backgroundColor
       }}
     >
-      {nodeTitle && (
+      {data.title && (
         <span className="node-title">
-          {nodeTitle} ({titleizedType})
+          {data.title} ({titleizedType})
         </span>
       )}
-      {!nodeTitle && <span className="node-title">{titleizedType}</span>}
+      {!data.title && <span className="node-title">{titleizedType}</span>}
       {showMenu && (
         <>
+          <ColorPicker
+            label=""
+            color={backgroundColor || ""}
+            onColorChange={handleColorChange}
+          />
           <div className="menu-button">
-            {/* css={tooltipStyle}> */}
-            <button
-              className="menu-button"
-              // {...tooltipAttributes}
-              onClick={handleOpenContextMenu}
-            >
+            <button className="menu-button" onClick={handleOpenContextMenu}>
               <MoreHoriz />
             </button>
           </div>

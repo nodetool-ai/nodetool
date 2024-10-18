@@ -3,6 +3,7 @@ export type NodeData = {
   selectable: boolean | undefined;
   workflow_id: string;
   title?: string;
+  color?: string;
   collapsed?: boolean;
   dirty?: boolean;
   size?: {

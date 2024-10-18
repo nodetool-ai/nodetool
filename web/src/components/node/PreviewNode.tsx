@@ -281,7 +281,12 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
         >
           <SouthEastIcon />
         </NodeResizeControl>
-        <NodeHeader id={props.id} nodeTitle="Preview" hasParent={hasParent} />
+        <NodeHeader
+          id={props.id}
+          data={props.data}
+          hasParent={hasParent}
+          metadataTitle="Preview"
+        />
         <div className="actions">
           <Tooltip title="Download">
             <Button onClick={handleDownload} className="action-button download">

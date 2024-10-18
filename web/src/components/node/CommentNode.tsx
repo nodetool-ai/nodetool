@@ -77,6 +77,35 @@ const styles = (theme: any) =>
     },
     "&:hover .color-picker-button": {
       opacity: 1
+    },
+    ".MuiTouchRipple-root": {
+      width: 0,
+      height: 0
+    },
+    ".color-picker-button": {
+      pointerEvents: "all",
+      opacity: 0,
+      position: "absolute",
+      bottom: "0",
+      margin: "0",
+      padding: "0",
+      right: "1em",
+      left: "unset",
+      width: "0em",
+      height: "1.1em",
+      zIndex: 10000,
+      backgroundColor: theme.palette.c_gray2,
+      borderRadius: "0",
+      "& svg": {
+        color: theme.palette.c_gray5,
+        width: ".5em",
+        height: ".5em",
+        // scale: ".5",
+        rotate: "-86deg"
+      },
+      "&:hover svg": {
+        color: theme.palette.c_hl1
+      }
     }
   });
 

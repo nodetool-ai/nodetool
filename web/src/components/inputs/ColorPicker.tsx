@@ -1,11 +1,7 @@
-/** @jsxImportSource @emotion/react */
-import { css } from "@emotion/react";
-
 import React, { useCallback, useState } from "react";
 import { MuiColorInput } from "mui-color-input";
 import { styled } from "@mui/system";
-import { Popover, IconButton } from "@mui/material";
-import ThemeNodetool from "../themes/ThemeNodetool";
+import { Popover, IconButton, Button } from "@mui/material";
 import ColorizeIcon from "@mui/icons-material/Colorize";
 
 const ColorMatrix = styled("div")({
@@ -36,43 +32,14 @@ const CustomSection = styled("div")({
 interface ColorPickerProps {
   color: string;
   onColorChange: (newColor: string) => void;
+  label?: string;
   showCustom?: boolean;
 }
-
-export const colorPickerButtonStyles = (theme: any, alwaysVisible: boolean) =>
-  css({
-    ".color-picker-button": {
-      pointerEvents: "all",
-      opacity: alwaysVisible ? 1 : 0,
-      position: "absolute",
-      bottom: "0",
-      margin: 0,
-      right: "1em",
-      left: "unset",
-      width: ".85em",
-      height: ".85em",
-      zIndex: 10000,
-      backgroundColor: theme.palette.c_gray2,
-      borderRadius: ".1em 0  0 0",
-      "& svg": {
-        color: theme.palette.c_gray5,
-        width: ".6em",
-        height: ".6em",
-        scale: ".9",
-        rotate: "-86deg"
-      },
-      "&:hover svg": {
-        color: theme.palette.c_hl1
-      }
-    },
-    "&:hover .color-picker-button": {
-      opacity: 1
-    }
-  });
 
 const ColorPicker: React.FC<ColorPickerProps> = ({
   color,
   onColorChange,
+  label,
   showCustom = true
 }) => {
   const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
@@ -128,14 +95,11 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
   );
 
   return (
-    <div css={colorPickerButtonStyles(ThemeNodetool, false)}>
-      <IconButton
-        size="small"
-        className="color-picker-button"
-        onClick={handleClick}
-      >
+    <>
+      <Button className="color-picker-button action" onClick={handleClick}>
+        {label}
         <ColorizeIcon />
-      </IconButton>
+      </Button>
       <Popover
         id={id}
         open={open}
@@ -174,7 +138,7 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
           )}
         </div>
       </Popover>
-    </div>
+    </>
   );
 };
 

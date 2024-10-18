@@ -3,7 +3,6 @@ import { NodeInputs } from "./NodeInputs";
 import { NodeOutputs } from "./NodeOutputs";
 import { ProcessTimer } from "./ProcessTimer";
 import { NodeLogs } from "./NodeLogs";
-import { NodeFooter } from "./NodeFooter";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import { NodeData } from "../../stores/NodeData";
 import { isEqual } from "lodash";
@@ -45,19 +44,9 @@ const NodeContent: React.FC<NodeContentProps> = ({
       />
       {!isOutputNode && <NodeOutputs id={id} outputs={nodeMetadata.outputs} />}
       {renderedResult}
-      {nodeMetadata.layout === "default" && (
-        <>
-          <ProcessTimer status={status} />
-          {status === "running" && (
-            <NodeProgress id={id} workflowId={workflowId} />
-          )}
-          <NodeLogs id={id} workflowId={workflowId} />
-          <NodeFooter
-            nodeNamespace={nodeMetadata.namespace}
-            metadata={nodeMetadata}
-          />
-        </>
-      )}
+      <ProcessTimer status={status} />
+      {status === "running" && <NodeProgress id={id} workflowId={workflowId} />}
+      <NodeLogs id={id} workflowId={workflowId} />
     </>
   );
 };

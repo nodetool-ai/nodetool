@@ -47,6 +47,7 @@ type NodeUIProperties = {
   height?: number;
   zIndex?: number;
   title?: string;
+  color?: string;
 };
 
 type NodeSelection = {
@@ -89,7 +90,8 @@ export function graphNodeToReactFlowNode(
       dirty: true,
       collapsed: false,
       workflow_id: workflow.id,
-      title: ui_properties?.title
+      title: ui_properties?.title,
+      color: ui_properties?.color
     },
     position: ui_properties?.position || { x: 0, y: 0 },
     style: {
@@ -112,6 +114,7 @@ export function reactFlowNodeToGraphNode(node: Node<NodeData>): GraphNode {
     width: node.measured?.width || DEFAULT_NODE_WIDTH,
     height: undefined,
     title: node.data.title,
+    color: node.data.color,
     selectable: true
   };
 

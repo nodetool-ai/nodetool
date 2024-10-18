@@ -28,8 +28,9 @@ import NodeStatus from "./NodeStatus";
 import NodeContent from "./NodeContent";
 import NodeToolButtons from "./NodeToolButtons";
 import { useRenderLogger } from "../../hooks/useRenderLogger";
-import { simulateOpacity } from "../../utils/ColorUtils";
+import { hexToRgba, simulateOpacity } from "../../utils/ColorUtils";
 import useMetadataStore from "../../stores/MetadataStore";
+import NodeFooter from "./NodeFooter";
 
 // Tooltip timing constants
 export const TOOLTIP_ENTER_DELAY = 650;
@@ -146,14 +147,6 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     props.parentId ? state.findNode(props.parentId || "") : null
   );
   const hasParent = Boolean(parentId);
-  const parentColor = useMemo(() => {
-    if (!parentNode?.data?.properties?.group_color) return "";
-    return simulateOpacity(
-      parentNode?.data?.properties?.group_color,
-      0.1,
-      ThemeNodes.palette.c_editor_bg_color
-    );
-  }, [parentNode]);
 
   // Workflow and status
   const workflowId = props.data.workflow_id;
@@ -268,6 +261,15 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     resizer
   });
 
+  const backgroundColor = useMemo(() => {
+    if (props.data.color) {
+      return hexToRgba(props.data.color, 0.2);
+    }
+    return hasParent
+      ? ThemeNodes.palette.c_node_bg_group
+      : ThemeNodes.palette.c_node_bg;
+  }, [props.data.color, hasParent]);
+
   if (!metadata) {
     return (
       <Container className={className}>
@@ -287,9 +289,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       style={{
         display: parentIsCollapsed ? "none" : "flex",
         minHeight: `${minHeight}px`,
-        backgroundColor: hasParent
-          ? ThemeNodes.palette.c_node_bg_group
-          : ThemeNodes.palette.c_node_bg
+        backgroundColor
       }}
     >
       {props.selected && (
@@ -299,10 +299,10 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       )}
       <NodeHeader
         id={props.id}
-        nodeTitle={props.data.title}
+        data={props.data}
+        backgroundColor={backgroundColor}
         metadataTitle={metadata.title}
         hasParent={hasParent}
-        backgroundColor={parentColor}
       />
       <NodeErrors id={props.id} workflow_id={workflowId} />
       <NodeStatus status={status} />
@@ -320,6 +320,11 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         renderedResult={renderedResult}
       />
       {props.selected && resizer}
+      <NodeFooter
+        nodeNamespace={metadata.namespace}
+        metadata={metadata}
+        backgroundColor={backgroundColor}
+      />
     </Container>
   );
 };

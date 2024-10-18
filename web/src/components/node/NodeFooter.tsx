@@ -36,6 +36,7 @@ PrettyNamespace.displayName = "PrettyNamespace";
 export interface NodeFooterProps {
   nodeNamespace: string;
   metadata: NodeMetadata;
+  backgroundColor?: string;
 }
 export const footerStyles = (theme: any) =>
   css({
@@ -70,7 +71,8 @@ export const footerStyles = (theme: any) =>
 
 export const NodeFooter: React.FC<NodeFooterProps> = ({
   nodeNamespace,
-  metadata
+  metadata,
+  backgroundColor
 }) => {
   const {
     openNodeMenu,
@@ -100,7 +102,7 @@ export const NodeFooter: React.FC<NodeFooterProps> = ({
   ]);
 
   return (
-    <div className="node-footer" css={footerStyles}>
+    <div className="node-footer" css={footerStyles} style={{ backgroundColor }}>
       <Tooltip title="Click to show in NodeMenu" placement="bottom-start">
         <Button className="namespace-button" onClick={handleOpenNodeMenu}>
           <PrettyNamespace namespace={nodeNamespace} />
