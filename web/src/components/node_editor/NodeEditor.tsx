@@ -32,7 +32,7 @@ import { useSurroundWithGroup } from "../../hooks/nodes/useSurroundWithGroup";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { isEqual } from "lodash";
 import ReactFlowWrapper from "../node/ReactFlowWrapper";
-import { useReactFlow } from "@xyflow/react";
+import { useReactFlow, XYPosition } from "@xyflow/react";
 
 declare global {
   interface Window {
@@ -65,6 +65,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ isMinZoom }) => {
   const getSelectedNodeIds = useNodeStore((state) => state.getSelectedNodeIds);
   const duplicateNodes = useDuplicateNodes();
   const surroundWithGroup = useSurroundWithGroup();
+  const nodes = useNodeStore((state) => state.nodes);
 
   // OPEN NODE MENU
   const {
@@ -89,12 +90,27 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ isMinZoom }) => {
       setTimeout(() => {
         setSelectedNodes([]);
       }, 1000);
-      const nodePositions = selectedNodes.map((node) => ({
-        x: node.position.x,
-        y: node.position.y,
-        width: node.measured?.width || 0,
-        height: node.measured?.height || 0
-      }));
+      const nodesById = nodes.reduce((acc, node) => {
+        const pos = {
+          x: node.position.x,
+          y: node.position.y
+        };
+        acc[node.id] = pos;
+        return acc;
+      }, {} as Record<string, XYPosition>);
+
+      const nodePositions = selectedNodes.map((node) => {
+        const parent = node.parentId ? nodesById[node.parentId] : null;
+        const parentPos = parent
+          ? { x: parent.x, y: parent.y }
+          : { x: 0, y: 0 };
+        return {
+          x: node.position.x + parentPos.x,
+          y: node.position.y + parentPos.y,
+          width: node.measured?.width || 0,
+          height: node.measured?.height || 0
+        };
+      });
 
       const xMin = Math.min(...nodePositions.map((pos) => pos.x));
       const xMax = Math.max(...nodePositions.map((pos) => pos.x + pos.width));
