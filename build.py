@@ -436,8 +436,17 @@ class Build:
         archive_name = f"{name}.tar"
         archive_path = self.BUILD_DIR / archive_name
 
-        self.run_command(
-            [
+        if platform.system().lower() == "windows":
+            tar_command = [
+                "C:\\Windows\\system32\\tar.exe",
+                "-cf",
+                str(archive_path),
+                "-C",
+                str(source_dir.parent),
+                source_dir.name,
+            ]
+        else:
+            tar_command = [
                 "tar",
                 "-cf",
                 str(archive_path),
@@ -445,7 +454,8 @@ class Build:
                 str(source_dir.parent),
                 source_dir.name,
             ]
-        )
+
+        self.run_command(tar_command)
 
         # Update manifest with the hash
         self.write_manifest_entry(name, archive_path)
