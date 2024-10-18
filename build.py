@@ -273,6 +273,7 @@ class Build:
 
         # Get dependencies, excluding ML libraries
         base_packages = [
+            "conda-pack",
             "numpy",
             "matplotlib",
             "pandas",
