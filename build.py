@@ -372,7 +372,8 @@ class Build:
         ]
 
         if self.platform:
-            build_command.append(f"--{self.platform}")
+            electron_platform = "mac" if self.platform == "darwin" else self.platform
+            build_command.append(f"--{electron_platform}")
         if self.arch:
             build_command.append(f"--{self.arch}")
 
