@@ -273,6 +273,9 @@ class Build:
 
         # Use conda-pack to create an environment directory
         python_env_dir = self.BUILD_DIR / "python_env"
+        python_env_tar = self.BUILD_DIR / "python_env.tar"
+        if python_env_tar.exists():
+            self.remove_file(python_env_tar)
 
         self.run_command(
             [
@@ -284,12 +287,12 @@ class Build:
                 "-j",
                 "8",
                 "-o",
-                str(self.BUILD_DIR / "python_env.tar"),
+                str(python_env_tar),
             ],
         )
 
         # Package the python_env directory
-        self.package_component("python_env", python_env_dir)
+        self.package_component("python_env.tar", python_env_dir)
 
         # Copy and package the src directory
         self.copy_tree(self.SRC_DIR, self.BUILD_DIR / "src")
@@ -407,24 +410,30 @@ class Build:
                             hash_sha256.update(chunk)
         return hash_sha256.hexdigest()
 
-    def package_component(self, name: str, source_dir: Path) -> None:
+    def package_component(self, name: str, source_dir: Path | None = None) -> None:
         """Package a component directory into an archive with hash in filename."""
         logger.info(f"Packing {name}")
 
-        # Create archive of the source_dir
-        archive_name = f"{name}.tar"
-        archive_path = self.BUILD_DIR / archive_name
+        if name.endswith(".tar"):
+            archive_path = self.BUILD_DIR / name
+        else:
+            if source_dir is None:
+                raise BuildError("source_dir is required for non-tar archives")
 
-        self.run_command(
-            [
-                "tar",
-                "-cf",
-                str(archive_path),
-                "-C",
-                str(source_dir.parent),
-                source_dir.name,
-            ]
-        )
+            # Create archive of the source_dir
+            archive_name = f"{name}.tar"
+            archive_path = self.BUILD_DIR / archive_name
+
+            self.run_command(
+                [
+                    "tar",
+                    "-cf",
+                    str(archive_path),
+                    "-C",
+                    str(source_dir.parent),
+                    source_dir.name,
+                ]
+            )
 
         # Compute hash of the archive
         component_hash = self.compute_hash(archive_path)
@@ -436,7 +445,8 @@ class Build:
         self.move_file(archive_path, hashed_archive_path)
 
         # Remove the source directory
-        self.remove_directory(source_dir)
+        if not name.endswith(".tar"):
+            self.remove_directory(source_dir)
 
 
 def main() -> None:
