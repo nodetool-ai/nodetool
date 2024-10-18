@@ -21,10 +21,10 @@ const executeComboCallbacks = (
   const pressedKeysString = Array.from(pressedKeys).sort().join("+");
   const callback = comboCallbacks.get(pressedKeysString);
   if (callback) {
+    if (event) {
+      event.preventDefault();
+    }
     callback();
-  }
-  if (event) {
-    event.preventDefault();
   }
 };
 
@@ -137,12 +137,12 @@ const initKeyListeners = () => {
 
     setKeysPressed(keysToUpdate, event);
 
-    // Execute combo callbacks and potentially prevent default
-    if (isPressed) {
-      const updatedPressedKeys = new Set(pressedKeys);
-      updatedPressedKeys.add(normalizedKey);
-      executeComboCallbacks(updatedPressedKeys, event);
-    }
+    // Remove this block to prevent double execution
+    // if (isPressed) {
+    //   const updatedPressedKeys = new Set(pressedKeys);
+    //   updatedPressedKeys.add(normalizedKey);
+    //   executeComboCallbacks(updatedPressedKeys, event);
+    // }
   };
 
   const handleKeyDown = (event: KeyboardEvent) => handleKeyChange(event, true);
