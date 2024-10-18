@@ -464,37 +464,18 @@ async function checkForUpdates() {
     const latestRelease = await fetchLatestRelease(owner, repo);
     const assets = latestRelease.assets;
 
-    // Read local manifest or construct it from existing files
-    const localManifest = await getLocalManifest();
+    const componentsDir = path.join(app.getPath("userData"), "components");
+    await fs.mkdir(componentsDir, { recursive: true });
 
-    // Map assets by component name
-    const remoteComponents = {};
+    const system = process.platform === "win32" ? "win" : "mac";
+    const arch = process.arch === "x64" ? "x64" : "arm64";
 
-    for (const asset of assets) {
-      const match = asset.name.match(/^(.+?)_(.+?)\.tar$/);
-      if (match) {
-        const name = match[1];
-        const hash = match[2];
-        remoteComponents[name] = {
-          name,
-          hash,
-          url: asset.browser_download_url,
-        };
-      }
-    }
-
-    // Determine which components need updates
-    const componentsToUpdate = [];
-
-    for (const [name, component] of Object.entries(remoteComponents)) {
-      const localComponent = localManifest.components.find(
-        (c) => c.name === name
-      );
-
-      if (!localComponent || localComponent.hash !== component.hash) {
-        componentsToUpdate.push(component);
-      }
-    }
+    const componentsToUpdate = await getComponentsToUpdate(
+      assets,
+      system,
+      arch,
+      componentsDir
+    );
 
     if (componentsToUpdate.length > 0) {
       log(
@@ -504,90 +485,100 @@ async function checkForUpdates() {
       );
 
       for (const component of componentsToUpdate) {
-        await downloadAndExtractComponent(component);
+        await downloadAndExtractComponent(component, componentsDir);
       }
     } else {
       log("All components are up to date");
     }
   } catch (error) {
-    log(`Error checking for updates: ${error.message}`);
+    log(`Error checking for updates: ${error.message}`, "error");
   }
 }
 
 /**
- * Download a file from a URL and return as a string
- * @param {string} url - The URL to download from
- * @returns {Promise<string>}
+ * Get components that need to be updated
+ * @param {Array<{name: string, browser_download_url: string}>} assets
+ * @param {string} system
+ * @param {string} arch
+ * @param {string} componentsDir
+ * @returns {Promise<Array<{name: string, url: string, checksumUrl: string}>>}
  */
-function downloadFileToString(url) {
-  return new Promise((resolve, reject) => {
-    let data = "";
-    https
-      .get(url, (response) => {
-        response.on("data", (chunk) => {
-          data += chunk;
-        });
-        response.on("end", () => resolve(data));
-      })
-      .on("error", (err) => reject(err));
-  });
-}
-
-/**
- * Get the local manifest by reading existing component files
- * @returns {Promise<{components: Array<{name: string, hash: string}>}>}
- */
-async function getLocalManifest() {
-  const componentsDir = path.join(app.getPath("userData"), "components");
-  const components = [];
-
-  // List of component names
+async function getComponentsToUpdate(assets, system, arch, componentsDir) {
+  const componentsToUpdate = [];
   const componentNames = ["python_env", "web", "ollama", "ffmpeg"];
 
   for (const name of componentNames) {
-    const files = await fs.readdir(componentsDir).catch(() => []);
-    const regex = new RegExp(`^${name}_(.+)\\.tar$`);
-    const file = files.find((f) => regex.test(f));
+    const assetName = `${name}-${system}-${arch}.tar`;
+    const checksumName = `${assetName}.sha256`;
 
-    if (file) {
-      const match = file.match(regex);
-      const hash = match[1];
-      components.push({ name, hash });
+    const asset = assets.find((a) => a.name === assetName);
+    const checksumAsset = assets.find((a) => a.name === checksumName);
+
+    if (asset && checksumAsset) {
+      const remoteChecksum = await downloadFileToString(
+        checksumAsset.browser_download_url
+      );
+      const localChecksum = await getLocalChecksum(componentsDir, name);
+
+      if (remoteChecksum.trim() !== localChecksum) {
+        componentsToUpdate.push({
+          name,
+          url: asset.browser_download_url,
+          checksumUrl: checksumAsset.browser_download_url,
+        });
+      }
     }
   }
 
-  return { components };
+  return componentsToUpdate;
+}
+
+/**
+ * Get the local checksum for a component
+ * @param {string} componentsDir
+ * @param {string} componentName
+ * @returns {Promise<string>}
+ */
+async function getLocalChecksum(componentsDir, componentName) {
+  const checksumPath = path.join(componentsDir, `${componentName}.sha256`);
+  try {
+    return await fs.readFile(checksumPath, "utf-8");
+  } catch (error) {
+    return "";
+  }
 }
 
 /**
  * Download and extract a component package
- * @param {{name: string, url: string, hash: string}} component - The component to download
+ * @param {{name: string, url: string, checksumUrl: string}} component
+ * @param {string} componentsDir
  * @returns {Promise<void>}
  */
-async function downloadAndExtractComponent(component) {
-  const componentsDir = path.join(app.getPath("userData"), "components");
-  await fs.mkdir(componentsDir, { recursive: true });
-
+async function downloadAndExtractComponent(component, componentsDir) {
   const tempFile = path.join(componentsDir, `${component.name}.tmp`);
-  const finalFile = path.join(
-    componentsDir,
-    `${component.name}_${component.hash}.tar`
-  );
+  const finalFile = path.join(componentsDir, `${component.name}.tar`);
+  const checksumFile = path.join(componentsDir, `${component.name}.sha256`);
 
   log(`Downloading ${component.name} from ${component.url}`);
 
   await downloadFile(component.url, tempFile);
+  const checksum = await downloadFileToString(component.checksumUrl);
 
-  // Verify hash
-  const fileHash = await computeFileHash(tempFile);
-  if (fileHash !== component.hash) {
+  // Verify checksum
+  const fileChecksum = await computeFileHash(tempFile);
+  if (fileChecksum !== checksum.trim()) {
     throw new Error(
-      `Hash mismatch for ${component.name}. Expected ${component.hash}, got ${fileHash}`
+      `Checksum mismatch for ${
+        component.name
+      }. Expected ${checksum.trim()}, got ${fileChecksum}`
     );
   }
 
   // Rename temp file to final file
   await fs.rename(tempFile, finalFile);
+
+  // Save checksum
+  await fs.writeFile(checksumFile, checksum);
 
   // Extract the component
   await extractTar(finalFile, componentsDir);

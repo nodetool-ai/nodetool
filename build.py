@@ -271,7 +271,7 @@ class Build:
         self.run_command(["conda", "install", "-n", CONDA_ENV, "conda-pack", "-y"])
 
         # Use conda-pack to create an environment directory
-        python_env_tar = self.BUILD_DIR / "python_env.tar"
+        python_env_tar = self.BUILD_DIR / f"python_env-{self.platform}-{self.arch}.tar"
         if python_env_tar.exists():
             self.remove_file(python_env_tar)
 
@@ -289,8 +289,8 @@ class Build:
             ],
         )
 
-        # Write manifest entry for python_env.tar
-        self.write_manifest_entry("python_env.tar", python_env_tar)
+        # Create checksum file for python_env.tar
+        self.write_checksum_file(python_env_tar)
 
     def react(self) -> None:
         """Build React app."""
@@ -390,36 +390,25 @@ class Build:
             sys.exit(1)
 
     def compute_hash(self, path: Path) -> str:
-        """Compute SHA256 hash of the file or directory content."""
+        """Compute SHA256 hash of the file content."""
         hash_sha256 = hashlib.sha256()
         if path.is_file():
             with open(path, "rb") as f:
                 for chunk in iter(lambda: f.read(4096), b""):
                     hash_sha256.update(chunk)
-        elif path.is_dir():
-            for subpath in sorted(path.rglob("*")):
-                if subpath.is_file():
-                    with open(subpath, "rb") as f:
-                        for chunk in iter(lambda: f.read(4096), b""):
-                            hash_sha256.update(chunk)
+        else:
+            raise BuildError(f"Invalid path: {path}")
         return hash_sha256.hexdigest()
 
-    def write_manifest_entry(self, name: str, file_path: Path) -> None:
-        """Write a single entry to the manifest file."""
-        component_hash = self.compute_hash(file_path)
-        manifest_path = self.BUILD_DIR / f"manifest-{self.platform}-{self.arch}.json"
-        manifest = {}
-        if manifest_path.exists():
-            with open(manifest_path, "r") as f:
-                manifest = json.load(f)
-
-        manifest[name] = component_hash
-
-        with open(manifest_path, "w") as f:
-            json.dump(manifest, f, indent=2)
+    def write_checksum_file(self, file_path: Path) -> None:
+        """Write a SHA256 checksum file for the given file."""
+        checksum = self.compute_hash(file_path)
+        checksum_file_path = file_path.with_suffix(".sha256")
+        with open(checksum_file_path, "w") as f:
+            f.write(checksum)
 
     def package_component(self, name: str, source_dir: Path | None = None) -> None:
-        """Package a component directory into an archive and update manifest."""
+        """Package a component directory into an archive and create checksum file."""
         logger.info(f"Packing {name}")
 
         if source_dir is None:
@@ -450,8 +439,8 @@ class Build:
 
         self.run_command(tar_command)
 
-        # Update manifest with the hash
-        self.write_manifest_entry(name, archive_path)
+        # Create checksum file for the archive
+        self.write_checksum_file(archive_path)
 
         # Remove the source directory if it's not a .tar file
         self.remove_directory(source_dir)

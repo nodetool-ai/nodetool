@@ -53,6 +53,16 @@ jobs:
         run: |
           python build.py --platform ${{ matrix.platform }} --arch ${{ matrix.arch }} --step python
 
+      - name: Package ffmpeg
+        shell: bash -l {0}
+        run: |
+          python build.py --platform ${{ matrix.platform }} --arch ${{ matrix.arch }} --step ffmpeg
+
+      - name: Package ollama
+        shell: bash -l {0}
+        run: |
+          python build.py --platform ${{ matrix.platform }} --arch ${{ matrix.arch }} --step ollama
+
       - name: Package react
         shell: bash -l {0}
         run: |
@@ -72,8 +82,7 @@ jobs:
             build/*.exe
             build/*.dmg
             build/*.zip
-            build/*.json
-
+            build/*.sha256
   upload_assets:
     needs: build
     runs-on: ubuntu-latest
@@ -91,4 +100,4 @@ jobs:
             **/*.exe
             **/*.dmg
             **/*.zip
-            **/*.json
+            **/*.sha256
