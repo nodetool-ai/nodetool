@@ -8,11 +8,9 @@ from platform import system, machine
 import threading
 import subprocess
 import threading
-import tarfile
 import zipfile
 from typing import List, Optional, Callable
 import hashlib
-import json
 import os
 
 # Set up logging
@@ -44,6 +42,13 @@ class Build:
             platform = system().lower()
         if arch is None:
             arch = machine().lower()
+
+        # Normalize architecture
+        if arch == "x86_64":
+            arch = "x64"
+        if arch == "aarch64":
+            arch = "arm64"
+
         self.in_docker = in_docker
         self.clean_build = clean_build
         self.platform = platform
@@ -76,7 +81,7 @@ class Build:
         ffmpeg_dir = self.BUILD_DIR / "ffmpeg"
         self.create_directory(ffmpeg_dir)
 
-        if system().lower() == "windows":
+        if self.platform == "win":
             url = "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip"
             paths = [
                 "ffmpeg-master-latest-win64-gpl/bin/ffmpeg.exe",
@@ -84,7 +89,7 @@ class Build:
             ]
             self.download_and_unzip(url, paths, ffmpeg_dir)
 
-        elif system().lower() == "darwin":
+        elif self.platform == "mac":
 
             self.download_and_unzip(
                 "https://evermeet.cx/ffmpeg/ffmpeg-7.0.2.zip", ["ffmpeg"], ffmpeg_dir
@@ -93,7 +98,7 @@ class Build:
                 "https://evermeet.cx/ffmpeg/ffprobe-7.0.2.zip", ["ffprobe"], ffmpeg_dir
             )
         else:
-            raise BuildError(f"Unsupported platform: {system}")
+            raise BuildError(f"Unsupported platform: {self.platform}")
 
         # Package FFmpeg binaries
         self.package_component("ffmpeg", ffmpeg_dir)
@@ -215,7 +220,7 @@ class Build:
     def ollama(self) -> None:
         """Download and package Ollama."""
         logger.info("Downloading Ollama")
-        if self.platform == "windows":
+        if self.platform == "win":
             self.run_command(
                 [
                     "curl",
@@ -265,7 +270,7 @@ class Build:
             # Package the ollama binary
             self.package_component("ollama", self.BUILD_DIR / "ollama")
         else:
-            raise BuildError(f"Unsupported platform: {system}")
+            raise BuildError(f"Unsupported platform: {self.platform}")
 
     def python(self) -> None:
         """Package Python environment with base packages."""
@@ -482,7 +487,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--platform",
-        choices=["mac", "linux", "win"],
+        choices=["darwin", "linux", "win"],
         help="Target platform for the build (mac, linux, or win)",
     )
     parser.add_argument(

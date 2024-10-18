@@ -562,8 +562,13 @@ async function checkForUpdates() {
     const componentsDir = path.join(app.getPath("userData"), "components");
     await fs.mkdir(componentsDir, { recursive: true });
 
-    const system = process.platform === "win32" ? "win" : "mac";
-    const arch = process.arch === "x64" ? "x64" : "arm64";
+    const system =
+      process.platform === "win32"
+        ? "win"
+        : process.platform === "darwin"
+        ? "darwin"
+        : "linux";
+    const arch = process.arch === "x64";
 
     log(`Checking components for system: ${system}, arch: ${arch}`);
     const componentsToUpdate = await getComponentsToUpdate(
