@@ -79,10 +79,9 @@ jobs:
           name: build-artifacts-${{ matrix.platform }}-${{ matrix.arch }}
           path: |
             build/*.tar
-            build/*.exe
-            build/*.dmg
-            build/*.zip
             build/*.sha256
+            build/**/*.exe
+            build/**/*.dmg
   upload_assets:
     needs: build
     runs-on: ubuntu-latest
@@ -99,5 +98,4 @@ jobs:
             **/*.tar
             **/*.exe
             **/*.dmg
-            **/*.zip
             **/*.sha256
