@@ -87,8 +87,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            build/*.tar
-            build/*.exe
-            build/*.dmg
-            build/*.zip
-            build/*.json
+            **/*.tar
+            **/*.exe
+            **/*.dmg
+            **/*.zip
+            **/*.json
