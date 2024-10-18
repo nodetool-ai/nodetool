@@ -63,17 +63,17 @@ jobs:
         run: |
           python build.py --platform ${{ matrix.platform }} --arch ${{ matrix.arch }} --step electron
 
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: nodetool-${{ matrix.platform }}-${{ matrix.arch }}
-          path: |
-            build/dist/*.dmg
-            build/dist/*.zip
-            build/dist/*.exe
-            build/dist/*.AppImage
-            build/dist/*.deb
-            build/dist/*.rpm
+      # - name: Upload artifacts
+      #   uses: actions/upload-artifact@v3
+      #   with:
+      #     name: nodetool-${{ matrix.platform }}-${{ matrix.arch }}
+      #     path: |
+      #       build/dist/*.dmg
+      #       build/dist/*.zip
+      #       build/dist/*.exe
+      #       build/dist/*.AppImage
+      #       build/dist/*.deb
+      #       build/dist/*.rpm
 
       - name: Create Release
         id: create_release
@@ -93,5 +93,5 @@ jobs:
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: build/*.tar
-          asset_name: ${{ basename }}
+          asset_name: nodetool-${{ matrix.platform }}-${{ matrix.arch }}.tar
           asset_content_type: application/gzip

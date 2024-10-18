@@ -54,9 +54,7 @@ class Build:
             self.WEB_DIR = PROJECT_ROOT / "web"
             self.SRC_DIR = PROJECT_ROOT / "src"
 
-    def download_and_unzip(
-        self, url: str, paths: List[str], move_to_build_dir: bool = True
-    ) -> None:
+    def download_and_unzip(self, url: str, paths: List[str], target_dir: Path) -> None:
         """Download and extract files from a zip archive."""
         import urllib.request
         from io import BytesIO
@@ -66,14 +64,14 @@ class Build:
 
         with zipfile.ZipFile(archive_data) as zip_ref:
             for path in paths:
-                zip_ref.extract(path, self.BUILD_DIR)
-                if move_to_build_dir:
-                    self.move_file(self.BUILD_DIR / path, self.BUILD_DIR)
+                zip_ref.extract(path, target_dir)
 
     def ffmpeg(self) -> None:
         """Download and package FFmpeg binaries."""
         logger.info("Downloading FFmpeg")
         system = platform.system().lower()
+        ffmpeg_dir = self.BUILD_DIR / "ffmpeg"
+        self.create_directory(ffmpeg_dir)
 
         if system == "windows":
             url = "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip"
@@ -81,35 +79,21 @@ class Build:
                 "ffmpeg-master-latest-win64-gpl/bin/ffmpeg.exe",
                 "ffmpeg-master-latest-win64-gpl/bin/ffprobe.exe",
             ]
-            self.download_and_unzip(url, paths)
+            self.download_and_unzip(url, paths, ffmpeg_dir)
 
-            # Package FFmpeg executables
-            ffmpeg_files = [
-                self.BUILD_DIR / "ffmpeg.exe",
-                self.BUILD_DIR / "ffprobe.exe",
-            ]
-            for file in ffmpeg_files:
-                component_hash = self.compute_hash(file)
-                hashed_file = (
-                    self.BUILD_DIR / f"{file.stem}_{component_hash}{file.suffix}"
-                )
-                self.move_file(file, hashed_file)
         elif system == "darwin":
-            self.download_and_unzip(
-                "https://evermeet.cx/ffmpeg/ffmpeg-7.0.2.zip", ["ffmpeg"], False
-            )
-            self.download_and_unzip(
-                "https://evermeet.cx/ffmpeg/ffprobe-7.0.2.zip", ["ffprobe"], False
-            )
 
-            # Package FFmpeg binaries
-            ffmpeg_files = [self.BUILD_DIR / "ffmpeg", self.BUILD_DIR / "ffprobe"]
-            for file in ffmpeg_files:
-                component_hash = self.compute_hash(file)
-                hashed_file = self.BUILD_DIR / f"{file.stem}_{component_hash}"
-                self.move_file(file, hashed_file)
+            self.download_and_unzip(
+                "https://evermeet.cx/ffmpeg/ffmpeg-7.0.2.zip", ["ffmpeg"], ffmpeg_dir
+            )
+            self.download_and_unzip(
+                "https://evermeet.cx/ffmpeg/ffprobe-7.0.2.zip", ["ffprobe"], ffmpeg_dir
+            )
         else:
             raise BuildError(f"Unsupported platform: {system}")
+
+        # Package FFmpeg binaries
+        self.package_component("ffmpeg", ffmpeg_dir)
 
     def run_command(
         self,
@@ -377,6 +361,7 @@ class Build:
             sys.exit(1)
         except Exception as e:
             logger.error(f"Unexpected error in {step_func.__name__}: {str(e)}")
+            logger.error(traceback.format_exc())
             sys.exit(1)
 
     def run(self) -> None:

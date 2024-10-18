@@ -457,8 +457,8 @@ async function checkForUpdates() {
   try {
     log("Checking for updates");
 
-    const owner = "your-github-username";
-    const repo = "your-repo-name";
+    const owner = "nodetool-ai";
+    const repo = "nodetool";
 
     const latestRelease = await fetchLatestRelease(owner, repo);
     const assets = latestRelease.assets;
