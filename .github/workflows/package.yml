@@ -75,7 +75,34 @@ jobs:
           prerelease: false
 
       - name: Upload Release Assets
-        uses: AButler/upload-release-assets@v3.0
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          files: "build/*.tar;build/*.dmg;build/*.exe;build/*.zip"
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ${{ matrix.asset }}
+          asset_name: ${{ basename(matrix.asset) }}
+          asset_content_type: application/octet-stream
+
+  upload_assets:
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        asset: [python_env.tar, ffmpeg.tar, ollama.tar, src.tar, web.tar]
+
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: build-artifacts
+
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.build.outputs.upload_url }}
+          asset_path: ./build/${{ matrix.asset }}
+          asset_name: ${{ matrix.asset }}
+          asset_content_type: application/x-tar

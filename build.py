@@ -12,6 +12,7 @@ import tarfile
 import zipfile
 from typing import List, Optional, Callable
 import hashlib
+import json
 
 # Set up logging
 logging.basicConfig(
@@ -411,7 +412,7 @@ class Build:
         return hash_sha256.hexdigest()
 
     def package_component(self, name: str, source_dir: Path | None = None) -> None:
-        """Package a component directory into an archive with hash in filename."""
+        """Package a component directory into an archive and update manifest."""
         logger.info(f"Packing {name}")
 
         if name.endswith(".tar"):
@@ -438,13 +439,19 @@ class Build:
         # Compute hash of the archive
         component_hash = self.compute_hash(archive_path)
 
-        # Rename the archive to include the hash
-        hashed_archive_name = f"{name}_{component_hash}.tar"
-        hashed_archive_path = self.BUILD_DIR / hashed_archive_name
+        # Update manifest with the hash
+        manifest_path = self.BUILD_DIR / "manifest.json"
+        manifest = {}
+        if manifest_path.exists():
+            with open(manifest_path, "r") as f:
+                manifest = json.load(f)
 
-        self.move_file(archive_path, hashed_archive_path)
+        manifest[name] = component_hash
 
-        # Remove the source directory
+        with open(manifest_path, "w") as f:
+            json.dump(manifest, f, indent=2)
+
+        # Remove the source directory if it's not a .tar file
         if not name.endswith(".tar"):
             self.remove_directory(source_dir)
 
