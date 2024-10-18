@@ -10,8 +10,11 @@ import os
 import shutil
 from fastapi import FastAPI
 
+from nodetool.common.environment import Environment
 from nodetool.metadata.types import CLASSNAME_TO_MODEL_TYPE, HuggingFaceModel
 from nodetool.workflows.base_node import get_recommended_models
+
+log = Environment.get_logger()
 
 # Add a new in-memory cache
 model_info_cache = {}
@@ -88,10 +91,16 @@ async def fetch_model_info(model_id: str) -> ModelInfo | None:
         return model_info_cache[model_id]
 
     async with httpx.AsyncClient() as client:
-        response = await client.get(f"https://huggingface.co/api/models/{model_id}")
+        try:
+            response = await client.get(f"https://huggingface.co/api/models/{model_id}")
+        except httpx.ConnectError as e:
+            log.info("Huggingface not reachable")
+            return None
+
         if response.status_code != 200:
             model_info_cache[model_id] = None
             return None
+
         model_info = ModelInfo(**response.json())
 
         # Cache the model info
