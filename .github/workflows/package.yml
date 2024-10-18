@@ -72,6 +72,7 @@ jobs:
             build/*.exe
             build/*.dmg
             build/*.zip
+            build/*.json
 
   upload_assets:
     needs: build
@@ -83,12 +84,11 @@ jobs:
           path: build
 
       - name: Create Release and Upload Assets
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
-          files: build/**/*
-          tag_name: ${{ github.ref_name }}
-          name: Release ${{ github.ref_name }}
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          files: |
+            build/*.tar
+            build/*.exe
+            build/*.dmg
+            build/*.zip
+            build/*.json

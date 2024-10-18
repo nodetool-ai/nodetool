@@ -447,15 +447,20 @@ class WorkflowRunner:
         try:
             inputs = context.get_node_inputs(node.id)
             log.debug(f"{node.get_title()} ({node._id}) inputs: {inputs}")
+            properties_for_update = {}
 
             for name, value in inputs.items():
                 try:
+                    properties_for_update[name] = value
                     node.assign_property(name, value)
                 except Exception as e:
                     log.warn(f"Error assigning property {name} to node {node.id}: {e}")
 
             log.debug(f"Pre-processing node: {node.get_title()} ({node._id})")
             await node.pre_process(context)
+
+            if len(properties_for_update) > 0:
+                node.send_update(context, "running", properties=properties_for_update)
 
             if node.is_cacheable():
                 log.debug(f"Checking cache for node: {node.get_title()} ({node._id})")

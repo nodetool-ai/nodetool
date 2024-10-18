@@ -441,16 +441,6 @@ class BaseNode(BaseModel):
         """
         return {}
 
-    def get_properties_for_update(self, names: list[str]):
-        """
-        Includes all properties in the update message.
-        """
-        return {
-            prop.name: getattr(self, prop.name)
-            for prop in self.properties()
-            if prop.name in names
-        }
-
     def result_for_client(self, result: dict[str, Any]) -> dict[str, Any]:
         """
         Prepares the node result for inclusion in a NodeUpdate message.
@@ -492,6 +482,7 @@ class BaseNode(BaseModel):
         self,
         context: Any,
         status: str,
+        properties: dict[str, Any] | None = None,
         result: dict[str, Any] | None = None,
     ):
         """
@@ -502,12 +493,15 @@ class BaseNode(BaseModel):
             status (str): The status of the node.
             result (dict[str, Any], optional): The result of the node's processing. Defaults to {}.
         """
+        props = self.properties_for_client()
+        if properties is not None:
+            props.update(properties)
         update = NodeUpdate(
             node_id=self.id,
             node_name=self.get_title(),
             status=status,
             result=self.result_for_client(result) if result is not None else None,
-            properties=self.properties_for_client(),
+            properties=props,
         )
         context.post_message(update)
 
