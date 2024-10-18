@@ -44,13 +44,13 @@ let serverState = {
 /** @type {string[]} */
 const windowsPipArgs = [
   "install",
-  "nodetool==0.5.0-preview.1",
+  "nodetool==0.5.0-preview.2",
   "--extra-index-url",
   "https://download.pytorch.org/whl/cu121",
 ];
 
 /** @type {string[]} */
-const macPipArgs = ["install", "nodetool==0.5.0-preview.1"];
+const macPipArgs = ["install", "nodetool==0.5.0-preview.2"];
 
 /**
  * Install Python requirements
