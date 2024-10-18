@@ -9,7 +9,6 @@ from nodetool.types.asset import AssetCreateRequest, AssetUpdateRequest
 from tests.conftest import make_image
 
 
-test_mp4 = os.path.join(os.path.dirname(os.path.dirname(__file__)), "test.mp4")
 test_jpg = os.path.join(os.path.dirname(os.path.dirname(__file__)), "test.jpg")
 
 

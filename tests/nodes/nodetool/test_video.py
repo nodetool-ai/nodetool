@@ -1,5 +1,5 @@
-import tempfile
 import numpy as np
+import base64
 import pytest
 import PIL.Image
 from nodetool.workflows.processing_context import ProcessingContext
@@ -31,44 +31,21 @@ from nodetool.nodes.nodetool.video import (
     AddAudio,
     ChromaKey,
 )
-from moviepy.editor import VideoClip
 from io import BytesIO
 from pydub import AudioSegment
+import os
 
-
-def create_video_bytes(duration=5, fps=24, size=(320, 240)):
-    """
-    Create a simple video file as bytes.
-
-    :param duration: Duration of the video in seconds
-    :param fps: Frames per second
-    :param size: Tuple of (width, height) for the video
-    :return: Bytes object containing the video file
-    """
-
-    def make_frame(t):
-        """Generate a frame at time t."""
-        frame = np.zeros((size[1], size[0], 3), dtype=np.uint8)
-        x = int(size[0] * t / duration)
-        y = int(size[1] * t / duration)
-        frame[y, x] = [255, 0, 0]  # Red pixel
-        return frame
-
-    # Create the video clip
-    video = VideoClip(make_frame, duration=duration)
-
-    with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as temp_file:
-        video.write_videofile(
-            temp_file.name, codec="libx264", fps=fps, verbose=False, logger=None
-        )
-        return temp_file.read()
-
+test_mp4 = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))),
+    "test.mp4",
+)
 
 buffer = BytesIO()
 AudioSegment.silent(5000, 44_100).export(buffer, format="mp3")
 dummy_audio = AudioRef(data=buffer.getvalue())
-
-dummy_video = VideoRef(data=create_video_bytes())
+dummy_video = VideoRef(
+    uri=f"data:video/mp4;base64,{base64.b64encode(open(test_mp4, 'rb').read()).decode()}"
+)
 
 # Create a dummy ImageRef for testing
 buffer = BytesIO()
