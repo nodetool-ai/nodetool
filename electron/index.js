@@ -44,18 +44,13 @@ let serverState = {
 /** @type {string[]} */
 const windowsPipArgs = [
   "install",
-  "-r",
-  path.join(resourcesPath, "requirements.txt"),
+  "nodetool==0.5.0-preview.1",
   "--extra-index-url",
   "https://download.pytorch.org/whl/cu121",
 ];
 
 /** @type {string[]} */
-const macPipArgs = [
-  "install",
-  "-r",
-  path.join(resourcesPath, "requirements.txt"),
-];
+const macPipArgs = ["install", "nodetool==0.5.0-preview.1"];
 
 /**
  * Install Python requirements
@@ -66,12 +61,21 @@ async function installRequirements() {
   const pipArgs = process.platform === "darwin" ? macPipArgs : windowsPipArgs;
   log(`Using pip arguments: ${pipArgs.join(" ")}`);
 
+  // Check if nodetool 0.5.0-preview.1 is already installed
+  const isNodeToolInstalled = await checkNodeToolInstalled();
+  if (isNodeToolInstalled) {
+    log(
+      "nodetool 0.5.0-preview.1 is already installed. Skipping installation."
+    );
+    return;
+  }
+
   // Use pythonExecutable instead of relying on system PATH
   const pipProcess = spawn(pythonExecutable, ["-m", "pip", ...pipArgs], {
     env,
   });
 
-  emitBootMessage("Installing requirements");
+  emitBootMessage("Installing Python packages");
   log(
     `Starting pip install with command: ${pythonExecutable} -m pip ${pipArgs.join(
       " "
@@ -297,14 +301,11 @@ async function startServer() {
     log(`Site-packages directory: ${sitePackagesDir}`);
 
     if (pythonEnvExists) {
-      log("Using downloaded Python environment");
-      env.PYTHONPATH = path.join(componentsDir, "src");
-      log(`Set PYTHONPATH to: ${env.PYTHONPATH}`);
-
       env.PATH = `${path.join(componentsDir, "ollama")}:${env.PATH}`;
       log(`Updated PATH: ${env.PATH}`);
 
       webDir = path.join(componentsDir, "web");
+      log(`Web directory: ${webDir}`);
     } else {
       throw new Error("Python environment is not available");
     }
@@ -541,7 +542,7 @@ async function getLocalManifest() {
   const components = [];
 
   // List of component names
-  const componentNames = ["python_env", "src", "web", "ollama", "ffmpeg"];
+  const componentNames = ["python_env", "web", "ollama", "ffmpeg"];
 
   for (const name of componentNames) {
     const files = await fs.readdir(componentsDir).catch(() => []);
@@ -643,4 +644,31 @@ async function fetchLatestRelease(owner, repo) {
 
   const releaseData = await response.json();
   return releaseData;
+}
+
+async function checkNodeToolInstalled() {
+  return new Promise((resolve) => {
+    const checkProcess = spawn(
+      pythonExecutable,
+      [
+        "-c",
+        "import pkg_resources; print(pkg_resources.get_distribution('nodetool').version)",
+      ],
+      { env }
+    );
+
+    let output = "";
+
+    checkProcess.stdout.on("data", (data) => {
+      output += data.toString();
+    });
+
+    checkProcess.on("close", (code) => {
+      if (code === 0 && output.trim() === "0.5.0-preview.1") {
+        resolve(true);
+      } else {
+        resolve(false);
+      }
+    });
+  });
 }

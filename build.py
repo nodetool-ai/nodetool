@@ -48,12 +48,10 @@ class Build:
             self.BUILD_DIR = Path("/build")
             self.ELECTRON_DIR = Path("/app/electron")
             self.WEB_DIR = Path("/app/web")
-            self.SRC_DIR = Path("/app/src")
         else:
             self.BUILD_DIR = PROJECT_ROOT / "build"
             self.ELECTRON_DIR = PROJECT_ROOT / "electron"
             self.WEB_DIR = PROJECT_ROOT / "web"
-            self.SRC_DIR = PROJECT_ROOT / "src"
 
     def download_and_unzip(self, url: str, paths: List[str], target_dir: Path) -> None:
         """Download and extract files from a zip archive."""
@@ -273,7 +271,6 @@ class Build:
         self.run_command(["conda", "install", "-n", CONDA_ENV, "conda-pack", "-y"])
 
         # Use conda-pack to create an environment directory
-        python_env_dir = self.BUILD_DIR / "python_env"
         python_env_tar = self.BUILD_DIR / "python_env.tar"
         if python_env_tar.exists():
             self.remove_file(python_env_tar)
@@ -294,10 +291,6 @@ class Build:
 
         # Write manifest entry for python_env.tar
         self.write_manifest_entry("python_env.tar", python_env_tar)
-
-        # Copy and package the src directory
-        self.copy_tree(self.SRC_DIR, self.BUILD_DIR / "src")
-        self.package_component("src", self.BUILD_DIR / "src")
 
     def react(self) -> None:
         """Build React app."""
