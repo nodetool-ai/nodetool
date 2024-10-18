@@ -10,7 +10,7 @@
   ],
   "description": "Apply the style of an image to another image",
   "thumbnail": "",
-  "thumbnail_url": "/images/style_transfer.jpg",
+  "thumbnail_url": "/examples/style_transfer.jpg",
   "graph": {
     "nodes": [
       {
