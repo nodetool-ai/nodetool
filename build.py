@@ -4,7 +4,7 @@ import logging
 import subprocess
 import sys
 from pathlib import Path
-import platform
+from platform import system, machine
 import threading
 import subprocess
 import threading
@@ -13,6 +13,7 @@ import zipfile
 from typing import List, Optional, Callable
 import hashlib
 import json
+import os
 
 # Set up logging
 logging.basicConfig(
@@ -35,10 +36,14 @@ class Build:
         self,
         in_docker: bool = False,
         clean_build: bool = False,
-        platform: str = platform.system().lower(),
-        arch: str = platform.machine().lower(),
+        platform: str | None = None,
+        arch: str | None = None,
     ):
         """Initialize Build configuration."""
+        if platform is None:
+            platform = system().lower()
+        if arch is None:
+            arch = machine().lower()
         self.in_docker = in_docker
         self.clean_build = clean_build
         self.platform = platform
@@ -68,11 +73,10 @@ class Build:
     def ffmpeg(self) -> None:
         """Download and package FFmpeg binaries."""
         logger.info("Downloading FFmpeg")
-        system = platform.system().lower()
         ffmpeg_dir = self.BUILD_DIR / "ffmpeg"
         self.create_directory(ffmpeg_dir)
 
-        if system == "windows":
+        if system().lower() == "windows":
             url = "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip"
             paths = [
                 "ffmpeg-master-latest-win64-gpl/bin/ffmpeg.exe",
@@ -80,7 +84,7 @@ class Build:
             ]
             self.download_and_unzip(url, paths, ffmpeg_dir)
 
-        elif system == "darwin":
+        elif system().lower() == "darwin":
 
             self.download_and_unzip(
                 "https://evermeet.cx/ffmpeg/ffmpeg-7.0.2.zip", ["ffmpeg"], ffmpeg_dir
@@ -211,8 +215,7 @@ class Build:
     def ollama(self) -> None:
         """Download and package Ollama."""
         logger.info("Downloading Ollama")
-        system = platform.system().lower()
-        if system == "windows":
+        if self.platform == "windows":
             self.run_command(
                 [
                     "curl",
@@ -247,7 +250,7 @@ class Build:
 
             # Package the ollama directory
             self.package_component("ollama", self.BUILD_DIR / "ollama")
-        elif system == "darwin":
+        elif self.platform == "darwin":
             self.run_command(
                 [
                     "curl",
@@ -265,15 +268,44 @@ class Build:
             raise BuildError(f"Unsupported platform: {system}")
 
     def python(self) -> None:
-        """Package Python environment."""
-        logger.info("Packing Python environment")
+        """Package Python environment with base packages."""
+        logger.info("Setting up and packing Python environment")
 
-        self.run_command(["conda", "install", "-n", CONDA_ENV, "conda-pack", "-y"])
+        # Get dependencies, excluding ML libraries
+        base_packages = [
+            "numpy",
+            "matplotlib",
+            "pandas",
+            "scikit-learn",
+            "scikit-image",
+            "scipy",
+            "seaborn",
+            "statsmodels",
+            "sympy",
+            "opencv-python-headless",
+            "pillow",
+            "pydub",
+            "librosa",
+            "ffmpeg",
+            "moviepy",
+            "fastapi",
+            "aiofiles",
+            "aiohttp",
+            "pyyaml",
+            "pydantic",
+            "pyarrow",
+        ]
+
+        # Install base packages
+        self.run_command(
+            ["conda", "run", "-n", CONDA_ENV, "pip", "install", "--no-cache-dir"]
+            + base_packages
+        )
 
         # Use conda-pack to create an environment directory
-        python_env_tar = self.BUILD_DIR / f"python_env-{self.platform}-{self.arch}.tar"
-        if python_env_tar.exists():
-            self.remove_file(python_env_tar)
+        python_env_zip = self.BUILD_DIR / f"python_env-{self.platform}-{self.arch}.zip"
+        if python_env_zip.exists():
+            self.remove_file(python_env_zip)
 
         self.run_command(
             [
@@ -285,12 +317,14 @@ class Build:
                 "-j",
                 "8",
                 "-o",
-                str(python_env_tar),
-            ],
+                str(python_env_zip),
+                "--format",
+                "zip",
+            ]
         )
 
-        # Create checksum file for python_env.tar
-        self.write_checksum_file(python_env_tar)
+        # Create checksum file for python_env.zip
+        self.write_checksum_file(python_env_zip)
 
     def react(self) -> None:
         """Build React app."""
@@ -408,41 +442,27 @@ class Build:
             f.write(checksum)
 
     def package_component(self, name: str, source_dir: Path | None = None) -> None:
-        """Package a component directory into an archive and create checksum file."""
+        """Package a component directory into a zip archive and create checksum file."""
         logger.info(f"Packing {name}")
 
         if source_dir is None:
-            raise BuildError("source_dir is required for non-tar archives")
+            raise BuildError("source_dir is required for zip archives")
 
-        # Create archive of the source_dir
-        archive_name = f"{name}-{self.platform}-{self.arch}.tar"
+        # Create zip archive of the source_dir
+        archive_name = f"{name}-{self.platform}-{self.arch}.zip"
         archive_path = self.BUILD_DIR / archive_name
 
-        if platform.system().lower() == "windows":
-            tar_command = [
-                "C:\\Windows\\system32\\tar.exe",
-                "-cf",
-                str(archive_path),
-                "-C",
-                str(source_dir.parent),
-                source_dir.name,
-            ]
-        else:
-            tar_command = [
-                "tar",
-                "-cf",
-                str(archive_path),
-                "-C",
-                str(source_dir.parent),
-                source_dir.name,
-            ]
-
-        self.run_command(tar_command)
+        with zipfile.ZipFile(archive_path, "w", zipfile.ZIP_DEFLATED) as zipf:
+            for root, _, files in os.walk(source_dir):
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    arcname = os.path.relpath(file_path, source_dir)
+                    zipf.write(file_path, arcname)
 
         # Create checksum file for the archive
         self.write_checksum_file(archive_path)
 
-        # Remove the source directory if it's not a .tar file
+        # Remove the source directory
         self.remove_directory(source_dir)
 
 

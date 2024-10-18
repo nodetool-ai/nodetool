@@ -2,7 +2,65 @@
  * This file is the entry point for the Electron app.
  * It is responsible for creating the main window and starting the server.
  * NodeTool is a no-code AI development platform that allows users to create and run complex AI workflows.
+ *
  * @typedef {import('electron').BrowserWindow} BrowserWindow
+ */
+
+/**
+ * NodeTool Installation and Update Process
+ *
+ * This file manages the installation, updating, and running of the NodeTool application.
+ * It handles dependency management, component updates, and server initialization.
+ *
+ * Installation and Update Procedure:
+ *
+ * 1. Application Startup:
+ *    - The Electron app initializes and creates the main window.
+ *    - It then calls `checkForUpdates()` to ensure all components are up-to-date.
+ *
+ * 2. Update Check (checkForUpdates function):
+ *    - Fetches the latest release information from GitHub.
+ *    - Determines which components need updating based on local and remote checksums.
+ *    - Components checked: python_env, web, ollama, ffmpeg.
+ *    - For each component that needs updating:
+ *      a. Downloads the component package (.zip file) and its checksum.
+ *      b. Verifies the downloaded package's integrity using SHA256 checksum.
+ *      c. Extracts the package to the components directory.
+ *
+ * 3. Server Initialization (startServer function):
+ *    - Sets up paths for Python and pip executables.
+ *    - Checks if a local Python environment exists.
+ *    - If it exists, uses the local environment; otherwise, uses system Python.
+ *    - Updates PATH to include Ollama directory.
+ *    - Calls `runNodeTool()` to start the server.
+ *
+ * 4. NodeTool Installation (installRequirements function):
+ *    - Checks if the correct version of NodeTool is already installed.
+ *    - If not installed or outdated, uses pip to install the specified version.
+ *    - Installation command varies based on the platform (Windows or macOS).
+ *
+ * 5. Running NodeTool (runNodeTool function):
+ *    - Spawns a child process to run the NodeTool server.
+ *    - Monitors server output for successful startup and logs.
+ *    - Handles server errors and unexpected exits.
+ *
+ * Additional Features:
+ * - Graceful shutdown procedure to ensure clean app closure.
+ * - IPC communication between main process and renderer for status updates.
+ * - Logging system for tracking installation and runtime events.
+ *
+ * Error Handling:
+ * - Comprehensive error catching and reporting throughout the process.
+ * - User notifications via dialog boxes for critical errors.
+ * - Automatic app restart on server crashes.
+ *
+ * Platform Specifics:
+ * - Handles differences between Windows and macOS for file paths and commands.
+ * - Uses platform-specific package URLs and checksums for component updates.
+ *
+ * This process ensures that the NodeTool application is always up-to-date with the latest
+ * components and runs with the correct dependencies, providing a smooth user experience
+ * across different platforms.
  */
 
 const { app, BrowserWindow, ipcMain, dialog } = require("electron");
@@ -12,10 +70,8 @@ const { spawn } = require("child_process");
 const https = require("https");
 const { createWriteStream } = require("fs");
 const crypto = require("crypto");
-const tar = require("tar");
-
-// For making HTTP requests (GitHub API)
-const fetch = require("node-fetch");
+const unzip = require("unzip-stream");
+const VERSION = "0.5.0-preview.2";
 
 /** @type {BrowserWindow|null} */
 let mainWindow;
@@ -44,13 +100,13 @@ let serverState = {
 /** @type {string[]} */
 const windowsPipArgs = [
   "install",
-  "nodetool==0.5.0-preview.2",
+  `nodetool==${VERSION}`,
   "--extra-index-url",
   "https://download.pytorch.org/whl/cu121",
 ];
 
 /** @type {string[]} */
-const macPipArgs = ["install", "nodetool==0.5.0-preview.2"];
+const macPipArgs = ["install", `nodetool==${VERSION}`];
 
 /**
  * Install Python requirements
@@ -61,12 +117,10 @@ async function installRequirements() {
   const pipArgs = process.platform === "darwin" ? macPipArgs : windowsPipArgs;
   log(`Using pip arguments: ${pipArgs.join(" ")}`);
 
-  // Check if nodetool 0.5.0-preview.1 is already installed
+  // Check if nodetool VERSION is already installed
   const isNodeToolInstalled = await checkNodeToolInstalled();
   if (isNodeToolInstalled) {
-    log(
-      "nodetool 0.5.0-preview.1 is already installed. Skipping installation."
-    );
+    log(`nodetool ${VERSION} is already installed. Skipping installation.`);
     return;
   }
 
@@ -82,14 +136,20 @@ async function installRequirements() {
     )}`
   );
 
+  let output = "";
+
   pipProcess.stdout.on("data", (/** @type {Buffer} */ data) => {
-    console.log(data.toString());
-    emitServerLog(data.toString());
+    const chunk = data.toString();
+    console.log(chunk);
+    output += chunk;
+    emitServerLog(chunk);
   });
 
   pipProcess.stderr.on("data", (/** @type {Buffer} */ data) => {
-    console.log(data.toString());
-    emitServerLog(data.toString());
+    const chunk = data.toString();
+    console.log(chunk);
+    output += chunk;
+    emitServerLog(chunk);
   });
 
   return new Promise((resolve, reject) => {
@@ -99,7 +159,20 @@ async function installRequirements() {
         resolve();
       } else {
         log(`pip install process exited with code ${code}`);
-        reject(new Error(`pip install process exited with code ${code}`));
+        const errorMessage = `
+Error: pip installation failed with code ${code}.
+
+Please follow these steps:
+1. Uninstall the app and download the newest release from GitHub:
+   https://github.com/nodetool-ai/nodetool/releases
+
+2. If the problem persists, please report an issue on GitHub with the following logs:
+
+${output}
+
+https://github.com/nodetool-ai/nodetool/issues/new
+`;
+        reject(new Error(errorMessage));
       }
     });
   });
@@ -217,23 +290,44 @@ async function downloadFile(url, dest) {
   log(`Downloading file from ${url} to ${dest}`);
   return new Promise((resolve, reject) => {
     const file = createWriteStream(dest);
-    https
-      .get(url, (response) => {
-        log(`Download started. Status code: ${response.statusCode}`);
-        response.pipe(file);
-        file.on("finish", () => {
-          file.close(() => {
-            log(`Download completed: ${dest}`);
-            resolve();
-          });
-        });
-      })
-      .on("error", (err) => {
-        fs.unlink(dest, () => {
-          log(`Error downloading file: ${err.message}`);
-          reject(err);
+    let downloadedBytes = 0;
+    let totalBytes = 0;
+
+    const request = https.get(url, handleResponse);
+    request.on("error", handleError);
+
+    function handleResponse(response) {
+      if (response.statusCode === 302) {
+        https
+          .get(response.headers.location, handleResponse)
+          .on("error", handleError);
+        return;
+      }
+
+      totalBytes = parseInt(response.headers["content-length"], 10);
+      log(`Download started. Total size: ${totalBytes} bytes`);
+
+      response.on("data", (chunk) => {
+        downloadedBytes += chunk.length;
+        const progress = (downloadedBytes / totalBytes) * 100;
+        emitDownloadProgress(path.basename(dest), progress);
+      });
+
+      response.pipe(file);
+      file.on("finish", () => {
+        file.close(() => {
+          log(`Download completed: ${dest}`);
+          resolve();
         });
       });
+    }
+
+    function handleError(err) {
+      fs.unlink(dest, () => {
+        log(`Error downloading file: ${err.message}`);
+        reject(err);
+      });
+    }
   });
 }
 
@@ -311,13 +405,11 @@ async function startServer() {
     }
 
     log("Attempting to run NodeTool");
+    await installRequirements();
     runNodeTool(env);
   } catch (error) {
-    log(`Critical error starting server: ${error.message}`);
-    dialog.showErrorBox(
-      "Critical Error",
-      `Failed to start the server: ${error.message}`
-    );
+    log(`Critical error starting server: ${error.message}`, "error");
+    dialog.showErrorBox("Critical Error", error.message);
     app.exit(1);
   }
 }
@@ -457,11 +549,14 @@ function log(message, level = "info") {
 async function checkForUpdates() {
   try {
     log("Checking for updates");
+    emitUpdateStep("Checking for updates");
 
     const owner = "nodetool-ai";
     const repo = "nodetool";
 
+    log("Fetching latest release information");
     const latestRelease = await fetchLatestRelease(owner, repo);
+    log(`Latest release: ${latestRelease.tag_name}`);
     const assets = latestRelease.assets;
 
     const componentsDir = path.join(app.getPath("userData"), "components");
@@ -470,6 +565,7 @@ async function checkForUpdates() {
     const system = process.platform === "win32" ? "win" : "mac";
     const arch = process.arch === "x64" ? "x64" : "arm64";
 
+    log(`Checking components for system: ${system}, arch: ${arch}`);
     const componentsToUpdate = await getComponentsToUpdate(
       assets,
       system,
@@ -483,15 +579,54 @@ async function checkForUpdates() {
           .map((c) => c.name)
           .join(", ")}`
       );
+      emitUpdateStep(
+        `Updating components: ${componentsToUpdate
+          .map((c) => c.name)
+          .join(", ")}`
+      );
 
       for (const component of componentsToUpdate) {
-        await downloadAndExtractComponent(component, componentsDir);
+        try {
+          log(`Starting update for ${component.name}`);
+          emitUpdateStep(`Downloading ${component.name}`);
+          const strip = component.name === "python_env" ? 0 : 1;
+          await downloadAndExtractComponent(component, componentsDir, strip);
+          log(`Finished updating ${component.name}`);
+          emitUpdateStep(`Finished updating ${component.name}`);
+        } catch (error) {
+          log(`Error updating ${component.name}: ${error.message}`, "error");
+          if (component.name === "python_env" || component.name === "web") {
+            const errorMessage = `
+Error: Failed to update ${component.name}.
+
+Please follow these steps:
+1. Uninstall the app and download the newest release from GitHub:
+   https://github.com/nodetool-ai/nodetool/releases
+
+2. If the problem persists, please report an issue on GitHub with the following logs:
+
+${error.message}
+
+https://github.com/nodetool-ai/nodetool/issues/new
+`;
+            throw new Error(errorMessage);
+          } else {
+            log(
+              `Warning: Failed to update ${component.name}: ${error.message}`,
+              "warn"
+            );
+          }
+        }
       }
     } else {
       log("All components are up to date");
+      emitUpdateStep("All components are up to date");
     }
   } catch (error) {
     log(`Error checking for updates: ${error.message}`, "error");
+    emitUpdateStep(`Error: ${error.message}`);
+    dialog.showErrorBox("Update Error", error.message);
+    app.exit(1);
   }
 }
 
@@ -508,8 +643,9 @@ async function getComponentsToUpdate(assets, system, arch, componentsDir) {
   const componentNames = ["python_env", "web", "ollama", "ffmpeg"];
 
   for (const name of componentNames) {
-    const assetName = `${name}-${system}-${arch}.tar`;
-    const checksumName = `${assetName}.sha256`;
+    // Change file extension from .tar to .zip
+    const assetName = `${name}-${system}-${arch}.zip`;
+    const checksumName = `${name}-${system}-${arch}.sha256`;
 
     const asset = assets.find((a) => a.name === assetName);
     const checksumAsset = assets.find((a) => a.name === checksumName);
@@ -554,9 +690,14 @@ async function getLocalChecksum(componentsDir, componentName) {
  * @param {string} componentsDir
  * @returns {Promise<void>}
  */
-async function downloadAndExtractComponent(component, componentsDir) {
+async function downloadAndExtractComponent(
+  component,
+  componentsDir,
+  strip = 1
+) {
   const tempFile = path.join(componentsDir, `${component.name}.tmp`);
-  const finalFile = path.join(componentsDir, `${component.name}.tar`);
+  // Change file extension from .tar to .zip
+  const finalFile = path.join(componentsDir, `${component.name}.zip`);
   const checksumFile = path.join(componentsDir, `${component.name}.sha256`);
 
   log(`Downloading ${component.name} from ${component.url}`);
@@ -581,9 +722,13 @@ async function downloadAndExtractComponent(component, componentsDir) {
   await fs.writeFile(checksumFile, checksum);
 
   // Extract the component
-  await extractTar(finalFile, componentsDir);
+  log(`Extracting ${component.name} to ${componentsDir}`);
+  await extractZip(finalFile, componentsDir, component.name, strip);
 
-  log(`${component.name} updated successfully`);
+  // Remove the zip file
+  await fs.unlink(finalFile);
+
+  log(`${component.name} extracted successfully`);
 }
 
 /**
@@ -602,39 +747,119 @@ async function computeFileHash(filePath) {
 }
 
 /**
- * Extract a tar archive
- * @param {string} archivePath - Path to the tar file
+ * Extract a zip archive
+ * @param {string} archivePath - Path to the zip file
  * @param {string} extractTo - Directory to extract to
+ * @param {string} componentName - Name of the component being extracted
+ * @param {number} strip - Number of directories to strip from the archive
  * @returns {Promise<void>}
  */
-async function extractTar(archivePath, extractTo) {
-  return tar.x({
-    file: archivePath,
-    cwd: extractTo,
+async function extractZip(archivePath, extractTo, componentName, strip = 1) {
+  log(`Starting extraction of ${archivePath} to ${extractTo}`);
+  const componentDir = path.join(extractTo, componentName);
+
+  // Create the component directory if it doesn't exist
+  await fs.mkdir(componentDir, { recursive: true });
+
+  return new Promise((resolve, reject) => {
+    fs.createReadStream(archivePath)
+      .pipe(unzip.Extract({ path: componentDir }))
+      .on("close", () => {
+        log(`Finished extraction of ${archivePath} to ${componentDir}`);
+        resolve();
+      })
+      .on("error", reject);
   });
 }
 
 /**
- * Fetch the latest release from GitHub
+ * Fetch the latest release from GitHub using the native https module
  * @param {string} owner - GitHub repository owner
  * @param {string} repo - GitHub repository name
  * @returns {Promise<any>}
  */
-async function fetchLatestRelease(owner, repo) {
+function fetchLatestRelease(owner, repo) {
   const apiUrl = `https://api.github.com/repos/${owner}/${repo}/releases/latest`;
+  const headers = {
+    Accept: "application/vnd.github.v3+json",
+    "User-Agent": "NodeTool-Electron-App",
+  };
 
-  const response = await fetch(apiUrl, {
-    headers: {
-      Accept: "application/vnd.github.v3+json",
-    },
+  return new Promise((resolve, reject) => {
+    const options = {
+      headers: headers,
+    };
+
+    const request = https.get(apiUrl, options, handleResponse);
+    request.on("error", reject);
+
+    function handleResponse(res) {
+      if (res.statusCode === 302) {
+        https
+          .get(res.headers.location, options, handleResponse)
+          .on("error", reject);
+        return;
+      }
+
+      let data = "";
+      res.on("data", (chunk) => {
+        data += chunk;
+      });
+
+      res.on("end", () => {
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          try {
+            const releaseData = JSON.parse(data);
+            resolve(releaseData);
+          } catch (error) {
+            reject(new Error(`Error parsing JSON: ${error.message}`));
+          }
+        } else {
+          reject(
+            new Error(
+              `Failed to fetch latest release: ${res.statusCode} ${res.statusMessage}`
+            )
+          );
+        }
+      });
+    }
   });
+}
 
-  if (!response.ok) {
-    throw new Error(`Failed to fetch latest release: ${response.statusText}`);
-  }
+/**
+ * Download a file from a URL and return its contents as a string
+ * @param {string} url - The URL to download from
+ * @returns {Promise<string>}
+ */
+function downloadFileToString(url) {
+  return new Promise((resolve, reject) => {
+    const request = https.get(url, handleResponse);
+    request.on("error", reject);
 
-  const releaseData = await response.json();
-  return releaseData;
+    function handleResponse(res) {
+      if (res.statusCode === 302) {
+        https.get(res.headers.location, handleResponse).on("error", reject);
+        return;
+      }
+
+      let data = "";
+      res.on("data", (chunk) => {
+        data += chunk;
+      });
+
+      res.on("end", () => {
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          resolve(data);
+        } else {
+          reject(
+            new Error(
+              `Failed to download file: ${res.statusCode} ${res.statusMessage}`
+            )
+          );
+        }
+      });
+    }
+  });
 }
 
 async function checkNodeToolInstalled() {
@@ -655,11 +880,35 @@ async function checkNodeToolInstalled() {
     });
 
     checkProcess.on("close", (code) => {
-      if (code === 0 && output.trim() === "0.5.0-preview.1") {
+      if (code === 0 && output.trim() === VERSION) {
         resolve(true);
       } else {
         resolve(false);
       }
     });
   });
+}
+
+// Add these new event emitter functions
+function emitUpdateStep(step) {
+  if (mainWindow && mainWindow.webContents) {
+    try {
+      mainWindow.webContents.send("update-step", step);
+    } catch (error) {
+      console.error("Error emitting update step:", error);
+    }
+  }
+}
+
+function emitDownloadProgress(componentName, progress) {
+  if (mainWindow && mainWindow.webContents) {
+    try {
+      mainWindow.webContents.send("download-progress", {
+        componentName,
+        progress,
+      });
+    } catch (error) {
+      console.error("Error emitting download progress:", error);
+    }
+  }
 }

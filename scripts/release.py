@@ -34,8 +34,8 @@ def update_version_in_constants_ts(new_version: str):
 
 def update_version_in_electron_index(new_version: str):
     index_js_file = Path("electron/index.js")
-    version_regex = r'"nodetool==.*?"'
-    new_version_line = f'"nodetool=={new_version}"'
+    version_regex = r'VERSION = ".*?"'
+    new_version_line = f'VERSION = "{new_version}"'
     update_version_in_file(index_js_file, version_regex, new_version_line, count=2)
 
 

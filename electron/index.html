@@ -186,6 +186,36 @@
             from { width: 0; }
             to { width: 100%; }
         }
+
+        #update-steps {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.8);
+            color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            font-family: 'Inter', sans-serif;
+            z-index: 2000;
+            display: none;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #333;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .progress {
+            width: 0;
+            height: 100%;
+            background-color: #4CAF50;
+            transition: width 0.3s ease;
+        }
     </style>
 </head>
 
@@ -212,6 +242,8 @@
         <div id="log"></div>
     </div>
 
+    <div id="update-steps"></div>
+
     <script>
         // Remove the require('electron') line, we'll use the exposed api instead
         // const { api } = window;
@@ -220,6 +252,7 @@
         const bootMessage = document.getElementById('boot-message');
         const logContainer = document.getElementById('log-container');
         const logToggle = document.getElementById('log-toggle');
+        const updateStepsElement = document.getElementById('update-steps');
 
         function createMatrixLogger(logElement) {
             let lastLogLine = null;
@@ -271,12 +304,30 @@
             contentElement.src = `http://127.0.0.1:8000?nocache=${timestamp}`;
         }
 
+        function showUpdateStep(step) {
+            updateStepsElement.style.display = 'block';
+            updateStepsElement.innerHTML = `
+                <h3>${step}</h3>
+                <div class="progress-bar">
+                    <div class="progress"></div>
+                </div>
+            `;
+        }
+
+        function updateDownloadProgress(componentName, progress) {
+            const progressBar = updateStepsElement.querySelector('.progress');
+            if (progressBar) {
+                progressBar.style.width = `${progress}%`;
+            }
+        }
+
         function initializeApp() {
             api.getServerState().then(({ isStarted, bootMsg, logs }) => {
                 console.log("Server state:", { isStarted, bootMsg, logs });
                 if (isStarted) {
                     loadContentWithNoCaching();
                     bootMessage.style.display = 'none';
+                    updateStepsElement.style.display = 'none';
                 } else {
                     const bootTextElement = document.querySelector('.boot-text');
                     bootTextElement.textContent = bootMsg;
@@ -289,6 +340,7 @@
         api.onServerStarted(() => {
             loadContentWithNoCaching();
             bootMessage.style.display = 'none';
+            updateStepsElement.style.display = 'none';
         });
 
         api.onBootMessage((message) => {
@@ -299,6 +351,15 @@
         api.onServerLog((message) => {
             matrixLogger.log(message);
         });
+
+        api.onUpdateStep((step) => {
+            showUpdateStep(step);
+        });
+
+        api.onDownloadProgress(({ componentName, progress }) => {
+            updateDownloadProgress(componentName, progress);
+        });
+
         logToggle.addEventListener('click', toggleLog);
         initializeApp();
     </script>

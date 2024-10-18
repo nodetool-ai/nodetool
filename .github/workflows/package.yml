@@ -78,7 +78,7 @@ jobs:
         with:
           name: build-artifacts-${{ matrix.platform }}-${{ matrix.arch }}
           path: |
-            build/*.tar
+            build/*.zip
             build/*.sha256
             build/**/*.exe
             build/**/*.dmg
@@ -95,7 +95,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            **/*.tar
+            **/*.zip
             **/*.exe
             **/*.dmg
             **/*.sha256
