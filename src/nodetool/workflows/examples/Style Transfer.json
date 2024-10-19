@@ -1,16 +1,17 @@
 {
   "id": "style_transfer",
   "access": "public",
-  "created_at": "2024-10-14T23:58:46.099293",
-  "updated_at": "2024-10-14T23:58:46.099318",
+  "created_at": "2024-10-19T15:47:12.158843",
+  "updated_at": "2024-10-19T15:47:12.158865",
   "name": "Style Transfer",
   "tags": [
     "huggingface",
     "start"
   ],
   "description": "Apply the style of an image to another image",
+  "tags": null,
   "thumbnail": "",
-  "thumbnail_url": "/examples/style_transfer.jpg",
+  "thumbnail_url": null,
   "graph": {
     "nodes": [
       {
@@ -24,12 +25,15 @@
           }
         },
         "ui_properties": {
+          "selected": false,
           "position": {
-            "x": 167,
-            "y": 277
+            "x": 50,
+            "y": 552
           },
           "zIndex": 0,
           "width": 200,
+          "title": "Control",
+          "color": "#d33682",
           "selectable": true
         }
       },
@@ -44,12 +48,15 @@
           }
         },
         "ui_properties": {
+          "selected": false,
           "position": {
-            "x": 427,
-            "y": 88
+            "x": 310,
+            "y": 456
           },
           "zIndex": 0,
           "width": 200,
+          "title": "Style",
+          "color": "#cb4b16",
           "selectable": true
         }
       },
@@ -63,8 +70,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 917,
-            "y": 199
+            "x": 800,
+            "y": 408
           },
           "zIndex": 0,
           "width": 271,
@@ -146,13 +153,14 @@
           ]
         },
         "ui_properties": {
+          "selected": false,
           "position": {
-            "x": 18,
-            "y": 19
+            "x": 43,
+            "y": -200
           },
           "zIndex": 0,
-          "width": 317,
-          "height": 166,
+          "width": 509,
+          "height": 174,
           "selectable": true
         }
       },
@@ -164,9 +172,10 @@
           "name": "image_output_2024-09-23"
         },
         "ui_properties": {
+          "selected": false,
           "position": {
-            "x": 687,
-            "y": 738
+            "x": 570,
+            "y": 50
           },
           "zIndex": 0,
           "width": 160,
@@ -183,9 +192,10 @@
           "high_threshold": 203
         },
         "ui_properties": {
+          "selected": false,
           "position": {
-            "x": 427,
-            "y": 483
+            "x": 310,
+            "y": 268
           },
           "zIndex": 0,
           "width": 200,
@@ -225,8 +235,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 687,
-            "y": 50
+            "x": 570,
+            "y": 260
           },
           "zIndex": 0,
           "width": 200,
@@ -235,16 +245,6 @@
       }
     ],
     "edges": [
-      {
-        "id": "852829a8-6978-496b-bf56-21112fb510b2",
-        "source": "13",
-        "sourceHandle": "output",
-        "target": "14",
-        "targetHandle": "control_image",
-        "ui_properties": {
-          "className": "image"
-        }
-      },
       {
         "id": "3219b7c0-2743-4f05-8cab-ca1c4dec2ccc",
         "source": "14",
@@ -266,11 +266,11 @@
         }
       },
       {
-        "id": "3007fa12-05c1-4fef-b591-239b2bcc2a45",
-        "source": "2",
+        "id": "1b406ca5-b337-4fbc-855b-51426dd7645c",
+        "source": "3",
         "sourceHandle": "output",
-        "target": "13",
-        "targetHandle": "image",
+        "target": "14",
+        "targetHandle": "ip_adapter_image",
         "ui_properties": {
           "className": "image"
         }
@@ -286,11 +286,21 @@
         }
       },
       {
-        "id": "1b406ca5-b337-4fbc-855b-51426dd7645c",
-        "source": "3",
+        "id": "3007fa12-05c1-4fef-b591-239b2bcc2a45",
+        "source": "2",
+        "sourceHandle": "output",
+        "target": "13",
+        "targetHandle": "image",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "852829a8-6978-496b-bf56-21112fb510b2",
+        "source": "13",
         "sourceHandle": "output",
         "target": "14",
-        "targetHandle": "ip_adapter_image",
+        "targetHandle": "control_image",
         "ui_properties": {
           "className": "image"
         }

@@ -5,7 +5,11 @@
   "updated_at": "2024-10-19T15:45:21.080097",
   "name": "Audio To Image",
   "description": "Convert any audio speech into an image",
-  "tags": null,
+  "tags": [
+    "huggingface",
+    "multimodal",
+    "start"
+  ],
   "thumbnail": "",
   "thumbnail_url": null,
   "graph": {
