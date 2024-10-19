@@ -264,12 +264,11 @@ class Build:
                     "-L",
                     "https://github.com/ollama/ollama/releases/download/v0.3.13/ollama-darwin",
                     "-o",
-                    str(self.BUILD_DIR / "ollama"),
+                    str(self.BUILD_DIR / "ollama-darwin"),
                 ]
             )
-            self.run_command(["chmod", "+x", str(self.BUILD_DIR / "ollama")])
-
-            # Package the ollama binary
+            self.create_directory(self.BUILD_DIR / "ollama")
+            self.move_file(self.BUILD_DIR / "ollama-darwin", self.BUILD_DIR / "ollama")
             self.package_component("ollama", self.BUILD_DIR / "ollama")
         else:
             raise BuildError(f"Unsupported platform: {self.platform}")

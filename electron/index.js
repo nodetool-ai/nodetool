@@ -229,7 +229,12 @@ async function countPackages(pipArgs) {
     );
     let output = "";
 
+    dryRunProcess.stderr.on("data", (data) => {
+      log(data.toString());
+    });
+
     dryRunProcess.stdout.on("data", (data) => {
+      log(data.toString());
       output += data.toString();
     });
 
@@ -627,7 +632,7 @@ function emitServerLog(message) {
 function log(message, level = "info") {
   try {
     const timestamp = new Date().toISOString();
-    const logMessage = `[${timestamp}] [${level.toUpperCase()}] ${message}`;
+    const logMessage = `[${timestamp}] [${level.toUpperCase()}] ${message.trim()}`;
     console[level](logMessage);
     emitServerLog(logMessage);
 
