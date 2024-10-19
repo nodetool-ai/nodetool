@@ -142,10 +142,10 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ isMinZoom }) => {
   useCombo(["Meta", "a"], () => alignNodes({ arrangeSpacing: true }));
 
   useCombo(["Control", "c"], handleCopy);
-  useCombo(["Control", "v"], handlePaste);
+  useCombo(["Control", "v"], handlePaste, false);
   useCombo(["Control", "x"], handleCut);
   useCombo(["Meta", "c"], handleCopy); // for mac
-  useCombo(["Meta", "v"], handlePaste); // for mac
+  useCombo(["Meta", "v"], handlePaste, false); // for mac
   useCombo(["Meta", "x"], handleCut); // for mac
 
   useCombo(["Meta", "d"], duplicateNodes);

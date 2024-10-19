@@ -1,0 +1,271 @@
+{
+  "id": "stable_diffusion",
+  "access": "public",
+  "created_at": "2024-10-19T19:17:42.475547",
+  "updated_at": "2024-10-19T19:17:42.475569",
+  "name": "Stable Diffusion in Comfy",
+  "description": "Stable Diffusion Image Generation",
+  "tags": [
+    "comfy"
+  ],
+  "thumbnail": "",
+  "thumbnail_url": "/examples/stable_diffusion.jpg",
+  "graph": {
+    "nodes": [
+      {
+        "id": "3",
+        "parent_id": null,
+        "type": "comfy.sampling.KSampler",
+        "data": {
+          "seed": 0,
+          "steps": 30,
+          "cfg": 8,
+          "sampler_name": "dpmpp_sde",
+          "scheduler": "normal",
+          "denoise": 1
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 580,
+            "y": 50
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true
+        }
+      },
+      {
+        "id": "4",
+        "parent_id": null,
+        "type": "comfy.loaders.HuggingFaceCheckpointLoader",
+        "data": {
+          "model": {
+            "type": "hf.stable_diffusion",
+            "repo_id": "SG161222/Realistic_Vision_V5.1_noVAE",
+            "path": "Realistic_Vision_V5.1_fp16-no-ema.safetensors"
+          }
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 50,
+            "y": 124
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true
+        }
+      },
+      {
+        "id": "5",
+        "parent_id": null,
+        "type": "comfy.latent.EmptyLatentImage",
+        "data": {
+          "width": 512,
+          "height": 768,
+          "batch_size": 1
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 320,
+            "y": 414
+          },
+          "zIndex": 0,
+          "width": 200,
+          "color": "#d33682",
+          "selectable": true
+        }
+      },
+      {
+        "id": "6",
+        "parent_id": null,
+        "type": "comfy.conditioning.CLIPTextEncode",
+        "data": {
+          "text": "photo of a man with a beard"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 320,
+            "y": 61
+          },
+          "zIndex": 0,
+          "width": 200,
+          "title": "Positive Prompt",
+          "color": "#d33682",
+          "selectable": true
+        }
+      },
+      {
+        "id": "7",
+        "parent_id": null,
+        "type": "comfy.conditioning.CLIPTextEncode",
+        "data": {
+          "text": "text, watermark"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 320,
+            "y": 223
+          },
+          "zIndex": 0,
+          "width": 200,
+          "title": "Negative Prompt",
+          "color": "#d33682",
+          "selectable": true
+        }
+      },
+      {
+        "id": "8",
+        "parent_id": null,
+        "type": "comfy.latent.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 840,
+            "y": 488
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true
+        }
+      },
+      {
+        "id": "9",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "image_image_2024-08-03"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1070,
+            "y": 244
+          },
+          "zIndex": 0,
+          "width": 401,
+          "height": 599,
+          "selectable": true
+        }
+      },
+      {
+        "id": "10",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "headline": "Stable Diffusion",
+          "comment": [
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "Try different prompts"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "Try different Widht or Height"
+                }
+              ]
+            }
+          ]
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 22,
+            "y": -133
+          },
+          "zIndex": 0,
+          "width": 352,
+          "height": 102,
+          "selectable": true
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "4",
+        "source": "4",
+        "sourceHandle": "model",
+        "target": "3",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "5",
+        "source": "4",
+        "sourceHandle": "clip",
+        "target": "6",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "6",
+        "source": "4",
+        "sourceHandle": "clip",
+        "target": "7",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "8",
+        "source": "4",
+        "sourceHandle": "vae",
+        "target": "8",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "9",
+        "source": "8",
+        "sourceHandle": "image",
+        "target": "9",
+        "targetHandle": "value",
+        "ui_properties": null
+      },
+      {
+        "id": "1",
+        "source": "7",
+        "sourceHandle": "conditioning",
+        "target": "3",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "2",
+        "source": "5",
+        "sourceHandle": "latent",
+        "target": "3",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "7",
+        "source": "3",
+        "sourceHandle": "latent",
+        "target": "8",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "3",
+        "source": "6",
+        "sourceHandle": "conditioning",
+        "target": "3",
+        "targetHandle": "positive",
+        "ui_properties": null
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null
+}

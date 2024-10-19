@@ -1,13 +1,16 @@
 import { create } from "zustand";
 import { useMemo } from "react";
 
-type Callback = () => void;
+interface ComboOptions {
+  preventDefault?: boolean;
+  callback?: () => void;
+}
 
 // Module-level variables and functions
-const comboCallbacks = new Map<string, Callback>();
+const comboCallbacks = new Map<string, ComboOptions>();
 
-const registerComboCallback = (combo: string, callback: Callback) => {
-  comboCallbacks.set(combo, callback);
+const registerComboCallback = (combo: string, options: ComboOptions = {}) => {
+  comboCallbacks.set(combo, options);
 };
 
 const unregisterComboCallback = (combo: string) => {
@@ -19,12 +22,12 @@ const executeComboCallbacks = (
   event: KeyboardEvent | undefined
 ) => {
   const pressedKeysString = Array.from(pressedKeys).sort().join("+");
-  const callback = comboCallbacks.get(pressedKeysString);
-  if (callback) {
-    if (event) {
+  const options = comboCallbacks.get(pressedKeysString);
+  if (options?.callback) {
+    if (options.preventDefault && event) {
       event.preventDefault();
     }
-    callback();
+    options.callback();
   }
 };
 
@@ -173,7 +176,11 @@ const initKeyListeners = () => {
 };
 
 // Modify the useCombo hook to use useCallback and useMemo
-const useCombo = (combo: string[], callback: () => void) => {
+const useCombo = (
+  combo: string[],
+  callback: () => void,
+  preventDefault: boolean = true
+) => {
   const memoizedCombo = useMemo(
     () =>
       combo
@@ -184,9 +191,9 @@ const useCombo = (combo: string[], callback: () => void) => {
   );
 
   useMemo(() => {
-    registerComboCallback(memoizedCombo, callback);
+    registerComboCallback(memoizedCombo, { callback, preventDefault });
     return () => unregisterComboCallback(memoizedCombo);
-  }, [memoizedCombo, callback]);
+  }, [memoizedCombo, callback, preventDefault]);
 };
 
 export { useKeyPressedStore, initKeyListeners, useCombo };

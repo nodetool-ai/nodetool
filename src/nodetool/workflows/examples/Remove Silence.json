@@ -6,8 +6,7 @@
   "name": "Remove Silence",
   "description": "Remove silence from audio files.",
   "tags": [
-    "openai",
-    "start"
+    "audio"
   ],
   "thumbnail": "",
   "thumbnail_url": "/examples/remove_silence.jpg",

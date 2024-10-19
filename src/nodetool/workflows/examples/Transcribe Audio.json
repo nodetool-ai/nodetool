@@ -6,8 +6,8 @@
   "name": "Transcribe Audio",
   "description": "",
   "tags": [
-    "openai",
-    "start"
+    "start",
+    "audio"
   ],
   "thumbnail": "",
   "thumbnail_url": "/examples/transcribe_audio.jpg",

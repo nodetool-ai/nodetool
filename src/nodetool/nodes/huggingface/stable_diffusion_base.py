@@ -700,7 +700,8 @@ class StableDiffusionBaseNode(HuggingFacePipelineNode):
 
             # Generate final high-res image
             hires_kwargs = kwargs.copy()
-            hires_kwargs["strength"] = denoising_strength
+            if "strength" not in hires_kwargs:
+                hires_kwargs["strength"] = denoising_strength
             if "image" in hires_kwargs:
                 del hires_kwargs["image"]
 

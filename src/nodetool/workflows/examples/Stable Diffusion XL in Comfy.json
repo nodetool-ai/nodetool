@@ -1,0 +1,295 @@
+{
+  "id": "stable_diffusion_xl",
+  "access": "public",
+  "created_at": "2024-10-19T21:00:51.951877",
+  "updated_at": "2024-10-19T21:00:51.951900",
+  "name": "Stable Diffusion XL in Comfy",
+  "description": "",
+  "tags": [
+    "comfy"
+  ],
+  "thumbnail": "",
+  "thumbnail_url": "/examples/stable_diffusion_xl.jpg",
+  "graph": {
+    "nodes": [
+      {
+        "id": "5",
+        "parent_id": null,
+        "type": "comfy.latent.EmptyLatentImage",
+        "data": {
+          "width": 1024,
+          "height": 1024,
+          "batch_size": 1
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 370,
+            "y": 432
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true
+        }
+      },
+      {
+        "id": "6",
+        "parent_id": null,
+        "type": "comfy.conditioning.CLIPTextEncode",
+        "data": {
+          "text": "a butterfly in rainbow colors"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 370,
+            "y": 50
+          },
+          "zIndex": 0,
+          "width": 200,
+          "title": "Positive",
+          "color": "#d33682",
+          "selectable": true
+        }
+      },
+      {
+        "id": "7",
+        "parent_id": null,
+        "type": "comfy.conditioning.CLIPTextEncode",
+        "data": {
+          "text": "deformed"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 370,
+            "y": 241
+          },
+          "zIndex": 0,
+          "width": 200,
+          "title": "Negative",
+          "color": "#d33682",
+          "selectable": true
+        }
+      },
+      {
+        "id": "17",
+        "parent_id": null,
+        "type": "comfy.latent.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 816,
+            "y": 550
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true
+        }
+      },
+      {
+        "id": "46",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "image_image_2024-08-06"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1046,
+            "y": 485
+          },
+          "zIndex": 0,
+          "width": 237,
+          "height": 242,
+          "selectable": true
+        }
+      },
+      {
+        "id": "47",
+        "parent_id": null,
+        "type": "comfy.loaders.HuggingFaceCheckpointLoaderXL",
+        "data": {
+          "model": {
+            "type": "hf.stable_diffusion_xl",
+            "repo_id": "stabilityai/stable-diffusion-xl-base-1.0",
+            "path": "sd_xl_base_1.0.safetensors"
+          }
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 50,
+            "y": 448
+          },
+          "zIndex": 0,
+          "width": 250,
+          "selectable": true
+        }
+      },
+      {
+        "id": "67",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": [
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "- SDXL is a high resolution model"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "- Play with other XL finetunes, like Juggernaut"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "- Play with the prompt"
+                }
+              ]
+            }
+          ],
+          "headline": "Stable Diffusion XL"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 54,
+            "y": -174
+          },
+          "zIndex": 0,
+          "width": 335,
+          "height": 151,
+          "selectable": true
+        }
+      },
+      {
+        "id": "68",
+        "parent_id": null,
+        "type": "comfy.sampling.KSampler",
+        "data": {
+          "seed": 0,
+          "seed_control_mode": "fixed",
+          "steps": 20,
+          "cfg": 8,
+          "sampler_name": "ddim",
+          "scheduler": "normal",
+          "denoise": 1
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 630,
+            "y": 206
+          },
+          "zIndex": 0,
+          "width": 126,
+          "selectable": true
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "37",
+        "source": "17",
+        "sourceHandle": "image",
+        "target": "46",
+        "targetHandle": "value",
+        "ui_properties": null
+      },
+      {
+        "id": "dae5455d-0a83-4619-b2ae-8e2ef7393770",
+        "source": "47",
+        "sourceHandle": "vae",
+        "target": "17",
+        "targetHandle": "vae",
+        "ui_properties": {
+          "className": "comfy_vae"
+        }
+      },
+      {
+        "id": "5ea01e7a-866a-4a47-aa11-76c32f05b747",
+        "source": "47",
+        "sourceHandle": "clip",
+        "target": "7",
+        "targetHandle": "clip",
+        "ui_properties": {
+          "className": "comfy_clip"
+        }
+      },
+      {
+        "id": "70b6420e-a561-4697-ba84-7f2f3d4c4635",
+        "source": "47",
+        "sourceHandle": "clip",
+        "target": "6",
+        "targetHandle": "clip",
+        "ui_properties": {
+          "className": "comfy_clip"
+        }
+      },
+      {
+        "id": "de90affe-b846-4401-96c2-f06c047bf60d",
+        "source": "7",
+        "sourceHandle": "conditioning",
+        "target": "68",
+        "targetHandle": "negative",
+        "ui_properties": {
+          "className": "comfy_conditioning"
+        }
+      },
+      {
+        "id": "4e9070cf-472c-4160-afb3-10ea2d109956",
+        "source": "5",
+        "sourceHandle": "latent",
+        "target": "68",
+        "targetHandle": "latent_image",
+        "ui_properties": {
+          "className": "comfy_latent"
+        }
+      },
+      {
+        "id": "7db42890-7fa9-4f3c-954e-c3d7211b5d60",
+        "source": "47",
+        "sourceHandle": "model",
+        "target": "68",
+        "targetHandle": "model",
+        "ui_properties": {
+          "className": "comfy_unet"
+        }
+      },
+      {
+        "id": "90c748ed-0038-40f1-9da7-1eab649d65ad",
+        "source": "6",
+        "sourceHandle": "conditioning",
+        "target": "68",
+        "targetHandle": "positive",
+        "ui_properties": {
+          "className": "comfy_conditioning"
+        }
+      },
+      {
+        "id": "35bb2406-9842-457f-94f7-ec62cc1466bc",
+        "source": "68",
+        "sourceHandle": "latent",
+        "target": "17",
+        "targetHandle": "samples",
+        "ui_properties": {
+          "className": "comfy_latent"
+        }
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null
+}
