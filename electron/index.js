@@ -72,7 +72,7 @@ const { spawn } = require("child_process");
 const https = require("https");
 const crypto = require("crypto");
 const unzip = require("unzip-stream");
-const VERSION = "0.5.0rc3";
+const VERSION = "0.5.0rc4";
 
 /** @type {BrowserWindow|null} */
 let mainWindow;
