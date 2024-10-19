@@ -43,10 +43,9 @@ class Build:
         if arch is None:
             arch = machine().lower()
 
-        if platform == "amd64":
-            platform = "x64"
-
         # Normalize architecture
+        if arch == "amd64":
+            arch = "x64"
         if arch == "x86_64":
             arch = "x64"
         if arch == "aarch64":
