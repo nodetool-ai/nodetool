@@ -52,7 +52,6 @@ const styles = (theme: any) =>
       },
       ".node-header": {
         width: "100%",
-        height: "20px",
         minHeight: "unset",
         top: 0,
         left: 0,

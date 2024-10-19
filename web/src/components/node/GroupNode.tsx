@@ -21,12 +21,12 @@ import { NodeData } from "../../stores/NodeData";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 import { debounce, isEqual } from "lodash";
-import { NodeColorSelector } from "./NodeColorSelector";
 import { hexToRgba } from "../../utils/ColorUtils";
 import { Button, CircularProgress, Tooltip } from "@mui/material";
 import { TOOLTIP_DELAY } from "../../config/constants";
 import useWorkflowRunner from "../../stores/WorkflowRunner";
 import { PlayArrow } from "@mui/icons-material";
+import ColorPicker from "../inputs/ColorPicker";
 
 // constants
 const MIN_WIDTH = 200;
@@ -70,7 +70,6 @@ const styles = (theme: any, minWidth: number, minHeight: number) =>
     },
     // header
     ".node-header": {
-      height: "3em",
       backgroundColor: "rgba(0,0,0,0.1)",
       width: "100%",
       margin: 0,
@@ -94,9 +93,9 @@ const styles = (theme: any, minWidth: number, minHeight: number) =>
         pointerEvents: "none",
         color: theme.palette.c_white,
         backgroundColor: "transparent",
-        padding: ".1em 0 0 .2em",
+        padding: ".5em 0.5em",
         border: 0,
-        fontSize: theme.fontSizeGiant,
+        fontSize: "1.5em",
         // textShadow: "0 0 2px #2b2b2b",
         fontWeight: 300
       }
@@ -109,7 +108,11 @@ const styles = (theme: any, minWidth: number, minHeight: number) =>
       padding: 0,
       margin: 0,
       width: "1em",
-      height: "2em"
+      height: "2em",
+      color: "white"
+    },
+    ".workflow-actions button:hover": {
+      backgroundColor: "rgba(0,0,0,0.2)"
     },
     // resizer
     ".tools .react-flow__resize-control.handle.bottom.right": {
@@ -140,6 +143,27 @@ const styles = (theme: any, minWidth: number, minHeight: number) =>
     },
     ".node-resizer .react-flow__resize-control.line:hover": {
       opacity: 1
+    },
+    ".color-picker-button": {
+      pointerEvents: "all",
+      position: "absolute",
+      bottom: "0",
+      margin: "0",
+      padding: "0",
+      right: "1em",
+      left: "unset",
+      width: "0em",
+      height: "1.1em",
+      zIndex: 10000,
+      backgroundColor: theme.palette.c_gray2,
+      borderRadius: "0",
+      "& svg": {
+        color: theme.palette.c_gray5,
+        width: ".5em",
+        height: ".5em",
+        // scale: ".5",
+        rotate: "-86deg"
+      }
     }
   });
 
@@ -196,7 +220,10 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       e.preventDefault();
       e.stopPropagation();
       const clickedElement = e.target as HTMLElement;
-      if (clickedElement.classList.contains("node-header")) {
+      if (
+        clickedElement.classList.contains("node-header") ||
+        clickedElement.classList.contains("title-input")
+      ) {
         updateNodeData(id, { collapsed: !props.data.collapsed });
       } else {
         handleOpenNodeMenu();
@@ -238,7 +265,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   );
 
   const handleColorChange = useCallback(
-    (newColor: string) => {
+    (newColor: string | null) => {
       setColor(newColor);
       updateNodeData(props.id, {
         properties: {
@@ -341,7 +368,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           </Tooltip>
         </div>
       </div>
-      <NodeColorSelector onColorChange={handleColorChange} alwaysVisible />
+      <ColorPicker color={color} onColorChange={handleColorChange} />
       <div className="tools">
         <NodeResizeControl
           style={{ background: "transparent", border: "none" }}
