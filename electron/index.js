@@ -66,13 +66,14 @@
 const { app, BrowserWindow, ipcMain, dialog } = require("electron");
 const path = require("path");
 const { createReadStream, createWriteStream } = require("fs");
-const { access, mkdir, readFile, rename, writeFile, unlink } =
+const { access, mkdir, readFile, rename, writeFile, unlink, chmod } =
   require("fs").promises;
 const { spawn } = require("child_process");
 const https = require("https");
 const crypto = require("crypto");
 const unzip = require("unzip-stream");
-const VERSION = "0.5.0rc4";
+const VERSION = "v0.5.0rc5";
+const fs = require("fs");
 
 /** @type {BrowserWindow|null} */
 let mainWindow;
@@ -82,10 +83,19 @@ let serverProcess;
 let ollamaProcess;
 /** @type {string} */
 let pythonExecutable;
-/** @type {string|null} */
-let sitePackagesDir;
 /** @type {string} */
 let webDir;
+/** @type {string} */
+let componentsDir;
+
+/**
+ * Ensure dependencies are available
+ * @returns {Promise<void>}
+ */
+async function ensureDependencies() {
+  // No need to check for Ollama and FFmpeg
+  log("Skipping dependency check for Ollama and FFmpeg");
+}
 /** @type {string} */
 const resourcesPath = process.resourcesPath;
 /** @type {NodeJS.ProcessEnv} */
@@ -114,7 +124,6 @@ const macPipArgs = ["install", `nodetool==${VERSION}`];
  * @returns {Promise<void>}
  */
 async function installRequirements() {
-  log(`Installing requirements. Platform: ${process.platform}`);
   const pipArgs = process.platform === "darwin" ? macPipArgs : windowsPipArgs;
   log(`Using pip arguments: ${pipArgs.join(" ")}`);
 
@@ -122,6 +131,15 @@ async function installRequirements() {
   const isNodeToolInstalled = await checkNodeToolInstalled();
   if (isNodeToolInstalled) {
     log(`nodetool ${VERSION} is already installed. Skipping installation.`);
+    return;
+  }
+  emitBootMessage("Installing requirements...");
+  log(`Installing requirements. Platform: ${process.platform}`);
+
+  // Perform dry run to count packages
+  const packageCount = await countPackages(pipArgs);
+  if (packageCount === 0) {
+    log("No packages to install");
     return;
   }
 
@@ -138,12 +156,29 @@ async function installRequirements() {
   );
 
   let output = "";
+  let installedCount = 0;
 
   pipProcess.stdout.on("data", (/** @type {Buffer} */ data) => {
     const chunk = data.toString();
     console.log(chunk);
     output += chunk;
     emitServerLog(chunk);
+
+    if (chunk.includes("Collecting")) {
+      installedCount++;
+      emitUpdateProgress(
+        "pip",
+        (installedCount / (packageCount * 2)) * 100,
+        "Downloading"
+      );
+    } else if (chunk.includes("Installing")) {
+      installedCount++;
+      emitUpdateProgress(
+        "pip",
+        (installedCount / (packageCount * 2)) * 100,
+        "Installing"
+      );
+    }
   });
 
   pipProcess.stderr.on("data", (/** @type {Buffer} */ data) => {
@@ -174,6 +209,38 @@ ${output}
 https://github.com/nodetool-ai/nodetool/issues/new
 `;
         reject(new Error(errorMessage));
+      }
+    });
+  });
+}
+
+async function countPackages(pipArgs) {
+  return new Promise((resolve, reject) => {
+    const dryRunProcess = spawn(
+      pythonExecutable,
+      ["-m", "pip", ...pipArgs, "--dry-run"],
+      { env }
+    );
+
+    log(
+      `Starting dry run with command: ${pythonExecutable} -m pip ${pipArgs.join(
+        " "
+      )} --dry-run`
+    );
+    let output = "";
+
+    dryRunProcess.stdout.on("data", (data) => {
+      output += data.toString();
+    });
+
+    dryRunProcess.on("close", (code) => {
+      if (code === 0) {
+        const collectedCount = (output.match(/Collecting/g) || []).length;
+        log(`Dry run complete. Packages to install: ${collectedCount}`);
+        resolve(collectedCount);
+      } else {
+        log(`Dry run failed with code ${code}`);
+        reject(new Error(`Dry run failed with code ${code}`));
       }
     });
   });
@@ -221,6 +288,10 @@ function runNodeTool(env) {
   log(
     `Running NodeTool. Python executable: ${pythonExecutable}, Web dir: ${webDir}`
   );
+
+  // Start Ollama server
+  startOllamaServer();
+
   serverProcess = spawn(
     pythonExecutable,
     ["-m", "nodetool.cli", "serve", "--static-folder", webDir],
@@ -261,6 +332,34 @@ function runNodeTool(env) {
     //   );
     //   app.exit(0);
     // }
+  });
+}
+
+/**
+ * Start the Ollama server
+ */
+function startOllamaServer() {
+  const ollamaPath = path.join(componentsDir, "ollama", "ollama");
+  log(`Starting Ollama server from: ${ollamaPath}`);
+
+  ollamaProcess = spawn(ollamaPath, ["serve"], { env: env });
+
+  ollamaProcess.stdout.on("data", (data) => {
+    const output = data.toString().trim();
+    log(`Ollama: ${output}`);
+  });
+
+  ollamaProcess.stderr.on("data", (data) => {
+    const output = data.toString().trim();
+    log(`Ollama Error: ${output}`, "error");
+  });
+
+  ollamaProcess.on("error", (error) => {
+    log(`Ollama process error: ${error.message}`, "error");
+  });
+
+  ollamaProcess.on("exit", (code, signal) => {
+    log(`Ollama process exited with code ${code} and signal ${signal}`);
   });
 }
 
@@ -310,7 +409,8 @@ async function downloadFile(url, dest) {
       response.on("data", (chunk) => {
         downloadedBytes += chunk.length;
         const progress = (downloadedBytes / totalBytes) * 100;
-        emitUpdateProgress(path.basename(dest), progress, "Downloading");
+        const fileName = path.basename(dest).split(".")[0];
+        emitUpdateProgress(fileName, progress, "Downloading");
       });
 
       response.pipe(file);
@@ -332,12 +432,28 @@ async function downloadFile(url, dest) {
 }
 
 /**
- * Ensure dependencies are available
- * @returns {Promise<void>}
+ * Setup Python and dependencies.
  */
-async function ensureDependencies() {
-  // No need to check for Ollama and FFmpeg
-  log("Skipping dependency check for Ollama and FFmpeg");
+async function setupPython() {
+  // Ensure dependencies are available
+  componentsDir = path.join(app.getPath("userData"), "components");
+
+  // Set up paths for Python and pip executables based on the platform
+  if (process.platform === "darwin") {
+    pythonExecutable = path.join(componentsDir, "python_env", "bin", "python");
+  } else {
+    pythonExecutable = path.join(componentsDir, "python_env", "python.exe");
+  }
+
+  const pythonExists = await checkFileExists(pythonExecutable);
+  if (!pythonExists) {
+    throw new Error("Python environment is not available");
+  }
+  await ensureExecutable(pythonExecutable);
+
+  log(`Using Python executable: ${pythonExecutable}`);
+
+  await installRequirements();
 }
 
 /**
@@ -346,71 +462,42 @@ async function ensureDependencies() {
 async function startServer() {
   try {
     log("Starting server");
+    env.PATH = `${path.join(componentsDir, "ollama")}:${env.PATH}`;
+    log(`PATH: ${env.PATH}`);
 
-    // Ensure dependencies are available
-    let pythonEnvExecutable, pipEnvExecutable;
-    const componentsDir = path.join(app.getPath("userData"), "components");
-
-    // Set up paths for Python and pip executables based on the platform
-    if (process.platform === "darwin") {
-      pythonEnvExecutable = path.join(
-        componentsDir,
-        "python_env",
-        "bin",
-        "python"
-      );
-      pipEnvExecutable = path.join(componentsDir, "python_env", "bin", "pip");
-    } else {
-      pythonEnvExecutable = path.join(
-        componentsDir,
-        "python_env",
-        "python.exe"
-      );
-      pipEnvExecutable = path.join(
-        componentsDir,
-        "python_env",
-        "Scripts",
-        "pip.exe"
-      );
-    }
-
-    log(`Checking for Python environment. Path: ${pythonEnvExecutable}`);
-    const pythonEnvExists = await checkFileExists(pythonEnvExecutable);
-
-    pythonExecutable = pythonEnvExists ? pythonEnvExecutable : "python";
-    log(`Using Python executable: ${pythonExecutable}`);
-
-    sitePackagesDir = pythonEnvExists
-      ? process.platform === "darwin"
-        ? path.join(
-            componentsDir,
-            "python_env",
-            "lib",
-            "python3.11",
-            "site-packages"
-          )
-        : path.join(componentsDir, "python_env", "Lib", "site-packages")
-      : null;
-
-    log(`Site-packages directory: ${sitePackagesDir}`);
-
-    if (pythonEnvExists) {
-      env.PATH = `${path.join(componentsDir, "ollama")}:${env.PATH}`;
-      log(`Updated PATH: ${env.PATH}`);
-
-      webDir = path.join(componentsDir, "web");
-      log(`Web directory: ${webDir}`);
-    } else {
-      throw new Error("Python environment is not available");
-    }
+    webDir = path.join(componentsDir, "web");
+    log(`Web directory: ${webDir}`);
 
     log("Attempting to run NodeTool");
-    await installRequirements();
     runNodeTool(env);
   } catch (error) {
     log(`Critical error starting server: ${error.message}`, "error");
     dialog.showErrorBox("Critical Error", error.message);
     app.exit(1);
+  }
+}
+
+/**
+ * Ensure that a file is executable
+ * @param {string} filePath - Path to the file
+ * @returns {Promise<void>}
+ */
+async function ensureExecutable(filePath) {
+  try {
+    const stats = await fs.promises.stat(filePath);
+    const currentMode = stats.mode;
+    const executableMode = currentMode | 0o111; // Add executable bit for user, group, and others
+
+    if (currentMode !== executableMode) {
+      log(`Making ${filePath} executable`);
+      await chmod(filePath, executableMode);
+      log(`Successfully made ${filePath} executable`);
+    } else {
+      log(`${filePath} is already executable`);
+    }
+  } catch (error) {
+    log(`Error ensuring ${filePath} is executable: ${error.message}`, "error");
+    throw error;
   }
 }
 
@@ -432,18 +519,25 @@ app.on("before-quit", (event) => {
 async function gracefulShutdown() {
   log("Initiating graceful shutdown");
 
-  if (serverProcess) {
-    log("Stopping server process");
-    serverProcess.kill();
-    await new Promise((resolve) => serverProcess.on("exit", resolve));
+  try {
+    if (serverProcess) {
+      log("Stopping server process");
+      serverProcess.kill();
+      await new Promise((resolve) => serverProcess.on("exit", resolve));
+    }
+  } catch (error) {
+    log(`Error stopping server process: ${error.message}`, "error");
   }
 
-  // Remove Ollama process shutdown
-  // if (ollamaProcess) {
-  //   log("Stopping Ollama process");
-  //   ollamaProcess.kill();
-  //   await new Promise((resolve) => ollamaProcess.on("exit", resolve));
-  // }
+  try {
+    if (ollamaProcess) {
+      log("Stopping Ollama process");
+      ollamaProcess.kill();
+      await new Promise((resolve) => ollamaProcess.on("exit", resolve));
+    }
+  } catch (error) {
+    log(`Error stopping Ollama process: ${error.message}`, "error");
+  }
 
   log("Graceful shutdown complete");
 }
@@ -453,6 +547,8 @@ app.on("ready", async () => {
   createWindow();
   emitBootMessage("Checking for updates...");
   await checkForUpdates();
+  emitBootMessage("Setting up Python...");
+  await setupPython();
   emitBootMessage("Starting Nodetool...");
   startServer();
 });
@@ -479,11 +575,10 @@ app.on("quit", () => {
     log("Killing server process");
     serverProcess.kill();
   }
-  // Remove Ollama process kill
-  // if (ollamaProcess) {
-  //   log("Killing Ollama process");
-  //   ollamaProcess.kill();
-  // }
+  if (ollamaProcess) {
+    log("Killing Ollama process");
+    ollamaProcess.kill();
+  }
 });
 
 ipcMain.handle("get-server-state", () => serverState);
