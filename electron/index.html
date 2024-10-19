@@ -196,13 +196,23 @@
             max-width: 400px;
         }
 
+        .progress-container {
+            margin-top: 10px;
+        }
+
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+
         .progress-bar {
             width: 100%;
             height: 4px;
             background-color: #333;
             border-radius: 2px;
             overflow: hidden;
-            margin-top: 10px;
         }
 
         .progress {
@@ -301,22 +311,32 @@
             const updateStepsElement = document.getElementById('update-steps');
             updateStepsElement.innerHTML = `
                 <div>${step}</div>
-                <div class="progress-bar">
-                    <div class="progress"></div>
+                <div class="progress-container">
+                    <div class="progress-label">
+                        <span class="action-label">Downloading</span>
+                        <span class="progress-percentage">0%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress"></div>
+                    </div>
                 </div>
             `;
 
             if (isComplete) {
                 setTimeout(() => {
-                    updateStepsElement.innerHTML = '';
-                }, 2000); // Clear after 2 seconds
+                    updateStepsElement.style.display = 'none';
+                }, 2000); // Hide after 2 seconds
             }
         }
 
-        function updateDownloadProgress(componentName, progress) {
-            const progressBar = updateStepsElement.querySelector('.progress');
-            if (progressBar) {
+        function updateProgress(componentName, progress, action) {
+            const progressBar = document.querySelector('.progress');
+            const progressPercentage = document.querySelector('.progress-percentage');
+            const actionLabel = document.querySelector('.action-label');
+            if (progressBar && progressPercentage && actionLabel) {
                 progressBar.style.width = `${progress}%`;
+                progressPercentage.textContent = `${Math.round(progress)}%`;
+                actionLabel.textContent = action;
             }
         }
 
@@ -334,6 +354,14 @@
 
                 logs.forEach(log => matrixLogger.log(log));
             });
+
+            api.onUpdateProgress(({ componentName, progress, action }) => {
+                updateProgress(componentName, progress, action);
+            });
+
+            api.onUpdateStep((step) => {
+                showUpdateStep(step);
+            });
         }
 
         api.onServerStarted(() => {
@@ -349,14 +377,6 @@
 
         api.onServerLog((message) => {
             matrixLogger.log(message);
-        });
-
-        api.onUpdateStep((data) => {
-            showUpdateStep(data);
-        });
-
-        api.onDownloadProgress(({ componentName, progress }) => {
-            updateDownloadProgress(componentName, progress);
         });
 
         logToggle.addEventListener('click', toggleLog);

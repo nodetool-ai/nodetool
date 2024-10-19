@@ -789,19 +789,35 @@ async function extractZip(archivePath, extractTo, componentName, strip = 1) {
   log(`Starting extraction of ${archivePath} to ${extractTo}`);
   const componentDir = path.join(extractTo, componentName);
 
-  // Create the component directory if it doesn't exist
   await mkdir(componentDir, { recursive: true });
 
   return new Promise((resolve, reject) => {
+    let totalEntries = 0;
+    let processedEntries = 0;
+
     createReadStream(archivePath)
-      .pipe(unzip.Extract({ path: componentDir }))
-      .on("close", () => {
-        log(`Finished extraction of ${archivePath} to ${componentDir}`);
-        resolve();
+      .pipe(unzip.Parse())
+      .on("entry", (entry) => {
+        totalEntries++;
+        entry.autodrain();
       })
-      .on("error", (error) => {
-        log(`Error during extraction: ${error.message}`, "error");
-        reject(error);
+      .on("close", () => {
+        createReadStream(archivePath)
+          .pipe(unzip.Extract({ path: componentDir }))
+          .on("entry", (entry) => {
+            processedEntries++;
+            const progress = (processedEntries / totalEntries) * 100;
+            emitUpdateProgress(componentName, progress, "Unpacking");
+            entry.autodrain();
+          })
+          .on("close", () => {
+            log(`Finished extraction of ${archivePath} to ${componentDir}`);
+            resolve();
+          })
+          .on("error", (error) => {
+            log(`Error during extraction: ${error.message}`, "error");
+            reject(error);
+          });
       });
   });
 }
@@ -935,15 +951,20 @@ function emitUpdateStep(step, isComplete = false) {
   }
 }
 
-function emitDownloadProgress(componentName, progress) {
+function emitUpdateProgress(componentName, progress, action) {
   if (mainWindow && mainWindow.webContents) {
     try {
-      mainWindow.webContents.send("download-progress", {
+      mainWindow.webContents.send("update-progress", {
         componentName,
         progress,
+        action,
       });
     } catch (error) {
-      console.error("Error emitting download progress:", error);
+      console.error("Error emitting update progress:", error);
     }
   }
+}
+
+function emitDownloadProgress(componentName, progress) {
+  emitUpdateProgress(componentName, progress, "Downloading");
 }
