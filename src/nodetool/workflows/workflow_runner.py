@@ -6,8 +6,7 @@ from typing import Any, Optional
 
 import torch
 
-from comfy.model_base import BaseModel
-from nodetool.metadata.types import ComfyData, DataframeRef
+from nodetool.metadata.types import DataframeRef
 from nodetool.model_manager import ModelManager
 from nodetool.nodes.nodetool.output import GroupOutput
 from nodetool.types.job import JobUpdate, JobCancelledException
@@ -448,18 +447,9 @@ class WorkflowRunner:
         try:
             inputs = context.get_node_inputs(node.id)
             log.debug(f"{node.get_title()} ({node._id}) inputs: {inputs}")
-            properties_for_update = {}
 
             for name, value in inputs.items():
                 try:
-                    if isinstance(value, torch.Tensor):
-                        pass
-                    elif isinstance(value, ComfyData):
-                        pass
-                    elif isinstance(value, BaseModel):
-                        properties_for_update[name] = value.model_dump()
-                    else:
-                        properties_for_update[name] = value
                     node.assign_property(name, value)
                 except Exception as e:
                     log.warn(f"Error assigning property {name} to node {node.id}: {e}")
@@ -467,8 +457,9 @@ class WorkflowRunner:
             log.debug(f"Pre-processing node: {node.get_title()} ({node._id})")
             await node.pre_process(context)
 
-            if len(properties_for_update) > 0:
-                node.send_update(context, "running", properties=properties_for_update)
+            node.send_update(
+                context, "running", result=None, properties=list(inputs.keys())
+            )
 
             if node.is_cacheable():
                 log.debug(f"Checking cache for node: {node.get_title()} ({node._id})")
@@ -482,7 +473,6 @@ class WorkflowRunner:
                 )
                 result = cached_result
             else:
-                node.send_update(context, "running")
                 await node.move_to_device(self.device)
                 result = await node.process(context)
                 result = await node.convert_output(context, result)
@@ -496,7 +486,7 @@ class WorkflowRunner:
                     )
                     context.cache_result(node, result)
 
-            node.send_update(context, "completed", result)
+            node.send_update(context, "completed", result=result)
 
         except Exception as e:
             import traceback

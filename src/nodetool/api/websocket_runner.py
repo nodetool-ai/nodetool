@@ -196,10 +196,10 @@ class WebSocketRunner:
             if self.mode == WebSocketMode.BINARY:
                 packed_message = msgpack.packb(message, use_bin_type=True)
                 await self.websocket.send_bytes(packed_message)  # type: ignore
-                log.debug(f"Sent binary message: {message['type']}")
+                log.debug(f"Sent binary message: {message.get('type', message)}")
             else:
                 await self.websocket.send_text(json.dumps(message))
-                log.debug(f"Sent text message: {message['type']}")
+                log.debug(f"Sent text message: {message.get('type', message)}")
         except Exception as e:
             log.error(f"Error sending message: {e}")
 

@@ -1,4 +1,5 @@
 import { useRef, useMemo } from "react";
+import { devLog } from "../utils/DevLog";
 
 // Custom hook for logging render triggers
 export const useRenderLogger = (
@@ -13,7 +14,7 @@ export const useRenderLogger = (
     );
 
     if (changedDeps.length > 0) {
-      console.log(
+      devLog(
         `${name} render triggered by:`,
         changedDeps.map(([key]) => key).join(", ")
       );
