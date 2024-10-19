@@ -1,4 +1,4 @@
-name: API
+name: Tests
 
 on:
   push:
@@ -19,7 +19,6 @@ jobs:
           ffmpeg-version: release
       - name: Set up Python
         uses: actions/setup-python@v4
-        cache: "pip"
         with:
           python-version: "3.11"
       - name: Install dependencies

@@ -254,13 +254,13 @@ function runNodeTool(env) {
 
   serverProcess.on("exit", (code, signal) => {
     log(`Server process exited with code ${code} and signal ${signal}`);
-    if (code !== 0 && !app.isQuitting) {
-      dialog.showErrorBox(
-        "Server Crashed",
-        `The server process has unexpectedly exited.`
-      );
-      app.exit(0);
-    }
+    // if (code !== 0 && !app.isQuitting) {
+    //   dialog.showErrorBox(
+    //     "Server Crashed",
+    //     `The server process has unexpectedly exited.`
+    //   );
+    //   app.exit(0);
+    // }
   });
 }
 
