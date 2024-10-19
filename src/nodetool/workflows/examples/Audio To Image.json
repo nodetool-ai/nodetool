@@ -1,130 +1,53 @@
 {
   "id": "audio_to_image",
-  "access": "private",
-  "created_at": "2024-07-06T20:13:38.331865",
-  "updated_at": "2024-07-06T20:23:13.098945",
+  "access": "public",
+  "created_at": "2024-10-19T15:45:21.080077",
+  "updated_at": "2024-10-19T15:45:21.080097",
   "name": "Audio To Image",
-  "tags": [
-    "multimodal",
-    "start"
-  ],
   "description": "Convert any audio speech into an image",
+  "tags": null,
   "thumbnail": "",
-  "thumbnail_url": "/examples/audio_to_image.jpg",
+  "thumbnail_url": null,
   "graph": {
-    "edges": [
-      {
-        "id": "05c9cd53-cd41-4211-b852-e3afe84defea",
-        "source": "12",
-        "sourceHandle": "output",
-        "target": "13",
-        "targetHandle": "prompt",
-        "ui_properties": {
-          "className": "str"
-        }
-      },
-      {
-        "id": "909f3c44-2cf8-4c75-959e-8c4b4cc176e6",
-        "source": "15",
-        "sourceHandle": "output",
-        "target": "14",
-        "targetHandle": "audio",
-        "ui_properties": {
-          "className": "audio"
-        }
-      },
-      {
-        "id": "92a6a72a-681d-4398-9655-7ed37c6f38fe",
-        "source": "14",
-        "sourceHandle": "output",
-        "target": "10",
-        "targetHandle": "values",
-        "ui_properties": {
-          "className": "str"
-        }
-      },
-      {
-        "id": "39781355-f211-4883-bde4-859973f7731d",
-        "source": "13",
-        "sourceHandle": "output",
-        "target": "6",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "image"
-        }
-      },
-      {
-        "id": "00f1542f-84cf-4bc2-885c-286b87c78bf2",
-        "source": "10",
-        "sourceHandle": "output",
-        "target": "12",
-        "targetHandle": "prompt",
-        "ui_properties": {
-          "className": "union"
-        }
-      },
-      {
-        "id": "087bbcab-541a-4348-a0dd-b6e4df24d64e",
-        "source": "14",
-        "sourceHandle": "output",
-        "target": "4",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "str"
-        }
-      }
-    ],
     "nodes": [
       {
-        "id": "4",
-        "type": "nodetool.workflows.base_node.Preview",
-        "data": {},
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 641,
-            "y": 34
-          },
-          "zIndex": 0,
-          "width": 487,
-          "height": 150,
-          "selectable": true
-        }
-      },
-      {
         "id": "6",
+        "parent_id": null,
         "type": "nodetool.workflows.base_node.Preview",
         "data": {},
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 827,
-            "y": 196
+            "x": 1200,
+            "y": 50
           },
           "zIndex": 0,
-          "width": 297,
-          "height": 268,
+          "width": 519,
+          "height": 551,
           "selectable": true
         }
       },
       {
         "id": "10",
+        "parent_id": null,
         "type": "nodetool.text.Template",
         "data": {
-          "string": "interpret this text as an image, describe vividly as if giving painting instructions: {0}"
+          "string": "design an artwork based on this speech, describe in less than 20 words: {0}"
         },
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 457,
-            "y": 128
+            "x": 510,
+            "y": 261
           },
           "zIndex": 0,
+          "width": 200,
           "selectable": true
         }
       },
       {
         "id": "11",
+        "parent_id": null,
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
           "headline": "Audio to Image",
@@ -166,17 +89,18 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 30,
-            "y": 20
+            "x": 38,
+            "y": -141
           },
           "zIndex": 0,
-          "width": 390,
-          "height": 104,
+          "width": 618,
+          "height": 127,
           "selectable": true
         }
       },
       {
         "id": "12",
+        "parent_id": null,
         "type": "ollama.text.Ollama",
         "data": {
           "model": {
@@ -198,15 +122,17 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 466,
-            "y": 272
+            "x": 740,
+            "y": 136
           },
           "zIndex": 0,
+          "width": 200,
           "selectable": true
         }
       },
       {
         "id": "13",
+        "parent_id": null,
         "type": "huggingface.text_to_image.StableDiffusion",
         "data": {
           "model": {
@@ -231,41 +157,48 @@
           "ip_adapter_scale": 0.5,
           "hires": true,
           "enable_tiling": false,
-          "width": 512,
-          "height": 512,
-          "detail_level": 0.6
+          "width": 1024,
+          "height": 1024,
+          "detail_level": 0.89
         },
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 641,
-            "y": 195
+            "x": 970,
+            "y": 57
           },
           "zIndex": 0,
+          "width": 200,
           "selectable": true
         }
       },
       {
         "id": "14",
+        "parent_id": null,
         "type": "huggingface.automatic_speech_recognition.Whisper",
         "data": {
           "model": {
             "type": "hf.automatic_speech_recognition",
             "repo_id": "openai/whisper-large-v3"
-          }
+          },
+          "task": "transcribe",
+          "language": "english",
+          "timestamps": "none"
         },
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 224,
-            "y": 158
+            "x": 280,
+            "y": 137
           },
           "zIndex": 0,
+          "width": 200,
           "selectable": true
         }
       },
       {
         "id": "15",
+        "parent_id": null,
         "type": "nodetool.constant.Audio",
         "data": {
           "value": {
@@ -276,13 +209,68 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 38,
-            "y": 141
+            "x": 50,
+            "y": 211
           },
           "zIndex": 0,
+          "width": 200,
           "selectable": true
         }
       }
+    ],
+    "edges": [
+      {
+        "id": "909f3c44-2cf8-4c75-959e-8c4b4cc176e6",
+        "source": "15",
+        "sourceHandle": "output",
+        "target": "14",
+        "targetHandle": "audio",
+        "ui_properties": {
+          "className": "audio"
+        }
+      },
+      {
+        "id": "05c9cd53-cd41-4211-b852-e3afe84defea",
+        "source": "12",
+        "sourceHandle": "output",
+        "target": "13",
+        "targetHandle": "prompt",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "00f1542f-84cf-4bc2-885c-286b87c78bf2",
+        "source": "10",
+        "sourceHandle": "output",
+        "target": "12",
+        "targetHandle": "prompt",
+        "ui_properties": {
+          "className": "union"
+        }
+      },
+      {
+        "id": "39781355-f211-4883-bde4-859973f7731d",
+        "source": "13",
+        "sourceHandle": "output",
+        "target": "6",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "672726ea-bdaf-4108-bb6f-ea8b4fd0eec6",
+        "source": "14",
+        "sourceHandle": "text",
+        "target": "10",
+        "targetHandle": "values",
+        "ui_properties": {
+          "className": "str"
+        }
+      }
     ]
-  }
+  },
+  "input_schema": null,
+  "output_schema": null
 }
