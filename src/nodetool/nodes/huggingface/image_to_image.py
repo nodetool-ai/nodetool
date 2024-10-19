@@ -212,7 +212,7 @@ class RealESRGANNode(BaseNode):
             raise ValueError("Download the model first from RECOMMENDED_MODELS above")
 
         self._model = RealESRGAN("cpu", scale=scale)
-        self._model.load_weights(model_path, download=False)
+        self._model.load_weights(model_path)
 
     async def move_to_device(self, device: str):
         if self._model is not None:
@@ -220,6 +220,7 @@ class RealESRGANNode(BaseNode):
             self._model.model.to(device)
 
     async def process(self, context: ProcessingContext) -> ImageRef:
+        assert self._model is not None, "Model not initialized"
         image = await context.image_to_pil(self.image)
         sr_image = self._model.predict(image)
         return await context.image_from_pil(sr_image)

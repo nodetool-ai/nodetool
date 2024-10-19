@@ -233,7 +233,7 @@ function runNodeTool(env) {
    */
   function handleServerOutput(data) {
     const output = data.toString().trim();
-    log(`Server output: ${output}`);
+    log(output);
     if (output.includes("Application startup complete.")) {
       log("Server startup complete");
       emitServerStarted();
@@ -257,9 +257,8 @@ function runNodeTool(env) {
     if (code !== 0 && !app.isQuitting) {
       dialog.showErrorBox(
         "Server Crashed",
-        `The server process has unexpectedly exited. The application will now restart.`
+        `The server process has unexpectedly exited.`
       );
-      app.relaunch();
       app.exit(0);
     }
   });

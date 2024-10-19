@@ -6,7 +6,8 @@ from typing import Any, Optional
 
 import torch
 
-from nodetool.metadata.types import DataframeRef
+from comfy.model_base import BaseModel
+from nodetool.metadata.types import ComfyData, DataframeRef
 from nodetool.model_manager import ModelManager
 from nodetool.nodes.nodetool.output import GroupOutput
 from nodetool.types.job import JobUpdate, JobCancelledException
@@ -451,7 +452,14 @@ class WorkflowRunner:
 
             for name, value in inputs.items():
                 try:
-                    properties_for_update[name] = value
+                    if isinstance(value, torch.Tensor):
+                        pass
+                    elif isinstance(value, ComfyData):
+                        pass
+                    elif isinstance(value, BaseModel):
+                        properties_for_update[name] = value.model_dump()
+                    else:
+                        properties_for_update[name] = value
                     node.assign_property(name, value)
                 except Exception as e:
                     log.warn(f"Error assigning property {name} to node {node.id}: {e}")
