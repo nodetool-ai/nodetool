@@ -311,7 +311,7 @@ async function downloadFile(url, dest) {
       response.on("data", (chunk) => {
         downloadedBytes += chunk.length;
         const progress = (downloadedBytes / totalBytes) * 100;
-        emitDownloadProgress(path.basename(dest), progress);
+        emitUpdateProgress(path.basename(dest), progress, "Downloading");
       });
 
       response.pipe(file);
@@ -944,7 +944,7 @@ async function checkNodeToolInstalled() {
 function emitUpdateStep(step, isComplete = false) {
   if (mainWindow && mainWindow.webContents) {
     try {
-      mainWindow.webContents.send("update-step", { step, isComplete });
+      mainWindow.webContents.send("update-step", step, isComplete);
     } catch (error) {
       console.error("Error emitting update step:", error);
     }

@@ -307,10 +307,10 @@
             contentElement.src = `http://127.0.0.1:8000?nocache=${timestamp}`;
         }
 
-        function showUpdateStep({ step, isComplete }) {
+        function showUpdateStep(step, isComplete) {
             const updateStepsElement = document.getElementById('update-steps');
+            updateStepsElement.style.display = 'block';
             updateStepsElement.innerHTML = `
-                <div>${step}</div>
                 <div class="progress-container">
                     <div class="progress-label">
                         <span class="action-label">Downloading</span>
@@ -336,7 +336,7 @@
             if (progressBar && progressPercentage && actionLabel) {
                 progressBar.style.width = `${progress}%`;
                 progressPercentage.textContent = `${Math.round(progress)}%`;
-                actionLabel.textContent = action;
+                actionLabel.textContent = `${action} ${componentName}`;
             }
         }
 
@@ -359,8 +359,8 @@
                 updateProgress(componentName, progress, action);
             });
 
-            api.onUpdateStep((step) => {
-                showUpdateStep(step);
+            api.onUpdateStep((step, isComplete) => {
+                showUpdateStep(step, isComplete);
             });
         }
 

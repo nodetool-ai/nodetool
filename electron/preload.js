@@ -56,10 +56,12 @@ contextBridge.exposeInMainWorld("api", {
    * This is used during the component update process to inform the user about
    * the current step in the update procedure.
    * @param {Function} callback - The function to be called with each update step
-   *                              Signature: (step: string) => void
+   *                              Signature: (step: string, isComplete: boolean) => void
    */
   onUpdateStep: (callback) =>
-    ipcRenderer.on("update-step", (event, step) => callback(step)),
+    ipcRenderer.on("update-step", (event, step, isComplete) =>
+      callback(step, isComplete)
+    ),
 
   /**
    * Registers a callback to receive download progress updates.
@@ -68,8 +70,8 @@ contextBridge.exposeInMainWorld("api", {
    * @param {Function} callback - The function to be called with download progress data
    *                              Signature: (data: {componentName: string, progress: number}) => void
    */
-  onDownloadProgress: (callback) =>
-    ipcRenderer.on("download-progress", (event, data) => callback(data)),
+  onUpdateProgress: (callback) =>
+    ipcRenderer.on("update-progress", (event, data) => callback(data)),
 });
 
 /**
