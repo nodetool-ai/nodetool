@@ -1,8 +1,8 @@
 {
   "id": "object_detection",
-  "access": "private",
-  "created_at": "2024-08-08T20:28:10.491364",
-  "updated_at": "2024-08-09T18:00:14.672164",
+  "access": "public",
+  "created_at": "2024-10-19T16:10:08.511423",
+  "updated_at": "2024-10-19T16:10:08.511444",
   "name": "Object Detection",
   "description": "Detect objects in an image and visualize the detections",
   "tags": [
@@ -12,17 +12,134 @@
   "thumbnail": "",
   "thumbnail_url": "/examples/object_detection.jpg",
   "graph": {
-    "edges": [
+    "nodes": [
       {
-        "id": "988815f2-b051-4e5a-aab4-e6b246a08207",
-        "source": "3",
-        "sourceHandle": "output",
-        "target": "4",
-        "targetHandle": "inputs",
+        "id": "2",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "image_output_2024-08-09"
+        },
         "ui_properties": {
-          "className": "image"
+          "selected": false,
+          "position": {
+            "x": 800,
+            "y": 50
+          },
+          "zIndex": 0,
+          "width": 240,
+          "height": 262,
+          "selectable": true
         }
       },
+      {
+        "id": "3",
+        "parent_id": null,
+        "type": "nodetool.constant.Image",
+        "data": {
+          "value": {
+            "uri": "https://app.nodetool.ai/examples/flux_schnell_example.jpg",
+            "type": "image"
+          }
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 50,
+            "y": 81
+          },
+          "zIndex": 0,
+          "width": 200,
+          "title": "Input",
+          "color": "#d33682",
+          "selectable": true
+        }
+      },
+      {
+        "id": "4",
+        "parent_id": null,
+        "type": "huggingface.object_detection.ObjectDetection",
+        "data": {
+          "model": {
+            "type": "hf.object_detection",
+            "repo_id": "facebook/detr-resnet-50"
+          },
+          "threshold": 0.9,
+          "top_k": 5
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 310,
+            "y": 173
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true
+        }
+      },
+      {
+        "id": "5",
+        "parent_id": null,
+        "type": "huggingface.object_detection.VisualizeObjectDetection",
+        "data": {},
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 570,
+            "y": 125
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true
+        }
+      },
+      {
+        "id": "6",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": [
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "- Drop an image onto the Input image"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "- Run the workflow"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "- Look at the bounding boxes in Preview"
+                }
+              ]
+            }
+          ]
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 53,
+            "y": -136
+          },
+          "zIndex": 0,
+          "width": 297,
+          "height": 120,
+          "selectable": true
+        }
+      }
+    ],
+    "edges": [
       {
         "id": "2e0676a6-ee69-4397-bac7-2273f9a5edac",
         "source": "3",
@@ -63,80 +180,8 @@
           "className": "image"
         }
       }
-    ],
-    "nodes": [
-      {
-        "id": "2",
-        "type": "nodetool.workflows.base_node.Preview",
-        "data": {
-          "name": "image_output_2024-08-09"
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 636,
-            "y": 13
-          },
-          "zIndex": 0,
-          "width": 240,
-          "height": 262,
-          "selectable": true
-        }
-      },
-      {
-        "id": "3",
-        "type": "nodetool.constant.Image",
-        "data": {
-          "value": {
-            "uri": "https://app.nodetool.ai/examples/flux_schnell_example.jpg",
-            "type": "image"
-          }
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 20,
-            "y": 10
-          },
-          "zIndex": 0,
-          "selectable": true
-        }
-      },
-      {
-        "id": "4",
-        "type": "huggingface.object_detection.ObjectDetection",
-        "data": {
-          "model": {
-            "type": "hf.object_detection",
-            "repo_id": "facebook/detr-resnet-50"
-          },
-          "threshold": 0.9,
-          "top_k": 5
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 224,
-            "y": 25
-          },
-          "zIndex": 0,
-          "selectable": true
-        }
-      },
-      {
-        "id": "5",
-        "type": "huggingface.object_detection.VisualizeObjectDetection",
-        "data": {},
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 417,
-            "y": 49
-          },
-          "zIndex": 0,
-          "selectable": true
-        }
-      }
     ]
-  }
+  },
+  "input_schema": null,
+  "output_schema": null
 }
