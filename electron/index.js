@@ -65,10 +65,11 @@
 
 const { app, BrowserWindow, ipcMain, dialog } = require("electron");
 const path = require("path");
-const fs = require("fs").promises;
+const { createReadStream, createWriteStream } = require("fs");
+const { access, mkdir, readFile, rename, writeFile, unlink } =
+  require("fs").promises;
 const { spawn } = require("child_process");
 const https = require("https");
-const { createWriteStream } = require("fs");
 const crypto = require("crypto");
 const unzip = require("unzip-stream");
 const VERSION = "0.5.0-preview.2";
@@ -271,7 +272,7 @@ function runNodeTool(env) {
  */
 async function checkFileExists(path) {
   try {
-    await fs.access(path);
+    await access(path);
     log(`File exists: ${path}`);
     return true;
   } catch {
@@ -323,7 +324,7 @@ async function downloadFile(url, dest) {
     }
 
     function handleError(err) {
-      fs.unlink(dest, () => {
+      unlink(dest, () => {
         log(`Error downloading file: ${err.message}`);
         reject(err);
       });
@@ -560,7 +561,7 @@ async function checkForUpdates() {
     const assets = latestRelease.assets;
 
     const componentsDir = path.join(app.getPath("userData"), "components");
-    await fs.mkdir(componentsDir, { recursive: true });
+    mkdir(componentsDir, { recursive: true });
 
     const system =
       process.platform === "win32"
@@ -568,7 +569,7 @@ async function checkForUpdates() {
         : process.platform === "darwin"
         ? "darwin"
         : "linux";
-    const arch = process.arch === "x64";
+    const arch = process.arch;
 
     log(`Checking components for system: ${system}, arch: ${arch}`);
     const componentsToUpdate = await getComponentsToUpdate(
@@ -625,11 +626,12 @@ https://github.com/nodetool-ai/nodetool/issues/new
       }
     } else {
       log("All components are up to date");
-      emitUpdateStep("All components are up to date");
+      emitUpdateStep("All components are up to date", true);
     }
   } catch (error) {
     log(`Error checking for updates: ${error.message}`, "error");
-    emitUpdateStep(`Error: ${error.message}`);
+    log(error.stack, "error");
+    emitUpdateStep(`Error: ${error.message}`, true);
     dialog.showErrorBox("Update Error", error.message);
     app.exit(1);
   }
@@ -644,33 +646,52 @@ https://github.com/nodetool-ai/nodetool/issues/new
  * @returns {Promise<Array<{name: string, url: string, checksumUrl: string}>>}
  */
 async function getComponentsToUpdate(assets, system, arch, componentsDir) {
-  const componentsToUpdate = [];
   const componentNames = ["python_env", "web", "ollama", "ffmpeg"];
 
-  for (const name of componentNames) {
-    // Change file extension from .tar to .zip
+  const updateChecks = componentNames.map(async (name) => {
     const assetName = `${name}-${system}-${arch}.zip`;
     const checksumName = `${name}-${system}-${arch}.sha256`;
+
+    log(`Checking component: ${name}`);
+    log(`Looking for asset: ${assetName}`);
+    log(`Looking for checksum: ${checksumName}`);
 
     const asset = assets.find((a) => a.name === assetName);
     const checksumAsset = assets.find((a) => a.name === checksumName);
 
     if (asset && checksumAsset) {
-      const remoteChecksum = await downloadFileToString(
-        checksumAsset.browser_download_url
-      );
-      const localChecksum = await getLocalChecksum(componentsDir, name);
+      log(`Found asset and checksum for ${name}`);
+      const [remoteChecksum, localChecksum] = await Promise.all([
+        downloadFileToString(checksumAsset.browser_download_url),
+        getLocalChecksum(componentsDir, name),
+      ]);
+
+      log(`Remote checksum for ${name}: ${remoteChecksum.trim()}`);
+      log(`Local checksum for ${name}: ${localChecksum}`);
 
       if (remoteChecksum.trim() !== localChecksum) {
-        componentsToUpdate.push({
+        log(`Checksum mismatch for ${name}, will update`);
+        return {
           name,
           url: asset.browser_download_url,
           checksumUrl: checksumAsset.browser_download_url,
-        });
+        };
+      } else {
+        log(`Checksum match for ${name}, no update needed`);
       }
+    } else {
+      log(`Asset or checksum not found for ${name}`);
     }
-  }
 
+    return null;
+  });
+
+  const results = await Promise.all(updateChecks);
+  const componentsToUpdate = results.filter(Boolean);
+
+  log(
+    `Components to update: ${componentsToUpdate.map((c) => c.name).join(", ")}`
+  );
   return componentsToUpdate;
 }
 
@@ -683,7 +704,7 @@ async function getComponentsToUpdate(assets, system, arch, componentsDir) {
 async function getLocalChecksum(componentsDir, componentName) {
   const checksumPath = path.join(componentsDir, `${componentName}.sha256`);
   try {
-    return await fs.readFile(checksumPath, "utf-8");
+    return await readFile(checksumPath, "utf-8");
   } catch (error) {
     return "";
   }
@@ -701,7 +722,6 @@ async function downloadAndExtractComponent(
   strip = 1
 ) {
   const tempFile = path.join(componentsDir, `${component.name}.tmp`);
-  // Change file extension from .tar to .zip
   const finalFile = path.join(componentsDir, `${component.name}.zip`);
   const checksumFile = path.join(componentsDir, `${component.name}.sha256`);
 
@@ -721,17 +741,17 @@ async function downloadAndExtractComponent(
   }
 
   // Rename temp file to final file
-  await fs.rename(tempFile, finalFile);
+  await rename(tempFile, finalFile);
 
   // Save checksum
-  await fs.writeFile(checksumFile, checksum);
+  await writeFile(checksumFile, checksum);
 
   // Extract the component
   log(`Extracting ${component.name} to ${componentsDir}`);
   await extractZip(finalFile, componentsDir, component.name, strip);
 
   // Remove the zip file
-  await fs.unlink(finalFile);
+  await unlink(finalFile);
 
   log(`${component.name} extracted successfully`);
 }
@@ -764,16 +784,19 @@ async function extractZip(archivePath, extractTo, componentName, strip = 1) {
   const componentDir = path.join(extractTo, componentName);
 
   // Create the component directory if it doesn't exist
-  await fs.mkdir(componentDir, { recursive: true });
+  await mkdir(componentDir, { recursive: true });
 
   return new Promise((resolve, reject) => {
-    fs.createReadStream(archivePath)
+    createReadStream(archivePath)
       .pipe(unzip.Extract({ path: componentDir }))
       .on("close", () => {
         log(`Finished extraction of ${archivePath} to ${componentDir}`);
         resolve();
       })
-      .on("error", reject);
+      .on("error", (error) => {
+        log(`Error during extraction: ${error.message}`, "error");
+        reject(error);
+      });
   });
 }
 
@@ -882,6 +905,7 @@ async function checkNodeToolInstalled() {
 
     checkProcess.stdout.on("data", (data) => {
       output += data.toString();
+      console.log("python nodetool version", output);
     });
 
     checkProcess.on("close", (code) => {
@@ -895,10 +919,10 @@ async function checkNodeToolInstalled() {
 }
 
 // Add these new event emitter functions
-function emitUpdateStep(step) {
+function emitUpdateStep(step, isComplete = false) {
   if (mainWindow && mainWindow.webContents) {
     try {
-      mainWindow.webContents.send("update-step", step);
+      mainWindow.webContents.send("update-step", { step, isComplete });
     } catch (error) {
       console.error("Error emitting update step:", error);
     }

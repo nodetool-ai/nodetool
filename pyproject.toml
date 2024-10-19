@@ -12,6 +12,7 @@ packages = [
   { include = "nodetool", from = "src" },
   { include = "comfy", from = "src" },
   { include = "comfy_custom_nodes", from = "src" },
+  { include = "comfy_extras", from = "src" },
   { include = "RealESRGAN", from = "src" },
   { include = "folder_paths.py", from = "src" },
   { include = "latent_preview.py", from = "src" },
