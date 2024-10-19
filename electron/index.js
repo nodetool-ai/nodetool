@@ -565,11 +565,17 @@ async function checkForUpdates() {
 
     const system =
       process.platform === "win32"
-        ? "win"
+        ? "windows"
         : process.platform === "darwin"
         ? "darwin"
-        : "linux";
+        : process.platform === "linux"
+        ? "linux"
+        : "unknown";
     const arch = process.arch;
+
+    if (system === "unknown" || system === "linux") {
+      throw new Error("Unsupported platform");
+    }
 
     log(`Checking components for system: ${system}, arch: ${arch}`);
     const componentsToUpdate = await getComponentsToUpdate(
