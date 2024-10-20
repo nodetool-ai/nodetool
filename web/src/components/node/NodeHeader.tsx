@@ -7,9 +7,7 @@ import { memo, useCallback, useMemo } from "react";
 import ThemeNodes from "../themes/ThemeNodes";
 import { isEqual } from "lodash";
 import { titleizeString } from "../../utils/titleizeString";
-import ColorPicker from "../inputs/ColorPicker";
 import { NodeData } from "../../stores/NodeData";
-import { Tooltip } from "@mui/material";
 
 export interface NodeHeaderProps {
   id: string;
@@ -20,15 +18,6 @@ export interface NodeHeaderProps {
   data: NodeData;
   backgroundColor?: string;
 }
-// const tooltipStyle = css({
-//   '[role~="tooltip"][data-microtip-position|="top"]::after': {
-//     fontSize: "1.1em",
-//     maxWidth: "250px",
-//     padding: "1em",
-//     textAlign: "left",
-//     transform: "translate3d(-90%, -5px, 0)"
-//   }
-// });
 
 export const headerStyle = (theme: any, hasParent: boolean) =>
   css({
@@ -100,7 +89,6 @@ export const headerStyle = (theme: any, hasParent: boolean) =>
         color: theme.palette.c_gray5,
         width: ".5em",
         height: ".5em",
-        // scale: ".5",
         rotate: "-86deg"
       },
       "&:hover svg": {
@@ -118,28 +106,6 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
   showMenu = true
 }: NodeHeaderProps) => {
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
-  // const getMetadata = useMetadataStore((state) => state.getMetadata);
-  // const findNode = useNodeStore((state) => state.findNode);
-
-  // const node = useMemo(() => findNode(id), [findNode, id]);
-  // const metadata = getMetadata(node?.type || "");
-  // const description = useMemo(
-  //   () => metadata?.description.split("\n")[0] || "",
-  //   [metadata]
-  // );
-
-  // const tooltipAttributes = useMemo(
-  //   () =>
-  //     description
-  //       ? {
-  //           "aria-label": description,
-  //           "data-microtip-position": "top",
-  //           "data-microtip-size": "medium",
-  //           role: "tooltip"
-  //         }
-  //       : {},
-  //   [description]
-  // );
   const titleizedType = useMemo(
     () => (metadataTitle ? titleizeString(metadataTitle) : ""),
     [metadataTitle]
@@ -169,21 +135,6 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
     updateNode(id, { selected: true });
   }, [updateNode, id]);
 
-  const updateNodeData = useNodeStore(
-    (state: NodeStore) => state.updateNodeData
-  );
-
-  const handleColorChange = useCallback(
-    (newColor: string) => {
-      if (id) {
-        updateNodeData(id, {
-          color: newColor
-        });
-      }
-    },
-    [id, updateNodeData]
-  );
-
   return (
     <div
       className="node-header"
@@ -201,11 +152,6 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
       {!data.title && <span className="node-title">{titleizedType}</span>}
       {showMenu && (
         <>
-          <ColorPicker
-            label=""
-            color={backgroundColor || ""}
-            onColorChange={handleColorChange}
-          />
           <div className="menu-button">
             <button className="menu-button" onClick={handleOpenContextMenu}>
               <MoreHoriz />

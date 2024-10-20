@@ -28,14 +28,9 @@ import NodeStatus from "./NodeStatus";
 import NodeContent from "./NodeContent";
 import NodeToolButtons from "./NodeToolButtons";
 import { useRenderLogger } from "../../hooks/useRenderLogger";
-import {
-  darkenHexColor,
-  hexToRgba,
-  simulateOpacity
-} from "../../utils/ColorUtils";
+import { simulateOpacity } from "../../utils/ColorUtils";
 import useMetadataStore from "../../stores/MetadataStore";
 import NodeFooter from "./NodeFooter";
-import chroma from "chroma-js";
 
 // Tooltip timing constants
 export const TOOLTIP_ENTER_DELAY = 650;
@@ -266,17 +261,14 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     resizer
   });
 
-  const backgroundColor = useMemo(() => {
-    if (props.data.color) {
-      return chroma(props.data.color)
-        .darken(0.5)
-        .mix(ThemeNodes.palette.c_node_bg || "#888888", 0.6)
-        .hex();
-    }
-    return hasParent
-      ? ThemeNodes.palette.c_node_bg_group
-      : ThemeNodes.palette.c_node_bg;
-  }, [props.data.color, hasParent]);
+  const parentColor = useMemo(() => {
+    if (!hasParent || !parentNode?.data?.properties?.group_color) return "";
+    return simulateOpacity(
+      parentNode?.data?.properties?.group_color,
+      0.15,
+      ThemeNodes.palette.c_editor_bg_color
+    );
+  }, [hasParent, parentNode]);
 
   if (!metadata) {
     return (
@@ -297,7 +289,9 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       style={{
         display: parentIsCollapsed ? "none" : "flex",
         minHeight: `${minHeight}px`,
-        backgroundColor
+        backgroundColor: hasParent
+          ? ThemeNodes.palette.c_node_bg_group
+          : ThemeNodes.palette.c_node_bg
       }}
     >
       {props.selected && (
@@ -308,7 +302,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       <NodeHeader
         id={props.id}
         data={props.data}
-        backgroundColor={backgroundColor}
+        backgroundColor={parentColor}
         metadataTitle={metadata.title}
         hasParent={hasParent}
       />
@@ -331,7 +325,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       <NodeFooter
         nodeNamespace={metadata.namespace}
         metadata={metadata}
-        backgroundColor={backgroundColor}
+        backgroundColor={parentColor}
       />
     </Container>
   );
