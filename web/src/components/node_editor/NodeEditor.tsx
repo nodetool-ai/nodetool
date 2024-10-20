@@ -15,7 +15,7 @@ import { getMousePosition } from "../../utils/MousePosition";
 import { generateCSS } from "../themes/GenerateCSS";
 import "../../styles/base.css";
 import "../../styles/nodes.css";
-import "../../styles/collapsed.css";
+// import "../../styles/collapsed.css";
 import "../../styles/properties.css";
 import "../../styles/interactions.css";
 import "../../styles/special_nodes.css";

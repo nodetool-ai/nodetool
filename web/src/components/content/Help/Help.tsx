@@ -148,10 +148,10 @@ const Help = ({ handleClose }: { handleClose: () => void }) => {
               <Button className="no-border">Backspace</Button>
               <Button className="no-border">Delete</Button>
             </div>
-            <div className="help-item">
+            {/* <div className="help-item">
               <Typography>Un/Collapse Node</Typography>
               <Button className="no-border">Double click on node name</Button>
-            </div>
+            </div> */}
             <div className="help-item">
               <Typography>Select multiple Nodes</Typography>
               <Button className="no-border">
