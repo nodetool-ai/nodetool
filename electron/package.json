@@ -21,5 +21,8 @@
   "dependencies": {
     "tar": "^7.4.3",
     "unzip-stream": "^0.3.4"
-  }
+  },
+  "permissions": [
+    "audioCapture"
+  ]
 }

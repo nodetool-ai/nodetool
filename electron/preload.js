@@ -51,17 +51,6 @@ contextBridge.exposeInMainWorld("api", {
   onServerLog: (callback) =>
     ipcRenderer.on("server-log", (event, message) => callback(message)),
 
-  /**
-   * Registers a callback to receive update step notifications.
-   * This is used during the component update process to inform the user about
-   * the current step in the update procedure.
-   * @param {Function} callback - The function to be called with each update step
-   *                              Signature: (step: string, isComplete: boolean) => void
-   */
-  onUpdateStep: (callback) =>
-    ipcRenderer.on("update-step", (event, step, isComplete) =>
-      callback(step, isComplete)
-    ),
 
   /**
    * Registers a callback to receive download progress updates.

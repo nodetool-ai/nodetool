@@ -63,7 +63,7 @@
  * across different platforms.
  */
 
-const { app, BrowserWindow, ipcMain, dialog } = require("electron");
+const { app, BrowserWindow, ipcMain, dialog, session } = require("electron");
 const path = require("path");
 const { createReadStream, createWriteStream } = require("fs");
 const { access, mkdir, readFile, rename, writeFile, unlink, chmod } =
@@ -136,13 +136,6 @@ async function installRequirements() {
   emitBootMessage("Installing requirements...");
   log(`Installing requirements. Platform: ${process.platform}`);
 
-  // Perform dry run to count packages
-  const packageCount = await countPackages(pipArgs);
-  if (packageCount === 0) {
-    log("No packages to install");
-    return;
-  }
-
   // Use pythonExecutable instead of relying on system PATH
   const pipProcess = spawn(pythonExecutable, ["-m", "pip", ...pipArgs], {
     env,
@@ -156,36 +149,43 @@ async function installRequirements() {
   );
 
   let output = "";
+  let collectingCount = 0;
+  let downloadedCount = 0;
   let installedCount = 0;
 
   pipProcess.stdout.on("data", (/** @type {Buffer} */ data) => {
     const chunk = data.toString();
-    console.log(chunk);
     output += chunk;
-    emitServerLog(chunk);
+    log(chunk);
 
     if (chunk.includes("Collecting")) {
-      installedCount++;
+      collectingCount++;
       emitUpdateProgress(
-        "pip",
-        (installedCount / (packageCount * 2)) * 100,
+        chunk.split(" ")[1],
+        0,
+        "Collecting"
+      );
+    } else if (chunk.includes("Downloading") && !chunk.includes("metadata")) {
+      downloadedCount++;
+      emitUpdateProgress(
+        chunk.split(" ")[1],
+        (downloadedCount / collectingCount) * 100,
         "Downloading"
       );
-    } else if (chunk.includes("Installing")) {
+    } else if (chunk.includes("Installing collected packages")) {
       installedCount++;
       emitUpdateProgress(
-        "pip",
-        (installedCount / (packageCount * 2)) * 100,
-        "Installing"
+        chunk,
+        99,
+        ""
       );
     }
   });
 
   pipProcess.stderr.on("data", (/** @type {Buffer} */ data) => {
     const chunk = data.toString();
-    console.log(chunk);
     output += chunk;
-    emitServerLog(chunk);
+    log(chunk);
   });
 
   return new Promise((resolve, reject) => {
@@ -214,43 +214,6 @@ https://github.com/nodetool-ai/nodetool/issues/new
   });
 }
 
-async function countPackages(pipArgs) {
-  return new Promise((resolve, reject) => {
-    const dryRunProcess = spawn(
-      pythonExecutable,
-      ["-m", "pip", ...pipArgs, "--dry-run"],
-      { env }
-    );
-
-    log(
-      `Starting dry run with command: ${pythonExecutable} -m pip ${pipArgs.join(
-        " "
-      )} --dry-run`
-    );
-    let output = "";
-
-    dryRunProcess.stderr.on("data", (data) => {
-      log(data.toString());
-    });
-
-    dryRunProcess.stdout.on("data", (data) => {
-      log(data.toString());
-      output += data.toString();
-    });
-
-    dryRunProcess.on("close", (code) => {
-      if (code === 0) {
-        const collectedCount = (output.match(/Collecting/g) || []).length;
-        log(`Dry run complete. Packages to install: ${collectedCount}`);
-        resolve(collectedCount);
-      } else {
-        log(`Dry run failed with code ${code}`);
-        reject(new Error(`Dry run failed with code ${code}`));
-      }
-    });
-  });
-}
-
 /**
  * Create the main application window
  */
@@ -263,6 +226,11 @@ function createWindow() {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
       nodeIntegration: false,
+      // Add these lines to enable audio capture
+      enableRemoteModule: true,
+      allowRunningInsecureContent: true,
+      // Add this line to enable microphone access
+      permissions: ['audioCapture']
     },
   });
   emitBootMessage("Initializing...");
@@ -282,6 +250,19 @@ function createWindow() {
   mainWindow.on("closed", function () {
     log("Main window closed");
     mainWindow = null;
+  });
+
+  // Add this line to set the permission check handler
+  setPermissionCheckHandler();
+}
+
+// Add this new function after createWindow()
+function setPermissionCheckHandler() {
+  session.defaultSession.setPermissionCheckHandler((webContents, permission, requestingOrigin, details) => {
+    if (permission === 'media') {
+      return true;
+    }
+    return false;
   });
 }
 
@@ -351,12 +332,12 @@ function startOllamaServer() {
 
   ollamaProcess.stdout.on("data", (data) => {
     const output = data.toString().trim();
-    log(`Ollama: ${output}`);
+    log(output);
   });
 
   ollamaProcess.stderr.on("data", (data) => {
     const output = data.toString().trim();
-    log(`Ollama Error: ${output}`, "error");
+    log(output);
   });
 
   ollamaProcess.on("error", (error) => {
@@ -891,34 +872,22 @@ async function extractZip(archivePath, extractTo, componentName, strip = 1) {
   await mkdir(componentDir, { recursive: true });
 
   return new Promise((resolve, reject) => {
-    let totalEntries = 0;
-    let processedEntries = 0;
-
-    createReadStream(archivePath)
-      .pipe(unzip.Parse())
-      .on("entry", (entry) => {
-        totalEntries++;
-        entry.autodrain();
-      })
-      .on("close", () => {
-        createReadStream(archivePath)
-          .pipe(unzip.Extract({ path: componentDir }))
-          .on("entry", (entry) => {
-            processedEntries++;
-            const progress = (processedEntries / totalEntries) * 100;
-            emitUpdateProgress(componentName, progress, "Unpacking");
-            entry.autodrain();
-          })
-          .on("close", () => {
-            log(`Finished extraction of ${archivePath} to ${componentDir}`);
-            resolve();
-          })
-          .on("error", (error) => {
-            log(`Error during extraction: ${error.message}`, "error");
-            reject(error);
-          });
-      });
-  });
+      createReadStream(archivePath)
+        .pipe(unzip.Extract({ path: componentDir }))
+        .on("progress", (entry) => {
+          const progress = entry.fs.processedBytes / entry.fs.totalBytes;
+          emitUpdateProgress(componentName, progress, "Unpacking");
+          entry.autodrain();
+        })
+        .on("close", () => {
+          log(`Finished extraction of ${archivePath} to ${componentDir}`);
+          resolve();
+        })
+        .on("error", (error) => {
+          log(`Error during extraction: ${error.message}`, "error");
+          reject(error);
+        });
+    });
 }
 
 /**
@@ -1030,7 +999,8 @@ async function checkNodeToolInstalled() {
     });
 
     checkProcess.on("close", (code) => {
-      if (code === 0 && output.trim() === VERSION) {
+      // compare version without the leading v
+      if (code === 0 && output.trim() === VERSION.slice(1)) { 
         resolve(true);
       } else {
         resolve(false);
@@ -1064,6 +1034,3 @@ function emitUpdateProgress(componentName, progress, action) {
   }
 }
 
-function emitDownloadProgress(componentName, progress) {
-  emitUpdateProgress(componentName, progress, "Downloading");
-}
