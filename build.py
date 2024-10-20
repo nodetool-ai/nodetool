@@ -12,6 +12,7 @@ import zipfile
 from typing import List, Optional, Callable
 import hashlib
 import os
+import re
 
 # Set up logging
 logging.basicConfig(
@@ -36,6 +37,7 @@ class Build:
         clean_build: bool = False,
         platform: str | None = None,
         arch: str | None = None,
+        python_version: str = "3.11.10",
     ):
         """Initialize Build configuration."""
         if platform is None:
@@ -55,6 +57,7 @@ class Build:
         self.clean_build = clean_build
         self.platform = platform
         self.arch = arch
+        self.python_version = python_version
 
         if in_docker:
             self.BUILD_DIR = Path("/build")
@@ -277,14 +280,8 @@ class Build:
         """Package Python environment with base packages."""
         logger.info("Setting up and packing Python environment")
 
-        # Get dependencies, excluding ML libraries
         base_packages = [
             "conda-pack",
-            "numpy",
-            "matplotlib",
-            "pandas",
-            "opencv-python-headless",
-            "pillow",
         ]
 
         # Install base packages
@@ -371,7 +368,8 @@ class Build:
 
         # Create new environment
         self.run_command(
-            ["conda", "create", "-n", CONDA_ENV, "python=3.11", "-y"], ignore_error=True
+            ["conda", "create", "-n", CONDA_ENV, f"python={self.python_version}", "-y"],
+            ignore_error=True,
         )
 
     def run_build_step(self, step_func: Callable[[], None]) -> None:
@@ -486,14 +484,25 @@ def main() -> None:
         choices=["setup", "python", "react", "electron", "ffmpeg", "ollama"],
         help="Run a specific build step",
     )
+    parser.add_argument(
+        "--python-version",
+        default="3.11.10",
+        help="Python version to use for the conda environment (e.g., 3.11.10)",
+    )
 
     args = parser.parse_args()
+
+    # Validate Python version format
+    if not re.match(r"^\d+\.\d+\.\d+$", args.python_version):
+        logger.error("Invalid Python version format. Use 'X.Y.Z' (e.g., 3.11.10)")
+        sys.exit(1)
 
     build = Build(
         in_docker=args.docker,
         clean_build=args.clean,
         platform=args.platform,
         arch=args.arch,
+        python_version=args.python_version,
     )
 
     if args.step:

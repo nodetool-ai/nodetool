@@ -21,11 +21,6 @@ export const useRenderLogger = (
           changedDeps.map(([key]) => key).join(", ")
         );
 
-        console.log(
-          `${name} render triggered by:`,
-          changedDeps.map(([key]) => key).join(", ")
-        );
-
         // Update the ref after logging changes
         prevDeps.current = dependencies;
       }

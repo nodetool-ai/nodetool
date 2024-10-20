@@ -73,6 +73,7 @@ const https = require("https");
 const crypto = require("crypto");
 const unzip = require("unzip-stream");
 const VERSION = "v0.5.0rc5";
+const PYTHON_VERSION = "3.11.10";
 const fs = require("fs");
 
 /** @type {BrowserWindow|null} */
@@ -175,9 +176,9 @@ async function installRequirements() {
     } else if (chunk.includes("Installing collected packages")) {
       installedCount++;
       emitUpdateProgress(
-        chunk,
+        "",
         99,
-        ""
+        "Installing collected packages"
       );
     }
   });
@@ -421,16 +422,6 @@ async function downloadFile(url, dest) {
  * Setup Python and dependencies.
  */
 async function setupPython() {
-  // Ensure dependencies are available
-  componentsDir = path.join(app.getPath("userData"), "components");
-
-  // Set up paths for Python and pip executables based on the platform
-  if (process.platform === "darwin") {
-    pythonExecutable = path.join(componentsDir, "python_env", "bin", "python");
-  } else {
-    pythonExecutable = path.join(componentsDir, "python_env", "python.exe");
-  }
-
   const pythonExists = await checkFileExists(pythonExecutable);
   if (!pythonExists) {
     throw new Error("Python environment is not available");
@@ -450,9 +441,6 @@ async function startServer() {
     log("Starting server");
     env.PATH = `${path.join(componentsDir, "ollama")}:${env.PATH}`;
     log(`PATH: ${env.PATH}`);
-
-    webDir = path.join(componentsDir, "web");
-    log(`Web directory: ${webDir}`);
 
     log("Attempting to run NodeTool");
     runNodeTool(env);
@@ -530,6 +518,15 @@ async function gracefulShutdown() {
 
 app.on("ready", async () => {
   log("Electron app is ready");
+
+  componentsDir = path.join(app.getPath("userData"), "components");
+  webDir = path.join(componentsDir, "web");
+  if (process.platform === "darwin") {
+    pythonExecutable = path.join(componentsDir, "python_env", "bin", "python");
+  } else {
+    pythonExecutable = path.join(componentsDir, "python_env", "python.exe");
+  }
+
   createWindow();
   emitBootMessage("Checking for updates...");
   await checkForUpdates();
@@ -747,6 +744,21 @@ async function getComponentsToUpdate(assets, system, arch, componentsDir) {
 
     if (asset && checksumAsset) {
       log(`Found asset and checksum for ${name}`);
+      
+      if (name === "python_env") {
+        const currentPythonVersion = await getCurrentPythonVersion(componentsDir);
+        if (currentPythonVersion !== PYTHON_VERSION) {
+          log(`Python version mismatch. Current: ${currentPythonVersion}, Required: ${PYTHON_VERSION}`);
+          return {
+            name,
+            url: asset.browser_download_url,
+            checksumUrl: checksumAsset.browser_download_url,
+          };
+        }
+        log(`Python version is up to date: ${currentPythonVersion}`);
+        return null;
+      }
+
       const [remoteChecksum, localChecksum] = await Promise.all([
         downloadFileToString(checksumAsset.browser_download_url),
         getLocalChecksum(componentsDir, name),
@@ -1034,3 +1046,45 @@ function emitUpdateProgress(componentName, progress, action) {
   }
 }
 
+// Add this new function to check the current Python version
+async function getCurrentPythonVersion(componentsDir) {
+  try {
+    // Check if the Python executable exists
+    const pythonExists = await checkFileExists(pythonExecutable);
+    if (!pythonExists) {
+      log(`Python executable not found at: ${pythonExecutable}`, "warn");
+      return null;
+    }
+
+    const result = await new Promise((resolve, reject) => {
+      const pythonProcess = spawn(pythonExecutable, ["-V"]);
+      let output = "";
+
+      pythonProcess.stdout.on("data", (data) => {
+        output += data.toString();
+      });
+
+      pythonProcess.stderr.on("data", (data) => {
+        output += data.toString();
+      });
+
+      pythonProcess.on("close", (code) => {
+        if (code === 0) {
+          resolve(output.trim());
+        } else {
+          reject(new Error(`Python process exited with code ${code}`));
+        }
+      });
+
+      pythonProcess.on("error", (error) => {
+        reject(new Error(`Failed to start Python process: ${error.message}`));
+      });
+    });
+
+    const versionMatch = result.match(/Python (\d+\.\d+\.\d+)/);
+    return versionMatch ? versionMatch[1] : null;
+  } catch (error) {
+    log(`Error getting Python version: ${error.message}`, "error");
+    return null;
+  }
+}
