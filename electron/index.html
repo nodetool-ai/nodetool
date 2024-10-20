@@ -1,429 +1,442 @@
 <!DOCTYPE html>
 <html>
-
-<head>
+  <head>
     <title>Nodetool</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;400;500;600;700&display=swap" rel="stylesheet">
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@200;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
 
     <style>
-        body, html {
-            height: 100%;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-            background-color: #111;
-            font-family: Arial, sans-serif;
-        }
+      body,
+      html {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        background-color: #111;
+        font-family: Arial, sans-serif;
+      }
 
-        #content {
-            flex: 1;
-            border: none;
-        }
+      #content {
+        flex: 1;
+        border: none;
+      }
 
-        .nodetool-icon {
-            width: 350px;
-            height: 350px;
-            z-index: 10000;
-            --stroke-color: transparent;;
-            --fill-color: transparent;
-            --transition-speed: .7s;
-            stroke: var(--stroke-color);
-            fill: var(--fill-color);
-            transition: stroke var(--transition-speed) ease, fill var(--transition-speed) ease; 
-        }
-        .nodetool-icon:hover .path-4 {
-            fill: var(--stroke-color);
-        }
-        .nodetool-icon path {
-            stroke: var(--stroke-color);
-            fill: var(--fill-color);
-            transition: stroke var(--transition-speed) ease, fill var(--transition-speed) ease; 
-        }
+      .nodetool-icon {
+        width: 350px;
+        height: 350px;
+        z-index: 10000;
+        --stroke-color: transparent;
+        --fill-color: transparent;
+        --transition-speed: 0.7s;
+        stroke: var(--stroke-color);
+        fill: var(--fill-color);
+        transition: stroke var(--transition-speed) ease,
+          fill var(--transition-speed) ease;
+      }
+      .nodetool-icon:hover .path-4 {
+        fill: var(--stroke-color);
+      }
+      .nodetool-icon path {
+        stroke: var(--stroke-color);
+        fill: var(--fill-color);
+        transition: stroke var(--transition-speed) ease,
+          fill var(--transition-speed) ease;
+      }
 
-        .inter-font {
-            font-family: 'Inter', sans-serif;
-        }
+      .inter-font {
+        font-family: "Inter", sans-serif;
+      }
 
-        #log-container {
-            /* position: fixed; */
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background-color: #212121;
-            transition: height 0.3s ease-out;
-            height: 0px;
-            overflow: hidden;
-            z-index: 1000;
-        }
+      #log-container {
+        /* position: fixed; */
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background-color: #212121;
+        transition: height 0.3s ease-out;
+        height: 0px;
+        overflow: hidden;
+        z-index: 1000;
+      }
 
-        #log-container.expanded {
-            height: 200px;
-        }
+      #log-container.expanded {
+        height: 200px;
+      }
 
-        #log-toggle {
-            width: 100%;
-            height: 30px;
-            background-color: #2a2a2a;
-            color: #ffffff;
-            border: none;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-            font-family: 'Inter', sans-serif;
-            font-weight: 500;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-            background: linear-gradient(to right, #2a2a2a, #3a3a3a);
-        }
+      #log-toggle {
+        width: 100%;
+        height: 30px;
+        background-color: #2a2a2a;
+        color: #ffffff;
+        border: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-family: "Inter", sans-serif;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+        background: linear-gradient(to right, #2a2a2a, #3a3a3a);
+      }
 
-        #log-toggle:hover {
-            background: linear-gradient(to right, #3a3a3a, #2a2a2a);
-        }
-        
-        #log {
-            height: 170px;
-            overflow-y: auto;
-            color: #fff;
-            padding: 10px;
-            font-family: 'Courier New', monospace;
-            font-size: 10px;
-            background-color: #111;
-        }
+      #log-toggle:hover {
+        background: linear-gradient(to right, #3a3a3a, #2a2a2a);
+      }
 
-        .log-line {
-            overflow: hidden;
-            white-space: nowrap;
-            margin: 0;
-            line-height: 1.2;
-        }
+      #log {
+        height: 170px;
+        overflow-y: auto;
+        color: #fff;
+        padding: 10px;
+        font-family: "Courier New", monospace;
+        font-size: 10px;
+        background-color: #111;
+      }
 
-        .log-line.last::after {
-            content: '█';
-            animation: blink 0.7s infinite;
-        }
+      .log-line {
+        overflow: hidden;
+        white-space: nowrap;
+        margin: 0;
+        line-height: 1.2;
+      }
 
-        #boot-message {
-            display: flex;
-            gap: 12px;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: #222222;
-            border: 12px solid #111;
-            border-radius: 36px;
-            color: #ffffff;
-            font-size: 36px;
-            font-weight: 200;
-            font-family: 'Inter', sans-serif;
-            text-transform: uppercase;
-            text-align: center;
-            overflow: hidden;
-            z-index: 1000;
-            background: radial-gradient(circle, #252525,  #242424, #202020);
-            background-position-y: -20vh;
-            background-size: 100%;
-            background-repeat: no-repeat;
-        }
+      #boot-message {
+        display: flex;
+        gap: 12px;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #222222;
+        border: 12px solid #111;
+        border-radius: 36px;
+        color: #ffffff;
+        font-size: 36px;
+        font-weight: 200;
+        font-family: "Inter", sans-serif;
+        text-transform: uppercase;
+        text-align: center;
+        overflow: hidden;
+        z-index: 1000;
+        background: radial-gradient(circle, #252525, #242424, #202020);
+        background-position-y: -20vh;
+        background-size: 100%;
+        background-repeat: no-repeat;
+      }
 
-        .boot-text {
-            position: relative;
-            font-size: 24px;
-            color: #eee;
-            font-family: 'Inter', sans-serif;
-        }
+      .boot-text {
+        position: relative;
+        font-size: 24px;
+        color: #eee;
+        font-family: "Inter", sans-serif;
+      }
 
-        .boot-text::before,
-        .boot-text::after {
-            content: '';
-            position: absolute;
-            top: 50%;
-            width: 100vw;
-            height: 2px;
-            background: linear-gradient(to right, transparent, #ffffff, transparent);
-            transform: translateY(-50%) ;
+      .boot-text::before,
+      .boot-text::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        width: 100vw;
+        height: 2px;
+        background: linear-gradient(
+          to right,
+          transparent,
+          #ffffff,
+          transparent
+        );
+        transform: translateY(-50%);
 
-            animation: lineExpand 5s ease infinite;
-        }
+        animation: lineExpand 5s ease infinite;
+      }
 
-        .boot-text::before {
-            right: 100%;
-            margin-right: 20px;
-        }
+      .boot-text::before {
+        right: 100%;
+        margin-right: 20px;
+      }
 
-        .boot-text::after {
-            left: 100%;
-            margin-left: 20px;
-        }
+      .boot-text::after {
+        left: 100%;
+        margin-left: 20px;
+      }
 
-        @keyframes zoomInOut {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.1); }
+      @keyframes zoomInOut {
+        0%,
+        100% {
+          transform: scale(1);
         }
+        50% {
+          transform: scale(1.1);
+        }
+      }
 
-        @keyframes lineExpand {
-            0% { width: 0; opacity: 0; }
-            50% { opacity: 0.25; }
-            100% { width: 50vw; opacity: 0; }
+      @keyframes lineExpand {
+        0% {
+          width: 0;
+          opacity: 0;
         }
+        50% {
+          opacity: 0.25;
+        }
+        100% {
+          width: 50vw;
+          opacity: 0;
+        }
+      }
 
-        
-        @keyframes blink {
-            0%, 100% { opacity: 0; }
-            50% { opacity: 1; }
-        }
+      #update-steps {
+        display: none;
+        font-size: 18px;
+        color: #eee;
+        text-align: center;
+        width: 80%;
+        max-width: 400px;
+      }
 
-        @keyframes typing {
-            from { width: 0; }
-            to { width: 100%; }
-        }
+      .progress-container {
+        margin-top: 10px;
+      }
 
-        #update-steps {
-            font-size: 18px;
-            color: #eee;
-            text-align: center;
-            width: 80%;
-            max-width: 400px;
-        }
+      .progress-label {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 5px;
+        font-size: 14px;
+      }
 
-        .progress-container {
-            margin-top: 10px;
-        }
+      .progress-bar {
+        width: 100%;
+        height: 4px;
+        background-color: #333;
+        border-radius: 2px;
+        overflow: hidden;
+      }
 
-        .progress-label {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 5px;
-            font-size: 14px;
-        }
-
-        .progress-bar {
-            width: 100%;
-            height: 4px;
-            background-color: #333;
-            border-radius: 2px;
-            overflow: hidden;
-        }
-
-        .progress {
-            width: 0;
-            height: 100%;
-            background-color: #4CAF50;
-            transition: width 0.3s ease;
-        }
+      .progress {
+        width: 0;
+        height: 100%;
+        background-color: #4caf50;
+        transition: width 0.3s ease;
+      }
     </style>
-</head>
-<body>
-
+  </head>
+  <body>
     <div id="boot-message">
-        <svg class="nodetool-icon" width="396" height="404" viewBox="0 0 396 404" fill="none"
-            xmlns="http://www.w3.org/2000/svg">
-            <path class="path-1" d="M128 176.5L195.5 139L70.5 70L2.5 108L1 112V403L126 323V180L128 176.5Z"
-                fill="#2E2E2E" />
-            <path class="path-2" d="M394.5 403L267.5 323V180L394.5 108V403Z" fill="#2E2E2E" />
-            <path class="path-3" d="M394.5 108L195 1L70 69.5L268 179L394.5 108Z" fill="#2E2E2E" />
-            <path class="path-4" d="M195.5 138.5L69.3451 70L3.5 107L127 176.5L195.5 138.5Z" fill="#2E2E2E" />
-            <path class="path-5"
-                d="M394.5 108V403L267.5 323V180L394.5 108ZM394.5 108L195 1L70 69.5L268 179L394.5 108ZM195.5 139L128 176.5L126 180V323L1 403V112L2.5 108L70.5 70L195.5 139ZM69.3451 70L195.5 138.5L127 176.5L3.5 107L69.3451 70Z"
-                stroke="white" stroke-width="2" stroke-linejoin="round" />
-        </svg>
+      <svg
+        class="nodetool-icon"
+        width="396"
+        height="404"
+        viewBox="0 0 396 404"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          class="path-1"
+          d="M128 176.5L195.5 139L70.5 70L2.5 108L1 112V403L126 323V180L128 176.5Z"
+          fill="#2E2E2E"
+        />
+        <path
+          class="path-2"
+          d="M394.5 403L267.5 323V180L394.5 108V403Z"
+          fill="#2E2E2E"
+        />
+        <path
+          class="path-3"
+          d="M394.5 108L195 1L70 69.5L268 179L394.5 108Z"
+          fill="#2E2E2E"
+        />
+        <path
+          class="path-4"
+          d="M195.5 138.5L69.3451 70L3.5 107L127 176.5L195.5 138.5Z"
+          fill="#2E2E2E"
+        />
+        <path
+          class="path-5"
+          d="M394.5 108V403L267.5 323V180L394.5 108ZM394.5 108L195 1L70 69.5L268 179L394.5 108ZM195.5 139L128 176.5L126 180V323L1 403V112L2.5 108L70.5 70L195.5 139ZM69.3451 70L195.5 138.5L127 176.5L3.5 107L69.3451 70Z"
+          stroke="white"
+          stroke-width="2"
+          stroke-linejoin="round"
+        />
+      </svg>
 
-        <div class="boot-text">installing nodetool</div>
-        <div id="update-steps"></div>
+      <div class="boot-text"></div>
+      <div id="update-steps">
+        <div class="progress-container">
+          <div class="progress-label">
+            <span class="action-label"></span>
+            <span class="progress-percentage">0%</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress"></div>
+          </div>
+        </div>
+      </div>
     </div>
     <iframe id="content"></iframe>
     <button id="log-toggle">Hide Log</button>
     <div id="log-container" class="expanded">
-        <div id="log"></div>
+      <div id="log"></div>
     </div>
 
     <script>
-        // Remove the require('electron') line, we'll use the exposed api instead
-        // const { api } = window;
-        const contentElement = document.getElementById('content');
-        const logElement = document.getElementById('log');
-        const bootMessage = document.getElementById('boot-message');
-        const logContainer = document.getElementById('log-container');
-        const logToggle = document.getElementById('log-toggle');
-        const updateStepsElement = document.getElementById('update-steps');
+      // Remove the require('electron') line, we'll use the exposed api instead
+      // const { api } = window;
+      const contentElement = document.getElementById("content");
+      const logElement = document.getElementById("log");
+      const bootMessage = document.getElementById("boot-message");
+      const logContainer = document.getElementById("log-container");
+      const logToggle = document.getElementById("log-toggle");
+      const updateStepsElement = document.getElementById("update-steps");
 
-        function createMatrixLogger(logElement) {
-            let lastLogLine = null;
-            let typingTimeout = null;
-
-            function finishTyping(logLine) {
-                logLine.style.width = '100%';
-                logLine.style.animation = 'none';
-                logLine.classList.remove('last');
-            }
-
-            function log(message) {
-                if (lastLogLine) {
-                    clearTimeout(typingTimeout);
-                    finishTyping(lastLogLine);
-                }
-
-                const logLine = document.createElement('p');
-                logLine.className = 'log-line last';
-                logLine.textContent = message;
-                logElement.appendChild(logLine);
-                logElement.scrollTop = logElement.scrollHeight;
-
-                // Animate the new log line
-                logLine.style.width = '0';
-                const duration = Math.min(message.length * 2, 500); // Cap at 500ms
-                logLine.style.animation = `typing ${duration}ms steps(${message.length}, end)`;
-                
-                lastLogLine = logLine;
-                typingTimeout = setTimeout(() => finishTyping(logLine), duration);
-            }
-
-            return { log };
-        }
-        function toggleLog() {
-            logContainer.classList.toggle('expanded');
-            logToggle.textContent = logContainer.classList.contains('expanded') ? 'Hide Log' : 'Show Log';
-            
-            // Add this line to update the button text with an icon
-            logToggle.innerHTML = logContainer.classList.contains('expanded') 
-                ? '<span>▼ Hide Log</span>' 
-                : '<span>▲ Show Log</span>';
-        }
-        
-        const matrixLogger = createMatrixLogger(logElement);
-
-        function loadContentWithNoCaching() {
-            const timestamp = new Date().getTime();
-            contentElement.src = `http://127.0.0.1:8000?nocache=${timestamp}`;
+      function createSimpleLogger(logElement) {
+        function log(message) {
+          const logLine = document.createElement("p");
+          logLine.className = "log-line";
+          logLine.textContent = message;
+          logElement.appendChild(logLine);
+          logElement.scrollTop = logElement.scrollHeight;
         }
 
-        function showUpdateStep(step, isComplete) {
-            const updateStepsElement = document.getElementById('update-steps');
-            updateStepsElement.style.display = 'block';
-            updateStepsElement.innerHTML = `
-                <div class="progress-container">
-                    <div class="progress-label">
-                        <span class="action-label">Downloading</span>
-                        <span class="progress-percentage">0%</span>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="progress"></div>
-                    </div>
-                </div>
-            `;
+        return { log };
+      }
 
-            if (isComplete) {
-                setTimeout(() => {
-                    updateStepsElement.style.display = 'none';
-                }, 2000); // Hide after 2 seconds
-            }
+      function toggleLog() {
+        logContainer.classList.toggle("expanded");
+        logToggle.textContent = logContainer.classList.contains("expanded")
+          ? "Hide Log"
+          : "Show Log";
+
+        // Add this line to update the button text with an icon
+        logToggle.innerHTML = logContainer.classList.contains("expanded")
+          ? "<span>▼ Hide Log</span>"
+          : "<span>▲ Show Log</span>";
+      }
+
+      const simpleLogger = createSimpleLogger(logElement);
+
+      function loadContentWithNoCaching() {
+        const timestamp = new Date().getTime();
+        contentElement.src = `http://127.0.0.1:8000?nocache=${timestamp}`;
+      }
+
+      function updateProgress(componentName, progress, action) {
+        const updateStepsElement = document.getElementById("update-steps");
+        const progressBar = document.querySelector(".progress");
+        const progressPercentage = document.querySelector(
+          ".progress-percentage"
+        );
+        const actionLabel = document.querySelector(".action-label");
+        if (progress < 100) {
+          updateStepsElement.style.display = "block";
         }
-
-        function updateProgress(componentName, progress, action) {
-            const progressBar = document.querySelector('.progress');
-            const progressPercentage = document.querySelector('.progress-percentage');
-            const actionLabel = document.querySelector('.action-label');
-            if (progressBar && progressPercentage && actionLabel) {
-                progressBar.style.width = `${progress}%`;
-                progressPercentage.textContent = `${Math.round(progress)}%`;
-                actionLabel.textContent = `${action} ${componentName}`;
-            }
+        if (progressBar && progressPercentage && actionLabel) {
+          progressBar.style.width = `${progress}%`;
+          progressPercentage.textContent = `${Math.round(progress)}%`;
+          actionLabel.textContent = `${action} ${componentName}`;
         }
-
-        function initializeApp() {
-            api.getServerState().then(({ isStarted, bootMsg, logs }) => {
-                console.log("Server state:", { isStarted, bootMsg, logs });
-                if (isStarted) {
-                    loadContentWithNoCaching();
-                    bootMessage.style.display = 'none';
-                    updateStepsElement.style.display = 'none';
-                } else {
-                    const bootTextElement = document.querySelector('.boot-text');
-                    bootTextElement.textContent = bootMsg;
-                }
-
-                logs.forEach(log => matrixLogger.log(log));
-            });
-
-            api.onUpdateProgress(({ componentName, progress, action }) => {
-                updateProgress(componentName, progress, action);
-            });
-
-            api.onUpdateStep((step, isComplete) => {
-                showUpdateStep(step, isComplete);
-            });
+        if (progress === 100) {
+          setTimeout(() => {
+            updateStepsElement.style.display = "none";
+          }, 5000);
         }
+      }
 
-        api.onServerStarted(() => {
+      function initializeApp() {
+        api.getServerState().then(({ isStarted, bootMsg, logs }) => {
+          console.log("Server state:", { isStarted, bootMsg, logs });
+          if (isStarted) {
             loadContentWithNoCaching();
-            bootMessage.style.display = 'none';
-            updateStepsElement.style.display = 'none';
-        });
+            bootMessage.style.display = "none";
+            updateStepsElement.style.display = "none";
+            // Hide the log pane
+            logContainer.classList.remove("expanded");
+            logToggle.innerHTML = "<span>▲ Show Log</span>";
+          } else {
+            const bootTextElement = document.querySelector(".boot-text");
+            bootTextElement.textContent = bootMsg;
+          }
 
-        api.onBootMessage((message) => {
-            const bootTextElement = document.querySelector('.boot-text');
-            bootTextElement.textContent = message;
+          logs.forEach((log) => simpleLogger.log(log));
         });
+      }
 
-        api.onServerLog((message) => {
-            matrixLogger.log(message);
-        });
+      api.onUpdateProgress(({ componentName, progress, action }) => {
+        updateProgress(componentName, progress, action);
+      });
 
-        logToggle.addEventListener('click', toggleLog);
-        initializeApp();
+      api.onServerStarted(() => {
+        loadContentWithNoCaching();
+        bootMessage.style.display = "none";
+        updateStepsElement.style.display = "none";
+        // Hide the log pane
+        logContainer.classList.remove("expanded");
+        logToggle.innerHTML = "<span>▲ Show Log</span>";
+      });
+
+      api.onBootMessage((message) => {
+        const bootTextElement = document.querySelector(".boot-text");
+        bootTextElement.textContent = message;
+      });
+
+      api.onServerLog((message) => {
+        simpleLogger.log(message);
+      });
+
+      logToggle.addEventListener("click", toggleLog);
+      initializeApp();
     </script>
 
     <script>
-        function getRandomGrayColor() {
-            const grayValue = Math.floor(Math.random() * 100);
-            return `#${grayValue.toString(16).padStart(2, '0').repeat(3)}`;
-        }
+      function getRandomGrayColor() {
+        const grayValue = Math.floor(Math.random() * 100);
+        return `#${grayValue.toString(16).padStart(2, "0").repeat(3)}`;
+      }
 
-        function getRandomColor() {
-            const randomColor = Math.floor(Math.random() * 16777215).toString(16);
-            return `#${randomColor.padStart(6, '0')}`;
-        }
+      function getRandomColor() {
+        const randomColor = Math.floor(Math.random() * 16777215).toString(16);
+        return `#${randomColor.padStart(6, "0")}`;
+      }
 
-        function updateStroke() {
-            const icon = document.querySelector('.nodetool-icon');
-            icon.style.setProperty('--stroke-color', getRandomGrayColor());
-        }
+      function updateStroke() {
+        const icon = document.querySelector(".nodetool-icon");
+        icon.style.setProperty("--stroke-color", getRandomGrayColor());
+      }
 
-        function updateFill() {
-            const icon = document.querySelector('.nodetool-icon');
-            icon.style.setProperty('--fill-color', getRandomGrayColor());
-        }
+      function updateFill() {
+        const icon = document.querySelector(".nodetool-icon");
+        icon.style.setProperty("--fill-color", getRandomGrayColor());
+      }
 
-        setInterval(updateStroke, 5000);
-        setTimeout(() => {
-            setInterval(updateFill, 5000);
-        }, 60000+2500);
+      setInterval(updateStroke, 5000);
+      setTimeout(() => {
+        setInterval(updateFill, 5000);
+      }, 60000 + 2500);
 
-        setTimeout(() => {
-            setInterval(() => {
-                const icon = document.querySelector('.nodetool-icon');
-                icon.style.setProperty('--stroke-color', getRandomColor());
-            }, 5000);
-        }, 5*60000);
-        setTimeout(() => {
-            setInterval(() => {
-                const icon = document.querySelector('.nodetool-icon');
-                icon.style.setProperty('--fill-color', getRandomColor());
-            }, 5000);
-        }, 10*60000+2500);
+      setTimeout(() => {
+        setInterval(() => {
+          const icon = document.querySelector(".nodetool-icon");
+          icon.style.setProperty("--stroke-color", getRandomColor());
+        }, 5000);
+      }, 5 * 60000);
+      setTimeout(() => {
+        setInterval(() => {
+          const icon = document.querySelector(".nodetool-icon");
+          icon.style.setProperty("--fill-color", getRandomColor());
+        }, 5000);
+      }, 10 * 60000 + 2500);
 
-        updateStroke();
+      updateStroke();
     </script>
-</body>
-
+  </body>
 </html>
