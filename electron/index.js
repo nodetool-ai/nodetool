@@ -73,6 +73,7 @@ const https = require("https");
 const crypto = require("crypto");
 const unzip = require("unzip-stream");
 const VERSION = "v0.5.0rc5";
+const PYTHON_VERSION = "3.11.10";
 const fs = require("fs");
 
 /** @type {BrowserWindow|null} */
@@ -747,6 +748,21 @@ async function getComponentsToUpdate(assets, system, arch, componentsDir) {
 
     if (asset && checksumAsset) {
       log(`Found asset and checksum for ${name}`);
+      
+      if (name === "python_env") {
+        const currentPythonVersion = await getCurrentPythonVersion(componentsDir);
+        if (currentPythonVersion !== PYTHON_VERSION) {
+          log(`Python version mismatch. Current: ${currentPythonVersion}, Required: ${PYTHON_VERSION}`);
+          return {
+            name,
+            url: asset.browser_download_url,
+            checksumUrl: checksumAsset.browser_download_url,
+          };
+        }
+        log(`Python version is up to date: ${currentPythonVersion}`);
+        return null;
+      }
+
       const [remoteChecksum, localChecksum] = await Promise.all([
         downloadFileToString(checksumAsset.browser_download_url),
         getLocalChecksum(componentsDir, name),
@@ -1034,3 +1050,38 @@ function emitUpdateProgress(componentName, progress, action) {
   }
 }
 
+// Add this new function to check the current Python version
+async function getCurrentPythonVersion(componentsDir) {
+  const pythonPath = process.platform === "darwin"
+    ? path.join(componentsDir, "python_env", "bin", "python")
+    : path.join(componentsDir, "python_env", "python.exe");
+
+  try {
+    const result = await new Promise((resolve, reject) => {
+      const pythonProcess = spawn(pythonPath, ["-V"]);
+      let output = "";
+
+      pythonProcess.stdout.on("data", (data) => {
+        output += data.toString();
+      });
+
+      pythonProcess.stderr.on("data", (data) => {
+        output += data.toString();
+      });
+
+      pythonProcess.on("close", (code) => {
+        if (code === 0) {
+          resolve(output.trim());
+        } else {
+          reject(new Error(`Python process exited with code ${code}`));
+        }
+      });
+    });
+
+    const versionMatch = result.match(/Python (\d+\.\d+\.\d+)/);
+    return versionMatch ? versionMatch[1] : null;
+  } catch (error) {
+    log(`Error getting Python version: ${error.message}`, "error");
+    return null;
+  }
+}
