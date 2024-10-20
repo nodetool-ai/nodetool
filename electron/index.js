@@ -422,16 +422,6 @@ async function downloadFile(url, dest) {
  * Setup Python and dependencies.
  */
 async function setupPython() {
-  // Ensure dependencies are available
-  componentsDir = path.join(app.getPath("userData"), "components");
-
-  // Set up paths for Python and pip executables based on the platform
-  if (process.platform === "darwin") {
-    pythonExecutable = path.join(componentsDir, "python_env", "bin", "python");
-  } else {
-    pythonExecutable = path.join(componentsDir, "python_env", "python.exe");
-  }
-
   const pythonExists = await checkFileExists(pythonExecutable);
   if (!pythonExists) {
     throw new Error("Python environment is not available");
@@ -451,9 +441,6 @@ async function startServer() {
     log("Starting server");
     env.PATH = `${path.join(componentsDir, "ollama")}:${env.PATH}`;
     log(`PATH: ${env.PATH}`);
-
-    webDir = path.join(componentsDir, "web");
-    log(`Web directory: ${webDir}`);
 
     log("Attempting to run NodeTool");
     runNodeTool(env);
@@ -531,6 +518,15 @@ async function gracefulShutdown() {
 
 app.on("ready", async () => {
   log("Electron app is ready");
+
+  componentsDir = path.join(app.getPath("userData"), "components");
+  webDir = path.join(componentsDir, "web");
+  if (process.platform === "darwin") {
+    pythonExecutable = path.join(componentsDir, "python_env", "bin", "python");
+  } else {
+    pythonExecutable = path.join(componentsDir, "python_env", "python.exe");
+  }
+
   createWindow();
   emitBootMessage("Checking for updates...");
   await checkForUpdates();
@@ -1052,13 +1048,16 @@ function emitUpdateProgress(componentName, progress, action) {
 
 // Add this new function to check the current Python version
 async function getCurrentPythonVersion(componentsDir) {
-  const pythonPath = process.platform === "darwin"
-    ? path.join(componentsDir, "python_env", "bin", "python")
-    : path.join(componentsDir, "python_env", "python.exe");
-
   try {
+    // Check if the Python executable exists
+    const pythonExists = await checkFileExists(pythonExecutable);
+    if (!pythonExists) {
+      log(`Python executable not found at: ${pythonExecutable}`, "warn");
+      return null;
+    }
+
     const result = await new Promise((resolve, reject) => {
-      const pythonProcess = spawn(pythonPath, ["-V"]);
+      const pythonProcess = spawn(pythonExecutable, ["-V"]);
       let output = "";
 
       pythonProcess.stdout.on("data", (data) => {
@@ -1075,6 +1074,10 @@ async function getCurrentPythonVersion(componentsDir) {
         } else {
           reject(new Error(`Python process exited with code ${code}`));
         }
+      });
+
+      pythonProcess.on("error", (error) => {
+        reject(new Error(`Failed to start Python process: ${error.message}`));
       });
     });
 
