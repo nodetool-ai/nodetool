@@ -8,6 +8,27 @@
     />
 
     <style>
+      /* SCROLLBARS */
+      ::-webkit-scrollbar {
+        width: 15px !important;
+        height: 15px !important;
+      }
+      ::-webkit-scrollbar-track {
+        background: var(--c_scroll_bg);
+      }
+      ::-webkit-scrollbar-thumb {
+        background: var(--c_scroll_thumb);
+        border-radius: 0;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: var(--c_scroll_hover);
+      }
+      /* Firefox 64+ */
+      * {
+        scrollbar-width: thin;
+        scrollbar-color: var(--c_scroll_thumb) var(--c_scroll_bg);
+      }
+
       body,
       html {
         height: 100%;
@@ -112,8 +133,9 @@
       #boot-message {
         display: flex;
         gap: 12px;
+        margin-top: 100px;
         flex-direction: column;
-        justify-content: center;
+        justify-content: flex-start;
         align-items: center;
         position: fixed;
         top: 0;
@@ -203,7 +225,7 @@
         color: #eee;
         text-align: center;
         width: 80%;
-        max-width: 400px;
+        max-width: 80%;
       }
 
       .progress-container {
@@ -213,8 +235,12 @@
       .progress-label {
         display: flex;
         justify-content: space-between;
+        padding: 0 .5em;
         margin-bottom: 5px;
+        max-height: 200px;
+        overflow-y: auto;
         font-size: 14px;
+        
       }
 
       .progress-bar {
