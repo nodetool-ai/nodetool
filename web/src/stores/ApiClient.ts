@@ -16,7 +16,7 @@ export const isProduction = !isLocalhost;
 
 // TODO: make it configurable via env vars
 export const BASE_URL = isLocalhost
-  ? "http://" + window.location.hostname + ":8000"
+  ? window.location.protocol + "//" + window.location.hostname + ":8000"
   : "https://api.nodetool.ai";
 
 export const WORKER_URL =
@@ -29,13 +29,6 @@ export const CHAT_URL =
 export const DOWNLOAD_URL =
   BASE_URL.replace("http://", "ws://").replace("https://", "wss://") +
   "/hf/download";
-
-console.log("BASE_URL", BASE_URL);
-console.log("WORKER_URL", WORKER_URL);
-console.log("CHAT_URL", CHAT_URL);
-console.log("isLocalhost", isLocalhost);
-console.log("isProduction", isProduction);
-console.log("useRemoteAuth", useRemoteAuth);
 
 export const pingWorker = () => {
   if (isDevelopment) {

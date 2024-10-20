@@ -1,5 +1,5 @@
 /**
- * This file is the entry point for the Electron app.
+ *a This file is the entry point for the Electron app.
  * It is responsible for creating the main window and starting the server.
  * NodeTool is a no-code AI development platform that allows users to create and run complex AI workflows.
  *
@@ -227,15 +227,12 @@ function createWindow() {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
       nodeIntegration: false,
-      // Add these lines to enable audio capture
       enableRemoteModule: true,
-      allowRunningInsecureContent: true,
-      // Add this line to enable microphone access
-      permissions: ['audioCapture']
     },
   });
+  mainWindow.removeMenu();
+  mainWindow.setBackgroundColor("#111111");
   emitBootMessage("Initializing...");
-
   mainWindow.loadFile("index.html");
   log("index.html loaded into main window");
 
@@ -257,13 +254,12 @@ function createWindow() {
   setPermissionCheckHandler();
 }
 
-// Add this new function after createWindow()
 function setPermissionCheckHandler() {
+  session.defaultSession.setPermissionRequestHandler((webContents, permission, requestingOrigin, details) => {
+    return true;
+  });
   session.defaultSession.setPermissionCheckHandler((webContents, permission, requestingOrigin, details) => {
-    if (permission === 'media') {
-      return true;
-    }
-    return false;
+    return true;
   });
 }
 
@@ -284,7 +280,6 @@ function runNodeTool(env) {
     ["-m", "nodetool.cli", "serve", "--static-folder", webDir],
     { env: env }
   );
-
   /**
    * Handle server output
    * @param {Buffer} data - The output data from the server
@@ -1088,3 +1083,4 @@ async function getCurrentPythonVersion(componentsDir) {
     return null;
   }
 }
+
