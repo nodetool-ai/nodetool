@@ -298,7 +298,7 @@ while (true) {
 
 The WebSocket API is useful for getting real-time updates on the status of the workflow.
 It is similar to the streaming API, but it uses a more efficient binary encoding.
-It offers additional features like canceling jobs.
+It offers additional features like cancelling jobs.
 
 See [run_workflow_websocket.js](examples/run_workflow_websocket.js) for an example.
 
