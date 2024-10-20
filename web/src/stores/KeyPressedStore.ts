@@ -4,6 +4,7 @@ import { useMemo } from "react";
 interface ComboOptions {
   preventDefault?: boolean;
   callback?: () => void;
+  active?: boolean;
 }
 
 // Module-level variables and functions
@@ -23,7 +24,7 @@ const executeComboCallbacks = (
 ) => {
   const pressedKeysString = Array.from(pressedKeys).sort().join("+");
   const options = comboCallbacks.get(pressedKeysString);
-  if (options?.callback) {
+  if (options?.callback && options.active !== false) {
     if (options.preventDefault && event) {
       event.preventDefault();
     }
@@ -175,7 +176,8 @@ const initKeyListeners = () => {
 const useCombo = (
   combo: string[],
   callback: () => void,
-  preventDefault: boolean = true
+  preventDefault: boolean = true,
+  active: boolean = true
 ) => {
   const memoizedCombo = useMemo(
     () =>
@@ -187,9 +189,9 @@ const useCombo = (
   );
 
   useMemo(() => {
-    registerComboCallback(memoizedCombo, { callback, preventDefault });
+    registerComboCallback(memoizedCombo, { callback, preventDefault, active });
     return () => unregisterComboCallback(memoizedCombo);
-  }, [memoizedCombo, callback, preventDefault]);
+  }, [memoizedCombo, callback, preventDefault, active]);
 };
 
 export { useKeyPressedStore, initKeyListeners, useCombo };

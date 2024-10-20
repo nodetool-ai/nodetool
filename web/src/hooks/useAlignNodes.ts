@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { useNodeStore } from "../stores/NodeStore";
-import { Node } from "@xyflow/react";
+import { Node, useReactFlow } from "@xyflow/react";
 import { NodeData } from "../stores/NodeData";
 
 type AlignNodesOptions = {
@@ -15,6 +15,7 @@ const useAlignNodes = () => {
   const setExplicitSave = useNodeStore((state) => state.setExplicitSave);
   const selectedNodes = useNodeStore((state) => state.getSelectedNodes());
   const nodes = useNodeStore((state) => state.nodes);
+  const reactFlow = useReactFlow();
 
   const alignNodes = useCallback(
     ({ arrangeSpacing, collapsed }: AlignNodesOptions) => {
@@ -31,7 +32,8 @@ const useAlignNodes = () => {
       if (xRange < yRange) {
         // align left
         const leftMostX = Math.min(...xCoordinates);
-        arrangedNodes.sort((a, b) => a.position.y - b.position.y); // Sort nodes by y position
+        // Sort nodes by y position
+        arrangedNodes.sort((a, b) => a.position.y - b.position.y);
         arrangedNodes.forEach((node, index) => {
           node.position.x = leftMostX;
           if (arrangeSpacing && index > 0) {
@@ -46,7 +48,8 @@ const useAlignNodes = () => {
       } else {
         // align top
         const topMostY = Math.min(...yCoordinates);
-        arrangedNodes.sort((a, b) => a.position.x - b.position.x); // Sort nodes by x position
+        // Sort nodes by x position
+        arrangedNodes.sort((a, b) => a.position.x - b.position.x);
         arrangedNodes.forEach((node, index) => {
           node.position.y = topMostY;
           if (arrangeSpacing && index > 0) {
@@ -60,22 +63,31 @@ const useAlignNodes = () => {
         });
       }
       //set collapsed
-      if (collapsed) {
+      if (collapsed !== undefined) {
         arrangedNodes.forEach((node) => {
           node.data.collapsed = collapsed;
         });
       }
-      setNodes(
-        nodes.map(
-          (node) =>
-            arrangedNodes.find((arrangedNode) => arrangedNode.id === node.id) ||
-            node
-        ),
-        false
+      const updatedNodes = nodes.map(
+        (node) =>
+          arrangedNodes.find((arrangedNode) => arrangedNode.id === node.id) ||
+          node
       );
+      setNodes(updatedNodes, true);
+
+      // HACK: Force React Flow to update node internals
+      // otherwise the nodes were only updated after deselecting
+      arrangedNodes.forEach((node) => {
+        reactFlow.setNodes((nds) =>
+          nds.map((n) =>
+            n.id === node.id ? { ...n, position: node.position } : n
+          )
+        );
+      });
+
       setExplicitSave(false);
     },
-    [selectedNodes, setExplicitSave, setNodes, nodes]
+    [selectedNodes, setExplicitSave, setNodes, nodes, reactFlow]
   );
 
   return alignNodes;

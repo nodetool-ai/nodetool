@@ -281,7 +281,7 @@ const Help = ({ handleClose }: { handleClose: () => void }) => {
             </div>
             <div className="help-item">
               <Typography>Arrange selected nodes</Typography>
-              <Button>Space+a</Button>
+              <Button>Control+a | Meta+a</Button>
             </div>
             <div className="help-item">
               <Typography>Fit Screen</Typography>

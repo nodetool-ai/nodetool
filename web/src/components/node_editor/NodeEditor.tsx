@@ -133,29 +133,47 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ isMinZoom }) => {
   });
 
   useCombo(
-    ["Space", "a"],
-    useCallback(() => {
-      alignNodes({ arrangeSpacing: true });
-    }, [alignNodes])
+    ["a"],
+    () => {
+      alignNodes({ arrangeSpacing: false });
+    },
+    selectedNodes.length > 0
   );
 
-  useCombo(["Meta", "a"], () => alignNodes({ arrangeSpacing: true }));
+  useCombo(
+    ["Control", "a"],
+    () => alignNodes({ arrangeSpacing: true }),
+    selectedNodes.length > 0
+  );
+  useCombo(
+    ["Meta", "a"],
+    () => alignNodes({ arrangeSpacing: true }),
+    selectedNodes.length > 0
+  );
 
   useCombo(["Control", "c"], handleCopy);
   useCombo(["Control", "v"], handlePaste, false);
   useCombo(["Control", "x"], handleCut);
-  useCombo(["Meta", "c"], handleCopy); // for mac
-  useCombo(["Meta", "v"], handlePaste, false); // for mac
-  useCombo(["Meta", "x"], handleCut); // for mac
+  useCombo(["Meta", "c"], handleCopy);
+  useCombo(["Meta", "v"], handlePaste, false);
+  useCombo(["Meta", "x"], handleCut);
 
-  useCombo(["Meta", "d"], duplicateNodes);
-  useCombo(["Meta", "Shift", "d"], duplicateNodesVertical);
-  useCombo(["Alt", "d"], duplicateNodes);
   useCombo(["Control", "d"], duplicateNodes);
   useCombo(["Control", "Shift", "d"], duplicateNodesVertical);
+  useCombo(["Meta", "d"], duplicateNodes);
+  useCombo(["Meta", "Shift", "d"], duplicateNodesVertical);
 
   useCombo(
-    ["Space", "g"],
+    ["Control", "g"],
+    useCallback(() => {
+      const selectedNodeIds = getSelectedNodeIds();
+      if (selectedNodeIds.length) {
+        surroundWithGroup({ selectedNodeIds });
+      }
+    }, [surroundWithGroup, getSelectedNodeIds])
+  );
+  useCombo(
+    ["Meta", "g"],
     useCallback(() => {
       const selectedNodeIds = getSelectedNodeIds();
       if (selectedNodeIds.length) {
