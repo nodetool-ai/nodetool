@@ -15,10 +15,10 @@ jobs:
           #   platform: linux
           #   arch: x64
           - os: macos-latest
-            platform: mac
+            platform: darwin
             arch: arm64
           - os: windows-latest
-            platform: win
+            platform: windows
             arch: x64
 
     runs-on: ${{ matrix.os }}
@@ -46,39 +46,39 @@ jobs:
       - name: Set up build tools
         shell: bash -l {0}
         run: |
-          python build.py --platform ${{ matrix.platform }} --arch ${{ matrix.arch }} --step setup
+          python build.py --step setup
 
       - name: Package python
         shell: bash -l {0}
         run: |
-          python build.py --platform ${{ matrix.platform }} --arch ${{ matrix.arch }} --step python
+          python build.py --step python
 
       - name: Package ffmpeg
         shell: bash -l {0}
         run: |
-          python build.py --platform ${{ matrix.platform }} --arch ${{ matrix.arch }} --step ffmpeg
+          python build.py --step ffmpeg
 
       - name: Package ollama
         shell: bash -l {0}
         run: |
-          python build.py --platform ${{ matrix.platform }} --arch ${{ matrix.arch }} --step ollama
+          python build.py --step ollama
 
       - name: Package react
         shell: bash -l {0}
         run: |
-          python build.py --platform ${{ matrix.platform }} --arch ${{ matrix.arch }} --step react
+          python build.py --step react
 
       - name: Package electron
         shell: bash -l {0}
         run: |
-          python build.py --platform ${{ matrix.platform }} --arch ${{ matrix.arch }} --step electron
+          python build.py --step electron
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: build-artifacts-${{ matrix.platform }}-${{ matrix.arch }}
           path: |
-            build/*.tar
+            build/*.zip
             build/*.sha256
             build/**/*.exe
             build/**/*.dmg
@@ -95,7 +95,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            **/*.tar
+            **/*.zip
             **/*.exe
             **/*.dmg
             **/*.sha256

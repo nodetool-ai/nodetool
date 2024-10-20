@@ -1,4 +1,5 @@
 from typing import Any
+import comfy.sd
 from nodetool.common.comfy_node import ComfyNode
 import nodetool.nodes.comfy
 import nodetool.nodes.comfy.advanced
@@ -80,13 +81,15 @@ import torch
 
 from .enums import Sampler, Scheduler
 from comfy.model_patcher import ModelPatcher
-from comfy.sd import CLIP, VAE
 from nodetool.metadata.types import (
     CheckpointFile,
     ImageRef,
     LORAFile,
     LoRAConfig,
+    UNet,
     UNetFile,
+    VAE,
+    CLIP,
 )
 from nodetool.workflows.base_node import BaseNode
 from pydantic import Field
@@ -181,9 +184,9 @@ class StableDiffusion(BaseNode):
     - Creating high-resolution images from lower resolution inputs
     """
 
-    model: CheckpointFile = Field(
-        default=CheckpointFile(), description="Stable Diffusion checkpoint to load."
-    )
+    model: UNet = Field(default=UNet(), description="The model to use.")
+    vae: VAE = Field(default=VAE(), description="The VAE to use.")
+    clip: CLIP = Field(default=CLIP(), description="The CLIP to use.")
     prompt: str = Field(default="", description="The prompt to use.")
     negative_prompt: str = Field(default="", description="The negative prompt to use.")
     seed: int = Field(default=0, ge=0, le=1000000)
@@ -206,18 +209,7 @@ class StableDiffusion(BaseNode):
         description="List of LoRA models to apply",
     )
 
-    _model: ModelPatcher | None = None
-    _clip: CLIP | None = None
-    _vae: VAE | None = None
     _hires_model: ModelPatcher | None = None
-
-    async def initialize(self, context: ProcessingContext):
-        from nodes import CheckpointLoaderSimple, LoraLoader
-
-        checkpoint_loader = CheckpointLoaderSimple()
-        self._model, self._clip, self._vae = checkpoint_loader.load_checkpoint(
-            self.model.name
-        )
 
     def apply_loras(self):
         for lora_config in self.loras:
@@ -248,10 +240,10 @@ class StableDiffusion(BaseNode):
                 mask = np.array(mask).astype(np.float32) / 255.0
                 mask_tensor = torch.from_numpy(mask)[None,]
                 return VAEEncodeForInpaint().encode(
-                    self._vae, input_tensor, mask_tensor, self.grow_mask_by
+                    self.vae.model, input_tensor, mask_tensor, self.grow_mask_by
                 )[0]
             else:
-                return VAEEncode().encode(self._vae, input_tensor)[0]
+                return VAEEncode().encode(self.vae.model, input_tensor)[0]
 
     def get_conditioning(self):
         positive_conditioning = CLIPTextEncode().encode(self._clip, self.prompt)[0]
@@ -290,7 +282,7 @@ class StableDiffusion(BaseNode):
         latent = await self.get_latent(context, initial_width, initial_height)
 
         sampled_latent = self.sample(
-            self._model,
+            self.model.model,
             latent,
             positive_conditioning,
             negative_conditioning,
@@ -307,14 +299,14 @@ class StableDiffusion(BaseNode):
             )[0]
 
             sampled_latent = self.sample(
-                self._hires_model if self._hires_model else self._model,
+                self.model.model,
                 hires_latent,
                 positive_conditioning,
                 negative_conditioning,
                 num_hires_steps,
             )
 
-        decoded_image = VAEDecode().decode(self._vae, sampled_latent)[0]
+        decoded_image = VAEDecode().decode(self.vae.model, sampled_latent)[0]
         return await context.image_from_tensor(decoded_image)
 
 
@@ -411,7 +403,7 @@ class ControlNet(StableDiffusion):
         )
 
         sampled_latent = self.sample(
-            self._model,
+            self.model.model,
             latent,
             positive_conditioning_with_controlnet,
             negative_conditioning,
@@ -432,14 +424,14 @@ class ControlNet(StableDiffusion):
             )
 
             sampled_latent = self.sample(
-                self._hires_model if self._hires_model else self._model,
+                self.model.model,
                 hires_latent,
                 hires_positive_conditioning,
                 negative_conditioning,
                 num_hires_steps,
             )
 
-        decoded_image = VAEDecode().decode(self._vae, sampled_latent)[0]
+        decoded_image = VAEDecode().decode(self.vae.model, sampled_latent)[0]
         return await context.image_from_tensor(decoded_image)
 
 
@@ -454,8 +446,7 @@ class Flux(BaseNode):
     - Experimenting with different VAE, CLIP, and UNET combinations
     """
 
-    model: UNetFile = Field(default=UNetFile(), description="The Flux model to use.")
-
+    model: UNet = Field(default=UNet(), description="The model to use.")
     prompt: str = Field(default="", description="The prompt to use.")
     width: int = Field(default=1024, ge=64, le=2048, multiple_of=64)
     height: int = Field(default=1024, ge=64, le=2048, multiple_of=64)
@@ -472,21 +463,10 @@ class Flux(BaseNode):
     lora: LORAFile = Field(default=LORAFile(), description="The Lora model to use.")
     lora_strength: float = Field(default=0.0, ge=-100, le=100)
 
-    _vae: Optional[VAE] = None
-    _clip: Optional[CLIP] = None
-    _unet: Optional[ModelPatcher] = None
+    _vae: Optional[comfy.sd.VAE] = None
+    _clip: Optional[comfy.sd.CLIP] = None
 
     async def initialize(self, context: ProcessingContext):
-        if self.model.name == "flux1-schnell.sft":
-            self._unet = UNETLoader().load_unet("flux1-schnell.sft", "fp16")[0]
-        elif self.model.name == "flux1-dev.sft":
-            self._unet = UNETLoader().load_unet("flux1-dev.sft", "fp16")[0]
-        elif self.model.name == "flux1-dev-fp8.safetensors":
-            self._unet = UNETLoader().load_unet(
-                "flux1-dev-fp8.safetensors", "fp8_e4m3fn"
-            )[0]
-        else:
-            raise ValueError("Select a valid Flux model.")
         self._vae = VAELoader().load_vae("ae.sft")[0]
         self._clip = DualCLIPLoader().load_clip(
             "clip_l.safetensors", "t5xxl_fp8_e4m3fn.safetensors", "flux"
@@ -510,7 +490,7 @@ class Flux(BaseNode):
             input_tensor = torch.from_numpy(image)[None,]
             latent = VAEEncode().encode(self._vae, input_tensor)[0]
 
-        model = self._unet
+        model = self.model.model
 
         if self.lora_strength > 0.0:
             model = LoraLoaderModelOnly().load_lora_model_only(
@@ -561,10 +541,8 @@ class FluxNF4(BaseNode):
     - Experimenting with Flux-specific configurations
     """
 
-    model: CheckpointFile = Field(
-        default=CheckpointFile(name="flux1-dev-bnb-nf4.safetensors"),
-        description="The Flux NF4 model to use.",
-    )
+    model: UNet = Field(default=UNet(), description="The model to use.")
+    clip: CLIP = Field(default=CLIP(), description="The CLIP to use.")
     prompt: str = Field(default="", description="The prompt to use.")
     width: int = Field(default=1024, ge=64, le=2048, multiple_of=64)
     height: int = Field(default=1024, ge=64, le=2048, multiple_of=64)
@@ -579,14 +557,9 @@ class FluxNF4(BaseNode):
     max_shift: float = Field(default=1.15, ge=0.0, le=2.0)
     base_shift: float = Field(default=0.5, ge=0.0, le=1.0)
 
-    _model: Optional[ModelPatcher] = None
-    _vae: Optional[VAE] = None
-    _clip: Optional[CLIP] = None
+    _vae: Optional[comfy.sd.VAE] = None
 
     async def initialize(self, context: ProcessingContext):
-        self._model, self._clip, _ = CheckpointLoaderNF4().load_checkpoint(
-            self.model.name
-        )
         self._vae = VAELoader().load_vae("ae.sft")[0]
 
     async def process(self, context: ProcessingContext) -> ImageRef:
@@ -595,7 +568,7 @@ class FluxNF4(BaseNode):
         ]
 
         model = ModelSamplingFlux().patch(
-            model=self._model,
+            model=self.model.model,
             width=self.width,
             height=self.height,
             max_shift=self.max_shift,
@@ -610,7 +583,7 @@ class FluxNF4(BaseNode):
             denoise=1.0,
         )[0]
 
-        conditioning = CLIPTextEncode().encode(self._clip, self.prompt)[0]
+        conditioning = CLIPTextEncode().encode(self.clip.model, self.prompt)[0]
         conditioning = FluxGuidance().append(conditioning, self.guidance_scale)[0]
 
         guider = BasicGuider().get_guider(model, conditioning)[0]

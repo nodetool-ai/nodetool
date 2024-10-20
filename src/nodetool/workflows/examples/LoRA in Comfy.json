@@ -1,0 +1,316 @@
+{
+  "id": "LoRA",
+  "access": "public",
+  "created_at": "2024-10-19T21:04:40.851798",
+  "updated_at": "2024-10-19T21:04:40.851818",
+  "name": "LoRA in Comfy",
+  "description": "Generate an image with a LoRA",
+  "tags": [
+    "comfy"
+  ],
+  "thumbnail": "",
+  "thumbnail_url": "/examples/lora.jpg",
+  "graph": {
+    "nodes": [
+      {
+        "id": "3",
+        "parent_id": null,
+        "type": "comfy.sampling.KSampler",
+        "data": {
+          "seed": 2117469102,
+          "steps": 48,
+          "cfg": 8,
+          "sampler_name": "dpmpp_sde",
+          "scheduler": "karras",
+          "denoise": 1
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 860,
+            "y": 197
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true
+        }
+      },
+      {
+        "id": "4",
+        "parent_id": null,
+        "type": "comfy.loaders.HuggingFaceCheckpointLoader",
+        "data": {
+          "model": {
+            "type": "hf.stable_diffusion",
+            "repo_id": "SG161222/Realistic_Vision_V5.1_noVAE",
+            "path": "Realistic_Vision_V5.1_fp16-no-ema.safetensors"
+          }
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 50,
+            "y": 131
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true
+        }
+      },
+      {
+        "id": "5",
+        "parent_id": null,
+        "type": "comfy.latent.EmptyLatentImage",
+        "data": {
+          "width": 1024,
+          "height": 768,
+          "batch_size": 1
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 590,
+            "y": 290
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true
+        }
+      },
+      {
+        "id": "6",
+        "parent_id": null,
+        "type": "comfy.conditioning.CLIPTextEncode",
+        "data": {
+          "text": "An enchanted forest at dusk, with towering ancient trees and glowing leaves in shades of emerald. Fireflies dance in the air, illuminating a moss-covered forest floor with bioluminescent mushrooms. A crystal-clear river winds through the scene, reflecting twilight colors. Hidden among the trees, an old stone temple overgrown with ivy stands quietly, while a deer with golden antlers drinks from the river, surrounded by magical energy."
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 590,
+            "y": 657
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true
+        }
+      },
+      {
+        "id": "7",
+        "parent_id": null,
+        "type": "comfy.conditioning.CLIPTextEncode",
+        "data": {
+          "text": "text, watermark"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 590,
+            "y": 478
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true
+        }
+      },
+      {
+        "id": "8",
+        "parent_id": null,
+        "type": "comfy.latent.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1120,
+            "y": 149
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true
+        }
+      },
+      {
+        "id": "11",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "image_image_2024-08-03"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1350,
+            "y": 50
+          },
+          "zIndex": 0,
+          "width": 290,
+          "height": 310,
+          "selectable": true
+        }
+      },
+      {
+        "id": "12",
+        "parent_id": null,
+        "type": "comfy.loaders.HuggingFaceLoraLoader",
+        "data": {
+          "lora": {
+            "type": "hf.lora_sd",
+            "repo_id": "danbrown/loras",
+            "path": "arcane_style.safetensors"
+          },
+          "strength_model": 1,
+          "strength_clip": 1
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 320,
+            "y": 197
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true
+        }
+      },
+      {
+        "id": "13",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "headline": "SD with LOR",
+          "comment": [
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "LoRAs modify the behaviour of Stable Diffusion models"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "Use them to apply a different style"
+                }
+              ]
+            }
+          ]
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 42,
+            "y": -186
+          },
+          "zIndex": 0,
+          "width": 435,
+          "height": 170,
+          "selectable": true
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "17",
+        "source": "8",
+        "sourceHandle": "image",
+        "target": "11",
+        "targetHandle": "value",
+        "ui_properties": null
+      },
+      {
+        "id": "393fb4e2-4151-4f08-a8ed-7cb811491dce",
+        "source": "4",
+        "sourceHandle": "model",
+        "target": "12",
+        "targetHandle": "model",
+        "ui_properties": {
+          "className": "comfy_unet"
+        }
+      },
+      {
+        "id": "c2bb2231-4bf4-4a28-8631-d50b6406760b",
+        "source": "4",
+        "sourceHandle": "clip",
+        "target": "12",
+        "targetHandle": "clip",
+        "ui_properties": {
+          "className": "comfy_clip"
+        }
+      },
+      {
+        "id": "5df8be92-7e23-45f2-b391-196924840e09",
+        "source": "12",
+        "sourceHandle": "clip",
+        "target": "6",
+        "targetHandle": "clip",
+        "ui_properties": {
+          "className": "comfy_clip"
+        }
+      },
+      {
+        "id": "1fbd4b89-2916-4226-81ef-c3714ecf7c8a",
+        "source": "12",
+        "sourceHandle": "clip",
+        "target": "7",
+        "targetHandle": "clip",
+        "ui_properties": {
+          "className": "comfy_clip"
+        }
+      },
+      {
+        "id": "1",
+        "source": "5",
+        "sourceHandle": "latent",
+        "target": "3",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "2",
+        "source": "7",
+        "sourceHandle": "conditioning",
+        "target": "3",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "3",
+        "source": "6",
+        "sourceHandle": "conditioning",
+        "target": "3",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "145f9fa0-a13d-46f3-9b4c-c0130f9d1153",
+        "source": "12",
+        "sourceHandle": "model",
+        "target": "3",
+        "targetHandle": "model",
+        "ui_properties": {
+          "className": "comfy_unet"
+        }
+      },
+      {
+        "id": "7",
+        "source": "3",
+        "sourceHandle": "latent",
+        "target": "8",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "8",
+        "source": "4",
+        "sourceHandle": "vae",
+        "target": "8",
+        "targetHandle": "vae",
+        "ui_properties": null
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null
+}

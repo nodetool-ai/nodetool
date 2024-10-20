@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "nodetool"
-version = "0.5.0-preview.2"
+version = "v0.5.0rc5"
 description = "Nodetool is a no-code development environment for Artificial Intelligence, enabling the simple and intuitive creation of powerful AI workflows and their integration into existing applications."
 readme = "README.md"
 authors = ["Matthias Georgi <matti.georgi@gmail.com>"]
@@ -12,6 +12,7 @@ packages = [
   { include = "nodetool", from = "src" },
   { include = "comfy", from = "src" },
   { include = "comfy_custom_nodes", from = "src" },
+  { include = "comfy_extras", from = "src" },
   { include = "RealESRGAN", from = "src" },
   { include = "folder_paths.py", from = "src" },
   { include = "latent_preview.py", from = "src" },

@@ -21,7 +21,35 @@ from nodetool.nodes.huggingface.stable_diffusion_base import (
 )
 from nodetool.providers.huggingface.huggingface_node import progress_callback
 from nodetool.workflows.processing_context import ProcessingContext
-from diffusers import AutoPipelineForImage2Image, ControlNetModel, StableDiffusionControlNetImg2ImgPipeline, StableDiffusionControlNetInpaintPipeline, StableDiffusionControlNetPipeline, StableDiffusionImg2ImgPipeline, StableDiffusionInpaintPipeline, StableDiffusionUpscalePipeline, StableDiffusionXLControlNetPipeline, StableDiffusionXLImg2ImgPipeline, StableDiffusionXLInpaintPipeline  # type: ignore
+from diffusers.pipelines.auto_pipeline import AutoPipelineForImage2Image
+from diffusers.models.controlnet import ControlNetModel
+from diffusers.pipelines.controlnet.pipeline_controlnet_img2img import (
+    StableDiffusionControlNetImg2ImgPipeline,
+)
+from diffusers.pipelines.controlnet.pipeline_controlnet_inpaint import (
+    StableDiffusionControlNetInpaintPipeline,
+)
+from diffusers.pipelines.controlnet.pipeline_controlnet import (
+    StableDiffusionControlNetPipeline,
+)
+from diffusers.pipelines.stable_diffusion.pipeline_stable_diffusion_img2img import (
+    StableDiffusionImg2ImgPipeline,
+)
+from diffusers.pipelines.stable_diffusion.pipeline_stable_diffusion_inpaint import (
+    StableDiffusionInpaintPipeline,
+)
+from diffusers.pipelines.stable_diffusion.pipeline_stable_diffusion_upscale import (
+    StableDiffusionUpscalePipeline,
+)
+from diffusers.pipelines.controlnet.pipeline_controlnet_sd_xl import (
+    StableDiffusionXLControlNetPipeline,
+)
+from diffusers.pipelines.stable_diffusion_xl.pipeline_stable_diffusion_xl_img2img import (
+    StableDiffusionXLImg2ImgPipeline,
+)
+from diffusers.pipelines.stable_diffusion_xl.pipeline_stable_diffusion_xl_inpaint import (
+    StableDiffusionXLInpaintPipeline,
+)
 from pydantic import Field
 
 
@@ -212,7 +240,7 @@ class RealESRGANNode(BaseNode):
             raise ValueError("Download the model first from RECOMMENDED_MODELS above")
 
         self._model = RealESRGAN("cpu", scale=scale)
-        self._model.load_weights(model_path, download=False)
+        self._model.load_weights(model_path)
 
     async def move_to_device(self, device: str):
         if self._model is not None:
@@ -220,6 +248,7 @@ class RealESRGANNode(BaseNode):
             self._model.model.to(device)
 
     async def process(self, context: ProcessingContext) -> ImageRef:
+        assert self._model is not None, "Model not initialized"
         image = await context.image_to_pil(self.image)
         sr_image = self._model.predict(image)
         return await context.image_from_pil(sr_image)
@@ -652,7 +681,12 @@ class StableDiffusionControlNetImg2ImgNode(StableDiffusionBaseNode):
         default=ImageRef(),
         description="The input image to be transformed.",
     )
-    strength: float = Field(default=0.5, description="Similarity to the input image")
+    strength: float = Field(
+        default=0.5,
+        description="Similarity to the input image",
+        ge=0.0,
+        le=1.0,
+    )
     controlnet: HFControlNet = Field(
         default=HFControlNet(),
         description="The ControlNet model to use for guidance.",

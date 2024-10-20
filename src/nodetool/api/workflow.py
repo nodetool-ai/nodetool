@@ -156,11 +156,21 @@ async def save_example_workflow(
     if workflow_request.graph is None:
         raise HTTPException(status_code=400, detail="Invalid workflow")
 
+    if workflow_request.tags is None:
+        examples = load_examples()
+        for example in examples:
+            if example.id == id:
+                workflow_request.tags = example.tags
+                workflow_request.thumbnail = example.thumbnail
+                break
+
     workflow = Workflow(
         id=id,
         name=workflow_request.name,
         description=workflow_request.description or "",
         thumbnail=workflow_request.thumbnail,
+        tags=workflow_request.tags,
+        thumbnail_url=workflow_request.thumbnail_url,
         access="public",
         graph=remove_connected_slots(workflow_request.graph),
         created_at=datetime.now().isoformat(),

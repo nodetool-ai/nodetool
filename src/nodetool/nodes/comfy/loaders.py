@@ -82,12 +82,32 @@ class CheckpointLoaderSimple(ComfyNode):
         return False
 
 
+class CheckpointLoaderNF4(CheckpointLoaderSimple):
+    @classmethod
+    def get_title(cls):
+        return "Load Checkpoint (NF4)"
+
+    async def process(self, context: ProcessingContext):
+        if self.ckpt_name.is_empty():
+            raise Exception("Checkpoint name must be selected.")
+
+        unet, clip, vae = await self.call_comfy_node(context)
+
+        return {
+            "model": UNet(name=self.ckpt_name.name, model=unet),
+            "clip": CLIP(name=self.ckpt_name.name, model=clip),
+            "vae": VAE(name=self.ckpt_name.name, model=vae),
+        }
+
+
 class CheckpointLoader(CheckpointLoaderSimple):
     """
     Loads a checkpoint.
     """
 
-    pass
+    @classmethod
+    def get_title(cls):
+        return "Load Checkpoint (Advanced)"
 
 
 class HuggingFaceCheckpointLoader(ComfyNode):

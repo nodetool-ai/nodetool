@@ -14,7 +14,9 @@ from nodetool.types.graph import Edge
 from nodetool.common.environment import Environment
 from nodetool.metadata.type_metadata import TypeMetadata
 from nodetool.metadata.types import (
+    AssetRef,
     ComfyData,
+    ComfyModel,
     HuggingFaceModel,
     NameToType,
     TypeToName,
@@ -482,8 +484,8 @@ class BaseNode(BaseModel):
         self,
         context: Any,
         status: str,
-        properties: dict[str, Any] | None = None,
         result: dict[str, Any] | None = None,
+        properties: list[str] | None = None,
     ):
         """
         Send a status update for the node to the client.
@@ -492,10 +494,26 @@ class BaseNode(BaseModel):
             context (Any): The context in which the node is being processed.
             status (str): The status of the node.
             result (dict[str, Any], optional): The result of the node's processing. Defaults to {}.
+            properties (list[str], optional): The properties to send to the client. Defaults to None.
         """
         props = self.properties_for_client()
         if properties is not None:
-            props.update(properties)
+            for p in properties:
+                value = getattr(self, p)
+                if isinstance(value, torch.Tensor):
+                    pass
+                elif isinstance(value, ComfyData):
+                    pass
+                elif isinstance(value, ComfyModel):
+                    value_without_model = value.model_dump()
+                    del value_without_model["model"]
+                    props[p] = value_without_model
+                elif isinstance(value, AssetRef):
+                    value_without_data = value.model_dump()
+                    del value_without_data["data"]
+                    props[p] = value_without_data
+                else:
+                    props[p] = value
         update = NodeUpdate(
             node_id=self.id,
             node_name=self.get_title(),

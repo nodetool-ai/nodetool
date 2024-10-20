@@ -28,9 +28,14 @@ import NodeStatus from "./NodeStatus";
 import NodeContent from "./NodeContent";
 import NodeToolButtons from "./NodeToolButtons";
 import { useRenderLogger } from "../../hooks/useRenderLogger";
-import { hexToRgba, simulateOpacity } from "../../utils/ColorUtils";
+import {
+  darkenHexColor,
+  hexToRgba,
+  simulateOpacity
+} from "../../utils/ColorUtils";
 import useMetadataStore from "../../stores/MetadataStore";
 import NodeFooter from "./NodeFooter";
+import chroma from "chroma-js";
 
 // Tooltip timing constants
 export const TOOLTIP_ENTER_DELAY = 650;
@@ -263,7 +268,10 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 
   const backgroundColor = useMemo(() => {
     if (props.data.color) {
-      return hexToRgba(props.data.color, 0.2);
+      return chroma(props.data.color)
+        .darken(0.5)
+        .mix(ThemeNodes.palette.c_node_bg || "#888888", 0.6)
+        .hex();
     }
     return hasParent
       ? ThemeNodes.palette.c_node_bg_group

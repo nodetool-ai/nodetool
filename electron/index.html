@@ -9,6 +9,7 @@
         body, html {
             height: 100%;
             margin: 0;
+            padding: 0;
             display: flex;
             flex-direction: column;
             background-color: #111;
@@ -186,25 +187,59 @@
             from { width: 0; }
             to { width: 100%; }
         }
+
+        #update-steps {
+            font-size: 18px;
+            color: #eee;
+            text-align: center;
+            width: 80%;
+            max-width: 400px;
+        }
+
+        .progress-container {
+            margin-top: 10px;
+        }
+
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background-color: #333;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .progress {
+            width: 0;
+            height: 100%;
+            background-color: #4CAF50;
+            transition: width 0.3s ease;
+        }
     </style>
 </head>
-
 <body>
 
     <div id="boot-message">
-    <svg class="nodetool-icon" width="396" height="404" viewBox="0 0 396 404" fill="none"
-        xmlns="http://www.w3.org/2000/svg">
-        <path class="path-1" d="M128 176.5L195.5 139L70.5 70L2.5 108L1 112V403L126 323V180L128 176.5Z" fill="#2E2E2E" />
-        <path class="path-2" d="M394.5 403L267.5 323V180L394.5 108V403Z" fill="#2E2E2E" />
-        <path class="path-3" d="M394.5 108L195 1L70 69.5L268 179L394.5 108Z" fill="#2E2E2E" />
-        <path class="path-4" d="M195.5 138.5L69.3451 70L3.5 107L127 176.5L195.5 138.5Z" fill="#2E2E2E" />
-        <path class="path-5"
-            d="M394.5 108V403L267.5 323V180L394.5 108ZM394.5 108L195 1L70 69.5L268 179L394.5 108ZM195.5 139L128 176.5L126 180V323L1 403V112L2.5 108L70.5 70L195.5 139ZM69.3451 70L195.5 138.5L127 176.5L3.5 107L69.3451 70Z"
-            stroke="white" stroke-width="2" stroke-linejoin="round" />
-    </svg>
-
+        <svg class="nodetool-icon" width="396" height="404" viewBox="0 0 396 404" fill="none"
+            xmlns="http://www.w3.org/2000/svg">
+            <path class="path-1" d="M128 176.5L195.5 139L70.5 70L2.5 108L1 112V403L126 323V180L128 176.5Z"
+                fill="#2E2E2E" />
+            <path class="path-2" d="M394.5 403L267.5 323V180L394.5 108V403Z" fill="#2E2E2E" />
+            <path class="path-3" d="M394.5 108L195 1L70 69.5L268 179L394.5 108Z" fill="#2E2E2E" />
+            <path class="path-4" d="M195.5 138.5L69.3451 70L3.5 107L127 176.5L195.5 138.5Z" fill="#2E2E2E" />
+            <path class="path-5"
+                d="M394.5 108V403L267.5 323V180L394.5 108ZM394.5 108L195 1L70 69.5L268 179L394.5 108ZM195.5 139L128 176.5L126 180V323L1 403V112L2.5 108L70.5 70L195.5 139ZM69.3451 70L195.5 138.5L127 176.5L3.5 107L69.3451 70Z"
+                stroke="white" stroke-width="2" stroke-linejoin="round" />
+        </svg>
 
         <div class="boot-text">installing nodetool</div>
+        <div id="update-steps"></div>
     </div>
     <iframe id="content"></iframe>
     <button id="log-toggle">Hide Log</button>
@@ -220,6 +255,7 @@
         const bootMessage = document.getElementById('boot-message');
         const logContainer = document.getElementById('log-container');
         const logToggle = document.getElementById('log-toggle');
+        const updateStepsElement = document.getElementById('update-steps');
 
         function createMatrixLogger(logElement) {
             let lastLogLine = null;
@@ -271,12 +307,46 @@
             contentElement.src = `http://127.0.0.1:8000?nocache=${timestamp}`;
         }
 
+        function showUpdateStep(step, isComplete) {
+            const updateStepsElement = document.getElementById('update-steps');
+            updateStepsElement.style.display = 'block';
+            updateStepsElement.innerHTML = `
+                <div class="progress-container">
+                    <div class="progress-label">
+                        <span class="action-label">Downloading</span>
+                        <span class="progress-percentage">0%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress"></div>
+                    </div>
+                </div>
+            `;
+
+            if (isComplete) {
+                setTimeout(() => {
+                    updateStepsElement.style.display = 'none';
+                }, 2000); // Hide after 2 seconds
+            }
+        }
+
+        function updateProgress(componentName, progress, action) {
+            const progressBar = document.querySelector('.progress');
+            const progressPercentage = document.querySelector('.progress-percentage');
+            const actionLabel = document.querySelector('.action-label');
+            if (progressBar && progressPercentage && actionLabel) {
+                progressBar.style.width = `${progress}%`;
+                progressPercentage.textContent = `${Math.round(progress)}%`;
+                actionLabel.textContent = `${action} ${componentName}`;
+            }
+        }
+
         function initializeApp() {
             api.getServerState().then(({ isStarted, bootMsg, logs }) => {
                 console.log("Server state:", { isStarted, bootMsg, logs });
                 if (isStarted) {
                     loadContentWithNoCaching();
                     bootMessage.style.display = 'none';
+                    updateStepsElement.style.display = 'none';
                 } else {
                     const bootTextElement = document.querySelector('.boot-text');
                     bootTextElement.textContent = bootMsg;
@@ -284,11 +354,20 @@
 
                 logs.forEach(log => matrixLogger.log(log));
             });
+
+            api.onUpdateProgress(({ componentName, progress, action }) => {
+                updateProgress(componentName, progress, action);
+            });
+
+            api.onUpdateStep((step, isComplete) => {
+                showUpdateStep(step, isComplete);
+            });
         }
 
         api.onServerStarted(() => {
             loadContentWithNoCaching();
             bootMessage.style.display = 'none';
+            updateStepsElement.style.display = 'none';
         });
 
         api.onBootMessage((message) => {
@@ -299,6 +378,7 @@
         api.onServerLog((message) => {
             matrixLogger.log(message);
         });
+
         logToggle.addEventListener('click', toggleLog);
         initializeApp();
     </script>

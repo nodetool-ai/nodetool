@@ -1,0 +1,554 @@
+{
+  "id": "comfy_inpainting",
+  "access": "public",
+  "created_at": "2024-10-19T20:13:56.078538",
+  "updated_at": "2024-10-19T20:13:56.078559",
+  "name": "Inpainting in Comfy",
+  "description": "Replace the face of an image with a new face",
+  "tags": [
+    "comfy"
+  ],
+  "thumbnail": "",
+  "thumbnail_url": "/examples/inpainting.jpg",
+  "graph": {
+    "nodes": [
+      {
+        "id": "6",
+        "parent_id": null,
+        "type": "comfy.conditioning.CLIPTextEncode",
+        "data": {
+          "text": "painting of taylor swift, in the style of vermeer, natural skin"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1530,
+            "y": 671
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true
+        }
+      },
+      {
+        "id": "7",
+        "parent_id": null,
+        "type": "comfy.conditioning.CLIPTextEncode",
+        "data": {
+          "text": "watermark, text, photo\n"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1530,
+            "y": 521
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true
+        }
+      },
+      {
+        "id": "26",
+        "parent_id": null,
+        "type": "comfy.latent.VAEEncodeForInpaint",
+        "data": {
+          "grow_mask_by": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1530,
+            "y": 306
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true
+        }
+      },
+      {
+        "id": "8",
+        "parent_id": null,
+        "type": "comfy.latent.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2050,
+            "y": 754
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true
+        }
+      },
+      {
+        "id": "20",
+        "parent_id": null,
+        "type": "comfy.image.LoadImage",
+        "data": {
+          "image": {
+            "uri": "https://www.mauritshuis.nl/media/rgxggmkv/vermeer-meisje-met-de-parel-mh670-mauritshuis-den-haag.jpg?center=0.44178550792733645,0.47243107769423559&mode=crop&width=1200&rnd=133018598924500000&quality=70",
+            "type": "image"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 50,
+            "y": 151
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true
+        }
+      },
+      {
+        "id": "3",
+        "parent_id": null,
+        "type": "comfy.sampling.KSampler",
+        "data": {
+          "seed": 13,
+          "seed_control_mode": "increment",
+          "steps": 35,
+          "cfg": 8,
+          "sampler_name": "heun",
+          "scheduler": "normal",
+          "denoise": 0.5
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1790,
+            "y": 410
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true
+        }
+      },
+      {
+        "id": "31",
+        "parent_id": null,
+        "type": "comfy.mask.ImageToMask",
+        "data": {
+          "channel": "red"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1260,
+            "y": 250
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true
+        }
+      },
+      {
+        "id": "33",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "image_image_2024-08-10"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2280,
+            "y": 681
+          },
+          "zIndex": 0,
+          "width": 243,
+          "height": 257,
+          "selectable": true
+        }
+      },
+      {
+        "id": "34",
+        "parent_id": null,
+        "type": "nodetool.image.transform.Blur",
+        "data": {
+          "radius": 16
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1000,
+            "y": 241
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true
+        }
+      },
+      {
+        "id": "35",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "image_output_2024-08-10"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1260,
+            "y": 50
+          },
+          "zIndex": 0,
+          "width": 150,
+          "height": 150,
+          "selectable": true
+        }
+      },
+      {
+        "id": "36",
+        "parent_id": null,
+        "type": "huggingface.image_segmentation.Segmentation",
+        "data": {
+          "model": {
+            "type": "hf.image_segmentation",
+            "repo_id": "mattmdjaga/segformer_b2_clothes"
+          }
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 540,
+            "y": 219
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true
+        }
+      },
+      {
+        "id": "37",
+        "parent_id": null,
+        "type": "huggingface.image_segmentation.FindSegment",
+        "data": {
+          "segment_label": "Face"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 770,
+            "y": 232
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true
+        }
+      },
+      {
+        "id": "38",
+        "parent_id": null,
+        "type": "comfy.loaders.HuggingFaceCheckpointLoader",
+        "data": {
+          "model": {
+            "type": "hf.stable_diffusion",
+            "repo_id": "SG161222/Realistic_Vision_V5.1_noVAE",
+            "path": "Realistic_Vision_V5.1_fp16-no-ema.safetensors"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1260,
+            "y": 550
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true
+        }
+      },
+      {
+        "id": "39",
+        "parent_id": null,
+        "type": "nodetool.image.transform.Fit",
+        "data": {
+          "width": 768,
+          "height": 768
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 280,
+            "y": 251
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true
+        }
+      },
+      {
+        "id": "40",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "headline": "Inpainting: Vermeer to Taylor Swif",
+          "comment": [
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "1. Load Vermeer's 'Girl with a Pearl Earring'"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "2. Segment and mask the face"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "3. Use Stable Diffusion to inpaint Taylor Swift's face"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "4. Blend result with original painting style"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": ""
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "- Adjust prompts in CLIPTextEncode nodes for desired output"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "- Fine-tune KSampler parameters for better results"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "- Replace LoadImage with your own input if needed"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "- Experiment with different segmentation models for varied masks\""
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": ""
+                }
+              ]
+            }
+          ]
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 55,
+            "y": -226
+          },
+          "zIndex": 0,
+          "width": 516,
+          "height": 207,
+          "selectable": true
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "1515",
+        "source": "34",
+        "sourceHandle": "output",
+        "target": "35",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "95d44fdc-5bbe-4379-b44e-7b854bbd9f81",
+        "source": "38",
+        "sourceHandle": "clip",
+        "target": "6",
+        "targetHandle": "clip",
+        "ui_properties": {
+          "className": "comfy_clip"
+        }
+      },
+      {
+        "id": "413e1365-ca88-4798-bad4-83d5d56eac35",
+        "source": "38",
+        "sourceHandle": "vae",
+        "target": "8",
+        "targetHandle": "vae",
+        "ui_properties": {
+          "className": "comfy_vae"
+        }
+      },
+      {
+        "id": "6",
+        "source": "3",
+        "sourceHandle": "latent",
+        "target": "8",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "17",
+        "source": "7",
+        "sourceHandle": "conditioning",
+        "target": "3",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "721",
+        "source": "8",
+        "sourceHandle": "image",
+        "target": "33",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "9b3f39bf-535a-4ecc-91ce-4c63c8180721",
+        "source": "20",
+        "sourceHandle": "image",
+        "target": "39",
+        "targetHandle": "image",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "77ba0e21-3787-4bbd-8a07-9af44cb46b5d",
+        "source": "38",
+        "sourceHandle": "vae",
+        "target": "26",
+        "targetHandle": "vae",
+        "ui_properties": {
+          "className": "comfy_vae"
+        }
+      },
+      {
+        "id": "720eb177-8f79-45e8-a19a-b8a1aed0f309",
+        "source": "31",
+        "sourceHandle": "mask",
+        "target": "26",
+        "targetHandle": "mask",
+        "ui_properties": {
+          "className": "comfy_mask"
+        }
+      },
+      {
+        "id": "12ffe745-bbb5-4b5d-a4a7-88c7f78c4783",
+        "source": "38",
+        "sourceHandle": "clip",
+        "target": "7",
+        "targetHandle": "clip",
+        "ui_properties": {
+          "className": "comfy_clip"
+        }
+      },
+      {
+        "id": "9df822c2-f8b1-4e2c-b4a1-59c16cfb6358",
+        "source": "39",
+        "sourceHandle": "output",
+        "target": "36",
+        "targetHandle": "image",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "94ad5417-91d3-4e11-9ba7-9beaf3660aa5",
+        "source": "37",
+        "sourceHandle": "output",
+        "target": "34",
+        "targetHandle": "image",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "f5b03d6b-b98b-42db-8b9d-67e00c975a03",
+        "source": "36",
+        "sourceHandle": "output",
+        "target": "37",
+        "targetHandle": "segments",
+        "ui_properties": {
+          "className": "list"
+        }
+      },
+      {
+        "id": "ad00fa5a-1a94-4785-8d2c-fe662d7e93f0",
+        "source": "34",
+        "sourceHandle": "output",
+        "target": "31",
+        "targetHandle": "image",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "c4c69e1d-1456-47de-8a7c-bc120d20ce04",
+        "source": "39",
+        "sourceHandle": "output",
+        "target": "26",
+        "targetHandle": "pixels",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "91899002-05a6-45e4-b6c3-e8a01675a95d",
+        "source": "38",
+        "sourceHandle": "model",
+        "target": "3",
+        "targetHandle": "model",
+        "ui_properties": {
+          "className": "comfy_unet"
+        }
+      },
+      {
+        "id": "10",
+        "source": "6",
+        "sourceHandle": "conditioning",
+        "target": "3",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "cf1bed87-6747-40a8-a503-8fb7e13cf9a4",
+        "source": "26",
+        "sourceHandle": "latent",
+        "target": "3",
+        "targetHandle": "latent_image",
+        "ui_properties": {
+          "className": "comfy_latent"
+        }
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null
+}

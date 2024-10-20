@@ -1,148 +1,79 @@
 {
   "id": "phantasy_animals",
-  "access": "private",
-  "created_at": "2024-07-09T18:28:12.234103",
-  "updated_at": "2024-07-09T18:29:43.566666",
+  "access": "public",
+  "created_at": "2024-10-19T00:20:58.232342",
+  "updated_at": "2024-10-19T00:20:58.232366",
   "name": "Phantasy Animals",
-  "tags": [
-    "batch_processing",
-    "start"
-  ],
   "description": "",
+  "tags": null,
   "thumbnail": "",
-  "thumbnail_url": "/examples/phantasy_animals.jpg",
+  "thumbnail_url": null,
   "graph": {
-    "edges": [
-      {
-        "id": "6adcc54f-b7af-4a26-a66f-500fa8d5e668",
-        "source": "13",
-        "sourceHandle": "output",
-        "target": "7",
-        "targetHandle": "values",
-        "ui_properties": {
-          "className": "any"
-        }
-      },
-      {
-        "id": "38f7ade7-0631-4a83-bed2-f84ef43be541",
-        "source": "7",
-        "sourceHandle": "output",
-        "target": "16",
-        "targetHandle": "prompt",
-        "ui_properties": {
-          "className": "union"
-        }
-      },
-      {
-        "id": "15535",
-        "source": "16",
-        "sourceHandle": "output",
-        "target": "17",
-        "targetHandle": "image",
-        "ui_properties": {
-          "className": "image"
-        }
-      },
-      {
-        "id": "612dae86-4aa7-46a1-befb-2d3cd4204834",
-        "source": "15",
-        "sourceHandle": "output",
-        "target": "2",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "dataframe"
-        }
-      },
-      {
-        "id": "ec6f0162-9405-44f4-9476-5386f597e6ca",
-        "source": "15",
-        "sourceHandle": "output",
-        "target": "3",
-        "targetHandle": "input",
-        "ui_properties": {
-          "className": "dataframe"
-        }
-      },
-      {
-        "id": "b1433149-e375-4f30-8ae8-c4fd2c104647",
-        "source": "16",
-        "sourceHandle": "output",
-        "target": "14",
-        "targetHandle": "input",
-        "ui_properties": {
-          "className": "image"
-        }
-      },
-      {
-        "id": "4773",
-        "source": "3",
-        "sourceHandle": "output",
-        "target": "12",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "any"
-        }
-      }
-    ],
     "nodes": [
       {
         "id": "2",
+        "parent_id": null,
         "type": "nodetool.workflows.base_node.Preview",
         "data": {
           "name": "dataframe_output_2024-06-22"
         },
         "ui_properties": {
           "position": {
-            "x": 396,
-            "y": 886
+            "x": 310,
+            "y": 90
           },
           "zIndex": 0,
-          "width": 711,
-          "height": 185,
+          "width": 1000,
+          "height": 186,
           "selectable": true
         }
       },
       {
         "id": "3",
+        "parent_id": null,
         "type": "nodetool.group.Loop",
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 410,
-            "y": 247
+            "x": 310,
+            "y": 325
           },
           "zIndex": -10,
-          "width": 684,
-          "height": 627,
+          "width": 1050,
+          "height": 817,
           "selectable": false
         }
       },
       {
         "id": "7",
+        "parent_id": "3",
         "type": "nodetool.text.Template",
         "data": {
           "string": "ghibli style,{description} "
         },
-        "parent_id": "3",
         "ui_properties": {
           "position": {
-            "x": 163,
-            "y": 113
+            "x": 310,
+            "y": 433
           },
           "zIndex": 0,
+          "width": 200,
+          "title": "Prompt",
+          "color": "#d33682",
           "selectable": true
         }
       },
       {
         "id": "12",
+        "parent_id": null,
         "type": "nodetool.workflows.base_node.Preview",
         "data": {
           "name": "any_output_2024-07-07"
         },
         "ui_properties": {
           "position": {
-            "x": 1125,
-            "y": 293
+            "x": 1390,
+            "y": 548
           },
           "zIndex": 0,
           "width": 350,
@@ -152,34 +83,37 @@
       },
       {
         "id": "13",
+        "parent_id": "3",
         "type": "nodetool.input.GroupInput",
         "data": {},
-        "parent_id": "3",
         "ui_properties": {
           "position": {
-            "x": 21,
-            "y": 175
+            "x": 50,
+            "y": 106
           },
           "zIndex": 0,
+          "width": 200,
           "selectable": true
         }
       },
       {
         "id": "14",
+        "parent_id": "3",
         "type": "nodetool.output.GroupOutput",
         "data": {},
-        "parent_id": "3",
         "ui_properties": {
           "position": {
-            "x": 502,
-            "y": 225
+            "x": 800,
+            "y": 574
           },
           "zIndex": 0,
+          "width": 200,
           "selectable": true
         }
       },
       {
         "id": "15",
+        "parent_id": null,
         "type": "ollama.agents.DataGenerator",
         "data": {
           "model": {
@@ -210,15 +144,17 @@
         },
         "ui_properties": {
           "position": {
-            "x": 101,
-            "y": 220
+            "x": 50,
+            "y": 50
           },
           "zIndex": 0,
+          "width": 200,
           "selectable": true
         }
       },
       {
         "id": "16",
+        "parent_id": "3",
         "type": "huggingface.text_to_image.StableDiffusion",
         "data": {
           "model": {
@@ -228,7 +164,7 @@
           },
           "negative_prompt": "nsfw, naked, nude, deformed, bad anatomy, mutated, ugly, disgusting",
           "seed": -1,
-          "num_inference_steps": 50,
+          "num_inference_steps": 2,
           "guidance_scale": 7.5,
           "scheduler": "HeunDiscreteScheduler",
           "lora_scale": 0,
@@ -246,18 +182,19 @@
           "height": 512,
           "detail_level": 0.8
         },
-        "parent_id": "3",
         "ui_properties": {
           "position": {
-            "x": 309,
-            "y": 110
+            "x": 540,
+            "y": 229
           },
           "zIndex": 0,
+          "width": 200,
           "selectable": true
         }
       },
       {
         "id": "17",
+        "parent_id": "3",
         "type": "nodetool.image.SaveImage",
         "data": {
           "folder": {
@@ -265,19 +202,185 @@
             "uri": "",
             "asset_id": null,
             "data": null
-          },
-          "name": "image_output_2024-09-24"
+          }
         },
-        "parent_id": "3",
         "ui_properties": {
           "position": {
-            "x": 505,
-            "y": 281
+            "x": 800,
+            "y": 292
           },
           "zIndex": 0,
+          "width": 200,
+          "selectable": true
+        }
+      },
+      {
+        "id": "427a8a6b-5a81-4299-995e-293cf12baba2",
+        "parent_id": "3",
+        "type": "nodetool.text.Template",
+        "data": {
+          "string": "{name}.png"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 535,
+            "y": 45
+          },
+          "zIndex": 0,
+          "width": 200,
+          "title": "Filename",
+          "color": null,
+          "selectable": true
+        }
+      },
+      {
+        "id": "428",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "headline": "Create Fanstasy Animals",
+          "comment": [
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "- Data Generator to generate descriptions of fantasy animals"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "- Template to format the prompt"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "- Stable Diffusion to generate the image"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "- Change the prompt to experiment"
+                }
+              ]
+            }
+          ],
+          "comment_color": "#eee8d5"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 54,
+            "y": -157
+          },
+          "zIndex": 0,
+          "width": 462,
+          "height": 143,
           "selectable": true
         }
       }
+    ],
+    "edges": [
+      {
+        "id": "b1433149-e375-4f30-8ae8-c4fd2c104647",
+        "source": "16",
+        "sourceHandle": "output",
+        "target": "14",
+        "targetHandle": "input",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "15535",
+        "source": "16",
+        "sourceHandle": "output",
+        "target": "17",
+        "targetHandle": "image",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "c4d011e4-c789-4d9a-b711-988414ccff8e",
+        "source": "427a8a6b-5a81-4299-995e-293cf12baba2",
+        "sourceHandle": "output",
+        "target": "17",
+        "targetHandle": "name",
+        "ui_properties": {
+          "className": "union"
+        }
+      },
+      {
+        "id": "cdec9dcb-e9af-4870-ba4a-503a85e70e09",
+        "source": "13",
+        "sourceHandle": "output",
+        "target": "427a8a6b-5a81-4299-995e-293cf12baba2",
+        "targetHandle": "values",
+        "ui_properties": {
+          "className": "any"
+        }
+      },
+      {
+        "id": "ec6f0162-9405-44f4-9476-5386f597e6ca",
+        "source": "15",
+        "sourceHandle": "output",
+        "target": "3",
+        "targetHandle": "input",
+        "ui_properties": {
+          "className": "dataframe"
+        }
+      },
+      {
+        "id": "612dae86-4aa7-46a1-befb-2d3cd4204834",
+        "source": "15",
+        "sourceHandle": "output",
+        "target": "2",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "dataframe"
+        }
+      },
+      {
+        "id": "6adcc54f-b7af-4a26-a66f-500fa8d5e668",
+        "source": "13",
+        "sourceHandle": "output",
+        "target": "7",
+        "targetHandle": "values",
+        "ui_properties": {
+          "className": "any"
+        }
+      },
+      {
+        "id": "38f7ade7-0631-4a83-bed2-f84ef43be541",
+        "source": "7",
+        "sourceHandle": "output",
+        "target": "16",
+        "targetHandle": "prompt",
+        "ui_properties": {
+          "className": "union"
+        }
+      },
+      {
+        "id": "4773",
+        "source": "3",
+        "sourceHandle": "output",
+        "target": "12",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "any"
+        }
+      }
     ]
-  }
+  },
+  "input_schema": null,
+  "output_schema": null
 }

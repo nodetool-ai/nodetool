@@ -1,78 +1,18 @@
 {
   "id": "image_enhance",
-  "access": "private",
-  "created_at": "2024-07-08T01:27:13.145870",
-  "updated_at": "2024-07-08T01:32:55.802409",
+  "access": "public",
+  "created_at": "2024-10-19T19:08:03.772840",
+  "updated_at": "2024-10-19T19:08:03.772863",
   "name": "Image Enhance",
   "description": "",
+  "tags": null,
   "thumbnail": "",
   "thumbnail_url": "/examples/image_enhance.jpg",
   "graph": {
-    "edges": [
-      {
-        "id": "5b1aa42a-bdb8-461b-bebc-58386e28fd44",
-        "source": "11",
-        "sourceHandle": "output",
-        "target": "6",
-        "targetHandle": "image",
-        "ui_properties": {
-          "className": "image"
-        }
-      },
-      {
-        "id": "380ae2ba-c21e-4460-b411-4853fae085d4",
-        "source": "6",
-        "sourceHandle": "output",
-        "target": "3",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "image"
-        }
-      },
-      {
-        "id": "1c1ec75c-b699-4fa2-ab15-bf87bd225401",
-        "source": "97877",
-        "sourceHandle": "output",
-        "target": "5b962592-953e-411e-9c8f-4d188607b1ad",
-        "targetHandle": "image",
-        "ui_properties": {
-          "className": "image"
-        }
-      },
-      {
-        "id": "27594e37-fde4-400f-9e5f-60f90ef03c30",
-        "source": "97877",
-        "sourceHandle": "output",
-        "target": "11",
-        "targetHandle": "image",
-        "ui_properties": {
-          "className": "image"
-        }
-      },
-      {
-        "id": "20f75457-d5e0-477b-b215-94152cd30d33",
-        "source": "5b962592-953e-411e-9c8f-4d188607b1ad",
-        "sourceHandle": "output",
-        "target": "4b900c04-d29b-4466-94fa-f2cf1229115a",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "image"
-        }
-      },
-      {
-        "id": "a52249ae-aead-48e7-911a-7cb26faf00f2",
-        "source": "97877",
-        "sourceHandle": "output",
-        "target": "4",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "image"
-        }
-      }
-    ],
     "nodes": [
       {
         "id": "3",
+        "parent_id": null,
         "type": "nodetool.workflows.base_node.Preview",
         "data": {
           "name": "image_output_2024-07-06"
@@ -80,8 +20,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 970,
-            "y": 197
+            "x": 839,
+            "y": 394
           },
           "zIndex": 0,
           "width": 214,
@@ -91,15 +31,15 @@
       },
       {
         "id": "4",
+        "parent_id": null,
         "type": "nodetool.workflows.base_node.Preview",
         "data": {
           "name": "image_output_2024-07-06"
         },
         "ui_properties": {
-          "selected": false,
           "position": {
-            "x": 733,
-            "y": 197
+            "x": 320,
+            "y": 50
           },
           "zIndex": 0,
           "width": 211,
@@ -109,22 +49,24 @@
       },
       {
         "id": "6",
+        "parent_id": null,
         "type": "nodetool.image.enhance.Color",
         "data": {
           "factor": 1.4
         },
         "ui_properties": {
-          "selected": false,
           "position": {
-            "x": 533,
-            "y": 94
+            "x": 600,
+            "y": 444
           },
           "zIndex": 0,
+          "width": 200,
           "selectable": true
         }
       },
       {
         "id": "8",
+        "parent_id": null,
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
           "comment": [
@@ -158,33 +100,35 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 373,
-            "y": 200
+            "x": 321,
+            "y": 615
           },
           "zIndex": 0,
-          "width": 265,
-          "height": 85,
+          "width": 405,
+          "height": 105,
           "selectable": true
         }
       },
       {
         "id": "11",
+        "parent_id": null,
         "type": "nodetool.image.enhance.AutoContrast",
         "data": {
-          "cutoff": 0
+          "cutoff": 2
         },
         "ui_properties": {
-          "selected": false,
           "position": {
-            "x": 371,
-            "y": 94
+            "x": 325.5,
+            "y": 444
           },
           "zIndex": 0,
+          "width": 200,
           "selectable": true
         }
       },
       {
         "id": "4b900c04-d29b-4466-94fa-f2cf1229115a",
+        "parent_id": null,
         "type": "nodetool.workflows.base_node.Preview",
         "data": {
           "name": "image_output_2024-07-06"
@@ -192,8 +136,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 731,
-            "y": 452
+            "x": 591,
+            "y": 178
           },
           "zIndex": 0,
           "width": 218,
@@ -203,20 +147,22 @@
       },
       {
         "id": "5b962592-953e-411e-9c8f-4d188607b1ad",
+        "parent_id": null,
         "type": "nodetool.image.enhance.Sharpen",
         "data": {},
         "ui_properties": {
-          "selected": false,
           "position": {
-            "x": 526,
-            "y": 421
+            "x": 325.5,
+            "y": 310
           },
           "zIndex": 0,
+          "width": 200,
           "selectable": true
         }
       },
       {
         "id": "97876",
+        "parent_id": null,
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
           "headline": "Image Enhance",
@@ -248,19 +194,19 @@
           ]
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 4,
             "y": -138
           },
           "zIndex": 0,
-          "width": 301,
-          "height": 127,
+          "width": 546,
+          "height": 132,
           "selectable": true
         }
       },
       {
         "id": "97877",
+        "parent_id": null,
         "type": "nodetool.constant.Image",
         "data": {
           "value": {
@@ -269,25 +215,79 @@
           }
         },
         "ui_properties": {
-          "selected": false,
           "position": {
-            "x": 152,
-            "y": 97
+            "x": 50,
+            "y": 293
           },
           "zIndex": 0,
+          "width": 200,
           "selectable": true
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "1c1ec75c-b699-4fa2-ab15-bf87bd225401",
+        "source": "97877",
+        "sourceHandle": "output",
+        "target": "5b962592-953e-411e-9c8f-4d188607b1ad",
+        "targetHandle": "image",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "27594e37-fde4-400f-9e5f-60f90ef03c30",
+        "source": "97877",
+        "sourceHandle": "output",
+        "target": "11",
+        "targetHandle": "image",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "a52249ae-aead-48e7-911a-7cb26faf00f2",
+        "source": "97877",
+        "sourceHandle": "output",
+        "target": "4",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "380ae2ba-c21e-4460-b411-4853fae085d4",
+        "source": "6",
+        "sourceHandle": "output",
+        "target": "3",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "5b1aa42a-bdb8-461b-bebc-58386e28fd44",
+        "source": "11",
+        "sourceHandle": "output",
+        "target": "6",
+        "targetHandle": "image",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "20f75457-d5e0-477b-b215-94152cd30d33",
+        "source": "5b962592-953e-411e-9c8f-4d188607b1ad",
+        "sourceHandle": "output",
+        "target": "4b900c04-d29b-4466-94fa-f2cf1229115a",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "image"
         }
       }
     ]
   },
-  "input_schema": {
-    "type": "object",
-    "properties": {},
-    "required": []
-  },
-  "output_schema": {
-    "type": "object",
-    "properties": {},
-    "required": []
-  }
+  "input_schema": null,
+  "output_schema": null
 }

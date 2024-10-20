@@ -1,0 +1,149 @@
+{
+  "id": "remove_silence",
+  "access": "public",
+  "created_at": "2024-10-19T15:54:47.218014",
+  "updated_at": "2024-10-19T15:54:47.218019",
+  "name": "Remove Silence",
+  "description": "Remove silence from audio files.",
+  "tags": [
+    "audio"
+  ],
+  "thumbnail": "",
+  "thumbnail_url": "/examples/remove_silence.jpg",
+  "graph": {
+    "nodes": [
+      {
+        "id": "1",
+        "parent_id": null,
+        "type": "nodetool.audio.transform.RemoveSilence",
+        "data": {
+          "min_length": 200,
+          "threshold": -40,
+          "reduction_factor": 1,
+          "crossfade": 10,
+          "min_silence_between_parts": 100
+        },
+        "ui_properties": {
+          "position": {
+            "x": 280,
+            "y": 52
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true
+        }
+      },
+      {
+        "id": "3",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "example_remove_silence"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 510,
+            "y": 50
+          },
+          "zIndex": 0,
+          "width": 225,
+          "height": 224,
+          "selectable": true
+        }
+      },
+      {
+        "id": "6",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": [
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "- Record an audio clip in the Audio node"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "- Run the workflow"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "- Play in the Preview Node to listen to the audio file with silence removed."
+                }
+              ]
+            }
+          ],
+          "headline": "Remove Silence"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 5,
+            "y": -111
+          },
+          "zIndex": 0,
+          "width": 519,
+          "height": 100,
+          "selectable": true
+        }
+      },
+      {
+        "id": "7",
+        "parent_id": null,
+        "type": "nodetool.constant.Audio",
+        "data": {
+          "value": {
+            "uri": "https://app.nodetool.ai/examples/remove_silence.mp3",
+            "type": "audio"
+          }
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 50,
+            "y": 76
+          },
+          "zIndex": 0,
+          "width": 200,
+          "title": "Input",
+          "color": "#d33682",
+          "selectable": true
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "2",
+        "source": "1",
+        "sourceHandle": "output",
+        "target": "3",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "audio"
+        }
+      },
+      {
+        "id": "4",
+        "source": "7",
+        "sourceHandle": "output",
+        "target": "1",
+        "targetHandle": "audio",
+        "ui_properties": {
+          "className": "audio"
+        }
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null
+}

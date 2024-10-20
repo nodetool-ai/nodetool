@@ -1,283 +1,17 @@
 {
   "id": "flux",
-  "access": "private",
-  "created_at": "2024-07-06T19:13:40.477460",
-  "updated_at": "2024-07-06T19:23:59.712727",
+  "access": "public",
+  "created_at": "2024-10-19T20:50:28.627255",
+  "updated_at": "2024-10-19T20:50:28.627274",
   "name": "Flux",
+  "description": "SOTA Image Generation",
   "tags": [
     "comfy"
   ],
-  "description": "SOTA Image Generation",
   "thumbnail": "",
   "thumbnail_url": "/examples/flux_schnell_example.jpg",
   "graph": {
-    "edges": [
-      {
-        "id": "1",
-        "source": "11",
-        "sourceHandle": "clip",
-        "target": "6",
-        "targetHandle": "clip",
-        "ui_properties": null
-      },
-      {
-        "id": "2",
-        "source": "10",
-        "sourceHandle": "vae",
-        "target": "8",
-        "targetHandle": "vae",
-        "ui_properties": null
-      },
-      {
-        "id": "3",
-        "source": "13",
-        "sourceHandle": "output",
-        "target": "8",
-        "targetHandle": "samples",
-        "ui_properties": null
-      },
-      {
-        "id": "4",
-        "source": "25",
-        "sourceHandle": "noise",
-        "target": "13",
-        "targetHandle": "noise",
-        "ui_properties": null
-      },
-      {
-        "id": "5",
-        "source": "22",
-        "sourceHandle": "guider",
-        "target": "13",
-        "targetHandle": "guider",
-        "ui_properties": null
-      },
-      {
-        "id": "6",
-        "source": "16",
-        "sourceHandle": "sampler",
-        "target": "13",
-        "targetHandle": "sampler",
-        "ui_properties": null
-      },
-      {
-        "id": "7",
-        "source": "17",
-        "sourceHandle": "sigmas",
-        "target": "13",
-        "targetHandle": "sigmas",
-        "ui_properties": null
-      },
-      {
-        "id": "8",
-        "source": "5",
-        "sourceHandle": "latent",
-        "target": "13",
-        "targetHandle": "latent_image",
-        "ui_properties": null
-      },
-      {
-        "id": "9",
-        "source": "12",
-        "sourceHandle": "unet",
-        "target": "17",
-        "targetHandle": "model",
-        "ui_properties": null
-      },
-      {
-        "id": "10",
-        "source": "6",
-        "sourceHandle": "conditioning",
-        "target": "22",
-        "targetHandle": "conditioning",
-        "ui_properties": null
-      },
-      {
-        "id": "17",
-        "source": "12",
-        "sourceHandle": "unet",
-        "target": "22",
-        "targetHandle": "model",
-        "ui_properties": null
-      },
-      {
-        "id": "24",
-        "source": "8",
-        "sourceHandle": "image",
-        "target": "26",
-        "targetHandle": "value",
-        "ui_properties": null
-      }
-    ],
     "nodes": [
-      {
-        "id": "5",
-        "parent_id": null,
-        "type": "comfy.latent.EmptyLatentImage",
-        "data": {
-          "width": 1024,
-          "height": 1024,
-          "batch_size": 1
-        },
-        "ui_properties": {
-          "position": {
-            "x": 404,
-            "y": 61.5
-          }
-        }
-      },
-      {
-        "id": "6",
-        "parent_id": null,
-        "type": "comfy.conditioning.CLIPTextEncode",
-        "data": {
-          "text": "a bottle with a rainbow galaxy inside it on top of a wooden table on a table in the middle of a modern kitchen"
-        },
-        "ui_properties": {
-          "position": {
-            "x": 202.5,
-            "y": 317
-          }
-        }
-      },
-      {
-        "id": "8",
-        "parent_id": null,
-        "type": "comfy.latent.VAEDecode",
-        "data": {},
-        "ui_properties": {
-          "position": {
-            "x": 786,
-            "y": 248.75
-          }
-        }
-      },
-      {
-        "id": "10",
-        "parent_id": null,
-        "type": "comfy.loaders.VAELoader",
-        "data": {
-          "vae_name": {
-            "type": "comfy.vae_file",
-            "name": "ae.sft"
-          }
-        },
-        "ui_properties": {
-          "position": {
-            "x": 606,
-            "y": 170.5
-          }
-        }
-      },
-      {
-        "id": "11",
-        "parent_id": null,
-        "type": "comfy.loaders.DualCLIPLoader",
-        "data": {
-          "clip_name1": {
-            "type": "comfy.clip_file",
-            "name": "clip_l.safetensors"
-          },
-          "clip_name2": {
-            "type": "comfy.clip_file",
-            "name": "t5xxl_fp8_e4m3fn.safetensors"
-          },
-          "type": "flux"
-        },
-        "ui_properties": {
-          "position": {
-            "x": 17,
-            "y": 281
-          }
-        }
-      },
-      {
-        "id": "12",
-        "parent_id": null,
-        "type": "comfy.loaders.UNETLoader",
-        "data": {
-          "unet_name": {
-            "type": "comfy.unet_file",
-            "name": "flux1-schnell.sft"
-          },
-          "weight_dtype": "default"
-        },
-        "ui_properties": {
-          "position": {
-            "x": 202.5,
-            "y": 487.5
-          }
-        }
-      },
-      {
-        "id": "13",
-        "parent_id": null,
-        "type": "comfy.sampling.samplers.SamplerCustomAdvanced",
-        "data": {},
-        "ui_properties": {
-          "position": {
-            "x": 606,
-            "y": 327
-          }
-        }
-      },
-      {
-        "id": "16",
-        "parent_id": null,
-        "type": "comfy.sampling.samplers.KSamplerSelect",
-        "data": {
-          "sampler_name": "euler"
-        },
-        "ui_properties": {
-          "position": {
-            "x": 404,
-            "y": 198.5
-          }
-        }
-      },
-      {
-        "id": "17",
-        "parent_id": null,
-        "type": "comfy.sampling.schedulers.BasicScheduler",
-        "data": {
-          "scheduler": "simple",
-          "steps": 4,
-          "denoise": 1
-        },
-        "ui_properties": {
-          "position": {
-            "x": 404,
-            "y": 497.5
-          }
-        }
-      },
-      {
-        "id": "22",
-        "parent_id": null,
-        "type": "comfy.sampling.guiders.BasicGuider",
-        "data": {},
-        "ui_properties": {
-          "position": {
-            "x": 404,
-            "y": 327
-          }
-        }
-      },
-      {
-        "id": "25",
-        "parent_id": null,
-        "type": "comfy.sampling.noise.RandomNoise",
-        "data": {
-          "noise_seed": 689015878,
-          "seed_control_mode": "randomize"
-        },
-        "ui_properties": {
-          "position": {
-            "x": 404,
-            "y": 643.5
-          }
-        }
-      },
       {
         "id": "26",
         "parent_id": null,
@@ -286,14 +20,145 @@
           "name": "image_image_2024-08-07"
         },
         "ui_properties": {
+          "selected": false,
           "position": {
-            "x": 926,
-            "y": 164
+            "x": 539,
+            "y": 120
           },
+          "zIndex": 0,
           "width": 301,
-          "height": 321
+          "height": 321,
+          "selectable": true
+        }
+      },
+      {
+        "id": "27",
+        "parent_id": null,
+        "type": "comfy.FluxNF4",
+        "data": {
+          "prompt": "a butterfly with human eyes",
+          "width": 1024,
+          "height": 1024,
+          "batch_size": 1,
+          "steps": 20,
+          "guidance_scale": 3.5,
+          "scheduler": "simple",
+          "sampler": "euler",
+          "noise_seed": 0,
+          "max_shift": 1.15,
+          "base_shift": 0.5
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 322,
+            "y": 50
+          },
+          "zIndex": 0,
+          "width": 187,
+          "selectable": true
+        }
+      },
+      {
+        "id": "28",
+        "parent_id": null,
+        "type": "comfy.loaders.CheckpointLoaderNF4",
+        "data": {
+          "ckpt_name": {
+            "type": "comfy.checkpoint_file",
+            "name": "flux1-dev-bnb-nf4-v2.safetensors"
+          }
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 50,
+            "y": 236
+          },
+          "zIndex": 0,
+          "width": 212,
+          "selectable": true
+        }
+      },
+      {
+        "id": "29",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "headline": "Flux NF 4",
+          "comment": [
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "- Flux Dev is a non-commercial model"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "- State of the art image generation"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "- Requires sixteen GB of VRAM"
+                }
+              ]
+            }
+          ]
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 57,
+            "y": -158
+          },
+          "zIndex": 0,
+          "width": 302,
+          "height": 145,
+          "selectable": true
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "895436cd-8bdb-48ea-b2c0-0050b3e7296f",
+        "source": "28",
+        "sourceHandle": "model",
+        "target": "27",
+        "targetHandle": "model",
+        "ui_properties": {
+          "className": "comfy_unet"
+        }
+      },
+      {
+        "id": "8a453056-bf8f-440a-8338-9ae08df53395",
+        "source": "28",
+        "sourceHandle": "clip",
+        "target": "27",
+        "targetHandle": "clip",
+        "ui_properties": {
+          "className": "comfy_clip"
+        }
+      },
+      {
+        "id": "b8147cc5-b9c2-409e-80ae-d6e7d2f092bf",
+        "source": "27",
+        "sourceHandle": "output",
+        "target": "26",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "image"
         }
       }
     ]
-  }
+  },
+  "input_schema": null,
+  "output_schema": null
 }

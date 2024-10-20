@@ -1,14 +1,14 @@
 {
   "id": "transcribe_audio",
-  "access": "private",
-  "created_at": "2024-07-02T01:37:52.738062",
-  "updated_at": "2024-07-04T22:25:14.822324",
+  "access": "public",
+  "created_at": "2024-10-19T16:06:21.898274",
+  "updated_at": "2024-10-19T16:06:21.898293",
   "name": "Transcribe Audio",
-  "tags": [
-    "openai",
-    "start"
-  ],
   "description": "",
+  "tags": [
+    "start",
+    "audio"
+  ],
   "thumbnail": "",
   "thumbnail_url": "/examples/transcribe_audio.jpg",
   "graph": {
@@ -18,40 +18,17 @@
         "parent_id": null,
         "type": "nodetool.workflows.base_node.Preview",
         "data": {
-          "value": "Babadubadubu",
           "name": "image_output_2024-07-03"
         },
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 432,
-            "y": 211
+            "x": 538,
+            "y": 61
           },
           "zIndex": 0,
-          "width": 160,
-          "height": 152,
-          "selectable": true
-        }
-      },
-      {
-        "id": "3",
-        "parent_id": null,
-        "type": "openai.audio.Transcribe",
-        "data": {
-          "audio": {
-            "type": "audio",
-            "uri": "http://localhost:8000/api/storage/nodetool-assets/43c43f3e25c811ef96120000619eeca4.webm",
-            "asset_id": "43c43f3e25c811ef96120000619eeca4",
-            "temp_id": null
-          },
-          "temperature": 0
-        },
-        "ui_properties": {
-          "position": {
-            "x": 315,
-            "y": 238
-          },
-          "zIndex": 0,
+          "width": 350,
+          "height": 230,
           "selectable": true
         }
       },
@@ -61,52 +38,144 @@
         "type": "nodetool.constant.Audio",
         "data": {
           "value": {
-            "type": "audio",
-            "uri": "",
-            "asset_id": null,
-            "temp_id": null
+            "uri": "https://upload.wikimedia.org/wikipedia/commons/transcoded/4/4f/An_address_by_Opposition_Leader_Anthony_Albanese.ogg/An_address_by_Opposition_Leader_Anthony_Albanese.ogg.mp3?download",
+            "type": "audio"
           }
         },
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 191,
-            "y": 225
+            "x": 50,
+            "y": 114
           },
           "zIndex": 0,
+          "width": 200,
+          "color": "#d33682",
+          "selectable": true
+        }
+      },
+      {
+        "id": "5",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": [
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "- Record your voice"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "- Hit the run button"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "- Read the transcription"
+                }
+              ]
+            }
+          ]
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 26,
+            "y": -146
+          },
+          "zIndex": 0,
+          "width": 306,
+          "height": 136,
+          "selectable": true
+        }
+      },
+      {
+        "id": "6",
+        "parent_id": null,
+        "type": "huggingface.automatic_speech_recognition.Whisper",
+        "data": {
+          "model": {
+            "type": "hf.automatic_speech_recognition",
+            "repo_id": "openai/whisper-small"
+          },
+          "task": "transcribe",
+          "language": "auto_detect",
+          "chunk_length_s": 30,
+          "timestamps": "word"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 280,
+            "y": 50
+          },
+          "zIndex": 0,
+          "width": 198,
+          "selectable": true
+        }
+      },
+      {
+        "id": "7",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "list_chunks_2024-10-19"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 538,
+            "y": 341
+          },
+          "zIndex": 0,
+          "width": 345,
+          "height": 309,
           "selectable": true
         }
       }
     ],
     "edges": [
       {
-        "id": "19914c55-1ba6-4cce-89fa-61085e5346fc",
-        "source": "3",
+        "id": "9",
+        "source": "6",
+        "sourceHandle": "chunks",
+        "target": "7",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "list"
+        }
+      },
+      {
+        "id": "fb7a4a72-6fb6-4126-a4e7-1870258a5ad1",
+        "source": "4",
         "sourceHandle": "output",
+        "target": "6",
+        "targetHandle": "audio",
+        "ui_properties": {
+          "className": "audio"
+        }
+      },
+      {
+        "id": "8c8eef9d-7ad3-4d00-9d12-f345df63ded6",
+        "source": "6",
+        "sourceHandle": "text",
         "target": "2",
         "targetHandle": "value",
         "ui_properties": {
           "className": "str"
         }
-      },
-      {
-        "id": "1c1c4367-3f27-460e-adc9-6a92b3e6aa09",
-        "source": "4",
-        "sourceHandle": "output",
-        "target": "3",
-        "targetHandle": "audio",
-        "ui_properties": {
-          "className": "audio"
-        }
       }
     ]
   },
-  "input_schema": {
-    "type": "object",
-    "properties": {}
-  },
-  "output_schema": {
-    "type": "object",
-    "properties": {}
-  }
+  "input_schema": null,
+  "output_schema": null
 }

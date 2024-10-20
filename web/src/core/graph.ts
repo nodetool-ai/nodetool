@@ -161,9 +161,14 @@ export const autoLayout = async (
     }
   });
 
-  // Group nodes by parentId
+  // Filter out comment nodes
+  const nonCommentNodes = nodes.filter(
+    (node) => node.type !== "nodetool.workflows.base_node.Comment"
+  );
+
+  // Group non-comment nodes by parentId
   const nodeGroups: Record<string, Node<NodeData>[]> = {};
-  nodes.forEach((node) => {
+  nonCommentNodes.forEach((node) => {
     const groupId = node.parentId || "root";
     if (!nodeGroups[groupId]) {
       nodeGroups[groupId] = [];
@@ -204,15 +209,13 @@ export const autoLayout = async (
     parentY = 0
   ): Node<NodeData> => {
     const originalNode = nodes.find((n) => n.id === layoutNode.id)!;
-    const newPosition =
-      originalNode.type === "nodetool.workflows.base_node.Comment"
-        ? originalNode.position
-        : {
-            x: (layoutNode.x ?? 0) + parentX,
-            y: (layoutNode.y ?? 0) + parentY
-          };
-
-    return { ...originalNode, position: newPosition };
+    return {
+      ...originalNode,
+      position: {
+        x: (layoutNode.x ?? 0) + parentX,
+        y: (layoutNode.y ?? 0) + parentY
+      }
+    };
   };
 
   // Process groups in topological order
@@ -270,10 +273,11 @@ export const autoLayout = async (
     }
   }
 
-  // Flatten the processed groups
-  const updatedNodes = Object.values(processedGroups).flat();
-
-  return nodes.map(
-    (node) => updatedNodes.find((n) => n.id === node.id) ?? node
+  // Combine updated non-comment nodes with original comment nodes
+  const updatedNonCommentNodes = Object.values(processedGroups).flat();
+  const commentNodes = nodes.filter(
+    (node) => node.type === "nodetool.workflows.base_node.Comment"
   );
+
+  return [...updatedNonCommentNodes, ...commentNodes];
 };

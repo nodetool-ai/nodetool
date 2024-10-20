@@ -624,8 +624,8 @@ class StableDiffusionBaseNode(HuggingFacePipelineNode):
                 )
 
             low_res_ratio = min(1 / 3, max(1 / 5, low_res_ratio))
-            low_res_steps = max(int(self.num_inference_steps * low_res_ratio), 1)
-            hi_res_steps = self.num_inference_steps - low_res_steps
+            low_res_steps = max(int(self.num_inference_steps * low_res_ratio), 10)
+            hi_res_steps = max(self.num_inference_steps - low_res_steps, 10)
 
             total = self.num_inference_steps + 20  # Include upscaler steps
 
@@ -642,6 +642,14 @@ class StableDiffusionBaseNode(HuggingFacePipelineNode):
             low_res_kwargs = kwargs.copy()
             low_res_kwargs["width"] = int(width / 2)
             low_res_kwargs["height"] = int(height / 2)
+
+            upscale_steps = 20
+
+            # Adjust upscale guidance scale based on detail level
+            upscale_guidance_scale = 1.0 + (
+                self.detail_level * 0.5
+            )  # Range: 1.0 to 1.5
+            upscale_guidance_scale = max(1.0, min(2.0, upscale_guidance_scale))
 
             # Generate low-res latents
             low_res_result = self._pipeline(
@@ -665,8 +673,8 @@ class StableDiffusionBaseNode(HuggingFacePipelineNode):
                 prompt=self.prompt,
                 negative_prompt=self.negative_prompt,
                 image=low_res_latents,
-                num_inference_steps=20,
-                guidance_scale=0,
+                num_inference_steps=upscale_steps,
+                guidance_scale=upscale_guidance_scale,
                 generator=generator,
                 output_type="latent",
                 callback=self.progress_callback(context, low_res_steps, total),
@@ -689,15 +697,15 @@ class StableDiffusionBaseNode(HuggingFacePipelineNode):
                     safety_checker=self._pipeline.safety_checker,
                     feature_extractor=self._pipeline.feature_extractor,
                 )
-            if hires:
-                img2img_pipe.vae.enable_tiling()
 
             # Generate final high-res image
             hires_kwargs = kwargs.copy()
-            hires_kwargs["strength"] = denoising_strength
+            if "strength" not in hires_kwargs:
+                hires_kwargs["strength"] = denoising_strength
             if "image" in hires_kwargs:
                 del hires_kwargs["image"]
 
+            img2img_pipe.vae.enable_tiling()
             image = img2img_pipe(
                 image=upscaled_latents.unsqueeze(0),  # type: ignore
                 prompt=self.prompt + ", hires",
@@ -714,8 +722,6 @@ class StableDiffusionBaseNode(HuggingFacePipelineNode):
                 0
             ]
         else:
-            if hires:
-                self._pipeline.vae.enable_tiling()
             image = self._pipeline(
                 prompt=self.prompt,
                 negative_prompt=self.negative_prompt,
