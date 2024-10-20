@@ -66,6 +66,9 @@ export const filterDataByType = (
   selectedInputType: TypeName | undefined,
   selectedOutputType: TypeName | undefined
 ): NodeMetadata[] => {
+  if (!selectedInputType && !selectedOutputType) {
+    return metadata;
+  }
   const intermediateFilteredData = selectedInputType
     ? metadata.filter((node) => {
         return node.properties.some((prop) => {

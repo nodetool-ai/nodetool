@@ -105,7 +105,7 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
           component="div"
           className="namespace-text"
         >
-          {namespace.split(".").pop()}
+          {namespace}
         </Typography>,
         ...nodesInNamespace.map(renderNode)
       ]

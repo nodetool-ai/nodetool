@@ -45,6 +45,7 @@ type NodeMenuStore = {
   showNamespaceTree: boolean;
   toggleNamespaceTree: () => void;
   performSearch: (term: string) => void;
+  updateHighlightedNamespaces: (results: NodeMetadata[]) => void;
 
   openNodeMenu: (
     x: number,
@@ -85,10 +86,12 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => ({
   selectedInputType: "",
   setSelectedInputType: (inputType) => {
     set({ selectedInputType: inputType });
+    get().performSearch(get().searchTerm);
   },
   selectedOutputType: "",
   setSelectedOutputType: (outputType) => {
     set({ selectedOutputType: outputType });
+    get().performSearch(get().searchTerm);
   },
 
   setDragToCreate: (dragToCreate) => {
@@ -193,38 +196,33 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => ({
 
   performSearch: (term: string) => {
     const metadata = useMetadataStore.getState().getAllMetadata();
+
     if (metadata.length === 0) {
-      set({ searchResults: metadata });
+      set({ searchResults: metadata, highlightedNamespaces: [] });
       return;
     }
 
-    if (!term.trim()) {
-      set({ searchResults: metadata });
-      return;
-    }
-
+    // Filter by type
     const filteredMetadata = filterDataByType(
       metadata,
       get().selectedInputType as TypeName,
       get().selectedOutputType as TypeName
     );
-    const newHighlightedNamespaces = new Set(
-      filteredMetadata.flatMap((result) => {
-        const parts = result.namespace.split(".");
-        return parts.map((_, index) => parts.slice(0, index + 1).join("."));
-      })
-    );
-    set({ highlightedNamespaces: [...newHighlightedNamespaces] });
-    const entries = filteredMetadata.map((node: NodeMetadata) => {
-      const lines = node.description.split("\n");
-      const tags = lines.length > 1 ? lines[1].split(",") : [];
-      return {
-        title: node.title,
-        node_type: node.node_type,
-        tags: tags,
-        metadata: node
-      };
-    });
+
+    // If no search term is provided, return filtered metadata
+    if (!term.trim()) {
+      set({ searchResults: filteredMetadata });
+      get().updateHighlightedNamespaces(filteredMetadata);
+      return;
+    }
+
+    // Fuse search
+    const entries = filteredMetadata.map((node: NodeMetadata) => ({
+      title: node.title,
+      node_type: node.node_type,
+      tags: node.description.split("\n")[1]?.split(",") || [],
+      metadata: node
+    }));
 
     const fuse = new Fuse(entries, fuseOptions);
     const searchResults = fuse
@@ -232,6 +230,17 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => ({
       .map((result) => result.item.metadata);
 
     set({ searchResults });
+    get().updateHighlightedNamespaces(searchResults);
+  },
+
+  updateHighlightedNamespaces: (results: NodeMetadata[]) => {
+    const newHighlightedNamespaces = new Set(
+      results.flatMap((result) => {
+        const parts = result.namespace.split(".");
+        return parts.map((_, index) => parts.slice(0, index + 1).join("."));
+      })
+    );
+    set({ highlightedNamespaces: [...newHighlightedNamespaces] });
   },
 
   searchResults: [],

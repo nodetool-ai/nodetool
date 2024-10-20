@@ -214,14 +214,18 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
     selectedPath,
     searchResults,
     hoveredNode,
-    showNamespaceTree
+    showNamespaceTree,
+    selectedInputType,
+    selectedOutputType
   } = useNodeMenuStore((state) => ({
     searchTerm: state.searchTerm,
     highlightedNamespaces: state.highlightedNamespaces,
     selectedPath: state.selectedPath,
     searchResults: state.searchResults,
     hoveredNode: state.hoveredNode,
-    showNamespaceTree: state.showNamespaceTree
+    showNamespaceTree: state.showNamespaceTree,
+    selectedInputType: state.selectedInputType,
+    selectedOutputType: state.selectedOutputType
   }));
 
   const selectedPathString = useMemo(
@@ -238,7 +242,9 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
           selectedPathString + "."
         );
         return (
-          (selectedPathString === "" && searchTerm !== "") ||
+          (selectedPathString === "" && searchTerm.length > 1) ||
+          selectedInputType ||
+          selectedOutputType ||
           node.namespace === selectedPathString ||
           startsWithPath
         );
@@ -249,7 +255,13 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
           ? namespaceComparison
           : a.title.localeCompare(b.title);
       });
-  }, [metadata, selectedPathString, searchTerm]);
+  }, [
+    metadata,
+    selectedPathString,
+    searchTerm.length,
+    selectedInputType,
+    selectedOutputType
+  ]);
 
   const renderNamespaces = useMemo(
     () => <RenderNamespaces tree={namespaceTree} />,
