@@ -16,6 +16,7 @@ from nodetool.common.huggingface_cache import (
 
 from fastapi import APIRouter, FastAPI, Request, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 from uvicorn import run as uvicorn
 
 from . import asset, job, auth, message, node, storage, task, workflow, model, settings
@@ -33,6 +34,13 @@ DEFAULT_ROUTERS = [
     model.router,
     settings.router,
 ]
+
+
+class PermissionsPolicyMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        response.headers["Permissions-Policy"] = "microphone=self"
+        return response
 
 
 def create_app(
@@ -56,6 +64,9 @@ def create_app(
         expose_headers=["*"],
         max_age=3600,
     )
+
+    # Add the PermissionsPolicyMiddleware
+    app.add_middleware(PermissionsPolicyMiddleware)
 
     for router in routers:
         app.include_router(router)

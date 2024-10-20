@@ -1,5 +1,7 @@
 import threading
 from nodetool.api.server import create_app
-from nodetool.chat.help import index_documentation, index_examples
+import os
 
-app = create_app(static_folder="web/dist")
+static_folder = os.getenv("STATIC_FOLDER", "web/dist")
+
+app = create_app(static_folder=static_folder)
