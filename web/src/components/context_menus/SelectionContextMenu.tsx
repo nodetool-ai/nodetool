@@ -13,8 +13,8 @@ import { useRemoveFromGroup } from "../../hooks/nodes/useRemoveFromGroup";
 //icons
 import QueueIcon from "@mui/icons-material/Queue";
 import CopyAllIcon from "@mui/icons-material/CopyAll";
-import UnfoldLessIcon from "@mui/icons-material/UnfoldLess";
-import UnfoldMoreIcon from "@mui/icons-material/UnfoldMore";
+// import UnfoldLessIcon from "@mui/icons-material/UnfoldLess";
+// import UnfoldMoreIcon from "@mui/icons-material/UnfoldMore";
 import FormatAlignLeftIcon from "@mui/icons-material/FormatAlignLeft";
 import RemoveCircleIcon from "@mui/icons-material/RemoveCircle";
 import GroupWorkIcon from "@mui/icons-material/GroupWork";
@@ -27,7 +27,7 @@ interface SelectionContextMenuProps {
 const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
   const { handleCopy } = useCopyPaste();
   const deleteNode = useNodeStore((state) => state.deleteNode);
-  const updateNodeData = useNodeStore((state) => state.updateNodeData);
+  // const updateNodeData = useNodeStore((state) => state.updateNodeData);
   const findNode = useNodeStore((state) => state.findNode);
   const duplicateNodes = useDuplicateNodes();
   const alignNodes = useAlignNodes();
@@ -59,54 +59,54 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
   }, [deleteNode, selectedNodeIds]);
 
   //collapse
-  const handleCollapseAll = useCallback(
-    (callAlignNodes: boolean) => {
-      if (selectedNodeIds?.length) {
-        selectedNodeIds.forEach((id) => {
-          const node = findNode(id);
-          if (node && node.data.properties) {
-            updateNodeData(id, {
-              properties: { ...node.data.properties },
-              collapsed: true,
-              workflow_id: node.data.workflow_id
-            });
-          }
-        });
-        // alignNodes
-        if (callAlignNodes && alignNodes) {
-          setTimeout(() => {
-            alignNodes({ arrangeSpacing: true, collapsed: true });
-          }, 10);
-        }
-      }
-    },
-    [selectedNodeIds, alignNodes, findNode, updateNodeData]
-  );
+  // const handleCollapseAll = useCallback(
+  //   (callAlignNodes: boolean) => {
+  //     if (selectedNodeIds?.length) {
+  //       selectedNodeIds.forEach((id) => {
+  //         const node = findNode(id);
+  //         if (node && node.data.properties) {
+  //           updateNodeData(id, {
+  //             properties: { ...node.data.properties },
+  //             collapsed: true,
+  //             workflow_id: node.data.workflow_id
+  //           });
+  //         }
+  //       });
+  //       // alignNodes
+  //       if (callAlignNodes && alignNodes) {
+  //         setTimeout(() => {
+  //           alignNodes({ arrangeSpacing: true, collapsed: true });
+  //         }, 10);
+  //       }
+  //     }
+  //   },
+  //   [selectedNodeIds, alignNodes, findNode, updateNodeData]
+  // );
 
   //expand
-  const handleExpandAll = useCallback(
-    (callAlignNodes: boolean) => {
-      if (selectedNodeIds?.length) {
-        selectedNodeIds.forEach((id) => {
-          const node = findNode(id);
-          if (node && node.data.properties) {
-            updateNodeData(id, {
-              properties: { ...node.data.properties },
-              collapsed: false,
-              workflow_id: node.data.workflow_id
-            });
-          }
-        });
-        // alignNodes
-        if (callAlignNodes && alignNodes) {
-          setTimeout(() => {
-            alignNodes({ arrangeSpacing: true, collapsed: false });
-          }, 10);
-        }
-      }
-    },
-    [selectedNodeIds, alignNodes, findNode, updateNodeData]
-  );
+  // const handleExpandAll = useCallback(
+  //   (callAlignNodes: boolean) => {
+  //     if (selectedNodeIds?.length) {
+  //       selectedNodeIds.forEach((id) => {
+  //         const node = findNode(id);
+  //         if (node && node.data.properties) {
+  //           updateNodeData(id, {
+  //             properties: { ...node.data.properties },
+  //             collapsed: false,
+  //             workflow_id: node.data.workflow_id
+  //           });
+  //         }
+  //       });
+  //       // alignNodes
+  //       if (callAlignNodes && alignNodes) {
+  //         setTimeout(() => {
+  //           alignNodes({ arrangeSpacing: true, collapsed: false });
+  //         }, 10);
+  //       }
+  //     }
+  //   },
+  //   [selectedNodeIds, alignNodes, findNode, updateNodeData]
+  // );
 
   if (!menuPosition) return null;
   return (
@@ -144,7 +144,7 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
         IconComponent={<CopyAllIcon />}
         tooltip="CTRL+C | Meta+C"
       />
-      <ContextMenuItem
+      {/* <ContextMenuItem
         onClick={() => handleCollapseAll(false)}
         label="Collapse"
         IconComponent={<UnfoldLessIcon />}
@@ -155,7 +155,7 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
         label="Expand"
         IconComponent={<UnfoldMoreIcon />}
         tooltip=""
-      />
+      /> */}
       <ContextMenuItem
         onClick={() => {
           alignNodes({ arrangeSpacing: false });

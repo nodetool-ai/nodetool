@@ -184,8 +184,8 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   };
 
   const handleColorChange = useCallback(
-    (newColor: string) => {
-      setColor(newColor);
+    (newColor: string | null) => {
+      setColor(newColor || "");
       updateNodeData(props.id, {
         ...props.data,
         properties: {

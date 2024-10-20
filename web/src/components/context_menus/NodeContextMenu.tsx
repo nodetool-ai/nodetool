@@ -55,7 +55,7 @@ const NodeContextMenu: React.FC = () => {
     state.getMetadata(node?.type ?? "")
   );
   const { handleCopy } = useCopyPaste();
-  const isCollapsed = nodeData?.collapsed || false;
+  // const isCollapsed = nodeData?.collapsed || false;
   const duplicateNodes = useDuplicateNodes();
   const { writeClipboard } = useClipboard();
   const addNotification = useNotificationStore(
@@ -110,30 +110,30 @@ const NodeContextMenu: React.FC = () => {
   );
 
   //collapse
-  const toggleCollapse = useCallback(
-    (val: boolean) => {
-      if (nodeId !== null) {
-        updateNodeData(nodeId, {
-          properties: { ...nodeData?.properties },
-          workflow_id: nodeData?.workflow_id || "",
-          collapsed: val
-        });
-      }
-    },
-    [nodeData?.properties, nodeData?.workflow_id, nodeId, updateNodeData]
-  );
+  // const toggleCollapse = useCallback(
+  //   (val: boolean) => {
+  //     if (nodeId !== null) {
+  //       updateNodeData(nodeId, {
+  //         properties: { ...nodeData?.properties },
+  //         workflow_id: nodeData?.workflow_id || "",
+  //         collapsed: val
+  //       });
+  //     }
+  //   },
+  //   [nodeData?.properties, nodeData?.workflow_id, nodeId, updateNodeData]
+  // );
 
   const handleDuplicateNodes = useCallback(() => {
     duplicateNodes();
     closeContextMenu();
   }, [closeContextMenu, duplicateNodes]);
 
-  const handleCollapse = (
-    event: React.ChangeEvent<HTMLInputElement>,
-    checked: boolean
-  ) => {
-    toggleCollapse(checked);
-  };
+  // const handleCollapse = (
+  //   event: React.ChangeEvent<HTMLInputElement>,
+  //   checked: boolean
+  // ) => {
+  //   toggleCollapse(checked);
+  // };
 
   const handleOpenDocumentation = useCallback(() => {
     openDocumentation(node?.type || "", {
@@ -185,7 +185,7 @@ const NodeContextMenu: React.FC = () => {
         IconComponent={<CopyAllIcon />}
         tooltip="CTRL+C | Meta+C"
       />
-      <ContextMenuItem
+      {/* <ContextMenuItem
         onClick={(event: any) => handleCopyClicked(event, nodeId)}
         label="Collapsed"
         IconComponent={<CopyAllIcon />}
@@ -199,7 +199,7 @@ const NodeContextMenu: React.FC = () => {
             }
           />
         }
-      />
+      /> */}
       <Divider />
       <ContextMenuItem
         onClick={handleCopyMetadataToClipboard}

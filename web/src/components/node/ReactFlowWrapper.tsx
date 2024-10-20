@@ -301,7 +301,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
 
   const finishNodeTitle = useCallback(() => setEditNodeTitle(undefined), []);
 
-  /* COLLAPSE NODE */
+  // DOUBLE CLICK NODE
   const onNodeDoubleClick = useCallback(
     (event: React.MouseEvent, node: Node) => {
       const clickedElement = event.target as HTMLElement;

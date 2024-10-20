@@ -1,13 +1,13 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import React, { memo, useCallback, useState } from "react";
+import React, { memo, useState } from "react";
 import AssetGrid from "../assets/AssetGrid";
 import { IconButton, Box, Tooltip, Drawer, Tabs, Tab } from "@mui/material";
 import CodeIcon from "@mui/icons-material/Code";
 import { useResizePanel } from "../../hooks/handlers/useResizePanel";
 import { TOOLTIP_ENTER_DELAY } from "../node/BaseNode";
-import Inspector from "../Inspector";
+// import Inspector from "../Inspector";
 // hooks
 import WorkflowForm from "../workflows/WorkflowForm";
 import { useCombo } from "../../stores/KeyPressedStore";
@@ -42,7 +42,7 @@ const PanelRight: React.FC = () => {
     handlePanelToggle
   } = useResizePanel("right");
 
-  useCombo(["2"], handlePanelToggle);
+  useCombo(["2"], handlePanelToggle, false);
 
   const [tabIndex, setTabIndex] = useState(0);
 
@@ -100,7 +100,7 @@ const PanelRight: React.FC = () => {
               aria-label="Panel tabs"
             >
               <Tab label="Assets" />
-              <Tab label="Inspector" />
+              {/* <Tab label="Inspector" /> */}
               <Tab label="Workflow" />
             </Tabs>
             {tabIndex === 0 && (
@@ -111,8 +111,8 @@ const PanelRight: React.FC = () => {
                 <AssetGrid maxItemSize={5} />
               </Box>
             )}
-            {tabIndex === 1 && <Inspector />}
-            {tabIndex === 2 && <WorkflowForm />}
+            {/* {tabIndex === 1 && <Inspector />} */}
+            {tabIndex === 1 && <WorkflowForm />}
           </>
         )}
       </Drawer>

@@ -125,7 +125,8 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
     <Container css={styles} className={className}>
       <NodeHeader
         id={props.id}
-        nodeTitle={nodeTitle || "Missing Node!"}
+        metadataTitle={nodeTitle || "Missing Node!"}
+        data={nodeData || {}}
         showMenu={false}
       />
       <Tooltip title="Try to find a replacement node or write us a fax.">

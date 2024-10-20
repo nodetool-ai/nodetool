@@ -165,14 +165,14 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     props.type === "comfy.image.PreviewImage";
 
   // UI state
-  const [parentIsCollapsed, setParentIsCollapsed] = useState(false);
+  // const [parentIsCollapsed, setParentIsCollapsed] = useState(false);
 
-  useEffect(() => {
-    // Set parentIsCollapsed state based on parent node
-    if (hasParent) {
-      setParentIsCollapsed(parentNode?.data.collapsed || false);
-    }
-  }, [hasParent, parentId, parentNode?.data.collapsed]);
+  // useEffect(() => {
+  //   // Set parentIsCollapsed state based on parent node
+  //   if (hasParent) {
+  //     setParentIsCollapsed(parentNode?.data.collapsed || false);
+  //   }
+  // }, [hasParent, parentId, parentNode?.data.collapsed]);
 
   const className = useMemo(
     () =>
@@ -245,7 +245,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 
   useRenderLogger(metadata?.title || "", {
     metadata,
-    parentIsCollapsed,
+    // parentIsCollapsed,
     className,
     props,
     ThemeNodes,
@@ -278,16 +278,17 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     );
   }
 
-  if (parentIsCollapsed) {
-    return null;
-  }
+  // if (parentIsCollapsed) {
+  //   return null;
+  // }
 
   return (
     <Container
       css={memoizedStyles}
       className={className}
       style={{
-        display: parentIsCollapsed ? "none" : "flex",
+        // display: parentIsCollapsed ? "none" : "flex",
+        display: "flex",
         minHeight: `${minHeight}px`,
         backgroundColor: hasParent
           ? ThemeNodes.palette.c_node_bg_group

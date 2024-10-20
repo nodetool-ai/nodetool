@@ -137,16 +137,16 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
     (state) => state.addNotification
   );
   const createAsset = useAssetStore((state) => state.createAsset);
-  const node = useNodeStore(
-    useCallback((state) => state.findNode(props.id), [props.id])
-  );
+  // const node = useNodeStore(
+  //   useCallback((state) => state.findNode(props.id), [props.id])
+  // );
   const hasParent = props.parentId !== undefined;
-  const parentNode = useNodeStore(
-    useCallback(
-      (state) => (hasParent ? state.findNode(node?.parentId || "") : null),
-      [hasParent, node?.parentId]
-    )
-  );
+  // const parentNode = useNodeStore(
+  //   useCallback(
+  //     (state) => (hasParent ? state.findNode(node?.parentId || "") : null),
+  //     [hasParent, node?.parentId]
+  //   )
+  // );
   const result = useResultsStore((state) =>
     state.getResult(props.data.workflow_id, props.id)
   );
@@ -155,17 +155,17 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
     return result?.output ? <OutputRenderer value={result.output} /> : null;
   }, [result?.output]);
 
-  const [parentIsCollapsed, setParentIsCollapsed] = useState(false);
-  useEffect(() => {
-    // Set parentIsCollapsed state based on parent node
-    if (hasParent) {
-      setParentIsCollapsed(parentNode?.data.collapsed || false);
-    }
-  }, [hasParent, node?.parentId, parentNode?.data.collapsed]);
+  // const [parentIsCollapsed, setParentIsCollapsed] = useState(false);
+  // useEffect(() => {
+  //   // Set parentIsCollapsed state based on parent node
+  //   if (hasParent) {
+  //     setParentIsCollapsed(parentNode?.data.collapsed || false);
+  //   }
+  // }, [hasParent, node?.parentId, parentNode?.data.collapsed]);
 
-  if (parentIsCollapsed) {
-    return null;
-  }
+  // if (parentIsCollapsed) {
+  //   return null;
+  // }
 
   const handleAddToAssets = async () => {
     devLog("handleAddToAssets called");
@@ -256,7 +256,8 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
     <Container
       css={styles}
       style={{
-        display: parentIsCollapsed ? "none" : "flex",
+        // display: parentIsCollapsed ? "none" : "flex",
+        display: "flex",
         backgroundColor: hasParent
           ? ThemeNodes.palette.c_node_bg_group
           : ThemeNodes.palette.c_node_bg
