@@ -42,7 +42,7 @@ const PanelRight: React.FC = () => {
     handlePanelToggle
   } = useResizePanel("right");
 
-  useCombo(["2"], handlePanelToggle);
+  useCombo(["2"], handlePanelToggle, false);
 
   const [tabIndex, setTabIndex] = useState(0);
 

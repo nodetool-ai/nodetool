@@ -117,6 +117,12 @@ const initKeyListeners = () => {
     if (event.target instanceof HTMLTextAreaElement) {
       return;
     }
+    if (
+      event.target instanceof HTMLElement &&
+      event.target.closest('[data-slate-editor="true"]')
+    ) {
+      return;
+    }
 
     // Prevent key repeat events
     if (isPressed && repeat) return;
@@ -131,21 +137,12 @@ const initKeyListeners = () => {
 
     // Update the key that triggered this event
     keysToUpdate[normalizedKey] = isPressed;
-
-    // Always update modifier keys based on their current state
     keysToUpdate["shift"] = shiftKey;
     keysToUpdate["control"] = ctrlKey;
     keysToUpdate["alt"] = altKey;
     keysToUpdate["meta"] = metaKey;
 
     setKeysPressed(keysToUpdate, event);
-
-    // Remove this block to prevent double execution
-    // if (isPressed) {
-    //   const updatedPressedKeys = new Set(pressedKeys);
-    //   updatedPressedKeys.add(normalizedKey);
-    //   executeComboCallbacks(updatedPressedKeys, event);
-    // }
   };
 
   const handleKeyDown = (event: KeyboardEvent) => handleKeyChange(event, true);
@@ -170,7 +167,6 @@ const initKeyListeners = () => {
     window.removeEventListener("keyup", handleKeyUp);
     window.removeEventListener("blur", clearAllKeys);
     window.removeEventListener("focus", clearAllKeys);
-    // Reset the flag when cleaning up
     listenersInitialized = false;
   };
 };
