@@ -176,9 +176,9 @@ async function installRequirements() {
     } else if (chunk.includes("Installing collected packages")) {
       installedCount++;
       emitUpdateProgress(
-        chunk,
+        "",
         99,
-        ""
+        "Installing collected packages"
       );
     }
   });
