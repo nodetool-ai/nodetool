@@ -230,6 +230,8 @@ function createWindow() {
       enableRemoteModule: true,
     },
   });
+  mainWindow.removeMenu();
+  mainWindow.setBackgroundColor("#111111");
   emitBootMessage("Initializing...");
   mainWindow.loadFile("index.html");
   log("index.html loaded into main window");
