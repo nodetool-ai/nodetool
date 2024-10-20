@@ -2,7 +2,7 @@ import enum
 import os
 import tempfile
 import ffmpeg
-import time
+import cv2
 import re
 
 from typing import Any
@@ -48,7 +48,7 @@ class SaveVideo(BaseNode):
 
 class ExtractFrames(BaseNode):
     """
-    Extract frames from a video file.
+    Extract frames from a video file using OpenCV.
     video, frames, extract, sequence
 
     Use cases:
@@ -58,24 +58,43 @@ class ExtractFrames(BaseNode):
     """
 
     video: VideoRef = Field(
-        default=VideoRef(), description="The input video to adjust the brightness for."
+        default=VideoRef(), description="The input video to extract frames from."
     )
     start: int = Field(default=0, description="The frame to start extracting from.")
     end: int = Field(default=-1, description="The frame to stop extracting from.")
 
     async def process(self, context: ProcessingContext) -> list[ImageRef]:
-        import imageio.v3 as iio
-
         video_file = await context.asset_to_io(self.video)
         images = []
+
         with tempfile.NamedTemporaryFile(suffix=".mp4", delete=True) as temp:
             temp.write(video_file.read())
             temp.flush()
-            for i, frame in enumerate(iio.imiter(temp.name, plugin="pyav")):
-                if i > self.start and (self.end == -1 or i < self.end):
-                    img = PIL.Image.fromarray(frame)
+
+            cap = cv2.VideoCapture(temp.name)
+            frame_count = 0
+
+            while True:
+                ret, frame = cap.read()
+                if not ret:
+                    break
+
+                if frame_count >= self.start and (
+                    self.end == -1 or frame_count < self.end
+                ):
+                    # Convert BGR to RGB
+                    rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                    img = PIL.Image.fromarray(rgb_frame)
                     img_ref = await context.image_from_pil(img)
                     images.append(img_ref)
+                
+                if self.end > -1 and frame_count >= self.end:
+                    break
+
+                frame_count += 1
+
+            cap.release()
+
         return images
 
     def result_for_client(self, result: dict[str, Any]) -> dict[str, Any]:
@@ -127,7 +146,11 @@ class CreateVideo(BaseNode):
         if not self.frames:
             raise ValueError("No frames provided to create video.")
 
-        with tempfile.TemporaryDirectory() as temp_dir:
+        with tempfile.TemporaryDirectory() as temp_dir, tempfile.NamedTemporaryFile(
+            suffix=".mp4", delete=False
+        ) as temp_output:
+            temp_output.close()
+
             # Save all frames as images in the temporary directory
             frame_paths = []
             for i, img_ref in enumerate(self.frames):
@@ -137,39 +160,43 @@ class CreateVideo(BaseNode):
                 frame_paths.append(frame_path)
 
             # Create a temporary file for the output video
-            with tempfile.NamedTemporaryFile(suffix=".mp4") as temp_output:
-                try:
-                    # Use FFmpeg to create video from frames
-                    (
-                        ffmpeg.input(
-                            os.path.join(temp_dir, "frame_%05d.png"), framerate=self.fps
-                        )
-                        .output(temp_output.name, vcodec="libx264", pix_fmt="yuv420p")
-                        .overwrite_output()
-                        .run(capture_stdout=True, capture_stderr=True)
+            try:
+                # Use FFmpeg to create video from frames
+                (
+                    ffmpeg.input(
+                        os.path.join(temp_dir, "frame_%05d.png"), framerate=self.fps
                     )
+                    .output(temp_output.name, vcodec="libx264", pix_fmt="yuv420p")
+                    .overwrite_output()
+                    .run(capture_stdout=True, capture_stderr=True)
+                )
 
-                    # Read the created video and return as VideoRef
-                    with open(temp_output.name, "rb") as f:
-                        return await context.video_from_io(f)
+                # Read the created video and return as VideoRef
+                with open(temp_output.name, "rb") as f:
+                    return await context.video_from_io(f)
 
-                except ffmpeg.Error as e:
-                    print(f"FFmpeg stdout:\n{e.stdout.decode('utf8')}")
-                    print(f"FFmpeg stderr:\n{e.stderr.decode('utf8')}")
-                    raise RuntimeError(
-                        f"Error creating video: {e.stderr.decode('utf8')}"
-                    )
+            except ffmpeg.Error as e:
+                print(f"FFmpeg stdout:\n{e.stdout.decode('utf8')}")
+                print(f"FFmpeg stderr:\n{e.stderr.decode('utf8')}")
+                raise RuntimeError(
+                    f"Error creating video: {e.stderr.decode('utf8')}"
+                )
+            finally:
+                for frame_path in frame_paths:
+                    os.unlink(frame_path)
+                os.unlink(temp_output.name)
+                os.rmdir(temp_dir)
 
 
 class Concat(BaseNode):
     """
-    Concatenate multiple video files into a single video.
-    video, concat, merge, combine
+    Concatenate multiple video files into a single video, including audio.
+    video, concat, merge, combine, audio
 
     Use cases:
-    1. Merge multiple video clips into a single continuous video
-    2. Create compilations from various video sources
-    3. Combine processed video segments back into a full video
+    1. Merge multiple video clips into a single continuous video with audio
+    2. Create compilations from various video sources, preserving audio
+    3. Combine processed video segments back into a full video with synchronized audio
     """
 
     video_a: VideoRef = Field(
@@ -193,25 +220,44 @@ class Concat(BaseNode):
         ) as temp_a, tempfile.NamedTemporaryFile(
             suffix=".mp4", delete=False
         ) as temp_b, tempfile.NamedTemporaryFile(
+            suffix=".txt", delete=False
+        ) as temp_list, tempfile.NamedTemporaryFile(
             suffix=".mp4", delete=False
         ) as output_temp:
-            temp_a.write(video_a.read())
-            temp_b.write(video_b.read())
-            temp_a.close()
-            temp_b.close()
-            output_temp.close()
-
             try:
-                ffmpeg.concat(
-                    ffmpeg.input(temp_a.name), ffmpeg.input(temp_b.name)
-                ).output(output_temp.name).overwrite_output().run(quiet=False)
+                temp_a.write(video_a.read())
+                temp_b.write(video_b.read())
+                temp_a.close()
+                temp_b.close()
+                output_temp.close()
+
+                # Create a list file for concatenation
+                with open(temp_list.name, "w") as f:
+                    f.write(f"file '{temp_a.name}'\n")
+                    f.write(f"file '{temp_b.name}'\n")
+                temp_list.close()
+
+                # Use ffmpeg-python to concatenate videos
+                (
+                    ffmpeg.input(temp_list.name, format="concat", safe=0)
+                    .output(output_temp.name, c="copy")
+                    .overwrite_output()
+                    .run(quiet=True, capture_stdout=True, capture_stderr=True)
+                )
 
                 # Read the concatenated video and create a VideoRef
                 with open(output_temp.name, "rb") as f:
                     return await context.video_from_io(f)
+            except ffmpeg.Error as e:
+                print(f"FFmpeg stdout:\n{e.stdout.decode('utf8')}")
+                print(f"FFmpeg stderr:\n{e.stderr.decode('utf8')}")
+                raise RuntimeError(
+                    f"Error concatenating videos: {e.stderr.decode('utf8')}"
+                )
             finally:
                 os.unlink(temp_a.name)
                 os.unlink(temp_b.name)
+                os.unlink(temp_list.name)
                 os.unlink(output_temp.name)
 
 
@@ -323,10 +369,13 @@ class ResizeNode(BaseNode):
 
                 input_stream = ffmpeg.input(temp.name)
 
-                # Apply resizing
-                resized = input_stream.filter("scale", self.width, self.height)
+                # Apply resizing to video stream
+                resized = input_stream.video.filter("scale", self.width, self.height)
 
-                ffmpeg.output(resized, output_temp.name).overwrite_output().run(
+                # Keep audio stream unchanged
+                audio = input_stream.audio
+
+                ffmpeg.output(resized, audio, output_temp.name).overwrite_output().run(
                     quiet=False
                 )
 
@@ -376,11 +425,14 @@ class Rotate(BaseNode):
 
                 input_stream = ffmpeg.input(temp.name)
 
-                # Apply rotation
+                # Apply rotation to video stream
                 angle_rad = np.radians(self.angle)
-                rotated = input_stream.filter("rotate", angle=angle_rad)
+                rotated = input_stream.video.filter("rotate", angle=angle_rad)
 
-                ffmpeg.output(rotated, output_temp.name).overwrite_output().run(
+                # Keep audio stream unchanged
+                audio = input_stream.audio
+
+                ffmpeg.output(rotated, audio, output_temp.name).overwrite_output().run(
                     quiet=False
                 )
 
@@ -449,13 +501,13 @@ class SetSpeed(BaseNode):
 
 class Overlay(BaseNode):
     """
-    Overlay one video on top of another.
-    video, overlay, composite, picture-in-picture
+    Overlay one video on top of another, including audio overlay.
+    video, overlay, composite, picture-in-picture, audio
 
     Use cases:
-    1. Add watermarks or logos to videos
-    2. Create picture-in-picture effects
-    3. Combine multiple video streams into a single output
+    1. Add watermarks or logos to videos with accompanying audio
+    2. Create picture-in-picture effects with synchronized audio
+    3. Combine multiple video and audio streams into a single output
     """
 
     main_video: VideoRef = Field(
@@ -468,6 +520,12 @@ class Overlay(BaseNode):
     y: int = Field(default=0, description="Y-coordinate for overlay placement.")
     scale: float = Field(
         default=1.0, description="Scale factor for the overlay video.", gt=0
+    )
+    overlay_audio_volume: float = Field(
+        default=0.5,
+        description="Volume of the overlay audio relative to the main audio.",
+        ge=0,
+        le=1,
     )
 
     async def process(self, context: ProcessingContext) -> VideoRef:
@@ -501,16 +559,31 @@ class Overlay(BaseNode):
                     "scale", f"iw*{self.scale}", f"ih*{self.scale}"
                 )
 
-                # Apply the overlay
-                output = ffmpeg.overlay(main_input, scaled_overlay, x=self.x, y=self.y)
-
-                ffmpeg.output(output, output_temp.name).overwrite_output().run(
-                    quiet=False
+                # Apply the video overlay
+                video_output = ffmpeg.overlay(
+                    main_input.video, scaled_overlay, x=self.x, y=self.y
                 )
+
+                # Mix the audio streams
+                main_audio = main_input.audio
+                overlay_audio = overlay_input.audio.filter(
+                    "volume", volume=self.overlay_audio_volume
+                )
+                audio_output = ffmpeg.filter(
+                    [main_audio, overlay_audio], "amix", inputs=2, duration="longest"
+                )
+
+                ffmpeg.output(
+                    video_output, audio_output, output_temp.name
+                ).overwrite_output().run(quiet=False)
 
                 # Read the overlaid video and create a VideoRef
                 with open(output_temp.name, "rb") as f:
                     return await context.video_from_io(f)
+            except ffmpeg.Error as e:
+                print(f"stdout: {e.stdout.decode('utf8')}")
+                print(f"stderr: {e.stderr.decode('utf8')}")
+                raise RuntimeError(f"ffmpeg error: {e.stderr.decode('utf8')}")
             finally:
                 os.unlink(main_temp.name)
                 os.unlink(overlay_temp.name)
@@ -1122,13 +1195,14 @@ class Reverse(BaseNode):
 
 class Transition(BaseNode):
     """
-    Create a transition effect between two videos.
-    video, transition, effect, merge
+    Create a transition effect between two videos, including audio transition.
+    video, transition, effect, merge, audio
 
     Use cases:
     1. Create smooth transitions between video clips in a montage
     2. Add professional-looking effects to video projects
     3. Blend scenes together for creative storytelling
+    4. Smoothly transition between audio tracks of different video clips
     """
 
     class TransitionType(str, enum.Enum):
@@ -1233,16 +1307,33 @@ class Transition(BaseNode):
                 input_a = ffmpeg.input(temp_a.name)
                 input_b = ffmpeg.input(temp_b.name)
 
-                transition = ffmpeg.filter(
-                    [input_a, input_b],
+                # Get the duration of video_a
+                probe = ffmpeg.probe(temp_a.name)
+                duration_a = float(probe["streams"][0]["duration"])
+
+                # Video transition
+                video_transition = ffmpeg.filter(
+                    [input_a.video, input_b.video],
                     "xfade",
                     transition=self.transition_type.value,
                     duration=self.duration,
+                    offset=duration_a - self.duration,
                 )
 
-                ffmpeg.output(transition, temp_output.name).overwrite_output().run(
-                    quiet=False
+                # Audio transition (crossfade)
+                audio_transition = ffmpeg.filter(
+                    [input_a.audio, input_b.audio],
+                    "acrossfade",
+                    d=self.duration,
+                    c1="tri",
+                    c2="tri",
                 )
+
+                # Combine video and audio
+                output = ffmpeg.output(
+                    video_transition, audio_transition, temp_output.name
+                )
+                output.overwrite_output().run(quiet=False)
 
                 # Read the transitioned video and create a VideoRef
                 with open(temp_output.name, "rb") as f:

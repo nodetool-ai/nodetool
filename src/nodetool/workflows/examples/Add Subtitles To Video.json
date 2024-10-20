@@ -1,112 +1,33 @@
 {
   "id": "add_subtitles_to_video",
-  "access": "private",
-  "created_at": "2024-10-08T00:12:19.438990",
-  "updated_at": "2024-10-08T00:33:24.282730",
+  "access": "public",
+  "created_at": "2024-10-20T23:42:15.834689",
+  "updated_at": "2024-10-20T23:42:15.834689",
   "name": "Add Subtitles To Video",
   "description": "",
-  "tags": [],
+  "tags": ["start", "video"],
   "thumbnail": "",
   "thumbnail_url": "/examples/add_subtitles_to_video.jpg",
   "graph": {
-    "edges": [
-      {
-        "id": "3ec1a0b5-d6aa-41e7-8621-db665e0283d0",
-        "source": "31ea4f17-1700-472b-816a-12e582bfbd9e",
-        "sourceHandle": "output",
-        "target": "1",
-        "targetHandle": "video",
-        "ui_properties": {
-          "className": "video"
-        }
-      },
-      {
-        "id": "df6a4b65-22b8-4cad-a44e-90cc46ec37e6",
-        "source": "1",
-        "sourceHandle": "output",
-        "target": "2",
-        "targetHandle": "audio",
-        "ui_properties": {
-          "className": "audio"
-        }
-      },
-      {
-        "id": "6218",
-        "source": "2",
-        "sourceHandle": "chunks",
-        "target": "6",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "list"
-        }
-      },
-      {
-        "id": "1ea35272-0f1d-4a36-8afb-02ded2d37458",
-        "source": "31ea4f17-1700-472b-816a-12e582bfbd9e",
-        "sourceHandle": "output",
-        "target": "4",
-        "targetHandle": "video",
-        "ui_properties": {
-          "className": "video"
-        }
-      },
-      {
-        "id": "6cc760db-7823-473f-88f2-67fcdc76e4f5",
-        "source": "3",
-        "sourceHandle": "output",
-        "target": "4",
-        "targetHandle": "subtitles",
-        "ui_properties": {
-          "className": "str"
-        }
-      },
-      {
-        "id": "6220",
-        "source": "3",
-        "sourceHandle": "output",
-        "target": "34",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "str"
-        }
-      },
-      {
-        "id": "8fffeac3-e01a-4c29-b159-d9c9d5716f61",
-        "source": "2",
-        "sourceHandle": "chunks",
-        "target": "3",
-        "targetHandle": "chunks",
-        "ui_properties": {
-          "className": "list"
-        }
-      },
-      {
-        "id": "6219",
-        "source": "4",
-        "sourceHandle": "output",
-        "target": "7",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "video"
-        }
-      }
-    ],
     "nodes": [
       {
         "id": "1",
+        "parent_id": null,
         "type": "nodetool.video.ExtractAudio",
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 275,
-            "y": 210
+            "x": 310,
+            "y": 248
           },
           "zIndex": 0,
+          "width": 200,
           "selectable": true
         }
       },
       {
         "id": "2",
+        "parent_id": null,
         "type": "huggingface.automatic_speech_recognition.Whisper",
         "data": {
           "model": {
@@ -114,37 +35,41 @@
             "repo_id": "openai/whisper-large-v3"
           },
           "task": "transcribe",
-          "language": "none",
+          "language": "spanish",
           "chunk_length_s": 30,
           "timestamps": "sentence"
         },
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 463,
-            "y": 162
+            "x": 540,
+            "y": 101
           },
           "zIndex": 0,
+          "width": 200,
           "selectable": true
         }
       },
       {
         "id": "3",
+        "parent_id": null,
         "type": "huggingface.automatic_speech_recognition.ChunksToSRT",
         "data": {
           "time_offset": 0
         },
         "ui_properties": {
           "position": {
-            "x": 674,
-            "y": 221
+            "x": 808.6666666666666,
+            "y": 297
           },
           "zIndex": 0,
+          "width": 200,
           "selectable": true
         }
       },
       {
         "id": "4",
+        "parent_id": null,
         "type": "nodetool.video.AddSubtitles",
         "data": {
           "font_size": 16,
@@ -153,17 +78,18 @@
           "outline_width": 1
         },
         "ui_properties": {
-          "selected": false,
           "position": {
-            "x": 891,
-            "y": 162
+            "x": 1073,
+            "y": 277
           },
           "zIndex": 0,
+          "width": 200,
           "selectable": true
         }
       },
       {
         "id": "6",
+        "parent_id": null,
         "type": "nodetool.workflows.base_node.Preview",
         "data": {
           "name": "list_chunks_2024-10-08"
@@ -171,17 +97,18 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 720,
-            "y": 605
+            "x": 800,
+            "y": 50
           },
           "zIndex": 0,
-          "width": 578,
-          "height": 243,
+          "width": 213,
+          "height": 197,
           "selectable": true
         }
       },
       {
         "id": "7",
+        "parent_id": null,
         "type": "nodetool.workflows.base_node.Preview",
         "data": {
           "name": "video_output_2024-10-08"
@@ -189,53 +116,57 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 1402,
-            "y": 95
+            "x": 1303,
+            "y": 334
           },
           "zIndex": 0,
-          "width": 269,
-          "height": 258,
+          "width": 212,
+          "height": 204,
           "selectable": true
         }
       },
       {
         "id": "31ea4f17-1700-472b-816a-12e582bfbd9e",
+        "parent_id": null,
         "type": "nodetool.constant.Video",
         "data": {
           "value": {
-            "uri": "https://archive.org/download/aerobicsozstyle-1992/07%20-%20Aerobics%20Oz%20Style%202%20ads%20%281st%20break%29.mp4",
+            "uri": "http://localhost:8000/api/storage/images/6a0df1218ef511efbb6e00000c2e0def.mp4",
             "type": "video"
           }
         },
         "ui_properties": {
+          "selected": false,
           "position": {
-            "x": 57,
-            "y": 107
+            "x": 50,
+            "y": 374
           },
           "zIndex": 0,
+          "width": 200,
           "selectable": true
         }
       },
       {
         "id": "34",
+        "parent_id": null,
         "type": "nodetool.workflows.base_node.Preview",
         "data": {
           "name": "str_output_2024-10-08"
         },
         "ui_properties": {
-          "selected": false,
           "position": {
-            "x": 888,
-            "y": 413
+            "x": 1073,
+            "y": 77
           },
           "zIndex": 0,
-          "width": 407,
-          "height": 163,
+          "width": 168,
+          "height": 150,
           "selectable": true
         }
       },
       {
         "id": "35",
+        "parent_id": null,
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
           "headline": "Add Subtitles To Videos",
@@ -291,27 +222,100 @@
           ]
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 0,
             "y": -127
           },
           "zIndex": 0,
-          "width": 241,
-          "height": 118,
+          "width": 666,
+          "height": 113,
           "selectable": true
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "df6a4b65-22b8-4cad-a44e-90cc46ec37e6",
+        "source": "1",
+        "sourceHandle": "output",
+        "target": "2",
+        "targetHandle": "audio",
+        "ui_properties": {
+          "className": "audio"
+        }
+      },
+      {
+        "id": "6218",
+        "source": "2",
+        "sourceHandle": "chunks",
+        "target": "6",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "list"
+        }
+      },
+      {
+        "id": "6cc760db-7823-473f-88f2-67fcdc76e4f5",
+        "source": "3",
+        "sourceHandle": "output",
+        "target": "4",
+        "targetHandle": "subtitles",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "6220",
+        "source": "3",
+        "sourceHandle": "output",
+        "target": "34",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "6219",
+        "source": "4",
+        "sourceHandle": "output",
+        "target": "7",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "video"
+        }
+      },
+      {
+        "id": "3ec1a0b5-d6aa-41e7-8621-db665e0283d0",
+        "source": "31ea4f17-1700-472b-816a-12e582bfbd9e",
+        "sourceHandle": "output",
+        "target": "1",
+        "targetHandle": "video",
+        "ui_properties": {
+          "className": "video"
+        }
+      },
+      {
+        "id": "8fffeac3-e01a-4c29-b159-d9c9d5716f61",
+        "source": "2",
+        "sourceHandle": "chunks",
+        "target": "3",
+        "targetHandle": "chunks",
+        "ui_properties": {
+          "className": "list"
+        }
+      },
+      {
+        "id": "1ea35272-0f1d-4a36-8afb-02ded2d37458",
+        "source": "31ea4f17-1700-472b-816a-12e582bfbd9e",
+        "sourceHandle": "output",
+        "target": "4",
+        "targetHandle": "video",
+        "ui_properties": {
+          "className": "video"
         }
       }
     ]
   },
-  "input_schema": {
-    "type": "object",
-    "properties": {},
-    "required": []
-  },
-  "output_schema": {
-    "type": "object",
-    "properties": {},
-    "required": []
-  }
+  "input_schema": null,
+  "output_schema": null
 }
