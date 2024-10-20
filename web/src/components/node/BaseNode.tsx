@@ -269,8 +269,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const backgroundColor = useMemo(() => {
     if (props.data.color) {
       return chroma(props.data.color)
-        .darken(0.5)
-        .mix(ThemeNodes.palette.c_node_bg || "#888888", 0.6)
+        .mix(ThemeNodes.palette.c_node_bg || "#888888", 0.9)
         .hex();
     }
     return hasParent
