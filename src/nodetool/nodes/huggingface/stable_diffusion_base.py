@@ -433,7 +433,7 @@ class StableDiffusionBaseNode(HuggingFacePipelineNode):
     )
     prompt: str = Field(default="", description="The prompt for image generation.")
     negative_prompt: str = Field(
-        default="(nsfw, naked, nude, deformed iris, deformed pupils, semi-realistic, mutated hands and fingers:1.4), (deformed, distorted, disfigured:1.3), bad anatomy, wrong anatomy, extra limb, missing limb, floating limbs, disconnected limbs, mutation, mutated, ugly, disgusting, amputation",
+        default="(blurry, low quality, deformed, mutated, bad anatomy, extra limbs, bad proportions, text, watermark, grainy, pixelated, disfigured face, missing fingers, cropped image, bad lighting",
         description="The negative prompt to guide what should not appear in the generated image.",
     )
     seed: int = Field(

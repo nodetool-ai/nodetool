@@ -5,10 +5,7 @@
   "updated_at": "2024-10-19T15:58:17.026865",
   "name": "Movie Posters",
   "description": "Generate movie posters from a list of movie titles",
-  "tags": [
-    "start",
-    "image"
-  ],
+  "tags": ["start", "image"],
   "thumbnail": "",
   "thumbnail_url": "/examples/movie_posters.jpg",
   "graph": {
@@ -150,7 +147,7 @@
             "repo_id": "SG161222/Realistic_Vision_V5.1_noVAE",
             "path": "Realistic_Vision_V5.1_fp16-no-ema.safetensors"
           },
-          "negative_prompt": "nsfw, naked, nude, deformed, bad anatomy, mutated, ugly, disgusting, amputation",
+          "negative_prompt": "blurry, low quality, deformed, mutated, bad anatomy, extra limbs, bad proportions, text, watermark, grainy, pixelated, disfigured face, missing fingers, cropped image, bad lighting",
           "seed": -1,
           "num_inference_steps": 50,
           "guidance_scale": 7.5,
