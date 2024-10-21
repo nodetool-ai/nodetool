@@ -161,11 +161,7 @@ async function installRequirements() {
 
     if (chunk.includes("Collecting")) {
       collectingCount++;
-      emitUpdateProgress(
-        chunk.split(" ")[1],
-        0,
-        "Collecting"
-      );
+      emitUpdateProgress(chunk.split(" ")[1], 0, "Collecting");
     } else if (chunk.includes("Downloading") && !chunk.includes("metadata")) {
       downloadedCount++;
       emitUpdateProgress(
@@ -175,11 +171,7 @@ async function installRequirements() {
       );
     } else if (chunk.includes("Installing collected packages")) {
       installedCount++;
-      emitUpdateProgress(
-        "",
-        99,
-        "Installing collected packages"
-      );
+      emitUpdateProgress("", 99, "Installing collected packages");
     }
   });
 
@@ -255,12 +247,16 @@ function createWindow() {
 }
 
 function setPermissionCheckHandler() {
-  session.defaultSession.setPermissionRequestHandler((webContents, permission, requestingOrigin, details) => {
-    return true;
-  });
-  session.defaultSession.setPermissionCheckHandler((webContents, permission, requestingOrigin, details) => {
-    return true;
-  });
+  session.defaultSession.setPermissionRequestHandler(
+    (webContents, permission, requestingOrigin, details) => {
+      return true;
+    }
+  );
+  session.defaultSession.setPermissionCheckHandler(
+    (webContents, permission, requestingOrigin, details) => {
+      return true;
+    }
+  );
 }
 
 /**
@@ -435,6 +431,7 @@ async function startServer() {
   try {
     log("Starting server");
     env.PATH = `${path.join(componentsDir, "ollama")}:${env.PATH}`;
+    env.PATH = `${path.join(componentsDir, "ffmpeg")}:${env.PATH}`;
     log(`PATH: ${env.PATH}`);
 
     log("Attempting to run NodeTool");
@@ -739,11 +736,15 @@ async function getComponentsToUpdate(assets, system, arch, componentsDir) {
 
     if (asset && checksumAsset) {
       log(`Found asset and checksum for ${name}`);
-      
+
       if (name === "python_env") {
-        const currentPythonVersion = await getCurrentPythonVersion(componentsDir);
+        const currentPythonVersion = await getCurrentPythonVersion(
+          componentsDir
+        );
         if (currentPythonVersion !== PYTHON_VERSION) {
-          log(`Python version mismatch. Current: ${currentPythonVersion}, Required: ${PYTHON_VERSION}`);
+          log(
+            `Python version mismatch. Current: ${currentPythonVersion}, Required: ${PYTHON_VERSION}`
+          );
           return {
             name,
             url: asset.browser_download_url,
@@ -879,22 +880,22 @@ async function extractZip(archivePath, extractTo, componentName, strip = 1) {
   await mkdir(componentDir, { recursive: true });
 
   return new Promise((resolve, reject) => {
-      createReadStream(archivePath)
-        .pipe(unzip.Extract({ path: componentDir }))
-        .on("progress", (entry) => {
-          const progress = entry.fs.processedBytes / entry.fs.totalBytes;
-          emitUpdateProgress(componentName, progress, "Unpacking");
-          entry.autodrain();
-        })
-        .on("close", () => {
-          log(`Finished extraction of ${archivePath} to ${componentDir}`);
-          resolve();
-        })
-        .on("error", (error) => {
-          log(`Error during extraction: ${error.message}`, "error");
-          reject(error);
-        });
-    });
+    createReadStream(archivePath)
+      .pipe(unzip.Extract({ path: componentDir }))
+      .on("progress", (entry) => {
+        const progress = entry.fs.processedBytes / entry.fs.totalBytes;
+        emitUpdateProgress(componentName, progress, "Unpacking");
+        entry.autodrain();
+      })
+      .on("close", () => {
+        log(`Finished extraction of ${archivePath} to ${componentDir}`);
+        resolve();
+      })
+      .on("error", (error) => {
+        log(`Error during extraction: ${error.message}`, "error");
+        reject(error);
+      });
+  });
 }
 
 /**
@@ -1007,7 +1008,7 @@ async function checkNodeToolInstalled() {
 
     checkProcess.on("close", (code) => {
       // compare version without the leading v
-      if (code === 0 && output.trim() === VERSION.slice(1)) { 
+      if (code === 0 && output.trim() === VERSION.slice(1)) {
         resolve(true);
       } else {
         resolve(false);
@@ -1083,4 +1084,3 @@ async function getCurrentPythonVersion(componentsDir) {
     return null;
   }
 }
-
