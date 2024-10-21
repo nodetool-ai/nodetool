@@ -151,10 +151,10 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ isMinZoom }) => {
     selectedNodes.length > 0
   );
 
-  useCombo(["Control", "c"], handleCopy);
+  useCombo(["Control", "c"], handleCopy, false);
   useCombo(["Control", "v"], handlePaste, false);
   useCombo(["Control", "x"], handleCut);
-  useCombo(["Meta", "c"], handleCopy);
+  useCombo(["Meta", "c"], handleCopy, false);
   useCombo(["Meta", "v"], handlePaste, false);
   useCombo(["Meta", "x"], handleCut);
 
