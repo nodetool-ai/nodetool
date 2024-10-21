@@ -190,7 +190,10 @@ class CreateVideo(BaseNode):
                 for frame_path in frame_paths:
                     safe_unlink(frame_path)
                 safe_unlink(temp_output.name)
-                os.rmdir(temp_dir)
+                try:
+                    os.rmdir(temp_dir)
+                except Exception:
+                    pass
 
 
 class Concat(BaseNode):
@@ -380,6 +383,7 @@ class ResizeNode(BaseNode):
     height: int = Field(
         default=-1, description="The target height. Use -1 to maintain aspect ratio."
     )
+
     async def process(self, context: ProcessingContext) -> VideoRef:
         import ffmpeg
 
@@ -412,9 +416,9 @@ class ResizeNode(BaseNode):
                 if has_audio:
                     # Keep audio stream unchanged if it exists
                     audio = input_stream.audio
-                    ffmpeg.output(resized, audio, output_temp.name).overwrite_output().run(
-                        quiet=False
-                    )
+                    ffmpeg.output(
+                        resized, audio, output_temp.name
+                    ).overwrite_output().run(quiet=False)
                 else:
                     # Output only video if no audio stream
                     ffmpeg.output(resized, output_temp.name).overwrite_output().run(
