@@ -109,6 +109,7 @@
 }
 
 .react-flow.zoomed-out .node-property,
+.react-flow.zoomed-out .audio-controls-container,
 .react-flow.zoomed-out .multi-outputs,
 .react-flow.zoomed-out .node-title,
 .react-flow.zoomed-out .node-header span,
