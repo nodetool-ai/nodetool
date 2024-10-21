@@ -35,7 +35,8 @@ const styles = (theme: any) =>
       fontFamily: theme.fontFamily,
       fontSize: "0.9em",
       display: "block",
-      overflow: "hidden",
+      overflow: "hidden auto",
+      maxHeight: "2.5em",
       flex: 1,
       minWidth: 0,
       whiteSpace: "normal"
