@@ -73,7 +73,7 @@ const https = require("https");
 const crypto = require("crypto");
 const unzip = require("unzip-stream");
 const VERSION = "v0.5.0rc6";
-const PYTHON_VERSION = "v0.5.0rc6";
+const PYTHON_VERSION = "3.11.10";
 const fs = require("fs");
 
 /** @type {BrowserWindow|null} */
