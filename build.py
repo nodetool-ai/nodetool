@@ -79,7 +79,8 @@ class Build:
         with zipfile.ZipFile(archive_data) as zip_ref:
             for path in paths:
                 zip_ref.extract(path, target_dir)
-                self.move_file(target_dir / path, target_dir)
+                if "/" in path:
+                    self.move_file(target_dir / path, target_dir)
 
     def ffmpeg(self) -> None:
         """Download and package FFmpeg binaries."""
