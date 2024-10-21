@@ -5,12 +5,9 @@
   "updated_at": "2024-10-21T23:32:04.578174",
   "name": "Add Subtitles To Video",
   "description": "",
-  "tags": [
-    "start",
-    "video"
-  ],
+  "tags": ["start", "video"],
   "thumbnail": "",
-  "thumbnail_url": null,
+  "thumbnail_url": "/examples/add_subtitles_to_video.jpg",
   "graph": {
     "nodes": [
       {
