@@ -430,8 +430,7 @@ async function setupPython() {
 async function startServer() {
   try {
     log("Starting server");
-    env.PATH = `${path.join(componentsDir, "ollama")}:${env.PATH}`;
-    env.PATH = `${path.join(componentsDir, "ffmpeg")}:${env.PATH}`;
+    env.PATH = path.join(componentsDir, "ffmpeg");
     log(`PATH: ${env.PATH}`);
 
     log("Attempting to run NodeTool");
