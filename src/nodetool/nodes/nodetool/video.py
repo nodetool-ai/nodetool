@@ -20,6 +20,13 @@ from nodetool.metadata.types import VideoRef
 import tempfile
 
 
+def safe_unlink(path: str):
+    try:
+        safe_unlink(path)
+    except Exception:
+        pass
+
+
 class SaveVideo(BaseNode):
     """
     Save a video to a file.
@@ -87,7 +94,7 @@ class ExtractFrames(BaseNode):
                     img = PIL.Image.fromarray(rgb_frame)
                     img_ref = await context.image_from_pil(img)
                     images.append(img_ref)
-                
+
                 if self.end > -1 and frame_count >= self.end:
                     break
 
@@ -178,25 +185,21 @@ class CreateVideo(BaseNode):
             except ffmpeg.Error as e:
                 print(f"FFmpeg stdout:\n{e.stdout.decode('utf8')}")
                 print(f"FFmpeg stderr:\n{e.stderr.decode('utf8')}")
-                raise RuntimeError(
-                    f"Error creating video: {e.stderr.decode('utf8')}"
-                )
+                raise RuntimeError(f"Error creating video: {e.stderr.decode('utf8')}")
             finally:
                 for frame_path in frame_paths:
-                    os.unlink(frame_path)
-                os.unlink(temp_output.name)
-                os.rmdir(temp_dir)
+                    safe_unlink(frame_path)
+                safe_unlink(temp_output.name)
+                try:
+                    os.rmdir(temp_dir)
+                except Exception:
+                    pass
 
 
 class Concat(BaseNode):
     """
-    Concatenate multiple video files into a single video, including audio.
+    Concatenate multiple video files into a single video, including audio when available.
     video, concat, merge, combine, audio
-
-    Use cases:
-    1. Merge multiple video clips into a single continuous video with audio
-    2. Create compilations from various video sources, preserving audio
-    3. Combine processed video segments back into a full video with synchronized audio
     """
 
     video_a: VideoRef = Field(
@@ -237,12 +240,28 @@ class Concat(BaseNode):
                     f.write(f"file '{temp_b.name}'\n")
                 temp_list.close()
 
+                # Check if both videos have audio streams
+                probe_a = ffmpeg.probe(temp_a.name)
+                probe_b = ffmpeg.probe(temp_b.name)
+                has_audio_a = any(
+                    stream["codec_type"] == "audio" for stream in probe_a["streams"]
+                )
+                has_audio_b = any(
+                    stream["codec_type"] == "audio" for stream in probe_b["streams"]
+                )
+
                 # Use ffmpeg-python to concatenate videos
-                (
-                    ffmpeg.input(temp_list.name, format="concat", safe=0)
-                    .output(output_temp.name, c="copy")
-                    .overwrite_output()
-                    .run(quiet=True, capture_stdout=True, capture_stderr=True)
+                input_stream = ffmpeg.input(temp_list.name, format="concat", safe=0)
+
+                if has_audio_a and has_audio_b:
+                    output = ffmpeg.output(input_stream, output_temp.name, c="copy")
+                else:
+                    output = ffmpeg.output(
+                        input_stream.video, output_temp.name, vcodec="libx264"
+                    )
+
+                output.overwrite_output().run(
+                    quiet=True, capture_stdout=True, capture_stderr=True
                 )
 
                 # Read the concatenated video and create a VideoRef
@@ -255,10 +274,10 @@ class Concat(BaseNode):
                     f"Error concatenating videos: {e.stderr.decode('utf8')}"
                 )
             finally:
-                os.unlink(temp_a.name)
-                os.unlink(temp_b.name)
-                os.unlink(temp_list.name)
-                os.unlink(output_temp.name)
+                safe_unlink(temp_a.name)
+                safe_unlink(temp_b.name)
+                safe_unlink(temp_list.name)
+                safe_unlink(output_temp.name)
 
 
 class Trim(BaseNode):
@@ -299,33 +318,49 @@ class Trim(BaseNode):
 
                 input_stream = ffmpeg.input(temp.name)
 
-                # Apply trimming to both video and audio streams
+                # Check if the video has an audio stream
+                probe = ffmpeg.probe(temp.name)
+                has_audio = any(
+                    stream["codec_type"] == "audio" for stream in probe["streams"]
+                )
+
+                # Apply trimming to video stream
                 if self.end_time > 0:
                     trimmed_video = input_stream.video.trim(
                         start=self.start_time, end=self.end_time
                     ).setpts("PTS-STARTPTS")
-                    trimmed_audio = input_stream.audio.filter_(
-                        "atrim", start=self.start_time, end=self.end_time
-                    ).filter_("asetpts", "PTS-STARTPTS")
                 else:
                     trimmed_video = input_stream.video.trim(
                         start=self.start_time
                     ).setpts("PTS-STARTPTS")
-                    trimmed_audio = input_stream.audio.filter_(
-                        "atrim", start=self.start_time
-                    ).filter_("asetpts", "PTS-STARTPTS")
 
-                # Output both video and audio
-                ffmpeg.output(
-                    trimmed_video, trimmed_audio, output_temp.name
-                ).overwrite_output().run(quiet=False)
+                # Apply trimming to audio stream if it exists
+                if has_audio:
+                    if self.end_time > 0:
+                        trimmed_audio = input_stream.audio.filter_(
+                            "atrim", start=self.start_time, end=self.end_time
+                        ).filter_("asetpts", "PTS-STARTPTS")
+                    else:
+                        trimmed_audio = input_stream.audio.filter_(
+                            "atrim", start=self.start_time
+                        ).filter_("asetpts", "PTS-STARTPTS")
+
+                    # Output both video and audio
+                    ffmpeg.output(
+                        trimmed_video, trimmed_audio, output_temp.name
+                    ).overwrite_output().run(quiet=False)
+                else:
+                    # Output only video
+                    ffmpeg.output(
+                        trimmed_video, output_temp.name
+                    ).overwrite_output().run(quiet=False)
 
                 # Read the trimmed video and create a VideoRef
                 with open(output_temp.name, "rb") as f:
                     return await context.video_from_io(f)
             finally:
-                os.unlink(temp.name)
-                os.unlink(output_temp.name)
+                safe_unlink(temp.name)
+                safe_unlink(output_temp.name)
 
 
 class ResizeNode(BaseNode):
@@ -372,19 +407,30 @@ class ResizeNode(BaseNode):
                 # Apply resizing to video stream
                 resized = input_stream.video.filter("scale", self.width, self.height)
 
-                # Keep audio stream unchanged
-                audio = input_stream.audio
-
-                ffmpeg.output(resized, audio, output_temp.name).overwrite_output().run(
-                    quiet=False
+                # Check if audio stream exists
+                probe = ffmpeg.probe(temp.name)
+                has_audio = any(
+                    stream["codec_type"] == "audio" for stream in probe["streams"]
                 )
+
+                if has_audio:
+                    # Keep audio stream unchanged if it exists
+                    audio = input_stream.audio
+                    ffmpeg.output(
+                        resized, audio, output_temp.name
+                    ).overwrite_output().run(quiet=False)
+                else:
+                    # Output only video if no audio stream
+                    ffmpeg.output(resized, output_temp.name).overwrite_output().run(
+                        quiet=False
+                    )
 
                 # Read the resized video and create a VideoRef
                 with open(output_temp.name, "rb") as f:
                     return await context.video_from_io(f)
             finally:
-                os.unlink(temp.name)
-                os.unlink(output_temp.name)
+                safe_unlink(temp.name)
+                safe_unlink(output_temp.name)
 
 
 class Rotate(BaseNode):
@@ -429,19 +475,30 @@ class Rotate(BaseNode):
                 angle_rad = np.radians(self.angle)
                 rotated = input_stream.video.filter("rotate", angle=angle_rad)
 
-                # Keep audio stream unchanged
-                audio = input_stream.audio
-
-                ffmpeg.output(rotated, audio, output_temp.name).overwrite_output().run(
-                    quiet=False
+                # Check if audio stream exists
+                probe = ffmpeg.probe(temp.name)
+                has_audio = any(
+                    stream["codec_type"] == "audio" for stream in probe["streams"]
                 )
+
+                if has_audio:
+                    # Keep audio stream unchanged if it exists
+                    audio = input_stream.audio
+                    ffmpeg.output(
+                        rotated, audio, output_temp.name
+                    ).overwrite_output().run(quiet=False)
+                else:
+                    # Output only video if no audio stream
+                    ffmpeg.output(rotated, output_temp.name).overwrite_output().run(
+                        quiet=False
+                    )
 
                 # Read the rotated video and create a VideoRef
                 with open(output_temp.name, "rb") as f:
                     return await context.video_from_io(f)
             finally:
-                os.unlink(temp.name)
-                os.unlink(output_temp.name)
+                safe_unlink(temp.name)
+                safe_unlink(output_temp.name)
 
 
 class SetSpeed(BaseNode):
@@ -495,19 +552,14 @@ class SetSpeed(BaseNode):
                 with open(output_temp.name, "rb") as f:
                     return await context.video_from_io(f)
             finally:
-                os.unlink(temp.name)
-                os.unlink(output_temp.name)
+                safe_unlink(temp.name)
+                safe_unlink(output_temp.name)
 
 
 class Overlay(BaseNode):
     """
-    Overlay one video on top of another, including audio overlay.
+    Overlay one video on top of another, including audio overlay when available.
     video, overlay, composite, picture-in-picture, audio
-
-    Use cases:
-    1. Add watermarks or logos to videos with accompanying audio
-    2. Create picture-in-picture effects with synchronized audio
-    3. Combine multiple video and audio streams into a single output
     """
 
     main_video: VideoRef = Field(
@@ -554,6 +606,17 @@ class Overlay(BaseNode):
                 main_input = ffmpeg.input(main_temp.name)
                 overlay_input = ffmpeg.input(overlay_temp.name)
 
+                # Check if videos have audio streams
+                probe_main = ffmpeg.probe(main_temp.name)
+                probe_overlay = ffmpeg.probe(overlay_temp.name)
+                has_audio_main = any(
+                    stream["codec_type"] == "audio" for stream in probe_main["streams"]
+                )
+                has_audio_overlay = any(
+                    stream["codec_type"] == "audio"
+                    for stream in probe_overlay["streams"]
+                )
+
                 # Scale the overlay video
                 scaled_overlay = overlay_input.filter(
                     "scale", f"iw*{self.scale}", f"ih*{self.scale}"
@@ -564,18 +627,36 @@ class Overlay(BaseNode):
                     main_input.video, scaled_overlay, x=self.x, y=self.y
                 )
 
-                # Mix the audio streams
-                main_audio = main_input.audio
-                overlay_audio = overlay_input.audio.filter(
-                    "volume", volume=self.overlay_audio_volume
-                )
-                audio_output = ffmpeg.filter(
-                    [main_audio, overlay_audio], "amix", inputs=2, duration="longest"
-                )
-
-                ffmpeg.output(
-                    video_output, audio_output, output_temp.name
-                ).overwrite_output().run(quiet=False)
+                # Mix the audio streams if both videos have audio
+                if has_audio_main and has_audio_overlay:
+                    main_audio = main_input.audio
+                    overlay_audio = overlay_input.audio.filter(
+                        "volume", volume=self.overlay_audio_volume
+                    )
+                    audio_output = ffmpeg.filter(
+                        [main_audio, overlay_audio],
+                        "amix",
+                        inputs=2,
+                        duration="longest",
+                    )
+                    ffmpeg.output(
+                        video_output, audio_output, output_temp.name
+                    ).overwrite_output().run(quiet=False)
+                elif has_audio_main:
+                    ffmpeg.output(
+                        video_output, main_input.audio, output_temp.name
+                    ).overwrite_output().run(quiet=False)
+                elif has_audio_overlay:
+                    overlay_audio = overlay_input.audio.filter(
+                        "volume", volume=self.overlay_audio_volume
+                    )
+                    ffmpeg.output(
+                        video_output, overlay_audio, output_temp.name
+                    ).overwrite_output().run(quiet=False)
+                else:
+                    ffmpeg.output(
+                        video_output, output_temp.name
+                    ).overwrite_output().run(quiet=False)
 
                 # Read the overlaid video and create a VideoRef
                 with open(output_temp.name, "rb") as f:
@@ -585,9 +666,9 @@ class Overlay(BaseNode):
                 print(f"stderr: {e.stderr.decode('utf8')}")
                 raise RuntimeError(f"ffmpeg error: {e.stderr.decode('utf8')}")
             finally:
-                os.unlink(main_temp.name)
-                os.unlink(overlay_temp.name)
-                os.unlink(output_temp.name)
+                safe_unlink(main_temp.name)
+                safe_unlink(overlay_temp.name)
+                safe_unlink(output_temp.name)
 
 
 class ColorBalance(BaseNode):
@@ -661,8 +742,8 @@ class ColorBalance(BaseNode):
 
             finally:
                 # Clean up temporary files
-                os.unlink(temp_input.name)
-                os.unlink(temp_output.name)
+                safe_unlink(temp_input.name)
+                safe_unlink(temp_output.name)
 
 
 class Denoise(BaseNode):
@@ -726,8 +807,8 @@ class Denoise(BaseNode):
 
             finally:
                 # Clean up temporary files
-                os.unlink(temp_input.name)
-                os.unlink(temp_output.name)
+                safe_unlink(temp_input.name)
+                safe_unlink(temp_output.name)
 
 
 class Stabilize(BaseNode):
@@ -799,8 +880,8 @@ class Stabilize(BaseNode):
 
             finally:
                 # Clean up temporary files
-                os.unlink(temp_input.name)
-                os.unlink(temp_output.name)
+                safe_unlink(temp_input.name)
+                safe_unlink(temp_output.name)
 
 
 class Sharpness(BaseNode):
@@ -878,8 +959,8 @@ class Sharpness(BaseNode):
 
             finally:
                 # Clean up temporary files
-                os.unlink(temp_input.name)
-                os.unlink(temp_output.name)
+                safe_unlink(temp_input.name)
+                safe_unlink(temp_output.name)
 
 
 class Blur(BaseNode):
@@ -943,8 +1024,8 @@ class Blur(BaseNode):
 
             finally:
                 # Clean up temporary files
-                os.unlink(temp_input.name)
-                os.unlink(temp_output.name)
+                safe_unlink(temp_input.name)
+                safe_unlink(temp_output.name)
 
 
 class Saturation(BaseNode):
@@ -1008,8 +1089,8 @@ class Saturation(BaseNode):
 
             finally:
                 # Clean up temporary files
-                os.unlink(temp_input.name)
-                os.unlink(temp_output.name)
+                safe_unlink(temp_input.name)
+                safe_unlink(temp_output.name)
 
 
 class AddSubtitles(BaseNode):
@@ -1136,9 +1217,9 @@ class AddSubtitles(BaseNode):
             raise RuntimeError(f"Error processing video: {str(e)}") from e
 
         finally:
-            os.unlink(temp_input.name)
-            os.unlink(temp_srt.name)
-            os.unlink(temp_output.name)
+            safe_unlink(temp_input.name)
+            safe_unlink(temp_srt.name)
+            safe_unlink(temp_output.name)
 
 
 class Reverse(BaseNode):
@@ -1189,13 +1270,13 @@ class Reverse(BaseNode):
                 raise RuntimeError(f"ffmpeg error: {e.stderr.decode('utf8')}")
 
             finally:
-                os.unlink(temp_input.name)
-                os.unlink(temp_output.name)
+                safe_unlink(temp_input.name)
+                safe_unlink(temp_output.name)
 
 
 class Transition(BaseNode):
     """
-    Create a transition effect between two videos, including audio transition.
+    Create a transition effect between two videos, including audio transition when available.
     video, transition, effect, merge, audio
 
     Use cases:
@@ -1307,9 +1388,18 @@ class Transition(BaseNode):
                 input_a = ffmpeg.input(temp_a.name)
                 input_b = ffmpeg.input(temp_b.name)
 
+                # Check if videos have audio streams
+                probe_a = ffmpeg.probe(temp_a.name)
+                probe_b = ffmpeg.probe(temp_b.name)
+                has_audio_a = any(
+                    stream["codec_type"] == "audio" for stream in probe_a["streams"]
+                )
+                has_audio_b = any(
+                    stream["codec_type"] == "audio" for stream in probe_b["streams"]
+                )
+
                 # Get the duration of video_a
-                probe = ffmpeg.probe(temp_a.name)
-                duration_a = float(probe["streams"][0]["duration"])
+                duration_a = float(probe_a["streams"][0]["duration"])
 
                 # Video transition
                 video_transition = ffmpeg.filter(
@@ -1320,19 +1410,21 @@ class Transition(BaseNode):
                     offset=duration_a - self.duration,
                 )
 
-                # Audio transition (crossfade)
-                audio_transition = ffmpeg.filter(
-                    [input_a.audio, input_b.audio],
-                    "acrossfade",
-                    d=self.duration,
-                    c1="tri",
-                    c2="tri",
-                )
+                # Audio transition (crossfade) if both videos have audio
+                if has_audio_a and has_audio_b:
+                    audio_transition = ffmpeg.filter(
+                        [input_a.audio, input_b.audio],
+                        "acrossfade",
+                        d=self.duration,
+                        c1="tri",
+                        c2="tri",
+                    )
+                    output = ffmpeg.output(
+                        video_transition, audio_transition, temp_output.name
+                    )
+                else:
+                    output = ffmpeg.output(video_transition, temp_output.name)
 
-                # Combine video and audio
-                output = ffmpeg.output(
-                    video_transition, audio_transition, temp_output.name
-                )
                 output.overwrite_output().run(quiet=False)
 
                 # Read the transitioned video and create a VideoRef
@@ -1343,9 +1435,9 @@ class Transition(BaseNode):
                 raise RuntimeError(f"ffmpeg error: {e.stderr.decode('utf8')}")
 
             finally:
-                os.unlink(temp_a.name)
-                os.unlink(temp_b.name)
-                os.unlink(temp_output.name)
+                safe_unlink(temp_a.name)
+                safe_unlink(temp_b.name)
+                safe_unlink(temp_output.name)
 
 
 class AddAudio(BaseNode):
@@ -1430,9 +1522,9 @@ class AddAudio(BaseNode):
                 raise RuntimeError(f"ffmpeg error: {e.stderr.decode('utf8')}")
 
             finally:
-                os.unlink(temp_video.name)
-                os.unlink(temp_audio.name)
-                os.unlink(temp_output.name)
+                safe_unlink(temp_video.name)
+                safe_unlink(temp_audio.name)
+                safe_unlink(temp_output.name)
 
 
 class ChromaKey(BaseNode):
@@ -1507,8 +1599,8 @@ class ChromaKey(BaseNode):
                 raise RuntimeError(f"ffmpeg error: {e.stderr.decode('utf8')}")
 
             finally:
-                os.unlink(temp_input.name)
-                os.unlink(temp_output.name)
+                safe_unlink(temp_input.name)
+                safe_unlink(temp_output.name)
 
 
 class ExtractAudio(BaseNode):
@@ -1566,5 +1658,5 @@ class ExtractAudio(BaseNode):
                 raise RuntimeError(f"ffmpeg error: {error_message}") from e
 
             finally:
-                os.unlink(temp_input.name)
-                os.unlink(temp_audio.name)
+                safe_unlink(temp_input.name)
+                safe_unlink(temp_audio.name)
