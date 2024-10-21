@@ -264,12 +264,15 @@ class Whisper(HuggingFacePipelineNode):
         chunks = []
         if self.timestamps != self.Timestamps.NONE:
             for chunk in result.get("chunks", []):
-                timestamp = chunk.get("timestamp")
-                if timestamp and len(timestamp) == 2 and all(isinstance(t, (int, float)) for t in timestamp):
-                    chunks.append(AudioChunk(
-                        timestamp=timestamp,
-                        text=chunk.get("text", "")
-                    ))
+                try:
+                    timestamp = chunk.get("timestamp")
+                    if timestamp and len(timestamp) == 2 and all(isinstance(t, (int, float)) for t in timestamp):
+                        chunks.append(AudioChunk(
+                            timestamp=timestamp,
+                            text=chunk.get("text", "")
+                        ))
+                except ValueError as e:
+                    logger.warning(f"Skipping invalid chunk: {e}")
 
         logger.info("Audio processing completed successfully.")
         return {
