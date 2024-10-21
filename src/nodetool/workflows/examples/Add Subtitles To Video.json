@@ -1,13 +1,16 @@
 {
   "id": "add_subtitles_to_video",
   "access": "public",
-  "created_at": "2024-10-20T23:42:15.834689",
-  "updated_at": "2024-10-20T23:42:15.834689",
+  "created_at": "2024-10-21T23:32:04.578174",
+  "updated_at": "2024-10-21T23:32:04.578174",
   "name": "Add Subtitles To Video",
   "description": "",
-  "tags": ["start", "video"],
+  "tags": [
+    "start",
+    "video"
+  ],
   "thumbnail": "",
-  "thumbnail_url": "/examples/add_subtitles_to_video.jpg",
+  "thumbnail_url": null,
   "graph": {
     "nodes": [
       {
@@ -16,9 +19,10 @@
         "type": "nodetool.video.ExtractAudio",
         "data": {},
         "ui_properties": {
+          "selected": false,
           "position": {
-            "x": 310,
-            "y": 248
+            "x": 382,
+            "y": 370
           },
           "zIndex": 0,
           "width": 200,
@@ -35,15 +39,15 @@
             "repo_id": "openai/whisper-large-v3"
           },
           "task": "transcribe",
-          "language": "spanish",
-          "chunk_length_s": 30,
+          "language": "english",
+          "chunk_length_s": 8,
           "timestamps": "sentence"
         },
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 540,
-            "y": 101
+            "x": 649,
+            "y": 209
           },
           "zIndex": 0,
           "width": 200,
@@ -58,9 +62,10 @@
           "time_offset": 0
         },
         "ui_properties": {
+          "selected": false,
           "position": {
-            "x": 808.6666666666666,
-            "y": 297
+            "x": 921,
+            "y": 442
           },
           "zIndex": 0,
           "width": 200,
@@ -75,12 +80,14 @@
           "font_size": 16,
           "font_color": "white",
           "outline_color": "black",
-          "outline_width": 1
+          "outline_width": 1,
+          "position": "bottom"
         },
         "ui_properties": {
+          "selected": false,
           "position": {
-            "x": 1073,
-            "y": 277
+            "x": 1208,
+            "y": 436
           },
           "zIndex": 0,
           "width": 200,
@@ -97,8 +104,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 800,
-            "y": 50
+            "x": 912,
+            "y": 195
           },
           "zIndex": 0,
           "width": 213,
@@ -116,33 +123,12 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 1303,
-            "y": 334
+            "x": 1449,
+            "y": 435
           },
           "zIndex": 0,
-          "width": 212,
-          "height": 204,
-          "selectable": true
-        }
-      },
-      {
-        "id": "31ea4f17-1700-472b-816a-12e582bfbd9e",
-        "parent_id": null,
-        "type": "nodetool.constant.Video",
-        "data": {
-          "value": {
-            "uri": "http://localhost:8000/api/storage/images/6a0df1218ef511efbb6e00000c2e0def.mp4",
-            "type": "video"
-          }
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 50,
-            "y": 374
-          },
-          "zIndex": 0,
-          "width": 200,
+          "width": 409,
+          "height": 390,
           "selectable": true
         }
       },
@@ -154,13 +140,14 @@
           "name": "str_output_2024-10-08"
         },
         "ui_properties": {
+          "selected": false,
           "position": {
-            "x": 1073,
-            "y": 77
+            "x": 1212,
+            "y": 147
           },
           "zIndex": 0,
-          "width": 168,
-          "height": 150,
+          "width": 427,
+          "height": 249,
           "selectable": true
         }
       },
@@ -223,12 +210,52 @@
         },
         "ui_properties": {
           "position": {
-            "x": 0,
-            "y": -127
+            "x": 3,
+            "y": -224
           },
           "zIndex": 0,
-          "width": 666,
-          "height": 113,
+          "width": 388,
+          "height": 207,
+          "selectable": true
+        }
+      },
+      {
+        "id": "36",
+        "parent_id": null,
+        "type": "nodetool.constant.Video",
+        "data": {
+          "value": {
+            "uri": "https://nodetool-ai.github.io/nodetool/assets/lire_bird.mp4",
+            "type": "video"
+          }
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 126,
+            "y": 198
+          },
+          "zIndex": 0,
+          "width": 198,
+          "selectable": true
+        }
+      },
+      {
+        "id": "37",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "audio_output_2024-10-21"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 379,
+            "y": 480
+          },
+          "zIndex": 0,
+          "width": 210,
+          "height": 214,
           "selectable": true
         }
       }
@@ -245,33 +272,13 @@
         }
       },
       {
-        "id": "6218",
+        "id": "8fffeac3-e01a-4c29-b159-d9c9d5716f61",
         "source": "2",
         "sourceHandle": "chunks",
-        "target": "6",
-        "targetHandle": "value",
+        "target": "3",
+        "targetHandle": "chunks",
         "ui_properties": {
           "className": "list"
-        }
-      },
-      {
-        "id": "6cc760db-7823-473f-88f2-67fcdc76e4f5",
-        "source": "3",
-        "sourceHandle": "output",
-        "target": "4",
-        "targetHandle": "subtitles",
-        "ui_properties": {
-          "className": "str"
-        }
-      },
-      {
-        "id": "6220",
-        "source": "3",
-        "sourceHandle": "output",
-        "target": "34",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "str"
         }
       },
       {
@@ -285,8 +292,48 @@
         }
       },
       {
-        "id": "3ec1a0b5-d6aa-41e7-8621-db665e0283d0",
-        "source": "31ea4f17-1700-472b-816a-12e582bfbd9e",
+        "id": "f3141d84-d30a-4ae7-9930-5b721b1b560e",
+        "source": "36",
+        "sourceHandle": "output",
+        "target": "4",
+        "targetHandle": "video",
+        "ui_properties": {
+          "className": "video"
+        }
+      },
+      {
+        "id": "6220",
+        "source": "3",
+        "sourceHandle": "output",
+        "target": "34",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "6cc760db-7823-473f-88f2-67fcdc76e4f5",
+        "source": "3",
+        "sourceHandle": "output",
+        "target": "4",
+        "targetHandle": "subtitles",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "6221",
+        "source": "1",
+        "sourceHandle": "output",
+        "target": "37",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "audio"
+        }
+      },
+      {
+        "id": "06ec8a2f-03b9-42db-9a7c-538acc65526f",
+        "source": "36",
         "sourceHandle": "output",
         "target": "1",
         "targetHandle": "video",
@@ -295,23 +342,13 @@
         }
       },
       {
-        "id": "8fffeac3-e01a-4c29-b159-d9c9d5716f61",
+        "id": "6218",
         "source": "2",
         "sourceHandle": "chunks",
-        "target": "3",
-        "targetHandle": "chunks",
+        "target": "6",
+        "targetHandle": "value",
         "ui_properties": {
           "className": "list"
-        }
-      },
-      {
-        "id": "1ea35272-0f1d-4a36-8afb-02ded2d37458",
-        "source": "31ea4f17-1700-472b-816a-12e582bfbd9e",
-        "sourceHandle": "output",
-        "target": "4",
-        "targetHandle": "video",
-        "ui_properties": {
-          "className": "video"
         }
       }
     ]
