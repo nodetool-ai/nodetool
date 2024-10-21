@@ -260,10 +260,16 @@ class Whisper(HuggingFacePipelineNode):
         assert isinstance(result, dict)
 
         text = result.get("text", "")
-        chunks = [
-            AudioChunk(timestamp=chunk.get("timestamp"), text=chunk.get("text"))
-            for chunk in result.get("chunks", [])
-        ] if self.timestamps != self.Timestamps.NONE else []
+        
+        chunks = []
+        if self.timestamps != self.Timestamps.NONE:
+            for chunk in result.get("chunks", []):
+                timestamp = chunk.get("timestamp")
+                if timestamp and len(timestamp) == 2 and all(isinstance(t, (int, float)) for t in timestamp):
+                    chunks.append(AudioChunk(
+                        timestamp=timestamp,
+                        text=chunk.get("text", "")
+                    ))
 
         logger.info("Audio processing completed successfully.")
         return {
