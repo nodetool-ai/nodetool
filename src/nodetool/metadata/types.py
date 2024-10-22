@@ -10,6 +10,7 @@ from typing import Literal
 from nodetool.metadata.type_metadata import TypeMetadata
 from nodetool.models.asset import Asset
 from nodetool.models.task import Task as TaskModel
+from nodetool.types.graph import Graph
 
 
 # Mapping of python types to their string representation
@@ -1020,6 +1021,11 @@ class Message(BaseType):
     workflow_id: str | None = None
     """
     The unique identifier of the workflow the message should be processed within.
+    """
+
+    graph: Graph | None = None
+    """
+    For unsaved workflows, the whole graph needs to be provided.
     """
 
     thread_id: str | None = None

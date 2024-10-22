@@ -106,14 +106,12 @@ class Ollama(BaseNode):
 
 class OllamaChat(BaseNode):
     """
-    Run Llama models to generate text responses.
+    Run Llama models to generate chat responses.
     llama, text generation, language model, ai assistant
 
     Use cases:
-    - Generate creative writing or stories
-    - Answer questions or provide explanations
-    - Assist with tasks like coding, analysis, or problem-solving
-    - Engage in open-ended dialogue on various topics
+    - Chat with an assistant
+    - Workflows with chat nodes
     """
 
     model: LlamaModel = Field(

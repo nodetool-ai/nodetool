@@ -122,20 +122,6 @@ def get_output_schema(graph: Graph):
 
             if output_type == "ListOutput":
                 node_schema = {"type": "array", "items": {"type": "object"}}
-            elif output_type == "ChatOutput":
-                node_schema = {
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            "id": {"type": "string"},
-                            "thread_id": {"type": "string"},
-                            "role": {"type": "string"},
-                            "content": {"type": "string"},
-                        },
-                        "required": ["id", "thread_id", "role", "content"],
-                    },
-                }
             elif output_type == "ImageListOutput":
                 node_schema = {
                     "type": "array",

@@ -112,6 +112,7 @@ class ChatWebSocketRunner:
         request = RunJobRequest(
             workflow_id=last_message.workflow_id,
             messages=self.chat_history,
+            graph=last_message.graph,
         )
 
         log.info(f"Running workflow for {last_message.workflow_id}")

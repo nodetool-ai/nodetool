@@ -53,9 +53,6 @@ def find_example(id: str) -> Workflow | None:
 
 def save_example(id: str, workflow: Workflow) -> Workflow:
     example = find_example(id)
-    if example is None:
-        raise ValueError(f"Example with id {id} not found")
-
     workflow_dict = workflow.model_dump()
 
     # Remove unnecessary fields

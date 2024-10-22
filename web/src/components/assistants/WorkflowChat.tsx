@@ -69,7 +69,8 @@ const WorkflowChat: React.FC<WorkflowChatProps> = ({ workflow_id }) => {
       <Box>
         <Typography variant="body1" sx={{ margin: "0.5em" }}>
           Chat with your workflow. You can ask it questions and it will respond.
-          You need to have one chat input and chat output node in your workflow.
+          You need to have a chat input node, a Ollama chat node and a string
+          output node at least in your workflow.
         </Typography>
       </Box>
       <ChatView

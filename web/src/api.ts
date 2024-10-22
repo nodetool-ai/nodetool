@@ -1558,6 +1558,7 @@ export interface components {
       auth_token?: string | null;
       /** Workflow Id */
       workflow_id?: string | null;
+      graph?: components["schemas"]["Graph"] | null;
       /** Thread Id */
       thread_id?: string | null;
       /** User Id */
@@ -1598,6 +1599,7 @@ export interface components {
       auth_token?: string | null;
       /** Workflow Id */
       workflow_id?: string | null;
+      graph?: components["schemas"]["Graph"] | null;
       /** Thread Id */
       thread_id?: string | null;
       /** User Id */
@@ -2537,6 +2539,8 @@ export interface components {
       description?: string | null;
       /** Thumbnail */
       thumbnail?: string | null;
+      /** Thumbnail Url */
+      thumbnail_url?: string | null;
       /** Access */
       access: string;
       graph?: components["schemas"]["Graph"] | null;

@@ -32,26 +32,6 @@ class ListOutput(OutputNode):
         return self.value
 
 
-class ChatOutput(OutputNode):
-    """
-    Output node for chat message lists.
-    chat, messages, conversation
-
-    Use cases:
-    - Displaying conversation history
-    - Returning chatbot responses
-    - Formatting dialog for presentation
-    """
-
-    value: list[Message] = Field(
-        default=[],
-        description="The messages to display in the chat.",
-    )
-
-    async def process(self, context: ProcessingContext) -> list[Message]:
-        return self.value
-
-
 class ImageListOutput(OutputNode):
     """
     Output node for a list of image references.
