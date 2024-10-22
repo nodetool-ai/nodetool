@@ -35,12 +35,6 @@ NodeTool simplifies access to advanced AI technologies, providing a creative spa
 
 Download the latest release from our [Releases Page](https://github.com/nodetool-ai/nodetool/releases).
 
-### Installation 📦
-
-1. **Download**: Get the latest release from the [Releases Page](https://github.com/nodetool-ai/nodetool/releases).
-2. **Extract**: Unzip the downloaded archive.
-3. **Install**: Run the installer and follow the instructions.
-
 ## Use Cases 🎨
 
 - 🎨 **Image Generation**: Craft custom image pipelines from scratch.
