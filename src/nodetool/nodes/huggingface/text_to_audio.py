@@ -12,6 +12,8 @@ from diffusers.pipelines.stable_audio.pipeline_stable_audio import StableAudioPi
 
 from pydantic import Field
 from transformers import AutoProcessor, MusicgenForConditionalGeneration
+from parler_tts import ParlerTTSForConditionalGeneration
+from transformers import AutoTokenizer
 
 from nodetool.workflows.types import NodeProgress
 from nodetool.nodes.huggingface.huggingface_pipeline import HuggingFacePipelineNode
@@ -516,3 +518,80 @@ class StableAudioNode(HuggingFacePipelineNode):
         sampling_rate = self._pipeline.vae.sampling_rate
         audio = await context.audio_from_numpy(output, sampling_rate)
         return audio
+
+
+class ParlerTTSNode(HuggingFacePipelineNode):
+    """
+    Generates speech using the Parler TTS model based on a text prompt and description.
+    audio, generation, AI, text-to-speech, TTS
+
+    Use cases:
+    - Generate natural-sounding speech from text
+    - Create voiceovers for videos or presentations
+    - Produce audio content for accessibility purposes
+    - Explore AI-generated speech with customizable characteristics
+    """
+
+    prompt: str = Field(
+        default="Hello, how are you doing today?",
+        description="The text to be converted to speech.",
+    )
+    description: str = Field(
+        default="A female speaker delivers a slightly expressive and animated speech with a moderate speed and pitch. The recording is of very high quality, with the speaker's voice sounding clear and very close up.",
+        description="A description of the desired speech characteristics.",
+    )
+    seed: int = Field(
+        default=0,
+        description="Seed for the random number generator. Use -1 for a random seed.",
+        ge=-1,
+    )
+
+    _model: ParlerTTSForConditionalGeneration | None = None
+    _tokenizer: AutoTokenizer | None = None
+
+    @classmethod
+    def get_recommended_models(cls) -> list[HuggingFaceModel]:
+        return [
+            HFTextToAudio(
+                repo_id="parler-tts/parler-tts-mini-v1",
+                allow_patterns=["*.bin", "*.json", "*.txt"],
+            ),
+        ]
+
+    async def initialize(self, context: ProcessingContext):
+        self._model = await self.load_model(
+            context=context,
+            model_class=ParlerTTSForConditionalGeneration,
+            model_id="parler-tts/parler-tts-mini-v1",
+            variant=None,
+        )
+        self._tokenizer = await self.load_model(
+            context, AutoTokenizer, "parler-tts/parler-tts-mini-v1"
+        )
+
+    async def move_to_device(self, device: str):
+        if self._model is not None:
+            self._model.to(device)  # type: ignore
+
+    async def process(self, context: ProcessingContext) -> AudioRef:
+        if self._model is None or self._tokenizer is None:
+            raise ValueError("Model or tokenizer not initialized")
+
+        input_ids = self._tokenizer(self.description, return_tensors="pt").input_ids.to(  # type: ignore
+            context.device
+        )
+        prompt_input_ids = self._tokenizer(
+            self.prompt, return_tensors="pt"
+        ).input_ids.to(  # type: ignore
+            context.device
+        )
+
+        generation = self._model.generate(
+            input_ids=input_ids,
+            prompt_input_ids=prompt_input_ids,
+        )
+        audio_arr = generation.cpu().numpy().squeeze()
+
+        return await context.audio_from_numpy(
+            audio_arr, self._model.config.sampling_rate
+        )

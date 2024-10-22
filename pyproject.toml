@@ -109,7 +109,7 @@ torchsde = "*"
 torchaudio = { version = "*", source = "pytorch" }
 torchvision = { version = "*", source = "pytorch" }
 tqdm = "*"
-transformers = "*"
+transformers = "4.43.3"
 trimesh = "*"
 uvicorn = { version = "*", extras = ["standard"] }
 validate_email = "*"
