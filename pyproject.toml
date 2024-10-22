@@ -37,6 +37,7 @@ bs4 = "*"
 chromadb = "*"
 click = "*"
 cryptography = "*"
+dac = "*"
 datasets = "*"
 descript-audio-codec = "*"
 diffusers = { extras = ["torch"], version = "*" }
