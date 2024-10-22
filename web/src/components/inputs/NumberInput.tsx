@@ -51,6 +51,8 @@ const useValueCalculation = () => {
       } else {
         if (range <= 1000) baseStep = 1;
         else if (range > 1000 && range <= 5000) baseStep = 16;
+        else if (range > 5000 && range <= 10000) baseStep = 32;
+        else if (range > 10000) baseStep = 64;
         else baseStep = Math.pow(6, Math.floor(Math.log10(range)) - 1);
       }
 
@@ -100,7 +102,14 @@ const useDragHandling = (
         if (controlKeyPressed && shiftKeyPressed) {
           baseStep *= 4;
         } else if (controlKeyPressed) {
-          baseStep *= 2;
+          if (props.max && props.max > 4096) {
+            const min = props.min ?? 0;
+            const max = props.max;
+            const range = max - min;
+            baseStep = range / 25;
+          } else {
+            baseStep *= 2;
+          }
         } else if (shiftKeyPressed) {
           baseStep =
             props.inputType === "float"
@@ -204,7 +213,7 @@ const EditableInput: React.FC<{
       className={`edit-value nodrag${
         isDefault ? " default" : ""
       } edit-value-input`}
-      style={{ width: `${Math.max(value.length * 5, 40)}px` }}
+      style={{ width: `${Math.max(value.length * 12, 50)}px` }}
       value={value}
       onChange={onChange}
       onBlur={_onBlur}
