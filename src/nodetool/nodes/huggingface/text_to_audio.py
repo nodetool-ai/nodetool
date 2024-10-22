@@ -590,7 +590,7 @@ class ParlerTTSNode(HuggingFacePipelineNode):
             input_ids=input_ids,
             prompt_input_ids=prompt_input_ids,
         )
-        audio_arr = generation.cpu().numpy().squeeze()
+        audio_arr = generation.cpu().numpy().squeeze()  # type: ignore
 
         return await context.audio_from_numpy(
             audio_arr, self._model.config.sampling_rate
