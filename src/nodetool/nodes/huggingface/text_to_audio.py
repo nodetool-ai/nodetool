@@ -1,5 +1,10 @@
 import torch
-from nodetool.metadata.types import AudioRef, HFTextToAudio, HuggingFaceModel
+from nodetool.metadata.types import (
+    AudioRef,
+    HFTextToAudio,
+    HFTextToSpeech,
+    HuggingFaceModel,
+)
 from nodetool.nodes.huggingface.huggingface_pipeline import HuggingFacePipelineNode
 from nodetool.providers.huggingface.huggingface_node import HuggingfaceNode
 from nodetool.workflows.processing_context import ProcessingContext
@@ -532,6 +537,12 @@ class ParlerTTSNode(HuggingFacePipelineNode):
     - Explore AI-generated speech with customizable characteristics
     """
 
+    model: HFTextToSpeech = Field(
+        default=HFTextToSpeech(),
+        title="Model ID on Huggingface",
+        description="The model ID to use for the audio generation, must be a Parler TTS model",
+    )
+
     prompt: str = Field(
         default="Hello, how are you doing today?",
         description="The text to be converted to speech.",
@@ -552,8 +563,12 @@ class ParlerTTSNode(HuggingFacePipelineNode):
     @classmethod
     def get_recommended_models(cls) -> list[HuggingFaceModel]:
         return [
-            HFTextToAudio(
+            HFTextToSpeech(
                 repo_id="parler-tts/parler-tts-mini-v1",
+                allow_patterns=["*.bin", "*.json", "*.txt"],
+            ),
+            HFTextToSpeech(
+                repo_id="parler-tts/parler-tts-large-v1",
                 allow_patterns=["*.bin", "*.json", "*.txt"],
             ),
         ]
@@ -562,11 +577,11 @@ class ParlerTTSNode(HuggingFacePipelineNode):
         self._model = await self.load_model(
             context=context,
             model_class=ParlerTTSForConditionalGeneration,
-            model_id="parler-tts/parler-tts-mini-v1",
+            model_id=self.model.repo_id,
             variant=None,
         )
         self._tokenizer = await self.load_model(
-            context, AutoTokenizer, "parler-tts/parler-tts-mini-v1"
+            context, AutoTokenizer, self.model.repo_id
         )
 
     async def move_to_device(self, device: str):
