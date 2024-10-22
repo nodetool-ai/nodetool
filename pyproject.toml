@@ -38,6 +38,7 @@ chromadb = "*"
 click = "*"
 cryptography = "*"
 datasets = "*"
+descript-audio-codec = "*"
 diffusers = { extras = ["torch"], version = "*" }
 einops = "*"
 fastapi = ">=0.109.0"
