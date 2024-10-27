@@ -1,4 +1,3 @@
-import threading
 from nodetool.api.server import create_app
 import os
 

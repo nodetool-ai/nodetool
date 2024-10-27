@@ -20,6 +20,37 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from uvicorn import run as uvicorn
 
 from . import asset, job, auth, message, node, storage, task, workflow, model, settings
+import mimetypes
+
+
+# FIX: Windows: mimetypes.guess_type() returns None for some files
+# See:
+# - https://github.com/encode/starlette/issues/829
+# - https://github.com/pallets/flask/issues/1045
+#
+# The Python mimetypes module on Windows pulls values from the registry.
+# If mimetypes.guess_type() returns None for some files, it may indicate
+# that the Windows registry is corrupted or missing entries.
+#
+# This issue affects Windows systems and may cause problems with
+# file type detection in web frameworks like Starlette or Flask.
+#
+# Let's add the missing mime types to the mimetypes module.
+mimetypes.init()
+mimetypes.add_type("text/css", ".css")
+mimetypes.add_type("text/javascript", ".js")
+mimetypes.add_type("application/json", ".json")
+mimetypes.add_type("text/html", ".html")
+mimetypes.add_type("image/png", ".png")
+mimetypes.add_type("image/jpeg", ".jpg")
+mimetypes.add_type("image/jpeg", ".jpeg")
+mimetypes.add_type("image/gif", ".gif")
+mimetypes.add_type("image/svg+xml", ".svg")
+mimetypes.add_type("application/pdf", ".pdf")
+mimetypes.add_type("font/woff", ".woff")
+mimetypes.add_type("font/woff2", ".woff2")
+mimetypes.add_type("application/xml", ".xml")
+mimetypes.add_type("text/plain", ".txt")
 
 DEFAULT_ROUTERS = [
     asset.router,
