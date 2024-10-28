@@ -640,7 +640,9 @@ class ParlerTTSNode(HuggingFacePipelineNode):
             padding=True,
             truncation=True,
             max_length=self.max_length,
-        ).input_ids.to(context.device)
+        ).input_ids.to(  # type: ignore
+            context.device
+        )
 
         # Handle voice cloning if reference audio is provided
         input_values = None
@@ -666,7 +668,9 @@ class ParlerTTSNode(HuggingFacePipelineNode):
                 return_tensors="pt",
                 padding=True,
                 max_length=self.max_length,
-            ).input_values.to(context.device)
+            ).input_values.to(  # type: ignore
+                context.device
+            )
 
         # Process the full prompt in a single pass
         prompt_input_ids = self._tokenizer(
@@ -675,7 +679,9 @@ class ParlerTTSNode(HuggingFacePipelineNode):
             padding=True,
             truncation=True,
             max_length=self.max_length,
-        ).input_ids.to(context.device)
+        ).input_ids.to(  # type: ignore
+            context.device
+        )
 
         gen_kwargs = {
             "input_ids": input_ids,
@@ -688,6 +694,6 @@ class ParlerTTSNode(HuggingFacePipelineNode):
 
         with torch.inference_mode():
             generation = self._model.generate(**gen_kwargs)
-            audio_arr = generation.cpu().numpy().squeeze()
+            audio_arr = generation.cpu().numpy().squeeze()  # type: ignore
 
         return await context.audio_from_numpy(audio_arr, sampling_rate)

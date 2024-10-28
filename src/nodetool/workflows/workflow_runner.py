@@ -3,6 +3,7 @@ from contextlib import contextmanager
 from datetime import datetime
 import gc
 from typing import Any, Optional
+from collections import deque
 
 import torch
 
@@ -25,6 +26,63 @@ log = Environment.get_logger()
 MAX_RETRIES = 2
 BASE_DELAY = 1  # seconds
 MAX_DELAY = 60  # seconds
+
+
+# Define a global GPU lock
+class OrderedLock:
+    def __init__(self):
+        self._waiters = deque()
+        self._locked = False
+
+    async def acquire(self):
+        log.debug("Attempting to acquire GPU lock")
+        loop = asyncio.get_running_loop()
+        fut = loop.create_future()
+        self._waiters.append(fut)
+        try:
+            if self._locked or self._waiters[0] != fut:
+                log.debug("GPU lock is held or others are waiting; waiting for lock")
+                await fut
+            self._locked = True
+            log.debug("GPU lock acquired")
+        except asyncio.CancelledError:
+            self._waiters.remove(fut)
+            # Notify next waiter if necessary
+            if self._waiters and not self._locked:
+                next_fut = self._waiters[0]
+                if not next_fut.done():
+                    next_fut.set_result(True)
+                    log.debug("Notified next waiter for GPU lock after cancellation")
+            raise
+
+    def release(self):
+        log.debug("Releasing GPU lock")
+        if self._locked:
+            self._locked = False
+            self._waiters.popleft()
+            if self._waiters:
+                # Notify the next waiter
+                next_fut = self._waiters[0]
+                if not next_fut.done():
+                    next_fut.set_result(True)
+                    log.debug("Notified next waiter for GPU lock")
+
+
+gpu_lock = OrderedLock()
+
+
+async def acquire_gpu_lock(node: BaseNode, context: ProcessingContext):
+    if gpu_lock._locked or gpu_lock._waiters:
+        log.debug(f"Node {node.get_title()} is waiting for GPU lock")
+        # Lock is held or others are waiting; send update message
+        node.send_update(context, status="waiting")
+    await gpu_lock.acquire()
+    log.debug(f"Node {node.get_title()} acquired GPU lock")
+
+
+def release_gpu_lock():
+    log.debug("Releasing GPU lock from node")
+    gpu_lock.release()
 
 
 def get_available_vram():
@@ -72,6 +130,7 @@ class WorkflowRunner:
         self.job_id = job_id
         self.status = "running"
         self.current_node: Optional[str] = None
+        self.context: Optional[ProcessingContext] = None
         if device:
             self.device = device
         else:
@@ -420,40 +479,28 @@ class WorkflowRunner:
 
     async def process_regular_node(self, context: ProcessingContext, node: BaseNode):
         """
-        Processes a regular (non-GroupNode) node in the workflow.
+        Process a regular node that is not a GroupNode.
 
         Args:
-            context (ProcessingContext): Manages the execution state and inter-node communication.
-            node (BaseNode): The node to be processed.
-
-        Raises:
-            Exception: Any exception raised during node processing is caught and reported.
-
-        Post-conditions:
-            - Node inputs are collected and assigned.
-            - Node is processed.
-            - Node output is converted.
-            - Node result is cached if applicable.
-            - Node status updates are posted to the context.
-            - Node is marked as processed in the context.
-
-        Note:
-            - Handles result caching and retrieval.
-            - Manages timing information for node execution.
-            - Prepares and posts detailed node updates including properties and results.
+            context (ProcessingContext): The processing context.
+            node (BaseNode): The node to process.
         """
-        started_at = datetime.now()
+        from datetime import datetime
 
+        started_at = datetime.now()
         try:
+            # Get inputs for the node
             inputs = context.get_node_inputs(node.id)
             log.debug(f"{node.get_title()} ({node._id}) inputs: {inputs}")
 
+            # Assign input values to node properties
             for name, value in inputs.items():
                 try:
                     node.assign_property(name, value)
                 except Exception as e:
                     log.warn(f"Error assigning property {name} to node {node.id}: {e}")
 
+            # Preprocess the node
             log.debug(f"Pre-processing node: {node.get_title()} ({node._id})")
             await node.pre_process(context)
 
@@ -461,6 +508,7 @@ class WorkflowRunner:
                 context, "running", result=None, properties=list(inputs.keys())
             )
 
+            # Check if the node is cacheable
             if node.is_cacheable():
                 log.debug(f"Checking cache for node: {node.get_title()} ({node._id})")
                 cached_result = context.get_cached_result(node)
@@ -473,19 +521,61 @@ class WorkflowRunner:
                 )
                 result = cached_result
             else:
-                await node.move_to_device(self.device)
-                result = await node.process(context)
-                result = await node.convert_output(context, result)
+                # Determine if the node requires GPU processing
+                requires_gpu = node.requires_gpu()
 
-                await node.move_to_device("cpu")
-                self.log_vram_usage(f"after node {node.id}: ")
+                if requires_gpu and self.device == "cpu":
+                    error_msg = f"Node {node.get_title()} ({node._id}) requires a GPU, but no GPU is available."
+                    log.error(error_msg)
+                    raise RuntimeError(error_msg)
 
+                if requires_gpu and self.device != "cpu":
+                    # Acquire the global GPU lock
+                    log.debug(f"Node {node.get_title()} ({node._id}) requires GPU")
+                    await acquire_gpu_lock(node, context)
+                    try:
+                        log.info(
+                            f"Node {node.get_title()} ({node._id}) starts processing with GPU"
+                        )
+                        # Move node model to GPU
+                        await node.move_to_device(self.device)
+                        self.log_vram_usage(
+                            f"Node {node.get_title()} ({node._id}) VRAM after move to {self.device}"
+                        )
+
+                        # Process the node
+                        result = await node.process_with_gpu(context)
+                        result = await node.convert_output(context, result)
+
+                    finally:
+                        try:
+                            # Move node model back to CPU
+                            await node.move_to_device("cpu")
+                            self.log_vram_usage(
+                                f"Node {node.get_title()} ({node._id}) VRAM after move to cpu"
+                            )
+                        finally:
+                            # Release the GPU lock
+                            release_gpu_lock()
+                            log.debug(
+                                f"Node {node.get_title()} ({node._id}) released GPU lock"
+                            )
+                else:
+                    # Process the node without GPU
+                    log.info(
+                        f"Node {node.get_title()} ({node._id}) processing without GPU"
+                    )
+                    result = await node.process(context)
+                    result = await node.convert_output(context, result)
+
+                # Cache the result if the node is cacheable
                 if node.is_cacheable():
                     log.debug(
                         f"Caching result for node: {node.get_title()} ({node._id})"
                     )
                     context.cache_result(node, result)
 
+            # Send completion update
             node.send_update(context, "completed", result=result)
 
         except Exception as e:
@@ -584,7 +674,7 @@ class WorkflowRunner:
                 context.processed_nodes.add(n._id)
 
             if len(results) > 1:
-                print("warning: multiple output nodes not supported")
+                log.warning("Multiple output nodes are not fully supported.")
 
         else:
             # regular group nodes will execute children on top level
@@ -599,7 +689,7 @@ class WorkflowRunner:
         if torch.cuda.is_available():
             torch.cuda.synchronize()
             vram = torch.cuda.memory_allocated(0) / 1024 / 1024 / 1024
-            log.info(f"{message} VRAM usage: {vram} GB")
+            log.info(f"{message} VRAM: {vram:.2f} GB")
 
     @contextmanager
     def torch_context(self, context: ProcessingContext):
@@ -635,21 +725,11 @@ class WorkflowRunner:
         comfy.utils.set_progress_bar_global_hook(hook)
 
         if torch.cuda.is_available():
-            log.info(
-                f"VRAM before workflow: {torch.cuda.memory_allocated(0) / 1024 / 1024 / 1024}"
-            )
-        with torch.inference_mode():
-            try:
-                yield
-            finally:
-                if torch.cuda.is_available():
-                    import comfy.model_management
+            self.log_vram_usage("Before workflow")
+        try:
+            yield
+        finally:
+            if torch.cuda.is_available():
+                self.log_vram_usage("After workflow")
 
-                    torch.cuda.synchronize()
-
-                    # comfy.model_management.cleanup_models()
-                    # torch.cuda.empty_cache()
-                    log.info(
-                        f"VRAM after workflow: {torch.cuda.memory_allocated(0) / 1024 / 1024 / 1024}"
-                    )
         log.info("Exiting torch context")

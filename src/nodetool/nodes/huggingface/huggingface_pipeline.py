@@ -125,3 +125,6 @@ class HuggingFacePipelineNode(HuggingfaceNode):
 
     async def process(self, context: ProcessingContext) -> Any:
         raise NotImplementedError("Subclasses must implement this method")
+
+    def requires_gpu(self) -> bool:
+        return True

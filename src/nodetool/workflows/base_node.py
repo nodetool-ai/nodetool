@@ -812,6 +812,24 @@ class BaseNode(BaseModel):
         """
         pass
 
+    async def process_with_gpu(self, context: Any) -> Any:
+        """
+        Process the node with GPU.
+        Default implementation calls the process method in inference mode.
+        For training nodes, this method should be overridden.
+        """
+        with torch.inference_mode():
+            return await self.process(context)
+
+    def requires_gpu(self) -> bool:
+        """
+        Determine if this node requires GPU for processing.
+
+        Returns:
+            bool: True if GPU is required, False otherwise.
+        """
+        return False
+
 
 class InputNode(BaseNode):
     """
