@@ -100,7 +100,11 @@ async function ensureDependencies() {
 /** @type {string} */
 const resourcesPath = process.resourcesPath;
 /** @type {NodeJS.ProcessEnv} */
-let env = { ...process.env, PYTHONUNBUFFERED: "1" };
+let env = {
+  PYTHONUNBUFFERED: "1",
+  PYTHONNOUSERSITE: "1",
+  PATH: process.env.PATH,
+};
 
 /** @type {{ isStarted: boolean, bootMsg: string, logs: string[] }} */
 let serverState = {
@@ -264,6 +268,18 @@ function setPermissionCheckHandler() {
  * @param {NodeJS.ProcessEnv} env - The environment variables for the server process
  */
 function runNodeTool(env) {
+  const activateScript =
+    process.platform === "win32"
+      ? path.join(componentsDir, "python_env", "Scripts", "activate.bat")
+      : path.join(componentsDir, "python_env", "bin", "activate");
+
+  const command =
+    process.platform === "win32"
+      ? `"${activateScript}" && "${pythonExecutable}" -m nodetool.cli serve --static-folder "${webDir}"`
+      : `source "${activateScript}" && "${pythonExecutable}" -m nodetool.cli serve --static-folder "${webDir}"`;
+
+  serverProcess = spawn(command, { shell: true, env });
+
   log(
     `Running NodeTool. Python executable: ${pythonExecutable}, Web dir: ${webDir}`
   );
@@ -271,11 +287,6 @@ function runNodeTool(env) {
   // Start Ollama server
   startOllamaServer();
 
-  serverProcess = spawn(
-    pythonExecutable,
-    ["-m", "nodetool.cli", "serve", "--static-folder", webDir],
-    { env: env }
-  );
   /**
    * Handle server output
    * @param {Buffer} data - The output data from the server
@@ -671,6 +682,9 @@ async function checkForUpdates() {
           emitUpdateStep(`Downloading ${component.name}`);
           const strip = component.name === "python_env" ? 0 : 1;
           await downloadAndExtractComponent(component, componentsDir, strip);
+          if (component.name === "python_env") {
+            await unpackPythonEnv(componentsDir);
+          }
           log(`Finished updating ${component.name}`);
           emitUpdateStep(`Finished updating ${component.name}`);
         } catch (error) {
@@ -1082,4 +1096,31 @@ async function getCurrentPythonVersion(componentsDir) {
     log(`Error getting Python version: ${error.message}`, "error");
     return null;
   }
+}
+
+async function unpackPythonEnv(componentsDir) {
+  const condaUnpackScript =
+    process.platform === "win32"
+      ? path.join(componentsDir, "python_env", "Scripts", "conda-unpack.exe")
+      : path.join(componentsDir, "python_env", "bin", "conda-unpack");
+
+  await ensureExecutable(condaUnpackScript);
+
+  return new Promise((resolve, reject) => {
+    const unpackProcess = spawn(condaUnpackScript, [], { env });
+    unpackProcess.stdout.on("data", (data) => {
+      log(data.toString());
+    });
+    unpackProcess.stderr.on("data", (data) => {
+      log(data.toString(), "error");
+    });
+    unpackProcess.on("close", (code) => {
+      if (code === 0) {
+        log("conda-unpack completed successfully");
+        resolve();
+      } else {
+        reject(new Error(`conda-unpack exited with code ${code}`));
+      }
+    });
+  });
 }
