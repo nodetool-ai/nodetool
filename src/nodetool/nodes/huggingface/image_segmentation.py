@@ -2,6 +2,7 @@ import PIL.ImageDraw
 import PIL.ImageFont
 import PIL.Image
 import numpy as np
+import torch
 from nodetool.metadata.types import (
     HFImageSegmentation,
     ImageRef,
@@ -10,6 +11,13 @@ from nodetool.metadata.types import (
 from nodetool.nodes.huggingface.huggingface_pipeline import HuggingFacePipelineNode
 from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
+from typing import Any
+from pydantic import Field
+
+from nodetool.metadata.types import ImageRef, HuggingFaceModel
+from nodetool.nodes.huggingface.huggingface_pipeline import HuggingFacePipelineNode
+from nodetool.workflows.processing_context import ProcessingContext
+from sam2.sam2_image_predictor import SAM2ImagePredictor
 
 
 from pydantic import Field
@@ -79,7 +87,7 @@ class Segmentation(HuggingFacePipelineNode):
     async def initialize(self, context: ProcessingContext):
         self._pipeline = await self.load_pipeline(
             context, "image-segmentation", self.get_model_id(), device=context.device
-        )
+        )  # type: ignore
 
     async def process(
         self, context: ProcessingContext
@@ -94,6 +102,79 @@ class Segmentation(HuggingFacePipelineNode):
             return ImageSegmentationResult(mask=mask, label=item["label"])
 
         return await asyncio.gather(*[convert_output(item) for item in result])
+
+
+class SAM2Segmentation(HuggingFacePipelineNode):
+    """
+    Performs semantic segmentation on images using SAM2 (Segment Anything Model 2).
+    image, segmentation, object detection, scene parsing
+
+    Use cases:
+    - Automatic segmentation of objects in images
+    - Instance segmentation for computer vision tasks
+    - Interactive segmentation with point prompts
+    - Scene understanding and object detection
+    """
+
+    image: ImageRef = Field(
+        default=ImageRef(),
+        title="Input Image",
+        description="The input image to segment",
+    )
+
+    _pipeline: SAM2ImagePredictor | None = None
+
+    @classmethod
+    def get_recommended_models(cls) -> list[HuggingFaceModel]:
+        return [
+            HuggingFaceModel(
+                repo_id="facebook/sam2-hiera-large",
+            ),
+        ]
+
+    def required_inputs(self):
+        return ["image"]
+
+    @classmethod
+    def get_title(cls) -> str:
+        return "SAM2 Segmentation"
+
+    async def initialize(self, context: ProcessingContext):
+        self._pipeline = await self.load_model(
+            context=context,
+            model_id="facebook/sam2-hiera-large",
+            model_class=SAM2ImagePredictor,
+            torch_dtype=torch.bfloat16,
+            variant=None,
+        )
+
+    async def move_to_device(self, device: str):
+        if self._pipeline is not None:
+            self._pipeline.model.to(device)
+
+    async def process(self, context: ProcessingContext) -> list[ImageRef]:
+        if self._pipeline is None:
+            raise ValueError("Pipeline not initialized")
+
+        # Convert input image to numpy array
+        image = await context.image_to_numpy(self.image)
+
+        # Run inference with mixed precision
+        with torch.inference_mode(), torch.autocast("cuda", dtype=torch.bfloat16):
+            self._pipeline.set_image(image)
+            masks, _, _ = self._pipeline.predict()
+
+            # Convert each mask to an ImageRef
+            result = []
+            for i, mask in enumerate(masks):
+                # Convert mask to uint8 numpy array
+                mask_image = (mask * 255).astype(np.uint8)
+
+                # Create ImageRef from mask
+                mask_ref = await context.image_from_numpy(mask_image)
+                result.append(mask_ref)
+
+            return result
 
 
 class FindSegment(BaseNode):
