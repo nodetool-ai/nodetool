@@ -22,7 +22,8 @@ import {
   Checkbox,
   List,
   ListItem,
-  ListItemText
+  ListItemText,
+  Button
 } from "@mui/material";
 import Fuse from "fuse.js";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -226,6 +227,24 @@ const welcomeStyles = (theme: any) =>
     "ul li, ol li": {
       margin: 0,
       listStyleType: "square"
+    },
+    ".start-button": {
+      backgroundColor: "transparent",
+      color: theme.palette.c_white,
+      fontFamily: theme.fontFamily2,
+      fontSize: theme.fontSizeBig,
+      outline: `1px solid ${theme.palette.c_hl1}`,
+      flexGrow: 1,
+      margin: "-1em 0 0 0",
+      padding: ".2em 100%",
+      borderRadius: ".5em",
+      transition: "all 0.4s",
+      "&:hover": {
+        borderRadius: "1em",
+        outline: `1px solid ${theme.palette.c_gray2}`,
+        color: theme.palette.c_black,
+        backgroundColor: theme.palette.c_hl1
+      }
     }
   });
 
@@ -307,7 +326,6 @@ const Welcome = ({ handleClose }: { handleClose: () => void }) => {
 
   const theme = ThemeNodetool;
 
-  // Add this useEffect to set the initial tab value
   useEffect(() => {
     if (!hasSetupKeys) {
       setTabValue(TabValue.Setup);
@@ -411,7 +429,16 @@ const Welcome = ({ handleClose }: { handleClose: () => void }) => {
         <Typography className="panel-title" variant="h2">
           NODETOOL
         </Typography>
-
+        <div className="header-center ">
+          <Button
+            onClick={() => {
+              handleClose();
+            }}
+            className="start-button"
+          >
+            START
+          </Button>
+        </div>
         <div className="header-right">
           <div className="show-on-startup-toggle">
             <Tooltip

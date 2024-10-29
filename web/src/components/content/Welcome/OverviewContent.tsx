@@ -47,40 +47,14 @@ export const overviewContents: Section[] = [
           <li>
             Use &quot;New Workflow&quot; to start a new project from scratch.
           </li>
-          <li>
-            Click &quot;Import&quot; to bring in existing projects or templates.
-          </li>
-          <li>Don&apos;t forget to save your work regularly!</li>
-          <li>
-            You&apos;ll find helpful tips and documentation in the
-            &quot;Help&quot; section.
-          </li>
-          <li>
-            Save your workflows using the save button.
-            <br />
-            Any changes to the Name, Description, and Tooltip will be saved
-            automatically.
-          </li>
-          <li>
-            Explore the pre-built examples in the &quot;Workflow&quot; menu to
-            get started quickly.
-          </li>
-          <li>
-            Use &quot;New Workflow&quot; to start a new project from scratch.
-          </li>
-          <li>
-            Click &quot;Import&quot; to bring in existing projects or templates.
-          </li>
         </ul>
         <Typography>
           Run your workflows by clicking the Play Button in the bottom panel to
           see the results.
           <br />
-          Please be patient, as some processes may take a little time to start
-          up or complete.
+          Some processes take some time to start up or complete.
           <br />
-          The node currently being processed will be indicated by an animation
-          in the node header.
+          The node currently being processed will be indicated by an animation.
           <br />
           For longer-running nodes, you can expand the Log at the bottom to see
           more details.
@@ -94,11 +68,15 @@ export const overviewContents: Section[] = [
     title: "Using the Node Menu",
     content: (
       <>
-        <Typography>Open the Node Menu in three ways:</Typography>
+        <Typography>4 ways to open the Node Menu:</Typography>
         <ul>
-          <li>Double-click the canvas</li>
+          <li>Double-click on the canvas</li>
           <li>Press CTRL+Space</li>
           <li>Click the Nodes Button (circle icon) in the top panel</li>
+          <li>
+            Start a connection and release it on the canvas, then select the
+            filterednode menu
+          </li>
         </ul>
         <Typography>
           Inside the Node Menu, read the description to learn how to browse and
