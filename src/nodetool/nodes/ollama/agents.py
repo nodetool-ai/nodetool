@@ -67,6 +67,9 @@ class DataGenerator(BaseNode):
         description="The columns to use in the dataframe.",
     )
 
+    def requires_gpu(self) -> bool:
+        return True
+
     async def process(self, context: ProcessingContext) -> DataframeRef:
         columns_str = ", ".join(
             [

@@ -45,6 +45,12 @@ class ComfyNode(BaseNode):
 
         return get_edge_names(self.get_comfy_class_name())
 
+    def requires_gpu(self) -> bool:
+        for prop in self.properties():
+            if prop.type.is_comfy_model():
+                return True
+        return False
+
     async def call_comfy_node(self, context: ProcessingContext):
         """
         Delegate the processing to the comfy class.

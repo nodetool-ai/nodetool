@@ -69,7 +69,7 @@ class HuggingFacePipelineNode(HuggingfaceNode):
         model_class: type[T],
         model_id: str,
         variant: str | None = "fp16",
-        torch_dtype: torch.dtype = torch.float16,
+        torch_dtype: torch.dtype | None = torch.float16,
         path: str | None = None,
         skip_cache: bool = False,
         **kwargs: Any,
@@ -125,3 +125,6 @@ class HuggingFacePipelineNode(HuggingfaceNode):
 
     async def process(self, context: ProcessingContext) -> Any:
         raise NotImplementedError("Subclasses must implement this method")
+
+    def requires_gpu(self) -> bool:
+        return True

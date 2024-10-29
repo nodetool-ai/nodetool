@@ -152,6 +152,9 @@ class OllamaChat(BaseNode):
         description="The number of seconds to keep the model alive.",
     )
 
+    def requires_gpu(self) -> bool:
+        return True
+
     async def create_message(
         self, message: Message, context: ProcessingContext
     ) -> dict[str, str | list[str]]:
@@ -234,6 +237,9 @@ class Embedding(BaseNode):
         ge=64,
         description="The size of the chunks to split the input into",
     )
+
+    def requires_gpu(self) -> bool:
+        return True
 
     async def process(self, context: ProcessingContext) -> Tensor:
         import numpy as np
