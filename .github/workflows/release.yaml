@@ -54,27 +54,23 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - name: Set up conda
+        uses: conda-incubator/setup-miniconda@v3
         with:
+          auto-activate-base: true
           python-version: "3.11"
 
-      - name: Retrieve release distributions
-        uses: actions/download-artifact@v4
-        with:
-          name: release-dists
-          path: dist/
-
       - name: Install conda-build and conda-index
+        shell: bash -l {0}
         run: |
-          conda install conda-build conda-index
+          conda install -y conda-build conda-index
 
       - name: Build conda package
+        shell: bash -l {0}
         run: |
           # Extract version from the wheel filename
           VERSION=$(git describe --tags --abbrev=0)
-          VERSION=${VERSION#v}  # Remove 'v' prefix if present
-          echo "Package version: $VERSION"
+          VERSION=${VERSION#v}
 
           # Get absolute path of wheel file and verify it exists
           WHEEL_FILE=$(realpath dist/*.whl)
