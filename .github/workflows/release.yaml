@@ -76,11 +76,13 @@ jobs:
           VERSION=${VERSION#v}  # Remove 'v' prefix if present
           echo "Package version: $VERSION"
 
-          # Verify wheel file exists
-          WHEEL_FILE=$(ls dist/*.whl)
+          # Get absolute path of wheel file and verify it exists
+          WHEEL_FILE=$(realpath dist/*.whl)
+          echo "Wheel file absolute path: $WHEEL_FILE"
+
           if [ ! -f "$WHEEL_FILE" ]; then
             echo "Error: Wheel file not found in dist directory"
-            ls -la dist/
+            ls -la $(dirname "$WHEEL_FILE")
             exit 1
           fi
 
@@ -96,11 +98,11 @@ jobs:
             version: {{ version }}
 
           source:
-            path: ../$WHEEL_FILE
+            path: $WHEEL_FILE
 
           build:
             noarch: python
-            script: pip install ../$WHEEL_FILE
+            script: pip install $WHEEL_FILE
             number: 0
 
           requirements:
