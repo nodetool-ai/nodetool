@@ -72,8 +72,8 @@ jobs:
       - name: Build conda package
         run: |
           # Extract version from the wheel filename
-          WHEEL_FILE=$(ls dist/*.whl)
-          VERSION=$(echo $WHEEL_FILE | sed -n 's/.*-\([0-9.]*\)-py.*/\1/p')
+          VERSION=$(git describe --tags --abbrev=0)
+          VERSION=${VERSION#v}  # Remove 'v' prefix if present
           echo "Package version: $VERSION"
 
           # Create conda recipe directory
