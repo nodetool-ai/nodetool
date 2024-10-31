@@ -76,10 +76,18 @@ jobs:
           VERSION=${VERSION#v}  # Remove 'v' prefix if present
           echo "Package version: $VERSION"
 
+          # Verify wheel file exists
+          WHEEL_FILE=$(ls dist/*.whl)
+          if [ ! -f "$WHEEL_FILE" ]; then
+            echo "Error: Wheel file not found in dist directory"
+            ls -la dist/
+            exit 1
+          fi
+
           # Create conda recipe directory
           mkdir -p conda-recipe
 
-          # Create meta.yaml from the wheel
+          # Create meta.yaml with correct wheel path
           cat > conda-recipe/meta.yaml << EOF
           {% set version = "$VERSION" %}
 
@@ -88,11 +96,11 @@ jobs:
             version: {{ version }}
 
           source:
-            path: ../dist/*.whl
+            path: ../$WHEEL_FILE
 
           build:
             noarch: python
-            script: pip install $(ls ../dist/*.whl)
+            script: pip install ../$WHEEL_FILE
             number: 0
 
           requirements:
