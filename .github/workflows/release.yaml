@@ -131,11 +131,10 @@ jobs:
 
       - name: Create channel index
         run: |
-          # Create platform directories
+          # Create platform directories (if they don't exist)
           mkdir -p channel/noarch
 
-          # Move package to noarch directory
-          mv channel/noarch/*.tar.bz2 channel/noarch/
+          # No need to move files since conda-build already puts them in the right place
 
           # Create channel index
           conda index channel/
