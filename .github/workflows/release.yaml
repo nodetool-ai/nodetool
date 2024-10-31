@@ -133,6 +133,7 @@ jobs:
           aws-region: eu-central-1
 
       - name: Create channel index
+        shell: bash -l {0}
         run: |
           # Create platform directories (if they don't exist)
           mkdir -p channel/noarch
@@ -140,7 +141,7 @@ jobs:
           # No need to move files since conda-build already puts them in the right place
 
           # Create channel index
-          conda index channel/
+          conda-index channel/
 
       - name: Sync to S3
         run: |
