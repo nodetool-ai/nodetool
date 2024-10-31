@@ -1,9 +1,9 @@
-name: PyPi Release
+name: PyPi and Conda Release
 
 on:
   push:
     tags:
-      - "v*" # Push events to matching v*, i.e. v1.0, v20.15.10
+      - "v*"
 
 jobs:
   release-build:
@@ -51,3 +51,90 @@ jobs:
 
       - name: Publish release distributions to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
+
+  conda-publish:
+    needs: release-build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Retrieve release distributions
+        uses: actions/download-artifact@v4
+        with:
+          name: release-dists
+          path: dist/
+
+      - name: Install conda-build and conda-index
+        run: |
+          conda install conda-build conda-index
+
+      - name: Build conda package
+        run: |
+          # Extract version from the wheel filename
+          WHEEL_FILE=$(ls dist/*.whl)
+          VERSION=$(echo $WHEEL_FILE | sed -n 's/.*-\([0-9.]*\)-py.*/\1/p')
+          echo "Package version: $VERSION"
+
+          # Create conda recipe directory
+          mkdir -p conda-recipe
+
+          # Create meta.yaml from the wheel
+          cat > conda-recipe/meta.yaml << EOF
+          {% set version = "$VERSION" %}
+
+          package:
+            name: {{ name|lower }}
+            version: {{ version }}
+
+          source:
+            path: ../dist/*.whl
+
+          build:
+            noarch: python
+            script: pip install $(ls ../dist/*.whl)
+            number: 0
+
+          requirements:
+            host:
+              - python
+              - pip
+            run:
+              - python
+              # Dependencies will be automatically handled by pip during install
+
+          about:
+            home: https://github.com/nodetool-ai/nodetool
+            license: AGPL-3.0
+            summary: Creative AI Playground
+          EOF
+
+          # Build the conda package
+          conda build conda-recipe --output-folder channel/
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-central-1
+
+      - name: Create channel index
+        run: |
+          # Create platform directories
+          mkdir -p channel/noarch
+
+          # Move package to noarch directory
+          mv channel/noarch/*.tar.bz2 channel/noarch/
+
+          # Create channel index
+          conda index channel/
+
+      - name: Sync to S3
+        run: |
+          # Sync the entire channel directory to S3
+          aws s3 sync channel/ s3://nodetool-conda/ --delete
