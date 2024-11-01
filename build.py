@@ -13,8 +13,6 @@ from typing import Any, List
 import re
 from textwrap import dedent
 
-import yaml
-
 # Set up logging
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -24,26 +22,21 @@ logger = logging.getLogger(__name__)
 PROJECT_ROOT = Path(__file__).parent.resolve()
 
 
-def parse_requirements(file_path):
-    """Parse requirements.txt and return clean package requirements."""
-    clean_requirements = []
-
-    with open(file_path, "r") as f:
-        for line in f:
-            # Skip empty lines and comments
-            if not line.strip() or line.startswith("#"):
-                continue
-
-            # Split on semicolon and take only the first part
-            requirement = line.split(";")[0].strip()
-
-            # Skip lines that are just URLs or other special cases
-            if requirement.startswith("--") or not requirement:
-                continue
-
-            clean_requirements.append(requirement)
-
-    return clean_requirements
+# Write YAML manually since we don't have yaml module
+def write_yaml_value(value, f, indent=0):
+    if isinstance(value, dict):
+        for k, v in value.items():
+            f.write(" " * indent + f"{k}:")
+            if isinstance(v, (dict, list)):
+                f.write("\n")
+                write_yaml_value(v, f, indent + 2)
+            else:
+                f.write(f" {v}\n")
+    elif isinstance(value, list):
+        for item in value:
+            f.write(" " * indent + f"- {item}\n")
+    else:
+        f.write(" " * indent + f"{value}\n")
 
 
 class BuildError(Exception):
@@ -250,7 +243,7 @@ class Build:
         # Write meta.yaml
         meta_yaml_path = recipe_dir / "meta.yaml"
         with open(meta_yaml_path, "w") as f:
-            yaml.dump(meta_yaml, f, sort_keys=False, default_flow_style=False)
+            write_yaml_value(meta_yaml, f)
 
         # Build the conda package
         channel_dir = self.BUILD_DIR / "channel"
