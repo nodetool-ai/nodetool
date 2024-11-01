@@ -55,6 +55,7 @@ jobs:
       - name: Build and Package
         shell: bash -l {0}
         run: |
+          source activate base
           python build.py --python-version ${{ env.PYTHON_VERSION }}
 
       - name: Upload artifacts
