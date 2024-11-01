@@ -78,7 +78,7 @@ const os = require("os");
 const { appendFile } = require("fs").promises;
 
 /** @type {string} */
-const VERSION = "0.5.0rc12";
+const VERSION = "0.5.0rc13";
 /** @type {BrowserWindow|null} */
 let mainWindow;
 /** @type {import('child_process').ChildProcess|null} */
