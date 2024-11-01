@@ -36,11 +36,6 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: eu-central-1
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.11"
-
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
@@ -56,6 +51,7 @@ jobs:
       - name: Build and Package
         shell: bash -l {0}
         run: |
+          pip install yaml
           python build.py --python-version ${{ env.PYTHON_VERSION }}
 
       - name: Upload artifacts
