@@ -51,7 +51,6 @@ contextBridge.exposeInMainWorld("api", {
   onServerLog: (callback) =>
     ipcRenderer.on("server-log", (event, message) => callback(message)),
 
-
   /**
    * Registers a callback to receive download progress updates.
    * This is used during the component download process to show the progress
@@ -61,6 +60,9 @@ contextBridge.exposeInMainWorld("api", {
    */
   onUpdateProgress: (callback) =>
     ipcRenderer.on("update-progress", (event, data) => callback(data)),
+
+  getLogFilePath: () => ipcRenderer.invoke("get-log-file-path"),
+  openLogFile: () => ipcRenderer.invoke("open-log-file"),
 });
 
 /**

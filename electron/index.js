@@ -7,75 +7,78 @@
  */
 
 /**
- * NodeTool Installation and Update Process
+ * NodeTool Desktop Application - Main Process
  *
- * This file manages the installation, updating, and running of the NodeTool application.
- * It handles dependency management, component updates, and server initialization.
+ * This file serves as the entry point for the Electron-based NodeTool desktop application.
+ * It manages the application lifecycle, window creation, and server processes.
  *
- * Installation and Update Procedure:
+ * Core Responsibilities:
+ * 1. Application Window Management
+ *    - Creates and manages the main application window
+ *    - Handles window events and permissions
+ *    - Manages IPC communication between main and renderer processes
  *
- * 1. Application Startup:
- *    - The Electron app initializes and creates the main window.
- *    - It then calls `checkForUpdates()` to ensure all components are up-to-date.
+ * 2. Python Environment Management
+ *    - Handles Miniconda installation and setup
+ *    - Creates and maintains the Python virtual environment
+ *    - Manages Python dependencies and packages
  *
- * 2. Update Check (checkForUpdates function):
- *    - Fetches the latest release information from GitHub.
- *    - Determines which components need updating based on local and remote checksums.
- *    - Components checked: python_env, web, ollama, ffmpeg.
- *    - For each component that needs updating:
- *      a. Downloads the component package (.zip file) and its checksum.
- *      b. Verifies the downloaded package's integrity using SHA256 checksum.
- *      c. Extracts the package to the components directory.
+ * 3. Server Process Management
+ *    - Starts and monitors the NodeTool server
+ *    - Manages the Ollama server process
+ *    - Handles server logs and status updates
  *
- * 3. Server Initialization (startServer function):
- *    - Sets up paths for Python and pip executables.
- *    - Checks if a local Python environment exists.
- *    - If it exists, uses the local environment; otherwise, uses system Python.
- *    - Updates PATH to include Ollama directory.
- *    - Calls `runNodeTool()` to start the server.
+ * 4. Application Lifecycle
+ *    - Handles application startup and initialization
+ *    - Manages graceful shutdown procedures
+ *    - Coordinates updates and component installations
  *
- * 4. NodeTool Installation (installRequirements function):
- *    - Checks if the correct version of NodeTool is already installed.
- *    - If not installed or outdated, uses pip to install the specified version.
- *    - Installation command varies based on the platform (Windows or macOS).
+ * Key Components:
+ * - Main Window: BrowserWindow instance for the UI
+ * - Server Process: Python-based NodeTool server
+ * - Ollama Process: AI model server
+ * - IPC Communication: Event system for process communication
  *
- * 5. Running NodeTool (runNodeTool function):
- *    - Spawns a child process to run the NodeTool server.
- *    - Monitors server output for successful startup and logs.
- *    - Handles server errors and unexpected exits.
- *
- * Additional Features:
- * - Graceful shutdown procedure to ensure clean app closure.
- * - IPC communication between main process and renderer for status updates.
- * - Logging system for tracking installation and runtime events.
+ * State Management:
+ * - Server State: Tracks server status, boot messages, and logs
+ * - Environment Variables: Manages Python and system paths
+ * - Process States: Monitors running processes and their status
  *
  * Error Handling:
- * - Comprehensive error catching and reporting throughout the process.
- * - User notifications via dialog boxes for critical errors.
- * - Automatic app restart on server crashes.
+ * - Comprehensive error catching for all critical operations
+ * - User notifications for important errors
+ * - Graceful degradation when possible
  *
- * Platform Specifics:
- * - Handles differences between Windows and macOS for file paths and commands.
- * - Uses platform-specific package URLs and checksums for component updates.
+ * Platform Support:
+ * - Windows and macOS compatibility
+ * - Platform-specific path handling
+ * - Architecture-aware installations
  *
- * This process ensures that the NodeTool application is always up-to-date with the latest
- * components and runs with the correct dependencies, providing a smooth user experience
- * across different platforms.
+ * Security:
+ * - Controlled permissions system
+ * - Isolated Python environment
+ * - Secure IPC communication
  */
-
-const { app, BrowserWindow, ipcMain, dialog, session } = require("electron");
+const {
+  app,
+  BrowserWindow,
+  ipcMain,
+  dialog,
+  session,
+  shell,
+} = require("electron");
 const path = require("path");
 const { createReadStream, createWriteStream } = require("fs");
 const { access, mkdir, readFile, rename, writeFile, unlink, chmod } =
   require("fs").promises;
 const { spawn } = require("child_process");
 const https = require("https");
-const crypto = require("crypto");
-const unzip = require("unzip-stream");
-const VERSION = "0.5.0rc12";
-const PYTHON_VERSION = "3.11.10";
 const fs = require("fs");
+const os = require("os");
+const { appendFile } = require("fs").promises;
 
+/** @type {string} */
+const VERSION = "0.5.0rc12";
 /** @type {BrowserWindow|null} */
 let mainWindow;
 /** @type {import('child_process').ChildProcess|null} */
@@ -83,20 +86,8 @@ let serverProcess;
 /** @type {import('child_process').ChildProcess|null} */
 let ollamaProcess;
 /** @type {string} */
-let pythonExecutable;
-/** @type {string} */
-let webDir;
-/** @type {string} */
-let componentsDir;
+const webDir = path.join(path.dirname(process.resourcesPath), "web");
 
-/**
- * Ensure dependencies are available
- * @returns {Promise<void>}
- */
-async function ensureDependencies() {
-  // No need to check for Ollama and FFmpeg
-  log("Skipping dependency check for Ollama and FFmpeg");
-}
 /** @type {string} */
 const resourcesPath = process.resourcesPath;
 /** @type {NodeJS.ProcessEnv} */
@@ -106,110 +97,14 @@ let env = {
   PATH: process.env.PATH,
 };
 
+console.log("resourcesPath", resourcesPath);
+
 /** @type {{ isStarted: boolean, bootMsg: string, logs: string[] }} */
 let serverState = {
   isStarted: false,
   bootMsg: "Initializing...",
   logs: [],
 };
-
-/** @type {string[]} */
-const windowsPipArgs = [
-  "install",
-  `nodetool==${VERSION}`,
-  "--extra-index-url",
-  "https://download.pytorch.org/whl/cu121",
-];
-
-/** @type {string[]} */
-const macPipArgs = ["install", `nodetool==${VERSION}`];
-
-/**
- * Install Python requirements
- * @returns {Promise<void>}
- */
-async function installRequirements() {
-  const pipArgs = process.platform === "darwin" ? macPipArgs : windowsPipArgs;
-  log(`Using pip arguments: ${pipArgs.join(" ")}`);
-
-  // Check if nodetool VERSION is already installed
-  const isNodeToolInstalled = await checkNodeToolInstalled();
-  if (isNodeToolInstalled) {
-    log(`nodetool ${VERSION} is already installed. Skipping installation.`);
-    return;
-  }
-  emitBootMessage("Installing requirements...");
-  log(`Installing requirements. Platform: ${process.platform}`);
-
-  // Use pythonExecutable instead of relying on system PATH
-  const pipProcess = spawn(pythonExecutable, ["-m", "pip", ...pipArgs], {
-    env,
-  });
-
-  emitBootMessage("Installing Python packages");
-  log(
-    `Starting pip install with command: ${pythonExecutable} -m pip ${pipArgs.join(
-      " "
-    )}`
-  );
-
-  let output = "";
-  let collectingCount = 0;
-  let downloadedCount = 0;
-  let installedCount = 0;
-
-  pipProcess.stdout.on("data", (/** @type {Buffer} */ data) => {
-    const chunk = data.toString();
-    output += chunk;
-    log(chunk);
-
-    if (chunk.includes("Collecting")) {
-      collectingCount++;
-      emitUpdateProgress(chunk.split(" ")[1], 0, "Collecting");
-    } else if (chunk.includes("Downloading") && !chunk.includes("metadata")) {
-      downloadedCount++;
-      emitUpdateProgress(
-        chunk.split(" ")[1],
-        (downloadedCount / collectingCount) * 100,
-        "Downloading"
-      );
-    } else if (chunk.includes("Installing collected packages")) {
-      installedCount++;
-      emitUpdateProgress("", 99, "Installing collected packages");
-    }
-  });
-
-  pipProcess.stderr.on("data", (/** @type {Buffer} */ data) => {
-    const chunk = data.toString();
-    output += chunk;
-    log(chunk);
-  });
-
-  return new Promise((resolve, reject) => {
-    pipProcess.on("close", (/** @type {number|null} */ code) => {
-      if (code === 0) {
-        log("pip install completed successfully");
-        resolve();
-      } else {
-        log(`pip install process exited with code ${code}`);
-        const errorMessage = `
-Error: pip installation failed with code ${code}.
-
-Please follow these steps:
-1. Uninstall the app and download the newest release from GitHub:
-   https://github.com/nodetool-ai/nodetool/releases
-
-2. If the problem persists, please report an issue on GitHub with the following logs:
-
-${output}
-
-https://github.com/nodetool-ai/nodetool/issues/new
-`;
-        reject(new Error(errorMessage));
-      }
-    });
-  });
-}
 
 /**
  * Create the main application window
@@ -268,32 +163,53 @@ function setPermissionCheckHandler() {
  * @param {NodeJS.ProcessEnv} env - The environment variables for the server process
  */
 function runNodeTool(env) {
-  const activateScript =
-    process.platform === "win32"
-      ? path.join(componentsDir, "python_env", "Scripts", "activate.bat")
-      : path.join(componentsDir, "python_env", "bin", "activate");
+  const minicondaPath = getMinicondaPath();
+  const envName = "nodetool";
 
+  // Construct the command based on platform
   const command =
     process.platform === "win32"
-      ? `"${activateScript}" && "${pythonExecutable}" -m nodetool.cli serve --static-folder "${webDir}"`
-      : `source "${activateScript}" && "${pythonExecutable}" -m nodetool.cli serve --static-folder "${webDir}"`;
+      ? `"${path.join(
+          minicondaPath,
+          "Scripts",
+          "activate.bat"
+        )}" ${envName} && python -m nodetool.cli serve --static-folder "${webDir}"`
+      : `source "${path.join(
+          minicondaPath,
+          "bin",
+          "activate"
+        )}" ${envName} && python -m nodetool.cli serve --static-folder "${webDir}"`;
 
-  serverProcess = spawn(command, { shell: true, env });
+  log(`Running NodeTool command: ${command}`);
 
-  log(
-    `Running NodeTool. Python executable: ${pythonExecutable}, Web dir: ${webDir}`
-  );
+  serverProcess = spawn(command, {
+    shell: true,
+    env: {
+      ...env,
+      CONDA_ROOT: minicondaPath,
+      PATH: `${path.join(minicondaPath, "condabin")}${path.delimiter}${
+        env.PATH
+      }`,
+    },
+  });
 
   // Start Ollama server
   startOllamaServer();
 
-  /**
-   * Handle server output
-   * @param {Buffer} data - The output data from the server
-   */
   function handleServerOutput(data) {
     const output = data.toString().trim();
     log(output);
+
+    // Check for port blocked error
+    if (output.includes("Address already in use")) {
+      log("Port is blocked, quitting application", "error");
+      dialog.showErrorBox(
+        "Server Error",
+        "The server cannot start because the port is already in use. Please close any applications using the port and try again."
+      );
+      app.quit();
+    }
+
     if (output.includes("Application startup complete.")) {
       log("Server startup complete");
       emitServerStarted();
@@ -305,7 +221,7 @@ function runNodeTool(env) {
   serverProcess.stderr.on("data", handleServerOutput);
 
   serverProcess.on("error", (error) => {
-    log(`Server process error: ${error.message}`);
+    log(`Server process error: ${error.message}`, "error");
     dialog.showErrorBox(
       "Server Error",
       `An error occurred with the server process: ${error.message}`
@@ -314,24 +230,35 @@ function runNodeTool(env) {
 
   serverProcess.on("exit", (code, signal) => {
     log(`Server process exited with code ${code} and signal ${signal}`);
-    // if (code !== 0 && !app.isQuitting) {
-    //   dialog.showErrorBox(
-    //     "Server Crashed",
-    //     `The server process has unexpectedly exited.`
-    //   );
-    //   app.exit(0);
-    // }
   });
+}
+
+/**
+ * Check if Ollama server is already running
+ * @returns {Promise<boolean>}
+ */
+async function isOllamaRunning() {
+  try {
+    const response = await fetch("http://localhost:11434/api/version");
+    return response.status === 200;
+  } catch (error) {
+    return false;
+  }
 }
 
 /**
  * Start the Ollama server
  */
-function startOllamaServer() {
-  const ollamaPath = path.join(componentsDir, "ollama", "ollama");
-  log(`Starting Ollama server from: ${ollamaPath}`);
+async function startOllamaServer() {
+  log(`Checking Ollama server status`);
 
-  ollamaProcess = spawn(ollamaPath, ["serve"], { env: env });
+  if (await isOllamaRunning()) {
+    log("Ollama server is already running");
+    return;
+  }
+
+  log(`Starting Ollama server`);
+  ollamaProcess = spawn("ollama", ["serve"], { env: process.env });
 
   ollamaProcess.stdout.on("data", (data) => {
     const output = data.toString().trim();
@@ -350,22 +277,6 @@ function startOllamaServer() {
   ollamaProcess.on("exit", (code, signal) => {
     log(`Ollama process exited with code ${code} and signal ${signal}`);
   });
-}
-
-/**
- * Check if a file exists
- * @param {string} path - The path to check
- * @returns {Promise<boolean>}
- */
-async function checkFileExists(path) {
-  try {
-    await access(path);
-    log(`File exists: ${path}`);
-    return true;
-  } catch {
-    log(`File does not exist: ${path}`);
-    return false;
-  }
 }
 
 /**
@@ -421,59 +332,16 @@ async function downloadFile(url, dest) {
 }
 
 /**
- * Setup Python and dependencies.
- */
-async function setupPython() {
-  const pythonExists = await checkFileExists(pythonExecutable);
-  if (!pythonExists) {
-    throw new Error("Python environment is not available");
-  }
-  await ensureExecutable(pythonExecutable);
-
-  log(`Using Python executable: ${pythonExecutable}`);
-
-  await installRequirements();
-}
-
-/**
  * Start the NodeTool server with improved error handling
  */
 async function startServer() {
   try {
-    log("Starting server");
-    env.PATH = path.join(componentsDir, "ffmpeg");
-    log(`PATH: ${env.PATH}`);
-
     log("Attempting to run NodeTool");
     runNodeTool(env);
   } catch (error) {
     log(`Critical error starting server: ${error.message}`, "error");
     dialog.showErrorBox("Critical Error", error.message);
     app.exit(1);
-  }
-}
-
-/**
- * Ensure that a file is executable
- * @param {string} filePath - Path to the file
- * @returns {Promise<void>}
- */
-async function ensureExecutable(filePath) {
-  try {
-    const stats = await fs.promises.stat(filePath);
-    const currentMode = stats.mode;
-    const executableMode = currentMode | 0o111; // Add executable bit for user, group, and others
-
-    if (currentMode !== executableMode) {
-      log(`Making ${filePath} executable`);
-      await chmod(filePath, executableMode);
-      log(`Successfully made ${filePath} executable`);
-    } else {
-      log(`${filePath} is already executable`);
-    }
-  } catch (error) {
-    log(`Error ensuring ${filePath} is executable: ${error.message}`, "error");
-    throw error;
   }
 }
 
@@ -521,19 +389,22 @@ async function gracefulShutdown() {
 app.on("ready", async () => {
   log("Electron app is ready");
 
-  componentsDir = path.join(app.getPath("userData"), "components");
-  webDir = path.join(componentsDir, "web");
-  if (process.platform === "darwin") {
-    pythonExecutable = path.join(componentsDir, "python_env", "bin", "python");
-  } else {
-    pythonExecutable = path.join(componentsDir, "python_env", "python.exe");
+  createWindow();
+
+  // Check if conda is installed and properly configured
+  const config = getConfig();
+  if (!config.condaPath || !(await isCondaInstalled())) {
+    emitBootMessage("Installing Miniconda...");
+    await installMiniconda();
   }
 
-  createWindow();
-  emitBootMessage("Checking for updates...");
-  await checkForUpdates();
-  emitBootMessage("Setting up Python...");
-  await setupPython();
+  if (!(await condaEnvironmentExists())) {
+    emitBootMessage("Creating Conda environment...");
+    await createCondaEnvironment();
+  }
+
+  await checkAndUpdateNodeTool();
+
   emitBootMessage("Starting Nodetool...");
   startServer();
 });
@@ -612,422 +483,17 @@ function emitServerLog(message) {
 function log(message, level = "info") {
   try {
     const timestamp = new Date().toISOString();
-    const logMessage = `[${timestamp}] [${level.toUpperCase()}] ${message.trim()}`;
+    const logMessage = `[${timestamp}] [${level.toUpperCase()}] ${message.trim()}\n`;
     console[level](logMessage);
     emitServerLog(logMessage);
 
-    // Optionally, you could write logs to a file here
+    // Asynchronously write to log file
+    appendFile(LOG_FILE, logMessage).catch((err) => {
+      console.error("Failed to write to log file:", err);
+    });
   } catch (error) {
     console.error(`Error in log function: ${error.message}`);
   }
-}
-
-/**
- * Check for updates and download necessary packages
- * @returns {Promise<void>}
- */
-async function checkForUpdates() {
-  try {
-    log("Checking for updates");
-    emitUpdateStep("Checking for updates");
-
-    const owner = "nodetool-ai";
-    const repo = "nodetool";
-
-    log("Fetching latest release information");
-    const latestRelease = await fetchLatestRelease(owner, repo);
-    log(`Latest release: ${latestRelease.tag_name}`);
-    const assets = latestRelease.assets;
-
-    const componentsDir = path.join(app.getPath("userData"), "components");
-    mkdir(componentsDir, { recursive: true });
-
-    const system =
-      process.platform === "win32"
-        ? "windows"
-        : process.platform === "darwin"
-        ? "darwin"
-        : process.platform === "linux"
-        ? "linux"
-        : "unknown";
-    const arch = process.arch;
-
-    if (system === "unknown" || system === "linux") {
-      throw new Error("Unsupported platform");
-    }
-
-    log(`Checking components for system: ${system}, arch: ${arch}`);
-    const componentsToUpdate = await getComponentsToUpdate(
-      assets,
-      system,
-      arch,
-      componentsDir
-    );
-
-    if (componentsToUpdate.length > 0) {
-      log(
-        `Components to update: ${componentsToUpdate
-          .map((c) => c.name)
-          .join(", ")}`
-      );
-      emitUpdateStep(
-        `Updating components: ${componentsToUpdate
-          .map((c) => c.name)
-          .join(", ")}`
-      );
-
-      for (const component of componentsToUpdate) {
-        try {
-          log(`Starting update for ${component.name}`);
-          emitUpdateStep(`Downloading ${component.name}`);
-          const strip = component.name === "python_env" ? 0 : 1;
-          await downloadAndExtractComponent(component, componentsDir, strip);
-          if (component.name === "python_env") {
-            await unpackPythonEnv(componentsDir);
-          }
-          log(`Finished updating ${component.name}`);
-          emitUpdateStep(`Finished updating ${component.name}`);
-        } catch (error) {
-          log(`Error updating ${component.name}: ${error.message}`, "error");
-          if (component.name === "python_env" || component.name === "web") {
-            const errorMessage = `
-Error: Failed to update ${component.name}.
-
-Please follow these steps:
-1. Uninstall the app and download the newest release from GitHub:
-   https://github.com/nodetool-ai/nodetool/releases
-
-2. If the problem persists, please report an issue on GitHub with the following logs:
-
-${error.message}
-
-https://github.com/nodetool-ai/nodetool/issues/new
-`;
-            throw new Error(errorMessage);
-          } else {
-            log(
-              `Warning: Failed to update ${component.name}: ${error.message}`,
-              "warn"
-            );
-          }
-        }
-      }
-    } else {
-      log("All components are up to date");
-      emitUpdateStep("All components are up to date", true);
-    }
-  } catch (error) {
-    log(`Error checking for updates: ${error.message}`, "error");
-    log(error.stack, "error");
-    emitUpdateStep(`Error: ${error.message}`, true);
-    dialog.showErrorBox("Update Error", error.message);
-    app.exit(1);
-  }
-}
-
-/**
- * Get components that need to be updated
- * @param {Array<{name: string, browser_download_url: string}>} assets
- * @param {string} system
- * @param {string} arch
- * @param {string} componentsDir
- * @returns {Promise<Array<{name: string, url: string, checksumUrl: string}>>}
- */
-async function getComponentsToUpdate(assets, system, arch, componentsDir) {
-  const componentNames = ["python_env", "web", "ollama", "ffmpeg"];
-
-  const updateChecks = componentNames.map(async (name) => {
-    const assetName = `${name}-${system}-${arch}.zip`;
-    const checksumName = `${name}-${system}-${arch}.sha256`;
-
-    log(`Checking component: ${name}`);
-    log(`Looking for asset: ${assetName}`);
-    log(`Looking for checksum: ${checksumName}`);
-
-    const asset = assets.find((a) => a.name === assetName);
-    const checksumAsset = assets.find((a) => a.name === checksumName);
-
-    if (asset && checksumAsset) {
-      log(`Found asset and checksum for ${name}`);
-
-      if (name === "python_env") {
-        const currentPythonVersion = await getCurrentPythonVersion(
-          componentsDir
-        );
-        if (currentPythonVersion !== PYTHON_VERSION) {
-          log(
-            `Python version mismatch. Current: ${currentPythonVersion}, Required: ${PYTHON_VERSION}`
-          );
-          return {
-            name,
-            url: asset.browser_download_url,
-            checksumUrl: checksumAsset.browser_download_url,
-          };
-        }
-        log(`Python version is up to date: ${currentPythonVersion}`);
-        return null;
-      }
-
-      const [remoteChecksum, localChecksum] = await Promise.all([
-        downloadFileToString(checksumAsset.browser_download_url),
-        getLocalChecksum(componentsDir, name),
-      ]);
-
-      log(`Remote checksum for ${name}: ${remoteChecksum.trim()}`);
-      log(`Local checksum for ${name}: ${localChecksum}`);
-
-      if (remoteChecksum.trim() !== localChecksum) {
-        log(`Checksum mismatch for ${name}, will update`);
-        return {
-          name,
-          url: asset.browser_download_url,
-          checksumUrl: checksumAsset.browser_download_url,
-        };
-      } else {
-        log(`Checksum match for ${name}, no update needed`);
-      }
-    } else {
-      log(`Asset or checksum not found for ${name}`);
-    }
-
-    return null;
-  });
-
-  const results = await Promise.all(updateChecks);
-  const componentsToUpdate = results.filter(Boolean);
-
-  log(
-    `Components to update: ${componentsToUpdate.map((c) => c.name).join(", ")}`
-  );
-  return componentsToUpdate;
-}
-
-/**
- * Get the local checksum for a component
- * @param {string} componentsDir
- * @param {string} componentName
- * @returns {Promise<string>}
- */
-async function getLocalChecksum(componentsDir, componentName) {
-  const checksumPath = path.join(componentsDir, `${componentName}.sha256`);
-  try {
-    return await readFile(checksumPath, "utf-8");
-  } catch (error) {
-    return "";
-  }
-}
-
-/**
- * Download and extract a component package
- * @param {{name: string, url: string, checksumUrl: string}} component
- * @param {string} componentsDir
- * @returns {Promise<void>}
- */
-async function downloadAndExtractComponent(
-  component,
-  componentsDir,
-  strip = 1
-) {
-  const tempFile = path.join(componentsDir, `${component.name}.tmp`);
-  const finalFile = path.join(componentsDir, `${component.name}.zip`);
-  const checksumFile = path.join(componentsDir, `${component.name}.sha256`);
-
-  log(`Downloading ${component.name} from ${component.url}`);
-
-  await downloadFile(component.url, tempFile);
-  const checksum = await downloadFileToString(component.checksumUrl);
-
-  // Verify checksum
-  const fileChecksum = await computeFileHash(tempFile);
-  if (fileChecksum !== checksum.trim()) {
-    throw new Error(
-      `Checksum mismatch for ${
-        component.name
-      }. Expected ${checksum.trim()}, got ${fileChecksum}`
-    );
-  }
-
-  // Rename temp file to final file
-  await rename(tempFile, finalFile);
-
-  // Save checksum
-  await writeFile(checksumFile, checksum);
-
-  // Extract the component
-  log(`Extracting ${component.name} to ${componentsDir}`);
-  await extractZip(finalFile, componentsDir, component.name, strip);
-
-  // Remove the zip file
-  await unlink(finalFile);
-
-  log(`${component.name} extracted successfully`);
-}
-
-/**
- * Compute SHA256 hash of a file
- * @param {string} filePath - Path to the file
- * @returns {Promise<string>}
- */
-async function computeFileHash(filePath) {
-  return new Promise((resolve, reject) => {
-    const hash = crypto.createHash("sha256");
-    const stream = require("fs").createReadStream(filePath);
-    stream.on("data", (data) => hash.update(data));
-    stream.on("end", () => resolve(hash.digest("hex")));
-    stream.on("error", (err) => reject(err));
-  });
-}
-
-/**
- * Extract a zip archive
- * @param {string} archivePath - Path to the zip file
- * @param {string} extractTo - Directory to extract to
- * @param {string} componentName - Name of the component being extracted
- * @param {number} strip - Number of directories to strip from the archive
- * @returns {Promise<void>}
- */
-async function extractZip(archivePath, extractTo, componentName, strip = 1) {
-  log(`Starting extraction of ${archivePath} to ${extractTo}`);
-  const componentDir = path.join(extractTo, componentName);
-
-  await mkdir(componentDir, { recursive: true });
-
-  return new Promise((resolve, reject) => {
-    createReadStream(archivePath)
-      .pipe(unzip.Extract({ path: componentDir }))
-      .on("progress", (entry) => {
-        const progress = entry.fs.processedBytes / entry.fs.totalBytes;
-        emitUpdateProgress(componentName, progress, "Unpacking");
-        entry.autodrain();
-      })
-      .on("close", () => {
-        log(`Finished extraction of ${archivePath} to ${componentDir}`);
-        resolve();
-      })
-      .on("error", (error) => {
-        log(`Error during extraction: ${error.message}`, "error");
-        reject(error);
-      });
-  });
-}
-
-/**
- * Fetch the latest release from GitHub using the native https module
- * @param {string} owner - GitHub repository owner
- * @param {string} repo - GitHub repository name
- * @returns {Promise<any>}
- */
-function fetchLatestRelease(owner, repo) {
-  const apiUrl = `https://api.github.com/repos/${owner}/${repo}/releases/latest`;
-  const headers = {
-    Accept: "application/vnd.github.v3+json",
-    "User-Agent": "NodeTool-Electron-App",
-  };
-
-  return new Promise((resolve, reject) => {
-    const options = {
-      headers: headers,
-    };
-
-    const request = https.get(apiUrl, options, handleResponse);
-    request.on("error", reject);
-
-    function handleResponse(res) {
-      if (res.statusCode === 302) {
-        https
-          .get(res.headers.location, options, handleResponse)
-          .on("error", reject);
-        return;
-      }
-
-      let data = "";
-      res.on("data", (chunk) => {
-        data += chunk;
-      });
-
-      res.on("end", () => {
-        if (res.statusCode >= 200 && res.statusCode < 300) {
-          try {
-            const releaseData = JSON.parse(data);
-            resolve(releaseData);
-          } catch (error) {
-            reject(new Error(`Error parsing JSON: ${error.message}`));
-          }
-        } else {
-          reject(
-            new Error(
-              `Failed to fetch latest release: ${res.statusCode} ${res.statusMessage}`
-            )
-          );
-        }
-      });
-    }
-  });
-}
-
-/**
- * Download a file from a URL and return its contents as a string
- * @param {string} url - The URL to download from
- * @returns {Promise<string>}
- */
-function downloadFileToString(url) {
-  return new Promise((resolve, reject) => {
-    const request = https.get(url, handleResponse);
-    request.on("error", reject);
-
-    function handleResponse(res) {
-      if (res.statusCode === 302) {
-        https.get(res.headers.location, handleResponse).on("error", reject);
-        return;
-      }
-
-      let data = "";
-      res.on("data", (chunk) => {
-        data += chunk;
-      });
-
-      res.on("end", () => {
-        if (res.statusCode >= 200 && res.statusCode < 300) {
-          resolve(data);
-        } else {
-          reject(
-            new Error(
-              `Failed to download file: ${res.statusCode} ${res.statusMessage}`
-            )
-          );
-        }
-      });
-    }
-  });
-}
-
-async function checkNodeToolInstalled() {
-  return new Promise((resolve) => {
-    const checkProcess = spawn(
-      pythonExecutable,
-      [
-        "-c",
-        "import pkg_resources; print(pkg_resources.get_distribution('nodetool').version)",
-      ],
-      { env }
-    );
-
-    let output = "";
-
-    checkProcess.stdout.on("data", (data) => {
-      output += data.toString();
-      console.log("python nodetool version", output);
-    });
-
-    checkProcess.on("close", (code) => {
-      // compare version without the leading v
-      if (code === 0 && output.trim() === VERSION.slice(1)) {
-        resolve(true);
-      } else {
-        resolve(false);
-      }
-    });
-  });
 }
 
 // Add these new event emitter functions
@@ -1055,72 +521,387 @@ function emitUpdateProgress(componentName, progress, action) {
   }
 }
 
-// Add this new function to check the current Python version
-async function getCurrentPythonVersion(componentsDir) {
+/**
+ * Get the Miniconda installation path for the current platform
+ * @returns {string}
+ */
+function getMinicondaPath() {
+  const config = getConfig();
+  if (config.condaPath) {
+    return config.condaPath;
+  }
+  return path.join(app.getPath("userData"), "miniconda3");
+}
+
+/**
+ * Check if Conda is installed in the userData directory
+ * @returns {Promise<boolean>}
+ */
+async function isCondaInstalled() {
+  const config = getConfig();
+  if (!config.condaPath) {
+    return false;
+  }
+
+  const condaPath =
+    process.platform === "win32"
+      ? path.join(config.condaPath, "Scripts", "conda.exe")
+      : path.join(config.condaPath, "bin", "conda");
+
   try {
-    // Check if the Python executable exists
-    const pythonExists = await checkFileExists(pythonExecutable);
-    if (!pythonExists) {
-      log(`Python executable not found at: ${pythonExecutable}`, "warn");
-      return null;
-    }
+    await access(condaPath);
 
-    const result = await new Promise((resolve, reject) => {
-      const pythonProcess = spawn(pythonExecutable, ["-V"]);
-      let output = "";
-
-      pythonProcess.stdout.on("data", (data) => {
-        output += data.toString();
+    // Verify conda is working
+    return new Promise((resolve) => {
+      const condaProcess = spawn(condaPath, ["--version"], {
+        env: {
+          ...process.env,
+          PATH: path.dirname(condaPath) + path.delimiter + process.env.PATH,
+        },
       });
 
-      pythonProcess.stderr.on("data", (data) => {
-        output += data.toString();
+      condaProcess.on("close", (code) => {
+        resolve(code === 0);
       });
 
-      pythonProcess.on("close", (code) => {
-        if (code === 0) {
-          resolve(output.trim());
-        } else {
-          reject(new Error(`Python process exited with code ${code}`));
-        }
-      });
-
-      pythonProcess.on("error", (error) => {
-        reject(new Error(`Failed to start Python process: ${error.message}`));
+      condaProcess.on("error", () => {
+        resolve(false);
       });
     });
-
-    const versionMatch = result.match(/Python (\d+\.\d+\.\d+)/);
-    return versionMatch ? versionMatch[1] : null;
-  } catch (error) {
-    log(`Error getting Python version: ${error.message}`, "error");
-    return null;
+  } catch {
+    return false;
   }
 }
 
-async function unpackPythonEnv(componentsDir) {
-  const condaUnpackScript =
-    process.platform === "win32"
-      ? path.join(componentsDir, "python_env", "Scripts", "conda-unpack.exe")
-      : path.join(componentsDir, "python_env", "bin", "conda-unpack");
+/**
+ * Download and install Miniconda silently to userData directory
+ * @returns {Promise<void>}
+ */
+async function installMiniconda() {
+  // Show information dialog first
+  await dialog.showMessageBox({
+    type: "info",
+    title: "Miniconda Installation",
+    message: "Select Installation Directory for Miniconda",
+    detail:
+      "Miniconda will be installed in a folder at the location you select.\n\nPlease ensure you have at least 3GB of free space available. This installation is necessary to run the Python-based components of NodeTool and will contain all required dependencies.\n\nRecommended location: A drive with plenty of free space, outside of system folders.",
+    buttons: ["Continue"],
+  });
 
-  await ensureExecutable(condaUnpackScript);
+  // Prompt user for installation directory
+  const result = await dialog.showOpenDialog({
+    properties: ["openDirectory"],
+    title: "Select Miniconda Installation Directory",
+    buttonLabel: "Select Folder",
+  });
 
-  return new Promise((resolve, reject) => {
-    const unpackProcess = spawn(condaUnpackScript, [], { env });
-    unpackProcess.stdout.on("data", (data) => {
-      log(data.toString());
+  if (result.canceled) {
+    throw new Error("Miniconda installation cancelled by user");
+  }
+
+  const minicondaPath = path.join(result.filePaths[0], "miniconda3");
+
+  // Save the selected path to config
+  saveConfig({ condaPath: minicondaPath });
+
+  const platform = process.platform;
+  const arch = process.arch;
+  let installerUrl = "";
+  let installerPath = "";
+
+  // Determine installer URL based on platform and architecture
+  if (platform === "win32") {
+    installerUrl = `https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-${
+      arch === "x64" ? "x86_64" : "x86"
+    }.exe`;
+    installerPath = path.join(os.tmpdir(), "Miniconda3-latest-Windows.exe");
+  } else if (platform === "darwin") {
+    const archSuffix = arch === "arm64" ? "arm64" : "x86_64";
+    installerUrl = `https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-${archSuffix}.sh`;
+    installerPath = path.join(os.tmpdir(), "Miniconda3-latest-MacOSX.sh");
+  } else {
+    throw new Error("Unsupported platform for Miniconda installation.");
+  }
+
+  log(`Downloading Miniconda from ${installerUrl}`);
+  emitBootMessage("Downloading Miniconda...");
+
+  // Download the installer
+  await downloadFile(installerUrl, installerPath);
+  log("Miniconda installer downloaded successfully");
+
+  // Install Miniconda silently
+  if (platform === "win32") {
+    await new Promise((resolve, reject) => {
+      const installProcess = spawn(
+        installerPath,
+        [
+          "/S",
+          "/D=" + minicondaPath,
+          "/RegisterPython=0", // Don't register as system Python
+          "/AddToPath=0", // Don't modify system PATH
+        ],
+        {
+          shell: true,
+        }
+      );
+
+      installProcess.on("close", (code) => {
+        if (code === 0) {
+          resolve();
+        } else {
+          reject(new Error(`Miniconda installation failed with code ${code}`));
+        }
+      });
+
+      installProcess.on("error", reject);
     });
-    unpackProcess.stderr.on("data", (data) => {
-      log(data.toString(), "error");
+  } else {
+    // Make the installer executable
+    await chmod(installerPath, 0o755);
+
+    await new Promise((resolve, reject) => {
+      const installProcess = spawn("bash", [
+        installerPath,
+        "-b", // batch mode (no user interaction)
+        "-p", // prefix
+        minicondaPath,
+      ]);
+
+      installProcess.stdout.on("data", (data) => {
+        log(data.toString());
+      });
+
+      installProcess.stderr.on("data", (data) => {
+        log(data.toString(), "error");
+      });
+
+      installProcess.on("close", (code) => {
+        if (code === 0) {
+          resolve();
+        } else {
+          reject(new Error(`Miniconda installation failed with code ${code}`));
+        }
+      });
+
+      installProcess.on("error", reject);
     });
-    unpackProcess.on("close", (code) => {
+  }
+
+  // Update environment variables
+  const condaBinPath =
+    platform === "win32"
+      ? path.join(minicondaPath, "Scripts")
+      : path.join(minicondaPath, "bin");
+
+  env.PATH = `${condaBinPath}${path.delimiter}${env.PATH}`;
+
+  // Initialize conda for the shell
+  await new Promise((resolve, reject) => {
+    const initProcess = spawn(
+      path.join(condaBinPath, platform === "win32" ? "conda.exe" : "conda"),
+      ["init"]
+    );
+
+    initProcess.on("close", (code) => {
       if (code === 0) {
-        log("conda-unpack completed successfully");
         resolve();
       } else {
-        reject(new Error(`conda-unpack exited with code ${code}`));
+        reject(new Error("Failed to initialize conda"));
       }
+    });
+
+    initProcess.on("error", reject);
+  });
+
+  log("Miniconda installed successfully");
+}
+
+/**
+ * Check if Conda environment exists
+ * @returns {Promise<boolean>}
+ */
+async function condaEnvironmentExists() {
+  const condaPath =
+    process.platform === "win32"
+      ? path.join(getMinicondaPath(), "Scripts", "conda.exe")
+      : path.join(getMinicondaPath(), "bin", "conda");
+
+  const checkEnvProcess = spawn(condaPath, ["env", "list", "--json"]);
+
+  return new Promise((resolve, reject) => {
+    let output = "";
+
+    checkEnvProcess.stdout.on("data", (data) => {
+      output += data.toString();
+    });
+
+    checkEnvProcess.on("close", (code) => {
+      if (code === 0) {
+        try {
+          const envList = JSON.parse(output);
+          const envName = "nodetool";
+          const exists = envList.envs.some(
+            (env) => env.endsWith(envName) || env === envName
+          );
+          log(`Checking if conda environment '${envName}' exists: ${exists}`);
+          resolve(exists);
+        } catch (error) {
+          log("Failed to parse conda environment list", "error");
+          reject(new Error("Failed to parse conda environment list"));
+        }
+      } else {
+        log("Failed to list conda environments", "error");
+        reject(new Error("Failed to list conda environments"));
+      }
+    });
+
+    checkEnvProcess.on("error", (error) => {
+      log(`Error checking conda environment: ${error.message}`, "error");
+      reject(error);
     });
   });
 }
+
+/**
+ * Create Conda environment from the environment.yml file
+ * @returns {Promise<void>}
+ */
+async function createCondaEnvironment() {
+  const envFilePath = path.join(resourcesPath, "environment.yaml");
+  const minicondaPath = getMinicondaPath();
+  const condaPath =
+    process.platform === "win32"
+      ? path.join(minicondaPath, "Scripts", "conda.exe")
+      : path.join(minicondaPath, "bin", "conda");
+
+  // Create the Conda environment
+  log("Creating Conda environment...");
+  emitBootMessage("Creating Conda environment...");
+
+  await new Promise((resolve, reject) => {
+    const createEnvProcess = spawn(condaPath, [
+      "env",
+      "create",
+      "--file",
+      envFilePath,
+      "--json",
+    ]);
+
+    createEnvProcess.stdout.on("data", (buffer) => {
+      const data = buffer.toString();
+      try {
+        const jsonData = JSON.parse(data);
+        if (jsonData.progress) {
+          emitUpdateProgress(
+            jsonData.progress.name,
+            jsonData.progress.percentage,
+            "Installing"
+          );
+        }
+        log(JSON.stringify(jsonData));
+      } catch (error) {
+        log("Failed to parse conda environment create output", "error");
+      }
+    });
+
+    createEnvProcess.stderr.on("data", (data) => {
+      log(data.toString(), "error");
+    });
+
+    createEnvProcess.on("close", (code) => {
+      if (code === 0) {
+        resolve();
+      } else {
+        reject(new Error("Failed to create Conda environment"));
+      }
+    });
+
+    createEnvProcess.on("error", reject);
+  });
+
+  log(`Conda environment created successfully`);
+}
+
+// Add these constants
+const CONFIG_FILE = path.join(app.getPath("userData"), "config.json");
+
+// Add this function to handle config operations
+function getConfig() {
+  try {
+    const config = JSON.parse(fs.readFileSync(CONFIG_FILE, "utf8"));
+    return config;
+  } catch {
+    return {};
+  }
+}
+
+function saveConfig(config) {
+  fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2));
+}
+
+/**
+ * Check and update nodetool package version
+ * @returns {Promise<void>}
+ */
+async function checkAndUpdateNodeTool() {
+  const minicondaPath = getMinicondaPath();
+  const envName = "nodetool";
+  const pipPath =
+    process.platform === "win32"
+      ? path.join(minicondaPath, "envs", envName, "Scripts", "pip.exe")
+      : path.join(minicondaPath, "envs", envName, "bin", "pip");
+
+  // Get current installed version
+  const getCurrentVersion = spawn(pipPath, ["show", "nodetool"]);
+  let currentVersion = null;
+
+  await new Promise((resolve) => {
+    getCurrentVersion.stdout.on("data", (data) => {
+      const versionMatch = data.toString().match(/Version:\s*([^\s]+)/);
+      if (versionMatch) {
+        currentVersion = versionMatch[1];
+      }
+    });
+
+    getCurrentVersion.on("close", resolve);
+  });
+
+  if (!currentVersion || currentVersion < VERSION) {
+    log(`Updating nodetool from ${currentVersion || "none"} to ${VERSION}`);
+    emitBootMessage(`Updating nodetool to version ${VERSION}...`);
+
+    await new Promise((resolve, reject) => {
+      const updateProcess = spawn(pipPath, [
+        "install",
+        "--upgrade",
+        `nodetool==${VERSION}`,
+      ]);
+
+      updateProcess.stdout.on("data", (data) => log(data.toString()));
+      updateProcess.stderr.on("data", (data) => log(data.toString(), "error"));
+
+      updateProcess.on("close", (code) => {
+        if (code === 0) {
+          log("nodetool package updated successfully");
+          resolve();
+        } else {
+          reject(new Error("Failed to update nodetool package"));
+        }
+      });
+
+      updateProcess.on("error", reject);
+    });
+  }
+}
+
+// Add these constants near the top with other constants
+const LOG_FILE = path.join(app.getPath("userData"), "nodetool.log");
+
+// Add new IPC handler to get log file path
+ipcMain.handle("get-log-file-path", () => LOG_FILE);
+
+// Add new IPC handler to open log file
+ipcMain.handle("open-log-file", () => {
+  shell.showItemInFolder(LOG_FILE);
+});

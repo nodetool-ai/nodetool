@@ -8,7 +8,11 @@
     "files": [
         "index.js",
         "preload.js",
-        "index.html"
+        "index.html",
+        "environment.yaml"
+    ],
+    "extraFiles": [
+        "web/**/*"
     ],
     "mac": {
         "category": "public.app-category.developer-tools",

@@ -29,6 +29,13 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-central-1
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
@@ -46,43 +53,16 @@ jobs:
           miniconda-version: "latest"
           python-version: ${{ env.PYTHON_VERSION }}
 
-      - name: Set up build tools
+      - name: Build and Package
         shell: bash -l {0}
         run: |
-          python build.py --step setup --python-version ${{ env.PYTHON_VERSION }}
-
-      - name: Package python
-        shell: bash -l {0}
-        run: |
-          python build.py --step python --python-version ${{ env.PYTHON_VERSION }}
-
-      - name: Package ffmpeg
-        shell: bash -l {0}
-        run: |
-          python build.py --step ffmpeg --python-version ${{ env.PYTHON_VERSION }}
-
-      - name: Package ollama
-        shell: bash -l {0}
-        run: |
-          python build.py --step ollama --python-version ${{ env.PYTHON_VERSION }}
-
-      - name: Package react
-        shell: bash -l {0}
-        run: |
-          python build.py --step react --python-version ${{ env.PYTHON_VERSION }}
-
-      - name: Package electron
-        shell: bash -l {0}
-        run: |
-          python build.py --step electron --python-version ${{ env.PYTHON_VERSION }}
+          python build.py --python-version ${{ env.PYTHON_VERSION }}
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: build-artifacts-${{ matrix.platform }}-${{ matrix.arch }}
           path: |
-            build/*.zip
-            build/*.sha256
             build/**/*.exe
             build/**/*.dmg
 
@@ -99,7 +79,5 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            **/*.zip
             **/*.exe
             **/*.dmg
-            **/*.sha256

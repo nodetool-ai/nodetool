@@ -1,6 +1,6 @@
 import argparse
-import traceback
 import logging
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -9,10 +9,11 @@ import threading
 import subprocess
 import threading
 import zipfile
-from typing import List, Optional, Callable
-import hashlib
-import os
+from typing import Any, List
 import re
+from textwrap import dedent
+
+import yaml
 
 # Set up logging
 logging.basicConfig(
@@ -21,7 +22,28 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 PROJECT_ROOT = Path(__file__).parent.resolve()
-CONDA_ENV = "nodetool"
+
+
+def parse_requirements(file_path):
+    """Parse requirements.txt and return clean package requirements."""
+    clean_requirements = []
+
+    with open(file_path, "r") as f:
+        for line in f:
+            # Skip empty lines and comments
+            if not line.strip() or line.startswith("#"):
+                continue
+
+            # Split on semicolon and take only the first part
+            requirement = line.split(";")[0].strip()
+
+            # Skip lines that are just URLs or other special cases
+            if requirement.startswith("--") or not requirement:
+                continue
+
+            clean_requirements.append(requirement)
+
+    return clean_requirements
 
 
 class BuildError(Exception):
@@ -33,17 +55,12 @@ class BuildError(Exception):
 class Build:
     def __init__(
         self,
-        in_docker: bool = False,
         clean_build: bool = False,
-        platform: str | None = None,
-        arch: str | None = None,
         python_version: str = "3.11.10",
     ):
         """Initialize Build configuration."""
-        if platform is None:
-            platform = system().lower()
-        if arch is None:
-            arch = machine().lower()
+        platform = system().lower()
+        arch = machine().lower()
 
         # Normalize architecture
         if arch == "amd64":
@@ -53,20 +70,14 @@ class Build:
         if arch == "aarch64":
             arch = "arm64"
 
-        self.in_docker = in_docker
         self.clean_build = clean_build
         self.platform = platform
         self.arch = arch
         self.python_version = python_version
 
-        if in_docker:
-            self.BUILD_DIR = Path("/build")
-            self.ELECTRON_DIR = Path("/app/electron")
-            self.WEB_DIR = Path("/app/web")
-        else:
-            self.BUILD_DIR = PROJECT_ROOT / "build"
-            self.ELECTRON_DIR = PROJECT_ROOT / "electron"
-            self.WEB_DIR = PROJECT_ROOT / "web"
+        self.BUILD_DIR = PROJECT_ROOT / "build"
+        self.ELECTRON_DIR = PROJECT_ROOT / "electron"
+        self.WEB_DIR = PROJECT_ROOT / "web"
 
     def download_and_unzip(self, url: str, paths: List[str], target_dir: Path) -> None:
         """Download and extract files from a zip archive."""
@@ -82,63 +93,19 @@ class Build:
                 if "/" in path:
                     self.move_file(target_dir / path, target_dir)
 
-    def ffmpeg(self) -> None:
-        """Download and package FFmpeg binaries."""
-        logger.info("Downloading FFmpeg")
-        ffmpeg_dir = self.BUILD_DIR / "ffmpeg"
-        self.create_directory(ffmpeg_dir)
-
-        if self.platform == "windows":
-            url = "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip"
-            paths = [
-                "ffmpeg-master-latest-win64-gpl/bin/ffmpeg.exe",
-                "ffmpeg-master-latest-win64-gpl/bin/ffprobe.exe",
-            ]
-            self.download_and_unzip(url, paths, ffmpeg_dir)
-
-        elif self.platform == "darwin":
-
-            self.download_and_unzip(
-                "https://evermeet.cx/ffmpeg/ffmpeg-7.0.2.zip", ["ffmpeg"], ffmpeg_dir
-            )
-            self.download_and_unzip(
-                "https://evermeet.cx/ffmpeg/ffprobe-7.0.2.zip", ["ffprobe"], ffmpeg_dir
-            )
-        else:
-            raise BuildError(f"Unsupported platform: {self.platform}")
-
-        # Package FFmpeg binaries
-        self.package_component("ffmpeg", ffmpeg_dir)
-
     def run_command(
         self,
         command: list[str],
         cwd: str | Path | None = None,
         env: dict | None = None,
-        in_docker: bool | None = None,
         ignore_error: bool = False,
     ) -> int:
-        """Execute a shell command and stream output."""
-        should_run_in_docker = in_docker if in_docker is not None else self.in_docker
-
-        if should_run_in_docker:
-            command = [
-                "docker",
-                "run",
-                "--rm",
-                "-w",
-                cwd or "/app",
-                "--mount",
-                "type=bind,source=/tmp/docker-build,target=/build",
-                "nodetool-builder",
-            ] + command
-
         logger.info(" ".join(command))
 
         process = subprocess.Popen(
             " ".join(command),
             shell=True,
-            cwd=None if should_run_in_docker else cwd,
+            cwd=cwd,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             env=env,
@@ -172,162 +139,55 @@ class Build:
 
         return return_code
 
-    def create_directory(self, path: Path) -> None:
+    def create_directory(self, path: Path, parents: bool = True) -> None:
         """Create a directory."""
-        self.run_command(["mkdir", str(path)], ignore_error=True)
+        logger.info(f"Creating directory: {path}")
+        path.mkdir(parents=parents, exist_ok=True)
 
     def copy_file(self, src: Path, dst: Path) -> None:
         """Copy a file."""
-        self.run_command(["cp", str(src), str(dst)])
+        logger.info(f"Copying file: {src} to {dst}")
+        shutil.copy2(src, dst)
 
     def copy_tree(self, src: Path, dst: Path) -> None:
         """Copy a directory tree."""
-        self.run_command(["cp", "-r", str(src), str(dst)])
+        logger.info(f"Copying tree: {src} to {dst}")
+        shutil.copytree(src, dst, dirs_exist_ok=True)
 
     def remove_directory(self, path: Path) -> None:
         """Remove a directory and its contents."""
-        self.run_command(["rm", "-rf", str(path)])
+        logger.info(f"Removing directory: {path}")
+        shutil.rmtree(path, ignore_errors=True)
 
     def remove_file(self, path: Path) -> None:
         """Remove a file."""
-        self.run_command(["rm", "-f", str(path)])
+        logger.info(f"Removing file: {path}")
+        try:
+            path.unlink()
+        except FileNotFoundError:
+            pass
 
     def move_file(self, src: Path, dst: Path) -> None:
         """Move a file."""
-        self.run_command(["mv", str(src), str(dst)])
+        logger.info(f"Moving file: {src} to {dst}")
+        shutil.move(src, dst)
 
     def setup(self) -> None:
         """Set up the build environment."""
-        if self.in_docker:
-            logger.info("Running build in Docker container")
-            self.run_command(["mkdir", "-p", "/tmp/docker-build"], in_docker=False)
-            self.run_command(["chmod", "777", "/tmp/docker-build"], in_docker=False)
-            self.run_command(
-                [
-                    "docker",
-                    "build",
-                    "-t",
-                    "nodetool-builder",
-                    "-f",
-                    "Dockerfile.build",
-                    ".",
-                ],
-                in_docker=False,
-            )
-        else:
-            logger.info("Running build locally")
-            self.initialize_conda_env()
+
+        if self.clean_build:
+            try:
+                self.remove_directory(self.BUILD_DIR)
+            except BuildError:
+                pass
+
+        self.initialize_conda_env()
 
         try:
             self.create_directory(self.BUILD_DIR)
         except BuildError as e:
             logger.error(f"Failed to create build directory: {e}")
             sys.exit(1)
-
-    def ollama(self) -> None:
-        """Download and package Ollama."""
-        logger.info("Downloading Ollama")
-        if self.platform == "windows":
-            self.run_command(
-                [
-                    "curl",
-                    "-L",
-                    "https://github.com/ollama/ollama/releases/download/v0.3.13/ollama-windows-amd64.zip",
-                    "-o",
-                    "ollama.zip",
-                ]
-            )
-            self.run_command(
-                ["unzip", "ollama.zip", "-d", str(self.BUILD_DIR / "ollama")]
-            )
-            # remove cuda11 dlls
-            self.remove_file(
-                self.BUILD_DIR / "ollama" / "lib" / "ollama" / "rocblas.dll"
-            )
-            self.remove_file(
-                self.BUILD_DIR / "ollama" / "lib" / "ollama" / "cublas64_11.dll"
-            )
-            self.remove_file(
-                self.BUILD_DIR / "ollama" / "lib" / "ollama" / "cublasLt64_11.dll"
-            )
-            self.remove_directory(
-                self.BUILD_DIR / "ollama" / "lib" / "ollama" / "runners" / "cuda_v11"
-            )
-            self.remove_directory(
-                self.BUILD_DIR / "ollama" / "lib" / "ollama" / "rocblas"
-            )
-            self.remove_directory(
-                self.BUILD_DIR / "ollama" / "lib" / "ollama" / "runners" / "rocm_v6.1"
-            )
-
-            # Package the ollama directory
-            self.package_component("ollama", self.BUILD_DIR / "ollama")
-        elif self.platform == "darwin":
-            self.run_command(
-                [
-                    "curl",
-                    "-L",
-                    "https://github.com/ollama/ollama/releases/download/v0.3.13/ollama-darwin",
-                    "-o",
-                    str(self.BUILD_DIR / "ollama-darwin"),
-                ]
-            )
-            self.create_directory(self.BUILD_DIR / "ollama")
-            self.move_file(self.BUILD_DIR / "ollama-darwin", self.BUILD_DIR / "ollama")
-            self.package_component("ollama", self.BUILD_DIR / "ollama")
-        else:
-            raise BuildError(f"Unsupported platform: {self.platform}")
-
-    def python(self) -> None:
-        """Package Python environment with base packages."""
-        logger.info("Setting up and packing Python environment")
-
-        base_packages = [
-            "conda-pack",
-        ]
-
-        # Install base packages
-        self.run_command(
-            ["conda", "run", "-n", CONDA_ENV, "pip", "install", "--no-cache-dir"]
-            + base_packages
-        )
-
-        # Use conda-pack to create an environment directory
-        python_env_zip = self.BUILD_DIR / f"python_env-{self.platform}-{self.arch}.zip"
-        if python_env_zip.exists():
-            self.remove_file(python_env_zip)
-
-        self.run_command(
-            [
-                "conda",
-                "run",
-                "-n",
-                CONDA_ENV,
-                "conda-pack",
-                "-j",
-                "8",
-                "-o",
-                str(python_env_zip),
-                "--format",
-                "zip",
-            ]
-        )
-
-        # Create checksum file for python_env.zip
-        self.write_checksum_file(python_env_zip)
-
-    def react(self) -> None:
-        """Build React app."""
-        logger.info("Building React app")
-        web_dir = str(PROJECT_ROOT / "web")
-        self.run_command(["npm", "ci"], cwd=web_dir)
-        self.run_command(["npm", "run", "build"], cwd=web_dir)
-
-        # Copy the build output to BUILD_DIR / "web"
-        self.copy_tree(self.WEB_DIR / "dist", self.BUILD_DIR / "web")
-
-        # Package the web directory
-        self.package_component("web", self.BUILD_DIR / "web")
 
     def electron(self) -> None:
         """Build Electron app."""
@@ -344,8 +204,7 @@ class Build:
         for file in files_to_copy:
             self.copy_file(self.ELECTRON_DIR / file, self.BUILD_DIR)
 
-        self.copy_file(PROJECT_ROOT / "requirements.txt", self.BUILD_DIR)
-
+        self.copy_file(PROJECT_ROOT / "environment.yaml", self.BUILD_DIR)
         build_command = [
             "npm",
             "exec",
@@ -364,98 +223,266 @@ class Build:
         self.run_command(build_command, cwd=self.BUILD_DIR)
         logger.info("Electron app built successfully")
 
+    def build_conda_package(
+        self,
+        name: str,
+        recipe_dir: Path,
+        meta_yaml: dict[str, Any],
+        build_script: str | None = None,
+        source_path: Path | None = None,
+    ) -> None:
+        """Build a conda package given the package details."""
+        logger.info(f"Building conda package: {name}")
+
+        # Handle source path if provided
+        if source_path:
+            meta_yaml["source"] = {"path": str(source_path)}
+
+        # Write build script
+        if build_script:
+            script_file = "bld.bat" if self.platform == "windows" else "build.sh"
+            script_path = recipe_dir / script_file
+            with open(script_path, "w") as f:
+                f.write(dedent(build_script))
+            if self.platform != "windows":
+                self.run_command(["chmod", "+x", str(script_path)])
+
+        # Write meta.yaml
+        meta_yaml_path = recipe_dir / "meta.yaml"
+        with open(meta_yaml_path, "w") as f:
+            yaml.dump(meta_yaml, f, sort_keys=False, default_flow_style=False)
+
+        # Build the conda package
+        channel_dir = self.BUILD_DIR / "channel"
+        self.create_directory(channel_dir)
+
+        build_command = [
+            "conda-build",
+            "-c",
+            "conda-forge",
+            str(recipe_dir),
+            "--output-folder",
+            str(channel_dir),
+            "--python",
+            self.python_version,
+        ]
+
+        self.run_command(build_command)
+        logger.info(f"Conda package '{name}' built successfully")
+
     def initialize_conda_env(self) -> None:
         """Initialize Conda environment."""
         logger.info("Initializing clean conda environment")
 
-        # Create new environment
-        self.run_command(
-            ["conda", "create", "-n", CONDA_ENV, f"python={self.python_version}", "-y"],
-            ignore_error=True,
+        # install conda-build
+        self.run_command(["conda", "install", "conda-build", "-y"])
+
+    def get_version(self) -> str:
+        """Get the version of the project."""
+        with open(PROJECT_ROOT / "pyproject.toml", "r") as f:
+            match = re.search(r'^version = "(.*)"$', f.read(), re.MULTILINE)
+            if match:
+                return match.group(1)
+            else:
+                raise BuildError("Version not found in pyproject.toml")
+
+    def ollama(self) -> None:
+        """Build conda package for ollama-binary."""
+        logger.info("Building ollama-binary conda package")
+
+        ollama_version = "0.3.13"
+        ollama_name = "ollama-binary"
+        ollama_recipe_dir = self.BUILD_DIR / "conda-recipe-ollama-binary"
+        binary_dir = ollama_recipe_dir / "ollama-bin"
+        self.create_directory(binary_dir)
+
+        # Download and handle Ollama binaries
+        if self.platform == "windows":
+            self.run_command(
+                [
+                    "curl",
+                    "-L",
+                    f"https://github.com/ollama/ollama/releases/download/v{ollama_version}/ollama-windows-amd64.zip",
+                    "-o",
+                    str(binary_dir / "ollama.zip"),
+                ]
+            )
+            self.run_command(
+                ["unzip", str(binary_dir / "ollama.zip"), "-d", str(binary_dir)]
+            )
+        elif self.platform == "darwin":
+            ollama_binary = binary_dir / "ollama"
+            self.run_command(
+                [
+                    "curl",
+                    "-L",
+                    f"https://github.com/ollama/ollama/releases/download/v{ollama_version}/ollama-darwin",
+                    "-o",
+                    str(ollama_binary),
+                ]
+            )
+            self.run_command(["chmod", "+x", str(ollama_binary)])
+        else:
+            raise BuildError(f"Unsupported platform: {self.platform}")
+
+        if self.platform in ["darwin", "linux"]:
+            ollama_build_script = """
+            #!/bin/bash
+            mkdir -p $PREFIX/bin
+            cp $RECIPE_DIR/ollama-bin/ollama $PREFIX/bin/
+            chmod +x $PREFIX/bin/ollama
+            """
+        else:  # Windows
+            ollama_build_script = """
+            if not exist %PREFIX%\\Scripts mkdir %PREFIX%\\Scripts
+            xcopy /E /I %RECIPE_DIR%/ollama-bin\\* %PREFIX%\\Scripts\\
+            """
+
+        ollama_meta = {
+            "package": {
+                "name": ollama_name,
+                "version": ollama_version,
+            },
+            "build": {
+                "binary_relocation": False,
+                "detect_binary_files_with_prefix": False,
+                "number": 0,
+            },
+            "about": {
+                "home": "https://github.com/ollama/ollama",
+                "license": "MIT",
+                "summary": "Ollama binary package",
+            },
+        }
+
+        self.build_conda_package(
+            name=ollama_name,
+            recipe_dir=ollama_recipe_dir,
+            build_script=ollama_build_script,
+            meta_yaml=ollama_meta,
         )
 
-    def run_build_step(self, step_func: Callable[[], None]) -> None:
-        """Execute a build step and handle errors."""
+    def web(self) -> None:
+        """Build web app."""
+        logger.info("Building web app")
+        self.run_command(["npm", "ci"], cwd=self.WEB_DIR)
+        self.run_command(["npm", "run", "build"], cwd=self.WEB_DIR)
+
+        self.copy_tree(self.WEB_DIR / "dist", self.BUILD_DIR / "web")
+
+    def upload(self) -> None:
+        """Create conda channel index and upload to S3 with locking mechanism."""
+        logger.info("Creating conda channel index")
+
+        # Create a unique lock file name based on timestamp and random string
+        import uuid
+
+        lock_file = f"channel-lock-{uuid.uuid4()}.lock"
+        s3_lock_path = "s3://nodetool-conda/" + lock_file
+
         try:
-            step_func()
-        except BuildError as e:
-            logger.error(f"Build step failed: {step_func.__name__}")
-            logger.error(str(e))
-            sys.exit(1)
-        except Exception as e:
-            logger.error(f"Unexpected error in {step_func.__name__}: {str(e)}")
-            logger.error(traceback.format_exc())
-            sys.exit(1)
+            # Try to acquire lock by creating a lock file in S3
+            logger.info("Attempting to acquire lock...")
+            result = self.run_command(
+                [
+                    "aws",
+                    "s3api",
+                    "put-object",
+                    "--bucket",
+                    "nodetool-conda",
+                    "--key",
+                    lock_file,
+                ],
+                ignore_error=True,
+            )
 
-    def run(self) -> None:
-        """Run all build steps."""
-        build_steps = [
-            self.setup,
-            self.python,
-            self.react,
-            self.ffmpeg,
-            self.ollama,
-            self.electron,
-        ]
-        try:
-            if self.clean_build:
-                logger.info("Cleaning build directory")
-                self.remove_directory(self.BUILD_DIR)
+            if result != 0:
+                raise BuildError(
+                    "Failed to acquire lock. Another upload might be in progress."
+                )
 
-            for step_func in build_steps:
-                self.run_build_step(step_func)
+            # Download current channel metadata
+            logger.info("Downloading existing channel metadata")
+            channel_dir = self.BUILD_DIR / "channel"
+            self.run_command(
+                [
+                    "aws",
+                    "s3",
+                    "sync",
+                    "s3://nodetool-conda/",
+                    str(channel_dir),
+                    "--exclude",
+                    "*",
+                    "--include",
+                    "*.json",
+                ],
+                ignore_error=True,
+            )
 
-            logger.info("Build completed successfully")
-        except BuildError as e:
-            logger.error(f"Build failed: {str(e)}")
-            sys.exit(1)
-        except Exception as e:
-            logger.error(f"Unexpected error: {str(e)}")
-            logger.error("Stacktrace:")
-            logger.error(traceback.format_exc())
-            sys.exit(1)
+            # Create platform-specific directories and move packages
+            platform_dirs = {
+                "linux": ["linux-64", "linux-aarch64"],
+                "darwin": ["osx-64", "osx-arm64"],
+                "windows": ["win-64"],
+                "noarch": ["noarch"],
+            }
 
-    def compute_hash(self, path: Path) -> str:
-        """Compute SHA256 hash of the file content."""
-        hash_sha256 = hashlib.sha256()
-        if path.is_file():
-            with open(path, "rb") as f:
-                for chunk in iter(lambda: f.read(4096), b""):
-                    hash_sha256.update(chunk)
-        else:
-            raise BuildError(f"Invalid path: {path}")
-        return hash_sha256.hexdigest()
+            for platform_dirs in platform_dirs.values():
+                for dir_name in platform_dirs:
+                    self.create_directory(channel_dir / dir_name)
 
-    def write_checksum_file(self, file_path: Path) -> None:
-        """Write a SHA256 checksum file for the given file."""
-        checksum = self.compute_hash(file_path)
-        checksum_file_path = file_path.with_suffix(".sha256")
-        with open(checksum_file_path, "w") as f:
-            f.write(checksum)
+            # Move packages to appropriate directories based on their platform/arch
+            for package in channel_dir.glob("*.tar.bz2"):
+                package_name = package.name
+                if "noarch" in package_name:
+                    target_dir = channel_dir / "noarch"
+                else:
+                    # Determine target directory based on platform and arch
+                    if self.platform == "darwin":
+                        target_dir = channel_dir / f"osx-{self.arch}"
+                    elif self.platform == "linux":
+                        arch_name = "aarch64" if self.arch == "arm64" else "64"
+                        target_dir = channel_dir / f"linux-{arch_name}"
+                    else:  # windows
+                        target_dir = channel_dir / "win-64"
 
-    def package_component(self, name: str, source_dir: Path | None = None) -> None:
-        """Package a component directory into a zip archive and create checksum file."""
-        logger.info(f"Packing {name}")
+                if package.parent != target_dir:
+                    self.move_file(package, target_dir / package_name)
 
-        if source_dir is None:
-            raise BuildError("source_dir is required for zip archives")
+            # Create channel index
+            self.run_command(["conda", "index", str(channel_dir)])
 
-        # Create zip archive of the source_dir
-        archive_name = f"{name}-{self.platform}-{self.arch}.zip"
-        archive_path = self.BUILD_DIR / archive_name
+            # Upload only new/modified files
+            logger.info("Uploading channel updates to S3")
+            self.run_command(
+                [
+                    "aws",
+                    "s3",
+                    "sync",
+                    str(channel_dir) + "/",
+                    "s3://nodetool-conda/",
+                    "--size-only",  # Only upload files that differ in size
+                    "--exact-timestamps",  # Use exact timestamp comparison
+                ]
+            )
 
-        with zipfile.ZipFile(archive_path, "w", zipfile.ZIP_DEFLATED) as zipf:
-            for root, _, files in os.walk(source_dir):
-                for file in files:
-                    file_path = os.path.join(root, file)
-                    arcname = os.path.relpath(file_path, source_dir)
-                    zipf.write(file_path, arcname)
+        finally:
+            # Always clean up the lock file
+            logger.info("Releasing lock...")
+            self.run_command(
+                [
+                    "aws",
+                    "s3api",
+                    "delete-object",
+                    "--bucket",
+                    "nodetool-conda",
+                    "--key",
+                    lock_file,
+                ],
+                ignore_error=True,
+            )
 
-        # Create checksum file for the archive
-        self.write_checksum_file(archive_path)
-
-        # Remove the source directory
-        self.remove_directory(source_dir)
+        logger.info("Channel upload completed successfully")
 
 
 def main() -> None:
@@ -469,21 +496,14 @@ def main() -> None:
         help="Clean the build directory before running",
     )
     parser.add_argument(
-        "--docker", action="store_true", help="Run the build in a Docker container"
-    )
-    parser.add_argument(
-        "--platform",
-        choices=["darwin", "linux", "windows"],
-        help="Target platform for the build (darwin, linux, or windows)",
-    )
-    parser.add_argument(
-        "--arch",
-        choices=["x64", "ia32", "armv7l", "arm64"],
-        help="Target architecture for the build",
-    )
-    parser.add_argument(
         "--step",
-        choices=["setup", "python", "react", "electron", "ffmpeg", "ollama"],
+        choices=[
+            "setup",
+            "electron",
+            "ollama",
+            "web",
+            "upload",
+        ],
         help="Run a specific build step",
     )
     parser.add_argument(
@@ -500,22 +520,23 @@ def main() -> None:
         sys.exit(1)
 
     build = Build(
-        in_docker=args.docker,
         clean_build=args.clean,
-        platform=args.platform,
-        arch=args.arch,
         python_version=args.python_version,
     )
 
     if args.step:
         step_method = getattr(build, args.step, None)
         if step_method:
-            build.run_build_step(step_method)
+            step_method()
         else:
             logger.error(f"Invalid build step: {args.step}")
             sys.exit(1)
     else:
-        build.run()
+        build.setup()
+        build.ollama()
+        build.web()
+        build.upload()
+        build.electron()
 
 
 if __name__ == "__main__":

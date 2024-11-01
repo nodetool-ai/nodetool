@@ -73,13 +73,14 @@
       }
 
       #log-container {
-        /* position: fixed; */
-        bottom: 0;
+        display: flex;
+        flex-direction: column;
+        bottom: -20px;
         left: 0;
         right: 0;
         background-color: #212121;
         transition: height 0.3s ease-out;
-        height: 0px;
+        height: 30px;
         overflow: hidden;
         z-index: 1000;
       }
@@ -98,7 +99,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 12px;
+        font-size: 10px;
         font-family: "Inter", sans-serif;
         font-weight: 500;
         text-transform: uppercase;
@@ -114,7 +115,7 @@
       }
 
       #log {
-        height: 170px;
+        flex: 1;
         overflow-y: auto;
         color: #fff;
         padding: 10px;
@@ -257,6 +258,42 @@
         background-color: #4caf50;
         transition: width 0.3s ease;
       }
+
+      #log-controls {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0 10px;
+        background-color: #2a2a2a;
+        position: sticky;
+        top: 0;
+        z-index: 1;
+      }
+
+      #open-log-file {
+        display: none;
+      }
+      
+      .expanded #open-log-file {
+        display: block;
+      }
+
+      .log-button {
+        background: none;
+        border: none;
+        color: #ffffff;
+        cursor: pointer;
+        padding: 5px 10px;
+        font-family: "Inter", sans-serif;
+        font-size: 12px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+
+      .log-button:hover {
+        color: #4caf50;
+      }
     </style>
   </head>
   <body>
@@ -312,8 +349,15 @@
       </div>
     </div>
     <iframe id="content"></iframe>
-    <button id="log-toggle">Hide Log</button>
     <div id="log-container" class="expanded">
+      <div id="log-controls">
+        <button id="log-toggle" class="log-button">
+          <span>▼ Hide Log</span>
+        </button>
+        <button id="open-log-file" class="log-button">
+          <span aria-label="Open Log File">📁</span>
+        </button>
+      </div>
       <div id="log"></div>
     </div>
 
@@ -326,6 +370,7 @@
       const logContainer = document.getElementById("log-container");
       const logToggle = document.getElementById("log-toggle");
       const updateStepsElement = document.getElementById("update-steps");
+      const openLogFileButton = document.getElementById('open-log-file');
 
       function createSimpleLogger(logElement) {
         function log(message) {
@@ -341,12 +386,8 @@
 
       function toggleLog() {
         logContainer.classList.toggle("expanded");
-        logToggle.textContent = logContainer.classList.contains("expanded")
-          ? "Hide Log"
-          : "Show Log";
-
-        // Add this line to update the button text with an icon
-        logToggle.innerHTML = logContainer.classList.contains("expanded")
+        const isExpanded = logContainer.classList.contains("expanded");
+        logToggle.innerHTML = isExpanded
           ? "<span>▼ Hide Log</span>"
           : "<span>▲ Show Log</span>";
       }
@@ -422,6 +463,9 @@
       });
 
       logToggle.addEventListener("click", toggleLog);
+      openLogFileButton.addEventListener('click', async () => {
+        await api.openLogFile();
+      });
       initializeApp();
     </script>
 
