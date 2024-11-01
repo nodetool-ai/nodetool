@@ -93,6 +93,10 @@ class Build:
         env: dict | None = None,
         ignore_error: bool = False,
     ) -> int:
+        # Modify conda commands to always activate the environment first
+        if command[0] == "conda" and command[1] not in ["env", "create", "activate"]:
+            command = ["conda", "run", "-n", "build_env"] + command
+
         logger.info(" ".join(command))
 
         process = subprocess.Popen(
@@ -292,7 +296,6 @@ class Build:
         """Initialize Conda environment."""
         logger.info("Initializing clean conda environment")
 
-        # Create a base environment for building
         env_name = "build_env"
 
         # Remove existing environment if it exists
@@ -314,11 +317,8 @@ class Build:
             ]
         )
 
-        # Activate the environment
-        if self.platform == "windows":
-            self.run_command(["conda", "activate", env_name])
-        else:
-            self.run_command(["source", "activate", env_name])
+        # Remove the explicit activate command since we'll use conda run
+        # for all subsequent commands
 
     def get_version(self) -> str:
         """Get the version of the project."""
