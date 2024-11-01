@@ -94,7 +94,7 @@ class Build:
         ignore_error: bool = False,
     ) -> int:
         # Modify conda commands to always activate the environment first
-        if command[1] not in ["env", "create"]:
+        if command[1] not in ["env", "create", "index"]:
             command = ["conda", "run", "-n", "build_env"] + command
 
         logger.info(" ".join(command))
