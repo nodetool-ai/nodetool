@@ -48,10 +48,13 @@ jobs:
           miniconda-version: "latest"
           python-version: ${{ env.PYTHON_VERSION }}
 
+      - name: Install yaml
+        run: |
+          conda install -y yaml
+
       - name: Build and Package
         shell: bash -l {0}
         run: |
-          pip install yaml
           python build.py --python-version ${{ env.PYTHON_VERSION }}
 
       - name: Upload artifacts
