@@ -227,35 +227,60 @@ class Build:
         """Build a conda package given the package details."""
         logger.info(f"Building conda package: {name}")
 
+        # Ensure conda-build is available
+        self.run_command(["conda", "install", "conda-build", "conda-verify", "-y"])
+
+        # Create recipe directory if it doesn't exist
+        self.create_directory(recipe_dir)
+
         # Handle source path if provided
         if source_path:
             meta_yaml["source"] = {"path": str(source_path)}
 
-        # Write build script
+        # Write build script with Windows-specific handling
         if build_script:
-            script_file = "bld.bat" if self.platform == "windows" else "build.sh"
+            if self.platform == "windows":
+                script_file = "bld.bat"
+                build_script = build_script.replace("\n", "\r\n")
+            else:
+                script_file = "build.sh"
+
             script_path = recipe_dir / script_file
-            with open(script_path, "w") as f:
+            with open(
+                script_path, "w", newline="\r\n" if self.platform == "windows" else "\n"
+            ) as f:
                 f.write(dedent(build_script))
+
             if self.platform != "windows":
                 self.run_command(["chmod", "+x", str(script_path)])
 
-        # Write meta.yaml
+        # Write meta.yaml with explicit build requirements
+        meta_yaml.setdefault("requirements", {})
+        meta_yaml["requirements"].setdefault("build", [])
+        meta_yaml["requirements"]["build"].extend(
+            [f"python {self.python_version}", "conda-build", "conda-verify"]
+        )
+
         meta_yaml_path = recipe_dir / "meta.yaml"
-        with open(meta_yaml_path, "w") as f:
+        with open(
+            meta_yaml_path, "w", newline="\r\n" if self.platform == "windows" else "\n"
+        ) as f:
             write_yaml_value(meta_yaml, f)
 
-        # Build the conda package
+        # Create channel directory
         channel_dir = self.BUILD_DIR / "channel"
         self.create_directory(channel_dir)
 
+        # Build the conda package
         build_command = [
             "conda-build",
             "-c",
             "conda-forge",
-            str(recipe_dir),
+            "--no-anaconda-upload",
+            "--override-channels",
+            str(recipe_dir).replace("\\", "/"),
             "--output-folder",
-            str(channel_dir),
+            str(channel_dir).replace("\\", "/"),
             "--python",
             self.python_version,
         ]
@@ -267,8 +292,33 @@ class Build:
         """Initialize Conda environment."""
         logger.info("Initializing clean conda environment")
 
-        # install conda-build
-        self.run_command(["conda", "install", "conda-build", "-y"])
+        # Create a base environment for building
+        env_name = "build_env"
+
+        # Remove existing environment if it exists
+        self.run_command(
+            ["conda", "env", "remove", "-n", env_name, "--yes"], ignore_error=True
+        )
+
+        # Create fresh environment with necessary packages
+        self.run_command(
+            [
+                "conda",
+                "create",
+                "-n",
+                env_name,
+                f"python={self.python_version}",
+                "conda-build",
+                "conda-verify",
+                "--yes",
+            ]
+        )
+
+        # Activate the environment
+        if self.platform == "windows":
+            self.run_command(["conda", "activate", env_name])
+        else:
+            self.run_command(["source", "activate", env_name])
 
     def get_version(self) -> str:
         """Get the version of the project."""
@@ -289,20 +339,36 @@ class Build:
         binary_dir = ollama_recipe_dir / "ollama-bin"
         self.create_directory(binary_dir)
 
+        # Windows-specific build script with correct path handling
+        if self.platform == "windows":
+            ollama_build_script = """
+            if not exist "%PREFIX%\\Scripts" mkdir "%PREFIX%\\Scripts"
+            copy /Y "%RECIPE_DIR%\\ollama-bin\\*" "%PREFIX%\\Scripts\\"
+            """
+        else:
+            ollama_build_script = """
+            #!/bin/bash
+            mkdir -p $PREFIX/bin
+            cp $RECIPE_DIR/ollama-bin/ollama $PREFIX/bin/
+            chmod +x $PREFIX/bin/ollama
+            """
+
         # Download and handle Ollama binaries
         if self.platform == "windows":
+            zip_path = binary_dir / "ollama.zip"
             self.run_command(
                 [
                     "curl",
                     "-L",
                     f"https://github.com/ollama/ollama/releases/download/v{ollama_version}/ollama-windows-amd64.zip",
                     "-o",
-                    str(binary_dir / "ollama.zip"),
+                    str(zip_path),
                 ]
             )
-            self.run_command(
-                ["unzip", str(binary_dir / "ollama.zip"), "-d", str(binary_dir)]
-            )
+
+            # Extract using Python's zipfile instead of unzip command
+            with zipfile.ZipFile(zip_path, "r") as zip_ref:
+                zip_ref.extractall(binary_dir)
         elif self.platform == "darwin":
             ollama_binary = binary_dir / "ollama"
             self.run_command(
@@ -317,19 +383,6 @@ class Build:
             self.run_command(["chmod", "+x", str(ollama_binary)])
         else:
             raise BuildError(f"Unsupported platform: {self.platform}")
-
-        if self.platform in ["darwin", "linux"]:
-            ollama_build_script = """
-            #!/bin/bash
-            mkdir -p $PREFIX/bin
-            cp $RECIPE_DIR/ollama-bin/ollama $PREFIX/bin/
-            chmod +x $PREFIX/bin/ollama
-            """
-        else:  # Windows
-            ollama_build_script = """
-            if not exist %PREFIX%\\Scripts mkdir %PREFIX%\\Scripts
-            xcopy /E /I %RECIPE_DIR%/ollama-bin\\* %PREFIX%\\Scripts\\
-            """
 
         ollama_meta = {
             "package": {
@@ -371,7 +424,6 @@ class Build:
         import uuid
 
         lock_file = f"channel-lock-{uuid.uuid4()}.lock"
-        s3_lock_path = "s3://nodetool-conda/" + lock_file
 
         try:
             # Try to acquire lock by creating a lock file in S3
