@@ -46,6 +46,13 @@ def update_version_in_electron_package_json(new_version: str):
     update_version_in_file(package_json_file, version_regex, new_version_line)
 
 
+def update_version_in_environment_yaml(new_version: str):
+    env_file = Path("electron/environment.yaml")
+    version_regex = r'nodetool==.*'
+    new_version_line = f'nodetool=={new_version}'
+    update_version_in_file(env_file, version_regex, new_version_line)
+
+
 def git_commit_and_tag(new_version: str):
     print(
         subprocess.run(
@@ -58,6 +65,7 @@ def git_commit_and_tag(new_version: str):
                 "web/src/config/constants.ts",
                 "electron/index.js",
                 "electron/package.json",
+                "electron/environment.yaml",
             ],
             check=True,
             capture_output=True,
@@ -91,6 +99,7 @@ def main():
     update_version_in_constants_ts(new_version)
     update_version_in_electron_index(new_version)
     update_version_in_electron_package_json(new_version)
+    update_version_in_environment_yaml(new_version)
     # run_poetry_lock()
     git_commit_and_tag(new_version)
     print(f"Version {new_version} released successfully.")
