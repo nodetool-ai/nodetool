@@ -350,6 +350,8 @@ class Build:
             # Extract using Python's zipfile instead of unzip command
             with zipfile.ZipFile(zip_path, "r") as zip_ref:
                 zip_ref.extractall(binary_dir)
+
+            self.remove_file(zip_path)
         elif self.platform == "darwin":
             ollama_binary = binary_dir / "ollama"
             self.run_command(
