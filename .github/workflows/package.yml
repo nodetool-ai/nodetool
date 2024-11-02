@@ -1,4 +1,4 @@
-name: Package and Release
+name: Package
 
 on:
   push:
@@ -6,59 +6,6 @@ on:
       - "v*" # Push events to matching v*, i.e. v1.0, v20.15.10
 
 jobs:
-  build:
-    strategy:
-      matrix:
-        os: [windows-latest, macos-latest]
-        include:
-          # - os: ubuntu-latest
-          #   platform: linux
-          #   arch: x64
-          - os: macos-latest
-            platform: darwin
-            arch: arm64
-          - os: windows-latest
-            platform: windows
-            arch: x64
-
-    runs-on: ${{ matrix.os }}
-
-    env:
-      PYTHON_VERSION: "3.11.10"
-
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: "20"
-
-      - name: Set up Conda
-        uses: conda-incubator/setup-miniconda@v3
-        with:
-          auto-update-conda: true
-          miniconda-version: "latest"
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Build Web
-        shell: bash -l {0}
-        run: |
-          python build.py --step web --python-version ${{ env.PYTHON_VERSION }}
-
-      - name: Build Electron
-        shell: bash -l {0}
-        run: |
-          python build.py --step electron --python-version ${{ env.PYTHON_VERSION }}
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-artifacts-${{ matrix.platform }}-${{ matrix.arch }}
-          path: |
-            build/**/*.exe
-            build/**/*.dmg
-
   packages:
     strategy:
       matrix:
@@ -100,29 +47,5 @@ jobs:
         shell: bash -l {0}
         run: |
           python build.py --step setup --python-version ${{ env.PYTHON_VERSION }}
-
-      - name: Build Ollama
-        shell: bash -l {0}
-        run: |
           python build.py --step ollama --python-version ${{ env.PYTHON_VERSION }}
-
-      - name: Upload Channel
-        shell: bash -l {0}
-        run: |
           python build.py --step upload --python-version ${{ env.PYTHON_VERSION }}
-
-  upload_assets:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: build
-
-      - name: Create Release and Upload Assets
-        uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            **/*.exe
-            **/*.dmg

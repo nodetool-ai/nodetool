@@ -72,20 +72,6 @@ class Build:
         self.ELECTRON_DIR = PROJECT_ROOT / "electron"
         self.WEB_DIR = PROJECT_ROOT / "web"
 
-    def download_and_unzip(self, url: str, paths: List[str], target_dir: Path) -> None:
-        """Download and extract files from a zip archive."""
-        import urllib.request
-        from io import BytesIO
-
-        with urllib.request.urlopen(url) as response:
-            archive_data = BytesIO(response.read())
-
-        with zipfile.ZipFile(archive_data) as zip_ref:
-            for path in paths:
-                zip_ref.extract(path, target_dir)
-                if "/" in path:
-                    self.move_file(target_dir / path, target_dir)
-
     def run_command(
         self,
         command: list[str],
