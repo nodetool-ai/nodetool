@@ -93,10 +93,7 @@ class Build:
         env: dict | None = None,
         ignore_error: bool = False,
     ) -> int:
-        # Modify conda commands to always activate the environment first
-        if command[1] not in ["env", "create", "index"]:
-            command = ["conda", "run", "-n", "build_env"] + command
-
+        # Remove the conda run wrapper since we're using base environment
         logger.info(" ".join(command))
 
         process = subprocess.Popen(
@@ -290,32 +287,19 @@ class Build:
         logger.info(f"Conda package '{name}' built successfully")
 
     def initialize_conda_env(self) -> None:
-        """Initialize Conda environment."""
-        logger.info("Initializing clean conda environment")
+        """Initialize base conda environment with required packages."""
+        logger.info("Initializing conda base environment")
 
-        env_name = "build_env"
-
-        # Remove existing environment if it exists
-        self.run_command(
-            ["conda", "env", "remove", "-n", env_name, "--yes"], ignore_error=True
-        )
-
-        # Create fresh environment with necessary packages
+        # Install necessary packages in base environment
         self.run_command(
             [
                 "conda",
-                "create",
-                "-n",
-                env_name,
-                f"python={self.python_version}",
+                "install",
                 "conda-build",
                 "conda-verify",
                 "--yes",
             ]
         )
-
-        # Remove the explicit activate command since we'll use conda run
-        # for all subsequent commands
 
     def get_version(self) -> str:
         """Get the version of the project."""
@@ -417,110 +401,67 @@ class Build:
         """Create conda channel index and upload to S3 with locking mechanism."""
         logger.info("Creating conda channel index")
 
-        # Create a unique lock file name based on timestamp and random string
-        import uuid
+        # Download current channel
+        logger.info("Downloading existing channel")
+        channel_dir = self.BUILD_DIR / "channel"
 
-        lock_file = f"channel-lock.lock"
+        self.run_command(
+            [
+                "aws",
+                "s3",
+                "sync",
+                "s3://nodetool-conda/",
+                str(channel_dir),
+            ],
+            ignore_error=True,
+        )
 
-        try:
-            # Try to acquire lock by creating a lock file in S3
-            logger.info("Attempting to acquire lock...")
-            result = self.run_command(
-                [
-                    "aws",
-                    "s3api",
-                    "put-object",
-                    "--bucket",
-                    "nodetool-conda",
-                    "--key",
-                    lock_file,
-                ],
-                ignore_error=True,
-            )
+        # Create platform-specific directories and move packages
+        platform_dirs = {
+            "linux": ["linux-64", "linux-aarch64"],
+            "darwin": ["osx-64", "osx-arm64"],
+            "windows": ["win-64"],
+            "noarch": ["noarch"],
+        }
 
-            if result != 0:
-                raise BuildError(
-                    "Failed to acquire lock. Another upload might be in progress."
-                )
+        for platform_dirs in platform_dirs.values():
+            for dir_name in platform_dirs:
+                self.create_directory(channel_dir / dir_name)
 
-            # Download current channel metadata
-            logger.info("Downloading existing channel metadata")
-            channel_dir = self.BUILD_DIR / "channel"
+        # Move packages to appropriate directories based on their platform/arch
+        for package in channel_dir.glob("*.tar.bz2"):
+            package_name = package.name
+            if "noarch" in package_name:
+                target_dir = channel_dir / "noarch"
+            else:
+                # Determine target directory based on platform and arch
+                if self.platform == "darwin":
+                    target_dir = channel_dir / f"osx-{self.arch}"
+                elif self.platform == "linux":
+                    arch_name = "aarch64" if self.arch == "arm64" else "64"
+                    target_dir = channel_dir / f"linux-{arch_name}"
+                else:  # windows
+                    target_dir = channel_dir / "win-64"
 
-            # Copy channeldata.json to channel directory
-            self.run_command(
-                [
-                    "aws",
-                    "s3",
-                    "cp",
-                    "s3://nodetool-conda/channeldata.json",
-                    str(channel_dir),
-                ],
-                ignore_error=True,
-            )
+            if package.parent != target_dir:
+                self.move_file(package, target_dir / package_name)
 
-            # Create platform-specific directories and move packages
-            platform_dirs = {
-                "linux": ["linux-64", "linux-aarch64"],
-                "darwin": ["osx-64", "osx-arm64"],
-                "windows": ["win-64"],
-                "noarch": ["noarch"],
-            }
+        # Create channel index
+        self.run_command(["conda", "index", str(channel_dir)])
 
-            for platform_dirs in platform_dirs.values():
-                for dir_name in platform_dirs:
-                    self.create_directory(channel_dir / dir_name)
-
-            # Move packages to appropriate directories based on their platform/arch
-            for package in channel_dir.glob("*.tar.bz2"):
-                package_name = package.name
-                if "noarch" in package_name:
-                    target_dir = channel_dir / "noarch"
-                else:
-                    # Determine target directory based on platform and arch
-                    if self.platform == "darwin":
-                        target_dir = channel_dir / f"osx-{self.arch}"
-                    elif self.platform == "linux":
-                        arch_name = "aarch64" if self.arch == "arm64" else "64"
-                        target_dir = channel_dir / f"linux-{arch_name}"
-                    else:  # windows
-                        target_dir = channel_dir / "win-64"
-
-                if package.parent != target_dir:
-                    self.move_file(package, target_dir / package_name)
-
-            # Create channel index
-            self.run_command(["conda", "index", str(channel_dir)])
-
-            # Upload only new/modified files
-            logger.info("Uploading channel updates to S3")
-            self.run_command(
-                [
-                    "aws",
-                    "s3",
-                    "sync",
-                    str(channel_dir) + "/",
-                    "s3://nodetool-conda/",
-                    "--size-only",  # Only upload files that differ in size
-                    "--exact-timestamps",  # Use exact timestamp comparison
-                ]
-            )
-
-        finally:
-            # Always clean up the lock file
-            logger.info("Releasing lock...")
-            self.run_command(
-                [
-                    "aws",
-                    "s3api",
-                    "delete-object",
-                    "--bucket",
-                    "nodetool-conda",
-                    "--key",
-                    lock_file,
-                ],
-                ignore_error=True,
-            )
+        # Upload only new/modified files
+        logger.info("Uploading channel updates to S3")
+        self.run_command(
+            [
+                "aws",
+                "s3",
+                "sync",
+                str(channel_dir) + "/",
+                "s3://nodetool-conda/",
+                "--size-only",  # Only upload files that differ in size
+                "--exact-timestamps",  # Use exact timestamp comparison
+            ]
+        )
 
         logger.info("Channel upload completed successfully")
 
