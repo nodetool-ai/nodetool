@@ -193,12 +193,12 @@ class Build:
             "index.js",
             "preload.js",
             "electron-builder.json",
+            "environment.yaml",
         ]
         self.copy_tree(self.ELECTRON_DIR / "resources", self.BUILD_DIR)
         for file in files_to_copy:
             self.copy_file(self.ELECTRON_DIR / file, self.BUILD_DIR)
 
-        self.copy_file(PROJECT_ROOT / "environment.yaml", self.BUILD_DIR)
         build_command = [
             "npm",
             "exec",
