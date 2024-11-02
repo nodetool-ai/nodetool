@@ -29,13 +29,6 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: eu-central-1
-
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
@@ -48,10 +41,15 @@ jobs:
           miniconda-version: "latest"
           python-version: ${{ env.PYTHON_VERSION }}
 
-      - name: Build and Package
+      - name: Build Web
         shell: bash -l {0}
         run: |
-          python build.py --python-version ${{ env.PYTHON_VERSION }}
+          python build.py --step web --python-version ${{ env.PYTHON_VERSION }}
+
+      - name: Build Electron
+        shell: bash -l {0}
+        run: |
+          python build.py --step electron --python-version ${{ env.PYTHON_VERSION }}
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -60,6 +58,58 @@ jobs:
           path: |
             build/**/*.exe
             build/**/*.dmg
+
+  packages:
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest]
+        include:
+          # - os: ubuntu-latest
+          #   platform: linux
+          #   arch: x64
+          - os: macos-latest
+            platform: darwin
+            arch: arm64
+          - os: windows-latest
+            platform: windows
+            arch: x64
+
+    runs-on: ${{ matrix.os }}
+
+    env:
+      PYTHON_VERSION: "3.11.10"
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-central-1
+
+      - name: Set up Conda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          auto-update-conda: true
+          miniconda-version: "latest"
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Setup Build Environment
+        shell: bash -l {0}
+        run: |
+          python build.py --step setup --python-version ${{ env.PYTHON_VERSION }}
+
+      - name: Build Ollama
+        shell: bash -l {0}
+        run: |
+          python build.py --step ollama --python-version ${{ env.PYTHON_VERSION }}
+
+      - name: Upload Channel
+        shell: bash -l {0}
+        run: |
+          python build.py --step upload --python-version ${{ env.PYTHON_VERSION }}
 
   upload_assets:
     needs: build
