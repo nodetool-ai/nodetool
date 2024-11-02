@@ -231,9 +231,6 @@ class Build:
         """Build a conda package given the package details."""
         logger.info(f"Building conda package: {name}")
 
-        # Ensure conda-build is available
-        self.run_command(["conda", "install", "conda-build", "conda-verify", "-y"])
-
         # Create recipe directory if it doesn't exist
         self.create_directory(recipe_dir)
 
@@ -423,7 +420,7 @@ class Build:
         # Create a unique lock file name based on timestamp and random string
         import uuid
 
-        lock_file = f"channel-lock-{uuid.uuid4()}.lock"
+        lock_file = f"channel-lock.lock"
 
         try:
             # Try to acquire lock by creating a lock file in S3
@@ -449,17 +446,15 @@ class Build:
             # Download current channel metadata
             logger.info("Downloading existing channel metadata")
             channel_dir = self.BUILD_DIR / "channel"
+
+            # Copy channeldata.json to channel directory
             self.run_command(
                 [
                     "aws",
                     "s3",
-                    "sync",
-                    "s3://nodetool-conda/",
+                    "cp",
+                    "s3://nodetool-conda/channeldata.json",
                     str(channel_dir),
-                    "--exclude",
-                    "*",
-                    "--include",
-                    "*.json",
                 ],
                 ignore_error=True,
             )
