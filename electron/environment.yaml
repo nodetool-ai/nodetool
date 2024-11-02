@@ -1,12 +1,9 @@
 name: nodetool
 channels:
-  - https://nodetool-conda.s3.amazonaws.com
   - conda-forge
   - defaults
 dependencies:
   - python=3.11.10
   - pip
-  - ollama-binary
-  - nodetool-web
   - pip:
-      - nodetool
+      - nodetool==0.5.0rc13

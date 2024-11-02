@@ -25,7 +25,6 @@
  *
  * 3. Server Process Management
  *    - Starts and monitors the NodeTool server
- *    - Manages the Ollama server process
  *    - Handles server logs and status updates
  *
  * 4. Application Lifecycle
@@ -36,7 +35,6 @@
  * Key Components:
  * - Main Window: BrowserWindow instance for the UI
  * - Server Process: Python-based NodeTool server
- * - Ollama Process: AI model server
  * - IPC Communication: Event system for process communication
  *
  * State Management:
@@ -68,9 +66,8 @@ const {
   shell,
 } = require("electron");
 const path = require("path");
-const { createReadStream, createWriteStream } = require("fs");
-const { access, mkdir, readFile, rename, writeFile, unlink, chmod } =
-  require("fs").promises;
+const { createWriteStream } = require("fs");
+const { access, unlink, chmod } = require("fs").promises;
 const { spawn } = require("child_process");
 const https = require("https");
 const fs = require("fs");
@@ -83,13 +80,12 @@ const VERSION = "0.5.0rc13";
 let mainWindow;
 /** @type {import('child_process').ChildProcess|null} */
 let serverProcess;
-/** @type {import('child_process').ChildProcess|null} */
-let ollamaProcess;
-/** @type {string} */
-const webDir = path.join(path.dirname(process.resourcesPath), "web");
 
 /** @type {string} */
 const resourcesPath = process.resourcesPath;
+
+console.log("resourcesPath", resourcesPath);
+
 /** @type {NodeJS.ProcessEnv} */
 let env = {
   PYTHONUNBUFFERED: "1",
@@ -146,16 +142,12 @@ function createWindow() {
 }
 
 function setPermissionCheckHandler() {
-  session.defaultSession.setPermissionRequestHandler(
-    (webContents, permission, requestingOrigin, details) => {
-      return true;
-    }
-  );
-  session.defaultSession.setPermissionCheckHandler(
-    (webContents, permission, requestingOrigin, details) => {
-      return true;
-    }
-  );
+  session.defaultSession.setPermissionRequestHandler(() => {
+    return true;
+  });
+  session.defaultSession.setPermissionCheckHandler(() => {
+    return true;
+  });
 }
 
 /**
@@ -165,6 +157,7 @@ function setPermissionCheckHandler() {
 function runNodeTool(env) {
   const minicondaPath = getMinicondaPath();
   const envName = "nodetool";
+  const webDir = path.join(resourcesPath, "web");
 
   // Construct the command based on platform
   const command =
@@ -193,8 +186,7 @@ function runNodeTool(env) {
     },
   });
 
-  // Start Ollama server
-  startOllamaServer();
+  isOllamaRunning();
 
   function handleServerOutput(data) {
     const output = data.toString().trim();
@@ -242,41 +234,35 @@ async function isOllamaRunning() {
     const response = await fetch("http://localhost:11434/api/version");
     return response.status === 200;
   } catch (error) {
+    await showOllamaInstallDialog();
     return false;
   }
 }
 
 /**
- * Start the Ollama server
+ * Show dialog explaining Ollama and providing download links
  */
-async function startOllamaServer() {
-  log(`Checking Ollama server status`);
+async function showOllamaInstallDialog() {
+  const ollama_version = "0.3.14";
+  const downloadUrl =
+    process.platform === "darwin"
+      ? `https://github.com/ollama/ollama/releases/download/v${ollama_version}/Ollama-darwin.zip`
+      : `https://github.com/ollama/ollama/releases/download/v${ollama_version}/OllamaSetup.exe`;
 
-  if (await isOllamaRunning()) {
-    log("Ollama server is already running");
-    return;
+  const response = await dialog.showMessageBox({
+    type: "info",
+    title: "Ollama Required",
+    message: "Ollama is required to run AI models locally",
+    detail:
+      "Ollama is an open-source tool that allows NodeTool to run AI models locally on your machine. This provides better privacy and performance compared to cloud-based solutions.\n\nPlease download and install Ollama to continue using NodeTool's AI features.",
+    buttons: ["Download Ollama", "Cancel"],
+    defaultId: 0,
+    cancelId: 1,
+  });
+
+  if (response.response === 0) {
+    await shell.openExternal(downloadUrl);
   }
-
-  log(`Starting Ollama server`);
-  ollamaProcess = spawn("ollama", ["serve"], { env: process.env });
-
-  ollamaProcess.stdout.on("data", (data) => {
-    const output = data.toString().trim();
-    log(output);
-  });
-
-  ollamaProcess.stderr.on("data", (data) => {
-    const output = data.toString().trim();
-    log(output);
-  });
-
-  ollamaProcess.on("error", (error) => {
-    log(`Ollama process error: ${error.message}`, "error");
-  });
-
-  ollamaProcess.on("exit", (code, signal) => {
-    log(`Ollama process exited with code ${code} and signal ${signal}`);
-  });
 }
 
 /**
@@ -349,9 +335,9 @@ let isAppQuitting = false;
 
 app.on("before-quit", (event) => {
   if (!isAppQuitting) {
+    isAppQuitting = true;
     event.preventDefault();
     gracefulShutdown().then(() => {
-      isAppQuitting = true;
       app.quit();
     });
   }
@@ -371,16 +357,6 @@ async function gracefulShutdown() {
     }
   } catch (error) {
     log(`Error stopping server process: ${error.message}`, "error");
-  }
-
-  try {
-    if (ollamaProcess) {
-      log("Stopping Ollama process");
-      ollamaProcess.kill();
-      await new Promise((resolve) => ollamaProcess.on("exit", resolve));
-    }
-  } catch (error) {
-    log(`Error stopping Ollama process: ${error.message}`, "error");
   }
 
   log("Graceful shutdown complete");
@@ -430,10 +406,6 @@ app.on("quit", () => {
   if (serverProcess) {
     log("Killing server process");
     serverProcess.kill();
-  }
-  if (ollamaProcess) {
-    log("Killing Ollama process");
-    ollamaProcess.kill();
   }
 });
 
@@ -497,15 +469,6 @@ function log(message, level = "info") {
 }
 
 // Add these new event emitter functions
-function emitUpdateStep(step, isComplete = false) {
-  if (mainWindow && mainWindow.webContents) {
-    try {
-      mainWindow.webContents.send("update-step", step, isComplete);
-    } catch (error) {
-      console.error("Error emitting update step:", error);
-    }
-  }
-}
 
 function emitUpdateProgress(componentName, progress, action) {
   if (mainWindow && mainWindow.webContents) {
@@ -530,7 +493,7 @@ function getMinicondaPath() {
   if (config.condaPath) {
     return config.condaPath;
   }
-  return path.join(app.getPath("userData"), "miniconda3");
+  throw new Error("Conda path not found");
 }
 
 /**

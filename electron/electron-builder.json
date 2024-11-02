@@ -8,10 +8,10 @@
     "files": [
         "index.js",
         "preload.js",
-        "index.html",
-        "environment.yaml"
+        "index.html"
     ],
-    "extraFiles": [
+    "extraResources": [
+        "environment.yaml",
         "web/**/*"
     ],
     "mac": {
