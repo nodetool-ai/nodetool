@@ -34,13 +34,6 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Set up Conda
-        uses: conda-incubator/setup-miniconda@v3
-        with:
-          auto-update-conda: true
-          miniconda-version: "latest"
-          python-version: ${{ env.PYTHON_VERSION }}
-
       - name: Build Web
         shell: bash -l {0}
         run: |
