@@ -1,4 +1,4 @@
-name: PyPi and Conda Release
+name: PyPi Release
 
 on:
   push:
@@ -31,19 +31,19 @@ jobs:
           name: release-dists
           path: dist/
 
-  # pypi-publish:
-  #   runs-on: ubuntu-latest
-  #   needs:
-  #     - release-build
-  #   permissions:
-  #     id-token: write
+  pypi-publish:
+    runs-on: ubuntu-latest
+    needs:
+      - release-build
+    permissions:
+      id-token: write
 
-  #   steps:
-  #     - name: Retrieve release distributions
-  #       uses: actions/download-artifact@v4
-  #       with:
-  #         name: release-dists
-  #         path: dist/
+    steps:
+      - name: Retrieve release distributions
+        uses: actions/download-artifact@v4
+        with:
+          name: release-dists
+          path: dist/
 
-  #     - name: Publish release distributions to PyPI
-  #       uses: pypa/gh-action-pypi-publish@release/v1
+      - name: Publish release distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
