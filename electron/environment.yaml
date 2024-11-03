@@ -1,9 +1,0 @@
-name: nodetool
-channels:
-  - conda-forge
-  - defaults
-dependencies:
-  - python=3.11.10
-  - pip
-  - pip:
-      - nodetool==0.5.0rc14

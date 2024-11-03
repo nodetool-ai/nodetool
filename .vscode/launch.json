@@ -48,11 +48,17 @@
             "webRoot": "${workspaceFolder}/web"
         },
         {
-            "type": "chrome",
+            "name": "Debug: Electron",
+            "type": "node",
             "request": "launch",
-            "name": "Launch Chrome against dev.nodetool.ai",
-            "url": "http://dev.nodetool.ai:3000",
-            "webRoot": "${workspaceFolder}/web"
+            "cwd": "${workspaceFolder}/electron",
+            "runtimeExecutable": "${workspaceFolder}/electron/node_modules/.bin/electron",
+            "windows": {
+                "runtimeExecutable": "${workspaceFolder}/electron/node_modules/.bin/electron.cmd"
+            },
+            "args": ["."],
+            "outputCapture": "std",
+            "console": "integratedTerminal"
         }
     ]
 }

@@ -74,24 +74,16 @@ const fs = require("fs");
 const os = require("os");
 const { appendFile } = require("fs").promises;
 
-/** @type {string} */
-const VERSION = "0.5.0rc14";
 /** @type {BrowserWindow|null} */
 let mainWindow;
 /** @type {import('child_process').ChildProcess|null} */
 let serverProcess;
-
 /** @type {string} */
 const resourcesPath = process.resourcesPath;
-
-console.log("resourcesPath", resourcesPath);
-
-/** @type {NodeJS.ProcessEnv} */
-let env = {
-  PYTHONUNBUFFERED: "1",
-  PYTHONNOUSERSITE: "1",
-  PATH: process.env.PATH,
-};
+/** @type {string} */ 
+const srcPath = path.join(resourcesPath, "src");
+/** @type {string} */
+const webPath = path.join(resourcesPath, "web");
 
 console.log("resourcesPath", resourcesPath);
 
@@ -152,47 +144,49 @@ function setPermissionCheckHandler() {
 
 /**
  * Run the NodeTool server with improved error handling
- * @param {NodeJS.ProcessEnv} env - The environment variables for the server process
  */
-function runNodeTool(env) {
+function runNodeTool() {
   const minicondaPath = getMinicondaPath();
   const envName = "nodetool";
-  const webDir = path.join(resourcesPath, "web");
+  emitBootMessage("Configuring server environment...");
+  const env = {
+    ...process.env,
+    PYTHONPATH: srcPath,
+    PYTHONUNBUFFERED: "1",
+    PATH: path.join(minicondaPath, "envs", envName, "bin") + path.delimiter + process.env.PATH
+  };
+  
+  if (process.platform === "win32") {
+    const pythonPath = path.join(minicondaPath, "envs", envName, "python.exe");
+    log(`Using command: ${pythonPath} -m nodetool.cli serve --static-folder ${webPath}`);
+    serverProcess = spawn(pythonPath, ["-m", "nodetool.cli", "serve", "--static-folder", webPath], {
+      stdio: 'pipe',
+      shell: false,
+      env: env
+    });
+  } else {
+    const pythonPath = path.join(minicondaPath, "envs", envName, "bin", "python");
+    log(`Using command: ${pythonPath} -m nodetool.cli serve --static-folder ${webPath}`);
+    serverProcess = spawn(pythonPath, ["-m", "nodetool.cli", "serve", "--static-folder", webPath], {
+      stdio: 'pipe',
+      shell: true,
+      env: env
+    });
+  }
 
-  // Construct the command based on platform
-  const command =
-    process.platform === "win32"
-      ? `"${path.join(
-          minicondaPath,
-          "Scripts",
-          "activate.bat"
-        )}" ${envName} && python -m nodetool.cli serve --static-folder "${webDir}"`
-      : `source "${path.join(
-          minicondaPath,
-          "bin",
-          "activate"
-        )}" ${envName} && python -m nodetool.cli serve --static-folder "${webDir}"`;
-
-  log(`Running NodeTool command: ${command}`);
-
-  serverProcess = spawn(command, {
-    shell: true,
-    env: {
-      ...env,
-      CONDA_ROOT: minicondaPath,
-      PATH: `${path.join(minicondaPath, "condabin")}${path.delimiter}${
-        env.PATH
-      }`,
-    },
+  // Add detailed error logging
+  serverProcess.on("spawn", () => {
+    log("Server process spawned successfully");
+    emitBootMessage("Server process started...");
   });
-
-  isOllamaRunning();
 
   function handleServerOutput(data) {
     const output = data.toString().trim();
-    log(output);
+    if (output) { // Only log if there's actual output
+      log(`Server output: ${output}`);
+    }
 
-    // Check for port blocked error
+    // Check for specific error conditions
     if (output.includes("Address already in use")) {
       log("Port is blocked, quitting application", "error");
       dialog.showErrorBox(
@@ -200,6 +194,14 @@ function runNodeTool(env) {
         "The server cannot start because the port is already in use. Please close any applications using the port and try again."
       );
       app.quit();
+    }
+
+    if (output.includes("ModuleNotFoundError")) {
+      log("Python module not found error", "error");
+      dialog.showErrorBox(
+        "Server Error",
+        "Failed to start server due to missing Python module. Please try reinstalling the application."
+      );
     }
 
     if (output.includes("Application startup complete.")) {
@@ -222,7 +224,22 @@ function runNodeTool(env) {
 
   serverProcess.on("exit", (code, signal) => {
     log(`Server process exited with code ${code} and signal ${signal}`);
+    if (code !== 0 && !isAppQuitting) {
+      dialog.showErrorBox(
+        "Server Error",
+        `The server process terminated unexpectedly with code ${code}`
+      );
+    }
   });
+
+  // Add this to check if process is running
+  setTimeout(() => {
+    if (serverProcess && !serverProcess.killed) {
+      log("Server process is still running after startup");
+    } else {
+      log("Server process failed to start or terminated early", "error");
+    }
+  }, 1000);
 }
 
 /**
@@ -323,7 +340,7 @@ async function downloadFile(url, dest) {
 async function startServer() {
   try {
     log("Attempting to run NodeTool");
-    runNodeTool(env);
+    runNodeTool();
   } catch (error) {
     log(`Critical error starting server: ${error.message}`, "error");
     dialog.showErrorBox("Critical Error", error.message);
@@ -336,10 +353,7 @@ let isAppQuitting = false;
 app.on("before-quit", (event) => {
   if (!isAppQuitting) {
     isAppQuitting = true;
-    event.preventDefault();
-    gracefulShutdown().then(() => {
-      app.quit();
-    });
+    gracefulShutdown();
   }
 });
 
@@ -353,7 +367,6 @@ async function gracefulShutdown() {
     if (serverProcess) {
       log("Stopping server process");
       serverProcess.kill();
-      await new Promise((resolve) => serverProcess.on("exit", resolve));
     }
   } catch (error) {
     log(`Error stopping server process: ${error.message}`, "error");
@@ -364,24 +377,25 @@ async function gracefulShutdown() {
 
 app.on("ready", async () => {
   log("Electron app is ready");
+  emitBootMessage("Starting NodeTool Desktop...");
 
   createWindow();
 
   // Check if conda is installed and properly configured
   const config = getConfig();
+  emitBootMessage("Checking Python environment...");
   if (!config.condaPath || !(await isCondaInstalled())) {
     emitBootMessage("Installing Miniconda...");
     await installMiniconda();
   }
 
+  emitBootMessage("Verifying Python environment...");
   if (!(await condaEnvironmentExists())) {
-    emitBootMessage("Creating Conda environment...");
+    emitBootMessage("Creating Python environment...");
     await createCondaEnvironment();
   }
 
-  await checkAndUpdateNodeTool();
-
-  emitBootMessage("Starting Nodetool...");
+  emitBootMessage("Starting NodeTool server...");
   startServer();
 });
 
@@ -547,7 +561,7 @@ async function installMiniconda() {
     title: "Miniconda Installation",
     message: "Select Installation Directory for Miniconda",
     detail:
-      "Miniconda will be installed in a folder at the location you select.\n\nPlease ensure you have at least 3GB of free space available. This installation is necessary to run the Python-based components of NodeTool and will contain all required dependencies.\n\nRecommended location: A drive with plenty of free space, outside of system folders.",
+      "Miniconda will be installed in a folder at the location you select.\n\nPlease ensure you have at least 5GB of free space available. This installation is necessary to run the Python-based components of NodeTool and will contain all required dependencies.\n\nRecommended location: A drive with plenty of free space, outside of system folders.",
     buttons: ["Continue"],
   });
 
@@ -563,6 +577,8 @@ async function installMiniconda() {
   }
 
   const minicondaPath = path.join(result.filePaths[0], "miniconda3");
+  
+  log(`Selected Miniconda installation path: ${minicondaPath}`);
 
   // Save the selected path to config
   saveConfig({ condaPath: minicondaPath });
@@ -600,20 +616,18 @@ async function installMiniconda() {
         installerPath,
         [
           "/S",
-          "/D=" + minicondaPath,
+          "/InstallationType=JustMe",
           "/RegisterPython=0", // Don't register as system Python
           "/AddToPath=0", // Don't modify system PATH
+          "/D=" + minicondaPath,
         ],
-        {
-          shell: true,
-        }
       );
-
+      
       installProcess.on("close", (code) => {
         if (code === 0) {
           resolve();
         } else {
-          reject(new Error(`Miniconda installation failed with code ${code}`));
+          throw new Error(`Miniconda installation failed with code ${code}`);
         }
       });
 
@@ -643,39 +657,13 @@ async function installMiniconda() {
         if (code === 0) {
           resolve();
         } else {
-          reject(new Error(`Miniconda installation failed with code ${code}`));
+          throw new Error(`Miniconda installation failed with code ${code}`);
         }
       });
 
       installProcess.on("error", reject);
     });
   }
-
-  // Update environment variables
-  const condaBinPath =
-    platform === "win32"
-      ? path.join(minicondaPath, "Scripts")
-      : path.join(minicondaPath, "bin");
-
-  env.PATH = `${condaBinPath}${path.delimiter}${env.PATH}`;
-
-  // Initialize conda for the shell
-  await new Promise((resolve, reject) => {
-    const initProcess = spawn(
-      path.join(condaBinPath, platform === "win32" ? "conda.exe" : "conda"),
-      ["init"]
-    );
-
-    initProcess.on("close", (code) => {
-      if (code === 0) {
-        resolve();
-      } else {
-        reject(new Error("Failed to initialize conda"));
-      }
-    });
-
-    initProcess.on("error", reject);
-  });
 
   log("Miniconda installed successfully");
 }
@@ -691,21 +679,26 @@ async function condaEnvironmentExists() {
       : path.join(getMinicondaPath(), "bin", "conda");
 
   const checkEnvProcess = spawn(condaPath, ["env", "list", "--json"]);
+  
+  log("Checking if conda environment exists...");
 
   return new Promise((resolve, reject) => {
     let output = "";
 
     checkEnvProcess.stdout.on("data", (data) => {
       output += data.toString();
+      log(data.toString());
     });
 
     checkEnvProcess.on("close", (code) => {
+      log(`Conda environment check completed with code ${code}`);
       if (code === 0) {
         try {
           const envList = JSON.parse(output);
           const envName = "nodetool";
+          const minicondaPath = getMinicondaPath();
           const exists = envList.envs.some(
-            (env) => env.endsWith(envName) || env === envName
+            (env) => env.startsWith(minicondaPath) && (env.endsWith(envName) || env === envName)
           );
           log(`Checking if conda environment '${envName}' exists: ${exists}`);
           resolve(exists);
@@ -733,14 +726,12 @@ async function condaEnvironmentExists() {
 async function createCondaEnvironment() {
   const envFilePath = path.join(resourcesPath, "environment.yaml");
   const minicondaPath = getMinicondaPath();
-  const condaPath =
-    process.platform === "win32"
-      ? path.join(minicondaPath, "Scripts", "conda.exe")
-      : path.join(minicondaPath, "bin", "conda");
+  const condaPath = process.platform === "win32"
+    ? path.join(minicondaPath, "Scripts", "conda.exe")
+    : path.join(minicondaPath, "bin", "conda");
 
-  // Create the Conda environment
   log("Creating Conda environment...");
-  emitBootMessage("Creating Conda environment...");
+  emitBootMessage("Creating Python environment (this may take a few minutes)...");
 
   await new Promise((resolve, reject) => {
     const createEnvProcess = spawn(condaPath, [
@@ -748,42 +739,84 @@ async function createCondaEnvironment() {
       "create",
       "--file",
       envFilePath,
-      "--json",
+      "--verbose"
     ]);
 
+    let currentPackage = "";
+    let downloadProgress = 0;
+
     createEnvProcess.stdout.on("data", (buffer) => {
-      const data = buffer.toString();
-      try {
-        const jsonData = JSON.parse(data);
-        if (jsonData.progress) {
-          emitUpdateProgress(
-            jsonData.progress.name,
-            jsonData.progress.percentage,
-            "Installing"
-          );
-        }
-        log(JSON.stringify(jsonData));
-      } catch (error) {
-        log("Failed to parse conda environment create output", "error");
+      const msg = buffer.toString();
+      log(msg);
+
+      // Match different conda progress messages
+      const downloadMatch = msg.match(/(\d+)%\s*\|\s*(\d+\/\d+)\s*\[([^\]]+)\]\s*(\S+)/);
+      const packageMatch = msg.match(/Installing\s+([^\.]+)/);
+      const preparingMatch = msg.match(/Preparing transaction:/);
+      const verifyingMatch = msg.match(/Verifying transaction:/);
+      const executingMatch = msg.match(/Executing transaction:/);
+
+      if (downloadMatch) {
+        const [, percentage, progress, speed, package] = downloadMatch;
+        currentPackage = package;
+        downloadProgress = parseInt(percentage);
+        emitBootMessage(`Downloading ${currentPackage} (${percentage}%) - ${speed}`);
+        emitUpdateProgress(currentPackage, downloadProgress, "Downloading");
+      } 
+      else if (packageMatch) {
+        currentPackage = packageMatch[1].trim();
+        emitBootMessage(`Installing ${currentPackage}...`);
+        emitUpdateProgress(currentPackage, 0, "Installing");
+      }
+      else if (msg.includes("Collecting package metadata")) {
+        emitBootMessage("Collecting package information...");
+      } 
+      else if (msg.includes("Solving environment")) {
+        emitBootMessage("Resolving dependencies...");
+      }
+      else if (preparingMatch) {
+        emitBootMessage("Preparing installation...");
+      }
+      else if (verifyingMatch) {
+        emitBootMessage("Verifying packages...");
+      }
+      else if (executingMatch) {
+        emitBootMessage("Installing packages...");
+      }
+      else if (msg.includes("Installing pip dependencies")) {
+        emitBootMessage("Installing Python packages via pip...");
       }
     });
 
     createEnvProcess.stderr.on("data", (data) => {
-      log(data.toString(), "error");
+      const msg = data.toString();
+      log(msg, "warn");
+      
+      // Also check stderr for pip installation progress
+      if (msg.includes("Installing collected packages")) {
+        const pipPackage = msg.match(/Installing collected packages:\s*(.+)/);
+        if (pipPackage) {
+          emitBootMessage(`Installing pip package: ${pipPackage[1]}`);
+        }
+      }
     });
 
     createEnvProcess.on("close", (code) => {
       if (code === 0) {
+        emitBootMessage("Python environment created successfully");
         resolve();
       } else {
-        reject(new Error("Failed to create Conda environment"));
+        reject(new Error(`Failed to create Conda environment (exit code: ${code})`));
       }
     });
 
-    createEnvProcess.on("error", reject);
+    createEnvProcess.on("error", (err) => {
+      log(`Error creating conda environment: ${err.message}`, "error");
+      reject(err);
+    });
   });
 
-  log(`Conda environment created successfully`);
+  log("Conda environment created successfully");
 }
 
 // Add these constants
@@ -801,61 +834,6 @@ function getConfig() {
 
 function saveConfig(config) {
   fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2));
-}
-
-/**
- * Check and update nodetool package version
- * @returns {Promise<void>}
- */
-async function checkAndUpdateNodeTool() {
-  const minicondaPath = getMinicondaPath();
-  const envName = "nodetool";
-  const pipPath =
-    process.platform === "win32"
-      ? path.join(minicondaPath, "envs", envName, "Scripts", "pip.exe")
-      : path.join(minicondaPath, "envs", envName, "bin", "pip");
-
-  // Get current installed version
-  const getCurrentVersion = spawn(pipPath, ["show", "nodetool"]);
-  let currentVersion = null;
-
-  await new Promise((resolve) => {
-    getCurrentVersion.stdout.on("data", (data) => {
-      const versionMatch = data.toString().match(/Version:\s*([^\s]+)/);
-      if (versionMatch) {
-        currentVersion = versionMatch[1];
-      }
-    });
-
-    getCurrentVersion.on("close", resolve);
-  });
-
-  if (!currentVersion || currentVersion < VERSION) {
-    log(`Updating nodetool from ${currentVersion || "none"} to ${VERSION}`);
-    emitBootMessage(`Updating nodetool to version ${VERSION}...`);
-
-    await new Promise((resolve, reject) => {
-      const updateProcess = spawn(pipPath, [
-        "install",
-        "--upgrade",
-        `nodetool==${VERSION}`,
-      ]);
-
-      updateProcess.stdout.on("data", (data) => log(data.toString()));
-      updateProcess.stderr.on("data", (data) => log(data.toString(), "error"));
-
-      updateProcess.on("close", (code) => {
-        if (code === 0) {
-          log("nodetool package updated successfully");
-          resolve();
-        } else {
-          reject(new Error("Failed to update nodetool package"));
-        }
-      });
-
-      updateProcess.on("error", reject);
-    });
-  }
 }
 
 // Add these constants near the top with other constants

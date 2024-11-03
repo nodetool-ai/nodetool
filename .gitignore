@@ -16,6 +16,7 @@ __pycache__
 build/
 data/
 dist/
+electron/web/
 package/
 postgres_data/
 .ipynb_checkpoints

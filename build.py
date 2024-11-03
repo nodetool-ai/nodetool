@@ -8,10 +8,10 @@ from platform import system, machine
 import threading
 import subprocess
 import threading
-import zipfile
 from typing import Any, List
 import re
 from textwrap import dedent
+import json
 
 # Set up logging
 logging.basicConfig(
@@ -172,23 +172,27 @@ class Build:
     def electron(self) -> None:
         """Build Electron app."""
         logger.info(f"Building Electron app for {self.platform} ({self.arch})")
+        # copy electron folder to build dir
         files_to_copy = [
-            "package.json",
-            "package-lock.json",
-            "index.html",
+            "electron-builder.json",
             "index.js",
             "preload.js",
-            "electron-builder.json",
-            "environment.yaml",
+            "index.html",
+            "package.json",
+            "package-lock.json",
         ]
-        self.copy_tree(self.ELECTRON_DIR / "resources", self.BUILD_DIR)
         for file in files_to_copy:
-            self.copy_file(self.ELECTRON_DIR / file, self.BUILD_DIR)
+            self.copy_file(self.ELECTRON_DIR / file, self.BUILD_DIR / file)
+
+        self.copy_tree(self.ELECTRON_DIR / "resources", self.BUILD_DIR / "resources")
+
+        self.copy_file(
+            PROJECT_ROOT / f"environment-{self.platform}-{self.arch}.yaml",
+            self.BUILD_DIR / "environment.yaml",
+        )
 
         build_command = [
-            "npm",
-            "exec",
-            "--",
+            "npx",
             "electron-builder",
             "--config",
             "electron-builder.json",
@@ -302,8 +306,6 @@ class Build:
         self.run_command(["npm", "ci"], cwd=self.WEB_DIR)
         self.run_command(["npm", "run", "build"], cwd=self.WEB_DIR)
 
-        self.copy_tree(self.WEB_DIR / "dist", self.BUILD_DIR / "web")
-
     def upload(self) -> None:
         """Create conda channel index and upload to S3 with locking mechanism."""
         logger.info("Creating conda channel index")
@@ -388,9 +390,7 @@ def main() -> None:
         choices=[
             "setup",
             "electron",
-            "ollama",
             "web",
-            "upload",
         ],
         help="Run a specific build step",
     )
@@ -421,9 +421,7 @@ def main() -> None:
             sys.exit(1)
     else:
         build.setup()
-        build.ollama()
         build.web()
-        build.upload()
         build.electron()
 
 
