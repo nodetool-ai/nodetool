@@ -81,11 +81,25 @@ let serverProcess;
 /** @type {string} */
 const resourcesPath = process.resourcesPath;
 /** @type {string} */ 
-const srcPath = path.join(resourcesPath, "src");
+const srcPath = app.isPackaged
+  ? path.join(resourcesPath, "src")
+  : path.join(__dirname, '..', 'src');
 /** @type {string} */
-const webPath = path.join(resourcesPath, "web");
+const webPath = app.isPackaged
+  ? path.join(resourcesPath, "web")
+  : path.join(__dirname, '..', 'web', 'dist');
+const platform = os.platform() === "win32" ? "windows" : os.platform();
+/** @type {string} */
+const envFilePath = app.isPackaged
+  ? path.join(resourcesPath, "environment.yaml")
+  : path.join(__dirname, '..', `environment-${platform}-${os.arch()}.yaml`);
+/** @type {string} */
+const VERSION = "0.5.0rc15";
 
 console.log("resourcesPath", resourcesPath);
+console.log("envFilePath", envFilePath);
+console.log("srcPath", srcPath);
+console.log("webPath", webPath);
 
 /** @type {{ isStarted: boolean, bootMsg: string, logs: string[] }} */
 let serverState = {
@@ -381,7 +395,6 @@ app.on("ready", async () => {
 
   createWindow();
 
-  // Check if conda is installed and properly configured
   const config = getConfig();
   emitBootMessage("Checking Python environment...");
   if (!config.condaPath || !(await isCondaInstalled())) {
@@ -393,6 +406,8 @@ app.on("ready", async () => {
   if (!(await condaEnvironmentExists())) {
     emitBootMessage("Creating Python environment...");
     await createCondaEnvironment();
+  } else {
+    await checkEnvironmentUpdate();
   }
 
   emitBootMessage("Starting NodeTool server...");
@@ -724,7 +739,6 @@ async function condaEnvironmentExists() {
  * @returns {Promise<void>}
  */
 async function createCondaEnvironment() {
-  const envFilePath = path.join(resourcesPath, "environment.yaml");
   const minicondaPath = getMinicondaPath();
   const condaPath = process.platform === "win32"
     ? path.join(minicondaPath, "Scripts", "conda.exe")
@@ -816,6 +830,8 @@ async function createCondaEnvironment() {
     });
   });
 
+  saveConfig({ version: VERSION });
+  
   log("Conda environment created successfully");
 }
 
@@ -828,12 +844,13 @@ function getConfig() {
     const config = JSON.parse(fs.readFileSync(CONFIG_FILE, "utf8"));
     return config;
   } catch {
-    return {};
+    return { version: "0.0.0" };
   }
 }
 
 function saveConfig(config) {
-  fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2));
+  const currentConfig = getConfig();
+  fs.writeFileSync(CONFIG_FILE, JSON.stringify({ ...currentConfig, ...config }, null, 2));
 }
 
 // Add these constants near the top with other constants
@@ -846,3 +863,58 @@ ipcMain.handle("get-log-file-path", () => LOG_FILE);
 ipcMain.handle("open-log-file", () => {
   shell.showItemInFolder(LOG_FILE);
 });
+
+// Add this new function to check if environment needs update
+async function checkEnvironmentUpdate() {
+  const config = getConfig();
+  if (config.version !== VERSION) {
+    log(`Version mismatch: installed=${config.version}, current=${VERSION}`);
+    emitBootMessage("Updating Python environment...");
+    
+    const minicondaPath = getMinicondaPath();
+    const condaPath = process.platform === "win32"
+      ? path.join(minicondaPath, "Scripts", "conda.exe")
+      : path.join(minicondaPath, "bin", "conda");
+
+    try {
+      await new Promise((resolve, reject) => {
+        const updateProcess = spawn(condaPath, [
+          "env",
+          "update",
+          "--name",
+          "nodetool",
+          "--file",
+          envFilePath,
+          "--prune"
+        ]);
+
+        updateProcess.stdout.on("data", (data) => {
+          const msg = data.toString();
+          log(msg);
+          emitBootMessage(`Updating: ${msg.trim()}`);
+        });
+
+        updateProcess.stderr.on("data", (data) => {
+          log(data.toString(), "warn");
+        });
+
+        updateProcess.on("close", (code) => {
+          if (code === 0) {
+            saveConfig({ version: VERSION });
+            resolve();
+          } else {
+            reject(new Error(`Environment update failed with code ${code}`));
+          }
+        });
+
+        updateProcess.on("error", reject);
+      });
+      
+      log("Environment updated successfully");
+      emitBootMessage("Python environment updated successfully");
+    } catch (error) {
+      log(`Failed to update environment: ${error.message}`, "error");
+      throw error;
+    }
+  }
+}
