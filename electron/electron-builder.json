@@ -42,7 +42,9 @@
     },
     "publish": {
         "provider": "github",
+        "owner": "nodetool-ai",
+        "repo": "nodetool",
         "private": false,
-        "draft": false
+        "releaseType": "release"
     }
 }
