@@ -40,10 +40,10 @@ dependencies:
   - python-dateutil
   - python-dotenv
   - python=3.11.10
-  - pytorch=2.5.0
+  - pytorch=
   - pytorch-cuda=12.4
-  - torchvision=0.16.0
-  - torchaudio=2.5.01
+  - torchvision=
+  - torchaudio=
   - pyyaml
   - requests
   - safetensors
