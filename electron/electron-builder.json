@@ -42,6 +42,7 @@
     },
     "publish": {
         "provider": "github",
-        "private": false
+        "private": false,
+        "draft": false
     }
 }
