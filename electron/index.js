@@ -73,6 +73,7 @@ const https = require("https");
 const fs = require("fs");
 const os = require("os");
 const { appendFile } = require("fs").promises;
+const { autoUpdater } = require("electron-updater");
 
 /** @type {BrowserWindow|null} */
 let mainWindow;
@@ -94,7 +95,7 @@ const envFilePath = app.isPackaged
   ? path.join(resourcesPath, "environment.yaml")
   : path.join(__dirname, '..', `environment-${platform}-${os.arch()}.yaml`);
 /** @type {string} */
-const VERSION = "0.5.0rc15";
+const VERSION = "0.5.1";
 
 console.log("resourcesPath", resourcesPath);
 console.log("envFilePath", envFilePath);
@@ -389,11 +390,66 @@ async function gracefulShutdown() {
   log("Graceful shutdown complete");
 }
 
+let updateAvailable = false;
+
+function setupAutoUpdater() {
+  // Configure logging
+  autoUpdater.logger = require("electron-log");
+  autoUpdater.logger.transports.file.level = "info";
+
+  // Check for updates immediately and every 30 minutes
+  autoUpdater.checkForUpdates();
+  setInterval(() => {
+    autoUpdater.checkForUpdates();
+  }, 30 * 60 * 1000);
+
+  // Update events
+  autoUpdater.on('checking-for-update', () => {
+    log('Checking for updates...');
+  });
+
+  autoUpdater.on('update-available', (info) => {
+    log(`Update available: ${info.version}`);
+    updateAvailable = true;
+    if (mainWindow) {
+      mainWindow.webContents.send('update-available', info);
+    }
+  });
+
+  autoUpdater.on('update-not-available', () => {
+    log('No updates available');
+  });
+
+  autoUpdater.on('download-progress', (progress) => {
+    if (mainWindow) {
+      mainWindow.webContents.send('update-progress', progress);
+    }
+  });
+
+  autoUpdater.on('update-downloaded', (info) => {
+    log(`Update downloaded: ${info.version}`);
+    if (mainWindow) {
+      mainWindow.webContents.send('update-downloaded', info);
+    }
+  });
+
+  autoUpdater.on('error', (err) => {
+    log(`Update error: ${err.message}`, 'error');
+  });
+}
+
+ipcMain.handle('install-update', () => {
+  if (updateAvailable) {
+    autoUpdater.quitAndInstall(false, true);
+  }
+});
+
 app.on("ready", async () => {
   log("Electron app is ready");
   emitBootMessage("Starting NodeTool Desktop...");
 
   createWindow();
+  setupAutoUpdater();
 
   const config = getConfig();
   emitBootMessage("Checking Python environment...");
