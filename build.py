@@ -207,8 +207,6 @@ class Build:
             "electron-builder",
             "--config",
             "electron-builder.json",
-            "--publish",
-            "always",
         ]
 
         if self.platform:

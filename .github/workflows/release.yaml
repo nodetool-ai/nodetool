@@ -75,7 +75,7 @@ jobs:
         run: |
           python build.py --step web --python-version ${{ env.PYTHON_VERSION }}
 
-      - name: Build and Publish Electron
+      - name: Build Electron
         shell: bash -l {0}
         env:
           # CSC_LINK: ./certificate.pfx
@@ -84,3 +84,14 @@ jobs:
           DEBUG: electron-builder
         run: |
           python build.py --step electron --python-version ${{ env.PYTHON_VERSION }}
+
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            build/dist/Nodetool Setup*.exe
+            build/dist/latest.yml
+          draft: false
+          prerelease: false
+          token: ${{ secrets.GITHUB_TOKEN }}

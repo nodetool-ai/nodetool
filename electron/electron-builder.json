@@ -35,6 +35,7 @@
         "publish": ["github"]
     },
     "nsis": {
+        
         "oneClick": false,
         "allowToChangeInstallationDirectory": true,
         "createDesktopShortcut": true,
