@@ -74,6 +74,7 @@ const fs = require("fs");
 const os = require("os");
 const { appendFile } = require("fs").promises;
 const { autoUpdater } = require("electron-updater");
+const log = require('electron-log');
 
 /** @type {BrowserWindow|null} */
 let mainWindow;
@@ -97,10 +98,10 @@ const envFilePath = app.isPackaged
 /** @type {string} */
 const VERSION = "0.5.1";
 
-console.log("resourcesPath", resourcesPath);
-console.log("envFilePath", envFilePath);
-console.log("srcPath", srcPath);
-console.log("webPath", webPath);
+log.info("resourcesPath", resourcesPath);
+log.info("envFilePath", envFilePath);
+log.info("srcPath", srcPath);
+log.info("webPath", webPath);
 
 /** @type {{ isStarted: boolean, bootMsg: string, logs: string[] }} */
 let serverState = {
@@ -113,7 +114,7 @@ let serverState = {
  * Create the main application window
  */
 function createWindow() {
-  log("Creating main window");
+  logMessage("Creating main window");
   mainWindow = new BrowserWindow({
     width: 1500,
     height: 1000,
@@ -128,7 +129,7 @@ function createWindow() {
   mainWindow.setBackgroundColor("#111111");
   emitBootMessage("Initializing...");
   mainWindow.loadFile("index.html");
-  log("index.html loaded into main window");
+  logMessage("index.html loaded into main window");
 
   // Add this: Wait for the window to be ready before sending initial state
   mainWindow.webContents.on("did-finish-load", () => {
@@ -140,7 +141,7 @@ function createWindow() {
   });
 
   mainWindow.on("closed", function () {
-    log("Main window closed");
+    logMessage("Main window closed");
     mainWindow = null;
   });
 
@@ -173,7 +174,7 @@ function runNodeTool() {
   
   if (process.platform === "win32") {
     const pythonPath = path.join(minicondaPath, "envs", envName, "python.exe");
-    log(`Using command: ${pythonPath} -m nodetool.cli serve --static-folder ${webPath}`);
+    logMessage(`Using command: ${pythonPath} -m nodetool.cli serve --static-folder ${webPath}`);
     serverProcess = spawn(pythonPath, ["-m", "nodetool.cli", "serve", "--static-folder", webPath], {
       stdio: 'pipe',
       shell: false,
@@ -181,7 +182,7 @@ function runNodeTool() {
     });
   } else {
     const pythonPath = path.join(minicondaPath, "envs", envName, "bin", "python");
-    log(`Using command: ${pythonPath} -m nodetool.cli serve --static-folder ${webPath}`);
+    logMessage(`Using command: ${pythonPath} -m nodetool.cli serve --static-folder ${webPath}`);
     serverProcess = spawn(pythonPath, ["-m", "nodetool.cli", "serve", "--static-folder", webPath], {
       stdio: 'pipe',
       shell: true,
@@ -191,19 +192,19 @@ function runNodeTool() {
 
   // Add detailed error logging
   serverProcess.on("spawn", () => {
-    log("Server process spawned successfully");
+    logMessage("Server process spawned successfully");
     emitBootMessage("Server process started...");
   });
 
   function handleServerOutput(data) {
     const output = data.toString().trim();
     if (output) { // Only log if there's actual output
-      log(`Server output: ${output}`);
+      logMessage(`Server output: ${output}`);
     }
 
     // Check for specific error conditions
     if (output.includes("Address already in use")) {
-      log("Port is blocked, quitting application", "error");
+      logMessage("Port is blocked, quitting application", "error");
       dialog.showErrorBox(
         "Server Error",
         "The server cannot start because the port is already in use. Please close any applications using the port and try again."
@@ -212,7 +213,7 @@ function runNodeTool() {
     }
 
     if (output.includes("ModuleNotFoundError")) {
-      log("Python module not found error", "error");
+      logMessage("Python module not found error", "error");
       dialog.showErrorBox(
         "Server Error",
         "Failed to start server due to missing Python module. Please try reinstalling the application."
@@ -220,7 +221,7 @@ function runNodeTool() {
     }
 
     if (output.includes("Application startup complete.")) {
-      log("Server startup complete");
+      logMessage("Server startup complete");
       emitServerStarted();
     }
     emitServerLog(output);
@@ -234,7 +235,7 @@ function runNodeTool() {
   });
 
   serverProcess.on("exit", (code, signal) => {
-    log(`Server process exited with code ${code} and signal ${signal}`);
+    logMessage(`Server process exited with code ${code} and signal ${signal}`);
     if (code !== 0 && !isAppQuitting) {
       forceQuit(`The server process terminated unexpectedly with code ${code}`);
     }
@@ -243,9 +244,9 @@ function runNodeTool() {
   // Add this to check if process is running
   setTimeout(() => {
     if (serverProcess && !serverProcess.killed) {
-      log("Server process is still running after startup");
+      logMessage("Server process is still running after startup");
     } else {
-      log("Server process failed to start or terminated early", "error");
+      logMessage("Server process failed to start or terminated early", "error");
     }
   }, 1000);
 }
@@ -297,7 +298,7 @@ async function showOllamaInstallDialog() {
  * @returns {Promise<void>}
  */
 async function downloadFile(url, dest) {
-  log(`Downloading file from ${url} to ${dest}`);
+  logMessage(`Downloading file from ${url} to ${dest}`);
   return new Promise((resolve, reject) => {
     const file = createWriteStream(dest);
     let downloadedBytes = 0;
@@ -315,7 +316,7 @@ async function downloadFile(url, dest) {
       }
 
       totalBytes = parseInt(response.headers["content-length"], 10);
-      log(`Download started. Total size: ${totalBytes} bytes`);
+      logMessage(`Download started. Total size: ${totalBytes} bytes`);
 
       response.on("data", (chunk) => {
         downloadedBytes += chunk.length;
@@ -327,7 +328,7 @@ async function downloadFile(url, dest) {
       response.pipe(file);
       file.on("finish", () => {
         file.close(() => {
-          log(`Download completed: ${dest}`);
+          logMessage(`Download completed: ${dest}`);
           resolve();
         });
       });
@@ -335,7 +336,7 @@ async function downloadFile(url, dest) {
 
     function handleError(err) {
       unlink(dest, () => {
-        log(`Error downloading file: ${err.message}`);
+        logMessage(`Error downloading file: ${err.message}`);
         reject(err);
       });
     }
@@ -347,7 +348,7 @@ async function downloadFile(url, dest) {
  */
 async function startServer() {
   try {
-    log("Attempting to run NodeTool");
+    logMessage("Attempting to run NodeTool");
     runNodeTool();
   } catch (error) {
     forceQuit(`Critical error starting server: ${error.message}`);
@@ -367,18 +368,18 @@ app.on("before-quit", (event) => {
  * Perform a graceful shutdown of the application
  */
 async function gracefulShutdown() {
-  log("Initiating graceful shutdown");
+  logMessage("Initiating graceful shutdown");
 
   try {
     if (serverProcess) {
-      log("Stopping server process");
+      logMessage("Stopping server process");
       serverProcess.kill();
     }
   } catch (error) {
-    log(`Error stopping server process: ${error.message}`, "error");
+    logMessage(`Error stopping server process: ${error.message}`, "error");
   }
 
-  log("Graceful shutdown complete");
+  logMessage("Graceful shutdown complete");
 }
 
 let updateAvailable = false;
@@ -386,7 +387,7 @@ let updateAvailable = false;
 function setupAutoUpdater() {
   // Add this configuration block at the start of the function
   if (!app.isPackaged) {
-    log('Skipping auto-updater in development mode');
+    logMessage('Skipping auto-updater in development mode');
     return;
   }
 
@@ -400,8 +401,8 @@ function setupAutoUpdater() {
   });
 
   // Configure logging
-  autoUpdater.logger = require("electron-log");
-  autoUpdater.logger.transports.file.level = "info";
+  autoUpdater.logger = logMessage;
+  autoUpdater.logger.transports.file.level = 'info';
 
   // Check for updates immediately and every 30 minutes
   autoUpdater.checkForUpdates();
@@ -411,11 +412,11 @@ function setupAutoUpdater() {
 
   // Update events
   autoUpdater.on('checking-for-update', () => {
-    log('Checking for updates...');
+    logMessage('Checking for updates...');
   });
 
   autoUpdater.on('update-available', (info) => {
-    log(`Update available: ${info.version}`);
+    logMessage(`Update available: ${info.version}`);
     updateAvailable = true;
     if (mainWindow) {
       mainWindow.webContents.send('update-available', info);
@@ -423,7 +424,7 @@ function setupAutoUpdater() {
   });
 
   autoUpdater.on('update-not-available', () => {
-    log('No updates available');
+    logMessage('No updates available');
   });
 
   autoUpdater.on('download-progress', (progress) => {
@@ -433,14 +434,14 @@ function setupAutoUpdater() {
   });
 
   autoUpdater.on('update-downloaded', (info) => {
-    log(`Update downloaded: ${info.version}`);
+    logMessage(`Update downloaded: ${info.version}`);
     if (mainWindow) {
       mainWindow.webContents.send('update-downloaded', info);
     }
   });
 
   autoUpdater.on('error', (err) => {
-    log(`Update error: ${err.message}`, 'error');
+    logMessage(`Update error: ${err.message}`, 'error');
   });
 }
 
@@ -451,7 +452,7 @@ ipcMain.handle('install-update', () => {
 });
 
 app.on("ready", async () => {
-  log("Electron app is ready");
+  logMessage("Electron app is ready");
   emitBootMessage("Starting NodeTool Desktop...");
 
   createWindow();
@@ -477,25 +478,25 @@ app.on("ready", async () => {
 });
 
 app.on("window-all-closed", function () {
-  log("All windows closed");
+  logMessage("All windows closed");
   if (process.platform !== "darwin") {
-    log("Quitting app (not on macOS)");
+    logMessage("Quitting app (not on macOS)");
     app.quit();
   }
 });
 
 app.on("activate", function () {
-  log("App activated");
+  logMessage("App activated");
   if (mainWindow === null) {
-    log("Creating new window on activate");
+    logMessage("Creating new window on activate");
     createWindow();
   }
 });
 
 app.on("quit", () => {
-  log("App is quitting");
+  logMessage("App is quitting");
   if (serverProcess) {
-    log("Killing server process");
+    logMessage("Killing server process");
     serverProcess.kill();
   }
 });
@@ -543,11 +544,11 @@ function emitServerLog(message) {
  * @param {string} message - The message to log
  * @param {'info' | 'warn' | 'error'} level - The log level
  */
-function log(message, level = "info") {
+function logMessage(message, level = "info") {
   try {
     const timestamp = new Date().toISOString();
     const logMessage = `[${timestamp}] [${level.toUpperCase()}] ${message.trim()}\n`;
-    console[level](logMessage);
+    log[level](logMessage);
     emitServerLog(logMessage);
 
     // Asynchronously write to log file
@@ -655,7 +656,7 @@ async function installMiniconda() {
 
   const minicondaPath = path.join(result.filePaths[0], "miniconda3");
   
-  log(`Selected Miniconda installation path: ${minicondaPath}`);
+  logMessage(`Selected Miniconda installation path: ${minicondaPath}`);
 
   // Save the selected path to config
   saveConfig({ condaPath: minicondaPath });
@@ -679,12 +680,12 @@ async function installMiniconda() {
     throw new Error("Unsupported platform for Miniconda installation.");
   }
 
-  log(`Downloading Miniconda from ${installerUrl}`);
+  logMessage(`Downloading Miniconda from ${installerUrl}`);
   emitBootMessage("Downloading Miniconda...");
 
   // Download the installer
   await downloadFile(installerUrl, installerPath);
-  log("Miniconda installer downloaded successfully");
+  logMessage("Miniconda installer downloaded successfully");
 
   // Install Miniconda silently
   if (platform === "win32") {
@@ -723,11 +724,11 @@ async function installMiniconda() {
       ]);
 
       installProcess.stdout.on("data", (data) => {
-        log(data.toString());
+        logMessage(data.toString());
       });
 
       installProcess.stderr.on("data", (data) => {
-        log(data.toString(), "error");
+        logMessage(data.toString(), "error");
       });
 
       installProcess.on("close", (code) => {
@@ -742,7 +743,7 @@ async function installMiniconda() {
     });
   }
 
-  log("Miniconda installed successfully");
+  logMessage("Miniconda installed successfully");
 }
 
 /**
@@ -757,18 +758,18 @@ async function condaEnvironmentExists() {
 
   const checkEnvProcess = spawn(condaPath, ["env", "list", "--json"]);
   
-  log("Checking if conda environment exists...");
+  logMessage("Checking if conda environment exists...");
 
   return new Promise((resolve, reject) => {
     let output = "";
 
     checkEnvProcess.stdout.on("data", (data) => {
       output += data.toString();
-      log(data.toString());
+      logMessage(data.toString());
     });
 
     checkEnvProcess.on("close", (code) => {
-      log(`Conda environment check completed with code ${code}`);
+      logMessage(`Conda environment check completed with code ${code}`);
       if (code === 0) {
         try {
           const envList = JSON.parse(output);
@@ -777,20 +778,20 @@ async function condaEnvironmentExists() {
           const exists = envList.envs.some(
             (env) => env.startsWith(minicondaPath) && (env.endsWith(envName) || env === envName)
           );
-          log(`Checking if conda environment '${envName}' exists: ${exists}`);
+          logMessage(`Checking if conda environment '${envName}' exists: ${exists}`);
           resolve(exists);
         } catch (error) {
-          log("Failed to parse conda environment list", "error");
+          logMessage("Failed to parse conda environment list", "error");
           reject(new Error("Failed to parse conda environment list"));
         }
       } else {
-        log("Failed to list conda environments", "error");
+        logMessage("Failed to list conda environments", "error");
         reject(new Error("Failed to list conda environments"));
       }
     });
 
     checkEnvProcess.on("error", (error) => {
-      log(`Error checking conda environment: ${error.message}`, "error");
+      logMessage(`Error checking conda environment: ${error.message}`, "error");
       reject(error);
     });
   });
@@ -806,7 +807,7 @@ async function createCondaEnvironment() {
     ? path.join(minicondaPath, "Scripts", "conda.exe")
     : path.join(minicondaPath, "bin", "conda");
 
-  log("Creating Conda environment...");
+  logMessage("Creating Conda environment...");
   emitBootMessage("Creating Python environment (this may take a few minutes)...");
 
   await new Promise((resolve, reject) => {
@@ -823,7 +824,7 @@ async function createCondaEnvironment() {
 
     createEnvProcess.stdout.on("data", (buffer) => {
       const msg = buffer.toString();
-      log(msg);
+      logMessage(msg);
 
       // Match different conda progress messages
       const downloadMatch = msg.match(/(\d+)%\s*\|\s*(\d+\/\d+)\s*\[([^\]]+)\]\s*(\S+)/);
@@ -866,7 +867,7 @@ async function createCondaEnvironment() {
 
     createEnvProcess.stderr.on("data", (data) => {
       const msg = data.toString();
-      log(msg, "warn");
+      logMessage(msg, "warn");
       
       // Also check stderr for pip installation progress
       if (msg.includes("Installing collected packages")) {
@@ -887,14 +888,14 @@ async function createCondaEnvironment() {
     });
 
     createEnvProcess.on("error", (err) => {
-      log(`Error creating conda environment: ${err.message}`, "error");
+      logMessage(`Error creating conda environment: ${err.message}`, "error");
       reject(err);
     });
   });
 
   saveConfig({ version: VERSION });
   
-  log("Conda environment created successfully");
+  logMessage("Conda environment created successfully");
 }
 
 // Add these constants
@@ -930,7 +931,7 @@ ipcMain.handle("open-log-file", () => {
 async function checkEnvironmentUpdate() {
   const config = getConfig();
   if (config.version !== VERSION) {
-    log(`Version mismatch: installed=${config.version}, current=${VERSION}`);
+    logMessage(`Version mismatch: installed=${config.version}, current=${VERSION}`);
     emitBootMessage("Updating Python environment...");
     
     const minicondaPath = getMinicondaPath();
@@ -952,12 +953,12 @@ async function checkEnvironmentUpdate() {
 
         updateProcess.stdout.on("data", (data) => {
           const msg = data.toString();
-          log(msg);
+          logMessage(msg);
           emitBootMessage(`Updating: ${msg.trim()}`);
         });
 
         updateProcess.stderr.on("data", (data) => {
-          log(data.toString(), "warn");
+          logMessage(data.toString(), "warn");
         });
 
         updateProcess.on("close", (code) => {
@@ -972,10 +973,10 @@ async function checkEnvironmentUpdate() {
         updateProcess.on("error", reject);
       });
       
-      log("Environment updated successfully");
+      logMessage("Environment updated successfully");
       emitBootMessage("Python environment updated successfully");
     } catch (error) {
-      log(`Failed to update environment: ${error.message}`, "error");
+      logMessage(`Failed to update environment: ${error.message}`, "error");
       throw error;
     }
   }
@@ -986,7 +987,7 @@ async function checkEnvironmentUpdate() {
  * @param {string} errorMessage - Error message to show before quitting
  */
 function forceQuit(errorMessage) {
-  log(`Force quitting application: ${errorMessage}`, "error");
+  logMessage(`Force quitting application: ${errorMessage}`, "error");
   dialog.showErrorBox("Critical Error", errorMessage);
   
   // Force kill any remaining processes
@@ -994,7 +995,7 @@ function forceQuit(errorMessage) {
     try {
       serverProcess.kill('SIGKILL');
     } catch (e) {
-      log(`Error killing server process: ${e.message}`, "error");
+      logMessage(`Error killing server process: ${e.message}`, "error");
     }
   }
 

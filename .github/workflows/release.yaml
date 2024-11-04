@@ -81,17 +81,6 @@ jobs:
           # CSC_LINK: ./certificate.pfx
           # CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEBUG: electron-builder
         run: |
-          cd electron
-          npm ci
-          npm run build -- -p always
-
-      - name: Create Release
-        uses: softprops/action-gh-release@v2
-        with:
-          draft: false
-          prerelease: false
-          files: |
-            build/dist/*.exe
-            build/dist/*.exe.blockmap
-            build/dist/latest.yml
+          python build.py --step electron --python-version ${{ env.PYTHON_VERSION }}

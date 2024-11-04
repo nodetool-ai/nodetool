@@ -25,17 +25,23 @@
         "category": "public.app-category.developer-tools",
         "target": [
             "dmg"
-        ]
+        ],
+        "publish": ["github"]
     },
     "win": {
         "target": [
             "nsis"
-        ]
+        ],
+        "publish": ["github"]
     },
     "nsis": {
         "oneClick": false,
         "allowToChangeInstallationDirectory": true,
         "createDesktopShortcut": true,
         "runAfterFinish": true
+    },
+    "publish": {
+        "provider": "github",
+        "private": false
     }
 }

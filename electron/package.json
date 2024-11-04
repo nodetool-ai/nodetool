@@ -26,5 +26,9 @@
   },
   "permissions": [
     "audioCapture"
-  ]
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nodetool-ai/nodetool.git"
+  }
 }

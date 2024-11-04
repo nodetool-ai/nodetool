@@ -175,7 +175,11 @@ class Build:
     def electron(self) -> None:
         """Build Electron app."""
         logger.info(f"Building Electron app for {self.platform} ({self.arch})")
-        # copy electron folder to build dir
+
+        # Create build directory if it doesn't exist
+        self.create_directory(self.BUILD_DIR)
+
+        # Copy electron folder to build dir
         files_to_copy = [
             "electron-builder.json",
             "index.js",
@@ -187,18 +191,24 @@ class Build:
         for file in files_to_copy:
             self.copy_file(self.ELECTRON_DIR / file, self.BUILD_DIR / file)
 
+        # Copy resources and environment
         self.copy_tree(self.ELECTRON_DIR / "resources", self.BUILD_DIR / "resources")
-
         self.copy_file(
             PROJECT_ROOT / f"environment-{self.platform}-{self.arch}.yaml",
             self.BUILD_DIR / "environment.yaml",
         )
 
+        # Install dependencies
+        self.run_command(["npm", "ci"], cwd=self.BUILD_DIR)
+
+        # Build command
         build_command = [
             "npx",
             "electron-builder",
             "--config",
             "electron-builder.json",
+            "--publish",
+            "always",
         ]
 
         if self.platform:
