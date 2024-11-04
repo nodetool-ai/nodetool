@@ -35,7 +35,7 @@ jobs:
   release-build:
     strategy:
       matrix:
-        os: [windows-latest, macos-latest]
+        os: [windows-latest]
         include:
           # - os: ubuntu-latest
           #   platform: linux

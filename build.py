@@ -72,6 +72,9 @@ class Build:
         self.ELECTRON_DIR = PROJECT_ROOT / "electron"
         self.WEB_DIR = PROJECT_ROOT / "web"
 
+        if not self.BUILD_DIR.exists():
+            self.create_directory(self.BUILD_DIR)
+
     def run_command(
         self,
         command: list[str],
