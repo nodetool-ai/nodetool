@@ -230,20 +230,13 @@ function runNodeTool() {
   serverProcess.stderr.on("data", handleServerOutput);
 
   serverProcess.on("error", (error) => {
-    log(`Server process error: ${error.message}`, "error");
-    dialog.showErrorBox(
-      "Server Error",
-      `An error occurred with the server process: ${error.message}`
-    );
+    forceQuit(`Server process error: ${error.message}`);
   });
 
   serverProcess.on("exit", (code, signal) => {
     log(`Server process exited with code ${code} and signal ${signal}`);
     if (code !== 0 && !isAppQuitting) {
-      dialog.showErrorBox(
-        "Server Error",
-        `The server process terminated unexpectedly with code ${code}`
-      );
+      forceQuit(`The server process terminated unexpectedly with code ${code}`);
     }
   });
 
@@ -357,9 +350,7 @@ async function startServer() {
     log("Attempting to run NodeTool");
     runNodeTool();
   } catch (error) {
-    log(`Critical error starting server: ${error.message}`, "error");
-    dialog.showErrorBox("Critical Error", error.message);
-    app.exit(1);
+    forceQuit(`Critical error starting server: ${error.message}`);
   }
 }
 
@@ -393,6 +384,21 @@ async function gracefulShutdown() {
 let updateAvailable = false;
 
 function setupAutoUpdater() {
+  // Add this configuration block at the start of the function
+  if (!app.isPackaged) {
+    log('Skipping auto-updater in development mode');
+    return;
+  }
+
+  // Set the feed URL for updates
+  const platform = os.platform() === 'win32' ? 'win' : 'mac';
+  autoUpdater.setFeedURL({
+    provider: 'github',
+    owner: 'nodetool-ai',
+    repo: 'nodetool',
+    updaterCacheDirName: 'nodetool-updater'
+  });
+
   // Configure logging
   autoUpdater.logger = require("electron-log");
   autoUpdater.logger.transports.file.level = "info";
@@ -974,3 +980,33 @@ async function checkEnvironmentUpdate() {
     }
   }
 }
+
+/**
+ * Force quit the application
+ * @param {string} errorMessage - Error message to show before quitting
+ */
+function forceQuit(errorMessage) {
+  log(`Force quitting application: ${errorMessage}`, "error");
+  dialog.showErrorBox("Critical Error", errorMessage);
+  
+  // Force kill any remaining processes
+  if (serverProcess) {
+    try {
+      serverProcess.kill('SIGKILL');
+    } catch (e) {
+      log(`Error killing server process: ${e.message}`, "error");
+    }
+  }
+
+  // Force exit the app
+  process.exit(1);
+}
+
+// Add global error handlers
+process.on('uncaughtException', (error) => {
+  forceQuit(`Uncaught Exception: ${error.message}`);
+});
+
+process.on('unhandledRejection', (error) => {
+  forceQuit(`Unhandled Promise Rejection: ${error.message}`);
+});

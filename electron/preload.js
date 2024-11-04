@@ -63,6 +63,11 @@ contextBridge.exposeInMainWorld("api", {
 
   getLogFilePath: () => ipcRenderer.invoke("get-log-file-path"),
   openLogFile: () => ipcRenderer.invoke("open-log-file"),
+
+  onUpdateAvailable: (callback) =>
+    ipcRenderer.on("update-available", (event, info) => callback(info)),
+
+  installUpdate: () => ipcRenderer.invoke("install-update"),
 });
 
 /**

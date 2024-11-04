@@ -357,6 +357,10 @@
         <button id="open-log-file" class="log-button">
           <span aria-label="Open Log File">📁</span>
         </button>
+        <div id="update-notification" style="display: none;">
+          <span>Update available!</span>
+          <button id="install-update" class="log-button">Install</button>
+        </div>
       </div>
       <div id="log"></div>
     </div>
@@ -467,6 +471,15 @@
         await api.openLogFile();
       });
       initializeApp();
+
+      api.onUpdateAvailable((info) => {
+        const updateNotification = document.getElementById('update-notification');
+        updateNotification.style.display = 'block';
+      });
+
+      document.getElementById('install-update').addEventListener('click', async () => {
+        await api.installUpdate();
+      });
     </script>
 
     <script>

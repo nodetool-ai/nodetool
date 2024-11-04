@@ -31,5 +31,11 @@
         "target": [
             "nsis"
         ]
+    },
+    "nsis": {
+        "oneClick": false,
+        "allowToChangeInstallationDirectory": true,
+        "createDesktopShortcut": true,
+        "runAfterFinish": true
     }
 }

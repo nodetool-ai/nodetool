@@ -16,7 +16,7 @@ jobs:
           # ffmpeg-version: release
           ffmpeg-version: "6.1.0" # Pinning a specific version to avoid fetch failures
 
-      - name: Set up Python ${{ matrix.python-version }}
+      - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: "3.11"
@@ -37,12 +37,6 @@ jobs:
       matrix:
         os: [windows-latest]
         include:
-          # - os: ubuntu-latest
-          #   platform: linux
-          #   arch: x64
-          # - os: macos-latest
-          #   platform: darwin
-          #   arch: arm64
           - os: windows-latest
             platform: windows
             arch: x64
@@ -51,6 +45,7 @@ jobs:
 
     env:
       PYTHON_VERSION: "3.11.10"
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     steps:
       - uses: actions/checkout@v3
@@ -67,27 +62,36 @@ jobs:
           miniconda-version: "latest"
           python-version: ${{ env.PYTHON_VERSION }}
 
+      # - name: Import Code Signing Certificate
+      #   if: matrix.os == 'windows-latest'
+      #   run: |
+      #     echo "${{ secrets.WIN_CSC_CERT }}" > certificate.b64
+      #     certutil -decode certificate.b64 certificate.pfx
+      #   env:
+      #     WIN_CSC_CERT: ${{ secrets.WIN_CSC_CERT }}
+
       - name: Build Web
         shell: bash -l {0}
         run: |
           python build.py --step web --python-version ${{ env.PYTHON_VERSION }}
 
-      - name: Build Electron
+      - name: Build and Publish Electron
         shell: bash -l {0}
+        env:
+          # CSC_LINK: ./certificate.pfx
+          # CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          python build.py --step electron --python-version ${{ env.PYTHON_VERSION }}
+          cd electron
+          npm ci
+          npm run build -- -p always
 
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-artifacts-${{ matrix.platform }}-${{ matrix.arch }}
-          path: |
-            build/**/*.exe
-            build/**/*.dmg
-
-      - name: Create Release and Upload Assets
+      - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
+          draft: false
+          prerelease: false
           files: |
-            **/*.exe
-            **/*.dmg
+            build/dist/*.exe
+            build/dist/*.exe.blockmap
+            build/dist/latest.yml
