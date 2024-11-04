@@ -96,7 +96,7 @@ const envFilePath = app.isPackaged
   ? path.join(resourcesPath, "environment.yaml")
   : path.join(__dirname, '..', `environment-${platform}-${os.arch()}.yaml`);
 /** @type {string} */
-const VERSION = "";
+const VERSION = "0.5.2";
 
 log.info("resourcesPath", resourcesPath);
 log.info("envFilePath", envFilePath);
