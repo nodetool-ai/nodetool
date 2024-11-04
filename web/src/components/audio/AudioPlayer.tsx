@@ -306,7 +306,7 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
       abortCtrl.abort();
     };
   }, [
-    source,
+    audioUrl,
     prevUrl,
     minimapId,
     waveColor,
