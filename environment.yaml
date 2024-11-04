@@ -40,7 +40,10 @@ dependencies:
   - python-dateutil
   - python-dotenv
   - python=3.11.10
-  - pytorch-cuda=12.1
+  - pytorch=2.5.0
+  - pytorch-cuda=12.4
+  - torchvision=0.16.0
+  - torchaudio=2.5.01
   - pyyaml
   - requests
   - safetensors
@@ -62,53 +65,52 @@ dependencies:
   - uvicorn
   - wheel
   - pip:
-    - addict
-    - anthropic
-    - authlib
-    - bitsandbytes
-    - boto3>=1.34.5
-    - chromadb
-    - dac
-    - datasets
-    - descript-audio-codec
-    - einops
-    - fastapi>=0.109.0
-    - ffmpeg-python
-    - freezegun
-    - ftfy
-    - fvcore
-    - huggingface-hub
-    - importlib-metadata
-    - importlib-resources
-    - itsdangerous
-    - jsonpath-ng
-    - jsonschema
-    - jwt
-    - kornia
-    - lumaai
-    - modal
-    - moto[s3]
-    - msgpack
-    - ollama
-    - omegaconf
-    - openai>=1.10.0
-    - openapi-pydantic
-    - pedalboard
-    - peft
-    - pymemcache
-    - pytesseract
-    - python-multipart
-    - replicate
-    - respx
-    - sam2
-    - spandrel
-    - svglib
-    - tiktoken
-    - torchsde
-    - validate-email
-    - websocket-client
-    - websockets
-    - yacs
-    - yapf
-    - zipp
-  
+      - addict
+      - anthropic
+      - authlib
+      - bitsandbytes
+      - boto3>=1.34.5
+      - chromadb
+      - dac
+      - datasets
+      - descript-audio-codec
+      - einops
+      - fastapi>=0.109.0
+      - ffmpeg-python
+      - freezegun
+      - ftfy
+      - fvcore
+      - huggingface-hub
+      - importlib-metadata
+      - importlib-resources
+      - itsdangerous
+      - jsonpath-ng
+      - jsonschema
+      - jwt
+      - kornia
+      - lumaai
+      - modal
+      - moto[s3]
+      - msgpack
+      - ollama
+      - omegaconf
+      - openai>=1.10.0
+      - openapi-pydantic
+      - pedalboard
+      - peft
+      - pymemcache
+      - pytesseract
+      - python-multipart
+      - replicate
+      - respx
+      - sam2
+      - spandrel
+      - svglib
+      - tiktoken
+      - torchsde
+      - validate-email
+      - websocket-client
+      - websockets
+      - yacs
+      - yapf
+      - zipp
