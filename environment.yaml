@@ -85,7 +85,7 @@ dependencies:
   - conda-forge::sentencepiece
   - conda-forge::setuptools
   - conda-forge::six
-  - conda-forge::sympy
+  - conda-forge::sympy ==1.13.1
   - conda-forge::svglib
   - conda-forge::tensorboard
   - conda-forge::tiktoken
@@ -104,7 +104,6 @@ dependencies:
       - descript-audio-codec
       - huggingface-hub
       - lumaai
-      - modal
       - ollama
       - pedalboard
       - spandrel
