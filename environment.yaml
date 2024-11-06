@@ -13,10 +13,13 @@ dependencies:
   - black
   - click
   - cryptography
+  - datasets
   - diffusers
   - ffmpeg
   - httpx
   - imageio
+  - importlib-metadata
+  - importlib-resources
   - joblib
   - librosa
   - matplotlib
@@ -24,13 +27,13 @@ dependencies:
   - networkx
   - numba
   - numpy
-  - open-clip-torch
   - onnxruntime
+  - open-clip-torch
   - opencv
   - pandas
   - pillow
   - pip
-  - protobuf
+  - protobuf=3.19.6
   - psutil
   - psycopg2
   - pyarrow
@@ -40,28 +43,29 @@ dependencies:
   - python-dateutil
   - python-dotenv
   - python=3.11.10
-  - pytorch=
   - pytorch-cuda=12.4
-  - torchvision=
-  - torchaudio=
+  - pytorch=
   - pyyaml
   - requests
   - safetensors
   - scikit-image
   - scikit-learn
   - scipy
-  - sentence-transformers
   - seaborn
   - selenium
+  - sentence-transformers
   - sentencepiece
   - setuptools
   - six
+  - sympy
   - tensorboard
   - torchaudio
+  - torchaudio=
   - torchvision
+  - torchvision=
   - tqdm
-  - trimesh
   - transformers ==4.43.3
+  - trimesh
   - uvicorn
   - wheel
   - pip:
@@ -72,7 +76,6 @@ dependencies:
       - boto3>=1.34.5
       - chromadb
       - dac
-      - datasets
       - descript-audio-codec
       - einops
       - fastapi>=0.109.0
@@ -81,8 +84,6 @@ dependencies:
       - ftfy
       - fvcore
       - huggingface-hub
-      - importlib-metadata
-      - importlib-resources
       - itsdangerous
       - jsonpath-ng
       - jsonschema
