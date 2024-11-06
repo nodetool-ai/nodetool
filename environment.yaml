@@ -6,48 +6,74 @@ channels:
   - defaults
 dependencies:
   - accelerate
+  - addict
   - aiofiles
   - aiohttp
+  - anthropic
+  - authlib
   - av
   - beautifulsoup4
+  - bitsandbytes
   - black
+  - boto3
   - click
   - cryptography
   - datasets
   - diffusers
+  - einops
+  - fastapi
   - ffmpeg
+  - ffmpeg-python
+  - fvcore
   - httpx
   - imageio
   - importlib-metadata
   - importlib-resources
+  - isdangerous
   - joblib
+  - jsonpath-ng
+  - jsonschema
+  - kornia
   - librosa
   - matplotlib
+  - moto
   - moviepy
+  - msgpack-python
   - networkx
   - numba
   - numpy
+  - omegaconf
   - onnxruntime
+  - openapi-pydantic
   - open-clip-torch
   - opencv
+  - openai
   - pandas
+  - peft
   - pillow
   - pip
-  - protobuf=3.19.6
+  - protobuf
   - psutil
   - psycopg2
+  - py3-validate-email
   - pyarrow
   - pydantic
   - pydub
+  - pymemcache
+  - pytesseract
   - pytest
   - python-dateutil
   - python-dotenv
   - python=3.11.10
+  - python-multipart
   - pytorch-cuda=12.4
   - pytorch=
   - pyyaml
+  - replicate
   - requests
+  - respx
   - safetensors
+  - sam2
   - scikit-image
   - scikit-learn
   - scipy
@@ -58,7 +84,10 @@ dependencies:
   - setuptools
   - six
   - sympy
+  - spandrel
+  - svglib
   - tensorboard
+  - tiktoken
   - torchaudio
   - torchaudio=
   - torchvision
@@ -67,51 +96,18 @@ dependencies:
   - transformers ==4.43.3
   - trimesh
   - uvicorn
+  - websocket-client
+  - websockets
   - wheel
+  - yacs
+  - zipp
   - pip:
-      - addict
-      - anthropic
-      - authlib
-      - bitsandbytes
-      - boto3>=1.34.5
-      - chromadb
       - dac
       - descript-audio-codec
-      - einops
-      - fastapi>=0.109.0
-      - ffmpeg-python
-      - freezegun
-      - ftfy
-      - fvcore
       - huggingface-hub
-      - itsdangerous
-      - jsonpath-ng
-      - jsonschema
-      - jwt
-      - kornia
       - lumaai
       - modal
-      - moto[s3]
-      - msgpack
       - ollama
-      - omegaconf
-      - openai>=1.10.0
-      - openapi-pydantic
       - pedalboard
-      - peft
-      - pymemcache
-      - pytesseract
-      - python-multipart
-      - replicate
-      - respx
-      - sam2
-      - spandrel
-      - svglib
-      - tiktoken
       - torchsde
-      - validate-email
-      - websocket-client
-      - websockets
-      - yacs
       - yapf
-      - zipp
