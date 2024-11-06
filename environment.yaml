@@ -90,7 +90,7 @@ dependencies:
   - conda-forge::tensorboard
   - conda-forge::tiktoken
   - conda-forge::tqdm
-  - conda-forge::transformers ==4.43.3
+  - conda-forge::transformers
   - conda-forge::trimesh
   - conda-forge::uvicorn
   - conda-forge::websocket-client
@@ -100,8 +100,6 @@ dependencies:
   - conda-forge::zipp
   - pip:
       - bitsandbytes
-      - dac
-      - descript-audio-codec
       - huggingface-hub
       - lumaai
       - ollama
