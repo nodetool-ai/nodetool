@@ -34,6 +34,43 @@ jobs:
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
 
+  pack-conda-env:
+    strategy:
+      matrix:
+        os: [windows-latest]
+        include:
+          - os: windows-latest
+            platform: windows
+            arch: x64
+    env:
+      PYTHON_VERSION: "3.11.10"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Conda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          auto-update-conda: true
+          miniconda-version: "latest"
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Pack Conda Environment
+        shell: bash -l {0}
+        run: |
+          python build.py --step pack --python-version ${{ env.PYTHON_VERSION }}
+
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            build/dist/Nodetool Setup*.exe
+            build/dist/latest.yml
+          draft: false
+          prerelease: false
+          token: ${{ secrets.GITHUB_TOKEN }}
+
   release-build:
     strategy:
       matrix:
@@ -56,14 +93,6 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: "20"
-
-      - name: Set up Conda
-        uses: conda-incubator/setup-miniconda@v3
-        with:
-          auto-update-conda: true
-          miniconda-version: "latest"
-          python-version: ${{ env.PYTHON_VERSION }}
-
       # - name: Import Code Signing Certificate
       #   if: matrix.os == 'windows-latest'
       #   run: |
@@ -71,7 +100,7 @@ jobs:
       #     certutil -decode certificate.b64 certificate.pfx
       #   env:
       #     WIN_CSC_CERT: ${{ secrets.WIN_CSC_CERT }}
-
+      #
       - name: Build Web
         shell: bash -l {0}
         run: |
