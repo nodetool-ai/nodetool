@@ -173,7 +173,7 @@ const env = {
 };
   
 /** @type {string} */
-const VERSION = "0.5.2";
+const VERSION = "0.5.3";
 
 log.info("resourcesPath", resourcesPath);
 log.info("envFilePath", envFilePath);
