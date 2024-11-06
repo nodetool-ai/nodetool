@@ -394,13 +394,13 @@ class Build:
         self.run_command(["conda", "install", "conda-pack", "-y"])
 
         # Create and activate new environment from yaml
-        env_file = PROJECT_ROOT / f"environment.yaml"
+        env_file = PROJECT_ROOT / "environment.yaml"
         if not env_file.exists():
             raise BuildError(f"Environment file not found: {env_file}")
 
         # Remove existing environment if it exists
         self.remove_directory(self.ENV_DIR)
-        
+
         # Create new environment
         self.run_command([
             "conda", "env", "create",
@@ -409,19 +409,41 @@ class Build:
         ])
 
         # Pack the environment
-        output_name = f"conda-env-{self.platform}-{self.arch}"
-        if self.platform == "windows":
-            output_name += ".zip"
-        else:
-            output_name += ".tar.gz"
+        version = self.get_version()
+        ext = "zip" if self.platform == "windows" else "tar.gz"
+        output_name = f"conda-env-{self.platform}-{self.arch}-{version}.{ext}"
+        output_path = self.BUILD_DIR / output_name
 
         self.run_command([
             "conda-pack",
             "-p", str(self.ENV_DIR),
-            "-o", str(self.BUILD_DIR / output_name)
+            "-o", str(output_path)
         ])
 
         logger.info(f"Environment packed successfully to {output_name}")
+
+        # Compute checksum
+        checksum_file = self.BUILD_DIR / f"{output_name}.sha256"
+        logger.info(f"Generating checksum file: {checksum_file}")
+        with open(checksum_file, "w") as f:
+            self.run_command(
+                ["shasum", "-a", "256", str(output_path)],
+                stdout=f
+            )
+
+        # Upload the packed environment to S3
+        logger.info(f"Uploading {output_name} to s3://nodetool-conda/")
+        self.run_command([
+            "aws", "s3", "cp", str(output_path), "s3://nodetool-conda/"
+        ])
+
+        # Upload the checksum file to S3
+        logger.info(f"Uploading checksum file to s3://nodetool-conda/")
+        self.run_command([
+            "aws", "s3", "cp", str(checksum_file), "s3://nodetool-conda/"
+        ])
+
+        logger.info("Packed environment and checksum uploaded successfully")
 
 
 def main() -> None:
