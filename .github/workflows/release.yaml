@@ -66,8 +66,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            build/dist/Nodetool Setup*.exe
-            build/dist/latest.yml
+            build/conda-env-windows-x64.zip
           draft: false
           prerelease: false
           token: ${{ secrets.GITHUB_TOKEN }}
