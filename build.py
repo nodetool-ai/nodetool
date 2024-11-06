@@ -394,7 +394,7 @@ class Build:
         self.run_command(["conda", "install", "conda-pack", "-y"])
 
         # Create and activate new environment from yaml
-        env_file = PROJECT_ROOT / f"environment-{self.platform}-{self.arch}.yaml"
+        env_file = PROJECT_ROOT / f"environment.yaml"
         if not env_file.exists():
             raise BuildError(f"Environment file not found: {env_file}")
 
