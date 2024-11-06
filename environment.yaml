@@ -8,6 +8,9 @@ dependencies:
   - conda-forge::python=3.11.10
   - pytorch::pytorch
   - pytorch::pytorch-cuda=12.4
+  - pytorch::torchaudio
+  - pytorch::torchvision
+  - pytorch::torchvision=
   - nvidia::cuda=12.4
   - conda-forge::accelerate
   - conda-forge::addict
@@ -17,7 +20,6 @@ dependencies:
   - conda-forge::authlib
   - conda-forge::av
   - conda-forge::beautifulsoup4
-  - conda-forge::bitsandbytes
   - conda-forge::black
   - conda-forge::boto3
   - conda-forge::click
@@ -87,10 +89,6 @@ dependencies:
   - conda-forge::svglib
   - conda-forge::tensorboard
   - conda-forge::tiktoken
-  - conda-forge::torchaudio
-  - conda-forge::torchaudio=
-  - conda-forge::torchvision
-  - conda-forge::torchvision=
   - conda-forge::tqdm
   - conda-forge::transformers ==4.43.3
   - conda-forge::trimesh
@@ -101,6 +99,7 @@ dependencies:
   - conda-forge::yacs
   - conda-forge::zipp
   - pip:
+      - bitsandbytes
       - dac
       - descript-audio-codec
       - huggingface-hub
