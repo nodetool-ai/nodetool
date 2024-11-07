@@ -428,14 +428,6 @@ class Build:
             "aws", "s3", "cp", str(output_path), "s3://nodetool-conda/"
         ])
 
-        # Upload the checksum file to S3
-        logger.info(f"Uploading checksum file to s3://nodetool-conda/")
-        self.run_command([
-            "aws", "s3", "cp", str(checksum_file), "s3://nodetool-conda/"
-        ])
-
-        logger.info("Packed environment and checksum uploaded successfully")
-
 
 def main() -> None:
     """Parse arguments and run the build process."""
