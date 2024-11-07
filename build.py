@@ -425,11 +425,14 @@ class Build:
         # Compute checksum
         checksum_file = self.BUILD_DIR / f"{output_name}.sha256"
         logger.info(f"Generating checksum file: {checksum_file}")
+        result = subprocess.run(
+            ["shasum", "-a", "256", str(output_path)],
+            capture_output=True,
+            text=True,
+            check=True
+        )
         with open(checksum_file, "w") as f:
-            self.run_command(
-                ["shasum", "-a", "256", str(output_path)],
-                stdout=f
-            )
+            f.write(result.stdout)
 
         # Upload the packed environment to S3
         logger.info(f"Uploading {output_name} to s3://nodetool-conda/")
