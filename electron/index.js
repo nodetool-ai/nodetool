@@ -34,6 +34,7 @@
  * - Node integration disabled
  * - Controlled permissions system
  * - Secure IPC communication
+ * - Global error handlers for uncaught exceptions and unhandled promise rejections
  *
  * File Organization:
  * - /electron      - Electron main process code
@@ -57,12 +58,11 @@ const {
 } = require("electron");
 const path = require("path");
 const { createWriteStream } = require("fs");
-const { access, unlink, chmod } = require("fs").promises;
+const { access, unlink, chmod, appendFile } = require("fs").promises;
 const { spawn } = require("child_process");
 const https = require("https");
 const fs = require("fs");
 const os = require("os");
-const { appendFile } = require("fs").promises;
 const { autoUpdater } = require("electron-updater");
 const log = require("electron-log");
 const extract = require("extract-zip");
@@ -73,12 +73,14 @@ const extract = require("extract-zip");
  * @type {BrowserWindow|null}
  */
 let mainWindow;
+
 /**
  * Reference to the NodeTool backend server process.
  * Manages the NodeTool backend server running in Python.
  * @type {import('child_process').ChildProcess|null}
  */
 let nodeToolBackendProcess;
+
 /**
  * Path to the application's resources directory.
  * In production, this points to the app.asar/resources folder.
@@ -86,6 +88,7 @@ let nodeToolBackendProcess;
  * @type {string}
  */
 const resourcesPath = process.resourcesPath;
+
 /**
  * Path to the Python source code directory.
  * Contains the NodeTool Python backend code.
@@ -96,6 +99,7 @@ const resourcesPath = process.resourcesPath;
 const srcPath = app.isPackaged
   ? path.join(resourcesPath, "src")
   : path.join(__dirname, "..", "src");
+
 /**
  * Path to the web frontend files.
  * Contains the compiled React frontend code.
@@ -106,6 +110,7 @@ const srcPath = app.isPackaged
 const webPath = app.isPackaged
   ? path.join(resourcesPath, "web")
   : path.join(__dirname, "..", "web", "dist");
+
 /**
  * Normalized platform identifier.
  * Converts 'win32' to 'windows', leaves other platforms as-is.
@@ -114,6 +119,7 @@ const webPath = app.isPackaged
  */
 const normalizedPlatform =
   os.platform() === "win32" ? "windows" : os.platform();
+
 /**
  * Path to the Conda environment configuration file.
  * Defines Python dependencies and packages needed by NodeTool.
@@ -128,6 +134,7 @@ const condaEnvFilePath = app.isPackaged
       "..",
       `environment-${normalizedPlatform}-${os.arch()}.yaml`
     );
+
 /**
  * Base directory for the application.
  * In portable mode: uses PORTABLE_EXECUTABLE_DIR
@@ -137,6 +144,7 @@ const condaEnvFilePath = app.isPackaged
  */
 const appDir =
   process.env.PORTABLE_EXECUTABLE_DIR || path.dirname(app.getPath("exe"));
+
 /**
  * Path to the Conda environment.
  * @type {string}
@@ -158,15 +166,18 @@ const processEnv = {
     ) + path.delimiter + process.env.PATH,
 };
 
-log.info("resourcesPath", resourcesPath);
-log.info("srcPath", srcPath);
-log.info("webPath", webPath);
-log.info("condaEnvPath", condaEnvPath);
+log.info("Resources Path:", resourcesPath);
+log.info("Source Path:", srcPath);
+log.info("Web Path:", webPath);
+log.info("Conda Environment Path:", condaEnvPath);
 
-/** @type {string} */
+/** @type {string} - Application version */
 const VERSION = "0.5.3";
 
-/** @type {{ isStarted: boolean, bootMsg: string, logs: string[] }} */
+/**
+ * Server state management.
+ * @type {{ isStarted: boolean, bootMsg: string, logs: string[] }}
+ */
 let serverState = {
   isStarted: false,
   bootMsg: "Initializing...",
@@ -174,7 +185,7 @@ let serverState = {
 };
 
 /**
- * Create the main application window
+ * Create the main application window.
  */
 function createWindow() {
   logMessage("Creating main window");
@@ -213,15 +224,20 @@ function createWindow() {
 }
 
 /**
- * Set permission handlers for Electron sessions
+ * Set permission handlers for Electron sessions.
+ * All permissions are granted by default. Customize as needed.
  */
 function initializePermissionHandlers() {
-  session.defaultSession.setPermissionRequestHandler(() => true);
+  session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
+    // Customize permissions as needed
+    callback(true); // Grant all permissions
+  });
   session.defaultSession.setPermissionCheckHandler(() => true);
+  logMessage("Permission handlers initialized");
 }
 
 /**
- * Start the NodeTool backend server process
+ * Start the NodeTool backend server process.
  */
 function startNodeToolBackendProcess() {
   emitBootMessage("Configuring server environment...");
@@ -264,7 +280,7 @@ function startNodeToolBackendProcess() {
     }
   });
 
-  // Check if process is running
+  // Check if process is running after a delay
   setTimeout(() => {
     if (nodeToolBackendProcess && !nodeToolBackendProcess.killed) {
       logMessage("Server process is still running after startup");
@@ -274,8 +290,8 @@ function startNodeToolBackendProcess() {
   }, 1000);
 
   /**
-   * Handle output from the server process
-   * @param {Buffer} data
+   * Handle output from the server process.
+   * @param {Buffer} data - Output data from the server process.
    */
   function handleServerOutput(data) {
     const output = data.toString().trim();
@@ -311,13 +327,13 @@ function startNodeToolBackendProcess() {
 }
 
 /**
- * Ensure Ollama is installed and running
+ * Ensure Ollama is installed and running.
  * @returns {Promise<boolean>}
  */
 async function ensureOllamaIsRunning() {
   try {
     const response = await fetch("http://localhost:11434/api/version");
-    return response.status === 200;
+    return response && response.status === 200;
   } catch (error) {
     await showOllamaInstallDialog();
     return false;
@@ -325,7 +341,7 @@ async function ensureOllamaIsRunning() {
 }
 
 /**
- * Show dialog explaining Ollama and providing download links
+ * Show dialog explaining Ollama and providing download links.
  */
 async function showOllamaInstallDialog() {
   const ollamaVersion = "0.3.14";
@@ -351,7 +367,7 @@ async function showOllamaInstallDialog() {
 }
 
 /**
- * Start the NodeTool server with error handling
+ * Start the NodeTool server with error handling.
  */
 async function initializeBackendServer() {
   try {
@@ -363,8 +379,15 @@ async function initializeBackendServer() {
   }
 }
 
+/**
+ * Flag to indicate if the app is quitting.
+ * @type {boolean}
+ */
 let isAppQuitting = false;
 
+/**
+ * Handle the before-quit event.
+ */
 app.on("before-quit", (event) => {
   if (!isAppQuitting) {
     isAppQuitting = true;
@@ -373,7 +396,7 @@ app.on("before-quit", (event) => {
 });
 
 /**
- * Perform a graceful shutdown of the application
+ * Perform a graceful shutdown of the application.
  */
 async function gracefulShutdown() {
   logMessage("Initiating graceful shutdown");
@@ -390,8 +413,15 @@ async function gracefulShutdown() {
   logMessage("Graceful shutdown complete");
 }
 
+/**
+ * Flag to indicate if an update is available.
+ * @type {boolean}
+ */
 let updateAvailable = false;
 
+/**
+ * Setup the auto-updater.
+ */
 function setupAutoUpdater() {
   if (!app.isPackaged) {
     logMessage("Skipping auto-updater in development mode");
@@ -399,7 +429,6 @@ function setupAutoUpdater() {
   }
 
   // Set the feed URL for updates
-  const platform = os.platform() === "win32" ? "win" : "mac";
   autoUpdater.setFeedURL({
     provider: "github",
     owner: "nodetool-ai",
@@ -448,12 +477,14 @@ function setupAutoUpdater() {
   });
 }
 
+// Handle requests to install updates
 ipcMain.handle("install-update", () => {
   if (updateAvailable) {
     autoUpdater.quitAndInstall(false, true);
   }
 });
 
+// Application event handlers
 app.on("ready", async () => {
   logMessage("Electron app is ready");
   emitBootMessage("Starting NodeTool Desktop...");
@@ -494,13 +525,22 @@ app.on("quit", () => {
   }
 });
 
+// IPC handlers
 ipcMain.handle("get-server-state", () => serverState);
+ipcMain.handle("get-log-file-path", () => LOG_FILE);
+ipcMain.handle("open-log-file", () => {
+  shell.showItemInFolder(LOG_FILE);
+});
 
 /**
- * Emit a boot message to the main window
- * @param {string} message - The message to emit
+ * Emit a boot message to the main window.
+ * @param {string} message - The message to emit.
  */
 function emitBootMessage(message) {
+  // Easter Egg: Add a hidden gem when the application starts
+  if (message === "Starting NodeTool Desktop...") {
+    message += `\n"Every great developer you know got there by solving problems they were unqualified to solve until they actually did it." – Patrick McKenzie`;
+  }
   serverState.bootMsg = message;
   if (mainWindow && mainWindow.webContents) {
     try {
@@ -512,7 +552,7 @@ function emitBootMessage(message) {
 }
 
 /**
- * Emit server started event to the main window
+ * Emit server started event to the main window.
  */
 function emitServerStarted() {
   serverState.isStarted = true;
@@ -526,8 +566,8 @@ function emitServerStarted() {
 }
 
 /**
- * Emit a server log message to the main window
- * @param {string} message - The log message
+ * Emit a server log message to the main window.
+ * @param {string} message - The log message.
  */
 function emitServerLog(message) {
   serverState.logs.push(message);
@@ -541,9 +581,9 @@ function emitServerLog(message) {
 }
 
 /**
- * Enhanced logging function
- * @param {string} message - The message to log
- * @param {'info' | 'warn' | 'error'} level - The log level
+ * Enhanced logging function.
+ * @param {string} message - The message to log.
+ * @param {'info' | 'warn' | 'error'} level - The log level.
  */
 function logMessage(message, level = "info") {
   try {
@@ -562,10 +602,10 @@ function logMessage(message, level = "info") {
 }
 
 /**
- * Emit update progress to the main window
- * @param {string} componentName
- * @param {number} progress
- * @param {string} action
+ * Emit update progress to the main window.
+ * @param {string} componentName - Name of the component being updated.
+ * @param {number} progress - Progress percentage.
+ * @param {string} action - Description of the current action.
  */
 function emitUpdateProgress(componentName, progress, action) {
   if (mainWindow && mainWindow.webContents) {
@@ -582,13 +622,7 @@ function emitUpdateProgress(componentName, progress, action) {
 }
 
 /**
- * Path to the configuration file
- * @type {string}
- */
-const CONFIG_FILE = path.join(app.getPath("userData"), "config.json");
-
-/**
- * Get the application configuration
+ * Get the application configuration.
  * @returns {Object}
  */
 function getConfig() {
@@ -601,8 +635,8 @@ function getConfig() {
 }
 
 /**
- * Save the application configuration
- * @param {Object} config
+ * Save the application configuration.
+ * @param {Object} config - Configuration object to save.
  */
 function saveConfig(config) {
   const currentConfig = getConfig();
@@ -613,19 +647,7 @@ function saveConfig(config) {
 }
 
 /**
- * Path to the log file
- * @type {string}
- */
-const LOG_FILE = path.join(app.getPath("userData"), "nodetool.log");
-
-ipcMain.handle("get-log-file-path", () => LOG_FILE);
-
-ipcMain.handle("open-log-file", () => {
-  shell.showItemInFolder(LOG_FILE);
-});
-
-/**
- * Check if the Conda environment is installed
+ * Check if the Conda environment is installed.
  * @returns {Promise<boolean>}
  */
 async function isCondaEnvironmentInstalled() {
@@ -644,7 +666,7 @@ async function isCondaEnvironmentInstalled() {
 }
 
 /**
- * Download and install the pre-packaged Conda environment
+ * Download and install the pre-packaged Conda environment.
  * @returns {Promise<void>}
  */
 async function installCondaEnvironment() {
@@ -708,9 +730,9 @@ async function installCondaEnvironment() {
 }
 
 /**
- * Download a file from a URL with validation
- * @param {string} url - The URL to download from
- * @param {string} dest - The destination path
+ * Download a file from a URL with validation.
+ * @param {string} url - The URL to download from.
+ * @param {string} dest - The destination path.
  * @returns {Promise<void>}
  */
 async function downloadFile(url, dest) {
@@ -729,7 +751,7 @@ async function downloadFile(url, dest) {
         return;
       }
 
-      if (response.statusCode === 302) {
+      if (response.statusCode === 302 || response.statusCode === 301) {
         https
           .get(response.headers.location, handleResponse)
           .on("error", handleError);
@@ -783,9 +805,9 @@ async function downloadFile(url, dest) {
 }
 
 /**
- * Extract a zip archive to a specified destination
- * @param {string} zipPath - The path to the zip file
- * @param {string} destPath - The destination directory
+ * Extract a zip archive to a specified destination.
+ * @param {string} zipPath - The path to the zip file.
+ * @param {string} destPath - The destination directory.
  * @returns {Promise<void>}
  */
 async function unzipFile(zipPath, destPath) {
@@ -800,8 +822,8 @@ async function unzipFile(zipPath, destPath) {
 }
 
 /**
- * Force quit the application
- * @param {string} errorMessage - Error message to show before quitting
+ * Force quit the application.
+ * @param {string} errorMessage - Error message to show before quitting.
  */
 function forceQuit(errorMessage) {
   logMessage(`Force quitting application: ${errorMessage}`, "error");

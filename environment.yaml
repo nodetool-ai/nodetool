@@ -64,6 +64,7 @@ dependencies:
   - conda-forge::py3-validate-email
   - conda-forge::pyarrow
   - conda-forge::pydantic
+  - conda-forge::pydantic-settings
   - conda-forge::pydub
   - conda-forge::pymemcache
   - conda-forge::pytesseract
