@@ -22,6 +22,7 @@ dependencies:
   - conda-forge::beautifulsoup4
   - conda-forge::black
   - conda-forge::boto3
+  - conda-forge::chromadb
   - conda-forge::click
   - conda-forge::cryptography
   - conda-forge::datasets
