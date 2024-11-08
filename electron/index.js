@@ -67,6 +67,8 @@ const { autoUpdater } = require("electron-updater");
 const log = require("electron-log");
 const extract = require("extract-zip");
 
+const LOG_FILE = path.join(app.getPath("userData"), "nodetool.log");
+
 /**
  * The main application window instance.
  * Used to manage the primary UI window of the Electron application.
