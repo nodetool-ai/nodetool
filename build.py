@@ -71,6 +71,7 @@ class Build:
         self.BUILD_DIR = PROJECT_ROOT / "build"
         self.ELECTRON_DIR = PROJECT_ROOT / "electron"
         self.WEB_DIR = PROJECT_ROOT / "web"
+        self.ENV_DIR = self.BUILD_DIR / "env"
 
         if not self.BUILD_DIR.exists():
             self.create_directory(self.BUILD_DIR)
@@ -385,6 +386,48 @@ class Build:
 
         logger.info("Channel upload completed successfully")
 
+    def pack(self) -> None:
+        """Create a packed conda environment."""
+        logger.info("Packing conda environment")
+
+        # Install conda-pack
+        self.run_command(["conda", "install", "conda-pack", "-y"])
+
+        # Create and activate new environment from yaml
+        env_file = PROJECT_ROOT / "environment.yaml"
+        if not env_file.exists():
+            raise BuildError(f"Environment file not found: {env_file}")
+
+        # Remove existing environment if it exists
+        self.remove_directory(self.ENV_DIR)
+
+        # Create new environment
+        self.run_command([
+            "conda", "env", "create",
+            "-f", str(env_file),
+            "-p", str(self.ENV_DIR)
+        ])
+
+        # Pack the environment
+        version = self.get_version()
+        ext = "zip" if self.platform == "windows" else "tar.gz"
+        output_name = f"conda-env-{self.platform}-{self.arch}-{version}.{ext}"
+        output_path = self.BUILD_DIR / output_name
+
+        self.run_command([
+            "conda-pack",
+            "-p", str(self.ENV_DIR),
+            "-o", str(output_path)
+        ])
+
+        logger.info(f"Environment packed successfully to {output_name}")
+
+        # Upload the packed environment to S3
+        logger.info(f"Uploading {output_name} to s3://nodetool-conda/")
+        self.run_command([
+            "aws", "s3", "cp", str(output_path), "s3://nodetool-conda/"
+        ])
+
 
 def main() -> None:
     """Parse arguments and run the build process."""
@@ -402,6 +445,7 @@ def main() -> None:
             "setup",
             "electron",
             "web",
+            "pack",
         ],
         help="Run a specific build step",
     )

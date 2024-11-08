@@ -1,6 +1,6 @@
 /**
  * NodeTool Desktop Application - Main Process
- * 
+ *
  * This is the entry point for the Electron-based NodeTool desktop application.
  * It manages the complete lifecycle of the application including window management,
  * Python environment setup, and server processes.
@@ -12,35 +12,35 @@
  * - Auto-updates via electron-updater
  * - Cross-platform compatibility (Windows/macOS)
  * - Comprehensive logging system
- * 
+ *
  * Architecture:
  * 1. Main Process (this file)
  *    - Controls application lifecycle
  *    - Manages window creation
  *    - Handles IPC communication
  *    - Controls Python server process
- * 
+ *
  * 2. Renderer Process
  *    - Handles UI rendering
  *    - Communicates with main process via IPC
- * 
+ *
  * 3. Python Server
  *    - Runs NodeTool backend services
  *    - Manages AI model interactions
  *    - Handles data processing
- * 
+ *
  * Security Features:
  * - Context isolation enabled
  * - Node integration disabled
  * - Controlled permissions system
  * - Secure IPC communication
- * 
+ *
  * File Organization:
  * - /electron        - Electron main process code
  * - /src            - Python backend code
  * - /web            - Frontend React application
  * - /resources      - Application resources
- * 
+ *
  * @module electron/index
  * @requires electron
  * @requires electron-log
@@ -72,47 +72,48 @@ const fs = require("fs");
 const os = require("os");
 const { appendFile } = require("fs").promises;
 const { autoUpdater } = require("electron-updater");
-const log = require('electron-log');
+const log = require("electron-log");
+const extract = require("extract-zip");
 
-/** 
+/**
  * The main application window instance.
  * Used to manage the primary UI window of the Electron application.
- * @type {BrowserWindow|null} 
+ * @type {BrowserWindow|null}
  */
 let mainWindow;
-/** 
+/**
  * Reference to the Python server process.
  * Manages the NodeTool backend server running in Python.
- * @type {import('child_process').ChildProcess|null} 
+ * @type {import('child_process').ChildProcess|null}
  */
 let serverProcess;
-/** 
+/**
  * Path to the application's resources directory.
  * In production, this points to the app.asar/resources folder.
  * In development, this points to the project root.
- * @type {string} 
+ * @type {string}
  */
 const resourcesPath = process.resourcesPath;
-/** 
+/**
  * Path to the Python source code directory.
  * Contains the NodeTool Python backend code.
  * In production: resources/src
  * In development: project_root/src
- * @type {string} 
+ * @type {string}
  */
 const srcPath = app.isPackaged
   ? path.join(resourcesPath, "src")
-  : path.join(__dirname, '..', 'src');
-/** 
+  : path.join(__dirname, "..", "src");
+/**
  * Path to the web frontend files.
  * Contains the compiled React frontend code.
  * In production: resources/web
  * In development: project_root/web/dist
- * @type {string} 
+ * @type {string}
  */
 const webPath = app.isPackaged
   ? path.join(resourcesPath, "web")
-  : path.join(__dirname, '..', 'web', 'dist');
+  : path.join(__dirname, "..", "web", "dist");
 /**
  * Normalized platform identifier.
  * Converts 'win32' to 'windows', leaves other platforms as-is.
@@ -120,16 +121,16 @@ const webPath = app.isPackaged
  * @type {string}
  */
 const platform = os.platform() === "win32" ? "windows" : os.platform();
-/** 
+/**
  * Path to the Conda environment configuration file.
  * Defines Python dependencies and packages needed by NodeTool.
  * In production: resources/environment.yaml
  * In development: project_root/environment-{platform}-{arch}.yaml
- * @type {string} 
+ * @type {string}
  */
 const envFilePath = app.isPackaged
   ? path.join(resourcesPath, "environment.yaml")
-  : path.join(__dirname, '..', `environment-${platform}-${os.arch()}.yaml`);
+  : path.join(__dirname, "..", `environment-${platform}-${os.arch()}.yaml`);
 /**
  * Base directory for the application.
  * In portable mode: uses PORTABLE_EXECUTABLE_DIR
@@ -137,30 +138,14 @@ const envFilePath = app.isPackaged
  * Used as the root for application-specific files and directories.
  * @type {string}
  */
-const appDir = process.env.PORTABLE_EXECUTABLE_DIR || path.dirname(app.getPath('exe'));
+const appDir =
+  process.env.PORTABLE_EXECUTABLE_DIR || path.dirname(app.getPath("exe"));
 /**
- * Path to the Miniconda installation.
- * Contains the Python environment used by NodeTool.
- * Located in the application directory to support portable installations.
+ * Path to the conda-packed environment.
  * @type {string}
  */
-const minicondaPath = path.join(appDir, 'miniconda3');
+const minicondaPath = path.join(appDir, "conda_env");
 
-/** 
- * Path to the Conda executable.
- * @type {string}
- */
-const condaPath = process.platform === "win32"
-  ? path.join(minicondaPath, "Scripts", "conda.exe")
-      : path.join(minicondaPath, "bin", "conda");
-
-
-/**
- * Environment name for the NodeTool server process.
- * @type {string}
- */
-const envName = "nodetool";
-  
 /**
  * Environment variables for the NodeTool server process.
  * @type {Object}
@@ -169,11 +154,19 @@ const env = {
   ...process.env,
   PYTHONPATH: srcPath,
   PYTHONUNBUFFERED: "1",
-  PATH: path.join(minicondaPath, "envs", envName, "bin") + path.delimiter + process.env.PATH
+  PATH:
+    path.join(minicondaPath, process.platform === "win32" ? "Scripts" : "bin") +
+    path.delimiter +
+    process.env.PATH,
 };
-  
+
+log.info("resourcesPath", resourcesPath);
+log.info("srcPath", srcPath);
+log.info("webPath", webPath);
+log.info("minicondaPath", minicondaPath);
+
 /** @type {string} */
-const VERSION = "0.5.2";
+const VERSION = "0.5.3";
 
 log.info("resourcesPath", resourcesPath);
 log.info("envFilePath", envFilePath);
@@ -240,23 +233,25 @@ function setPermissionCheckHandler() {
  */
 function runNodeTool() {
   emitBootMessage("Configuring server environment...");
-  if (process.platform === "win32") {
-    const pythonPath = path.join(minicondaPath, "envs", envName, "python.exe");
-    logMessage(`Using command: ${pythonPath} -m nodetool.cli serve --static-folder ${webPath}`);
-    serverProcess = spawn(pythonPath, ["-m", "nodetool.cli", "serve", "--static-folder", webPath], {
-      stdio: 'pipe',
+
+  const pythonPath =
+    process.platform === "win32"
+      ? path.join(minicondaPath, "Scripts", "python.exe")
+      : path.join(minicondaPath, "bin", "python");
+
+  logMessage(
+    `Using command: ${pythonPath} -m nodetool.cli serve --static-folder ${webPath}`
+  );
+
+  serverProcess = spawn(
+    pythonPath,
+    ["-m", "nodetool.cli", "serve", "--static-folder", webPath],
+    {
+      stdio: "pipe",
       shell: false,
-      env: env
-    });
-  } else {
-    const pythonPath = path.join(minicondaPath, "envs", envName, "bin", "python");
-    logMessage(`Using command: ${pythonPath} -m nodetool.cli serve --static-folder ${webPath}`);
-    serverProcess = spawn(pythonPath, ["-m", "nodetool.cli", "serve", "--static-folder", webPath], {
-      stdio: 'pipe',
-      shell: true,
-      env: env
-    });
-  }
+      env: env,
+    }
+  );
 
   // Add detailed error logging
   serverProcess.on("spawn", () => {
@@ -266,7 +261,8 @@ function runNodeTool() {
 
   function handleServerOutput(data) {
     const output = data.toString().trim();
-    if (output) { // Only log if there's actual output
+    if (output) {
+      // Only log if there's actual output
       logMessage(`Server output: ${output}`);
     }
 
@@ -456,17 +452,17 @@ let updateAvailable = false;
 function setupAutoUpdater() {
   // Add this configuration block at the start of the function
   if (!app.isPackaged) {
-    logMessage('Skipping auto-updater in development mode');
+    logMessage("Skipping auto-updater in development mode");
     return;
   }
 
   // Set the feed URL for updates
-  const platform = os.platform() === 'win32' ? 'win' : 'mac';
+  const platform = os.platform() === "win32" ? "win" : "mac";
   autoUpdater.setFeedURL({
-    provider: 'github',
-    owner: 'nodetool-ai',
-    repo: 'nodetool',
-    updaterCacheDirName: 'nodetool-updater'
+    provider: "github",
+    owner: "nodetool-ai",
+    repo: "nodetool",
+    updaterCacheDirName: "nodetool-updater",
   });
 
   // Configure logging
@@ -476,41 +472,41 @@ function setupAutoUpdater() {
   autoUpdater.checkForUpdates();
 
   // Update events
-  autoUpdater.on('checking-for-update', () => {
-    logMessage('Checking for updates...');
+  autoUpdater.on("checking-for-update", () => {
+    logMessage("Checking for updates...");
   });
 
-  autoUpdater.on('update-available', (info) => {
+  autoUpdater.on("update-available", (info) => {
     logMessage(`Update available: ${info.version}`);
     updateAvailable = true;
     if (mainWindow) {
-      mainWindow.webContents.send('update-available', info);
+      mainWindow.webContents.send("update-available", info);
     }
   });
 
-  autoUpdater.on('update-not-available', () => {
-    logMessage('No updates available');
+  autoUpdater.on("update-not-available", () => {
+    logMessage("No updates available");
   });
 
-  autoUpdater.on('download-progress', (progress) => {
+  autoUpdater.on("download-progress", (progress) => {
     if (mainWindow) {
-      mainWindow.webContents.send('update-progress', progress);
+      mainWindow.webContents.send("update-progress", progress);
     }
   });
 
-  autoUpdater.on('update-downloaded', (info) => {
+  autoUpdater.on("update-downloaded", (info) => {
     logMessage(`Update downloaded: ${info.version}`);
     if (mainWindow) {
-      mainWindow.webContents.send('update-downloaded', info);
+      mainWindow.webContents.send("update-downloaded", info);
     }
   });
 
-  autoUpdater.on('error', (err) => {
-    logMessage(`Update error: ${err.message}`, 'error');
+  autoUpdater.on("error", (err) => {
+    logMessage(`Update error: ${err.message}`, "error");
   });
 }
 
-ipcMain.handle('install-update', () => {
+ipcMain.handle("install-update", () => {
   if (updateAvailable) {
     autoUpdater.quitAndInstall(false, true);
   }
@@ -523,18 +519,9 @@ app.on("ready", async () => {
   createWindow();
   setupAutoUpdater();
 
-  const config = getConfig();
-  emitBootMessage("Checking Python environment...");
-  if (!(await isCondaInstalled())) {
-    await installMiniconda();
-  }
-
-  emitBootMessage("Verifying Python environment...");
-  if (!(await condaEnvironmentExists())) {
-    emitBootMessage("Creating Python environment...");
-    await createCondaEnvironment();
-  } else {
-    await checkEnvironmentUpdate();
+  emitBootMessage("Checking for Conda environment...");
+  if (!(await isCondaEnvironmentInstalled())) {
+    await installCondaEnvironment();
   }
 
   emitBootMessage("Starting NodeTool server...");
@@ -671,98 +658,54 @@ async function isCondaInstalled() {
 }
 
 /**
- * Download and install Miniconda silently to userData directory
+ * Download and unpack a pre-packaged conda environment
  * @returns {Promise<void>}
  */
 async function installMiniconda() {
-  // Get the application's installation directory
-  emitBootMessage("Installing Miniconda...");
-  logMessage(`Installing Miniconda to: ${minicondaPath}`);
-  
+  emitBootMessage("Downloading Conda environment...");
+  logMessage(`Downloading Conda environment to: ${minicondaPath}`);
+
   const platform = process.platform;
   const arch = process.arch;
-  let installerUrl = "";
-  let installerPath = "";
+  let environmentUrl = "";
+  let archivePath = "";
 
-  // Determine installer URL based on platform and architecture
+  // Determine environment URL based on platform and architecture
   if (platform === "win32") {
-    installerUrl = `https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-${
-      arch === "x64" ? "x86_64" : "x86"
-    }.exe`;
-    installerPath = path.join(os.tmpdir(), "Miniconda3-latest-Windows.exe");
+    environmentUrl = `https://nodetool-conda.s3.amazonaws.com/conda-env-windows-x64-0.5.3.zip`;
+    archivePath = path.join(os.tmpdir(), `conda-env-windows-x64-0.5.3.zip`);
   } else if (platform === "darwin") {
     const archSuffix = arch === "arm64" ? "arm64" : "x86_64";
-    installerUrl = `https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-${archSuffix}.sh`;
-    installerPath = path.join(os.tmpdir(), "Miniconda3-latest-MacOSX.sh");
+    environmentUrl = `https://nodetool-conda.s3.amazonaws.com/conda-env-darwin-${archSuffix}-0.5.3.zip`;
+    archivePath = path.join(
+      os.tmpdir(),
+      `conda-env-darwin-${archSuffix}-0.5.3.zip`
+    );
   } else {
-    throw new Error("Unsupported platform for Miniconda installation.");
+    throw new Error("Unsupported platform for Conda environment installation.");
   }
 
-  logMessage(`Downloading Miniconda from ${installerUrl}`);
-  emitBootMessage("Downloading Miniconda...");
+  logMessage(`Downloading Conda environment from ${environmentUrl}`);
+  emitBootMessage("Downloading Conda environment...");
 
-  // Download the installer
-  await downloadFile(installerUrl, installerPath);
-  logMessage("Miniconda installer downloaded successfully");
-  emitBootMessage("Miniconda installer downloaded successfully");
+  // Download the environment archive
+  await downloadFile(environmentUrl, archivePath);
+  logMessage("Conda environment archive downloaded successfully");
+  emitBootMessage("Conda environment archive downloaded successfully");
 
-  // Install Miniconda silently
-  if (platform === "win32") {
-    await new Promise((resolve, reject) => {
-      const installProcess = spawn(
-        installerPath,
-        [
-          "/S",
-          "/InstallationType=JustMe",
-          "/RegisterPython=0", // Don't register as system Python
-          "/AddToPath=0", // Don't modify system PATH
-          "/D=" + minicondaPath,
-        ],
-      );
-      
-      installProcess.on("close", (code) => {
-        if (code === 0) {
-          resolve();
-        } else {
-          throw new Error(`Miniconda installation failed with code ${code}`);
-        }
-      });
+  // Unpack the archive into the minicondaPath
+  emitBootMessage("Unpacking Conda environment...");
+  await unzipFile(archivePath, minicondaPath);
 
-      installProcess.on("error", reject);
-    });
-  } else {
-    // Make the installer executable
-    await chmod(installerPath, 0o755);
+  logMessage("Conda environment unpacked successfully");
+  emitBootMessage("Conda environment unpacked successfully");
 
-    await new Promise((resolve, reject) => {
-      const installProcess = spawn("bash", [
-        installerPath,
-        "-b", // batch mode (no user interaction)
-        "-p", // prefix
-        minicondaPath,
-      ]);
+  // Run conda-unpack
+  emitBootMessage("Running conda-unpack...");
+  await runCondaUnpack();
 
-      installProcess.stdout.on("data", (data) => {
-        logMessage(data.toString());
-      });
-
-      installProcess.stderr.on("data", (data) => {
-        logMessage(data.toString(), "error");
-      });
-
-      installProcess.on("close", (code) => {
-        if (code === 0) {
-          resolve();
-        } else {
-          throw new Error(`Miniconda installation failed with code ${code}`);
-        }
-      });
-
-      installProcess.on("error", reject);
-    });
-  }
-
-  logMessage("Miniconda installed successfully");
+  logMessage("Conda environment ready");
+  emitBootMessage("Conda environment is ready");
 }
 
 /**
@@ -771,7 +714,7 @@ async function installMiniconda() {
  */
 async function condaEnvironmentExists() {
   const checkEnvProcess = spawn(condaPath, ["env", "list", "--json"]);
-  
+
   logMessage("Checking if conda environment exists...");
 
   return new Promise((resolve, reject) => {
@@ -788,9 +731,13 @@ async function condaEnvironmentExists() {
         try {
           const envList = JSON.parse(output);
           const exists = envList.envs.some(
-            (env) => env.startsWith(minicondaPath) && (env.endsWith(envName) || env === envName)
+            (env) =>
+              env.startsWith(minicondaPath) &&
+              (env.endsWith(envName) || env === envName)
           );
-          logMessage(`Checking if conda environment '${envName}' exists: ${exists}`);
+          logMessage(
+            `Checking if conda environment '${envName}' exists: ${exists}`
+          );
           resolve(exists);
         } catch (error) {
           logMessage("Failed to parse conda environment list", "error");
@@ -823,7 +770,7 @@ async function createCondaEnvironment() {
       "create",
       "--file",
       envFilePath,
-      "-vvv"
+      "--verbose",
     ]);
 
     let currentPackage = "";
@@ -833,38 +780,43 @@ async function createCondaEnvironment() {
       logMessage(msg);
 
       // Match different conda progress messages
-      const extractMatch = msg.match(/DEBUG conda\.gateways\.disk\.create:extract_tarball.*extracting (.+) to/);
-      const downloadMatch = msg.match(/(\d+)%\s*\|?\s*(\d+\/\d+)?\s*\[([^\]]+)\]?\s*(\S+)?/);
+      const extractMatch = msg.match(
+        /DEBUG conda\.gateways\.disk\.create:extract_tarball.*extracting (.+) to/
+      );
+      const downloadMatch = msg.match(
+        /(\d+)%\s*\|?\s*(\d+\/\d+)?\s*\[([^\]]+)\]?\s*(\S+)?/
+      );
       const packageMatch = msg.match(/Installing\s+([^\.]+)/);
 
       if (extractMatch) {
         currentPackage = path.basename(extractMatch[1]);
         emitBootMessage(`Extracting ${currentPackage}...`);
-      }
-      else if (downloadMatch) {
+      } else if (downloadMatch) {
         const [, percentage, progress, speed, package] = downloadMatch;
         currentPackage = package || currentPackage;
-        emitBootMessage(`Downloading ${currentPackage} (${percentage}%) - ${speed}`);
-      } 
-      else if (packageMatch) {
+        emitBootMessage(
+          `Downloading ${currentPackage} (${percentage}%) - ${speed}`
+        );
+      } else if (packageMatch) {
         currentPackage = packageMatch[1].trim();
         emitBootMessage(`Installing ${currentPackage}...`);
-      }
-      else if (msg.includes("Collecting package metadata")) {
+      } else if (msg.includes("Collecting package metadata")) {
         emitBootMessage("Collecting package information...");
-      } 
-      else if (msg.includes("Solving environment")) {
-        emitBootMessage("Resolving dependencies (this may take a few minutes)...");
-      }
-      else if (msg.includes("Installing pip dependencies")) {
-        emitBootMessage("Installing pip dependencies (this may take a few minutes)...");
+      } else if (msg.includes("Solving environment")) {
+        emitBootMessage(
+          "Resolving dependencies (this may take a few minutes)..."
+        );
+      } else if (msg.includes("Installing pip dependencies")) {
+        emitBootMessage(
+          "Installing pip dependencies (this may take a few minutes)..."
+        );
       }
     });
 
     createEnvProcess.stderr.on("data", (data) => {
       const msg = data.toString();
       logMessage(msg, "warn");
-      
+
       // Also check stderr for pip installation progress
       if (msg.includes("Installing collected packages")) {
         const pipPackage = msg.match(/Installing collected packages:\s*(.+)/);
@@ -879,7 +831,9 @@ async function createCondaEnvironment() {
         emitBootMessage("Python environment created successfully");
         resolve();
       } else {
-        reject(new Error(`Failed to create Conda environment (exit code: ${code})`));
+        reject(
+          new Error(`Failed to create Conda environment (exit code: ${code})`)
+        );
       }
     });
 
@@ -890,7 +844,7 @@ async function createCondaEnvironment() {
   });
 
   saveConfig({ version: VERSION });
-  
+
   logMessage("Conda environment created successfully");
 }
 
@@ -909,7 +863,10 @@ function getConfig() {
 
 function saveConfig(config) {
   const currentConfig = getConfig();
-  fs.writeFileSync(CONFIG_FILE, JSON.stringify({ ...currentConfig, ...config }, null, 2));
+  fs.writeFileSync(
+    CONFIG_FILE,
+    JSON.stringify({ ...currentConfig, ...config }, null, 2)
+  );
 }
 
 // Add these constants near the top with other constants
@@ -923,54 +880,165 @@ ipcMain.handle("open-log-file", () => {
   shell.showItemInFolder(LOG_FILE);
 });
 
-// Add this new function to check if environment needs update
-async function checkEnvironmentUpdate() {
-  const config = getConfig();
-  if (config.version !== VERSION) {
-    logMessage(`Version mismatch: installed=${config.version}, current=${VERSION}`);
-    emitBootMessage("Updating Python environment...");
-    
-    try {
-      await new Promise((resolve, reject) => {
-        const updateProcess = spawn(condaPath, [
-          "env",
-          "update",
-          "--name",
-          "nodetool",
-          "--file",
-          envFilePath,
-          "--prune"
-        ]);
+/**
+ * Check if Conda is installed in the userData directory
+ * @returns {Promise<boolean>}
+ */
+async function isCondaInstalled() {
+  try {
+    await access(condaPath);
 
-        updateProcess.stdout.on("data", (data) => {
-          const msg = data.toString();
-          logMessage(msg);
-          emitBootMessage(`Updating: ${msg.trim()}`);
-        });
-
-        updateProcess.stderr.on("data", (data) => {
-          logMessage(data.toString(), "warn");
-        });
-
-        updateProcess.on("close", (code) => {
-          if (code === 0) {
-            saveConfig({ version: VERSION });
-            resolve();
-          } else {
-            reject(new Error(`Environment update failed with code ${code}`));
-          }
-        });
-
-        updateProcess.on("error", reject);
+    // Verify conda is working
+    return new Promise((resolve) => {
+      const condaProcess = spawn(condaPath, ["--version"], {
+        env: {
+          ...process.env,
+          PATH: path.dirname(condaPath) + path.delimiter + process.env.PATH,
+        },
       });
-      
-      logMessage("Environment updated successfully");
-      emitBootMessage("Python environment updated successfully");
-    } catch (error) {
-      logMessage(`Failed to update environment: ${error.message}`, "error");
-      throw error;
-    }
+
+      condaProcess.on("close", (code) => {
+        resolve(code === 0);
+      });
+
+      condaProcess.on("error", () => {
+        resolve(false);
+      });
+    });
+  } catch {
+    return false;
   }
+}
+
+/**
+ * Download and install the conda-packed environment
+ * @returns {Promise<void>}
+ */
+async function installCondaEnvironment() {
+  emitBootMessage("Downloading Conda environment...");
+  logMessage(`Downloading Conda environment to: ${minicondaPath}`);
+
+  const platform = process.platform;
+  const arch = process.arch;
+  let environmentUrl = "";
+  let archivePath = "";
+
+  // Determine environment URL based on platform and architecture
+  if (platform === "win32") {
+    environmentUrl = `https://nodetool-conda.s3.amazonaws.com/condapack_env_windows_x64.zip`;
+    archivePath = path.join(os.tmpdir(), `condapack_env_windows_x64.zip`);
+  } else if (platform === "darwin") {
+    const archSuffix = arch === "arm64" ? "arm64" : "x86_64";
+    environmentUrl = `https://nodetool-conda.s3.amazonaws.com/condapack_env_darwin_${archSuffix}.zip`;
+    archivePath = path.join(
+      os.tmpdir(),
+      `condapack_env_darwin_${archSuffix}.zip`
+    );
+  } else {
+    throw new Error("Unsupported platform for Conda environment installation.");
+  }
+
+  logMessage(`Downloading Conda environment from ${environmentUrl}`);
+  emitBootMessage("Downloading Conda environment...");
+
+  // Download the environment archive
+  await downloadFile(environmentUrl, archivePath);
+  logMessage("Conda environment archive downloaded successfully");
+  emitBootMessage("Conda environment archive downloaded successfully");
+
+  // Unpack the archive into the minicondaPath
+  emitBootMessage("Unpacking Conda environment...");
+  await unzipFile(archivePath, minicondaPath);
+
+  logMessage("Conda environment unpacked successfully");
+  emitBootMessage("Conda environment unpacked successfully");
+
+  // Run conda-unpack
+  emitBootMessage("Running conda-unpack...");
+  await runCondaUnpack();
+
+  logMessage("Conda environment ready");
+  emitBootMessage("Conda environment is ready");
+}
+
+/**
+ * Check if the conda-packed environment is installed
+ * @returns {Promise<boolean>}
+ */
+async function isCondaEnvironmentInstalled() {
+  try {
+    // Check if the python executable exists in the environment
+    const pythonPath =
+      process.platform === "win32"
+        ? path.join(minicondaPath, "Scripts", "python.exe")
+        : path.join(minicondaPath, "bin", "python");
+
+    await access(pythonPath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Extract a zip archive to a specified destination
+ * @param {string} zipPath - The path to the zip file
+ * @param {string} destPath - The destination directory
+ * @returns {Promise<void>}
+ */
+async function unzipFile(zipPath, destPath) {
+  emitBootMessage("Unpacking the Conda environment...");
+  try {
+    await extract(zipPath, { dir: destPath });
+    emitBootMessage("Conda environment unpacked successfully");
+  } catch (err) {
+    logMessage(`Error unpacking Conda environment: ${err.message}`, "error");
+    throw err;
+  }
+}
+
+/**
+ * Run conda-unpack script to fix the environment paths
+ * @returns {Promise<void>}
+ */
+async function runCondaUnpack() {
+  emitBootMessage("Running conda-unpack to fix environment paths...");
+
+  const condaUnpackScript =
+    process.platform === "win32"
+      ? path.join(minicondaPath, "Scripts", "conda-unpack.exe")
+      : path.join(minicondaPath, "bin", "conda-unpack");
+
+  await new Promise((resolve, reject) => {
+    const unpackProcess = spawn(condaUnpackScript, [], {
+      env: {
+        ...process.env,
+        PATH:
+          path.dirname(condaUnpackScript) + path.delimiter + process.env.PATH,
+      },
+    });
+
+    unpackProcess.stdout.on("data", (data) => {
+      logMessage(data.toString());
+    });
+
+    unpackProcess.stderr.on("data", (data) => {
+      logMessage(data.toString(), "error");
+    });
+
+    unpackProcess.on("close", (code) => {
+      if (code === 0) {
+        emitBootMessage("conda-unpack completed successfully");
+        resolve();
+      } else {
+        reject(new Error(`conda-unpack failed with code ${code}`));
+      }
+    });
+
+    unpackProcess.on("error", (err) => {
+      reject(err);
+    });
+  });
 }
 
 /**
@@ -980,11 +1048,11 @@ async function checkEnvironmentUpdate() {
 function forceQuit(errorMessage) {
   logMessage(`Force quitting application: ${errorMessage}`, "error");
   dialog.showErrorBox("Critical Error", errorMessage);
-  
+
   // Force kill any remaining processes
   if (serverProcess) {
     try {
-      serverProcess.kill('SIGKILL');
+      serverProcess.kill("SIGKILL");
     } catch (e) {
       logMessage(`Error killing server process: ${e.message}`, "error");
     }
@@ -995,10 +1063,10 @@ function forceQuit(errorMessage) {
 }
 
 // Add global error handlers
-process.on('uncaughtException', (error) => {
+process.on("uncaughtException", (error) => {
   forceQuit(`Uncaught Exception: ${error.message}`);
 });
 
-process.on('unhandledRejection', (error) => {
+process.on("unhandledRejection", (error) => {
   forceQuit(`Unhandled Promise Rejection: ${error.message}`);
 });
