@@ -8,13 +8,14 @@
     "files": [
         "index.js",
         "preload.js",
-        "index.html"
+        "index.html",
+        "node_modules/**/*"
     ],
     "extraResources": [
         "environment.yaml",
         {
             "from": "../web/dist",
-            "to": "web" 
+            "to": "web"
         },
         {
             "from": "../src",
