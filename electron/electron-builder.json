@@ -8,8 +8,7 @@
     "files": [
         "index.js",
         "preload.js",
-        "index.html",
-        "node_modules/**/*"
+        "index.html"
     ],
     "extraResources": [
         "environment.yaml",
