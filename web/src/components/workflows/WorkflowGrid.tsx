@@ -18,7 +18,7 @@ import {
 } from "@mui/material";
 
 import { useWorkflowStore } from "../../stores/WorkflowStore";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useMemo } from "react";
 import { Workflow, WorkflowList } from "../../stores/ApiTypes";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -191,14 +191,28 @@ const WorkflowGrid = () => {
   );
 
   // SELECT WORKFLOW
+  const filteredAndSortedWorkflows = useMemo(
+    () =>
+      (data?.workflows || [])
+        .filter(
+          (workflow) =>
+            workflow.name.toLowerCase().includes(filterValue.toLowerCase()) ||
+            workflow.description
+              .toLowerCase()
+              .includes(filterValue.toLowerCase())
+        )
+        .sort((a, b) => {
+          if (settings.workflowOrder === "name") {
+            return a.name.localeCompare(b.name);
+          }
+          return b.updated_at.localeCompare(a.updated_at);
+        }),
+    [data?.workflows, filterValue, settings.workflowOrder]
+  );
+
   const onSelect = useCallback(
     (workflow: Workflow) => {
-      const sortedWorkflows = [...(data?.workflows || [])].sort((a, b) => {
-        if (settings.workflowOrder === "name") {
-          return a.name.localeCompare(b.name);
-        }
-        return b.updated_at.localeCompare(a.updated_at);
-      });
+      const sortedWorkflows = [...filteredAndSortedWorkflows];
 
       if (
         selectedWorkflows.includes(workflow.id) &&
@@ -239,10 +253,9 @@ const WorkflowGrid = () => {
       }
     },
     [
-      data?.workflows,
+      filteredAndSortedWorkflows,
       shiftKeyPressed,
       controlKeyPressed,
-      settings.workflowOrder,
       selectedWorkflows
     ]
   );
@@ -341,21 +354,6 @@ const WorkflowGrid = () => {
         console.error("Error deleting workflows:", error);
       });
   }, [deleteWorkflow, workflowsToDelete, queryClient]);
-
-  // FILTER AND SORT WORKFLOWS
-  const filteredAndSortedWorkflows =
-    data?.workflows
-      .filter(
-        (workflow) =>
-          workflow.name.toLowerCase().includes(filterValue.toLowerCase()) ||
-          workflow.description.toLowerCase().includes(filterValue.toLowerCase())
-      )
-      .sort((a, b) => {
-        if (settings.workflowOrder === "name") {
-          return a.name.localeCompare(b.name);
-        }
-        return b.updated_at.localeCompare(a.updated_at);
-      }) || [];
 
   const handleSearchChange = (newSearchTerm: string) => {
     setFilterValue(newSearchTerm);
