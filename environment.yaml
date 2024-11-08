@@ -27,7 +27,7 @@ dependencies:
   - conda-forge::datasets
   - conda-forge::diffusers
   - conda-forge::einops
-  - conda-forge::fastapi
+  - conda-forge::fastapi ==0.99.1
   - conda-forge::ffmpeg
   - conda-forge::ffmpeg-python
   - conda-forge::fvcore
