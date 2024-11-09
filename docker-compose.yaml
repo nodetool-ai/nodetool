@@ -10,7 +10,7 @@ services:
       - ${HF_HOME:-./huggingface}:/app/huggingface
     command:
       [
-        "uvicorn",
+        "/opt/conda/envs/nodetool-environment/bin/uvicorn",
         "nodetool.api.app:app",
         "--host",
         "0.0.0.0",
@@ -61,7 +61,7 @@ services:
       - ${HF_HOME:-./huggingface}:/app/huggingface
     command:
       [
-        "uvicorn",
+        "/opt/conda/envs/nodetool-environment/bin/uvicorn",
         "nodetool.api.worker:app",
         "--host",
         "0.0.0.0",
@@ -108,7 +108,7 @@ services:
       - ${CHROMA_PATH:-./chroma-data}:/chroma-data
     command:
       [
-        "chroma",
+        "/opt/conda/envs/nodetool-environment/bin/chroma",
         "run",
         "--host",
         "0.0.0.0",
