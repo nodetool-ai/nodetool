@@ -5,11 +5,9 @@ WORKDIR /app
 ENV DEBIAN_FRONTEND=noninteractive\
     SHELL=/bin/bash\
     PYTHONPATH=/app\
-    PATH="/root/.local/bin:$PATH"\
+    CONDA_DIR=/opt/conda\
     LC_ALL=C.UTF-8\
     LANG=C.UTF-8
-
-ENV PYTHONPATH="/app"
 
 RUN apt-get update && \
     apt-get upgrade -y && \
@@ -17,37 +15,18 @@ RUN apt-get update && \
     wget \
     bzip2 \
     curl && \
-    # ffmpeg \
-    # git \
-    # gcc \
-    # g++ \
-    # build-essential \
-    # wget \
-    # curl \
-    # libgl1 \
-    # libopus-dev \
-    # libfdk-aac-dev \
-    # libx264-dev \
-    # libwebp-dev \
-    # libmp3lame-dev \
-    # libtheora-dev \
-    # libvpx-dev \
-    # libvorbis-dev \
-    # software-properties-common \
-    # tesseract-ocr \
     apt-get clean && \  
     rm -rf /var/lib/apt/lists/* && \
     echo "en_US.UTF-8 UTF-8" > /etc/locale.gen
-
-ENV CONDA_DIR=/opt/conda
-ENV PATH=$CONDA_DIR/bin:$PATH
 
 RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O /tmp/miniconda.sh && \
     /bin/bash /tmp/miniconda.sh -b -p $CONDA_DIR && \
     rm /tmp/miniconda.sh
 
 ADD environment.yaml .
-RUN conda env create -f environment.yaml && conda clean -a
+RUN $CONDA_DIR/bin/conda env create -f environment.yaml && $CONDA_DIR/bin/conda clean -a
+
+ENV PATH="$CONDA_DIR/envs/nodetool-environment/bin:$PATH"
 
 COPY src /app
 COPY scripts /app/scripts

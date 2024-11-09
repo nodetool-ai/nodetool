@@ -10,7 +10,7 @@ services:
       - ${HF_HOME:-./huggingface}:/app/huggingface
     command:
       [
-        "/opt/conda/envs/nodetool-environment/bin/uvicorn",
+        "uvicorn",
         "nodetool.api.app:app",
         "--host",
         "0.0.0.0",
@@ -44,6 +44,7 @@ services:
       OLLAMA_API_URL: http://ollama:11434
       WORKER_URL: http://worker:5001
       HF_HOME: /app/huggingface
+      SENTRY_DSN: ${SENTRY_DSN}
     deploy:
       resources:
         reservations:
@@ -61,7 +62,7 @@ services:
       - ${HF_HOME:-./huggingface}:/app/huggingface
     command:
       [
-        "/opt/conda/envs/nodetool-environment/bin/uvicorn",
+        "uvicorn",
         "nodetool.api.worker:app",
         "--host",
         "0.0.0.0",
@@ -89,6 +90,7 @@ services:
       OLLAMA_API_URL: http://ollama:11434
       CHROMA_URL: http://chroma:9000
       NODETOOL_API_URL: https://api:443
+      SENTRY_DSN: ${SENTRY_DSN}
     deploy:
       resources:
         reservations:
@@ -108,7 +110,7 @@ services:
       - ${CHROMA_PATH:-./chroma-data}:/chroma-data
     command:
       [
-        "/opt/conda/envs/nodetool-environment/bin/chroma",
+        "chroma",
         "run",
         "--host",
         "0.0.0.0",

@@ -52,6 +52,10 @@ mimetypes.add_type("font/woff2", ".woff2")
 mimetypes.add_type("application/xml", ".xml")
 mimetypes.add_type("text/plain", ".txt")
 
+
+Environment.initialize_sentry()
+
+
 DEFAULT_ROUTERS = [
     asset.router,
     job.router,

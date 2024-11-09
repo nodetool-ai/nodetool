@@ -106,6 +106,7 @@ dependencies:
       - lumaai
       - ollama
       - pedalboard
+      - sentry-sdk
       - spandrel
       - torchsde
       - yapf

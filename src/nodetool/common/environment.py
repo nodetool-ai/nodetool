@@ -43,6 +43,7 @@ DEFAULT_ENV = {
     "USE_NGROK": None,
     "AWS_REGION": "us-east-1",
     "NODETOOL_API_URL": None,
+    "SENTRY_DSN": None,
 }
 
 NOT_GIVEN = object()
@@ -814,3 +815,24 @@ class Environment(object):
                 base_url=cls.get_kling_api_url(),
             )
         return cls.kling_ai_client
+
+    @classmethod
+    def initialize_sentry(cls):
+        """
+        Initialize Sentry error tracking if SENTRY_DSN is configured.
+        """
+        sentry_dsn = cls.get("SENTRY_DSN", None)
+        if sentry_dsn:
+            import sentry_sdk
+
+            sentry_sdk.init(
+                dsn=sentry_dsn,
+                environment=cls.get_env(),
+                # Set traces_sample_rate to 1.0 to capture 100%
+                # of transactions for performance monitoring.
+                traces_sample_rate=1.0,
+                # Set profiles_sample_rate to 1.0 to profile 100%
+                # of sampled transactions.
+                profiles_sample_rate=1.0,
+            )
+            cls.get_logger().info("Sentry initialized")
