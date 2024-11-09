@@ -162,10 +162,9 @@ const processEnv = {
   PYTHONPATH: srcPath,
   PYTHONUNBUFFERED: "1",
   PATH:
-    path.join(
-      condaEnvPath,
-      process.platform === "win32" ? "Scripts" : "bin"
-    ) + path.delimiter + process.env.PATH,
+    path.join(condaEnvPath, process.platform === "win32" ? "Scripts" : "bin") +
+    path.delimiter +
+    process.env.PATH,
 };
 
 log.info("Resources Path:", resourcesPath);
@@ -230,10 +229,12 @@ function createWindow() {
  * All permissions are granted by default. Customize as needed.
  */
 function initializePermissionHandlers() {
-  session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
-    // Customize permissions as needed
-    callback(true); // Grant all permissions
-  });
+  session.defaultSession.setPermissionRequestHandler(
+    (webContents, permission, callback) => {
+      // Customize permissions as needed
+      callback(true); // Grant all permissions
+    }
+  );
   session.defaultSession.setPermissionCheckHandler(() => true);
   logMessage("Permission handlers initialized");
 }
@@ -467,8 +468,20 @@ function setupAutoUpdater() {
     }
   });
 
-  autoUpdater.on("update-downloaded", (info) => {
+  autoUpdater.on("update-downloaded", async (info) => {
     logMessage(`Update downloaded: ${info.version}`);
+
+    // Create flag file to trigger Conda environment update after restart
+    try {
+      await fs.promises.writeFile(
+        path.join(app.getPath("userData"), "update-conda-env"),
+        "true"
+      );
+      logMessage("Conda environment update flagged for next startup");
+    } catch (error) {
+      logMessage(`Error creating update flag: ${error.message}`, "error");
+    }
+
     if (mainWindow) {
       mainWindow.webContents.send("update-downloaded", info);
     }
@@ -490,6 +503,22 @@ ipcMain.handle("install-update", () => {
 app.on("ready", async () => {
   logMessage("Electron app is ready");
   emitBootMessage("Starting NodeTool Desktop...");
+
+  // Check if we need to update Conda environment after app update
+  const updateFlagPath = path.join(app.getPath("userData"), "update-conda-env");
+  try {
+    if (await fileExists(updateFlagPath)) {
+      emitBootMessage("Updating Conda environment after app update...");
+      await updateCondaEnvironment();
+      await fs.promises.unlink(updateFlagPath);
+      logMessage("Conda environment update completed");
+    }
+  } catch (error) {
+    logMessage(
+      `Error handling Conda environment update: ${error.message}`,
+      "error"
+    );
+  }
 
   createWindow();
   setupAutoUpdater();
@@ -684,7 +713,10 @@ async function installCondaEnvironment() {
     // Update URLs to use version-specific files
     if (platform === "win32") {
       environmentUrl = `https://nodetool-conda.s3.amazonaws.com/conda-env-windows-x64-${VERSION}.zip`;
-      archivePath = path.join(os.tmpdir(), `conda-env-windows-x64-${VERSION}.zip`);
+      archivePath = path.join(
+        os.tmpdir(),
+        `conda-env-windows-x64-${VERSION}.zip`
+      );
     } else if (platform === "darwin") {
       const archSuffix = arch === "arm64" ? "arm64" : "x86_64";
       environmentUrl = `https://nodetool-conda.s3.amazonaws.com/conda-env-darwin-${archSuffix}-${VERSION}.zip`;
@@ -693,7 +725,9 @@ async function installCondaEnvironment() {
         `conda-env-darwin-${archSuffix}-${VERSION}.zip`
       );
     } else {
-      throw new Error("Unsupported platform for Conda environment installation.");
+      throw new Error(
+        "Unsupported platform for Conda environment installation."
+      );
     }
 
     // Ensure temp directory exists
@@ -726,7 +760,10 @@ async function installCondaEnvironment() {
     logMessage("Conda environment installation completed successfully");
     emitBootMessage("Conda environment is ready");
   } catch (error) {
-    logMessage(`Failed to install Conda environment: ${error.message}`, "error");
+    logMessage(
+      `Failed to install Conda environment: ${error.message}`,
+      "error"
+    );
     throw error;
   }
 }
@@ -852,3 +889,75 @@ process.on("uncaughtException", (error) => {
 process.on("unhandledRejection", (error) => {
   forceQuit(`Unhandled Promise Rejection: ${error.message}`);
 });
+
+async function updateCondaEnvironment() {
+  try {
+    logMessage("Starting Conda environment update");
+    emitBootMessage("Updating Conda packages...");
+
+    const condaExecutable =
+      process.platform === "win32"
+        ? path.join(condaEnvPath, "Scripts", "conda.exe")
+        : path.join(condaEnvPath, "bin", "conda");
+
+    // Run conda env update command
+    const updateProcess = spawn(
+      condaExecutable,
+      [
+        "env",
+        "update",
+        "-p",
+        condaEnvPath,
+        "-f",
+        condaEnvFilePath,
+        "--prune", // Remove packages that are no longer needed
+      ],
+      {
+        stdio: "pipe",
+        env: processEnv,
+      }
+    );
+
+    // Handle process output
+    updateProcess.stdout.on("data", (data) => {
+      const message = data.toString().trim();
+      if (message) {
+        logMessage(`Conda update: ${message}`);
+        emitBootMessage(`Updating: ${message}`);
+      }
+    });
+
+    updateProcess.stderr.on("data", (data) => {
+      const message = data.toString().trim();
+      if (message) {
+        logMessage(`Conda update error: ${message}`, "error");
+      }
+    });
+
+    // Wait for process to complete
+    await new Promise((resolve, reject) => {
+      updateProcess.on("exit", (code) => {
+        if (code === 0) {
+          logMessage("Conda environment update completed successfully");
+          resolve();
+        } else {
+          reject(new Error(`Conda update failed with code ${code}`));
+        }
+      });
+
+      updateProcess.on("error", reject);
+    });
+  } catch (error) {
+    logMessage(`Failed to update Conda environment: ${error.message}`, "error");
+    throw error;
+  }
+}
+
+async function fileExists(filePath) {
+  try {
+    await fs.promises.access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
+}
