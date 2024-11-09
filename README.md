@@ -369,3 +369,5 @@ Got ideas, suggestions, or just want to say hi? We'd love to hear from you!
 - **Email**: [hello@nodetool.ai](mailto:hello@nodetool.ai)
 - **Forum**: [Nodetool Forum](https://forum.nodetool.ai)
 - **GitHub**: [https://github.com/nodetool-ai/nodetool](https://github.com/nodetool-ai/nodetool)
+- **Matthias Georgi**: matti@nodetool.ai
+- **David Bührer**: david@nodetool.ai
