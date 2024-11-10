@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import SaveIcon from "@mui/icons-material/Save";
+import WarningIcon from "@mui/icons-material/Warning";
 import { useMemo, useState, useCallback } from "react";
 import { Button, TextField, Typography } from "@mui/material";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
@@ -12,47 +13,74 @@ const styles = (theme: any) =>
     display: "flex",
     flexDirection: "column",
     width: "100%",
-    gap: ".5em",
+    margin: "0 auto",
+    gap: "2em",
+
+    h3: {
+      padding: "0.5em 0.5em 0 0.5em"
+    },
+
+    ".settings-item": {
+      background: theme.palette.c_gray2,
+      padding: "1.5em",
+      borderRadius: "12px",
+      boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+      transition: "transform 0.2s ease, box-shadow 0.2s ease",
+      "&:hover": {
+        transform: "translateY(-2px)",
+        boxShadow: "0 4px 12px rgba(0,0,0,0.15)"
+      }
+    },
 
     ".description": {
-      display: "block",
-      marginBottom: "1em"
+      color: theme.palette.c_gray5,
+      fontSize: "0.9em",
+      marginTop: "1em",
+      marginLeft: "1em",
+      lineHeight: "1.5"
     },
+
     ".description a": {
-      color: theme.palette.c_hl1,
-      marginLeft: ".5em"
-    },
-    ".description a:hover": {
-      color: theme.palette.c_gray6
-    },
-    "& input": {
-      fontSize: theme.fontSizeSmaller
-    },
-    ".secrets": {
-      color: theme.palette.c_warning,
-      fontSize: theme.fontSizeSmaller,
-      padding: "0 0 0 .5em",
-      marginBottom: "1em"
-    },
-    button: {
-      backgroundColor: theme.palette.c_gray2,
-      padding: ".5em 1em"
-    },
-    "button a": {
       color: theme.palette.c_gray6,
-      textDecoration: "none"
+      textDecoration: "none",
+      fontWeight: 500,
+      transition: "color 0.2s ease",
+      "&:hover": {
+        color: theme.palette.primary.dark
+      }
     },
-    ".text-and-button p": {
-      margin: "0 0 0.5em 0",
-      padding: "0"
+
+    "& .MuiTextField-root": {
+      width: "100%",
+      "& .MuiInputBase-root": {
+        backgroundColor: theme.palette.c_gray1,
+        borderRadius: "8px",
+        padding: "4px 12px"
+      }
+    },
+
+    ".secrets": {
+      color: theme.palette.c_gray6,
+      padding: "1em",
+      borderRadius: "8px",
+      marginTop: "2em",
+      display: "flex",
+      alignItems: "center",
+      gap: "0.5em"
+    },
+
+    ".save-button": {
+      marginTop: "2em",
+      padding: "1em 2em",
+      borderRadius: "12px",
+      fontWeight: 600,
+      textTransform: "none",
+      fontSize: "1.1em",
+      transition: "transform 0.2s ease",
+      "&:hover": {
+        transform: "translateY(-2px)"
+      }
     }
-    // "& .MuiInputBase-root:not(.Mui-focused) input": {
-    //   filter: "blur(2px)",
-    //   transition: "filter 0.3s ease-in-out"
-    // },
-    // "& .MuiInputBase-root.Mui-focused input": {
-    //   filter: "none"
-    // }
   });
 
 const RemoteSettings = () => {
@@ -67,10 +95,15 @@ const RemoteSettings = () => {
 
   const [settings, setSettings] = useState({
     COMFY_FOLDER: "",
+    CHROMA_PATH: "",
+    ASSET_FOLDER: "",
     OPENAI_API_KEY: "",
     ANTHROPIC_API_KEY: "",
     HF_TOKEN: "",
-    REPLICATE_API_TOKEN: ""
+    REPLICATE_API_TOKEN: "",
+    KLING_ACCESS_KEY: "",
+    KLING_SECRET_KEY: "",
+    LUMAAI_API_KEY: ""
   });
 
   const updateSettingsMutation = useMutation({
@@ -85,10 +118,15 @@ const RemoteSettings = () => {
     if (isSuccess) {
       setSettings({
         COMFY_FOLDER: data.settings.COMFY_FOLDER || "",
+        CHROMA_PATH: data.settings.CHROMA_PATH || "",
+        ASSET_FOLDER: data.settings.ASSET_FOLDER || "",
         OPENAI_API_KEY: data.secrets.OPENAI_API_KEY || "",
         ANTHROPIC_API_KEY: data.secrets.ANTHROPIC_API_KEY || "",
         HF_TOKEN: data.secrets.HF_TOKEN || "",
-        REPLICATE_API_TOKEN: data.secrets.REPLICATE_API_TOKEN || ""
+        REPLICATE_API_TOKEN: data.secrets.REPLICATE_API_TOKEN || "",
+        KLING_ACCESS_KEY: data.secrets.KLING_ACCESS_KEY || "",
+        KLING_SECRET_KEY: data.secrets.KLING_SECRET_KEY || "",
+        LUMAAI_API_KEY: data.secrets.LUMAAI_API_KEY || ""
       });
     }
   }, [isSuccess, data]);
@@ -98,9 +136,16 @@ const RemoteSettings = () => {
   }, []);
 
   const handleSave = useCallback(() => {
-    const { COMFY_FOLDER, ...secrets } = settings;
+    const { COMFY_FOLDER, CHROMA_PATH, ASSET_FOLDER, ...secrets } = settings;
     updateSettingsMutation.mutate(
-      { settings: { COMFY_FOLDER }, secrets },
+      {
+        settings: {
+          COMFY_FOLDER,
+          CHROMA_PATH,
+          ASSET_FOLDER
+        },
+        secrets
+      },
       {
         onSuccess: () => {
           addNotification({
@@ -115,10 +160,14 @@ const RemoteSettings = () => {
 
   return (
     <>
-      {isLoading && <Typography>Loading API providers...</Typography>}
+      {isLoading && (
+        <Typography sx={{ textAlign: "center", padding: "2em" }}>
+          Loading API providers...
+        </Typography>
+      )}
       {isSuccess ? (
         <div className="remote-settings" css={styles}>
-          <Typography variant="h3">API Providers</Typography>
+          <Typography variant="h3">API Provider Settings</Typography>
 
           <div className="settings-item">
             <TextField
@@ -130,6 +179,11 @@ const RemoteSettings = () => {
                 handleChange("REPLICATE_API_TOKEN", e.target.value)
               }
               variant="standard"
+              sx={{
+                "& .MuiInputBase-root": {
+                  fontSize: "1rem"
+                }
+              }}
             />
             <div className="text-and-button">
               <Typography className="description">
@@ -156,6 +210,11 @@ const RemoteSettings = () => {
               value={settings.OPENAI_API_KEY}
               onChange={(e) => handleChange("OPENAI_API_KEY", e.target.value)}
               variant="standard"
+              sx={{
+                "& .MuiInputBase-root": {
+                  fontSize: "1rem"
+                }
+              }}
             />
             <div className="text-and-button">
               <Typography className="description">
@@ -181,6 +240,16 @@ const RemoteSettings = () => {
                 handleChange("ANTHROPIC_API_KEY", e.target.value)
               }
               variant="standard"
+              slotProps={{
+                inputLabel: {
+                  shrink: true
+                }
+              }}
+              sx={{
+                "& .MuiInputBase-root": {
+                  fontSize: "1rem"
+                }
+              }}
             />
 
             <div className="text-and-button">
@@ -205,6 +274,16 @@ const RemoteSettings = () => {
               value={settings.HF_TOKEN}
               onChange={(e) => handleChange("HF_TOKEN", e.target.value)}
               variant="standard"
+              slotProps={{
+                inputLabel: {
+                  shrink: true
+                }
+              }}
+              sx={{
+                "& .MuiInputBase-root": {
+                  fontSize: "1rem"
+                }
+              }}
             />
             <div className="text-and-button">
               <Typography className="description">
@@ -228,6 +307,16 @@ const RemoteSettings = () => {
               value={settings.COMFY_FOLDER}
               onChange={(e) => handleChange("COMFY_FOLDER", e.target.value)}
               variant="standard"
+              slotProps={{
+                inputLabel: {
+                  shrink: true
+                }
+              }}
+              sx={{
+                "& .MuiInputBase-root": {
+                  fontSize: "1rem"
+                }
+              }}
             />
             <Typography className="description">
               To use ComfyUI nodes, set the path to your ComfyUI installation
@@ -235,19 +324,132 @@ const RemoteSettings = () => {
             </Typography>
           </div>
 
+          <div className="settings-item">
+            <TextField
+              id="chroma-path-input"
+              label="ChromaDB Path"
+              value={settings.CHROMA_PATH}
+              onChange={(e) => handleChange("CHROMA_PATH", e.target.value)}
+              variant="standard"
+              slotProps={{
+                inputLabel: {
+                  shrink: true
+                }
+              }}
+              sx={{
+                "& .MuiInputBase-root": {
+                  fontSize: "1rem"
+                }
+              }}
+            />
+            <Typography className="description">
+              Set the path to your ChromaDB storage folder
+            </Typography>
+          </div>
+
+          <div className="settings-item">
+            <TextField
+              id="asset-folder-input"
+              label="Asset Folder"
+              value={settings.ASSET_FOLDER}
+              onChange={(e) => handleChange("ASSET_FOLDER", e.target.value)}
+              variant="standard"
+              slotProps={{
+                inputLabel: {
+                  shrink: true
+                }
+              }}
+              sx={{
+                "& .MuiInputBase-root": {
+                  fontSize: "1rem"
+                }
+              }}
+            />
+            <Typography className="description">
+              Set the path to your asset storage folder
+            </Typography>
+          </div>
+
+          <div className="settings-item">
+            <TextField
+              id="kling-access-key-input"
+              label="Kling AI Access Key"
+              value={settings.KLING_ACCESS_KEY}
+              onChange={(e) => handleChange("KLING_ACCESS_KEY", e.target.value)}
+              variant="standard"
+              slotProps={{
+                inputLabel: {
+                  shrink: true
+                }
+              }}
+              sx={{
+                "& .MuiInputBase-root": {
+                  fontSize: "1rem"
+                }
+              }}
+            />
+            <TextField
+              id="kling-secret-key-input"
+              label="Kling AI Secret Key"
+              value={settings.KLING_SECRET_KEY}
+              onChange={(e) => handleChange("KLING_SECRET_KEY", e.target.value)}
+              variant="standard"
+              slotProps={{
+                inputLabel: {
+                  shrink: true
+                }
+              }}
+              sx={{
+                marginTop: "1em",
+                "& .MuiInputBase-root": {
+                  fontSize: "1rem"
+                }
+              }}
+            />
+            <Typography className="description">
+              Enter your Kling AI credentials to access their services
+            </Typography>
+          </div>
+
+          <div className="settings-item">
+            <TextField
+              id="lumaai-api-key-input"
+              label="Luma AI API Key"
+              value={settings.LUMAAI_API_KEY}
+              onChange={(e) => handleChange("LUMAAI_API_KEY", e.target.value)}
+              variant="standard"
+              slotProps={{
+                inputLabel: {
+                  shrink: true
+                }
+              }}
+              sx={{
+                "& .MuiInputBase-root": {
+                  fontSize: "1rem"
+                }
+              }}
+            />
+            <Typography className="description">
+              Enter your Luma AI API key to access their services
+            </Typography>
+          </div>
+
           <Button
-            variant="contained"
+            variant="outlined"
             color="primary"
             onClick={handleSave}
-            sx={{ mt: 2, minHeight: "3em", borderRadius: "1em" }}
+            className="save-button"
+            startIcon={<SaveIcon />}
           >
-            <SaveIcon sx={{ mr: 1 }} />
-            Save API Keys
+            Save Settings
           </Button>
 
-          <Typography className="secrets">
-            Keep your keys and tokens secure and do not share them publicly
-          </Typography>
+          <div className="secrets">
+            <WarningIcon sx={{ color: "#ff9800" }} />
+            <Typography>
+              Keep your keys and tokens secure and do not share them publicly
+            </Typography>
+          </div>
         </div>
       ) : null}
     </>

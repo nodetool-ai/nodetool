@@ -2122,6 +2122,21 @@ export interface components {
        * @description Replicate API Token
        */
       REPLICATE_API_TOKEN?: string | null;
+      /**
+       * Kling Access Key
+       * @description Kling AI access key
+       */
+      KLING_ACCESS_KEY?: string | null;
+      /**
+       * Kling Secret Key
+       * @description Kling AI secret key
+       */
+      KLING_SECRET_KEY?: string | null;
+      /**
+       * Lumaai Api Key
+       * @description Luma AI API key
+       */
+      LUMAAI_API_KEY?: string | null;
     };
     /** SettingsModel */
     SettingsModel: {
@@ -2130,6 +2145,16 @@ export interface components {
        * @description Location of ComfyUI folder
        */
       COMFY_FOLDER?: string | null;
+      /**
+       * Chroma Path
+       * @description Location of ChromaDB folder
+       */
+      CHROMA_PATH?: string | null;
+      /**
+       * Asset Folder
+       * @description Location of asset folder
+       */
+      ASSET_FOLDER?: string | null;
     };
     /** SettingsResponse */
     SettingsResponse: {

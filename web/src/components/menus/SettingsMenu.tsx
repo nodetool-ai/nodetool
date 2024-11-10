@@ -69,88 +69,63 @@ const styles = (theme: any) =>
       overflowY: "auto",
       minWidth: "400px",
       maxWidth: "1000px",
-      padding: "1em",
+      padding: "2em",
       display: "flex",
       flexDirection: "column",
-      alignItems: "flex-start",
       gap: "2em",
+
       ".settings-item": {
+        background: theme.palette.c_gray2,
+        padding: "1.5em",
+        borderRadius: "12px",
+        boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+        transition: "transform 0.2s ease, box-shadow 0.2s ease",
+        margin: "0 auto",
+        border: "none",
+        width: "100%",
         display: "flex",
-        flexDirection: "row",
-        alignItems: "flex-start",
-        borderBottom: `1px solid ${theme.palette.c_gray0}`,
-        backgroundColor: theme.palette.c_gray1,
-        padding: ".5em .2em",
-        width: "100%",
-        gap: "1.5em"
-      },
-      ".MuiSelect-select": {
-        fontSize: theme.fontSizeBig,
-        padding: "0.5em 0 0 !important",
-        marginTop: "0.5em !important"
-      },
-      "div label": {
-        transform: "none",
-        margin: 0,
-        fontSize: theme.fontSizeNormal,
-        fontFamily: theme.fontFamily1,
-        color: theme.palette.c_hl1,
-        backgroundColor: "transparent",
-        padding: "0 0.5em 0.5em",
-        width: "100%"
-      },
-      ".MuiInput-root": {
-        minWidth: "260px",
-        width: "100%",
-        padding: "0.2em 0.5em"
-      },
-      ".MuiFormControl-root": {
-        width: "auto",
-        minWidth: "240px",
-        margin: 0,
-        padding: "0 0 0.25em 0"
-      },
-      "input, label": {
-        fontSize: "1em"
-      },
-      button: {
-        height: "25px",
-        fontSize: "15px"
-      },
-      ".description": {
-        color: theme.palette.c_gray6,
-        fontFamily: theme.fontFamily1,
-        fontSize: theme.fontSizeNormal,
-        marginTop: 0,
-        flexShrink: 1,
-        wordSpacing: 0,
-        lineHeight: "1.5em"
-      },
-      ".MuiTextField-root input": {
-        padding: "0.8em 0 0.2em 0",
-        backgroundColor: "transparent"
-      },
-      ul: {
-        paddingLeft: "1em",
-        fontSize: theme.fontSizeNormal,
-        fontFamily: theme.fontFamily1,
-        color: theme.palette.c_gray5,
-        lineHeight: "1.25em",
-        margin: "0.25em 0 0",
-        listStyleType: "square"
-      },
-      ".folder-path": {
         flexDirection: "column",
-        gap: ".5em "
+        gap: "1em",
+
+        "&:hover": {
+          transform: "translateY(-2px)",
+          boxShadow: "0 4px 12px rgba(0,0,0,0.15)"
+        },
+
+        ".MuiFormControl-root": {
+          width: "100%",
+          minWidth: "unset",
+          "& .MuiInputBase-root": {
+            backgroundColor: theme.palette.c_gray1,
+            borderRadius: "8px",
+            padding: "4px 12px"
+          }
+        },
+
+        ".description": {
+          color: theme.palette.c_gray5,
+          fontSize: "0.9em",
+          marginLeft: "1em",
+          lineHeight: "1.5"
+        }
       },
-      ".folder-path .MuiFormControl-root": {
-        width: "calc(100% - 2em)"
-      },
-      ".folder-path p": {
-        fontSize: ".8em",
-        padding: "0 0 0 .5em"
+
+      h3: {
+        fontSize: "1.5em",
+        fontWeight: 600,
+        marginTop: "1em",
+        color: theme.palette.c_gray6
       }
     },
+
+    ".MuiSelect-select": {
+      fontSize: "1rem !important",
+      padding: "0.8em 1em !important",
+      marginTop: "0 !important",
+      backgroundColor: theme.palette.c_gray1,
+      borderRadius: "8px"
+    },
+
     h2: {
       color: theme.palette.c_gray6,
       margin: "0",
@@ -251,11 +226,6 @@ function SettingsMenu() {
             <FormControl>
               <InputLabel htmlFor={id}>Show Welcome Screen</InputLabel>
               <Switch
-                sx={{
-                  "&.MuiSwitch-root": {
-                    margin: "16px 0 0"
-                  }
-                }}
                 checked={!!settings.showWelcomeOnStartup}
                 onChange={(e) => setShowWelcomeOnStartup(e.target.checked)}
                 inputProps={{ "aria-label": id }}

@@ -58,7 +58,7 @@ const welcomeStyles = (theme: any) =>
   css({
     "&": {
       backgroundColor: "#222",
-      padding: "2em",
+      padding: "0 2em",
       borderRadius: ".5em",
       position: "fixed",
       width: "100vw",
@@ -106,7 +106,11 @@ const welcomeStyles = (theme: any) =>
     ".MuiAccordion-root": {
       background: "transparent",
       color: theme.palette.c_white,
-      borderBottom: `1px solid ${theme.palette.c_gray3}`
+      borderBottom: `1px solid ${theme.palette.c_gray3}`,
+      marginBottom: "1em",
+      "&:before": {
+        display: "none"
+      }
     },
     ".MuiAccordionSummary-content.Mui-expanded": {
       margin: "0"
@@ -125,7 +129,11 @@ const welcomeStyles = (theme: any) =>
     },
     "ul, ol": {
       fontFamily: theme.fontFamily1,
-      paddingLeft: "0"
+      paddingLeft: "0",
+      margin: "1em 0",
+      "& li": {
+        marginBottom: "0.75em"
+      }
     },
     ".highlight": {
       backgroundColor: theme.palette.c_hl1,
@@ -172,10 +180,11 @@ const welcomeStyles = (theme: any) =>
       top: 0,
       backgroundColor: "#222",
       zIndex: 1,
-      padding: "1em",
+      padding: "1.5em 2em",
       display: "flex",
       justifyContent: "space-between",
-      alignItems: "center"
+      alignItems: "center",
+      marginBottom: "1em"
     },
     ".show-on-startup-toggle": {
       marginTop: "-1em"
@@ -183,19 +192,23 @@ const welcomeStyles = (theme: any) =>
     ".content-area": {
       display: "flex",
       flexDirection: "column",
-      height: "calc(100% - 60px)"
+      height: "calc(100vh - 100px)",
+      gap: "2em"
     },
     ".tabs-and-search": {
       position: "sticky",
       top: 0,
       backgroundColor: "#222",
       zIndex: 1,
-      paddingBottom: "1em"
+      padding: "0",
+      borderBottom: `1px solid ${theme.palette.c_gray3}`
     },
     ".scrollable-content": {
       flex: 1,
       overflowY: "auto",
-      padding: "1em"
+      "& > *": {
+        marginBottom: "2em"
+      }
     },
     ".fake-button": {
       color: "#fff",
@@ -235,8 +248,8 @@ const welcomeStyles = (theme: any) =>
       fontSize: theme.fontSizeBig,
       outline: `1px solid ${theme.palette.c_hl1}`,
       flexGrow: 1,
-      margin: "-1em 0 0 0",
-      padding: ".2em 100%",
+      margin: "0 2em",
+      padding: "0.5em 4em",
       borderRadius: ".5em",
       transition: "all 0.4s",
       "&:hover": {
@@ -244,6 +257,40 @@ const welcomeStyles = (theme: any) =>
         outline: `1px solid ${theme.palette.c_gray2}`,
         color: theme.palette.c_black,
         backgroundColor: theme.palette.c_hl1
+      }
+    },
+    ".MuiTabs-root": {
+      marginBottom: "1.5em",
+      "& .MuiTab-root": {
+        fontSize: theme.fontSizeBig,
+        padding: "1em 2em",
+        transition: "all 0.2s"
+      }
+    },
+    ".setup-list-item": {
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "flex-start"
+    },
+    ".setup-list-title": {
+      fontWeight: "bold",
+      color: theme.palette.c_hl1
+    },
+    ".setup-list-content": {
+      marginTop: "1em"
+    },
+    ".setup-list-secondary": {
+      "& ul": {
+        marginTop: "1em"
+      },
+      "& li": {
+        marginBottom: "0.5em"
+      }
+    },
+    ".setup-description": {
+      marginTop: "2em",
+      "& p": {
+        marginTop: "1em"
       }
     }
   });
@@ -556,10 +603,6 @@ const Welcome = ({ handleClose }: { handleClose: () => void }) => {
 
           <TabPanel value={tabValue} index={TabValue.Setup}>
             <Box sx={{ display: "flex", flexDirection: "column", gap: "2em" }}>
-              <Typography variant="h4" sx={{ color: theme.palette.c_hl1 }}>
-                Welcome to Nodetool
-              </Typography>
-
               <Box
                 sx={{
                   display: "flex",
@@ -581,28 +624,18 @@ const Welcome = ({ handleClose }: { handleClose: () => void }) => {
                     You can use both local and remote AI models in Nodetool:
                   </Typography>
                   <List>
-                    <ListItem
-                      sx={{
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "flex-start",
-                        mb: 2
-                      }}
-                    >
+                    <ListItem className="setup-list-item">
                       <ListItemText
                         primary={
                           <Typography
                             variant="subtitle1"
-                            sx={{
-                              fontWeight: "bold",
-                              color: theme.palette.c_hl1
-                            }}
+                            className="setup-list-title"
                           >
                             1. Use Local Models via HuggingFace
                           </Typography>
                         }
                         secondary={
-                          <Box sx={{ mt: 1 }}>
+                          <Box className="setup-list-content">
                             <ul>
                               <li>
                                 <Typography variant="body2">
@@ -631,27 +664,18 @@ const Welcome = ({ handleClose }: { handleClose: () => void }) => {
                         }
                       />
                     </ListItem>
-                    <ListItem
-                      sx={{
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "flex-start"
-                      }}
-                    >
+                    <ListItem className="setup-list-item">
                       <ListItemText
                         primary={
                           <Typography
                             variant="subtitle1"
-                            sx={{
-                              fontWeight: "bold",
-                              color: theme.palette.c_hl1
-                            }}
+                            className="setup-list-title"
                           >
                             2. Use Remote Models
                           </Typography>
                         }
                         secondary={
-                          <Box sx={{ mt: 1 }}>
+                          <Box className="setup-list-content">
                             <Typography variant="body2">
                               • Set up API keys to access cloud-based AI models.
                             </Typography>
@@ -729,14 +753,6 @@ const Welcome = ({ handleClose }: { handleClose: () => void }) => {
                     borderRadius: "20px"
                   }}
                 >
-                  <Typography variant="h3" sx={{ mb: 2 }}>
-                    Remote Model Setup
-                  </Typography>
-                  <p>
-                    To use the external API providers, you need to set up your
-                    API keys below. If you don&apos;t have a GPU, this is the
-                    only way to run models efficiently.
-                  </p>
                   <RemoteSettingsMenu />
                 </Box>
               </Box>

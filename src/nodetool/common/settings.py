@@ -10,27 +10,16 @@ SECRETS_FILE = "secrets.yaml"
 MISSING_MESSAGE = "Missing required environment variable: {}"
 NOT_GIVEN = object()
 
-SETTINGS_SETUP = [
-    {
-        "key": "COMFY_FOLDER",
-        "prompt": "Location of ComfyUI folder (optional)",
-    },
-]
-
-SECRETS_SETUP = [
-    {"key": "OPENAI_API_KEY", "prompt": "OpenAI API key (optional)"},
-    {"key": "ANTHROPIC_API_KEY", "prompt": "ANTHROPIC API key (optional)"},
-    {"key": "HF_TOKEN", "prompt": "Hugging Face Token (optional)"},
-    {
-        "key": "REPLICATE_API_TOKEN",
-        "prompt": "Replicate API Token (optional)",
-    },
-]
-
 
 class SettingsModel(BaseModel):
     COMFY_FOLDER: str | None = Field(
         default=None, description="Location of ComfyUI folder"
+    )
+    CHROMA_PATH: str | None = Field(
+        default=None, description="Location of ChromaDB folder"
+    )
+    ASSET_FOLDER: str | None = Field(
+        default=None, description="Location of asset folder"
     )
 
 
@@ -41,6 +30,13 @@ class SecretsModel(BaseModel):
     REPLICATE_API_TOKEN: str | None = Field(
         default=None, description="Replicate API Token"
     )
+    KLING_ACCESS_KEY: str | None = Field(
+        default=None, description="Kling AI access key"
+    )
+    KLING_SECRET_KEY: str | None = Field(
+        default=None, description="Kling AI secret key"
+    )
+    LUMAAI_API_KEY: str | None = Field(default=None, description="Luma AI API key")
 
 
 def get_system_file_path(filename: str) -> Path:
@@ -101,38 +97,6 @@ def save_settings(settings: SettingsModel, secrets: SecretsModel):
 
     with open(secrets_file, "w") as f:
         yaml.dump(secrets.model_dump(), f)
-
-
-def setup_settings(
-    settings: SettingsModel, secrets: SecretsModel, default_env: Dict[str, Any]
-) -> Tuple[SettingsModel, SecretsModel]:
-    """
-    Runs the configuration wizard to set up the environment.
-    """
-    print("Setting up Nodetool environment")
-    print("Press enter to use the default value")
-    print("Press ctrl-c to exit")
-    print()
-
-    settings_dict = settings.dict()
-    secrets_dict = secrets.dict()
-
-    for step in SETTINGS_SETUP:
-        default_value = settings_dict.get(step["key"]) or default_env.get(step["key"])
-        default_prompt = f" [{default_value}]: " if default_value else ": "
-        value = input(step["prompt"] + default_prompt).strip()
-        settings_dict[step["key"]] = value if value else default_value
-
-    def mask_secret(prompt: str, num_chars: int = 8) -> str:
-        return "*" * num_chars + prompt[num_chars:]
-
-    for step in SECRETS_SETUP:
-        default_value = secrets_dict.get(step["key"])
-        default_prompt = f" [{mask_secret(default_value)}]: " if default_value else ": "
-        value = input(step["prompt"] + default_prompt).strip()
-        secrets_dict[step["key"]] = value if value else default_value
-
-    return SettingsModel(**settings_dict), SecretsModel(**secrets_dict)
 
 
 def get_value(

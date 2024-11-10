@@ -12,8 +12,6 @@ from nodetool.common.settings import (
     SecretsModel,
     SettingsModel,
     load_settings,
-    save_settings,
-    setup_settings,
     get_value,
     get_system_file_path,
     SETTINGS_FILE,
@@ -35,6 +33,9 @@ DEFAULT_ENV = {
     "REPLICATE_API_TOKEN": None,
     "OPENAI_API_KEY": None,
     "OLLAMA_API_URL": "http://localhost:11434",
+    "KLING_ACCESS_KEY": None,
+    "KLING_SECRET_KEY": None,
+    "LUMAAI_API_KEY": None,
     "HF_TOKEN": None,
     "ENV": "development",
     "LOG_LEVEL": "INFO",
@@ -75,25 +76,6 @@ class Environment(object):
     @classmethod
     def load_settings(cls):
         cls.settings, cls.secrets = load_settings()
-
-    @classmethod
-    def save_settings(cls):
-        assert cls.settings is not None and cls.secrets is not None
-        save_settings(cls.settings, cls.secrets)
-
-    @classmethod
-    def setup(cls):
-        cls.load_settings()
-        assert cls.settings is not None and cls.secrets is not None
-        cls.settings, cls.secrets = setup_settings(
-            cls.settings, cls.secrets, DEFAULT_ENV
-        )
-        cls.save_settings()
-
-        print()
-        print("Environment setup complete!")
-        print("You can now run the Nodetool server using the 'nodetool serve' command")
-        print()
 
     @classmethod
     def get(cls, key: str, default: Any = ...):

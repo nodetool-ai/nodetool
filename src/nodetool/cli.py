@@ -18,12 +18,6 @@ def cli():
 
 
 @click.command()
-def setup():
-    """Setup the environment."""
-    Environment.setup()
-
-
-@click.command()
 @click.option("--host", default="127.0.0.1", help="Host address to serve on.")
 @click.option("--port", default=8001, help="Port to serve on.", type=int)
 @click.option("--force-fp16", is_flag=True, help="Force FP16.")
@@ -180,7 +174,6 @@ def chat():
 
 
 cli.add_command(worker)
-cli.add_command(setup)
 cli.add_command(serve)
 cli.add_command(run)
 
