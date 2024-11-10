@@ -526,3 +526,36 @@ class Log(BaseNode):
         return await convert_output(
             context, np.log(to_numpy(self.x).astype(np.float32))
         )
+
+
+class NearestNeighbors(BaseNode):
+    """
+    Stores input embeddings in a database and retrieves the nearest neighbors for a query embedding.
+    """
+
+    documents: list[Tensor] = Field(
+        default=[], description="The list of documents to search"
+    )
+    query: Tensor = Field(
+        default=Tensor(),
+        description="The query to search for",
+    )
+    n_neighbors: int = Field(default=1, description="The number of neighbors to return")
+
+    @classmethod
+    def return_type(cls):
+        return {
+            "distances": list[float],
+            "indices": list[int],
+        }
+
+    async def process(self, context: ProcessingContext):
+        from sklearn.neighbors import NearestNeighbors
+
+        embeddings = np.array([e.to_numpy() for e in self.documents])
+        nbrs = NearestNeighbors(n_neighbors=self.n_neighbors).fit(embeddings)
+        distances, indices = nbrs.kneighbors(self.query.to_numpy().reshape(1, -1))
+        return {
+            "distances": distances[0].tolist(),
+            "indices": indices[0].tolist(),
+        }

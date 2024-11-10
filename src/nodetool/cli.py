@@ -112,6 +112,7 @@ async def run(workflow_file: str):
 
     # TODO: only import modules referenced in worflow
     import nodetool.nodes.anthropic
+    import nodetool.nodes.chroma
     import nodetool.nodes.comfy
     import nodetool.nodes.huggingface
     import nodetool.nodes.nodetool

@@ -322,6 +322,9 @@ if __name__ == "__main__":
     import nodetool.nodes.openai
     import nodetool.nodes.replicate
     import nodetool.nodes.ollama
+    import nodetool.nodes.kling
+    import nodetool.nodes.luma
+    import nodetool.nodes.chroma
     import nodetool.api.asset
     import nodetool.api.auth
     import nodetool.api.job

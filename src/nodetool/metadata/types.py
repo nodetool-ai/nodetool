@@ -175,6 +175,12 @@ class GPTModel(str, enum.Enum):
     GPT4Mini = "gpt-4o-mini"
 
 
+class OpenAIEmbeddingModel(str, enum.Enum):
+    ADA_002 = "text-embedding-ada-002"
+    SMALL = "text-embedding-3-small"
+    LARGE = "text-embedding-3-large"
+
+
 class AnthropicModel(str, enum.Enum):
     claude_3_opus = "claude-3-opus-20240229"
     claude_3_haiku = "claude-3-haiku-20240307"
@@ -1096,3 +1102,26 @@ class AudioChunk(BaseType):
     type: Literal["audio_chunk"] = "audio_chunk"
     timestamp: tuple[float, float]
     text: str
+
+
+class ChromaEmbeddingFunctionEnum(str, Enum):
+    OPENCLIP = "openclip"
+    OPENAI = "openai"
+    OLLAMA = "ollama"
+
+
+class ChromaEmbeddingFunction(BaseType):
+    type: Literal["chroma.embedding_function"] = "chroma.embedding_function"
+    embedding_function: ChromaEmbeddingFunctionEnum = Field(
+        default=ChromaEmbeddingFunctionEnum.OPENCLIP
+    )
+    model: str | None = None
+    repo_id: str | None = None
+
+
+class ChromaCollection(BaseType):
+    type: Literal["chroma_collection"] = "chroma_collection"
+    name: str = ""
+    embedding_function: ChromaEmbeddingFunction = Field(
+        default=ChromaEmbeddingFunction()
+    )

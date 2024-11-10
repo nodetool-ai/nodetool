@@ -212,6 +212,7 @@ def index_documentation(collection: chromadb.Collection):
     Index the documentation if it doesn't exist yet.
     """
     import nodetool.nodes.anthropic
+    import nodetool.nodes.chroma
     import nodetool.nodes.comfy
     import nodetool.nodes.huggingface
     import nodetool.nodes.nodetool

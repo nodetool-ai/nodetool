@@ -7,6 +7,7 @@ from nodetool.common.environment import Environment
 from nodetool.metadata.node_metadata import NodeMetadata
 from nodetool.metadata.types import ModelFile
 import nodetool.nodes.anthropic
+import nodetool.nodes.chroma
 import nodetool.nodes.comfy
 import nodetool.nodes.huggingface
 import nodetool.nodes.nodetool
@@ -14,6 +15,7 @@ import nodetool.nodes.openai
 import nodetool.nodes.replicate
 import nodetool.nodes.ollama
 import nodetool.nodes.luma
+import nodetool.nodes.kling
 from nodetool.workflows.base_node import get_registered_node_classes
 
 

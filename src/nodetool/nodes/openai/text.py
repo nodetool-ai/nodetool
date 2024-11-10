@@ -44,7 +44,7 @@ class Embedding(BaseNode):
     chunk_size: int = 4096
 
     async def process(self, context: ProcessingContext) -> Tensor:
-        input = await context.to_str(self.input)
+        input = await context.text_to_str(self.input)
         # chunk the input into smaller pieces
         chunks = [
             input[i : i + self.chunk_size]

@@ -1200,7 +1200,7 @@ class ProcessingContext:
 
         return ImageRef(data=batch)
 
-    async def to_str(self, text_ref: TextRef | str) -> str:
+    async def text_to_str(self, text_ref: TextRef | str) -> str:
         """
         Converts a TextRef to a string.
 
