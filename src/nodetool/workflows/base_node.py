@@ -395,7 +395,7 @@ class BaseNode(BaseModel):
 
         if not is_assignable(prop.type, value):
             raise ValueError(
-                f"[{self.__class__.__name__}] Invalid value for property `{name}`: {value} (expected {prop.type})"
+                f"[{self.__class__.__name__}] Invalid value for property `{name}`: {type(value)} (expected {prop.type})"
             )
 
         if prop.type.is_enum_type():

@@ -3,6 +3,7 @@ from pydantic import Field
 from nodetool.metadata.types import VAE, ImageRef, ImageRef, Latent, Mask
 from nodetool.common.comfy_node import MAX_RESOLUTION
 from nodetool.common.comfy_node import ComfyNode
+import comfy_extras.nodes_mochi
 
 
 class LatentCompositeMasked(ComfyNode):
@@ -371,3 +372,45 @@ class LatentCrop(ComfyNode):
     @classmethod
     def return_type(cls):
         return {"latent": Latent}
+
+
+class EmptyMochiLatentVideo(ComfyNode):
+    """
+    The Empty Mochi Latent Video node creates a new set of empty latent images specifically formatted for video processing.
+    """
+
+    width: int = Field(
+        default=848,
+        description="The width of the latent video to generate.",
+        ge=16,
+        le=MAX_RESOLUTION,
+        multiple_of=16,
+    )
+    height: int = Field(
+        default=480,
+        description="The height of the latent video to generate.",
+        ge=16,
+        le=MAX_RESOLUTION,
+        multiple_of=16,
+    )
+    length: int = Field(
+        default=25,
+        description="The number of frames in the video.",
+        ge=7,
+        le=MAX_RESOLUTION,
+        multiple_of=6,
+    )
+    batch_size: int = Field(
+        default=1,
+        description="The batch size of the latent video to generate.",
+        ge=1,
+        le=4096,
+    )
+
+    @classmethod
+    def return_type(cls):
+        return {"latent": Latent}
+
+    @classmethod
+    def get_title(cls):
+        return "Empty Mochi Latent Video"

@@ -498,7 +498,7 @@ class WorkflowRunner:
                 try:
                     node.assign_property(name, value)
                 except Exception as e:
-                    log.warn(f"Error assigning property {name} to node {node.id}: {e}")
+                    log.warn(f"Error assigning property {name} to node {node.id}")
 
             # Preprocess the node
             log.debug(f"Pre-processing node: {node.get_title()} ({node._id})")

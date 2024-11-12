@@ -213,6 +213,16 @@ def get_widget_names(class_name: str) -> List[str]:
     return []
 
 
+def get_x_y_from_pos(pos: list[int] | dict[str, int]) -> tuple[int, int]:
+    """
+    Get the x and y coordinates from a position list.
+    """
+    if isinstance(pos, list):
+        return int(pos[0] / 2), int(pos[1] / 2)
+    elif isinstance(pos, dict):
+        return int(pos.get("0", 0) / 2), int(pos.get("0", 0) / 2)
+
+
 def convert_graph(input_graph: dict[str, Any]) -> dict[str, Any]:
     """
     Convert a graph from the ComfyUI format to the ComfyUI API format.
@@ -232,10 +242,8 @@ def convert_graph(input_graph: dict[str, Any]) -> dict[str, Any]:
 
         # Add position information
         if "pos" in node:
-            output_graph[node_id][POSITION_KEY] = {
-                "x": node["pos"][0] / 2,
-                "y": node["pos"][1] / 2,
-            }
+            x, y = get_x_y_from_pos(node["pos"])
+            output_graph[node_id][POSITION_KEY] = {"x": x, "y": y}
 
         # Add widget values if present
         if "widgets_values" in node:

@@ -911,6 +911,8 @@ class VAELoader:
         sd1_taesd_dec = False
         sd3_taesd_enc = False
         sd3_taesd_dec = False
+        f1_taesd_enc = False
+        f1_taesd_dec = False
 
         for v in approx_vaes:
             if v.startswith("taesd_decoder."):
@@ -925,12 +927,18 @@ class VAELoader:
                 sd3_taesd_dec = True
             elif v.startswith("taesd3_encoder."):
                 sd3_taesd_enc = True
+            elif v.startswith("taef1_encoder."):
+                f1_taesd_dec = True
+            elif v.startswith("taef1_decoder."):
+                f1_taesd_enc = True
         if sd1_taesd_dec and sd1_taesd_enc:
             vaes.append("taesd")
         if sdxl_taesd_dec and sdxl_taesd_enc:
             vaes.append("taesdxl")
         if sd3_taesd_dec and sd3_taesd_enc:
             vaes.append("taesd3")
+        if f1_taesd_dec and f1_taesd_enc:
+            vaes.append("taef1")
         return vaes
 
     @staticmethod
@@ -946,13 +954,13 @@ class VAELoader:
         )
 
         enc = comfy.utils.load_torch_file(
-            folder_paths.get_full_path("vae_approx", encoder)
+            folder_paths.get_full_path_or_raise("vae_approx", encoder)
         )
         for k in enc:
             sd["taesd_encoder.{}".format(k)] = enc[k]
 
         dec = comfy.utils.load_torch_file(
-            folder_paths.get_full_path("vae_approx", decoder)
+            folder_paths.get_full_path_or_raise("vae_approx", decoder)
         )
         for k in dec:
             sd["taesd_decoder.{}".format(k)] = dec[k]
@@ -966,6 +974,9 @@ class VAELoader:
         elif name == "taesd3":
             sd["vae_scale"] = torch.tensor(1.5305)
             sd["vae_shift"] = torch.tensor(0.0609)
+        elif name == "taef1":
+            sd["vae_scale"] = torch.tensor(0.3611)
+            sd["vae_shift"] = torch.tensor(0.1159)
         return sd
 
     @classmethod
@@ -979,10 +990,10 @@ class VAELoader:
 
     # TODO: scale factor?
     def load_vae(self, vae_name):
-        if vae_name in ["taesd", "taesdxl", "taesd3"]:
+        if vae_name in ["taesd", "taesdxl", "taesd3", "taef1"]:
             sd = self.load_taesd(vae_name)
         else:
-            vae_path = folder_paths.get_full_path("vae", vae_name)
+            vae_path = folder_paths.get_full_path_or_raise("vae", vae_name)
             sd = comfy.utils.load_torch_file(vae_path)
         vae = comfy.sd.VAE(sd=sd)
         return (vae,)
@@ -1169,9 +1180,15 @@ class CLIPLoader:
     def INPUT_TYPES(s):
         return {
             "required": {
-                "clip_name": (folder_paths.get_filename_list("clip"),),
+                "clip_name": (folder_paths.get_filename_list("text_encoders"),),
                 "type": (
-                    ["stable_diffusion", "stable_cascade", "sd3", "stable_audio"],
+                    [
+                        "stable_diffusion",
+                        "stable_cascade",
+                        "sd3",
+                        "stable_audio",
+                        "mochi",
+                    ],
                 ),
             }
         }
@@ -1188,10 +1205,12 @@ class CLIPLoader:
             clip_type = comfy.sd.CLIPType.SD3
         elif type == "stable_audio":
             clip_type = comfy.sd.CLIPType.STABLE_AUDIO
+        elif type == "mochi":
+            clip_type = comfy.sd.CLIPType.MOCHI
         else:
             clip_type = comfy.sd.CLIPType.STABLE_DIFFUSION
 
-        clip_path = folder_paths.get_full_path("clip", clip_name)
+        clip_path = folder_paths.get_full_path_or_raise("text_encoders", clip_name)
         clip = comfy.sd.load_clip(
             ckpt_paths=[clip_path],
             embedding_directory=folder_paths.get_folder_paths("embeddings"),
@@ -2842,6 +2861,8 @@ def init_builtin_extra_nodes():
         "nodes_controlnet.py",
         "nodes_hunyuan.py",
         "nodes_flux.py",
+        "nodes_mochi.py",
+        "nodes_sd3.py",
     ]
 
     import_failed = []

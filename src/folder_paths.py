@@ -75,6 +75,7 @@ folder_names_and_paths: dict[str, tuple[list[str], set[str]]] = {
     "clip": ([model_path("clip")], supported_pt_extensions),
     "unet": ([model_path("unet")], supported_pt_extensions),
     "instantid": ([model_path("instantid")], supported_pt_extensions),
+    "text_encoders": ([model_path("text_encoders")], supported_pt_extensions),
     "clip_vision": ([model_path("clip_vision")], supported_pt_extensions),
     "style_models": ([model_path("style_models")], supported_pt_extensions),
     "embeddings": ([model_path("embeddings")], supported_pt_extensions),
@@ -85,6 +86,7 @@ folder_names_and_paths: dict[str, tuple[list[str], set[str]]] = {
     ),
     "gligen": ([model_path("gligen")], supported_pt_extensions),
     "upscale_models": ([model_path("upscale_models")], supported_pt_extensions),
+    "photomaker": ([model_path("photomaker")], supported_pt_extensions),
     "custom_nodes": ([custom_nodes_directory], set()),
     "hypernetworks": ([model_path("hypernetworks")], supported_pt_extensions),
     "classifiers": ([model_path("classifiers")], {""}),
@@ -200,6 +202,8 @@ def get_full_path(folder_name: str, filename: str) -> str | None:
 
 
 def get_full_path_or_raise(folder_name: str, filename: str) -> str:
+    if filename.startswith("/"):
+        return filename
     full_path = get_full_path(folder_name, filename)
     if full_path is None:
         raise FileNotFoundError(
@@ -264,6 +268,36 @@ def cached_filename_list_(
     return out
 
 
+FOLDER_NAME_MAP = {
+    "comfy.checkpoint_file": "checkpoints",
+    "comfy.unet_file": "unet",
+    "comfy.vae_file": "vae",
+    "comfy.clip_file": "clip",
+    "comfy.unclip_file": "unclip",
+    "comfy.controlnet_file": "controlnet",
+    "comfy.t2i_adapter_file": "t2i_adapter",
+    "comfy.clip_vision_file": "clip_vision",
+    "comfy.lora_file": "loras",
+    "comfy.ip_adapter_file": "ip_adapter",
+    "comfy.upscale_model_file": "upscale_models",
+    "comfy.vae_approx_file": "vae_approx",
+    "comfy.hypernetwork_file": "hypernetworks",
+    "comfy.embedding_file": "embeddings",
+    "comfy.style_model_file": "style_models",
+    "comfy.instant_id_file": "instantid",
+    "comfy.gligen_file": "gligen",
+}
+
+
+def normalize_folder_name(folder_name: str) -> str:
+    """
+    Normalize by mapping type names to folder names.
+    """
+    if folder_name.startswith("comfy."):
+        return FOLDER_NAME_MAP.get(folder_name, folder_name)
+    return folder_name
+
+
 def get_filename_list(folder_name):
     """
     Get the list of filenames for a specific folder, using the cache if available.
@@ -274,6 +308,7 @@ def get_filename_list(folder_name):
     Returns:
         list[str]: The list of filenames for the specified folder.
     """
+    folder_name = normalize_folder_name(folder_name)
     out = cached_filename_list_(folder_name)
     if out is None:
         out = get_filename_list_(folder_name)

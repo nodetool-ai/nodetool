@@ -1,5 +1,9 @@
+import asyncio
 from enum import Enum
 import random
+
+import numpy as np
+import torch
 from nodetool.metadata.types import (
     ComfyData,
     ComfyModel,
@@ -9,7 +13,6 @@ from nodetool.metadata.types import (
 )
 from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
-import enum
 from typing import Any
 
 
@@ -51,7 +54,12 @@ class ComfyNode(BaseNode):
                 return True
         return False
 
-    async def call_comfy_node(self, context: ProcessingContext):
+    async def call_comfy_node(
+        self,
+        context: ProcessingContext,
+        name: str | None = None,
+        **kwargs,
+    ):
         """
         Delegate the processing to the comfy class.
         Values will be converted for model files and enums.
@@ -62,7 +70,8 @@ class ComfyNode(BaseNode):
         Returns:
             Any: The result of the processing.
         """
-        name = self.get_comfy_class_name()
+        if name is None:
+            name = self.get_comfy_class_name()
 
         node_class = resolve_comfy_class(name)
         if node_class is None:
@@ -80,6 +89,8 @@ class ComfyNode(BaseNode):
             elif isinstance(value, ImageRef):
                 tensor = await context.image_to_tensor(value)
                 return tensor.unsqueeze(0)
+            elif isinstance(value, list):
+                return await asyncio.gather(*[convert_value(name, v) for v in value])
             elif prop.type.is_comfy_data_type():
                 assert isinstance(value, ComfyData), "Expected comfy data type"
                 assert value.data is not None, f"Input {name} is not connected"
@@ -91,10 +102,12 @@ class ComfyNode(BaseNode):
             else:
                 return value
 
-        kwargs = {
-            name.replace("-", ""): await convert_value(name, value)
-            for name, value in self.node_properties().items()
-        }
+        if len(kwargs) == 0:
+            kwargs = {
+                name.replace("-", ""): await convert_value(name, value)
+                for name, value in self.node_properties().items()
+            }
+
         if "seed_control_mode" in kwargs:
             del kwargs["seed_control_mode"]
 
@@ -150,22 +163,30 @@ class ComfyNode(BaseNode):
             Any: The converted output value.
         """
 
+        async def try_convert_image(v: Any) -> ImageRef | None:
+            if isinstance(v, ImageRef):
+                return v
+            if isinstance(v, torch.Tensor):
+                if v.ndim == 4 or v.ndim == 5:
+                    return await context.image_from_tensor(v)
+            return None
+
         async def convert_value(output: OutputSlot, v: Any) -> Any:
             output_type = output.type.get_python_type()
 
-            if output.type.type == "image":
-                if isinstance(v, ImageRef):
-                    return v
-                return await context.image_from_tensor(v)
-            # TODO: Add support for other asset types
-            elif output.type.is_comfy_data_type():
+            if output.type.is_comfy_data_type(recursive=True):
                 if isinstance(v, ComfyData):
                     return v
                 return output_type(data=v)
-            elif output.type.is_comfy_model():
+            elif output.type.is_comfy_model(recursive=True):
                 if isinstance(v, ComfyModel):
                     return v
                 return output_type(name=v)
+
+            res = await try_convert_image(v)
+            if res is not None:
+                return res
+
             else:
                 return v
 

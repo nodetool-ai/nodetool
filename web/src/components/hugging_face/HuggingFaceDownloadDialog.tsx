@@ -17,7 +17,7 @@ const HuggingFaceDownloadDialog: React.FC = () => {
   const { isDialogOpen, closeDialog, downloads } = useModelDownloadStore();
 
   return (
-    <Dialog open={isDialogOpen} onClose={closeDialog} maxWidth="sm" fullWidth>
+    <Dialog open={isDialogOpen} onClose={closeDialog} maxWidth="md" fullWidth>
       <DialogTitle>Download Progress</DialogTitle>
       <DialogContent>
         <Box mt={2}>

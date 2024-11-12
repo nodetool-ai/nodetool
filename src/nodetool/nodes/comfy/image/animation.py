@@ -3,6 +3,7 @@ from typing import Any
 from pydantic import Field
 from nodetool.metadata.types import ImageRef, ImageRef
 from nodetool.common.comfy_node import ComfyNode
+from nodetool.workflows.processing_context import ProcessingContext
 
 
 class SaveAnimatedWEBP(ComfyNode):
@@ -20,12 +21,6 @@ class SaveAnimatedWEBP(ComfyNode):
     method: Enum = Field(
         default="default", description="Compression method to use."
     )  # Enum should be adjusted to have the correct values from the "methods" list.
-
-    hidden_fields: dict[str, Any] = Field(
-        default_factory=dict,
-        description="Hidden fields like prompt and extra PNG information.",
-    )
-    output_node: bool = True
 
     @classmethod
     def return_type(cls):
@@ -46,7 +41,6 @@ class SaveAnimatedPNG(ComfyNode):
         default_factory=dict,
         description="Hidden fields like prompt and extra PNG information.",
     )
-    output_node: bool = True
 
     @classmethod
     def return_type(cls):

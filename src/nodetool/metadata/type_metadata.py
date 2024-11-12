@@ -16,9 +16,11 @@ class TypeMetadata(BaseModel):
     def __repr__(self):
         return f"TypeMetadata(type={self.type}, optional={self.optional}, values={self.values}, type_args={self.type_args})"
 
-    def is_asset_type(self):
+    def is_asset_type(self, recursive: bool = False):
         from nodetool.metadata.types import asset_types
 
+        if recursive and self.is_union_type():
+            return any(t.is_asset_type(recursive=True) for t in self.type_args)
         return self.type in asset_types
 
     def is_cacheable_type(self):
@@ -39,38 +41,71 @@ class TypeMetadata(BaseModel):
             return False
         return True
 
-    def is_comfy_type(self):
+    def is_comfy_type(self, recursive: bool = False):
+        if recursive and self.is_union_type():
+            return any(t.is_comfy_type(recursive=True) for t in self.type_args)
         return self.type.startswith("comfy.")
 
-    def is_comfy_model(self):
+    def is_comfy_model(self, recursive: bool = False):
         from nodetool.metadata.types import comfy_model_types
 
+        if recursive and self.is_union_type():
+            return any(t.is_comfy_model(recursive=True) for t in self.type_args)
         return self.type in comfy_model_types
 
-    def is_model_file_type(self):
+    def is_model_file_type(self, recursive: bool = False):
         from nodetool.metadata.types import model_file_types
 
+        if recursive and self.is_union_type():
+            return any(t.is_model_file_type(recursive=True) for t in self.type_args)
         return self.type in model_file_types
 
-    def is_comfy_data_type(self):
+    def is_comfy_data_type(self, recursive: bool = False):
         from nodetool.metadata.types import comfy_data_types
 
+        if recursive and self.is_union_type():
+            return any(t.is_comfy_data_type(recursive=True) for t in self.type_args)
         return self.type in comfy_data_types
 
-    def is_primitive_type(self):
+    def is_primitive_type(self, recursive: bool = False):
+        if recursive and self.is_union_type():
+            return any(t.is_primitive_type(recursive=True) for t in self.type_args)
         return self.type in ["int", "float", "bool", "str", "text"]
 
-    def is_enum_type(self):
+    def is_enum_type(self, recursive: bool = False):
+        if recursive and self.is_union_type():
+            return any(t.is_enum_type(recursive=True) for t in self.type_args)
         return self.type == "enum"
 
-    def is_list_type(self):
+    def is_list_type(self, recursive: bool = False):
+        if recursive and self.is_union_type():
+            return any(t.is_list_type(recursive=True) for t in self.type_args)
         return self.type == "list"
 
-    def is_tuple_type(self):
+    def is_tuple_type(self, recursive: bool = False):
+        if recursive and self.is_union_type():
+            return any(t.is_tuple_type(recursive=True) for t in self.type_args)
         return self.type == "tuple"
 
-    def is_dict_type(self):
+    def is_dict_type(self, recursive: bool = False):
+        if recursive and self.is_union_type():
+            return any(t.is_dict_type(recursive=True) for t in self.type_args)
         return self.type == "dict"
+
+    def is_image_type(self, recursive: bool = False):
+        if recursive and self.is_union_type():
+            return any(t.is_image_type(recursive=True) for t in self.type_args)
+        return self.type == "image"
+
+    def is_audio_type(self, recursive: bool = False):
+        if recursive and self.is_union_type():
+            return any(t.is_audio_type(recursive=True) for t in self.type_args)
+        return self.type == "audio"
+
+    def is_video_type(self, recursive: bool = False):
+        if recursive and self.is_union_type():
+            return any(t.is_video_type(recursive=True) for t in self.type_args)
+        return self.type == "video"
 
     def is_union_type(self):
         return self.type == "union"

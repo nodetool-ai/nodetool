@@ -325,6 +325,18 @@ class HFUnconditionalImageGeneration(HuggingFaceModel):
     )
 
 
+class HFUnet(HuggingFaceModel):
+    type: Literal["hf.unet"] = "hf.unet"
+
+
+class HFVAE(HuggingFaceModel):
+    type: Literal["hf.vae"] = "hf.vae"
+
+
+class HFCLIP(HuggingFaceModel):
+    type: Literal["hf.clip"] = "hf.clip"
+
+
 class HFCLIPVision(HuggingFaceModel):
     type: Literal["hf.clip_vision"] = "hf.clip_vision"
 

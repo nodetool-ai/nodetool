@@ -1,4 +1,6 @@
 from enum import Enum
+
+import torch
 import comfy.sd
 import comfy.controlnet
 import comfy.utils
@@ -9,6 +11,8 @@ import folder_paths
 from nodetool.metadata.types import (
     CLIP,
     GLIGEN,
+    HFCLIP,
+    HFVAE,
     VAE,
     CLIPFile,
     CLIPVision,
@@ -24,6 +28,7 @@ from nodetool.metadata.types import (
     HFLoraSDXL,
     HFStableDiffusion,
     HFStableDiffusionXL,
+    HFUnet,
     IPAdapter,
     IPAdapterFile,
     LORAFile,
@@ -549,6 +554,43 @@ class VAELoader(ComfyNode):
         return {"vae": VAE(name=self.vae_name.name, model=vae)}
 
 
+class HuggingFaceVAELoader(ComfyNode):
+    model: HFVAE = Field(
+        default=HFVAE(),
+        description="The VAE model to load.",
+    )
+
+    @classmethod
+    def get_title(cls):
+        return "Load HuggingFace VAE"
+
+    @classmethod
+    def return_type(cls):
+        return {"vae": VAE}
+
+    @classmethod
+    def get_recommended_models(cls) -> list[HFVAE]:
+        return [
+            HFVAE(
+                repo_id="Comfy-Org/mochi_preview_repackaged",
+                path="split_files/vae/mochi_vae.safetensors",
+            ),
+        ]
+
+    async def process(self, context: ProcessingContext):
+        if self.model.is_empty():
+            raise Exception("VAE model must be selected.")
+
+        if self.model.path is None:
+            raise Exception("VAE path must be set.")
+
+        vae_path = try_to_load_from_cache(self.model.repo_id, self.model.path)
+
+        (vae,) = await self.call_comfy_node(context, "VAELoader", vae_name=vae_path)
+
+        return {"vae": VAE(name=self.model.repo_id, model=vae)}
+
+
 class CLIPLoader(ComfyNode):
     clip_name: CLIPFile = Field(
         default=CLIPFile(),
@@ -569,6 +611,80 @@ class CLIPLoader(ComfyNode):
     @classmethod
     def return_type(cls):
         return {"clip": CLIP}
+
+
+class CLIPTypeEnum(str, Enum):
+    STABLE_DIFFUSION = "stable_diffusion"
+    STABLE_CASCADE = "stable_cascade"
+    SD3 = "sd3"
+    STABLE_AUDIO = "stable_audio"
+    MOCHI = "mochi"
+
+    @classmethod
+    def get_clip_type(cls, type: str) -> comfy.sd.CLIPType:
+        if type == "stable_cascade":
+            return comfy.sd.CLIPType.STABLE_CASCADE
+        elif type == "sd3":
+            return comfy.sd.CLIPType.SD3
+        elif type == "stable_audio":
+            return comfy.sd.CLIPType.STABLE_AUDIO
+        else:
+            return comfy.sd.CLIPType.STABLE_DIFFUSION
+
+
+class HuggingFaceCLIPLoader(ComfyNode):
+    model: HFCLIP = Field(
+        default=HFCLIP(),
+        description="The CLIP model to load.",
+    )
+    type: CLIPTypeEnum = Field(
+        default=CLIPTypeEnum.STABLE_DIFFUSION,
+        description="The type of the CLIP model to load.",
+    )
+
+    @classmethod
+    def get_recommended_models(cls) -> list[HFCLIP]:
+        return [
+            HFCLIP(
+                repo_id="Comfy-Org/mochi_preview_repackaged",
+                path="split_files/text_encoders/t5xxl_fp16.safetensors",
+            ),
+            HFCLIP(
+                repo_id="Comfy-Org/mochi_preview_repackaged",
+                path="split_files/text_encoders/t5xxl_fp8_e4m3fn_scaled.safetensors",
+            ),
+        ]
+
+    @classmethod
+    def get_title(cls):
+        return "Load HuggingFace CLIP"
+
+    @classmethod
+    def is_cacheable(cls):
+        return False
+
+    @classmethod
+    def return_type(cls):
+        return {"clip": CLIP}
+
+    async def process(self, context: ProcessingContext):
+        if self.model.is_empty():
+            raise Exception("CLIP model must be selected.")
+
+        assert self.model.path is not None, "Model must be single file"
+
+        clip_path = try_to_load_from_cache(self.model.repo_id, self.model.path)
+        clip_type = CLIPTypeEnum.get_clip_type(self.type)
+
+        clip = comfy.sd.load_clip(
+            ckpt_paths=[clip_path],
+            embedding_directory=folder_paths.get_folder_paths("embeddings"),
+            clip_type=clip_type,
+        )
+
+        return {
+            "clip": CLIP(name=self.model.repo_id, model=clip),
+        }
 
 
 class DualCLIPEnum(str, Enum):
@@ -611,6 +727,7 @@ class DualCLIPLoader(ComfyNode):
 class WeightDataTypeEnum(str, Enum):
     DEFAULT = "default"
     FP8_E4M3FN = "fp8_e4m3fn"
+    FP8_E4M3FN_FAST = "fp8_e4m3fn_fast"
     FP8_E5M2 = "fp8_e5m2"
 
 
@@ -639,6 +756,60 @@ class UNETLoader(ComfyNode):
     @classmethod
     def return_type(cls):
         return {"unet": UNet}
+
+
+class HuggingFaceUNetLoader(ComfyNode):
+    model: HFUnet = Field(
+        default=HFUnet(),
+        description="The UNet model to load.",
+    )
+    weight_dtype: WeightDataTypeEnum = Field(
+        WeightDataTypeEnum.DEFAULT,
+        description="The weight data type to use.",
+    )
+
+    @classmethod
+    def get_recommended_models(cls) -> list[HFUnet]:
+        return [
+            HFUnet(
+                repo_id="Comfy-Org/mochi_preview_repackaged",
+                path="split_files/diffusion_models/mochi_preview_bf16.safetensors",
+            ),
+            HFUnet(
+                repo_id="Comfy-Org/mochi_preview_repackaged",
+                path="split_files/diffusion_models/mochi_preview_fp8_scaled.safetensors",
+            ),
+        ]
+
+    @classmethod
+    def get_title(cls):
+        return "Load HuggingFace Diffusion Model"
+
+    @classmethod
+    def return_type(cls):
+        return {"unet": UNet}
+
+    async def process(self, context: ProcessingContext):
+        if self.model.is_empty():
+            raise Exception("UNet model must be selected.")
+
+        if self.model.path is None:
+            raise Exception("UNet path must be set.")
+
+        unet_path = try_to_load_from_cache(self.model.repo_id, self.model.path)
+
+        model_options = {}
+        if self.weight_dtype == WeightDataTypeEnum.FP8_E4M3FN:
+            model_options["dtype"] = torch.float8_e4m3fn
+        elif self.weight_dtype == WeightDataTypeEnum.FP8_E4M3FN_FAST:
+            model_options["dtype"] = torch.float8_e4m3fn
+            model_options["fp8_optimizations"] = True
+        elif self.weight_dtype == WeightDataTypeEnum.FP8_E5M2:
+            model_options["dtype"] = torch.float8_e5m2
+
+        unet = comfy.sd.load_diffusion_model(unet_path, model_options=model_options)
+
+        return {"unet": UNet(name=self.model.repo_id, model=unet)}
 
 
 class ImageOnlyCheckpointLoader(ComfyNode):

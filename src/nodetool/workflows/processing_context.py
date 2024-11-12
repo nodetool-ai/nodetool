@@ -1189,6 +1189,8 @@ class ProcessingContext:
         img = np.clip(255.0 * image_tensor.cpu().detach().numpy(), 0, 255).astype(
             np.uint8
         )
+        if img.ndim == 5:
+            img = img[0]
         if img.shape[0] == 1:
             return await self.image_from_numpy(img[0])
 
