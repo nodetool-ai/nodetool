@@ -7,8 +7,13 @@ export const llama_models: UnifiedModel[] = [
     type: "llama_model"
   },
   {
-    id: "llama3.2:latest",
-    name: "Llama 3.2",
+    id: "llama3.2:3b",
+    name: "Llama 3.2 - 3B",
+    type: "llama_model"
+  },
+  {
+    id: "llama3.2-vision:11b",
+    name: "Llama 3.2 Vision - 11B",
     type: "llama_model"
   },
   {
@@ -17,13 +22,18 @@ export const llama_models: UnifiedModel[] = [
     type: "llama_model"
   },
   {
+    id: "llava:7b",
+    name: "Llava - 7B",
+    type: "llama_model"
+  },
+  {
     id: "llava:13b",
     name: "Llava - 13B",
     type: "llama_model"
   },
   {
-    id: "llava:latest",
-    name: "Llava",
+    id: "llava:34b",
+    name: "Llava - 34B",
     type: "llama_model"
   },
   {
@@ -37,7 +47,7 @@ export const llama_models: UnifiedModel[] = [
     type: "llama_model"
   },
   {
-    id: "qwen2.5:1.5b",
+    id: "qwen2.5:0.5b",
     name: "Qwen2 - 0.5B",
     type: "llama_model"
   },
@@ -59,6 +69,41 @@ export const llama_models: UnifiedModel[] = [
   {
     id: "qwen2.5:14b",
     name: "Qwen2 - 14B",
+    type: "llama_model"
+  },
+  {
+    id: "qwen2.5:32b",
+    name: "Qwen2 - 32B",
+    type: "llama_model"
+  },
+  {
+    id: "qwen2.5-coder:0.5b",
+    name: "Qwen2 Coder - 0.5B",
+    type: "llama_model"
+  },
+  {
+    id: "qwen2.5-coder:1.5b",
+    name: "Qwen2 Coder - 1.5B",
+    type: "llama_model"
+  },
+  {
+    id: "qwen2.5-coder:3b",
+    name: "Qwen2 Coder - 3B",
+    type: "llama_model"
+  },
+  {
+    id: "qwen2.5-coder:7b",
+    name: "Qwen2 Coder - 7B",
+    type: "llama_model"
+  },
+  {
+    id: "qwen2.5-coder:14b",
+    name: "Qwen2 Coder - 14B",
+    type: "llama_model"
+  },
+  {
+    id: "qwen2.5-coder:32b",
+    name: "Qwen2 Coder - 32B",
     type: "llama_model"
   },
   {
