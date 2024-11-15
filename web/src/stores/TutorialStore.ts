@@ -142,7 +142,8 @@ export const tutorials: Record<string, TutorialStep[]> = {
     ),
     configureNodeStep(
       "huggingface.text_to_image.StableDiffusion",
-      (properties) => properties.model.repo_id === "SG161222/Realistic_Vision_V5.1_noVAE",
+      (properties) =>
+        properties.model.repo_id === "SG161222/Realistic_Vision_V5.1_noVAE",
       "Change the model to 'SG161222/Realistic_Vision_V5.1_noVAE' in the StableDiffusion node."
     ),
     configureNodeStep(
@@ -291,7 +292,7 @@ export const tutorials: Record<string, TutorialStep[]> = {
     ),
     addNodeStep(
       "huggingface.image_to_image.StableDiffusionControlNet",
-      "Add a 'Huggingface → Text To Image → StableDiffusionControlNet' node (🎨)."
+      "Add a 'Huggingface → Image To Image → StableDiffusionControlNet' node (🎨)."
     ),
     connectNodesStep(
       "nodetool.image.transform.Canny",
