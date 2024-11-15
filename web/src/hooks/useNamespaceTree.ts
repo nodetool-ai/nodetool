@@ -1,6 +1,6 @@
 import { useMemo } from "react";
-import { useMetadata } from "../serverState/useMetadata";
 import useMetadataStore from "../stores/MetadataStore";
+import useRemoteSettingsStore from "../stores/RemoteSettingStore";
 
 /**
  * `createNamespaceTree` is a memoized function that builds a hierarchical grouping of the nodes based on their namespaces.
@@ -53,14 +53,35 @@ const sortNamespaceChildren = (tree: NamespaceTree): NamespaceTree => {
 
 const useNamespaceTree = (): NamespaceTree => {
   const metadata = useMetadataStore((state) => state.getAllMetadata());
+  const secrets = useRemoteSettingsStore((state) => state.secrets);
+
   const uniqueNamespaces: string[] = useMemo(
     () =>
       metadata
         .map((node) => node.namespace)
+        .filter((namespace) => {
+          // Filter based on API keys presence
+          if (namespace.startsWith("openai.")) {
+            return secrets.OPENAI_API_KEY;
+          }
+          if (namespace.startsWith("anthropic.")) {
+            return secrets.ANTHROPIC_API_KEY;
+          }
+          if (namespace.startsWith("kling.")) {
+            return secrets.KLING_ACCESS_KEY && secrets.KLING_SECRET_KEY;
+          }
+          if (namespace.startsWith("lumaai.")) {
+            return secrets.LUMAAI_API_KEY;
+          }
+          if (namespace.startsWith("replicate.")) {
+            return secrets.REPLICATE_API_TOKEN;
+          }
+          return true; // Show namespaces that don't require API keys
+        })
         .filter(
           (value, index, self) => index === self.findIndex((t) => t === value)
         ) ?? [],
-    [metadata]
+    [metadata, secrets]
   );
 
   const makeNamespaceTree = useMemo(() => {

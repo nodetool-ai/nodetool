@@ -300,76 +300,6 @@ const RemoteSettings = () => {
             </div>
           </div>
 
-          <div className="settings-item folder-path">
-            <TextField
-              id="comfy-folder-input"
-              label="Comfy Folder"
-              value={settings.COMFY_FOLDER}
-              onChange={(e) => handleChange("COMFY_FOLDER", e.target.value)}
-              variant="standard"
-              slotProps={{
-                inputLabel: {
-                  shrink: true
-                }
-              }}
-              sx={{
-                "& .MuiInputBase-root": {
-                  fontSize: "1rem"
-                }
-              }}
-            />
-            <Typography className="description">
-              To use ComfyUI nodes, set the path to your ComfyUI installation
-              folder: PATH/ComfyUI
-            </Typography>
-          </div>
-
-          <div className="settings-item">
-            <TextField
-              id="chroma-path-input"
-              label="ChromaDB Path"
-              value={settings.CHROMA_PATH}
-              onChange={(e) => handleChange("CHROMA_PATH", e.target.value)}
-              variant="standard"
-              slotProps={{
-                inputLabel: {
-                  shrink: true
-                }
-              }}
-              sx={{
-                "& .MuiInputBase-root": {
-                  fontSize: "1rem"
-                }
-              }}
-            />
-            <Typography className="description">
-              Set the path to your ChromaDB storage folder
-            </Typography>
-          </div>
-
-          <div className="settings-item">
-            <TextField
-              id="asset-folder-input"
-              label="Asset Folder"
-              value={settings.ASSET_FOLDER}
-              onChange={(e) => handleChange("ASSET_FOLDER", e.target.value)}
-              variant="standard"
-              slotProps={{
-                inputLabel: {
-                  shrink: true
-                }
-              }}
-              sx={{
-                "& .MuiInputBase-root": {
-                  fontSize: "1rem"
-                }
-              }}
-            />
-            <Typography className="description">
-              Set the path to your asset storage folder
-            </Typography>
-          </div>
-
           <div className="settings-item">
             <TextField
               id="kling-access-key-input"
@@ -407,7 +337,9 @@ const RemoteSettings = () => {
               }}
             />
             <Typography className="description">
-              Enter your Kling AI credentials to access their services
+              Enter your Kling AI credentials to access state-of-the-art video
+              generation models. See https://klingai.com/dev-center for more
+              information.
             </Typography>
           </div>
 
@@ -430,7 +362,81 @@ const RemoteSettings = () => {
               }}
             />
             <Typography className="description">
-              Enter your Luma AI API key to access their services
+              Enter your Luma AI API key to access state-of-the-art video
+              generation models. See https://lumalabs.ai/dream-machine/api for
+              more information.
+            </Typography>
+          </div>
+
+          <div className="settings-item folder-path">
+            <TextField
+              id="comfy-folder-input"
+              label="Comfy Folder"
+              value={settings.COMFY_FOLDER}
+              onChange={(e) => handleChange("COMFY_FOLDER", e.target.value)}
+              variant="standard"
+              slotProps={{
+                inputLabel: {
+                  shrink: true
+                }
+              }}
+              sx={{
+                "& .MuiInputBase-root": {
+                  fontSize: "1rem"
+                }
+              }}
+            />
+            <Typography className="description">
+              To use ComfyUI models from your existing ComfyUI installation, set
+              the path to your ComfyUI folder.
+            </Typography>
+          </div>
+
+          <div className="settings-item">
+            <TextField
+              id="chroma-path-input"
+              label="ChromaDB Path"
+              value={settings.CHROMA_PATH}
+              onChange={(e) => handleChange("CHROMA_PATH", e.target.value)}
+              variant="standard"
+              slotProps={{
+                inputLabel: {
+                  shrink: true
+                }
+              }}
+              sx={{
+                "& .MuiInputBase-root": {
+                  fontSize: "1rem"
+                }
+              }}
+            />
+            <Typography className="description">
+              Set the path to your ChromaDB storage folder. ChromaDB is used to
+              store and retrieve embeddings for semantic search.
+            </Typography>
+          </div>
+
+          <div className="settings-item">
+            <TextField
+              id="asset-folder-input"
+              label="Asset Folder"
+              value={settings.ASSET_FOLDER}
+              onChange={(e) => handleChange("ASSET_FOLDER", e.target.value)}
+              variant="standard"
+              slotProps={{
+                inputLabel: {
+                  shrink: true
+                }
+              }}
+              sx={{
+                "& .MuiInputBase-root": {
+                  fontSize: "1rem"
+                }
+              }}
+            />
+            <Typography className="description">
+              Set the path to your asset storage folder. This folder is used to
+              store images and other assets for your workflows.
             </Typography>
           </div>
 
