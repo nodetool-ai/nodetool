@@ -1,12 +1,6 @@
+import React, { memo } from "react";
+import { Select, MenuItem } from "@mui/material";
 import { isEqual } from "lodash";
-import React, {
-  useState,
-  useCallback,
-  useMemo,
-  useRef,
-  useEffect,
-  memo
-} from "react";
 
 interface Option {
   value: any;
@@ -20,73 +14,29 @@ interface SelectProps {
   placeholder?: string;
 }
 
-const Select: React.FC<SelectProps> = ({
+const SelectComponent: React.FC<SelectProps> = ({
   options,
   value,
   onChange,
   placeholder
 }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const selectRef = useRef<HTMLDivElement>(null);
-
-  const toggleDropdown = useCallback(() => {
-    setIsOpen((prev) => !prev);
-  }, []);
-
-  const handleOptionClick = useCallback(
-    (optionValue: string) => {
-      onChange(optionValue);
-      setIsOpen(false);
-    },
-    [onChange]
-  );
-
-  const handleClickOutside = useCallback((event: MouseEvent) => {
-    if (
-      selectRef.current &&
-      !selectRef.current.contains(event.target as Node)
-    ) {
-      setIsOpen(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [handleClickOutside]);
-
-  const selectedOption = useMemo(
-    () => options.find((option) => option.value === value),
-    [options, value]
-  );
-
   return (
-    <div ref={selectRef} className={`custom-select ${isOpen ? "open" : ""}`}>
-      <div className="select-header" onClick={toggleDropdown}>
-        <span className="select-header-text">
-          {selectedOption
-            ? selectedOption.label
-            : placeholder || "Select an option"}
-        </span>
-        <span className="arrow" />
-      </div>
-      {isOpen && (
-        <ul className="options-list">
-          {options.map((option) => (
-            <li
-              key={option.value}
-              className={`option ${option.value === value ? "selected" : ""}`}
-              onClick={() => handleOptionClick(option.value)}
-            >
-              {option.label}
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
+    <Select
+      value={value}
+      variant="standard"
+      displayEmpty
+      onChange={(event) => onChange(event.target.value as string)}
+    >
+      <MenuItem value="" disabled>
+        {placeholder || "Select an option"}
+      </MenuItem>
+      {options.map((option) => (
+        <MenuItem key={option.value} value={option.value}>
+          {option.label}
+        </MenuItem>
+      ))}
+    </Select>
   );
 };
 
-export default memo(Select, isEqual);
+export default memo(SelectComponent, isEqual);
