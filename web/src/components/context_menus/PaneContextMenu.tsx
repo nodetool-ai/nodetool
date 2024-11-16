@@ -68,8 +68,8 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
     const newNode = createNode(
       metadata,
       reactFlowInstance.screenToFlowPosition({
-        x: event.clientX,
-        y: event.clientY
+        x: menuPosition?.x || event.clientX,
+        y: menuPosition?.y || event.clientY
       })
     );
     newNode.width = 150;
@@ -91,16 +91,14 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
         layout: "default",
         recommended_models: []
       };
-      const newNode = createNode(
-        metadata,
-        reactFlowInstance.screenToFlowPosition({
-          x: event.clientX,
-          y: event.clientY
-        })
-      );
+      const position = reactFlowInstance.screenToFlowPosition({
+        x: menuPosition?.x || event.clientX,
+        y: menuPosition?.y || event.clientY
+      });
+      const newNode = createNode(metadata, position);
       addNode(newNode);
     },
-    [createNode, addNode, reactFlowInstance]
+    [createNode, addNode, reactFlowInstance, menuPosition]
   );
 
   const createLoopNode = useCreateLoopNode();
@@ -110,15 +108,15 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
 
   const addLoopNode = useCallback(
     (event: React.MouseEvent) => {
-      const position = {
-        x: event.clientX,
-        y: event.clientY
-      };
+      const position = reactFlowInstance.screenToFlowPosition({
+        x: menuPosition?.x || event.clientX,
+        y: menuPosition?.y || event.clientY
+      });
       if (loopMetadata) {
         createLoopNode(loopMetadata, position);
       }
     },
-    [createLoopNode, loopMetadata]
+    [createLoopNode, loopMetadata, reactFlowInstance, menuPosition]
   );
 
   if (!menuPosition) {

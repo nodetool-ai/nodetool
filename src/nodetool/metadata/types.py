@@ -1137,3 +1137,28 @@ class ChromaCollection(BaseType):
     embedding_function: ChromaEmbeddingFunction = Field(
         default=ChromaEmbeddingFunction()
     )
+
+
+class SVGRef(AssetRef):
+    """A reference to an SVG asset."""
+
+    type: Literal["svg"] = "svg"
+    data: bytes | None = None
+
+
+class SVGElement(BaseType):
+    """Base type for SVG elements that can be combined."""
+
+    type: Literal["svg_element"] = "svg_element"
+    name: str = ""
+    attributes: dict[str, str] = {}
+    content: str = ""
+    children: list["SVGElement"] = Field(default_factory=list)
+
+    def render_attributes(self) -> str:
+        return " ".join([f'{key}="{value}"' for key, value in self.attributes.items()])
+
+    def __str__(self) -> str:
+        children_content = "".join(str(child) for child in self.children)
+        inner_content = f"{self.content}{children_content}"
+        return f"<{self.name} {self.render_attributes()}>{inner_content}</{self.name}>"

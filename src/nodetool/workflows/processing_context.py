@@ -168,6 +168,12 @@ class ProcessingContext:
         """
         return self.variables.get(key, default)
 
+    def set(self, key: str, value: Any):
+        """
+        Sets the value of a variable in the context.
+        """
+        self.variables[key] = value
+
     async def pop_message_async(self) -> ProcessingMessage:
         """
         Retrieves and removes a message from the message queue.
