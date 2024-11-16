@@ -35,11 +35,12 @@ const styles = (theme: any) =>
       backgroundColor: theme.palette.c_gray1,
       boxSizing: "border-box",
       border: "1px solid transparent",
-      borderRadius: "1em",
+      borderRadius: ".25em",
       transition: "border 0.125s ease-in",
 
       "&.compact": {
-        padding: 0
+        padding: 0,
+        backgroundColor: theme.palette.c_gray0
       },
       "&.compact li": {
         display: "flex",

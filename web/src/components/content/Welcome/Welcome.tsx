@@ -20,15 +20,11 @@ import {
   FormControlLabel,
   Tooltip,
   Checkbox,
-  List,
-  ListItem,
-  ListItemText,
   Button
 } from "@mui/material";
 import Fuse from "fuse.js";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import SearchIcon from "@mui/icons-material/Search";
-import CloseButton from "../../buttons/CloseButton";
 import { overviewContents, Section } from "./OverviewContent";
 import { css } from "@emotion/react";
 import { useSettingsStore } from "../../../stores/SettingsStore";
@@ -119,7 +115,7 @@ const welcomeStyles = (theme: any) =>
       minHeight: "48px"
     },
     ".MuiAccordionSummary-content": {
-      margin: "12px 0"
+      margin: ".5em 0"
     },
     ".MuiTypography-root": {
       fontFamily: theme.fontFamily
@@ -129,10 +125,10 @@ const welcomeStyles = (theme: any) =>
     },
     "ul, ol": {
       fontFamily: theme.fontFamily1,
-      paddingLeft: "0",
-      margin: "1em 0",
+      paddingLeft: ".5em",
+      margin: ".5em 0",
       "& li": {
-        marginBottom: "0.75em"
+        marginBottom: "0.5em"
       }
     },
     ".highlight": {
@@ -170,21 +166,21 @@ const welcomeStyles = (theme: any) =>
       justifyContent: "space-between",
       alignItems: "center"
     },
-    ".header-right": {
-      display: "flex",
-      alignItems: "center",
-      gap: "3em"
-    },
     ".header": {
       position: "sticky",
       top: 0,
       backgroundColor: "#222",
       zIndex: 1,
-      padding: "1.5em 2em",
+      padding: "1.5em 0em 0 0em",
       display: "flex",
       justifyContent: "space-between",
       alignItems: "center",
       marginBottom: "1em"
+    },
+    ".header-right": {
+      display: "flex",
+      alignItems: "center",
+      gap: "1em"
     },
     ".show-on-startup-toggle": {
       marginTop: "-1em"
@@ -203,12 +199,14 @@ const welcomeStyles = (theme: any) =>
       padding: "0",
       borderBottom: `1px solid ${theme.palette.c_gray3}`
     },
-    ".scrollable-content": {
-      flex: 1,
-      overflowY: "auto",
-      "& > *": {
-        marginBottom: "2em"
-      }
+    ".overview button": {
+      marginBottom: "1.5em",
+      fontSize: theme.fontSizeNormal,
+      padding: "1em 2em",
+      transition: "all 0.2s"
+    },
+    ".overview button:hover:not(.Mui-selected)": {
+      color: theme.palette.c_gray6
     },
     ".fake-button": {
       color: "#fff",
@@ -216,7 +214,8 @@ const welcomeStyles = (theme: any) =>
       textTransform: "uppercase",
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeNormal,
-      margin: "0 .5em"
+      padding: "0 .5em",
+      margin: "0 .2em"
     },
     ".setup-tab h4, .setup-tab h5": {
       fontFamily: theme.fontFamily,
@@ -235,38 +234,39 @@ const welcomeStyles = (theme: any) =>
       borderRadius: "8px"
     },
     ul: {
-      paddingLeft: "1em"
+      paddingLeft: "1.5em"
     },
     "ul li, ol li": {
       margin: 0,
       listStyleType: "square"
     },
     ".start-button": {
-      backgroundColor: "transparent",
-      color: theme.palette.c_white,
+      backgroundColor: theme.palette.c_hl1,
+      color: theme.palette.c_black,
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeBig,
       outline: `1px solid ${theme.palette.c_hl1}`,
       flexGrow: 1,
-      margin: "0 2em",
-      padding: "0.5em 4em",
-      borderRadius: ".5em",
+      margin: "0",
+      padding: "0.5em 8em",
+      marginTop: "-.5em",
+      borderRadius: ".2em",
       transition: "all 0.4s",
       "&:hover": {
-        borderRadius: "1em",
-        outline: `1px solid ${theme.palette.c_gray2}`,
-        color: theme.palette.c_black,
-        backgroundColor: theme.palette.c_hl1
+        outline: `2px solid ${theme.palette.c_gray0}`,
+        boxShadow: `inset 0 0 .2em 0 ${theme.palette.c_gray0}`,
+        opacity: 0.9,
+        color: theme.palette.c_black
       }
     },
-    ".MuiTabs-root": {
-      marginBottom: "1.5em",
-      "& .MuiTab-root": {
-        fontSize: theme.fontSizeBig,
-        padding: "1em 2em",
-        transition: "all 0.2s"
-      }
-    },
+    // ".MuiTabs-root": {
+    //   marginBottom: "1.5em",
+    //   "& .MuiTab-root": {
+    //     fontSize: theme.fontSizeBig,
+    //     padding: "1em 2em",
+    //     transition: "all 0.2s"
+    //   }
+    // },
     ".setup-list-item": {
       display: "flex",
       flexDirection: "column",
@@ -476,16 +476,7 @@ const Welcome = ({ handleClose }: { handleClose: () => void }) => {
         <Typography className="panel-title" variant="h2">
           NODETOOL
         </Typography>
-        <div className="header-center ">
-          <Button
-            onClick={() => {
-              handleClose();
-            }}
-            className="start-button"
-          >
-            START
-          </Button>
-        </div>
+
         <div className="header-right">
           <div className="show-on-startup-toggle">
             <Tooltip
@@ -504,7 +495,14 @@ const Welcome = ({ handleClose }: { handleClose: () => void }) => {
               />
             </Tooltip>
           </div>
-          <CloseButton onClick={handleClose} />
+          <Button
+            onClick={() => {
+              handleClose();
+            }}
+            className="start-button"
+          >
+            START
+          </Button>
         </div>
       </div>
 
@@ -514,6 +512,7 @@ const Welcome = ({ handleClose }: { handleClose: () => void }) => {
             value={tabValue}
             onChange={handleTabChange}
             aria-label="overview tabs"
+            className="overview tabs"
           >
             <Tab label="Overview" id="tab-0" aria-controls="tabpanel-0" />
             <Tab label="Whats New" id="tab-1" aria-controls="tabpanel-1" />
@@ -623,71 +622,52 @@ const Welcome = ({ handleClose }: { handleClose: () => void }) => {
                   <Typography variant="body1" gutterBottom>
                     You can use both local and remote AI models in Nodetool:
                   </Typography>
-                  <List>
-                    <ListItem className="setup-list-item">
-                      <ListItemText
-                        primary={
-                          <Typography
-                            variant="subtitle1"
-                            className="setup-list-title"
-                          >
-                            1. Use Local Models via HuggingFace
-                          </Typography>
-                        }
-                        secondary={
-                          <Box className="setup-list-content">
-                            <ul>
-                              <li>
-                                <Typography variant="body2">
-                                  Download and run models locally for privacy
-                                  and offline use.
-                                </Typography>
-                              </li>
-                              <li>
-                                <Typography variant="body2">
-                                  Look for the{" "}
-                                  <span className="fake-button">
-                                    Recommended Models
-                                  </span>{" "}
-                                  button on compatible nodes.
-                                </Typography>
-                              </li>
-                              <li>
-                                <Typography variant="body2">
-                                  Use the{" "}
-                                  <span className="fake-button">Models</span>{" "}
-                                  button in the top panel to manage all models.
-                                </Typography>
-                              </li>
-                            </ul>
-                          </Box>
-                        }
-                      />
-                    </ListItem>
-                    <ListItem className="setup-list-item">
-                      <ListItemText
-                        primary={
-                          <Typography
-                            variant="subtitle1"
-                            className="setup-list-title"
-                          >
-                            2. Use Remote Models
-                          </Typography>
-                        }
-                        secondary={
-                          <Box className="setup-list-content">
-                            <Typography variant="body2">
-                              • Set up API keys to access cloud-based AI models.
-                            </Typography>
-                            <Typography variant="body2">
-                              • Ideal for more powerful models or when local
-                              resources are limited.
-                            </Typography>
-                          </Box>
-                        }
-                      />
-                    </ListItem>
-                  </List>
+                  <Typography variant="subtitle1" className="setup-list-title">
+                    1. Use Local Models via HuggingFace
+                  </Typography>
+                  <Box className="setup-list-content">
+                    <ul>
+                      <li>
+                        <Typography variant="body2">
+                          Download and run models locally for privacy and
+                          offline use.
+                        </Typography>
+                      </li>
+                      <li>
+                        <Typography variant="body2">
+                          Look for the{" "}
+                          <span className="fake-button">
+                            Recommended Models
+                          </span>{" "}
+                          button on compatible nodes.
+                        </Typography>
+                      </li>
+                      <li>
+                        <Typography variant="body2">
+                          Use the <span className="fake-button">Models</span>{" "}
+                          button in the top panel to manage all models.
+                        </Typography>
+                      </li>
+                    </ul>
+                  </Box>
+                  <Typography variant="subtitle1" className="setup-list-title">
+                    2. Use Remote Models
+                  </Typography>
+                  <Box className="setup-list-content">
+                    <ul>
+                      <li>
+                        <Typography variant="body2">
+                          Set up API keys to access cloud-based AI models.
+                        </Typography>
+                      </li>
+                      <li>
+                        <Typography variant="body2">
+                          Ideal for more powerful models or when local resources
+                          are limited.
+                        </Typography>
+                      </li>
+                    </ul>
+                  </Box>
                   <Typography variant="body1" sx={{ mt: 2 }}>
                     Choose the option that best suits your needs and project
                     requirements.
@@ -698,6 +678,7 @@ const Welcome = ({ handleClose }: { handleClose: () => void }) => {
                   </Typography>
                 </Box>
 
+                {/* RECOMMENDED MODELS */}
                 <Box
                   sx={{
                     flex: 1,
