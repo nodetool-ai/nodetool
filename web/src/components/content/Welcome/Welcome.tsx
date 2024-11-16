@@ -274,10 +274,11 @@ const welcomeStyles = (theme: any) =>
     },
     ".setup-list-title": {
       fontWeight: "bold",
+      paddingTop: ".5em",
       color: theme.palette.c_hl1
     },
     ".setup-list-content": {
-      marginTop: "1em"
+      marginTop: ".25em"
     },
     ".setup-list-secondary": {
       "& ul": {
