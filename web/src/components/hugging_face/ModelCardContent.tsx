@@ -51,7 +51,8 @@ const ModelCardContent = React.memo<ModelCardContentProps>(
             variant="h3"
             style={{
               color: ThemeNodetool.palette.c_hl1,
-              fontSize: "0.85em"
+              fontSize: "0.85em",
+              overflowWrap: "break-word"
             }}
           >
             {model.path}
