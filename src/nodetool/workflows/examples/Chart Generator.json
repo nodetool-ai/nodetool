@@ -1,0 +1,209 @@
+{
+  "id": "5372e9fba42211efb8d9000063df9847",
+  "access": "public",
+  "created_at": "2024-11-16T23:34:13.290893",
+  "updated_at": "2024-11-16T23:34:13.290913",
+  "name": "Chart Generator",
+  "description": "",
+  "tags": null,
+  "thumbnail": "",
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "2",
+        "parent_id": null,
+        "type": "nodetool.svg.SVGDocument",
+        "data": {
+          "width": 800,
+          "height": 600,
+          "viewBox": "0 0 800 600"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 628,
+            "y": 105
+          },
+          "zIndex": 0,
+          "width": 185,
+          "selectable": true
+        }
+      },
+      {
+        "id": "3",
+        "parent_id": null,
+        "type": "nodetool.svg.SVGToImage",
+        "data": {
+          "width": 800,
+          "height": 600,
+          "scale": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 843,
+            "y": 108
+          },
+          "zIndex": 0,
+          "width": 121,
+          "selectable": true
+        }
+      },
+      {
+        "id": "4",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "image_output_2024-11-16"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 994,
+            "y": 50
+          },
+          "zIndex": 0,
+          "width": 327,
+          "height": 293,
+          "selectable": true
+        }
+      },
+      {
+        "id": "7",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "dataframe_output_2024-11-16"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 360,
+            "y": 368
+          },
+          "zIndex": 0,
+          "width": 238,
+          "height": 226,
+          "selectable": true
+        }
+      },
+      {
+        "id": "8",
+        "parent_id": null,
+        "type": "openai.agents.ChartGenerator",
+        "data": {
+          "prompt": "make a dark line chart showing gdp over year",
+          "max_tokens": 1000,
+          "temperature": 0.7,
+          "columns": {
+            "type": "record_type",
+            "columns": []
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 385.5,
+            "y": 75
+          },
+          "zIndex": 0,
+          "width": 187,
+          "selectable": true
+        }
+      },
+      {
+        "id": "9",
+        "parent_id": null,
+        "type": "openai.agents.DataGenerator",
+        "data": {
+          "prompt": "US GDP since 1990",
+          "input_text": "",
+          "image": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null
+          },
+          "max_tokens": 1000,
+          "temperature": 1,
+          "columns": {
+            "type": "record_type",
+            "columns": [
+              {
+                "name": "gdp",
+                "data_type": "int"
+              },
+              {
+                "name": "year",
+                "data_type": "int"
+              },
+              {
+                "name": "country",
+                "data_type": "string"
+              }
+            ]
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 50,
+            "y": 83
+          },
+          "zIndex": 0,
+          "width": 250,
+          "selectable": true
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "68",
+        "source": "3",
+        "sourceHandle": "output",
+        "target": "4",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "b7ca81fb-46e7-4fe0-9d7b-5b4f1c17107a",
+        "source": "9",
+        "sourceHandle": "output",
+        "target": "7",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "dataframe"
+        }
+      },
+      {
+        "id": "c8fe45e2-3f3e-4d3e-9115-dd04cf51ade0",
+        "source": "9",
+        "sourceHandle": "output",
+        "target": "8",
+        "targetHandle": "data",
+        "ui_properties": {
+          "className": "dataframe"
+        }
+      },
+      {
+        "id": "b60dbfcf-c36a-4a57-8e3e-738f6d925d12",
+        "source": "8",
+        "sourceHandle": "output",
+        "target": "2",
+        "targetHandle": "content",
+        "ui_properties": {
+          "className": "svg_element"
+        }
+      },
+      {
+        "id": "a30dac49-6998-4bc1-b5aa-5922ce2da5fe",
+        "source": "2",
+        "sourceHandle": "output",
+        "target": "3",
+        "targetHandle": "svg",
+        "ui_properties": {
+          "className": "svg"
+        }
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null
+}

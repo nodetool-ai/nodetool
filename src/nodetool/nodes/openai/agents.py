@@ -440,11 +440,9 @@ class ChainOfThought(BaseNode):
         }
 
     async def process(self, context: ProcessingContext) -> dict:
-        thread_id = uuid.uuid4().hex
         input_messages = [
             Message(
                 role="system",
-                thread_id=thread_id,
                 content="""
                 You are an expert at breaking down complex problems into clear steps.
                 For any given problem:
@@ -459,7 +457,6 @@ class ChainOfThought(BaseNode):
             ),
             Message(
                 role="user",
-                thread_id=thread_id,
                 content=self.prompt,
             ),
         ]
@@ -522,10 +519,6 @@ class ProcessChainOfThought(BaseNode):
     - Iterative refinement of solutions
     """
 
-    thread_id: str = Field(
-        default="",
-        description="Unique identifier for this chain of thought sequence",
-    )
     current_step: ThoughtStep = Field(
         default=ThoughtStep(),
         description="The current step or question to analyze",
@@ -542,22 +535,17 @@ class ProcessChainOfThought(BaseNode):
     )
 
     async def process(self, context: ProcessingContext) -> dict:
-        if not self.thread_id:
-            raise ValueError("Thread ID is required")
-
         # Get previous messages from context
-        previous_messages = context.get(self.thread_id, [])
+        previous_messages = context.get(self._id, [])
 
         user_message = Message(
             role="user",
-            thread_id=self.thread_id,
             content=self.current_step.instructions,
         )
         # Build message history
         messages = [
             Message(
                 role="system",
-                thread_id=self.thread_id,
                 content="""
                 You are an expert at iterative problem solving through chain-of-thought reasoning.
                 You will be given a series of steps or questions to analyze.
@@ -609,7 +597,7 @@ class ProcessChainOfThought(BaseNode):
 
         # Update message history in context
         context.set(
-            self.thread_id,
+            self._id,
             [
                 *previous_messages,
                 user_message,
@@ -620,7 +608,6 @@ class ProcessChainOfThought(BaseNode):
         return {
             "reasoning": result["reasoning"],
             "result": result["result"],
-            "history": context.get(self.thread_id),
         }
 
     @classmethod
@@ -628,7 +615,6 @@ class ProcessChainOfThought(BaseNode):
         return {
             "reasoning": str,
             "result": str,
-            "history": list[Message],
         }
 
 
