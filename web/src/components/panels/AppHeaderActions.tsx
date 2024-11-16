@@ -37,7 +37,7 @@ const actionsStyles = (
       position: "fixed",
       zIndex: 1000,
       height: "40px",
-      top: "50px",
+      top: "48px",
       left: "50%",
       transform: "translateX(-50%)",
       display: "flex",
@@ -48,7 +48,7 @@ const actionsStyles = (
       backgroundColor: theme.palette.c_gray1,
       borderRadius: "0 0 .3em 0.3em",
       margin: "-.25em 0 0",
-      padding: "0 .5em .2em .5em"
+      padding: "0.5em .5em .2em .5em"
     },
     ".action-button": {
       flexShrink: 0,
