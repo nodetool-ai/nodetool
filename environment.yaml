@@ -1,17 +1,16 @@
 name: nodetool-environment
 channels:
-  - conda-forge
   - pytorch
   - nvidia
+  - conda-forge
   - defaults
 dependencies:
   - conda-forge::python=3.11.10
   - pytorch::pytorch
-  - pytorch::pytorch-cuda=12.4
+  - pytorch::pytorch-cuda=12.1
   - pytorch::torchaudio
   - pytorch::torchvision
   - pytorch::torchvision=
-  - nvidia::cuda=12.4
   - conda-forge::accelerate
   - conda-forge::addict
   - conda-forge::aiofiles
