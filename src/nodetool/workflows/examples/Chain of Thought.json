@@ -1,0 +1,254 @@
+{
+  "id": "41ac05d2a27411ef969d00004f90bb38",
+  "access": "public",
+  "created_at": "2024-11-16T23:33:16.847681",
+  "updated_at": "2024-11-16T23:33:16.847700",
+  "name": "Chain of Thought",
+  "description": "",
+  "tags": null,
+  "thumbnail": "",
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "2",
+        "parent_id": null,
+        "type": "nodetool.group.Loop",
+        "data": {},
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 295,
+            "y": 470
+          },
+          "zIndex": -10,
+          "width": 697,
+          "height": 385,
+          "selectable": false
+        }
+      },
+      {
+        "id": "1",
+        "parent_id": null,
+        "type": "openai.agents.ChainOfThought",
+        "data": {
+          "prompt": "write a story as a series of image prompts",
+          "max_tokens": 2000,
+          "temperature": 0
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 50,
+            "y": 231
+          },
+          "zIndex": 0,
+          "width": 185,
+          "selectable": true
+        }
+      },
+      {
+        "id": "3",
+        "parent_id": "2",
+        "type": "nodetool.input.GroupInput",
+        "data": {},
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 50,
+            "y": 164
+          },
+          "zIndex": 0,
+          "width": 117,
+          "selectable": true
+        }
+      },
+      {
+        "id": "4",
+        "parent_id": "2",
+        "type": "nodetool.output.GroupOutput",
+        "data": {},
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 457,
+            "y": 295
+          },
+          "zIndex": 0,
+          "width": 127,
+          "selectable": true
+        }
+      },
+      {
+        "id": "5",
+        "parent_id": "2",
+        "type": "openai.agents.ProcessChainOfThought",
+        "data": {
+          "thread_id": "123",
+          "max_tokens": 2000,
+          "temperature": 0
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 197,
+            "y": 78
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true
+        }
+      },
+      {
+        "id": "6",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "any_output_2024-11-15"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1022,
+            "y": 546
+          },
+          "zIndex": 0,
+          "width": 607,
+          "height": 234,
+          "selectable": true
+        }
+      },
+      {
+        "id": "7",
+        "parent_id": "2",
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "str_reasoning_2024-11-15"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 457,
+            "y": 50
+          },
+          "zIndex": 0,
+          "width": 217,
+          "height": 230,
+          "selectable": true
+        }
+      },
+      {
+        "id": "8",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "str_analysis_2024-11-16"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 295,
+            "y": 260
+          },
+          "zIndex": 0,
+          "width": 733,
+          "height": 150,
+          "selectable": true
+        }
+      },
+      {
+        "id": "9",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "list_steps_2024-11-16"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 295,
+            "y": 50
+          },
+          "zIndex": 0,
+          "width": 727,
+          "height": 201,
+          "selectable": true
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "60286bf4-193b-40a9-99fc-821e17bb1147",
+        "source": "3",
+        "sourceHandle": "output",
+        "target": "5",
+        "targetHandle": "current_step",
+        "ui_properties": {
+          "className": "any"
+        }
+      },
+      {
+        "id": "60288",
+        "source": "5",
+        "sourceHandle": "reasoning",
+        "target": "7",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "8304b2d4-fa38-4c7b-a6d7-1b17c43d80f7",
+        "source": "5",
+        "sourceHandle": "result",
+        "target": "4",
+        "targetHandle": "input",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "60289",
+        "source": "1",
+        "sourceHandle": "analysis",
+        "target": "8",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "8435c91a-9904-4dda-a28b-c5a97e4656c2",
+        "source": "1",
+        "sourceHandle": "steps",
+        "target": "2",
+        "targetHandle": "input",
+        "ui_properties": {
+          "className": "list"
+        }
+      },
+      {
+        "id": "60290",
+        "source": "1",
+        "sourceHandle": "steps",
+        "target": "9",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "list"
+        }
+      },
+      {
+        "id": "60287",
+        "source": "2",
+        "sourceHandle": "output",
+        "target": "6",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "any"
+        }
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null
+}

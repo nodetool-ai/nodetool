@@ -1,16 +1,9 @@
 name: nodetool-environment
 channels:
-  - pytorch
   - nvidia
   - conda-forge
   - defaults
 dependencies:
-  - conda-forge::python=3.11.10
-  - pytorch::pytorch
-  - pytorch::pytorch-cuda=12.1
-  - pytorch::torchaudio
-  - pytorch::torchvision
-  - pytorch::torchvision=
   - conda-forge::accelerate
   - conda-forge::addict
   - conda-forge::aiofiles
@@ -22,7 +15,7 @@ dependencies:
   - conda-forge::black
   - conda-forge::boto3
   - conda-forge::cairosvg
-  - conda-forge::chromadb >=0.5.18
+  # - conda-forge::chromadb >=0.5.18
   - conda-forge::click
   - conda-forge::cryptography
   - conda-forge::datasets
@@ -69,9 +62,12 @@ dependencies:
   - conda-forge::pymemcache
   - conda-forge::pytesseract
   - conda-forge::pytest
+  - conda-forge::python=3.10
   - conda-forge::python-dateutil
   - conda-forge::python-dotenv
   - conda-forge::python-multipart
+  - conda-forge::pytorch==2.4.1
+  - conda-forge::pytorch-gpu=2.4.1
   - conda-forge::pyyaml
   - conda-forge::replicate
   - conda-forge::requests
@@ -88,13 +84,16 @@ dependencies:
   - conda-forge::sentencepiece
   - conda-forge::setuptools
   - conda-forge::six
-  - conda-forge::sympy ==1.13.1
+  - conda-forge::sympy=1.13.1
   - conda-forge::svglib
   - conda-forge::tensorboard
   - conda-forge::tiktoken
   - conda-forge::tqdm
   - conda-forge::transformers
   - conda-forge::trimesh
+  - conda-forge::torchaudio
+  - conda-forge::torchvision
+  - conda-forge::torchvision=
   - conda-forge::uvicorn
   - conda-forge::websocket-client
   - conda-forge::websockets
@@ -104,6 +103,7 @@ dependencies:
   - pip:
       - bitsandbytes
       - huggingface-hub
+      - chromadb
       - lumaai
       - ollama
       - pedalboard
