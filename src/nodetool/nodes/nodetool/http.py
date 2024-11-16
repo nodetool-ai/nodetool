@@ -1,4 +1,7 @@
+import asyncio
+import re
 from urllib.parse import urljoin
+import aiohttp
 from pydantic import Field
 from nodetool.metadata.types import (
     AudioRef,
@@ -174,6 +177,7 @@ class FetchPage(BaseNode):
         options = Options()
         options.add_argument("--headless")
         driver = webdriver.Chrome(options=options)
+        html = ""
 
         try:
             driver.get(self.url)
@@ -270,12 +274,12 @@ class ExtractMetadata(BaseNode):
         return {
             "title": soup.title.string if soup.title else None,
             "description": (
-                soup.find("meta", attrs={"name": "description"})["content"]
+                soup.find("meta", attrs={"name": "description"})["content"]  # type: ignore
                 if soup.find("meta", attrs={"name": "description"})
                 else None
             ),
             "keywords": (
-                soup.find("meta", attrs={"name": "keywords"})["content"]
+                soup.find("meta", attrs={"name": "keywords"})["content"]  # type: ignore
                 if soup.find("meta", attrs={"name": "keywords"})
                 else None
             ),
@@ -387,3 +391,134 @@ class ExtractAudio(BaseNode):
                 audio_elements.append(AudioRef(uri=full_url))
 
         return audio_elements
+
+
+def extract_content(html_content: str) -> str:
+    soup = BeautifulSoup(html_content, "html.parser")
+
+    def clean_text(text: str) -> str:
+        # Remove extra whitespace and newlines
+        text = re.sub(r"\s+", " ", text).strip()
+        return text
+
+    # Remove script and style elements
+    for script in soup(["script", "style"]):
+        script.decompose()
+
+    # Try to find the main content
+    main_content = None
+    potential_content_tags = [
+        "article",
+        "main",
+        'div[id*="content"]',
+        'div[class*="content"]',
+    ]
+
+    for tag in potential_content_tags:
+        content = soup.select_one(tag)
+        if content:
+            main_content = content
+            break
+
+    # If we couldn't find a clear main content, use the body
+    if not main_content:
+        main_content = soup.body
+
+    # Extract the text from the main content
+    if main_content:
+        # Remove common non-content elements
+        for elem in main_content(["nav", "sidebar", "footer", "header"]):
+            elem.decompose()
+
+        return clean_text(main_content.get_text())
+    else:
+        return "No main content found"
+
+
+class WebsiteContentExtractor(BaseNode):
+    """
+    Extract main content from a website, removing navigation, ads, and other non-essential elements.
+    web scraping, content extraction, text analysis
+
+    Use cases:
+    - Clean web content for further analysis
+    - Extract article text from news websites
+    - Prepare web content for summarization
+    """
+
+    html_content: str = Field(
+        default="",
+        description="The raw HTML content of the website.",
+    )
+
+    async def process(self, context: ProcessingContext) -> str:
+        return extract_content(self.html_content)
+
+
+class ImageDownloader(BaseNode):
+    """
+    Download images from URLs in a dataframe and return a list of ImageRefs.
+    image download, web scraping, data processing
+
+    Use cases:
+    - Prepare image datasets for machine learning tasks
+    - Archive images from web pages
+    - Process and analyze images extracted from websites
+    """
+
+    images: DataframeRef = Field(
+        default=DataframeRef(),
+        description="Dataframe containing image URLs and alt text.",
+    )
+    base_url: str = Field(
+        default="",
+        description="Base URL to prepend to relative image URLs.",
+    )
+    max_concurrent_downloads: int = Field(
+        default=10,
+        description="Maximum number of concurrent image downloads.",
+    )
+
+    async def download_image(
+        self,
+        session: aiohttp.ClientSession,
+        url: str,
+        context: ProcessingContext,
+    ) -> ImageRef | None:
+        try:
+            async with session.get(url) as response:
+                if response.status == 200:
+                    content = await response.read()
+                    image_ref = await context.image_from_bytes(content)
+                    return image_ref
+                else:
+                    print(
+                        f"Failed to download image from {url}. Status code: {response.status}"
+                    )
+                    return None
+        except Exception as e:
+            print(f"Error downloading image from {url}: {str(e)}")
+            return None
+
+    async def process(self, context: ProcessingContext) -> list[ImageRef]:
+        images = []
+
+        async with aiohttp.ClientSession() as session:
+            tasks = []
+            assert self.images.data, "No data in the images dataframe"
+            for row in self.images.data:
+                src, alt, type = row
+                url = urljoin(self.base_url, src)
+                task = self.download_image(session, url, context)
+                tasks.append(task)
+
+                if len(tasks) >= self.max_concurrent_downloads:
+                    completed = await asyncio.gather(*tasks)
+                    images.extend([img for img in completed if img is not None])
+                    tasks = []
+
+            if tasks:
+                completed = await asyncio.gather(*tasks)
+                images.extend([img for img in completed if img is not None])
+
+        return images
