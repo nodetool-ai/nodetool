@@ -41,6 +41,7 @@ const styles = (theme: any) =>
     ".column": {
       display: "flex",
       flexDirection: "row",
+      alignItems: "center",
       justifyContent: "space-between",
       gap: "0.5em",
       padding: "0",
@@ -110,6 +111,19 @@ const styles = (theme: any) =>
       "& svg": {
         width: ".7em",
         height: ".7em"
+      }
+    },
+    ".delete-button": {
+      padding: ".1em",
+      fontSize: theme.fontSizeNormal,
+      backgroundColor: "transparent",
+      color: theme.palette.c_gray4,
+      "& svg": {
+        fontSize: theme.fontSizeBig
+      },
+      "&:hover": {
+        color: theme.palette.c_delete,
+        backgroundColor: "transparent"
       }
     }
   });
@@ -191,12 +205,7 @@ const ColumnsManager: React.FC<ColumnsManagerProps> = ({
     onChange(newColumns, allData);
   };
 
-  const removeColumn = (index: number) => {
-    if (index < 0 || index >= localColumns.length) {
-      devWarn("Attempted to remove a column with an invalid index.");
-      return;
-    }
-
+  const handleDelete = (index: number) => {
     const newColumns = localColumns.filter((_, i) => i !== index);
     const newData = allData.map((row) => {
       const newRow = { ...row };
@@ -226,7 +235,7 @@ const ColumnsManager: React.FC<ColumnsManagerProps> = ({
           handleNameChange={handleNameChange}
           handleDataTypeChange={handleDataTypeChange}
           handleDescriptionChange={handleDescriptionChange}
-          removeColumn={removeColumn}
+          onDelete={() => handleDelete(index)}
           validDataTypes={validDataTypes}
         />
       ))}

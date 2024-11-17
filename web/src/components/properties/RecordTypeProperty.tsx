@@ -21,11 +21,14 @@ const styles = (theme: any) =>
     },
     ".button-group": {
       display: "flex",
+      gap: "0.5em",
       marginBottom: "0.5em"
     },
     button: {
-      fontSize: theme.fontSizeSmall,
+      fontSize: theme.fontSizeSmaller,
       color: theme.palette.c_gray6,
+      backgroundColor: theme.palette.c_gray2,
+      border: 0,
       display: "flex",
       alignItems: "center",
       margin: 0,
@@ -37,19 +40,11 @@ const styles = (theme: any) =>
       color: theme.palette.c_white
     },
     "button svg": {
-      fontSize: theme.fontSizeSmall
+      fontSize: theme.fontSizeBig
     }
   });
 
-const RecordTypeProperty = ({
-  value,
-  onChange,
-  nodeType,
-  property,
-  propertyIndex
-}: PropertyProps) => {
-  const id = `${property.name}-${propertyIndex}`;
-
+const RecordTypeProperty = ({ value, onChange }: PropertyProps) => {
   const onChangeColumns = useCallback(
     (columns: ColumnDef[]) => {
       onChange({

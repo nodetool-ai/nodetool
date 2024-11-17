@@ -30,6 +30,8 @@ const styles = (theme: any) =>
         fontSize: theme.fontSizeSmall,
         fontFamily: theme.fontFamily2,
         wordSpacing: "-0.1em",
+        backgroundColor: theme.palette.c_gray2,
+        border: 0,
         color: theme.palette.c_gray6 + " !important",
         display: "flex",
         alignItems: "center",

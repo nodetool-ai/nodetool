@@ -1,4 +1,4 @@
-import { Select, MenuItem, TextField, Button } from "@mui/material";
+import { Select, MenuItem, TextField, IconButton } from "@mui/material";
 import { ColumnDef } from "../../stores/ApiTypes";
 import CloseIcon from "@mui/icons-material/Close";
 import { isEqual } from "lodash";
@@ -8,10 +8,10 @@ interface ColumnProps {
   index: number;
   field: ColumnDef;
   inputRef: (el: HTMLInputElement | null) => void;
-  handleNameChange: (index: number, newName: string) => void;
-  handleDataTypeChange: (index: number, newType: string) => void;
-  handleDescriptionChange: (index: number, newDescription: string) => void;
-  removeColumn: (index: number) => void;
+  handleNameChange: (index: number, name: string) => void;
+  handleDataTypeChange: (index: number, type: string) => void;
+  handleDescriptionChange: (index: number, description: string) => void;
+  onDelete: () => void;
   validDataTypes: string[];
 }
 
@@ -22,7 +22,7 @@ const Column: React.FC<ColumnProps> = ({
   handleNameChange,
   handleDataTypeChange,
   handleDescriptionChange,
-  removeColumn,
+  onDelete,
   validDataTypes
 }: ColumnProps) => (
   <div className="column" key={index}>
@@ -69,11 +69,10 @@ const Column: React.FC<ColumnProps> = ({
           </MenuItem>
         ))}
       </Select>
-
-      <Button className="delete" onClick={() => removeColumn(index)}>
-        <CloseIcon />
-      </Button>
     </div>
+    <IconButton className="delete-button" onClick={onDelete} size="small">
+      <CloseIcon fontSize="small" />
+    </IconButton>
   </div>
 );
 
