@@ -1,5 +1,12 @@
 /** @jsxImportSource @emotion/react */
-import React, { useMemo, useCallback, useRef, useEffect, memo } from "react";
+import React, {
+  useMemo,
+  useCallback,
+  useRef,
+  useEffect,
+  memo,
+  createElement
+} from "react";
 import { css } from "@emotion/react";
 
 import { Asset, DataframeRef, Message, Tensor } from "../../stores/ApiTypes";
@@ -20,7 +27,7 @@ import TensorView from "./TensorView"; // We'll create this component
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { TOOLTIP_ENTER_DELAY } from "./BaseNode";
 import { isEqual } from "lodash";
-
+import { SVGElement } from "../../stores/ApiTypes";
 export type OutputRendererProps = {
   value: any;
 };
@@ -70,6 +77,66 @@ function generateAssetGridContent(
 
   return <AssetGridContent assets={assets} onDoubleClick={onDoubleClick} />;
 }
+
+const convertStyleStringToObject = (
+  styleString: string
+): React.CSSProperties => {
+  if (!styleString) return {};
+  return styleString
+    .split(";")
+    .filter((style) => style.trim())
+    .reduce((acc, style) => {
+      const [property, value] = style.split(":").map((str) => str.trim());
+      // Convert kebab-case to camelCase
+      const camelProperty = property.replace(/-([a-z])/g, (g) =>
+        g[1].toUpperCase()
+      );
+      return { ...acc, [camelProperty]: value };
+    }, {});
+};
+
+const renderSvgElement = (value: SVGElement): React.ReactElement => {
+  const attributes = value.attributes || {};
+
+  // Convert style string to object if present
+  const style = attributes.style
+    ? convertStyleStringToObject(attributes.style)
+    : undefined;
+
+  // Create props object from attributes
+  const svgProps = {
+    ...value.attributes,
+    // Ensure React-compatible attribute names
+    className: attributes.class,
+    xmlSpace: attributes["xml:space"],
+    xmlLang: attributes["xml:lang"],
+    style // Override style with converted object
+  };
+
+  // Recursively render children
+  const children = [
+    // Add text content if present
+    value.content && value.content,
+    // Render child SVG elements
+    ...(value.children || []).map(renderSvgElement)
+  ].filter(Boolean);
+
+  return createElement(value.name || "svg", svgProps, ...children);
+};
+
+const renderSVGDocument = (value: SVGElement[]): React.ReactElement => {
+  // Extract SVG document attributes
+  const docAttributes = {
+    xmlns: "http://www.w3.org/2000/svg",
+    version: "1.1",
+    width: "100%",
+    height: "100%"
+  };
+  const children = value.map(renderSvgElement);
+
+  // Render the root SVG element and its children
+  return createElement("svg", docAttributes, ...children);
+};
 
 const styles = (theme: any) =>
   css({
@@ -265,6 +332,9 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
             );
           }
           if (typeof value[0] === "object") {
+            if (value[0].type === "svg_element") {
+              return renderSVGDocument(value);
+            }
             if (value[0].type === "thread_message") {
               return <ThreadMessageList messages={value as Message[]} />;
             }
@@ -314,6 +384,8 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
             {value["label"]}: {value["score"]}
           </div>
         );
+      case "svg_element":
+        return renderSVGDocument([value]);
       default:
         return (
           <div className="output value nodrag nowheel" css={styles}>

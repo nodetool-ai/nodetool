@@ -221,6 +221,7 @@ export default function NodeMenu({ focusSearchInput = false }: NodeMenuProps) {
               searchTerm={searchTerm}
               onSearchChange={setSearchTerm}
               onPressEscape={closeNodeMenu}
+              searchResults={searchResults}
             />
             {/* <Tooltip
               title="Clear namespace selection"

@@ -15,10 +15,12 @@ interface NodeItemProps {
   onInfoClick: () => void;
   onDragStart: (event: React.DragEvent<HTMLDivElement>) => void;
   onClick: () => void;
+  isFocused: boolean;
 }
 const NodeItem: React.FC<NodeItemProps> = ({
   node,
   isHovered,
+  isFocused,
   onMouseEnter,
   onMouseLeave,
   onDragStart,
@@ -58,7 +60,9 @@ const NodeItem: React.FC<NodeItemProps> = ({
 
   return (
     <div
-      className={`node ${isHovered ? "hovered" : ""}`}
+      className={`node ${isHovered ? "hovered" : ""} ${
+        isFocused ? "focused" : ""
+      }`}
       draggable
       onDragStart={onDragStart}
     >

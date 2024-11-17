@@ -5,6 +5,9 @@ import React, { useCallback, useRef, useState } from "react";
 import BackspaceIcon from "@mui/icons-material/Backspace";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 import { useDebouncedCallback } from "use-debounce";
+import useNodeMenuStore from "../../stores/NodeMenuStore";
+import { NodeMetadata } from "../../stores/ApiTypes";
+import { useCreateNode } from "../../hooks/useCreateNode";
 
 const styles = (theme: any) =>
   css({
@@ -80,6 +83,7 @@ interface SearchInputProps {
   debounceTime?: number;
   maxWidth?: string;
   searchTerm?: string;
+  searchResults?: NodeMetadata[];
 }
 
 const SearchInput: React.FC<SearchInputProps> = ({
@@ -90,7 +94,8 @@ const SearchInput: React.FC<SearchInputProps> = ({
   placeholder = "Search...",
   maxWidth = "unset",
   debounceTime = 30,
-  searchTerm: externalSearchTerm = ""
+  searchTerm: externalSearchTerm = "",
+  searchResults = []
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const [localSearchTerm, setLocalSearchTerm] = useState(externalSearchTerm);
@@ -108,15 +113,23 @@ const SearchInput: React.FC<SearchInputProps> = ({
     onSearchChange("");
   }, [debouncedSetSearchTerm, onSearchChange]);
 
+  const { focusedNodeIndex, setFocusedNodeIndex, closeNodeMenu } =
+    useNodeMenuStore((state) => ({
+      focusedNodeIndex: state.focusedNodeIndex,
+      setFocusedNodeIndex: state.setFocusedNodeIndex,
+      closeNodeMenu: state.closeNodeMenu
+    }));
+
   const handleInputChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
       const newValue = event.target.value;
       setLocalSearchTerm(newValue);
       debouncedSetSearchTerm(newValue);
+      setFocusedNodeIndex(-1);
     },
-    [debouncedSetSearchTerm]
+    [debouncedSetSearchTerm, setFocusedNodeIndex]
   );
-
+  const handleCreateNode = useCreateNode();
   const clearSearch = useCallback(() => {
     resetSearch();
     inputRef.current?.focus();
@@ -155,6 +168,37 @@ const SearchInput: React.FC<SearchInputProps> = ({
           }
         }
       }
+
+      if (searchResults.length > 0) {
+        switch (event.key) {
+          case "ArrowDown":
+            event.preventDefault();
+            setFocusedNodeIndex(
+              focusedNodeIndex < searchResults.length - 1
+                ? focusedNodeIndex + 1
+                : focusedNodeIndex
+            );
+            break;
+
+          case "ArrowUp":
+            event.preventDefault();
+            setFocusedNodeIndex(
+              focusedNodeIndex > 0 ? focusedNodeIndex - 1 : focusedNodeIndex
+            );
+            break;
+
+          case "Enter":
+            event.preventDefault();
+            if (
+              focusedNodeIndex >= 0 &&
+              focusedNodeIndex < (searchResults?.length ?? 0)
+            ) {
+              handleCreateNode?.(searchResults[focusedNodeIndex]);
+              closeNodeMenu();
+            }
+            break;
+        }
+      }
     };
 
     window.addEventListener("keydown", handleKeyDown);
@@ -164,7 +208,12 @@ const SearchInput: React.FC<SearchInputProps> = ({
     isControlOrMetaPressed,
     onPressEscape,
     debouncedSetSearchTerm,
-    clearSearch
+    clearSearch,
+    setFocusedNodeIndex,
+    focusedNodeIndex,
+    closeNodeMenu,
+    searchResults,
+    handleCreateNode
   ]);
 
   return (

@@ -32,23 +32,20 @@ const customSectionStyle = css`
   padding: 16px;
 `;
 
-const emptyColorButtonStyle = css`
-  margin-bottom: 16px;
-  width: 100%;
-`;
-
 interface ColorPickerProps {
   color: string | null;
   onColorChange: (newColor: string | null) => void;
   label?: string;
   showCustom?: boolean;
+  size?: "small" | "medium";
 }
 
 const ColorPicker: React.FC<ColorPickerProps> = ({
   color,
   onColorChange,
   label,
-  showCustom = true
+  showCustom = true,
+  size = "medium"
 }) => {
   const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -104,9 +101,13 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
 
   return (
     <>
-      <Button className="color-picker-button action" onClick={handleClick}>
+      <Button
+        className="color-picker-button action"
+        onClick={handleClick}
+        size={size}
+      >
         {label}
-        <ColorizeIcon />
+        <ColorizeIcon fontSize={size} />
       </Button>
       <Popover
         id={id}

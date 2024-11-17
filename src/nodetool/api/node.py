@@ -11,6 +11,7 @@ from nodetool.metadata.types import (
     AssetRef,
     HuggingFaceModel,
     NodeRef,
+    SVGElement,
     WorkflowRef,
     AudioRef,
     DataframeRef,
@@ -135,6 +136,7 @@ UnionType = (
     | HFAudioClassification
     | HFZeroShotAudioClassification
     | HFVoiceActivityDetection
+    | SVGElement
     | dict
 )
 

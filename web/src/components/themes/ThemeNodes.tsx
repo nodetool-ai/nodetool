@@ -465,16 +465,16 @@ ThemeNodes.components = {
         fontFamily: ThemeNodes.fontFamily1,
         fontSize: ThemeNodes.fontSizeSmaller,
         backgroundColor: ThemeNodes.palette.c_gray2,
-        margin: "0",
-        border: "none",
-        outline: "none"
+        margin: "0"
       },
       icon: {
         color: ThemeNodes.palette.c_white,
         width: ".5em",
         height: "1em",
         fontSize: "3em"
-      }
+      },
+      filled: {},
+      outlined: {}
     }
   },
   MuiRadio: {
@@ -575,24 +575,6 @@ ThemeNodes.components = {
       root: {
         fontFamily: ThemeNodes.fontFamily2,
         fontSize: ThemeNodes.fontSizeBig
-      }
-    }
-  },
-  MuiInput: {
-    styleOverrides: {
-      root: {
-        "&::before": {
-          border: "none !important"
-        },
-        "&:hover::before": {
-          border: "none !important"
-        },
-        "&::after": {
-          border: "none !important"
-        },
-        "&:hover:not(.Mui-disabled):before": {
-          border: "none !important"
-        }
       }
     }
   }

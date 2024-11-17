@@ -7,7 +7,7 @@ import PIL.ImageFilter
 import PIL.ImageFont
 import PIL.ImageOps
 from nodetool.workflows.processing_context import ProcessingContext
-from nodetool.metadata.types import ImageRef
+from nodetool.metadata.types import ImageRef, ColorRef
 from nodetool.workflows.base_node import BaseNode
 import numpy as np
 from pydantic import Field
@@ -31,10 +31,10 @@ class Background(BaseNode):
 
     width: int = Field(default=512, ge=1, le=4096)
     height: int = Field(default=512, ge=1, le=4096)
-    color: str = Field(default="#FFFFFF")
+    color: ColorRef = Field(default=ColorRef(value="#FFFFFF"))
 
     async def process(self, context: ProcessingContext) -> ImageRef:
-        img = PIL.Image.new("RGB", (self.width, self.height), self.color)
+        img = PIL.Image.new("RGB", (self.width, self.height), self.color.value)
         return await context.image_from_pil(img)
 
 
@@ -73,7 +73,9 @@ class RenderText(BaseNode):
     x: float = Field(default=0, ge=0, le=1, description="The x coordinate.")
     y: float = Field(default=0, ge=0, le=1, description="The y coordinate.")
     size: int = Field(default=12, ge=1, le=512, description="The font size.")
-    color: str = Field(default="#000000", description="The font color.")
+    color: ColorRef = Field(
+        default=ColorRef(value="#000000"), description="The font color."
+    )
     align: TextAlignment = TextAlignment.LEFT
     image: ImageRef = Field(default=ImageRef(), description="The image to render on.")
 
@@ -83,7 +85,9 @@ class RenderText(BaseNode):
         y = int((image.height * self.y))
         draw = PIL.ImageDraw.Draw(image)
         font = PIL.ImageFont.truetype(os.path.join(fonts_dir, self.font), self.size)
-        draw.text((x, y), self.text, font=font, fill=self.color, align=self.align.value)
+        draw.text(
+            (x, y), self.text, font=font, fill=self.color.value, align=self.align.value
+        )
         return await context.image_from_pil(image)
 
 
