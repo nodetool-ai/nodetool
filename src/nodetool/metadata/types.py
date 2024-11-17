@@ -1162,3 +1162,28 @@ class SVGElement(BaseType):
         children_content = "".join(str(child) for child in self.children)
         inner_content = f"{self.content}{children_content}"
         return f"<{self.name} {self.render_attributes()}>{inner_content}</{self.name}>"
+
+
+class DataSeries(BaseType):
+    type: Literal["data_series"] = "data_series"
+    name: str = ""
+    x: str = ""
+    y: str = ""
+    color: Optional[str] = None
+    series_type: Literal["line", "bar", "scatter"] = Field(default="line")
+    line_style: str = Field(default="solid")
+    marker: str = Field(default=".")
+
+
+class ChartData(BaseType):
+    type: Literal["chart_data"] = "chart_data"
+    series: list[DataSeries] = []
+
+
+class ChartConfig(BaseType):
+    type: Literal["chart_config"] = "chart_config"
+    title: str = ""
+    x_label: str = ""
+    y_label: str = ""
+    legend: bool = True
+    data: ChartData = Field(default=ChartData())

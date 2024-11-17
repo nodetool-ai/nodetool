@@ -312,3 +312,57 @@ class SVGCombine(BaseNode):
             if element is not None:
                 elements.append(element)
         return elements
+
+
+class SVGToImage(BaseNode):
+    """
+    Create an SVG document and convert it to a raster image in one step.
+    svg, document, raster, convert
+
+    Use cases:
+    - Create and rasterize SVG documents in a single operation
+    - Generate image files from SVG elements
+    - Convert vector graphics to bitmap format with custom dimensions
+    """
+
+    @classmethod
+    def get_title(cls) -> str:
+        return "SVG Document to Image"
+
+    content: str | SVGElement | list[SVGElement] = Field(
+        default_factory=list, description="SVG content"
+    )
+    width: int = Field(default=800, ge=1, le=4096, description="Document width")
+    height: int = Field(default=600, ge=1, le=4096, description="Document height")
+    viewBox: str = Field(default="0 0 800 600", description="SVG viewBox attribute")
+    scale: int = Field(
+        default=1, ge=1, le=10, description="Scale factor for rasterization"
+    )
+
+    async def process(self, context: ProcessingContext) -> ImageRef:
+        # Create SVG document
+        if isinstance(self.content, list):
+            content_str = "\n".join(str(element) for element in self.content)
+        else:
+            content_str = str(self.content)
+
+        svg_content = f"""<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" 
+     width="{self.width}" 
+     height="{self.height}" 
+     viewBox="{self.viewBox}">
+    {content_str}
+</svg>"""
+
+        # Convert to PNG using cairosvg
+        png_data = cairosvg.svg2png(
+            bytestring=svg_content.encode("utf-8"),
+            output_width=self.width,
+            output_height=self.height,
+            scale=self.scale,
+        )
+
+        assert isinstance(png_data, bytes)
+
+        image = PIL.Image.open(io.BytesIO(png_data))
+        return await context.image_from_pil(image)
