@@ -28,6 +28,7 @@ const Select: React.FC<SelectProps> = ({
   placeholder
 }) => {
   const selectRef = useRef<HTMLDivElement>(null);
+  const optionsRef = useRef<HTMLUListElement>(null);
   const { open, close, activeSelect } = useSelect();
   const id = useId();
 
@@ -67,6 +68,30 @@ const Select: React.FC<SelectProps> = ({
     [options, value]
   );
 
+  const updateDropdownPosition = useCallback(() => {
+    if (!selectRef.current || !optionsRef.current || activeSelect !== id)
+      return;
+
+    const selectRect = selectRef.current.getBoundingClientRect();
+    const optionsHeight = optionsRef.current.offsetHeight;
+    const windowHeight = window.innerHeight;
+    const spaceBelow = windowHeight - selectRect.bottom;
+
+    if (spaceBelow < optionsHeight && selectRect.top > optionsHeight) {
+      optionsRef.current.style.bottom = "100%";
+      optionsRef.current.style.top = "auto";
+    } else {
+      optionsRef.current.style.top = "100%";
+      optionsRef.current.style.bottom = "auto";
+    }
+  }, [activeSelect, id]);
+
+  useEffect(() => {
+    updateDropdownPosition();
+    window.addEventListener("resize", updateDropdownPosition);
+    return () => window.removeEventListener("resize", updateDropdownPosition);
+  }, [updateDropdownPosition]);
+
   return (
     <div
       ref={selectRef}
@@ -81,7 +106,7 @@ const Select: React.FC<SelectProps> = ({
         <span className="arrow" />
       </div>
       {activeSelect === id && (
-        <ul className="options-list nowheel">
+        <ul ref={optionsRef} className="options-list nowheel">
           {options.map((option) => (
             <li
               key={option.value}
