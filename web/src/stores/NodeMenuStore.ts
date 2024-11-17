@@ -6,20 +6,20 @@ import { filterDataByType } from "../components/node_menu/typeFilterUtils";
 import useMetadataStore from "./MetadataStore";
 const fuseOptions = {
   keys: [
-    { name: "title", weight: 0.8 },
-    { name: "namespace", weight: 0.1 },
-    { name: "tags", weight: 0.1 }
+    { name: "title", weight: 0.4 },
+    { name: "namespace", weight: 0.4 },
+    { name: "tags", weight: 0.2 }
   ],
   includeMatches: true,
   ignoreLocation: true,
-  threshold: 0.2,
-  distance: 30,
+  threshold: 0.3,
+  distance: 100,
   includeScore: true,
   shouldSort: true,
   minMatchCharLength: 2,
   useExtendedSearch: true,
   tokenize: true,
-  matchAllTokens: true
+  matchAllTokens: false
 };
 
 type NodeMenuStore = {
@@ -216,15 +216,24 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => ({
       return;
     }
 
-    // Fuse search
+    // Prepare search entries with combined searchable text
     const entries = filteredMetadata.map((node: NodeMetadata) => ({
       title: node.title,
       node_type: node.node_type,
+      namespace: node.namespace,
       tags: node.description.split("\n")[1]?.split(",") || [],
+      searchableText: `${node.namespace} ${node.title}`, // Combined text for searching
       metadata: node
     }));
 
-    const fuse = new Fuse(entries, fuseOptions);
+    const fuse = new Fuse(entries, {
+      ...fuseOptions,
+      keys: [
+        ...fuseOptions.keys,
+        { name: "searchableText", weight: 1.0 } // Add combined text field
+      ]
+    });
+
     const searchResults = fuse
       .search(term)
       .map((result) => result.item.metadata);
