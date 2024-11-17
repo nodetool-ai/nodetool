@@ -22,6 +22,18 @@ RUN apt-get update && \
     build-essential \
     wget \
     curl \
+    software-properties-common \
+    python3-dev \
+    python3-venv \
+    python3-tk \
+    python3-setuptools \
+    python3-wheel \
+    tesseract-ocr \
+    python3-pip \
+    libssl-dev \
+    libffi-dev \
+    liblzma-dev \
+    libsqlite3-dev \
     libcairo2-dev \
     libgl1 \
     libgl1-mesa-glx \
@@ -33,11 +45,6 @@ RUN apt-get update && \
     libtheora-dev \
     libvpx-dev \
     libvorbis-dev \
-    software-properties-common \
-    python3-dev \
-    python3-venv \
-    tesseract-ocr \
-    python3-pip \
     libavcodec-dev \
     libavformat-dev \
     libavutil-dev \
