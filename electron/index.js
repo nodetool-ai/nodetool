@@ -58,7 +58,7 @@ const {
 } = require("electron");
 const path = require("path");
 const { createWriteStream } = require("fs");
-const { access, unlink, chmod, appendFile } = require("fs").promises;
+const { access, appendFile } = require("fs").promises;
 const { spawn } = require("child_process");
 const https = require("https");
 const fs = require("fs");
@@ -123,19 +123,15 @@ const normalizedPlatform =
   os.platform() === "win32" ? "windows" : os.platform();
 
 /**
- * Path to the Conda environment configuration file.
+ * Path to the requirements.txt file.
  * Defines Python dependencies and packages needed by NodeTool.
- * In production: resources/environment.yaml
- * In development: project_root/environment-{platform}-{arch}.yaml
+ * In production: resources/requirements.txt
+ * In development: project_root/requirements.txt
  * @type {string}
  */
-const condaEnvFilePath = app.isPackaged
-  ? path.join(resourcesPath, "environment.yaml")
-  : path.join(
-      __dirname,
-      "..",
-      `environment-${normalizedPlatform}-${os.arch()}.yaml`
-    );
+const requirementsFilePath = app.isPackaged
+  ? path.join(resourcesPath, "requirements.txt")
+  : path.join(__dirname, "..", "requirements.txt");
 
 /**
  * Base directory for the application.
@@ -892,26 +888,18 @@ process.on("unhandledRejection", (error) => {
 
 async function updateCondaEnvironment() {
   try {
-    logMessage("Starting Conda environment update");
-    emitBootMessage("Updating Conda packages...");
+    logMessage("Starting Python packages update");
+    emitBootMessage("Updating Python packages...");
 
-    const condaExecutable =
+    const pipExecutable =
       process.platform === "win32"
-        ? path.join(condaEnvPath, "Scripts", "conda.exe")
-        : path.join(condaEnvPath, "bin", "conda");
+        ? path.join(condaEnvPath, "Scripts", "pip.exe")
+        : path.join(condaEnvPath, "bin", "pip");
 
     // Run conda env update command
     const updateProcess = spawn(
-      condaExecutable,
-      [
-        "env",
-        "update",
-        "-p",
-        condaEnvPath,
-        "-f",
-        condaEnvFilePath,
-        "--prune", // Remove packages that are no longer needed
-      ],
+      pipExecutable,
+      ["install", "-r", requirementsFilePath],
       {
         stdio: "pipe",
         env: processEnv,
@@ -930,7 +918,7 @@ async function updateCondaEnvironment() {
     updateProcess.stderr.on("data", (data) => {
       const message = data.toString().trim();
       if (message) {
-        logMessage(`Conda update error: ${message}`, "error");
+        logMessage(`Python packages update error: ${message}`, "error");
       }
     });
 
@@ -938,17 +926,17 @@ async function updateCondaEnvironment() {
     await new Promise((resolve, reject) => {
       updateProcess.on("exit", (code) => {
         if (code === 0) {
-          logMessage("Conda environment update completed successfully");
+          logMessage("Python packages update completed successfully");
           resolve();
         } else {
-          reject(new Error(`Conda update failed with code ${code}`));
+          reject(new Error(`Python packages update failed with code ${code}`));
         }
       });
 
       updateProcess.on("error", reject);
     });
   } catch (error) {
-    logMessage(`Failed to update Conda environment: ${error.message}`, "error");
+    logMessage(`Failed to update Python packages: ${error.message}`, "error");
     throw error;
   }
 }
