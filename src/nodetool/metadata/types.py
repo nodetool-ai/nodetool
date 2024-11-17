@@ -1187,3 +1187,10 @@ class ChartConfig(BaseType):
     y_label: str = ""
     legend: bool = True
     data: ChartData = Field(default=ChartData())
+
+
+class ColorRef(BaseType):
+    """A reference to a color value."""
+
+    type: Literal["color"] = "color"
+    value: str | None = None

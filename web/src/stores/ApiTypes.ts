@@ -53,6 +53,7 @@ export type SecretsModel = components["schemas"]["SecretsModel"];
 export type HuggingFaceModel = components["schemas"]["HuggingFaceModel"];
 export type SystemStats = components["schemas"]["SystemStats"];
 export type ToolCall = components["schemas"]["ToolCall"];
+export type SVGElement = components["schemas"]["SVGElement"];
 // a type that allows arbitrary members
 export type TypeName = string;
 export type WorkflowAttributes = Omit<Workflow, "graph">;

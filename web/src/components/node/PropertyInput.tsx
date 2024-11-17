@@ -27,6 +27,7 @@ import DictProperty from "../properties/DictProperty";
 import RecordTypeProperty from "../properties/RecordTypeProperty";
 import ModelProperty from "../properties/ModelProperty";
 import { isEqual } from "lodash";
+import ColorProperty from "../properties/ColorProperty";
 
 export type PropertyProps = {
   property: Property;
@@ -61,7 +62,8 @@ const basicComponentTypeMap: Record<
   int: IntegerProperty,
   float: FloatProperty,
   bool: BoolProperty,
-  dict: DictProperty
+  dict: DictProperty,
+  color: ColorProperty
 };
 
 function getComponentForType(
