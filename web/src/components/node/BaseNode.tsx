@@ -31,6 +31,7 @@ import { useRenderLogger } from "../../hooks/useRenderLogger";
 import { simulateOpacity } from "../../utils/ColorUtils";
 import useMetadataStore from "../../stores/MetadataStore";
 import NodeFooter from "./NodeFooter";
+import useSelect from "../../hooks/nodes/useSelect";
 
 // Tooltip timing constants
 export const TOOLTIP_ENTER_DELAY = 650;
@@ -147,6 +148,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     props.parentId ? state.findNode(props.parentId || "") : null
   );
   const hasParent = Boolean(parentId);
+  const { activeSelect } = useSelect();
 
   // Workflow and status
   const workflowId = props.data.workflow_id;
@@ -295,7 +297,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           : ThemeNodes.palette.c_node_bg
       }}
     >
-      {props.selected && (
+      {props.selected && !activeSelect && (
         <NodeToolbar position={Position.Bottom} offset={0}>
           <NodeToolButtons nodeId={props.id} />
         </NodeToolbar>
