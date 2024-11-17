@@ -94,8 +94,6 @@ dependencies:
   - conda-forge::tqdm
   - conda-forge::transformers
   - conda-forge::trimesh
-  - conda-forge::torchaudio
-  - conda-forge::torchvision
   - conda-forge::uvicorn
   - conda-forge::websocket-client
   - conda-forge::websockets
