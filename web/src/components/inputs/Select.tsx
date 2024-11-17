@@ -1,12 +1,13 @@
 import { isEqual } from "lodash";
 import React, {
-  useState,
   useCallback,
   useMemo,
   useRef,
   useEffect,
-  memo
+  memo,
+  useId
 } from "react";
+import useSelect from "../../hooks/nodes/useSelect";
 
 interface Option {
   value: any;
@@ -26,29 +27,33 @@ const Select: React.FC<SelectProps> = ({
   onChange,
   placeholder
 }) => {
-  const [isOpen, setIsOpen] = useState(false);
   const selectRef = useRef<HTMLDivElement>(null);
+  const { open, close, activeSelect } = useSelect();
+  const id = useId();
 
   const toggleDropdown = useCallback(() => {
-    setIsOpen((prev) => !prev);
-  }, []);
+    activeSelect === id ? close() : open(id);
+  }, [close, activeSelect, id, open]);
 
   const handleOptionClick = useCallback(
     (optionValue: string) => {
       onChange(optionValue);
-      setIsOpen(false);
+      close();
     },
-    [onChange]
+    [onChange, close]
   );
 
-  const handleClickOutside = useCallback((event: MouseEvent) => {
-    if (
-      selectRef.current &&
-      !selectRef.current.contains(event.target as Node)
-    ) {
-      setIsOpen(false);
-    }
-  }, []);
+  const handleClickOutside = useCallback(
+    (event: MouseEvent) => {
+      if (
+        selectRef.current &&
+        !selectRef.current.contains(event.target as Node)
+      ) {
+        close();
+      }
+    },
+    [close]
+  );
 
   useEffect(() => {
     document.addEventListener("mousedown", handleClickOutside);
@@ -63,7 +68,10 @@ const Select: React.FC<SelectProps> = ({
   );
 
   return (
-    <div ref={selectRef} className={`custom-select ${isOpen ? "open" : ""}`}>
+    <div
+      ref={selectRef}
+      className={`custom-select ${activeSelect === id ? "open" : ""}`}
+    >
       <div className="select-header" onClick={toggleDropdown}>
         <span className="select-header-text">
           {selectedOption
@@ -72,7 +80,7 @@ const Select: React.FC<SelectProps> = ({
         </span>
         <span className="arrow" />
       </div>
-      {isOpen && (
+      {activeSelect === id && (
         <ul className="options-list">
           {options.map((option) => (
             <li

@@ -58,6 +58,7 @@ import { useRenderLogger } from "../../hooks/useRenderLogger";
 import AxisMarker from "../node_editor/AxisMarker";
 import ConnectionLine from "../node_editor/ConnectionLine";
 import NodeTitleEditor from "./NodeTitleEditor";
+import useSelect from "../../hooks/nodes/useSelect";
 
 declare global {
   interface Window {
@@ -127,6 +128,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   const { shouldFitToScreen, setShouldFitToScreen } = useWorkflowStore(
     (state: any) => state
   );
+  const { close: closeSelect } = useSelect();
 
   /* DEFINE NODE TYPES */
   nodeTypes["nodetool.group.Loop"] = LoopNode;
@@ -178,6 +180,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     },
     [closeNodeMenu, isMenuOpen, openNodeMenu]
   );
+
   // CLOSE NODE MENU
   const handleClick = useCallback(
     (e: React.MouseEvent) => {
@@ -205,8 +208,9 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
         event.clientY,
         "node-header"
       );
+      closeSelect();
     },
-    [openContextMenu]
+    [openContextMenu, closeSelect]
   );
 
   const handlePaneContextMenu = useCallback(
@@ -222,8 +226,9 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
           "react-flow__pane"
         );
       });
+      closeSelect();
     },
-    [openContextMenu]
+    [openContextMenu, closeSelect]
   );
 
   const handleSelectionContextMenu = useCallback(
@@ -236,8 +241,9 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
         event.clientY,
         "react-flow__nodesselection"
       );
+      closeSelect();
     },
-    [openContextMenu]
+    [openContextMenu, closeSelect]
   );
 
   // ON MOVE START | DRAG PANE
@@ -448,6 +454,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
           onNodeDragStart={onNodeDragStart}
           onNodeDragStop={onNodeDragStop}
           onNodeContextMenu={handleNodeContextMenu}
+          onPaneClick={closeSelect}
           onPaneContextMenu={handlePaneContextMenu}
           onNodeDoubleClick={onNodeDoubleClick}
           onMoveStart={handleOnMoveStart}
