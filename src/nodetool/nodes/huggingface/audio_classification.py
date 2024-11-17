@@ -63,13 +63,19 @@ class AudioClassifier(HuggingFacePipelineNode):
         ]
 
     def required_inputs(self):
-        return ["inputs"]
+        return ["audio"]
 
-    def get_torch_dtype(self):
-        return torch.float32
+    async def initialize(self, context: ProcessingContext):
+        self._pipeline = await self.load_pipeline(
+            context=context,
+            pipeline_task="audio-classification",
+            model_id=self.model.repo_id,
+            torch_dtype=torch.float32,
+        )  # type: ignore
 
-    def get_model_id(self):
-        return self.model.repo_id
+    async def move_to_device(self, device: str):
+        assert self._pipeline is not None, "Pipeline not initialized"
+        self._pipeline.model.to(device)  # type: ignore
 
     async def process(self, context: ProcessingContext) -> dict[str, float]:
         samples, _, _ = await context.audio_to_numpy(self.audio)

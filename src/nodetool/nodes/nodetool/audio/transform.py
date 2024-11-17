@@ -340,3 +340,98 @@ class Repeat(BaseNode):
         looped_audio = audio * self.loops
 
         return await context.audio_from_segment(looped_audio)
+
+
+class AudioMixer(BaseNode):
+    """
+    Mix up to 5 audio tracks together with individual volume controls.
+    audio, mix, volume, combine
+
+    Use cases:
+    - Mix multiple audio tracks into a single output
+    - Create layered soundscapes
+    - Combine music, voice, and sound effects
+    - Adjust individual track volumes
+    """
+
+    track1: AudioRef = Field(
+        default=AudioRef(), description="First audio track to mix."
+    )
+    track2: AudioRef = Field(
+        default=AudioRef(), description="Second audio track to mix."
+    )
+    track3: AudioRef = Field(
+        default=AudioRef(), description="Third audio track to mix."
+    )
+    track4: AudioRef = Field(
+        default=AudioRef(), description="Fourth audio track to mix."
+    )
+    track5: AudioRef = Field(
+        default=AudioRef(), description="Fifth audio track to mix."
+    )
+    volume1: float = Field(
+        default=1.0,
+        description="Volume for track 1. 1.0 is original volume.",
+        ge=0,
+        le=2,
+    )
+    volume2: float = Field(
+        default=1.0,
+        description="Volume for track 2. 1.0 is original volume.",
+        ge=0,
+        le=2,
+    )
+    volume3: float = Field(
+        default=1.0,
+        description="Volume for track 3. 1.0 is original volume.",
+        ge=0,
+        le=2,
+    )
+    volume4: float = Field(
+        default=1.0,
+        description="Volume for track 4. 1.0 is original volume.",
+        ge=0,
+        le=2,
+    )
+    volume5: float = Field(
+        default=1.0,
+        description="Volume for track 5. 1.0 is original volume.",
+        ge=0,
+        le=2,
+    )
+
+    async def process(self, context: ProcessingContext) -> AudioRef:
+        from pydub import AudioSegment
+
+        # Initialize mixed track
+        mixed_track = None
+
+        # List of tracks and their volumes
+        tracks = [
+            (self.track1, self.volume1),
+            (self.track2, self.volume2),
+            (self.track3, self.volume3),
+            (self.track4, self.volume4),
+            (self.track5, self.volume5),
+        ]
+
+        # Process each track
+        for track, volume in tracks:
+            if track.is_empty():
+                continue
+
+            # Load and adjust volume of current track
+            current = await context.audio_to_audio_segment(track)
+            if volume != 1.0:
+                current = current.apply_gain(volume - 1.0)
+
+            # Add to mixed track
+            if mixed_track is None:
+                mixed_track = current
+            else:
+                mixed_track = mixed_track.overlay(current)
+
+        if mixed_track is None:
+            raise ValueError("At least one audio track must be provided")
+
+        return await context.audio_from_segment(mixed_track)
