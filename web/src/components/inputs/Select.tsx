@@ -81,7 +81,7 @@ const Select: React.FC<SelectProps> = ({
         <span className="arrow" />
       </div>
       {activeSelect === id && (
-        <ul className="options-list">
+        <ul className="options-list nowheel">
           {options.map((option) => (
             <li
               key={option.value}
