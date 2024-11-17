@@ -62,7 +62,7 @@ dependencies:
   - conda-forge::psycopg2
   - conda-forge::py3-validate-email
   - conda-forge::pyarrow
-  - conda-forge::pydantic
+  - conda-forge::pydantic>=2.9.2
   - conda-forge::pydantic-settings
   - conda-forge::pydub
   - conda-forge::pymemcache
