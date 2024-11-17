@@ -10,60 +10,172 @@ from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.metadata.types import ColorRef, ImageRef, SVGRef, SVGElement
 
 
-class SVGShape(BaseNode):
+class RectNode(BaseNode):
     """
-    Generate SVG shape elements.
-    svg, shape, vector
-
-    Use cases:
-    - Create basic geometric shapes
-    - Build complex vector graphics from primitives
-    - Generate pattern elements
+    Generate SVG rectangle element.
+    svg, shape, vector, rectangle
     """
 
-    class ShapeType(str, Enum):
-        RECT = "rect"
-        CIRCLE = "circle"
-        ELLIPSE = "ellipse"
-        LINE = "line"
-        POLYGON = "polygon"
-        PATH = "path"
-
-    shape_type: ShapeType = Field(default=ShapeType.RECT, description="Type of shape")
     x: int = Field(default=0, description="X coordinate")
     y: int = Field(default=0, description="Y coordinate")
-    width: Optional[int] = Field(default=None, description="Width (for rect)")
-    height: Optional[int] = Field(default=None, description="Height (for rect)")
-    radius: Optional[int] = Field(default=None, description="Radius (for circle)")
+    width: int = Field(default=100, description="Width")
+    height: int = Field(default=100, description="Height")
     fill: ColorRef = Field(default=ColorRef(value="#000000"), description="Fill color")
     stroke: ColorRef = Field(default=ColorRef(value="none"), description="Stroke color")
     stroke_width: int = Field(default=1, description="Stroke width")
-    path_data: Optional[str] = Field(default=None, description="Path data (for path)")
-    points: Optional[str] = Field(default=None, description="Points (for polygon)")
 
     @classmethod
     def get_title(cls) -> str:
-        return "SVG Shape"
+        return "Rectangle"
 
     async def process(self, context: ProcessingContext) -> SVGElement:
-        attributes = f'fill="{self.fill}" stroke="{self.stroke}" stroke-width="{self.stroke_width}"'
+        attributes = {
+            "x": str(self.x),
+            "y": str(self.y),
+            "width": str(self.width),
+            "height": str(self.height),
+            "fill": str(self.fill),
+            "stroke": str(self.stroke),
+            "stroke-width": str(self.stroke_width),
+        }
+        return SVGElement(name="rect", attributes=attributes)
 
-        if self.shape_type == self.ShapeType.RECT:
-            content = f'<rect x="{self.x}" y="{self.y}" width="{self.width}" height="{self.height}" {attributes}/>'
-        elif self.shape_type == self.ShapeType.CIRCLE:
-            content = (
-                f'<circle cx="{self.x}" cy="{self.y}" r="{self.radius}" {attributes}/>'
-            )
-        elif self.shape_type == self.ShapeType.ELLIPSE:
-            content = f'<ellipse cx="{self.x}" cy="{self.y}" rx="{self.width}" ry="{self.height}" {attributes}/>'
-        elif self.shape_type == self.ShapeType.LINE:
-            content = f'<line x1="{self.x}" y1="{self.y}" x2="{self.width}" y2="{self.height}" {attributes}/>'
-        elif self.shape_type == self.ShapeType.POLYGON:
-            content = f'<polygon points="{self.points}" {attributes}/>'
-        elif self.shape_type == self.ShapeType.PATH:
-            content = f'<path d="{self.path_data}" {attributes}/>'
 
-        return SVGElement(content=content)
+class CircleNode(BaseNode):
+    """
+    Generate SVG circle element.
+    svg, shape, vector, circle
+    """
+
+    cx: int = Field(default=0, description="Center X coordinate")
+    cy: int = Field(default=0, description="Center Y coordinate")
+    radius: int = Field(default=50, description="Radius")
+    fill: ColorRef = Field(default=ColorRef(value="#000000"), description="Fill color")
+    stroke: ColorRef = Field(default=ColorRef(value="none"), description="Stroke color")
+    stroke_width: int = Field(default=1, description="Stroke width")
+
+    @classmethod
+    def get_title(cls) -> str:
+        return "Circle"
+
+    async def process(self, context: ProcessingContext) -> SVGElement:
+        attributes = {
+            "cx": str(self.cx),
+            "cy": str(self.cy),
+            "r": str(self.radius),
+            "fill": str(self.fill),
+            "stroke": str(self.stroke),
+            "stroke-width": str(self.stroke_width),
+        }
+        return SVGElement(name="circle", attributes=attributes)
+
+
+class EllipseNode(BaseNode):
+    """
+    Generate SVG ellipse element.
+    svg, shape, vector, ellipse
+    """
+
+    cx: int = Field(default=0, description="Center X coordinate")
+    cy: int = Field(default=0, description="Center Y coordinate")
+    rx: int = Field(default=100, description="X radius")
+    ry: int = Field(default=50, description="Y radius")
+    fill: ColorRef = Field(default=ColorRef(value="#000000"), description="Fill color")
+    stroke: ColorRef = Field(default=ColorRef(value="none"), description="Stroke color")
+    stroke_width: int = Field(default=1, description="Stroke width")
+
+    @classmethod
+    def get_title(cls) -> str:
+        return "Ellipse"
+
+    async def process(self, context: ProcessingContext) -> SVGElement:
+        attributes = {
+            "cx": str(self.cx),
+            "cy": str(self.cy),
+            "rx": str(self.rx),
+            "ry": str(self.ry),
+            "fill": str(self.fill),
+            "stroke": str(self.stroke),
+            "stroke-width": str(self.stroke_width),
+        }
+        return SVGElement(name="ellipse", attributes=attributes)
+
+
+class LineNode(BaseNode):
+    """
+    Generate SVG line element.
+    svg, shape, vector, line
+    """
+
+    x1: int = Field(default=0, description="Start X coordinate")
+    y1: int = Field(default=0, description="Start Y coordinate")
+    x2: int = Field(default=100, description="End X coordinate")
+    y2: int = Field(default=100, description="End Y coordinate")
+    stroke: ColorRef = Field(
+        default=ColorRef(value="#000000"), description="Stroke color"
+    )
+    stroke_width: int = Field(default=1, description="Stroke width")
+
+    @classmethod
+    def get_title(cls) -> str:
+        return "Line"
+
+    async def process(self, context: ProcessingContext) -> SVGElement:
+        attributes = {
+            "x1": str(self.x1),
+            "y1": str(self.y1),
+            "x2": str(self.x2),
+            "y2": str(self.y2),
+            "stroke": str(self.stroke),
+            "stroke-width": str(self.stroke_width),
+        }
+        return SVGElement(name="line", attributes=attributes)
+
+
+class PolygonNode(BaseNode):
+    """
+    Generate SVG polygon element.
+    svg, shape, vector, polygon
+    """
+
+    points: str = Field(description="Points in format 'x1,y1 x2,y2 x3,y3...'")
+    fill: ColorRef = Field(default=ColorRef(value="#000000"), description="Fill color")
+    stroke: ColorRef = Field(default=ColorRef(value="none"), description="Stroke color")
+    stroke_width: int = Field(default=1, description="Stroke width")
+
+    @classmethod
+    def get_title(cls) -> str:
+        return "Polygon"
+
+    async def process(self, context: ProcessingContext) -> SVGElement:
+        attributes = {
+            "points": self.points,
+            "fill": str(self.fill),
+            "stroke": str(self.stroke),
+            "stroke-width": str(self.stroke_width),
+        }
+        return SVGElement(name="polygon", attributes=attributes)
+
+
+class PathNode(BaseNode):
+    """
+    Generate SVG path element.
+    svg, shape, vector, path
+    """
+
+    path_data: str = Field(description="SVG path data (d attribute)")
+    fill: ColorRef = Field(default=ColorRef(value="#000000"), description="Fill color")
+    stroke: ColorRef = Field(default=ColorRef(value="none"), description="Stroke color")
+    stroke_width: int = Field(default=1, description="Stroke width")
+
+    async def process(self, context: ProcessingContext) -> SVGElement:
+        attributes = {
+            "d": self.path_data,
+            "fill": str(self.fill),
+            "stroke": str(self.stroke),
+            "stroke-width": str(self.stroke_width),
+        }
+        return SVGElement(name="path", attributes=attributes)
 
 
 class SVGTextAnchor(str, Enum):
@@ -72,7 +184,7 @@ class SVGTextAnchor(str, Enum):
     END = "end"
 
 
-class SVGText(BaseNode):
+class Text(BaseNode):
     """
     Add text elements to SVG.
     svg, text, typography
@@ -82,10 +194,6 @@ class SVGText(BaseNode):
     - Create text-based logos
     - Generate dynamic text content in SVGs
     """
-
-    @classmethod
-    def get_title(cls) -> str:
-        return "SVG Text"
 
     text: str = Field(default="", description="Text content")
     x: int = Field(default=0, description="X coordinate")
@@ -110,95 +218,80 @@ class SVGText(BaseNode):
         return SVGElement(name="text", attributes=attributes, content=self.text)
 
 
-class SVGFilter(BaseNode):
+class GaussianBlur(BaseNode):
     """
-    Apply SVG filters to elements.
-    svg, filter, effects
-
-    Use cases:
-    - Add shadows and glows
-    - Create blur effects
-    - Apply color transformations
+    Apply Gaussian blur filter to SVG elements.
+    svg, filter, blur, effects
     """
 
-    @classmethod
-    def get_title(cls) -> str:
-        return "SVG Filter"
+    std_deviation: float = Field(default=3.0, description="Standard deviation for blur")
 
-    class FilterType(str, Enum):
-        GAUSSIAN_BLUR = "gaussian-blur"
-        DROP_SHADOW = "drop-shadow"
-        COLOR_MATRIX = "color-matrix"
+    async def process(self, context: ProcessingContext) -> SVGElement:
+        filter_id = "filter_gaussian_blur"
+        return SVGElement(
+            name="filter",
+            attributes={"id": filter_id},
+            children=[
+                SVGElement(
+                    name="feGaussianBlur",
+                    attributes={"stdDeviation": str(self.std_deviation)},
+                )
+            ],
+        )
 
-    filter_type: FilterType = Field(
-        default=FilterType.GAUSSIAN_BLUR, description="Type of filter"
-    )
+
+class DropShadow(BaseNode):
+    """
+    Apply drop shadow filter to SVG elements.
+    svg, filter, shadow, effects
+    """
+
     std_deviation: float = Field(default=3.0, description="Standard deviation for blur")
     dx: int = Field(default=2, description="X offset for shadow")
     dy: int = Field(default=2, description="Y offset for shadow")
     color: ColorRef = Field(
         default=ColorRef(value="#000000"), description="Color for shadow"
     )
-    matrix: str = Field(default="", description="Color matrix values")
 
     async def process(self, context: ProcessingContext) -> SVGElement:
-        filter_id = f"filter_{self.filter_type.value}"
-        children = []
-
-        if self.filter_type == self.FilterType.GAUSSIAN_BLUR:
-            children.append(
+        filter_id = "filter_drop_shadow"
+        return SVGElement(
+            name="filter",
+            attributes={"id": filter_id},
+            children=[
                 SVGElement(
                     name="feGaussianBlur",
-                    attributes={"stdDeviation": str(self.std_deviation)},
-                )
-            )
-        elif self.filter_type == self.FilterType.DROP_SHADOW:
-            children.extend(
-                [
-                    SVGElement(
-                        name="feGaussianBlur",
-                        attributes={
-                            "in": "SourceAlpha",
-                            "stdDeviation": str(self.std_deviation),
-                        },
-                    ),
-                    SVGElement(
-                        name="feOffset",
-                        attributes={"dx": str(self.dx), "dy": str(self.dy)},
-                    ),
-                    SVGElement(
-                        name="feFlood",
-                        attributes={"flood-color": self.color.value or ""},
-                    ),
-                    SVGElement(
-                        name="feComposite",
-                        attributes={"operator": "in", "in2": "SourceAlpha"},
-                    ),
-                    SVGElement(
-                        name="feMerge",
-                        children=[
-                            SVGElement(name="feMergeNode"),
-                            SVGElement(
-                                name="feMergeNode", attributes={"in": "SourceGraphic"}
-                            ),
-                        ],
-                    ),
-                ]
-            )
-        elif self.filter_type == self.FilterType.COLOR_MATRIX:
-            children.append(
+                    attributes={
+                        "in": "SourceAlpha",
+                        "stdDeviation": str(self.std_deviation),
+                    },
+                ),
                 SVGElement(
-                    name="feColorMatrix",
-                    attributes={"type": "matrix", "values": self.matrix},
-                )
-            )
-
-        return SVGElement(
-            name="filter", attributes={"id": filter_id}, children=children
+                    name="feOffset",
+                    attributes={"dx": str(self.dx), "dy": str(self.dy)},
+                ),
+                SVGElement(
+                    name="feFlood",
+                    attributes={"flood-color": self.color.value or ""},
+                ),
+                SVGElement(
+                    name="feComposite",
+                    attributes={"operator": "in", "in2": "SourceAlpha"},
+                ),
+                SVGElement(
+                    name="feMerge",
+                    children=[
+                        SVGElement(name="feMergeNode"),
+                        SVGElement(
+                            name="feMergeNode", attributes={"in": "SourceGraphic"}
+                        ),
+                    ],
+                ),
+            ],
         )
 
 
-class SVGDocument(BaseNode):
+class Document(BaseNode):
     """
     Combine SVG elements into a complete SVG document.
     svg, document, combine
@@ -237,7 +330,7 @@ class SVGDocument(BaseNode):
         return SVGRef(data=svg_content.encode("utf-8"))
 
 
-class SVGCombine(BaseNode):
+class Combine(BaseNode):
     """
     Combine multiple SVG elements into a list.
     svg, combine, list
@@ -332,7 +425,7 @@ class SVGToImage(BaseNode):
         return await context.image_from_pil(image)
 
 
-class SVGGradient(BaseNode):
+class radient(BaseNode):
     """
     Create linear or radial gradients for SVG elements.
     svg, gradient, color
@@ -412,7 +505,7 @@ class SVGGradient(BaseNode):
         )
 
 
-class SVGTransform(BaseNode):
+class Transform(BaseNode):
     """
     Apply transformations to SVG elements.
     svg, transform, animation
@@ -451,7 +544,7 @@ class SVGTransform(BaseNode):
         return self.content
 
 
-class SVGClipPath(BaseNode):
+class ClipPath(BaseNode):
     """
     Create clipping paths for SVG elements.
     svg, clip, mask

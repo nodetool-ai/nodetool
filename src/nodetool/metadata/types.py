@@ -1194,3 +1194,6 @@ class ColorRef(BaseType):
 
     type: Literal["color"] = "color"
     value: str | None = None
+
+    def __str__(self) -> str:
+        return self.value or ""

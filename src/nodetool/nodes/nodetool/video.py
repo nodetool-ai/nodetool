@@ -12,7 +12,7 @@ import PIL.Image
 import PIL.ImageEnhance
 import numpy as np
 from pydantic import Field
-from nodetool.metadata.types import AudioRef, FolderRef, TextRef
+from nodetool.metadata.types import AudioRef, ColorRef, FolderRef, TextRef
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.metadata.types import ImageRef
 from nodetool.workflows.base_node import BaseNode
@@ -78,7 +78,7 @@ class ExtractFrames(BaseNode):
             temp.write(video_file.read())
             temp.flush()
 
-            cap = cv2.VideoCapture(temp.name)
+            cap = cv2.VideoCapture(temp.name, apiPreference=0, params=[])
             frame_count = 0
 
             while True:
@@ -1111,12 +1111,12 @@ class AddSubtitles(BaseNode):
     font_size: int = Field(
         default=24, description="Font size for the subtitles.", ge=8, le=72
     )
-    font_color: str = Field(
-        default="white",
+    font_color: ColorRef = Field(
+        default=ColorRef(value="#FFFFFF"),
         description="Color of the subtitle text. Use predefined colors (white, black, gray, red, yellow) or hex color code (e.g., '#FF0000').",
     )
-    outline_color: str = Field(
-        default="black",
+    outline_color: ColorRef = Field(
+        default=ColorRef(value="#000000"),
         description="Color of the text outline. Use predefined colors (white, black, gray, red, yellow) or hex color code (e.g., '#000000').",
     )
     outline_width: int = Field(
@@ -1129,23 +1129,6 @@ class AddSubtitles(BaseNode):
 
     def normalize_path(self, path):
         return os.path.normpath(path).replace("\\", "/")
-
-    def color_to_hex(self, color):
-        color_map = {
-            "white": "FFFFFF",
-            "black": "000000",
-            "gray": "808080",
-            "red": "FF0000",
-            "yellow": "FFFF00",
-        }
-        if color.lower() in color_map:
-            return color_map[color.lower()]
-        elif re.match(r"^#?[0-9A-Fa-f]{6}$", color):
-            return color.lstrip("#")
-        else:
-            raise ValueError(
-                f"Invalid color: {color}. Use predefined colors or hex color code."
-            )
 
     async def process(self, context: ProcessingContext) -> VideoRef:
         if self.video.is_empty():
@@ -1179,9 +1162,6 @@ class AddSubtitles(BaseNode):
             srt_path = self.normalize_path(temp_srt.name)
             output_path = self.normalize_path(temp_output.name)
 
-            font_color_hex = self.color_to_hex(self.font_color)
-            outline_color_hex = self.color_to_hex(self.outline_color)
-
             # Set vertical position based on the 'position' field
             if self.position == "bottom":
                 vertical_position = "(h-th)"
@@ -1189,6 +1169,15 @@ class AddSubtitles(BaseNode):
                 vertical_position = "0"
             else:  # middle
                 vertical_position = "(h-th)/2"
+
+            font_color_hex = (
+                self.font_color.value.lstrip("#") if self.font_color.value else "000000"
+            )
+            outline_color_hex = (
+                self.outline_color.value.lstrip("#")
+                if self.outline_color.value
+                else "000000"
+            )
 
             try:
                 (
@@ -1217,9 +1206,12 @@ class AddSubtitles(BaseNode):
             raise RuntimeError(f"Error processing video: {str(e)}") from e
 
         finally:
-            safe_unlink(temp_input.name)
-            safe_unlink(temp_srt.name)
-            safe_unlink(temp_output.name)
+            if temp_input:
+                safe_unlink(temp_input.name)
+            if temp_srt:
+                safe_unlink(temp_srt.name)
+            if temp_output:
+                safe_unlink(temp_output.name)
 
 
 class Reverse(BaseNode):
@@ -1541,8 +1533,8 @@ class ChromaKey(BaseNode):
     video: VideoRef = Field(
         default=VideoRef(), description="The input video to apply chroma key effect."
     )
-    key_color: str = Field(
-        default="0x00FF00",
+    key_color: ColorRef = Field(
+        default=ColorRef(value="0x00FF00"),
         description="The color to key out (e.g., '0x00FF00' for green).",
     )
     similarity: float = Field(
@@ -1582,7 +1574,7 @@ class ChromaKey(BaseNode):
                 # Apply chroma key filter
                 keyed = input_stream.filter(
                     "chromakey",
-                    color=self.key_color,
+                    color=self.key_color.value,
                     similarity=self.similarity,
                     blend=self.blend,
                 )
