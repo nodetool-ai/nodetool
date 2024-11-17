@@ -418,7 +418,7 @@ class Build:
         venv_path = self.ENV_DIR / "venv"
         self.run_command(
             [
-                f"{self.ENV_DIR}/bin/python",
+                self.ENV_DIR / "bin" / "python",
                 "-m",
                 "venv",
                 str(venv_path),
