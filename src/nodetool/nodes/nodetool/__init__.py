@@ -10,6 +10,7 @@ import nodetool.nodes.nodetool.audio.analysis
 import nodetool.nodes.nodetool.audio.conversion
 import nodetool.nodes.nodetool.audio.effects
 import nodetool.nodes.nodetool.audio.segmentation
+import nodetool.nodes.nodetool.audio.synthesis
 import nodetool.nodes.nodetool.audio.transform
 import nodetool.nodes.nodetool.boolean
 import nodetool.nodes.nodetool.constant

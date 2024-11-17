@@ -4,6 +4,7 @@ from matplotlib import pyplot as plt
 from matplotlib.figure import Figure
 from nodetool.chat.chat import json_schema_for_column, process_messages
 from nodetool.metadata.types import (
+    AudioRef,
     BaseType,
     ChartConfig,
     DataframeRef,
@@ -14,6 +15,14 @@ from nodetool.metadata.types import (
     Provider,
     RecordType,
     SVGElement,
+)
+from nodetool.nodes.nodetool.audio.synthesis import (
+    Envelope,
+    FM_Synthesis,
+    Oscillator,
+    PinkNoise,
+    PitchEnvelopeCurve,
+    WhiteNoise,
 )
 from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
@@ -1024,3 +1033,241 @@ class SVGChartRenderer(BaseNode):
             content=svg_content,
             children=[],
         )
+
+
+class SynthesizerAgent(BaseNode):
+    """
+    Agent that interprets natural language descriptions to create sounds using basic synthesis algorithms.
+    llm, audio synthesis, sound design
+
+    Use cases:
+    - Creating sounds from text descriptions
+    - Automated sound design
+    - Converting musical ideas into synthesized audio
+    """
+
+    prompt: str = Field(
+        default="",
+        description="Natural language description of the desired sound",
+    )
+    max_tokens: int = Field(
+        default=1000,
+        description="The maximum number of tokens to generate.",
+    )
+    temperature: float = Field(
+        default=0.0,
+        ge=0.0,
+        le=2.0,
+        description="The temperature to use for sampling.",
+    )
+    duration: float = Field(
+        default=1.0,
+        ge=0.0,
+        le=30.0,
+        description="Duration of the sound in seconds.",
+    )
+
+    async def process(self, context: ProcessingContext) -> AudioRef:
+        messages = [
+            Message(
+                role="system",
+                content="""You are an expert sound designer who creates synthesis parameters based on text descriptions.
+                Convert the description into specific synthesis parameters including:
+                - Base waveform type (sine, square, sawtooth, triangle)
+                - Frequency modulation parameters if needed
+                - Envelope settings (ADR)
+                - Noise components if needed
+                
+                Provide your response in a structured JSON format.""",
+            ),
+            Message(
+                role="user",
+                content=self.prompt,
+            ),
+        ]
+
+        assistant_message = await process_messages(
+            context=context,
+            node_id=self._id,
+            model=FunctionModel(provider=Provider.OpenAI, name=GPTModel.GPT4Mini.value),
+            messages=messages,
+            max_tokens=self.max_tokens,
+            temperature=self.temperature,
+            response_format={
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "synthesis_parameters",
+                    "schema": {
+                        "type": "object",
+                        "properties": {
+                            "base_oscillator": {
+                                "type": "object",
+                                "properties": {
+                                    "waveform": {
+                                        "type": "string",
+                                        "enum": [
+                                            "sine",
+                                            "square",
+                                            "sawtooth",
+                                            "triangle",
+                                        ],
+                                    },
+                                    "frequency": {
+                                        "type": "number",
+                                        "minimum": 20,
+                                        "maximum": 20000,
+                                    },
+                                    "amplitude": {
+                                        "type": "number",
+                                        "minimum": 0,
+                                        "maximum": 1,
+                                    },
+                                    "pitch_envelope": {
+                                        "type": "object",
+                                        "properties": {
+                                            "amount": {
+                                                "type": "number",
+                                                "minimum": -24,
+                                                "maximum": 24,
+                                                "description": "Pitch envelope amount in semitones",
+                                            },
+                                            "time": {
+                                                "type": "number",
+                                                "minimum": 0,
+                                                "maximum": 10,
+                                                "description": "Pitch envelope duration in seconds",
+                                            },
+                                            "curve": {
+                                                "type": "string",
+                                                "enum": ["linear", "exponential"],
+                                                "description": "Shape of the pitch envelope",
+                                            },
+                                        },
+                                        "required": ["amount", "time", "curve"],
+                                    },
+                                },
+                                "required": [
+                                    "waveform",
+                                    "frequency",
+                                    "amplitude",
+                                    "pitch_envelope",
+                                ],
+                            },
+                            "fm_synthesis": {
+                                "type": "object",
+                                "properties": {
+                                    "enabled": {"type": "boolean"},
+                                    "modulator_freq": {
+                                        "type": "number",
+                                        "minimum": 1,
+                                        "maximum": 20000,
+                                    },
+                                    "modulation_index": {
+                                        "type": "number",
+                                        "minimum": 0,
+                                        "maximum": 100,
+                                    },
+                                },
+                                "required": [
+                                    "enabled",
+                                    "modulator_freq",
+                                    "modulation_index",
+                                ],
+                            },
+                            "envelope": {
+                                "type": "object",
+                                "properties": {
+                                    "attack": {
+                                        "type": "number",
+                                        "minimum": 0,
+                                        "maximum": 5,
+                                    },
+                                    "decay": {
+                                        "type": "number",
+                                        "minimum": 0,
+                                        "maximum": 5,
+                                    },
+                                    "release": {
+                                        "type": "number",
+                                        "minimum": 0,
+                                        "maximum": 5,
+                                    },
+                                },
+                                "required": ["attack", "decay", "sustain", "release"],
+                            },
+                            "noise": {
+                                "type": "object",
+                                "properties": {
+                                    "type": {
+                                        "type": "string",
+                                        "enum": ["none", "white", "pink"],
+                                    },
+                                    "amplitude": {
+                                        "type": "number",
+                                        "minimum": 0,
+                                        "maximum": 1,
+                                    },
+                                },
+                                "required": ["type", "amplitude"],
+                            },
+                        },
+                        "required": [
+                            "base_oscillator",
+                            "fm_synthesis",
+                            "envelope",
+                            "noise",
+                        ],
+                    },
+                },
+            },
+        )
+
+        params = json.loads(str(assistant_message.content))
+
+        # Create base oscillator
+        if params["fm_synthesis"]["enabled"]:
+            # Use FM synthesis
+            synth = FM_Synthesis(
+                carrier_freq=params["base_oscillator"]["frequency"],
+                modulator_freq=params["fm_synthesis"]["modulator_freq"],
+                modulation_index=params["fm_synthesis"]["modulation_index"],
+                amplitude=params["base_oscillator"]["amplitude"],
+                duration=self.duration,
+            )
+        else:
+            # Use basic oscillator
+            synth = Oscillator(
+                waveform=params["base_oscillator"]["waveform"],
+                frequency=params["base_oscillator"]["frequency"],
+                amplitude=params["base_oscillator"]["amplitude"],
+                duration=self.duration,
+                pitch_envelope_amount=params["base_oscillator"]["pitch_envelope"][
+                    "amount"
+                ],
+                pitch_envelope_time=params["base_oscillator"]["pitch_envelope"]["time"],
+                pitch_envelope_curve=PitchEnvelopeCurve(
+                    params["base_oscillator"]["pitch_envelope"]["curve"]
+                ),
+            )
+
+        # Generate base sound
+        audio = await synth.process(context)
+
+        # Add noise if specified
+        if params["noise"]["type"] != "none" and params["noise"]["amplitude"] > 0:
+            noise_gen = (
+                WhiteNoise if params["noise"]["type"] == "white" else PinkNoise
+            )(amplitude=params["noise"]["amplitude"], duration=self.duration)
+            noise_audio = await noise_gen.process(context)
+            # Mix noise with base sound (would need to implement audio mixing)
+            # For now, we'll just use the base sound
+
+        # Apply envelope
+        envelope = Envelope(
+            audio=audio,
+            attack=params["envelope"]["attack"],
+            decay=params["envelope"]["decay"],
+            release=params["envelope"]["release"],
+        )
+
+        return await envelope.process(context)
