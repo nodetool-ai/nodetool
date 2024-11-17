@@ -75,6 +75,9 @@ type NodeMenuStore = {
     position: { x: number; y: number }
   ) => void;
   closeDocumentation: () => void;
+
+  focusedNodeIndex: number;
+  setFocusedNodeIndex: (index: number) => void;
 };
 
 const useNodeMenuStore = create<NodeMenuStore>((set, get) => ({
@@ -280,7 +283,10 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => ({
     set({
       selectedNodeType: null,
       showDocumentation: false
-    })
+    }),
+
+  focusedNodeIndex: -1,
+  setFocusedNodeIndex: (index) => set({ focusedNodeIndex: index })
 }));
 
 export default useNodeMenuStore;

@@ -150,6 +150,12 @@ const namespaceStyles = (theme: any) =>
     ".node.hovered": {
       color: theme.palette.c_hl1
     },
+    ".node.focused": {
+      color: theme.palette.c_hl1,
+      backgroundColor: theme.palette.c_gray2,
+      borderRadius: "3px",
+      boxShadow: "inset 1px 1px 2px #00000044"
+    },
     ".namespace-text": {
       color: theme.palette.c_gray4,
       fontWeight: "normal",

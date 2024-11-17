@@ -124,16 +124,16 @@ const renderSvgElement = (value: SVGElement): React.ReactElement => {
   return createElement(value.name || "svg", svgProps, ...children);
 };
 
-const renderSVGDocument = (value: SVGElement): React.ReactElement => {
+const renderSVGDocument = (value: SVGElement[]): React.ReactElement => {
   // Extract SVG document attributes
   const docAttributes = {
     xmlns: "http://www.w3.org/2000/svg",
     version: "1.1"
   };
-  const child = renderSvgElement(value);
+  const children = value.map(renderSvgElement);
 
   // Render the root SVG element and its children
-  return createElement("svg", docAttributes, child);
+  return createElement("svg", docAttributes, ...children);
 };
 
 const styles = (theme: any) =>
@@ -330,6 +330,9 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
             );
           }
           if (typeof value[0] === "object") {
+            if (value[0].type === "svg_element") {
+              return renderSVGDocument(value);
+            }
             if (value[0].type === "thread_message") {
               return <ThreadMessageList messages={value as Message[]} />;
             }
@@ -380,7 +383,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
           </div>
         );
       case "svg_element":
-        return renderSVGDocument(value);
+        return renderSVGDocument([value]);
       default:
         return (
           <div className="output value nodrag nowheel" css={styles}>

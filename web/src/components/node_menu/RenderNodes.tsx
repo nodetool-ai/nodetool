@@ -29,13 +29,13 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
   nodes,
   hoverDelay = 400
 }) => {
-  const { hoveredNode, setHoveredNode, setDragToCreate } = useNodeMenuStore(
-    (state) => ({
+  const { focusedNodeIndex, hoveredNode, setHoveredNode, setDragToCreate } =
+    useNodeMenuStore((state) => ({
+      focusedNodeIndex: state.focusedNodeIndex,
       hoveredNode: state.hoveredNode,
       setHoveredNode: state.setHoveredNode,
       setDragToCreate: state.setDragToCreate
-    })
-  );
+    }));
 
   const handleCreateNode = useCreateNode();
   const currentHoveredNodeRef = useRef<NodeMetadata | null>(null);
@@ -64,14 +64,16 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
   const groupedNodes = useMemo(() => groupNodes(nodes), [nodes]);
 
   const renderNode = useCallback(
-    (node: NodeMetadata) => {
+    (node: NodeMetadata, index: number) => {
       const isHovered = hoveredNode?.node_type === node.node_type;
+      const isFocused = index === focusedNodeIndex;
 
       return (
         <NodeItem
           key={node.node_type}
           node={node}
           isHovered={isHovered}
+          isFocused={isFocused}
           onInfoClick={onInfoClick}
           onMouseEnter={() => {
             currentHoveredNodeRef.current = node;
@@ -88,6 +90,7 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
     },
     [
       hoveredNode,
+      focusedNodeIndex,
       handleMouseEnter,
       handleMouseLeave,
       onInfoClick,
