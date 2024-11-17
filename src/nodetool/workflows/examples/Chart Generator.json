@@ -1,8 +1,8 @@
 {
   "id": "5372e9fba42211efb8d9000063df9847",
   "access": "public",
-  "created_at": "2024-11-16T23:34:13.290893",
-  "updated_at": "2024-11-16T23:34:13.290913",
+  "created_at": "2024-11-17T01:30:23.335024",
+  "updated_at": "2024-11-17T01:30:23.335044",
   "name": "Chart Generator",
   "description": "",
   "tags": null,
@@ -10,25 +10,6 @@
   "thumbnail_url": null,
   "graph": {
     "nodes": [
-      {
-        "id": "2",
-        "parent_id": null,
-        "type": "nodetool.svg.SVGDocument",
-        "data": {
-          "width": 800,
-          "height": 600,
-          "viewBox": "0 0 800 600"
-        },
-        "ui_properties": {
-          "position": {
-            "x": 628,
-            "y": 105
-          },
-          "zIndex": 0,
-          "width": 185,
-          "selectable": true
-        }
-      },
       {
         "id": "3",
         "parent_id": null,
@@ -40,8 +21,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 843,
-            "y": 108
+            "x": 935,
+            "y": 197
           },
           "zIndex": 0,
           "width": 121,
@@ -57,8 +38,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 994,
-            "y": 50
+            "x": 1086,
+            "y": 167
           },
           "zIndex": 0,
           "width": 327,
@@ -76,7 +57,7 @@
         "ui_properties": {
           "position": {
             "x": 360,
-            "y": 368
+            "y": 50
           },
           "zIndex": 0,
           "width": 238,
@@ -99,8 +80,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 385.5,
-            "y": 75
+            "x": 394,
+            "y": 297
           },
           "zIndex": 0,
           "width": 187,
@@ -126,16 +107,19 @@
             "type": "record_type",
             "columns": [
               {
-                "name": "gdp",
-                "data_type": "int"
+                "name": "GDP",
+                "data_type": "int",
+                "description": "gross domestic product in M"
               },
               {
-                "name": "year",
-                "data_type": "int"
+                "name": "Year",
+                "data_type": "int",
+                "description": "the year to report"
               },
               {
-                "name": "country",
-                "data_type": "string"
+                "name": "Country",
+                "data_type": "string",
+                "description": "the country"
               }
             ]
           }
@@ -143,33 +127,59 @@
         "ui_properties": {
           "position": {
             "x": 50,
-            "y": 83
+            "y": 115
           },
           "zIndex": 0,
           "width": 250,
+          "selectable": true
+        }
+      },
+      {
+        "id": "10",
+        "parent_id": null,
+        "type": "openai.agents.SVGChartRenderer",
+        "data": {
+          "width": 640,
+          "height": 480
+        },
+        "ui_properties": {
+          "position": {
+            "x": 688,
+            "y": 231
+          },
+          "zIndex": 0,
+          "width": 157,
+          "selectable": true
+        }
+      },
+      {
+        "id": "11",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "chart_config_output_2024-11-17"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 658,
+            "y": 446
+          },
+          "zIndex": 0,
+          "width": 247,
+          "height": 218,
           "selectable": true
         }
       }
     ],
     "edges": [
       {
-        "id": "68",
-        "source": "3",
+        "id": "63043d5f-d49f-459d-8d3c-04fadac99095",
+        "source": "10",
         "sourceHandle": "output",
-        "target": "4",
-        "targetHandle": "value",
+        "target": "3",
+        "targetHandle": "content",
         "ui_properties": {
-          "className": "image"
-        }
-      },
-      {
-        "id": "b7ca81fb-46e7-4fe0-9d7b-5b4f1c17107a",
-        "source": "9",
-        "sourceHandle": "output",
-        "target": "7",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "dataframe"
+          "className": "svg_element"
         }
       },
       {
@@ -183,23 +193,53 @@
         }
       },
       {
-        "id": "b60dbfcf-c36a-4a57-8e3e-738f6d925d12",
+        "id": "ce1dbae0-ed30-4b75-ad8a-60decbc3a708",
         "source": "8",
         "sourceHandle": "output",
-        "target": "2",
-        "targetHandle": "content",
+        "target": "10",
+        "targetHandle": "chart_config",
         "ui_properties": {
-          "className": "svg_element"
+          "className": "chart_config"
         }
       },
       {
-        "id": "a30dac49-6998-4bc1-b5aa-5922ce2da5fe",
-        "source": "2",
+        "id": "b7ca81fb-46e7-4fe0-9d7b-5b4f1c17107a",
+        "source": "9",
         "sourceHandle": "output",
-        "target": "3",
-        "targetHandle": "svg",
+        "target": "7",
+        "targetHandle": "value",
         "ui_properties": {
-          "className": "svg"
+          "className": "dataframe"
+        }
+      },
+      {
+        "id": "68",
+        "source": "3",
+        "sourceHandle": "output",
+        "target": "4",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "0b590385-7d52-4f79-a31e-210a1874ff25",
+        "source": "9",
+        "sourceHandle": "output",
+        "target": "10",
+        "targetHandle": "data",
+        "ui_properties": {
+          "className": "dataframe"
+        }
+      },
+      {
+        "id": "63044",
+        "source": "8",
+        "sourceHandle": "output",
+        "target": "11",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "chart_config"
         }
       }
     ]

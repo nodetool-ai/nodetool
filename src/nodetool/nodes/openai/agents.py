@@ -5,6 +5,7 @@ from matplotlib.figure import Figure
 from nodetool.chat.chat import json_schema_for_column, process_messages
 from nodetool.metadata.types import (
     BaseType,
+    ChartConfig,
     DataframeRef,
     FunctionModel,
     GPTModel,
@@ -621,7 +622,7 @@ class ProcessChainOfThought(BaseNode):
 class ChartGenerator(BaseNode):
     """
     LLM Agent to create chart configurations based on natural language descriptions.
-    llm, data visualization, charts, svg
+    llm, data visualization, charts
 
     Use cases:
     - Generating chart configurations from natural language descriptions
@@ -654,7 +655,7 @@ class ChartGenerator(BaseNode):
         description="The columns available in the data.",
     )
 
-    async def process(self, context: ProcessingContext) -> SVGElement:
+    async def process(self, context: ProcessingContext) -> ChartConfig:
         system_message = Message(
             role="system",
             content="You are an assistant that helps generate chart configurations based on natural language descriptions.",
@@ -681,146 +682,63 @@ class ChartGenerator(BaseNode):
                     "schema": {
                         "type": "object",
                         "properties": {
-                            "chart": {
+                            "title": {"type": "string"},
+                            "x_label": {"type": "string"},
+                            "y_label": {"type": "string"},
+                            "legend": {"type": "boolean"},
+                            "data": {
                                 "type": "object",
                                 "properties": {
-                                    "type": {
-                                        "type": "string",
-                                        "enum": [
-                                            "bar",
-                                            "line",
-                                            "pie",
-                                            "scatter",
-                                            "histogram",
-                                            "boxplot",
-                                            "area",
-                                        ],
-                                    },
-                                    "title": {"type": "string"},
-                                    "width": {"type": "integer"},
-                                    "height": {"type": "integer"},
-                                    "x_label": {"type": "string"},
-                                    "y_label": {"type": "string"},
-                                    "legend": {"type": "boolean"},
-                                    "style": {
-                                        "type": "object",
-                                        "properties": {
-                                            "color_palette": {
-                                                "type": "string",
-                                                "enum": [
-                                                    "viridis",
-                                                    "plasma",
-                                                    "inferno",
-                                                    "magma",
-                                                    "cividis",
-                                                    "Greys",
-                                                    "Purples",
-                                                    "Blues",
-                                                    "Greens",
-                                                    "Oranges",
-                                                    "Reds",
-                                                    "YlOrBr",
-                                                    "YlOrRd",
-                                                    "OrRd",
-                                                    "PuRd",
-                                                    "RdPu",
-                                                    "BuPu",
-                                                    "GnBu",
-                                                    "PuBu",
-                                                    "YlGnBu",
-                                                    "PuBuGn",
-                                                    "BuGn",
-                                                    "YlGn",
-                                                    "coolwarm",
-                                                    "RdYlBu",
-                                                    "RdYlGn",
-                                                    "Spectral",
-                                                    "seismic",
-                                                ],
-                                            },
-                                            "line_style": {"type": "string"},
-                                            "marker": {
-                                                "type": "string",
-                                                "enum": [
-                                                    ".",  # point
-                                                    ",",  # pixel
-                                                    "o",  # circle
-                                                    "v",  # triangle_down
-                                                    "^",  # triangle_up
-                                                    "<",  # triangle_left
-                                                    ">",  # triangle_right
-                                                    "s",  # square
-                                                    "p",  # pentagon
-                                                    "*",  # star
-                                                    "h",  # hexagon1
-                                                    "H",  # hexagon2
-                                                    "+",  # plus
-                                                    "x",  # x
-                                                    "D",  # diamond
-                                                    "d",  # thin_diamond
-                                                    "|",  # vline
-                                                    "_",  # hline
-                                                ],
-                                            },
-                                        },
-                                        "required": [
-                                            "color_palette",
-                                            "line_style",
-                                            "marker",
-                                        ],
-                                        "additionalProperties": False,
-                                    },
-                                    "data": {
-                                        "type": "object",
-                                        "properties": {
-                                            "series": {
-                                                "type": "array",
-                                                "items": {
-                                                    "type": "object",
-                                                    "properties": {
-                                                        "name": {"type": "string"},
-                                                        "x": {"type": "string"},
-                                                        "y": {"type": "string"},
-                                                        "color": {"type": "string"},
-                                                        "aggregation": {
-                                                            "type": "string",
-                                                            "enum": [
-                                                                "sum",
-                                                                "average",
-                                                                "count",
-                                                            ],
-                                                        },
-                                                    },
-                                                    "required": [
-                                                        "name",
-                                                        "x",
-                                                        "y",
-                                                        "color",
-                                                        "aggregation",
-                                                    ],
-                                                    "additionalProperties": False,
+                                    "series": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "object",
+                                            "properties": {
+                                                "name": {"type": "string"},
+                                                "x": {"type": "string"},
+                                                "y": {"type": "string"},
+                                                "color": {"type": "string"},
+                                                "series_type": {
+                                                    "type": "string",
+                                                    "enum": ["line", "bar", "scatter"],
                                                 },
-                                            }
+                                                "line_style": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "solid",
+                                                        "dashed",
+                                                        "dotted",
+                                                    ],
+                                                },
+                                                "marker": {
+                                                    "type": "string",
+                                                    "enum": [".", "o", "s", "d"],
+                                                },
+                                            },
+                                            "required": [
+                                                "name",
+                                                "x",
+                                                "y",
+                                                "color",
+                                                "series_type",
+                                                "line_style",
+                                                "marker",
+                                            ],
+                                            "additionalProperties": False,
                                         },
-                                        "required": ["series"],
-                                        "additionalProperties": False,
-                                    },
+                                    }
                                 },
-                                "required": [
-                                    "type",
-                                    "title",
-                                    "width",
-                                    "height",
-                                    "x_label",
-                                    "y_label",
-                                    "legend",
-                                    "style",
-                                    "data",
-                                ],
+                                "required": ["series"],
                                 "additionalProperties": False,
-                            }
+                            },
                         },
-                        "required": ["chart"],
+                        "required": [
+                            "title",
+                            "x_label",
+                            "y_label",
+                            "legend",
+                            "data",
+                        ],
                         "additionalProperties": False,
                     },
                     "strict": True,
@@ -828,144 +746,10 @@ class ChartGenerator(BaseNode):
             },
         )
 
-        # Parse the assistant's structured response
-        chart_config = json.loads(str(assistant_message.content))
+        chart_config_dict = json.loads(str(assistant_message.content))
+        chart_config = ChartConfig(**chart_config_dict)
 
-        print(chart_config)
-
-        def create_chart_elements(chart_config: dict) -> SVGElement:
-            assert self.data.data is not None, "Data is required"
-            assert self.data.columns is not None, "Columns are required"
-
-            # Convert data to pandas DataFrame
-            df = pd.DataFrame(
-                self.data.data, columns=[col.name for col in self.data.columns]
-            )
-
-            # Create figure and axis
-            fig = Figure(
-                figsize=(
-                    chart_config.get("width", 800) / 100,
-                    chart_config.get("height", 600) / 100,
-                )
-            )
-            ax = fig.add_subplot(111)
-
-            chart_type = chart_config["type"].lower()
-
-            # Handle multiple data series
-            if "series" in chart_config["data"]:
-                for series in chart_config["data"]["series"]:
-                    x_col = series["x"]
-                    y_col = series["y"]
-                    label = series.get("name", y_col)
-                    color_column = series.get("color", None)
-
-                    data = df.copy()
-
-                    # Apply aggregation if specified
-                    if "aggregation" in series:
-                        agg_func = series["aggregation"].lower()
-                        if agg_func == "sum":
-                            data = data.groupby(x_col)[y_col].sum().reset_index()
-                        elif agg_func == "average":
-                            data = data.groupby(x_col)[y_col].mean().reset_index()
-                        elif agg_func == "count":
-                            data = data.groupby(x_col)[y_col].count().reset_index()
-
-                    # Update color handling
-                    color = None
-                    if color_column and color_column in data.columns:
-                        color = data[color_column]
-                    elif (
-                        "style" in chart_config
-                        and "color_palette" in chart_config["style"]
-                    ):
-                        # Only create color array if there's data
-                        if len(data) > 0:
-                            cmap = plt.get_cmap(chart_config["style"]["color_palette"])
-                            color = cmap(
-                                0.5
-                            )  # Use single color from colormap instead of array
-                        else:
-                            color = "blue"  # Default fallback color
-                    else:
-                        color = "blue"  # Default fallback color
-
-                    # Plot according to chart type
-                    if chart_type == "bar":
-                        ax.bar(data[x_col], data[y_col], label=label, color=color)
-                    elif chart_type == "line":
-                        ax.plot(
-                            data[x_col],
-                            data[y_col],
-                            label=label,
-                            color=color,
-                            linestyle=chart_config.get("style", {}).get(
-                                "line_style", "-"
-                            ),
-                            marker=chart_config.get("style", {}).get("marker", None),
-                        )
-                    elif chart_type == "scatter":
-                        ax.scatter(
-                            data[x_col],
-                            data[y_col],
-                            label=label,
-                            c=color,
-                            marker=chart_config.get("style", {}).get("marker", "o"),
-                        )
-                    elif chart_type == "pie":
-                        ax.pie(data[y_col], labels=data[x_col])
-                    elif chart_type == "histogram":
-                        ax.hist(data[y_col], label=label, color=color)
-                    elif chart_type == "boxplot":
-                        ax.boxplot(data[y_col])
-                    elif chart_type == "area":
-                        ax.fill_between(
-                            data[x_col], data[y_col], label=label, color=color
-                        )
-
-            # Apply styles
-            if "style" in chart_config:
-                if "color_palette" in chart_config["style"]:
-                    plt.set_cmap(chart_config["style"]["color_palette"])
-
-            # Add labels and title
-            ax.set_xlabel(chart_config.get("x_label", ""))
-            ax.set_ylabel(chart_config.get("y_label", ""))
-            ax.set_title(chart_config.get("title", ""))
-
-            # Show legend if specified
-            if chart_config.get("legend", False):
-                ax.legend()
-
-            # Adjust layout
-            plt.tight_layout()
-
-            # Convert matplotlib figure to SVG
-            output = io.StringIO()
-            FigureCanvasSVG(fig).print_svg(output)
-            svg_str = output.getvalue()
-            plt.close(fig)
-
-            # Extract SVG content
-            svg_start = svg_str.find("<svg")
-            svg_end = svg_str.rfind("</svg>") + 6
-            svg_content = svg_str[svg_start:svg_end]
-
-            # Create SVG element
-            return SVGElement(
-                name="svg",
-                attributes={
-                    "width": str(chart_config.get("width", 800)),
-                    "height": str(chart_config.get("height", 600)),
-                    "xmlns": "http://www.w3.org/2000/svg",
-                },
-                content=svg_content,
-                children=[],
-            )
-
-        return create_chart_elements(chart_config["chart"])
+        return chart_config
 
 
 class RegressionAnalyst(BaseNode):
@@ -1146,3 +930,97 @@ User's original question: {self.prompt}
         )
 
         return str(interpretation_message.content)
+
+
+class SVGChartRenderer(BaseNode):
+    """
+    Node responsible for rendering chart configurations into SVG.
+    """
+
+    chart_config: ChartConfig = Field(
+        default=ChartConfig(), description="The chart configuration to render."
+    )
+    width: int = Field(
+        default=640,
+        ge=0,
+        le=10000,
+        description="The width of the chart in pixels.",
+    )
+    height: int = Field(
+        default=480,
+        ge=0,
+        le=10000,
+        description="The height of the chart in pixels.",
+    )
+    data: Any = Field(
+        default=None, description="The data to visualize as a pandas DataFrame."
+    )
+
+    async def process(self, context: ProcessingContext) -> SVGElement:
+        if self.data is None:
+            raise ValueError("Data is required for rendering the chart.")
+
+        df = pd.DataFrame(
+            self.data.data, columns=[col.name for col in self.data.columns]
+        )
+
+        fig = Figure(figsize=(self.width / 100, self.height / 100))
+        ax = fig.add_subplot(111)
+
+        for series in self.chart_config.data.series:
+            x_col = series.x
+            y_col = series.y
+            label = series.name
+            color = series.color
+
+            data = df.copy()
+
+            if series.series_type == "bar":
+                ax.bar(data[x_col], data[y_col], label=label, color=color)
+            elif series.series_type == "line":
+                ax.plot(
+                    data[x_col],
+                    data[y_col],
+                    label=label,
+                    color=color,
+                    linestyle=series.line_style,
+                    marker=series.marker,
+                )
+            elif series.series_type == "scatter":
+                ax.scatter(
+                    data[x_col],
+                    data[y_col],
+                    label=label,
+                    c=color,
+                    marker=series.marker,
+                )
+            # Add other chart types as needed
+
+        ax.set_xlabel(self.chart_config.x_label)
+        ax.set_ylabel(self.chart_config.y_label)
+        ax.set_title(self.chart_config.title)
+
+        if self.chart_config.legend:
+            ax.legend()
+
+        plt.tight_layout()
+
+        output = io.StringIO()
+        FigureCanvasSVG(fig).print_svg(output)
+        svg_str = output.getvalue()
+        plt.close(fig)
+
+        svg_start = svg_str.find("<svg")
+        svg_end = svg_str.rfind("</svg>") + 6
+        svg_content = svg_str[svg_start:svg_end]
+
+        return SVGElement(
+            name="svg",
+            attributes={
+                "width": str(self.width),
+                "height": str(self.height),
+                "xmlns": "http://www.w3.org/2000/svg",
+            },
+            content=svg_content,
+            children=[],
+        )

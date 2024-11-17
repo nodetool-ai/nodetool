@@ -13,7 +13,6 @@ from nodetool.metadata.types import (
 )
 from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
-from nodetool.metadata.types import Message
 
 
 from nodetool.metadata.types import LlamaModel
