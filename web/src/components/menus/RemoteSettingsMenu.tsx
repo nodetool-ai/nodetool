@@ -179,6 +179,7 @@ const RemoteSettings = () => {
                 handleChange("REPLICATE_API_TOKEN", e.target.value)
               }
               variant="standard"
+              onKeyDown={(e) => e.stopPropagation()}
               sx={{
                 "& .MuiInputBase-root": {
                   fontSize: "1rem"
@@ -210,6 +211,7 @@ const RemoteSettings = () => {
               value={settings.OPENAI_API_KEY}
               onChange={(e) => handleChange("OPENAI_API_KEY", e.target.value)}
               variant="standard"
+              onKeyDown={(e) => e.stopPropagation()}
               sx={{
                 "& .MuiInputBase-root": {
                   fontSize: "1rem"
