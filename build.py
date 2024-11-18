@@ -454,7 +454,7 @@ class Build:
         # Install requirements in the venv
         self.run_command(
             [
-                str(self.ENV_DIR / "venv" / scripts_dir / python_exe),
+                str(self.ENV_DIR / "venv" / scripts_dir / pip_exe),
                 "install",
                 "-r",
                 str(self.BUILD_DIR / "requirements.txt"),
