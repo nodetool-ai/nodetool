@@ -393,9 +393,6 @@ class Build:
         # Install conda-pack
         self.run_command(["conda", "install", "conda-pack", "-y"])
 
-        # Create and activate new environment from yaml
-        requirements_file = PROJECT_ROOT / "requirements.txt"
-
         # Remove existing environment if it exists
         self.remove_directory(self.ENV_DIR)
 
@@ -414,33 +411,43 @@ class Build:
             ]
         )
 
-        # Create a venv inside the conda environment
-        venv_path = self.ENV_DIR / "venv"
+        # Create a virtual env
         self.run_command(
             [
                 str(self.ENV_DIR / "bin" / "python"),
                 "-m",
                 "venv",
-                str(venv_path),
+                str(self.ENV_DIR / "venv"),
             ]
         )
 
-        # Install requirements in the venv
-        pip_path = (
-            venv_path / "bin" / "pip"
-            if self.platform != "windows"
-            else venv_path / "Scripts" / "pip"
-        )
+        # Install poetry
         self.run_command(
             [
-                str(pip_path),
+                str(self.ENV_DIR / "bin" / "pip"),
                 "install",
-                "--verbose",
-                "--no-deps",
-                "--prefer-binary",
-                "--only-binary=kornia-rs",
+                "poetry",
+            ]
+        )
+
+        # Export requirements to file
+        self.run_command(
+            [
+                str(self.ENV_DIR / "bin" / "poetry"),
+                "export",
+                "--output",
+                str(self.BUILD_DIR / "requirements.txt"),
+                "--without-hashes",
+            ],
+        )
+
+        # Install requirements in the venv
+        self.run_command(
+            [
+                str(self.ENV_DIR / "venv" / "bin" / "pip"),
+                "install",
                 "-r",
-                str(requirements_file),
+                str(self.BUILD_DIR / "requirements.txt"),
             ]
         )
 
