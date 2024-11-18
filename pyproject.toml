@@ -30,7 +30,7 @@ annotated-types = "*"
 anthropic = "*"
 authlib = "*"
 av = "*"
-bitsandbytes = "*"
+bitsandbytes = "0.42.0"  # pin to have same version across platforms
 black = "*"
 boto3 = ">=1.34.5"
 bs4 = "*"
