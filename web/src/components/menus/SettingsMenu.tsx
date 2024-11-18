@@ -144,7 +144,7 @@ export const settingsStyles = (theme: any): any =>
         }
       },
       ul: {
-        margin: "0",
+        margin: ".5em 0 0",
         padding: "0 0 0 1em",
         listStyleType: "square"
       }
@@ -370,7 +370,13 @@ function SettingsMenu() {
             <TextField
               type="number"
               autoComplete="off"
-              inputProps={{ min: 1, max: 100 }}
+              inputProps={{
+                min: 1,
+                max: 100,
+                onClick: (e: React.MouseEvent<HTMLInputElement>) => {
+                  e.currentTarget.select();
+                }
+              }}
               id="grid-snap-input"
               label="Grid Snap Precision"
               value={settings.gridSnap}
@@ -386,7 +392,13 @@ function SettingsMenu() {
             <TextField
               type="number"
               autoComplete="off"
-              inputProps={{ min: 5, max: 30 }}
+              inputProps={{
+                min: 5,
+                max: 30,
+                onClick: (e: React.MouseEvent<HTMLInputElement>) => {
+                  e.currentTarget.select();
+                }
+              }}
               id="connection-snap-input"
               label="Connection Snap Range"
               value={settings.connectionSnap}
@@ -445,7 +457,13 @@ function SettingsMenu() {
             <TextField
               type="number"
               autoComplete="off"
-              inputProps={{ min: 1, max: 10 }}
+              inputProps={{
+                min: 1,
+                max: 10,
+                onClick: (e: React.MouseEvent<HTMLInputElement>) => {
+                  e.currentTarget.select();
+                }
+              }}
               id="asset-item-size-input"
               label="Asset item size"
               value={settings.assetItemSize}
