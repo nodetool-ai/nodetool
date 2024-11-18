@@ -243,8 +243,8 @@ function startNodeToolBackendProcess() {
 
   const pythonExecutablePath =
     process.platform === "win32"
-      ? path.join(condaEnvPath, "python.exe")
-      : path.join(condaEnvPath, "bin", "python");
+      ? path.join(condaEnvPath, "venv", "Scripts", "python.exe")
+      : path.join(condaEnvPath, "venv", "bin", "python");
 
   logMessage(
     `Using command: ${pythonExecutablePath} -m nodetool.cli serve --static-folder ${webPath}`
@@ -893,10 +893,10 @@ async function updateCondaEnvironment() {
 
     const pipExecutable =
       process.platform === "win32"
-        ? path.join(condaEnvPath, "Scripts", "pip.exe")
-        : path.join(condaEnvPath, "bin", "pip");
+        ? path.join(condaEnvPath, "venv", "Scripts", "pip.exe")
+        : path.join(condaEnvPath, "venv", "bin", "pip");
 
-    // Run conda env update command
+    // Run pip install command
     const updateProcess = spawn(
       pipExecutable,
       ["install", "-r", requirementsFilePath],
@@ -910,7 +910,7 @@ async function updateCondaEnvironment() {
     updateProcess.stdout.on("data", (data) => {
       const message = data.toString().trim();
       if (message) {
-        logMessage(`Conda update: ${message}`);
+        logMessage(`Pip update: ${message}`);
         emitBootMessage(`Updating: ${message}`);
       }
     });
@@ -918,7 +918,7 @@ async function updateCondaEnvironment() {
     updateProcess.stderr.on("data", (data) => {
       const message = data.toString().trim();
       if (message) {
-        logMessage(`Python packages update error: ${message}`, "error");
+        logMessage(`Pip update error: ${message}`, "error");
       }
     });
 
@@ -926,17 +926,17 @@ async function updateCondaEnvironment() {
     await new Promise((resolve, reject) => {
       updateProcess.on("exit", (code) => {
         if (code === 0) {
-          logMessage("Python packages update completed successfully");
+          logMessage("Pip packages update completed successfully");
           resolve();
         } else {
-          reject(new Error(`Python packages update failed with code ${code}`));
+          reject(new Error(`Pip packages update failed with code ${code}`));
         }
       });
 
       updateProcess.on("error", reject);
     });
   } catch (error) {
-    logMessage(`Failed to update Python packages: ${error.message}`, "error");
+    logMessage(`Failed to update Pip packages: ${error.message}`, "error");
     throw error;
   }
 }
