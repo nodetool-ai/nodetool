@@ -37,13 +37,9 @@ jobs:
   pack-conda-env:
     strategy:
       matrix:
-        os: [windows-latest]
-        include:
-          - os: windows-latest
-            platform: windows
-            arch: x64
+        os: [windows-latest, ubuntu-latest, macos-latest]
     env:
-      PYTHON_VERSION: "3.11.10"
+      PYTHON_VERSION: "3.10"
 
     runs-on: ${{ matrix.os }}
     steps:
@@ -75,16 +71,12 @@ jobs:
   release-build:
     strategy:
       matrix:
-        os: [windows-latest]
-        include:
-          - os: windows-latest
-            platform: windows
-            arch: x64
+        os: [windows-latest, ubuntu-latest, macos-latest]
 
     runs-on: ${{ matrix.os }}
 
     env:
-      PYTHON_VERSION: "3.11.10"
+      PYTHON_VERSION: "3.10"
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     steps:
