@@ -1,0 +1,73 @@
+FROM nvcr.io/nvidia/cuda:12.1.0-cudnn8-runtime-ubuntu22.04 AS base
+
+WORKDIR /app
+
+ENV DEBIAN_FRONTEND=noninteractive\
+    SHELL=/bin/bash\
+    PYTHONPATH=/app\
+    PATH="/root/.local/bin:$PATH"\
+    LC_ALL=C.UTF-8\
+    LANG=C.UTF-8\
+    VIRTUAL_ENV=/app/venv
+
+ENV PYTHONPATH="/app"
+
+RUN apt-get update && \
+    apt-get upgrade -y && \
+    apt-get install -y --no-install-recommends \
+    ffmpeg \
+    git \
+    gcc \
+    g++ \
+    build-essential \
+    wget \
+    curl \
+    libcairo2-dev \
+    libgl1 \
+    libgl1-mesa-glx \
+    libopus-dev \
+    libfdk-aac-dev \
+    libx264-dev \
+    libwebp-dev \
+    libmp3lame-dev \
+    libtheora-dev \
+    libvpx-dev \
+    libvorbis-dev \
+    software-properties-common \
+    python3-dev \
+    python3-venv \
+    tesseract-ocr \
+    python3-pip \
+    libavcodec-dev \
+    libavformat-dev \
+    libavutil-dev \
+    libswscale-dev \
+    libswresample-dev \
+    libpostproc-dev \
+    libjpeg-dev \
+    libpng-dev \
+    libtiff-dev \
+    libgif-dev \
+    libsndfile1-dev \
+    libgstreamer1.0-dev \
+    libgstreamer-plugins-base1.0-dev && \
+    apt-get clean && \  
+    rm -rf /var/lib/apt/lists/* && \
+    echo "en_US.UTF-8 UTF-8" > /etc/locale.gen
+
+RUN pip3 install --upgrade pip
+
+COPY requirements.txt /app/
+
+RUN ln -s /usr/bin/python3 /usr/bin/python
+
+# Create and activate virtual environment
+RUN python -m venv $VIRTUAL_ENV
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+
+RUN --mount=type=cache,target=/root/.cache pip install -r requirements.txt
+
+RUN pip install ipython
+
+COPY src /app
+COPY scripts /app/scripts

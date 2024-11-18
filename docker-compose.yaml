@@ -3,7 +3,7 @@ services:
     restart: unless-stopped
     build:
       context: .
-      dockerfile: Dockerfile.api
+      dockerfile: Dockerfile
     volumes:
       - "./key.pem:/app/key.pem"
       - "./cert.pem:/app/cert.pem"
@@ -56,7 +56,7 @@ services:
     restart: unless-stopped
     build:
       context: .
-      dockerfile: Dockerfile.api
+      dockerfile: Dockerfile
     volumes:
       - ${COMFY_FOLDER:-./comfy}:/comfy
       - ${HF_HOME:-./huggingface}:/app/huggingface
@@ -105,7 +105,7 @@ services:
     restart: unless-stopped
     build:
       context: .
-      dockerfile: Dockerfile.api
+      dockerfile: Dockerfile
     volumes:
       - ${CHROMA_PATH:-./chroma-data}:/chroma-data
     command:

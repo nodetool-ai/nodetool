@@ -49,7 +49,7 @@ class Build:
     def __init__(
         self,
         clean_build: bool = False,
-        python_version: str = "3.11.10",
+        python_version: str = "3.10",
     ):
         """Initialize Build configuration."""
         platform = system().lower()
@@ -195,8 +195,8 @@ class Build:
         # Copy resources and environment
         self.copy_tree(self.ELECTRON_DIR / "resources", self.BUILD_DIR / "resources")
         self.copy_file(
-            PROJECT_ROOT / f"environment-{self.platform}-{self.arch}.yaml",
-            self.BUILD_DIR / "environment.yaml",
+            PROJECT_ROOT / "requirements.txt",
+            self.BUILD_DIR / "requirements.txt",
         )
 
         # Install dependencies
@@ -387,26 +387,62 @@ class Build:
         logger.info("Channel upload completed successfully")
 
     def pack(self) -> None:
-        """Create a packed conda environment."""
+        """Create a packed conda environment with a nested venv."""
         logger.info("Packing conda environment")
 
         # Install conda-pack
         self.run_command(["conda", "install", "conda-pack", "-y"])
 
         # Create and activate new environment from yaml
-        env_file = PROJECT_ROOT / "environment.yaml"
-        if not env_file.exists():
-            raise BuildError(f"Environment file not found: {env_file}")
+        requirements_file = PROJECT_ROOT / "requirements.txt"
 
         # Remove existing environment if it exists
         self.remove_directory(self.ENV_DIR)
 
-        # Create new environment
-        self.run_command([
-            "conda", "env", "create",
-            "-f", str(env_file),
-            "-p", str(self.ENV_DIR)
-        ])
+        # Create new conda environment
+        self.run_command(
+            [
+                "conda",
+                "create",
+                "--yes",
+                "--verbose",
+                "-p",
+                str(self.ENV_DIR),
+                f"python={self.python_version}",
+                "ffmpeg",
+                "cairo",
+            ]
+        )
+
+        # Create a venv inside the conda environment
+        venv_path = self.ENV_DIR / "venv"
+        self.run_command(
+            [
+                self.ENV_DIR / "bin" / "python",
+                "-m",
+                "venv",
+                str(venv_path),
+            ]
+        )
+
+        # Install requirements in the venv
+        pip_path = (
+            venv_path / "bin" / "pip"
+            if self.platform != "windows"
+            else venv_path / "Scripts" / "pip"
+        )
+        self.run_command(
+            [
+                str(pip_path),
+                "install",
+                "--verbose",
+                "--no-deps",
+                "--prefer-binary",
+                "--only-binary=kornia-rs",
+                "-r",
+                str(requirements_file),
+            ]
+        )
 
         # Pack the environment
         version = self.get_version()
@@ -414,19 +450,17 @@ class Build:
         output_name = f"conda-env-{self.platform}-{self.arch}-{version}.{ext}"
         output_path = self.BUILD_DIR / output_name
 
-        self.run_command([
-            "conda-pack",
-            "-p", str(self.ENV_DIR),
-            "-o", str(output_path)
-        ])
+        self.remove_file(output_path)
+
+        self.run_command(
+            ["conda-pack", "-p", str(self.ENV_DIR), "-o", str(output_path)]
+        )
 
         logger.info(f"Environment packed successfully to {output_name}")
 
         # Upload the packed environment to S3
         logger.info(f"Uploading {output_name} to s3://nodetool-conda/")
-        self.run_command([
-            "aws", "s3", "cp", str(output_path), "s3://nodetool-conda/"
-        ])
+        self.run_command(["aws", "s3", "cp", str(output_path), "s3://nodetool-conda/"])
 
 
 def main() -> None:
@@ -451,16 +485,11 @@ def main() -> None:
     )
     parser.add_argument(
         "--python-version",
-        default="3.11.10",
-        help="Python version to use for the conda environment (e.g., 3.11.10)",
+        default="3.10",
+        help="Python version to use for the conda environment (e.g., 3.10)",
     )
 
     args = parser.parse_args()
-
-    # Validate Python version format
-    if not re.match(r"^\d+\.\d+\.\d+$", args.python_version):
-        logger.error("Invalid Python version format. Use 'X.Y.Z' (e.g., 3.11.10)")
-        sys.exit(1)
 
     build = Build(
         clean_build=args.clean,
@@ -475,9 +504,7 @@ def main() -> None:
             logger.error(f"Invalid build step: {args.step}")
             sys.exit(1)
     else:
-        build.setup()
-        build.web()
-        build.electron()
+        raise BuildError("No build step specified")
 
 
 if __name__ == "__main__":

@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "nodetool"
-version = "0.5.3"
+version = "0.5.4a"
 description = "Nodetool is a no-code development environment for Artificial Intelligence, enabling the simple and intuitive creation of powerful AI workflows and their integration into existing applications."
 readme = "README.md"
 authors = ["Matthias Georgi <matti.georgi@gmail.com>"]
@@ -14,7 +14,6 @@ packages = [
   { include = "comfy_custom_nodes", from = "src" },
   { include = "comfy_extras", from = "src" },
   { include = "RealESRGAN", from = "src" },
-  { include = "parler_tts", from = "src" },
   { include = "folder_paths.py", from = "src" },
   { include = "latent_preview.py", from = "src" },
   { include = "node_helpers.py", from = "src" },
@@ -101,7 +100,7 @@ scikit-image = "*"
 scikit-learn = "*"
 scipy = "*"
 seaborn = "*"
-setuptools = "72.1.0"
+setuptools = "75.1.0"  # pin to conda version to avoid pip clobbering it
 selenium = "*"
 sentence-transformers = "*"
 sentencepiece = "*"
@@ -120,6 +119,7 @@ uvicorn = { version = "*", extras = ["standard"] }
 validate_email = "*"
 websocket-client = "*"
 websockets = "*"
+wheel = "0.44.0"  # pin to conda version to avoid pip clobbering it
 yacs = "*"
 yapf = "*"
 zipp = "*"
