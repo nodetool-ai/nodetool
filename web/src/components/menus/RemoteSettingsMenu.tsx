@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { css } from "@emotion/react";
+import { css, SerializedStyles } from "@emotion/react";
 import SaveIcon from "@mui/icons-material/Save";
 import WarningIcon from "@mui/icons-material/Warning";
 import { useMemo, useState, useCallback } from "react";
@@ -7,87 +7,59 @@ import { Button, TextField, Typography } from "@mui/material";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import { settingsStyles } from "./SettingsMenu";
+import ThemeNodetool from "../themes/ThemeNodetool";
 
-const styles = (theme: any) =>
-  css({
-    display: "flex",
-    flexDirection: "column",
-    width: "100%",
-    margin: "0 auto",
-    gap: "2em",
+const remoteSettingsStyles = (theme: any): SerializedStyles => {
+  const baseStyles = settingsStyles(theme);
 
-    h3: {
-      padding: "0.5em 0.5em 0 0.5em"
-    },
+  return css`
+    ${baseStyles}
 
-    ".settings-item": {
-      background: theme.palette.c_gray2,
-      padding: "1.5em",
-      borderRadius: "12px",
-      boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-      transition: "transform 0.2s ease, box-shadow 0.2s ease",
-      "&:hover": {
-        transform: "translateY(-2px)",
-        boxShadow: "0 4px 12px rgba(0,0,0,0.15)"
-      }
-    },
-
-    ".description": {
-      color: theme.palette.c_gray5,
-      fontSize: "0.9em",
-      marginTop: "1em",
-      marginLeft: "1em",
-      lineHeight: "1.5"
-    },
-
-    ".description a": {
-      color: theme.palette.c_gray6,
-      textDecoration: "none",
-      fontWeight: 500,
-      transition: "color 0.2s ease",
-      "&:hover": {
-        color: theme.palette.primary.dark
-      }
-    },
-
-    "& .MuiTextField-root": {
-      width: "100%",
-      "& .MuiInputBase-root": {
-        backgroundColor: theme.palette.c_gray1,
-        borderRadius: "8px",
-        padding: "4px 12px"
-      }
-    },
-
-    ".secrets": {
-      color: theme.palette.c_gray6,
-      padding: "1em",
-      borderRadius: "8px",
-      marginTop: "2em",
-      display: "flex",
-      alignItems: "center",
-      gap: "0.5em"
-    },
-
-    ".save-button": {
-      marginTop: "2em",
-      padding: "1em 2em",
-      borderRadius: "12px",
-      fontWeight: 600,
-      textTransform: "none",
-      fontSize: "1.1em",
-      transition: "transform 0.2s ease",
-      "&:hover": {
-        transform: "translateY(-2px)"
-      }
+    .save-button-container {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background-color: ${theme.palette.c_gray0};
+      margin: 0;
+      padding: 0.5em 0;
+      display: flex;
+      justify-content: center;
+      width: 100%;
     }
-  });
 
-const RemoteSettings = () => {
+    .save-button {
+      padding: 0.5em 2em;
+      font-family: ${theme.fontFamily2};
+      word-spacing: -0.2em;
+      color: ${theme.palette.c_gray0};
+      border-radius: 0.2em;
+      text-transform: none;
+      font-size: ${theme.fontSizeBig};
+      transition: transform 0.2s ease;
+    }
+
+    .show-hide-button {
+      color: "red",
+      minWidth: "18em",
+      marginTop: ".5em",
+      padding: ".5em"
+        
+    }
+  `;
+};
+
+const RemoteSettings = ({
+  enableCollapse = true
+}: {
+  enableCollapse?: boolean;
+}) => {
   const queryClient = useQueryClient();
   const { updateSettings, fetchSettings } = useRemoteSettingsStore();
   const { addNotification } = useNotificationStore();
-
+  const [showRemoteSettings, setShowRemoteSettings] = useState(true);
   const { data, isSuccess, isLoading } = useQuery({
     queryKey: ["settings"],
     queryFn: fetchSettings
@@ -160,13 +132,39 @@ const RemoteSettings = () => {
 
   return (
     <>
+      {enableCollapse && (
+        <Button
+          onClick={() => setShowRemoteSettings(!showRemoteSettings)}
+          endIcon={showRemoteSettings ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+          className="show-hide-button"
+          sx={{ width: "100%" }}
+        >
+          {showRemoteSettings ? "Hide Remote Settings" : "Show Remote Settings"}
+        </Button>
+      )}
+
       {isLoading && (
         <Typography sx={{ textAlign: "center", padding: "2em" }}>
           Loading API providers...
         </Typography>
       )}
-      {isSuccess ? (
-        <div className="remote-settings" css={styles}>
+      {isSuccess && (enableCollapse ? showRemoteSettings : true) && (
+        <div
+          className="remote-settings"
+          css={remoteSettingsStyles(ThemeNodetool)}
+        >
+          <div className="save-button-container">
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={handleSave}
+              className="save-button"
+              startIcon={<SaveIcon />}
+            >
+              SAVE API + FOLDER SETTINGS
+            </Button>
+          </div>
+
           <Typography variant="h3">API Provider Settings</Typography>
 
           <div className="settings-item">
@@ -180,18 +178,14 @@ const RemoteSettings = () => {
               }
               variant="standard"
               onKeyDown={(e) => e.stopPropagation()}
-              sx={{
-                "& .MuiInputBase-root": {
-                  fontSize: "1rem"
-                }
-              }}
             />
             <div className="text-and-button">
               <Typography className="description">
                 Replicate provides access to a diverse range of AI models and
-                capabilities. By configuring your Replicate API token,
-                you&apos;ll gain access to advanced models like flux.dev and
-                flux.pro.
+                capabilities.
+                <br /> By configuring your Replicate API token, you&apos;ll gain
+                access to advanced models like flux.dev and flux.pro.
+                <br />
                 <a
                   href="https://replicate.com/account/api-tokens"
                   target="_blank"
@@ -205,23 +199,19 @@ const RemoteSettings = () => {
 
           <div className="settings-item">
             <TextField
+              autoComplete="off"
               id="openai-api-key-input"
               label="OpenAI API key"
-              autoComplete="off"
               value={settings.OPENAI_API_KEY}
               onChange={(e) => handleChange("OPENAI_API_KEY", e.target.value)}
               variant="standard"
               onKeyDown={(e) => e.stopPropagation()}
-              sx={{
-                "& .MuiInputBase-root": {
-                  fontSize: "1rem"
-                }
-              }}
             />
             <div className="text-and-button">
               <Typography className="description">
                 Setting up an OpenAI API key enables you to use models like GPT,
                 Whisper, DALL-E, and more.
+                <br />
                 <a
                   href="https://platform.openai.com/account/api-keys"
                   target="_blank"
@@ -235,29 +225,21 @@ const RemoteSettings = () => {
 
           <div className="settings-item">
             <TextField
+              autoComplete="off"
               id="anthropic-api-key-input"
-              label="Enter your Anthropic API key"
+              label="Anthropic API key"
               value={settings.ANTHROPIC_API_KEY}
               onChange={(e) =>
                 handleChange("ANTHROPIC_API_KEY", e.target.value)
               }
               variant="standard"
-              slotProps={{
-                inputLabel: {
-                  shrink: true
-                }
-              }}
-              sx={{
-                "& .MuiInputBase-root": {
-                  fontSize: "1rem"
-                }
-              }}
             />
 
             <div className="text-and-button">
               <Typography className="description">
                 By entering your Anthropic API token, you&apos;ll be able to use
                 sophisticated models like Claude 3.5 Sonnet.
+                <br />
                 <a
                   href="https://console.anthropic.com/account/keys"
                   target="_blank"
@@ -271,26 +253,18 @@ const RemoteSettings = () => {
 
           <div className="settings-item">
             <TextField
+              autoComplete="off"
               id="hf-token-input"
-              label="Enter your HuggingFace token"
+              label="HuggingFace token"
               value={settings.HF_TOKEN}
               onChange={(e) => handleChange("HF_TOKEN", e.target.value)}
               variant="standard"
-              slotProps={{
-                inputLabel: {
-                  shrink: true
-                }
-              }}
-              sx={{
-                "& .MuiInputBase-root": {
-                  fontSize: "1rem"
-                }
-              }}
             />
             <div className="text-and-button">
               <Typography className="description">
                 Enter your HuggingFace Access Token to use additional models
                 that are not openly available.
+                <br />
                 <a
                   href="https://huggingface.co/settings/tokens"
                   target="_blank"
@@ -304,89 +278,74 @@ const RemoteSettings = () => {
 
           <div className="settings-item">
             <TextField
+              autoComplete="off"
               id="kling-access-key-input"
               label="Kling AI Access Key"
               value={settings.KLING_ACCESS_KEY}
               onChange={(e) => handleChange("KLING_ACCESS_KEY", e.target.value)}
               variant="standard"
-              slotProps={{
-                inputLabel: {
-                  shrink: true
-                }
-              }}
-              sx={{
-                "& .MuiInputBase-root": {
-                  fontSize: "1rem"
-                }
-              }}
             />
             <TextField
+              autoComplete="off"
               id="kling-secret-key-input"
               label="Kling AI Secret Key"
               value={settings.KLING_SECRET_KEY}
               onChange={(e) => handleChange("KLING_SECRET_KEY", e.target.value)}
               variant="standard"
-              slotProps={{
-                inputLabel: {
-                  shrink: true
-                }
-              }}
-              sx={{
-                marginTop: "1em",
-                "& .MuiInputBase-root": {
-                  fontSize: "1rem"
-                }
-              }}
+              sx={{ marginTop: "1em" }}
             />
             <Typography className="description">
               Enter your Kling AI credentials to access state-of-the-art video
-              generation models. See https://klingai.com/dev-center for more
-              information.
+              generation models. <br />
+              <a
+                href="https://klingai.com/dev-center"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                &rarr; Kling AI Dev Center
+              </a>{" "}
             </Typography>
           </div>
 
           <div className="settings-item">
             <TextField
+              autoComplete="off"
               id="lumaai-api-key-input"
               label="Luma AI API Key"
               value={settings.LUMAAI_API_KEY}
               onChange={(e) => handleChange("LUMAAI_API_KEY", e.target.value)}
               variant="standard"
-              slotProps={{
-                inputLabel: {
-                  shrink: true
-                }
-              }}
-              sx={{
-                "& .MuiInputBase-root": {
-                  fontSize: "1rem"
-                }
-              }}
             />
             <Typography className="description">
               Enter your Luma AI API key to access state-of-the-art video
-              generation models. See https://lumalabs.ai/dream-machine/api for
-              more information.
+              generation models.
+              <br />
+              <a
+                href="https://lumalabs.ai/dream-machine/api"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                &rarr; Luma AI Settings
+              </a>
             </Typography>
           </div>
+          <div className="secrets">
+            <WarningIcon sx={{ color: "#ff9800" }} />
+            <Typography>
+              Keep your keys and tokens secure and do not share them publicly
+            </Typography>
+          </div>
+          <Typography variant="h3">ComfyUI</Typography>
 
           <div className="settings-item folder-path">
             <TextField
+              autoComplete="off"
               id="comfy-folder-input"
               label="Comfy Folder"
               value={settings.COMFY_FOLDER}
               onChange={(e) => handleChange("COMFY_FOLDER", e.target.value)}
               variant="standard"
-              slotProps={{
-                inputLabel: {
-                  shrink: true
-                }
-              }}
-              sx={{
-                "& .MuiInputBase-root": {
-                  fontSize: "1rem"
-                }
-              }}
+              placeholder="PATH/TO/ComfyUI"
             />
             <Typography className="description">
               To use ComfyUI models from your existing ComfyUI installation, set
@@ -394,23 +353,16 @@ const RemoteSettings = () => {
             </Typography>
           </div>
 
+          <Typography variant="h3">ChromaDB</Typography>
+
           <div className="settings-item">
             <TextField
+              autoComplete="off"
               id="chroma-path-input"
               label="ChromaDB Path"
               value={settings.CHROMA_PATH}
               onChange={(e) => handleChange("CHROMA_PATH", e.target.value)}
               variant="standard"
-              slotProps={{
-                inputLabel: {
-                  shrink: true
-                }
-              }}
-              sx={{
-                "& .MuiInputBase-root": {
-                  fontSize: "1rem"
-                }
-              }}
             />
             <Typography className="description">
               Set the path to your ChromaDB storage folder. ChromaDB is used to
@@ -418,48 +370,26 @@ const RemoteSettings = () => {
             </Typography>
           </div>
 
+          <Typography variant="h3">Assets</Typography>
+
           <div className="settings-item">
             <TextField
+              autoComplete="off"
               id="asset-folder-input"
               label="Asset Folder"
               value={settings.ASSET_FOLDER}
               onChange={(e) => handleChange("ASSET_FOLDER", e.target.value)}
               variant="standard"
-              slotProps={{
-                inputLabel: {
-                  shrink: true
-                }
-              }}
-              sx={{
-                "& .MuiInputBase-root": {
-                  fontSize: "1rem"
-                }
-              }}
             />
             <Typography className="description">
-              Set the path to your asset storage folder. This folder is used to
-              store images and other assets for your workflows.
-            </Typography>
-          </div>
-
-          <Button
-            variant="outlined"
-            color="primary"
-            onClick={handleSave}
-            className="save-button"
-            startIcon={<SaveIcon />}
-          >
-            Save Settings
-          </Button>
-
-          <div className="secrets">
-            <WarningIcon sx={{ color: "#ff9800" }} />
-            <Typography>
-              Keep your keys and tokens secure and do not share them publicly
+              Set the path to your asset storage folder.
+              <br />
+              This folder is used to store images and other assets for your
+              workflows.
             </Typography>
           </div>
         </div>
-      ) : null}
+      )}
     </>
   );
 };

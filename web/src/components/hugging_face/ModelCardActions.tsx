@@ -28,7 +28,10 @@ const ModelCardActions: React.FC<ModelCardActionsProps> = ({
   return (
     <>
       {renderModelActions({ model, handleDelete, onDownload }, downloaded)}
-      <CardActions sx={{ justifyContent: "space-between", p: 2 }}>
+      <CardActions
+        className="card-actions"
+        sx={{ justifyContent: "space-between", p: 2 }}
+      >
         {isHuggingFace && (
           <Box className="model-stats">
             <Typography

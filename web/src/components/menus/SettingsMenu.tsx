@@ -1,5 +1,7 @@
 /** @jsxImportSource @emotion/react */
-import { css } from "@emotion/react";
+import { css, SerializedStyles } from "@emotion/react";
+
+import { useState } from "react";
 
 import { VERSION } from "../../config/constants";
 import Menu from "@mui/material/Menu";
@@ -16,6 +18,7 @@ import {
 } from "@mui/material";
 import Select from "@mui/material/Select";
 import SettingsIcon from "@mui/icons-material/Settings";
+import WarningIcon from "@mui/icons-material/Warning";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import ThemeNodetool from "../themes/ThemeNodetool";
 import { useNavigate } from "react-router";
@@ -27,12 +30,13 @@ import { isProduction } from "../../stores/ApiClient";
 import RemoteSettingsMenu from "./RemoteSettingsMenu";
 import { useNotificationStore } from "../../stores/NotificationStore";
 
-const styles = (theme: any) =>
+export const settingsStyles = (theme: any): any =>
   css({
     ".MuiPaper-root": {
       backgroundColor: theme.palette.c_gray0,
       border: `2px solid ${theme.palette.c_gray0}`,
       borderRadius: "1em",
+      maxWidth: "1000px",
       height: "90vh",
       overflow: "hidden"
     },
@@ -63,67 +67,115 @@ const styles = (theme: any) =>
     },
     ".settings-menu": {
       flexGrow: 1,
-      backgroundColor: theme.palette.c_gray1,
+      backgroundColor: theme.palette.c_gray0,
       width: "70vw",
       height: "75vh",
       overflowY: "auto",
       minWidth: "400px",
       maxWidth: "1000px",
-      padding: "2em",
+      padding: "0 2em 2em 2em",
       display: "flex",
       flexDirection: "column",
-      gap: "2em",
-
-      ".settings-item": {
-        background: theme.palette.c_gray2,
-        padding: "1.5em",
-        borderRadius: "12px",
-        boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-        transition: "transform 0.2s ease, box-shadow 0.2s ease",
-        margin: "0 auto",
-        border: "none",
+      gap: "0"
+    },
+    ".settings-item": {
+      background: theme.palette.c_gray2,
+      margin: "0 0 1.5em 0",
+      padding: ".5em .5em 1em .5em",
+      borderRadius: ".2em",
+      boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+      transition: "transform 0.2s ease, box-shadow 0.2s ease",
+      border: "none",
+      width: "100%",
+      display: "flex",
+      flexDirection: "column",
+      gap: ".5em",
+      "&:hover": {
+        boxShadow: "0 4px 12px rgba(0,0,0,0.4)"
+      },
+      ".MuiFormControl-root": {
         width: "100%",
-        display: "flex",
-        flexDirection: "column",
-        gap: "1em",
-
-        "&:hover": {
-          transform: "translateY(-2px)",
-          boxShadow: "0 4px 12px rgba(0,0,0,0.15)"
+        minWidth: "unset",
+        margin: "0",
+        padding: "0 .5em",
+        "& .MuiInputLabel-root": {
+          position: "relative",
+          transform: "none",
+          marginBottom: "8px"
         },
-
-        ".MuiFormControl-root": {
-          width: "100%",
-          minWidth: "unset",
-          "& .MuiInputBase-root": {
-            backgroundColor: theme.palette.c_gray1,
-            borderRadius: "8px",
-            padding: "4px 12px"
+        "& .MuiInputBase-root": {
+          maxWidth: "34em",
+          backgroundColor: theme.palette.c_gray1,
+          borderRadius: ".2em",
+          margin: "0",
+          padding: ".2em 1em",
+          "&::before": {
+            content: "none"
+          },
+          "&::after": {
+            borderBottom: "1px solid" + theme.palette.c_gray4
           }
-        },
-
-        ".description": {
-          color: theme.palette.c_gray5,
-          fontSize: "0.9em",
-          marginLeft: "1em",
-          lineHeight: "1.5"
         }
       },
-
-      h3: {
-        fontSize: "1.5em",
-        fontWeight: 600,
-        marginTop: "1em",
-        color: theme.palette.c_gray6
+      label: {
+        color: theme.palette.c_white,
+        fontSize: theme.fontSizeBigger,
+        fontWeight: "300",
+        padding: ".5em 0 .25em 0"
+      },
+      ".description": {
+        color: theme.palette.c_gray6,
+        fontSize: theme.fontSizeNormal,
+        margin: "0",
+        padding: "0 1em",
+        lineHeight: "1.5",
+        a: {
+          color: theme.palette.c_hl1,
+          backgroundColor: theme.palette.c_gray1,
+          padding: ".2em 1em",
+          borderRadius: ".2em",
+          marginTop: ".5em",
+          display: "inline-block",
+          textDecoration: "none",
+          transition: "color 0.2s ease",
+          "&:hover": {
+            color: theme.palette.c_white
+          }
+        }
+      },
+      ul: {
+        margin: "0",
+        padding: "0 0 0 1em",
+        listStyleType: "square"
       }
     },
 
+    ".settings-header": {
+      display: "flex",
+      alignItems: "center",
+      gap: "0.5em"
+    },
+
     ".MuiSelect-select": {
-      fontSize: "1rem !important",
-      padding: "0.8em 1em !important",
-      marginTop: "0 !important",
+      fontSize: theme.fontSizeNormal,
+      padding: "0.25em",
+      marginTop: "0 ",
       backgroundColor: theme.palette.c_gray1,
       borderRadius: "8px"
+    },
+    ".MuiSwitch-root": {
+      margin: "0"
+    },
+    ".secrets": {
+      backgroundColor: theme.palette.c_white,
+      color: theme.palette.c_black,
+      fontSize: theme.fontSizeBig,
+      marginTop: ".5em",
+      padding: ".5em",
+      borderRadius: ".2em",
+      display: "flex",
+      alignItems: "center",
+      gap: "0.5em"
     },
 
     h2: {
@@ -132,8 +184,11 @@ const styles = (theme: any) =>
       padding: "0"
     },
     h3: {
-      color: theme.palette.c_gray5,
-      margin: "0"
+      fontSize: theme.fontSizeGiant,
+      margin: "0 0 0.25em 0",
+      padding: "0.5em 0 0",
+      fontWeight: "200",
+      color: theme.palette.c_white
     }
   });
 
@@ -178,7 +233,7 @@ function SettingsMenu() {
       addNotification({
         type: "info",
         alert: true,
-        content: "Nodetool Auth Token copied to Clipboard!"
+        content: "Nodetool API Token copied to Clipboard!"
       });
     }
   };
@@ -196,7 +251,7 @@ function SettingsMenu() {
         </Button>
       </Tooltip>
       <Menu
-        css={styles}
+        css={settingsStyles(ThemeNodetool)}
         className="settings-menu-container"
         open={isMenuOpen}
         onContextMenu={(event) => event.preventDefault()}
@@ -218,8 +273,10 @@ function SettingsMenu() {
           <CloseButton onClick={handleClose} />
           <Typography variant="h2">Settings</Typography>
         </div>
+
         <div className="settings-menu">
           {!isProduction && <RemoteSettingsMenu />}
+
           <Typography variant="h3">Editor</Typography>
 
           <div className="settings-item">
@@ -319,9 +376,6 @@ function SettingsMenu() {
               value={settings.gridSnap}
               onChange={(e) => setGridSnap(Number(e.target.value))}
               variant="standard"
-              InputLabelProps={{
-                shrink: true
-              }}
             />
             <Typography className="description">
               Snap precision for moving nodes on the canvas.
@@ -362,7 +416,7 @@ function SettingsMenu() {
             </FormControl>
             <Typography className="description">
               Choose grid or list layout for{" "}
-              <Link to="/workflows">Workflows</Link>.
+              <Link to="/workflows">Workflows</Link>
             </Typography>
           </div>
 
@@ -397,9 +451,6 @@ function SettingsMenu() {
               value={settings.assetItemSize}
               onChange={(e) => setAssetItemSize(Number(e.target.value))}
               variant="standard"
-              InputLabelProps={{
-                shrink: true
-              }}
             />
             <Typography className="description">
               Default size for items in the asset browser.
@@ -482,15 +533,17 @@ function SettingsMenu() {
               }}
             >
               <FormControl>
-                <InputLabel>Nodetool Auth Token</InputLabel>
+                <InputLabel>Nodetool API Token</InputLabel>
               </FormControl>
               <Typography className="description">
                 This token is used to authenticate your account with the
                 Nodetool API. <br />
-                <span style={{ color: ThemeNodetool.palette.c_warning }}>
-                  WARNING:&nbsp;
-                </span>
-                Do not share it with anyone.
+                <div className="secrets">
+                  <WarningIcon sx={{ color: "#ff9800" }} />
+                  <Typography>
+                    Keep this token secure and do not share it publicly
+                  </Typography>
+                </div>
                 <br />
                 <Tooltip title="Copy to clipboard">
                   <Button

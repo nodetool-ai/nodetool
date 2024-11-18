@@ -540,7 +540,7 @@ const Welcome = ({ handleClose }: { handleClose: () => void }) => {
           )}
         </div>
 
-        <div className="scrollable-content">
+        <div className="scrollable-content" style={{ overflowY: "auto" }}>
           <TabPanel value={tabValue} index={TabValue.Overview}>
             {(searchTerm === "" ? sections : filteredSections).map(
               (section, index) => (
@@ -730,12 +730,12 @@ const Welcome = ({ handleClose }: { handleClose: () => void }) => {
                 <Box
                   sx={{
                     flex: 1,
-                    backgroundColor: theme.palette.c_gray1,
-                    p: 3,
-                    borderRadius: "20px"
+                    backgroundColor: theme.palette.c_gray0,
+                    p: 4,
+                    borderRadius: ".2em"
                   }}
                 >
-                  <RemoteSettingsMenu />
+                  <RemoteSettingsMenu enableCollapse={false} />
                 </Box>
               </Box>
             </Box>

@@ -13,6 +13,7 @@ import "@fontsource/jetbrains-mono/600.css";
 
 declare module "@mui/system/createTheme" {
   interface ThemeOptions {
+    fontSizeGiant?: string;
     fontSizeBigger?: string;
     fontSizeBig?: string;
     fontSizeNormal?: string;
@@ -24,6 +25,7 @@ declare module "@mui/system/createTheme" {
     fontFamily2?: string;
   }
   interface Theme {
+    fontSizeGiant: string;
     fontSizeBigger: string;
     fontSizeBig: string;
     fontSizeNormal: string;
@@ -82,6 +84,7 @@ declare module "@mui/material/styles" {
 }
 
 const ThemeNodetool: Theme = createTheme({
+  fontSizeGiant: "2em", // 32px
   fontSizeBigger: "1.25em", // 20px
   fontSizeBig: "1.125em", // 18px
   fontSizeNormal: "16px",
