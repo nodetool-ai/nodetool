@@ -419,7 +419,11 @@ class Build:
         # Create a virtual env
         self.run_command(
             [
-                str(self.ENV_DIR / python_exe),
+                (
+                    str(self.ENV_DIR / python_exe)
+                    if self.platform == "windows"
+                    else str(self.ENV_DIR / scripts_dir / python_exe)
+                ),
                 "-m",
                 "venv",
                 str(self.ENV_DIR / "venv"),
