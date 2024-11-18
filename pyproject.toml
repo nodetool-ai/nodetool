@@ -22,36 +22,36 @@ packages = [
 
 [tool.poetry.dependencies]
 # xformers = "*"
-accelerate = "*"
-addict = "*"
-aiofiles = "*"
-aiohttp = "*"
-annotated-types = "*"
-anthropic = "*"
-authlib = "*"
-av = "*"
-bitsandbytes = "0.42.0"  # pin to have same version across platforms
-black = "*"
-boto3 = ">=1.34.5"
-bs4 = "*"
-cairosvg = "*"
-chromadb = "*"
-click = "*"
+accelerate = "1.1.1"
+addict = "2.4.0"
+aiofiles = "24.1.0"
+aiohttp = "3.11.2"
+annotated-types = "0.7.0"
+anthropic = "0.39.0"
+authlib = "1.3.2"
+av = "13.1.0"
+bitsandbytes = "0.44.1"
+black = "24.10.0"
+boto3 = "1.35.63"
+bs4 = "0.0.2"
+cairosvg = "2.7.1"
+chromadb = "0.4.21"
+click = "8.1.7"
 cryptography = "*"
-dac = "*"
-datasets = "*"
-descript-audio-codec = "*"
-diffusers = { extras = ["torch"], version = "*" }
-einops = "*"
-fastapi = ">=0.109.0"
-filelock = "*"
-ffmpeg-python = "*"
-freezegun = "*"
-ftfy = "*"
-fvcore = "*"
-httpx = "*"
-huggingface_hub = "*"
-imageio = "*"
+dac = "0.4.2"
+datasets = "3.1.0"
+descript-audio-codec = "1.0.0"
+diffusers = { extras = ["torch"], version = "0.31.0" }
+einops = "0.8.0"
+fastapi = "0.115.5"
+filelock = "3.16.1"
+ffmpeg-python = "0.2.0"
+freezegun = "1.5.1"
+ftfy = "6.3.1"
+fvcore = "0.1.5.post20221221"
+httpx = "0.27.2"
+huggingface_hub = "0.26.2"
+imageio = "2.36.0"
 importlib_metadata = "*"
 importlib-resources = "*"
 itsdangerous = "*"
@@ -59,83 +59,93 @@ joblib = "*"
 jsonpath-ng = "*"
 jsonschema = "*"
 jwt = "*"
-kornia = "*"
-librosa = "*"
-lumaai = "*"
-matplotlib = "*"
+kornia = "0.7.4"
+librosa = "0.10.2.post1"
+lumaai = "1.1.0"
+matplotlib = "3.9.2"
 moto = { version = "*", extras = ["s3"] }
-moviepy = "*"
-msgpack = "*"
-numpy = "==1.26.4"
-ollama = "*"
-omegaconf = "*"
-onnxruntime = "*"
+moviepy = "1.0.3"
+msgpack = "1.1.0"
+numpy = "1.26.4"
+ollama = "0.3.3"
+omegaconf = "2.3.0"
+onnxruntime = "1.20.0"
 # onnx = "1.16.2"
 # onnxruntime-gpu = "*"
-open-clip-torch = "*"
-openai = ">=1.10.0"
+open-clip-torch = "2.29.0"
+openai = "1.54.4"
 openapi-pydantic = "*"
-opencv-python-headless = "*"
-pandas = "*"
-pedalboard = "*"
-peft = "*"
-pillow = "*"
+opencv-python-headless = "4.10.0.84"
+pandas = "2.2.3"
+pedalboard = "0.9.16"
+peft = "0.13.2"
+pillow = "11.0.0"
 protobuf = "*"
-psutil = "*"
-psycopg2-binary = "*"
-pydantic = ">=2.6.1"
-pydub = "*"
-pymemcache = "*"
-pyngrok = "*"
-pytesseract = "*"
+psutil = "6.1.0"
+psycopg2-binary = "2.9.10"
+pydantic = "2.9.2"
+pydub = "0.25.1"
+pymemcache = "4.0.0"
+pyngrok = "7.2.1"
+pytesseract = "0.3.13"
 python = "^3.10"
-python-dateutil = "*"
-python-multipart = "*"
-pyyaml = "*"
-replicate = "*"
-respx = "*"
-safetensors = "*"
-sam2 = "*"
-scikit-image = "*"
-scikit-learn = "*"
-scipy = "*"
-seaborn = "*"
-setuptools = "75.1.0"  # pin to conda version to avoid pip clobbering it
-selenium = "*"
-sentence-transformers = "*"
-sentencepiece = "*"
-spandrel = "*"
-statsmodels = "*"
-svglib = "*"
-tiktoken = "*"
-torch = { version = ">=2.4", source = "pytorch" }
-torchsde = "*"
-torchaudio = { version = "*", source = "pytorch" }
-torchvision = { version = "*", source = "pytorch" }
-tqdm = "*"
-transformers = "4.43.3"
-trimesh = "*"
-uvicorn = { version = "*", extras = ["standard"] }
-validate_email = "*"
-websocket-client = "*"
-websockets = "*"
-wheel = "0.44.0"  # pin to conda version to avoid pip clobbering it
-yacs = "*"
-yapf = "*"
-zipp = "*"
-
-[tool.poetry.group.test.dependencies]
+python-dateutil = "2.9.0.post0"
+python-multipart = "0.0.17"
+pyyaml = "6.0.2"
+replicate = "1.0.3"
+respx = "0.21.1"
+safetensors = "0.4.5"
+sam2 = "0.4.1"
+scikit-image = "0.24.0"
+scikit-learn = "1.5.2"
+scipy = "1.14.1"
+seaborn = "0.13.2"
+setuptools = "75.1.0"
+selenium = "4.26.1"
+sentence-transformers = "3.3.0"
+sentencepiece = "0.2.0"
+spandrel = "0.4.0"
+statsmodels = "0.14.4"
+svglib = "1.5.1"
+tiktoken = "0.8.0"
+torch = { version = "2.4.1" }
+torchvision = { version = "0.19.1" }
+torchaudio = { version = "2.4.1" }
 pytest = "*"
 pytest-mock = "*"
 pytest-asyncio = "*"
 pytest-env = "*"
 pytest-xdist = "*"
 
-
 [tool.poetry.scripts]
 nodetool = "nodetool.cli:cli"
 
+[tool.poetry.group.cpu]
+optional = true
+
+[tool.poetry.group.cpu.dependencies]
+torch = { version = "2.4.1", source = "torch_cpu", markers = "extra=='cpu' and extra!='gpu'" }
+torchvision = { version = "0.19.1", source = "torch_cpu", markers = "extra=='cpu' and extra!='gpu'" }
+torchaudio = { version = "2.4.1", source = "torch_cpu", markers = "extra=='cpu' and extra!='gpu'" }
+
+[tool.poetry.group.gpu]
+optional = true
+
+[tool.poetry.group.gpu.dependencies]
+torch = { version = "2.4.1", source = "torch_cuda", markers = "extra=='gpu' and extra!='cpu'" }
+torchvision = { version = "0.19.1", source = "torch_cuda", markers = "extra=='gpu' and extra!='cpu'" }
+torchaudio = { version = "2.4.1", source = "torch_cuda", markers = "extra=='gpu' and extra!='cpu'" }
+
+[tool.poetry.extras]
+cpu = ["torch", "torchvision", "torchaudio"]
+gpu = ["torch", "torchvision", "torchaudio"]
+
 [[tool.poetry.source]]
-name = "pytorch"
-url = "https://download.pytorch.org/whl/cu121"
+name = "torch_cpu"
+url = "https://download.pytorch.org/whl/cpu"
+priority = "explicit"
+
+[[tool.poetry.source]]
+name = "torch_cuda"
+url = "https://download.pytorch.org/whl/cu118"
 priority = "explicit"
