@@ -43,6 +43,9 @@ jobs:
 
     runs-on: ${{ matrix.os }}
     steps:
+      - name: Free Disk Space
+        uses: jlumbroso/free-disk-space@main
+
       - uses: actions/checkout@v3
 
       - name: Set up Conda
@@ -78,9 +81,12 @@ jobs:
     env:
       PYTHON_VERSION: "3.1a"
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
+      SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_TOKEN }}
     steps:
       - uses: actions/checkout@v3
+
+      - name: Install Snapcraft
+        uses: samuelmeuli/action-snapcraft@v3
 
       - name: Set up Python
         uses: actions/setup-python@v4
