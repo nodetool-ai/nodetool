@@ -12,7 +12,8 @@ export const tableStyles = (theme: any) =>
       height: "calc(100% - 20px)",
       maxHeight: "800px",
       position: "relative",
-      overflow: "hidden"
+      overflow: "hidden",
+      border: `1px solid ${theme.palette.c_gray0}`
     },
 
     // Tabulator base
@@ -24,7 +25,8 @@ export const tableStyles = (theme: any) =>
     ".tabulator-tableholder": {
       overflow: "auto",
       paddingBottom: "4em",
-      backgroundColor: theme.palette.c_gray2
+      backgroundColor: theme.palette.c_gray1,
+      borderTop: `1px solid ${theme.palette.c_gray0}`
     },
 
     // Column resize handle
@@ -42,7 +44,14 @@ export const tableStyles = (theme: any) =>
     ".tabulator-row": {
       minHeight: "15px",
       minWidth: "20px",
-      fontSize: theme.fontSizeSmall
+      fontSize: theme.fontSizeSmall,
+      backgroundColor: theme.palette.c_gray0
+    },
+    ".tabulator-row-even": {
+      backgroundColor: theme.palette.c_gray1
+    },
+    ".tabulator-row:hover": {
+      backgroundColor: theme.palette.c_gray2
     },
 
     // Header
@@ -52,10 +61,12 @@ export const tableStyles = (theme: any) =>
       maxHeight: "30px",
       fontSize: theme.fontSizeSmall,
       color: theme.palette.c_gray5,
-      fontWeight: "normal"
+      fontWeight: "normal",
+      borderBottom: `1px solid ${theme.palette.c_gray0}`
     },
     ".tabulator .tabulator-header .tabulator-col": {
-      minHeight: "2em"
+      minHeight: "2em",
+      borderRight: `1px solid ${theme.palette.c_gray0}`
     },
     // Sorting arrow
     ".tabulator .tabulator-header .tabulator-col.tabulator-sortable .tabulator-col-content .tabulator-col-sorter .tabulator-arrow":
@@ -71,9 +82,14 @@ export const tableStyles = (theme: any) =>
         borderTop: `4px solid ${theme.palette.c_hl1}`
       },
 
+    // cell
+    ".tabulator-row .tabulator-cell": {
+      borderColor: theme.palette.c_gray0
+    },
     // Frozen column
     ".tabulator-row .tabulator-cell.tabulator-frozen": {
-      paddingLeft: "2px !important"
+      paddingLeft: "2px !important",
+      borderRight: `1px solid ${theme.palette.c_gray0}`
     },
     ".tabulator .tabulator-header .tabulator-col .tabulator-col-content": {
       padding: "5px 0px 0px 2px"
