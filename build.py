@@ -419,7 +419,7 @@ class Build:
         # Create a virtual env
         self.run_command(
             [
-                str(self.ENV_DIR / scripts_dir / python_exe),
+                str(self.ENV_DIR / python_exe),
                 "-m",
                 "venv",
                 str(self.ENV_DIR / "venv"),
@@ -448,10 +448,9 @@ class Build:
         )
 
         # Install requirements in the venv
-        venv_scripts_dir = "Scripts" if self.platform == "windows" else "bin"
         self.run_command(
             [
-                str(self.ENV_DIR / "venv" / venv_scripts_dir / pip_exe),
+                str(self.ENV_DIR / "venv" / scripts_dir / python_exe),
                 "install",
                 "-r",
                 str(self.BUILD_DIR / "requirements.txt"),
