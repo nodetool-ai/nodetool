@@ -411,10 +411,15 @@ class Build:
             ]
         )
 
+        # Get correct paths for Python and pip executables
+        python_exe = "python.exe" if self.platform == "windows" else "python"
+        pip_exe = "pip.exe" if self.platform == "windows" else "pip"
+        scripts_dir = "Scripts" if self.platform == "windows" else "bin"
+
         # Create a virtual env
         self.run_command(
             [
-                str(self.ENV_DIR / "bin" / "python"),
+                str(self.ENV_DIR / scripts_dir / python_exe),
                 "-m",
                 "venv",
                 str(self.ENV_DIR / "venv"),
@@ -424,16 +429,17 @@ class Build:
         # Install poetry
         self.run_command(
             [
-                str(self.ENV_DIR / "bin" / "pip"),
+                str(self.ENV_DIR / scripts_dir / pip_exe),
                 "install",
                 "poetry",
             ]
         )
 
         # Export requirements to file
+        poetry_exe = "poetry.exe" if self.platform == "windows" else "poetry"
         self.run_command(
             [
-                str(self.ENV_DIR / "bin" / "poetry"),
+                str(self.ENV_DIR / scripts_dir / poetry_exe),
                 "export",
                 "--output",
                 str(self.BUILD_DIR / "requirements.txt"),
@@ -442,9 +448,10 @@ class Build:
         )
 
         # Install requirements in the venv
+        venv_scripts_dir = "Scripts" if self.platform == "windows" else "bin"
         self.run_command(
             [
-                str(self.ENV_DIR / "venv" / "bin" / "pip"),
+                str(self.ENV_DIR / "venv" / venv_scripts_dir / pip_exe),
                 "install",
                 "-r",
                 str(self.BUILD_DIR / "requirements.txt"),
