@@ -39,7 +39,7 @@ jobs:
       matrix:
         os: [windows-latest, ubuntu-latest, macos-latest]
     env:
-      PYTHON_VERSION: "3.10"
+      PYTHON_VERSION: "3.11"
 
     runs-on: ${{ matrix.os }}
     steps:
@@ -76,7 +76,7 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     env:
-      PYTHON_VERSION: "3.10"
+      PYTHON_VERSION: "3.1a"
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     steps:
