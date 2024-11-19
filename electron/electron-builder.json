@@ -40,17 +40,11 @@
     },
     "linux": {
         "target": [
-            "snap"
+            "AppImage"
         ],
         "publish": [
             "github"
         ]
-    },
-    "snap": {
-        "confinement": "strict",
-        "grade": "stable",
-        "summary": "Nodetool",
-        "name": "nodetool"
     },
     "nsis": {
         "oneClick": false,
