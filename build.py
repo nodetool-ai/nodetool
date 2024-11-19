@@ -435,7 +435,7 @@ class Build:
             str(self.ENV_DIR / "venv" / scripts_dir / pip_exe),
             "install",
             "-r",
-            str(self.BUILD_DIR / "requirements.txt"),
+            str(PROJECT_ROOT / "requirements.txt"),
         ]
         
         # Add PyTorch CUDA index for non-Darwin platforms
