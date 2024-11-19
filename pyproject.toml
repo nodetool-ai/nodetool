@@ -19,9 +19,10 @@ packages = [
   { include = "node_helpers.py", from = "src" },
   { include = "nodes.py", from = "src" },
 ]
+package-mode = false
 
 [tool.poetry.dependencies]
-# xformers = "*"
+python = "^3.10"
 accelerate = "1.1.1"
 addict = "2.4.0"
 aiofiles = "24.1.0"
@@ -88,7 +89,6 @@ pydub = "0.25.1"
 pymemcache = "4.0.0"
 pyngrok = "7.2.1"
 pytesseract = "0.3.13"
-python = "^3.10"
 python-dateutil = "2.9.0.post0"
 python-multipart = "0.0.17"
 pyyaml = "6.0.2"
@@ -108,9 +108,10 @@ spandrel = "0.4.0"
 statsmodels = "0.14.4"
 svglib = "1.5.1"
 tiktoken = "0.8.0"
-torch = { version = "2.4.1" }
-torchvision = { version = "0.19.1" }
-torchaudio = { version = "2.4.1" }
+torch = [
+    { version = "2.4.1", source = "torch_cpu", markers = "sys_platform == 'darwin'" },
+    { version = "2.4.1", source = "torch_cuda", markers = "sys_platform != 'darwin'" }
+]
 pytest = "*"
 pytest-mock = "*"
 pytest-asyncio = "*"
@@ -120,26 +121,6 @@ pytest-xdist = "*"
 [tool.poetry.scripts]
 nodetool = "nodetool.cli:cli"
 
-[tool.poetry.group.cpu]
-optional = true
-
-[tool.poetry.group.cpu.dependencies]
-torch = { version = "2.4.1", source = "torch_cpu", markers = "extra=='cpu' and extra!='gpu'" }
-torchvision = { version = "0.19.1", source = "torch_cpu", markers = "extra=='cpu' and extra!='gpu'" }
-torchaudio = { version = "2.4.1", source = "torch_cpu", markers = "extra=='cpu' and extra!='gpu'" }
-
-[tool.poetry.group.gpu]
-optional = true
-
-[tool.poetry.group.gpu.dependencies]
-torch = { version = "2.4.1", source = "torch_cuda", markers = "extra=='gpu' and extra!='cpu'" }
-torchvision = { version = "0.19.1", source = "torch_cuda", markers = "extra=='gpu' and extra!='cpu'" }
-torchaudio = { version = "2.4.1", source = "torch_cuda", markers = "extra=='gpu' and extra!='cpu'" }
-
-[tool.poetry.extras]
-cpu = ["torch", "torchvision", "torchaudio"]
-gpu = ["torch", "torchvision", "torchaudio"]
-
 [[tool.poetry.source]]
 name = "torch_cpu"
 url = "https://download.pytorch.org/whl/cpu"
@@ -147,5 +128,5 @@ priority = "explicit"
 
 [[tool.poetry.source]]
 name = "torch_cuda"
-url = "https://download.pytorch.org/whl/cu118"
+url = "https://download.pytorch.org/whl/cu121"
 priority = "explicit"

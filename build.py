@@ -445,8 +445,6 @@ class Build:
             [
                 str(self.ENV_DIR / scripts_dir / poetry_exe),
                 "export",
-                "--with",
-                "cpu" if self.platform == "darwin" else "gpu",
                 "--output",
                 str(self.BUILD_DIR / "requirements.txt"),
                 "--without-hashes",
