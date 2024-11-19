@@ -430,36 +430,22 @@ class Build:
             ]
         )
 
-        # Install poetry
-        self.run_command(
-            [
-                str(self.ENV_DIR / scripts_dir / pip_exe),
-                "install",
-                "poetry",
-            ]
-        )
+        # Install requirements in the venv with extra index for PyTorch CUDA on non-Darwin platforms
+        pip_install_command = [
+            str(self.ENV_DIR / "venv" / scripts_dir / pip_exe),
+            "install",
+            "-r",
+            str(self.BUILD_DIR / "requirements.txt"),
+        ]
+        
+        # Add PyTorch CUDA index for non-Darwin platforms
+        if self.platform != "darwin":
+            pip_install_command.extend([
+                "--extra-index-url",
+                "https://download.pytorch.org/whl/cu121"
+            ])
 
-        # Export requirements to file
-        poetry_exe = "poetry.exe" if self.platform == "windows" else "poetry"
-        self.run_command(
-            [
-                str(self.ENV_DIR / scripts_dir / poetry_exe),
-                "export",
-                "--output",
-                str(self.BUILD_DIR / "requirements.txt"),
-                "--without-hashes",
-            ],
-        )
-
-        # Install requirements in the venv
-        self.run_command(
-            [
-                str(self.ENV_DIR / "venv" / scripts_dir / pip_exe),
-                "install",
-                "-r",
-                str(self.BUILD_DIR / "requirements.txt"),
-            ]
-        )
+        self.run_command(pip_install_command)
 
         # Pack the environment
         version = self.get_version()

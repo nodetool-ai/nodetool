@@ -108,10 +108,7 @@ spandrel = "0.4.0"
 statsmodels = "0.14.4"
 svglib = "1.5.1"
 tiktoken = "0.8.0"
-torch = [
-    { version = "2.4.1", source = "torch_cpu", markers = "sys_platform == 'darwin'" },
-    { version = "2.4.1", source = "torch_cuda", markers = "sys_platform != 'darwin'" }
-]
+torch = "2.4.1"
 pytest = "*"
 pytest-mock = "*"
 pytest-asyncio = "*"
@@ -120,13 +117,3 @@ pytest-xdist = "*"
 
 [tool.poetry.scripts]
 nodetool = "nodetool.cli:cli"
-
-[[tool.poetry.source]]
-name = "torch_cpu"
-url = "https://download.pytorch.org/whl/cpu"
-priority = "explicit"
-
-[[tool.poetry.source]]
-name = "torch_cuda"
-url = "https://download.pytorch.org/whl/cu121"
-priority = "explicit"
