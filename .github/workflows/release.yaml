@@ -122,13 +122,13 @@ jobs:
         run: |
           python build.py --step electron --python-version ${{ env.PYTHON_VERSION }}
 
-      - name: Create Release
-        id: create_release
-        uses: softprops/action-gh-release@v1
-        with:
-          files: |
-            build/dist/Nodetool Setup*.exe
-            build/dist/latest.yml
-          draft: false
-          prerelease: false
-          token: ${{ secrets.GITHUB_TOKEN }}
+      # - name: Create Release
+      #   id: create_release
+      #   uses: softprops/action-gh-release@v1
+      #   with:
+      #     files: |
+      #       build/dist/Nodetool Setup*.exe
+      #       build/dist/latest.yml
+      #     draft: false
+      #     prerelease: false
+      #     token: ${{ secrets.GITHUB_TOKEN }}
