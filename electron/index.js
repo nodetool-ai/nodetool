@@ -169,7 +169,7 @@ log.info("Web Path:", webPath);
 log.info("Conda Environment Path:", condaEnvPath);
 
 /** @type {string} - Application version */
-const VERSION = "0.5.4a";
+const VERSION = "0.5.5";
 
 /**
  * Server state management.
