@@ -7,7 +7,7 @@
  *
  * Key Features:
  * - Electron window management and IPC communication
- * - Automated Conda environment setup
+ * - Automated Python environment setup
  * - Python server process management
  * - Auto-updates via electron-updater
  * - Cross-platform compatibility (Windows/macOS)
@@ -145,7 +145,7 @@ const appDir =
   process.env.PORTABLE_EXECUTABLE_DIR || path.dirname(app.getPath("exe"));
 
 /**
- * Path to the Conda environment.
+ * Path to the Python environment.
  * @type {string}
  */
 const condaEnvPath = path.join(appDir, "conda_env");
@@ -158,14 +158,43 @@ const processEnv = {
   ...process.env,
   PYTHONPATH: srcPath,
   PYTHONUNBUFFERED: "1",
-  PATH: path.join(condaEnvPath, process.platform === "win32" ? "Scripts" : "bin") +
-    path.delimiter + process.env.PATH,
+  PATH: process.platform === "win32"
+    ? [
+        path.join(condaEnvPath),
+        path.join(condaEnvPath, "Library", "mingw-w64", "bin"),
+        path.join(condaEnvPath, "Library", "usr", "bin"),
+        path.join(condaEnvPath, "Library", "bin"),
+        path.join(condaEnvPath, "Lib", "site-packages", "torch", "lib"),
+        path.join(condaEnvPath, "Scripts"),
+        process.env.PATH
+      ].join(path.delimiter)
+    : [
+        path.join(condaEnvPath, "bin"),
+        path.join(condaEnvPath, "lib"),
+        path.join(condaEnvPath, "usr", "bin"),
+        path.join(condaEnvPath, "usr", "lib"),
+        process.env.PATH
+      ].join(path.delimiter),
+  // Add additional conda-specific environment variables
+  CONDA_PREFIX: condaEnvPath,
+  CONDA_DEFAULT_ENV: path.basename(condaEnvPath),
+  // Platform-specific library paths
+  ...(process.platform !== "win32" && {
+    LD_LIBRARY_PATH: [
+      path.join(condaEnvPath, "lib"),
+      process.env.LD_LIBRARY_PATH
+    ].filter(Boolean).join(path.delimiter),
+    DYLD_LIBRARY_PATH: process.platform === "darwin" ? [
+      path.join(condaEnvPath, "lib"),
+      process.env.DYLD_LIBRARY_PATH
+    ].filter(Boolean).join(path.delimiter) : undefined
+  })
 };
 
 log.info("Resources Path:", resourcesPath);
 log.info("Source Path:", srcPath);
 log.info("Web Path:", webPath);
-log.info("Conda Environment Path:", condaEnvPath);
+log.info("Python environment Path:", condaEnvPath);
 
 /** @type {string} - Application version */
 const VERSION = "0.5.5";
@@ -465,13 +494,13 @@ function setupAutoUpdater() {
   autoUpdater.on("update-downloaded", async (info) => {
     logMessage(`Update downloaded: ${info.version}`);
 
-    // Create flag file to trigger Conda environment update after restart
+    // Create flag file to trigger Python environment update after restart
     try {
       await fs.promises.writeFile(
         path.join(app.getPath("userData"), "update-conda-env"),
         "true"
       );
-      logMessage("Conda environment update flagged for next startup");
+      logMessage("Python environment update flagged for next startup");
     } catch (error) {
       logMessage(`Error creating update flag: ${error.message}`, "error");
     }
@@ -498,18 +527,18 @@ app.on("ready", async () => {
   logMessage("Electron app is ready");
   emitBootMessage("Starting NodeTool Desktop...");
 
-  // Check if we need to update Conda environment after app update
+  // Check if we need to update Python environment after app update
   const updateFlagPath = path.join(app.getPath("userData"), "update-conda-env");
   try {
     if (await fileExists(updateFlagPath)) {
-      emitBootMessage("Updating Conda environment after app update...");
+      emitBootMessage("Updating Python environment after app update...");
       await updateCondaEnvironment();
       await fs.promises.unlink(updateFlagPath);
-      logMessage("Conda environment update completed");
+      logMessage("Python environment update completed");
     }
   } catch (error) {
     logMessage(
-      `Error handling Conda environment update: ${error.message}`,
+      `Error handling Python environment update: ${error.message}`,
       "error"
     );
   }
@@ -517,7 +546,7 @@ app.on("ready", async () => {
   createWindow();
   setupAutoUpdater();
 
-  emitBootMessage("Checking for Conda environment...");
+  emitBootMessage("Checking for Python environment...");
   if (!(await isCondaEnvironmentInstalled())) {
     await installCondaEnvironment();
   }
@@ -672,7 +701,7 @@ function saveConfig(config) {
 }
 
 /**
- * Check if the Conda environment is installed.
+ * Check if the Python environment is installed.
  * @returns {Promise<boolean>}
  */
 async function isCondaEnvironmentInstalled() {
@@ -691,13 +720,13 @@ async function isCondaEnvironmentInstalled() {
 }
 
 /**
- * Download and install the pre-packaged Conda environment.
+ * Download and install the pre-packaged Python environment.
  * @returns {Promise<void>}
  */
 async function installCondaEnvironment() {
   try {
-    emitBootMessage("Downloading Conda environment...");
-    logMessage(`Downloading Conda environment to: ${condaEnvPath}`);
+    emitBootMessage("Downloading Python environment...");
+    logMessage(`Downloading Python environment to: ${condaEnvPath}`);
 
     const platform = process.platform;
     const arch = process.arch;
@@ -720,7 +749,7 @@ async function installCondaEnvironment() {
       );
     } else {
       throw new Error(
-        "Unsupported platform for Conda environment installation."
+        "Unsupported platform for Python environment installation."
       );
     }
 
@@ -745,17 +774,17 @@ async function installCondaEnvironment() {
     await fs.promises.mkdir(condaEnvPath, { recursive: true });
 
     // Unpack and verify
-    emitBootMessage("Unpacking Conda environment...");
+    emitBootMessage("Unpacking Python environment...");
     await unzipFile(archivePath, condaEnvPath);
 
     // Cleanup
     await fs.promises.unlink(archivePath);
 
-    logMessage("Conda environment installation completed successfully");
-    emitBootMessage("Conda environment is ready");
+    logMessage("Python environment installation completed successfully");
+    emitBootMessage("Python environment is ready");
   } catch (error) {
     logMessage(
-      `Failed to install Conda environment: ${error.message}`,
+      `Failed to install Python environment: ${error.message}`,
       "error"
     );
     throw error;
@@ -844,7 +873,7 @@ async function downloadFile(url, dest) {
  * @returns {Promise<void>}
  */
 async function unzipFile(zipPath, destPath) {
-  emitBootMessage("Unpacking the Conda environment...");
+  emitBootMessage("Unpacking the Python environment...");
   
   try {
     // Get the total size of the zip file for progress calculation
@@ -873,7 +902,7 @@ async function unzipFile(zipPath, destPath) {
               .on('finish', () => {
                 extractedSize += size;
                 const progress = (extractedSize / totalSize) * 100;
-                emitUpdateProgress('Conda Environment', progress, 'Extracting');
+                emitUpdateProgress('Python environment', progress, 'Extracting');
               });
           }
         })
@@ -914,7 +943,7 @@ async function unzipFile(zipPath, destPath) {
       unpackProcess.on("exit", (code) => {
         if (code === 0) {
           logMessage("conda-unpack completed successfully");
-          emitBootMessage("Conda environment unpacked successfully");
+          emitBootMessage("Python environment unpacked successfully");
           resolve();
         } else {
           reject(new Error(`conda-unpack failed with code ${code}`));
@@ -925,7 +954,7 @@ async function unzipFile(zipPath, destPath) {
     });
 
   } catch (err) {
-    logMessage(`Error unpacking Conda environment: ${err.message}`, "error");
+    logMessage(`Error unpacking Python environment: ${err.message}`, "error");
     throw err;
   }
 }
