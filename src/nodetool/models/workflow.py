@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Any, Optional
 from nodetool.common.content_types import CONTENT_TYPE_TO_EXTENSION
+from nodetool.models.asset import Asset
 from nodetool.models.condition_builder import Field
 from nodetool.types.graph import Graph as APIGraph
 from nodetool.workflows.graph import Graph
@@ -78,6 +79,7 @@ class Workflow(DBModel):
         limit: int = 100,
         start_key: Optional[str] = None,
     ) -> tuple[list["Workflow"], str]:
+        Asset.adapter()  # force table creation
         query = f"""
     SELECT w.*,
            a.id as asset_id,
