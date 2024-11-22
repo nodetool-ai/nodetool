@@ -431,6 +431,26 @@ class Build:
 
         self.run_command(pip_install_command)
 
+        # Add bitsandbytes reinstall for Windows
+        if self.platform == "windows":
+            self.run_command(
+                [
+                    str(self.ENV_DIR / scripts_dir / pip_exe),
+                    "uninstall",
+                    "bitsandbytes",
+                    "-y",
+                ]
+            )
+            self.run_command(
+                [
+                    str(self.ENV_DIR / scripts_dir / pip_exe),
+                    "install",
+                    "bitsandbytes",
+                    "--prefer-binary",
+                    "--extra-index-url=https://jllllll.github.io/bitsandbytes-windows-webui",
+                ]
+            )
+
         # Pack the environment
         version = self.get_version()
         ext = "zip" if self.platform == "windows" else "tar.gz"
