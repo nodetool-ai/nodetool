@@ -49,7 +49,7 @@ class Build:
     def __init__(
         self,
         clean_build: bool = False,
-        python_version: str = "3.10",
+        python_version: str = "3.11",
     ):
         """Initialize Build configuration."""
         platform = system().lower()
@@ -387,14 +387,14 @@ class Build:
         logger.info("Channel upload completed successfully")
 
     def pack(self) -> None:
-        """Create a packed conda environment with a nested venv."""
+        """Create a packed conda environment."""
         logger.info("Packing conda environment")
 
         # Install conda-pack
         self.run_command(["conda", "install", "conda-pack", "-y"])
 
-        # Remove existing environment if it exists
-        self.remove_directory(self.ENV_DIR)
+        if self.clean_build:
+            self.remove_directory(self.ENV_DIR)
 
         # Create new conda environment
         self.run_command(
@@ -411,39 +411,23 @@ class Build:
             ]
         )
 
-        # Get correct paths for Python and pip executables
-        python_exe = "python.exe" if self.platform == "windows" else "python"
+        # Get correct path for pip executable
         pip_exe = "pip.exe" if self.platform == "windows" else "pip"
         scripts_dir = "Scripts" if self.platform == "windows" else "bin"
 
-        # Create a virtual env
-        self.run_command(
-            [
-                (
-                    str(self.ENV_DIR / python_exe)
-                    if self.platform == "windows"
-                    else str(self.ENV_DIR / scripts_dir / python_exe)
-                ),
-                "-m",
-                "venv",
-                str(self.ENV_DIR / "venv"),
-            ]
-        )
-
-        # Install requirements in the venv with extra index for PyTorch CUDA on non-Darwin platforms
+        # Install requirements directly in conda env
         pip_install_command = [
-            str(self.ENV_DIR / "venv" / scripts_dir / pip_exe),
+            str(self.ENV_DIR / scripts_dir / pip_exe),
             "install",
             "-r",
             str(PROJECT_ROOT / "requirements.txt"),
         ]
-        
+
         # Add PyTorch CUDA index for non-Darwin platforms
         if self.platform != "darwin":
-            pip_install_command.extend([
-                "--extra-index-url",
-                "https://download.pytorch.org/whl/cu121"
-            ])
+            pip_install_command.extend(
+                ["--extra-index-url", "https://download.pytorch.org/whl/cu121"]
+            )
 
         self.run_command(pip_install_command)
 
@@ -454,6 +438,9 @@ class Build:
         output_path = self.BUILD_DIR / output_name
 
         self.remove_file(output_path)
+
+        # This is needed to avoid the clobbering of base packages error
+        self.run_command(["conda", "list", "-p", str(self.ENV_DIR)])
 
         self.run_command(
             ["conda-pack", "-p", str(self.ENV_DIR), "-o", str(output_path)]
@@ -488,8 +475,8 @@ def main() -> None:
     )
     parser.add_argument(
         "--python-version",
-        default="3.10",
-        help="Python version to use for the conda environment (e.g., 3.10)",
+        default="3.11",
+        help="Python version to use for the conda environment (e.g., 3.11)",
     )
 
     args = parser.parse_args()

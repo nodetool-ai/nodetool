@@ -66,6 +66,7 @@ const os = require("os");
 const { autoUpdater } = require("electron-updater");
 const log = require("electron-log");
 const extract = require("extract-zip");
+const unzipper = require('unzipper');
 
 const LOG_FILE = path.join(app.getPath("userData"), "nodetool.log");
 
@@ -157,10 +158,8 @@ const processEnv = {
   ...process.env,
   PYTHONPATH: srcPath,
   PYTHONUNBUFFERED: "1",
-  PATH:
-    path.join(condaEnvPath, process.platform === "win32" ? "Scripts" : "bin") +
-    path.delimiter +
-    process.env.PATH,
+  PATH: path.join(condaEnvPath, process.platform === "win32" ? "Scripts" : "bin") +
+    path.delimiter + process.env.PATH,
 };
 
 log.info("Resources Path:", resourcesPath);
@@ -241,10 +240,9 @@ function initializePermissionHandlers() {
 function startNodeToolBackendProcess() {
   emitBootMessage("Configuring server environment...");
 
-  const pythonExecutablePath =
-    process.platform === "win32"
-      ? path.join(condaEnvPath, "venv", "Scripts", "python.exe")
-      : path.join(condaEnvPath, "venv", "bin", "python");
+  const pythonExecutablePath = process.platform === "win32"
+    ? path.join(condaEnvPath, "python.exe")
+    : path.join(condaEnvPath, "bin", "python");
 
   logMessage(
     `Using command: ${pythonExecutablePath} -m nodetool.cli serve --static-folder ${webPath}`
@@ -840,16 +838,92 @@ async function downloadFile(url, dest) {
 }
 
 /**
- * Extract a zip archive to a specified destination.
+ * Extract a zip archive to a specified destination with progress reporting.
  * @param {string} zipPath - The path to the zip file.
  * @param {string} destPath - The destination directory.
  * @returns {Promise<void>}
  */
 async function unzipFile(zipPath, destPath) {
   emitBootMessage("Unpacking the Conda environment...");
+  
   try {
-    await extract(zipPath, { dir: destPath });
-    emitBootMessage("Conda environment unpacked successfully");
+    // Get the total size of the zip file for progress calculation
+    const stats = await fs.promises.stat(zipPath);
+    const totalSize = stats.size;
+    let extractedSize = 0;
+
+    await new Promise((resolve, reject) => {
+      fs.createReadStream(zipPath)
+        .pipe(unzipper.Parse())
+        .on('entry', (entry) => {
+          const fileName = entry.path;
+          const type = entry.type;
+          const size = entry.vars.uncompressedSize;
+          const fullPath = path.join(destPath, fileName);
+          const dirPath = path.dirname(fullPath);
+
+          // Ensure directory exists
+          fs.mkdirSync(dirPath, { recursive: true });
+
+          if (type === 'Directory') {
+            entry.autodrain();
+          } else {
+            entry
+              .pipe(fs.createWriteStream(fullPath))
+              .on('finish', () => {
+                extractedSize += size;
+                const progress = (extractedSize / totalSize) * 100;
+                emitUpdateProgress('Conda Environment', progress, 'Extracting');
+              });
+          }
+        })
+        .on('error', reject)
+        .on('finish', resolve);
+    });
+
+    emitBootMessage("Running conda-unpack...");
+
+    // Rest of the conda-unpack process remains the same
+    const unpackScript = process.platform === "win32"
+      ? path.join(destPath, "Scripts", "conda-unpack.exe")
+      : path.join(destPath, "bin", "conda-unpack");
+
+    const unpackProcess = spawn(unpackScript, [], {
+      stdio: "pipe",
+      env: processEnv,
+      cwd: destPath
+    });
+
+    // Handle process output
+    unpackProcess.stdout.on("data", (data) => {
+      const message = data.toString().trim();
+      if (message) {
+        logMessage(`conda-unpack: ${message}`);
+      }
+    });
+
+    unpackProcess.stderr.on("data", (data) => {
+      const message = data.toString().trim();
+      if (message) {
+        logMessage(`conda-unpack error: ${message}`, "error");
+      }
+    });
+
+    // Wait for process to complete
+    await new Promise((resolve, reject) => {
+      unpackProcess.on("exit", (code) => {
+        if (code === 0) {
+          logMessage("conda-unpack completed successfully");
+          emitBootMessage("Conda environment unpacked successfully");
+          resolve();
+        } else {
+          reject(new Error(`conda-unpack failed with code ${code}`));
+        }
+      });
+
+      unpackProcess.on("error", reject);
+    });
+
   } catch (err) {
     logMessage(`Error unpacking Conda environment: ${err.message}`, "error");
     throw err;
@@ -891,10 +965,9 @@ async function updateCondaEnvironment() {
     logMessage("Starting Python packages update");
     emitBootMessage("Updating Python packages...");
 
-    const pipExecutable =
-      process.platform === "win32"
-        ? path.join(condaEnvPath, "venv", "Scripts", "pip.exe")
-        : path.join(condaEnvPath, "venv", "bin", "pip");
+    const pipExecutable = process.platform === "win32"
+      ? path.join(condaEnvPath, "Scripts", "pip.exe")
+      : path.join(condaEnvPath, "bin", "pip");
 
     // Run pip install command
     const updateProcess = spawn(

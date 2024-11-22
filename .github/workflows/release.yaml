@@ -80,7 +80,7 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     env:
-      PYTHON_VERSION: "3.1a"
+      PYTHON_VERSION: "3.11"
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_TOKEN }}
     steps:
