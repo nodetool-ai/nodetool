@@ -1008,97 +1008,191 @@ async function unpackPythonEnvironment(zipPath, destPath) {
   emitBootMessage("Unpacking the Python environment...");
 
   try {
-    const stats = await fs.promises.stat(zipPath);
-    const totalSize = stats.size;
-    let extractedSize = 0;
-    let startTime = Date.now();
-    let lastUpdate = startTime;
-    let lastSize = 0;
+    if (process.platform === "win32") {
+      // Use PowerShell Expand-Archive on Windows
+      const powershellCommand = `Expand-Archive -Path "${zipPath}" -DestinationPath "${destPath}" -Force`;
+      
+      const unpackProcess = spawn("powershell.exe", ["-Command", powershellCommand], {
+        stdio: "pipe"
+      });
 
-    function calculateETA(bytesPerSecond) {
-      const remainingBytes = totalSize - extractedSize;
-      const remainingSeconds = remainingBytes / bytesPerSecond;
+      // Handle process output
+      unpackProcess.stdout.on("data", (data) => {
+        const message = data.toString().trim();
+        if (message) {
+          logMessage(`PowerShell unzip: ${message}`);
+        }
+      });
 
-      if (remainingSeconds < 60) {
-        return `${Math.round(remainingSeconds)} seconds left`;
-      } else if (remainingSeconds < 3600) {
-        return `${Math.round(remainingSeconds / 60)} minutes left`;
-      } else {
-        return `${Math.round(remainingSeconds / 3600)} hours left`;
-      }
-    }
+      unpackProcess.stderr.on("data", (data) => {
+        const message = data.toString().trim();
+        if (message) {
+          logMessage(`PowerShell unzip error: ${message}`, "error");
+        }
+      });
 
-    await new Promise((resolve, reject) => {
-      const stream = fs.createReadStream(zipPath)
-        .on('error', (err) => {
-          const errorMsg = `Error reading zip file: ${err.message}`;
+      // Wait for PowerShell process to complete
+      await new Promise((resolve, reject) => {
+        unpackProcess.on("exit", (code) => {
+          if (code === 0) {
+            logMessage("PowerShell unzip completed successfully");
+            resolve();
+          } else {
+            const errorMsg = `PowerShell unzip failed with code ${code}`;
+            logMessage(errorMsg, "error");
+            reject(new Error(errorMsg));
+          }
+        });
+
+        unpackProcess.on("error", (err) => {
+          const errorMsg = `Error running PowerShell unzip: ${err.message}`;
           logMessage(errorMsg, "error");
           reject(new Error(errorMsg));
-        })
-        .pipe(unzipper.Parse())
-        .on('entry', (entry) => {
-          try {
-          const fileName = entry.path;
-          const type = entry.type;
-          const size = entry.vars.uncompressedSize;
-          const fullPath = path.join(destPath, fileName);
-          const dirPath = path.dirname(fullPath);
+        });
+      });
+    } else {
+      // Use existing unzipper solution for non-Windows platforms
+      const stats = await fs.promises.stat(zipPath);
+      const totalSize = stats.size;
+      let extractedSize = 0;
+      let startTime = Date.now();
+      let lastUpdate = startTime;
+      let lastSize = 0;
 
-          // Ensure directory exists
-          fs.mkdirSync(dirPath, { recursive: true });
+      function calculateETA(bytesPerSecond) {
+        const remainingBytes = totalSize - extractedSize;
+        const remainingSeconds = remainingBytes / bytesPerSecond;
 
-          if (type === 'Directory') {
-            entry.autodrain();
-          } else {
-            entry
-              .pipe(fs.createWriteStream(fullPath))
-              .on('error', (err) => {
-                const errorMsg = `Error writing file ${fileName}: ${err.message}`;
-                logMessage(errorMsg, "error");
-                  logMessage(`Stack trace: ${err.stack}`, "error");
-                reject(new Error(errorMsg));
-              })
-              .on('finish', () => {
-                extractedSize += size;
-                const progress = (extractedSize / totalSize) * 100;
+        if (remainingSeconds < 60) {
+          return `${Math.round(remainingSeconds)} seconds left`;
+        } else if (remainingSeconds < 3600) {
+          return `${Math.round(remainingSeconds / 60)} minutes left`;
+        } else {
+          return `${Math.round(remainingSeconds / 3600)} hours left`;
+        }
+      }
 
-                const now = Date.now();
-                if (now - lastUpdate >= 1000) {
-                  const timeDiff = (now - lastUpdate) / 1000;
-                  const bytesDiff = extractedSize - lastSize;
-                  const bytesPerSecond = bytesDiff / timeDiff;
-                  const eta = calculateETA(bytesPerSecond);
+      await new Promise((resolve, reject) => {
+        const stream = fs.createReadStream(zipPath)
+          .on('error', (err) => {
+            const errorMsg = `Error reading zip file: ${err.message}`;
+            logMessage(errorMsg, "error");
+            reject(new Error(errorMsg));
+          })
+          .pipe(unzipper.Parse())
+          .on('entry', (entry) => {
+            try {
+            const fileName = entry.path;
+            const type = entry.type;
+            const size = entry.vars.uncompressedSize;
+            const fullPath = path.join(destPath, fileName);
+            const dirPath = path.dirname(fullPath);
 
-                  emitUpdateProgress('Python environment', progress, 'Extracting', eta);
+            // Ensure directory exists
+            fs.mkdirSync(dirPath, { recursive: true });
 
-                  lastUpdate = now;
-                  lastSize = extractedSize;
-                }
-              });
+            if (type === 'Directory') {
+              entry.autodrain();
+            } else {
+              entry
+                .pipe(fs.createWriteStream(fullPath))
+                .on('error', (err) => {
+                  const errorMsg = `Error writing file ${fileName}: ${err.message}`;
+                  logMessage(errorMsg, "error");
+                    logMessage(`Stack trace: ${err.stack}`, "error");
+                  reject(new Error(errorMsg));
+                })
+                .on('finish', () => {
+                  extractedSize += size;
+                  const progress = (extractedSize / totalSize) * 100;
+
+                  const now = Date.now();
+                  if (now - lastUpdate >= 1000) {
+                    const timeDiff = (now - lastUpdate) / 1000;
+                    const bytesDiff = extractedSize - lastSize;
+                    const bytesPerSecond = bytesDiff / timeDiff;
+                    const eta = calculateETA(bytesPerSecond);
+
+                    emitUpdateProgress('Python environment', progress, 'Extracting', eta);
+
+                    lastUpdate = now;
+                    lastSize = extractedSize;
+                  }
+                });
+              }
+            } catch (err) {
+              const errorMsg = `Error processing entry ${entry.path}: ${err.message}`;
+              logMessage(errorMsg, "error");
+              logMessage(`Stack trace: ${err.stack}`, "error");
+              reject(new Error(errorMsg));
             }
-          } catch (err) {
-            const errorMsg = `Error processing entry ${entry.path}: ${err.message}`;
+          })
+          .on('error', (err) => {
+            const errorMsg = `Error during extraction: ${err.message}`;
             logMessage(errorMsg, "error");
             logMessage(`Stack trace: ${err.stack}`, "error");
             reject(new Error(errorMsg));
-          }
-        })
-        .on('error', (err) => {
-          const errorMsg = `Error during extraction: ${err.message}`;
+          })
+          .on('finish', resolve);
+
+        // Handle stream errors
+        stream.on('error', (err) => {
+          const errorMsg = `Error reading zip file: ${err.message}`;
           logMessage(errorMsg, "error");
           logMessage(`Stack trace: ${err.stack}`, "error");
           reject(new Error(errorMsg));
-        })
-        .on('finish', resolve);
-
-      // Handle stream errors
-      stream.on('error', (err) => {
-        const errorMsg = `Error reading zip file: ${err.message}`;
-        logMessage(errorMsg, "error");
-        logMessage(`Stack trace: ${err.stack}`, "error");
-        reject(new Error(errorMsg));
+        });
       });
-    });
+
+      emitBootMessage("Running conda-unpack...");
+
+      // Rest of the conda-unpack process remains the same
+      const unpackScript = process.platform === "win32"
+        ? path.join(destPath, "Scripts", "conda-unpack.exe")
+        : path.join(destPath, "bin", "conda-unpack");
+
+      const unpackProcess = spawn(unpackScript, [], {
+        stdio: "pipe",
+        env: processEnv,
+        cwd: destPath
+      });
+
+      // Handle process output
+      unpackProcess.stdout.on("data", (data) => {
+        const message = data.toString().trim();
+        if (message) {
+          logMessage(`conda-unpack: ${message}`);
+        }
+      });
+
+      unpackProcess.stderr.on("data", (data) => {
+        const message = data.toString().trim();
+        if (message) {
+          logMessage(`conda-unpack error: ${message}`, "error");
+        }
+      });
+
+      // Wait for process to complete
+      await new Promise((resolve, reject) => {
+        unpackProcess.on("exit", (code) => {
+          if (code === 0) {
+            logMessage("conda-unpack completed successfully");
+            emitBootMessage("Python environment unpacked successfully");
+            resolve();
+          } else {
+            const errorMsg = `conda-unpack failed with code ${code}`;
+            logMessage(errorMsg, "error");
+            reject(new Error(errorMsg));
+          }
+        });
+
+        unpackProcess.on("error", (err) => {
+          const errorMsg = `Error running conda-unpack: ${err.message}`;
+          logMessage(errorMsg, "error");
+          reject(new Error(errorMsg));
+        });
+      });
+    }
 
     emitBootMessage("Running conda-unpack...");
 
