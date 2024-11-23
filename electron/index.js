@@ -774,7 +774,9 @@ function logMessage(message, level = "info") {
     const timestamp = new Date().toISOString();
     const fullMessage = `[${timestamp}] [${level.toUpperCase()}] ${message.trim()}\n`;
     log[level](fullMessage);
-    emitServerLog(fullMessage);
+    
+    // Send raw message to renderer without timestamp/level prefix
+    emitServerLog(message.trim());
 
     // Asynchronously write to log file
     appendFile(LOG_FILE, fullMessage).catch((err) => {
