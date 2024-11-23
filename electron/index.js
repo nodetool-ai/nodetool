@@ -66,7 +66,7 @@ const os = require("os");
 const { autoUpdater } = require("electron-updater");
 const log = require("electron-log");
 const extract = require("extract-zip");
-const unzipper = require('unzipper');
+const StreamZip = require('node-stream-zip');
 
 const LOG_FILE = path.join(app.getPath("userData"), "nodetool.log");
 
@@ -197,7 +197,7 @@ log.info("Web Path:", webPath);
 log.info("Python environment Path:", condaEnvPath);
 
 /** @type {string} - Application version */
-const VERSION = "0.5.5";
+const VERSION = app.getVersion();
 
 /**
  * Server state management.
@@ -589,10 +589,72 @@ ipcMain.handle("install-update", async () => {
   }
 });
 
+/**
+ * Check file/directory permissions and accessibility
+ * @param {string} path - Path to check
+ * @param {number} mode - Permission mode to check (fs.constants.R_OK, W_OK, etc)
+ * @returns {Promise<{accessible: boolean, error: string|null}>}
+ */
+async function checkPermissions(path, mode) {
+  try {
+    await fs.promises.access(path, mode);
+    return { accessible: true, error: null };
+  } catch (error) {
+    let errorMsg = `Cannot access ${path}: `;
+    if (error.code === 'ENOENT') {
+      errorMsg += 'File/directory does not exist';
+    } else if (error.code === 'EACCES') {
+      errorMsg += 'Permission denied';
+    } else {
+      errorMsg += error.message;
+    }
+    return { accessible: false, error: errorMsg };
+  }
+}
+
+/**
+ * Verify write permissions for critical paths
+ * @returns {Promise<{valid: boolean, errors: string[]}>}
+ */
+async function verifyApplicationPaths() {
+  const pathsToCheck = [
+    { path: app.getPath("userData"), mode: fs.constants.W_OK, desc: "User data directory" },
+    { path: condaEnvPath, mode: fs.constants.W_OK, desc: "Python environment directory" },
+    { path: path.dirname(LOG_FILE), mode: fs.constants.W_OK, desc: "Log file directory" }
+  ];
+
+  const errors = [];
+  
+  for (const { path, mode, desc } of pathsToCheck) {
+    const { accessible, error } = await checkPermissions(path, mode);
+    if (!accessible) {
+      errors.push(`${desc}: ${error}`);
+      logMessage(`Permission check failed - ${error}`, "error");
+    }
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors
+  };
+}
+
 // Application event handlers
 app.on("ready", async () => {
   logMessage("Electron app is ready");
   emitBootMessage("Starting NodeTool Desktop...");
+
+  // Verify permissions before proceeding
+  const { valid, errors } = await verifyApplicationPaths();
+  if (!valid) {
+    const errorMessage = "Critical permission errors detected:\n\n" + 
+      errors.join("\n") +
+      "\n\nPlease ensure the application has proper permissions to these locations.";
+    
+    dialog.showErrorBox("Permission Error", errorMessage);
+    app.quit();
+    return;
+  }
 
   // Check if we need to update Python environment after app update
   const updateFlagPath = path.join(app.getPath("userData"), "update-conda-env");
@@ -656,6 +718,7 @@ ipcMain.handle("open-log-file", () => {
 /**
  * Emit a boot message to the main window.
  * @param {string} message - The message to emit.
+ * @returns {void}
  */
 function emitBootMessage(message) {
   // Easter Egg: Add a hidden gem when the application starts
@@ -704,7 +767,8 @@ function emitServerLog(message) {
 /**
  * Enhanced logging function.
  * @param {string} message - The message to log.
- * @param {'info' | 'warn' | 'error'} level - The log level.
+ * @param {'info' | 'warn' | 'error'} [level='info'] - The log level.
+ * @returns {void}
  */
 function logMessage(message, level = "info") {
   try {
@@ -728,6 +792,7 @@ function logMessage(message, level = "info") {
  * @param {number} progress - Progress percentage.
  * @param {string} action - Description of the current action.
  * @param {string} eta - Estimated time of arrival.
+ * @returns {void}
  */
 function emitUpdateProgress(componentName, progress, action, eta) {
   if (mainWindow && mainWindow.webContents) {
@@ -885,6 +950,13 @@ async function getFileSizeFromUrl(url) {
 async function downloadFile(url, dest) {
   logMessage(`Downloading file from ${url} to ${dest}`);
 
+  // Check write permissions for destination
+  const destDir = path.dirname(dest);
+  const { accessible, error } = await checkPermissions(destDir, fs.constants.W_OK);
+  if (!accessible) {
+    throw new Error(`Cannot write to download directory: ${error}`);
+  }
+
   // Get expected file size from server
   let expectedSize;
   try {
@@ -1006,14 +1078,51 @@ async function downloadFile(url, dest) {
  */
 async function unpackPythonEnvironment(zipPath, destPath) {
   emitBootMessage("Unpacking the Python environment...");
+  let zip = null;
 
   try {
+    // Verify source file is readable
+    const { accessible: canReadZip, error: zipError } = 
+      await checkPermissions(zipPath, fs.constants.R_OK);
+    if (!canReadZip) {
+      throw new Error(`Cannot read zip file: ${zipError}`);
+    }
+
+    // Verify destination is writable
+    const { accessible: canWriteDest, error: destError } = 
+      await checkPermissions(path.dirname(destPath), fs.constants.W_OK);
+    if (!canWriteDest) {
+      throw new Error(`Cannot write to destination: ${destError}`);
+    }
+
+    // Verify zip file exists and is readable
+    if (!await fileExists(zipPath)) {
+      throw new Error(`Zip file not found at: ${zipPath}`);
+    }
+
     const stats = await fs.promises.stat(zipPath);
+    if (stats.size === 0) {
+      throw new Error('Downloaded zip file is empty');
+    }
+
     const totalSize = stats.size;
     let extractedSize = 0;
     let startTime = Date.now();
     let lastUpdate = startTime;
     let lastSize = 0;
+
+    // Verify destination path is writable
+    try {
+      await fs.promises.access(path.dirname(destPath), fs.constants.W_OK);
+    } catch (error) {
+      throw new Error(`Destination directory is not writable: ${error.message}`);
+    }
+
+    // Clean up existing destination if it exists
+    if (await fileExists(destPath)) {
+      logMessage(`Removing existing environment at ${destPath}`);
+      await fs.promises.rm(destPath, { recursive: true, force: true });
+    }
 
     function calculateETA(bytesPerSecond) {
       const remainingBytes = totalSize - extractedSize;
@@ -1028,90 +1137,102 @@ async function unpackPythonEnvironment(zipPath, destPath) {
       }
     }
 
-    await new Promise((resolve, reject) => {
-      const stream = fs.createReadStream(zipPath)
-        .on('error', (err) => {
-          const errorMsg = `Error reading zip file: ${err.message}`;
-          logMessage(errorMsg, "error");
-          reject(new Error(errorMsg));
-        })
-        .pipe(unzipper.Parse())
-        .on('entry', (entry) => {
-          try {
-          const fileName = entry.path;
-          const type = entry.type;
-          const size = entry.vars.uncompressedSize;
-          const fullPath = path.join(destPath, fileName);
+    try {
+      zip = new StreamZip.async({ file: zipPath });
+      const entries = await zip.entries();
+      const totalEntries = Object.keys(entries).length;
+
+      if (totalEntries === 0) {
+        throw new Error('Zip file contains no entries');
+      }
+
+      let processedEntries = 0;
+      const failedEntries = [];
+
+      for (const [name, entry] of Object.entries(entries)) {
+        try {
+          const fullPath = path.join(destPath, name);
           const dirPath = path.dirname(fullPath);
 
-          // Ensure directory exists
-          fs.mkdirSync(dirPath, { recursive: true });
-
-          if (type === 'Directory') {
-            entry.autodrain();
-          } else {
-            entry
-              .pipe(fs.createWriteStream(fullPath))
-              .on('error', (err) => {
-                const errorMsg = `Error writing file ${fileName}: ${err.message}`;
-                logMessage(errorMsg, "error");
-                  logMessage(`Stack trace: ${err.stack}`, "error");
-                reject(new Error(errorMsg));
-              })
-              .on('finish', () => {
-                extractedSize += size;
-                const progress = (extractedSize / totalSize) * 100;
-
-                const now = Date.now();
-                if (now - lastUpdate >= 1000) {
-                  const timeDiff = (now - lastUpdate) / 1000;
-                  const bytesDiff = extractedSize - lastSize;
-                  const bytesPerSecond = bytesDiff / timeDiff;
-                  const eta = calculateETA(bytesPerSecond);
-
-                  emitUpdateProgress('Python environment', progress, 'Extracting', eta);
-
-                  lastUpdate = now;
-                  lastSize = extractedSize;
-                }
-              });
-            }
-          } catch (err) {
-            const errorMsg = `Error processing entry ${entry.path}: ${err.message}`;
-            logMessage(errorMsg, "error");
-            logMessage(`Stack trace: ${err.stack}`, "error");
-            reject(new Error(errorMsg));
+          // Validate path to prevent directory traversal
+          if (!fullPath.startsWith(destPath)) {
+            throw new Error(`Invalid zip entry path: ${name}`);
           }
-        })
-        .on('error', (err) => {
-          const errorMsg = `Error during extraction: ${err.message}`;
-          logMessage(errorMsg, "error");
-          logMessage(`Stack trace: ${err.stack}`, "error");
-          reject(new Error(errorMsg));
-        })
-        .on('finish', resolve);
 
-      // Handle stream errors
-      stream.on('error', (err) => {
-        const errorMsg = `Error reading zip file: ${err.message}`;
-        logMessage(errorMsg, "error");
-        logMessage(`Stack trace: ${err.stack}`, "error");
-        reject(new Error(errorMsg));
-      });
-    });
+          await fs.promises.mkdir(dirPath, { recursive: true });
 
+          if (!entry.isDirectory) {
+            await zip.extract(name, fullPath);
+            extractedSize += entry.size;
+            processedEntries++;
+
+            // Verify extracted file
+            const fileStats = await fs.promises.stat(fullPath);
+            if (fileStats.size !== entry.size) {
+              throw new Error(`Size mismatch for ${name}`);
+            }
+
+            // Progress updates
+            const progress = (processedEntries / totalEntries) * 100;
+            const now = Date.now();
+            
+            if (now - lastUpdate >= 1000) {
+              const timeDiff = (now - lastUpdate) / 1000;
+              const bytesDiff = extractedSize - lastSize;
+              const bytesPerSecond = bytesDiff / timeDiff;
+              const eta = calculateETA(bytesPerSecond);
+
+              emitUpdateProgress('Python environment', progress, 'Extracting', eta);
+              lastUpdate = now;
+              lastSize = extractedSize;
+            }
+          }
+        } catch (entryError) {
+          failedEntries.push({ name, error: entryError.message });
+          logMessage(`Failed to extract entry ${name}: ${entryError.message}`, "error");
+        }
+      }
+
+      // Report any failed entries
+      if (failedEntries.length > 0) {
+        throw new Error(`Failed to extract ${failedEntries.length} files:\n${
+          failedEntries.map(f => `${f.name}: ${f.error}`).join('\n')
+        }`);
+      }
+
+    } finally {
+      // Ensure zip is always closed
+      if (zip) {
+        try {
+          await zip.close();
+        } catch (closeError) {
+          logMessage(`Error closing zip file: ${closeError.message}`, "warn");
+        }
+      }
+    }
+
+    // Run conda-unpack
     emitBootMessage("Running conda-unpack...");
-
-    // Rest of the conda-unpack process remains the same
     const unpackScript = process.platform === "win32"
       ? path.join(destPath, "Scripts", "conda-unpack.exe")
       : path.join(destPath, "bin", "conda-unpack");
+
+    // Verify unpack script exists
+    if (!await fileExists(unpackScript)) {
+      throw new Error(`conda-unpack script not found at: ${unpackScript}`);
+    }
 
     const unpackProcess = spawn(unpackScript, [], {
       stdio: "pipe",
       env: processEnv,
       cwd: destPath
     });
+
+    // Handle process output with timeouts
+    const unpackTimeout = setTimeout(() => {
+      unpackProcess.kill();
+      throw new Error('conda-unpack process timed out after 5 minutes');
+    }, 5 * 60 * 1000);
 
     // Handle process output
     unpackProcess.stdout.on("data", (data) => {
@@ -1128,24 +1249,22 @@ async function unpackPythonEnvironment(zipPath, destPath) {
       }
     });
 
-    // Wait for process to complete
+    // Wait for process to complete with enhanced error handling
     await new Promise((resolve, reject) => {
       unpackProcess.on("exit", (code) => {
+        clearTimeout(unpackTimeout);
         if (code === 0) {
           logMessage("conda-unpack completed successfully");
           emitBootMessage("Python environment unpacked successfully");
           resolve();
         } else {
-          const errorMsg = `conda-unpack failed with code ${code}`;
-          logMessage(errorMsg, "error");
-          reject(new Error(errorMsg));
+          reject(new Error(`conda-unpack failed with code ${code}`));
         }
       });
 
       unpackProcess.on("error", (err) => {
-        const errorMsg = `Error running conda-unpack: ${err.message}`;
-        logMessage(errorMsg, "error");
-        reject(new Error(errorMsg));
+        clearTimeout(unpackTimeout);
+        reject(new Error(`Error running conda-unpack: ${err.message}`));
       });
     });
 
@@ -1153,6 +1272,15 @@ async function unpackPythonEnvironment(zipPath, destPath) {
     const errorMsg = `Failed to unpack Python environment: ${err.message}`;
     logMessage(errorMsg, "error");
     logMessage(`Stack trace: ${err.stack}`, "error");
+
+    // Cleanup on failure
+    try {
+      if (await fileExists(destPath)) {
+        await fs.promises.rm(destPath, { recursive: true, force: true });
+      }
+    } catch (cleanupError) {
+      logMessage(`Error during cleanup: ${cleanupError.message}`, "error");
+    }
 
     // Show error dialog to user
     dialog.showErrorBox(
@@ -1167,6 +1295,7 @@ async function unpackPythonEnvironment(zipPath, destPath) {
 /**
  * Force quit the application.
  * @param {string} errorMessage - Error message to show before quitting.
+ * @returns {never} This function never returns as it terminates the process
  */
 function forceQuit(errorMessage) {
   logMessage(`Force quitting application: ${errorMessage}`, "error");
@@ -1279,10 +1408,9 @@ async function updateCondaEnvironment() {
 }
 
 async function fileExists(filePath) {
-  try {
-    await fs.promises.access(filePath);
-    return true;
-  } catch {
-    return false;
+  const { accessible, error } = await checkPermissions(filePath, fs.constants.F_OK);
+  if (!accessible) {
+    logMessage(`File access check failed: ${error}`, "warn");
   }
+  return accessible;
 }

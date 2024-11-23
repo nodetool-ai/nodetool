@@ -32,13 +32,6 @@ def update_version_in_constants_ts(new_version: str):
     update_version_in_file(constants_file, version_regex, new_version_line)
 
 
-def update_version_in_electron_index(new_version: str):
-    index_js_file = Path("electron/index.js")
-    version_regex = r'VERSION = ".*?"'
-    new_version_line = f'VERSION = "{new_version}"'
-    update_version_in_file(index_js_file, version_regex, new_version_line)
-
-
 def update_version_in_electron_package_json(new_version: str):
     package_json_file = Path("electron/package.json")
     version_regex = r'"version": ".*?"'
@@ -78,7 +71,6 @@ def main():
     update_version_in_pyproject(new_version)
     update_version_in_package_json(new_version)
     update_version_in_constants_ts(new_version)
-    update_version_in_electron_index(new_version)
     update_version_in_electron_package_json(new_version)
     # run_poetry_lock()
     git_commit_and_tag(new_version)
