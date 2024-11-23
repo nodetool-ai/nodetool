@@ -1,7 +1,6 @@
 from nodetool.common.environment import Environment
 from typing import Any, Optional
 from datetime import datetime, timedelta
-from validate_email import validate_email
 import logging
 import random
 import uuid
@@ -16,6 +15,83 @@ from nodetool.models.condition_builder import Field
 log = logging.getLogger(__name__)
 
 TOKEN_LIFETIME_DAYS = 180
+
+
+def validate_email(email: str) -> bool:
+    """
+    Validate email format.
+
+    Args:
+        email: Email address to validate
+
+    Returns:
+        bool: True if email format is valid, False otherwise
+    """
+    if not email or len(email) > 254:  # RFC 5321
+        return False
+
+    # Basic pattern check
+    parts = email.split("@")
+    if len(parts) != 2:
+        return False
+
+    local, domain = parts
+
+    # Check local part
+    if not local or len(local) > 64:  # RFC 5321
+        return False
+
+    # Valid characters for local part
+    valid_local_chars = set(
+        "abcdefghijklmnopqrstuvwxyz"
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        "0123456789"
+        "!#$%&'*+-/=?^_`{|}~."
+    )
+
+    # Check local part characters
+    if not all(char in valid_local_chars for char in local):
+        return False
+
+    # Local part can't start or end with dot
+    if local.startswith(".") or local.endswith("."):
+        return False
+
+    # Local part can't have consecutive dots
+    if ".." in local:
+        return False
+
+    # Check domain part
+    if not domain or len(domain) > 255:
+        return False
+
+    # Domain should have at least one dot
+    if "." not in domain:
+        return False
+
+    # Domain shouldn't start or end with dot
+    if domain.startswith(".") or domain.endswith("."):
+        return False
+
+    # Valid characters for domain
+    valid_domain_chars = set(
+        "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-."
+    )
+
+    # Check domain characters
+    if not all(char in valid_domain_chars for char in domain):
+        return False
+
+    # Domain can't have consecutive dots
+    if ".." in domain:
+        return False
+
+    # Domain parts can't start or end with hyphen
+    for part in domain.split("."):
+        if not part or part.startswith("-") or part.endswith("-"):
+            return False
+
+    return True
 
 
 class User(DBModel):
