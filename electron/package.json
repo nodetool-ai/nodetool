@@ -21,10 +21,7 @@
   "dependencies": {
     "electron-log": "^5.2.0",
     "electron-updater": "^6.1.8",
-    "extract-zip": "^2.0.1",
-    "tar": "^7.4.3",
-    "unzip-stream": "^0.3.4",
-    "unzipper": "^0.12.3"
+    "node-stream-zip": "^1.15.0"
   },
   "permissions": [
     "audioCapture"

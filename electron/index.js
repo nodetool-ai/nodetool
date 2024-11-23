@@ -619,7 +619,6 @@ async function checkPermissions(path, mode) {
 async function verifyApplicationPaths() {
   const pathsToCheck = [
     { path: app.getPath("userData"), mode: fs.constants.W_OK, desc: "User data directory" },
-    { path: condaEnvPath, mode: fs.constants.W_OK, desc: "Python environment directory" },
     { path: path.dirname(LOG_FILE), mode: fs.constants.W_OK, desc: "Log file directory" }
   ];
 
@@ -980,14 +979,12 @@ async function downloadFile(url, dest) {
   return new Promise((resolve, reject) => {
     const file = createWriteStream(dest);
     let downloadedBytes = 0;
-    let startTime = Date.now();
+    const startTime = Date.now();
     let lastUpdate = startTime;
-    let lastBytes = 0;
 
-    const request = https.get(url, handleResponse);
-    request.on("error", handleError);
-
-    function calculateETA(bytesPerSecond) {
+    function calculateETA() {
+      const elapsedSeconds = (Date.now() - startTime) / 1000;
+      const bytesPerSecond = downloadedBytes / elapsedSeconds;
       const remainingBytes = expectedSize - downloadedBytes;
       const remainingSeconds = remainingBytes / bytesPerSecond;
 
@@ -999,6 +996,9 @@ async function downloadFile(url, dest) {
         return `${Math.round(remainingSeconds / 3600)} hours left`;
       }
     }
+
+    const request = https.get(url, handleResponse);
+    request.on("error", handleError);
 
     function handleResponse(response) {
       if (response.statusCode === 404) {
@@ -1026,18 +1026,12 @@ async function downloadFile(url, dest) {
         const progress = (downloadedBytes / expectedSize) * 100;
         const fileName = path.basename(dest).split(".")[0];
 
-        // Calculate speed and ETA every second
+        // Update progress every second
         const now = Date.now();
         if (now - lastUpdate >= 1000) {
-          const timeDiff = (now - lastUpdate) / 1000;
-          const bytesDiff = downloadedBytes - lastBytes;
-          const bytesPerSecond = bytesDiff / timeDiff;
-          const eta = calculateETA(bytesPerSecond);
-
+          const eta = calculateETA();
           emitUpdateProgress(fileName, progress, "Downloading", eta);
-
           lastUpdate = now;
-          lastBytes = downloadedBytes;
         }
       });
 
@@ -1107,9 +1101,8 @@ async function unpackPythonEnvironment(zipPath, destPath) {
 
     const totalSize = stats.size;
     let extractedSize = 0;
-    let startTime = Date.now();
+    const startTime = Date.now();
     let lastUpdate = startTime;
-    let lastSize = 0;
 
     // Verify destination path is writable
     try {
@@ -1124,7 +1117,9 @@ async function unpackPythonEnvironment(zipPath, destPath) {
       await fs.promises.rm(destPath, { recursive: true, force: true });
     }
 
-    function calculateETA(bytesPerSecond) {
+    function calculateETA() {
+      const elapsedSeconds = (Date.now() - startTime) / 1000;
+      const bytesPerSecond = extractedSize / elapsedSeconds;
       const remainingBytes = totalSize - extractedSize;
       const remainingSeconds = remainingBytes / bytesPerSecond;
 
@@ -1177,14 +1172,9 @@ async function unpackPythonEnvironment(zipPath, destPath) {
             const now = Date.now();
             
             if (now - lastUpdate >= 1000) {
-              const timeDiff = (now - lastUpdate) / 1000;
-              const bytesDiff = extractedSize - lastSize;
-              const bytesPerSecond = bytesDiff / timeDiff;
-              const eta = calculateETA(bytesPerSecond);
-
+              const eta = calculateETA();
               emitUpdateProgress('Python environment', progress, 'Extracting', eta);
               lastUpdate = now;
-              lastSize = extractedSize;
             }
           }
         } catch (entryError) {
