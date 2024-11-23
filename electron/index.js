@@ -660,14 +660,16 @@ function logMessage(message, level = "info") {
  * @param {string} componentName - Name of the component being updated.
  * @param {number} progress - Progress percentage.
  * @param {string} action - Description of the current action.
+ * @param {string} eta - Estimated time of arrival.
  */
-function emitUpdateProgress(componentName, progress, action) {
+function emitUpdateProgress(componentName, progress, action, eta) {
   if (mainWindow && mainWindow.webContents) {
     try {
       mainWindow.webContents.send("update-progress", {
         componentName,
         progress,
         action,
+        eta,
       });
     } catch (error) {
       console.error("Error emitting update progress:", error);
@@ -775,7 +777,7 @@ async function installCondaEnvironment() {
 
     // Unpack and verify
     emitBootMessage("Unpacking Python environment...");
-    await unzipFile(archivePath, condaEnvPath);
+    await unpackPythonEnvironment(archivePath, condaEnvPath);
 
     // Cleanup
     await fs.promises.unlink(archivePath);
@@ -803,9 +805,25 @@ async function downloadFile(url, dest) {
     const file = createWriteStream(dest);
     let downloadedBytes = 0;
     let totalBytes = 0;
+    let startTime = Date.now();
+    let lastUpdate = startTime;
+    let lastBytes = 0;
 
     const request = https.get(url, handleResponse);
     request.on("error", handleError);
+
+    function calculateETA(bytesPerSecond) {
+      const remainingBytes = totalBytes - downloadedBytes;
+      const remainingSeconds = remainingBytes / bytesPerSecond;
+      
+      if (remainingSeconds < 60) {
+        return `${Math.round(remainingSeconds)} seconds left`;
+      } else if (remainingSeconds < 3600) {
+        return `${Math.round(remainingSeconds / 60)} minutes left`;
+      } else {
+        return `${Math.round(remainingSeconds / 3600)} hours left`;
+      }
+    }
 
     function handleResponse(response) {
       if (response.statusCode === 404) {
@@ -832,7 +850,20 @@ async function downloadFile(url, dest) {
         downloadedBytes += chunk.length;
         const progress = (downloadedBytes / totalBytes) * 100;
         const fileName = path.basename(dest).split(".")[0];
-        emitUpdateProgress(fileName, progress, "Downloading");
+        
+        // Calculate speed and ETA every second
+        const now = Date.now();
+        if (now - lastUpdate >= 1000) {
+          const timeDiff = (now - lastUpdate) / 1000; // seconds
+          const bytesDiff = downloadedBytes - lastBytes;
+          const bytesPerSecond = bytesDiff / timeDiff;
+          const eta = calculateETA(bytesPerSecond);
+          
+          emitUpdateProgress(fileName, progress, "Downloading", eta);
+          
+          lastUpdate = now;
+          lastBytes = downloadedBytes;
+        }
       });
 
       response.pipe(file);
@@ -867,19 +898,34 @@ async function downloadFile(url, dest) {
 }
 
 /**
- * Extract a zip archive to a specified destination with progress reporting.
+ * Extract the Python environment from a zip archive.
  * @param {string} zipPath - The path to the zip file.
  * @param {string} destPath - The destination directory.
  * @returns {Promise<void>}
  */
-async function unzipFile(zipPath, destPath) {
+async function unpackPythonEnvironment(zipPath, destPath) {
   emitBootMessage("Unpacking the Python environment...");
   
   try {
-    // Get the total size of the zip file for progress calculation
     const stats = await fs.promises.stat(zipPath);
     const totalSize = stats.size;
     let extractedSize = 0;
+    let startTime = Date.now();
+    let lastUpdate = startTime;
+    let lastSize = 0;
+
+    function calculateETA(bytesPerSecond) {
+      const remainingBytes = totalSize - extractedSize;
+      const remainingSeconds = remainingBytes / bytesPerSecond;
+      
+      if (remainingSeconds < 60) {
+        return `${Math.round(remainingSeconds)} seconds left`;
+      } else if (remainingSeconds < 3600) {
+        return `${Math.round(remainingSeconds / 60)} minutes left`;
+      } else {
+        return `${Math.round(remainingSeconds / 3600)} hours left`;
+      }
+    }
 
     await new Promise((resolve, reject) => {
       fs.createReadStream(zipPath)
@@ -902,7 +948,20 @@ async function unzipFile(zipPath, destPath) {
               .on('finish', () => {
                 extractedSize += size;
                 const progress = (extractedSize / totalSize) * 100;
-                emitUpdateProgress('Python environment', progress, 'Extracting');
+                
+                // Calculate speed and ETA every second
+                const now = Date.now();
+                if (now - lastUpdate >= 1000) {
+                  const timeDiff = (now - lastUpdate) / 1000;
+                  const bytesDiff = extractedSize - lastSize;
+                  const bytesPerSecond = bytesDiff / timeDiff;
+                  const eta = calculateETA(bytesPerSecond);
+                  
+                  emitUpdateProgress('Python environment', progress, 'Extracting', eta);
+                  
+                  lastUpdate = now;
+                  lastSize = extractedSize;
+                }
               });
           }
         })
