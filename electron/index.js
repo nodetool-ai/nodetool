@@ -454,71 +454,111 @@ function setupAutoUpdater() {
     return;
   }
 
-  // Set the feed URL for updates
-  autoUpdater.setFeedURL({
-    provider: "github",
-    owner: "nodetool-ai",
-    repo: "nodetool",
-    updaterCacheDirName: "nodetool-updater",
-  });
+  try {
+    // Set the feed URL for updates
+    autoUpdater.setFeedURL({
+      provider: "github",
+      owner: "nodetool-ai",
+      repo: "nodetool",
+      updaterCacheDirName: "nodetool-updater",
+    });
 
-  // Configure logging
-  autoUpdater.logger = log;
+    // Configure logging
+    autoUpdater.logger = log;
 
-  // Check for updates immediately
-  autoUpdater.checkForUpdates();
+    // Check for updates immediately
+    autoUpdater.checkForUpdates().catch(err => {
+      logMessage(`Failed to check for updates: ${err.message}`, "warn");
+    });
 
-  // Update events
-  autoUpdater.on("checking-for-update", () => {
-    logMessage("Checking for updates...");
-  });
+    // Update events with error handling
+    autoUpdater.on("checking-for-update", () => {
+      logMessage("Checking for updates...");
+    });
 
-  autoUpdater.on("update-available", (info) => {
-    logMessage(`Update available: ${info.version}`);
-    updateAvailable = true;
-    if (mainWindow) {
-      mainWindow.webContents.send("update-available", info);
-    }
-  });
+    autoUpdater.on("update-available", (info) => {
+      try {
+        logMessage(`Update available: ${info.version}`);
+        updateAvailable = true;
+        if (mainWindow) {
+          mainWindow.webContents.send("update-available", info);
+        }
+      } catch (err) {
+        logMessage(`Error handling update-available event: ${err.message}`, "error");
+      }
+    });
 
-  autoUpdater.on("update-not-available", () => {
-    logMessage("No updates available");
-  });
+    autoUpdater.on("update-not-available", () => {
+      logMessage("No updates available");
+    });
 
-  autoUpdater.on("download-progress", (progress) => {
-    if (mainWindow) {
-      mainWindow.webContents.send("update-progress", progress);
-    }
-  });
+    autoUpdater.on("download-progress", (progress) => {
+      try {
+        if (mainWindow) {
+          mainWindow.webContents.send("update-progress", progress);
+        }
+      } catch (err) {
+        logMessage(`Error handling download progress: ${err.message}`, "error");
+      }
+    });
 
-  autoUpdater.on("update-downloaded", async (info) => {
-    logMessage(`Update downloaded: ${info.version}`);
+    autoUpdater.on("update-downloaded", async (info) => {
+      try {
+        logMessage(`Update downloaded: ${info.version}`);
 
-    // Create flag file to trigger Python environment update after restart
-    try {
-      await fs.promises.writeFile(
-        path.join(app.getPath("userData"), "update-conda-env"),
-        "true"
-      );
-      logMessage("Python environment update flagged for next startup");
-    } catch (error) {
-      logMessage(`Error creating update flag: ${error.message}`, "error");
-    }
+        // Create flag file to trigger Python environment update after restart
+        try {
+          await fs.promises.writeFile(
+            path.join(app.getPath("userData"), "update-conda-env"),
+            "true"
+          );
+          logMessage("Python environment update flagged for next startup");
+        } catch (error) {
+          logMessage(`Error creating update flag: ${error.message}`, "error");
+        }
 
-    if (mainWindow) {
-      mainWindow.webContents.send("update-downloaded", info);
-    }
-  });
+        if (mainWindow) {
+          mainWindow.webContents.send("update-downloaded", info);
+        }
+      } catch (err) {
+        logMessage(`Error handling update-downloaded event: ${err.message}`, "error");
+      }
+    });
 
-  autoUpdater.on("error", (err) => {
-    logMessage(`Update error: ${err.message}`, "error");
-  });
+    autoUpdater.on("error", (err) => {
+      logMessage(`Update error: ${err.message}`, "error");
+      try {
+        if (mainWindow) {
+          mainWindow.webContents.send("update-error", {
+            message: "Failed to check for updates. Please try again later.",
+            details: err.message
+          });
+        }
+      } catch (sendErr) {
+        logMessage(`Error sending update error to window: ${sendErr.message}`, "error");
+      }
+    });
+
+  } catch (err) {
+    logMessage(`Failed to setup auto-updater: ${err.message}`, "error");
+  }
 }
 
-// Handle requests to install updates
-ipcMain.handle("install-update", () => {
-  if (updateAvailable) {
-    autoUpdater.quitAndInstall(false, true);
+// Handle requests to install updates with error handling
+ipcMain.handle("install-update", async () => {
+  try {
+    if (updateAvailable) {
+      await autoUpdater.quitAndInstall(false, true);
+    }
+  } catch (err) {
+    logMessage(`Failed to install update: ${err.message}`, "error");
+    if (mainWindow) {
+      mainWindow.webContents.send("update-error", {
+        message: "Failed to install update. Please try again later.",
+        details: err.message
+      });
+    }
+    throw err; // Propagate error to renderer
   }
 });
 
@@ -727,8 +767,8 @@ async function isCondaEnvironmentInstalled() {
  */
 async function installCondaEnvironment() {
   try {
-    emitBootMessage("Downloading Python environment...");
-    logMessage(`Downloading Python environment to: ${condaEnvPath}`);
+    emitBootMessage("Setting up Python environment...");
+    logMessage(`Setting up Python environment at: ${condaEnvPath}`);
 
     const platform = process.platform;
     const arch = process.arch;
@@ -738,26 +778,19 @@ async function installCondaEnvironment() {
     // Update URLs to use version-specific files
     if (platform === "win32") {
       environmentUrl = `https://nodetool-conda.s3.amazonaws.com/conda-env-windows-x64-${VERSION}.zip`;
-      archivePath = path.join(
-        os.tmpdir(),
-        `conda-env-windows-x64-${VERSION}.zip`
-      );
+      archivePath = path.join(os.tmpdir(), `conda-env-windows-x64-${VERSION}.zip`);
     } else if (platform === "darwin") {
       const archSuffix = arch === "arm64" ? "arm64" : "x86_64";
       environmentUrl = `https://nodetool-conda.s3.amazonaws.com/conda-env-darwin-${archSuffix}-${VERSION}.zip`;
-      archivePath = path.join(
-        os.tmpdir(),
-        `conda-env-darwin-${archSuffix}-${VERSION}.zip`
-      );
+      archivePath = path.join(os.tmpdir(), `conda-env-darwin-${archSuffix}-${VERSION}.zip`);
     } else {
-      throw new Error(
-        "Unsupported platform for Python environment installation."
-      );
+      throw new Error("Unsupported platform for Python environment installation.");
     }
 
     // Ensure temp directory exists
     await fs.promises.mkdir(path.dirname(archivePath), { recursive: true });
-
+    
+    emitBootMessage("Downloading Python environment...");
     // Download with retries
     let attempts = 3;
     while (attempts > 0) {
@@ -772,25 +805,50 @@ async function installCondaEnvironment() {
       }
     }
 
-    // Ensure destination directory exists
     await fs.promises.mkdir(condaEnvPath, { recursive: true });
-
-    // Unpack and verify
     emitBootMessage("Unpacking Python environment...");
     await unpackPythonEnvironment(archivePath, condaEnvPath);
 
-    // Cleanup
-    await fs.promises.unlink(archivePath);
+    // Only cleanup if we downloaded a new file
+    if (needsDownload) {
+      await fs.promises.unlink(archivePath);
+    }
 
     logMessage("Python environment installation completed successfully");
     emitBootMessage("Python environment is ready");
   } catch (error) {
-    logMessage(
-      `Failed to install Python environment: ${error.message}`,
-      "error"
-    );
+    logMessage(`Failed to install Python environment: ${error.message}`, "error");
     throw error;
   }
+}
+
+/**
+ * Get file size from URL using HEAD request
+ * @param {string} url - The URL to check
+ * @returns {Promise<number>} The file size in bytes
+ */
+async function getFileSizeFromUrl(url) {
+  return new Promise((resolve, reject) => {
+    const request = https.request(url, { method: 'HEAD' }, (response) => {
+      if (response.statusCode === 302 || response.statusCode === 301) {
+        // Handle redirects
+        getFileSizeFromUrl(response.headers.location)
+          .then(resolve)
+          .catch(reject);
+        return;
+      }
+      
+      const contentLength = parseInt(response.headers['content-length'], 10);
+      if (!contentLength) {
+        reject(new Error('Could not determine file size'));
+        return;
+      }
+      resolve(contentLength);
+    });
+    
+    request.on('error', reject);
+    request.end();
+  });
 }
 
 /**
@@ -801,10 +859,25 @@ async function installCondaEnvironment() {
  */
 async function downloadFile(url, dest) {
   logMessage(`Downloading file from ${url} to ${dest}`);
+  
+  // Get expected file size from server
+  const expectedSize = await getFileSizeFromUrl(url);
+  logMessage(`Expected file size: ${expectedSize} bytes`);
+
+  // Check if existing file matches size
+  try {
+    const stats = await fs.promises.stat(dest);
+    if (stats.size === expectedSize) {
+      logMessage('Existing file matches expected size, skipping download');
+      return;
+    }
+  } catch (err) {
+    // File doesn't exist, continue with download
+  }
+
   return new Promise((resolve, reject) => {
     const file = createWriteStream(dest);
     let downloadedBytes = 0;
-    let totalBytes = 0;
     let startTime = Date.now();
     let lastUpdate = startTime;
     let lastBytes = 0;
@@ -813,7 +886,7 @@ async function downloadFile(url, dest) {
     request.on("error", handleError);
 
     function calculateETA(bytesPerSecond) {
-      const remainingBytes = totalBytes - downloadedBytes;
+      const remainingBytes = expectedSize - downloadedBytes;
       const remainingSeconds = remainingBytes / bytesPerSecond;
       
       if (remainingSeconds < 60) {
@@ -838,23 +911,23 @@ async function downloadFile(url, dest) {
         return;
       }
 
-      totalBytes = parseInt(response.headers["content-length"], 10);
-      if (!totalBytes) {
-        reject(new Error("Invalid content length received"));
+      const contentLength = parseInt(response.headers["content-length"], 10);
+      if (contentLength !== expectedSize) {
+        reject(new Error(`Server file size mismatch. Expected: ${expectedSize}, Got: ${contentLength}`));
         return;
       }
 
-      logMessage(`Download started. Total size: ${totalBytes} bytes`);
+      logMessage(`Download started. Total size: ${expectedSize} bytes`);
 
       response.on("data", (chunk) => {
         downloadedBytes += chunk.length;
-        const progress = (downloadedBytes / totalBytes) * 100;
+        const progress = (downloadedBytes / expectedSize) * 100;
         const fileName = path.basename(dest).split(".")[0];
         
         // Calculate speed and ETA every second
         const now = Date.now();
         if (now - lastUpdate >= 1000) {
-          const timeDiff = (now - lastUpdate) / 1000; // seconds
+          const timeDiff = (now - lastUpdate) / 1000;
           const bytesDiff = downloadedBytes - lastBytes;
           const bytesPerSecond = bytesDiff / timeDiff;
           const eta = calculateETA(bytesPerSecond);
@@ -870,12 +943,12 @@ async function downloadFile(url, dest) {
 
       file.on("finish", () => {
         file.close(async () => {
-          // Verify file size matches expected size
+          // Verify final file size matches expected size
           try {
             const stats = await fs.promises.stat(dest);
-            if (stats.size !== totalBytes) {
+            if (stats.size !== expectedSize) {
               await fs.promises.unlink(dest);
-              reject(new Error("Downloaded file size mismatch"));
+              reject(new Error(`Downloaded file size mismatch. Expected: ${expectedSize}, Got: ${stats.size}`));
               return;
             }
             logMessage(`Download completed and verified: ${dest}`);
@@ -928,45 +1001,70 @@ async function unpackPythonEnvironment(zipPath, destPath) {
     }
 
     await new Promise((resolve, reject) => {
-      fs.createReadStream(zipPath)
+      const stream = fs.createReadStream(zipPath)
         .pipe(unzipper.Parse())
         .on('entry', (entry) => {
-          const fileName = entry.path;
-          const type = entry.type;
-          const size = entry.vars.uncompressedSize;
-          const fullPath = path.join(destPath, fileName);
-          const dirPath = path.dirname(fullPath);
+          try {
+            const fileName = entry.path;
+            const type = entry.type;
+            const size = entry.vars.uncompressedSize;
+            const fullPath = path.join(destPath, fileName);
+            const dirPath = path.dirname(fullPath);
 
-          // Ensure directory exists
-          fs.mkdirSync(dirPath, { recursive: true });
+            // Ensure directory exists
+            fs.mkdirSync(dirPath, { recursive: true });
 
-          if (type === 'Directory') {
-            entry.autodrain();
-          } else {
-            entry
-              .pipe(fs.createWriteStream(fullPath))
-              .on('finish', () => {
-                extractedSize += size;
-                const progress = (extractedSize / totalSize) * 100;
-                
-                // Calculate speed and ETA every second
-                const now = Date.now();
-                if (now - lastUpdate >= 1000) {
-                  const timeDiff = (now - lastUpdate) / 1000;
-                  const bytesDiff = extractedSize - lastSize;
-                  const bytesPerSecond = bytesDiff / timeDiff;
-                  const eta = calculateETA(bytesPerSecond);
+            if (type === 'Directory') {
+              entry.autodrain();
+            } else {
+              entry
+                .pipe(fs.createWriteStream(fullPath))
+                .on('error', (err) => {
+                  const errorMsg = `Error writing file ${fileName}: ${err.message}`;
+                  logMessage(errorMsg, "error");
+                  logMessage(`Stack trace: ${err.stack}`, "error");
+                  reject(new Error(errorMsg));
+                })
+                .on('finish', () => {
+                  extractedSize += size;
+                  const progress = (extractedSize / totalSize) * 100;
                   
-                  emitUpdateProgress('Python environment', progress, 'Extracting', eta);
-                  
-                  lastUpdate = now;
-                  lastSize = extractedSize;
-                }
-              });
+                  const now = Date.now();
+                  if (now - lastUpdate >= 1000) {
+                    const timeDiff = (now - lastUpdate) / 1000;
+                    const bytesDiff = extractedSize - lastSize;
+                    const bytesPerSecond = bytesDiff / timeDiff;
+                    const eta = calculateETA(bytesPerSecond);
+                    
+                    emitUpdateProgress('Python environment', progress, 'Extracting', eta);
+                    
+                    lastUpdate = now;
+                    lastSize = extractedSize;
+                  }
+                });
+            }
+          } catch (err) {
+            const errorMsg = `Error processing entry ${entry.path}: ${err.message}`;
+            logMessage(errorMsg, "error");
+            logMessage(`Stack trace: ${err.stack}`, "error");
+            reject(new Error(errorMsg));
           }
         })
-        .on('error', reject)
+        .on('error', (err) => {
+          const errorMsg = `Error during extraction: ${err.message}`;
+          logMessage(errorMsg, "error");
+          logMessage(`Stack trace: ${err.stack}`, "error");
+          reject(new Error(errorMsg));
+        })
         .on('finish', resolve);
+
+      // Handle stream errors
+      stream.on('error', (err) => {
+        const errorMsg = `Error reading zip file: ${err.message}`;
+        logMessage(errorMsg, "error");
+        logMessage(`Stack trace: ${err.stack}`, "error");
+        reject(new Error(errorMsg));
+      });
     });
 
     emitBootMessage("Running conda-unpack...");
@@ -1013,7 +1111,16 @@ async function unpackPythonEnvironment(zipPath, destPath) {
     });
 
   } catch (err) {
-    logMessage(`Error unpacking Python environment: ${err.message}`, "error");
+    const errorMsg = `Failed to unpack Python environment: ${err.message}`;
+    logMessage(errorMsg, "error");
+    logMessage(`Stack trace: ${err.stack}`, "error");
+    
+    // Show error dialog to user
+    dialog.showErrorBox(
+      "Installation Error",
+      `Failed to install Python environment.\n\nError: ${err.message}\n\nPlease check the log file for more details.`
+    );
+    
     throw err;
   }
 }
