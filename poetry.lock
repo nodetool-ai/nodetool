@@ -489,17 +489,22 @@ lxml = ["lxml"]
 
 [[package]]
 name = "bitsandbytes"
-version = "0.42.0"
+version = "0.44.1"
 description = "k-bit optimizers and matrix multiplication routines."
 optional = false
 python-versions = "*"
 files = [
-    {file = "bitsandbytes-0.42.0-py3-none-any.whl", hash = "sha256:63798680912cc63bb77b535a2d0860af024e290a52e157f777ad2a52e2585967"},
-    {file = "bitsandbytes-0.42.0.tar.gz", hash = "sha256:fc1505f184f0d275766f2a6c663f1a43b734c1409b5c5a406f3a6073d9f329fd"},
+    {file = "bitsandbytes-0.44.1-py3-none-manylinux_2_24_x86_64.whl", hash = "sha256:b2f24c6cbf11fc8c5d69b3dcecee9f7011451ec59d6ac833e873c9f105259668"},
+    {file = "bitsandbytes-0.44.1-py3-none-win_amd64.whl", hash = "sha256:8e68e12aa25d2cf9a1730ad72890a5d1a19daa23f459a6a4679331f353d58cb4"},
 ]
 
 [package.dependencies]
-scipy = "*"
+numpy = "*"
+torch = "*"
+
+[package.extras]
+benchmark = ["matplotlib", "pandas"]
+test = ["lion-pytorch", "scipy"]
 
 [[package]]
 name = "black"
@@ -8145,4 +8150,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "02b12a45ff929ae0ba707d3c8b33619ca31e6f03568b77b983e80de05546dd57"
+content-hash = "62d3cd2326a63edfef52f54c41f6b5eb8f4ba91c8d89f3c6e49f41261769f1fc"

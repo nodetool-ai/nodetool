@@ -158,6 +158,7 @@ const processEnv = {
   ...process.env,
   PYTHONPATH: srcPath,
   PYTHONUNBUFFERED: "1",
+  PYTHONNOUSERSITE: "1",  // prevent global site-packages from leaking into the environment
   PATH: process.platform === "win32"
     ? [
         path.join(condaEnvPath),
@@ -175,9 +176,6 @@ const processEnv = {
         path.join(condaEnvPath, "usr", "lib"),
         process.env.PATH
       ].join(path.delimiter),
-  // Add additional conda-specific environment variables
-  CONDA_PREFIX: condaEnvPath,
-  CONDA_DEFAULT_ENV: path.basename(condaEnvPath),
   // Platform-specific library paths
   ...(process.platform !== "win32" && {
     LD_LIBRARY_PATH: [
@@ -401,11 +399,180 @@ async function showOllamaInstallDialog() {
 }
 
 /**
- * Start the NodeTool server with error handling.
+ * Parse requirements.txt into a map of package names and versions
+ * @param {string} requirementsContent - Content of requirements.txt
+ * @returns {Map<string, string>} Map of package names to version specs
+ */
+function parseRequirements(requirementsContent) {
+  const requirements = new Map();
+  
+  requirementsContent.split('\n').forEach(line => {
+    // Skip empty lines and comments
+    line = line.trim();
+    if (!line || line.startsWith('#')) {
+      logMessage(`Skipping line: ${line}`);
+      return;
+    }
+    
+    // Extract package name and version spec
+    const match = line.match(/^([^=<>~!]+)(.*)/);
+    if (match) {
+      const name = match[1].trim().toLowerCase();
+      let version = match[2].trim();
+      
+      // Handle platform/python version constraints
+      const platformIndex = version.indexOf(';');
+      if (platformIndex !== -1) {
+        version = version.substring(0, platformIndex).trim();
+        logMessage(`Stripped platform constraint from ${name}: ${version}`);
+      }
+      
+      requirements.set(name, version);
+      logMessage(`Parsed requirement: ${name}${version}`);
+    } else {
+      logMessage(`Failed to parse requirement line: ${line}`, "warn");
+    }
+  });
+  
+  logMessage(`Total parsed requirements: ${requirements.size}`);
+  return requirements;
+}
+
+/**
+ * Parse pip list output into a map of installed packages
+ * @param {string} pipListOutput - Output from pip list command
+ * @returns {Map<string, string>} Map of package names to installed versions
+ */
+function parsePipList(pipListOutput) {
+  const installed = new Map();
+  
+  // Skip header lines
+  const lines = pipListOutput.split('\n').slice(2);
+  logMessage(`Parsing pip list output (${lines.length} packages)`);
+  
+  lines.forEach(line => {
+    line = line.trim();
+    if (!line) {
+      logMessage('Skipping empty pip list line');
+      return;
+    }
+    
+    const [name, version] = line.split(/\s+/);
+    if (name && version) {
+      installed.set(name.toLowerCase(), version);
+      logMessage(`Found installed package: ${name} ${version}`);
+    } else {
+      logMessage(`Invalid pip list line: ${line}`, "warn");
+    }
+  });
+  
+  logMessage(`Total installed packages: ${installed.size}`);
+  return installed;
+}
+
+/**
+ * Check if installed packages match requirements
+ * @returns {Promise<boolean>} True if packages match requirements
+ */
+async function checkPythonPackages() {
+  try {
+    logMessage("Starting Python package verification");
+    
+    const pipExecutable = process.platform === "win32"
+      ? path.join(condaEnvPath, "Scripts", "pip.exe")
+      : path.join(condaEnvPath, "bin", "pip");
+
+    logMessage(`Using pip executable: ${pipExecutable}`);
+
+    // Read requirements.txt
+    const requirementsContent = await fs.promises.readFile(requirementsFilePath, 'utf8');
+    logMessage("Requirements file content:");
+    logMessage(requirementsContent);
+
+    const requirements = parseRequirements(requirementsContent);
+
+    // Get installed packages
+    const pipListProcess = spawn(
+      pipExecutable,
+      ["list"],
+      { stdio: "pipe", env: processEnv }
+    );
+
+    const pipListOutput = await new Promise((resolve, reject) => {
+      let output = '';
+      
+      pipListProcess.stdout.on('data', (data) => {
+        output += data.toString();
+      });
+      
+      pipListProcess.on('error', (error) => {
+        logMessage(`Pip list error: ${error.message}`, "error");
+        reject(error);
+      });
+      
+      pipListProcess.on('exit', (code) => {
+        if (code === 0) {
+          resolve(output);
+        } else {
+          const error = new Error(`pip list failed with code ${code}`);
+          logMessage(error.message, "error");
+          reject(error);
+        }
+      });
+    });
+
+    logMessage("Pip list output:");
+    logMessage(pipListOutput);
+
+    const installed = parsePipList(pipListOutput);
+
+    // Compare installed packages with requirements
+    let matches = true;
+    logMessage("Comparing installed packages with requirements:");
+    
+    for (const [name, versionSpec] of requirements) {
+      if (!installed.has(name)) {
+        logMessage(`Missing package: ${name}${versionSpec}`, "warn");
+        matches = false;
+        continue;
+      }
+
+      const installedVersion = installed.get(name);
+      logMessage(`Checking ${name}: required${versionSpec}, installed ${installedVersion}`);
+
+      // Simple version match for now - could be enhanced with proper version comparison
+      if (versionSpec && !versionSpec.includes(installedVersion)) {
+        logMessage(`Version mismatch for ${name}: required${versionSpec}, installed ${installedVersion}`, "warn");
+        matches = false;
+      } else {
+        logMessage(`Package ${name} version matches requirements`);
+      }
+    }
+
+    logMessage(`Package verification complete. All packages match: ${matches}`);
+    return matches;
+
+  } catch (error) {
+    logMessage(`Error checking Python packages: ${error.message}`, "error");
+    logMessage(`Stack trace: ${error.stack}`, "error");
+    return false;
+  }
+}
+
+/**
+ * Start the NodeTool backend server with package verification
  */
 async function initializeBackendServer() {
   try {
     logMessage("Attempting to start NodeTool backend server");
+    
+    // Check Python packages before starting server
+    const packagesMatch = await checkPythonPackages();
+    if (!packagesMatch) {
+      emitBootMessage("Updating Python packages...");
+      await updateCondaEnvironment();
+    }
+    
     await ensureOllamaIsRunning();
     startNodeToolBackendProcess();
   } catch (error) {

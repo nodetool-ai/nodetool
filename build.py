@@ -180,17 +180,10 @@ class Build:
         # Create build directory if it doesn't exist
         self.create_directory(self.BUILD_DIR)
 
-        # Copy electron folder to build dir
-        files_to_copy = [
-            "electron-builder.json",
-            "index.js",
-            "preload.js",
-            "index.html",
-            "package.json",
-            "package-lock.json",
-        ]
-        for file in files_to_copy:
-            self.copy_file(self.ELECTRON_DIR / file, self.BUILD_DIR / file)
+        # Copy all files (not directories) from electron folder root
+        for file in self.ELECTRON_DIR.glob("*"):
+            if file.is_file():
+                self.copy_file(file, self.BUILD_DIR / file.name)
 
         # Copy resources and environment
         self.copy_tree(self.ELECTRON_DIR / "resources", self.BUILD_DIR / "resources")
