@@ -30,24 +30,16 @@ def worker(
 ):
     """Serve the Nodetool API server."""
 
-    if Environment.get_comfy_folder():
-        import comfy.cli_args
+    import comfy.cli_args
+    import comfy.model_management
+    import comfy.utils
+    from nodes import init_extra_nodes
 
-        comfy.cli_args.args.force_fp16 = force_fp16
+    comfy.cli_args.args.force_fp16 = force_fp16
 
     app = "nodetool.api.worker:app"
 
-    if Environment.get_comfy_folder():
-        import comfy.cli_args
-
-        comfy.cli_args.args.force_fp16 = True
-
-        import comfy.model_management
-        import comfy.utils
-        from nodes import init_extra_nodes
-
-        init_extra_nodes()
-
+    init_extra_nodes()
     run_uvicorn_server(app=app, host=host, port=port, reload=reload)
 
 
@@ -79,11 +71,9 @@ def serve(
 ):
     """Serve the Nodetool API server."""
 
-    if Environment.get_comfy_folder():
-        import comfy.cli_args
+    import comfy.cli_args
 
-        comfy.cli_args.args.force_fp16 = force_fp16
-
+    comfy.cli_args.args.force_fp16 = force_fp16
     Environment.set_remote_auth(remote_auth)
 
     if worker_url:
