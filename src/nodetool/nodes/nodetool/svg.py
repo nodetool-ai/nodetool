@@ -2,7 +2,6 @@ import os
 from enum import Enum
 import PIL.Image
 import io
-import cairosvg
 from typing import Literal, Optional
 from pydantic import BaseModel, Field
 from nodetool.workflows.base_node import BaseNode
@@ -410,6 +409,8 @@ class SVGToImage(BaseNode):
      viewBox="{self.viewBox}">
     {content_str}
 </svg>"""
+
+        import cairosvg
 
         # Convert to PNG using cairosvg
         png_data = cairosvg.svg2png(

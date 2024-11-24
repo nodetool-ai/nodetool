@@ -214,7 +214,6 @@ async def create(
             storage = Environment.get_asset_storage()
 
             if "video" in req.content_type:
-                duration = await get_video_duration(file_io)
                 thumbnail = await create_video_thumbnail(file_io, 512, 512)
             elif "audio" in req.content_type:
                 duration = get_audio_duration(file_io)
@@ -238,7 +237,7 @@ async def create(
                 await storage.upload(asset.thumb_file_name, thumbnail)
 
     except Exception as e:
-        log.exception(e)
+        log.exception(e, stack_info=True)
         if asset:
             asset.delete()
         raise HTTPException(status_code=500, detail="Error uploading asset")

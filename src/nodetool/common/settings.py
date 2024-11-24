@@ -112,12 +112,12 @@ def get_value(
     If the environment variable is not set, and the key is not in the
     default values, raise an exception.
     """
-    value = os.environ.get(
-        key,
-        settings.model_dump().get(
-            key, secrets.model_dump().get(key, default_env.get(key, default))
-        ),
-    )
+    value = secrets.model_dump().get(key) or settings.model_dump().get(key)
+    if value is None:
+        value = os.environ.get(key)
+
+    if value is None:
+        value = default_env.get(key, default)
 
     if value is not NOT_GIVEN:
         return value

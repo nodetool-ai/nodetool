@@ -188,6 +188,7 @@ def run_uvicorn_server(app: Any, host: str, port: int, reload: bool) -> None:
     """
     current_dir = os.path.dirname(os.path.realpath(__file__))
     parent_dir = os.path.dirname(current_dir)
+    # os.environ["NODETOOL_API_URL"] = f"http://{host}:{port}"
     uvicorn(
         app=app,
         host=host,
