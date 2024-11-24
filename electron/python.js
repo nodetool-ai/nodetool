@@ -1,5 +1,6 @@
 const path = require('path');
-const fs = require('fs').promises;
+const fs = require('fs');
+const fsPromises = require('fs').promises;
 const { spawn } = require('child_process');
 const os = require('os');
 const { app } = require('electron');
@@ -101,15 +102,15 @@ async function checkPythonPackages() {
       checkProcess.on('error', reject);
     });
     
-    const reportContent = await fs.readFile(reportFile, 'utf8');
-
-    // Parse JSON output to determine which packages need to be installed/updated
     try {
-      const report = JSON.parse(reportContent);
-      return report.install;
-    } catch (parseError) {
-      logMessage(`Error parsing pip report: ${parseError.message}`, "error");
-      throw parseError;
+      const reportContent = await fsPromises.readFile(reportFile, 'utf8');
+      await fsPromises.unlink(reportFile).catch(err => 
+        logMessage(`Warning: Could not delete temporary report file: ${err.message}`, "warn")
+      );
+      return JSON.parse(reportContent).install;
+    } catch (fileError) {
+      logMessage(`Error handling pip report file: ${fileError.message}`, "error");
+      throw fileError;
     }
   } catch (error) {
     logMessage(`Error checking Python packages: ${error.message}`, "error");
@@ -150,7 +151,7 @@ async function isCondaEnvironmentInstalled() {
       ? path.join(condaEnvPath, "python.exe")
       : path.join(condaEnvPath, "bin", "python");
 
-    await fs.access(pythonExecutablePath);
+    await fsPromises.access(pythonExecutablePath);
     return true;
   } catch {
     return false;
@@ -294,14 +295,17 @@ async function downloadFile(url, dest) {
     throw new Error(`Failed to get file size from URL: ${error.message}`);
   }
 
+  let existingFileStats;
   try {
-    const stats = await fs.stat(dest);
-    if (stats.size === expectedSize) {
+    existingFileStats = await fsPromises.stat(dest);
+    if (existingFileStats.size === expectedSize) {
       logMessage('Existing file matches expected size, skipping download');
       return;
     }
   } catch (err) {
-    // File doesn't exist or error accessing it, continue with download
+    if (err.code !== 'ENOENT') {
+      logMessage(`Error checking existing file: ${err.message}`, "warn");
+    }
   }
 
   return new Promise((resolve, reject) => {
@@ -363,9 +367,9 @@ async function downloadFile(url, dest) {
 
       file.on("finish", async () => {
         try {
-          const stats = await fs.stat(dest);
+          const stats = await fsPromises.stat(dest);
           if (stats.size !== expectedSize) {
-            await fs.unlink(dest);
+            await fsPromises.unlink(dest);
             reject(new Error(`Downloaded file size mismatch. Expected: ${expectedSize}, Got: ${stats.size}`));
             return;
           }
@@ -379,7 +383,7 @@ async function downloadFile(url, dest) {
 
     function handleError(err) {
       file.close();
-      fs.unlink(dest).then(() => {
+      fsPromises.unlink(dest).then(() => {
         logMessage(`Error downloading file: ${err.message}`, "error");
         reject(new Error(`Error downloading file: ${err.message}`));
       });
@@ -413,7 +417,7 @@ async function installCondaEnvironment() {
       throw new Error("Unsupported platform for Python environment installation.");
     }
 
-    await fs.mkdir(path.dirname(archivePath), { recursive: true });
+    await fsPromises.mkdir(path.dirname(archivePath), { recursive: true });
     
     emitBootMessage("Downloading Python environment...");
     let attempts = 3;
@@ -429,11 +433,11 @@ async function installCondaEnvironment() {
       }
     }
 
-    await fs.mkdir(condaEnvPath, { recursive: true });
+    await fsPromises.mkdir(condaEnvPath, { recursive: true });
     emitBootMessage("Unpacking Python environment...");
     await unpackPythonEnvironment(archivePath, condaEnvPath);
 
-    await fs.unlink(archivePath);
+    await fsPromises.unlink(archivePath);
 
     logMessage("Python environment installation completed successfully");
     emitBootMessage("Python environment is ready");
@@ -467,7 +471,7 @@ async function unpackPythonEnvironment(zipPath, destPath) {
       throw new Error(`Zip file not found at: ${zipPath}`);
     }
 
-    const stats = await fs.stat(zipPath);
+    const stats = await fsPromises.stat(zipPath);
     if (stats.size === 0) {
       throw new Error('Downloaded zip file is empty');
     }
@@ -479,7 +483,7 @@ async function unpackPythonEnvironment(zipPath, destPath) {
 
     if (await fileExists(destPath)) {
       logMessage(`Removing existing environment at ${destPath}`);
-      await fs.rm(destPath, { recursive: true, force: true });
+      await fsPromises.rm(destPath, { recursive: true, force: true });
     }
 
     function calculateETA() {
@@ -518,14 +522,14 @@ async function unpackPythonEnvironment(zipPath, destPath) {
             throw new Error(`Invalid zip entry path: ${name}`);
           }
 
-          await fs.mkdir(dirPath, { recursive: true });
+          await fsPromises.mkdir(dirPath, { recursive: true });
 
           if (!entry.isDirectory) {
             await zip.extract(name, fullPath);
             extractedSize += entry.size;
             processedEntries++;
 
-            const fileStats = await fs.stat(fullPath);
+            const fileStats = await fsPromises.stat(fullPath);
             if (fileStats.size !== entry.size) {
               throw new Error(`Size mismatch for ${name}`);
             }
@@ -546,9 +550,12 @@ async function unpackPythonEnvironment(zipPath, destPath) {
       }
 
       if (failedEntries.length > 0) {
-        throw new Error(`Failed to extract ${failedEntries.length} files:\n${
-          failedEntries.map(f => `${f.name}: ${f.error}`).join('\n')
-        }`);
+        try {
+          await fsPromises.rm(destPath, { recursive: true, force: true });
+        } catch (cleanupError) {
+          logMessage(`Warning: Failed to clean up after extraction error: ${cleanupError.message}`, "warn");
+        }
+        throw new Error(`Failed to extract ${failedEntries.length} files`);
       }
 
     } finally {
@@ -620,7 +627,7 @@ async function unpackPythonEnvironment(zipPath, destPath) {
 
     try {
       if (await fileExists(destPath)) {
-        await fs.rm(destPath, { recursive: true, force: true });
+        await fsPromises.rm(destPath, { recursive: true, force: true });
       }
     } catch (cleanupError) {
       logMessage(`Error during cleanup: ${cleanupError.message}`, "error");
