@@ -1,17 +1,17 @@
-const path = require('path');
-const fs = require('fs');
-const fsPromises = require('fs').promises;
-const { spawn } = require('child_process');
-const os = require('os');
-const { app } = require('electron');
-const https = require('https');
-const StreamZip = require('node-stream-zip');
-const { logMessage } = require('./logger');
-const { checkPermissions, fileExists } = require('./utils');
-const { getMainWindow } = require('./window');
-const { LOG_FILE } = require('./logger');
-const { dialog } = require('electron');
-const { emitBootMessage, emitUpdateProgress } = require('./events');
+const path = require("path");
+const fs = require("fs");
+const fsPromises = require("fs").promises;
+const { spawn } = require("child_process");
+const os = require("os");
+const { app } = require("electron");
+const https = require("https");
+const StreamZip = require("node-stream-zip");
+const { logMessage } = require("./logger");
+const { checkPermissions, fileExists } = require("./utils");
+const { getMainWindow } = require("./window");
+const { LOG_FILE } = require("./logger");
+const { dialog } = require("electron");
+const { emitBootMessage, emitUpdateProgress } = require("./events");
 
 // Path configurations
 const resourcesPath = process.resourcesPath;
@@ -23,7 +23,8 @@ const requirementsFilePath = app.isPackaged
   ? path.join(resourcesPath, "requirements.txt")
   : path.join(__dirname, "..", "requirements.txt");
 
-const appDir = process.env.PORTABLE_EXECUTABLE_DIR || path.dirname(app.getPath("exe"));
+const appDir =
+  process.env.PORTABLE_EXECUTABLE_DIR || path.dirname(app.getPath("exe"));
 const condaEnvPath = path.join(appDir, "conda_env");
 
 // Environment configuration
@@ -32,33 +33,38 @@ const processEnv = {
   PYTHONPATH: srcPath,
   PYTHONUNBUFFERED: "1",
   PYTHONNOUSERSITE: "1",
-  PATH: process.platform === "win32"
-    ? [
-        path.join(condaEnvPath),
-        path.join(condaEnvPath, "Library", "mingw-w64", "bin"),
-        path.join(condaEnvPath, "Library", "usr", "bin"),
-        path.join(condaEnvPath, "Library", "bin"),
-        path.join(condaEnvPath, "Lib", "site-packages", "torch", "lib"),
-        path.join(condaEnvPath, "Scripts"),
-        process.env.PATH
-      ].join(path.delimiter)
-    : [
-        path.join(condaEnvPath, "bin"),
-        path.join(condaEnvPath, "lib"),
-        path.join(condaEnvPath, "usr", "bin"),
-        path.join(condaEnvPath, "usr", "lib"),
-        process.env.PATH
-      ].join(path.delimiter),
+  PATH:
+    process.platform === "win32"
+      ? [
+          path.join(condaEnvPath),
+          path.join(condaEnvPath, "Library", "mingw-w64", "bin"),
+          path.join(condaEnvPath, "Library", "usr", "bin"),
+          path.join(condaEnvPath, "Library", "bin"),
+          path.join(condaEnvPath, "Lib", "site-packages", "torch", "lib"),
+          path.join(condaEnvPath, "Scripts"),
+          process.env.PATH,
+        ].join(path.delimiter)
+      : [
+          path.join(condaEnvPath, "bin"),
+          path.join(condaEnvPath, "lib"),
+          path.join(condaEnvPath, "usr", "bin"),
+          path.join(condaEnvPath, "usr", "lib"),
+          process.env.PATH,
+        ].join(path.delimiter),
   ...(process.platform !== "win32" && {
     LD_LIBRARY_PATH: [
       path.join(condaEnvPath, "lib"),
-      process.env.LD_LIBRARY_PATH
-    ].filter(Boolean).join(path.delimiter),
-    DYLD_LIBRARY_PATH: process.platform === "darwin" ? [
-      path.join(condaEnvPath, "lib"),
-      process.env.DYLD_LIBRARY_PATH
-    ].filter(Boolean).join(path.delimiter) : undefined
-  })
+      process.env.LD_LIBRARY_PATH,
+    ]
+      .filter(Boolean)
+      .join(path.delimiter),
+    DYLD_LIBRARY_PATH:
+      process.platform === "darwin"
+        ? [path.join(condaEnvPath, "lib"), process.env.DYLD_LIBRARY_PATH]
+            .filter(Boolean)
+            .join(path.delimiter)
+        : undefined,
+  }),
 };
 
 /**
@@ -66,12 +72,13 @@ const processEnv = {
  */
 async function checkPythonPackages() {
   try {
-    const pipExecutable = process.platform === "win32"
-      ? path.join(condaEnvPath, "Scripts", "pip.exe")
-      : path.join(condaEnvPath, "bin", "pip");
+    const pipExecutable =
+      process.platform === "win32"
+        ? path.join(condaEnvPath, "Scripts", "pip.exe")
+        : path.join(condaEnvPath, "bin", "pip");
 
     const reportFile = os.tmpdir() + "/pip-report.json";
-    
+
     emitBootMessage("Checking installed packages...");
 
     // Build command array with the same extra indexes as updateCondaEnvironment
@@ -81,35 +88,42 @@ async function checkPythonPackages() {
       requirementsFilePath,
       "--dry-run",
       "--report",
-      reportFile
+      reportFile,
     ];
 
     // Use pip install --dry-run --report to get JSON output
-    const checkProcess = spawn(
-      pipExecutable,
-      checkCommand,
-      { stdio: "pipe", env: processEnv }
-    );
+    const checkProcess = spawn(pipExecutable, checkCommand, {
+      stdio: "pipe",
+      env: processEnv,
+    });
 
     await new Promise((resolve, reject) => {
-      checkProcess.on('close', (code) => {
+      checkProcess.on("close", (code) => {
         if (code === 0) {
           resolve();
         } else {
           reject(new Error(`pip check failed with code ${code}`));
         }
       });
-      checkProcess.on('error', reject);
+      checkProcess.on("error", reject);
     });
-    
+
     try {
-      const reportContent = await fsPromises.readFile(reportFile, 'utf8');
-      await fsPromises.unlink(reportFile).catch(err => 
-        logMessage(`Warning: Could not delete temporary report file: ${err.message}`, "warn")
-      );
+      const reportContent = await fsPromises.readFile(reportFile, "utf8");
+      await fsPromises
+        .unlink(reportFile)
+        .catch((err) =>
+          logMessage(
+            `Warning: Could not delete temporary report file: ${err.message}`,
+            "warn"
+          )
+        );
       return JSON.parse(reportContent).install;
     } catch (fileError) {
-      logMessage(`Error handling pip report file: ${fileError.message}`, "error");
+      logMessage(
+        `Error handling pip report file: ${fileError.message}`,
+        "error"
+      );
       throw fileError;
     }
   } catch (error) {
@@ -123,12 +137,20 @@ async function checkPythonPackages() {
  */
 async function verifyApplicationPaths() {
   const pathsToCheck = [
-    { path: app.getPath("userData"), mode: fs.constants.W_OK, desc: "User data directory" },
-    { path: path.dirname(LOG_FILE), mode: fs.constants.W_OK, desc: "Log file directory" }
+    {
+      path: app.getPath("userData"),
+      mode: fs.constants.W_OK,
+      desc: "User data directory",
+    },
+    {
+      path: path.dirname(LOG_FILE),
+      mode: fs.constants.W_OK,
+      desc: "Log file directory",
+    },
   ];
 
   const errors = [];
-  
+
   for (const { path, mode, desc } of pathsToCheck) {
     const { accessible, error } = await checkPermissions(path, mode);
     if (!accessible) {
@@ -138,7 +160,7 @@ async function verifyApplicationPaths() {
 
   return {
     valid: errors.length === 0,
-    errors
+    errors,
   };
 }
 
@@ -147,9 +169,10 @@ async function verifyApplicationPaths() {
  */
 async function isCondaEnvironmentInstalled() {
   try {
-    const pythonExecutablePath = process.platform === "win32"
-      ? path.join(condaEnvPath, "python.exe")
-      : path.join(condaEnvPath, "bin", "python");
+    const pythonExecutablePath =
+      process.platform === "win32"
+        ? path.join(condaEnvPath, "python.exe")
+        : path.join(condaEnvPath, "bin", "python");
 
     await fsPromises.access(pythonExecutablePath);
     return true;
@@ -169,19 +192,20 @@ async function updateCondaEnvironment() {
       emitBootMessage("No packages to update");
       return;
     }
-    
+
     emitBootMessage(`Updating ${packagesToInstall.length} packages...`);
 
-    const pipExecutable = process.platform === "win32"
-      ? path.join(condaEnvPath, "Scripts", "pip.exe")
-      : path.join(condaEnvPath, "bin", "pip");
+    const pipExecutable =
+      process.platform === "win32"
+        ? path.join(condaEnvPath, "Scripts", "pip.exe")
+        : path.join(condaEnvPath, "bin", "pip");
 
     // Install all requirements at once
     const installCommand = [
       pipExecutable,
       "install",
       "-r",
-      requirementsFilePath
+      requirementsFilePath,
     ];
 
     // Add PyTorch CUDA index for non-Darwin platforms
@@ -196,14 +220,14 @@ async function updateCondaEnvironment() {
     if (process.platform === "win32") {
       // Uninstall existing bitsandbytes
       await runPipCommand([pipExecutable, "uninstall", "bitsandbytes", "-y"]);
-      
+
       // Install from custom index
       await runPipCommand([
         pipExecutable,
         "install",
         "bitsandbytes",
         "--extra-index-url",
-        "https://jllllll.github.io/bitsandbytes-windows-webui"
+        "https://jllllll.github.io/bitsandbytes-windows-webui",
       ]);
     }
 
@@ -216,12 +240,11 @@ async function updateCondaEnvironment() {
 
 // Helper function to run pip commands
 async function runPipCommand(command) {
-  const updateProcess = spawn(
-    command[0],
-    command.slice(1),
-    { stdio: "pipe", env: processEnv }
-  );
-  
+  const updateProcess = spawn(command[0], command.slice(1), {
+    stdio: "pipe",
+    env: processEnv,
+  });
+
   updateProcess.stdout.on("data", (data) => {
     const message = data.toString().trim();
     if (message) {
@@ -254,23 +277,23 @@ async function runPipCommand(command) {
  */
 async function getFileSizeFromUrl(url) {
   return new Promise((resolve, reject) => {
-    const request = https.request(url, { method: 'HEAD' }, (response) => {
+    const request = https.request(url, { method: "HEAD" }, (response) => {
       if (response.statusCode === 302 || response.statusCode === 301) {
         getFileSizeFromUrl(response.headers.location)
           .then(resolve)
           .catch(reject);
         return;
       }
-      
-      const contentLength = parseInt(response.headers['content-length'], 10);
+
+      const contentLength = parseInt(response.headers["content-length"], 10);
       if (!contentLength) {
-        reject(new Error('Could not determine file size'));
+        reject(new Error("Could not determine file size"));
         return;
       }
       resolve(contentLength);
     });
-    
-    request.on('error', reject);
+
+    request.on("error", reject);
     request.end();
   });
 }
@@ -282,7 +305,10 @@ async function downloadFile(url, dest) {
   logMessage(`Downloading file from ${url} to ${dest}`);
 
   const destDir = path.dirname(dest);
-  const { accessible, error } = await checkPermissions(destDir, fs.constants.W_OK);
+  const { accessible, error } = await checkPermissions(
+    destDir,
+    fs.constants.W_OK
+  );
   if (!accessible) {
     throw new Error(`Cannot write to download directory: ${error}`);
   }
@@ -299,11 +325,11 @@ async function downloadFile(url, dest) {
   try {
     existingFileStats = await fsPromises.stat(dest);
     if (existingFileStats.size === expectedSize) {
-      logMessage('Existing file matches expected size, skipping download');
+      logMessage("Existing file matches expected size, skipping download");
       return;
     }
   } catch (err) {
-    if (err.code !== 'ENOENT') {
+    if (err.code !== "ENOENT") {
       logMessage(`Error checking existing file: ${err.message}`, "warn");
     }
   }
@@ -339,14 +365,19 @@ async function downloadFile(url, dest) {
       }
 
       if (response.statusCode === 302 || response.statusCode === 301) {
-        https.get(response.headers.location, handleResponse)
+        https
+          .get(response.headers.location, handleResponse)
           .on("error", handleError);
         return;
       }
 
       const contentLength = parseInt(response.headers["content-length"], 10);
       if (contentLength !== expectedSize) {
-        reject(new Error(`Server file size mismatch. Expected: ${expectedSize}, Got: ${contentLength}`));
+        reject(
+          new Error(
+            `Server file size mismatch. Expected: ${expectedSize}, Got: ${contentLength}`
+          )
+        );
         return;
       }
 
@@ -370,7 +401,11 @@ async function downloadFile(url, dest) {
           const stats = await fsPromises.stat(dest);
           if (stats.size !== expectedSize) {
             await fsPromises.unlink(dest);
-            reject(new Error(`Downloaded file size mismatch. Expected: ${expectedSize}, Got: ${stats.size}`));
+            reject(
+              new Error(
+                `Downloaded file size mismatch. Expected: ${expectedSize}, Got: ${stats.size}`
+              )
+            );
             return;
           }
           logMessage(`Download completed and verified: ${dest}`);
@@ -402,23 +437,31 @@ async function installCondaEnvironment() {
     const platform = process.platform;
     const arch = process.arch;
     const VERSION = app.getVersion();
-    
+
     let environmentUrl = "";
     let archivePath = "";
 
     if (platform === "win32") {
       environmentUrl = `https://nodetool-conda.s3.amazonaws.com/conda-env-windows-x64-${VERSION}.zip`;
-      archivePath = path.join(os.tmpdir(), `conda-env-windows-x64-${VERSION}.zip`);
+      archivePath = path.join(
+        os.tmpdir(),
+        `conda-env-windows-x64-${VERSION}.zip`
+      );
     } else if (platform === "darwin") {
       const archSuffix = arch === "arm64" ? "arm64" : "x86_64";
       environmentUrl = `https://nodetool-conda.s3.amazonaws.com/conda-env-darwin-${archSuffix}-${VERSION}.zip`;
-      archivePath = path.join(os.tmpdir(), `conda-env-darwin-${archSuffix}-${VERSION}.zip`);
+      archivePath = path.join(
+        os.tmpdir(),
+        `conda-env-darwin-${archSuffix}-${VERSION}.zip`
+      );
     } else {
-      throw new Error("Unsupported platform for Python environment installation.");
+      throw new Error(
+        "Unsupported platform for Python environment installation."
+      );
     }
 
     await fsPromises.mkdir(path.dirname(archivePath), { recursive: true });
-    
+
     emitBootMessage("Downloading Python environment...");
     let attempts = 3;
     while (attempts > 0) {
@@ -442,7 +485,10 @@ async function installCondaEnvironment() {
     logMessage("Python environment installation completed successfully");
     emitBootMessage("Python environment is ready");
   } catch (error) {
-    logMessage(`Failed to install Python environment: ${error.message}`, "error");
+    logMessage(
+      `Failed to install Python environment: ${error.message}`,
+      "error"
+    );
     throw error;
   }
 }
@@ -455,25 +501,27 @@ async function unpackPythonEnvironment(zipPath, destPath) {
   let zip = null;
 
   try {
-    const { accessible: canReadZip, error: zipError } = 
-      await checkPermissions(zipPath, fs.constants.R_OK);
+    const { accessible: canReadZip, error: zipError } = await checkPermissions(
+      zipPath,
+      fs.constants.R_OK
+    );
     if (!canReadZip) {
       throw new Error(`Cannot read zip file: ${zipError}`);
     }
 
-    const { accessible: canWriteDest, error: destError } = 
+    const { accessible: canWriteDest, error: destError } =
       await checkPermissions(path.dirname(destPath), fs.constants.W_OK);
     if (!canWriteDest) {
       throw new Error(`Cannot write to destination: ${destError}`);
     }
 
-    if (!await fileExists(zipPath)) {
+    if (!(await fileExists(zipPath))) {
       throw new Error(`Zip file not found at: ${zipPath}`);
     }
 
     const stats = await fsPromises.stat(zipPath);
     if (stats.size === 0) {
-      throw new Error('Downloaded zip file is empty');
+      throw new Error("Downloaded zip file is empty");
     }
 
     const totalSize = stats.size;
@@ -507,7 +555,7 @@ async function unpackPythonEnvironment(zipPath, destPath) {
       const totalEntries = Object.keys(entries).length;
 
       if (totalEntries === 0) {
-        throw new Error('Zip file contains no entries');
+        throw new Error("Zip file contains no entries");
       }
 
       let processedEntries = 0;
@@ -536,16 +584,24 @@ async function unpackPythonEnvironment(zipPath, destPath) {
 
             const progress = (processedEntries / totalEntries) * 100;
             const now = Date.now();
-            
+
             if (now - lastUpdate >= 1000) {
               const eta = calculateETA();
-              emitUpdateProgress('Python environment', progress, 'Extracting', eta);
+              emitUpdateProgress(
+                "Python environment",
+                progress,
+                "Extracting",
+                eta
+              );
               lastUpdate = now;
             }
           }
         } catch (entryError) {
           failedEntries.push({ name, error: entryError.message });
-          logMessage(`Failed to extract entry ${name}: ${entryError.message}`, "error");
+          logMessage(
+            `Failed to extract entry ${name}: ${entryError.message}`,
+            "error"
+          );
         }
       }
 
@@ -553,11 +609,13 @@ async function unpackPythonEnvironment(zipPath, destPath) {
         try {
           await fsPromises.rm(destPath, { recursive: true, force: true });
         } catch (cleanupError) {
-          logMessage(`Warning: Failed to clean up after extraction error: ${cleanupError.message}`, "warn");
+          logMessage(
+            `Warning: Failed to clean up after extraction error: ${cleanupError.message}`,
+            "warn"
+          );
         }
         throw new Error(`Failed to extract ${failedEntries.length} files`);
       }
-
     } finally {
       if (zip) {
         try {
@@ -569,24 +627,25 @@ async function unpackPythonEnvironment(zipPath, destPath) {
     }
 
     emitBootMessage("Running conda-unpack...");
-    const unpackScript = process.platform === "win32"
-      ? path.join(destPath, "Scripts", "conda-unpack.exe")
-      : path.join(destPath, "bin", "conda-unpack");
+    const unpackScript =
+      process.platform === "win32"
+        ? path.join(destPath, "Scripts", "conda-unpack.exe")
+        : path.join(destPath, "bin", "conda-unpack");
 
-    if (!await fileExists(unpackScript)) {
+    if (!(await fileExists(unpackScript))) {
       throw new Error(`conda-unpack script not found at: ${unpackScript}`);
     }
 
     const unpackProcess = spawn(unpackScript, [], {
       stdio: "pipe",
       env: processEnv,
-      cwd: destPath
+      cwd: destPath,
     });
 
     const unpackTimeout = setTimeout(() => {
       unpackProcess.kill();
-      throw new Error('conda-unpack process timed out after 5 minutes');
-    }, 5 * 60 * 1000);
+      throw new Error("conda-unpack process timed out after 30 minutes");
+    }, 30 * 60 * 1000);
 
     unpackProcess.stdout.on("data", (data) => {
       const message = data.toString().trim();
@@ -619,7 +678,6 @@ async function unpackPythonEnvironment(zipPath, destPath) {
         reject(new Error(`Error running conda-unpack: ${err.message}`));
       });
     });
-
   } catch (err) {
     const errorMsg = `Failed to unpack Python environment: ${err.message}`;
     logMessage(errorMsg, "error");
@@ -651,5 +709,5 @@ module.exports = {
   verifyApplicationPaths,
   isCondaEnvironmentInstalled,
   updateCondaEnvironment,
-  installCondaEnvironment
-}; 
+  installCondaEnvironment,
+};
