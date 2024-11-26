@@ -133,4 +133,4 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DEBUG: electron-builder
         run: |
-          python build.py electron --no-draft --publish
+          python build.py electron --publish
