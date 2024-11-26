@@ -127,25 +127,10 @@ jobs:
         run: |
           python build.py --step web --python-version ${{ env.PYTHON_VERSION }}
 
-      - name: Build Electron
+      - name: Build and Publish Electron
         shell: bash -l {0}
         env:
-          # CSC_LINK: ./certificate.pfx
-          # CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DEBUG: electron-builder
         run: |
-          python build.py --step electron --python-version ${{ env.PYTHON_VERSION }}
-
-      - name: Create Draft Release
-        id: create_release
-        uses: softprops/action-gh-release@v1
-        with:
-          files: |
-            build/dist/Nodetool*.exe
-            build/dist/Nodetool*.dmg
-            build/dist/Nodetool*.AppImage
-            build/dist/latest*.yml
-          draft: true
-          prerelease: false
-          token: ${{ secrets.GITHUB_TOKEN }}
+          python build.py --step electron --python-version ${{ env.PYTHON_VERSION }} --publish always

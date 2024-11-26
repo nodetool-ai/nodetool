@@ -29,13 +29,17 @@
             "to": "src"
         }
     ],
+    "publish": [
+        {
+            "provider": "github",
+            "owner": "nodetool-ai",
+            "repo": "nodetool"
+        }
+    ],
     "mac": {
         "category": "public.app-category.developer-tools",
         "target": [
             "dmg"
-        ],
-        "publish": [
-            "dir"
         ],
         "hardenedRuntime": true,
         "gatekeeperAssess": false,
@@ -46,17 +50,11 @@
     "win": {
         "target": [
             "nsis"
-        ],
-        "publish": [
-            "dir"
         ]
     },
     "linux": {
         "target": [
             "AppImage"
-        ],
-        "publish": [
-            "dir"
         ]
     },
     "nsis": {
