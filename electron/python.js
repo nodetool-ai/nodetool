@@ -12,6 +12,9 @@ const { getMainWindow } = require("./window");
 const { LOG_FILE } = require("./logger");
 const { dialog } = require("electron");
 const { emitBootMessage, emitUpdateProgress } = require("./events");
+const tar = require("tar-fs");
+const gunzip = require("gunzip-maybe");
+const { createReadStream } = require("fs");
 
 // Path configurations
 const resourcesPath = process.resourcesPath;
@@ -449,10 +452,16 @@ async function installCondaEnvironment() {
       );
     } else if (platform === "darwin") {
       const archSuffix = arch === "arm64" ? "arm64" : "x86_64";
-      environmentUrl = `https://nodetool-conda.s3.amazonaws.com/conda-env-darwin-${archSuffix}-${VERSION}.zip`;
+      environmentUrl = `https://nodetool-conda.s3.amazonaws.com/conda-env-darwin-${archSuffix}-${VERSION}.tar.gz`;
       archivePath = path.join(
         os.tmpdir(),
-        `conda-env-darwin-${archSuffix}-${VERSION}.zip`
+        `conda-env-darwin-${archSuffix}-${VERSION}.tar.gz`
+      );
+    } else if (platform === "linux") {
+      environmentUrl = `https://nodetool-conda.s3.amazonaws.com/conda-env-linux-x64-${VERSION}.tar.gz`;
+      archivePath = path.join(
+        os.tmpdir(),
+        `conda-env-linux-x64-${VERSION}.tar.gz`
       );
     } else {
       throw new Error(
@@ -478,7 +487,11 @@ async function installCondaEnvironment() {
 
     await fsPromises.mkdir(condaEnvPath, { recursive: true });
     emitBootMessage("Unpacking Python environment...");
-    await unpackPythonEnvironment(archivePath, condaEnvPath);
+    if (platform === "win32") {
+      await unpackPythonEnvironment(archivePath, condaEnvPath);
+    } else {
+      await unpackTarGzEnvironment(archivePath, condaEnvPath);
+    }
 
     await fsPromises.unlink(archivePath);
 
@@ -697,6 +710,163 @@ async function unpackPythonEnvironment(zipPath, destPath) {
     );
 
     throw err;
+  }
+}
+
+/**
+ * Extract the Python environment from a tar.gz archive for Mac/Linux
+ */
+async function unpackTarGzEnvironment(tarPath, destPath) {
+  emitBootMessage("Unpacking the Python environment...");
+
+  try {
+    const { accessible: canReadTar, error: tarError } = await checkPermissions(
+      tarPath,
+      fs.constants.R_OK
+    );
+    if (!canReadTar) {
+      throw new Error(`Cannot read tar file: ${tarError}`);
+    }
+
+    const stats = await fsPromises.stat(tarPath);
+    if (stats.size === 0) {
+      throw new Error("Downloaded tar.gz file is empty");
+    }
+
+    if (await fileExists(destPath)) {
+      logMessage(`Removing existing environment at ${destPath}`);
+      await fsPromises.rm(destPath, { recursive: true, force: true });
+    }
+
+    await fsPromises.mkdir(destPath, { recursive: true });
+
+    // Extract using tar-fs and gunzip-maybe
+    await new Promise((resolve, reject) => {
+      const startTime = Date.now();
+      let lastUpdate = startTime;
+      let processedBytes = 0;
+
+      const extractStream = createReadStream(tarPath)
+        .pipe(gunzip())
+        .pipe(
+          tar.extract(destPath, {
+            map: (header) => {
+              processedBytes += header.size;
+              const progress = (processedBytes / stats.size) * 100;
+
+              const now = Date.now();
+              if (now - lastUpdate >= 1000) {
+                const eta = calculateExtractETA(
+                  startTime,
+                  processedBytes,
+                  stats.size
+                );
+                emitUpdateProgress(
+                  "Python environment",
+                  progress,
+                  "Extracting",
+                  eta
+                );
+                lastUpdate = now;
+              }
+
+              return header;
+            },
+          })
+        );
+
+      extractStream.on("finish", resolve);
+      extractStream.on("error", reject);
+    });
+
+    // Run conda-unpack
+    emitBootMessage("Running conda-unpack...");
+    const unpackScript = path.join(destPath, "bin", "conda-unpack");
+
+    if (!(await fileExists(unpackScript))) {
+      throw new Error(`conda-unpack script not found at: ${unpackScript}`);
+    }
+
+    // Make the script executable
+    await fsPromises.chmod(unpackScript, "755");
+
+    const unpackProcess = spawn(unpackScript, [], {
+      stdio: "pipe",
+      env: processEnv,
+      cwd: destPath,
+    });
+
+    const unpackTimeout = setTimeout(() => {
+      unpackProcess.kill();
+      throw new Error("conda-unpack process timed out after 30 minutes");
+    }, 30 * 60 * 1000);
+
+    unpackProcess.stdout.on("data", (data) => {
+      const message = data.toString().trim();
+      if (message) {
+        logMessage(`conda-unpack: ${message}`);
+      }
+    });
+
+    unpackProcess.stderr.on("data", (data) => {
+      const message = data.toString().trim();
+      if (message) {
+        logMessage(`conda-unpack error: ${message}`, "error");
+      }
+    });
+
+    await new Promise((resolve, reject) => {
+      unpackProcess.on("exit", (code) => {
+        clearTimeout(unpackTimeout);
+        if (code === 0) {
+          logMessage("conda-unpack completed successfully");
+          emitBootMessage("Python environment unpacked successfully");
+          resolve();
+        } else {
+          reject(new Error(`conda-unpack failed with code ${code}`));
+        }
+      });
+
+      unpackProcess.on("error", (err) => {
+        clearTimeout(unpackTimeout);
+        reject(new Error(`Error running conda-unpack: ${err.message}`));
+      });
+    });
+  } catch (err) {
+    const errorMsg = `Failed to unpack Python environment: ${err.message}`;
+    logMessage(errorMsg, "error");
+    logMessage(`Stack trace: ${err.stack}`, "error");
+
+    try {
+      if (await fileExists(destPath)) {
+        await fsPromises.rm(destPath, { recursive: true, force: true });
+      }
+    } catch (cleanupError) {
+      logMessage(`Error during cleanup: ${cleanupError.message}`, "error");
+    }
+
+    dialog.showErrorBox(
+      "Installation Error",
+      `Failed to install Python environment.\n\nError: ${err.message}\n\nPlease check the log file for more details.`
+    );
+
+    throw err;
+  }
+}
+
+// Helper function to calculate ETA
+function calculateExtractETA(startTime, processedBytes, totalBytes) {
+  const elapsedSeconds = (Date.now() - startTime) / 1000;
+  const bytesPerSecond = processedBytes / elapsedSeconds;
+  const remainingBytes = totalBytes - processedBytes;
+  const remainingSeconds = remainingBytes / bytesPerSecond;
+
+  if (remainingSeconds < 60) {
+    return `${Math.round(remainingSeconds)} seconds left`;
+  } else if (remainingSeconds < 3600) {
+    return `${Math.round(remainingSeconds / 60)} minutes left`;
+  } else {
+    return `${Math.round(remainingSeconds / 3600)} hours left`;
   }
 }
 

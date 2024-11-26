@@ -145,7 +145,7 @@ jobs:
             build/dist/Nodetool*.exe
             build/dist/Nodetool*.dmg
             build/dist/Nodetool*.AppImage
-            build/dist/latest.yml
+            build/dist/latest*.yml
           draft: true
           prerelease: false
           token: ${{ secrets.GITHUB_TOKEN }}
