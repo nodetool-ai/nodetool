@@ -52,6 +52,7 @@ class Build:
         clean_build: bool = False,
         python_version: str = "3.11",
         publish: bool = False,
+        draft: bool = True,
     ):
         """Initialize Build configuration."""
         platform = system().lower()
@@ -70,6 +71,7 @@ class Build:
         self.arch = arch
         self.python_version = python_version
         self.publish = publish
+        self.draft = draft
 
         self.BUILD_DIR = PROJECT_ROOT / "build"
         self.ELECTRON_DIR = PROJECT_ROOT / "electron"
@@ -207,7 +209,11 @@ class Build:
         ]
 
         if self.publish:
-            build_command.append("--publish", "always")
+            build_command.extend(["--publish", "always"])
+            if self.draft:
+                build_command.append("--draft")
+            else:
+                build_command.append("--draft=false")
 
         if self.platform:
             electron_platform = "mac" if self.platform == "darwin" else self.platform
@@ -498,6 +504,11 @@ def main() -> None:
         help="Publish the Electron app",
     )
     parser.add_argument(
+        "--no-draft",
+        action="store_true",
+        help="Publish as a non-draft release (only applies when --publish is used)",
+    )
+    parser.add_argument(
         "--python-version",
         default=os.environ.get("PYTHON_VERSION", "3.11"),
         help="Python version to use for the conda environment (e.g., 3.11)",
@@ -509,6 +520,7 @@ def main() -> None:
         clean_build=args.clean,
         python_version=args.python_version,
         publish=args.publish,
+        draft=not args.no_draft,
     )
 
     step_method = getattr(build, args.step, None)
