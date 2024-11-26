@@ -41,9 +41,6 @@
         "gatekeeperAssess": false,
         "entitlements": "entitlements.mac.plist",
         "entitlementsInherit": "entitlements.mac.plist",
-        "signIgnore": [
-            "node_modules/sharp/**/*"
-        ],
         "notarize": true
     },
     "win": {
