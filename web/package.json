@@ -56,7 +56,7 @@
     "react-window": "^1.8.10",
     "rehype-raw": "^7.0.0",
     "remark-gfm": "^4.0.0",
-    "rollup": "^4.17.2",
+    "rollup": "^4.27.4",
     "slate": "^0.101.4",
     "slate-react": "^0.101.3",
     "string-to-color": "^2.2.2",
