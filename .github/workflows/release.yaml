@@ -70,7 +70,7 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: eu-central-1
         run: |
-          python build.py --step pack --python-version ${{ env.PYTHON_VERSION }}
+          python build.py pack
 
   release-build:
     strategy:
@@ -125,7 +125,7 @@ jobs:
       - name: Build Web
         shell: bash -l {0}
         run: |
-          python build.py --step web --python-version ${{ env.PYTHON_VERSION }}
+          python build.py web
 
       - name: Build and Publish Electron
         shell: bash -l {0}
@@ -133,4 +133,4 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DEBUG: electron-builder
         run: |
-          python build.py --step electron --python-version ${{ env.PYTHON_VERSION }} --publish always
+          python build.py electron

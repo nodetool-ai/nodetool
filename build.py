@@ -12,6 +12,7 @@ from typing import Any, List
 import re
 from textwrap import dedent
 import json
+import os
 
 # Set up logging
 logging.basicConfig(
@@ -50,6 +51,7 @@ class Build:
         self,
         clean_build: bool = False,
         python_version: str = "3.11",
+        publish: bool = False,
     ):
         """Initialize Build configuration."""
         platform = system().lower()
@@ -67,6 +69,7 @@ class Build:
         self.platform = platform
         self.arch = arch
         self.python_version = python_version
+        self.publish = publish
 
         self.BUILD_DIR = PROJECT_ROOT / "build"
         self.ELECTRON_DIR = PROJECT_ROOT / "electron"
@@ -202,6 +205,9 @@ class Build:
             "--config",
             "electron-builder.json",
         ]
+
+        if self.publish:
+            build_command.append("--publish", "always")
 
         if self.platform:
             electron_platform = "mac" if self.platform == "darwin" else self.platform
@@ -472,23 +478,28 @@ def main() -> None:
         description="Build script for Nodetool Electron app and installer"
     )
     parser.add_argument(
-        "--clean",
-        action="store_true",
-        help="Clean the build directory before running",
-    )
-    parser.add_argument(
-        "--step",
+        "step",
         choices=[
             "setup",
             "electron",
             "web",
             "pack",
         ],
-        help="Run a specific build step",
+        help="Build step to run",
+    )
+    parser.add_argument(
+        "--clean",
+        action="store_true",
+        help="Clean the build directory before running",
+    )
+    parser.add_argument(
+        "--publish",
+        action="store_true",
+        help="Publish the Electron app",
     )
     parser.add_argument(
         "--python-version",
-        default="3.11",
+        default=os.environ.get("PYTHON_VERSION", "3.11"),
         help="Python version to use for the conda environment (e.g., 3.11)",
     )
 
@@ -497,17 +508,15 @@ def main() -> None:
     build = Build(
         clean_build=args.clean,
         python_version=args.python_version,
+        publish=args.publish,
     )
 
-    if args.step:
-        step_method = getattr(build, args.step, None)
-        if step_method:
-            step_method()
-        else:
-            logger.error(f"Invalid build step: {args.step}")
-            sys.exit(1)
+    step_method = getattr(build, args.step, None)
+    if step_method:
+        step_method()
     else:
-        raise BuildError("No build step specified")
+        logger.error(f"Invalid build step: {args.step}")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
