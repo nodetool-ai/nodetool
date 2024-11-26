@@ -99,14 +99,29 @@ jobs:
         with:
           node-version: "20"
 
-      # - name: Import Code Signing Certificate
-      #   if: matrix.os == 'windows-latest'
-      #   run: |
-      #     echo "${{ secrets.WIN_CSC_CERT }}" > certificate.b64
-      #     certutil -decode certificate.b64 certificate.pfx
-      #   env:
-      #     WIN_CSC_CERT: ${{ secrets.WIN_CSC_CERT }}
-      #
+      - name: Install Apple Certificate
+        if: matrix.os == 'macos-latest'
+        env:
+          BUILD_CERTIFICATE_BASE64: ${{ secrets.MACOS_CERTIFICATE }}
+          P12_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.MACOS_KEYCHAIN_PWD }}
+        run: |
+          # create variables
+          CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+
+          # import certificate from secrets
+          echo -n "$BUILD_CERTIFICATE_BASE64" | base64 --decode --output $CERTIFICATE_PATH
+
+          # create temporary keychain
+          security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+
+          # import certificate to keychain
+          security import $CERTIFICATE_PATH -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
+          security list-keychain -d user -s $KEYCHAIN_PATH
+
       - name: Build Web
         shell: bash -l {0}
         run: |
