@@ -17,6 +17,7 @@ const webPath = path.join(process.resourcesPath, "web");
 
 let nodeToolBackendProcess = null;
 let isAppQuitting = false;
+let viteProcess = null;
 
 /**
  * Start the NodeTool backend server process.
@@ -44,6 +45,8 @@ function startNodeToolBackendProcess() {
       stdio: "pipe",
       shell: false,
       env: processEnv,
+      detached: false,
+      windowsHide: true
     });
   } catch (error) {
     forceQuit(`Failed to spawn server process: ${error.message}`);
@@ -168,40 +171,44 @@ async function startViteServer() {
   const npmCmd = process.platform === "win32" ? "npm.cmd" : "npm";
 
   try {
-    const npmProcess = spawn(npmCmd, ["start"], {
+    viteProcess = spawn(npmCmd, ["start"], {
       cwd: path.join(process.cwd(), "..", "web"),
       stdio: "pipe",
       shell: false,
+      detached: false,
+      windowsHide: true,
+      env: { ...process.env, NO_COLOR: "1" }
     });
 
-    npmProcess.stdout.on("data", (data) => {
+    viteProcess.stdout.on("data", (data) => {
       const output = data.toString().trim();
       if (output) {
         logMessage(`Vite Server: ${output}`);
 
-        // Parse the port from the output
-        const portMatch = output.match(/Local:.*:(\d+)/);
-        if (portMatch) {
-          const port = portMatch[1];
+        // Parse the port from the output without regex
+        if (output.includes('localhost:')) {
+          const parts = output.split('localhost:');
+          const port = parts[1].split(' ')[0].split('/')[0];
+          logMessage(`Vite server started on port ${port}`);
           serverState.initialURL = `http://127.0.0.1:${port}`;
           emitBootMessage("Vite server started");
         }
       }
     });
 
-    npmProcess.stderr.on("data", (data) => {
+    viteProcess.stderr.on("data", (data) => {
       const output = data.toString().trim();
       if (output) {
         logMessage(`Vite Server Error: ${output}`, "error");
       }
     });
 
-    npmProcess.on("error", (error) => {
+    viteProcess.on("error", (error) => {
       logMessage(`Failed to start Vite server: ${error.message}`, "error");
       forceQuit(`Failed to start Vite server: ${error.message}`);
     });
 
-    npmProcess.on("exit", (code, signal) => {
+    viteProcess.on("exit", (code, signal) => {
       if (code !== 0 && !isAppQuitting) {
         logMessage(
           `Vite server exited with code ${code} and signal ${signal}`,
@@ -213,8 +220,8 @@ async function startViteServer() {
 
     // Add cleanup on app quit
     app.on("before-quit", () => {
-      if (npmProcess) {
-        npmProcess.kill();
+      if (viteProcess) {
+        viteProcess.kill();
       }
     });
   } catch (error) {
@@ -228,8 +235,28 @@ async function startViteServer() {
  */
 async function gracefulShutdown() {
   logMessage("Initiating graceful shutdown");
+  isAppQuitting = true;
 
   try {
+    // Kill Vite process
+    if (viteProcess) {
+      logMessage("Stopping Vite process");
+      viteProcess.kill("SIGTERM");
+
+      await new Promise((resolve, reject) => {
+        viteProcess.on("exit", resolve);
+        viteProcess.on("error", reject);
+
+        setTimeout(() => {
+          if (!viteProcess.killed) {
+            viteProcess.kill("SIGKILL");
+          }
+          resolve();
+        }, 5000);
+      });
+    }
+
+    // Existing NodeTool backend process shutdown
     if (nodeToolBackendProcess) {
       logMessage("Stopping NodeTool backend process");
       nodeToolBackendProcess.kill("SIGTERM");
@@ -247,7 +274,7 @@ async function gracefulShutdown() {
       });
     }
   } catch (error) {
-    logMessage(`Error stopping backend process: ${error.message}`, "error");
+    logMessage(`Error during shutdown: ${error.message}`, "error");
   }
 
   logMessage("Graceful shutdown complete");

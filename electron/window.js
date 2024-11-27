@@ -20,7 +20,6 @@ function createWindow() {
     },
   });
 
-  window.removeMenu();
   window.setBackgroundColor("#111111");
   window.loadFile("index.html");
   logMessage("index.html loaded into main window");

@@ -10,6 +10,7 @@ import PIL.ImageOps
 import PIL.Image
 import PIL.ImageFont
 import PIL.ImageEnhance
+from nodetool.workflows.types import NodeProgress
 import numpy as np
 from pydantic import Field
 from nodetool.metadata.types import AudioChunk, AudioRef, ColorRef, FolderRef, TextRef
@@ -1105,12 +1106,12 @@ class AddSubtitles(BaseNode):
     3. Create lyric videos for music content
     """
 
-    class TextAlignment(str, enum.Enum):
-        LEFT = "left"
+    class SubtitleTextAlignment(str, enum.Enum):
+        TOP = "top"
         CENTER = "center"
-        RIGHT = "right"
+        BOTTOM = "bottom"
 
-    class TextFont(str, enum.Enum):
+    class SubtitleTextFont(str, enum.Enum):
         DejaVuSansBold = "DejaVuSans-Bold.ttf"
         DejaVuSans = "DejaVuSans.ttf"
         FreeSans = "FreeSans.ttf"
@@ -1121,9 +1122,12 @@ class AddSubtitles(BaseNode):
     chunks: list[AudioChunk] = Field(
         default=[], description="Audio chunks to add as subtitles."
     )
-    font: TextFont = Field(default=TextFont.DejaVuSans, description="The font to use.")
-    x: float = Field(default=0, ge=0, le=1, description="The x coordinate.")
-    y: float = Field(default=0, ge=0, le=1, description="The y coordinate.")
+    font: SubtitleTextFont = Field(
+        default=SubtitleTextFont.DejaVuSans, description="The font to use."
+    )
+    align: SubtitleTextAlignment = Field(
+        default=SubtitleTextAlignment.BOTTOM, description="Vertical alignment of subtitles."
+    )
     font_size: int = Field(default=24, ge=1, le=72, description="The font size.")
     font_color: ColorRef = Field(
         default=ColorRef(value="#FFFFFF"), description="The font color."
@@ -1132,10 +1136,6 @@ class AddSubtitles(BaseNode):
         default=ColorRef(value="#000000"),
         description="The outline color for better text visibility.",
     )
-    align: TextAlignment = TextAlignment.CENTER
-
-    def normalize_path(self, path):
-        return os.path.normpath(path).replace("\\", "/")
 
     async def process(self, context: ProcessingContext) -> VideoRef:
         if self.video.is_empty():
@@ -1143,113 +1143,110 @@ class AddSubtitles(BaseNode):
 
         video_file = await context.asset_to_io(self.video)
 
-        with tempfile.NamedTemporaryFile(
-            suffix=".mp4", delete=False
-        ) as temp_input, tempfile.NamedTemporaryFile(
-            suffix=".mp4", delete=False
-        ) as temp_output:
+        with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as temp_input, \
+             tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as temp_output:
             try:
                 # Write input video to temporary file
                 temp_input.write(video_file.read())
                 temp_input.close()
                 temp_output.close()
 
-                # Open video with OpenCV
-                cap = cv2.VideoCapture(temp_input.name)
-
                 # Get video properties
+                cap = cv2.VideoCapture(temp_input.name)
                 fps = cap.get(cv2.CAP_PROP_FPS)
                 width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
                 height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
                 total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
-                # Create VideoWriter object
-                fourcc = cv2.VideoWriter_fourcc(*"mp4v")  # type: ignore
+                # Create VideoWriter
+                fourcc = cv2.VideoWriter_fourcc(*'mp4v')
                 out = cv2.VideoWriter(temp_output.name, fourcc, fps, (width, height))
 
                 # Load font
-                font = PIL.ImageFont.truetype(
-                    os.path.join(fonts_dir, self.font), self.font_size
-                )
+                font_path = os.path.join(fonts_dir, self.font.value)
+                font = PIL.ImageFont.truetype(font_path, self.font_size)
 
+                # Process each frame
                 frame_number = 0
                 while True:
                     ret, frame = cap.read()
                     if not ret:
                         break
 
-                    # Convert frame time to seconds
-                    frame_time = frame_number / fps
+                    current_time = frame_number / fps
+                    # Convert BGR to RGB for PIL
+                    rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                    pil_image = PIL.Image.fromarray(rgb_frame)
+                    draw = PIL.ImageDraw.Draw(pil_image)
 
-                    # Find relevant text chunks for current frame
-                    current_texts = []
+                    # Find current subtitle text
+                    current_text = ""
                     for chunk in self.chunks:
-                        if chunk.timestamp[0] <= frame_time <= chunk.timestamp[1]:
-                            current_texts.append(chunk.text)
+                        if chunk.start <= current_time and current_time <= chunk.end:
+                            current_text = chunk.text
+                            break
 
-                    if current_texts:
-                        # Convert BGR to RGB for PIL
-                        rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                        pil_image = PIL.Image.fromarray(rgb_frame)
-                        draw = PIL.ImageDraw.Draw(pil_image)  # type: ignore
-
+                    if current_text:
                         # Calculate text position
-                        x = int(width * self.x)
-                        y = int(height * self.y)
+                        text_width, text_height = draw.textsize(current_text, font=font)
+                        x = (width - text_width) // 2
+                        if self.align == self.SubtitleTextAlignment.TOP:
+                            y = 10
+                        elif self.align == self.SubtitleTextAlignment.CENTER:
+                            y = (height - text_height) // 2
+                        else:  # BOTTOM
+                            y = height - text_height - 10
 
-                        # Draw each text chunk
-                        for i, text in enumerate(current_texts):
-                            # Calculate text size for alignment
-                            bbox = draw.textbbox((0, 0), text, font=font)
-                            text_width = bbox[2] - bbox[0]
-
-                            # Adjust x position based on alignment
-                            text_x = x
-                            if self.align == self.TextAlignment.CENTER:
-                                text_x = x - text_width // 2
-                            elif self.align == self.TextAlignment.RIGHT:
-                                text_x = x - text_width
-
-                            # Draw text with outline for better visibility
-                            outline_color = self.outline_color.value
-                            offset = 1
-                            for dx, dy in [
-                                (-offset, -offset),
-                                (-offset, offset),
-                                (offset, -offset),
-                                (offset, offset),
-                            ]:
-                                draw.text(
-                                    (text_x + dx, y + dy + i * self.font_size),
-                                    text,
-                                    font=font,
-                                    fill=outline_color,
-                                    align=self.align.value,
-                                )
-
-                            # Draw main text
+                        # Draw text outline
+                        outline_width = 2
+                        for dx, dy in [(-1,-1), (-1,1), (1,-1), (1,1)]:
                             draw.text(
-                                (text_x, y + i * self.font_size),
-                                text,
+                                (x + dx * outline_width, y + dy * outline_width),
+                                current_text,
                                 font=font,
-                                fill=self.font_color.value,
-                                align=self.align.value,
+                                fill=self.outline_color.value
                             )
 
-                        # Convert back to BGR for OpenCV
-                        frame = cv2.cvtColor(np.array(pil_image), cv2.COLOR_RGB2BGR)
+                        # Draw main text
+                        draw.text(
+                            (x, y),
+                            current_text,
+                            font=font,
+                            fill=self.font_color.value
+                        )
 
-                    # Write the frame
-                    out.write(frame)
+                    # Convert back to BGR for OpenCV
+                    frame_with_text = cv2.cvtColor(np.array(pil_image), cv2.COLOR_RGB2BGR)
+                    out.write(frame_with_text)
                     frame_number += 1
 
-                # Release everything
+                # Release OpenCV objects
                 cap.release()
                 out.release()
 
-                # Read the output video and create a VideoRef
-                with open(temp_output.name, "rb") as f:
-                    return await context.video_from_io(f)
+                # Now combine the processed frames with the original audio using ffmpeg
+                import ffmpeg
+                
+                # Get the original video with audio
+                input_video = ffmpeg.input(temp_input.name)
+                # Get the processed frames
+                processed_frames = ffmpeg.input(temp_output.name)
+
+                # Create a temporary file for the final output
+                with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as final_output:
+                    final_output.close()
+
+                    # Combine processed frames with original audio
+                    ffmpeg.output(
+                        processed_frames.video,
+                        input_video.audio,
+                        final_output.name,
+                        acodec='copy'  # Copy audio stream without re-encoding
+                    ).overwrite_output().run(quiet=True)
+
+                    # Read the final video and create a VideoRef
+                    with open(final_output.name, "rb") as f:
+                        return await context.video_from_io(f)
 
             except Exception as e:
                 raise RuntimeError(f"Error processing video: {str(e)}") from e
