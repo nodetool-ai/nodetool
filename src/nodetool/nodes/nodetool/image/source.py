@@ -53,11 +53,6 @@ class RenderText(BaseNode):
     - Creating instructional images to guide the reader's view.
     """
 
-    class ChannelEnum(str, Enum):
-        RED = "R"
-        GREEN = "G"
-        BLUE = "B"
-
     class TextAlignment(str, Enum):
         LEFT = "left"
         CENTER = "center"

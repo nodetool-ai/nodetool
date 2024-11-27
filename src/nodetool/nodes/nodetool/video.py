@@ -3,18 +3,19 @@ import os
 import tempfile
 import ffmpeg
 import cv2
-import re
 
 from typing import Any
 import PIL.ImageFilter
 import PIL.ImageOps
 import PIL.Image
+import PIL.ImageFont
 import PIL.ImageEnhance
 import numpy as np
 from pydantic import Field
-from nodetool.metadata.types import AudioRef, ColorRef, FolderRef, TextRef
+from nodetool.metadata.types import AudioChunk, AudioRef, ColorRef, FolderRef, TextRef
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.metadata.types import ImageRef
+from nodetool.nodes.nodetool.image.source import fonts_dir
 from nodetool.workflows.base_node import BaseNode
 from nodetool.metadata.types import VideoRef
 import tempfile
@@ -1104,28 +1105,34 @@ class AddSubtitles(BaseNode):
     3. Create lyric videos for music content
     """
 
+    class TextAlignment(str, enum.Enum):
+        LEFT = "left"
+        CENTER = "center"
+        RIGHT = "right"
+
+    class TextFont(str, enum.Enum):
+        DejaVuSansBold = "DejaVuSans-Bold.ttf"
+        DejaVuSans = "DejaVuSans.ttf"
+        FreeSans = "FreeSans.ttf"
+
     video: VideoRef = Field(
         default=VideoRef(), description="The input video to add subtitles to."
     )
-    subtitles: TextRef | str = Field(default="", description="SRT Subtitles.")
-    font_size: int = Field(
-        default=24, description="Font size for the subtitles.", ge=8, le=72
+    chunks: list[AudioChunk] = Field(
+        default=[], description="Audio chunks to add as subtitles."
     )
+    font: TextFont = Field(default=TextFont.DejaVuSans, description="The font to use.")
+    x: float = Field(default=0, ge=0, le=1, description="The x coordinate.")
+    y: float = Field(default=0, ge=0, le=1, description="The y coordinate.")
+    font_size: int = Field(default=24, ge=1, le=72, description="The font size.")
     font_color: ColorRef = Field(
-        default=ColorRef(value="#FFFFFF"),
-        description="Color of the subtitle text. Use predefined colors (white, black, gray, red, yellow) or hex color code (e.g., '#FF0000').",
+        default=ColorRef(value="#FFFFFF"), description="The font color."
     )
     outline_color: ColorRef = Field(
         default=ColorRef(value="#000000"),
-        description="Color of the text outline. Use predefined colors (white, black, gray, red, yellow) or hex color code (e.g., '#000000').",
+        description="The outline color for better text visibility.",
     )
-    outline_width: int = Field(
-        default=2, description="Width of the text outline.", ge=0, le=4
-    )
-    position: str = Field(
-        default="bottom",
-        description="Position of the subtitles. Options: 'bottom', 'top', 'middle'.",
-    )
+    align: TextAlignment = TextAlignment.CENTER
 
     def normalize_path(self, path):
         return os.path.normpath(path).replace("\\", "/")
@@ -1136,81 +1143,119 @@ class AddSubtitles(BaseNode):
 
         video_file = await context.asset_to_io(self.video)
 
-        if isinstance(self.subtitles, TextRef):
-            srt_file = await context.asset_to_io(self.subtitles)
-            srt_content = srt_file.read().decode("utf-8")
-        else:
-            srt_content = self.subtitles
-
-        temp_input = None
-        temp_srt = None
-        temp_output = None
-
-        try:
-            temp_input = tempfile.NamedTemporaryFile(suffix=".mp4", delete=False)
-            temp_srt = tempfile.NamedTemporaryFile(suffix=".srt", delete=False)
-            temp_output = tempfile.NamedTemporaryFile(suffix=".mp4", delete=False)
-
-            temp_input.write(video_file.read())
-            temp_srt.write(srt_content.encode("utf-8"))
-
-            temp_input.close()
-            temp_srt.close()
-            temp_output.close()
-
-            input_path = self.normalize_path(temp_input.name)
-            srt_path = self.normalize_path(temp_srt.name)
-            output_path = self.normalize_path(temp_output.name)
-
-            # Set vertical position based on the 'position' field
-            if self.position == "bottom":
-                vertical_position = "(h-th)"
-            elif self.position == "top":
-                vertical_position = "0"
-            else:  # middle
-                vertical_position = "(h-th)/2"
-
-            font_color_hex = (
-                self.font_color.value.lstrip("#") if self.font_color.value else "000000"
-            )
-            outline_color_hex = (
-                self.outline_color.value.lstrip("#")
-                if self.outline_color.value
-                else "000000"
-            )
-
+        with tempfile.NamedTemporaryFile(
+            suffix=".mp4", delete=False
+        ) as temp_input, tempfile.NamedTemporaryFile(
+            suffix=".mp4", delete=False
+        ) as temp_output:
             try:
-                (
-                    ffmpeg.input(input_path)
-                    .filter(
-                        "subtitles",
-                        filename=srt_path,
-                        force_style=f"FontSize={self.font_size},PrimaryColour=&H{font_color_hex},OutlineColour=&H{outline_color_hex},Outline={self.outline_width},BorderStyle=3,Alignment=2,MarginV=20,y={vertical_position}",
-                    )
-                    .output(
-                        output_path, vcodec="libx264", acodec="aac", **{"map": "0:a"}
-                    )
-                    .overwrite_output()
-                    .run(capture_stdout=True, capture_stderr=True)
+                # Write input video to temporary file
+                temp_input.write(video_file.read())
+                temp_input.close()
+                temp_output.close()
+
+                # Open video with OpenCV
+                cap = cv2.VideoCapture(temp_input.name)
+
+                # Get video properties
+                fps = cap.get(cv2.CAP_PROP_FPS)
+                width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+                height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+                total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+
+                # Create VideoWriter object
+                fourcc = cv2.VideoWriter_fourcc(*"mp4v")  # type: ignore
+                out = cv2.VideoWriter(temp_output.name, fourcc, fps, (width, height))
+
+                # Load font
+                font = PIL.ImageFont.truetype(
+                    os.path.join(fonts_dir, self.font), self.font_size
                 )
 
+                frame_number = 0
+                while True:
+                    ret, frame = cap.read()
+                    if not ret:
+                        break
+
+                    # Convert frame time to seconds
+                    frame_time = frame_number / fps
+
+                    # Find relevant text chunks for current frame
+                    current_texts = []
+                    for chunk in self.chunks:
+                        if chunk.timestamp[0] <= frame_time <= chunk.timestamp[1]:
+                            current_texts.append(chunk.text)
+
+                    if current_texts:
+                        # Convert BGR to RGB for PIL
+                        rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                        pil_image = PIL.Image.fromarray(rgb_frame)
+                        draw = PIL.ImageDraw.Draw(pil_image)  # type: ignore
+
+                        # Calculate text position
+                        x = int(width * self.x)
+                        y = int(height * self.y)
+
+                        # Draw each text chunk
+                        for i, text in enumerate(current_texts):
+                            # Calculate text size for alignment
+                            bbox = draw.textbbox((0, 0), text, font=font)
+                            text_width = bbox[2] - bbox[0]
+
+                            # Adjust x position based on alignment
+                            text_x = x
+                            if self.align == self.TextAlignment.CENTER:
+                                text_x = x - text_width // 2
+                            elif self.align == self.TextAlignment.RIGHT:
+                                text_x = x - text_width
+
+                            # Draw text with outline for better visibility
+                            outline_color = self.outline_color.value
+                            offset = 1
+                            for dx, dy in [
+                                (-offset, -offset),
+                                (-offset, offset),
+                                (offset, -offset),
+                                (offset, offset),
+                            ]:
+                                draw.text(
+                                    (text_x + dx, y + dy + i * self.font_size),
+                                    text,
+                                    font=font,
+                                    fill=outline_color,
+                                    align=self.align.value,
+                                )
+
+                            # Draw main text
+                            draw.text(
+                                (text_x, y + i * self.font_size),
+                                text,
+                                font=font,
+                                fill=self.font_color.value,
+                                align=self.align.value,
+                            )
+
+                        # Convert back to BGR for OpenCV
+                        frame = cv2.cvtColor(np.array(pil_image), cv2.COLOR_RGB2BGR)
+
+                    # Write the frame
+                    out.write(frame)
+                    frame_number += 1
+
+                # Release everything
+                cap.release()
+                out.release()
+
+                # Read the output video and create a VideoRef
                 with open(temp_output.name, "rb") as f:
                     return await context.video_from_io(f)
 
-            except ffmpeg.Error as e:
-                print(f"stdout: {e.stdout.decode('utf8')}")
-                print(f"stderr: {e.stderr.decode('utf8')}")
-                raise RuntimeError(f"ffmpeg error: {e.stderr.decode('utf8')}")
+            except Exception as e:
+                raise RuntimeError(f"Error processing video: {str(e)}") from e
 
-        except Exception as e:
-            raise RuntimeError(f"Error processing video: {str(e)}") from e
-
-        finally:
-            if temp_input:
+            finally:
                 safe_unlink(temp_input.name)
-            if temp_srt:
-                safe_unlink(temp_srt.name)
-            if temp_output:
                 safe_unlink(temp_output.name)
 
 
