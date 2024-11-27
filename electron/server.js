@@ -30,11 +30,6 @@ function startNodeToolBackendProcess() {
       : path.join(condaEnvPath, "bin", "python");
 
   const args = ["-m", "nodetool.cli", "serve", "--static-folder", webPath];
-
-  if (!app.isPackaged) {
-    args.push("--with-ui");
-  }
-
   logMessage(`Using command: ${pythonExecutablePath} ${args.join(" ")}`);
 
   try {
