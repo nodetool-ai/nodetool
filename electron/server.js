@@ -29,7 +29,14 @@ function startNodeToolBackendProcess() {
       ? path.join(condaEnvPath, "python.exe")
       : path.join(condaEnvPath, "bin", "python");
 
-  const args = ["-m", "nodetool.cli", "serve", "--static-folder", webPath];
+  const args = ["-m", "nodetool.cli", "serve"];
+
+  if (app.isPackaged) {
+    args.push("--static-folder", webPath);
+  } else {
+    args.push("--reload");
+  }
+
   logMessage(`Using command: ${pythonExecutablePath} ${args.join(" ")}`);
 
   try {
@@ -93,13 +100,6 @@ function handleServerOutput(data) {
 
   if (output.includes("Application startup complete.")) {
     logMessage("Server startup complete");
-    if (app.isPackaged) {
-      // Use the python server port
-      serverState.initialURL = "http://127.0.0.1:8000";
-    } else {
-      // Use the vite dev server port
-      serverState.initialURL = "http://127.0.0.1:3000";
-    }
     emitServerStarted();
   }
   emitServerLog(output);
@@ -162,8 +162,8 @@ async function initializeBackendServer() {
  * Start the development server using npm start.
  */
 async function startViteServer() {
-  logMessage("Starting development server...");
-  emitBootMessage("Starting development server...");
+  logMessage("Starting Vite server...");
+  emitBootMessage("Starting Vite server...");
 
   const npmCmd = process.platform === "win32" ? "npm.cmd" : "npm";
 
@@ -177,9 +177,14 @@ async function startViteServer() {
     npmProcess.stdout.on("data", (data) => {
       const output = data.toString().trim();
       if (output) {
-        logMessage(`Dev Server: ${output}`);
-        if (output.includes("Local:")) {
-          emitBootMessage("Development server started");
+        logMessage(`Vite Server: ${output}`);
+
+        // Parse the port from the output
+        const portMatch = output.match(/Local:.*:(\d+)/);
+        if (portMatch) {
+          const port = portMatch[1];
+          serverState.initialURL = `http://127.0.0.1:${port}`;
+          emitBootMessage("Vite server started");
         }
       }
     });
@@ -187,27 +192,22 @@ async function startViteServer() {
     npmProcess.stderr.on("data", (data) => {
       const output = data.toString().trim();
       if (output) {
-        logMessage(`Dev Server Error: ${output}`, "error");
+        logMessage(`Vite Server Error: ${output}`, "error");
       }
     });
 
     npmProcess.on("error", (error) => {
-      logMessage(
-        `Failed to start development server: ${error.message}`,
-        "error"
-      );
-      forceQuit(`Failed to start development server: ${error.message}`);
+      logMessage(`Failed to start Vite server: ${error.message}`, "error");
+      forceQuit(`Failed to start Vite server: ${error.message}`);
     });
 
     npmProcess.on("exit", (code, signal) => {
       if (code !== 0 && !isAppQuitting) {
         logMessage(
-          `Development server exited with code ${code} and signal ${signal}`,
+          `Vite server exited with code ${code} and signal ${signal}`,
           "error"
         );
-        forceQuit(
-          `Development server terminated unexpectedly with code ${code}`
-        );
+        forceQuit(`Vite server terminated unexpectedly with code ${code}`);
       }
     });
 

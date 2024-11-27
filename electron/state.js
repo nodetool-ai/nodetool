@@ -2,7 +2,7 @@ let mainWindow = null;
 let serverState = {
   isStarted: false,
   bootMsg: "Initializing...",
-  initialURL: null,
+  initialURL: "http://127.0.0.1:8000", // Default URL for the Python server
   logs: [],
 };
 
