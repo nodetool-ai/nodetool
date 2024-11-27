@@ -19,9 +19,12 @@ NodeTool simplifies access to advanced AI technologies, providing a creative spa
 
 - **Visual Editor | No-Code Development**: Create complex AI workflows visually—no coding needed! Dive into an intuitive, node-based design and let your creativity flow.
 - **Seamless Integration with Leading AI Platforms**: Mix and match models from OpenAI, Hugging Face, Anthropic, Ollama, and ComfyUI for endless possibilities.
-- **Model Manager**: Browse and manage your favorite models locally. Download recommended models directly from the Hugging Face Hub and run them on your GPU.
+- **Native ComfyUI Support**: Run ComfyUI nodes directly within NodeTool—no separate installation required. Leverage the full power of ComfyUI's extensive node ecosystem.
+- **Hugging Face Integration**: Access a vast library of models and run Hugging Face Transformers and Diffusers directly within NodeTool.
+- **Ollama Integration**: Run local large language models for chat and embedding.
+- **Model Manager**: Browse and manage your favorite models locally. Download models directly from the Hugging Face Hub and run them on your GPU.
+- **Chat with Workflows**: Chat with workflows directly within NodeTool.
 - **Asset Browser**: Easily import and manage media assets to use in your AI creations.
-- **ComfyUI Integration**: Bring in ComfyUI workflows and nodes to expand your playground.
 - **Multimodal Support**: Play with images, text, audio, video, and more — all in one place.
 - **API Integration**: Connect your AI tools with websites or apps seamlessly.
 - **Dual Model Execution Modes**:
@@ -52,13 +55,15 @@ NodeTool offers a diverse range of nodes to support various AI tasks, integratin
 ### Node Categories
 
 - **Anthropic** (`anthropic`): Text-based AI operations using Anthropic's models.
+- **ComfyUI** (`comfyui`): Native support for ComfyUI nodes, enabling advanced image processing workflows directly within NodeTool.
+- **Chroma** (`chroma`): Vector database for storing and querying embeddings.
 - **HuggingFace** (`huggingface`): Comprehensive AI capabilities including audio, image, text, video, and multimodal processing.
 - **NodeTool Core** (`nodetool`): Core functionalities for data manipulation, I/O operations, and various media processing.
 - **Ollama** (`ollama`): Run local large language models directly on your machine.
 - **OpenAI** (`openai`): AI operations for audio, image, and text using OpenAI's models.
 - **Replicate** (`replicate`): Versatile AI capabilities for audio, image, text, and video processing via cloud execution.
 - **Stable Diffusion** (`stable_diffusion`): Specialized image generation and manipulation.
-- **ComfyUI** (`comfyui`): Integration with ComfyUI for advanced image processing workflows.
+- **Luma** (`luma`): Generate videos from text and images.
 
 ## Model Manager 🗂️
 
@@ -303,44 +308,77 @@ socket.send(msgpack.encode({ command: "get_status" }));
 
 ### Requirements
 
-- Python 3.10+
-- Node.js 20+
+- Conda, download and install from [miniconda.org](https://docs.conda.io/en/latest/miniconda.html)
+- Node.js, download and install from [nodejs.org](https://nodejs.org/en)
 
-### Run Backend
+### Conda Environment
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate  # On Windows use: .venv\Scripts\activate
-pip install -r requirements.txt
-./scripts/server
+conda create -n nodetool python=3.11
+conda activate nodetool
+conda install -c conda-forge ffmpeg libopus cairo
 ```
 
-### Run Frontend
+### Install Python Dependencies
+
+On macOS:
 
 ```bash
-cd web
-npm install
-npm start
+pip install -r requirements.txt
+```
+
+On Windows and Linux with CUDA 12.1:
+
+```bash
+pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cu121
+```
+
+On Windows and Linux without CUDA:
+
+```bash
+pip install -r requirements.txt
+```
+
+Install binary package for bitsandbytes on Windows:
+
+```bash
+pip uninstall bitsandbytes
+pip install bitsandbytes --prefer-binary --extra-index-url https://jllllll.github.io/bitsandbytes-windows-webui
+```
+
+### Run without Electron
+
+Ensure you have the Conda environment activated.
+
+On macOS and Linux:
+
+```bash
+./scripts/server --with-ui --reload
+```
+
+On windows:
+
+```bash
+.\scripts\server.bat --with-ui --reload
 ```
 
 Now, open your browser and navigate to `http://localhost:3000` to access the NodeTool interface.
 
-### Run Electron App
+### Run with Electron
 
-The Electron app starts the frontend and backend.
+Ensure you have the Conda environment activated.
 
 ```bash
-cd web
-npm install
-npm run build
-cd ../electron
+cd electron
 npm install
 npm start
 ```
 
+The electron app starts the frontend and backend.
+
 ### Sync Dependencies
 
-Dependencies are managed in `pyproject.toml` and must be synced to `requirements.txt` using:
+Dependencies are managed via poetry in `pyproject.toml` and must be synced to `requirements.txt` using:
 
 ```bash
 poetry export -f requirements.txt --output requirements.txt --without-hashes

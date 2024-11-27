@@ -417,7 +417,6 @@ class Build:
                 "ffmpeg",
                 "cairo",
                 "libopus",
-                "libaom",
                 "-y",
                 "--channel",
                 "conda-forge",
