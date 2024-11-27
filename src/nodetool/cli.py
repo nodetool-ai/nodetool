@@ -49,7 +49,7 @@ def worker(
 
 def log_stream(stream: IO[bytes], prefix: str):
     """Log output from a stream with a prefix."""
-    for line in iter(stream.readline, b''):
+    for line in iter(stream.readline, b""):
         log.info(f"{prefix}: {line.strip()}")
 
 
@@ -101,18 +101,26 @@ def serve(
     if with_ui:
         web_dir = os.path.join(os.path.dirname(__file__), "..", "..", "web")
         log.info(f"Starting Vite development server in {web_dir}")
+
+        # Determine the npm command based on OS
+        npm_cmd = "npm.cmd" if os.name == "nt" else "npm"
+
         vite_process = subprocess.Popen(
-            ["npm", "run", "start"],
+            [npm_cmd, "run", "start"],
             cwd=web_dir,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             bufsize=1,
             universal_newlines=True,
         )
-        
+
         # Start threads to log stdout and stderr
-        Thread(target=log_stream, args=(vite_process.stdout, "Vite"), daemon=True).start()
-        Thread(target=log_stream, args=(vite_process.stderr, "Vite Error"), daemon=True).start()
+        Thread(
+            target=log_stream, args=(vite_process.stdout, "Vite"), daemon=True
+        ).start()
+        Thread(
+            target=log_stream, args=(vite_process.stderr, "Vite Error"), daemon=True
+        ).start()
 
     run_uvicorn_server(app=app, host=host, port=port, reload=reload)
 

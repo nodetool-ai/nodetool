@@ -405,8 +405,22 @@ class Build:
                 "-p",
                 str(self.ENV_DIR),
                 f"python={self.python_version}",
+            ]
+        )
+        
+        # Install ffmpeg from conda forge
+        # Install codecs for audio and video
+        self.run_command(
+            [
+                "conda",
+                "install",
                 "ffmpeg",
                 "cairo",
+                "libopus",
+                "libaom",
+                "-y",
+                "--channel",
+                "conda-forge",
             ]
         )
 

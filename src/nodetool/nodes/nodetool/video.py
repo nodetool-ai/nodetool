@@ -1472,7 +1472,7 @@ class AddAudio(BaseNode):
         with tempfile.NamedTemporaryFile(
             suffix=".mp4", delete=False
         ) as temp_video, tempfile.NamedTemporaryFile(
-            suffix=".mp3", delete=False
+            suffix=".opus", delete=False
         ) as temp_audio, tempfile.NamedTemporaryFile(
             suffix=".mp4", delete=False
         ) as temp_output:
@@ -1613,7 +1613,7 @@ class ExtractAudio(BaseNode):
         with tempfile.NamedTemporaryFile(
             suffix=".mp4", delete=False
         ) as temp_input, tempfile.NamedTemporaryFile(
-            suffix=".mp3", delete=False
+            suffix=".opus", delete=False
         ) as temp_audio:
             try:
                 temp_input.write(video_file.read())
@@ -1624,14 +1624,14 @@ class ExtractAudio(BaseNode):
                 os.chmod(temp_input.name, 0o644)
                 os.chmod(temp_audio.name, 0o644)
 
-                # Extract the audio
+                # Extract the audio using Opus codec
                 (
                     ffmpeg.input(temp_input.name)
                     .output(
                         temp_audio.name,
-                        acodec="libmp3lame",
+                        acodec="libopus",
                         map="0:a",
-                        format="mp3",
+                        format="opus",
                         loglevel="error",
                     )
                     .overwrite_output()
@@ -1643,7 +1643,6 @@ class ExtractAudio(BaseNode):
                     return await context.audio_from_io(f)
 
             except ffmpeg.Error as e:
-                # Capture ffmpeg errors and output to stderr for debugging
                 error_message = (
                     e.stderr.decode("utf-8") if e.stderr else "Unknown ffmpeg error."
                 )
