@@ -1,14 +1,34 @@
-const { app, ipcMain, dialog } = require('electron');
-const { createWindow, forceQuit } = require('./window');
-const { setupAutoUpdater } = require('./updater');
-const { logMessage } = require('./logger');
-const { initializeBackendServer, gracefulShutdown, serverState } = require('./server');
-const { verifyApplicationPaths, isCondaEnvironmentInstalled, installCondaEnvironment, updateCondaEnvironment } = require('./python');
-const { LOG_FILE } = require('./logger');
-const { shell } = require('electron');
-const { emitBootMessage } = require('./events');
+const { app, ipcMain, dialog } = require("electron");
+const { createWindow, forceQuit } = require("./window");
+const { setupAutoUpdater } = require("./updater");
+const { logMessage } = require("./logger");
+const {
+  initializeBackendServer,
+  gracefulShutdown,
+  serverState,
+} = require("./server");
+const {
+  verifyApplicationPaths,
+  isCondaEnvironmentInstalled,
+  installCondaEnvironment,
+  updateCondaEnvironment,
+} = require("./python");
+const { LOG_FILE } = require("./logger");
+const { shell } = require("electron");
+const { emitBootMessage } = require("./events");
 
 let isAppQuitting = false;
+
+async function checkPythonEnvironment(shouldUpdate = false) {
+  emitBootMessage("Checking for Python environment...");
+  const hasCondaEnv = await isCondaEnvironmentInstalled();
+
+  if (!hasCondaEnv) {
+    await installCondaEnvironment();
+  } else if (shouldUpdate) {
+    await updateCondaEnvironment();
+  }
+}
 
 async function initialize() {
   logMessage("Electron app is ready");
@@ -16,10 +36,11 @@ async function initialize() {
 
   const { valid, errors } = await verifyApplicationPaths();
   if (!valid) {
-    const errorMessage = "Critical permission errors detected:\n\n" + 
+    const errorMessage =
+      "Critical permission errors detected:\n\n" +
       errors.join("\n") +
       "\n\nPlease ensure the application has proper permissions to these locations.";
-    
+
     dialog.showErrorBox("Permission Error", errorMessage);
     app.quit();
     return;
@@ -28,12 +49,8 @@ async function initialize() {
   createWindow();
   setupAutoUpdater();
 
-  emitBootMessage("Checking for Python environment...");
-  if (await isCondaEnvironmentInstalled()) {
-    await updateCondaEnvironment();
-  } else {
-    await installCondaEnvironment();
-  }
+  // Check if Conda environment exists, but don't update packages
+  await checkPythonEnvironment(false);
 
   emitBootMessage("Starting NodeTool server...");
   await initializeBackendServer();
@@ -41,6 +58,12 @@ async function initialize() {
 
 // Application event handlers
 app.on("ready", initialize);
+
+// Handle update events
+ipcMain.handle("update-installed", async () => {
+  logMessage("Update installed, checking and updating Python environment");
+  await checkPythonEnvironment(true);
+});
 
 app.on("before-quit", (event) => {
   if (!isAppQuitting) {
@@ -80,8 +103,12 @@ process.on("uncaughtException", (error) => {
 });
 
 process.on("unhandledRejection", (reason, promise) => {
-  const errorMessage = reason instanceof Error ? reason.message : String(reason);
+  const errorMessage =
+    reason instanceof Error ? reason.message : String(reason);
   logMessage(`Unhandled Promise Rejection: ${errorMessage}`, "error");
-  logMessage(`Stack Trace: ${reason.stack || "No stack trace available"}`, "error");
+  logMessage(
+    `Stack Trace: ${reason.stack || "No stack trace available"}`,
+    "error"
+  );
   forceQuit(`Unhandled Promise Rejection: ${errorMessage}`);
-}); 
+});
