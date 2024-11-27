@@ -481,41 +481,6 @@ async function installCondaEnvironment() {
 
     logMessage("Python environment installation completed successfully");
     emitBootMessage("Python environment is ready");
-
-    if (process.platform === "darwin") {
-      emitBootMessage("Configuring OpenCV libraries...");
-
-      // Create symbolic links for required libraries
-      const libPath = path.join(condaEnvPath, "lib");
-      const dylibsPath = path.join(condaEnvPath, ".dylibs");
-
-      await fsPromises.mkdir(dylibsPath, { recursive: true });
-
-      // Link critical libraries
-      const librariesToLink = [
-        "libiconv.2.dylib",
-        "libavcodec.dylib",
-        "libavformat.dylib",
-        "libavutil.dylib",
-        "libswscale.dylib",
-      ];
-
-      for (const lib of librariesToLink) {
-        const source = path.join(libPath, lib);
-        const target = path.join(dylibsPath, lib);
-
-        if ((await fileExists(source)) && !(await fileExists(target))) {
-          try {
-            await fsPromises.symlink(source, target);
-          } catch (err) {
-            logMessage(
-              `Warning: Failed to create symlink for ${lib}: ${err.message}`,
-              "warn"
-            );
-          }
-        }
-      }
-    }
   } catch (error) {
     logMessage(
       `Failed to install Python environment: ${error.message}`,
