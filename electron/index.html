@@ -467,12 +467,7 @@
       });
 
       api.onServerStarted(() => {
-        loadContentWithNoCaching();
-        bootMessage.style.display = "none";
-        updateStepsElement.style.display = "none";
-        // Hide the log pane
-        logContainer.classList.remove("expanded");
-        logToggle.innerHTML = "<span>▲ Show Log</span>";
+        initializeApp();
       });
 
       api.onBootMessage((message) => {
