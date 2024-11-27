@@ -1,8 +1,8 @@
-const { app } = require('electron');
-const path = require('path');
-const log = require('electron-log');
-const { appendFile } = require('fs').promises;
-const { emitServerLog } = require('./events');
+const { app } = require("electron");
+const path = require("path");
+const log = require("electron-log");
+const { appendFile } = require("fs").promises;
+const { emitServerLog } = require("./events");
 
 const LOG_FILE = path.join(app.getPath("userData"), "nodetool.log");
 
@@ -14,9 +14,9 @@ const LOG_FILE = path.join(app.getPath("userData"), "nodetool.log");
 function logMessage(message, level = "info") {
   try {
     const timestamp = new Date().toISOString();
-    const fullMessage = `[${timestamp}] [${level.toUpperCase()}] ${message.trim()}\n`;
+    const fullMessage = `[${timestamp}] [${level.toUpperCase()}] ${message.trim()}`;
     log[level](fullMessage);
-    
+
     // Send raw message to renderer without timestamp/level prefix
     emitServerLog(message.trim());
     // Asynchronously write to log file
@@ -30,5 +30,5 @@ function logMessage(message, level = "info") {
 
 module.exports = {
   LOG_FILE,
-  logMessage
-}; 
+  logMessage,
+};

@@ -1,18 +1,19 @@
-const { spawn } = require('child_process');
-const { dialog, shell, app } = require('electron');
-const { logMessage } = require('./logger');
-const { getMainWindow } = require('./window');
-const { processEnv, condaEnvPath, srcPath } = require('./python');
-const path = require('path');
-const { forceQuit } = require('./window');
-const { checkPythonPackages, updateCondaEnvironment } = require('./python');
-const { emitBootMessage, emitServerStarted, emitServerLog } = require('./events');
-const { serverState } = require('./state');
+const { spawn } = require("child_process");
+const { dialog, shell, app } = require("electron");
+const { logMessage } = require("./logger");
+const { getMainWindow } = require("./window");
+const { processEnv, condaEnvPath, srcPath } = require("./python");
+const path = require("path");
+const { forceQuit } = require("./window");
+const {
+  emitBootMessage,
+  emitServerStarted,
+  emitServerLog,
+} = require("./events");
+const { serverState } = require("./state");
+const fs = require("fs").promises;
 
-// Define webPath here since it's server-specific
-const webPath = app.isPackaged
-  ? path.join(process.resourcesPath, "web")
-  : path.join(__dirname, "..", "web", "dist");
+const webPath = path.join(process.resourcesPath, "web");
 
 let nodeToolBackendProcess = null;
 let isAppQuitting = false;
@@ -23,24 +24,25 @@ let isAppQuitting = false;
 function startNodeToolBackendProcess() {
   emitBootMessage("Configuring server environment...");
 
-  const pythonExecutablePath = process.platform === "win32"
-    ? path.join(condaEnvPath, "python.exe")
-    : path.join(condaEnvPath, "bin", "python");
+  const pythonExecutablePath =
+    process.platform === "win32"
+      ? path.join(condaEnvPath, "python.exe")
+      : path.join(condaEnvPath, "bin", "python");
 
   const args = ["-m", "nodetool.cli", "serve", "--static-folder", webPath];
+
+  if (!app.isPackaged) {
+    args.push("--with-ui");
+  }
 
   logMessage(`Using command: ${pythonExecutablePath} ${args.join(" ")}`);
 
   try {
-    nodeToolBackendProcess = spawn(
-      pythonExecutablePath,
-      args,
-      {
-        stdio: "pipe",
-        shell: false,
-        env: processEnv,
-      }
-    );
+    nodeToolBackendProcess = spawn(pythonExecutablePath, args, {
+      stdio: "pipe",
+      shell: false,
+      env: processEnv,
+    });
   } catch (error) {
     forceQuit(`Failed to spawn server process: ${error.message}`);
     return;
@@ -96,6 +98,13 @@ function handleServerOutput(data) {
 
   if (output.includes("Application startup complete.")) {
     logMessage("Server startup complete");
+    if (app.isPackaged) {
+      // Use the python server port
+      serverState.initialURL = "http://127.0.0.1:8000";
+    } else {
+      // Use the vite dev server port
+      serverState.initialURL = "http://127.0.0.1:3000";
+    }
     emitServerStarted();
   }
   emitServerLog(output);
@@ -146,11 +155,76 @@ async function showOllamaInstallDialog() {
 async function initializeBackendServer() {
   try {
     logMessage("Attempting to start NodeTool backend server");
-    
+
     await ensureOllamaIsRunning();
     startNodeToolBackendProcess();
   } catch (error) {
     forceQuit(`Critical error starting server: ${error.message}`);
+  }
+}
+
+/**
+ * Start the development server using npm start.
+ */
+async function startViteServer() {
+  logMessage("Starting development server...");
+  emitBootMessage("Starting development server...");
+
+  const npmCmd = process.platform === "win32" ? "npm.cmd" : "npm";
+
+  try {
+    const npmProcess = spawn(npmCmd, ["start"], {
+      cwd: path.join(process.cwd(), "..", "web"),
+      stdio: "pipe",
+      shell: false,
+    });
+
+    npmProcess.stdout.on("data", (data) => {
+      const output = data.toString().trim();
+      if (output) {
+        logMessage(`Dev Server: ${output}`);
+        if (output.includes("Local:")) {
+          emitBootMessage("Development server started");
+        }
+      }
+    });
+
+    npmProcess.stderr.on("data", (data) => {
+      const output = data.toString().trim();
+      if (output) {
+        logMessage(`Dev Server Error: ${output}`, "error");
+      }
+    });
+
+    npmProcess.on("error", (error) => {
+      logMessage(
+        `Failed to start development server: ${error.message}`,
+        "error"
+      );
+      forceQuit(`Failed to start development server: ${error.message}`);
+    });
+
+    npmProcess.on("exit", (code, signal) => {
+      if (code !== 0 && !isAppQuitting) {
+        logMessage(
+          `Development server exited with code ${code} and signal ${signal}`,
+          "error"
+        );
+        forceQuit(
+          `Development server terminated unexpectedly with code ${code}`
+        );
+      }
+    });
+
+    // Add cleanup on app quit
+    app.on("before-quit", () => {
+      if (npmProcess) {
+        npmProcess.kill();
+      }
+    });
+  } catch (error) {
+    logMessage(`Error starting development server: ${error.message}`, "error");
+    forceQuit(`Failed to start development server: ${error.message}`);
   }
 }
 
@@ -166,12 +240,12 @@ async function gracefulShutdown() {
       nodeToolBackendProcess.kill("SIGTERM");
 
       await new Promise((resolve, reject) => {
-        nodeToolBackendProcess.on('exit', resolve);
-        nodeToolBackendProcess.on('error', reject);
+        nodeToolBackendProcess.on("exit", resolve);
+        nodeToolBackendProcess.on("error", reject);
 
         setTimeout(() => {
           if (!nodeToolBackendProcess.killed) {
-            nodeToolBackendProcess.kill('SIGKILL');
+            nodeToolBackendProcess.kill("SIGKILL");
           }
           resolve();
         }, 5000);
@@ -187,6 +261,7 @@ async function gracefulShutdown() {
 module.exports = {
   serverState,
   initializeBackendServer,
+  startViteServer,
   gracefulShutdown,
-  webPath
-}; 
+  webPath,
+};

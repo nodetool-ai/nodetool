@@ -375,8 +375,6 @@
     </div>
 
     <script>
-      // Remove the require('electron') line, we'll use the exposed api instead
-      // const { api } = window;
       const contentElement = document.getElementById("content");
       const logElement = document.getElementById("log");
       const bootMessage = document.getElementById("boot-message");
@@ -407,9 +405,9 @@
 
       const simpleLogger = createSimpleLogger(logElement);
 
-      function loadContentWithNoCaching() {
+      function loadContentWithNoCaching(initialURL) {
         const timestamp = new Date().getTime();
-        contentElement.src = `http://127.0.0.1:8000?nocache=${timestamp}`;
+        contentElement.src = `${initialURL}?nocache=${timestamp}`;
       }
 
       function updateProgress(componentName, progress, action, eta) {
@@ -446,10 +444,10 @@
       }
 
       function initializeApp() {
-        api.getServerState().then(({ isStarted, bootMsg, logs }) => {
+        api.getServerState().then(({ isStarted, bootMsg, logs, initialURL }) => {
           console.log("Server state:", { isStarted, bootMsg, logs });
           if (isStarted) {
-            loadContentWithNoCaching();
+            loadContentWithNoCaching(initialURL);
             bootMessage.style.display = "none";
             updateStepsElement.style.display = "none";
             // Hide the log pane

@@ -3,6 +3,10 @@ import click
 from nodetool.api.server import create_app, run_uvicorn_server
 from nodetool.chat.help import index_documentation, index_examples
 from nodetool.common.environment import Environment
+import subprocess
+import os
+from threading import Thread
+from typing import IO
 
 # silence warnings on the command line
 import warnings
@@ -43,6 +47,12 @@ def worker(
     run_uvicorn_server(app=app, host=host, port=port, reload=reload)
 
 
+def log_stream(stream: IO[bytes], prefix: str):
+    """Log output from a stream with a prefix."""
+    for line in iter(stream.readline, b''):
+        log.info(f"{prefix}: {line.strip()}")
+
+
 @click.command()
 @click.option("--host", default="127.0.0.1", help="Host address to serve on.")
 @click.option("--port", default=8000, help="Port to serve on.", type=int)
@@ -60,6 +70,7 @@ def worker(
     is_flag=True,
     help="Use single local user with id 1 for authentication. Will be ingnored on production.",
 )
+@click.option("--with-ui", is_flag=True, help="Start Vite development server for UI.")
 def serve(
     host: str,
     port: int,
@@ -68,6 +79,7 @@ def serve(
     force_fp16: bool = False,
     remote_auth: bool = False,
     worker_url: str | None = None,
+    with_ui: bool = False,
 ):
     """Serve the Nodetool API server."""
 
@@ -85,6 +97,22 @@ def serve(
         if static_folder:
             raise Exception("static folder and reload are exclusive options")
         app = "nodetool.api.app:app"
+
+    if with_ui:
+        web_dir = os.path.join(os.path.dirname(__file__), "..", "..", "web")
+        log.info(f"Starting Vite development server in {web_dir}")
+        vite_process = subprocess.Popen(
+            ["npm", "run", "start"],
+            cwd=web_dir,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            bufsize=1,
+            universal_newlines=True,
+        )
+        
+        # Start threads to log stdout and stderr
+        Thread(target=log_stream, args=(vite_process.stdout, "Vite"), daemon=True).start()
+        Thread(target=log_stream, args=(vite_process.stderr, "Vite Error"), daemon=True).start()
 
     run_uvicorn_server(app=app, host=host, port=port, reload=reload)
 

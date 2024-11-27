@@ -1,9 +1,10 @@
-const { app, ipcMain, dialog } = require("electron");
+const { app, ipcMain, dialog, shell } = require("electron");
 const { createWindow, forceQuit } = require("./window");
 const { setupAutoUpdater } = require("./updater");
 const { logMessage } = require("./logger");
 const {
   initializeBackendServer,
+  startViteServer,
   gracefulShutdown,
   serverState,
 } = require("./server");
@@ -14,7 +15,6 @@ const {
   updateCondaEnvironment,
 } = require("./python");
 const { LOG_FILE } = require("./logger");
-const { shell } = require("electron");
 const { emitBootMessage } = require("./events");
 
 let isAppQuitting = false;
@@ -51,6 +51,11 @@ async function initialize() {
 
   // Check if Conda environment exists, but don't update packages
   await checkPythonEnvironment(false);
+
+  if (!app.isPackaged) {
+    emitBootMessage("Starting Vite server...");
+    await startViteServer();
+  }
 
   emitBootMessage("Starting NodeTool server...");
   await initializeBackendServer();

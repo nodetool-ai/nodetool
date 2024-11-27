@@ -1,7 +1,8 @@
-const { BrowserWindow, session, dialog } = require('electron');
-const path = require('path');
-const { logMessage } = require('./logger');
-const { setMainWindow } = require('./state');
+const { BrowserWindow, session, dialog } = require("electron");
+const path = require("path");
+const { logMessage } = require("./logger");
+const { setMainWindow } = require("./state");
+const { app } = require("electron");
 
 /**
  * Create the main application window.
@@ -18,7 +19,7 @@ function createWindow() {
       enableRemoteModule: true,
     },
   });
-  
+
   window.removeMenu();
   window.setBackgroundColor("#111111");
   window.loadFile("index.html");
@@ -31,7 +32,7 @@ function createWindow() {
 
   initializePermissionHandlers();
   setMainWindow(window);
-  
+
   return window;
 }
 
@@ -59,5 +60,5 @@ function forceQuit(errorMessage) {
 
 module.exports = {
   createWindow,
-  forceQuit
-}; 
+  forceQuit,
+};
