@@ -28,7 +28,7 @@ const requirementsFilePath = app.isPackaged
 
 const appDir =
   process.env.PORTABLE_EXECUTABLE_DIR || path.dirname(app.getPath("exe"));
-const condaEnvPath = path.join(appDir, "conda_env");
+const condaEnvPath = process.env.CONDA_PREFIX || path.join(appDir, "conda_env");
 
 // Environment configuration
 const processEnv = {
