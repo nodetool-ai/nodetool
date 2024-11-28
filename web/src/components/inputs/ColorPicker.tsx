@@ -6,6 +6,7 @@ import { MuiColorInput } from "mui-color-input";
 import styled from "@emotion/styled";
 import { Popover, Button } from "@mui/material";
 import ColorizeIcon from "@mui/icons-material/Colorize";
+import { solarizedColors } from "../../constants/colors";
 
 const colorMatrixStyle = (theme: any) => css`
   display: grid;
@@ -59,38 +60,6 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
   const open = Boolean(anchorEl);
   const id = open ? "color-picker-popover" : undefined;
 
-  const colorMatrix = [
-    null, // Empty color
-    "#002b36",
-    "#073642",
-    "#586e75",
-    "#657b83",
-    "#839496",
-    "#93a1a1",
-    "#eee8d5",
-    "#fdf6e3",
-    "#b58900",
-    "#cb4b16",
-    "#d33682",
-    "#6c71c4",
-    "#268bd2",
-    "#2aa198",
-    "#859900"
-  ];
-
-  // Monokai
-  //   const colorMatrix = [
-  //     "#2e2e2e", // Background
-  //     "#797979", // Comments
-  //     "#d6d6d6", // White
-  //     "#e5b567", // Yellow
-  //     "#b4d273", // Green
-  //     "#e87d3e", // Orange
-  //     "#9e86c8", // Purple
-  //     "#b05279", // Pink
-  //     "#6c99bb"  // Blue
-  // ];
-
   const handleColorCellClick = useCallback(
     (newColor: string | null) => {
       onColorChange(newColor);
@@ -125,7 +94,7 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
       >
         <div>
           <div css={colorMatrixStyle}>
-            {colorMatrix.map((cellColor, index) => (
+            {solarizedColors.map((cellColor, index) => (
               <ColorCell
                 key={index}
                 color={cellColor || ""}
