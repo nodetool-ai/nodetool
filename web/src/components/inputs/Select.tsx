@@ -44,24 +44,31 @@ const Select: React.FC<SelectProps> = ({
     [onChange, close]
   );
 
-  const handleClickOutside = useCallback(
+  const handleMouseDown = useCallback(
     (event: MouseEvent) => {
       if (
         selectRef.current &&
         !selectRef.current.contains(event.target as Node)
       ) {
-        close();
+        const target = event.target as HTMLElement;
+        if (target?.classList.contains("option")) {
+          return;
+        }
+        if (activeSelect) {
+          close();
+          event.stopPropagation();
+        }
       }
     },
-    [close]
+    [close, activeSelect]
   );
 
   useEffect(() => {
-    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("mousedown", handleMouseDown);
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("mousedown", handleMouseDown);
     };
-  }, [handleClickOutside]);
+  }, [handleMouseDown]);
 
   const selectedOption = useMemo(
     () => options.find((option) => option.value === value),
