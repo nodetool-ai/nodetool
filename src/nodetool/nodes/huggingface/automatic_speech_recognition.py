@@ -38,7 +38,7 @@ class Whisper(HuggingFacePipelineNode):
     - Multilingual speech recognition
     - Speech translation
     - Language identification
-    
+
     **Note**
     - Language selection is sorted by word error rate in the FLEURS benchmark
     - There are many variants of Whisper that are optimized for different use cases.
@@ -142,14 +142,6 @@ class Whisper(HuggingFacePipelineNode):
         title="Language",
         description="The language of the input audio. If not specified, the model will attempt to detect it automatically.",
     )
-    chunk_length_s: Optional[float] = Field(
-        default=30,
-        title="Chunk Length (seconds)",
-        description=(
-            "Length of each audio chunk in seconds for chunked long-form transcription. "
-            "Applicable when transcribing audio longer than the model's receptive field (e.g., 30 seconds)."
-        ),
-    )
     timestamps: Timestamps = Field(
         default=Timestamps.NONE,
         title="Timestamps",
@@ -218,7 +210,6 @@ class Whisper(HuggingFacePipelineNode):
             model_id=model,
             tokenizer=processor.tokenizer,
             feature_extractor=processor.feature_extractor,
-            chunk_length_s=self.chunk_length_s,
             torch_dtype=torch_dtype,
             device=context.device,
         )  # type: ignore
@@ -231,12 +222,6 @@ class Whisper(HuggingFacePipelineNode):
         logger.info(f"Moved Whisper model to device: {device}")
 
     async def process(self, context: ProcessingContext):
-        """
-        Processes the input audio and returns the transcribed text.
-
-        Returns:
-            Transcribed text (str)
-        """
         assert self._pipeline
 
         logger.info("Starting audio processing...")
@@ -245,12 +230,16 @@ class Whisper(HuggingFacePipelineNode):
 
         pipeline_kwargs = {
             "return_timestamps": (
-                False if self.timestamps == self.Timestamps.NONE else
-                True if self.timestamps == self.Timestamps.SENTENCE else "word"
+                self.timestamps.value
+                if self.timestamps != self.Timestamps.NONE
+                else None
             ),
+            "chunk_length_s": 30.0,
             "generate_kwargs": {
                 "language": (
-                    None if self.language.value == "auto_detect" else self.language.value
+                    None
+                    if self.language.value == "auto_detect"
+                    else self.language.value
                 ),
             },
         }
@@ -260,17 +249,26 @@ class Whisper(HuggingFacePipelineNode):
         assert isinstance(result, dict)
 
         text = result.get("text", "")
-        
+
         chunks = []
         if self.timestamps != self.Timestamps.NONE:
-            for chunk in result.get("chunks", []):
+            raw_chunks = result.get("chunks", [])
+            SEGMENT_LENGTH = 30.0  # Whisper's default segment length in seconds
+
+            for chunk in raw_chunks:
                 try:
                     timestamp = chunk.get("timestamp")
-                    if timestamp and len(timestamp) == 2 and all(isinstance(t, (int, float)) for t in timestamp):
-                        chunks.append(AudioChunk(
-                            timestamp=timestamp,
-                            text=chunk.get("text", "")
-                        ))
+                    if (
+                        timestamp
+                        and len(timestamp) == 2
+                        and all(isinstance(t, (int, float)) for t in timestamp)
+                    ):
+                        chunks.append(
+                            AudioChunk(
+                                timestamp=timestamp,
+                                text=chunk.get("text", ""),
+                            )
+                        )
                 except ValueError as e:
                     logger.warning(f"Skipping invalid chunk: {e}")
 

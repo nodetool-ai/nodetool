@@ -1,13 +1,16 @@
 {
   "id": "add_subtitles_to_video",
   "access": "public",
-  "created_at": "2024-10-21T23:32:04.578174",
-  "updated_at": "2024-10-21T23:32:04.578174",
+  "created_at": "2024-11-28T18:06:57.395250",
+  "updated_at": "2024-11-28T18:06:57.395256",
   "name": "Add Subtitles To Video",
   "description": "",
-  "tags": ["start", "video"],
+  "tags": [
+    "start",
+    "video"
+  ],
   "thumbnail": "",
-  "thumbnail_url": "/examples/add_subtitles_to_video.jpg",
+  "thumbnail_url": null,
   "graph": {
     "nodes": [
       {
@@ -18,8 +21,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 382,
-            "y": 370
+            "x": 308,
+            "y": 447
           },
           "zIndex": 0,
           "width": 200,
@@ -37,32 +40,14 @@
           },
           "task": "transcribe",
           "language": "english",
-          "chunk_length_s": 8,
-          "timestamps": "sentence"
+          "chunk_length_s": 30,
+          "timestamps": "word"
         },
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 649,
-            "y": 209
-          },
-          "zIndex": 0,
-          "width": 200,
-          "selectable": true
-        }
-      },
-      {
-        "id": "3",
-        "parent_id": null,
-        "type": "huggingface.automatic_speech_recognition.ChunksToSRT",
-        "data": {
-          "time_offset": 0
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 921,
-            "y": 442
+            "x": 569,
+            "y": 347
           },
           "zIndex": 0,
           "width": 200,
@@ -78,13 +63,15 @@
           "font_color": "white",
           "outline_color": "black",
           "outline_width": 1,
-          "position": "bottom"
+          "position": "bottom",
+          "font": "FreeSans.ttf",
+          "align": "bottom"
         },
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 1208,
-            "y": 436
+            "x": 842.3333333333334,
+            "y": 489
           },
           "zIndex": 0,
           "width": 200,
@@ -101,12 +88,12 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 912,
-            "y": 195
+            "x": 800,
+            "y": 57
           },
           "zIndex": 0,
-          "width": 213,
-          "height": 197,
+          "width": 823,
+          "height": 384,
           "selectable": true
         }
       },
@@ -120,31 +107,12 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 1449,
-            "y": 435
+            "x": 1081,
+            "y": 454
           },
           "zIndex": 0,
-          "width": 409,
-          "height": 390,
-          "selectable": true
-        }
-      },
-      {
-        "id": "34",
-        "parent_id": null,
-        "type": "nodetool.workflows.base_node.Preview",
-        "data": {
-          "name": "str_output_2024-10-08"
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 1212,
-            "y": 147
-          },
-          "zIndex": 0,
-          "width": 427,
-          "height": 249,
+          "width": 561,
+          "height": 457,
           "selectable": true
         }
       },
@@ -206,6 +174,7 @@
           ]
         },
         "ui_properties": {
+          "selected": false,
           "position": {
             "x": 3,
             "y": -224
@@ -229,8 +198,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 126,
-            "y": 198
+            "x": 50,
+            "y": 557
           },
           "zIndex": 0,
           "width": 198,
@@ -247,8 +216,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 379,
-            "y": 480
+            "x": 568,
+            "y": 50
           },
           "zIndex": 0,
           "width": 210,
@@ -269,26 +238,6 @@
         }
       },
       {
-        "id": "8fffeac3-e01a-4c29-b159-d9c9d5716f61",
-        "source": "2",
-        "sourceHandle": "chunks",
-        "target": "3",
-        "targetHandle": "chunks",
-        "ui_properties": {
-          "className": "list"
-        }
-      },
-      {
-        "id": "6219",
-        "source": "4",
-        "sourceHandle": "output",
-        "target": "7",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "video"
-        }
-      },
-      {
         "id": "f3141d84-d30a-4ae7-9930-5b721b1b560e",
         "source": "36",
         "sourceHandle": "output",
@@ -299,33 +248,13 @@
         }
       },
       {
-        "id": "6220",
-        "source": "3",
-        "sourceHandle": "output",
-        "target": "34",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "str"
-        }
-      },
-      {
-        "id": "6cc760db-7823-473f-88f2-67fcdc76e4f5",
-        "source": "3",
-        "sourceHandle": "output",
+        "id": "9d3b3039-d5b6-4cd7-8e80-57491b5a04ae",
+        "source": "2",
+        "sourceHandle": "chunks",
         "target": "4",
-        "targetHandle": "subtitles",
+        "targetHandle": "chunks",
         "ui_properties": {
-          "className": "str"
-        }
-      },
-      {
-        "id": "6221",
-        "source": "1",
-        "sourceHandle": "output",
-        "target": "37",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "audio"
+          "className": "list"
         }
       },
       {
@@ -339,6 +268,16 @@
         }
       },
       {
+        "id": "6219",
+        "source": "4",
+        "sourceHandle": "output",
+        "target": "7",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "video"
+        }
+      },
+      {
         "id": "6218",
         "source": "2",
         "sourceHandle": "chunks",
@@ -346,6 +285,16 @@
         "targetHandle": "value",
         "ui_properties": {
           "className": "list"
+        }
+      },
+      {
+        "id": "6221",
+        "source": "1",
+        "sourceHandle": "output",
+        "target": "37",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "audio"
         }
       }
     ]

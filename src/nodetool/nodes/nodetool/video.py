@@ -10,6 +10,7 @@ import PIL.ImageOps
 import PIL.Image
 import PIL.ImageFont
 import PIL.ImageEnhance
+import PIL.ImageDraw
 from nodetool.workflows.types import NodeProgress
 import numpy as np
 from pydantic import Field
@@ -1126,7 +1127,8 @@ class AddSubtitles(BaseNode):
         default=SubtitleTextFont.DejaVuSans, description="The font to use."
     )
     align: SubtitleTextAlignment = Field(
-        default=SubtitleTextAlignment.BOTTOM, description="Vertical alignment of subtitles."
+        default=SubtitleTextAlignment.BOTTOM,
+        description="Vertical alignment of subtitles.",
     )
     font_size: int = Field(default=24, ge=1, le=72, description="The font size.")
     font_color: ColorRef = Field(
@@ -1143,8 +1145,11 @@ class AddSubtitles(BaseNode):
 
         video_file = await context.asset_to_io(self.video)
 
-        with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as temp_input, \
-             tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as temp_output:
+        with tempfile.NamedTemporaryFile(
+            suffix=".mp4", delete=False
+        ) as temp_input, tempfile.NamedTemporaryFile(
+            suffix=".mp4", delete=False
+        ) as temp_output:
             try:
                 # Write input video to temporary file
                 temp_input.write(video_file.read())
@@ -1159,12 +1164,37 @@ class AddSubtitles(BaseNode):
                 total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
                 # Create VideoWriter
-                fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+                fourcc = cv2.VideoWriter_fourcc(*"mp4v")  # type: ignore
                 out = cv2.VideoWriter(temp_output.name, fourcc, fps, (width, height))
 
                 # Load font
                 font_path = os.path.join(fonts_dir, self.font.value)
                 font = PIL.ImageFont.truetype(font_path, self.font_size)
+
+                def wrap_text(
+                    text: str, max_width: int, draw: PIL.ImageDraw.ImageDraw
+                ) -> list[str]:
+                    words = text.split()
+                    lines = []
+                    current_line = []
+
+                    for word in words:
+                        current_line.append(word)
+                        line_width = draw.textlength(" ".join(current_line), font=font)
+
+                        if line_width > max_width:
+                            if len(current_line) == 1:
+                                lines.append(current_line[0])
+                                current_line = []
+                            else:
+                                current_line.pop()
+                                lines.append(" ".join(current_line))
+                                current_line = [word]
+
+                    if current_line:
+                        lines.append(" ".join(current_line))
+
+                    return lines
 
                 # Process each frame
                 frame_number = 0
@@ -1174,7 +1204,6 @@ class AddSubtitles(BaseNode):
                         break
 
                     current_time = frame_number / fps
-                    # Convert BGR to RGB for PIL
                     rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                     pil_image = PIL.Image.fromarray(rgb_frame)
                     draw = PIL.ImageDraw.Draw(pil_image)
@@ -1182,41 +1211,60 @@ class AddSubtitles(BaseNode):
                     # Find current subtitle text
                     current_text = ""
                     for chunk in self.chunks:
-                        if chunk.start <= current_time and current_time <= chunk.end:
+                        if chunk.timestamp[0] <= current_time <= chunk.timestamp[1]:
                             current_text = chunk.text
                             break
 
                     if current_text:
-                        # Calculate text position
-                        text_width, text_height = draw.textsize(current_text, font=font)
-                        x = (width - text_width) // 2
+                        # Calculate maximum width for text (80% of video width)
+                        max_width = int(width * 0.8)
+
+                        # Wrap text into lines
+                        lines = wrap_text(current_text, max_width, draw)
+
+                        # Calculate total height of all lines
+                        line_spacing = self.font_size * 1.2  # 20% spacing between lines
+                        total_height = len(lines) * line_spacing
+
+                        # Calculate starting y position based on alignment
                         if self.align == self.SubtitleTextAlignment.TOP:
                             y = 10
                         elif self.align == self.SubtitleTextAlignment.CENTER:
-                            y = (height - text_height) // 2
+                            y = (height - total_height) // 2
                         else:  # BOTTOM
-                            y = height - text_height - 10
+                            y = height - total_height - 10
 
-                        # Draw text outline
-                        outline_width = 2
-                        for dx, dy in [(-1,-1), (-1,1), (1,-1), (1,1)]:
+                        # Draw each line
+                        for line in lines:
+                            # Calculate line width for centering
+                            line_width = draw.textlength(line, font=font)
+                            x = (width - line_width) // 2
+
+                            # Draw text outline
+                            outline_width = 2
+                            for dx, dy in [(-1, -1), (-1, 1), (1, -1), (1, 1)]:
+                                draw.text(
+                                    (x + dx * outline_width, y + dy * outline_width),
+                                    line,
+                                    font=font,
+                                    fill=self.outline_color.value,
+                                )
+
+                            # Draw main text
                             draw.text(
-                                (x + dx * outline_width, y + dy * outline_width),
-                                current_text,
+                                (x, y),
+                                line,
                                 font=font,
-                                fill=self.outline_color.value
+                                fill=self.font_color.value,
                             )
 
-                        # Draw main text
-                        draw.text(
-                            (x, y),
-                            current_text,
-                            font=font,
-                            fill=self.font_color.value
-                        )
+                            # Move y position for next line
+                            y += line_spacing
 
                     # Convert back to BGR for OpenCV
-                    frame_with_text = cv2.cvtColor(np.array(pil_image), cv2.COLOR_RGB2BGR)
+                    frame_with_text = cv2.cvtColor(
+                        np.array(pil_image), cv2.COLOR_RGB2BGR
+                    )
                     out.write(frame_with_text)
                     frame_number += 1
 
@@ -1226,14 +1274,16 @@ class AddSubtitles(BaseNode):
 
                 # Now combine the processed frames with the original audio using ffmpeg
                 import ffmpeg
-                
+
                 # Get the original video with audio
                 input_video = ffmpeg.input(temp_input.name)
                 # Get the processed frames
                 processed_frames = ffmpeg.input(temp_output.name)
 
                 # Create a temporary file for the final output
-                with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as final_output:
+                with tempfile.NamedTemporaryFile(
+                    suffix=".mp4", delete=False
+                ) as final_output:
                     final_output.close()
 
                     # Combine processed frames with original audio
@@ -1241,7 +1291,7 @@ class AddSubtitles(BaseNode):
                         processed_frames.video,
                         input_video.audio,
                         final_output.name,
-                        acodec='copy'  # Copy audio stream without re-encoding
+                        acodec="copy",  # Copy audio stream without re-encoding
                     ).overwrite_output().run(quiet=True)
 
                     # Read the final video and create a VideoRef

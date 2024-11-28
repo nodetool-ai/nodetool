@@ -7,6 +7,8 @@ import subprocess
 import os
 from threading import Thread
 from typing import IO
+import signal
+import sys
 
 # silence warnings on the command line
 import warnings
@@ -97,6 +99,19 @@ def serve(
         if static_folder:
             raise Exception("static folder and reload are exclusive options")
         app = "nodetool.api.app:app"
+
+    vite_process = None
+
+    def cleanup(signum, frame):
+        if vite_process:
+            log.info("Shutting down Vite development server...")
+            vite_process.terminate()
+            vite_process.wait()
+        sys.exit(0)
+
+    # Register signal handlers
+    signal.signal(signal.SIGINT, cleanup)
+    signal.signal(signal.SIGTERM, cleanup)
 
     if with_ui:
         web_dir = os.path.join(os.path.dirname(__file__), "..", "..", "web")
