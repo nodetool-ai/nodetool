@@ -11,7 +11,7 @@ import useSelect from "../../hooks/nodes/useSelect";
 
 interface Option {
   value: any;
-  label: string;
+  label: string | React.ReactNode;
 }
 
 interface SelectProps {

@@ -76,9 +76,22 @@ const HuggingFaceModelSelect = ({
       { value: "", label: "None" },
       ...(models as HuggingFaceModel[]).map((model) => ({
         value: model.path ? `${model.repo_id}:${model.path}` : model.repo_id,
-        label: model.path
-          ? `${model.repo_id}:${model.path}`
-          : model.repo_id || ""
+        label: model.path ? (
+          <div>
+            <div
+              style={{
+                fontSize: "0.9em",
+                fontWeight: "normal",
+                fontStyle: "italic"
+              }}
+            >
+              {model.repo_id}
+            </div>
+            <div>{model.path}</div>
+          </div>
+        ) : (
+          model.repo_id || ""
+        )
       }))
     ];
   }, [models, isLoading, isError]);
