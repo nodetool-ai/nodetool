@@ -3,7 +3,7 @@ import { css, keyframes } from "@emotion/react";
 import { colorForType } from "../../config/data_types";
 
 import ThemeNodes from "../themes/ThemeNodes";
-import { memo, useEffect, useState, useMemo } from "react";
+import { memo, useMemo } from "react";
 import {
   Node,
   NodeProps,

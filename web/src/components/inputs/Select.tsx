@@ -1,3 +1,5 @@
+/** @jsxImportSource @emotion/react */
+import { css, keyframes } from "@emotion/react";
 import { isEqual } from "lodash";
 import React, {
   useCallback,
@@ -20,6 +22,95 @@ interface SelectProps {
   onChange: (value: string) => void;
   placeholder?: string;
 }
+
+const ChevronIcon = ({ className }: { className?: string }) => (
+  <svg
+    className={className}
+    width="12"
+    height="12"
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path
+      d="M6 9L12 15L18 9"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+const menuStyles = (theme: any) =>
+  css({
+    ".options-list": {
+      position: "absolute",
+      width: "auto",
+      minWidth: "100%",
+      maxWidth: "300px",
+      maxHeight: "300px",
+      overflowY: "auto",
+      margin: 0,
+      padding: ".5em 0",
+      listStyle: "none",
+      backgroundColor: theme.palette.c_gray1,
+      border: `1px solid ${theme.palette.c_gray3}`,
+      borderRadius: ".3em",
+      boxShadow: "0 4px 12px rgba(0, 0, 0, 0.25)",
+      zIndex: 1000,
+      whiteSpace: "nowrap"
+    },
+
+    ".option": {
+      padding: ".5em 1em",
+      cursor: "pointer",
+      fontSize: theme.fontSizeNormal,
+      color: theme.palette.c_gray6,
+      transition: "all 0.2s ease",
+      whiteSpace: "nowrap",
+
+      "&:hover": {
+        backgroundColor: theme.palette.c_gray2,
+        color: theme.palette.c_white
+      },
+
+      "&.selected": {
+        backgroundColor: theme.palette.c_gray2,
+        color: theme.palette.c_hl1
+      }
+    },
+
+    ".select-header": {
+      padding: ".2em 0.5em",
+      backgroundColor: theme.palette.c_gray2,
+      border: `1px solid ${theme.palette.c_gray3}`,
+      borderRadius: ".3em",
+      cursor: "pointer",
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+
+      "&:hover": {
+        borderColor: theme.palette.c_gray4
+      }
+    },
+
+    ".select-header-text": {
+      color: theme.palette.c_white,
+      fontSize: theme.fontSizeNormal
+    },
+
+    ".chevron": {
+      transition: "transform 0.2s ease",
+      color: theme.palette.c_gray4,
+      transform: "rotate(0deg)",
+
+      "&.open": {
+        transform: "rotate(180deg)"
+      }
+    }
+  });
 
 const Select: React.FC<SelectProps> = ({
   options,
@@ -46,21 +137,19 @@ const Select: React.FC<SelectProps> = ({
 
   const handleMouseDown = useCallback(
     (event: MouseEvent) => {
-      if (
-        selectRef.current &&
-        !selectRef.current.contains(event.target as Node)
-      ) {
-        const target = event.target as HTMLElement;
-        if (target?.classList.contains("option")) {
-          return;
-        }
-        if (activeSelect) {
-          close();
-          event.stopPropagation();
-        }
+      const target = event.target as HTMLElement;
+      console.log(selectRef.current);
+      console.log(target);
+      // Ignore clicks on any element inside the select
+      if (selectRef.current?.contains(target)) {
+        return;
+      }
+      if (activeSelect) {
+        close();
+        event.stopPropagation();
       }
     },
-    [close, activeSelect]
+    [close, activeSelect, selectRef]
   );
 
   useEffect(() => {
@@ -103,6 +192,7 @@ const Select: React.FC<SelectProps> = ({
     <div
       ref={selectRef}
       className={`custom-select ${activeSelect === id ? "open" : ""}`}
+      css={menuStyles}
     >
       <div className="select-header" onClick={toggleDropdown}>
         <span className="select-header-text">
@@ -110,7 +200,9 @@ const Select: React.FC<SelectProps> = ({
             ? selectedOption.label
             : placeholder || "Select an option"}
         </span>
-        <span className="arrow" />
+        <ChevronIcon
+          className={`chevron ${activeSelect === id ? "open" : ""}`}
+        />
       </div>
       {activeSelect === id && (
         <ul ref={optionsRef} className="options-list nowheel">
