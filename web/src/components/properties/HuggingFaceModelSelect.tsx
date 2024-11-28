@@ -80,7 +80,7 @@ const HuggingFaceModelSelect = ({
           <div>
             <div
               style={{
-                fontSize: "0.9em",
+                fontSize: "0.75em",
                 fontWeight: "normal",
                 fontStyle: "italic"
               }}
