@@ -3,7 +3,7 @@ import { css, keyframes } from "@emotion/react";
 import { colorForType } from "../../config/data_types";
 
 import ThemeNodes from "../themes/ThemeNodes";
-import { memo, useMemo } from "react";
+import { memo, useEffect, useState, useMemo } from "react";
 import {
   Node,
   NodeProps,
@@ -264,13 +264,26 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   });
 
   const parentColor = useMemo(() => {
-    if (!hasParent || !parentNode?.data?.properties?.group_color) return "";
+    // If there's no parent, check for first output type color
+    if (!hasParent) {
+      const firstOutputColor = metadata?.outputs?.[0]?.type?.type;
+      return firstOutputColor
+        ? simulateOpacity(
+            colorForType(firstOutputColor),
+            0.5,
+            ThemeNodes.palette.c_editor_bg_color
+          )
+        : "";
+    }
+
+    // Otherwise use parent's group color
+    if (!parentNode?.data?.properties?.group_color) return "";
     return simulateOpacity(
       parentNode?.data?.properties?.group_color,
       0.15,
       ThemeNodes.palette.c_editor_bg_color
     );
-  }, [hasParent, parentNode]);
+  }, [hasParent, parentNode, metadata]);
 
   if (!metadata) {
     return (
