@@ -1,17 +1,15 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import { useState, useCallback, memo } from "react";
-import { Drawer, IconButton, Tooltip, Tabs, Tab } from "@mui/material";
+import { Drawer, IconButton, Tooltip } from "@mui/material";
 import CodeIcon from "@mui/icons-material/Code";
 import { useResizePanel } from "../../hooks/handlers/useResizePanel";
 import { TOOLTIP_ENTER_DELAY } from "../node/BaseNode";
 import "../../styles/panel.css";
 import HelpChat from "../assistants/HelpChat";
-import WorkflowChat from "../assistants/WorkflowChat";
-import { useNodeStore } from "../../stores/NodeStore";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { isEqual } from "lodash";
+import { memo } from "react";
 
 const styles = (theme: any) =>
   css({
@@ -34,8 +32,6 @@ const styles = (theme: any) =>
   });
 
 const PanelLeft: React.FC = () => {
-  const [activeTab, setActiveTab] = useState(0);
-
   const {
     ref: panelRef,
     size: panelSize,
@@ -44,16 +40,7 @@ const PanelLeft: React.FC = () => {
     handlePanelToggle
   } = useResizePanel("left");
 
-  const workflowId = useNodeStore((state) => state.workflow.id);
-
   useCombo(["1"], handlePanelToggle, false);
-
-  const handleTabChange = useCallback(
-    (event: React.SyntheticEvent, newValue: number) => {
-      setActiveTab(newValue);
-    },
-    []
-  );
 
   return (
     <div
@@ -96,20 +83,7 @@ const PanelLeft: React.FC = () => {
         anchor="left"
         open={true}
       >
-        {panelSize > 40 && (
-          <>
-            <Tabs
-              className="panel-tabs"
-              value={activeTab}
-              onChange={handleTabChange}
-            >
-              <Tab label="Help" />
-              <Tab label="Workflow" />
-            </Tabs>
-            {activeTab === 0 && <HelpChat />}
-            {activeTab === 1 && <WorkflowChat workflow_id={workflowId} />}
-          </>
-        )}
+        {panelSize > 40 && <HelpChat />}
       </Drawer>
     </div>
   );

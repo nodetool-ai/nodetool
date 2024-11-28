@@ -38,8 +38,8 @@ const styles = (theme: any) =>
       fontSize: theme.fontSizeNormal,
       listStyleType: "none",
       marginBottom: "1em",
-      padding: "0.3em",
-      borderRadius: "0.5em"
+      padding: "0.5em 1em",
+      borderRadius: "4px"
     },
     ".messages li.chat-message p": {
       margin: "0.2em 0"
@@ -47,18 +47,15 @@ const styles = (theme: any) =>
     ".messages li.user": {
       color: theme.palette.c_gray5,
       backgroundColor: theme.palette.c_gray2,
-      borderLeft: `1px solid ${theme.palette.c_hl1}`,
       marginLeft: "10%"
     },
     ".messages li.assistant": {
       color: theme.palette.c_white,
       backgroundColor: theme.palette.c_black,
-      borderRight: `1px solid ${theme.palette.c_hl2}`,
       marginRight: "10%"
     },
     ".messages li pre": {
       fontFamily: theme.fontFamily2,
-      fontSize: theme.fontSizeSmall,
       backgroundColor: theme.palette.c_black,
       padding: "0.5em"
     },

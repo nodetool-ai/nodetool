@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { useCallback, useState, useRef, memo } from "react";
 
-import { CircularProgress, Grid } from "@mui/material";
+import { CircularProgress, Grid, Box, Fade, Paper } from "@mui/material";
 // store
 import { useNodeStore, useTemporalStore } from "../../stores/NodeStore";
 import { HistoryManager } from "../../HistoryManager";
@@ -33,6 +33,7 @@ import { useCombo } from "../../stores/KeyPressedStore";
 import { isEqual } from "lodash";
 import ReactFlowWrapper from "../node/ReactFlowWrapper";
 import { useReactFlow, XYPosition } from "@xyflow/react";
+import WorkflowChat from "../assistants/WorkflowChat";
 
 declare global {
   interface Window {
@@ -229,7 +230,8 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ isMinZoom }) => {
             margin: "8px",
             height: "calc(100vh - 80px)",
             width: "calc(100vw - 10px)",
-            overflow: "hidden"
+            overflow: "hidden",
+            position: "relative"
           }}
         >
           {isUploading && (
@@ -241,6 +243,8 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ isMinZoom }) => {
             isMinZoom={isMinZoom}
             reactFlowWrapper={reactFlowWrapper}
           />
+
+          <WorkflowChat workflow_id="default" />
         </Grid>
       </div>
     </>
