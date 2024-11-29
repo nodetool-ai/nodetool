@@ -3,7 +3,7 @@ import { css, keyframes } from "@emotion/react";
 import { colorForType } from "../../config/data_types";
 
 import ThemeNodes from "../themes/ThemeNodes";
-import { memo, useEffect, useState, useMemo } from "react";
+import { memo, useMemo } from "react";
 import {
   Node,
   NodeProps,
@@ -15,7 +15,6 @@ import {
 import { isEqual } from "lodash";
 import { Container } from "@mui/material";
 import { NodeData } from "../../stores/NodeData";
-import { useNodeStore } from "../../stores/NodeStore";
 import { NodeHeader } from "./NodeHeader";
 import { NodeErrors } from "./NodeErrors";
 import useStatusStore from "../../stores/StatusStore";
@@ -144,9 +143,6 @@ const styles = (colors: string[]) =>
 const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   // Node-specific data and relationships
   const parentId = props.parentId;
-  const parentNode = useNodeStore((state) =>
-    props.parentId ? state.findNode(props.parentId || "") : null
-  );
   const hasParent = Boolean(parentId);
   const { activeSelect } = useSelect();
 
@@ -165,16 +161,6 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     props.type.startsWith("nodetool.output") ||
     props.type === "comfy.image.SaveImage" ||
     props.type === "comfy.image.PreviewImage";
-
-  // UI state
-  // const [parentIsCollapsed, setParentIsCollapsed] = useState(false);
-
-  // useEffect(() => {
-  //   // Set parentIsCollapsed state based on parent node
-  //   if (hasParent) {
-  //     setParentIsCollapsed(parentNode?.data.collapsed || false);
-  //   }
-  // }, [hasParent, parentId, parentNode?.data.collapsed]);
 
   const className = useMemo(
     () =>

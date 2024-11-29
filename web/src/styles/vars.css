@@ -73,10 +73,10 @@
   --c_video: #BCF60C;
 */
   /* NODES */
-  --c_node_bg: #2b2e31;
-  --c_node_bg_group: #3c4044;
-  --c_node_header_bg: #202020;
-  --c_node_header_bg_group: #333333;
+  --c_node_bg: #1a1c1e;
+  --c_node_bg_group: #2a2d30;
+  --c_node_header_bg: #151515;
+  --c_node_header_bg_group: #252525;
 
   --handle_width: 6px;
   --handle_height: 12px;

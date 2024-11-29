@@ -25,7 +25,14 @@ const styles = (theme: any) =>
       height: "100%",
       margin: 0,
       padding: 0,
+      border: `1px solid ${hexToRgba(theme.palette.c_white, 0.3)}`,
+      boxShadow: `0 0 8px ${hexToRgba(theme.palette.c_white, 0.1)}`,
       backgroundColor: "transparent",
+      transition: "border-color 0.2s ease, box-shadow 0.2s ease",
+      "&:hover": {
+        border: `1px solid ${hexToRgba(theme.palette.c_white, 0.5)}`,
+        boxShadow: `0 0 12px ${hexToRgba(theme.palette.c_white, 0.2)}`
+      },
       "&.collapsed": {
         maxHeight: "60px"
       },
@@ -66,7 +73,10 @@ const styles = (theme: any) =>
       overflowY: "auto",
       top: "40px",
       left: 0,
-      padding: "0 1em"
+      padding: "0 1em",
+      "& [data-slate-placeholder='true']": {
+        color: "rgba(0, 0, 0, 0.6)"
+      }
     },
     ".text-editor .editable": {
       outline: "none",
@@ -199,7 +209,7 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 
   return (
     <Container
-      style={{ backgroundColor: hexToRgba(color, 0.2) }}
+      style={{ backgroundColor: hexToRgba(color, 0.3) }}
       className={className}
       css={styles}
     >
@@ -214,7 +224,7 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         className="node-header"
         onClick={handleHeaderClick}
         style={{
-          backgroundColor: hexToRgba(color, 0.1),
+          backgroundColor: hexToRgba(color, 0.2),
           padding: "1.25em .5em"
         }}
       >
@@ -228,7 +238,7 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           placeholder=""
           style={{
             backgroundColor: "transparent",
-            color: "black",
+            color: "rgba(0, 0, 0, 0.87)",
             border: 0,
             outline: "none",
             width: "90%"

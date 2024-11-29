@@ -69,11 +69,18 @@ const ModelRecommendations: React.FC<ModelRecommendationsProps> = ({
           variant="outlined"
           className="model-button"
           sx={{
-            fontSize: ThemeNodetool.fontSizeSmall,
+            fontSize: ThemeNodetool.fontSizeSmaller,
             color: ThemeNodetool.palette.c_gray5,
             margin: "0",
             lineHeight: "1.5em",
-            borderRadius: "0"
+            borderRadius: "0",
+            border: "none",
+            "&:hover": {
+              backgroundColor: "rgba(255, 255, 255, 0.08)",
+              border: "none",
+              cursor: "pointer",
+              color: ThemeNodetool.palette.c_white
+            }
           }}
           onClick={handleOpenModelDialog}
         >

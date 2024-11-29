@@ -22,7 +22,7 @@
   border-radius: 0.3em;
   background-color: var(--c_node_bg);
   transition: background-color 0.05s;
-  box-shadow: 0.1em 0.1em 0.5em 0px rgba(30, 30, 30, 0.4);
+  box-shadow: 0.15em 0.15em 0.8em 0px rgba(0, 0, 0, 0.5);
 }
 
 /* Node header */
@@ -54,7 +54,8 @@
 
 /* Node selection */
 .react-flow__node.selected {
-  box-shadow: 0 0 0px 1px #fff;
+  box-shadow: 0 0 0 2px var(--c_white),
+    0.15em 0.15em 0.8em 0px rgba(0, 0, 0, 0.5);
 }
 
 /* Compact nodes */
@@ -196,7 +197,9 @@
 
 /* Handle styles */
 .base-node .react-flow__handle {
-  opacity: 0.5;
+  opacity: 0.7;
+  border: 2px solid var(--c_node_bg);
+  background-color: var(--c_white);
   transition: opacity 0.3s ease-in-out;
 }
 
@@ -204,10 +207,10 @@
   opacity: 1;
 }
 
-.react-flow__node-toolbar button{
-  opacity: .3;
+.react-flow__node-toolbar button {
+  opacity: 0.3;
   transition: opacity 0.2s;
 }
-.react-flow__node-toolbar button:hover{
+.react-flow__node-toolbar button:hover {
   opacity: 1;
 }
