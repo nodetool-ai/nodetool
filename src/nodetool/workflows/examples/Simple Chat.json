@@ -1,8 +1,8 @@
 {
   "id": "simple-chat",
   "access": "public",
-  "created_at": "2024-10-22T09:50:59.970143",
-  "updated_at": "2024-10-22T09:50:59.970162",
+  "created_at": "2024-11-29T18:29:55.491265",
+  "updated_at": "2024-11-29T18:29:55.491285",
   "name": "Simple Chat",
   "description": "",
   "tags": [
@@ -38,7 +38,6 @@
           }
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 50,
             "y": 108
@@ -65,7 +64,6 @@
           "keep_alive": "300"
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 267,
             "y": 50
@@ -85,7 +83,6 @@
           "description": ""
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 482,
             "y": 60
@@ -106,7 +103,7 @@
               "type": "paragraph",
               "children": [
                 {
-                  "text": "Use the workflow chat on the left to chat with the workflow."
+                  "text": "Use the workflow chat at the bottom of the screen to interact with the workflow."
                 }
               ]
             }
@@ -119,8 +116,8 @@
             "y": -130
           },
           "zIndex": 0,
-          "width": 209,
-          "height": 106,
+          "width": 337,
+          "height": 110,
           "selectable": true
         }
       }
