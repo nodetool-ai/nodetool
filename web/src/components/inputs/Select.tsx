@@ -82,9 +82,11 @@ const menuStyles = (theme: any) =>
     },
 
     ".select-header": {
-      padding: ".2em 0.5em",
-      backgroundColor: theme.palette.c_gray2,
-      border: `1px solid ${theme.palette.c_gray3}`,
+      padding: "0px 5px",
+      margin: "5px 0",
+      backgroundColor: theme.palette.c_gray1,
+      border: `1px solid ${theme.palette.c_gray2}`,
+      fontSize: theme.fontSizeSmaller,
       borderRadius: ".3em",
       cursor: "pointer",
       display: "flex",
@@ -134,30 +136,6 @@ const Select: React.FC<SelectProps> = ({
     },
     [onChange, close]
   );
-
-  const handleMouseDown = useCallback(
-    (event: MouseEvent) => {
-      const target = event.target as HTMLElement;
-      console.log(selectRef.current);
-      console.log(target);
-      // Ignore clicks on any element inside the select
-      if (selectRef.current?.contains(target)) {
-        return;
-      }
-      if (activeSelect) {
-        close();
-        event.stopPropagation();
-      }
-    },
-    [close, activeSelect, selectRef]
-  );
-
-  useEffect(() => {
-    document.addEventListener("mousedown", handleMouseDown);
-    return () => {
-      document.removeEventListener("mousedown", handleMouseDown);
-    };
-  }, [handleMouseDown]);
 
   const selectedOption = useMemo(
     () => options.find((option) => option.value === value),

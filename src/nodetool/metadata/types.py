@@ -1164,20 +1164,108 @@ class SVGElement(BaseType):
         return f"<{self.name} {self.render_attributes()}>{inner_content}</{self.name}>"
 
 
+class SeabornPlotType(str, Enum):
+    # Relational plots
+    SCATTER = "scatter"
+    LINE = "line"
+    RELPLOT = "relplot"
+
+    # Distribution plots
+    HISTPLOT = "histplot"
+    KDEPLOT = "kdeplot"
+    ECDFPLOT = "ecdfplot"
+    RUGPLOT = "rugplot"
+    DISTPLOT = "distplot"
+
+    # Categorical plots
+    STRIPPLOT = "stripplot"
+    SWARMPLOT = "swarmplot"
+    BOXPLOT = "boxplot"
+    VIOLINPLOT = "violinplot"
+    BOXENPLOT = "boxenplot"
+    POINTPLOT = "pointplot"
+    BARPLOT = "barplot"
+    COUNTPLOT = "countplot"
+
+    # Regression plots
+    REGPLOT = "regplot"
+    LMPLOT = "lmplot"
+    RESIDPLOT = "residplot"
+
+    # Matrix plots
+    HEATMAP = "heatmap"
+    CLUSTERMAP = "clustermap"
+
+    # Joint plots
+    JOINTPLOT = "jointplot"
+
+    # Pair plots
+    PAIRPLOT = "pairplot"
+
+    # Facet plots
+    FACETGRID = "facetgrid"
+
+
+class SeabornEstimator(str, Enum):
+    MEAN = "mean"
+    MEDIAN = "median"
+    COUNT = "count"
+    SUM = "sum"
+    MIN = "min"
+    MAX = "max"
+    VAR = "var"
+    STD = "std"
+
+
+class SeabornStatistic(str, Enum):
+    COUNT = "count"
+    FREQUENCY = "frequency"
+    PROBABILITY = "probability"
+    PERCENT = "percent"
+    DENSITY = "density"
+
+
 class DataSeries(BaseType):
     type: Literal["data_series"] = "data_series"
     name: str = ""
     x: str = ""
-    y: str = ""
-    color: Optional[str] = None
-    series_type: Literal["line", "bar", "scatter"] = Field(default="line")
+    y: str | None = None  # Optional for some plot types
+    hue: str | None = None  # For color encoding
+    size: str | None = None  # For size encoding
+    style: str | None = None  # For style encoding
+    weight: str | None = None  # For weighted plots
+    color: str | None = None
+    plot_type: SeabornPlotType = Field(default=SeabornPlotType.LINE)
+
+    # Common plot parameters
+    estimator: SeabornEstimator | None = None
+    ci: float | None = None
+    n_boot: int = 1000
+    units: str | None = None
+    seed: int | None = None
+
+    # Distribution plot parameters
+    stat: SeabornStatistic | None = None
+    bins: int | str | None = None
+    binwidth: float | None = None
+    binrange: tuple[float, float] | None = None
+    discrete: bool | None = None
+
+    # Appearance parameters
     line_style: str = Field(default="solid")
     marker: str = Field(default=".")
+    alpha: float = Field(default=1.0)
+    orient: Literal["v", "h"] | None = None
 
 
 class ChartData(BaseType):
     type: Literal["chart_data"] = "chart_data"
     series: list[DataSeries] = []
+
+    # Additional data-wide parameters
+    row: str | None = None  # For FacetGrid
+    col: str | None = None  # For FacetGrid
+    col_wrap: int | None = None  # For FacetGrid
 
 
 class ChartConfig(BaseType):
@@ -1188,6 +1276,44 @@ class ChartConfig(BaseType):
     legend: bool = True
     data: ChartData = Field(default=ChartData())
 
+    # Figure parameters
+    height: float | None = None
+    aspect: float | None = None
+
+    # Axis parameters
+    x_lim: tuple[float, float] | None = None
+    y_lim: tuple[float, float] | None = None
+    x_scale: Literal["linear", "log"] | None = None
+    y_scale: Literal["linear", "log"] | None = None
+
+    # Legend parameters
+    legend_position: Literal["auto", "right", "left", "top", "bottom"] = "auto"
+
+    # Additional styling
+    palette: str | None = None
+    hue_order: list[str] | None = None
+    hue_norm: tuple[float, float] | None = None
+    sizes: tuple[float, float] | None = None
+    size_order: list[str] | None = None
+    size_norm: tuple[float, float] | None = None
+
+    # Joint plot specific
+    marginal_kws: dict | None = None
+    joint_kws: dict | None = None
+
+    # Pair plot specific
+    diag_kind: Literal["auto", "hist", "kde"] | None = None
+    corner: bool = False
+
+    # Matrix plot specific
+    center: float | None = None
+    vmin: float | None = None
+    vmax: float | None = None
+    cmap: str | None = None
+    annot: bool = False
+    fmt: str = ".2g"
+    square: bool = False
+
 
 class ColorRef(BaseType):
     """A reference to a color value."""
@@ -1197,3 +1323,68 @@ class ColorRef(BaseType):
 
     def __str__(self) -> str:
         return self.value or ""
+
+
+class DataSeriesSchema(BaseModel):
+    name: str
+    x: str
+    y: Optional[str] = None
+    hue: Optional[str] = None
+    size: Optional[str] = None
+    style: Optional[str] = None
+    weight: Optional[str] = None
+    color: Optional[str] = None
+    plot_type: SeabornPlotType
+    estimator: Optional[SeabornEstimator] = None
+    ci: Optional[float] = None
+    n_boot: int = 1000
+    units: Optional[str] = None
+    seed: Optional[int] = None
+    stat: Optional[SeabornStatistic] = None
+    bins: Optional[Union[int, str]] = None
+    binwidth: Optional[float] = None
+    binrange: Optional[tuple[float, float]] = None
+    discrete: Optional[bool] = None
+    line_style: str = "solid"
+    marker: str = "."
+    alpha: float = 1.0
+    orient: Optional[Literal["v", "h"]] = None
+
+
+class ChartDataSchema(BaseModel):
+    series: list[DataSeriesSchema]
+    row: Optional[str] = None
+    col: Optional[str] = None
+    col_wrap: Optional[int] = None
+
+
+class ChartConfigSchema(BaseModel):
+    title: str
+    x_label: str
+    y_label: str
+    legend: bool = True
+    data: ChartDataSchema
+    height: Optional[float] = None
+    aspect: Optional[float] = None
+    x_lim: Optional[tuple[float, float]] = None
+    y_lim: Optional[tuple[float, float]] = None
+    x_scale: Optional[Literal["linear", "log"]] = None
+    y_scale: Optional[Literal["linear", "log"]] = None
+    legend_position: Literal["auto", "right", "left", "top", "bottom"] = "auto"
+    palette: Optional[str] = None
+    hue_order: Optional[list[str]] = None
+    hue_norm: Optional[tuple[float, float]] = None
+    sizes: Optional[tuple[float, float]] = None
+    size_order: Optional[list[str]] = None
+    size_norm: Optional[tuple[float, float]] = None
+    marginal_kws: Optional[dict] = None
+    joint_kws: Optional[dict] = None
+    diag_kind: Optional[Literal["auto", "hist", "kde"]] = None
+    corner: bool = False
+    center: Optional[float] = None
+    vmin: Optional[float] = None
+    vmax: Optional[float] = None
+    cmap: Optional[str] = None
+    annot: bool = False
+    fmt: str = ".2g"
+    square: bool = False

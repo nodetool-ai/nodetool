@@ -7,6 +7,9 @@ from nodetool.metadata.types import (
     AudioRef,
     BaseType,
     ChartConfig,
+    ChartConfigSchema,
+    ChartData,
+    DataSeries,
     DataframeRef,
     FunctionModel,
     GPTModel,
@@ -14,7 +17,9 @@ from nodetool.metadata.types import (
     Message,
     Provider,
     RecordType,
-    SVGElement,
+    SeabornEstimator,
+    SeabornPlotType,
+    SeabornStatistic,
 )
 from nodetool.nodes.nodetool.audio.synthesis import (
     Envelope,
@@ -67,6 +72,44 @@ from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.metadata.types import Message
 
 import statsmodels.api as sm
+
+from xml.etree import ElementTree as ET
+from io import StringIO
+
+from enum import Enum
+
+
+class SeabornStyle(str, Enum):
+    DARKGRID = "darkgrid"
+    WHITEGRID = "whitegrid"
+    DARK = "dark"
+    WHITE = "white"
+    TICKS = "ticks"
+
+
+class SeabornContext(str, Enum):
+    PAPER = "paper"
+    NOTEBOOK = "notebook"
+    TALK = "talk"
+    POSTER = "poster"
+
+
+class SeabornPalette(str, Enum):
+    DEEP = "deep"
+    MUTED = "muted"
+    PASTEL = "pastel"
+    BRIGHT = "bright"
+    DARK = "dark"
+    COLORBLIND = "colorblind"
+
+
+class SeabornFont(str, Enum):
+    SANS_SERIF = "sans-serif"
+    SERIF = "serif"
+    MONOSPACE = "monospace"
+    ARIAL = "Arial"
+    HELVETICA = "Helvetica"
+    TIMES = "Times New Roman"
 
 
 class Agent(BaseNode):
@@ -329,7 +372,7 @@ class DataGenerator(BaseNode):
         description="The image to use in the prompt.",
     )
     max_tokens: int = Field(
-        default=1000,
+        default=4096,
         ge=0,
         le=10000,
         description="The maximum number of tokens to generate.",
@@ -648,7 +691,7 @@ class ChartGenerator(BaseNode):
         description="The data to visualize",
     )
     max_tokens: int = Field(
-        default=1000,
+        default=4096,
         ge=0,
         le=10000,
         description="The maximum number of tokens to generate.",
@@ -667,12 +710,59 @@ class ChartGenerator(BaseNode):
     async def process(self, context: ProcessingContext) -> ChartConfig:
         system_message = Message(
             role="system",
-            content="You are an assistant that helps generate chart configurations based on natural language descriptions.",
+            content="""You are an expert data visualization assistant that helps generate chart configurations.
+            Analyze the data and user's request to create the most appropriate visualization.
+            Consider the data types and relationships when choosing plot types.
+            You can create complex visualizations using multiple series and facets.""",
         )
+
+        if self.data.columns is None:
+            raise ValueError("No columns defined in the data")
 
         user_message = Message(
             role="user",
-            content=self.prompt,
+            content=f"""Available columns in the dataset:
+            {json.dumps([c.model_dump() for c in self.data.columns], indent=2)}
+            
+            User request: {self.prompt}
+            
+            Create a chart configuration that best visualizes this data.
+            Guidelines for Creating Effective Seaborn Charts:
+
+	1.	Chart Purpose & Data:
+	•	Analyze user request to determine visualization goal (trends, distributions, correlations)
+	•	Validate data types match intended visualization
+	•	Ensure column names from schema are used correctly
+	
+	2.	Chart Configuration:
+	•	Select optimal chart type based on data and goal:
+	  - lineplot: time series, continuous trends
+	  - barplot/countplot: categorical data
+	  - scatterplot: numerical relationships
+	  - boxplot/violinplot: distributions
+	  - heatmap: correlations, matrices
+	
+	3.	Series Configuration:
+	•	Configure each DataSeries with appropriate:
+	  - x/y columns
+	  - plot_type
+	  - visual encodings (hue, size, style)
+	•	Use minimal encodings needed for clarity
+	
+	4.	Chart Parameters:
+	•	Set clear title and axis labels
+	•	Configure scales (linear/log) based on data distribution
+	•	Use colorblind-friendly palettes
+	•	Position legend optimally
+	•	Add annotations only if essential
+	
+	5.	Faceting (if needed):
+	•	Use row/col/col_wrap for multi-plot layouts
+	•	Keep facet count reasonable
+	•	Ensure adequate plot sizes
+            
+            Reference the columns by their names above.
+            """,
         )
 
         messages = [system_message, user_message]
@@ -687,14 +777,14 @@ class ChartGenerator(BaseNode):
             response_format={
                 "type": "json_schema",
                 "json_schema": {
-                    "name": "chart_configuration",
+                    "name": "chart_config",
                     "schema": {
                         "type": "object",
                         "properties": {
                             "title": {"type": "string"},
                             "x_label": {"type": "string"},
                             "y_label": {"type": "string"},
-                            "legend": {"type": "boolean"},
+                            "legend": {"type": "boolean", "default": True},
                             "data": {
                                 "type": "object",
                                 "properties": {
@@ -705,60 +795,250 @@ class ChartGenerator(BaseNode):
                                             "properties": {
                                                 "name": {"type": "string"},
                                                 "x": {"type": "string"},
-                                                "y": {"type": "string"},
-                                                "color": {"type": "string"},
-                                                "series_type": {
+                                                "y": {
                                                     "type": "string",
-                                                    "enum": ["line", "bar", "scatter"],
+                                                    "nullable": True,
+                                                },
+                                                "hue": {
+                                                    "type": "string",
+                                                    "nullable": True,
+                                                },
+                                                "size": {
+                                                    "type": "string",
+                                                    "nullable": True,
+                                                },
+                                                "style": {
+                                                    "type": "string",
+                                                    "nullable": True,
+                                                },
+                                                "weight": {
+                                                    "type": "string",
+                                                    "nullable": True,
+                                                },
+                                                "color": {
+                                                    "type": "string",
+                                                    "nullable": True,
+                                                },
+                                                "plot_type": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        e.value for e in SeabornPlotType
+                                                    ],
+                                                },
+                                                "estimator": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        e.value
+                                                        for e in SeabornEstimator
+                                                    ],
+                                                    "nullable": True,
+                                                },
+                                                "ci": {
+                                                    "type": "number",
+                                                    "nullable": True,
+                                                },
+                                                "n_boot": {
+                                                    "type": "integer",
+                                                    "default": 1000,
+                                                },
+                                                "units": {
+                                                    "type": "string",
+                                                    "nullable": True,
+                                                },
+                                                "seed": {
+                                                    "type": "integer",
+                                                    "nullable": True,
+                                                },
+                                                "stat": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        e.value
+                                                        for e in SeabornStatistic
+                                                    ],
+                                                    "nullable": True,
+                                                },
+                                                "bins": {
+                                                    "oneOf": [
+                                                        {"type": "integer"},
+                                                        {"type": "string"},
+                                                    ],
+                                                    "nullable": True,
+                                                },
+                                                "binwidth": {
+                                                    "type": "number",
+                                                    "nullable": True,
+                                                },
+                                                "binrange": {
+                                                    "type": "array",
+                                                    "items": {"type": "number"},
+                                                    "minItems": 2,
+                                                    "maxItems": 2,
+                                                    "nullable": True,
+                                                },
+                                                "discrete": {
+                                                    "type": "boolean",
+                                                    "nullable": True,
                                                 },
                                                 "line_style": {
                                                     "type": "string",
-                                                    "enum": [
-                                                        "solid",
-                                                        "dashed",
-                                                        "dotted",
-                                                    ],
+                                                    "default": "solid",
                                                 },
                                                 "marker": {
                                                     "type": "string",
-                                                    "enum": [".", "o", "s", "d"],
+                                                    "default": ".",
+                                                },
+                                                "alpha": {
+                                                    "type": "number",
+                                                    "default": 1.0,
+                                                },
+                                                "orient": {
+                                                    "type": "string",
+                                                    "enum": ["v", "h"],
+                                                    "nullable": True,
                                                 },
                                             },
-                                            "required": [
-                                                "name",
-                                                "x",
-                                                "y",
-                                                "color",
-                                                "series_type",
-                                                "line_style",
-                                                "marker",
-                                            ],
-                                            "additionalProperties": False,
+                                            "required": ["name", "x", "plot_type"],
                                         },
-                                    }
+                                    },
+                                    "row": {"type": "string", "nullable": True},
+                                    "col": {"type": "string", "nullable": True},
+                                    "col_wrap": {"type": "integer", "nullable": True},
                                 },
                                 "required": ["series"],
-                                "additionalProperties": False,
                             },
+                            "height": {"type": "number", "nullable": True},
+                            "aspect": {"type": "number", "nullable": True},
+                            "x_lim": {
+                                "type": "array",
+                                "items": {"type": "number"},
+                                "minItems": 2,
+                                "maxItems": 2,
+                                "nullable": True,
+                            },
+                            "y_lim": {
+                                "type": "array",
+                                "items": {"type": "number"},
+                                "minItems": 2,
+                                "maxItems": 2,
+                                "nullable": True,
+                            },
+                            "x_scale": {
+                                "type": "string",
+                                "enum": ["linear", "log"],
+                                "nullable": True,
+                            },
+                            "y_scale": {
+                                "type": "string",
+                                "enum": ["linear", "log"],
+                                "nullable": True,
+                            },
+                            "legend_position": {
+                                "type": "string",
+                                "enum": ["auto", "right", "left", "top", "bottom"],
+                                "default": "auto",
+                            },
+                            "palette": {"type": "string", "nullable": True},
+                            "hue_order": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "nullable": True,
+                            },
+                            "hue_norm": {
+                                "type": "array",
+                                "items": {"type": "number"},
+                                "minItems": 2,
+                                "maxItems": 2,
+                                "nullable": True,
+                            },
+                            "sizes": {
+                                "type": "array",
+                                "items": {"type": "number"},
+                                "minItems": 2,
+                                "maxItems": 2,
+                                "nullable": True,
+                            },
+                            "size_order": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "nullable": True,
+                            },
+                            "size_norm": {
+                                "type": "array",
+                                "items": {"type": "number"},
+                                "minItems": 2,
+                                "maxItems": 2,
+                                "nullable": True,
+                            },
+                            "marginal_kws": {"type": "object", "nullable": True},
+                            "joint_kws": {"type": "object", "nullable": True},
+                            "diag_kind": {
+                                "type": "string",
+                                "enum": ["auto", "hist", "kde"],
+                                "nullable": True,
+                            },
+                            "corner": {"type": "boolean", "default": False},
+                            "center": {"type": "number", "nullable": True},
+                            "vmin": {"type": "number", "nullable": True},
+                            "vmax": {"type": "number", "nullable": True},
+                            "cmap": {"type": "string", "nullable": True},
+                            "annot": {"type": "boolean", "default": False},
+                            "fmt": {"type": "string", "default": ".2g"},
+                            "square": {"type": "boolean", "default": False},
                         },
-                        "required": [
-                            "title",
-                            "x_label",
-                            "y_label",
-                            "legend",
-                            "data",
-                        ],
-                        "additionalProperties": False,
+                        "required": ["title", "x_label", "y_label", "data"],
                     },
-                    "strict": True,
                 },
             },
         )
 
+        # Parse the response into our schema
         chart_config_dict = json.loads(str(assistant_message.content))
-        chart_config = ChartConfig(**chart_config_dict)
 
-        return chart_config
+        # Validate and create instance using Pydantic
+        validated_config = ChartConfigSchema(**chart_config_dict)
+
+        # Convert to ChartConfig
+        chart_data = ChartData(
+            series=[
+                DataSeries(**series.model_dump())
+                for series in validated_config.data.series
+            ],
+            row=validated_config.data.row,
+            col=validated_config.data.col,
+            col_wrap=validated_config.data.col_wrap,
+        )
+
+        return ChartConfig(
+            title=validated_config.title,
+            x_label=validated_config.x_label,
+            y_label=validated_config.y_label,
+            legend=validated_config.legend,
+            legend_position=validated_config.legend_position,
+            height=validated_config.height,
+            aspect=validated_config.aspect,
+            x_scale=validated_config.x_scale,
+            y_scale=validated_config.y_scale,
+            x_lim=validated_config.x_lim,
+            y_lim=validated_config.y_lim,
+            palette=validated_config.palette,
+            hue_order=validated_config.hue_order,
+            hue_norm=validated_config.hue_norm,
+            sizes=validated_config.sizes,
+            size_order=validated_config.size_order,
+            size_norm=validated_config.size_norm,
+            marginal_kws=validated_config.marginal_kws,
+            joint_kws=validated_config.joint_kws,
+            diag_kind=validated_config.diag_kind,
+            corner=validated_config.corner,
+            center=validated_config.center,
+            vmin=validated_config.vmin,
+            vmax=validated_config.vmax,
+            cmap=validated_config.cmap,
+            annot=validated_config.annot,
+            fmt=validated_config.fmt,
+            square=validated_config.square,
+            data=chart_data,
+        )
 
 
 class RegressionAnalyst(BaseNode):
@@ -802,12 +1082,9 @@ class RegressionAnalyst(BaseNode):
         )
 
         # First, use LLM to determine regression parameters
-        columns_info = "\n".join(
-            [f"- {col.name}: {col.data_type}" for col in self.data.columns]
-        )
         parameter_prompt = f"""
 Given the following columns in the dataset:
-{columns_info}
+{[col.model_dump() for col in self.data.columns]}
 
 And the user's analysis request:
 {self.prompt}
@@ -941,9 +1218,9 @@ User's original question: {self.prompt}
         return str(interpretation_message.content)
 
 
-class SVGChartRenderer(BaseNode):
+class ChartRenderer(BaseNode):
     """
-    Node responsible for rendering chart configurations into SVG.
+    Node responsible for rendering chart configurations into image format using seaborn.
     """
 
     chart_config: ChartConfig = Field(
@@ -964,75 +1241,225 @@ class SVGChartRenderer(BaseNode):
     data: Any = Field(
         default=None, description="The data to visualize as a pandas DataFrame."
     )
+    # Added Seaborn style options with Enums
+    style: SeabornStyle = Field(
+        default=SeabornStyle.WHITEGRID,
+        description="The style of the plot background and grid.",
+    )
+    context: SeabornContext = Field(
+        default=SeabornContext.NOTEBOOK,
+        description="The context of the plot, affecting scale and aesthetics.",
+    )
+    palette: SeabornPalette = Field(
+        default=SeabornPalette.DEEP,
+        description="Color palette for the plot.",
+    )
+    font_scale: float = Field(
+        default=1.0,
+        ge=0.1,
+        le=5.0,
+        description="Scale factor for font sizes.",
+    )
+    font: SeabornFont = Field(
+        default=SeabornFont.SANS_SERIF,
+        description="Font family for text elements.",
+    )
+    despine: bool = Field(
+        default=True,
+        description="Whether to remove top and right spines.",
+    )
+    trim_margins: bool = Field(
+        default=True,
+        description="Whether to use tight layout for margins.",
+    )
 
-    async def process(self, context: ProcessingContext) -> SVGElement:
+    async def process(self, context: ProcessingContext) -> ImageRef:
         if self.data is None:
             raise ValueError("Data is required for rendering the chart.")
 
+        # Convert data to pandas DataFrame
         df = pd.DataFrame(
             self.data.data, columns=[col.name for col in self.data.columns]
         )
 
-        fig = Figure(figsize=(self.width / 100, self.height / 100))
-        ax = fig.add_subplot(111)
+        # Set up Seaborn styling
+        import seaborn as sns
 
-        for series in self.chart_config.data.series:
-            x_col = series.x
-            y_col = series.y
-            label = series.name
-            color = series.color
+        sns.set_theme(
+            style=self.style.value,
+            context=self.context.value,
+            palette=self.palette.value,
+            font=self.font.value,
+            font_scale=self.font_scale,
+        )
 
-            data = df.copy()
+        # Create figure with specified dimensions
+        fig = Figure(figsize=(self.width / 100, self.height / 100), dpi=100)
 
-            if series.series_type == "bar":
-                ax.bar(data[x_col], data[y_col], label=label, color=color)
-            elif series.series_type == "line":
-                ax.plot(
-                    data[x_col],
-                    data[y_col],
-                    label=label,
-                    color=color,
-                    linestyle=series.line_style,
-                    marker=series.marker,
+        # Handle special plot types that require different figure handling
+        if any(
+            series.plot_type in [SeabornPlotType.JOINTPLOT, SeabornPlotType.PAIRPLOT]
+            for series in self.chart_config.data.series
+        ):
+            # These plot types create their own figure
+            series = self.chart_config.data.series[
+                0
+            ]  # Use first series for these plot types
+            if series.plot_type == SeabornPlotType.JOINTPLOT:
+                g = sns.jointplot(
+                    data=df,
+                    x=series.x,
+                    y=series.y,
+                    hue=series.hue,
+                    height=self.height / 100,
+                    ratio=self.chart_config.aspect or 8,
+                    marginal_kws=self.chart_config.marginal_kws,
+                    joint_kws=self.chart_config.joint_kws,
                 )
-            elif series.series_type == "scatter":
-                ax.scatter(
-                    data[x_col],
-                    data[y_col],
-                    label=label,
-                    c=color,
-                    marker=series.marker,
+                fig = g.figure
+            elif series.plot_type == SeabornPlotType.PAIRPLOT:
+                g = sns.pairplot(
+                    data=df,
+                    hue=series.hue,
+                    diag_kind=self.chart_config.diag_kind,
+                    corner=self.chart_config.corner,
                 )
-            # Add other chart types as needed
+                fig = g.figure
+        else:
+            # Handle regular plots
+            ax = fig.add_subplot(111)
 
-        ax.set_xlabel(self.chart_config.x_label)
-        ax.set_ylabel(self.chart_config.y_label)
-        ax.set_title(self.chart_config.title)
+            for series in self.chart_config.data.series:
+                plot_kwargs = {
+                    "data": df,
+                    "x": series.x,
+                    "y": series.y,
+                    "hue": series.hue,
+                    "size": series.size,
+                    "style": series.style,
+                    "color": series.color,
+                    "alpha": series.alpha,
+                    "orient": series.orient,
+                    "ax": ax,
+                }
 
-        if self.chart_config.legend:
-            ax.legend()
+                # Remove None values
+                plot_kwargs = {k: v for k, v in plot_kwargs.items() if v is not None}
 
-        plt.tight_layout()
+                # Add statistical parameters if applicable
+                if series.estimator:
+                    plot_kwargs["estimator"] = series.estimator
+                if series.ci is not None:
+                    plot_kwargs["ci"] = series.ci
+                if series.stat:
+                    plot_kwargs["stat"] = series.stat
 
-        output = io.StringIO()
-        FigureCanvasSVG(fig).print_svg(output)
-        svg_str = output.getvalue()
+                # Handle different plot types
+                if series.plot_type == SeabornPlotType.SCATTER:
+                    sns.scatterplot(**plot_kwargs)
+                elif series.plot_type == SeabornPlotType.LINE:
+                    sns.lineplot(**plot_kwargs)
+                elif series.plot_type == SeabornPlotType.BARPLOT:
+                    sns.barplot(**plot_kwargs)
+                elif series.plot_type == SeabornPlotType.BOXPLOT:
+                    sns.boxplot(**plot_kwargs)
+                elif series.plot_type == SeabornPlotType.VIOLINPLOT:
+                    sns.violinplot(**plot_kwargs)
+                elif series.plot_type == SeabornPlotType.STRIPPLOT:
+                    sns.stripplot(**plot_kwargs)
+                elif series.plot_type == SeabornPlotType.SWARMPLOT:
+                    sns.swarmplot(**plot_kwargs)
+                elif series.plot_type == SeabornPlotType.BOXENPLOT:
+                    sns.boxenplot(**plot_kwargs)
+                elif series.plot_type == SeabornPlotType.POINTPLOT:
+                    sns.pointplot(**plot_kwargs)
+                elif series.plot_type == SeabornPlotType.COUNTPLOT:
+                    # Countplot doesn't use y parameter
+                    plot_kwargs.pop("y", None)
+                    sns.countplot(**plot_kwargs)
+                elif series.plot_type == SeabornPlotType.HISTPLOT:
+                    plot_kwargs.update(
+                        {
+                            "bins": series.bins,
+                            "binwidth": series.binwidth,
+                            "binrange": series.binrange,
+                            "discrete": series.discrete,
+                        }
+                    )
+                    sns.histplot(**plot_kwargs)
+                elif series.plot_type == SeabornPlotType.KDEPLOT:
+                    sns.kdeplot(**plot_kwargs)
+                elif series.plot_type == SeabornPlotType.ECDFPLOT:
+                    sns.ecdfplot(**plot_kwargs)
+                elif series.plot_type == SeabornPlotType.RUGPLOT:
+                    sns.rugplot(**plot_kwargs)
+                elif series.plot_type == SeabornPlotType.REGPLOT:
+                    sns.regplot(**plot_kwargs)
+                elif series.plot_type == SeabornPlotType.RESIDPLOT:
+                    sns.residplot(**plot_kwargs)
+                elif series.plot_type == SeabornPlotType.HEATMAP:
+                    # Heatmap requires different data structure
+                    pivot_data = df.pivot(
+                        index=series.x, columns=series.y, values=series.hue or "value"
+                    )
+                    sns.heatmap(
+                        data=pivot_data,
+                        center=self.chart_config.center,
+                        vmin=self.chart_config.vmin,
+                        vmax=self.chart_config.vmax,
+                        cmap=self.chart_config.cmap,
+                        annot=self.chart_config.annot,
+                        fmt=self.chart_config.fmt,
+                        square=self.chart_config.square,
+                        ax=ax,
+                    )
+                elif series.plot_type == SeabornPlotType.CLUSTERMAP:
+                    # Clustermap creates its own figure
+                    pivot_data = df.pivot(
+                        index=series.x, columns=series.y, values=series.hue or "value"
+                    )
+                    g = sns.clustermap(
+                        data=pivot_data,
+                        center=self.chart_config.center,
+                        vmin=self.chart_config.vmin,
+                        vmax=self.chart_config.vmax,
+                        cmap=self.chart_config.cmap,
+                        annot=self.chart_config.annot,
+                        fmt=self.chart_config.fmt,
+                    )
+                    fig = g.figure
+
+            # Customize plot appearance
+            if self.chart_config.title:
+                ax.set_title(self.chart_config.title)
+            if self.chart_config.x_label:
+                ax.set_xlabel(self.chart_config.x_label)
+            if self.chart_config.y_label:
+                ax.set_ylabel(self.chart_config.y_label)
+            if self.chart_config.x_lim:
+                ax.set_xlim(self.chart_config.x_lim)
+            if self.chart_config.y_lim:
+                ax.set_ylim(self.chart_config.y_lim)
+            if self.chart_config.x_scale:
+                ax.set_xscale(self.chart_config.x_scale)
+            if self.chart_config.y_scale:
+                ax.set_yscale(self.chart_config.y_scale)
+
+        # Apply styling customizations
+        if self.despine:
+            sns.despine(fig=fig)
+
+        if self.trim_margins:
+            fig.tight_layout()
+
+        # Convert plot to image bytes
+        buf = io.BytesIO()
+        fig.savefig(
+            buf, format="png", bbox_inches="tight" if self.trim_margins else None
+        )
         plt.close(fig)
 
-        svg_start = svg_str.find("<svg")
-        svg_end = svg_str.rfind("</svg>") + 6
-        svg_content = svg_str[svg_start:svg_end]
-
-        return SVGElement(
-            name="svg",
-            attributes={
-                "width": str(self.width),
-                "height": str(self.height),
-                "xmlns": "http://www.w3.org/2000/svg",
-            },
-            content=svg_content,
-            children=[],
-        )
+        return await context.image_from_bytes(buf.getvalue())
 
 
 class SynthesizerAgent(BaseNode):

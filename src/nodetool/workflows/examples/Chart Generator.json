@@ -1,34 +1,15 @@
 {
   "id": "5372e9fba42211efb8d9000063df9847",
   "access": "public",
-  "created_at": "2024-11-17T01:30:23.335024",
-  "updated_at": "2024-11-17T01:30:23.335044",
+  "created_at": "2024-11-30T00:39:19.563682",
+  "updated_at": "2024-11-30T00:39:19.563702",
   "name": "Chart Generator",
   "description": "",
   "tags": null,
   "thumbnail": "",
-  "thumbnail_url": null,
+  "thumbnail_url": "/examples/chart_generator.jpg",
   "graph": {
     "nodes": [
-      {
-        "id": "3",
-        "parent_id": null,
-        "type": "nodetool.svg.SVGToImage",
-        "data": {
-          "width": 800,
-          "height": 600,
-          "scale": 1
-        },
-        "ui_properties": {
-          "position": {
-            "x": 935,
-            "y": 197
-          },
-          "zIndex": 0,
-          "width": 121,
-          "selectable": true
-        }
-      },
       {
         "id": "4",
         "parent_id": null,
@@ -38,12 +19,12 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1086,
-            "y": 167
+            "x": 935,
+            "y": 329
           },
           "zIndex": 0,
-          "width": 327,
-          "height": 293,
+          "width": 612,
+          "height": 495,
           "selectable": true
         }
       },
@@ -70,8 +51,8 @@
         "parent_id": null,
         "type": "openai.agents.ChartGenerator",
         "data": {
-          "prompt": "make a dark line chart showing gdp over year",
-          "max_tokens": 1000,
+          "prompt": "make the best chart",
+          "max_tokens": 2528,
           "temperature": 0.7,
           "columns": {
             "type": "record_type",
@@ -79,9 +60,10 @@
           }
         },
         "ui_properties": {
+          "selected": false,
           "position": {
             "x": 394,
-            "y": 297
+            "y": 326
           },
           "zIndex": 0,
           "width": 187,
@@ -125,30 +107,13 @@
           }
         },
         "ui_properties": {
+          "selected": false,
           "position": {
             "x": 50,
-            "y": 115
+            "y": 270
           },
           "zIndex": 0,
           "width": 250,
-          "selectable": true
-        }
-      },
-      {
-        "id": "10",
-        "parent_id": null,
-        "type": "openai.agents.SVGChartRenderer",
-        "data": {
-          "width": 640,
-          "height": 480
-        },
-        "ui_properties": {
-          "position": {
-            "x": 688,
-            "y": 231
-          },
-          "zIndex": 0,
-          "width": 157,
           "selectable": true
         }
       },
@@ -162,24 +127,48 @@
         "ui_properties": {
           "position": {
             "x": 658,
-            "y": 446
+            "y": 52
           },
           "zIndex": 0,
           "width": 247,
           "height": 218,
           "selectable": true
         }
+      },
+      {
+        "id": "12",
+        "parent_id": null,
+        "type": "openai.agents.ChartRenderer",
+        "data": {
+          "width": 640,
+          "height": 480,
+          "style": "darkgrid",
+          "context": "notebook",
+          "palette": "pastel",
+          "font": "sans-serif",
+          "font_scale": 1
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 659.6666666666666,
+            "y": 320
+          },
+          "zIndex": 0,
+          "width": 242,
+          "selectable": true
+        }
       }
     ],
     "edges": [
       {
-        "id": "63043d5f-d49f-459d-8d3c-04fadac99095",
-        "source": "10",
+        "id": "ebc2bd60-fa9a-4454-ba99-9e7307aa15b0",
+        "source": "12",
         "sourceHandle": "output",
-        "target": "3",
-        "targetHandle": "content",
+        "target": "4",
+        "targetHandle": "value",
         "ui_properties": {
-          "className": "svg_element"
+          "className": "image"
         }
       },
       {
@@ -193,11 +182,31 @@
         }
       },
       {
-        "id": "ce1dbae0-ed30-4b75-ad8a-60decbc3a708",
+        "id": "4afff8ae-17f3-4e27-9425-e6f39ae8b7fe",
+        "source": "9",
+        "sourceHandle": "output",
+        "target": "12",
+        "targetHandle": "data",
+        "ui_properties": {
+          "className": "dataframe"
+        }
+      },
+      {
+        "id": "2a136c0d-6596-41df-8da3-74380dfd9b10",
         "source": "8",
         "sourceHandle": "output",
-        "target": "10",
+        "target": "12",
         "targetHandle": "chart_config",
+        "ui_properties": {
+          "className": "chart_config"
+        }
+      },
+      {
+        "id": "63044",
+        "source": "8",
+        "sourceHandle": "output",
+        "target": "11",
+        "targetHandle": "value",
         "ui_properties": {
           "className": "chart_config"
         }
@@ -210,36 +219,6 @@
         "targetHandle": "value",
         "ui_properties": {
           "className": "dataframe"
-        }
-      },
-      {
-        "id": "68",
-        "source": "3",
-        "sourceHandle": "output",
-        "target": "4",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "image"
-        }
-      },
-      {
-        "id": "0b590385-7d52-4f79-a31e-210a1874ff25",
-        "source": "9",
-        "sourceHandle": "output",
-        "target": "10",
-        "targetHandle": "data",
-        "ui_properties": {
-          "className": "dataframe"
-        }
-      },
-      {
-        "id": "63044",
-        "source": "8",
-        "sourceHandle": "output",
-        "target": "11",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "chart_config"
         }
       }
     ]
