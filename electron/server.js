@@ -1,7 +1,6 @@
 const { spawn } = require("child_process");
 const { dialog, shell, app } = require("electron");
 const { logMessage } = require("./logger");
-const { getMainWindow } = require("./window");
 const { processEnv, condaEnvPath, srcPath } = require("./python");
 const path = require("path");
 const { forceQuit } = require("./window");
@@ -46,7 +45,7 @@ function startNodeToolBackendProcess() {
       shell: false,
       env: processEnv,
       detached: false,
-      windowsHide: true
+      windowsHide: true,
     });
   } catch (error) {
     forceQuit(`Failed to spawn server process: ${error.message}`);
@@ -177,7 +176,7 @@ async function startViteServer() {
       shell: false,
       detached: false,
       windowsHide: true,
-      env: { ...process.env, NO_COLOR: "1" }
+      env: { ...process.env, NO_COLOR: "1" },
     });
 
     viteProcess.stdout.on("data", (data) => {
@@ -186,9 +185,9 @@ async function startViteServer() {
         logMessage(`Vite Server: ${output}`);
 
         // Parse the port from the output without regex
-        if (output.includes('localhost:')) {
-          const parts = output.split('localhost:');
-          const port = parts[1].split(' ')[0].split('/')[0];
+        if (output.includes("localhost:")) {
+          const parts = output.split("localhost:");
+          const port = parts[1].split(" ")[0].split("/")[0];
           logMessage(`Vite server started on port ${port}`);
           serverState.initialURL = `http://127.0.0.1:${port}`;
           emitBootMessage("Vite server started");

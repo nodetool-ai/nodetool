@@ -16,9 +16,16 @@ const {
 } = require("./python");
 const { LOG_FILE } = require("./logger");
 const { emitBootMessage } = require("./events");
+const { getMainWindow } = require("./state");
 
+/** @type {boolean} */
 let isAppQuitting = false;
 
+/**
+ * Checks and sets up the Python Conda environment
+ * @param {boolean} shouldUpdate - Whether to update existing packages
+ * @returns {Promise<void>}
+ */
 async function checkPythonEnvironment(shouldUpdate = false) {
   emitBootMessage("Checking for Python environment...");
   const hasCondaEnv = await isCondaEnvironmentInstalled();
@@ -30,6 +37,11 @@ async function checkPythonEnvironment(shouldUpdate = false) {
   }
 }
 
+/**
+ * Initializes the application, verifies paths, and starts required servers
+ * @returns {Promise<void>}
+ * @throws {Error} When critical permissions are missing
+ */
 async function initialize() {
   logMessage("Electron app is ready");
   emitBootMessage("Starting NodeTool Desktop...");
@@ -87,6 +99,7 @@ app.on("window-all-closed", function () {
 
 app.on("activate", function () {
   logMessage("App activated");
+  const mainWindow = getMainWindow();
   if (mainWindow === null) {
     logMessage("Creating new window on activate");
     createWindow();
@@ -94,26 +107,47 @@ app.on("activate", function () {
 });
 
 // IPC handlers
+/**
+ * IPC handler to get the current server state
+ * @returns {Object} The current server state
+ */
 ipcMain.handle("get-server-state", () => serverState);
+/**
+ * IPC handler to get the log file path
+ * @returns {string} The path to the log file
+ */
 ipcMain.handle("get-log-file-path", () => LOG_FILE);
+/**
+ * IPC handler to open the log file in the system's file explorer
+ * @returns {void}
+ */
 ipcMain.handle("open-log-file", () => {
   shell.showItemInFolder(LOG_FILE);
 });
 
-// Global error handlers
+/**
+ * Global error handler for uncaught exceptions
+ * @param {Error} error - The uncaught exception
+ * @returns {void}
+ */
 process.on("uncaughtException", (error) => {
   logMessage(`Uncaught Exception: ${error.message}`, "error");
   logMessage(`Stack Trace: ${error.stack}`, "error");
   forceQuit(`Uncaught Exception: ${error.message}`);
 });
 
+/**
+ * Global error handler for unhandled promise rejections
+ * @param {unknown} reason - The reason for the rejection
+ * @param {unknown} promise - The promise that was rejected
+ * @returns {void}
+ */
 process.on("unhandledRejection", (reason, promise) => {
   const errorMessage =
     reason instanceof Error ? reason.message : String(reason);
   logMessage(`Unhandled Promise Rejection: ${errorMessage}`, "error");
-  logMessage(
-    `Stack Trace: ${reason.stack || "No stack trace available"}`,
-    "error"
-  );
+  if (reason instanceof Error) {
+    logMessage(`Stack Trace: ${reason.stack}`, "error");
+  }
   forceQuit(`Unhandled Promise Rejection: ${errorMessage}`);
 });

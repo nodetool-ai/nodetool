@@ -33,7 +33,8 @@ contextBridge.exposeInMainWorld("api", {
    * Registers a callback to be invoked when the server has started.
    * @param {Function} callback - The function to be called when the server starts
    */
-  onServerStarted: (callback) => ipcRenderer.on("server-started", callback),
+  onServerStarted: (callback) =>
+    ipcRenderer.on("server-started", (event, info) => callback(info)),
 
   /**
    * Registers a callback to receive boot messages.

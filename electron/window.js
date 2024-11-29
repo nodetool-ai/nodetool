@@ -6,6 +6,7 @@ const { app } = require("electron");
 
 /**
  * Create the main application window.
+ * @returns {BrowserWindow} The main window instance
  */
 function createWindow() {
   logMessage("Creating main window");
@@ -16,7 +17,9 @@ function createWindow() {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
       nodeIntegration: false,
-      enableRemoteModule: true,
+      backgroundThrottling: false,
+      devTools: true,
+      webSecurity: false,
     },
   });
 

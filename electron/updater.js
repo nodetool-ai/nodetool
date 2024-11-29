@@ -1,11 +1,11 @@
-const { app } = require('electron');
-const { autoUpdater } = require('electron-updater');
-const log = require('electron-log');
-const { logMessage } = require('./logger');
-const { getMainWindow } = require('./window');
-const path = require('path');
-const fs = require('fs').promises;
-const { ipcMain } = require('electron');
+const { app } = require("electron");
+const { autoUpdater } = require("electron-updater");
+const log = require("electron-log");
+const { logMessage } = require("./logger");
+const { getMainWindow } = require("./state");
+const path = require("path");
+const fs = require("fs").promises;
+const { ipcMain } = require("electron");
 
 let updateAvailable = false;
 
@@ -24,7 +24,7 @@ function setupAutoUpdater() {
 
   autoUpdater.logger = log;
 
-  autoUpdater.checkForUpdates().catch(err => {
+  autoUpdater.checkForUpdates().catch((err) => {
     logMessage(`Failed to check for updates: ${err.message}`, "warn");
   });
 
@@ -45,7 +45,10 @@ function setupAutoUpdaterEvents() {
         mainWindow.webContents.send("update-available", info);
       }
     } catch (err) {
-      logMessage(`Error handling update-available event: ${err.message}`, "error");
+      logMessage(
+        `Error handling update-available event: ${err.message}`,
+        "error"
+      );
     }
   });
 
@@ -68,23 +71,15 @@ function setupAutoUpdaterEvents() {
     try {
       logMessage(`Update downloaded: ${info.version}`);
 
-      // Create flag file to trigger Python environment update after restart
-      try {
-        await fs.promises.writeFile(
-          path.join(app.getPath("userData"), "update-conda-env"),
-          "true"
-        );
-        logMessage("Python environment update flagged for next startup");
-      } catch (error) {
-        logMessage(`Error creating update flag: ${error.message}`, "error");
-      }
-
       const mainWindow = getMainWindow();
       if (mainWindow) {
         mainWindow.webContents.send("update-downloaded", info);
       }
     } catch (err) {
-      logMessage(`Error handling update-downloaded event: ${err.message}`, "error");
+      logMessage(
+        `Error handling update-downloaded event: ${err.message}`,
+        "error"
+      );
     }
   });
 
@@ -95,11 +90,14 @@ function setupAutoUpdaterEvents() {
       if (mainWindow) {
         mainWindow.webContents.send("update-error", {
           message: "Failed to check for updates. Please try again later.",
-          details: err.message
+          details: err.message,
         });
       }
     } catch (sendErr) {
-      logMessage(`Error sending update error to window: ${sendErr.message}`, "error");
+      logMessage(
+        `Error sending update error to window: ${sendErr.message}`,
+        "error"
+      );
     }
   });
 }
@@ -116,7 +114,7 @@ ipcMain.handle("install-update", async () => {
     if (mainWindow) {
       mainWindow.webContents.send("update-error", {
         message: "Failed to install update. Please try again later.",
-        details: err.message
+        details: err.message,
       });
     }
     throw err;
@@ -125,5 +123,5 @@ ipcMain.handle("install-update", async () => {
 
 module.exports = {
   setupAutoUpdater,
-  isUpdateAvailable: () => updateAvailable
-}; 
+  isUpdateAvailable: () => updateAvailable,
+};
