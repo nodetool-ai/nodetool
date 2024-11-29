@@ -122,21 +122,6 @@ const styles = (colors: string[]) =>
 
         transition: "opacity 0.5s ease-in-out"
       }
-    },
-    "&.loading.is-loading": {
-      "&::before": {
-        opacity: 1
-      }
-    },
-    ".react-flow__resize-control.handle.right": {
-      cursor: "ew-resize"
-    },
-    ".react-flow__handle": {
-      opacity: 0.3,
-      transition: "opacity 0.3s ease-in-out"
-    },
-    "&:hover .react-flow__handle": {
-      opacity: 1
     }
   });
 
