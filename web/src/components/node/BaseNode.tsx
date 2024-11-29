@@ -28,7 +28,7 @@ import NodeStatus from "./NodeStatus";
 import NodeContent from "./NodeContent";
 import NodeToolButtons from "./NodeToolButtons";
 import { useRenderLogger } from "../../hooks/useRenderLogger";
-import { simulateOpacity } from "../../utils/ColorUtils";
+import { darkenHexColor, simulateOpacity } from "../../utils/ColorUtils";
 import useMetadataStore from "../../stores/MetadataStore";
 import NodeFooter from "./NodeFooter";
 import useSelect from "../../hooks/nodes/useSelect";
@@ -263,27 +263,36 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     resizer
   });
 
-  const parentColor = useMemo(() => {
-    // If there's no parent, check for first output type color
-    if (!hasParent) {
-      const firstOutputColor = metadata?.outputs?.[0]?.type?.type;
-      return firstOutputColor
+  const { headerColor, footerColor } = useMemo(() => {
+    const firstOutputColor = metadata?.outputs?.[0]?.type?.type;
+    return {
+      headerColor: firstOutputColor
         ? simulateOpacity(
             colorForType(firstOutputColor),
-            0.5,
+            0.7,
             ThemeNodes.palette.c_editor_bg_color
           )
-        : "";
-    }
+        : "",
+      footerColor: firstOutputColor
+        ? darkenHexColor(
+            simulateOpacity(
+              colorForType(firstOutputColor),
+              0.5,
+              ThemeNodes.palette.c_editor_bg_color
+            ),
+            100
+          )
+        : ""
+    };
 
     // Otherwise use parent's group color
-    if (!parentNode?.data?.properties?.group_color) return "";
-    return simulateOpacity(
-      parentNode?.data?.properties?.group_color,
-      0.15,
-      ThemeNodes.palette.c_editor_bg_color
-    );
-  }, [hasParent, parentNode, metadata]);
+    // if (!parentNode?.data?.properties?.group_color) return "";
+    // return simulateOpacity(
+    //   parentNode?.data?.properties?.group_color,
+    //   0.15,
+    //   ThemeNodes.palette.c_editor_bg_color
+    // );
+  }, [metadata]);
 
   if (!metadata) {
     return (
@@ -318,7 +327,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       <NodeHeader
         id={props.id}
         data={props.data}
-        backgroundColor={parentColor}
+        backgroundColor={headerColor}
         metadataTitle={metadata.title}
         hasParent={hasParent}
       />
@@ -341,7 +350,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       <NodeFooter
         nodeNamespace={metadata.namespace}
         metadata={metadata}
-        backgroundColor={parentColor}
+        backgroundColor={footerColor}
       />
     </Container>
   );
