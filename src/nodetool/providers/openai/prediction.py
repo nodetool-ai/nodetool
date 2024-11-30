@@ -125,7 +125,7 @@ async def run_openai(prediction: Prediction) -> Any:
     if model.startswith("text-embedding-"):
         yield await create_embedding(prediction)
 
-    elif model.startswith("gpt-"):
+    elif model.startswith("gpt-") or model.startswith("o1-"):
         yield await create_chat_completion(prediction)
 
     elif model.startswith("tts-"):

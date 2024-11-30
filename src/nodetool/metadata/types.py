@@ -173,6 +173,8 @@ class GPTModel(str, enum.Enum):
     GPT3 = "gpt-3.5-turbo-0125"
     GPT4 = "gpt-4o"
     GPT4Mini = "gpt-4o-mini"
+    O1 = "o1-preview"
+    O1Mini = "o1-mini"
 
 
 class OpenAIEmbeddingModel(str, enum.Enum):

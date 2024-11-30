@@ -128,7 +128,7 @@ class Agent(BaseNode):
         description="The user prompt",
     )
     max_tokens: int = Field(
-        default=1000,
+        default=4096,
         description="The maximum number of tokens to generate.",
     )
     temperature: float = Field(
@@ -137,8 +137,52 @@ class Agent(BaseNode):
         le=2.0,
         description="The temperature to use for sampling.",
     )
+    model: GPTModel = Field(
+        default=GPTModel.GPT4Mini,
+        description="The GPT model to use for generating tasks.",
+    )
+
+    async def process_messages_with_model(
+        self, messages: list[Message], context: ProcessingContext, **kwargs
+    ) -> Message:
+        """Helper method to process messages based on model type"""
+        if self.model in [GPTModel.O1Mini, GPTModel.O1]:
+            # Convert system messages to user messages
+            converted_messages = []
+            for msg in messages:
+                if msg.role == "system":
+                    converted_messages.append(
+                        Message(
+                            role="user",
+                            content=f"Instructions: {msg.content}",
+                            thread_id=msg.thread_id,
+                        )
+                    )
+                else:
+                    converted_messages.append(msg)
+            return await process_messages(
+                context=context,
+                node_id=self._id,
+                model=FunctionModel(provider=Provider.OpenAI, name=self.model.value),
+                messages=converted_messages,
+                **kwargs,
+            )
+        else:
+            return await process_messages(
+                context=context,
+                node_id=self._id,
+                model=FunctionModel(provider=Provider.OpenAI, name=self.model.value),
+                messages=messages,
+                **kwargs,
+            )
 
     async def process(self, context: ProcessingContext) -> list[Task]:
+        # Validate model compatibility
+        if self.model in [GPTModel.O1Mini, GPTModel.O1]:
+            raise ValueError(
+                "O1 models do not support JSON output format. Please use GPT-4 or GPT-3.5."
+            )
+
         thread_id = uuid.uuid4().hex
         input_messages = [
             Message(
@@ -161,11 +205,9 @@ class Agent(BaseNode):
             ),
         ]
 
-        assistant_message = await process_messages(
-            context=context,
-            node_id=self._id,
-            model=FunctionModel(provider=Provider.OpenAI, name=GPTModel.GPT4Mini.value),
+        assistant_message = await self.process_messages_with_model(
             messages=input_messages,
+            context=context,
             max_tokens=self.max_tokens,
             temperature=self.temperature,
             response_format={
@@ -253,6 +295,10 @@ class RunTasks(BaseNode):
         le=2.0,
         description="The temperature to use for sampling.",
     )
+    model: GPTModel = Field(
+        default=GPTModel.GPT4Mini,
+        description="The GPT model to use for processing tasks.",
+    )
 
     def topological_sort(self, tasks: list[Task]) -> list[Task]:
         """
@@ -315,7 +361,7 @@ class RunTasks(BaseNode):
         assistant_message = await process_messages(
             context=context,
             node_id=self._id,
-            model=FunctionModel(provider=Provider.OpenAI, name=GPTModel.GPT4Mini.value),
+            model=FunctionModel(provider=Provider.OpenAI, name=self.model.value),
             tools=tools,
             messages=input_messages,
             temperature=self.temperature,
@@ -387,8 +433,18 @@ class DataGenerator(BaseNode):
         default=RecordType(),
         description="The columns to use in the dataframe.",
     )
+    model: GPTModel = Field(
+        default=GPTModel.GPT4Mini,
+        description="The GPT model to use for data generation.",
+    )
 
     async def process(self, context: ProcessingContext) -> DataframeRef:
+        # Validate model compatibility
+        if self.model in [GPTModel.O1Mini, GPTModel.O1]:
+            raise ValueError(
+                "O1 models do not support JSON output format. Please use GPT-4 or GPT-3.5."
+            )
+
         system_message = Message(
             role="system",
             content="You are an assistant with access to tools.",
@@ -403,7 +459,7 @@ class DataGenerator(BaseNode):
         assistant_message = await process_messages(
             context=context,
             node_id=self._id,
-            model=FunctionModel(provider=Provider.OpenAI, name=GPTModel.GPT4Mini.value),
+            model=FunctionModel(provider=Provider.OpenAI, name=self.model.value),
             messages=messages,
             max_tokens=self.max_tokens,
             temperature=self.temperature,
@@ -470,12 +526,12 @@ class ChainOfThought(BaseNode):
     - Step-by-step analysis of scenarios
     """
 
-    prompt: str = Field(
-        default="",
-        description="The problem or question to analyze",
+    messages: list[Message] = Field(
+        default=[],
+        description="The messages to use in the prompt.",
     )
     max_tokens: int = Field(
-        default=2000,
+        default=4096,
         description="The maximum number of tokens to generate.",
     )
     temperature: float = Field(
@@ -483,6 +539,10 @@ class ChainOfThought(BaseNode):
         ge=0.0,
         le=2.0,
         description="The temperature to use for sampling.",
+    )
+    model: GPTModel = Field(
+        default=GPTModel.GPT4Mini,
+        description="The GPT model to use for chain of thought reasoning.",
     )
 
     @classmethod
@@ -493,6 +553,12 @@ class ChainOfThought(BaseNode):
         }
 
     async def process(self, context: ProcessingContext) -> dict:
+        # Validate model compatibility
+        if self.model in [GPTModel.O1Mini, GPTModel.O1]:
+            raise ValueError(
+                "O1 models do not support JSON output format. Please use GPT-4 or GPT-3.5."
+            )
+
         input_messages = [
             Message(
                 role="system",
@@ -502,22 +568,21 @@ class ChainOfThought(BaseNode):
                 1. First analyze and understand the key components
                 2. Break down the solution into logical steps
                 3. Give instructions for each step
+                4. Don't overthink the problem, just break it down into clear steps
+                5. Minimize the number of steps
                 
                 Provide your response in a structured JSON format with:
                 - analysis: Initial problem analysis
                 - steps: Array of reasoning steps
                 """,
             ),
-            Message(
-                role="user",
-                content=self.prompt,
-            ),
+            *self.messages,
         ]
 
         assistant_message = await process_messages(
             context=context,
             node_id=self._id,
-            model=FunctionModel(provider=Provider.OpenAI, name=GPTModel.GPT4Mini.value),
+            model=FunctionModel(provider=Provider.OpenAI, name=self.model.value),
             messages=input_messages,
             max_tokens=self.max_tokens,
             temperature=self.temperature,
@@ -560,7 +625,7 @@ class ChainOfThought(BaseNode):
         }
 
 
-class ProcessChainOfThought(BaseNode):
+class ProcessThought(BaseNode):
     """
     Agent node that implements iterative chain-of-thought reasoning, building upon previous steps
     to solve complex problems incrementally.
@@ -577,7 +642,7 @@ class ProcessChainOfThought(BaseNode):
         description="The current step or question to analyze",
     )
     max_tokens: int = Field(
-        default=2000,
+        default=4096,
         description="The maximum number of tokens to generate",
     )
     temperature: float = Field(
@@ -585,6 +650,10 @@ class ProcessChainOfThought(BaseNode):
         ge=0.0,
         le=2.0,
         description="The temperature to use for sampling",
+    )
+    model: GPTModel = Field(
+        default=GPTModel.GPT4Mini,
+        description="The GPT model to use for processing chain of thought steps.",
     )
 
     async def process(self, context: ProcessingContext) -> dict:
@@ -624,7 +693,7 @@ class ProcessChainOfThought(BaseNode):
         assistant_message = await process_messages(
             context=context,
             node_id=self._id,
-            model=FunctionModel(provider=Provider.OpenAI, name=GPTModel.GPT4Mini.value),
+            model=FunctionModel(provider=Provider.OpenAI, name=self.model.value),
             messages=messages,
             max_tokens=self.max_tokens,
             temperature=self.temperature,
@@ -706,6 +775,10 @@ class ChartGenerator(BaseNode):
         default=RecordType(),
         description="The columns available in the data.",
     )
+    model: GPTModel = Field(
+        default=GPTModel.GPT4Mini,
+        description="The GPT model to use for chart generation.",
+    )
 
     async def process(self, context: ProcessingContext) -> ChartConfig:
         system_message = Message(
@@ -770,7 +843,7 @@ class ChartGenerator(BaseNode):
         assistant_message = await process_messages(
             context=context,
             node_id=self._id,
-            model=FunctionModel(provider=Provider.OpenAI, name=GPTModel.GPT4Mini.value),
+            model=FunctionModel(provider=Provider.OpenAI, name=self.model.value),
             messages=messages,
             max_tokens=self.max_tokens,
             temperature=self.temperature,
@@ -1071,6 +1144,10 @@ class RegressionAnalyst(BaseNode):
         le=2.0,
         description="The temperature to use for sampling.",
     )
+    model: GPTModel = Field(
+        default=GPTModel.GPT4Mini,
+        description="The GPT model to use for regression analysis.",
+    )
 
     async def process(self, context: ProcessingContext) -> str:
         assert self.data.data is not None, "Data is required"
@@ -1100,7 +1177,7 @@ Provide your response in JSON format.
         parameter_message = await process_messages(
             context=context,
             node_id=self._id,
-            model=FunctionModel(provider=Provider.OpenAI, name=GPTModel.GPT4Mini.value),
+            model=FunctionModel(provider=Provider.OpenAI, name=self.model.value),
             messages=[
                 Message(
                     role="system",
@@ -1203,7 +1280,7 @@ User's original question: {self.prompt}
         interpretation_message = await process_messages(
             context=context,
             node_id=self._id,
-            model=FunctionModel(provider=Provider.OpenAI, name=GPTModel.GPT4Mini.value),
+            model=FunctionModel(provider=Provider.OpenAI, name=self.model.value),
             messages=[
                 Message(
                     role="system",
@@ -1271,6 +1348,10 @@ class ChartRenderer(BaseNode):
     trim_margins: bool = Field(
         default=True,
         description="Whether to use tight layout for margins.",
+    )
+    model: GPTModel = Field(
+        default=GPTModel.GPT4Mini,
+        description="The GPT model to use for rendering the chart.",
     )
 
     async def process(self, context: ProcessingContext) -> ImageRef:
@@ -1493,6 +1574,10 @@ class SynthesizerAgent(BaseNode):
         le=30.0,
         description="Duration of the sound in seconds.",
     )
+    model: GPTModel = Field(
+        default=GPTModel.GPT4Mini,
+        description="The GPT model to use for sound synthesis.",
+    )
 
     async def process(self, context: ProcessingContext) -> AudioRef:
         messages = [
@@ -1516,7 +1601,7 @@ class SynthesizerAgent(BaseNode):
         assistant_message = await process_messages(
             context=context,
             node_id=self._id,
-            model=FunctionModel(provider=Provider.OpenAI, name=GPTModel.GPT4Mini.value),
+            model=FunctionModel(provider=Provider.OpenAI, name=self.model.value),
             messages=messages,
             max_tokens=self.max_tokens,
             temperature=self.temperature,
@@ -1698,3 +1783,124 @@ class SynthesizerAgent(BaseNode):
         )
 
         return await envelope.process(context)
+
+
+class ChainOfThoughtSummarizer(BaseNode):
+    """
+    Agent node that synthesizes the results from a chain of thought reasoning process
+    into a final, coherent conclusion.
+
+    Use cases:
+    - Summarizing multi-step reasoning processes
+    - Drawing final conclusions from step-by-step analysis
+    - Validating logical consistency across steps
+    - Generating executive summaries of complex reasoning
+    """
+
+    steps: list[ThoughtStep] = Field(
+        default_factory=list,
+        description="The completed chain of thought steps with their results",
+    )
+    messages: list[Message] = Field(
+        default_factory=list,
+        description="The messages used to generate the chain of thought steps",
+    )
+    max_tokens: int = Field(
+        default=1000,
+        description="The maximum number of tokens to generate",
+    )
+    temperature: float = Field(
+        default=0.0,
+        ge=0.0,
+        le=2.0,
+        description="The temperature to use for sampling",
+    )
+    model: GPTModel = Field(
+        default=GPTModel.GPT4Mini,
+        description="The GPT model to use for summarizing chain of thought results.",
+    )
+
+    async def process(self, context: ProcessingContext) -> dict:
+        # Validate model compatibility
+        if self.model in [GPTModel.O1Mini, GPTModel.O1]:
+            raise ValueError(
+                "O1 models do not support JSON output format. Please use GPT-4 or GPT-3.5."
+            )
+
+        messages = [
+            Message(
+                role="system",
+                content="""You are an expert at synthesizing multi-step reasoning processes into clear, 
+                coherent conclusions. Analyze the chain of thought steps and their results to:
+                1. Validate the logical consistency between steps
+                2. Identify key insights from each step
+                3. Write a final answer that synthesizes the key insights into a coherent conclusion
+                4. Highlight all assumptions made in the steps
+                
+                The final answer should be a concise and clear response that addresses the original question or problem.
+                The final answer should include all details from the steps and any additional context or information needed to understand the final answer.
+                The final answer is suitable for a chat.
+                """,
+            ),
+            *self.messages,
+            Message(
+                role="user",
+                content=f"""
+As a chain of thought agent, you have processed the following steps:
+{json.dumps([step.model_dump() for step in self.steps], indent=2)}
+
+Extract the key insights and result from each step and synthesize them into a final conclusion.
+""",
+            ),
+        ]
+
+        assistant_message = await process_messages(
+            context=context,
+            node_id=self._id,
+            model=FunctionModel(provider=Provider.OpenAI, name=self.model.value),
+            messages=messages,
+            max_tokens=self.max_tokens,
+            temperature=self.temperature,
+            response_format={
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "conclusion",
+                    "schema": {
+                        "type": "object",
+                        "properties": {
+                            "logical_consistency": {
+                                "type": "boolean",
+                                "description": "Whether the chain of reasoning is logically consistent",
+                            },
+                            "consistency_issues": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "Any logical inconsistencies or issues found",
+                            },
+                            "final_answer": {"type": "string"},
+                            "assumptions": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                            },
+                        },
+                        "required": [
+                            "logical_consistency",
+                            "consistency_issues",
+                            "final_answer",
+                            "assumptions",
+                        ],
+                    },
+                },
+            },
+        )
+
+        return json.loads(str(assistant_message.content))
+
+    @classmethod
+    def return_type(cls):
+        return {
+            "logical_consistency": bool,
+            "consistency_issues": list[str],
+            "final_answer": str,
+            "assumptions": list[str],
+        }

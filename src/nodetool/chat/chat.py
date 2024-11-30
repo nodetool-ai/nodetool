@@ -25,6 +25,7 @@ from nodetool.metadata.types import (
     ChatUserMessageParam,
     ColumnDef,
     FunctionModel,
+    GPTModel,
     Message,
     Provider,
     ToolCall,
@@ -630,6 +631,24 @@ async def process_messages(
     Returns:
         tuple[Message, list[ToolCall]]: The assistant message and the tool calls.
     """
+
+    # Convert system messages to user messages for O1 models
+    if model.name in [GPTModel.O1Mini.value, GPTModel.O1.value]:
+        kwargs["max_completion_tokens"] = kwargs.pop("max_tokens", 1000)
+        kwargs.pop("temperature", None)
+        converted_messages = []
+        for msg in messages:
+            if msg.role == "system":
+                converted_messages.append(
+                    Message(
+                        role="user",
+                        content=f"Instructions: {msg.content}",
+                        thread_id=msg.thread_id,
+                    )
+                )
+            else:
+                converted_messages.append(msg)
+        messages = converted_messages
 
     return await create_completion(
         context=context,
