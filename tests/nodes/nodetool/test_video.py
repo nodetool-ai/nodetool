@@ -96,7 +96,7 @@ async def test_create_video(context: ProcessingContext):
             VideoRef,
         ),
         (AddAudio(video=dummy_video, audio=dummy_audio), VideoRef),
-        (ChromaKey(video=dummy_video, key_color="0x00FF00"), VideoRef),
+        (ChromaKey(video=dummy_video), VideoRef),
     ],
 )
 async def test_video_nodes(context: ProcessingContext, node, expected_type):

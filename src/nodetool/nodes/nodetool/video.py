@@ -1626,8 +1626,8 @@ class ChromaKey(BaseNode):
         default=VideoRef(), description="The input video to apply chroma key effect."
     )
     key_color: ColorRef = Field(
-        default=ColorRef(value="0x00FF00"),
-        description="The color to key out (e.g., '0x00FF00' for green).",
+        default=ColorRef(value="#00FF00"),
+        description="The color to key out (e.g., '#00FF00' for green).",
     )
     similarity: float = Field(
         default=0.3,

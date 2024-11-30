@@ -15,7 +15,7 @@ dummy_image = ImageRef(data=buffer.getvalue())
 @pytest.mark.parametrize(
     "node, expected_type",
     [
-        (Background(width=512, height=512, color="#FFFFFF"), ImageRef),
+        (Background(width=512, height=512), ImageRef),
         (
             RenderText(
                 text="Test",
@@ -23,7 +23,6 @@ dummy_image = ImageRef(data=buffer.getvalue())
                 x=0.5,
                 y=0.5,
                 size=24,
-                color="#000000",
                 align=RenderText.TextAlignment.CENTER,
                 image=dummy_image,
             ),
