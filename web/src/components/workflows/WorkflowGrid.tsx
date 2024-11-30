@@ -393,13 +393,15 @@ const WorkflowGrid = () => {
             startIcon={<AddIcon />}
             sx={{
               fontWeight: "bold",
-              textTransform: "none",
+              fontSize: "1.2em",
+              textTransform: "uppercase",
+              letterSpacing: "0.05em",
               minWidth: "140px",
               height: "36px",
               padding: "6px 16px"
             }}
           >
-            Create New
+            Create New Workflow
           </Button>
           <SearchInput
             onSearchChange={handleSearchChange}

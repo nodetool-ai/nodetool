@@ -98,19 +98,27 @@ const gridStyles = (theme: any) =>
     },
     ".actions button.open-button": {
       position: "absolute",
-      display: "block",
-      top: "35px",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      top: "100px",
       left: "50%",
-      transform: "translateX(-50%)",
+      transform: "translate(-50%, -50%)",
       fontSize: theme.fontSizeBig,
+      padding: "1em 2em",
       textAlign: "center",
       color: theme.palette.c_white,
-      backgroundColor: alpha(theme.palette.c_gray1, 0.6),
-      outline: "1px solid" + theme.palette.c_hl1
+      backgroundColor: alpha(theme.palette.c_gray1, 0.85),
+      border: `1px solid ${theme.palette.c_gray4}`,
+      borderRadius: "8px",
+      transition: "all 0.2s ease-in-out"
     },
     ".actions button.open-button:hover": {
       color: theme.palette.c_hl1,
-      backgroundColor: alpha(theme.palette.c_black, 0.6)
+      backgroundColor: alpha(theme.palette.c_black, 0.9),
+      border: `1px solid ${theme.palette.c_hl1}`,
+      transform: "translate(-50%, -50%) scale(1.05)",
+      boxShadow: `0 0 20px ${alpha(theme.palette.c_hl1, 0.3)}`
     }
   });
 
