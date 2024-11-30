@@ -1,4 +1,5 @@
 from typing import Any
+import comfy.model_management
 import comfy.sd
 from huggingface_hub import try_to_load_from_cache
 import folder_paths
@@ -71,12 +72,13 @@ from nodes import (
     LoraLoaderModelOnly,
     UNETLoader,
     VAEDecode,
+    VAEDecodeTiled,
     VAEEncode,
     LatentUpscale,
     VAEEncodeForInpaint,
     VAELoader,
 )
-from comfy_custom_nodes.ComfyUI_bitsandbytes_NF4 import CheckpointLoaderNF4
+from comfy_custom_nodes.ComfyUI_bitsandbytes_NF4 import OPS, CheckpointLoaderNF4
 from comfy_extras.nodes_upscale_model import UpscaleModelLoader, ImageUpscaleWithModel
 import PIL.Image
 import torch
@@ -90,6 +92,7 @@ from .enums import Sampler, Scheduler
 from comfy.model_patcher import ModelPatcher
 from nodetool.metadata.types import (
     CheckpointFile,
+    HFFlux,
     HFStableDiffusion,
     HFStableDiffusionXL,
     ImageRef,
@@ -499,95 +502,92 @@ class ControlNet(StableDiffusion):
 
 class Flux(BaseNode):
     """
-    Generates images from text prompts using a custom Stable Diffusion workflow.
-    image, text-to-image, generative AI, stable diffusion, custom workflow
+    Generates images from text prompts using the Flux model.
+    image, text-to-image, generative AI, flux
 
     Use cases:
-    - Creating custom illustrations with specific model configurations
-    - Generating images with fine-tuned control over the sampling process
-    - Experimenting with different VAE, CLIP, and UNET combinations
+    - Creating high-quality anime-style illustrations
+    - Generating detailed character artwork
+    - Producing images with specific artistic styles
     """
 
-    model: UNet = Field(default=UNet(), description="The model to use.")
+    model: HFFlux = Field(default=HFFlux(), description="The model to use.")
     prompt: str = Field(default="", description="The prompt to use.")
+    negative_prompt: str = Field(default="", description="The negative prompt to use.")
     width: int = Field(default=1024, ge=64, le=2048, multiple_of=64)
     height: int = Field(default=1024, ge=64, le=2048, multiple_of=64)
     batch_size: int = Field(default=1, ge=1, le=16)
-    steps: int = Field(default=4, ge=1, le=100, description="Number of sampling steps.")
-    guidance_scale: float = Field(default=3.5, ge=1.0, le=30.0)
+    steps: int = Field(default=20, ge=1, le=100)
+    guidance_scale: float = Field(default=1.0, ge=1.0, le=30.0)
+    seed: int = Field(default=0, ge=0, le=1000000000)
+    denoise: float = Field(default=1.0, ge=0.0, le=1.0)
     scheduler: Scheduler = Field(default=Scheduler.simple)
     sampler: Sampler = Field(default=Sampler.euler)
-    denoise: float = Field(default=1.0, ge=0.0, le=1.0)
-    input_image: ImageRef = Field(
-        default=ImageRef(), description="Input image for img2img (optional)"
-    )
-    noise_seed: int = Field(default=689015878, ge=0, le=1000000000)
-    lora: LORAFile = Field(default=LORAFile(), description="The Lora model to use.")
-    lora_strength: float = Field(default=0.0, ge=-100, le=100)
 
-    _vae: Optional[comfy.sd.VAE] = None
-    _clip: Optional[comfy.sd.CLIP] = None
-
-    async def initialize(self, context: ProcessingContext):
-        self._vae = VAELoader().load_vae("ae.sft")[0]
-        self._clip = DualCLIPLoader().load_clip(
-            "clip_l.safetensors", "t5xxl_fp8_e4m3fn.safetensors", "flux"
-        )[0]
-
-    async def move_to_device(self, device: str):
-        pass
+    @classmethod
+    def get_recommended_models(cls) -> list[HFFlux]:
+        return [
+            HFFlux(
+                repo_id="Comfy-Org/flux1-dev",
+                path="flux1-dev-fp8.safetensors",
+            ),
+            HFFlux(
+                repo_id="Comfy-Org/flux1-schnell",
+                path="flux1-schnell-fp8.safetensors",
+            ),
+        ]
 
     async def process(self, context: ProcessingContext) -> ImageRef:
-        if self.input_image.is_empty():
-            latent = EmptyLatentImage().generate(
-                self.width, self.height, self.batch_size
-            )[0]
-        else:
-            input_pil = await context.image_to_pil(self.input_image)
-            input_pil = input_pil.resize(
-                (self.width, self.height), PIL.Image.Resampling.LANCZOS
-            )
-            image = input_pil.convert("RGB")
-            image = np.array(image).astype(np.float32) / 255.0
-            input_tensor = torch.from_numpy(image)[None,]
-            latent = VAEEncode().encode(self._vae, input_tensor)[0]
+        if self.model.is_empty():
+            raise ValueError("Model repository ID must be selected.")
 
-        model = self.model.model
+        assert self.model.path is not None, "Model path must be set."
 
-        if self.lora_strength > 0.0:
-            model = LoraLoaderModelOnly().load_lora_model_only(
-                model=model,
-                lora_name=self.lora.name,
-                strength_model=self.lora_strength,
-            )[0]
+        ckpt_path = try_to_load_from_cache(self.model.repo_id, self.model.path)
+        assert (
+            ckpt_path is not None
+        ), "Flux model checkpoint not found. Download from Recommended Models."
 
-        model = ModelSamplingFlux().patch(
+        # Load the base models
+        model, clip, vae, _ = comfy.sd.load_checkpoint_guess_config(
+            ckpt_path,
+            output_vae=True,
+            output_clip=True,
+            embedding_directory=folder_paths.get_folder_paths("embeddings"),
+        )
+
+        # Create empty latent
+        latent = EmptyLatentImage().generate(self.width, self.height, self.batch_size)[
+            0
+        ]
+
+        # Generate conditioning
+        positive = CLIPTextEncode().encode(clip, self.prompt)[0]
+        negative = CLIPTextEncode().encode(clip, self.negative_prompt)[0]
+
+        # Apply Flux guidance
+        positive = FluxGuidance().append(positive, self.guidance_scale)[0]
+
+        # Sample the image
+        sampled_latent = KSampler().sample(
             model=model,
-            width=self.width,
-            height=self.height,
-            max_shift=1.15,
-            base_shift=0.5,
-        )[0]
-
-        sampler = KSamplerSelect().get_sampler(self.sampler.value)[0]
-        sigmas = BasicScheduler().get_sigmas(
-            model=model,
-            scheduler=self.scheduler.value,
+            seed=self.seed,
             steps=self.steps,
+            cfg=self.guidance_scale,
+            sampler_name=self.sampler.value,
+            scheduler=self.scheduler.value,
+            positive=positive,
+            negative=negative,
+            latent_image=latent,
             denoise=self.denoise,
         )[0]
 
-        conditioning = CLIPTextEncode().encode(self._clip, self.prompt)[0]
-        conditioning = FluxGuidance().append(conditioning, self.guidance_scale)[0]
+        # Unload the base models
+        comfy.model_management.unload_model_clones(model)
 
-        guider = BasicGuider().get_guider(model, conditioning)[0]
-        noise = RandomNoise().get_noise(self.noise_seed)[0]
-
-        sampled_latent = SamplerCustomAdvanced().sample(
-            noise, guider, sampler, sigmas, latent
-        )[0]
-
-        decoded_image = VAEDecode().decode(self._vae, sampled_latent)[0]
+        # Decode the latent to image
+        # decoded_image = VAEDecode().decode(vae, sampled_latent)[0]
+        decoded_image = VAEDecodeTiled().decode(vae, sampled_latent, 512)[0]
 
         return await context.image_from_tensor(decoded_image)
 
@@ -603,8 +603,7 @@ class FluxNF4(BaseNode):
     - Experimenting with Flux-specific configurations
     """
 
-    model: UNet = Field(default=UNet(), description="The model to use.")
-    clip: CLIP = Field(default=CLIP(), description="The CLIP to use.")
+    model: HFFlux = Field(default=HFFlux(), description="The model to use.")
     prompt: str = Field(default="", description="The prompt to use.")
     width: int = Field(default=1024, ge=64, le=2048, multiple_of=64)
     height: int = Field(default=1024, ge=64, le=2048, multiple_of=64)
@@ -619,18 +618,39 @@ class FluxNF4(BaseNode):
     max_shift: float = Field(default=1.15, ge=0.0, le=2.0)
     base_shift: float = Field(default=0.5, ge=0.0, le=1.0)
 
-    _vae: Optional[comfy.sd.VAE] = None
-
-    async def initialize(self, context: ProcessingContext):
-        self._vae = VAELoader().load_vae("ae.sft")[0]
+    @classmethod
+    def get_recommended_models(cls) -> list[HFFlux]:
+        return [
+            HFFlux(
+                repo_id="lllyasviel/flux1-dev-bnb-nf4",
+                path="flux1-dev-bnb-nf4-v2.safetensors",
+            ),
+        ]
 
     async def process(self, context: ProcessingContext) -> ImageRef:
+        if self.model.is_empty():
+            raise ValueError("Model repository ID must be selected.")
+
+        assert self.model.path is not None, "Model path must be set."
+
+        ckpt_path = try_to_load_from_cache(self.model.repo_id, self.model.path)
+
+        out = comfy.sd.load_checkpoint_guess_config(
+            ckpt_path,
+            output_vae=True,
+            output_clip=True,
+            embedding_directory=folder_paths.get_folder_paths("embeddings"),
+            model_options={"custom_operations": OPS},
+        )
+
+        unet, clip, vae, _ = out
+
         latent = EmptyLatentImage().generate(self.width, self.height, self.batch_size)[
             0
         ]
 
         model = ModelSamplingFlux().patch(
-            model=self.model.model,
+            model=unet,
             width=self.width,
             height=self.height,
             max_shift=self.max_shift,
@@ -645,7 +665,7 @@ class FluxNF4(BaseNode):
             denoise=1.0,
         )[0]
 
-        conditioning = CLIPTextEncode().encode(self.clip.model, self.prompt)[0]
+        conditioning = CLIPTextEncode().encode(clip, self.prompt)[0]
         conditioning = FluxGuidance().append(conditioning, self.guidance_scale)[0]
 
         guider = BasicGuider().get_guider(model, conditioning)[0]
@@ -655,7 +675,7 @@ class FluxNF4(BaseNode):
             noise, guider, sampler, sigmas, latent
         )[0]
 
-        decoded_image = VAEDecode().decode(self._vae, sampled_latent)[0]
+        decoded_image = VAEDecode().decode(vae, sampled_latent)[0]
 
         return await context.image_from_tensor(decoded_image)
 

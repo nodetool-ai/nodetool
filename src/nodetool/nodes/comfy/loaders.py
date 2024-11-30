@@ -7,6 +7,7 @@ import comfy.utils
 import comfy.clip_vision
 from huggingface_hub import try_to_load_from_cache
 from pydantic import Field, validator
+from comfy_custom_nodes.ComfyUI_bitsandbytes_NF4 import OPS
 import folder_paths
 from nodetool.metadata.types import (
     CLIP,
@@ -23,6 +24,7 @@ from nodetool.metadata.types import (
     GLIGENFile,
     HFCLIPVision,
     HFControlNet,
+    HFFlux,
     HFIPAdapter,
     HFLoraSD,
     HFLoraSDXL,
@@ -105,6 +107,54 @@ class CheckpointLoaderNF4(CheckpointLoaderSimple):
         }
 
 
+class HuggingFaceCheckpointLoaderNF4(ComfyNode):
+    model: HFFlux = Field(
+        default=HFFlux(),
+        description="The model to load.",
+    )
+
+    @classmethod
+    def return_type(cls):
+        return {"model": UNet, "clip": CLIP, "vae": VAE}
+
+    @classmethod
+    def get_title(cls):
+        return "Load HuggingFace Checkpoint NF4"
+
+    @classmethod
+    def get_recommended_models(cls) -> list[HFFlux]:
+        return [
+            HFFlux(
+                repo_id="lllyasviel/flux1-dev-bnb-nf4",
+                path="flux1-dev-bnb-nf4-v2.safetensors",
+            ),
+        ]
+
+    async def process(self, context: ProcessingContext):
+        if self.model.is_empty():
+            raise ValueError("Model repository ID must be selected.")
+
+        assert self.model.path is not None, "Model path must be set."
+
+        ckpt_path = try_to_load_from_cache(self.model.repo_id, self.model.path)
+
+        out = comfy.sd.load_checkpoint_guess_config(
+            ckpt_path,
+            output_vae=True,
+            output_clip=True,
+            embedding_directory=folder_paths.get_folder_paths("embeddings"),
+            model_options={"custom_operations": OPS},
+        )
+
+        unet, clip, vae, _ = out
+
+        return {
+            "model": UNet(name=self.model.repo_id, model=unet),
+            "clip": CLIP(name=self.model.repo_id, model=clip),
+            "vae": VAE(name=self.model.repo_id, model=vae),
+        }
+
+
 class CheckpointLoader(CheckpointLoaderSimple):
     """
     Loads a checkpoint.
@@ -168,6 +218,30 @@ class HuggingFaceCheckpointLoaderXL(HuggingFaceCheckpointLoader):
     @classmethod
     def get_recommended_models(cls) -> list[HFStableDiffusionXL]:
         return HF_STABLE_DIFFUSION_XL_MODELS
+
+
+class HuggingFaceCheckpointLoaderFlux(HuggingFaceCheckpointLoader):
+    model: HFFlux = Field(
+        default=HFFlux(),
+        description="The Flux model to load.",
+    )
+
+    @classmethod
+    def get_title(cls):
+        return "Load HuggingFace Checkpoint Flux"
+
+    @classmethod
+    def get_recommended_models(cls) -> list[HFFlux]:
+        return [
+            HFFlux(
+                repo_id="Comfy-Org/flux1-dev",
+                path="flux1-dev-fp8.safetensors",
+            ),
+            HFFlux(
+                repo_id="Comfy-Org/flux1-schnell",
+                path="flux1-schnell-fp8.safetensors",
+            ),
+        ]
 
 
 class unCLIPCheckpointLoader(ComfyNode):
