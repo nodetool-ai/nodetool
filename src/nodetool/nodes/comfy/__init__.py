@@ -2,9 +2,9 @@ from typing import Any
 import comfy.model_management
 import comfy.sd
 from huggingface_hub import try_to_load_from_cache
+from comfy_extras.nodes_sd3 import EmptySD3LatentImage
 import folder_paths
 from nodetool.common.comfy_node import ComfyNode
-import nodetool.nodes.comfy
 import nodetool.nodes.comfy.advanced
 import nodetool.nodes.comfy.advanced.conditioning
 import nodetool.nodes.comfy.advanced.loaders
@@ -52,33 +52,21 @@ from enum import Enum
 from typing import Optional
 import PIL.Image
 import torch
-from comfy_extras.nodes_custom_sampler import (
-    BasicGuider,
-    BasicScheduler,
-    KSamplerSelect,
-    RandomNoise,
-    SamplerCustomAdvanced,
-)
 from comfy_extras.nodes_flux import FluxGuidance
 from comfy_extras.nodes_model_advanced import ModelSamplingFlux
 from nodes import (
     CLIPTextEncode,
     ControlNetApply,
     ControlNetLoader,
-    DualCLIPLoader,
     EmptyLatentImage,
     KSampler,
     LoraLoader,
-    LoraLoaderModelOnly,
-    UNETLoader,
     VAEDecode,
     VAEDecodeTiled,
     VAEEncode,
     LatentUpscale,
     VAEEncodeForInpaint,
-    VAELoader,
 )
-from comfy_custom_nodes.ComfyUI_bitsandbytes_NF4 import OPS, CheckpointLoaderNF4
 from comfy_extras.nodes_upscale_model import UpscaleModelLoader, ImageUpscaleWithModel
 import PIL.Image
 import torch
@@ -94,6 +82,7 @@ from nodetool.metadata.types import (
     CheckpointFile,
     HFFlux,
     HFStableDiffusion,
+    HFStableDiffusion3,
     HFStableDiffusionXL,
     ImageRef,
     LORAFile,
@@ -240,6 +229,9 @@ class StableDiffusion(BaseNode):
             )  # type: ignore
         return unet, clip
 
+    def get_empty_latent(self, width: int, height: int):
+        return EmptyLatentImage().generate(width, height, 1)[0]
+
     async def get_latent(
         self, vae: comfy.sd.VAE, context: ProcessingContext, width: int, height: int
     ):
@@ -307,7 +299,11 @@ class StableDiffusion(BaseNode):
         unet, clip = self.apply_loras(unet, clip)
         positive_conditioning, negative_conditioning = self.get_conditioning(clip)
 
-        if self.width >= 1024 and self.height >= 1024:
+        if (
+            isinstance(self.model, HFStableDiffusion)
+            and self.width >= 1024
+            and self.height >= 1024
+        ):
             num_lowres_steps = self.num_inference_steps // 4
             num_hires_steps = self.num_inference_steps - num_lowres_steps
             initial_width, initial_height = self.width // 2, self.height // 2
@@ -343,7 +339,10 @@ class StableDiffusion(BaseNode):
                 num_hires_steps,
             )
 
-        decoded_image = VAEDecode().decode(vae, sampled_latent)[0]
+        # Unload the unet
+        comfy.model_management.unload_model_clones(unet)
+
+        decoded_image = VAEDecodeTiled().decode(vae, sampled_latent, 512)[0]
         return await context.image_from_tensor(decoded_image)
 
 
@@ -355,6 +354,40 @@ class StableDiffusionXL(StableDiffusion):
     @classmethod
     def get_recommended_models(cls) -> list[HFStableDiffusionXL]:
         return HF_STABLE_DIFFUSION_XL_MODELS
+
+
+class StableDiffusion3(StableDiffusion):
+    """
+    Generates images using Stable Diffusion 3 model.
+    image, text-to-image, generative AI, stable diffusion 3
+
+    Use cases:
+    - Creating high-quality images with the latest SD3 model
+    - Generating detailed and coherent images from text descriptions
+    - Producing images with improved composition and understanding
+    """
+
+    model: HFStableDiffusion3 = Field(
+        default=HFStableDiffusion3(), description="The model to use."
+    )
+    guidance_scale: float = Field(default=4.0, ge=1.0, le=30.0)
+    num_inference_steps: int = Field(default=20, ge=1, le=100)
+
+    @classmethod
+    def get_title(cls) -> str:
+        return "Stable Diffusion 3.5"
+
+    @classmethod
+    def get_recommended_models(cls) -> list[HFStableDiffusion3]:
+        return [
+            HFStableDiffusion3(
+                repo_id="Comfy-Org/stable-diffusion-3.5-fp8",
+                path="sd3.5_large_fp8_scaled.safetensors",
+            ),
+        ]
+
+    def get_empty_latent(self, width: int, height: int):
+        return EmptySD3LatentImage().generate(width, height, 1)[0]
 
 
 class ControlNet(StableDiffusion):
@@ -588,94 +621,6 @@ class Flux(BaseNode):
         # Decode the latent to image
         # decoded_image = VAEDecode().decode(vae, sampled_latent)[0]
         decoded_image = VAEDecodeTiled().decode(vae, sampled_latent, 512)[0]
-
-        return await context.image_from_tensor(decoded_image)
-
-
-class FluxNF4(BaseNode):
-    """
-    Generates images from text prompts using a Flux NF4 Stable Diffusion workflow.
-    image, text-to-image, generative AI, stable diffusion, flux, nf4
-
-    Use cases:
-    - Creating high-quality images with the Flux NF4 model
-    - Generating images with fine-tuned control over the sampling process
-    - Experimenting with Flux-specific configurations
-    """
-
-    model: HFFlux = Field(default=HFFlux(), description="The model to use.")
-    prompt: str = Field(default="", description="The prompt to use.")
-    width: int = Field(default=1024, ge=64, le=2048, multiple_of=64)
-    height: int = Field(default=1024, ge=64, le=2048, multiple_of=64)
-    batch_size: int = Field(default=1, ge=1, le=16)
-    steps: int = Field(
-        default=30, ge=1, le=100, description="Number of sampling steps."
-    )
-    guidance_scale: float = Field(default=3.5, ge=1.0, le=30.0)
-    scheduler: Scheduler = Field(default=Scheduler.simple)
-    sampler: Sampler = Field(default=Sampler.euler)
-    noise_seed: int = Field(default=0, ge=0, le=1000000000)
-    max_shift: float = Field(default=1.15, ge=0.0, le=2.0)
-    base_shift: float = Field(default=0.5, ge=0.0, le=1.0)
-
-    @classmethod
-    def get_recommended_models(cls) -> list[HFFlux]:
-        return [
-            HFFlux(
-                repo_id="lllyasviel/flux1-dev-bnb-nf4",
-                path="flux1-dev-bnb-nf4-v2.safetensors",
-            ),
-        ]
-
-    async def process(self, context: ProcessingContext) -> ImageRef:
-        if self.model.is_empty():
-            raise ValueError("Model repository ID must be selected.")
-
-        assert self.model.path is not None, "Model path must be set."
-
-        ckpt_path = try_to_load_from_cache(self.model.repo_id, self.model.path)
-
-        out = comfy.sd.load_checkpoint_guess_config(
-            ckpt_path,
-            output_vae=True,
-            output_clip=True,
-            embedding_directory=folder_paths.get_folder_paths("embeddings"),
-            model_options={"custom_operations": OPS},
-        )
-
-        unet, clip, vae, _ = out
-
-        latent = EmptyLatentImage().generate(self.width, self.height, self.batch_size)[
-            0
-        ]
-
-        model = ModelSamplingFlux().patch(
-            model=unet,
-            width=self.width,
-            height=self.height,
-            max_shift=self.max_shift,
-            base_shift=self.base_shift,
-        )[0]
-
-        sampler = KSamplerSelect().get_sampler(self.sampler.value)[0]
-        sigmas = BasicScheduler().get_sigmas(
-            model=model,
-            scheduler=self.scheduler.value,
-            steps=self.steps,
-            denoise=1.0,
-        )[0]
-
-        conditioning = CLIPTextEncode().encode(clip, self.prompt)[0]
-        conditioning = FluxGuidance().append(conditioning, self.guidance_scale)[0]
-
-        guider = BasicGuider().get_guider(model, conditioning)[0]
-        noise = RandomNoise().get_noise(self.noise_seed)[0]
-
-        sampled_latent = SamplerCustomAdvanced().sample(
-            noise, guider, sampler, sigmas, latent
-        )[0]
-
-        decoded_image = VAEDecode().decode(vae, sampled_latent)[0]
 
         return await context.image_from_tensor(decoded_image)
 

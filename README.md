@@ -339,13 +339,6 @@ On Windows and Linux without CUDA:
 pip install -r requirements.txt
 ```
 
-Install binary package for bitsandbytes on Windows:
-
-```bash
-pip uninstall bitsandbytes
-pip install bitsandbytes --prefer-binary --extra-index-url https://jllllll.github.io/bitsandbytes-windows-webui
-```
-
 ### Run without Electron
 
 Ensure you have the Conda environment activated.

@@ -281,6 +281,10 @@ class HFStableDiffusionXL(HuggingFaceModel):
     type: Literal["hf.stable_diffusion_xl"] = "hf.stable_diffusion_xl"
 
 
+class HFStableDiffusion3(HuggingFaceModel):
+    type: Literal["hf.stable_diffusion_3"] = "hf.stable_diffusion_3"
+
+
 class HFFlux(HuggingFaceModel):
     type: Literal["hf.flux"] = "hf.flux"
 

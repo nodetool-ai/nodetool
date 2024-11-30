@@ -6,8 +6,7 @@ import comfy.controlnet
 import comfy.utils
 import comfy.clip_vision
 from huggingface_hub import try_to_load_from_cache
-from pydantic import Field, validator
-from comfy_custom_nodes.ComfyUI_bitsandbytes_NF4 import OPS
+from pydantic import Field
 import folder_paths
 from nodetool.metadata.types import (
     CLIP,
@@ -29,6 +28,7 @@ from nodetool.metadata.types import (
     HFLoraSD,
     HFLoraSDXL,
     HFStableDiffusion,
+    HFStableDiffusion3,
     HFStableDiffusionXL,
     HFUnet,
     IPAdapter,
@@ -87,72 +87,6 @@ class CheckpointLoaderSimple(ComfyNode):
     @classmethod
     def is_cacheable(cls):
         return False
-
-
-class CheckpointLoaderNF4(CheckpointLoaderSimple):
-    @classmethod
-    def get_title(cls):
-        return "Load Checkpoint (NF4)"
-
-    async def process(self, context: ProcessingContext):
-        if self.ckpt_name.is_empty():
-            raise Exception("Checkpoint name must be selected.")
-
-        unet, clip, vae = await self.call_comfy_node(context)
-
-        return {
-            "model": UNet(name=self.ckpt_name.name, model=unet),
-            "clip": CLIP(name=self.ckpt_name.name, model=clip),
-            "vae": VAE(name=self.ckpt_name.name, model=vae),
-        }
-
-
-class HuggingFaceCheckpointLoaderNF4(ComfyNode):
-    model: HFFlux = Field(
-        default=HFFlux(),
-        description="The model to load.",
-    )
-
-    @classmethod
-    def return_type(cls):
-        return {"model": UNet, "clip": CLIP, "vae": VAE}
-
-    @classmethod
-    def get_title(cls):
-        return "Load HuggingFace Checkpoint NF4"
-
-    @classmethod
-    def get_recommended_models(cls) -> list[HFFlux]:
-        return [
-            HFFlux(
-                repo_id="lllyasviel/flux1-dev-bnb-nf4",
-                path="flux1-dev-bnb-nf4-v2.safetensors",
-            ),
-        ]
-
-    async def process(self, context: ProcessingContext):
-        if self.model.is_empty():
-            raise ValueError("Model repository ID must be selected.")
-
-        assert self.model.path is not None, "Model path must be set."
-
-        ckpt_path = try_to_load_from_cache(self.model.repo_id, self.model.path)
-
-        out = comfy.sd.load_checkpoint_guess_config(
-            ckpt_path,
-            output_vae=True,
-            output_clip=True,
-            embedding_directory=folder_paths.get_folder_paths("embeddings"),
-            model_options={"custom_operations": OPS},
-        )
-
-        unet, clip, vae, _ = out
-
-        return {
-            "model": UNet(name=self.model.repo_id, model=unet),
-            "clip": CLIP(name=self.model.repo_id, model=clip),
-            "vae": VAE(name=self.model.repo_id, model=vae),
-        }
 
 
 class CheckpointLoader(CheckpointLoaderSimple):
@@ -220,6 +154,30 @@ class HuggingFaceCheckpointLoaderXL(HuggingFaceCheckpointLoader):
         return HF_STABLE_DIFFUSION_XL_MODELS
 
 
+class HuggingFaceCheckpointLoader3(HuggingFaceCheckpointLoader):
+    model: HFStableDiffusion3 = Field(
+        default=HFStableDiffusion3(),
+        description="The Stable Diffusion 3 model to load.",
+    )
+
+    @classmethod
+    def get_title(cls):
+        return "Load Hugging Face Checkpoint SD3"
+
+    @classmethod
+    def get_recommended_models(cls) -> list[HFStableDiffusion3]:
+        return [
+            HFStableDiffusion3(
+                repo_id="Comfy-Org/stable-diffusion-3.5-fp8",
+                path="sd3.5_large_fp8_scaled.safetensors",
+            ),
+            HFStableDiffusion3(
+                repo_id="Comfy-Org/stable-diffusion-3.5-fp8",
+                path="sd3.5_medium_incl_clips_t5xxlfp8scaled.safetensors",
+            ),
+        ]
+
+
 class HuggingFaceCheckpointLoaderFlux(HuggingFaceCheckpointLoader):
     model: HFFlux = Field(
         default=HFFlux(),
@@ -228,7 +186,7 @@ class HuggingFaceCheckpointLoaderFlux(HuggingFaceCheckpointLoader):
 
     @classmethod
     def get_title(cls):
-        return "Load HuggingFace Checkpoint Flux"
+        return "Load Hugging Face Checkpoint Flux"
 
     @classmethod
     def get_recommended_models(cls) -> list[HFFlux]:
@@ -313,7 +271,7 @@ class HuggingFaceCLIPVisionLoader(ComfyNode):
 
     @classmethod
     def get_title(cls):
-        return "Load HuggingFace CLIP Vision"
+        return "Load Hugging Face CLIP Vision"
 
     @classmethod
     def is_cacheable(cls):
@@ -382,7 +340,7 @@ class HuggingFaceControlNetLoader(ComfyNode):
 
     @classmethod
     def get_title(cls):
-        return "Load HuggingFace ControlNet"
+        return "Load Hugging Face ControlNet"
 
     @classmethod
     def is_cacheable(cls):
@@ -526,7 +484,7 @@ class HuggingFaceLoraLoader(ComfyNode):
 
     @classmethod
     def get_title(cls):
-        return "Load HuggingFace LoRA"
+        return "Load Hugging Face LoRA"
 
     @classmethod
     def return_type(cls):
@@ -573,7 +531,7 @@ class HuggingFaceLoraLoaderXL(HuggingFaceLoraLoader):
 
     @classmethod
     def get_title(cls):
-        return "Load HuggingFace LoRA XL"
+        return "Load Hugging Face LoRA XL"
 
 
 class LoraLoaderModelOnly(ComfyNode):
@@ -636,7 +594,7 @@ class HuggingFaceVAELoader(ComfyNode):
 
     @classmethod
     def get_title(cls):
-        return "Load HuggingFace VAE"
+        return "Load Hugging Face VAE"
 
     @classmethod
     def return_type(cls):
@@ -731,7 +689,7 @@ class HuggingFaceCLIPLoader(ComfyNode):
 
     @classmethod
     def get_title(cls):
-        return "Load HuggingFace CLIP"
+        return "Load Hugging Face CLIP"
 
     @classmethod
     def is_cacheable(cls):
@@ -857,7 +815,7 @@ class HuggingFaceUNetLoader(ComfyNode):
 
     @classmethod
     def get_title(cls):
-        return "Load HuggingFace Diffusion Model"
+        return "Load Hugging Face Model"
 
     @classmethod
     def return_type(cls):
@@ -930,7 +888,7 @@ class HuggingFaceIPAdapterLoader(ComfyNode):
 
     @classmethod
     def get_title(cls):
-        return "Load HuggingFace IPAdapter"
+        return "Load Hugging Face IPAdapter"
 
     @classmethod
     def is_cacheable(cls):

@@ -201,21 +201,6 @@ async function updateCondaEnvironment() {
 
     await runPipCommand(installCommand);
 
-    // Special handling for bitsandbytes on Windows
-    if (process.platform === "win32") {
-      // Uninstall existing bitsandbytes
-      await runPipCommand([pipExecutable, "uninstall", "bitsandbytes", "-y"]);
-
-      // Install from custom index
-      await runPipCommand([
-        pipExecutable,
-        "install",
-        "bitsandbytes",
-        "--extra-index-url",
-        "https://jllllll.github.io/bitsandbytes-windows-webui",
-      ]);
-    }
-
     logMessage("Python packages update completed successfully");
   } catch (error) {
     logMessage(`Failed to update Pip packages: ${error.message}`, "error");
