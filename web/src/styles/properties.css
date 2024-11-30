@@ -170,7 +170,6 @@
 
 .string-property .container .expand-button {
   width: 20px;
-  border: 1px solid var(--c_gray4);
   border-radius: 2px;
 }
 
@@ -443,4 +442,56 @@
 .custom-select .option.selected {
   background-color: var(--c_gray3);
   font-weight: bold;
+}
+
+.expand-button {
+  padding: 6px;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  font-size: 8px;
+  font-weight: 600;
+  border-style: none;
+  background-color: var(--background-paper);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.expand-button:hover {
+  background-color: var(--c_gray2);
+  border-color: var(--c_hl);
+  border-width: 1px;
+  border-style: solid;
+  color: var(--text-primary);
+  /* transform: translateY(1px); */
+  box-shadow: 0 0 1px rgba(0, 0, 0, 0.1);
+}
+
+.expand-button:active {
+  transform: translateY(2px);
+  box-shadow: none;
+}
+
+.container {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.container input {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid var(--c_gray3);
+  border-radius: 4px;
+  color: var(--text-primary);
+}
+
+.container input:focus {
+  border-color: var(--c_hl);
+  box-shadow: 0 0 0 2px var(--c_hl25);
 }
