@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { css, useTheme } from "@emotion/react";
+import { css } from "@emotion/react";
 import { useState, useCallback, memo } from "react";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
@@ -27,14 +27,24 @@ const styles = (theme: any) =>
       }
     },
     ".expand-button": {
-      padding: "4px 8px",
+      padding: "6px",
+      minWidth: "18px",
+      height: "18px",
       border: `1px solid ${theme.palette.c_gray3}`,
-      borderRadius: "4px",
-      backgroundColor: theme.palette.c_gray2,
-      color: theme.palette.c_gray6,
+      borderRadius: "5px",
+      fontSize: "8px",
+      fontWeight: 600,
+      backgroundColor: "transparent",
+      color: theme.palette.text.secondary,
       cursor: "pointer",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      transition: "all 0.2s ease",
       "&:hover": {
-        backgroundColor: theme.palette.action.hover
+        backgroundColor: theme.palette.action.hover,
+        borderColor: theme.palette.c_hl,
+        color: theme.palette.text.primary
       }
     }
   });

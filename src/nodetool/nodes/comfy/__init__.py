@@ -1,5 +1,7 @@
 from typing import Any
 import comfy.sd
+from huggingface_hub import try_to_load_from_cache
+import folder_paths
 from nodetool.common.comfy_node import ComfyNode
 import nodetool.nodes.comfy
 import nodetool.nodes.comfy.advanced
@@ -79,10 +81,17 @@ from comfy_extras.nodes_upscale_model import UpscaleModelLoader, ImageUpscaleWit
 import PIL.Image
 import torch
 
+from nodetool.nodes.huggingface.stable_diffusion_base import (
+    HF_STABLE_DIFFUSION_MODELS,
+    HF_STABLE_DIFFUSION_XL_MODELS,
+)
+
 from .enums import Sampler, Scheduler
 from comfy.model_patcher import ModelPatcher
 from nodetool.metadata.types import (
     CheckpointFile,
+    HFStableDiffusion,
+    HFStableDiffusionXL,
     ImageRef,
     LORAFile,
     LoRAConfig,
@@ -184,9 +193,9 @@ class StableDiffusion(BaseNode):
     - Creating high-resolution images from lower resolution inputs
     """
 
-    model: UNet = Field(default=UNet(), description="The model to use.")
-    vae: VAE = Field(default=VAE(), description="The VAE to use.")
-    clip: CLIP = Field(default=CLIP(), description="The CLIP to use.")
+    model: HFStableDiffusion = Field(
+        default=HFStableDiffusion(), description="The model to use."
+    )
     prompt: str = Field(default="", description="The prompt to use.")
     negative_prompt: str = Field(default="", description="The negative prompt to use.")
     seed: int = Field(default=0, ge=0, le=1000000)
@@ -211,17 +220,26 @@ class StableDiffusion(BaseNode):
 
     _hires_model: ModelPatcher | None = None
 
-    def apply_loras(self):
+    @classmethod
+    def get_recommended_models(cls) -> list[HFStableDiffusion]:
+        return HF_STABLE_DIFFUSION_MODELS
+
+    def apply_loras(
+        self, unet: ModelPatcher, clip: comfy.sd.CLIP
+    ) -> tuple[ModelPatcher, comfy.sd.CLIP]:
         for lora_config in self.loras:
-            self._model, self._clip = LoraLoader().load_lora(
-                self._model,
-                self._clip,
+            unet, clip = LoraLoader().load_lora(
+                unet,
+                clip,
                 lora_config.lora.name,
                 lora_config.strength,
                 lora_config.strength,
-            )
+            )  # type: ignore
+        return unet, clip
 
-    async def get_latent(self, context: ProcessingContext, width: int, height: int):
+    async def get_latent(
+        self, vae: comfy.sd.VAE, context: ProcessingContext, width: int, height: int
+    ):
         if self.input_image.is_empty():
             return EmptyLatentImage().generate(width, height, 1)[0]
         else:
@@ -240,16 +258,14 @@ class StableDiffusion(BaseNode):
                 mask = np.array(mask).astype(np.float32) / 255.0
                 mask_tensor = torch.from_numpy(mask)[None,]
                 return VAEEncodeForInpaint().encode(
-                    self.vae.model, input_tensor, mask_tensor, self.grow_mask_by
+                    vae, input_tensor, mask_tensor, self.grow_mask_by
                 )[0]
             else:
-                return VAEEncode().encode(self.vae.model, input_tensor)[0]
+                return VAEEncode().encode(vae, input_tensor)[0]
 
-    def get_conditioning(self):
-        positive_conditioning = CLIPTextEncode().encode(self._clip, self.prompt)[0]
-        negative_conditioning = CLIPTextEncode().encode(
-            self._clip, self.negative_prompt
-        )[0]
+    def get_conditioning(self, clip: comfy.sd.CLIP) -> tuple[list, list]:
+        positive_conditioning = CLIPTextEncode().encode(clip, self.prompt)[0]
+        negative_conditioning = CLIPTextEncode().encode(clip, self.negative_prompt)[0]
         return positive_conditioning, negative_conditioning
 
     def sample(self, model, latent, positive, negative, num_steps):
@@ -267,8 +283,26 @@ class StableDiffusion(BaseNode):
         )[0]
 
     async def process(self, context: ProcessingContext) -> ImageRef:
-        self.apply_loras()
-        positive_conditioning, negative_conditioning = self.get_conditioning()
+        if self.model.is_empty():
+            raise ValueError("Model repository ID must be selected.")
+
+        assert self.model.path is not None, "Model path must be set."
+
+        ckpt_path = try_to_load_from_cache(self.model.repo_id, self.model.path)
+
+        unet, clip, vae, _ = comfy.sd.load_checkpoint_guess_config(
+            ckpt_path,
+            output_vae=True,
+            output_clip=True,
+            embedding_directory=folder_paths.get_folder_paths("embeddings"),
+        )
+
+        assert unet is not None, "UNet must be loaded."
+        assert clip is not None, "CLIP must be loaded."
+        assert vae is not None, "VAE must be loaded."
+
+        unet, clip = self.apply_loras(unet, clip)
+        positive_conditioning, negative_conditioning = self.get_conditioning(clip)
 
         if self.width >= 1024 and self.height >= 1024:
             num_lowres_steps = self.num_inference_steps // 4
@@ -279,10 +313,10 @@ class StableDiffusion(BaseNode):
             num_lowres_steps = self.num_inference_steps
             initial_width, initial_height = self.width, self.height
 
-        latent = await self.get_latent(context, initial_width, initial_height)
+        latent = await self.get_latent(vae, context, initial_width, initial_height)
 
         sampled_latent = self.sample(
-            self.model.model,
+            unet,
             latent,
             positive_conditioning,
             negative_conditioning,
@@ -299,15 +333,25 @@ class StableDiffusion(BaseNode):
             )[0]
 
             sampled_latent = self.sample(
-                self.model.model,
+                unet,
                 hires_latent,
                 positive_conditioning,
                 negative_conditioning,
                 num_hires_steps,
             )
 
-        decoded_image = VAEDecode().decode(self.vae.model, sampled_latent)[0]
+        decoded_image = VAEDecode().decode(vae, sampled_latent)[0]
         return await context.image_from_tensor(decoded_image)
+
+
+class StableDiffusionXL(StableDiffusion):
+    model: HFStableDiffusionXL = Field(
+        default=HFStableDiffusionXL(), description="The model to use."
+    )
+
+    @classmethod
+    def get_recommended_models(cls) -> list[HFStableDiffusionXL]:
+        return HF_STABLE_DIFFUSION_XL_MODELS
 
 
 class ControlNet(StableDiffusion):
@@ -385,7 +429,25 @@ class ControlNet(StableDiffusion):
         return conditioning
 
     async def process(self, context: ProcessingContext) -> ImageRef:
-        positive_conditioning, negative_conditioning = self.get_conditioning()
+        if self.model.is_empty():
+            raise ValueError("Model repository ID must be selected.")
+
+        assert self.model.path is not None, "Model path must be set."
+
+        ckpt_path = try_to_load_from_cache(self.model.repo_id, self.model.path)
+
+        unet, clip, vae, _ = comfy.sd.load_checkpoint_guess_config(
+            ckpt_path,
+            output_vae=True,
+            output_clip=True,
+            embedding_directory=folder_paths.get_folder_paths("embeddings"),
+        )
+
+        assert unet is not None, "UNet must be loaded."
+        assert clip is not None, "CLIP must be loaded."
+        assert vae is not None, "VAE must be loaded."
+
+        positive_conditioning, negative_conditioning = self.get_conditioning(clip)
 
         if self.width >= 1024 and self.height >= 1024:
             num_hires_steps = self.num_inference_steps // 2
@@ -396,14 +458,14 @@ class ControlNet(StableDiffusion):
             num_lowres_steps = self.num_inference_steps
             initial_width, initial_height = self.width, self.height
 
-        latent = await self.get_latent(context, initial_width, initial_height)
+        latent = await self.get_latent(vae, context, initial_width, initial_height)
 
         positive_conditioning_with_controlnet = await self.apply_controlnet(
             context, initial_width, initial_height, positive_conditioning
         )
 
         sampled_latent = self.sample(
-            self.model.model,
+            unet,
             latent,
             positive_conditioning_with_controlnet,
             negative_conditioning,
@@ -424,14 +486,14 @@ class ControlNet(StableDiffusion):
             )
 
             sampled_latent = self.sample(
-                self.model.model,
+                unet,
                 hires_latent,
                 hires_positive_conditioning,
                 negative_conditioning,
                 num_hires_steps,
             )
 
-        decoded_image = VAEDecode().decode(self.vae.model, sampled_latent)[0]
+        decoded_image = VAEDecode().decode(vae, sampled_latent)[0]
         return await context.image_from_tensor(decoded_image)
 
 
