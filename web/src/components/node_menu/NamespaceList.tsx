@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import React, { memo, useCallback, useMemo } from "react";
+import React, { memo, useMemo } from "react";
 import { ExpandCircleDown } from "@mui/icons-material";
 import { Box, Button, List, Tooltip, Typography } from "@mui/material";
 import { NodeMetadata } from "../../stores/ApiTypes";
@@ -33,13 +33,15 @@ const namespaceStyles = (theme: any) =>
   css({
     "&": {
       // maxHeight: "65vh"
+      margin: "1em 0 0 1em"
     },
     ".header": {
       display: "flex",
       minHeight: "30px",
       alignItems: "center",
       flexDirection: "row",
-      margin: "0 1em .5em 1em"
+      margin: "0 1em .5em 1em",
+      justifyContent: "flex-end"
     },
     ".clear-namespace": {
       padding: "0 ",
@@ -47,21 +49,28 @@ const namespaceStyles = (theme: any) =>
       height: "1em",
       color: theme.palette.c_gray4
     },
+    ".toggle-box": {
+      position: "absolute",
+      left: "1.5em",
+      marginTop: "0.5em"
+    },
     ".list-box": {
       display: "flex",
       overflowY: "auto",
       flexDirection: "row",
       alignItems: "stretch",
       gap: "1em",
-      marginLeft: "1em"
+      marginLeft: "2em"
     },
     ".namespace-list": {
       overflowY: "scroll",
       overflowX: "hidden",
       maxHeight: "55vh",
-      flexShrink: "1"
+      flexShrink: "1",
+      minWidth: "200px"
     },
     ".node-list": {
+      paddingTop: "0",
       maxHeight: "55vh",
       minWidth: "300px",
       paddingRight: ".5em",
@@ -108,10 +117,19 @@ const namespaceStyles = (theme: any) =>
     },
     ".result-info": {
       color: theme.palette.c_white,
-      cursor: "default"
+      cursor: "default",
+      display: "flex",
+      alignItems: "center",
+      gap: "0.25em",
+      fontSize: theme.fontSizeNormal,
+      padding: "0.25em 1em",
+      borderRadius: "4px",
+      backgroundColor: theme.palette.c_gray2,
+      margin: "0 1em"
     },
     ".result-info span": {
-      color: theme.palette.c_gray6
+      color: theme.palette.c_hl1,
+      fontWeight: "500"
     },
     ".no-selection p": {
       margin: "0",
@@ -195,7 +213,9 @@ const namespaceStyles = (theme: any) =>
     ".namespaces .list-item.collapsed": {
       maxHeight: "0",
       opacity: 0,
-      padding: "0 16px"
+      padding: "0",
+      width: "0",
+      overflow: "hidden"
     },
     ".namespaces .list-item.selected": {
       backgroundColor: theme.palette.c_hl1,
@@ -302,14 +322,10 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
       <Box className="header">
         <Tooltip
           title={
-            <span
-              style={{
-                color: "#eee",
-                fontSize: "1.25em"
-              }}
-            >
-              showing the amount of nodes found: <br />
-              [in selected namespace | total search results]
+            <span style={{ color: "#eee", fontSize: "1.25em" }}>
+              Showing nodes found:
+              <br />
+              Selected namespace / Total results
             </span>
           }
           enterDelay={TOOLTIP_ENTER_DELAY}
@@ -318,14 +334,13 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
           placement="bottom"
         >
           <Typography className="result-info">
-            <span>
-              [{currentNodes?.length} | {searchResults.length}]
-            </span>
+            <span>{currentNodes?.length}</span> /{" "}
+            <span>{searchResults.length}</span>
           </Typography>
         </Tooltip>
       </Box>
 
-      <Box className="list-box">
+      <Box className="toggle-box">
         <Tooltip
           title={showNamespaceTree ? "Hide namespaces" : "Show namespaces"}
           placement="bottom"
@@ -338,7 +353,9 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
             {showNamespaceTree ? <ExpandCircleDown /> : <ExpandCircleDown />}
           </Button>
         </Tooltip>
+      </Box>
 
+      <Box className="list-box">
         <List
           className="namespace-list"
           sx={{ display: showNamespaceTree ? "block" : "none" }}

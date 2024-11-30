@@ -206,20 +206,6 @@ export default function NodeMenu({ focusSearchInput = false }: NodeMenuProps) {
               onPressEscape={closeNodeMenu}
               searchResults={searchResults}
             />
-            {/* <Tooltip
-              title="Clear namespace selection"
-              placement="bottom"
-              enterDelay={TOOLTIP_ENTER_DELAY}
-            >
-              <Button
-                className={`clear-namespace ${
-                  selectedPath.length === 0 ? "disabled" : ""
-                }`}
-                onClick={() => setSelectedPath([])}
-              >
-                <ClearIcon />
-              </Button>
-            </Tooltip> */}
 
             <TypeFilter
               selectedInputType={selectedInputType}

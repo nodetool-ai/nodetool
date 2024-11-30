@@ -54,6 +54,7 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
         backgroundColor: theme.palette.c_gray2,
         color: theme.palette.c_gray4,
         margin: "1px 0 0 .5em",
+        minHeight: "34px",
         padding: "0",
         border: "0",
         borderRadius: 5,
@@ -82,6 +83,7 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
       },
       ".type-filter label": {
         position: "absolute",
+        fontSize: theme.fontSizeNormal,
         color: ThemeNodetool.palette.c_gray4,
         padding: ".4em"
       },
@@ -91,9 +93,9 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
       },
       ".type-filter .MuiSelect-select": {
         textAlign: "left",
-        padding: "0 2em 0 .5em",
-        fontSize: theme.fontSizeSmall,
-        fontWeight: 200
+        fontSize: theme.fontSizeNormal,
+        padding: ".2em 2em .2em .5em",
+        height: "28px"
       }
     });
 

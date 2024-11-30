@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo, useRef } from "react";
+import { memo, useCallback, useMemo, useRef, useLayoutEffect } from "react";
 // mui
 // store
 import { NodeMetadata } from "../../stores/ApiTypes";
@@ -63,6 +63,8 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
 
   const groupedNodes = useMemo(() => groupNodes(nodes), [nodes]);
 
+  const focusedNodeRef = useRef<HTMLDivElement>(null);
+
   const renderNode = useCallback(
     (node: NodeMetadata, index: number) => {
       const isHovered = hoveredNode?.node_type === node.node_type;
@@ -71,6 +73,7 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
       return (
         <NodeItem
           key={node.node_type}
+          ref={isFocused ? focusedNodeRef : undefined}
           node={node}
           isHovered={isHovered}
           isFocused={isFocused}
@@ -99,7 +102,16 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
     ]
   );
 
+  useLayoutEffect(() => {
+    if (focusedNodeRef.current) {
+      focusedNodeRef.current.scrollIntoView({
+        block: "nearest"
+      });
+    }
+  }, [focusedNodeIndex]);
+
   const elements = useMemo(() => {
+    let globalIndex = 0;
     return Object.entries(groupedNodes).flatMap(
       ([namespace, nodesInNamespace]) => [
         <Typography
@@ -110,7 +122,11 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
         >
           {namespace}
         </Typography>,
-        ...nodesInNamespace.map(renderNode)
+        ...nodesInNamespace.map((node) => {
+          const element = renderNode(node, globalIndex);
+          globalIndex += 1;
+          return element;
+        })
       ]
     );
   }, [groupedNodes, renderNode]);

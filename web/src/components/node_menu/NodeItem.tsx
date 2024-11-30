@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo } from "react";
+import { memo, useCallback, useMemo, forwardRef } from "react";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import ThemeNodetool from "../themes/ThemeNodetool";
@@ -17,109 +17,120 @@ interface NodeItemProps {
   onClick: () => void;
   isFocused: boolean;
 }
-const NodeItem: React.FC<NodeItemProps> = ({
-  node,
-  isHovered,
-  isFocused,
-  onMouseEnter,
-  onMouseLeave,
-  onDragStart,
-  onInfoClick,
-  onClick
-}: NodeItemProps) => {
-  const outputType = node.outputs.length > 0 ? node.outputs[0].type.type : "";
-  const searchTerm = useNodeMenuStore((state) => state.searchTerm);
+const NodeItem = memo(
+  forwardRef<HTMLDivElement, NodeItemProps>(
+    (
+      {
+        node,
+        isHovered,
+        isFocused,
+        onMouseEnter,
+        onMouseLeave,
+        onDragStart,
+        onInfoClick,
+        onClick
+      },
+      ref
+    ) => {
+      const outputType =
+        node.outputs.length > 0 ? node.outputs[0].type.type : "";
+      const searchTerm = useNodeMenuStore((state) => state.searchTerm);
 
-  const highlightNodeTitle = useCallback(
-    (title: string): string => {
-      if (!searchTerm) return title;
-      const regex = new RegExp(`(${searchTerm})`, "gi");
-      return title.replace(
-        regex,
-        `<span class="highlight" style="border-bottom: 1px solid ${ThemeNodetool.palette.c_hl1}">$1</span>`
+      const highlightNodeTitle = useCallback(
+        (title: string): string => {
+          if (!searchTerm) return title;
+          const regex = new RegExp(`(${searchTerm})`, "gi");
+          return title.replace(
+            regex,
+            `<span class="highlight" style="border-bottom: 1px solid ${ThemeNodetool.palette.c_hl1}">$1</span>`
+          );
+        },
+        [searchTerm]
       );
-    },
-    [searchTerm]
-  );
 
-  const infoStyle = useMemo(
-    () => ({
-      color: isHovered
-        ? ThemeNodetool.palette.c_hl1
-        : ThemeNodetool.palette.c_gray3
-    }),
-    [isHovered]
-  );
-  const handleInfoMouseEnter = useCallback(() => {
-    onMouseEnter();
-  }, [onMouseEnter]);
+      const infoStyle = useMemo(
+        () => ({
+          color: isHovered
+            ? ThemeNodetool.palette.c_hl1
+            : ThemeNodetool.palette.c_gray3
+        }),
+        [isHovered]
+      );
+      const handleInfoMouseEnter = useCallback(() => {
+        onMouseEnter();
+      }, [onMouseEnter]);
 
-  const handleInfoMouseLeave = useCallback(() => {
-    onMouseLeave();
-  }, [onMouseLeave]);
+      const handleInfoMouseLeave = useCallback(() => {
+        onMouseLeave();
+      }, [onMouseLeave]);
 
-  return (
-    <div
-      className={`node ${isHovered ? "hovered" : ""} ${
-        isFocused ? "focused" : ""
-      }`}
-      draggable
-      onDragStart={onDragStart}
-    >
-      <IconForType
-        iconName={outputType}
-        containerStyle={{
-          borderRadius: "0 0 3px 0",
-          marginLeft: "0.1em",
-          marginTop: "0"
-        }}
-        bgStyle={{
-          backgroundColor: "#333",
-          margin: "0",
-          padding: "1px",
-          borderRadius: "0 0 3px 0",
-          boxShadow: "inset 1px 1px 2px #00000044",
-          width: "20px",
-          height: "20px"
-        }}
-        svgProps={{
-          width: "15px",
-          height: "15px"
-        }}
-      />
-      <div
-        className="node-button"
-        onClick={onClick}
-        style={{
-          cursor: "pointer",
-          padding: "8px 16px",
-          display: "flex",
-          alignItems: "center"
-        }}
-      >
-        <Typography fontSize="small">
-          {searchTerm ? (
-            <span
-              dangerouslySetInnerHTML={{
-                __html: highlightNodeTitle(node.title)
-              }}
-            />
-          ) : (
-            node.title
-          )}
-        </Typography>
-      </div>
-      <span
-        style={infoStyle}
-        onMouseEnter={handleInfoMouseEnter}
-        onMouseLeave={handleInfoMouseLeave}
-        onClick={onInfoClick}
-        className="node-info"
-      >
-        <InfoOutlined />
-      </span>
-    </div>
-  );
-};
+      return (
+        <div
+          className={`node ${isHovered ? "hovered" : ""} ${
+            isFocused ? "focused" : ""
+          }`}
+          draggable
+          onDragStart={onDragStart}
+          ref={ref}
+        >
+          <IconForType
+            iconName={outputType}
+            containerStyle={{
+              borderRadius: "0 0 3px 0",
+              marginLeft: "0.1em",
+              marginTop: "0"
+            }}
+            bgStyle={{
+              backgroundColor: "#333",
+              margin: "0",
+              padding: "1px",
+              borderRadius: "0 0 3px 0",
+              boxShadow: "inset 1px 1px 2px #00000044",
+              width: "20px",
+              height: "20px"
+            }}
+            svgProps={{
+              width: "15px",
+              height: "15px"
+            }}
+          />
+          <div
+            className="node-button"
+            onClick={onClick}
+            style={{
+              cursor: "pointer",
+              padding: "8px 16px",
+              display: "flex",
+              alignItems: "center"
+            }}
+          >
+            <Typography fontSize="small">
+              {searchTerm ? (
+                <span
+                  dangerouslySetInnerHTML={{
+                    __html: highlightNodeTitle(node.title)
+                  }}
+                />
+              ) : (
+                node.title
+              )}
+            </Typography>
+          </div>
+          <span
+            style={infoStyle}
+            onMouseEnter={handleInfoMouseEnter}
+            onMouseLeave={handleInfoMouseLeave}
+            onClick={onInfoClick}
+            className="node-info"
+          >
+            <InfoOutlined />
+          </span>
+        </div>
+      );
+    }
+  )
+);
 
-export default memo(NodeItem, isEqual);
+NodeItem.displayName = "NodeItem";
+
+export default NodeItem;
