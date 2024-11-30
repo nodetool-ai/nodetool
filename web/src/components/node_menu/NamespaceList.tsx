@@ -2,7 +2,8 @@
 import { css } from "@emotion/react";
 
 import React, { memo, useCallback, useMemo } from "react";
-import { Box, List, Tooltip, Typography } from "@mui/material";
+import { ExpandCircleDown } from "@mui/icons-material";
+import { Box, Button, List, Tooltip, Typography } from "@mui/material";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import RenderNamespaces from "./RenderNamespaces";
 import RenderNodes from "./RenderNodes";
@@ -58,7 +59,6 @@ const namespaceStyles = (theme: any) =>
       overflowY: "scroll",
       overflowX: "hidden",
       maxHeight: "55vh",
-      minWidth: "220px",
       flexShrink: "1"
     },
     ".node-list": {
@@ -207,6 +207,16 @@ const namespaceStyles = (theme: any) =>
     ".namespaces .list-item p": {},
     ".namespaces .sublist": {
       paddingLeft: "1em"
+    },
+    ".toggle-tree": {
+      "&.open .MuiSvgIcon-root": {
+        transition: "transform 0.3s ease",
+        transform: "rotate(-90deg)"
+      },
+      "& .MuiSvgIcon-root": {
+        transition: "transform 0.3s ease",
+        transform: "rotate(0deg)"
+      }
     }
   });
 
@@ -222,7 +232,8 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
     hoveredNode,
     showNamespaceTree,
     selectedInputType,
-    selectedOutputType
+    selectedOutputType,
+    toggleNamespaceTree
   } = useNodeMenuStore((state) => ({
     searchTerm: state.searchTerm,
     highlightedNamespaces: state.highlightedNamespaces,
@@ -231,7 +242,8 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
     hoveredNode: state.hoveredNode,
     showNamespaceTree: state.showNamespaceTree,
     selectedInputType: state.selectedInputType,
-    selectedOutputType: state.selectedOutputType
+    selectedOutputType: state.selectedOutputType,
+    toggleNamespaceTree: state.toggleNamespaceTree
   }));
 
   const selectedPathString = useMemo(
@@ -314,6 +326,19 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
       </Box>
 
       <Box className="list-box">
+        <Tooltip
+          title={showNamespaceTree ? "Hide namespaces" : "Show namespaces"}
+          placement="bottom"
+          enterDelay={TOOLTIP_ENTER_DELAY}
+        >
+          <Button
+            className={`toggle-tree ${showNamespaceTree ? "open" : ""}`}
+            onClick={toggleNamespaceTree}
+          >
+            {showNamespaceTree ? <ExpandCircleDown /> : <ExpandCircleDown />}
+          </Button>
+        </Tooltip>
+
         <List
           className="namespace-list"
           sx={{ display: showNamespaceTree ? "block" : "none" }}

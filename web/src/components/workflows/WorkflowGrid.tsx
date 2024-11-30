@@ -26,6 +26,7 @@ import { ErrorOutlineRounded } from "@mui/icons-material";
 import { useNodeStore } from "../../stores/NodeStore";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
+import AddIcon from "@mui/icons-material/Add";
 
 const tile_width = "200px";
 const tile_height = "200px";
@@ -36,12 +37,11 @@ const styles = (theme: any) =>
       display: "flex",
       flexDirection: "row",
       gap: "1em",
-      alignItems: "flex-start",
+      alignItems: "center",
       margin: "2em 1em 1em 1.5em"
     },
     ".tools button": {
-      fontSize: "0.7em",
-      height: "2em"
+      fontSize: "0.7em"
     },
     ".filter": {
       width: "20em"
@@ -387,7 +387,18 @@ const WorkflowGrid = () => {
       />
       <div css={styles}>
         <div className="tools">
-          <Button variant="outlined" onClick={handleCreateWorkflow}>
+          <Button
+            variant="outlined"
+            onClick={handleCreateWorkflow}
+            startIcon={<AddIcon />}
+            sx={{
+              fontWeight: "bold",
+              textTransform: "none",
+              minWidth: "140px",
+              height: "36px",
+              padding: "6px 16px"
+            }}
+          >
             Create New
           </Button>
           <SearchInput
@@ -398,7 +409,7 @@ const WorkflowGrid = () => {
             exclusive
             value={settings.workflowLayout}
             onChange={handleLayoutChange}
-            sx={{ mb: 2 }}
+            sx={{ height: "36px" }}
           >
             <ToggleButton value="grid">
               <ViewModuleIcon />
@@ -412,6 +423,7 @@ const WorkflowGrid = () => {
             onChange={handleOrderChange}
             exclusive
             aria-label="Sort workflows"
+            sx={{ height: "36px" }}
           >
             <ToggleButton value="name" aria-label="Sort by name">
               Name
@@ -431,6 +443,7 @@ const WorkflowGrid = () => {
                 );
                 setIsDeleteDialogOpen(true);
               }}
+              sx={{ height: "36px" }}
             >
               Delete Selected
             </Button>

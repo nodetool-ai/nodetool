@@ -27,37 +27,42 @@ const styles = (theme: any) =>
     },
     ".search-input": {
       width: "100%",
-      height: "25px",
       flexShrink: "0"
     },
     "input[type='text']": {
       outline: "none",
-      padding: ".5em",
+      padding: "0 2.5em 0 1em",
       margin: "0",
+      height: "36px",
       WebkitAppearance: "none",
       MozAppearance: "none",
       appearance: "none",
-      color: "#ddd",
-      backgroundColor: "#313131",
-      border: "none",
+      color: "#ffffff",
+      backgroundColor: "#1a1a1a",
+      border: "1px solid #404040",
       borderRadius: "5px",
-      transition: "background-color 0.2s"
+      transition: "all 0.2s"
     },
     "input[type='text']:focus": {
-      backgroundColor: theme.palette.c_gray1,
+      backgroundColor: "#2a2a2a",
+      borderColor: theme.palette.c_hl1,
       outline: "none"
     },
     ".clear-search-btn": {
       position: "absolute",
       cursor: "pointer",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
       width: "2em",
+      height: "100%",
       top: 0,
-      right: "0.2em",
-      padding: "0.1em 0em 0.2em 0.1em",
+      right: "0.7em",
       border: 0,
       backgroundColor: "transparent",
       color: theme.palette.c_gray4,
       transition: "color 0.2s",
+      padding: 0,
       "& svg": {
         fontSize: "1.4rem"
       },

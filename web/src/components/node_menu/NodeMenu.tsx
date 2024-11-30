@@ -4,10 +4,8 @@ import { css } from "@emotion/react";
 import { useEffect, useMemo, useRef } from "react";
 
 // mui
-import { IconButton, Box, Button, Tooltip } from "@mui/material";
+import { IconButton, Box } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import { ExpandCircleDown } from "@mui/icons-material";
 
 // components
 import TypeFilter from "./TypeFilter";
@@ -17,7 +15,6 @@ import useNodeMenuStore from "../../stores/NodeMenuStore";
 
 // utils
 import Draggable from "react-draggable";
-import { TOOLTIP_ENTER_DELAY } from "../node/BaseNode";
 // theme
 import ThemeNodetool from "../themes/ThemeNodetool";
 import useNamespaceTree from "../../hooks/useNamespaceTree";
@@ -130,9 +127,7 @@ export default function NodeMenu({ focusSearchInput = false }: NodeMenuProps) {
     selectedOutputType,
     setSelectedOutputType,
     searchTerm,
-    setSearchTerm,
-    showNamespaceTree,
-    toggleNamespaceTree
+    setSearchTerm
   } = useNodeMenuStore((state) => ({
     isMenuOpen: state.isMenuOpen,
     closeNodeMenu: state.closeNodeMenu,
@@ -148,9 +143,7 @@ export default function NodeMenu({ focusSearchInput = false }: NodeMenuProps) {
     setSelectedOutputType: state.setSelectedOutputType,
     searchTerm: state.searchTerm,
     setSearchTerm: state.setSearchTerm,
-    setSelectedPath: state.setSelectedPath,
-    showNamespaceTree: state.showNamespaceTree,
-    toggleNamespaceTree: state.toggleNamespaceTree
+    setSelectedPath: state.setSelectedPath
   }));
 
   useCombo(["Escape"], closeNodeMenu);
@@ -202,16 +195,6 @@ export default function NodeMenu({ focusSearchInput = false }: NodeMenuProps) {
         </div>
         <Box className="node-menu-container">
           <Box className="search-toolbar">
-            <Tooltip
-              title={showNamespaceTree ? "Hide namespaces" : "Show namespaces"}
-              placement="bottom"
-              enterDelay={TOOLTIP_ENTER_DELAY}
-            >
-              <Button className="toggle-tree" onClick={toggleNamespaceTree}>
-                {showNamespaceTree ? <ExpandCircleDown /> : <ExpandMoreIcon />}
-              </Button>
-            </Tooltip>
-
             <SearchInput
               focusSearchInput={focusSearchInput}
               focusOnTyping={true}
