@@ -2,8 +2,7 @@
 import { css } from "@emotion/react";
 
 import React, { memo, useMemo } from "react";
-import { ExpandCircleDown } from "@mui/icons-material";
-import { Box, Button, List, Tooltip, Typography } from "@mui/material";
+import { Box, List, Tooltip, Typography } from "@mui/material";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import RenderNamespaces from "./RenderNamespaces";
 import RenderNodes from "./RenderNodes";
@@ -32,7 +31,6 @@ interface NamespaceListProps {
 const namespaceStyles = (theme: any) =>
   css({
     "&": {
-      // maxHeight: "65vh"
       margin: "1em 0 0 1em"
     },
     ".header": {
@@ -44,30 +42,30 @@ const namespaceStyles = (theme: any) =>
       justifyContent: "flex-end"
     },
     ".clear-namespace": {
-      padding: "0 ",
+      padding: "0",
       width: ".5em",
       height: "1em",
       color: theme.palette.c_gray4
-    },
-    ".toggle-box": {
-      position: "absolute",
-      left: "1.5em",
-      marginTop: "0.5em"
     },
     ".list-box": {
       display: "flex",
       overflowY: "auto",
       flexDirection: "row",
       alignItems: "stretch",
-      gap: "1em",
-      marginLeft: "2em"
+      gap: "2em",
+      marginLeft: "0"
     },
     ".namespace-list": {
       overflowY: "scroll",
       overflowX: "hidden",
       maxHeight: "55vh",
       flexShrink: "1",
-      minWidth: "200px"
+      minWidth: "200px",
+      boxShadow: "inset 0 0 10px rgba(0, 0, 0, 0.4)",
+      borderRadius: "8px",
+      display: "flex",
+      flexDirection: "column",
+      gap: "0"
     },
     ".node-list": {
       paddingTop: "0",
@@ -176,11 +174,11 @@ const namespaceStyles = (theme: any) =>
     },
     ".namespace-text": {
       color: theme.palette.c_gray4,
-      fontWeight: "normal",
-      borderBottom: `1px solid ${theme.palette.c_gray2}`,
-      borderTop: `1px solid ${theme.palette.c_gray2}`,
-      padding: ".25em 0",
-      margin: "1em 0 .5em"
+      fontWeight: "500",
+      borderBottom: `1px solid ${theme.palette.c_gray3}`,
+      borderTop: `1px solid ${theme.palette.c_gray3}`,
+      padding: ".5em 0",
+      letterSpacing: "0.5px"
     },
     ".node-info:hover": {
       color: theme.palette.c_hl1
@@ -191,20 +189,28 @@ const namespaceStyles = (theme: any) =>
       display: "flex",
       alignItems: "center"
     },
+    ".namespaces": {
+      display: "flex",
+      flexDirection: "column",
+      gap: "0"
+    },
     ".namespaces .list-item": {
       cursor: "pointer",
-      padding: ".2em .5em",
+      padding: ".4em .75em",
       backgroundColor: "transparent",
-      borderLeft: `3px solid ${theme.palette.c_gray2}`,
+      borderLeft: `3px solid ${theme.palette.c_gray3}`,
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeNormal,
       fontWeight: "300",
-      transition: "all 0.3s ease-in-out",
+      transition: "all 0.2s ease-in-out",
       maxHeight: "40px",
-      overflow: "hidden"
+      overflow: "hidden",
+      margin: "0",
+      borderRadius: "0 4px 4px 0"
     },
     ".namespaces .list-item:hover": {
-      backgroundColor: theme.palette.c_gray2
+      backgroundColor: theme.palette.c_gray3,
+      borderLeft: `3px solid ${theme.palette.c_hl1}`
     },
     ".namespaces .list-item.expanded": {
       maxHeight: "40px",
@@ -219,24 +225,15 @@ const namespaceStyles = (theme: any) =>
     },
     ".namespaces .list-item.selected": {
       backgroundColor: theme.palette.c_hl1,
-      color: theme.palette.c_black
+      color: theme.palette.c_black,
+      borderLeft: `3px solid ${theme.palette.c_hl1}`,
+      fontWeight: "500"
     },
     ".namespaces .list-item.highlighted": {
-      borderLeft: `2px solid ${theme.palette.c_hl1}`
+      borderLeft: `3px solid ${theme.palette.c_hl1}`
     },
-    ".namespaces .list-item p": {},
     ".namespaces .sublist": {
       paddingLeft: "1em"
-    },
-    ".toggle-tree": {
-      "&.open .MuiSvgIcon-root": {
-        transition: "transform 0.3s ease",
-        transform: "rotate(-90deg)"
-      },
-      "& .MuiSvgIcon-root": {
-        transition: "transform 0.3s ease",
-        transform: "rotate(0deg)"
-      }
     }
   });
 
@@ -250,20 +247,16 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
     selectedPath,
     searchResults,
     hoveredNode,
-    showNamespaceTree,
     selectedInputType,
-    selectedOutputType,
-    toggleNamespaceTree
+    selectedOutputType
   } = useNodeMenuStore((state) => ({
     searchTerm: state.searchTerm,
     highlightedNamespaces: state.highlightedNamespaces,
     selectedPath: state.selectedPath,
     searchResults: state.searchResults,
     hoveredNode: state.hoveredNode,
-    showNamespaceTree: state.showNamespaceTree,
     selectedInputType: state.selectedInputType,
-    selectedOutputType: state.selectedOutputType,
-    toggleNamespaceTree: state.toggleNamespaceTree
+    selectedOutputType: state.selectedOutputType
   }));
 
   const selectedPathString = useMemo(
@@ -340,28 +333,8 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
         </Tooltip>
       </Box>
 
-      <Box className="toggle-box">
-        <Tooltip
-          title={showNamespaceTree ? "Hide namespaces" : "Show namespaces"}
-          placement="bottom"
-          enterDelay={TOOLTIP_ENTER_DELAY}
-        >
-          <Button
-            className={`toggle-tree ${showNamespaceTree ? "open" : ""}`}
-            onClick={toggleNamespaceTree}
-          >
-            {showNamespaceTree ? <ExpandCircleDown /> : <ExpandCircleDown />}
-          </Button>
-        </Tooltip>
-      </Box>
-
       <Box className="list-box">
-        <List
-          className="namespace-list"
-          sx={{ display: showNamespaceTree ? "block" : "none" }}
-        >
-          {renderNamespaces}
-        </List>
+        <List className="namespace-list">{renderNamespaces}</List>
         {currentNodes && currentNodes.length > 0 ? (
           <>
             <List className="node-list">{renderNodes}</List>

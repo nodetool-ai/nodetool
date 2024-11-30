@@ -42,8 +42,6 @@ type NodeMenuStore = {
   setSearchTerm: (term: string) => void;
   selectedPath: string[];
   setSelectedPath: (path: string[]) => void;
-  showNamespaceTree: boolean;
-  toggleNamespaceTree: () => void;
   performSearch: (term: string) => void;
   updateHighlightedNamespaces: (results: NodeMetadata[]) => void;
 
@@ -126,13 +124,6 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => ({
       selectedPath: path
     });
   },
-  showNamespaceTree: true,
-  toggleNamespaceTree: () =>
-    set((state) => ({
-      showNamespaceTree: !state.showNamespaceTree,
-      selectedPath: state.showNamespaceTree ? [] : state.selectedPath
-    })),
-
   openNodeMenu: (
     x,
     y,
