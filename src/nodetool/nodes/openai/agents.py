@@ -751,6 +751,10 @@ class ChartGenerator(BaseNode):
     - Converting data analysis requirements into visual representations
     """
 
+    model: GPTModel = Field(
+        default=GPTModel.GPT4Mini,
+        description="The GPT model to use for chart generation.",
+    )
     prompt: str = Field(
         default="",
         description="Natural language description of the desired chart",
@@ -774,10 +778,6 @@ class ChartGenerator(BaseNode):
     columns: RecordType = Field(
         default=RecordType(),
         description="The columns available in the data.",
-    )
-    model: GPTModel = Field(
-        default=GPTModel.GPT4Mini,
-        description="The GPT model to use for chart generation.",
     )
 
     async def process(self, context: ProcessingContext) -> ChartConfig:
