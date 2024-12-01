@@ -301,6 +301,10 @@ class HFIPAdapter(HuggingFaceModel):
     type: Literal["hf.ip_adapter"] = "hf.ip_adapter"
 
 
+class HFStyleModel(HuggingFaceModel):
+    type: Literal["hf.style_model"] = "hf.style_model"
+
+
 class HFLoraSD(HuggingFaceModel):
     type: Literal["hf.lora_sd"] = "hf.lora_sd"
 
@@ -612,6 +616,10 @@ class InstantIDFile(ModelFile):
     type: Literal["comfy.instant_id_file"] = "comfy.instant_id_file"
 
 
+class StyleModelFile(ModelFile):
+    type: Literal["comfy.style_model_file"] = "comfy.style_model_file"
+
+
 def comfy_model_to_folder(type_name: str) -> str:
     folder_mapping = {
         "comfy.checkpoint_file": "checkpoints",
@@ -651,10 +659,6 @@ class CLIPVision(ComfyModel):
     type: Literal["comfy.clip_vision"] = "comfy.clip_vision"
 
 
-class CLIPVisionOutput(BaseType):
-    type: Literal["comfy.clip_vision_output"] = "comfy.clip_vision_output"
-
-
 class GLIGEN(ComfyModel):
     type: Literal["comfy.gligen"] = "comfy.gligen"
 
@@ -687,6 +691,10 @@ class IPAdapter(ComfyModel):
     type: Literal["comfy.ip_adapter"] = "comfy.ip_adapter"
 
 
+class StyleModel(ComfyModel):
+    type: Literal["comfy.style_model"] = "comfy.style_model"
+
+
 comfy_data_types = set()
 
 
@@ -715,6 +723,10 @@ class Conditioning(ComfyData):
 
 class Noise(ComfyData):
     type: Literal["comfy.noise"] = "comfy.noise"
+
+
+class CLIPVisionOutput(ComfyData):
+    type: Literal["comfy.clip_vision_output"] = "comfy.clip_vision_output"
 
 
 class Guider(ComfyData):

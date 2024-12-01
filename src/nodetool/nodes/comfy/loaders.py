@@ -30,6 +30,7 @@ from nodetool.metadata.types import (
     HFStableDiffusion,
     HFStableDiffusion3,
     HFStableDiffusionXL,
+    HFStyleModel,
     HFUnet,
     IPAdapter,
     IPAdapterFile,
@@ -40,6 +41,8 @@ from nodetool.metadata.types import (
     UpscaleModelFile,
     VAEFile,
     unCLIPFile,
+    StyleModel,
+    StyleModelFile,
 )
 from nodetool.common.comfy_node import ComfyNode
 from nodetool.nodes.huggingface.lora import HF_LORA_SD_MODELS, HF_LORA_SDXL_MODELS
@@ -111,7 +114,7 @@ class HuggingFaceCheckpointLoader(ComfyNode):
 
     @classmethod
     def get_title(cls):
-        return "Load HuggingFace Checkpoint"
+        return "Load Checkpoint from Huggingface"
 
     @classmethod
     def get_recommended_models(cls) -> list[HFStableDiffusion]:
@@ -147,7 +150,7 @@ class HuggingFaceCheckpointLoaderXL(HuggingFaceCheckpointLoader):
 
     @classmethod
     def get_title(cls):
-        return "Load Hugging Face Checkpoint XL"
+        return "Load SDXL Checkpoint from Huggingface"
 
     @classmethod
     def get_recommended_models(cls) -> list[HFStableDiffusionXL]:
@@ -162,7 +165,7 @@ class HuggingFaceCheckpointLoader3(HuggingFaceCheckpointLoader):
 
     @classmethod
     def get_title(cls):
-        return "Load Hugging Face Checkpoint SD3"
+        return "Load SD3 Checkpoint from Huggingface"
 
     @classmethod
     def get_recommended_models(cls) -> list[HFStableDiffusion3]:
@@ -186,7 +189,7 @@ class HuggingFaceCheckpointLoaderFlux(HuggingFaceCheckpointLoader):
 
     @classmethod
     def get_title(cls):
-        return "Load Hugging Face Checkpoint Flux"
+        return "Load Flux Checkpoint from Huggingface"
 
     @classmethod
     def get_recommended_models(cls) -> list[HFFlux]:
@@ -198,6 +201,10 @@ class HuggingFaceCheckpointLoaderFlux(HuggingFaceCheckpointLoader):
             HFFlux(
                 repo_id="Comfy-Org/flux1-schnell",
                 path="flux1-schnell-fp8.safetensors",
+            ),
+            HFFlux(
+                repo_id="black-forest-labs/FLUX.1-Fill-dev",
+                path="flux1-fill-dev.safetensors",
             ),
         ]
 
@@ -260,6 +267,10 @@ class HuggingFaceCLIPVisionLoader(ComfyNode):
     def get_recommended_models(cls) -> list[HFCLIPVision]:
         return [
             HFCLIPVision(
+                repo_id="Comfy-Org/sigclip_vision_384",
+                path="sigclip_vision_patch14_384.safetensors",
+            ),
+            HFCLIPVision(
                 repo_id="h94/IP-Adapter",
                 path="models/image_encoder/model.safetensors",
             ),
@@ -271,7 +282,7 @@ class HuggingFaceCLIPVisionLoader(ComfyNode):
 
     @classmethod
     def get_title(cls):
-        return "Load Hugging Face CLIP Vision"
+        return "Load CLIP Vision from Huggingface"
 
     @classmethod
     def is_cacheable(cls):
@@ -340,7 +351,7 @@ class HuggingFaceControlNetLoader(ComfyNode):
 
     @classmethod
     def get_title(cls):
-        return "Load Hugging Face ControlNet"
+        return "Load ControlNet from Huggingface"
 
     @classmethod
     def is_cacheable(cls):
@@ -484,7 +495,7 @@ class HuggingFaceLoraLoader(ComfyNode):
 
     @classmethod
     def get_title(cls):
-        return "Load Hugging Face LoRA"
+        return "Load LoRA from Huggingface"
 
     @classmethod
     def return_type(cls):
@@ -531,7 +542,7 @@ class HuggingFaceLoraLoaderXL(HuggingFaceLoraLoader):
 
     @classmethod
     def get_title(cls):
-        return "Load Hugging Face LoRA XL"
+        return "Load LoRA XL from Huggingface"
 
 
 class LoraLoaderModelOnly(ComfyNode):
@@ -594,7 +605,7 @@ class HuggingFaceVAELoader(ComfyNode):
 
     @classmethod
     def get_title(cls):
-        return "Load Hugging Face VAE"
+        return "Load VAE from Huggingface"
 
     @classmethod
     def return_type(cls):
@@ -607,6 +618,10 @@ class HuggingFaceVAELoader(ComfyNode):
                 repo_id="Comfy-Org/mochi_preview_repackaged",
                 path="split_files/vae/mochi_vae.safetensors",
             ),
+            HFVAE(
+                repo_id="black-forest-labs/FLUX.1-schnell",
+                path="ae.safetensors",
+            ),
         ]
 
     async def process(self, context: ProcessingContext):
@@ -617,6 +632,9 @@ class HuggingFaceVAELoader(ComfyNode):
             raise Exception("VAE path must be set.")
 
         vae_path = try_to_load_from_cache(self.model.repo_id, self.model.path)
+
+        if vae_path is None:
+            raise Exception("VAE path not found in cache.")
 
         (vae,) = await self.call_comfy_node(context, "VAELoader", vae_name=vae_path)
 
@@ -689,7 +707,7 @@ class HuggingFaceCLIPLoader(ComfyNode):
 
     @classmethod
     def get_title(cls):
-        return "Load Hugging Face CLIP"
+        return "Load CLIP from Huggingface"
 
     @classmethod
     def is_cacheable(cls):
@@ -756,6 +774,75 @@ class DualCLIPLoader(ComfyNode):
         return {"clip": CLIP}
 
 
+class HuggingFaceDualCLIPLoader(ComfyNode):
+    type: DualCLIPEnum = Field(
+        default=DualCLIPEnum.SDXL,
+        description="The type of the dual CLIP model to load.",
+    )
+    clip_model_1: HFCLIP = Field(
+        default=HFCLIP(),
+        description="The first CLIP model to load.",
+    )
+    clip_model_2: HFCLIP = Field(
+        default=HFCLIP(),
+        description="The second CLIP model to load.",
+    )
+
+    @classmethod
+    def get_recommended_models(cls) -> list[HFCLIP]:
+        return [
+            HFCLIP(
+                repo_id="comfyanonymous/flux_text_encoders", path="clip_l.safetensors"
+            ),
+            HFCLIP(
+                repo_id="comfyanonymous/flux_text_encoders",
+                path="t5xxl_fp16.safetensors",
+            ),
+        ]
+
+    async def process(self, context: ProcessingContext):
+        if self.clip_model_1.repo_id == "" or self.clip_model_1.path is None:
+            raise Exception("Model 1 must be selected")
+
+        if self.clip_model_2.repo_id == "" or self.clip_model_2.path is None:
+            raise Exception("Model 2 must be selected")
+
+        clip_path1 = try_to_load_from_cache(
+            self.clip_model_1.repo_id, self.clip_model_1.path
+        )
+        clip_path2 = try_to_load_from_cache(
+            self.clip_model_2.repo_id, self.clip_model_2.path
+        )
+
+        if self.type == DualCLIPEnum.SDXL:
+            clip_type = comfy.sd.CLIPType.STABLE_DIFFUSION
+        elif self.type == DualCLIPEnum.SD3:
+            clip_type = comfy.sd.CLIPType.SD3
+        elif self.type == DualCLIPEnum.FLUX:
+            clip_type = comfy.sd.CLIPType.FLUX
+
+        clip = comfy.sd.load_clip(
+            ckpt_paths=[clip_path1, clip_path2],
+            embedding_directory=folder_paths.get_folder_paths("embeddings"),
+            clip_type=clip_type,
+        )
+
+        return {
+            "clip": CLIP(
+                name=self.clip_model_1.repo_id + "+" + self.clip_model_2.repo_id,
+                model=clip,
+            )
+        }
+
+    @classmethod
+    def get_title(cls):
+        return "Load Dual CLIP from Huggingface"
+
+    @classmethod
+    def return_type(cls):
+        return {"clip": CLIP}
+
+
 class WeightDataTypeEnum(str, Enum):
     DEFAULT = "default"
     FP8_E4M3FN = "fp8_e4m3fn"
@@ -811,11 +898,19 @@ class HuggingFaceUNetLoader(ComfyNode):
                 repo_id="Comfy-Org/mochi_preview_repackaged",
                 path="split_files/diffusion_models/mochi_preview_fp8_scaled.safetensors",
             ),
+            HFUnet(
+                repo_id="black-forest-labs/FLUX.1-dev",
+                path="flux1-dev.safetensors",
+            ),
+            HFUnet(
+                repo_id="black-forest-labs/FLUX.1-schnell",
+                path="flux1-schnell.safetensors",
+            ),
         ]
 
     @classmethod
     def get_title(cls):
-        return "Load Hugging Face Model"
+        return "Load Diffusion Model from Huggingface"
 
     @classmethod
     def return_type(cls):
@@ -888,7 +983,7 @@ class HuggingFaceIPAdapterLoader(ComfyNode):
 
     @classmethod
     def get_title(cls):
-        return "Load Hugging Face IPAdapter"
+        return "Load IPAdapter from Huggingface"
 
     @classmethod
     def is_cacheable(cls):
@@ -913,3 +1008,81 @@ class HuggingFaceIPAdapterLoader(ComfyNode):
         model = comfy.utils.load_torch_file(ckpt_path, safe_load=True)
 
         return {"ipadapter": IPAdapter(name=self.ipadapter.path, model=model)}
+
+
+class StyleModelLoader(ComfyNode):
+    """
+    Loads a style model.
+    """
+
+    style_model_name: StyleModelFile = Field(
+        default=StyleModelFile(), description="The name of the style model to load."
+    )
+
+    @classmethod
+    def return_type(cls):
+        return {"style_model": StyleModel}
+
+    @classmethod
+    def get_title(cls):
+        return "Load Style Model"
+
+    @classmethod
+    def is_cacheable(cls):
+        return False
+
+    async def process(self, context: ProcessingContext):
+        if self.style_model_name.is_empty():
+            raise Exception("Style model name must be selected.")
+
+        (style_model,) = await self.call_comfy_node(context)
+        return {
+            "style_model": StyleModel(
+                name=self.style_model_name.name, model=style_model
+            )
+        }
+
+
+class HuggingFaceStyleModelLoader(ComfyNode):
+    """
+    Loads a style model from HuggingFace.
+    """
+
+    model: HFStyleModel = Field(
+        default=HFStyleModel(),
+        description="The style model to load.",
+    )
+
+    @classmethod
+    def get_recommended_models(cls) -> list[HFStyleModel]:
+        return [
+            HFStyleModel(
+                repo_id="black-forest-labs/FLUX.1-Redux-dev",
+                path="flux1-redux-dev.safetensors",
+            ),
+        ]
+
+    @classmethod
+    def get_title(cls):
+        return "Load Style Model from Huggingface"
+
+    @classmethod
+    def is_cacheable(cls):
+        return False
+
+    @classmethod
+    def return_type(cls):
+        return {"style_model": StyleModel}
+
+    async def process(self, context: ProcessingContext):
+        if self.model.is_empty():
+            raise Exception("Style model must be selected.")
+
+        assert self.model.path is not None, "Model path must be set"
+
+        style_model_path = try_to_load_from_cache(self.model.repo_id, self.model.path)
+        assert style_model_path is not None, "Style model path not found."
+
+        style_model = comfy.sd.load_style_model(style_model_path)
+
+        return {"style_model": StyleModel(name=self.model.repo_id, model=style_model)}

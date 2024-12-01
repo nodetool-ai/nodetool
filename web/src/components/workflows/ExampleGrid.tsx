@@ -20,13 +20,17 @@ const styles = (theme: any) =>
   css({
     ".container": {
       display: "flex",
-      flexWrap: "wrap"
+      flexWrap: "wrap",
+      alignItems: "flex-start"
     },
     ".workflow": {
       flex: "1 0 200px",
       margin: "20px",
       maxWidth: "200px",
-      cursor: "pointer"
+      cursor: "pointer",
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "flex-start"
     },
     ".loading-indicator": {
       display: "flex",
@@ -106,9 +110,14 @@ const ExampleGrid = () => {
   }, [data]);
 
   const filteredWorkflows = useMemo(() => {
-    if (!selectedTag || !groupedWorkflows[selectedTag])
-      return data?.workflows || [];
-    return groupedWorkflows[selectedTag];
+    const workflows =
+      !selectedTag || !groupedWorkflows[selectedTag]
+        ? data?.workflows || []
+        : groupedWorkflows[selectedTag];
+
+    return [...workflows].sort((a, b) =>
+      a.name.toLowerCase().localeCompare(b.name.toLowerCase())
+    );
   }, [selectedTag, groupedWorkflows, data]);
 
   return (

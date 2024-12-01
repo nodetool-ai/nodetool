@@ -33,6 +33,7 @@ async def create(
             )
         )
     elif workflow_request.comfy_workflow:
+        print(workflow_request.comfy_workflow)
         edges, nodes = read_graph(workflow_request.comfy_workflow)
         return Workflow.from_model(
             WorkflowModel.create(

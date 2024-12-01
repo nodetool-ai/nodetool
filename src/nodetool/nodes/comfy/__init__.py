@@ -1,6 +1,7 @@
 from typing import Any
 import comfy.model_management
 import comfy.sd
+import comfy.utils
 from huggingface_hub import try_to_load_from_cache
 from comfy_extras.nodes_sd3 import EmptySD3LatentImage
 import folder_paths
@@ -79,11 +80,14 @@ from nodetool.nodes.huggingface.stable_diffusion_base import (
 from .enums import Sampler, Scheduler
 from comfy.model_patcher import ModelPatcher
 from nodetool.metadata.types import (
+    HFCLIP,
+    HFVAE,
     CheckpointFile,
     HFFlux,
     HFStableDiffusion,
     HFStableDiffusion3,
     HFStableDiffusionXL,
+    HFUnet,
     ImageRef,
     LORAFile,
     LoRAConfig,
@@ -544,6 +548,142 @@ class Flux(BaseNode):
     - Producing images with specific artistic styles
     """
 
+    clip1: HFCLIP = Field(default=HFCLIP(), description="The first CLIP model to use.")
+    clip2: HFCLIP = Field(default=HFCLIP(), description="The second CLIP model to use.")
+    vae: HFVAE = Field(default=HFVAE(), description="The VAE model to use.")
+    unet: HFUnet = Field(default=HFUnet(), description="The UNet model to use.")
+    prompt: str = Field(default="", description="The prompt to use.")
+    negative_prompt: str = Field(default="", description="The negative prompt to use.")
+    width: int = Field(default=1024, ge=64, le=2048, multiple_of=64)
+    height: int = Field(default=1024, ge=64, le=2048, multiple_of=64)
+    batch_size: int = Field(default=1, ge=1, le=16)
+    steps: int = Field(default=20, ge=1, le=100)
+    guidance_scale: float = Field(default=1.0, ge=1.0, le=30.0)
+    seed: int = Field(default=0, ge=0, le=1000000000)
+    denoise: float = Field(default=1.0, ge=0.0, le=1.0)
+    scheduler: Scheduler = Field(default=Scheduler.simple)
+    sampler: Sampler = Field(default=Sampler.euler)
+
+    @classmethod
+    def get_title(cls) -> str:
+        return "Flux"
+
+    @classmethod
+    def get_recommended_models(cls):
+        return [
+            HFVAE(
+                repo_id="black-forest-labs/FLUX.1-schnell",
+                path="ae.safetensors",
+            ),
+            HFCLIP(
+                repo_id="comfyanonymous/flux_text_encoders", path="clip_l.safetensors"
+            ),
+            HFCLIP(
+                repo_id="comfyanonymous/flux_text_encoders",
+                path="t5xxl_fp16.safetensors",
+            ),
+            HFUnet(
+                repo_id="black-forest-labs/FLUX.1-dev",
+                path="flux1-dev.safetensors",
+            ),
+            HFUnet(
+                repo_id="black-forest-labs/FLUX.1-schnell",
+                path="flux1-schnell.safetensors",
+            ),
+        ]
+
+    async def process(self, context: ProcessingContext) -> ImageRef:
+        if (
+            self.clip1.is_empty()
+            or self.clip2.is_empty()
+            or self.vae.is_empty()
+            or self.unet.is_empty()
+        ):
+            raise ValueError("All models must be selected.")
+
+        assert self.unet.path is not None, "UNet model path must be set."
+        assert self.vae.path is not None, "VAE model path must be set."
+        assert self.clip1.path is not None, "First CLIP model path must be set."
+        assert self.clip2.path is not None, "Second CLIP model path must be set."
+
+        ckpt_path = try_to_load_from_cache(self.unet.repo_id, self.unet.path)
+        assert (
+            ckpt_path is not None
+        ), "Flux model checkpoint not found. Download from Recommended Models."
+
+        clip1_path = try_to_load_from_cache(self.clip1.repo_id, self.clip1.path)
+        assert (
+            clip1_path is not None
+        ), "First CLIP model checkpoint not found. Download from Recommended Models."
+
+        clip2_path = try_to_load_from_cache(self.clip2.repo_id, self.clip2.path)
+        assert (
+            clip2_path is not None
+        ), "Second CLIP model checkpoint not found. Download from Recommended Models."
+
+        vae_path = try_to_load_from_cache(self.vae.repo_id, self.vae.path)
+        assert (
+            vae_path is not None
+        ), "VAE model checkpoint not found. Download from Recommended Models."
+
+        model = comfy.sd.load_unet(ckpt_path)
+
+        clip = comfy.sd.load_clip(
+            ckpt_paths=[clip1_path, clip2_path],
+            embedding_directory=folder_paths.get_folder_paths("embeddings"),
+            clip_type=comfy.sd.CLIPType.FLUX,
+        )
+
+        sd = comfy.utils.load_torch_file(vae_path)
+        vae = comfy.sd.VAE(sd=sd)
+
+        # Create empty latent
+        latent = EmptySD3LatentImage().generate(
+            self.width, self.height, self.batch_size
+        )[0]
+
+        # Generate conditioning
+        positive = CLIPTextEncode().encode(clip, self.prompt)[0]
+        negative = CLIPTextEncode().encode(clip, self.negative_prompt)[0]
+
+        # Apply Flux guidance
+        positive = FluxGuidance().append(positive, self.guidance_scale)[0]
+
+        # Sample the image
+        sampled_latent = KSampler().sample(
+            model=model,
+            seed=self.seed,
+            steps=self.steps,
+            cfg=self.guidance_scale,
+            sampler_name=self.sampler.value,
+            scheduler=self.scheduler.value,
+            positive=positive,
+            negative=negative,
+            latent_image=latent,
+            denoise=self.denoise,
+        )[0]
+
+        # Unload the base models
+        comfy.model_management.unload_model_clones(model)
+
+        # Decode the latent to image
+        # decoded_image = VAEDecode().decode(vae, sampled_latent)[0]
+        decoded_image = VAEDecodeTiled().decode(vae, sampled_latent, 512)[0]
+
+        return await context.image_from_tensor(decoded_image)
+
+
+class FluxFP8(BaseNode):
+    """
+    Generates images from text prompts using the Flux model.
+    image, text-to-image, generative AI, flux
+
+    Use cases:
+    - Creating high-quality anime-style illustrations
+    - Generating detailed character artwork
+    - Producing images with specific artistic styles
+    """
+
     model: HFFlux = Field(default=HFFlux(), description="The model to use.")
     prompt: str = Field(default="", description="The prompt to use.")
     negative_prompt: str = Field(default="", description="The negative prompt to use.")
@@ -556,6 +696,10 @@ class Flux(BaseNode):
     denoise: float = Field(default=1.0, ge=0.0, le=1.0)
     scheduler: Scheduler = Field(default=Scheduler.simple)
     sampler: Sampler = Field(default=Sampler.euler)
+
+    @classmethod
+    def get_title(cls) -> str:
+        return "Flux FP8"
 
     @classmethod
     def get_recommended_models(cls) -> list[HFFlux]:

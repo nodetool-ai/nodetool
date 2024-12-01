@@ -13,6 +13,7 @@ from nodetool.metadata.types import (
     LORAFile,
     Latent,
     Mask,
+    StyleModel,
     UNet,
     VAEFile,
 )
@@ -511,3 +512,57 @@ class SVD_img2vid_Conditioning(ComfyNode):
     @classmethod
     def return_type(cls):
         return {"positive": Conditioning, "negative": Conditioning, "latent": Latent}
+
+
+class InpaintModelConditioning(ComfyNode):
+    """
+    The Inpaint Model Conditioning node prepares conditioning for inpainting models by combining the input image, mask, and conditioning information.
+    """
+
+    positive: Conditioning = Field(
+        default=Conditioning(), description="The positive conditioning to apply."
+    )
+    negative: Conditioning = Field(
+        default=Conditioning(), description="The negative conditioning to apply."
+    )
+    vae: VAE = Field(default=VAE(), description="The VAE model to use.")
+    pixels: ImageRef = Field(
+        default=ImageRef(), description="The input image to inpaint."
+    )
+    mask: Mask = Field(
+        default=Mask(), description="The mask indicating areas to inpaint."
+    )
+
+    @classmethod
+    def get_title(cls):
+        return "Inpaint Model Conditioning"
+
+    @classmethod
+    def return_type(cls):
+        return {"positive": Conditioning, "negative": Conditioning, "latent": Latent}
+
+
+class StyleModelApply(ComfyNode):
+    """
+    The Style Model Apply node applies a style model to the conditioning using CLIP vision output,
+    allowing for style transfer effects in the generation process.
+    """
+
+    conditioning: Conditioning = Field(
+        default=Conditioning(), description="The conditioning to modify."
+    )
+    style_model: StyleModel = Field(
+        default=StyleModel(), description="The style model to apply."
+    )
+    clip_vision_output: CLIPVisionOutput = Field(
+        default=CLIPVisionOutput(),
+        description="The CLIP vision output to use for styling.",
+    )
+
+    @classmethod
+    def get_title(cls):
+        return "Apply Style Model"
+
+    @classmethod
+    def return_type(cls):
+        return {"conditioning": Conditioning}

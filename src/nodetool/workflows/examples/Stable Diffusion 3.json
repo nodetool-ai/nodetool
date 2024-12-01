@@ -4,7 +4,7 @@
   "created_at": "2024-11-30T22:08:06.205548",
   "updated_at": "2024-11-30T22:08:06.205563",
   "name": "Stable Diffusion 3",
-  "description": "created from comfy",
+  "description": "Stability's latest model",
   "tags": [
     "comfy"
   ],

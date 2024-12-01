@@ -125,7 +125,7 @@ class DownloadManager:
         self.api = HfApi()
         self.logger = logging.getLogger(__name__)
         self.downloads: dict[str, DownloadState] = {}
-        self.process_pool = ProcessPoolExecutor(max_workers=2)
+        self.process_pool = ProcessPoolExecutor(max_workers=4)
         self.manager = Manager()
 
     async def start_download(
@@ -137,6 +137,7 @@ class DownloadManager:
         ignore_patterns: list[str] | None = None,
     ):
         id = repo_id if path is None else f"{repo_id}/{path}"
+
         if id in self.downloads:
             self.logger.warning(f"Download already in progress for: {id}")
             await websocket.send_json(
@@ -303,6 +304,11 @@ def download_file(repo_id: str, filename: str, queue: Queue):
 
 
 class CustomTqdm(huggingface_hub.file_download.tqdm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if parent_queue and "initial" in kwargs:
+            parent_queue.put({"n": kwargs["initial"]})
+
     def update(self, n=1):
         if n and parent_queue:
             parent_queue.put({"n": n})
@@ -326,6 +332,7 @@ async def websocket_endpoint(websocket: WebSocket):
             ignore_patterns = data.get("ignore_patterns")
 
             if command == "start_download":
+                print(f"Starting download for {repo_id}/{path}")
                 await download_manager.start_download(
                     repo_id=repo_id,
                     path=path,

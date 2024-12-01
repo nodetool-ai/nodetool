@@ -129,3 +129,20 @@ class KSamplerAdvanced(ComfyNode):
     @classmethod
     def return_type(cls):
         return {"latent": Latent}
+
+
+class DifferentialDiffusion(ComfyNode):
+    """
+    Implements differential diffusion by modifying the model's denoise mask function.
+    Adapted from https://github.com/exx8/differential-diffusion
+    """
+
+    model: UNet = Field(default=UNet(), description="The model to modify.")
+
+    @classmethod
+    def get_title(cls):
+        return "Differential Diffusion"
+
+    @classmethod
+    def return_type(cls):
+        return {"model": UNet}
