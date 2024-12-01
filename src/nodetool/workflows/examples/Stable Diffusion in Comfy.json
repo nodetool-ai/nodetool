@@ -9,7 +9,7 @@
     "comfy"
   ],
   "thumbnail": "",
-  "thumbnail_url": "/examples/stable_diffusion.jpg",
+  "thumbnail_url": "/examples/stable_diffusion_comfy.jpg",
   "graph": {
     "nodes": [
       {
