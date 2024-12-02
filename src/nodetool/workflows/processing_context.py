@@ -903,6 +903,7 @@ class ProcessingContext:
         buffer: IO,
         name: str | None = None,
         parent_id: str | None = None,
+        content_type: str = "audio/mp3",
     ) -> AudioRef:
         """
         Creates an AudioRef from an IO object.
@@ -911,13 +912,17 @@ class ProcessingContext:
             buffer (IO): The IO object.
             name (Optional[str], optional): The name of the asset. Defaults to None
             parent_id (Optional[str], optional): The parent ID of the asset. Defaults to None.
+            content_type (str, optional): The content type of the asset. Defaults to "audio/mp3".
 
         Returns:
             AudioRef: The AudioRef object.
         """
         if name:
             asset = await self.create_asset(
-                name=name, content_type="audio/mp3", content=buffer, parent_id=parent_id
+                name=name,
+                content_type=content_type,
+                content=buffer,
+                parent_id=parent_id,
             )
             return AudioRef(asset_id=asset.id, uri=asset.get_url or "")
         else:
@@ -1003,7 +1008,7 @@ class ProcessingContext:
 
         """
         buffer = BytesIO()
-        audio_segment.export(buffer, format="mp3")
+        audio_segment.export(buffer, format="opus")
         buffer.seek(0)
         return await self.audio_from_io(buffer, name=name, parent_id=parent_id)
 

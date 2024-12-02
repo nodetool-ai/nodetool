@@ -7,6 +7,7 @@ from typing import List, Tuple, cast
 from pydub.silence import detect_nonsilent
 from pydub.silence import split_on_silence
 
+
 def convert_to_float(audio_data: np.ndarray):
     """
     Converts audio data from integer format to float format.
@@ -87,7 +88,14 @@ def concatenate_audios(audios: List[AudioSegment]) -> AudioSegment:
     return concatenated_audio
 
 
-def remove_silence(audio: AudioSegment, min_length: int = 100, threshold: int = -32, reduction_factor: float = 1.0, crossfade: int = 10, min_silence_between_parts: int = 100) -> AudioSegment:
+def remove_silence(
+    audio: AudioSegment,
+    min_length: int = 100,
+    threshold: int = -32,
+    reduction_factor: float = 1.0,
+    crossfade: int = 10,
+    min_silence_between_parts: int = 100,
+) -> AudioSegment:
     """
     Remove or shorten silence from an audio segment with crossfade to avoid clipping.
 
@@ -103,8 +111,10 @@ def remove_silence(audio: AudioSegment, min_length: int = 100, threshold: int = 
     Returns:
         AudioSegment: The processed audio.
     """
-    nonsilent_ranges = detect_nonsilent(audio, min_silence_len=min_length, silence_thresh=threshold)
-    
+    nonsilent_ranges = detect_nonsilent(
+        audio, min_silence_len=min_length, silence_thresh=threshold
+    )
+
     if not isinstance(nonsilent_ranges, list):
         nonsilent_ranges = list(nonsilent_ranges)
 
@@ -118,12 +128,16 @@ def remove_silence(audio: AudioSegment, min_length: int = 100, threshold: int = 
         # Process the silent part before this non-silent range
         silence_duration = start - prev_end
         if silence_duration > 0:
-            reduced_silence = max(silence_duration * (1 - reduction_factor), min_silence_between_parts)
-            silence_segment = audio[prev_end:prev_end + int(reduced_silence)]
+            reduced_silence = max(
+                silence_duration * (1 - reduction_factor), min_silence_between_parts
+            )
+            silence_segment = audio[prev_end : prev_end + int(reduced_silence)]
             silence_segment = cast(AudioSegment, silence_segment)
-            
+
             if len(result) > 0:
-                result = result.append(silence_segment, crossfade=min(crossfade, len(silence_segment)))
+                result = result.append(
+                    silence_segment, crossfade=min(crossfade, len(silence_segment))
+                )
             else:
                 result += silence_segment
 
@@ -131,7 +145,9 @@ def remove_silence(audio: AudioSegment, min_length: int = 100, threshold: int = 
         non_silent_segment = audio[start:end]
         non_silent_segment = cast(AudioSegment, non_silent_segment)
         if len(result) > 0:
-            result = result.append(non_silent_segment, crossfade=min(crossfade, len(non_silent_segment)))
+            result = result.append(
+                non_silent_segment, crossfade=min(crossfade, len(non_silent_segment))
+            )
         else:
             result += non_silent_segment
 
@@ -140,10 +156,14 @@ def remove_silence(audio: AudioSegment, min_length: int = 100, threshold: int = 
     # Process any silence at the end
     if prev_end < len(audio):
         silence_duration = len(audio) - prev_end
-        reduced_silence = max(silence_duration * (1 - reduction_factor), min_silence_between_parts)
-        final_silence = audio[prev_end:prev_end + int(reduced_silence)]
+        reduced_silence = max(
+            silence_duration * (1 - reduction_factor), min_silence_between_parts
+        )
+        final_silence = audio[prev_end : prev_end + int(reduced_silence)]
         final_silence = cast(AudioSegment, final_silence)
-        result = result.append(final_silence, crossfade=min(crossfade, len(final_silence)))
+        result = result.append(
+            final_silence, crossfade=min(crossfade, len(final_silence))
+        )
 
     return result
 
@@ -196,23 +216,6 @@ def get_audio_metadata(audio: AudioSegment) -> dict:
     }
 
 
-def convert_audio_format(audio: AudioSegment, format: str) -> AudioSegment:
-    """
-    Convert the audio to the given format.
-
-    Args:
-        audio (AudioSegment): The audio to convert.
-        format (str): The format to convert the audio to.
-
-    Returns:
-        AudioSegment: The converted audio segment.
-    """
-    buffer = io.BytesIO()
-    audio.export(buffer, format=format)
-    buffer.seek(0)
-    return AudioSegment.from_file(buffer, format=format)
-
-
 def export_audio(
     audio: AudioSegment, file_path: str, format: str, codec: str, bitrate: str
 ) -> None:
@@ -227,21 +230,6 @@ def export_audio(
         bitrate (str): The bitrate to use for the exported audio.
     """
     audio.export(file_path, format=format, codec=codec, bitrate=bitrate)
-
-
-def convert_audio_to_bytes(audio: AudioSegment) -> bytes:
-    """
-    Convert the audio to bytes.
-
-    Args:
-        audio (AudioSegment): The audio to convert.
-
-    Returns:
-        bytes: The audio as bytes.
-    """
-    with io.BytesIO() as buffer:
-        audio.export(buffer, format="MP3")
-        return buffer.getvalue()
 
 
 def normalize_audio(audio: AudioSegment) -> AudioSegment:
