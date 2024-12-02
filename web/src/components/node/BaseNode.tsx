@@ -119,9 +119,12 @@ const styles = (colors: string[]) =>
         borderRadius: "inherit",
         zIndex: -20,
         animation: `${gradientAnimationKeyframes} 5s ease-in-out infinite`,
-
         transition: "opacity 0.5s ease-in-out"
       }
+    },
+
+    "&.is-loading::before": {
+      opacity: 1
     }
   });
 

@@ -1,8 +1,8 @@
 {
   "id": "hires_fix",
   "access": "public",
-  "created_at": "2024-10-19T20:52:19.465661",
-  "updated_at": "2024-10-19T20:52:19.465680",
+  "created_at": "2024-12-02T17:00:50.929255",
+  "updated_at": "2024-12-02T17:00:50.929274",
   "name": "High Resolution in Comfy",
   "description": "",
   "tags": [
@@ -26,7 +26,6 @@
           "denoise": 1
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 600,
             "y": 148
@@ -46,7 +45,6 @@
           "batch_size": 1
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 330,
             "y": 161
@@ -64,7 +62,6 @@
           "text": "A serene Japanese garden at twilight, cherry blossoms in full bloom. A traditional wooden bridge arches over a koi pond, with lanterns casting a warm glow. Mount Fuji looms in the misty background. Watercolor style, soft pastel colors, Studio Ghibli inspired, dreamy atmosphere, golden hour lighting, 4k resolution."
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 330,
             "y": 338
@@ -82,7 +79,6 @@
           "text": "bad hands, text, watermark\n"
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 330,
             "y": 517
@@ -98,7 +94,6 @@
         "type": "comfy.latent.VAEDecode",
         "data": {},
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 860,
             "y": 145
@@ -119,7 +114,6 @@
           "crop": "disabled"
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 860,
             "y": 326
@@ -143,7 +137,6 @@
           "denoise": 0.5
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 1120,
             "y": 358
@@ -159,7 +152,6 @@
         "type": "comfy.latent.VAEDecode",
         "data": {},
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 1380,
             "y": 89
@@ -175,7 +167,7 @@
         "type": "comfy.loaders.HuggingFaceCheckpointLoader",
         "data": {
           "model": {
-            "type": "hf.stable_diffusion",
+            "type": "hf.checkpoint_model",
             "repo_id": "SG161222/Realistic_Vision_V5.1_noVAE",
             "path": "Realistic_Vision_V5.1_fp16-no-ema.safetensors"
           }
@@ -199,7 +191,6 @@
           "name": "image_image_2024-08-06"
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 1120,
             "y": 137
@@ -218,7 +209,6 @@
           "name": "image_image_2024-08-06"
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 1610,
             "y": 50
@@ -263,7 +253,6 @@
           "headline": "High Res Fix"
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 64,
             "y": -179

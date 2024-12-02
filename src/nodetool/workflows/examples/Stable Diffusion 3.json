@@ -110,7 +110,7 @@
         "type": "comfy.loaders.HuggingFaceCheckpointLoader",
         "data": {
           "model": {
-            "type": "hf.stable_diffusion_3",
+            "type": "hf.checkpoint_model_3",
             "repo_id": "Comfy-Org/stable-diffusion-3.5-fp8",
             "path": "sd3.5_large_fp8_scaled.safetensors"
           }

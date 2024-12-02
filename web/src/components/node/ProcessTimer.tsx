@@ -26,10 +26,6 @@ export const ProcessTimer = ({ status }: { status: string }) => {
     };
   }, [status]);
 
-  if (status === "completed") {
-    return null;
-  }
-
   return (
     <div className={"process-timer"}>
       {status === "starting" && (
@@ -42,6 +38,9 @@ export const ProcessTimer = ({ status }: { status: string }) => {
         <Box sx={{ color: "white" }}>{seconds} running...</Box>
       )}
       {status === "failed" && <Box sx={{ color: "red" }}>failed</Box>}
+      {status === "completed" && (
+        <Box sx={{ color: "white" }}>completed in {seconds}</Box>
+      )}
     </div>
   );
 };

@@ -113,7 +113,7 @@
         "type": "comfy.loaders.HuggingFaceCheckpointLoader",
         "data": {
           "model": {
-            "type": "hf.stable_diffusion_xl",
+            "type": "hf.checkpoint_model_xl",
             "repo_id": "stabilityai/stable-diffusion-xl-base-1.0",
             "path": "sd_xl_base_1.0.safetensors"
           }
