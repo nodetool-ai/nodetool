@@ -48,9 +48,19 @@ const HuggingFaceModelSelect = ({
             path: lora.path
           }));
       } else {
-        const recommendedModels = metadata?.recommendedModels.filter(
-          (model) => model.type === modelType
-        );
+        const recommendedModels =
+          modelType === "hf.checkpoint_model"
+            ? metadata?.recommendedModels.filter(
+                (model) =>
+                  model.type === "hf.stable_diffusion" ||
+                  model.type === "hf.stable_diffusion_xl" ||
+                  model.type === "hf.stable_diffusion_3" ||
+                  model.type === "hf.flux" ||
+                  model.type === "hf.ltxv"
+              )
+            : metadata?.recommendedModels.filter(
+                (model) => model.type === modelType
+              );
         const models = await loadHuggingFaceModels();
         return (
           recommendedModels?.reduce((acc, recommendedModel) => {

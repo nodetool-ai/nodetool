@@ -40,6 +40,7 @@ import nodetool.nodes.comfy.latent.batch
 import nodetool.nodes.comfy.latent.inpaint
 import nodetool.nodes.comfy.latent.stable_cascade
 import nodetool.nodes.comfy.latent.transform
+import nodetool.nodes.comfy.latent.video
 import nodetool.nodes.comfy.loaders
 import nodetool.nodes.comfy.mask
 import nodetool.nodes.comfy.mask.compositing
@@ -54,7 +55,6 @@ from typing import Optional
 import PIL.Image
 import torch
 from comfy_extras.nodes_flux import FluxGuidance
-from comfy_extras.nodes_model_advanced import ModelSamplingFlux
 from nodes import (
     CLIPTextEncode,
     ControlNetApply,
@@ -68,10 +68,10 @@ from nodes import (
     LatentUpscale,
     VAEEncodeForInpaint,
 )
-from comfy_extras.nodes_upscale_model import UpscaleModelLoader, ImageUpscaleWithModel
 import PIL.Image
 import torch
 
+from nodetool.nodes.huggingface.image_to_image import HF_CONTROLNET_MODELS
 from nodetool.nodes.huggingface.stable_diffusion_base import (
     HF_STABLE_DIFFUSION_MODELS,
     HF_STABLE_DIFFUSION_XL_MODELS,
@@ -83,6 +83,7 @@ from nodetool.metadata.types import (
     HFCLIP,
     HFVAE,
     CheckpointFile,
+    HFControlNet,
     HFFlux,
     HFStableDiffusion,
     HFStableDiffusion3,
@@ -408,62 +409,52 @@ class ControlNet(StableDiffusion):
     - Creating high-resolution images with consistent controlled features
     """
 
-    canny_image: ImageRef = Field(
+    controlnet: HFControlNet = Field(
+        default=HFControlNet(), description="The ControlNet model to use."
+    )
+
+    image: ImageRef = Field(
         default=ImageRef(), description="Canny edge detection image for ControlNet"
     )
-    depth_image: ImageRef = Field(
-        default=ImageRef(), description="Depth map image for ControlNet"
-    )
-    canny_strength: float = Field(
+    strength: float = Field(
         default=1.0,
         ge=0.0,
         le=1.0,
-        description="Strength of Canny ControlNet (used for both low and high resolution)",
-    )
-    depth_strength: float = Field(
-        default=1.0,
-        ge=0.0,
-        le=1.0,
-        description="Strength of Depth ControlNet (used for both low and high resolution)",
+        description="Strength of ControlNet (used for both low and high resolution)",
     )
 
-    _canny_controlnet: ModelPatcher | None = None
-    _depth_controlnet: ModelPatcher | None = None
-
-    async def initialize(self, context: ProcessingContext):
-        await super().initialize(context)
-        self._canny_controlnet = ControlNetLoader().load_controlnet(
-            "coadapter-canny-sd15v1.pth"
-        )[0]
-        self._depth_controlnet = ControlNetLoader().load_controlnet(
-            "coadapter-depth-sd15v1.pth"
-        )[0]
+    @classmethod
+    def get_recommended_models(cls) -> list[HFControlNet]:
+        return HF_CONTROLNET_MODELS
 
     async def apply_controlnet(
         self, context: ProcessingContext, width: int, height: int, conditioning: list
     ):
-        if not self.canny_image.is_empty():
-            canny_pil = await context.image_to_pil(self.canny_image)
-            canny_pil = canny_pil.resize((width, height), PIL.Image.Resampling.LANCZOS)
-            canny_image = np.array(canny_pil.convert("RGB")).astype(np.float32) / 255.0
-            canny_tensor = torch.from_numpy(canny_image)[None,]
-            conditioning = ControlNetApply().apply_controlnet(
-                conditioning,
-                self._canny_controlnet,
-                canny_tensor,
-                self.canny_strength,
-            )[0]
+        if self.controlnet.is_empty():
+            raise ValueError("ControlNet repository ID must be selected.")
 
-        if not self.depth_image.is_empty():
-            depth_pil = await context.image_to_pil(self.depth_image)
-            depth_pil = depth_pil.resize((width, height), PIL.Image.Resampling.LANCZOS)
-            depth_image = np.array(depth_pil.convert("RGB")).astype(np.float32) / 255.0
-            depth_tensor = torch.from_numpy(depth_image)[None,]
+        assert self.controlnet.path is not None, "ControlNet path must be set."
+
+        controlnet_path = try_to_load_from_cache(
+            self.controlnet.repo_id, self.controlnet.path
+        )
+
+        if controlnet_path is None:
+            raise ValueError(
+                "ControlNet checkpoint not found. Download from Recommended Models."
+            )
+
+        controlnet = ControlNetLoader().load_controlnet(controlnet_path)[0]
+        if not self.image.is_empty():
+            pil = await context.image_to_pil(self.image)
+            pil = pil.resize((width, height), PIL.Image.Resampling.LANCZOS)
+            image = np.array(pil.convert("RGB")).astype(np.float32) / 255.0
+            tensor = torch.from_numpy(image)[None,]
             conditioning = ControlNetApply().apply_controlnet(
                 conditioning,
-                self._depth_controlnet,
-                depth_tensor,
-                self.depth_strength,
+                controlnet,
+                tensor,
+                self.strength,
             )[0]
 
         return conditioning
@@ -537,6 +528,20 @@ class ControlNet(StableDiffusion):
         return await context.image_from_tensor(decoded_image)
 
 
+FLUX_VAE = HFVAE(
+    repo_id="black-forest-labs/FLUX.1-schnell",
+    path="ae.safetensors",
+)
+FLUX_CLIP_L = HFCLIP(
+    repo_id="comfyanonymous/flux_text_encoders",
+    path="clip_l.safetensors",
+)
+FLUX_CLIP_T5XXL = HFCLIP(
+    repo_id="comfyanonymous/flux_text_encoders",
+    path="t5xxl_fp16.safetensors",
+)
+
+
 class Flux(BaseNode):
     """
     Generates images from text prompts using the Flux model.
@@ -548,10 +553,7 @@ class Flux(BaseNode):
     - Producing images with specific artistic styles
     """
 
-    clip1: HFCLIP = Field(default=HFCLIP(), description="The first CLIP model to use.")
-    clip2: HFCLIP = Field(default=HFCLIP(), description="The second CLIP model to use.")
-    vae: HFVAE = Field(default=HFVAE(), description="The VAE model to use.")
-    unet: HFUnet = Field(default=HFUnet(), description="The UNet model to use.")
+    model: HFFlux = Field(default=HFFlux(), description="The model to use.")
     prompt: str = Field(default="", description="The prompt to use.")
     negative_prompt: str = Field(default="", description="The negative prompt to use.")
     width: int = Field(default=1024, ge=64, le=2048, multiple_of=64)
@@ -571,17 +573,6 @@ class Flux(BaseNode):
     @classmethod
     def get_recommended_models(cls):
         return [
-            HFVAE(
-                repo_id="black-forest-labs/FLUX.1-schnell",
-                path="ae.safetensors",
-            ),
-            HFCLIP(
-                repo_id="comfyanonymous/flux_text_encoders", path="clip_l.safetensors"
-            ),
-            HFCLIP(
-                repo_id="comfyanonymous/flux_text_encoders",
-                path="t5xxl_fp16.safetensors",
-            ),
             HFUnet(
                 repo_id="black-forest-labs/FLUX.1-dev",
                 path="flux1-dev.safetensors",
@@ -590,35 +581,37 @@ class Flux(BaseNode):
                 repo_id="black-forest-labs/FLUX.1-schnell",
                 path="flux1-schnell.safetensors",
             ),
+            FLUX_VAE,
+            FLUX_CLIP_L,
+            FLUX_CLIP_T5XXL,
         ]
 
     async def process(self, context: ProcessingContext) -> ImageRef:
-        if (
-            self.clip1.is_empty()
-            or self.clip2.is_empty()
-            or self.vae.is_empty()
-            or self.unet.is_empty()
-        ):
-            raise ValueError("All models must be selected.")
+        if self.model.is_empty():
+            raise ValueError("Model must be selected.")
 
-        assert self.unet.path is not None, "UNet model path must be set."
-        assert self.vae.path is not None, "VAE model path must be set."
-        assert self.clip1.path is not None, "First CLIP model path must be set."
-        assert self.clip2.path is not None, "Second CLIP model path must be set."
+        assert self.model.path is not None, "Model path must be set."
 
-        ckpt_path = try_to_load_from_cache(self.unet.repo_id, self.unet.path)
+        ckpt_path = try_to_load_from_cache(self.model.repo_id, self.model.path)
         assert (
             ckpt_path is not None
         ), "Flux model checkpoint not found. Download from Recommended Models."
 
-        clip1_path = try_to_load_from_cache(self.clip1.repo_id, self.clip1.path)
-        assert (
-            clip1_path is not None
-        ), "First CLIP model checkpoint not found. Download from Recommended Models."
+        assert FLUX_CLIP_L.path is not None, "CLIP model path must be set."
 
-        clip2_path = try_to_load_from_cache(self.clip2.repo_id, self.clip2.path)
+        clip_l_path = try_to_load_from_cache(FLUX_CLIP_L.repo_id, FLUX_CLIP_L.path)
+
         assert (
-            clip2_path is not None
+            clip_l_path is not None
+        ), "CLIP model checkpoint not found. Download from Recommended Models."
+
+        assert FLUX_CLIP_T5XXL.path is not None, "CLIP model path must be set."
+
+        clip_t5xxl_path = try_to_load_from_cache(
+            FLUX_CLIP_T5XXL.repo_id, FLUX_CLIP_T5XXL.path
+        )
+        assert (
+            clip_t5xxl_path is not None
         ), "Second CLIP model checkpoint not found. Download from Recommended Models."
 
         vae_path = try_to_load_from_cache(self.vae.repo_id, self.vae.path)
@@ -629,7 +622,7 @@ class Flux(BaseNode):
         model = comfy.sd.load_unet(ckpt_path)
 
         clip = comfy.sd.load_clip(
-            ckpt_paths=[clip1_path, clip2_path],
+            ckpt_paths=[clip_l_path, clip_t5xxl_path],
             embedding_directory=folder_paths.get_folder_paths("embeddings"),
             clip_type=comfy.sd.CLIPType.FLUX,
         )

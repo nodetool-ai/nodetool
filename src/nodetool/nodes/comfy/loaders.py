@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import Sequence
 
 import torch
 import comfy.sd
@@ -22,16 +23,14 @@ from nodetool.metadata.types import (
     ControlNetFile,
     GLIGENFile,
     HFCLIPVision,
+    HFCheckpointModel,
     HFControlNet,
-    HFFlux,
     HFIPAdapter,
     HFLoraSD,
-    HFLoraSDXL,
     HFStableDiffusion,
-    HFStableDiffusion3,
-    HFStableDiffusionXL,
     HFStyleModel,
     HFUnet,
+    HuggingFaceModel,
     IPAdapter,
     IPAdapterFile,
     LORAFile,
@@ -47,10 +46,16 @@ from nodetool.metadata.types import (
 from nodetool.common.comfy_node import ComfyNode
 from nodetool.nodes.huggingface.lora import HF_LORA_SD_MODELS, HF_LORA_SDXL_MODELS
 from nodetool.nodes.huggingface.stable_diffusion_base import (
+    HF_CLIP_MODELS,
+    HF_CLIP_VISION_MODELS,
+    HF_FLUX_MODELS,
     HF_IP_ADAPTER_MODELS,
     HF_IP_ADAPTER_XL_MODELS,
+    HF_LTXV_MODELS,
+    HF_STABLE_DIFFUSION_3_MODELS,
     HF_STABLE_DIFFUSION_MODELS,
     HF_STABLE_DIFFUSION_XL_MODELS,
+    HF_UNET_MODELS,
 )
 from nodetool.nodes.huggingface.image_to_image import HF_CONTROLNET_MODELS
 from nodetool.workflows.processing_context import ProcessingContext
@@ -103,8 +108,11 @@ class CheckpointLoader(CheckpointLoaderSimple):
 
 
 class HuggingFaceCheckpointLoader(ComfyNode):
-    model: HFStableDiffusion = Field(
-        default=HFStableDiffusion(),
+    # The HuggingFaceModelSelect component will filter the recommended models
+    # to HFStableDiffusion, HFStableDiffusionXL, HFStableDiffusion3, HFFlux, or HFLTXV
+    # hardcoded in the HuggingFaceModelSelect component
+    model: HFCheckpointModel = Field(
+        default=HFCheckpointModel(),
         description="The Stable Diffusion model to load.",
     )
 
@@ -117,8 +125,14 @@ class HuggingFaceCheckpointLoader(ComfyNode):
         return "Load Checkpoint from Huggingface"
 
     @classmethod
-    def get_recommended_models(cls) -> list[HFStableDiffusion]:
-        return HF_STABLE_DIFFUSION_MODELS
+    def get_recommended_models(cls) -> Sequence[HuggingFaceModel]:
+        return (
+            HF_STABLE_DIFFUSION_MODELS
+            + HF_STABLE_DIFFUSION_XL_MODELS
+            + HF_STABLE_DIFFUSION_3_MODELS
+            + HF_FLUX_MODELS
+            + HF_LTXV_MODELS
+        )
 
     async def process(self, context: ProcessingContext):
         if self.model.is_empty():
@@ -140,73 +154,6 @@ class HuggingFaceCheckpointLoader(ComfyNode):
             "clip": CLIP(name=self.model.repo_id, model=clip),
             "vae": VAE(name=self.model.repo_id, model=vae),
         }
-
-
-class HuggingFaceCheckpointLoaderXL(HuggingFaceCheckpointLoader):
-    model: HFStableDiffusionXL = Field(
-        default=HFStableDiffusionXL(),
-        description="The Stable Diffusion XL model to load.",
-    )
-
-    @classmethod
-    def get_title(cls):
-        return "Load SDXL Checkpoint from Huggingface"
-
-    @classmethod
-    def get_recommended_models(cls) -> list[HFStableDiffusionXL]:
-        return HF_STABLE_DIFFUSION_XL_MODELS
-
-
-class HuggingFaceCheckpointLoader3(HuggingFaceCheckpointLoader):
-    model: HFStableDiffusion3 = Field(
-        default=HFStableDiffusion3(),
-        description="The Stable Diffusion 3 model to load.",
-    )
-
-    @classmethod
-    def get_title(cls):
-        return "Load SD3 Checkpoint from Huggingface"
-
-    @classmethod
-    def get_recommended_models(cls) -> list[HFStableDiffusion3]:
-        return [
-            HFStableDiffusion3(
-                repo_id="Comfy-Org/stable-diffusion-3.5-fp8",
-                path="sd3.5_large_fp8_scaled.safetensors",
-            ),
-            HFStableDiffusion3(
-                repo_id="Comfy-Org/stable-diffusion-3.5-fp8",
-                path="sd3.5_medium_incl_clips_t5xxlfp8scaled.safetensors",
-            ),
-        ]
-
-
-class HuggingFaceCheckpointLoaderFlux(HuggingFaceCheckpointLoader):
-    model: HFFlux = Field(
-        default=HFFlux(),
-        description="The Flux model to load.",
-    )
-
-    @classmethod
-    def get_title(cls):
-        return "Load Flux Checkpoint from Huggingface"
-
-    @classmethod
-    def get_recommended_models(cls) -> list[HFFlux]:
-        return [
-            HFFlux(
-                repo_id="Comfy-Org/flux1-dev",
-                path="flux1-dev-fp8.safetensors",
-            ),
-            HFFlux(
-                repo_id="Comfy-Org/flux1-schnell",
-                path="flux1-schnell-fp8.safetensors",
-            ),
-            HFFlux(
-                repo_id="black-forest-labs/FLUX.1-Fill-dev",
-                path="flux1-fill-dev.safetensors",
-            ),
-        ]
 
 
 class unCLIPCheckpointLoader(ComfyNode):
@@ -264,21 +211,8 @@ class HuggingFaceCLIPVisionLoader(ComfyNode):
     )
 
     @classmethod
-    def get_recommended_models(cls) -> list[HFCLIPVision]:
-        return [
-            HFCLIPVision(
-                repo_id="Comfy-Org/sigclip_vision_384",
-                path="sigclip_vision_patch14_384.safetensors",
-            ),
-            HFCLIPVision(
-                repo_id="h94/IP-Adapter",
-                path="models/image_encoder/model.safetensors",
-            ),
-            HFCLIPVision(
-                repo_id="h94/IP-Adapter",
-                path="sdxl_models/image_encoder/model.safetensors",
-            ),
-        ]
+    def get_recommended_models(cls) -> Sequence[HuggingFaceModel]:
+        return HF_CLIP_VISION_MODELS
 
     @classmethod
     def get_title(cls):
@@ -490,8 +424,8 @@ class HuggingFaceLoraLoader(ComfyNode):
     )
 
     @classmethod
-    def get_recommended_models(cls) -> list[HFLoraSD]:
-        return HF_LORA_SD_MODELS
+    def get_recommended_models(cls) -> Sequence[HuggingFaceModel]:
+        return HF_LORA_SD_MODELS + HF_LORA_SDXL_MODELS
 
     @classmethod
     def get_title(cls):
@@ -528,21 +462,6 @@ class HuggingFaceLoraLoader(ComfyNode):
             "model": UNet(name=self.model.name, model=model_lora),
             "clip": CLIP(name=self.clip.name, model=clip_lora),
         }
-
-
-class HuggingFaceLoraLoaderXL(HuggingFaceLoraLoader):
-    lora: HFLoraSDXL = Field(
-        default=HFLoraSDXL(),
-        description="The LoRA to load.",
-    )
-
-    @classmethod
-    def get_recommended_models(cls) -> list[HFLoraSDXL]:
-        return HF_LORA_SDXL_MODELS
-
-    @classmethod
-    def get_title(cls):
-        return "Load LoRA XL from Huggingface"
 
 
 class LoraLoaderModelOnly(ComfyNode):
@@ -693,17 +612,8 @@ class HuggingFaceCLIPLoader(ComfyNode):
     )
 
     @classmethod
-    def get_recommended_models(cls) -> list[HFCLIP]:
-        return [
-            HFCLIP(
-                repo_id="Comfy-Org/mochi_preview_repackaged",
-                path="split_files/text_encoders/t5xxl_fp16.safetensors",
-            ),
-            HFCLIP(
-                repo_id="Comfy-Org/mochi_preview_repackaged",
-                path="split_files/text_encoders/t5xxl_fp8_e4m3fn_scaled.safetensors",
-            ),
-        ]
+    def get_recommended_models(cls) -> Sequence[HuggingFaceModel]:
+        return HF_CLIP_MODELS
 
     @classmethod
     def get_title(cls):
@@ -789,16 +699,8 @@ class HuggingFaceDualCLIPLoader(ComfyNode):
     )
 
     @classmethod
-    def get_recommended_models(cls) -> list[HFCLIP]:
-        return [
-            HFCLIP(
-                repo_id="comfyanonymous/flux_text_encoders", path="clip_l.safetensors"
-            ),
-            HFCLIP(
-                repo_id="comfyanonymous/flux_text_encoders",
-                path="t5xxl_fp16.safetensors",
-            ),
-        ]
+    def get_recommended_models(cls) -> Sequence[HuggingFaceModel]:
+        return HF_CLIP_MODELS
 
     async def process(self, context: ProcessingContext):
         if self.clip_model_1.repo_id == "" or self.clip_model_1.path is None:
@@ -889,24 +791,7 @@ class HuggingFaceUNetLoader(ComfyNode):
 
     @classmethod
     def get_recommended_models(cls) -> list[HFUnet]:
-        return [
-            HFUnet(
-                repo_id="Comfy-Org/mochi_preview_repackaged",
-                path="split_files/diffusion_models/mochi_preview_bf16.safetensors",
-            ),
-            HFUnet(
-                repo_id="Comfy-Org/mochi_preview_repackaged",
-                path="split_files/diffusion_models/mochi_preview_fp8_scaled.safetensors",
-            ),
-            HFUnet(
-                repo_id="black-forest-labs/FLUX.1-dev",
-                path="flux1-dev.safetensors",
-            ),
-            HFUnet(
-                repo_id="black-forest-labs/FLUX.1-schnell",
-                path="flux1-schnell.safetensors",
-            ),
-        ]
+        return HF_UNET_MODELS
 
     @classmethod
     def get_title(cls):

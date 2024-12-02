@@ -92,11 +92,15 @@ class ComfyNode(BaseNode):
             elif isinstance(value, list):
                 return await asyncio.gather(*[convert_value(name, v) for v in value])
             elif prop.type.is_comfy_data_type():
-                assert isinstance(value, ComfyData), "Expected comfy data type"
+                assert isinstance(
+                    value, ComfyData
+                ), f"Expected comfy data type for input {name} but got {type(value)}"
                 assert value.data is not None, f"Input {name} is not connected"
                 return value.data
             elif prop.type.is_comfy_model():
-                assert isinstance(value, ComfyModel), "Expected comfy model"
+                assert isinstance(
+                    value, ComfyModel
+                ), f"Expected comfy model for input {name} but got {type(value)}"
                 assert value.model is not None, f"Input {name} is not connected"
                 return value.model
             else:

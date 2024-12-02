@@ -70,5 +70,9 @@ class EmptyLTXVLatentVideo(ComfyNode):
     batch_size: int = Field(default=1, ge=1, le=4096, description="Batch size.")
 
     @classmethod
+    def get_title(cls):
+        return "Empty LTXV Latent Video"
+
+    @classmethod
     def return_type(cls):
         return {"latent": Latent}

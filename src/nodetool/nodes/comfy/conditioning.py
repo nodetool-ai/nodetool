@@ -589,6 +589,10 @@ class LTXVConditioning(ComfyNode):
     )
 
     @classmethod
+    def get_title(cls):
+        return "LTXV Conditioning"
+
+    @classmethod
     def return_type(cls):
         return {"positive": Conditioning, "negative": Conditioning}
 
@@ -622,6 +626,10 @@ class LTXVImgToVideo(ComfyNode):
         default=97, ge=9, le=MAX_RESOLUTION, description="Length (frames) of the video."
     )
     batch_size: int = Field(default=1, ge=1, le=4096, description="Batch size.")
+
+    @classmethod
+    def get_title(cls):
+        return "LTXV Image to Video"
 
     @classmethod
     def return_type(cls):

@@ -2863,6 +2863,7 @@ def init_builtin_extra_nodes():
         "nodes_flux.py",
         "nodes_mochi.py",
         "nodes_sd3.py",
+        "nodes_lt.py",
     ]
 
     import_failed = []

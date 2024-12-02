@@ -273,20 +273,28 @@ class HFTextToImage(HuggingFaceModel):
     type: Literal["hf.text_to_image"] = "hf.text_to_image"
 
 
-class HFStableDiffusion(HuggingFaceModel):
+class HFCheckpointModel(HuggingFaceModel):
+    type: Literal["hf.checkpoint_model"] = "hf.checkpoint_model"
+
+
+class HFStableDiffusion(HFCheckpointModel):
     type: Literal["hf.stable_diffusion"] = "hf.stable_diffusion"
 
 
-class HFStableDiffusionXL(HuggingFaceModel):
+class HFStableDiffusionXL(HFCheckpointModel):
     type: Literal["hf.stable_diffusion_xl"] = "hf.stable_diffusion_xl"
 
 
-class HFStableDiffusion3(HuggingFaceModel):
+class HFStableDiffusion3(HFCheckpointModel):
     type: Literal["hf.stable_diffusion_3"] = "hf.stable_diffusion_3"
 
 
-class HFFlux(HuggingFaceModel):
+class HFFlux(HFCheckpointModel):
     type: Literal["hf.flux"] = "hf.flux"
+
+
+class HFLTXV(HFCheckpointModel):
+    type: Literal["hf.ltxv"] = "hf.ltxv"
 
 
 class HFControlNet(HuggingFaceModel):

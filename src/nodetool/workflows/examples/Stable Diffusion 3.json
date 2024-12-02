@@ -107,7 +107,7 @@
       {
         "id": "54",
         "parent_id": null,
-        "type": "comfy.loaders.HuggingFaceCheckpointLoader3",
+        "type": "comfy.loaders.HuggingFaceCheckpointLoader",
         "data": {
           "model": {
             "type": "hf.stable_diffusion_3",

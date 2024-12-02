@@ -145,3 +145,7 @@ class LTXVScheduler(ComfyNode):
     @classmethod
     def return_type(cls):
         return {"sigmas": Sigmas}
+
+    @classmethod
+    def get_title(cls):
+        return "LTXV Scheduler"

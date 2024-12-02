@@ -1,8 +1,8 @@
 {
   "id": "mochi_video",
   "access": "public",
-  "created_at": "2024-11-12T23:48:48.966740",
-  "updated_at": "2024-11-12T23:48:48.966759",
+  "created_at": "2024-12-02T16:26:26.850928",
+  "updated_at": "2024-12-02T16:26:26.850932",
   "name": "Mochi Video",
   "description": "A simple video workflow using Mochi models",
   "tags": [
@@ -21,10 +21,9 @@
           "text": ""
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 315,
-            "y": 305
+            "y": 361
           },
           "zIndex": 0,
           "width": 200,
@@ -37,7 +36,6 @@
         "type": "comfy.latent.VAEDecode",
         "data": {},
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 870,
             "y": 181
@@ -52,7 +50,7 @@
         "parent_id": null,
         "type": "comfy.sampling.KSampler",
         "data": {
-          "seed": 16365279015483322000,
+          "seed": 2321753294349441000,
           "seed_control_mode": "randomize",
           "steps": 20,
           "cfg": 4.5,
@@ -61,31 +59,9 @@
           "denoise": 1
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 610,
-            "y": 332
-          },
-          "zIndex": 0,
-          "width": 200,
-          "selectable": true
-        }
-      },
-      {
-        "id": "21",
-        "parent_id": null,
-        "type": "comfy.latent.EmptyMochiLatentVideo",
-        "data": {
-          "width": 512,
-          "height": 512,
-          "length": 10,
-          "batch_size": 1
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 340,
-            "y": 90
+            "y": 348
           },
           "zIndex": 0,
           "width": 200,
@@ -100,10 +76,9 @@
           "text": "laughing cat"
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 315,
-            "y": 719
+            "y": 540
           },
           "zIndex": 0,
           "width": 200,
@@ -123,10 +98,9 @@
           "type": "stable_diffusion"
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 50,
-            "y": 308
+            "y": 355
           },
           "zIndex": 0,
           "width": 180,
@@ -146,10 +120,9 @@
           "weight_dtype": "default"
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 290,
-            "y": 484
+            "y": 98
           },
           "zIndex": 0,
           "width": 250,
@@ -168,10 +141,9 @@
           }
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 630,
-            "y": 154
+            "y": 137
           },
           "zIndex": 0,
           "width": 180,
@@ -186,10 +158,9 @@
           "fps": 5
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 1254,
-            "y": 181
+            "y": 175
           },
           "zIndex": 0,
           "width": 124,
@@ -204,7 +175,6 @@
           "name": "video_output_2024-11-12"
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 1408,
             "y": 50
@@ -221,7 +191,6 @@
         "type": "nodetool.image.BatchToList",
         "data": {},
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 1100,
             "y": 195
@@ -248,7 +217,6 @@
           ]
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 39,
             "y": -146
@@ -258,17 +226,29 @@
           "height": 123,
           "selectable": true
         }
+      },
+      {
+        "id": "47",
+        "parent_id": null,
+        "type": "comfy.latent.video.EmptyMochiLatentVideo",
+        "data": {
+          "width": 848,
+          "height": 480,
+          "length": 25,
+          "batch_size": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 719
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true
+        }
       }
     ],
     "edges": [
-      {
-        "id": "6",
-        "source": "7",
-        "sourceHandle": "conditioning",
-        "target": "3",
-        "targetHandle": "negative",
-        "ui_properties": null
-      },
       {
         "id": "a854626c-af7a-4569-8634-1a78d114fca0",
         "source": "40",
@@ -290,14 +270,6 @@
         }
       },
       {
-        "id": "2",
-        "source": "3",
-        "sourceHandle": "latent",
-        "target": "8",
-        "targetHandle": "samples",
-        "ui_properties": null
-      },
-      {
         "id": "7378",
         "source": "43",
         "sourceHandle": "output",
@@ -305,16 +277,6 @@
         "targetHandle": "value",
         "ui_properties": {
           "className": "video"
-        }
-      },
-      {
-        "id": "7bb6097a-0bb6-4b43-8945-01ba78ab3305",
-        "source": "41",
-        "sourceHandle": "unet",
-        "target": "3",
-        "targetHandle": "model",
-        "ui_properties": {
-          "className": "comfy_unet"
         }
       },
       {
@@ -346,14 +308,6 @@
         "ui_properties": null
       },
       {
-        "id": "7",
-        "source": "21",
-        "sourceHandle": "latent",
-        "target": "3",
-        "targetHandle": "latent_image",
-        "ui_properties": null
-      },
-      {
         "id": "7e90a7be-2c4d-4051-9fad-62b5ecade15a",
         "source": "42",
         "sourceHandle": "vae",
@@ -362,6 +316,42 @@
         "ui_properties": {
           "className": "comfy_vae"
         }
+      },
+      {
+        "id": "d3eb4f57-ee0e-4e3a-bb20-49d412ecc110",
+        "source": "47",
+        "sourceHandle": "latent",
+        "target": "3",
+        "targetHandle": "latent_image",
+        "ui_properties": {
+          "className": "comfy_latent"
+        }
+      },
+      {
+        "id": "7bb6097a-0bb6-4b43-8945-01ba78ab3305",
+        "source": "41",
+        "sourceHandle": "unet",
+        "target": "3",
+        "targetHandle": "model",
+        "ui_properties": {
+          "className": "comfy_unet"
+        }
+      },
+      {
+        "id": "6",
+        "source": "7",
+        "sourceHandle": "conditioning",
+        "target": "3",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "2",
+        "source": "3",
+        "sourceHandle": "latent",
+        "target": "8",
+        "targetHandle": "samples",
+        "ui_properties": null
       }
     ]
   },

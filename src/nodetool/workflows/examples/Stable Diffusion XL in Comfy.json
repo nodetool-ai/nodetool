@@ -110,7 +110,7 @@
       {
         "id": "47",
         "parent_id": null,
-        "type": "comfy.loaders.HuggingFaceCheckpointLoaderXL",
+        "type": "comfy.loaders.HuggingFaceCheckpointLoader",
         "data": {
           "model": {
             "type": "hf.stable_diffusion_xl",

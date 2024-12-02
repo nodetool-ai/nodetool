@@ -153,7 +153,7 @@
       {
         "id": "36",
         "parent_id": null,
-        "type": "comfy.loaders.HuggingFaceCheckpointLoaderFlux",
+        "type": "comfy.loaders.HuggingFaceCheckpointLoader",
         "data": {
           "model": {
             "type": "hf.flux",

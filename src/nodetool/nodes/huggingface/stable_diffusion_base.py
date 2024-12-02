@@ -16,12 +16,18 @@ import torch
 
 from nodetool.common.environment import Environment
 from nodetool.metadata.types import (
+    HFCLIP,
+    HFLTXV,
+    HFCLIPVision,
     HFControlNet,
+    HFFlux,
     HFIPAdapter,
     HFLoraSDConfig,
     HFLoraSDXLConfig,
     HFStableDiffusion,
+    HFStableDiffusion3,
     HFStableDiffusionXL,
+    HFUnet,
     ImageRef,
 )
 from diffusers.schedulers.scheduling_dpmsolver_sde import DPMSolverSDEScheduler
@@ -335,6 +341,89 @@ HF_STABLE_DIFFUSION_XL_MODELS = [
     HFStableDiffusionXL(
         repo_id="Lykon/dreamshaper-xl-v2-turbo",
         path="DreamShaperXL_Turbo_v2_1.safetensors",
+    ),
+]
+
+HF_STABLE_DIFFUSION_3_MODELS = [
+    HFStableDiffusion3(
+        repo_id="Comfy-Org/stable-diffusion-3.5-fp8",
+        path="sd3.5_large_fp8_scaled.safetensors",
+    ),
+    HFStableDiffusion3(
+        repo_id="Comfy-Org/stable-diffusion-3.5-fp8",
+        path="sd3.5_medium_incl_clips_t5xxlfp8scaled.safetensors",
+    ),
+]
+
+HF_FLUX_MODELS = [
+    HFFlux(
+        repo_id="Comfy-Org/flux1-dev",
+        path="flux1-dev-fp8.safetensors",
+    ),
+    HFFlux(
+        repo_id="Comfy-Org/flux1-schnell",
+        path="flux1-schnell-fp8.safetensors",
+    ),
+    HFFlux(
+        repo_id="black-forest-labs/FLUX.1-Fill-dev",
+        path="flux1-fill-dev.safetensors",
+    ),
+]
+
+HF_LTXV_MODELS = [
+    HFLTXV(
+        repo_id="Lightricks/LTX-Video",
+        path="ltx-video-2b-v0.9.safetensors",
+    ),
+]
+
+HF_CLIP_MODELS = [
+    HFCLIP(
+        repo_id="Comfy-Org/mochi_preview_repackaged",
+        path="split_files/text_encoders/t5xxl_fp16.safetensors",
+    ),
+    HFCLIP(
+        repo_id="Comfy-Org/mochi_preview_repackaged",
+        path="split_files/text_encoders/t5xxl_fp8_e4m3fn_scaled.safetensors",
+    ),
+    HFCLIP(repo_id="comfyanonymous/flux_text_encoders", path="clip_l.safetensors"),
+    HFCLIP(
+        repo_id="comfyanonymous/flux_text_encoders",
+        path="t5xxl_fp16.safetensors",
+    ),
+]
+
+HF_CLIP_VISION_MODELS = [
+    HFCLIPVision(
+        repo_id="Comfy-Org/sigclip_vision_384",
+        path="sigclip_vision_patch14_384.safetensors",
+    ),
+    HFCLIPVision(
+        repo_id="h94/IP-Adapter",
+        path="models/image_encoder/model.safetensors",
+    ),
+    HFCLIPVision(
+        repo_id="h94/IP-Adapter",
+        path="sdxl_models/image_encoder/model.safetensors",
+    ),
+]
+
+HF_UNET_MODELS = [
+    HFUnet(
+        repo_id="Comfy-Org/mochi_preview_repackaged",
+        path="split_files/diffusion_models/mochi_preview_bf16.safetensors",
+    ),
+    HFUnet(
+        repo_id="Comfy-Org/mochi_preview_repackaged",
+        path="split_files/diffusion_models/mochi_preview_fp8_scaled.safetensors",
+    ),
+    HFUnet(
+        repo_id="black-forest-labs/FLUX.1-dev",
+        path="flux1-dev.safetensors",
+    ),
+    HFUnet(
+        repo_id="black-forest-labs/FLUX.1-schnell",
+        path="flux1-schnell.safetensors",
     ),
 ]
 
