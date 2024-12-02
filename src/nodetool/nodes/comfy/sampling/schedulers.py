@@ -1,5 +1,5 @@
 from pydantic import Field
-from nodetool.metadata.types import Sigmas, UNet
+from nodetool.metadata.types import Latent, Sigmas, UNet
 from nodetool.common.comfy_node import ComfyNode
 from nodetool.nodes.comfy.sampling import SchedulerEnum
 
@@ -110,6 +110,37 @@ class VPScheduler(ComfyNode):
     eps_s: float = Field(
         default=0.001, description="eps_s parameter for the VP scheduler."
     )
+
+    @classmethod
+    def return_type(cls):
+        return {"sigmas": Sigmas}
+
+
+class LTXVScheduler(ComfyNode):
+    """
+    Custom scheduler for LTXV models.
+    sampling, custom, scheduler, ltxv
+
+    Use cases:
+    - Generate custom sigma schedules for sampling
+    - Adjust sigmas based on latent tokens
+    - Fine-tune sampling parameters for video models
+    """
+
+    steps: int = Field(default=20, ge=1, le=10000, description="Number of steps.")
+    max_shift: float = Field(
+        default=2.05, ge=0.0, le=100.0, description="Maximum shift parameter."
+    )
+    base_shift: float = Field(
+        default=0.95, ge=0.0, le=100.0, description="Base shift parameter."
+    )
+    stretch: bool = Field(
+        default=True, description="Stretch sigmas to fit terminal value."
+    )
+    terminal: float = Field(
+        default=0.1, ge=0.0, le=0.99, description="Terminal value for sigmas."
+    )
+    latent: Latent = Field(default=None, description="Optional latent input.")
 
     @classmethod
     def return_type(cls):

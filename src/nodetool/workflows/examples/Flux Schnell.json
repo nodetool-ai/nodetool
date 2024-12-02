@@ -177,7 +177,7 @@
       {
         "id": "27",
         "parent_id": null,
-        "type": "comfy.advanced.loaders.EmptySD3LatentImage",
+        "type": "comfy.latent.EmptySD3LatentImage",
         "data": {
           "batch_size": 1,
           "width": 1024,

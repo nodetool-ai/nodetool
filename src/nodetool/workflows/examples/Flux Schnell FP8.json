@@ -33,7 +33,7 @@
       {
         "id": "27",
         "parent_id": null,
-        "type": "comfy.advanced.loaders.EmptySD3LatentImage",
+        "type": "comfy.latent.EmptySD3LatentImage",
         "data": {
           "width": 1024,
           "height": 1024,

@@ -31,24 +31,6 @@ class TripleCLIPLoader(ComfyNode):
         return {"clip": CLIP}
 
 
-class EmptySD3LatentImage(ComfyNode):
-    width: int = Field(
-        default=1024, description="The width of the latent image.", ge=16, le=16384
-    )
-    height: int = Field(
-        default=1024, description="The height of the latent image.", ge=16, le=16384
-    )
-    batch_size: int = Field(default=1, description="The batch size.", ge=1, le=4096)
-
-    @classmethod
-    def get_title(cls):
-        return "Empty SD3 Latent Image"
-
-    @classmethod
-    def return_type(cls):
-        return {"latent": Latent}
-
-
 class EmptyPaddingEnum(str, Enum):
     NONE = "none"
     EMPTY_PROMPT = "empty_prompt"

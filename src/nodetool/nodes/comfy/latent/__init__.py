@@ -58,6 +58,24 @@ class EmptyLatentImage(ComfyNode):
         return {"latent": Latent}
 
 
+class EmptySD3LatentImage(ComfyNode):
+    width: int = Field(
+        default=1024, description="The width of the latent image.", ge=16, le=16384
+    )
+    height: int = Field(
+        default=1024, description="The height of the latent image.", ge=16, le=16384
+    )
+    batch_size: int = Field(default=1, description="The batch size.", ge=1, le=4096)
+
+    @classmethod
+    def get_title(cls):
+        return "Empty SD3 Latent Image"
+
+    @classmethod
+    def return_type(cls):
+        return {"latent": Latent}
+
+
 class VAEEncode(ComfyNode):
     """
     The VAE Encode node can be used to encode pixel space images into latent space images, using the provided VAE.
@@ -372,45 +390,3 @@ class LatentCrop(ComfyNode):
     @classmethod
     def return_type(cls):
         return {"latent": Latent}
-
-
-class EmptyMochiLatentVideo(ComfyNode):
-    """
-    The Empty Mochi Latent Video node creates a new set of empty latent images specifically formatted for video processing.
-    """
-
-    width: int = Field(
-        default=848,
-        description="The width of the latent video to generate.",
-        ge=16,
-        le=MAX_RESOLUTION,
-        multiple_of=16,
-    )
-    height: int = Field(
-        default=480,
-        description="The height of the latent video to generate.",
-        ge=16,
-        le=MAX_RESOLUTION,
-        multiple_of=16,
-    )
-    length: int = Field(
-        default=25,
-        description="The number of frames in the video.",
-        ge=7,
-        le=MAX_RESOLUTION,
-        multiple_of=6,
-    )
-    batch_size: int = Field(
-        default=1,
-        description="The batch size of the latent video to generate.",
-        ge=1,
-        le=4096,
-    )
-
-    @classmethod
-    def return_type(cls):
-        return {"latent": Latent}
-
-    @classmethod
-    def get_title(cls):
-        return "Empty Mochi Latent Video"

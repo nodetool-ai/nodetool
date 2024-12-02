@@ -1,25 +1,24 @@
 from enum import Enum
-from pydantic import Field, validator
+from pydantic import Field
 from nodetool.metadata.types import (
     CLIP,
     GLIGEN,
     VAE,
-    CLIPFile,
     CLIPVision,
     CLIPVisionOutput,
     Conditioning,
     ControlNet,
     ImageRef,
-    LORAFile,
     Latent,
     Mask,
     StyleModel,
-    UNet,
-    VAEFile,
 )
 from nodetool.common.comfy_node import MAX_RESOLUTION
 from nodetool.common.comfy_node import ComfyNode
 from nodetool.workflows.processing_context import ProcessingContext
+from pydantic import Field
+from nodetool.common.comfy_node import ComfyNode, MAX_RESOLUTION
+from nodetool.metadata.types import ImageRef, Conditioning, Latent, VAE
 
 
 class CLIPTextEncode(ComfyNode):
@@ -566,3 +565,64 @@ class StyleModelApply(ComfyNode):
     @classmethod
     def return_type(cls):
         return {"conditioning": Conditioning}
+
+
+class LTXVConditioning(ComfyNode):
+    """
+    Sets frame rate in the conditioning for LTXV video models.
+    conditioning, ltxv, frame rate
+
+    Use cases:
+    - Specify frame rate for video models
+    - Adjust temporal aspects of video generation
+    - Prepare conditioning for LTXV models
+    """
+
+    positive: Conditioning = Field(
+        default=Conditioning(), description="Positive conditioning."
+    )
+    negative: Conditioning = Field(
+        default=Conditioning(), description="Negative conditioning."
+    )
+    frame_rate: float = Field(
+        default=25.0, ge=0.0, le=1000.0, description="Frame rate for video generation."
+    )
+
+    @classmethod
+    def return_type(cls):
+        return {"positive": Conditioning, "negative": Conditioning}
+
+
+class LTXVImgToVideo(ComfyNode):
+    """
+    Converts an input image to a video latent, applying conditioning.
+    image, video, latent, ltxv
+
+    Use cases:
+    - Initialize video generation from an image
+    - Prepare conditioning for LTXV video models
+    - Transition from image to video in latent space
+    """
+
+    positive: Conditioning = Field(
+        default=Conditioning(), description="Positive conditioning."
+    )
+    negative: Conditioning = Field(
+        default=Conditioning(), description="Negative conditioning."
+    )
+    vae: VAE = Field(default=VAE(), description="VAE model to use.")
+    image: ImageRef = Field(default=ImageRef(), description="Input image.")
+    width: int = Field(
+        default=768, ge=64, le=MAX_RESOLUTION, description="Width of the output video."
+    )
+    height: int = Field(
+        default=512, ge=64, le=MAX_RESOLUTION, description="Height of the output video."
+    )
+    length: int = Field(
+        default=97, ge=9, le=MAX_RESOLUTION, description="Length (frames) of the video."
+    )
+    batch_size: int = Field(default=1, ge=1, le=4096, description="Batch size.")
+
+    @classmethod
+    def return_type(cls):
+        return {"positive": Conditioning, "negative": Conditioning, "latent": Latent}

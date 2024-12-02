@@ -1,6 +1,6 @@
 from pydantic import Field
 from nodetool.common.comfy_node import ComfyNode
-from nodetool.metadata.types import UNet
+from nodetool.metadata.types import Latent, UNet
 from enum import Enum
 
 from nodetool.workflows.processing_context import ProcessingContext
@@ -187,3 +187,28 @@ class RescaleCFG(ModelSamplingBase):
 
     def get_model_name(self):
         return self.model.name + "_rescale_cfg_" + str(self.multiplier)
+
+
+class ModelSamplingLTXV(ComfyNode):
+    """
+    Patches a model for LTXV sampling.
+    advanced, model, sampling, ltxv
+
+    Use cases:
+    - Modify a model for LTXV sampling
+    - Adjust shift parameters based on latent tokens
+    - Enable advanced sampling techniques
+    """
+
+    model: UNet = Field(description="The model to patch.")
+    max_shift: float = Field(
+        default=2.05, ge=0.0, le=100.0, description="Maximum shift parameter."
+    )
+    base_shift: float = Field(
+        default=0.95, ge=0.0, le=100.0, description="Base shift parameter."
+    )
+    latent: Latent = Field(default=None, description="Optional latent input.")
+
+    @classmethod
+    def return_type(cls):
+        return {"model": UNet}
