@@ -45,11 +45,7 @@ def git_commit_and_tag(new_version: str):
             [
                 "git",
                 "add",
-                "pyproject.toml",
-                "web/package.json",
-                "web/src/config/constants.ts",
-                "electron/index.js",
-                "electron/package.json",
+                ".",
             ],
             check=True,
             capture_output=True,
