@@ -414,6 +414,8 @@ class Build:
             [
                 "conda",
                 "install",
+                "-p",
+                str(self.ENV_DIR),
                 "ffmpeg",
                 "cairo",
                 "libopus",
