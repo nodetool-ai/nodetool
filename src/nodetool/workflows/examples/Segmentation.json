@@ -8,7 +8,8 @@
   "thumbnail": "",
   "thumbnail_url": "/examples/segmentation.jpg",
   "tags": [
-    "huggingface"
+    "huggingface",
+    "image"
   ],
   "graph": {
     "edges": [

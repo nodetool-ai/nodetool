@@ -6,7 +6,8 @@
   "name": "Flux Schnell FP8",
   "description": "Best-in-class image model with lower VRAM usage, faster than Flux Dev",
   "tags": [
-    "comfy"
+    "comfy",
+    "image"
   ],
   "thumbnail": "",
   "thumbnail_url": "/examples/flux_schnell.jpg",

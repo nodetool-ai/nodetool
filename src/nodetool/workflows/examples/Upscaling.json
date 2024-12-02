@@ -6,7 +6,8 @@
   "name": "Upscaling",
   "description": "Upscale an image to a higher resolution using a RealESRGAN model.",
   "tags": [
-    "image"
+    "image",
+    "start"
   ],
   "thumbnail": "",
   "thumbnail_url": "/examples/upscale.jpg",

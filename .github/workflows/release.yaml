@@ -6,71 +6,36 @@ on:
       - "v*"
 
 jobs:
-  pypi-publish:
-    runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-    steps:
-      - uses: actions/checkout@v3
-      - uses: FedericoCarboni/setup-ffmpeg@v3
-        id: setup-ffmpeg
-        with:
-          # ffmpeg-version: release
-          ffmpeg-version: "6.1.0" # Pinning a specific version to avoid fetch failures
+  #
+  # No need for PyPI publishing at the moment
+  #
+  # pypi-publish:
+  #   runs-on: ubuntu-latest
+  #   permissions:
+  #     id-token: write
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #     - uses: FedericoCarboni/setup-ffmpeg@v3
+  #       id: setup-ffmpeg
+  #       with:
+  #         # ffmpeg-version: release
+  #         ffmpeg-version: "6.1.0" # Pinning a specific version to avoid fetch failures
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.11"
+  #     - name: Set up Python
+  #       uses: actions/setup-python@v4
+  #       with:
+  #         python-version: "3.11"
 
-      - name: Install Poetry
-        run: |
-          curl -sSL https://install.python-poetry.org | python3 -
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
+  #     - name: Install Poetry
+  #       run: |
+  #         curl -sSL https://install.python-poetry.org | python3 -
+  #         echo "$HOME/.local/bin" >> $GITHUB_PATH
 
-      - name: Build
-        run: poetry build
+  #     - name: Build
+  #       run: poetry build
 
-      - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
-
-  pack-conda-env:
-    strategy:
-      matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest]
-    env:
-      PYTHON_VERSION: "3.11"
-
-    runs-on: ${{ matrix.os }}
-    steps:
-      - name: Free Disk Space
-        if: matrix.os == 'ubuntu-latest'
-        uses: jlumbroso/free-disk-space@main
-
-      - uses: actions/checkout@v3
-
-      - name: Set up Conda
-        uses: conda-incubator/setup-miniconda@v3
-        with:
-          auto-update-conda: true
-          miniconda-version: "latest"
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Set up AWS
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: eu-central-1
-
-      - name: Pack Conda Environment
-        shell: bash -l {0}
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: eu-central-1
-        run: |
-          python build.py pack
+  #     - name: Publish to PyPI
+  #       uses: pypa/gh-action-pypi-publish@release/v1
 
   release-build:
     strategy:

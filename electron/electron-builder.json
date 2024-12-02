@@ -6,16 +6,7 @@
         "buildResources": "resources"
     },
     "files": [
-        "events.js",
-        "logger.js",
-        "main.js",
-        "preload.js",
-        "python.js",
-        "server.js",
-        "state.js",
-        "updater.js",
-        "utils.js",
-        "window.js",
+        "*.js",
         "index.html"
     ],
     "extraResources": [

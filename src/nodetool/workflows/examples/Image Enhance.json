@@ -5,7 +5,10 @@
   "updated_at": "2024-10-19T19:08:03.772863",
   "name": "Image Enhance",
   "description": "",
-  "tags": null,
+  "tags": [
+    "image",
+    "start"
+  ],
   "thumbnail": "",
   "thumbnail_url": "/examples/image_enhance.jpg",
   "graph": {

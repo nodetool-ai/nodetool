@@ -6,7 +6,8 @@
   "name": "Flux Dev FP8",
   "description": "Best-in-class image model with lower VRAM usage",
   "tags": [
-    "comfy"
+    "comfy",
+    "image",
   ],
   "thumbnail": "",
   "thumbnail_url": "/examples/flux_dev.jpg",

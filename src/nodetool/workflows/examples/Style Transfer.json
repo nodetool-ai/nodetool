@@ -6,6 +6,7 @@
   "name": "Style Transfer",
   "tags": [
     "huggingface",
+    "image",
     "start"
   ],
   "description": "Apply the style of an image to another image",

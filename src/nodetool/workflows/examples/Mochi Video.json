@@ -5,9 +5,12 @@
   "updated_at": "2024-11-12T23:48:48.966759",
   "name": "Mochi Video",
   "description": "A simple video workflow using Mochi models",
-  "tags": null,
+  "tags": [
+    "video",
+    "start"
+  ],
   "thumbnail": "",
-  "thumbnail_url": null,
+  "thumbnail_url": "/examples/mochi.png",
   "graph": {
     "nodes": [
       {
