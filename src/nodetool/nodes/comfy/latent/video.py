@@ -5,7 +5,8 @@ from nodetool.metadata.types import Latent
 
 class EmptyMochiLatentVideo(ComfyNode):
     """
-    The Empty Mochi Latent Video node creates a new set of empty latent images specifically formatted for video processing.
+    The Empty Mochi Latent Video node creates a new set of empty latent
+    images specifically formatted for video processing.
     """
 
     width: int = Field(
