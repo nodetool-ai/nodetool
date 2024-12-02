@@ -1,7 +1,7 @@
 const { spawn } = require("child_process");
 const { dialog, shell, app } = require("electron");
 const { logMessage } = require("./logger");
-const { processEnv, condaEnvPath, srcPath } = require("./python");
+const { PYTHON_ENV, getProcessEnv } = require("./config");
 const path = require("path");
 const { forceQuit } = require("./window");
 const {
@@ -26,8 +26,8 @@ function startNodeToolBackendProcess() {
 
   const pythonExecutablePath =
     process.platform === "win32"
-      ? path.join(condaEnvPath, "python.exe")
-      : path.join(condaEnvPath, "bin", "python");
+      ? path.join(PYTHON_ENV.condaEnvPath, "python.exe")
+      : path.join(PYTHON_ENV.condaEnvPath, "bin", "python");
 
   const args = ["-m", "nodetool.cli", "serve"];
 
@@ -43,7 +43,7 @@ function startNodeToolBackendProcess() {
     nodeToolBackendProcess = spawn(pythonExecutablePath, args, {
       stdio: "pipe",
       shell: false,
-      env: processEnv,
+      env: getProcessEnv(),
       detached: false,
       windowsHide: true,
     });

@@ -1,6 +1,15 @@
-const path = require("path");
-const fs = require("fs");
-const fsPromises = require("fs").promises;
+const { PYTHON_ENV, getProcessEnv } = require("./config");
+const processEnv = getProcessEnv();
+const fs = require("fs").promises;
+
+const {
+  condaEnvPath,
+  requirementsPath: requirementsFilePath,
+  getPythonPath,
+  getPipPath,
+  getCondaUnpackPath,
+} = PYTHON_ENV;
+
 const { spawn } = require("child_process");
 const os = require("os");
 const { app, dialog } = require("electron");
@@ -12,55 +21,15 @@ const { LOG_FILE } = require("./logger");
 const { emitBootMessage, emitUpdateProgress } = require("./events");
 const tar = require("tar-fs");
 const gunzip = require("gunzip-maybe");
-const { createReadStream } = require("fs");
-
-// Path configurations
-const resourcesPath = process.resourcesPath;
-const srcPath = app.isPackaged
-  ? path.join(resourcesPath, "src")
-  : path.join(__dirname, "..", "src");
-
-const requirementsFilePath = app.isPackaged
-  ? path.join(resourcesPath, "requirements.txt")
-  : path.join(__dirname, "..", "requirements.txt");
-
-const appDir =
-  process.env.PORTABLE_EXECUTABLE_DIR || path.dirname(app.getPath("exe"));
-const condaEnvPath = process.env.CONDA_PREFIX || path.join(appDir, "conda_env");
-
-// Environment configuration
-const processEnv = {
-  ...process.env,
-  PYTHONPATH: srcPath,
-  PYTHONUNBUFFERED: "1",
-  PYTHONNOUSERSITE: "1",
-  PATH:
-    process.platform === "win32"
-      ? [
-          path.join(condaEnvPath),
-          path.join(condaEnvPath, "Library", "mingw-w64", "bin"),
-          path.join(condaEnvPath, "Library", "usr", "bin"),
-          path.join(condaEnvPath, "Library", "bin"),
-          path.join(condaEnvPath, "Lib", "site-packages", "torch", "lib"),
-          path.join(condaEnvPath, "Scripts"),
-          process.env.PATH,
-        ].join(path.delimiter)
-      : [
-          path.join(condaEnvPath, "bin"),
-          path.join(condaEnvPath, "lib"),
-          process.env.PATH,
-        ].join(path.delimiter),
-};
+const { createReadStream, createWriteStream } = require("fs");
+const path = require("path");
 
 /**
  * Check if installed packages match requirements
  */
 async function checkPythonPackages() {
   try {
-    const pipExecutable =
-      process.platform === "win32"
-        ? path.join(condaEnvPath, "Scripts", "pip.exe")
-        : path.join(condaEnvPath, "bin", "pip");
+    const pipExecutable = getPipPath();
 
     const reportFile = os.tmpdir() + "/pip-report.json";
 
@@ -94,8 +63,8 @@ async function checkPythonPackages() {
     });
 
     try {
-      const reportContent = await fsPromises.readFile(reportFile, "utf8");
-      await fsPromises
+      const reportContent = await fs.readFile(reportFile, "utf8");
+      await fs
         .unlink(reportFile)
         .catch((err) =>
           logMessage(
@@ -154,12 +123,9 @@ async function verifyApplicationPaths() {
  */
 async function isCondaEnvironmentInstalled() {
   try {
-    const pythonExecutablePath =
-      process.platform === "win32"
-        ? path.join(condaEnvPath, "python.exe")
-        : path.join(condaEnvPath, "bin", "python");
+    const pythonExecutablePath = getPythonPath();
 
-    await fsPromises.access(pythonExecutablePath);
+    await fs.access(pythonExecutablePath);
     return true;
   } catch {
     return false;
@@ -180,10 +146,7 @@ async function updateCondaEnvironment() {
 
     emitBootMessage(`Updating ${packagesToInstall.length} packages...`);
 
-    const pipExecutable =
-      process.platform === "win32"
-        ? path.join(condaEnvPath, "Scripts", "pip.exe")
-        : path.join(condaEnvPath, "bin", "pip");
+    const pipExecutable = getPipPath();
 
     // Install all requirements at once
     const installCommand = [
@@ -293,7 +256,7 @@ async function downloadFile(url, dest) {
 
   let existingFileStats;
   try {
-    existingFileStats = await fsPromises.stat(dest);
+    existingFileStats = await fs.stat(dest);
     if (existingFileStats.size === expectedSize) {
       logMessage("Existing file matches expected size, skipping download");
       return;
@@ -305,7 +268,7 @@ async function downloadFile(url, dest) {
   }
 
   return new Promise((resolve, reject) => {
-    const file = fs.createWriteStream(dest);
+    const file = createWriteStream(dest);
     let downloadedBytes = 0;
     const startTime = Date.now();
     let lastUpdate = startTime;
@@ -368,9 +331,9 @@ async function downloadFile(url, dest) {
 
       file.on("finish", async () => {
         try {
-          const stats = await fsPromises.stat(dest);
+          const stats = await fs.stat(dest);
           if (stats.size !== expectedSize) {
-            await fsPromises.unlink(dest);
+            await fs.unlink(dest);
             reject(
               new Error(
                 `Downloaded file size mismatch. Expected: ${expectedSize}, Got: ${stats.size}`
@@ -388,7 +351,7 @@ async function downloadFile(url, dest) {
 
     function handleError(err) {
       file.close();
-      fsPromises.unlink(dest).then(() => {
+      fs.unlink(dest).then(() => {
         logMessage(`Error downloading file: ${err.message}`, "error");
         reject(new Error(`Error downloading file: ${err.message}`));
       });
@@ -436,7 +399,7 @@ async function installCondaEnvironment() {
       );
     }
 
-    await fsPromises.mkdir(path.dirname(archivePath), { recursive: true });
+    await fs.mkdir(path.dirname(archivePath), { recursive: true });
 
     emitBootMessage("Downloading Python environment...");
     let attempts = 3;
@@ -452,7 +415,7 @@ async function installCondaEnvironment() {
       }
     }
 
-    await fsPromises.mkdir(condaEnvPath, { recursive: true });
+    await fs.mkdir(condaEnvPath, { recursive: true });
     emitBootMessage("Unpacking Python environment...");
     if (platform === "win32") {
       await unpackPythonEnvironment(archivePath, condaEnvPath);
@@ -460,7 +423,7 @@ async function installCondaEnvironment() {
       await unpackTarGzEnvironment(archivePath, condaEnvPath);
     }
 
-    await fsPromises.unlink(archivePath);
+    await fs.unlink(archivePath);
 
     logMessage("Python environment installation completed successfully");
     emitBootMessage("Python environment is ready");
@@ -499,7 +462,7 @@ async function unpackPythonEnvironment(zipPath, destPath) {
       throw new Error(`Zip file not found at: ${zipPath}`);
     }
 
-    const stats = await fsPromises.stat(zipPath);
+    const stats = await fs.stat(zipPath);
     if (stats.size === 0) {
       throw new Error("Downloaded zip file is empty");
     }
@@ -511,7 +474,7 @@ async function unpackPythonEnvironment(zipPath, destPath) {
 
     if (await fileExists(destPath)) {
       logMessage(`Removing existing environment at ${destPath}`);
-      await fsPromises.rm(destPath, { recursive: true, force: true });
+      await fs.rm(destPath, { recursive: true, force: true });
     }
 
     function calculateETA() {
@@ -550,14 +513,14 @@ async function unpackPythonEnvironment(zipPath, destPath) {
             throw new Error(`Invalid zip entry path: ${name}`);
           }
 
-          await fsPromises.mkdir(dirPath, { recursive: true });
+          await fs.mkdir(dirPath, { recursive: true });
 
           if (!entry.isDirectory) {
             await zip.extract(name, fullPath);
             extractedSize += entry.size;
             processedEntries++;
 
-            const fileStats = await fsPromises.stat(fullPath);
+            const fileStats = await fs.stat(fullPath);
             if (fileStats.size !== entry.size) {
               throw new Error(`Size mismatch for ${name}`);
             }
@@ -587,7 +550,7 @@ async function unpackPythonEnvironment(zipPath, destPath) {
 
       if (failedEntries.length > 0) {
         try {
-          await fsPromises.rm(destPath, { recursive: true, force: true });
+          await fs.rm(destPath, { recursive: true, force: true });
         } catch (cleanupError) {
           logMessage(
             `Warning: Failed to clean up after extraction error: ${cleanupError.message}`,
@@ -607,10 +570,7 @@ async function unpackPythonEnvironment(zipPath, destPath) {
     }
 
     emitBootMessage("Running conda-unpack...");
-    const unpackScript =
-      process.platform === "win32"
-        ? path.join(destPath, "Scripts", "conda-unpack.exe")
-        : path.join(destPath, "bin", "conda-unpack");
+    const unpackScript = getCondaUnpackPath();
 
     if (!(await fileExists(unpackScript))) {
       throw new Error(`conda-unpack script not found at: ${unpackScript}`);
@@ -665,7 +625,7 @@ async function unpackPythonEnvironment(zipPath, destPath) {
 
     try {
       if (await fileExists(destPath)) {
-        await fsPromises.rm(destPath, { recursive: true, force: true });
+        await fs.rm(destPath, { recursive: true, force: true });
       }
     } catch (cleanupError) {
       logMessage(`Error during cleanup: ${cleanupError.message}`, "error");
@@ -695,17 +655,17 @@ async function unpackTarGzEnvironment(tarPath, destPath) {
       throw new Error(`Cannot read tar file: ${tarError}`);
     }
 
-    const stats = await fsPromises.stat(tarPath);
+    const stats = await fs.stat(tarPath);
     if (stats.size === 0) {
       throw new Error("Downloaded tar.gz file is empty");
     }
 
     if (await fileExists(destPath)) {
       logMessage(`Removing existing environment at ${destPath}`);
-      await fsPromises.rm(destPath, { recursive: true, force: true });
+      await fs.rm(destPath, { recursive: true, force: true });
     }
 
-    await fsPromises.mkdir(destPath, { recursive: true });
+    await fs.mkdir(destPath, { recursive: true });
 
     // Extract using tar-fs and gunzip-maybe
     await new Promise((resolve, reject) => {
@@ -748,14 +708,14 @@ async function unpackTarGzEnvironment(tarPath, destPath) {
 
     // Run conda-unpack
     emitBootMessage("Running conda-unpack...");
-    const unpackScript = path.join(destPath, "bin", "conda-unpack");
+    const unpackScript = getCondaUnpackPath();
 
     if (!(await fileExists(unpackScript))) {
       throw new Error(`conda-unpack script not found at: ${unpackScript}`);
     }
 
     // Make the script executable
-    await fsPromises.chmod(unpackScript, "755");
+    await fs.chmod(unpackScript, "755");
 
     const unpackProcess = spawn(unpackScript, [], {
       stdio: "pipe",
@@ -806,7 +766,7 @@ async function unpackTarGzEnvironment(tarPath, destPath) {
 
     try {
       if (await fileExists(destPath)) {
-        await fsPromises.rm(destPath, { recursive: true, force: true });
+        await fs.rm(destPath, { recursive: true, force: true });
       }
     } catch (cleanupError) {
       logMessage(`Error during cleanup: ${cleanupError.message}`, "error");
@@ -838,10 +798,6 @@ function calculateExtractETA(startTime, processedBytes, totalBytes) {
 }
 
 module.exports = {
-  processEnv,
-  condaEnvPath,
-  srcPath,
-  requirementsFilePath,
   checkPythonPackages,
   verifyApplicationPaths,
   isCondaEnvironmentInstalled,
