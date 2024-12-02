@@ -1,3 +1,4 @@
+import { NodeData } from "../stores/NodeData";
 import { useNodeStore } from "../stores/NodeStore";
 import { useWorkflowStore } from "../stores/WorkflowStore";
 
@@ -23,22 +24,18 @@ const initiateEditor = async (workflowId: string | undefined) => {
   }
 
   // Check if workflow is in cache of hte workflow store
-  const cachedWorkflow = getFromCache(workflowId);
-
-  if (cachedWorkflow) {
-    setWorkflow(cachedWorkflow);
-    return { workflow: cachedWorkflow };
-  }
+  let workflow = getFromCache(workflowId);
 
   // load the workflow from the server
-  const workflow = await getWorkflow(workflowId);
+  if (!workflow) {
+    workflow = await getWorkflow(workflowId);
+  }
 
   if (workflow) {
     setWorkflow(workflow);
-    return { workflow };
   }
 
-  return { workflow: null };
+  return { workflow };
 };
 
 export default initiateEditor;

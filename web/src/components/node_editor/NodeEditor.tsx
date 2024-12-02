@@ -34,6 +34,8 @@ import { isEqual } from "lodash";
 import ReactFlowWrapper from "../node/ReactFlowWrapper";
 import { useReactFlow, XYPosition } from "@xyflow/react";
 import WorkflowChat from "../assistants/WorkflowChat";
+import ModelDownloadDialog from "../hugging_face/ModelDownloadDialog";
+import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 
 declare global {
   interface Window {
@@ -68,6 +70,8 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ isMinZoom }) => {
   const duplicateNodesVertical = useDuplicateNodes(true);
   const surroundWithGroup = useSurroundWithGroup();
   const nodes = useNodeStore((state) => state.nodes);
+  const missingModelFiles = useNodeStore((state) => state.missingModelFiles);
+  const clearMissingModels = useNodeStore((state) => state.clearMissingModels);
 
   // OPEN NODE MENU
   const {
@@ -207,6 +211,13 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ isMinZoom }) => {
 
   return (
     <>
+      {missingModelFiles.length > 0 && (
+        <ModelDownloadDialog
+          open={missingModelFiles.length > 0}
+          repoPaths={missingModelFiles}
+          onClose={clearMissingModels}
+        />
+      )}
       <CommandMenu
         open={openCommandMenu}
         setOpen={setOpenCommandMenu}

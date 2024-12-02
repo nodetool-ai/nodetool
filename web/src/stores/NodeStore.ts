@@ -5,6 +5,7 @@ import {
   NodeMetadata,
   OutputSlot,
   Property,
+  RepoPath,
   UnifiedModel,
   Workflow
 } from "./ApiTypes";
@@ -38,6 +39,7 @@ import { WorkflowAttributes } from "./ApiTypes";
 import useMetadataStore from "./MetadataStore";
 import useErrorStore from "./ErrorStore";
 import useResultsStore from "./ResultsStore";
+import { tryCacheFiles } from "../serverState/tryCacheFiles";
 
 type NodeUIProperties = {
   selected?: boolean;
@@ -167,6 +169,7 @@ export interface NodeStore {
   setHoveredNodes: (ids: string[]) => void;
   edges: Edge[];
   edgeUpdateSuccessful: boolean;
+  missingModelFiles: RepoPath[];
   generateNodeId: () => string;
   generateEdgeId: () => string;
   getInputEdges: (nodeId: string) => Edge[];
@@ -221,6 +224,7 @@ export interface NodeStore {
     properties?: Record<string, any>
   ) => Node<NodeData>;
   autoLayout: () => Promise<void>;
+  clearMissingModels: () => void;
 }
 
 export const useTemporalStore = <T>(
@@ -234,6 +238,7 @@ export const useNodeStore = create<NodeStore>()(
       explicitSave: false as boolean,
       shouldAutoLayout: false as boolean,
       unsavedWorkflows: new Set() as Set<string>,
+      missingModelFiles: [],
       workflow: {
         id: "",
         name: "",
@@ -430,9 +435,31 @@ export const useNodeStore = create<NodeStore>()(
        * Set the current workflow.
        */
       setWorkflow: (workflow: Workflow) => {
-        console.log("setWorkflow", workflow);
-
         get().syncWithWorkflowStore();
+
+        const modelFiles = workflow.graph.nodes.reduce<RepoPath[]>(
+          (acc, node) => {
+            const data = node.data as Record<string, any>;
+            for (const name of Object.keys(data)) {
+              const value = data[name];
+              if (value && value.type?.startsWith("hf.")) {
+                if (value.repo_id && value.path) {
+                  acc.push({
+                    repo_id: value.repo_id,
+                    path: value.path
+                  });
+                }
+              }
+            }
+            return acc;
+          },
+          []
+        );
+        tryCacheFiles(modelFiles).then((paths) => {
+          set({
+            missingModelFiles: paths.filter((m) => !m.downloaded)
+          });
+        });
 
         const shouldAutoLayout = get().shouldAutoLayout;
         const metadata = useMetadataStore.getState().metadata;
@@ -447,7 +474,6 @@ export const useNodeStore = create<NodeStore>()(
         const unsanitizedEdges = (workflow.graph?.edges || []).map(
           (e: GraphEdge) => graphEdgeToReactFlowEdge(e)
         );
-        console.log("metadata", metadata);
 
         const { nodes: sanitizedNodes, edges: sanitizedEdges } =
           get().sanitizeGraph(unsanitizedNodes, unsanitizedEdges, metadata);
@@ -965,7 +991,6 @@ export const useNodeStore = create<NodeStore>()(
           }
           return acc;
         }, [] as Edge[]);
-        console.log("sanitizedEdges", sanitizedEdges);
 
         return { nodes: sanitizedNodes, edges: sanitizedEdges };
       },
@@ -1029,6 +1054,13 @@ export const useNodeStore = create<NodeStore>()(
             )
           );
         }
+      },
+
+      /**
+       * Clear the list of missing model files
+       */
+      clearMissingModels: () => {
+        set({ missingModelFiles: [] });
       }
     }),
     {

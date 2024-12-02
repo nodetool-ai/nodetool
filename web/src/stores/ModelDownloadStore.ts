@@ -117,7 +117,8 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
     }
   },
 
-  addDownload: (id: string, additionalProps?: Partial<Download>) =>
+  addDownload: (id: string, additionalProps?: Partial<Download>) => {
+    console.log("addDownload", id, additionalProps);
     set((state) => ({
       downloads: {
         ...state.downloads,
@@ -131,7 +132,8 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
           ...additionalProps
         } as Download
       }
-    })),
+    }));
+  },
 
   updateDownload: (id: string, update: Partial<Download>) =>
     set((state) => {

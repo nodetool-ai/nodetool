@@ -156,7 +156,7 @@
         "type": "comfy.loaders.HuggingFaceCheckpointLoader",
         "data": {
           "model": {
-            "type": "hf.flux",
+            "type": "hf.checkpoint_model",
             "repo_id": "Comfy-Org/flux1-dev",
             "path": "flux1-dev-fp8.safetensors"
           }

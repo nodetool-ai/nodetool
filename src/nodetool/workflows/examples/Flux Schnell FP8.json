@@ -1,8 +1,8 @@
 {
   "id": "af62a08d-669c-4b61-96ea-682fbc67a7a5",
   "access": "public",
-  "created_at": "2024-11-30T14:31:40.108341",
-  "updated_at": "2024-11-30T14:31:40.108345",
+  "created_at": "2024-12-02T22:29:13.306057",
+  "updated_at": "2024-12-02T22:29:13.306078",
   "name": "Flux Schnell FP8",
   "description": "Best-in-class image model with lower VRAM usage, faster than Flux Dev",
   "tags": [
@@ -22,8 +22,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 310,
-            "y": 398
+            "x": 320,
+            "y": 351
           },
           "zIndex": 0,
           "width": 200,
@@ -41,8 +41,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 570,
-            "y": 396
+            "x": 580,
+            "y": 331
           },
           "zIndex": 0,
           "width": 200,
@@ -58,8 +58,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 570,
-            "y": 228
+            "x": 580,
+            "y": 158
           },
           "zIndex": 0,
           "width": 200,
@@ -73,8 +73,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 1090,
-            "y": 74
+            "x": 1110,
+            "y": 425
           },
           "zIndex": 0,
           "width": 200,
@@ -112,8 +112,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 310,
-            "y": 219
+            "x": 320,
+            "y": 149
           },
           "zIndex": 0,
           "width": 200,
@@ -125,7 +125,7 @@
         "parent_id": null,
         "type": "comfy.sampling.KSampler",
         "data": {
-          "seed": 2642361834555695600,
+          "seed": 4291084318018484700,
           "seed_control_mode": "randomize",
           "steps": 4,
           "cfg": 1,
@@ -135,8 +135,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 830,
-            "y": 122
+            "x": 850,
+            "y": 50
           },
           "zIndex": 0,
           "width": 200,
@@ -149,7 +149,7 @@
         "type": "comfy.loaders.HuggingFaceCheckpointLoader",
         "data": {
           "model": {
-            "type": "hf.flux",
+            "type": "hf.checkpoint_model",
             "repo_id": "Comfy-Org/flux1-schnell",
             "path": "flux1-schnell-fp8.safetensors"
           }
@@ -158,7 +158,7 @@
           "selected": false,
           "position": {
             "x": 50,
-            "y": 139
+            "y": 119
           },
           "zIndex": 0,
           "width": 200,
@@ -174,8 +174,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1320,
-            "y": 50
+            "x": 1340,
+            "y": 403
           },
           "zIndex": 0,
           "width": 160,
@@ -240,16 +240,6 @@
         }
       },
       {
-        "id": "63a28d8e-eda5-43de-8584-750dc811fb6f",
-        "source": "36",
-        "sourceHandle": "vae",
-        "target": "8",
-        "targetHandle": "vae",
-        "ui_properties": {
-          "className": "comfy_vae"
-        }
-      },
-      {
         "id": "9",
         "source": "33",
         "sourceHandle": "conditioning",
@@ -265,6 +255,16 @@
         "targetHandle": "model",
         "ui_properties": {
           "className": "comfy_unet"
+        }
+      },
+      {
+        "id": "63a28d8e-eda5-43de-8584-750dc811fb6f",
+        "source": "36",
+        "sourceHandle": "vae",
+        "target": "8",
+        "targetHandle": "vae",
+        "ui_properties": {
+          "className": "comfy_vae"
         }
       },
       {
