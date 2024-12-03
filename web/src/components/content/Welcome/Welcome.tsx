@@ -36,6 +36,7 @@ import RecommendedModels from "../../hugging_face/RecommendedModels";
 import { UnifiedModel } from "../../../stores/ApiTypes";
 import { useModelDownloadStore } from "../../../stores/ModelDownloadStore";
 import { DownloadProgress } from "../../hugging_face/DownloadProgress";
+import ModelDownloadList from "../../hugging_face/ModelDownloadList";
 
 enum TabValue {
   Overview = 0,
@@ -617,21 +618,20 @@ const Welcome = ({ handleClose }: { handleClose: () => void }) => {
                     borderRadius: "20px"
                   }}
                 >
-                  <Typography variant="h3" sx={{ mb: 2 }}>
-                    How to Use AI Models
+                  <Typography variant="h2" sx={{ mb: 2 }}>
+                    How to Use Models
                   </Typography>
                   <Typography variant="body1" gutterBottom>
                     You can use both local and remote AI models in Nodetool:
                   </Typography>
                   <Typography variant="subtitle1" className="setup-list-title">
-                    1. Use Local Models via HuggingFace
+                    1. Use Local Models
                   </Typography>
                   <Box className="setup-list-content">
                     <ul>
                       <li>
                         <Typography variant="body2">
-                          Download and run models locally for privacy and
-                          offline use.
+                          Download from Hugging Face and run models locally.
                         </Typography>
                       </li>
                       <li>
@@ -688,7 +688,7 @@ const Welcome = ({ handleClose }: { handleClose: () => void }) => {
                     borderRadius: "20px"
                   }}
                 >
-                  <Typography variant="h3">Recommended Models</Typography>
+                  <Typography variant="h2">Local Models</Typography>
                   <p>
                     We recommend the following models for you to run examples on
                     your own GPU.
@@ -713,18 +713,7 @@ const Welcome = ({ handleClose }: { handleClose: () => void }) => {
                     </li>
                   </ul>
 
-                  <RecommendedModels
-                    recommendedModels={recommendedModels}
-                    initialViewMode="list"
-                    startDownload={startDownload}
-                    showViewModeToggle={false}
-                    compactView={true}
-                  />
-                  <Box mt={2}>
-                    {Object.keys(downloads).map((name) => (
-                      <DownloadProgress key={name} name={name} />
-                    ))}
-                  </Box>
+                  <ModelDownloadList models={recommendedModels} />
                 </Box>
 
                 <Box

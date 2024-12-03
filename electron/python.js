@@ -4,10 +4,11 @@ const fs = require("fs").promises;
 
 const {
   condaEnvPath,
-  requirementsPath: requirementsFilePath,
   getPythonPath,
   getPipPath,
   getCondaUnpackPath,
+  saveUserRequirements,
+  getRequirementsPath,
 } = PYTHON_ENV;
 
 const { spawn } = require("child_process");
@@ -29,25 +30,19 @@ const path = require("path");
  */
 async function checkPythonPackages() {
   try {
-    const pipExecutable = getPipPath();
-    const reportFile = os.tmpdir() + "/pip-report.json";
-    const requirementsTmpPath = os.tmpdir() + "/requirements.txt";
     const requirementsURL = `https://nodetool-conda.s3.amazonaws.com/requirements.txt`;
 
     emitBootMessage(`Downloading requirements...`);
-    await downloadFile(requirementsURL, requirementsTmpPath);
 
-    // compare local requirements with remote requirements
-    const localRequirements = await fs.readFile(requirementsFilePath, "utf8");
-    const remoteRequirements = await fs.readFile(requirementsTmpPath, "utf8");
+    const remoteRequirements = await downloadToString(requirementsURL);
+    const localRequirements = await fs.readFile(getRequirementsPath(), "utf8");
 
     if (localRequirements === remoteRequirements) {
       emitBootMessage("No updates needed");
       return false;
     }
 
-    // copy remote requirements to local requirements
-    await fs.copyFile(requirementsTmpPath, requirementsFilePath);
+    saveUserRequirements(remoteRequirements);
 
     return true;
   } catch (error) {
@@ -123,7 +118,7 @@ async function updateCondaEnvironment() {
       pipExecutable,
       "install",
       "-r",
-      requirementsFilePath,
+      getRequirementsPath(),
     ];
 
     // Add PyTorch CUDA index for non-Darwin platforms
@@ -767,10 +762,47 @@ function calculateExtractETA(startTime, processedBytes, totalBytes) {
   }
 }
 
+/**
+ * Download a file's contents directly to a string
+ * @param {string} url - The URL to download from
+ * @returns {Promise<string>} The file contents as a string
+ */
+async function downloadToString(url) {
+  return new Promise((resolve, reject) => {
+    let data = '';
+
+    const request = https.get(url, handleResponse);
+    request.on('error', handleError);
+
+    function handleResponse(response) {
+      if (response.statusCode === 404) {
+        reject(new Error(`File not found at ${url}`));
+        return;
+      }
+
+      if (response.statusCode === 302 || response.statusCode === 301) {
+        https.get(response.headers.location, handleResponse)
+          .on('error', handleError);
+        return;
+      }
+
+      response.setEncoding('utf8');
+      response.on('data', chunk => data += chunk);
+      response.on('end', () => resolve(data));
+      response.on('error', handleError);
+    }
+
+    function handleError(err) {
+      reject(new Error(`Error downloading file: ${err.message}`));
+    }
+  });
+}
+
 module.exports = {
   checkPythonPackages,
   verifyApplicationPaths,
   isCondaEnvironmentInstalled,
   updateCondaEnvironment,
   installCondaEnvironment,
+  downloadToString,
 };

@@ -7,14 +7,26 @@ const srcPath = app.isPackaged
   ? path.join(resourcesPath, "src")
   : path.join(__dirname, "..", "src");
 
+
 const userDataPath = app.getPath("userData");
 
 // Python environment paths
 const PYTHON_ENV = {
   condaEnvPath: path.join(userDataPath, "conda_env"),
-  requirementsPath: app.isPackaged
-    ? path.join(resourcesPath, "requirements.txt")
-    : path.join(__dirname, "..", "requirements.txt"),
+  getRequirementsPath: () => {
+    const userRequirements = path.join(userDataPath, "requirements.txt");
+    const defaultRequirements = app.isPackaged
+      ? path.join(resourcesPath, "requirements.txt")
+      : path.join(__dirname, "..", "requirements.txt");
+    
+    try {
+      // Synchronously check if user requirements exists
+      require('fs').accessSync(userRequirements);
+      return userRequirements;
+    } catch {
+      return defaultRequirements;
+    }
+  },
 
   getPythonPath: () =>
     process.platform === "win32"
@@ -30,6 +42,17 @@ const PYTHON_ENV = {
     process.platform === "win32"
       ? path.join(userDataPath, "conda_env", "Scripts", "conda-unpack.exe")
       : path.join(userDataPath, "conda_env", "bin", "conda-unpack"),
+
+  saveUserRequirements: (requirements) => {
+    const fs = require('fs');
+    try {
+      fs.writeFileSync(path.join(userDataPath, "requirements.txt"), requirements);
+      return true;
+    } catch (error) {
+      console.error("Failed to save user requirements:", error);
+      return false;
+    }
+  },
 };
 
 // Environment variables
