@@ -52,7 +52,19 @@ const ReadmeDialog: React.FC<ReadmeDialogProps> = ({
   }, [readmeData]);
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="md"
+      fullWidth
+      slotProps={{
+        backdrop: {
+          style: {
+            backgroundColor: "rgba(0, 0, 0, 0.8)"
+          }
+        }
+      }}
+    >
       <DialogTitle>
         README
         <IconButton

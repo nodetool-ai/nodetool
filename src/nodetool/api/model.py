@@ -29,6 +29,12 @@ log = Environment.get_logger()
 router = APIRouter(prefix="/api/models", tags=["models"])
 
 
+class RepoPath(BaseModel):
+    repo_id: str
+    path: str
+    downloaded: bool = False
+
+
 class SystemStats(BaseModel):
     cpu_percent: float = Field(..., description="CPU usage percentage")
     memory_total_gb: float = Field(..., description="Total memory in GB")
@@ -53,26 +59,6 @@ async def get_huggingface_models(
     return await read_all_cached_models()
 
 
-class RepoPath(BaseModel):
-    repo_id: str
-    path: str
-    downloaded: bool = False
-
-
-@router.post("/huggingface/try_cache_files")
-async def try_cache_files(
-    paths: list[RepoPath],
-    user: User = Depends(current_user),
-) -> list[RepoPath]:
-    def check_path(path: RepoPath) -> bool:
-        return try_to_load_from_cache(path.repo_id, path.path) is not None
-
-    return [
-        RepoPath(repo_id=path.repo_id, path=path.path, downloaded=check_path(path))
-        for path in paths
-    ]
-
-
 @router.delete("/huggingface_model")
 async def delete_huggingface_model(repo_id: str) -> bool:
     if Environment.is_production():
@@ -95,6 +81,20 @@ async def get_ollama_models(user: User = Depends(current_user)) -> list[LlamaMod
             details=model["details"],
         )
         for model in models["models"]
+    ]
+
+
+@router.post("/huggingface/try_cache_files")
+async def try_cache_files(
+    paths: list[RepoPath],
+    user: User = Depends(current_user),
+) -> list[RepoPath]:
+    def check_path(path: RepoPath) -> bool:
+        return try_to_load_from_cache(path.repo_id, path.path) is not None
+
+    return [
+        RepoPath(repo_id=path.repo_id, path=path.path, downloaded=check_path(path))
+        for path in paths
     ]
 
 
@@ -185,13 +185,8 @@ async def get_huggingface_file_info(
 @router.get("/{model_type}")
 async def index(model_type: str, user: User = Depends(current_user)) -> list[ModelFile]:
     folder = comfy_model_to_folder(model_type)
-    worker_client = Environment.get_worker_api_client()
-    if worker_client:
-        res = await worker_client.get(f"/models/{folder}")
-        return res.json()
-    else:
-        import folder_paths
+    import folder_paths
 
-        files = folder_paths.get_filename_list(folder)
+    files = folder_paths.get_filename_list(folder)
 
-        return [ModelFile(type=folder, name=file) for file in files]
+    return [ModelFile(type=folder, name=file) for file in files]

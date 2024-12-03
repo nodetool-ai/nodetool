@@ -55,6 +55,13 @@ const RecommendedModelsDialog: React.FC<RecommendedModelsDialogProps> = ({
       onClose={onClose}
       maxWidth="lg"
       fullWidth
+      slotProps={{
+        backdrop: {
+          style: {
+            backgroundColor: "rgba(0, 0, 0, 0.8)"
+          }
+        }
+      }}
     >
       <DialogTitle style={{ marginBottom: 2 }}>
         Recommended Models

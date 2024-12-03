@@ -118,7 +118,6 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
   },
 
   addDownload: (id: string, additionalProps?: Partial<Download>) => {
-    console.log("addDownload", id, additionalProps);
     set((state) => ({
       downloads: {
         ...state.downloads,
@@ -190,9 +189,10 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
     }
     const id = path ? repoId + "/" + path : repoId;
 
+    get().addDownload(id);
+
     if (modelType.startsWith("hf.")) {
       const ws = await get().connectWebSocket();
-      get().addDownload(id);
       ws.send(
         JSON.stringify({
           command: "start_download",
@@ -204,7 +204,6 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
       );
     } else if (modelType === "llama_model") {
       try {
-        get().addDownload(id);
         const response = await fetch(
           BASE_URL + "/api/models/pull_ollama_model?model_name=" + id,
           {

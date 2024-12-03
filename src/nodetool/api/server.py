@@ -66,9 +66,11 @@ DEFAULT_ROUTERS = [
     workflow.router,
     storage.router,
     task.router,
-    model.router,
     settings.router,
 ]
+
+if not Environment.is_production():
+    DEFAULT_ROUTERS.append(model.router)
 
 
 class PermissionsPolicyMiddleware(BaseHTTPMiddleware):

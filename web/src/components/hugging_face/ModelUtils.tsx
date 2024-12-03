@@ -278,8 +278,8 @@ export const sortModelTypes = (types: string[]) => {
 };
 
 export const useModelInfo = (model: UnifiedModel) => {
-  const isHuggingFace = model.type.startsWith("hf.");
-  const isOllama = model.type.toLowerCase().includes("llama_model");
+  const isHuggingFace = model.type?.startsWith("hf.");
+  const isOllama = model.type?.toLowerCase().includes("llama_model");
   const query = useQuery({
     queryKey: ["modelInfo", model.id],
     queryFn: () => {

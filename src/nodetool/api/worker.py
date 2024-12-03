@@ -17,6 +17,12 @@ import nodetool.nodes.ollama
 import nodetool.nodes.luma
 import nodetool.nodes.kling
 from nodetool.workflows.base_node import get_registered_node_classes
+from nodes import init_extra_nodes
+import comfy.cli_args
+
+comfy.cli_args.args.force_fp16 = True
+
+init_extra_nodes()
 
 
 env_file = dotenv.find_dotenv(usecwd=True)
@@ -70,12 +76,3 @@ async def metadata() -> list[NodeMetadata]:
     import nodetool.nodes
 
     return [node_class.metadata() for node_class in get_registered_node_classes()]
-
-
-@app.get("/models/{folder}")
-async def get_models(folder: str) -> list[ModelFile]:
-    import folder_paths
-
-    files = folder_paths.get_filename_list(folder)
-
-    return [ModelFile(type=folder, name=file) for file in files]

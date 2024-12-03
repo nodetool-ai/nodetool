@@ -17,8 +17,26 @@ const HuggingFaceDownloadDialog: React.FC = () => {
   const { isDialogOpen, closeDialog, downloads } = useModelDownloadStore();
 
   return (
-    <Dialog open={isDialogOpen} onClose={closeDialog} maxWidth="md" fullWidth>
-      <DialogTitle>Download Progress</DialogTitle>
+    <Dialog
+      open={isDialogOpen}
+      onClose={closeDialog}
+      maxWidth="md"
+      fullWidth
+      slotProps={{
+        backdrop: {
+          style: {
+            backgroundColor: "rgba(0, 0, 0, 0.9)" // Darker backdrop
+          }
+        }
+      }}
+      PaperProps={{
+        sx: {
+          backgroundColor: "rgba(0, 0, 0, 0.85)",
+          color: "white"
+        }
+      }}
+    >
+      <DialogTitle sx={{ color: "inherit" }}>Download Progress</DialogTitle>
       <DialogContent>
         <Box mt={2}>
           {Object.keys(downloads).map((name) => (
@@ -30,14 +48,16 @@ const HuggingFaceDownloadDialog: React.FC = () => {
         sx={{
           justifyContent: "space-between",
           alignItems: "flex-end",
-          paddingRight: "1.5em"
+          paddingRight: "1.5em",
+          color: "inherit" // Ensure text color is inherited
         }}
       >
         <Typography
           variant="body1"
-          style={{
+          sx={{
             padding: "0 1.5em .5em",
-            fontWeight: "200"
+            fontWeight: "200",
+            color: "inherit" // Ensure text color is inherited
           }}
         >
           <AnnouncementIcon
@@ -45,7 +65,6 @@ const HuggingFaceDownloadDialog: React.FC = () => {
             sx={{
               verticalAlign: "middle",
               marginRight: "0.5em",
-
               color: ThemeNodetool.palette.c_warning
             }}
           />

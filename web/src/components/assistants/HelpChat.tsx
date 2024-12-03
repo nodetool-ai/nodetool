@@ -11,6 +11,7 @@ import useModelStore from "../../stores/ModelStore";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchOllamaModelInfo } from "../hugging_face/ModelUtils";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
+import { isProduction } from "../../stores/ApiClient";
 
 const HelpChat: React.FC = () => {
   const { messages, isLoading, sendMessage, setMessages } = useChatStore();
@@ -60,7 +61,7 @@ const HelpChat: React.FC = () => {
     openDialog();
   }, [startDownload, openDialog]);
 
-  const isModelAvailable = Boolean(ollamaModelInfo);
+  const isModelAvailable = isProduction || Boolean(ollamaModelInfo);
   const { downloads } = useModelDownloadStore();
   const isDownloading = downloads["qwen2.5:1.5b"]?.status === "running";
 
