@@ -8,7 +8,8 @@ import {
   Tooltip,
   IconButton,
   Grid,
-  Box
+  Box,
+  Typography
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import { TOOLTIP_ENTER_DELAY } from "../node/BaseNode";
@@ -61,10 +62,17 @@ const ModelDownloadDialog: React.FC<ModelDownloadDialogProps> = ({
       open={open}
       onClose={onClose}
       maxWidth="lg"
+      slotProps={{
+        backdrop: {
+          style: {
+            backgroundColor: "rgba(0, 0, 0, 0.8)"
+          }
+        }
+      }}
       fullWidth
     >
       <DialogTitle style={{ marginBottom: 2 }}>
-        You&apos;re missing some models
+        Required Models Download
         <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="Close | ESC">
           <IconButton
             aria-label="close"
@@ -82,6 +90,20 @@ const ModelDownloadDialog: React.FC<ModelDownloadDialogProps> = ({
       </DialogTitle>
 
       <DialogContent sx={{ paddingBottom: "3em" }}>
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="body1" sx={{ mb: 1 }}>
+            To run this workflow, the following AI models need to be downloaded
+            to your local machine:
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            • Models will be stored locally in the Hugging Face cache
+            <br />
+            • Download times may vary based on model size and internet speed
+            <br />• You can close this dialog and return later - downloads will
+            continue in the background
+          </Typography>
+        </Box>
+
         <Grid container spacing={2} className="models-grid">
           {repoPaths.map((repoPath, index) => {
             const modelId = `${repoPath.repo_id}/${repoPath.path}`;

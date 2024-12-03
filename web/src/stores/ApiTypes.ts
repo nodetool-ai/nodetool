@@ -66,7 +66,7 @@ export type RepoPath = components["schemas"]["RepoPath"];
 
 export interface UnifiedModel {
   id: string;
-  type: string;
+  type?: string;
   name: string;
   repo_id?: string;
   path?: string | null;

@@ -16,6 +16,15 @@ import ThemeNodetool from "../themes/ThemeNodetool";
 const HuggingFaceDownloadDialog: React.FC = () => {
   const { isDialogOpen, closeDialog, downloads } = useModelDownloadStore();
 
+  const hasActiveDownloads = Object.keys(downloads).length > 0;
+
+  const infoMessage = hasActiveDownloads
+    ? "You can close this dialog and return later - downloads will continue in the background. Access downloads anytime via the Download icon in the toolbar."
+    : "No active downloads. Start a download by selecting a model from the Recommended Models Dialog.";
+
+  const cacheInfo =
+    "Models are cached in ~/.cache/huggingface. Ollama models are stored in ~/.ollama.";
+
   return (
     <Dialog
       open={isDialogOpen}
@@ -36,12 +45,46 @@ const HuggingFaceDownloadDialog: React.FC = () => {
         }
       }}
     >
-      <DialogTitle sx={{ color: "inherit" }}>Download Progress</DialogTitle>
+      <DialogTitle sx={{ color: "inherit" }}>
+        {hasActiveDownloads ? "Download Progress" : "Model Downloads"}
+      </DialogTitle>
       <DialogContent>
+        <Box
+          mt={2}
+          sx={{
+            borderTop: "1px solid rgba(255, 255, 255, 0.1)",
+            paddingTop: 2
+          }}
+        >
+          <Typography
+            variant="body2"
+            sx={{
+              color: "rgba(255, 255, 255, 0.7)",
+              display: "flex",
+              alignItems: "center",
+              gap: "0.5em"
+            }}
+          >
+            <AnnouncementIcon
+              fontSize="small"
+              sx={{ color: ThemeNodetool.palette.c_info }}
+            />
+            {cacheInfo}
+          </Typography>
+        </Box>
         <Box mt={2}>
-          {Object.keys(downloads).map((name) => (
-            <DownloadProgress key={name} name={name} />
-          ))}
+          {Object.keys(downloads).length > 0 ? (
+            Object.keys(downloads).map((name) => (
+              <DownloadProgress key={name} name={name} />
+            ))
+          ) : (
+            <Typography
+              variant="body1"
+              sx={{ textAlign: "center", padding: "2em 0" }}
+            >
+              No active downloads
+            </Typography>
+          )}
         </Box>
       </DialogContent>
       <DialogActions
@@ -49,26 +92,25 @@ const HuggingFaceDownloadDialog: React.FC = () => {
           justifyContent: "space-between",
           alignItems: "flex-end",
           paddingRight: "1.5em",
-          color: "inherit" // Ensure text color is inherited
+          color: "inherit"
         }}
       >
         <Typography
           variant="body1"
           sx={{
-            padding: "0 1.5em .5em",
+            padding: "0 1.5em .5em 1em",
             fontWeight: "200",
-            color: "inherit" // Ensure text color is inherited
+            color: "inherit",
+            display: "flex",
+            alignItems: "center",
+            gap: "0.5em"
           }}
         >
           <AnnouncementIcon
             fontSize="small"
-            sx={{
-              verticalAlign: "middle",
-              marginRight: "0.5em",
-              color: ThemeNodetool.palette.c_warning
-            }}
+            sx={{ color: ThemeNodetool.palette.c_warning }}
           />
-          Downloads will continue in the background after closing this dialog.
+          {infoMessage}
         </Typography>
         <Button onClick={closeDialog} variant="contained">
           Close

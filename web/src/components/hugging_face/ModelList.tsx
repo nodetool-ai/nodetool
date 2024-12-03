@@ -406,16 +406,18 @@ const ModelList: React.FC = () => {
           </ToggleButtonGroup>
         </Box>
         <List>
-          {modelTypes.map((type) => (
-            <ListItemButton
-              className="model-type-button"
-              key={type}
-              selected={selectedModelType === type}
-              onClick={() => handleModelTypeChange(type)}
-            >
-              <ListItemText primary={prettifyModelType(type)} />
-            </ListItemButton>
-          ))}
+          {modelTypes
+            .filter((type) => filteredModels[type]?.length > 0)
+            .map((type) => (
+              <ListItemButton
+                className="model-type-button"
+                key={type}
+                selected={selectedModelType === type}
+                onClick={() => handleModelTypeChange(type)}
+              >
+                <ListItemText primary={prettifyModelType(type)} />
+              </ListItemButton>
+            ))}
         </List>
       </Box>
 
@@ -437,27 +439,17 @@ const ModelList: React.FC = () => {
                 Searching models for &quot;{modelSearchTerm}&quot;
               </Typography>
             )}
-            {modelTypes.slice(1).map((modelType) =>
-              filteredModels[modelType] &&
-              filteredModels[modelType].length > 0 ? (
+            {modelTypes
+              .slice(1)
+              .filter((modelType) => filteredModels[modelType]?.length > 0)
+              .map((modelType) => (
                 <Box className="model-list-section" key={modelType} mt={2}>
                   <Typography variant="h2">
                     {prettifyModelType(modelType)}
                   </Typography>
                   {renderModels(filteredModels[modelType] || [])}
                 </Box>
-              ) : (
-                <Box
-                  className="model-list-section empty-section"
-                  key={modelType}
-                  mt={2}
-                >
-                  <Typography variant="h4">
-                    {prettifyModelType(modelType)}
-                  </Typography>
-                </Box>
-              )
-            )}
+              ))}
           </>
         ) : (
           <Box className="model-list-section" mt={2}>

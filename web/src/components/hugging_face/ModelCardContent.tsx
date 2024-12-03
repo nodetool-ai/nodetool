@@ -32,8 +32,8 @@ const ModelCardContent = React.memo<ModelCardContentProps>(
     readmeDialogOpen,
     setReadmeDialogOpen
   }) => {
-    const isHuggingFace = model.type.startsWith("hf.");
-    const isOllama = model.type.toLowerCase().includes("llama_model");
+    const isHuggingFace = model.type?.startsWith("hf.") ?? false;
+    const isOllama = model.type?.toLowerCase().includes("llama_model") ?? false;
 
     return (
       <CardContent sx={{ flexGrow: 1 }}>
