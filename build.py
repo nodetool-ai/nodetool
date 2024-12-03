@@ -466,6 +466,18 @@ class Build:
         logger.info(f"Uploading {output_name} to s3://nodetool-conda/")
         self.run_command(["aws", "s3", "cp", str(output_path), "s3://nodetool-conda/"])
 
+        # Upload requirements.txt to S3
+        logger.info("Uploading requirements.txt to s3://nodetool-conda/")
+        self.run_command(
+            [
+                "aws",
+                "s3",
+                "cp",
+                str(PROJECT_ROOT / "requirements.txt"),
+                "s3://nodetool-conda/",
+            ]
+        )
+
 
 def main() -> None:
     """Parse arguments and run the build process."""

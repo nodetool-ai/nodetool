@@ -23,16 +23,15 @@ let isAppQuitting = false;
 
 /**
  * Checks and sets up the Python Conda environment
- * @param {boolean} shouldUpdate - Whether to update existing packages
  * @returns {Promise<void>}
  */
-async function checkPythonEnvironment(shouldUpdate = false) {
+async function checkPythonEnvironment() {
   emitBootMessage("Checking for Python environment...");
   const hasCondaEnv = await isCondaEnvironmentInstalled();
 
   if (!hasCondaEnv) {
     await installCondaEnvironment();
-  } else if (shouldUpdate) {
+  } else {
     await updateCondaEnvironment();
   }
 }
@@ -62,7 +61,7 @@ async function initialize() {
   setupAutoUpdater();
 
   // Check if Conda environment exists, but don't update packages
-  await checkPythonEnvironment(false);
+  await checkPythonEnvironment();
 
   if (!app.isPackaged) {
     emitBootMessage("Starting Vite server...");
@@ -78,8 +77,8 @@ app.on("ready", initialize);
 
 // Handle update events
 ipcMain.handle("update-installed", async () => {
-  logMessage("Update installed, checking and updating Python environment");
-  await checkPythonEnvironment(true);
+  logMessage("Update installed, updating Python environment");
+  await checkPythonEnvironment();
 });
 
 app.on("before-quit", (event) => {

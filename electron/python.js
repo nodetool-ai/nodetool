@@ -30,58 +30,28 @@ const path = require("path");
 async function checkPythonPackages() {
   try {
     const pipExecutable = getPipPath();
-
     const reportFile = os.tmpdir() + "/pip-report.json";
+    const requirementsTmpPath = os.tmpdir() + "/requirements.txt";
+    const requirementsURL = `https://nodetool-conda.s3.amazonaws.com/requirements.txt`;
 
-    emitBootMessage("Checking installed packages...");
+    emitBootMessage(`Downloading requirements...`);
+    await downloadFile(requirementsURL, requirementsTmpPath);
 
-    // Build command array with the same extra indexes as updateCondaEnvironment
-    const checkCommand = [
-      "install",
-      "-r",
-      requirementsFilePath,
-      "--dry-run",
-      "--report",
-      reportFile,
-    ];
+    // compare local requirements with remote requirements
+    const localRequirements = await fs.readFile(requirementsFilePath, "utf8");
+    const remoteRequirements = await fs.readFile(requirementsTmpPath, "utf8");
 
-    // Use pip install --dry-run --report to get JSON output
-    const checkProcess = spawn(pipExecutable, checkCommand, {
-      stdio: "pipe",
-      env: processEnv,
-    });
-
-    await new Promise((resolve, reject) => {
-      checkProcess.on("close", (code) => {
-        if (code === 0) {
-          resolve();
-        } else {
-          reject(new Error(`pip check failed with code ${code}`));
-        }
-      });
-      checkProcess.on("error", reject);
-    });
-
-    try {
-      const reportContent = await fs.readFile(reportFile, "utf8");
-      await fs
-        .unlink(reportFile)
-        .catch((err) =>
-          logMessage(
-            `Warning: Could not delete temporary report file: ${err.message}`,
-            "warn"
-          )
-        );
-      return JSON.parse(reportContent).install;
-    } catch (fileError) {
-      logMessage(
-        `Error handling pip report file: ${fileError.message}`,
-        "error"
-      );
-      throw fileError;
+    if (localRequirements === remoteRequirements) {
+      emitBootMessage("No updates needed");
+      return false;
     }
+
+    // copy remote requirements to local requirements
+    await fs.copyFile(requirementsTmpPath, requirementsFilePath);
+
+    return true;
   } catch (error) {
-    logMessage(`Error checking Python packages: ${error.message}`, "error");
+    logMessage(`Failed to check Python packages: ${error.message}`, "error");
     throw error;
   }
 }
@@ -137,14 +107,14 @@ async function isCondaEnvironmentInstalled() {
  */
 async function updateCondaEnvironment() {
   try {
-    const packagesToInstall = await checkPythonPackages();
+    const installNeeded = await checkPythonPackages();
 
-    if (packagesToInstall.length === 0) {
+    if (!installNeeded) {
       emitBootMessage("No packages to update");
       return;
     }
 
-    emitBootMessage(`Updating ${packagesToInstall.length} packages...`);
+    emitBootMessage(`Updating packages...`);
 
     const pipExecutable = getPipPath();
 
