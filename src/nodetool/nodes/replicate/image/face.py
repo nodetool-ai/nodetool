@@ -25,7 +25,7 @@ class FaceToMany(ReplicateNode):
         return "None"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://replicate.delivery/pbxt/R1ayGe5efoQbaoRzgDEJdLsIZ20lWRiprvoW1F4uKAZIha6kA/ComfyUI_00001_.png",
             "created_at": "2024-03-05T13:01:03.163557Z",
@@ -113,7 +113,7 @@ class BecomeImage(ReplicateNode):
         return "Nvidia A40 (Large) GPU"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/d93dcb3c-dbc8-4e41-a3e1-f96aaf5875b1/pearl-earring.webp",
             "created_at": "2024-03-11T11:16:22.168373Z",
@@ -231,7 +231,7 @@ class PhotoMaker(ReplicateNode):
         return "Nvidia A40 (Large) GPU"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/75f21a83-c142-4cba-9750-dc9724b12b77/photomaker-cover-img-scarjo.jpg",
             "created_at": "2024-01-16T15:42:17.882162Z",
@@ -352,7 +352,7 @@ class PhotoMakerStyle(ReplicateNode):
         return "Nvidia A40 (Large) GPU"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/8e85a287-826f-4c21-9079-22eac106dd6b/output.0.png",
             "created_at": "2024-01-18T14:28:51.763369Z",
@@ -453,7 +453,7 @@ class FaceToSticker(ReplicateNode):
         return "Nvidia A40 (Large) GPU"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://replicate.delivery/pbxt/RZzqVdLsqSZgHtEefD00iMK8VuDif6iVmXlSbNeiAShPuHtJB/ComfyUI_00002_.png",
             "created_at": "2024-02-28T15:14:15.687345Z",
@@ -571,7 +571,7 @@ class InstantId(ReplicateNode):
         return "Nvidia A40 (Large) GPU"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/29bb719e-5db7-4816-9cfc-84b141ac8670/instantidcover.jpg",
             "created_at": "2024-01-22T21:00:49.120905Z",

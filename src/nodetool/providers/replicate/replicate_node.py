@@ -113,7 +113,7 @@ class ReplicateNode(BaseNode):
         We remember the model_id and corresponding model_info for each subclass.
         """
         super().__init_subclass__()
-        model_info = cls.model_info().copy()
+        model_info = cls.get_model_info().copy()
         model_info["hardware"] = cls.get_hardware()
         add_replicate_model(cls.replicate_model_id(), model_info)
 

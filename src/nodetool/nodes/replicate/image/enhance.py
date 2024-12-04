@@ -17,7 +17,7 @@ class CodeFormer(ReplicateNode):
         return "Nvidia A40 (Large) GPU"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/cf736d61-411f-4301-89b3-16aff1a02ed1/codeformer_logo.png",
             "created_at": "2023-09-06T04:10:50.158696Z",
@@ -74,7 +74,7 @@ class Night_Enhancement(ReplicateNode):
         return "Nvidia T4 GPU"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://replicate.delivery/mgxm/60c4c0d8-c82f-42e0-96ee-71392d32b6fe/output.png",
             "created_at": "2022-08-13T15:54:02.662983Z",
@@ -114,7 +114,7 @@ class Supir_V0Q(ReplicateNode):
         return "Nvidia A40 (Large) GPU"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://replicate.delivery/pbxt/gYLkKNiBcnZDD9dnPxlUR4iurpbr1QANec0VmA2kv3Ol6zMJA/out.png",
             "created_at": "2024-02-23T16:26:24.376439Z",
@@ -228,7 +228,7 @@ class Supir_V0F(ReplicateNode):
         return "Nvidia A40 (Large) GPU"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://replicate.delivery/pbxt/if3rev1GNfAB6IMsqqW8CqQtVP75pXvU3dLQeV6CFkVutgmJB/out.png",
             "created_at": "2024-02-23T16:38:51.414944Z",
@@ -350,7 +350,7 @@ class Maxim(ReplicateNode):
         return "Nvidia T4 GPU"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://replicate.delivery/mgxm/716ffa94-41f7-46b4-a2f0-287f0e907f9c/output.png",
             "created_at": "2022-04-20T16:32:30.049391Z",
@@ -386,7 +386,7 @@ class OldPhotosRestoration(ReplicateNode):
         return "Nvidia T4 GPU"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://replicate.delivery/mgxm/18b02ad9-ae81-4044-800e-65732df6bdc7/out.png",
             "created_at": "2021-09-11T14:44:30.681818Z",

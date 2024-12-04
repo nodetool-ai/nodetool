@@ -169,7 +169,7 @@ async def replicate_status(node_type: str) -> str:
     """
     node_class = get_node_class(node_type)
     if node_class:
-        url = node_class.model_info().get("url")
+        url = node_class.get_model_info().get("url")
         if url:
             async with httpx.AsyncClient() as client:
                 response = await client.get(f"{url}/status")

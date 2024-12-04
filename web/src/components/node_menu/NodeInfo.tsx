@@ -197,13 +197,13 @@ const NodeInfo: React.FC<NodeInfoProps> = ({ nodeMetadata }) => {
           <div key={i}>{useCase}</div>
         ))}
       </Typography>
-      {nodeMetadata.model_info.cover_image_url ? (
+      {nodeMetadata.the_model_info.cover_image_url ? (
         isLoading ? (
           <div className="preview-image loading"></div>
         ) : (
           <img
             className="preview-image"
-            src={nodeMetadata.model_info.cover_image_url}
+            src={nodeMetadata.the_model_info.cover_image_url}
             alt={nodeMetadata.title}
           />
         )

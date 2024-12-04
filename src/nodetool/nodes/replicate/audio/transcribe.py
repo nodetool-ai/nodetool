@@ -236,7 +236,7 @@ class Whisper(ReplicateNode):
         return "Nvidia T4 (High-memory) GPU"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/a9253a5b-aa79-4df3-8aa1-09a6d044fdd6/Screen_Shot_2022-09-28_at_16.58.5.png",
             "created_at": "2022-09-22T10:01:42.119733Z",
@@ -443,7 +443,7 @@ class IncrediblyFastWhisper(ReplicateNode):
         return "Nvidia A40 (Large) GPU"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/a59dc78f-523f-4977-9856-e84479aec79b/insanely-fast-whisper-img.png",
             "created_at": "2023-11-13T13:28:53.689979Z",

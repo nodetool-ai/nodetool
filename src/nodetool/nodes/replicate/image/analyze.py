@@ -21,7 +21,7 @@ class SDXLClipInterrogator(ReplicateNode):
         return "Nvidia A40 GPU"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/c200f919-4cc1-412b-8edf-e2863a5eef56/replicate-sdxl-inter.png",
             "created_at": "2023-08-14T20:06:38.402771Z",
@@ -60,7 +60,7 @@ class Img2Prompt(ReplicateNode):
         return "Nvidia T4 GPU"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://replicate.delivery/mgxm/8b4d747d-feca-477d-8069-ee4d5f89ad8e/a_high_detail_shot_of_a_cat_wearing_a_suit_realism_8k_-n_9_.png",
             "created_at": "2022-08-24T08:53:28.614572Z",
@@ -95,7 +95,7 @@ class Moondream2(ReplicateNode):
         return "Nvidia A40 GPU"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/3cbb4e68-08b8-4e82-8e83-3300f877dd0f/moondream2.png",
             "created_at": "2024-03-05T02:29:40.377800Z",
@@ -133,7 +133,7 @@ class MiniGPT4(ReplicateNode):
         return "Nvidia A100 (40GB) GPU"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/af717919-83de-46e8-9b1a-9c66f4f747bf/out_0.png",
             "created_at": "2023-05-16T19:05:24.691944Z",
@@ -213,7 +213,7 @@ class GLM_4V_9B(ReplicateNode):
         return "Nvidia A40 GPU"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://replicate.delivery/pbxt/L4xKZdxJyTzXJWgiLgvyaeHHhKvZDu2TdTukDoUKMC6eMRxD/replicate-prediction-3a2y5bv2e1rgg0cfxqysh6g9v0%20(1).png",
             "created_at": "2024-06-11T17:01:39.744025Z",
@@ -249,7 +249,7 @@ class NSFWImageDetection(ReplicateNode):
         return "Nvidia T4 GPU"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://replicate.delivery/pbxt/JurYNQcIfISvpS6WtaOcwZXw1ifEudlLyQqiLj5N1Zq977Q3/falcon.jpg",
             "created_at": "2023-11-21T14:53:34.798862Z",
@@ -284,7 +284,7 @@ class Llava34B(ReplicateNode):
         return "Nvidia A100 (80GB) GPU"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/c6163ba0-edfc-4b53-9a23-eab7fd08b28a/b14df1cd-2e49-4e6b-b965-0deea7c1.webp",
             "created_at": "2024-02-01T14:41:55.242062Z",
@@ -357,7 +357,7 @@ class ClipInterrogator(ReplicateNode):
         return "Nvidia T4 GPU"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://replicate.delivery/pbxt/HrXsgowfhbZi3dImGZoIcvnz7oZfMtFY4UAEU8vBIakTd8JQ/watercolour-4799014_960_720.jpg",
             "created_at": "2022-10-28T17:47:38.473429Z",
@@ -400,7 +400,7 @@ class Llava13b(ReplicateNode):
         return "Nvidia A40 (Large) GPU"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/2c5dbfff-209d-4ab5-a294-b3e5e56105c0/dalle3.jpg",
             "created_at": "2023-10-09T16:27:51.777748Z",
@@ -457,7 +457,7 @@ class ClipFeatures(ReplicateNode):
         return "Nvidia T4 GPU"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/21f9d2a0-bb57-4c32-9bee-67784c9d6a76/clip_image.png",
             "created_at": "2022-09-22T20:23:55.682616Z",

@@ -57,7 +57,7 @@ class Demucs(ReplicateNode):
         return "Nvidia A40 GPU"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/c13b51bf-69a4-474e-ad73-d800466ca357/588ff17a-e9c9-49c7-b572-e1b189d87.png",
             "created_at": "2022-11-08T22:25:48.183283Z",

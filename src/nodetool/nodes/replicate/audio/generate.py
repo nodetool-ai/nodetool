@@ -43,7 +43,7 @@ class RealisticVoiceCloning(ReplicateNode):
         return "Nvidia T4 GPU"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/7a110507-8a38-4fcb-8826-61aec80309cb/Out_0_1024x1024.png",
             "created_at": "2023-11-09T16:32:42.062982Z",
@@ -293,7 +293,7 @@ class TortoiseTTS(ReplicateNode):
         return "Nvidia T4 GPU"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": None,
             "created_at": "2022-08-02T02:01:54.555794Z",
@@ -364,7 +364,7 @@ class StyleTTS2(ReplicateNode):
         return "Nvidia T4 GPU"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/b3443880-411e-4b5f-b9f9-3db28c59b578/out-0.png",
             "created_at": "2023-11-20T19:22:15.416691Z",
@@ -451,7 +451,7 @@ class Riffusion(ReplicateNode):
         return "Nvidia T4 GPU"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/4f67b4e2-4df3-4ce9-9b80-00bbf5a186d8/riffusion.gif",
             "created_at": "2022-12-16T07:31:34.983811Z",
@@ -654,7 +654,7 @@ class Bark(ReplicateNode):
         return "Nvidia T4 GPU"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/9fbbe7c2-beb0-4caa-bd59-647dd7eeee6b/fofr_dog.jpg",
             "created_at": "2023-04-25T20:56:39.740033Z",
@@ -736,7 +736,7 @@ class MusicGen(ReplicateNode):
         return "Nvidia A100 (40GB) GPU"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/e3d6b391-571b-4e24-8531-936a0fee9fba/musicgen.jpeg",
             "created_at": "2023-06-12T19:22:05.525230Z",

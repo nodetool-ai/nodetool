@@ -30,7 +30,7 @@ class AdInpaint(ReplicateNode):
         return "None"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://replicate.delivery/pbxt/3ZmtvTJWj3a0Al9XR7SSKqpAfLTZtrkM7t5KjLvz7Nqsv3pIA/ad_inpaint_3.jpg",
             "created_at": "2023-04-03T11:25:28.290524Z",
@@ -102,7 +102,7 @@ class ConsistentCharacter(ReplicateNode):
         return "None"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://replicate.delivery/pbxt/0PQLx9Zz5fQkb6ZQmldEB2ElI9e61eYCeqWiaZSbCzUIqgnLB/ComfyUI_00005_.webp",
             "created_at": "2024-05-30T16:48:52.345721Z",
@@ -207,7 +207,7 @@ class PulidBase(ReplicateNode):
         return "None"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/2b168822-4407-4d18-9b58-29068d501c92/pulid-base-cover.webp",
             "created_at": "2024-05-09T13:48:08.359715Z",
@@ -336,7 +336,7 @@ class StableDiffusion(ReplicateNode):
         return "None"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://replicate.delivery/pbxt/sWeZFZou6v3CPKuoJbqX46ugPaHT1DcsWYx0srPmGrMOCPYIA/out-0.png",
             "created_at": "2022-08-22T21:37:08.396208Z",
@@ -439,7 +439,7 @@ class StableDiffusionXL(ReplicateNode):
         return "None"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/61004930-fb88-4e09-9bd4-74fd8b4aa677/sdxl_cover.png",
             "created_at": "2023-07-26T17:53:09.882651Z",
@@ -608,7 +608,7 @@ class SD3_Explorer(ReplicateNode):
         return "None"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://replicate.delivery/pbxt/BnkJxF51oYZsBdGsgn6vGIkeQUO17GgTPloJCuM0LpQNR5fSA/SD3_00001_.webp",
             "created_at": "2024-06-18T11:17:24.775662Z",
@@ -752,7 +752,7 @@ class Juggernaut_XL_V9(ReplicateNode):
         return "None"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://replicate.delivery/pbxt/I2fZYRjmiKVpWCVhi9guAaUpXrZeLfM28fkjr7NYQyh5DVtJB/out-0.png",
             "created_at": "2024-02-28T21:01:49.723331Z",
@@ -841,7 +841,7 @@ class EpicRealismXL_Lightning_Hades(ReplicateNode):
         return "None"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://replicate.delivery/pbxt/ulYZRIyAUDYpOZfl7OjhrKxxzZhSjddNP1hguuZxyq6yDndJA/R8__00001_.webp",
             "created_at": "2024-06-04T12:09:51.123632Z",
@@ -923,7 +923,7 @@ class SDXL_Pixar(ReplicateNode):
         return "None"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/68125b17-60d7-4949-8984-0d50d736a623/out-0_5.png",
             "created_at": "2023-10-21T10:32:49.911227Z",
@@ -1060,7 +1060,7 @@ class SDXL_Emoji(ReplicateNode):
         return "None"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://replicate.delivery/pbxt/a3z81v5vwlKfLq1H5uBqpVmkHalOVup0jSLma9E2UaF3tawIA/out-0.png",
             "created_at": "2023-09-04T09:18:11.028708Z",
@@ -1191,7 +1191,7 @@ class StableDiffusionInpainting(ReplicateNode):
         return "None"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://replicate.delivery/pbxt/5uUmO34KUZKsAJkcc82gC17WZdJgrbtRpRebyLYo9EJGHqOJA/out-0.png",
             "created_at": "2023-10-17T03:53:36.563598Z",
@@ -1314,7 +1314,7 @@ class StableDiffusionInpainting(ReplicateNode):
         return "None"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://replicate.delivery/pbxt/xs0pPOUM6HKmPlJJBXqKfE1YsiMzgNsCuGedlX0VqvPYifLgA/out-0.png",
             "created_at": "2022-12-02T17:40:01.152489Z",
@@ -1442,7 +1442,7 @@ class Kandinsky_2_2(ReplicateNode):
         return "None"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://replicate.delivery/pbxt/Lca3IEjcKoJBBVS6ajROkK37sDzPsmjYxIcFzxPZp65wZzTE/out-0.png",
             "created_at": "2023-07-12T21:53:29.439515Z",
@@ -1531,7 +1531,7 @@ class RealVisXL_V2(ReplicateNode):
         return "None"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://replicate.delivery/pbxt/eCTbwmWQ00UbQiZdRMfgLhTRIKFUkBPei9fOQ2taGKw3NpaHB/out-0.png",
             "created_at": "2023-11-01T15:03:35.114225Z",
@@ -1659,7 +1659,7 @@ class Flux_Schnell(ReplicateNode):
         return "None"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/1f550ddf-344a-481b-aa2b-8f662983f7d4/Replicate_Prediction_14.webp",
             "created_at": "2024-07-30T00:32:11.473557Z",
@@ -1736,7 +1736,7 @@ class Flux_Dev(ReplicateNode):
         return "None"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/4c0ff159-ab97-4962-acdf-a0f422694a81/Replicate_Prediction_15.webp",
             "created_at": "2024-07-29T23:25:06.100855Z",
@@ -1837,7 +1837,7 @@ class Flux_Pro(ReplicateNode):
         return "None"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/ae5d9d40-31f5-4c33-bd66-2f22b0e8d459/Flux_Pro_Sample.jpg",
             "created_at": "2024-08-01T09:32:10.863297Z",
@@ -1909,7 +1909,7 @@ class SDXL_Controlnet(ReplicateNode):
         return "None"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/7edf6f87-bd0d-4a4f-9e11-d944bb07a3ea/output.png",
             "created_at": "2023-08-14T07:15:37.417194Z",
@@ -2035,7 +2035,7 @@ class SDXL_Ad_Inpaint(ReplicateNode):
         return "None"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://pbxt.replicate.delivery/ORbuWtoy0y6NI9f4DrJ2fxs92LgviBaOlzOVdYTr3pT8eKJjA/7-out.png",
             "created_at": "2023-09-15T15:37:19.970710Z",
@@ -2152,7 +2152,7 @@ class Kandinsky(ReplicateNode):
         return "None"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://replicate.delivery/pbxt/Lca3IEjcKoJBBVS6ajROkK37sDzPsmjYxIcFzxPZp65wZzTE/out-0.png",
             "created_at": "2023-07-12T21:53:29.439515Z",
@@ -2242,7 +2242,7 @@ class StableDiffusionXLLightning(ReplicateNode):
         return "None"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://replicate.delivery/pbxt/dYdYGKKt04pHJ1kle3eStm3q4mfPiUFlQ5xGeM3mfboYbMPUC/out-0.png",
             "created_at": "2024-02-21T07:36:15.534380Z",
@@ -2335,7 +2335,7 @@ class PlaygroundV2(ReplicateNode):
         return "None"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://replicate.delivery/pbxt/XAK4XRgpjYaCGRrm9yxzO2bacj4XTE1Nl6bwaXKOHKYApJoE/out-0.png",
             "created_at": "2024-02-27T22:20:16.107222Z",
@@ -2457,7 +2457,7 @@ class Proteus_V0_3(ReplicateNode):
         return "None"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://replicate.delivery/pbxt/C3LYYa30997dKRdeNDSXNjIK01CH5q8CSto12eWundnPPtWSA/out-0.png",
             "created_at": "2024-02-14T20:02:04.901849Z",
@@ -2568,7 +2568,7 @@ class StickerMaker(ReplicateNode):
         return "None"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://replicate.delivery/pbxt/89kikrVNWfxve0Oy3YjWHqpXri9FeejOfDbP1Kdhcq7uPkqVC/ComfyUI_00001_.webp",
             "created_at": "2024-02-23T11:59:22.452180Z",
@@ -2644,7 +2644,7 @@ class StyleTransfer(ReplicateNode):
         return "None"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://replicate.delivery/pbxt/wmtBOf7pSlzHF6RBbeG5YpIXEYkRlGcoTpnOMi2Fqg9EUeWlA/ComfyUI_00001_.webp",
             "created_at": "2024-04-17T20:34:49.861066Z",
@@ -2748,7 +2748,7 @@ class Illusions(ReplicateNode):
         return "None"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://replicate.delivery/pbxt/0mvORZpRyI4yH5wKdpHDtgqWqUGpsO5w0EcElf7g90eYXF1RA/output-0.png",
             "created_at": "2023-11-03T17:24:31.993569Z",

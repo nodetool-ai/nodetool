@@ -106,7 +106,7 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
       ],
       input_schema: {},
       output_schema: {},
-      model_info: {},
+      the_model_info: {},
       recommended_models: []
     }),
     [nodeTitle, nodeNamespace, nodeType, mockProperties]

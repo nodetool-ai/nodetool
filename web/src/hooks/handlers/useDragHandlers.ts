@@ -40,7 +40,7 @@ export default function useDragHandlers(resumeHistoryAndSave: () => void) {
           icon: "",
           color: "",
           outputs: [],
-          model_info: {},
+          the_model_info: {},
           primary_field: "",
           secondary_field: "",
           layout: "comment",

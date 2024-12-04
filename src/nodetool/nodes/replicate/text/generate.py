@@ -17,7 +17,7 @@ class Llama3_8B(ReplicateNode):
         return "None"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/dd9ac11a-edda-4d33-b413-6a721c44dfb0/meta-logo.png",
             "created_at": "2024-04-17T18:04:26.049832Z",
@@ -87,7 +87,7 @@ class Llama3_70B(ReplicateNode):
         return "None"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/8e044b4c-0b20-4717-83bd-a94d89fb0dbe/meta-logo.png",
             "created_at": "2024-04-17T18:05:18.044746Z",
@@ -157,7 +157,7 @@ class Llama3_8B_Instruct(ReplicateNode):
         return "None"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/927d3fce-75e3-4af9-92da-f537bc34072a/meta-logo.png",
             "created_at": "2024-04-17T21:44:58.480057Z",
@@ -227,7 +227,7 @@ class Llama3_70B_Instruct(ReplicateNode):
         return "None"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/12ed0c29-9236-4a21-ac5a-7faff3045ab1/meta-logo.png",
             "created_at": "2024-04-17T21:44:13.482460Z",
@@ -297,7 +297,7 @@ class Snowflake_Arctic_Instruct(ReplicateNode):
         return "None"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/18259dd0-6c42-441b-90f2-b67af9e4320b/Snowflake_Arctic_Opengraph_1200x6.png",
             "created_at": "2024-04-24T00:08:29.300675Z",

@@ -18,5 +18,5 @@ class NodeMetadata(BaseModel):
     layout: str
     properties: list[Property]
     outputs: list[OutputSlot]
-    model_info: dict[str, Any]
+    the_model_info: dict[str, Any]
     recommended_models: list[HuggingFaceModel]

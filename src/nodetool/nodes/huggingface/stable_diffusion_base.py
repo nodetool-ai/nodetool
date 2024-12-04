@@ -321,6 +321,10 @@ HF_STABLE_DIFFUSION_XL_MODELS = [
         path="sd_xl_refiner_1.0.safetensors",
     ),
     HFStableDiffusionXL(
+        repo_id="playgroundai/playground-v2.5-1024px-aesthetic",
+        path="playground-v2.5-1024px-aesthetic.fp16.safetensors",
+    ),
+    HFStableDiffusionXL(
         repo_id="RunDiffusion/Juggernaut-XL-v9",
         path="Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors",
     ),

@@ -17,7 +17,7 @@ class AudioSuperResolution(ReplicateNode):
         return "Nvidia A40 (Large) GPU"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/6bc4e480-6695-451b-940d-48a3b83a1356/replicate-prediction-jvi5xvlbg4v4.png",
             "created_at": "2023-09-20T04:53:52.943393Z",

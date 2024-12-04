@@ -40,7 +40,7 @@ class ModelInfo(BaseModel):
     downloads: int
     library_name: str | None = None
     likes: int
-    model_index: Optional[Any] = Field(None, alias="model-index")
+    the_model_index: Optional[Any] = Field(None, alias="model-index")
     config: dict | None = None
     cardData: dict | None = None
     siblings: List[Sibling] | None = None
@@ -115,8 +115,8 @@ class CachedModel(BaseModel):
     repo_id: str
     repo_type: str
     size_on_disk: int
-    model_type: Optional[str] = None
-    model_info: ModelInfo | None = None
+    the_model_type: Optional[str] = None
+    the_model_info: ModelInfo | None = None
     readme: str | None = None
 
 
@@ -165,8 +165,8 @@ async def read_all_cached_models(load_model_info: bool = True) -> List[CachedMod
             repo_id=repo.repo_id,
             repo_type=repo.repo_type,
             size_on_disk=repo.size_on_disk,
-            model_info=model_info,
-            model_type=model_type_from_model_info(
+            the_model_info=model_info,
+            the_model_type=model_type_from_model_info(
                 recommended_models, repo.repo_id, model_info
             ),
         )

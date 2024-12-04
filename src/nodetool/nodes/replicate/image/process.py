@@ -17,7 +17,7 @@ class RemoveBackground(ReplicateNode):
         return "Nvidia A40 GPU"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://replicate.delivery/pbxt/2hczaMwD9xrsIR8h3Cl8iYGbHaCdFhIOMZ0LfoYfHlKuuIBQA/out.png",
             "created_at": "2022-11-18T00:55:22.939155Z",
@@ -52,7 +52,7 @@ class ModNet(ReplicateNode):
         return "Nvidia T4 GPU"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/bb0ab3e4-5efa-446f-939a-23e78f2b82de/output.png",
             "created_at": "2022-11-19T04:56:59.860128Z",
@@ -91,7 +91,7 @@ class DD_Color(ReplicateNode):
         return "Nvidia A40 (Large) GPU"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://replicate.delivery/pbxt/ZumJoHeMlA0WVyesmCZlkoKtNPakny5ariWAaXR3aEhvflXkA/out.png",
             "created_at": "2024-01-12T15:02:06.387410Z",
@@ -140,7 +140,7 @@ class Magic_Style_Transfer(ReplicateNode):
         return "Nvidia A40 (Large) GPU"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://replicate.delivery/pbxt/CgdTGuA9wdoWGhVUMgpPIv9mh4rpLnYYViUmeLKV8wF2QGRJA/out-0.png",
             "created_at": "2024-03-20T16:20:23.445929Z",
@@ -270,7 +270,7 @@ class ObjectRemover(ReplicateNode):
         return "Nvidia A40 (Large) GPU"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://replicate.delivery/pbxt/PeUSD8TLKs0lXSTavj96kkOSfpoAKhRIG8LY5U0erX53QgskA/in-painted.png",
             "created_at": "2024-02-13T07:17:58.590961Z",

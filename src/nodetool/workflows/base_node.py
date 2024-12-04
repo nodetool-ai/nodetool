@@ -357,7 +357,7 @@ class BaseNode(BaseModel):
             node_type=cls.get_node_type(),
             properties=cls.properties(),  # type: ignore
             outputs=cls.outputs(),
-            model_info=cls.model_info(),
+            the_model_info=cls.get_model_info(),
             layout=cls.layout(),
             recommended_models=cls.get_recommended_models(),
         )
@@ -675,7 +675,7 @@ class BaseNode(BaseModel):
             )
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         """
         Returns the model info for the node.
         """

@@ -61,7 +61,7 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
       title: "Comment",
       description: "Comment",
       outputs: [],
-      model_info: {},
+      the_model_info: {},
       layout: "default",
       recommended_models: []
     };
@@ -87,7 +87,7 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
         title: "Group",
         description: "Group Node",
         outputs: [],
-        model_info: {},
+        the_model_info: {},
         layout: "default",
         recommended_models: []
       };

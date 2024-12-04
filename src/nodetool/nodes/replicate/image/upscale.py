@@ -17,7 +17,7 @@ class RealEsrGan(ReplicateNode):
         return "Nvidia A100 (40GB) GPU"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://replicate.delivery/pbxt/lv0iOW3u6DrNOd30ybfmufqWebiuW10YjILw05YZGbeipZZCB/output.png",
             "created_at": "2023-03-10T22:36:15.201038Z",
@@ -151,7 +151,7 @@ class ClarityUpscaler(ReplicateNode):
         return "Nvidia A100 (40GB) GPU"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/76fbe6df-517d-480a-a6e4-dce383b40bbb/Bildschirmfoto_2024-03-30_um_09.2.png",
             "created_at": "2024-03-15T02:35:32.167345Z",
@@ -288,7 +288,7 @@ class MagicImageRefiner(ReplicateNode):
         return "Nvidia A40 (Large) GPU"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://replicate.delivery/pbxt/H3ZmqoAgsBonKFilPafiEsvYsc2FnjD8EW3vMt6KpkYfd0ISA/out-0.png",
             "created_at": "2024-01-03T16:55:24.594128Z",
@@ -381,7 +381,7 @@ class ruDallE_SR(ReplicateNode):
         return "Nvidia T4 GPU"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://replicate.delivery/mgxm/588170af-559f-454e-967d-8fb6c7f8304b/out.png",
             "created_at": "2021-11-04T18:36:03.485750Z",
@@ -427,7 +427,7 @@ class HighResolutionControlNetTile(ReplicateNode):
         return "Nvidia A100 (80GB) GPU"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://replicate.delivery/pbxt/8Reu1zg6zAV6GShu5yiyP0ueFch9EddJPlVfIxyiMLWBlwJkA/out-0.png",
             "created_at": "2023-12-08T02:32:38.082772Z",
@@ -560,7 +560,7 @@ class UltimateSDUpscale(ReplicateNode):
         return "Nvidia A100 (40GB) GPU"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/ec52df9a-be01-4c74-af9d-a14df03bf03a/output.png",
             "created_at": "2023-11-14T08:41:40.364739Z",
@@ -666,7 +666,7 @@ class SwinIR(ReplicateNode):
         return "Nvidia A100 (40GB) GPU"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://replicate.delivery/mgxm/1e3c0b87-01a7-4795-abac-aaf17479cf84/out.png",
             "created_at": "2021-09-13T19:58:55.156216Z",
@@ -719,7 +719,7 @@ class Swin2SR(ReplicateNode):
         return "Nvidia T4 GPU"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/aabde67b-bf5c-4fc8-a4bd-8b2dcba60be6/swin2sr-cover3.png",
             "created_at": "2022-10-28T22:59:05.692845Z",

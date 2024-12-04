@@ -187,7 +187,7 @@ export const renderModelSecondaryInfo = (
     )}
     {!isHuggingFace && (
       <Typography variant="body2" className="text-license">
-        {modelData.model_info?.["general.license"]}
+        {modelData.the_model_info?.["general.license"]}
       </Typography>
     )}
     {!isHuggingFace && (

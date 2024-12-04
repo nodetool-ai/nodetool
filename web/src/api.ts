@@ -219,6 +219,12 @@ export interface paths {
      */
     delete: operations["delete_api_tasks__id__delete"];
   };
+  "/api/settings/": {
+    /** Get Settings */
+    get: operations["get_settings_api_settings__get"];
+    /** Update Settings */
+    put: operations["update_settings_api_settings__put"];
+  };
   "/api/models/recommended_models": {
     /** Recommended Models */
     get: operations["recommended_models_api_models_recommended_models_get"];
@@ -227,10 +233,6 @@ export interface paths {
     /** Get Huggingface Models */
     get: operations["get_huggingface_models_api_models_huggingface_models_get"];
   };
-  "/api/models/huggingface/try_cache_files": {
-    /** Try Cache Files */
-    post: operations["try_cache_files_api_models_huggingface_try_cache_files_post"];
-  };
   "/api/models/huggingface_model": {
     /** Delete Huggingface Model */
     delete: operations["delete_huggingface_model_api_models_huggingface_model_delete"];
@@ -238,6 +240,10 @@ export interface paths {
   "/api/models/ollama_models": {
     /** Get Ollama Models */
     get: operations["get_ollama_models_api_models_ollama_models_get"];
+  };
+  "/api/models/huggingface/try_cache_files": {
+    /** Try Cache Files */
+    post: operations["try_cache_files_api_models_huggingface_try_cache_files_post"];
   };
   "/api/models/ollama_model_info": {
     /** Get Ollama Model Info */
@@ -258,12 +264,6 @@ export interface paths {
   "/api/models/{model_type}": {
     /** Index */
     get: operations["index_api_models__model_type__get"];
-  };
-  "/api/settings/": {
-    /** Get Settings */
-    get: operations["get_settings_api_settings__get"];
-    /** Update Settings */
-    put: operations["update_settings_api_settings__put"];
   };
   "/health": {
     /** Health Check */
@@ -383,9 +383,9 @@ export interface components {
       repo_type: string;
       /** Size On Disk */
       size_on_disk: number;
-      /** Model Type */
-      model_type?: string | null;
-      model_info?: components["schemas"]["ModelInfo"] | null;
+      /** The Model Type */
+      the_model_type?: string | null;
+      the_model_info?: components["schemas"]["ModelInfo"] | null;
       /** Readme */
       readme?: string | null;
     };
@@ -1839,8 +1839,8 @@ export interface components {
       properties: components["schemas"]["Property"][];
       /** Outputs */
       outputs: components["schemas"]["OutputSlot"][];
-      /** Model Info */
-      model_info: Record<string, never>;
+      /** The Model Info */
+      the_model_info: Record<string, never>;
       /** Recommended Models */
       recommended_models: components["schemas"]["HuggingFaceModel"][];
     };
@@ -3875,6 +3875,61 @@ export interface operations {
       };
     };
   };
+  /** Get Settings */
+  get_settings_api_settings__get: {
+    parameters: {
+      header?: {
+        authorization?: string | null;
+      };
+      cookie?: {
+        auth_cookie?: string | null;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["SettingsResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Update Settings */
+  update_settings_api_settings__put: {
+    parameters: {
+      header?: {
+        authorization?: string | null;
+      };
+      cookie?: {
+        auth_cookie?: string | null;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["SettingsUpdateRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["SettingsResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   /** Recommended Models */
   recommended_models_api_models_recommended_models_get: {
     parameters: {
@@ -3925,36 +3980,6 @@ export interface operations {
       };
     };
   };
-  /** Try Cache Files */
-  try_cache_files_api_models_huggingface_try_cache_files_post: {
-    parameters: {
-      header?: {
-        authorization?: string | null;
-      };
-      cookie?: {
-        auth_cookie?: string | null;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["RepoPath"][];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["RepoPath"][];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
   /** Delete Huggingface Model */
   delete_huggingface_model_api_models_huggingface_model_delete: {
     parameters: {
@@ -3992,6 +4017,36 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["LlamaModel"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Try Cache Files */
+  try_cache_files_api_models_huggingface_try_cache_files_post: {
+    parameters: {
+      header?: {
+        authorization?: string | null;
+      };
+      cookie?: {
+        auth_cookie?: string | null;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["RepoPath"][];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["RepoPath"][];
         };
       };
       /** @description Validation Error */
@@ -4131,61 +4186,6 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["ModelFile"][];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /** Get Settings */
-  get_settings_api_settings__get: {
-    parameters: {
-      header?: {
-        authorization?: string | null;
-      };
-      cookie?: {
-        auth_cookie?: string | null;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["SettingsResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /** Update Settings */
-  update_settings_api_settings__put: {
-    parameters: {
-      header?: {
-        authorization?: string | null;
-      };
-      cookie?: {
-        auth_cookie?: string | null;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["SettingsUpdateRequest"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["SettingsResponse"];
         };
       };
       /** @description Validation Error */

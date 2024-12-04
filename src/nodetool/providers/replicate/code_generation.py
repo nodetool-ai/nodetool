@@ -184,7 +184,7 @@ def generate_model_source_code(
         "    @classmethod",
         f"    def get_hardware(cls): return '{hardware}'",
         "    @classmethod",
-        f"    def model_info(cls): return {repr(model_info)}",
+        f"    def get_model_info(cls): return {repr(model_info)}",
     ]
     if return_type:
         lines += [

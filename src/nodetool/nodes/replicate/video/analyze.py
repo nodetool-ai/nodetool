@@ -17,7 +17,7 @@ class VideoLlava(ReplicateNode):
         return "Nvidia A40 (Large) GPU"
 
     @classmethod
-    def model_info(cls):
+    def get_model_info(cls):
         return {
             "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/132630f1-18c6-429e-bc5b-214775997065/video_llava.png",
             "created_at": "2023-11-20T21:16:55.794627Z",
