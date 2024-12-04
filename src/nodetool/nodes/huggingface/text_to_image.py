@@ -538,6 +538,9 @@ class StableDiffusionXL(StableDiffusionXLBase):
         return "Stable Diffusion XL"
 
     async def initialize(self, context: ProcessingContext):
+        if "playground" in self.model.repo_id:
+            raise ValueError("Playground models are not supported in this node")
+
         self._pipeline = await self.load_model(
             context=context,
             model_class=StableDiffusionXLPipeline,
