@@ -225,6 +225,7 @@ export interface NodeStore {
   ) => Node<NodeData>;
   autoLayout: () => Promise<void>;
   clearMissingModels: () => void;
+  workflowIsDirty: boolean;
 }
 
 export const useTemporalStore = <T>(
@@ -237,7 +238,6 @@ export const useNodeStore = create<NodeStore>()(
     (set, get) => ({
       explicitSave: false as boolean,
       shouldAutoLayout: false as boolean,
-      unsavedWorkflows: new Set() as Set<string>,
       missingModelFiles: [],
       workflow: {
         id: "",
@@ -420,15 +420,11 @@ export const useNodeStore = create<NodeStore>()(
       },
 
       getWorkflowIsDirty: () => {
-        return useWorkflowStore.getState().isWorkflowUnsaved(get().workflow.id);
+        return get().workflowIsDirty;
       },
 
       setWorkflowDirty: (dirty: boolean) => {
-        if (dirty) {
-          useWorkflowStore.getState().addUnsavedWorkflow(get().getWorkflow());
-        } else if (!dirty) {
-          useWorkflowStore.getState().removeUnsavedWorkflow(get().workflow.id);
-        }
+        set({ workflowIsDirty: dirty });
       },
 
       /**
@@ -437,24 +433,7 @@ export const useNodeStore = create<NodeStore>()(
       setWorkflow: (workflow: Workflow) => {
         get().syncWithWorkflowStore();
 
-        const modelFiles = workflow.graph.nodes.reduce<RepoPath[]>(
-          (acc, node) => {
-            const data = node.data as Record<string, any>;
-            for (const name of Object.keys(data)) {
-              const value = data[name];
-              if (value && value.type?.startsWith("hf.")) {
-                if (value.repo_id && value.path) {
-                  acc.push({
-                    repo_id: value.repo_id,
-                    path: value.path
-                  });
-                }
-              }
-            }
-            return acc;
-          },
-          []
-        );
+        const modelFiles = extractModelFiles(workflow.graph.nodes);
         tryCacheFiles(modelFiles).then((paths) => {
           set({
             missingModelFiles: paths.filter((m) => !m.downloaded)
@@ -1069,3 +1048,24 @@ export const useNodeStore = create<NodeStore>()(
     }
   )
 );
+
+/**
+ * Extract model files from workflow nodes that need to be cached
+ */
+const extractModelFiles = (nodes: GraphNode[]): RepoPath[] => {
+  return nodes.reduce<RepoPath[]>((acc, node) => {
+    const data = node.data as Record<string, any>;
+    for (const name of Object.keys(data)) {
+      const value = data[name];
+      if (value && value.type?.startsWith("hf.")) {
+        if (value.repo_id && value.path) {
+          acc.push({
+            repo_id: value.repo_id,
+            path: value.path
+          });
+        }
+      }
+    }
+    return acc;
+  }, []);
+};

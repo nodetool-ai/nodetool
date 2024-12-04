@@ -1,12 +1,10 @@
-import { NodeData } from "../stores/NodeData";
 import { useNodeStore } from "../stores/NodeStore";
 import { useWorkflowStore } from "../stores/WorkflowStore";
 
 const initiateEditor = async (workflowId: string | undefined) => {
   const getWorkflow = useWorkflowStore.getState().get;
-  const getFromCache = useWorkflowStore.getState().getFromCache;
   const currentWorkflow = useNodeStore.getState().workflow;
-  const syncWorkflow = useNodeStore.getState().syncWithWorkflowStore;
+  const saveWorkflow = useNodeStore.getState().saveWorkflow;
   const setWorkflow = useNodeStore.getState().setWorkflow;
 
   if (!workflowId) {
@@ -19,17 +17,12 @@ const initiateEditor = async (workflowId: string | undefined) => {
       return { workflow: currentWorkflow };
     } else {
       // Save current workflow before switching
-      syncWorkflow();
+      saveWorkflow();
     }
   }
 
   // Check if workflow is in cache of hte workflow store
-  let workflow = getFromCache(workflowId);
-
-  // load the workflow from the server
-  if (!workflow) {
-    workflow = await getWorkflow(workflowId);
-  }
+  const workflow = await getWorkflow(workflowId);
 
   if (workflow) {
     setWorkflow(workflow);

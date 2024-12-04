@@ -17,6 +17,7 @@ interface RenderListViewProps {
   onDuplicateWorkflow: (event: React.MouseEvent, workflow: Workflow) => void;
   onSelect: (workflow: Workflow) => void;
   onDelete: (e: any, workflow: Workflow) => void;
+  onScroll?: (event: React.UIEvent<HTMLDivElement>) => void;
   selectedWorkflows: string[] | null;
   workflowCategory: string;
 }
@@ -112,6 +113,7 @@ export const RenderListView: React.FC<RenderListViewProps> = ({
   onDuplicateWorkflow,
   onDelete,
   onSelect,
+  onScroll,
   selectedWorkflows,
   workflowCategory
 }) => {
@@ -121,7 +123,7 @@ export const RenderListView: React.FC<RenderListViewProps> = ({
   };
 
   return (
-    <Box className="container list" css={listStyles}>
+    <Box className="container list" css={listStyles} onScroll={onScroll}>
       {workflows.map((workflow: Workflow) => (
         <Box
           key={workflow.id}

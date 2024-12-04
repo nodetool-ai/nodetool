@@ -74,7 +74,29 @@ const styles = (theme: any) =>
       margin: "20px"
     },
     ".tag-menu button": {
-      fontSize: "0.7em"
+      transition: "all 0.3s ease",
+      textTransform: "uppercase",
+      letterSpacing: "1px",
+      fontWeight: "bold",
+      color: theme.palette.text.primary,
+      "&:hover": {
+        background: `linear-gradient(45deg, ${theme.palette.c_hl1}, ${theme.palette.c_hl2})`,
+        transform: "translateY(-2px)",
+        boxShadow: `0 4px 8px rgba(0, 0, 0, 0.2)`,
+        color: theme.palette.common.white
+      }
+    },
+    ".tag-menu .selected": {
+      background: `linear-gradient(45deg, 
+        ${theme.palette.c_hl1}dd, 
+        ${theme.palette.c_hl2}dd
+      )`,
+      boxShadow: `0 2px 4px rgba(0, 0, 0, 0.3)`,
+      color: theme.palette.common.white,
+      "&:hover": {
+        transform: "none",
+        boxShadow: `0 2px 4px rgba(0, 0, 0, 0.3)`
+      }
     }
   });
 
@@ -124,17 +146,32 @@ const ExampleGrid = () => {
     <div className="workflow-grid" css={styles}>
       <Box className="tag-menu">
         <ButtonGroup variant="outlined">
-          <Button onClick={() => setSelectedTag(null)}>All</Button>
-          {Object.keys(groupedWorkflows).map((tag) => (
-            <Button
-              key={tag}
-              onClick={() => setSelectedTag(tag)}
-              variant={selectedTag === tag ? "contained" : "outlined"}
-              className={selectedTag === tag ? "selected" : ""}
-            >
-              {tag}
-            </Button>
-          ))}
+          <Button
+            onClick={() => setSelectedTag(null)}
+            variant={selectedTag === null ? "contained" : "outlined"}
+            className={selectedTag === null ? "selected" : ""}
+          >
+            All
+          </Button>
+          <Button
+            onClick={() => setSelectedTag("start")}
+            variant={selectedTag === "start" ? "contained" : "outlined"}
+            className={selectedTag === "start" ? "selected" : ""}
+          >
+            Start
+          </Button>
+          {Object.keys(groupedWorkflows)
+            .filter((tag) => tag !== "start")
+            .map((tag) => (
+              <Button
+                key={tag}
+                onClick={() => setSelectedTag(tag)}
+                variant={selectedTag === tag ? "contained" : "outlined"}
+                className={selectedTag === tag ? "selected" : ""}
+              >
+                {tag}
+              </Button>
+            ))}
         </ButtonGroup>
       </Box>
       <Box className="container">
