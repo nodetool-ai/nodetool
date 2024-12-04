@@ -71,7 +71,7 @@ from nodes import (
 import PIL.Image
 import torch
 
-from nodetool.nodes.huggingface.image_to_image import HF_CONTROLNET_MODELS
+from nodetool.nodes.huggingface.stable_diffusion_base import HF_CONTROLNET_MODELS
 from nodetool.nodes.huggingface.stable_diffusion_base import (
     HF_STABLE_DIFFUSION_MODELS,
     HF_STABLE_DIFFUSION_XL_MODELS,

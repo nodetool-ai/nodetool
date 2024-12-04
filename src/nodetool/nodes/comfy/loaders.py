@@ -57,7 +57,7 @@ from nodetool.nodes.huggingface.stable_diffusion_base import (
     HF_STABLE_DIFFUSION_XL_MODELS,
     HF_UNET_MODELS,
 )
-from nodetool.nodes.huggingface.image_to_image import HF_CONTROLNET_MODELS
+from nodetool.nodes.huggingface.stable_diffusion_base import HF_CONTROLNET_MODELS
 from nodetool.workflows.processing_context import ProcessingContext
 from pydantic import Field
 from nodetool.common.comfy_node import ComfyNode, MAX_RESOLUTION

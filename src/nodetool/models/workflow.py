@@ -106,7 +106,7 @@ class Workflow(DBModel):
         else:
             query += "1=1 "
 
-        query += f"ORDER BY w.id ASC LIMIT {limit + 1}"
+        query += f"ORDER BY w.updated_at DESC LIMIT {limit + 1}"
 
         results = cls.adapter().execute_sql(query, params)
 

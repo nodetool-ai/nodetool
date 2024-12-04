@@ -374,6 +374,80 @@ HF_FLUX_MODELS = [
     ),
 ]
 
+HF_CONTROLNET_MODELS: list[HFControlNet] = [
+    HFControlNet(
+        repo_id="lllyasviel/control_v11p_sd15_canny",
+        path="diffusion_pytorch_model.fp16.safetensors",
+    ),
+    HFControlNet(
+        repo_id="lllyasviel/control_v11p_sd15_inpaint",
+        path="diffusion_pytorch_model.fp16.safetensors",
+    ),
+    HFControlNet(
+        repo_id="lllyasviel/control_v11p_sd15_mlsd",
+        path="diffusion_pytorch_model.fp16.safetensors",
+    ),
+    HFControlNet(
+        repo_id="lllyasviel/control_v11p_sd15_tile",
+        path="diffusion_pytorch_model.fp16.safetensors",
+    ),
+    HFControlNet(
+        repo_id="lllyasviel/control_v11p_sd15_shuffle",
+        path="diffusion_pytorch_model.fp16.safetensors",
+    ),
+    HFControlNet(
+        repo_id="lllyasviel/control_v11p_sd15_ip2p",
+        path="diffusion_pytorch_model.fp16.safetensors",
+    ),
+    HFControlNet(
+        repo_id="lllyasviel/control_v11p_sd15_lineart",
+        path="diffusion_pytorch_model.fp16.safetensors",
+    ),
+    HFControlNet(
+        repo_id="lllyasviel/control_v11p_sd15_lineart_anime",
+        path="diffusion_pytorch_model.fp16.safetensors",
+    ),
+    HFControlNet(
+        repo_id="lllyasviel/control_v11p_sd15_scribble",
+        path="diffusion_pytorch_model.fp16.safetensors",
+    ),
+    HFControlNet(
+        repo_id="lllyasviel/control_v11p_sd15_openpose",
+        path="diffusion_pytorch_model.fp16.safetensors",
+    ),
+    HFControlNet(
+        repo_id="lllyasviel/control_v11p_sd15_scribble",
+        path="diffusion_pytorch_model.fp16.safetensors",
+    ),
+    HFControlNet(
+        repo_id="lllyasviel/control_v11p_sd15_seg",
+        path="diffusion_pytorch_model.fp16.safetensors",
+    ),
+    HFControlNet(
+        repo_id="lllyasviel/control_v11p_sd15_hed",
+        path="diffusion_pytorch_model.fp16.safetensors",
+    ),
+    HFControlNet(
+        repo_id="lllyasviel/control_v11p_sd15_normalbae",
+        path="diffusion_pytorch_model.fp16.safetensors",
+    ),
+]
+
+HF_CONTROL_NET_XL_MODELS: list[HFControlNet] = [
+    HFControlNet(
+        repo_id="diffusers/controlnet-canny-sdxl-1.0",
+        path="diffusion_pytorch_model.fp16.safetensors",
+    ),
+    HFControlNet(
+        repo_id="diffusers/controlnet-depth-sdxl-1.0",
+        path="diffusion_pytorch_model.fp16.safetensors",
+    ),
+    HFControlNet(
+        repo_id="diffusers/controlnet-zoe-depth-sdxl-1.0",
+        path="diffusion_pytorch_model.fp16.safetensors",
+    ),
+]
+
 HF_LTXV_MODELS = [
     HFLTXV(
         repo_id="Lightricks/LTX-Video",
@@ -549,8 +623,8 @@ class StableDiffusionBaseNode(HuggingFacePipelineNode):
         default=[],
         description="The LoRA models to use for image processing",
     )
-    ip_adapter_model: IPAdapter_SD15_Model = Field(
-        default=IPAdapter_SD15_Model.NONE,
+    ip_adapter_model: HFIPAdapter = Field(
+        default=HFIPAdapter(),
         description="The IP adapter model to use for image processing",
     )
     ip_adapter_image: ImageRef = Field(
@@ -578,6 +652,7 @@ class StableDiffusionBaseNode(HuggingFacePipelineNode):
         return (
             HF_IP_ADAPTER_MODELS
             + HF_STABLE_DIFFUSION_MODELS
+            + HF_IP_ADAPTER_MODELS
             + [
                 HFStableDiffusion(
                     repo_id="stabilityai/sd-x2-latent-upscaler",
@@ -601,26 +676,31 @@ class StableDiffusionBaseNode(HuggingFacePipelineNode):
             self.seed = randint(0, 2**32 - 1)
 
     def should_skip_cache(self):
-        if self.ip_adapter_model != IPAdapter_SD15_Model.NONE:
+        if self.ip_adapter_model.repo_id != "":
             return True
         if len(self.loras) > 0:
             return True
         return False
 
     def _load_ip_adapter(self):
-        if self.ip_adapter_model != IPAdapter_SD15_Model.NONE:
+        if self.ip_adapter_model.repo_id != "" and self.ip_adapter_model.path:
             cache_path = try_to_load_from_cache(
-                "h94/IP-Adapter", f"models/{self.ip_adapter_model.value}"
+                self.ip_adapter_model.repo_id, self.ip_adapter_model.path
             )
             if cache_path is None:
                 raise ValueError(
-                    f"Install the h94/IP-Adapter model to use {self.ip_adapter_model.value} (Recommended Models above)"
+                    f"Install the {self.ip_adapter_model.repo_id}/{self.ip_adapter_model.path} IP Adapter model to use it (Recommended Models above)"
                 )
-            log.info(f"Loading IP Adapter {self.ip_adapter_model.value}")
+            path_parts = self.ip_adapter_model.path.split("/")
+            subfolder = "/".join(path_parts[0:-1])
+            weight_name = path_parts[-1]
+            log.info(
+                f"Loading IP Adapter {self.ip_adapter_model.repo_id}/{self.ip_adapter_model.path}"
+            )
             self._pipeline.load_ip_adapter(
-                "h94/IP-Adapter",
-                subfolder="models",
-                weight_name=self.ip_adapter_model.value,
+                self.ip_adapter_model.repo_id,
+                subfolder=subfolder,
+                weight_name=weight_name,
             )
 
     def _set_scheduler(self, scheduler_type: StableDiffusionScheduler):
@@ -675,7 +755,7 @@ class StableDiffusionBaseNode(HuggingFacePipelineNode):
 
         generator = self._setup_generator()
         if self.ip_adapter_image.is_set():
-            if self.ip_adapter_model == IPAdapter_SD15_Model.NONE:
+            if self.ip_adapter_model.repo_id == "":
                 raise ValueError("Select an IP Adapter model")
             ip_adapter_image = await context.image_to_pil(self.ip_adapter_image)
         else:
@@ -876,8 +956,8 @@ class StableDiffusionXLBase(HuggingFacePipelineNode):
         le=1.0,
         description="Strength of the LoRAs",
     )
-    ip_adapter_model: IPAdapter_SDXL_Model = Field(
-        default=IPAdapter_SDXL_Model.NONE,
+    ip_adapter_model: HFIPAdapter = Field(
+        default=HFIPAdapter(),
         description="The IP adapter model to use for image processing",
     )
     ip_adapter_image: ImageRef = Field(
@@ -896,24 +976,7 @@ class StableDiffusionXLBase(HuggingFacePipelineNode):
 
     @classmethod
     def get_recommended_models(cls):
-        return (
-            HF_IP_ADAPTER_XL_MODELS
-            + HF_STABLE_DIFFUSION_XL_MODELS
-            + [
-                HFControlNet(
-                    repo_id="diffusers/controlnet-canny-sdxl-1.0",
-                    allow_patterns=["README.md", "*.fp16.safetensors"],
-                ),
-                HFControlNet(
-                    repo_id="diffusers/controlnet-depth-sdxl-1.0",
-                    allow_patterns=["README.md", "*.fp16.safetensors"],
-                ),
-                HFControlNet(
-                    repo_id="diffusers/controlnet-zoe-depth-sdxl-1.0",
-                    allow_patterns=["README.md", "*.fp16.safetensors"],
-                ),
-            ]
-        )
+        return HF_IP_ADAPTER_XL_MODELS + HF_STABLE_DIFFUSION_XL_MODELS
 
     @classmethod
     def is_visible(cls) -> bool:
@@ -924,7 +987,7 @@ class StableDiffusionXLBase(HuggingFacePipelineNode):
             self.seed = randint(0, 2**32 - 1)
 
     def should_skip_cache(self):
-        if self.ip_adapter_model != IPAdapter_SDXL_Model.NONE:
+        if self.ip_adapter_model.repo_id != "":
             return True
         if len(self.loras) > 0:
             return True
@@ -953,11 +1016,24 @@ class StableDiffusionXLBase(HuggingFacePipelineNode):
         return generator
 
     def _load_ip_adapter(self):
-        if self.ip_adapter_model != IPAdapter_SDXL_Model.NONE:
+        if self.ip_adapter_model.repo_id != "" and self.ip_adapter_model.path:
+            cache_path = try_to_load_from_cache(
+                self.ip_adapter_model.repo_id, self.ip_adapter_model.path
+            )
+            if cache_path is None:
+                raise ValueError(
+                    f"Install the {self.ip_adapter_model.repo_id}/{self.ip_adapter_model.path} IP Adapter model to use it (Recommended Models above)"
+                )
+            path_parts = self.ip_adapter_model.path.split("/")
+            subfolder = "/".join(path_parts[0:-1])
+            weight_name = path_parts[-1]
+            log.info(
+                f"Loading IP Adapter {self.ip_adapter_model.repo_id}/{self.ip_adapter_model.path}"
+            )
             self._pipeline.load_ip_adapter(
-                "h94/IP-Adapter",
-                subfolder="sdxl_models",
-                weight_name=self.ip_adapter_model.value,
+                self.ip_adapter_model.repo_id,
+                subfolder=subfolder,
+                weight_name=weight_name,
             )
 
     def progress_callback(self, context: ProcessingContext):

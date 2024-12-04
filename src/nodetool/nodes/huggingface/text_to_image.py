@@ -2,7 +2,6 @@ from huggingface_hub import try_to_load_from_cache
 from nodetool.metadata.types import HFImageToImage, HFLoraSD, HuggingFaceModel, ImageRef
 from nodetool.nodes.huggingface.huggingface_pipeline import HuggingFacePipelineNode
 from nodetool.nodes.huggingface.stable_diffusion_base import (
-    IPAdapter_SD15_Model,
     StableDiffusionBaseNode,
     StableDiffusionXLBase,
 )
@@ -122,6 +121,7 @@ from pydantic import Field
 #         default=50, description="The number of denoising steps.", ge=1, le=100
 #     )
 #     width: int = Field(
+
 #         default=768, description="The width of the generated image.", ge=128, le=1024
 #     )
 #     height: int = Field(
@@ -543,6 +543,7 @@ class StableDiffusionXL(StableDiffusionXLBase):
             model_class=StableDiffusionXLPipeline,
             model_id=self.model.repo_id,
             path=self.model.path,
+            variant="fp16",
         )
         assert self._pipeline is not None
         self._set_scheduler(self.scheduler)

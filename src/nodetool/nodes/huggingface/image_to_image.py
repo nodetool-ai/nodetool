@@ -14,6 +14,7 @@ from nodetool.metadata.types import (
 from nodetool.workflows.base_node import BaseNode
 from nodetool.nodes.huggingface.huggingface_pipeline import HuggingFacePipelineNode
 from nodetool.nodes.huggingface.stable_diffusion_base import (
+    HF_CONTROLNET_MODELS,
     StableDiffusionBaseNode,
     StableDiffusionScheduler,
     StableDiffusionXLBase,
@@ -51,66 +52,6 @@ from diffusers.pipelines.stable_diffusion_xl.pipeline_stable_diffusion_xl_inpain
     StableDiffusionXLInpaintPipeline,
 )
 from pydantic import Field
-
-
-HF_CONTROLNET_MODELS: list[HFControlNet] = [
-    HFControlNet(
-        repo_id="lllyasviel/control_v11p_sd15_canny",
-        path="diffusion_pytorch_model.fp16.safetensors",
-    ),
-    HFControlNet(
-        repo_id="lllyasviel/control_v11p_sd15_inpaint",
-        path="diffusion_pytorch_model.fp16.safetensors",
-    ),
-    HFControlNet(
-        repo_id="lllyasviel/control_v11p_sd15_mlsd",
-        path="diffusion_pytorch_model.fp16.safetensors",
-    ),
-    HFControlNet(
-        repo_id="lllyasviel/control_v11p_sd15_tile",
-        path="diffusion_pytorch_model.fp16.safetensors",
-    ),
-    HFControlNet(
-        repo_id="lllyasviel/control_v11p_sd15_shuffle",
-        path="diffusion_pytorch_model.fp16.safetensors",
-    ),
-    HFControlNet(
-        repo_id="lllyasviel/control_v11p_sd15_ip2p",
-        path="diffusion_pytorch_model.fp16.safetensors",
-    ),
-    HFControlNet(
-        repo_id="lllyasviel/control_v11p_sd15_lineart",
-        path="diffusion_pytorch_model.fp16.safetensors",
-    ),
-    HFControlNet(
-        repo_id="lllyasviel/control_v11p_sd15_lineart_anime",
-        path="diffusion_pytorch_model.fp16.safetensors",
-    ),
-    HFControlNet(
-        repo_id="lllyasviel/control_v11p_sd15_scribble",
-        path="diffusion_pytorch_model.fp16.safetensors",
-    ),
-    HFControlNet(
-        repo_id="lllyasviel/control_v11p_sd15_openpose",
-        path="diffusion_pytorch_model.fp16.safetensors",
-    ),
-    HFControlNet(
-        repo_id="lllyasviel/control_v11p_sd15_scribble",
-        path="diffusion_pytorch_model.fp16.safetensors",
-    ),
-    HFControlNet(
-        repo_id="lllyasviel/control_v11p_sd15_seg",
-        path="diffusion_pytorch_model.fp16.safetensors",
-    ),
-    HFControlNet(
-        repo_id="lllyasviel/control_v11p_sd15_hed",
-        path="diffusion_pytorch_model.fp16.safetensors",
-    ),
-    HFControlNet(
-        repo_id="lllyasviel/control_v11p_sd15_normalbae",
-        path="diffusion_pytorch_model.fp16.safetensors",
-    ),
-]
 
 
 class BaseImageToImage(HuggingFacePipelineNode):
@@ -434,7 +375,9 @@ class StableDiffusionControlNetNode(StableDiffusionBaseNode):
     async def move_to_device(self, device: str):
         if self._pipeline is not None:
             self._pipeline.controlnet.to(device)
-            self._pipeline.model.to(device)
+            self._pipeline.unet.to(device)
+            self._pipeline.vae.to(device)
+            self._pipeline.text_encoder.to(device)
 
     async def initialize(self, context: ProcessingContext):
         await super().initialize(context)
