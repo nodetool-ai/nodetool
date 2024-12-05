@@ -818,7 +818,7 @@ class BaseNode(BaseModel):
         Default implementation calls the process method in inference mode.
         For training nodes, this method should be overridden.
         """
-        with torch.inference_mode():
+        with torch.no_grad():
             return await self.process(context)
 
     def requires_gpu(self) -> bool:

@@ -316,7 +316,7 @@ export const useNodeStore = create<NodeStore>()(
         const allNodes = get().nodes;
         let selectedNodes = allNodes.filter((node) => node.selected);
         const edges = get().edges;
-        if (selectedNodes.length === 0) {
+        if (selectedNodes.length <= 1) {
           selectedNodes = allNodes;
         }
         const layoutedNodes = await autoLayout(edges, selectedNodes);

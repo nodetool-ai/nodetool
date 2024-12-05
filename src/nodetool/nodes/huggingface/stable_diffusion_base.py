@@ -104,11 +104,7 @@ HF_STABLE_DIFFUSION_MODELS = [
     ),
     HFStableDiffusion(
         repo_id="Lykon/DreamShaper",
-        path="DreamShaper_6.2_BakedVae_pruned.safetensors",
-    ),
-    HFStableDiffusion(
-        repo_id="Lykon/DreamShaper",
-        path="DreamShaper_3.31_baked_vae-inpainting.inpainting.safetensors",
+        path="DreamShaper_5_beta2_noVae_half_pruned.safetensors",
     ),
     HFStableDiffusion(
         repo_id="Lykon/DreamShaper",

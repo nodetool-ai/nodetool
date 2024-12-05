@@ -167,7 +167,7 @@
           },
           "negative_prompt": "blurry, low quality, deformed, mutated, bad anatomy, extra limbs, bad proportions, text, watermark, grainy, pixelated, disfigured face, missing fingers, cropped image, bad lighting",
           "seed": -1,
-          "num_inference_steps": 2,
+          "num_inference_steps": 50,
           "guidance_scale": 7.5,
           "scheduler": "HeunDiscreteScheduler",
           "lora_scale": 0,
