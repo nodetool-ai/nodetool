@@ -94,6 +94,46 @@ HF_STABLE_DIFFUSION_MODELS = [
         repo_id="SG161222/Realistic_Vision_V5.1_noVAE",
         path="Realistic_Vision_V5.1_fp16-no-ema.safetensors",
     ),
+    HFStableDiffusion(
+        repo_id="digiplay/majicMIX_realistic_v7",
+        path="majicmixRealistic_v7.safetensors",
+    ),
+    HFStableDiffusion(
+        repo_id="philz1337x/epicrealism",
+        path="epicrealism_naturalSinRC1VAE.safetensors",
+    ),
+    HFStableDiffusion(
+        repo_id="Lykon/DreamShaper",
+        path="DreamShaper_6.2_BakedVae_pruned.safetensors",
+    ),
+    HFStableDiffusion(
+        repo_id="Lykon/DreamShaper",
+        path="DreamShaper_3.31_baked_vae-inpainting.inpainting.safetensors",
+    ),
+    HFStableDiffusion(
+        repo_id="Lykon/DreamShaper",
+        path="DreamShaper_4BakedVae_fp16.safetensors",
+    ),
+    HFStableDiffusion(
+        repo_id="XpucT/Deliberate",
+        path="Deliberate_v6.safetensors",
+    ),
+    HFStableDiffusion(
+        repo_id="XpucT/Deliberate",
+        path="Deliberate_v6-inpainting.safetensors",
+    ),
+    HFStableDiffusion(
+        repo_id="Lykon/AbsoluteReality",
+        path="AbsoluteReality_1.8.1_pruned.safetensors",
+    ),
+    HFStableDiffusion(
+        repo_id="Lykon/AbsoluteReality",
+        path="AbsoluteReality_1.8.1_INPAINTING.inpainting.safetensors",
+    ),
+    HFStableDiffusion(
+        repo_id="gsdf/Counterfeit-V2.5",
+        path="Counterfeit-V2.5_fp16.safetensors",
+    ),
     # HFStableDiffusion(
     #     repo_id="Yntec/Deliberate2",
     #     path="Deliberate_v2.safetensors",
@@ -337,7 +377,8 @@ HF_STABLE_DIFFUSION_XL_MODELS = [
         path="DreamShaperXL_Lightning.safetensors",
     ),
     HFStableDiffusionXL(
-        repo_id="fofr/sdxl-emoji",
+        repo_id="Lykon/AAM_XL_AnimeMix",
+        path="AAM_XL_Anime_Mix.safetensors",
     ),
     HFStableDiffusionXL(
         repo_id="stabilityai/sdxl-turbo", path="sd_xl_turbo_1.0_fp16.safetensors"
