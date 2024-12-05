@@ -164,30 +164,28 @@ async function startViteServer() {
   emitBootMessage("Starting Vite server...");
 
   const npmCmd = process.platform === "win32" ? "npm.cmd" : "npm";
+  
+  serverState.initialURL = "http://127.0.0.1:3000";
 
   try {
     viteProcess = spawn(npmCmd, ["start"], {
       cwd: path.join(process.cwd(), "..", "web"),
       stdio: "pipe",
       shell: false,
-      detached: false,
+      detached: true,
       windowsHide: true,
       env: { ...process.env, NO_COLOR: "1" },
     });
+
+    // Create process group
+    if (process.platform !== "win32") {
+      viteProcess.unref();
+    }
 
     viteProcess.stdout.on("data", (data) => {
       const output = data.toString().trim();
       if (output) {
         logMessage(`Vite Server: ${output}`);
-
-        // Parse the port from the output without regex
-        if (output.includes("localhost:")) {
-          const parts = output.split("localhost:");
-          const port = parts[1].split(" ")[0].split("/")[0];
-          logMessage(`Vite server started on port ${port}`);
-          serverState.initialURL = `http://127.0.0.1:${port}`;
-          emitBootMessage("Vite server started");
-        }
       }
     });
 
@@ -233,21 +231,38 @@ async function gracefulShutdown() {
   isAppQuitting = true;
 
   try {
-    // Kill Vite process
+    // Kill Vite process with more robust cleanup
     if (viteProcess) {
       logMessage("Stopping Vite process");
-      viteProcess.kill("SIGTERM");
+      
+      // Kill entire process tree on Windows
+      if (process.platform === "win32") {
+        spawn("taskkill", ["/pid", viteProcess.pid, "/F", "/T"]);
+      } else {
+        // On Unix systems, kill process group
+        process.kill(-viteProcess.pid, "SIGTERM");
+      }
 
-      await new Promise((resolve, reject) => {
-        viteProcess.on("exit", resolve);
-        viteProcess.on("error", reject);
-
-        setTimeout(() => {
-          if (!viteProcess.killed) {
-            viteProcess.kill("SIGKILL");
+      await new Promise((resolve) => {
+        const killTimeout = setTimeout(() => {
+          logMessage("Force killing Vite process after timeout");
+          try {
+            if (process.platform === "win32") {
+              spawn("taskkill", ["/pid", viteProcess.pid, "/F", "/T"]);
+            } else {
+              process.kill(-viteProcess.pid, "SIGKILL");
+            }
+          } catch (e) {
+            logMessage(`Error force killing Vite: ${e.message}`);
           }
           resolve();
         }, 5000);
+
+        viteProcess.once("exit", () => {
+          clearTimeout(killTimeout);
+          logMessage("Vite process successfully terminated");
+          resolve();
+        });
       });
     }
 

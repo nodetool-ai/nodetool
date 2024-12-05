@@ -76,8 +76,7 @@
     "zundo": "^2.0.0-beta.25"
   },
   "scripts": {
-    "start": "vite --host 0.0.0.0",
-    "remote-auth": "VITE_REMOTE_AUTH=true vite --host 0.0.0.0",
+    "start": "vite --host 0.0.0.0 --port 3000 --strictPort --clearScreen false",
     "build": "vite build",
     "build:staging": "vite build --mode staging",
     "preview": "vite preview",

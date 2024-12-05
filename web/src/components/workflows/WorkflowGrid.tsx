@@ -136,20 +136,12 @@ const WorkflowGrid = () => {
   const [selectedWorkflows, setSelectedWorkflows] = useState<string[]>([]);
   const pageSize = 200;
 
-  const {
-    data: workflows = [],
-    isLoading,
-    error,
-    isError
-  } = useQuery<Workflow[], Error>({
+  const { data, isLoading, error, isError } = useQuery<WorkflowList, Error>({
     queryKey: ["workflows"],
-    queryFn: async () => {
-      const response = await loadWorkflows("", pageSize);
-      return response.workflows;
-    },
+    queryFn: () => loadWorkflows("", pageSize),
     staleTime: 1000 * 60 * 15 // 15 minutes
   });
-
+  const workflows = useMemo(() => data?.workflows || [], [data?.workflows]);
   const deleteWorkflow = useWorkflowStore((state) => state.delete);
   const [workflowsToDelete, setWorkflowsToDelete] = useState<Workflow[]>([]);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false);

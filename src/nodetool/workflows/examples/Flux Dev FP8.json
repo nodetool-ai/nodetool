@@ -7,7 +7,7 @@
   "description": "Best-in-class image model with lower VRAM usage",
   "tags": [
     "comfy",
-    "image",
+    "image"
   ],
   "thumbnail": "",
   "thumbnail_url": "/examples/flux_dev.jpg",

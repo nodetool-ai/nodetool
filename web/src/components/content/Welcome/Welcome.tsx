@@ -385,8 +385,6 @@ const Welcome = ({ handleClose }: { handleClose: () => void }) => {
     setTabValue(newValue);
   };
 
-  const { startDownload, openDialog } = useModelDownloadStore();
-
   const highlightText = (text: string, term: string) => {
     if (!term) return text;
     const parts = text.split(new RegExp(`(${term})`, "gi"));

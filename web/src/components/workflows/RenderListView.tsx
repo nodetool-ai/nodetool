@@ -121,6 +121,7 @@ export const RenderListView: React.FC<RenderListViewProps> = ({
   const addBreaks = (text: string) => {
     return text.replace(/([-_.])/g, "$1<wbr>");
   };
+  console.log(workflows);
 
   return (
     <Box className="container list" css={listStyles} onScroll={onScroll}>

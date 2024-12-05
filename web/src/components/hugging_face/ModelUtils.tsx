@@ -230,7 +230,7 @@ export const renderModelActions = (
           color="success"
         />
 
-        <Typography>DOWNLOADED</Typography>
+        <Typography sx={{ fontSize: "0.8em" }}>DOWNLOADED</Typography>
       </Box>
     )}
     {props.handleDelete && (
@@ -279,7 +279,7 @@ export const sortModelTypes = (types: string[]) => {
 
 export const useModelInfo = (model: UnifiedModel) => {
   const isHuggingFace = model.type?.startsWith("hf.") ?? false;
-  const isOllama = model.type?.toLowerCase().includes("llama_model") ?? false;
+  const isOllama = model.type?.toLowerCase()?.includes("llama_model") ?? false;
   const query = useQuery({
     queryKey: ["modelInfo", model.id],
     queryFn: () => {

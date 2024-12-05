@@ -146,7 +146,7 @@ const ModelList: React.FC = () => {
       return data.map(
         (model: any): UnifiedModel => ({
           id: model.repo_id,
-          type: model.model_type || "hf.model",
+          type: model.the_model_type,
           name: model.repo_id,
           repo_id: model.repo_id,
           description: "",
@@ -406,18 +406,16 @@ const ModelList: React.FC = () => {
           </ToggleButtonGroup>
         </Box>
         <List>
-          {modelTypes
-            .filter((type) => filteredModels[type]?.length > 0)
-            .map((type) => (
-              <ListItemButton
-                className="model-type-button"
-                key={type}
-                selected={selectedModelType === type}
-                onClick={() => handleModelTypeChange(type)}
-              >
-                <ListItemText primary={prettifyModelType(type)} />
-              </ListItemButton>
-            ))}
+          {modelTypes.map((type) => (
+            <ListItemButton
+              className="model-type-button"
+              key={type}
+              selected={selectedModelType === type}
+              onClick={() => handleModelTypeChange(type)}
+            >
+              <ListItemText primary={prettifyModelType(type)} />
+            </ListItemButton>
+          ))}
         </List>
       </Box>
 
