@@ -146,9 +146,9 @@ const WorkflowGrid = () => {
     isFetchingNextPage
   } = useInfiniteQuery<WorkflowList, Error>({
     queryKey: ["workflows"],
-    queryFn: ({ pageParam = "" }) =>
-      loadWorkflows(pageParam as string, pageSize),
-    getNextPageParam: (lastPage) => lastPage.next || undefined,
+    queryFn: async ({ pageParam = "" }) =>
+      await loadWorkflows(pageParam as string, pageSize),
+    getNextPageParam: (lastPage) => lastPage?.next || "",
     initialPageParam: "",
     staleTime: 1000 * 60 * 15 // 15 minutes
   });
@@ -185,10 +185,8 @@ const WorkflowGrid = () => {
     if (filterValue === "") {
       return workflows;
     }
-    return workflows.filter(
-      (workflow) =>
-        workflow.name.toLowerCase().includes(filterValue.toLowerCase()) ||
-        workflow.description.toLowerCase().includes(filterValue.toLowerCase())
+    return workflows.filter((workflow) =>
+      workflow.name.toLowerCase().includes(filterValue.toLowerCase())
     );
   }, [workflows, filterValue]);
 
