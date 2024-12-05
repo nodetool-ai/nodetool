@@ -102,6 +102,7 @@ function handleServerOutput(data) {
 
   if (output.includes("Application startup complete.")) {
     logMessage("Server startup complete");
+    emitBootMessage("Loading application...");
     emitServerStarted();
   }
   emitServerLog(output);
@@ -124,12 +125,7 @@ async function ensureOllamaIsRunning() {
  * Show dialog explaining Ollama and providing download links.
  */
 async function showOllamaInstallDialog() {
-  const ollamaVersion = "0.3.14";
-  const downloadUrl =
-    process.platform === "darwin"
-      ? `https://github.com/ollama/ollama/releases/download/v${ollamaVersion}/Ollama-darwin.zip`
-      : `https://github.com/ollama/ollama/releases/download/v${ollamaVersion}/OllamaSetup.exe`;
-
+  const downloadUrl = "https://ollama.com/download";
   const response = await dialog.showMessageBox({
     type: "info",
     title: "Ollama Required",

@@ -1,12 +1,12 @@
 const path = require("path");
 const { app } = require("electron");
+const { logMessage } = require("./logger");
 
 // Base paths
 const resourcesPath = process.resourcesPath;
 const srcPath = app.isPackaged
   ? path.join(resourcesPath, "src")
   : path.join(__dirname, "..", "src");
-
 
 const userDataPath = app.getPath("userData");
 
@@ -18,10 +18,10 @@ const PYTHON_ENV = {
     const defaultRequirements = app.isPackaged
       ? path.join(resourcesPath, "requirements.txt")
       : path.join(__dirname, "..", "requirements.txt");
-    
+
     try {
       // Synchronously check if user requirements exists
-      require('fs').accessSync(userRequirements);
+      require("fs").accessSync(userRequirements);
       return userRequirements;
     } catch {
       return defaultRequirements;
@@ -44,12 +44,21 @@ const PYTHON_ENV = {
       : path.join(userDataPath, "conda_env", "bin", "conda-unpack"),
 
   saveUserRequirements: (requirements) => {
-    const fs = require('fs');
+    logMessage(
+      `Saving user requirements to ${path.join(
+        userDataPath,
+        "requirements.txt"
+      )}`
+    );
+    const fs = require("fs");
     try {
-      fs.writeFileSync(path.join(userDataPath, "requirements.txt"), requirements);
+      fs.writeFileSync(
+        path.join(userDataPath, "requirements.txt"),
+        requirements
+      );
       return true;
     } catch (error) {
-      console.error("Failed to save user requirements:", error);
+      logMessage(`Failed to save user requirements: ${error}`);
       return false;
     }
   },

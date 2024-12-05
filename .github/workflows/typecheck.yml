@@ -6,14 +6,19 @@ on:
       - main
     paths:
       - "web/**"
+      - "src/**"
+      - "electron/**"
   pull_request:
     branches:
       - main
     paths:
       - "web/**"
+      - "src/**"
+      - "electron/**"
 
 jobs:
-  type-check:
+  web-type-check:
+    name: Web TypeScript Check
     runs-on: ubuntu-latest
 
     steps:
@@ -25,7 +30,7 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Install dependencies
+      - name: Install web dependencies
         run: |
           cd web
           npm install
@@ -34,3 +39,26 @@ jobs:
         run: |
           cd web
           npx tsc --noEmit
+
+  electron-type-check:
+    name: Electron TypeScript Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: "20"
+
+      - name: Install electron dependencies
+        run: |
+          cd electron
+          npm install
+
+      - name: Run TypeScript type check
+        run: |
+          cd electron
+          npm run typecheck

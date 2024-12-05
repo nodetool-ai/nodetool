@@ -388,6 +388,7 @@ class Build:
     def pack(self) -> None:
         """Create a packed conda environment."""
         logger.info("Packing conda environment")
+        version = self.get_version()
 
         # Install conda-pack
         self.run_command(["conda", "install", "conda-pack", "-y"])
@@ -446,7 +447,6 @@ class Build:
         self.run_command(pip_install_command)
 
         # Pack the environment
-        version = self.get_version()
         ext = "zip" if self.platform == "windows" else "tar.gz"
         output_name = f"conda-env-{self.platform}-{self.arch}-{version}.{ext}"
         output_path = self.BUILD_DIR / output_name
@@ -466,14 +466,18 @@ class Build:
         logger.info(f"Uploading {output_name} to s3://nodetool-conda/")
         self.run_command(["aws", "s3", "cp", str(output_path), "s3://nodetool-conda/"])
 
-        # Upload requirements.txt to S3
-        logger.info("Uploading requirements.txt to s3://nodetool-conda/")
+        # Upload requirements.txt with version number to S3
+        requirements_versioned_name = f"requirements-{version}.txt"
+        requirements_versioned_path = self.BUILD_DIR / requirements_versioned_name
+        shutil.copy(PROJECT_ROOT / "requirements.txt", requirements_versioned_path)
+
+        logger.info(f"Uploading {requirements_versioned_name} to s3://nodetool-conda/")
         self.run_command(
             [
                 "aws",
                 "s3",
                 "cp",
-                str(PROJECT_ROOT / "requirements.txt"),
+                str(requirements_versioned_path),
                 "s3://nodetool-conda/",
             ]
         )

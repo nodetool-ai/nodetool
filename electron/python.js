@@ -30,15 +30,18 @@ const path = require("path");
  */
 async function checkPythonPackages() {
   try {
-    const requirementsURL = `https://nodetool-conda.s3.amazonaws.com/requirements.txt`;
+    const VERSION = app.getVersion();
+    const requirementsURL = `https://nodetool-conda.s3.amazonaws.com/requirements-${VERSION}.txt`;
 
     emitBootMessage(`Downloading requirements...`);
+    logMessage(`Downloading requirements from ${requirementsURL}`);
 
     const remoteRequirements = await downloadToString(requirementsURL);
     const localRequirements = await fs.readFile(getRequirementsPath(), "utf8");
 
     if (localRequirements === remoteRequirements) {
       emitBootMessage("No updates needed");
+      logMessage("Requirements are up to date");
       return false;
     }
 
@@ -72,6 +75,7 @@ async function verifyApplicationPaths() {
 
   for (const { path, mode, desc } of pathsToCheck) {
     const { accessible, error } = await checkPermissions(path, mode);
+    logMessage(`Checking ${desc} permissions: ${accessible ? "OK" : "FAILED"}`);
     if (!accessible) {
       errors.push(`${desc}: ${error}`);
     }
@@ -91,6 +95,8 @@ async function isCondaEnvironmentInstalled() {
     const pythonExecutablePath = getPythonPath();
 
     await fs.access(pythonExecutablePath);
+
+    logMessage(`Python executable found at ${pythonExecutablePath}`);
     return true;
   } catch {
     return false;
@@ -105,11 +111,13 @@ async function updateCondaEnvironment() {
     const installNeeded = await checkPythonPackages();
 
     if (!installNeeded) {
+      logMessage("No packages to update");
       emitBootMessage("No packages to update");
       return;
     }
 
     emitBootMessage(`Updating packages...`);
+    logMessage("Updating packages...");
 
     const pipExecutable = getPipPath();
 
@@ -127,6 +135,7 @@ async function updateCondaEnvironment() {
       installCommand.push("https://download.pytorch.org/whl/cu121");
     }
 
+    logMessage(`Running pip command: ${installCommand.join(" ")}`);
     await runPipCommand(installCommand);
 
     logMessage("Python packages update completed successfully");
@@ -142,6 +151,8 @@ async function runPipCommand(command) {
     stdio: "pipe",
     env: processEnv,
   });
+
+  logMessage(`Running pip command: ${command.join(" ")}`);
 
   updateProcess.stdout.on("data", (data) => {
     const message = data.toString().trim();
@@ -188,6 +199,8 @@ async function getFileSizeFromUrl(url) {
         reject(new Error("Could not determine file size"));
         return;
       }
+
+      logMessage(`File size: ${contentLength} bytes for ${url}`);
       resolve(contentLength);
     });
 
@@ -208,6 +221,7 @@ async function downloadFile(url, dest) {
     fs.constants.W_OK
   );
   if (!accessible) {
+    logMessage(`Cannot write to download directory: ${error}`, "error");
     throw new Error(`Cannot write to download directory: ${error}`);
   }
 
@@ -216,6 +230,7 @@ async function downloadFile(url, dest) {
     expectedSize = await getFileSizeFromUrl(url);
     logMessage(`Expected file size: ${expectedSize} bytes`);
   } catch (error) {
+    logMessage(`Failed to get file size from URL: ${error.message}`, "error");
     throw new Error(`Failed to get file size from URL: ${error.message}`);
   }
 
@@ -258,11 +273,13 @@ async function downloadFile(url, dest) {
 
     function handleResponse(response) {
       if (response.statusCode === 404) {
+        logMessage(`File not found at ${url}`, "error");
         reject(new Error(`File not found at ${url}`));
         return;
       }
 
       if (response.statusCode === 302 || response.statusCode === 301) {
+        logMessage(`Redirected to ${response.headers.location}`);
         https
           .get(response.headers.location, handleResponse)
           .on("error", handleError);
@@ -271,6 +288,10 @@ async function downloadFile(url, dest) {
 
       const contentLength = parseInt(response.headers["content-length"], 10);
       if (contentLength !== expectedSize) {
+        logMessage(
+          `Server file size mismatch. Expected: ${expectedSize}, Got: ${contentLength}`,
+          "error"
+        );
         reject(
           new Error(
             `Server file size mismatch. Expected: ${expectedSize}, Got: ${contentLength}`
@@ -315,9 +336,9 @@ async function downloadFile(url, dest) {
     }
 
     function handleError(err) {
+      logMessage(`Error downloading file: ${err.message}`, "error");
       file.close();
       fs.unlink(dest).then(() => {
-        logMessage(`Error downloading file: ${err.message}`, "error");
         reject(new Error(`Error downloading file: ${err.message}`));
       });
     }
@@ -364,8 +385,10 @@ async function installCondaEnvironment() {
       );
     }
 
+    logMessage(`Creating download directory: ${path.dirname(archivePath)}`);
     await fs.mkdir(path.dirname(archivePath), { recursive: true });
 
+    logMessage(`Downloading Python environment from ${environmentUrl}`);
     emitBootMessage("Downloading Python environment...");
     let attempts = 3;
     while (attempts > 0) {
@@ -381,6 +404,7 @@ async function installCondaEnvironment() {
     }
 
     await fs.mkdir(condaEnvPath, { recursive: true });
+    logMessage(`Unpacking Python environment to ${condaEnvPath}`);
     emitBootMessage("Unpacking Python environment...");
     if (platform === "win32") {
       await unpackPythonEnvironment(archivePath, condaEnvPath);
@@ -388,6 +412,7 @@ async function installCondaEnvironment() {
       await unpackTarGzEnvironment(archivePath, condaEnvPath);
     }
 
+    logMessage(`Removing downloaded archive: ${archivePath}`);
     await fs.unlink(archivePath);
 
     logMessage("Python environment installation completed successfully");
@@ -406,6 +431,7 @@ async function installCondaEnvironment() {
  */
 async function unpackPythonEnvironment(zipPath, destPath) {
   emitBootMessage("Unpacking the Python environment...");
+  logMessage(`Unpacking Python environment from ${zipPath} to ${destPath}`);
   let zip = null;
 
   try {
@@ -414,15 +440,20 @@ async function unpackPythonEnvironment(zipPath, destPath) {
       fs.constants.R_OK
     );
     if (!canReadZip) {
+      logMessage(`Cannot read zip file: ${zipError}`, "error");
       throw new Error(`Cannot read zip file: ${zipError}`);
     }
 
+    logMessage(
+      `Checking destination directory permissions: ${path.dirname(destPath)}`
+    );
     const { accessible: canWriteDest, error: destError } =
       await checkPermissions(path.dirname(destPath), fs.constants.W_OK);
     if (!canWriteDest) {
       throw new Error(`Cannot write to destination: ${destError}`);
     }
 
+    logMessage(`Checking if zip file exists: ${zipPath}`);
     if (!(await fileExists(zipPath))) {
       throw new Error(`Zip file not found at: ${zipPath}`);
     }
@@ -461,6 +492,7 @@ async function unpackPythonEnvironment(zipPath, destPath) {
       zip = new StreamZip.async({ file: zipPath });
       const entries = await zip.entries();
       const totalEntries = Object.keys(entries).length;
+      logMessage(`Total entries in zip file: ${totalEntries}`);
 
       if (totalEntries === 0) {
         throw new Error("Zip file contains no entries");
@@ -537,6 +569,7 @@ async function unpackPythonEnvironment(zipPath, destPath) {
     emitBootMessage("Running conda-unpack...");
     const unpackScript = getCondaUnpackPath();
 
+    logMessage(`Conda-unpack script: ${unpackScript}`);
     if (!(await fileExists(unpackScript))) {
       throw new Error(`conda-unpack script not found at: ${unpackScript}`);
     }
@@ -610,6 +643,7 @@ async function unpackPythonEnvironment(zipPath, destPath) {
  */
 async function unpackTarGzEnvironment(tarPath, destPath) {
   emitBootMessage("Unpacking the Python environment...");
+  logMessage(`Unpacking Python environment from ${tarPath} to ${destPath}`);
 
   try {
     const { accessible: canReadTar, error: tarError } = await checkPermissions(
@@ -617,11 +651,13 @@ async function unpackTarGzEnvironment(tarPath, destPath) {
       fs.constants.R_OK
     );
     if (!canReadTar) {
+      logMessage(`Cannot read tar file: ${tarError}`, "error");
       throw new Error(`Cannot read tar file: ${tarError}`);
     }
 
     const stats = await fs.stat(tarPath);
     if (stats.size === 0) {
+      logMessage("Downloaded tar.gz file is empty", "error");
       throw new Error("Downloaded tar.gz file is empty");
     }
 
@@ -630,6 +666,7 @@ async function unpackTarGzEnvironment(tarPath, destPath) {
       await fs.rm(destPath, { recursive: true, force: true });
     }
 
+    logMessage(`Creating destination directory: ${destPath}`);
     await fs.mkdir(destPath, { recursive: true });
 
     // Extract using tar-fs and gunzip-maybe
@@ -675,6 +712,7 @@ async function unpackTarGzEnvironment(tarPath, destPath) {
     emitBootMessage("Running conda-unpack...");
     const unpackScript = getCondaUnpackPath();
 
+    logMessage(`Conda-unpack script: ${unpackScript}`);
     if (!(await fileExists(unpackScript))) {
       throw new Error(`conda-unpack script not found at: ${unpackScript}`);
     }
@@ -769,10 +807,10 @@ function calculateExtractETA(startTime, processedBytes, totalBytes) {
  */
 async function downloadToString(url) {
   return new Promise((resolve, reject) => {
-    let data = '';
+    let data = "";
 
     const request = https.get(url, handleResponse);
-    request.on('error', handleError);
+    request.on("error", handleError);
 
     function handleResponse(response) {
       if (response.statusCode === 404) {
@@ -781,15 +819,16 @@ async function downloadToString(url) {
       }
 
       if (response.statusCode === 302 || response.statusCode === 301) {
-        https.get(response.headers.location, handleResponse)
-          .on('error', handleError);
+        https
+          .get(response.headers.location, handleResponse)
+          .on("error", handleError);
         return;
       }
 
-      response.setEncoding('utf8');
-      response.on('data', chunk => data += chunk);
-      response.on('end', () => resolve(data));
-      response.on('error', handleError);
+      response.setEncoding("utf8");
+      response.on("data", (chunk) => (data += chunk));
+      response.on("end", () => resolve(data));
+      response.on("error", handleError);
     }
 
     function handleError(err) {
