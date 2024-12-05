@@ -5,7 +5,10 @@
   "updated_at": "2024-10-19T15:58:17.026865",
   "name": "Movie Posters",
   "description": "Generate movie posters from a list of movie titles",
-  "tags": ["start", "image"],
+  "tags": [
+    "start",
+    "image"
+  ],
   "thumbnail": "",
   "thumbnail_url": "/examples/movie_posters.jpg",
   "graph": {

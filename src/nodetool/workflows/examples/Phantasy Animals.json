@@ -181,8 +181,8 @@
           "ip_adapter_scale": 0.5,
           "hires": true,
           "enable_tiling": false,
-          "width": 512,
-          "height": 512,
+          "width": 768,
+          "height": 768,
           "detail_level": 0.8
         },
         "ui_properties": {

@@ -99,8 +99,8 @@
           },
           "ip_adapter_scale": 0.5,
           "detail_level": 0.5,
-          "width": 512,
-          "height": 512
+          "width": 768,
+          "height": 768
         },
         "ui_properties": {
           "position": {
