@@ -26,6 +26,8 @@ import {
 } from "./ModelUtils";
 import ThemeNodetool from "../themes/ThemeNodetool";
 import { useModelInfo } from "./ModelUtils";
+import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
+import { DownloadProgress } from "./DownloadProgress";
 
 const styles = (theme: any) =>
   css({
@@ -110,6 +112,8 @@ const ModelListItem: React.FC<ModelComponentProps> = ({
 }) => {
   const { modelData, isLoading, downloaded, isHuggingFace, isOllama } =
     useModelInfo(model);
+  const downloads = useModelDownloadStore((state) => state.downloads);
+  const modelId = model.id;
 
   if (isLoading) {
     return (
@@ -119,6 +123,19 @@ const ModelListItem: React.FC<ModelComponentProps> = ({
       >
         <ListItem className={`model-list-item ${compactView ? "compact" : ""}`}>
           <CircularProgress size={24} />
+        </ListItem>
+      </Box>
+    );
+  }
+
+  if (downloads[modelId]) {
+    return (
+      <Box
+        css={styles}
+        className={`model-list-item ${compactView ? "compact" : ""}`}
+      >
+        <ListItem>
+          <DownloadProgress name={modelId} />
         </ListItem>
       </Box>
     );

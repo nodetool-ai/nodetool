@@ -7,6 +7,8 @@ import ModelCardContent from "./ModelCardContent";
 import ModelCardActions from "./ModelCardActions";
 import ThemeNodetool from "../themes/ThemeNodetool";
 import { isEqual } from "lodash";
+import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
+import { DownloadProgress } from "./DownloadProgress";
 
 const styles = (theme: any) =>
   css({
@@ -191,6 +193,8 @@ const ModelCard: React.FC<ModelComponentProps> = ({
   const [readmeDialogOpen, setReadmeDialogOpen] = useState(false);
   const { modelData, isLoading, downloaded, isHuggingFace, isOllama } =
     useModelInfo(model);
+  const downloads = useModelDownloadStore((state) => state.downloads);
+  const modelId = model.id;
 
   const toggleTags = () => setTagsExpanded(!tagsExpanded);
 
@@ -207,6 +211,14 @@ const ModelCard: React.FC<ModelComponentProps> = ({
         >
           <CircularProgress />
         </CardContent>
+      </Card>
+    );
+  }
+
+  if (downloads[modelId]) {
+    return (
+      <Card className="model-card" css={styles} sx={{ height: "100%" }}>
+        <DownloadProgress name={modelId} />
       </Card>
     );
   }

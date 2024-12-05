@@ -37,15 +37,12 @@ interface RecommendedModelsDialogProps {
     allowPatterns: string[] | null,
     ignorePatterns: string[] | null
   ) => void;
-  openDialog: () => void;
 }
 
 const RecommendedModelsDialog: React.FC<RecommendedModelsDialogProps> = ({
   open,
   onClose,
-  recommendedModels,
-  startDownload,
-  openDialog
+  recommendedModels
 }) => {
   return (
     <Dialog
@@ -85,11 +82,6 @@ const RecommendedModelsDialog: React.FC<RecommendedModelsDialogProps> = ({
         <RecommendedModels
           recommendedModels={recommendedModels}
           initialViewMode="grid"
-          startDownload={startDownload}
-          onModelSelect={() => {
-            openDialog();
-            onClose();
-          }}
         />
       </DialogContent>
     </Dialog>

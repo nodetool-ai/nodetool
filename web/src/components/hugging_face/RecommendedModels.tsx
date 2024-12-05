@@ -14,32 +14,24 @@ import ModelListItem from "./ModelListItem";
 import ThemeNodes from "../themes/ThemeNodes";
 import AnnouncementIcon from "@mui/icons-material/Announcement";
 import { useModelsWithSize } from "../../hooks/useModelsWithSize";
+import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 
 interface RecommendedModelsProps {
   recommendedModels: UnifiedModel[];
   showViewModeToggle?: boolean;
   initialViewMode: "grid" | "list";
   compactView?: boolean;
-  startDownload: (
-    repoId: string,
-    modelType: string,
-    path: string | null,
-    allowPatterns: string[] | null,
-    ignorePatterns: string[] | null
-  ) => void;
-  onModelSelect?: () => void;
 }
 
 const RecommendedModels: React.FC<RecommendedModelsProps> = ({
   recommendedModels,
   initialViewMode,
-  startDownload,
-  onModelSelect,
   showViewModeToggle = true,
   compactView = false
 }) => {
   const [viewMode, setViewMode] = useState<"grid" | "list">(initialViewMode);
   const modelsWithSize = useModelsWithSize(recommendedModels);
+  const startDownload = useModelDownloadStore((state) => state.startDownload);
 
   const handleViewModeChange = (
     event: React.MouseEvent<HTMLElement>,
@@ -84,7 +76,6 @@ const RecommendedModels: React.FC<RecommendedModelsProps> = ({
                       model.allow_patterns ?? null,
                       model.ignore_patterns ?? null
                     );
-                    onModelSelect?.();
                   }}
                 />
               </Grid>
@@ -107,7 +98,6 @@ const RecommendedModels: React.FC<RecommendedModelsProps> = ({
                     model.allow_patterns ?? null,
                     model.ignore_patterns ?? null
                   );
-                  onModelSelect?.();
                 }}
               />
             );
@@ -123,7 +113,6 @@ const RecommendedModels: React.FC<RecommendedModelsProps> = ({
           sx={{
             verticalAlign: "middle",
             marginRight: "0.5em",
-
             color: ThemeNodes.palette.c_warning
           }}
         />

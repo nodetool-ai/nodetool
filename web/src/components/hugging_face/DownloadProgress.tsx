@@ -16,10 +16,10 @@ import ThemeNodetool from "../themes/ThemeNodetool";
 
 const styles = (theme: any) =>
   css({
-    border: `1px solid ${theme.palette.c_gray1}`,
+    // border: `1px solid ${theme.palette.c_gray1}`,
     borderRadius: "4px",
     padding: "1em",
-    background: theme.palette.c_gray2,
+    // background: theme.palette.c_gray2,
     position: "relative",
     ".download-progress-text": {
       fontFamily: theme.fontFamily2
