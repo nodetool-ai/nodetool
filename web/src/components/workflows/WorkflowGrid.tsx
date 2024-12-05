@@ -11,7 +11,7 @@ import { useWorkflowStore } from "../../stores/WorkflowStore";
 import { useCallback, useEffect, useState, useMemo } from "react";
 import { Workflow, WorkflowList } from "../../stores/ApiTypes";
 import { useNavigate } from "react-router-dom";
-import { useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { ErrorOutlineRounded } from "@mui/icons-material";
 import { useNodeStore } from "../../stores/NodeStore";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
@@ -134,29 +134,22 @@ const WorkflowGrid = () => {
   );
 
   const [selectedWorkflows, setSelectedWorkflows] = useState<string[]>([]);
-  const pageSize = 10;
+  const pageSize = 200;
 
   const {
-    data,
+    data: workflows = [],
     isLoading,
     error,
-    isError,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage
-  } = useInfiniteQuery<WorkflowList, Error>({
+    isError
+  } = useQuery<Workflow[], Error>({
     queryKey: ["workflows"],
-    queryFn: async ({ pageParam = "" }) =>
-      await loadWorkflows(pageParam as string, pageSize),
-    getNextPageParam: (lastPage) => lastPage?.next || "",
-    initialPageParam: "",
+    queryFn: async () => {
+      const response = await loadWorkflows("", pageSize);
+      return response.workflows;
+    },
     staleTime: 1000 * 60 * 15 // 15 minutes
   });
 
-  const workflows = useMemo(
-    () => data?.pages.flatMap((page) => page.workflows) || [],
-    [data]
-  );
   const deleteWorkflow = useWorkflowStore((state) => state.delete);
   const [workflowsToDelete, setWorkflowsToDelete] = useState<Workflow[]>([]);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false);
@@ -354,30 +347,9 @@ const WorkflowGrid = () => {
   // Add resize observer to handle responsive layout
   const [gridRef] = useResizeObserver();
 
-  // Add scroll handler
-  const handleScroll = useCallback(
-    (event: React.UIEvent<HTMLDivElement>) => {
-      const element = event.currentTarget;
-      const scrollOffset = element.scrollTop;
-      if (
-        !isFetchingNextPage &&
-        hasNextPage &&
-        element.scrollHeight - scrollOffset - element.clientHeight < 200
-      ) {
-        fetchNextPage();
-      }
-    },
-    [fetchNextPage, hasNextPage, isFetchingNextPage]
-  );
-
-  // Update the workflow-items container
   const workflowItems = useMemo(
     () => (
-      <div
-        className="workflow-items"
-        ref={gridRef}
-        style={{ overflowY: "auto", maxHeight: "calc(100vh - 200px)" }} // Add scrollable container
-      >
+      <div className="workflow-items" ref={gridRef}>
         <RenderListView
           workflows={filteredWorkflows}
           onClickOpen={onClickOpen}
@@ -385,16 +357,9 @@ const WorkflowGrid = () => {
           onDuplicateWorkflow={duplicateWorkflow}
           onDelete={onDelete}
           onSelect={onSelect}
-          onScroll={handleScroll}
           selectedWorkflows={selectedWorkflows}
           workflowCategory="user"
         />
-
-        {isFetchingNextPage && (
-          <div className="loading-indicator" style={{ height: "100px" }}>
-            <CircularProgress size={24} />
-          </div>
-        )}
       </div>
     ),
     [
@@ -405,9 +370,7 @@ const WorkflowGrid = () => {
       duplicateWorkflow,
       onDelete,
       onSelect,
-      selectedWorkflows,
-      isFetchingNextPage,
-      handleScroll // Add handleScroll to dependencies
+      selectedWorkflows
     ]
   );
 
