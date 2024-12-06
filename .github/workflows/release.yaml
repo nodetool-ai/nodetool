@@ -107,10 +107,8 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DEBUG: electron-builder
-          CSC_KEY_VAULT_URL: ${{ secrets.AZURE_KEY_VAULT_URL }}
-          CSC_KEY_VAULT_SIGNING_CERT: ${{ secrets.AZURE_CERT_NAME }}
-          CSC_AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          CSC_AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          CSC_AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
         run: |
           python build.py electron --publish
