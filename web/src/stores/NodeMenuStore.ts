@@ -196,9 +196,12 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => ({
       return;
     }
 
-    // Filter by type
+    // Filter out nodes in the "default" namespace and then filter by type
+    const nonDefaultMetadata = metadata.filter(
+      (node) => node.namespace !== "default"
+    );
     const filteredMetadata = filterDataByType(
-      metadata,
+      nonDefaultMetadata,
       get().selectedInputType as TypeName,
       get().selectedOutputType as TypeName
     );
