@@ -61,6 +61,7 @@ DEFAULT_ROUTERS = [
     job.router,
     auth.router,
     message.router,
+    model.router,
     node.router,
     prediction.router,
     workflow.router,
@@ -68,9 +69,6 @@ DEFAULT_ROUTERS = [
     task.router,
     settings.router,
 ]
-
-if not Environment.is_production():
-    DEFAULT_ROUTERS.append(model.router)
 
 
 class PermissionsPolicyMiddleware(BaseHTTPMiddleware):
