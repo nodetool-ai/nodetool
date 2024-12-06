@@ -2,10 +2,10 @@ import dotenv
 from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from nodetool.api.websocket_runner import WebSocketRunner
+from nodetool.api.chat_websocket_runner import ChatWebSocketRunner
 
 from nodetool.common.environment import Environment
 from nodetool.metadata.node_metadata import NodeMetadata
-from nodetool.metadata.types import ModelFile
 import nodetool.nodes.anthropic
 import nodetool.nodes.chroma
 import nodetool.nodes.comfy
@@ -62,10 +62,14 @@ app.add_middleware(
 )
 
 
-@app.websocket("/")
-async def websocket_endpoint(websocket: WebSocket):
-    runner = WebSocketRunner()
-    await runner.run(websocket)
+@app.websocket("/predict")
+async def predict_websocket_endpoint(websocket: WebSocket):
+    await WebSocketRunner().run(websocket)
+
+
+@app.websocket("/chat")
+async def chat_websocket_endpoint(websocket: WebSocket):
+    await ChatWebSocketRunner().run(websocket)
 
 
 @app.get("/metadata")

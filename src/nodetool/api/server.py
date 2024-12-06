@@ -130,11 +130,16 @@ def create_app(
         app.add_websocket_route("/hf/download", hf_websocket_endpoint)
 
     if worker_url:
-        ws_proxy = WebSocketProxy(worker_url=worker_url)
+        predict_proxy = WebSocketProxy(worker_url=worker_url + "/predict")
+        chat_proxy = WebSocketProxy(worker_url=worker_url + "/chat")
 
         @app.websocket("/predict")
         async def websocket_endpoint(websocket: WebSocket):
-            await ws_proxy(websocket)
+            await predict_proxy(websocket)
+
+        @app.websocket("/chat")
+        async def chat_websocket_endpoint(websocket: WebSocket):
+            await chat_proxy(websocket)
 
     else:
         # if we don't run the worker, we need to initialize nodes
