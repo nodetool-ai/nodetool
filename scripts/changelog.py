@@ -3,6 +3,9 @@ import os
 import requests
 from datetime import datetime, timedelta
 import anthropic
+import dotenv
+
+dotenv.load_dotenv()
 
 # Anthropic API key
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
