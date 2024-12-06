@@ -105,26 +105,4 @@ jobs:
           AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
           AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
         run: |
-          python build.py electron
-
-      - name: Sign files with Trusted Signing
-        if: matrix.os == 'windows-latest'
-        uses: azure/trusted-signing-action@v0.5.0
-        with:
-          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
-          endpoint: https://weu.codesigning.azure.net/
-          trusted-signing-account-name: Nodetool
-          certificate-profile-name: nodetool
-          files-folder: ${{ github.workspace }}\build\dist\win-unpacked
-          files-folder-filter: exe,dll
-          file-digest: SHA256
-          timestamp-rfc3161: http://timestamp.acs.microsoft.com
-          timestamp-digest: SHA256
-
-      - name: Publish to GitHub
-        uses: actions/upload-artifact@v4
-        with:
-          name: electron
-          path: ${{ github.workspace }}/build/electron/win-unpacked
+          python build.py electron --publish
