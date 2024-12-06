@@ -680,6 +680,14 @@ class StableDiffusionBaseNode(HuggingFacePipelineNode):
         le=1.0,
         description="Level of detail for the hi-res pass. 0.0 is low detail, 1.0 is high detail.",
     )
+    enable_tiling: bool = Field(
+        default=False,
+        description="Enable tiling for the VAE. This can reduce VRAM usage.",
+    )
+    enable_cpu_offload: bool = Field(
+        default=False,
+        description="Enable CPU offload for the pipeline. This can reduce VRAM usage.",
+    )
     _loaded_adapters: set[str] = set()
     _pipeline: Any = None
     _upscaler: StableDiffusionLatentUpscalePipeline | None = None
@@ -783,6 +791,12 @@ class StableDiffusionBaseNode(HuggingFacePipelineNode):
     async def run_pipeline(self, context: ProcessingContext, **kwargs) -> ImageRef:
         if self._pipeline is None:
             raise ValueError("Pipeline not initialized")
+
+        if self.enable_tiling:
+            self._pipeline.vae.enable_tiling()
+
+        if self.enable_cpu_offload:
+            self._pipeline.enable_model_cpu_offload()
 
         loras = [
             lora for lora in self.loras if not lora.lora.path in self._loaded_adapters
@@ -1007,6 +1021,14 @@ class StableDiffusionXLBase(HuggingFacePipelineNode):
         le=1.0,
         description="Strength of the IP adapter image",
     )
+    enable_tiling: bool = Field(
+        default=False,
+        description="Enable tiling for the VAE. This can reduce VRAM usage.",
+    )
+    enable_cpu_offload: bool = Field(
+        default=False,
+        description="Enable CPU offload for the pipeline. This can reduce VRAM usage.",
+    )
 
     _loaded_adapters: set[str] = set()
     _pipeline: Any = None
@@ -1088,6 +1110,12 @@ class StableDiffusionXLBase(HuggingFacePipelineNode):
     async def run_pipeline(self, context: ProcessingContext, **kwargs) -> ImageRef:
         if self._pipeline is None:
             raise ValueError("Pipeline not initialized")
+
+        if self.enable_tiling:
+            self._pipeline.vae.enable_tiling()
+
+        if self.enable_cpu_offload:
+            self._pipeline.enable_model_cpu_offload()
 
         loras = [
             lora for lora in self.loras if not lora.lora.path in self._loaded_adapters

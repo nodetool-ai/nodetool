@@ -102,7 +102,7 @@ export function graphNodeToReactFlowNode(
     },
     zIndex:
       node.type == "nodetool.group.Loop" ||
-      node.type == "nodetool.workflows.base_node.Group"
+        node.type == "nodetool.workflows.base_node.Group"
         ? -10
         : ui_properties?.zIndex
   };
@@ -157,6 +157,8 @@ export function reactFlowEdgeToGraphEdge(edge: Edge): GraphEdge {
 }
 
 const undo_limit = 1000;
+const AUTO_SAVE_INTERVAL = 5000; // 5 seconds
+
 export interface NodeStore {
   explicitSave: boolean;
   shouldAutoLayout: boolean;
@@ -226,6 +228,9 @@ export interface NodeStore {
   autoLayout: () => Promise<void>;
   clearMissingModels: () => void;
   workflowIsDirty: boolean;
+  autoSaveInterval: NodeJS.Timeout | null;
+  startAutoSave: () => void;
+  stopAutoSave: () => void;
 }
 
 export const useTemporalStore = <T>(
@@ -254,6 +259,7 @@ export const useNodeStore = create<NodeStore>()(
       edges: [] as Edge[],
       edgeUpdateSuccessful: false as boolean,
       hoveredNodes: [],
+      autoSaveInterval: null,
 
       /**
        * Get all models referenced by the workflow.
@@ -462,7 +468,8 @@ export const useNodeStore = create<NodeStore>()(
           lastWorkflow: workflow,
           shouldAutoLayout: false,
           edges: sanitizedEdges,
-          nodes: sanitizedNodes
+          nodes: sanitizedNodes,
+          workflowIsDirty: false
         });
 
         if (shouldAutoLayout) {
@@ -702,13 +709,13 @@ export const useNodeStore = create<NodeStore>()(
             (node) =>
               (node.id === id
                 ? {
-                    ...node,
-                    data: {
-                      ...node.data,
-                      workflow_id,
-                      properties: { ...node.data.properties, ...properties }
-                    }
+                  ...node,
+                  data: {
+                    ...node.data,
+                    workflow_id,
+                    properties: { ...node.data.properties, ...properties }
                   }
+                }
                 : node) as Node<NodeData>
           )
         });
@@ -1040,6 +1047,34 @@ export const useNodeStore = create<NodeStore>()(
        */
       clearMissingModels: () => {
         set({ missingModelFiles: [] });
+      },
+
+      /**
+       * Start auto-saving the workflow periodically
+       */
+      startAutoSave: () => {
+        // Clear any existing interval first
+        get().stopAutoSave();
+
+        const interval = setInterval(async () => {
+          if (get().getWorkflowIsDirty()) {
+            devLog("Auto-saving workflow...");
+            await get().saveWorkflow();
+          }
+        }, AUTO_SAVE_INTERVAL);
+
+        set({ autoSaveInterval: interval });
+      },
+
+      /**
+       * Stop auto-saving the workflow
+       */
+      stopAutoSave: () => {
+        const currentInterval = get().autoSaveInterval;
+        if (currentInterval) {
+          clearInterval(currentInterval);
+          set({ autoSaveInterval: null });
+        }
       }
     }),
     {

@@ -163,14 +163,13 @@ async def save_example_workflow(
         for example in examples:
             if example.id == id:
                 workflow_request.tags = example.tags
-                workflow_request.thumbnail = example.thumbnail
+                workflow_request.thumbnail_url = example.thumbnail_url
                 break
 
     workflow = Workflow(
         id=id,
         name=workflow_request.name,
         description=workflow_request.description or "",
-        thumbnail=workflow_request.thumbnail,
         tags=workflow_request.tags,
         thumbnail_url=workflow_request.thumbnail_url,
         access="public",

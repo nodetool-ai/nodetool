@@ -53,7 +53,7 @@ import NodeDocumentation from "./components/content/Help/NodeDocumentation";
 import { MIN_ZOOM } from "./config/constants";
 import { metadataQuery } from "./serverState/useMetadata";
 import useMetadataStore from "./stores/MetadataStore";
-import NodeMenuStore from "./stores/NodeMenuStore";
+import { useNodeStore } from "./stores/NodeStore";
 
 initSentry();
 
@@ -71,6 +71,7 @@ useModelStore.getState().setQueryClient(queryClient);
 const metadata = await metadataQuery();
 queryClient.setQueryData(["metadata"], metadata);
 useMetadataStore.getState().setMetadata(metadata.metadataByType);
+useNodeStore.getState().startAutoSave();
 
 const NavigateToStart = () => {
   const { state } = useAuth();

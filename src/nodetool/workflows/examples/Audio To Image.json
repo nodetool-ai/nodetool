@@ -1,8 +1,8 @@
 {
   "id": "audio_to_image",
   "access": "public",
-  "created_at": "2024-10-19T15:45:21.080077",
-  "updated_at": "2024-10-19T15:45:21.080097",
+  "created_at": "2024-12-06T09:48:23.060657",
+  "updated_at": "2024-12-06T09:48:23.060657",
   "name": "Audio To Image",
   "description": "Convert any audio speech into an image",
   "tags": [
@@ -10,7 +10,7 @@
     "multimodal",
     "start"
   ],
-  "thumbnail": "",
+  "thumbnail": null,
   "thumbnail_url": "/examples/audio_to_image.jpg",
   "graph": {
     "nodes": [
@@ -23,7 +23,7 @@
           "selected": false,
           "position": {
             "x": 1200,
-            "y": 50
+            "y": 118
           },
           "zIndex": 0,
           "width": 519,
@@ -39,10 +39,9 @@
           "string": "design an artwork based on this speech, describe in less than 20 words: {0}"
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 510,
-            "y": 261
+            "y": 323
           },
           "zIndex": 0,
           "width": 200,
@@ -91,7 +90,6 @@
           ]
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 38,
             "y": -141
@@ -124,10 +122,9 @@
           "keep_alive": "300"
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 740,
-            "y": 136
+            "y": 196
           },
           "zIndex": 0,
           "width": 200,
@@ -161,15 +158,16 @@
           "ip_adapter_scale": 0.5,
           "hires": true,
           "enable_tiling": false,
-          "width": 1024,
-          "height": 1024,
-          "detail_level": 0.89
+          "width": 512,
+          "height": 512,
+          "detail_level": 0.89,
+          "enable_cpu_offload": false
         },
         "ui_properties": {
           "selected": false,
           "position": {
             "x": 970,
-            "y": 57
+            "y": 50
           },
           "zIndex": 0,
           "width": 200,
@@ -190,10 +188,9 @@
           "timestamps": "none"
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 280,
-            "y": 137
+            "y": 201
           },
           "zIndex": 0,
           "width": 200,
@@ -211,10 +208,9 @@
           }
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 50,
-            "y": 211
+            "y": 269
           },
           "zIndex": 0,
           "width": 200,
@@ -254,16 +250,6 @@
         }
       },
       {
-        "id": "39781355-f211-4883-bde4-859973f7731d",
-        "source": "13",
-        "sourceHandle": "output",
-        "target": "6",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "image"
-        }
-      },
-      {
         "id": "672726ea-bdaf-4108-bb6f-ea8b4fd0eec6",
         "source": "14",
         "sourceHandle": "text",
@@ -271,6 +257,16 @@
         "targetHandle": "values",
         "ui_properties": {
           "className": "str"
+        }
+      },
+      {
+        "id": "39781355-f211-4883-bde4-859973f7731d",
+        "source": "13",
+        "sourceHandle": "output",
+        "target": "6",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "image"
         }
       }
     ]

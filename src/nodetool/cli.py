@@ -52,7 +52,9 @@ def worker(
 def log_stream(stream: IO[bytes], prefix: str):
     """Log output from a stream with a prefix."""
     for line in iter(stream.readline, b""):
-        log.info(f"{prefix}: {line.strip()}")
+        stripped_line = line.strip()
+        if stripped_line:  # Only log non-empty lines
+            log.info(f"{prefix}: {stripped_line}")
 
 
 @click.command()
@@ -104,10 +106,28 @@ def serve(
 
     def cleanup(signum, frame):
         if vite_process:
-            log.info("Shutting down Vite development server...")
-            vite_process.terminate()
-            vite_process.wait()
-        sys.exit(0)
+            try:
+                log.info("Shutting down Vite development server...")
+                if os.name == "nt":  # Windows
+                    subprocess.run(
+                        ["taskkill", "/F", "/T", "/PID", str(vite_process.pid)]
+                    )
+                else:  # Unix
+                    os.killpg(os.getpgid(vite_process.pid), signal.SIGTERM)
+                vite_process.wait(timeout=5)  # Wait up to 5 seconds for clean shutdown
+            except Exception as e:
+                log.error(f"Error shutting down Vite server: {e}")
+                # Force kill if graceful shutdown fails
+                try:
+                    if os.name == "nt":
+                        subprocess.run(
+                            ["taskkill", "/F", "/T", "/PID", str(vite_process.pid)]
+                        )
+                    else:
+                        os.killpg(os.getpgid(vite_process.pid), signal.SIGKILL)
+                except:
+                    pass
+            sys.exit(0)
 
     # Register signal handlers
     signal.signal(signal.SIGINT, cleanup)
@@ -120,6 +140,10 @@ def serve(
         # Determine the npm command based on OS
         npm_cmd = "npm.cmd" if os.name == "nt" else "npm"
 
+        # Add CREATE_NO_WINDOW flag on Windows to avoid the terminate prompt
+        creation_flags = subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0
+
+        # Start process in its own process group
         vite_process = subprocess.Popen(
             [npm_cmd, "run", "start"],
             cwd=web_dir,
@@ -127,6 +151,8 @@ def serve(
             stderr=subprocess.PIPE,
             bufsize=1,
             universal_newlines=True,
+            preexec_fn=(None if os.name == "nt" else os.setsid),
+            creationflags=creation_flags,  # Add creation flags
         )
 
         # Start threads to log stdout and stderr
