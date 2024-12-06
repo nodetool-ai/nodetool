@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import useMetadataStore from "../stores/MetadataStore";
 import useRemoteSettingsStore from "../stores/RemoteSettingStore";
 
@@ -54,34 +54,46 @@ const sortNamespaceChildren = (tree: NamespaceTree): NamespaceTree => {
 const useNamespaceTree = (): NamespaceTree => {
   const metadata = useMetadataStore((state) => state.getAllMetadata());
   const secrets = useRemoteSettingsStore((state) => state.secrets);
+  const isApiKeySet = useCallback(
+    (key: keyof typeof secrets) => {
+      if (!secrets[key]) return false;
+      return secrets[key]?.trim().length > 0;
+    },
+    [secrets]
+  );
 
   const uniqueNamespaces: string[] = useMemo(
     () =>
       metadata
         .map((node) => node.namespace)
         .filter((namespace) => {
+          if (namespace === "default") {
+            return false;
+          }
           // Filter based on API keys presence
           if (namespace.startsWith("openai.")) {
-            return secrets.OPENAI_API_KEY;
+            return isApiKeySet("OPENAI_API_KEY");
           }
           if (namespace.startsWith("anthropic.")) {
-            return secrets.ANTHROPIC_API_KEY;
+            return isApiKeySet("ANTHROPIC_API_KEY");
           }
           if (namespace.startsWith("kling.")) {
-            return secrets.KLING_ACCESS_KEY && secrets.KLING_SECRET_KEY;
+            return (
+              isApiKeySet("KLING_ACCESS_KEY") && isApiKeySet("KLING_SECRET_KEY")
+            );
           }
-          if (namespace.startsWith("lumaai.")) {
-            return secrets.LUMAAI_API_KEY;
+          if (namespace.startsWith("luma.")) {
+            return isApiKeySet("LUMAAI_API_KEY");
           }
           if (namespace.startsWith("replicate.")) {
-            return secrets.REPLICATE_API_TOKEN;
+            return isApiKeySet("REPLICATE_API_TOKEN");
           }
           return true; // Show namespaces that don't require API keys
         })
         .filter(
           (value, index, self) => index === self.findIndex((t) => t === value)
         ) ?? [],
-    [metadata, secrets]
+    [metadata, isApiKeySet]
   );
 
   const makeNamespaceTree = useMemo(() => {
