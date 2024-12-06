@@ -13,10 +13,10 @@
   "author": "matti.georgi@gmail.com",
   "license": "AGPL-3.0-only",
   "devDependencies": {
+    "@types/node": "^20.11.0",
     "electron": "29.4.6",
-    "electron-builder": "^24.13.3",
-    "typescript": "^5.3.3",
-    "@types/node": "^20.11.0"
+    "electron-builder": "^25.1.8",
+    "typescript": "^5.3.3"
   },
   "optionalDependencies": {
     "dmg-license": "^1.0.11"

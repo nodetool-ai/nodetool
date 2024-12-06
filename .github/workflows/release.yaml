@@ -48,6 +48,10 @@ jobs:
       PYTHON_VERSION: "3.11"
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_TOKEN }}
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+
     steps:
       - uses: actions/checkout@v3
 
@@ -87,6 +91,12 @@ jobs:
           security import $CERTIFICATE_PATH -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
           security list-keychain -d user -s $KEYCHAIN_PATH
 
+      - name: Set up Windows Code Signing
+        if: matrix.os == 'windows-latest'
+        uses: azure/login@v1
+        with:
+          creds: '{"clientId":"${{ secrets.AZURE_CLIENT_ID }}","clientSecret":"${{ secrets.AZURE_CLIENT_SECRET }}","tenantId":"${{ secrets.AZURE_TENANT_ID }}"}'
+
       - name: Build Web
         shell: bash -l {0}
         run: |
@@ -97,5 +107,10 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DEBUG: electron-builder
+          CSC_KEY_VAULT_URL: ${{ secrets.AZURE_KEY_VAULT_URL }}
+          CSC_KEY_VAULT_SIGNING_CERT: ${{ secrets.AZURE_CERT_NAME }}
+          CSC_AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          CSC_AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          CSC_AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
         run: |
           python build.py electron --publish
