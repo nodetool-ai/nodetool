@@ -41,12 +41,7 @@
     "win": {
         "target": [
             "nsis"
-        ],
-        "azureSignOptions": {
-            "endpoint": "https://weu.codesigning.azure.net",
-            "codeSigningAccountName": "Nodetool",
-            "certificateProfileName": "nodetool"
-        }
+        ]
     },
     "linux": {
         "target": [
