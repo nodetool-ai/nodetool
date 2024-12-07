@@ -6,6 +6,7 @@ from nodetool.api.chat_websocket_runner import ChatWebSocketRunner
 
 from nodetool.common.environment import Environment
 from nodetool.metadata.node_metadata import NodeMetadata
+import nodetool.nodes.aime
 import nodetool.nodes.anthropic
 import nodetool.nodes.chroma
 import nodetool.nodes.comfy

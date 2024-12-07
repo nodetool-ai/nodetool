@@ -3,6 +3,7 @@ from nodetool.providers.anthropic.prediction import run_anthropic
 from nodetool.providers.huggingface.prediction import run_huggingface
 from nodetool.providers.ollama.prediction import run_ollama
 from nodetool.providers.openai.prediction import run_openai
+from nodetool.providers.aime.prediction import run_aime
 from nodetool.providers.replicate.prediction import run_replicate
 from nodetool.types.prediction import Prediction, PredictionResult
 from typing import AsyncGenerator
@@ -20,6 +21,7 @@ async def run_prediction(
         Provider.OpenAI: run_openai,
         Provider.Anthropic: run_anthropic,
         Provider.Ollama: run_ollama,
+        Provider.AIME: run_aime,
     }
 
     if prediction.provider in provider_functions:

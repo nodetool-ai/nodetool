@@ -159,6 +159,7 @@ class NodeRef(BaseType):
 
 
 class Provider(str, enum.Enum):
+    AIME = "aime"
     OpenAI = "openai"
     Anthropic = "anthropic"
     Replicate = "replicate"

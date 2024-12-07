@@ -143,9 +143,11 @@ def create_app(
 
     else:
         # if we don't run the worker, we need to initialize nodes
+        import nodetool.nodes.aime
         import nodetool.nodes.anthropic
         import nodetool.nodes.chroma
-        import nodetool.nodes.comfy
+
+        # import nodetool.nodes.comfy
         import nodetool.nodes.huggingface
         import nodetool.nodes.nodetool
         import nodetool.nodes.openai
@@ -153,14 +155,15 @@ def create_app(
         import nodetool.nodes.ollama
         import nodetool.nodes.luma
         import nodetool.nodes.kling
-        import comfy.cli_args
-        import comfy.model_management
-        import comfy.utils
-        from nodes import init_extra_nodes
 
-        comfy.cli_args.args.force_fp16 = True
+        # import comfy.cli_args
+        # import comfy.model_management
+        # import comfy.utils
+        # from nodes import init_extra_nodes
 
-        init_extra_nodes()
+        # comfy.cli_args.args.force_fp16 = True
+
+        # init_extra_nodes()
 
         @app.websocket("/predict")
         async def websocket_endpoint(websocket: WebSocket):
