@@ -26,10 +26,9 @@ from nodetool.types.chat import (
     TaskList,
     TaskUpdateRequest,
 )
-from nodetool.types.job import Job, JobCancelledException, JobUpdate
+from nodetool.types.job import Job, JobUpdate
 from nodetool.types.prediction import (
     Prediction,
-    PredictionCreateRequest,
     PredictionResult,
 )
 from nodetool.types.workflow import Workflow

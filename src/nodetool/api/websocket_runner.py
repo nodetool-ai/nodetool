@@ -10,11 +10,14 @@ from anthropic import BaseModel
 from fastapi import WebSocket, WebSocketDisconnect
 from nodetool.common.environment import Environment
 from nodetool.metadata.types import AssetRef
+from nodetool.types.job import JobUpdate
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.workflows.run_workflow import run_workflow
 from nodetool.workflows.run_job_request import RunJobRequest
 from nodetool.workflows.workflow_runner import WorkflowRunner
 from nodetool.api.types.wrap_primitive_types import wrap_primitive_types
+from nodetool.workflows.threaded_event_loop import ThreadedEventLoop
+from nodetool.workflows.types import Error
 
 log = Environment.get_logger()
 
@@ -43,8 +46,6 @@ class WebSocketRunner:
     Attributes:
         websocket (WebSocket | None): The WebSocket connection.
         context (ProcessingContext | None): The processing context for job execution.
-        active_job (asyncio.Task | None): The currently active job.
-        use_thread (bool): Flag indicating whether to use a separate thread for job execution.
         job_id (str | None): The ID of the current job.
         runner (WorkflowRunner | None): The workflow runner for job execution.
         pre_run_hook (Any): A hook function to be executed before running a job.
@@ -54,8 +55,8 @@ class WebSocketRunner:
 
     websocket: WebSocket | None = None
     context: ProcessingContext | None = None
-    active_job: asyncio.Task | None = None
-    use_thread: bool = False
+    active_job: RunJobRequest | None = None
+    event_loop: ThreadedEventLoop | None = None
     job_id: str | None = None
     runner: WorkflowRunner | None = None
     pre_run_hook: Any
@@ -66,7 +67,6 @@ class WebSocketRunner:
         self,
         pre_run_hook: Any = None,
         post_run_hook: Any = None,
-        use_thread: bool = False,
     ):
         """
         Initializes a new instance of the WebSocketRunner class.
@@ -78,7 +78,6 @@ class WebSocketRunner:
         """
         self.pre_run_hook = pre_run_hook
         self.post_run_hook = post_run_hook
-        self.use_thread = use_thread
         self.mode = WebSocketMode.BINARY
 
     async def connect(self, websocket: WebSocket):
@@ -97,10 +96,9 @@ class WebSocketRunner:
         Closes the WebSocket connection and cancels any active job.
         """
         log.info("Disconnecting WebSocket")
-        if self.active_job:
+        if self.event_loop:
             try:
-                self.active_job.cancel()
-                log.info("Active job cancelled during disconnect")
+                self.event_loop.stop()
             except Exception as e:
                 log.error(f"Error cancelling active job during disconnect: {e}")
         if self.websocket:
@@ -110,7 +108,7 @@ class WebSocketRunner:
             except Exception as e:
                 log.error(f"Error closing WebSocket: {e}")
         self.websocket = None
-        self.active_job = None
+        self.event_loop = None
         self.job_id = None
         log.info("WebSocket disconnected and resources cleaned up")
 
@@ -145,31 +143,78 @@ class WebSocketRunner:
                 workflow_id=req.workflow_id,
                 endpoint_url=self.websocket.url,
             )
+            self.event_loop = ThreadedEventLoop()
 
-            async for msg in run_workflow(req, self.runner, context, use_thread=True):
+            # Create ThreadedEventLoop instance
+            with self.event_loop as tel:
+
+                async def run():
+                    try:
+                        if req.graph is None:
+                            log.info(f"Loading workflow graph for {req.workflow_id}")
+                            workflow = await context.get_workflow(req.workflow_id)
+                            req.graph = workflow.graph
+                        assert self.runner, "Runner is not set"
+                        await self.runner.run(req, context)
+                    except Exception as e:
+                        log.exception(e)
+                        context.post_message(
+                            JobUpdate(job_id=self.job_id, status="failed", error=str(e))
+                        )
+
+                run_future = tel.run_coroutine(run())
+
                 try:
-                    if self.mode == WebSocketMode.TEXT:
-                        if msg.type == "job_update":
-                            if msg.status == "completed":
-                                result = msg.result
-                                for key, value in result.items():
-                                    if isinstance(value, AssetRef) and value.data:
-                                        if isinstance(value.data, bytes):
-                                            value.uri = f"data:application/octet-stream;base64,{base64.b64encode(value.data).decode('utf-8')}"
-                                        elif isinstance(value.data, list):
-                                            # TODO: handle multiple assets
-                                            value.uri = f"data:application/octet-stream;base64,{base64.b64encode(value.data[0]).decode('utf-8')}"
-                                        value.data = None
-                    msg_dict = msg.model_dump()
+                    while self.runner.is_running():
+                        if context.has_messages():
+                            msg = await context.pop_message_async()
+                            if isinstance(msg, Error):
+                                raise Exception(msg.error)
 
-                    # Only wrap the result if explicit_types is True
-                    if req.explicit_types and "result" in msg_dict:
-                        msg_dict["result"] = wrap_primitive_types(msg_dict["result"])
+                            # Handle message formatting
+                            if self.mode == WebSocketMode.TEXT:
+                                if msg.type == "job_update":
+                                    if msg.status == "completed":
+                                        result = msg.result
+                                        assert result, "Result is not set"
+                                        for key, value in result.items():
+                                            if (
+                                                isinstance(value, AssetRef)
+                                                and value.data
+                                            ):
+                                                if isinstance(value.data, bytes):
+                                                    value.uri = f"data:application/octet-stream;base64,{base64.b64encode(value.data).decode('utf-8')}"
+                                                elif isinstance(value.data, list):
+                                                    value.uri = f"data:application/octet-stream;base64,{base64.b64encode(value.data[0]).decode('utf-8')}"
+                                                value.data = None
 
-                    await self.send_message(msg_dict)
-                    log.debug(f"Sent message for job {self.job_id}: {msg.type}")
+                            msg_dict = msg.model_dump()
+                            if req.explicit_types and "result" in msg_dict:
+                                msg_dict["result"] = wrap_primitive_types(
+                                    msg_dict["result"]
+                                )
+
+                            await self.send_message(msg_dict)
+                            log.debug(f"Sent message for job {self.job_id}: {msg.type}")
+                        else:
+                            await asyncio.sleep(0.1)
+
+                    # Process remaining messages
+                    while context.has_messages():
+                        msg = await context.pop_message_async()
+                        msg_dict = msg.model_dump()
+                        await self.send_message(msg_dict)
+
                 except Exception as e:
-                    log.exception(f"Error processing message in job {self.job_id}: {e}")
+                    log.exception(e)
+                    run_future.cancel()
+                    await self.send_job_update("failed", str(e))
+
+                try:
+                    run_future.result()
+                except Exception as e:
+                    log.error(f"An error occurred during workflow execution: {e}")
+                    await self.send_job_update("failed", str(e))
 
             if self.post_run_hook:
                 log.debug("Executing post-run hook")
@@ -179,12 +224,11 @@ class WebSocketRunner:
             log.info(
                 f"Finished job {self.job_id} - Total time: {total_time:.2f} seconds"
             )
-            # TODO: Update the job model with the final status
+
         except Exception as e:
             log.exception(f"Error in job {self.job_id}: {e}")
             await self.send_job_update("failed", str(e))
 
-        # TODO: Implement bookkeeping for credits used
         self.active_job = None
         self.job_id = None
         log.info(f"Job {self.job_id} resources cleaned up")
@@ -220,16 +264,13 @@ class WebSocketRunner:
             dict: A dictionary with a message indicating the job was cancelled, or an error if no active job exists.
         """
         log.info(f"Attempting to cancel job: {self.job_id}")
-        if self.active_job:
-            if self.runner:
-                self.runner.cancel()
-                log.info(f"Cancelled runner for job: {self.job_id}")
-            # give the runner a chance to cancel
-            await asyncio.sleep(1.0)
-            if self.active_job:
-                self.active_job.cancel()
-                log.info(f"Cancelled active job task: {self.job_id}")
-            self.active_job = None
+        if self.event_loop:
+            if self.event_loop:
+                self.event_loop.stop()
+                log.info(f"Cancelled event loop for job: {self.job_id}")
+
+            await self.send_job_update("cancelled")
+            self.event_loop = None
             self.job_id = None
             return {"message": "Job cancelled"}
         log.warning("No active job to cancel")
@@ -259,12 +300,13 @@ class WebSocketRunner:
         """
         log.info(f"Handling command: {command.command}")
         if command.command == CommandType.RUN_JOB:
-            if self.active_job:
+            if self.event_loop:
                 log.warning("Attempted to start a job while another is running")
                 return {"error": "A job is already running"}
             req = RunJobRequest(**command.data)
             log.info(f"Starting workflow: {req.workflow_id}")
-            self.active_job = asyncio.create_task(self.run_job(req))
+            self.active_job = req
+            asyncio.create_task(self.run_job(req))
             return {"message": "Job started"}
         elif command.command == CommandType.CANCEL_JOB:
             return await self.cancel_job()

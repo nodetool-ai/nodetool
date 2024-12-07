@@ -10,7 +10,7 @@ import torch
 from nodetool.metadata.types import DataframeRef
 from nodetool.model_manager import ModelManager
 from nodetool.nodes.nodetool.output import GroupOutput
-from nodetool.types.job import JobUpdate, JobCancelledException
+from nodetool.types.job import JobUpdate
 from nodetool.nodes.nodetool.input import ChatInput, GroupInput
 from nodetool.workflows.base_node import GroupNode, BaseNode
 from nodetool.workflows.types import NodeProgress, NodeUpdate
@@ -105,7 +105,6 @@ class WorkflowRunner:
     5. Resource Management: Allocates appropriate computational resources (e.g., GPU) based on node requirements.
     6. Progress Tracking: Provides real-time updates on individual node and overall workflow status.
     7. Error Handling: Captures and reports exceptions during node execution.
-    8. Cancellation Support: Allows for immediate termination of the workflow execution.
 
     Attributes:
         job_id (str): Unique identifier for the current workflow execution.
@@ -152,25 +151,6 @@ class WorkflowRunner:
         """
         return self.status == "running"
 
-    def cancel(self) -> None:
-        """
-        Marks the workflow for cancellation.
-
-        Note:
-            This method does not immediately stop execution. The cancellation is checked
-            and acted upon at specific points during the workflow execution.
-        """
-        self.status = "cancelled"
-        # send node update to cancel the current node
-        if self.current_node and self.context:
-            self.context.post_message(
-                NodeUpdate(
-                    node_id=self.current_node,
-                    node_name="",
-                    status="cancelled",
-                )
-            )
-
     async def run(self, req: RunJobRequest, context: ProcessingContext) -> None:
         """
         Executes the entire workflow based on the provided request and context.
@@ -181,11 +161,10 @@ class WorkflowRunner:
 
         Raises:
             ValueError: If the graph is missing or if there's a mismatch between input parameters and graph input nodes.
-            JobCancelledException: If the job is cancelled during execution.
 
         Post-conditions:
             - Updates workflow status to "completed", "cancelled", or "error".
-            - Posts final JobUpdate message with results or cancellation status.
+            - Posts final JobUpdate message with results.
 
         Note:
             - Handles input validation, graph processing, and output collection.
@@ -247,11 +226,6 @@ class WorkflowRunner:
                     await node.finalize(context)
                 if torch.cuda.is_available():
                     torch.cuda.empty_cache()
-
-        if self.status == "cancelled":
-            log.info(f"Job {self.job_id} cancelled")
-            context.post_message(JobUpdate(job_id=self.job_id, status="cancelled"))
-            raise JobCancelledException()
 
         log.info(f"Job {self.job_id} completed successfully")
         output = {
@@ -350,9 +324,6 @@ class WorkflowRunner:
             graph (Graph): The directed acyclic graph of nodes to be processed.
             parent_id (str | None): Identifier of the parent node, if this is a subgraph. Defaults to None.
 
-        Raises:
-            JobCancelledException: If the job is cancelled during graph processing.
-
         Note:
             - Uses topological sorting to determine the execution order.
             - Executes nodes at each level in parallel using asyncio.gather.
@@ -363,10 +334,6 @@ class WorkflowRunner:
         for level in sorted_nodes:
             log.debug(f"Processing level: {level}")
             nodes = [graph.find_node(i) for i in level if i]
-            if self.status == "cancelled":
-                log.info(f"Job {self.job_id} cancelled")
-                context.post_message(JobUpdate(job_id=self.job_id, status="cancelled"))
-                raise JobCancelledException()
             await asyncio.gather(
                 *[self.process_node(context, node) for node in nodes if node]
             )
@@ -379,19 +346,12 @@ class WorkflowRunner:
             context (ProcessingContext): Manages the execution state and inter-node communication.
             node (BaseNode): The node to be processed.
 
-        Raises:
-            JobCancelledException: If the job is cancelled during node processing.
-
         Note:
             - Skips nodes that have already been processed in a subgraph.
             - Handles special processing for GroupNodes.
             - Posts node status updates (running, completed, error) to the context.
         """
         log.info(f"Processing node: {node.get_title()} ({node._id})")
-        if self.status == "cancelled":
-            log.info(f"Job {self.job_id} cancelled")
-            context.post_message(JobUpdate(job_id=self.job_id, status="cancelled"))
-            raise JobCancelledException()
 
         self.current_node = node._id
 
@@ -447,10 +407,6 @@ class WorkflowRunner:
                 )
 
                 await asyncio.sleep(delay)
-            except JobCancelledException:
-                log.info(f"Job cancelled during processing of node {node._id}")
-                self.cancel()
-                break
 
     async def run_group_node(self, group_node: GroupNode, context: ProcessingContext):
         """

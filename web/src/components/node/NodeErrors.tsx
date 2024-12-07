@@ -14,7 +14,7 @@ export const errorStyles = (theme: any) =>
     padding: "10px",
     transition: "background-color 0.2s",
     display: "flex",
-    maxWidth: "300px",
+    maxWidth: "240px",
 
     ".error-text": {
       maxHeight: "4em",
