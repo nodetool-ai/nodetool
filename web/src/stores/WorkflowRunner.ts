@@ -263,6 +263,8 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
    */
   cancel: async () => {
     const { socket, job_id } = get();
+    console.log("Cancelling job", job_id);
+
     if (!socket || !job_id) {
       return;
     }

@@ -33,10 +33,12 @@ export const handleUpdate = (
 
   if (data.type === "job_update") {
     const job = data as JobUpdate;
-    useWorkflowRunner.setState((state) => ({
-      job_id: job.job_id || null,
+    useWorkflowRunner.setState({
       state: job.status === "running" ? "running" : "idle"
-    }));
+    });
+    if (job.job_id) {
+      useWorkflowRunner.setState({ job_id: job.job_id });
+    }
 
     switch (job.status) {
       case "completed":
