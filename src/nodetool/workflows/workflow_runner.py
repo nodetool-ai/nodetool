@@ -186,6 +186,8 @@ class WorkflowRunner:
         input_nodes = {node.name: node for node in graph.inputs()}
         output_nodes = graph.outputs()
 
+        context.post_message(JobUpdate(job_id=self.job_id, status="running"))
+
         if req.params:
             for key, value in req.params.items():
                 if key not in input_nodes:

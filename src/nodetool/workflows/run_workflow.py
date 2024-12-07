@@ -48,8 +48,6 @@ async def run_workflow(
     if runner is None:
         runner = WorkflowRunner(job_id=uuid4().hex)
 
-    yield JobUpdate(job_id=runner.job_id, status="running")
-
     async def run():
         try:
             # Load the workflow graph if not already loaded
