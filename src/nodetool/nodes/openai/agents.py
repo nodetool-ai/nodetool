@@ -1,5 +1,3 @@
-from turtle import pd
-
 from matplotlib import pyplot as plt
 from matplotlib.figure import Figure
 from nodetool.chat.chat import json_schema_for_column, process_messages
@@ -39,15 +37,10 @@ import matplotlib.pyplot as plt
 import io
 import pandas as pd
 from matplotlib.figure import Figure
-from matplotlib.backends.backend_svg import FigureCanvasSVG
-import numpy as np
 
 import json
-import asyncio
 import json
-from urllib.parse import urljoin
 import uuid
-import re
 
 from typing import Any, Literal
 from pydantic import Field
@@ -61,20 +54,16 @@ from nodetool.metadata.types import (
     FunctionModel,
     GPTModel,
     ImageRef,
-    LlamaModel,
     NodeRef,
     Provider,
     Task,
 )
-from nodetool.providers.openai.prediction import run_openai
 from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.metadata.types import Message
 
 import statsmodels.api as sm
 
-from xml.etree import ElementTree as ET
-from io import StringIO
 
 from enum import Enum
 
