@@ -62,7 +62,10 @@ const styles = (theme: any) =>
       width: "calc(100% - 2.5em)",
       padding: "0",
       margin: "0 0 .5em 0",
-      fontSize: "1em"
+      fontSize: "1em",
+      lineHeight: "1.3em",
+      wordBreak: "break-word",
+      paddingRight: "1.5em"
     },
     ".repo-name .owner": {
       fontSize: ".8em",

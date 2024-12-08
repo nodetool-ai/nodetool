@@ -97,7 +97,9 @@ export const DownloadProgress: React.FC<{ name: string }> = ({ name }) => {
         <CloseIcon fontSize="small" />
       </IconButton>
 
-      <Typography variant="subtitle1">{name}</Typography>
+      <Typography className="repo-name" variant="subtitle1">
+        {name}
+      </Typography>
       {download.message && (
         <Typography variant="body2">{download.message}</Typography>
       )}
