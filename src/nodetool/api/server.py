@@ -147,7 +147,7 @@ def create_app(
         import nodetool.nodes.anthropic
         import nodetool.nodes.chroma
 
-        # import nodetool.nodes.comfy
+        import nodetool.nodes.comfy
         import nodetool.nodes.huggingface
         import nodetool.nodes.nodetool
         import nodetool.nodes.openai

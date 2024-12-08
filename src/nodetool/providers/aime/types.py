@@ -35,6 +35,8 @@ class JobResult(BaseModel):
     images: List[str] | None = None
     text: str | None = None
     prompt: str | None = None
+    text_output: str | None = None
+    audio_output: str | None = None
     seed: int | None = None
     model_name: str | None = None
     compute_duration: float | None = None

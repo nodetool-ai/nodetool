@@ -946,6 +946,13 @@ class ProcessingContext:
         """
         return await self.audio_from_io(BytesIO(b), name=name, parent_id=parent_id)
 
+    async def audio_from_base64(
+        self, b64: str, name: str | None = None, parent_id: str | None = None
+    ) -> AudioRef:
+        return await self.audio_from_io(
+            BytesIO(base64.b64decode(b64)), name=name, parent_id=parent_id
+        )
+
     async def audio_from_numpy(
         self,
         data: np.ndarray,
