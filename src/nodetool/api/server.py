@@ -156,14 +156,14 @@ def create_app(
         import nodetool.nodes.luma
         import nodetool.nodes.kling
 
-        # import comfy.cli_args
-        # import comfy.model_management
-        # import comfy.utils
-        # from nodes import init_extra_nodes
+        import comfy.cli_args
+        import comfy.model_management
+        import comfy.utils
+        from nodes import init_extra_nodes
 
-        # comfy.cli_args.args.force_fp16 = True
+        comfy.cli_args.args.force_fp16 = True
 
-        # init_extra_nodes()
+        init_extra_nodes()
 
         @app.websocket("/predict")
         async def websocket_endpoint(websocket: WebSocket):
