@@ -17,7 +17,7 @@ const ModelRecommendations: React.FC<ModelRecommendationsProps> = ({
   nodeType
 }) => {
   const [openModelDialog, setOpenModelDialog] = useState(false);
-  const { startDownload, openDialog } = useModelDownloadStore();
+  const { startDownload } = useModelDownloadStore();
   const getMetadata = useMetadataStore((state) => state.getMetadata);
 
   const recommendedModels: UnifiedModel[] = useMemo(() => {
@@ -93,7 +93,6 @@ const ModelRecommendations: React.FC<ModelRecommendationsProps> = ({
         onClose={handleCloseModelDialog}
         recommendedModels={recommendedModels}
         startDownload={startDownload}
-        openDialog={openDialog}
       />
     </>
   );

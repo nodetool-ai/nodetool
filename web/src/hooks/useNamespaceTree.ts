@@ -56,8 +56,9 @@ const useNamespaceTree = (): NamespaceTree => {
   const secrets = useRemoteSettingsStore((state) => state.secrets);
   const isApiKeySet = useCallback(
     (key: keyof typeof secrets) => {
-      if (!secrets[key]) return false;
-      return secrets[key]?.trim().length > 0;
+      const value = secrets?.[key];
+      if (!value) return false;
+      return value.trim().length > 0;
     },
     [secrets]
   );
