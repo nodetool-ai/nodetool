@@ -64,7 +64,7 @@ export default function useDragHandlers(resumeHistoryAndSave: () => void) {
 
   /* NODE DRAG START */
   const onNodeDragStart = useCallback(
-    (_event: any, node: Node<NodeData>) => {
+    (_event: any) => {
       history.pause();
     },
     [history]
@@ -81,7 +81,7 @@ export default function useDragHandlers(resumeHistoryAndSave: () => void) {
 
   /* SELECTION DRAG START */
   const onSelectionDragStart = useCallback(
-    (_event: any, nodes: Node<NodeData>[]) => {
+    (_event: any) => {
       history.pause();
     },
     [history]

@@ -380,7 +380,7 @@ export const useNodeStore = create<NodeStore>()(
       deleteNode: (id: string) => {
         const nodeToDelete = get().findNode(id);
         if (!nodeToDelete) {
-          console.warn(`Node with id ${id} not found`);
+          devWarn(`Node with id ${id} not found`);
           return;
         }
         const focusedElement = document.activeElement as HTMLElement;
@@ -592,7 +592,7 @@ export const useNodeStore = create<NodeStore>()(
        */
       addNode: (node: Node<NodeData>) => {
         if (get().findNode(node.id)) {
-          console.warn(`Node with id ${node.id} already exists`);
+          devWarn(`Node with id ${node.id} already exists`);
           return;
         }
         node.data.dirty = true;
