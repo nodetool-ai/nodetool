@@ -13,11 +13,12 @@ const { serverState } = require("./state");
 const fs = require("fs").promises;
 const net = require("net");
 
-const webPath = path.join(process.resourcesPath, "web");
+const webPath = app.isPackaged
+  ? path.join(process.resourcesPath, "web")
+  : path.join(__dirname, "../web");
 
 let nodeToolBackendProcess = null;
 let isAppQuitting = false;
-let viteProcess = null;
 
 /**
  * Find a free port starting from the given port number
@@ -62,11 +63,17 @@ async function startNodeToolBackendProcess() {
       ? path.join(PYTHON_ENV.condaEnvPath, "python.exe")
       : path.join(PYTHON_ENV.condaEnvPath, "bin", "python");
 
-  const args = ["-m", "nodetool.cli", "serve", "--port", freePort.toString()];
+  const args = [
+    "-m",
+    "nodetool.cli",
+    "serve",
+    "--port",
+    freePort.toString(),
+    "--static-folder",
+    webPath,
+  ];
 
-  if (app.isPackaged) {
-    args.push("--static-folder", webPath);
-  } else {
+  if (!app.isPackaged) {
     args.push("--reload");
   }
 
@@ -190,81 +197,6 @@ async function initializeBackendServer() {
 }
 
 /**
- * Start the development server using npm start.
- */
-async function startViteServer() {
-  logMessage("Starting Vite server...");
-  emitBootMessage("Starting Vite server...");
-
-  const freePort = await findFreePort(3001);
-  serverState.initialURL = `http://127.0.0.1:${freePort}`;
-
-  const viteExecutable = path.join(
-    process.cwd(),
-    "..",
-    "web",
-    "node_modules",
-    ".bin",
-    process.platform === "win32" ? "vite.cmd" : "vite"
-  );
-
-  try {
-    viteProcess = spawn(viteExecutable, ["--port", freePort.toString()], {
-      cwd: path.join(process.cwd(), "..", "web"),
-      stdio: "pipe",
-      shell: false,
-      detached: true,
-      windowsHide: true,
-      env: { ...process.env, NO_COLOR: "1" },
-    });
-
-    // Create process group
-    if (process.platform !== "win32") {
-      viteProcess.unref();
-    }
-
-    viteProcess.stdout.on("data", (data) => {
-      const output = data.toString().trim();
-      if (output) {
-        logMessage(`Vite Server: ${output}`);
-      }
-    });
-
-    viteProcess.stderr.on("data", (data) => {
-      const output = data.toString().trim();
-      if (output) {
-        logMessage(`Vite Server Error: ${output}`, "error");
-      }
-    });
-
-    viteProcess.on("error", (error) => {
-      logMessage(`Failed to start Vite server: ${error.message}`, "error");
-      forceQuit(`Failed to start Vite server: ${error.message}`);
-    });
-
-    viteProcess.on("exit", (code, signal) => {
-      if (code !== 0 && !isAppQuitting) {
-        logMessage(
-          `Vite server exited with code ${code} and signal ${signal}`,
-          "error"
-        );
-        forceQuit(`Vite server terminated unexpectedly with code ${code}`);
-      }
-    });
-
-    // Add cleanup on app quit
-    app.on("before-quit", () => {
-      if (viteProcess) {
-        viteProcess.kill();
-      }
-    });
-  } catch (error) {
-    logMessage(`Error starting development server: ${error.message}`, "error");
-    forceQuit(`Failed to start development server: ${error.message}`);
-  }
-}
-
-/**
  * Perform graceful shutdown of the server.
  */
 async function gracefulShutdown() {
@@ -272,41 +204,6 @@ async function gracefulShutdown() {
   isAppQuitting = true;
 
   try {
-    // Kill Vite process with more robust cleanup
-    if (viteProcess) {
-      logMessage("Stopping Vite process");
-
-      // Kill entire process tree on Windows
-      if (process.platform === "win32") {
-        spawn("taskkill", ["/pid", viteProcess.pid, "/F", "/T"]);
-      } else {
-        // On Unix systems, kill process group
-        process.kill(-viteProcess.pid, "SIGTERM");
-      }
-
-      await new Promise((resolve) => {
-        const killTimeout = setTimeout(() => {
-          logMessage("Force killing Vite process after timeout");
-          try {
-            if (process.platform === "win32") {
-              spawn("taskkill", ["/pid", viteProcess.pid, "/F", "/T"]);
-            } else {
-              process.kill(-viteProcess.pid, "SIGKILL");
-            }
-          } catch (e) {
-            logMessage(`Error force killing Vite: ${e.message}`);
-          }
-          resolve();
-        }, 5000);
-
-        viteProcess.once("exit", () => {
-          clearTimeout(killTimeout);
-          logMessage("Vite process successfully terminated");
-          resolve();
-        });
-      });
-    }
-
     // Existing NodeTool backend process shutdown
     if (nodeToolBackendProcess) {
       logMessage("Stopping NodeTool backend process");
@@ -334,7 +231,6 @@ async function gracefulShutdown() {
 module.exports = {
   serverState,
   initializeBackendServer,
-  startViteServer,
   gracefulShutdown,
   webPath,
 };

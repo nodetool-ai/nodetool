@@ -4,7 +4,6 @@ const { setupAutoUpdater } = require("./updater");
 const { logMessage } = require("./logger");
 const {
   initializeBackendServer,
-  startViteServer,
   gracefulShutdown,
   serverState,
 } = require("./server");
@@ -62,11 +61,6 @@ async function initialize() {
 
   // Check if Conda environment exists, but don't update packages
   await checkPythonEnvironment();
-
-  if (!app.isPackaged) {
-    emitBootMessage("Starting Vite server...");
-    await startViteServer();
-  }
 
   emitBootMessage("Starting NodeTool server...");
   await initializeBackendServer();
