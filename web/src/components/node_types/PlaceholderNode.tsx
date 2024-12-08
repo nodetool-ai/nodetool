@@ -51,29 +51,32 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
   const [nodeTitle, setNodeTitle] = useState<string | null>(null);
   const [hasParent, setHasParent] = useState<boolean>(false);
   const [nodeNamespace, setNodeNamespace] = useState<string | null>(null);
-  const getFromCache = useWorkflowStore((state) => state.getFromCache);
+  const getWorkflow = useWorkflowStore((state) => state.get);
   const edges = useNodeStore(
     useCallback((state) => state.getInputEdges(props.id), [props.id])
   );
 
   useEffect(() => {
     if (props.data?.workflow_id) {
-      const workflow = getFromCache(props.data.workflow_id);
-      if (workflow && workflow.graph && workflow.graph.nodes) {
-        const node = workflow.graph.nodes.find((n) => n.id === props.id);
-        if (node) {
-          setNodeType(node.type || "");
-          setNodeData(node.data);
-          const parts = node.type?.split(".") || [];
-          const title = parts[parts.length - 1] || "";
-          const namespace = parts.slice(0, -1).join(".") || "";
-          setNodeTitle(title);
-          setNodeNamespace(namespace);
-          setHasParent(node.parent_id !== null);
+      const fetchWorkflow = async () => {
+        const workflow = await getWorkflow(props.data.workflow_id);
+        if (workflow?.graph?.nodes) {
+          const node = workflow.graph.nodes.find((n) => n.id === props.id);
+          if (node) {
+            setNodeType(node.type || "");
+            setNodeData(node.data);
+            const parts = node.type?.split(".") || [];
+            const title = parts[parts.length - 1] || "";
+            const namespace = parts.slice(0, -1).join(".") || "";
+            setNodeTitle(title);
+            setNodeNamespace(namespace);
+            setHasParent(node.parent_id !== null);
+          }
         }
-      }
+      };
+      fetchWorkflow();
     }
-  }, [props.id, props.data.workflow_id, getFromCache]);
+  }, [props.id, props.data.workflow_id, getWorkflow]);
 
   const relevantEdges = useMemo(() => {
     return edges.filter((edge) => edge.target === props.id);
