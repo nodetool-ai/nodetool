@@ -18,6 +18,10 @@ class AIMEChatModel(str, Enum):
 class BaseChatNode(BaseNode):
     """Base class for AIME chat nodes with common fields"""
 
+    @classmethod
+    def is_visible(cls) -> bool:
+        return cls != BaseChatNode
+
     system_prompt: str = Field(
         default="You are a friendly assistant.",
         description="System prompt that defines the assistant's behavior.",

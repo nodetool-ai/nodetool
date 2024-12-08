@@ -12,8 +12,7 @@ log = Environment.get_logger()
 async def fetch_auth_key(model: str, user: str, key: str) -> str:
     """Fetch authentication key from AIME API."""
     async with httpx.AsyncClient() as client:
-        log.info(f"Fetching auth key for {model} with user {user} and key {key}")
-        response = await client.get(
+        response = await client.post(
             f"https://api.aime.info/{model}/login",
             params={
                 "user": user,
@@ -21,8 +20,6 @@ async def fetch_auth_key(model: str, user: str, key: str) -> str:
                 "version": "Python AIME API Client 0.8.2",
             },
         )
-
-        log.info(f"Response: {response.status_code}")
 
         if response.status_code != 200:
             raise ValueError(
@@ -46,33 +43,15 @@ async def run_aime(
     model = prediction.model
     payload = params.get("data", {})
     auth_key = params.get("auth_key", None)
-
-    assert auth_key, "Auth key is required"
-
     progress_callback = params.get("progress_callback", None)
 
+    print(f"Running AIME prediction with model {model} and payload {payload}")
+
+    assert auth_key, "Auth key is required"
+    assert payload, "Payload is required"
+    assert progress_callback, "Progress callback is required"
+
     async with httpx.AsyncClient() as client:
-        # If no progress callback, just make a regular request
-        if progress_callback is None:
-            response = await client.post(
-                f"https://api.aime.info/{model}",
-                json=payload,
-                timeout=60.0,
-            )
-
-            if response.status_code != 200:
-                raise ValueError(
-                    f"Failed to run prediction: {response.status_code} {response.text}"
-                )
-
-            yield PredictionResult(
-                prediction=prediction,
-                content=response.json(),
-                encoding="json",
-            )
-            return
-
-        # Progress monitoring flow
         response = await client.post(
             f"https://api.aime.info/{model}",
             json={
