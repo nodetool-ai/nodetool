@@ -52,7 +52,10 @@ async function startNodeToolBackendProcess() {
   emitBootMessage("Configuring server environment...");
 
   const freePort = await findFreePort(3000);
-  serverState.initialURL = `http://127.0.0.1:${freePort}`;
+
+  if (app.isPackaged) {
+    serverState.initialURL = `http://127.0.0.1:${freePort}`;
+  }
 
   const pythonExecutablePath =
     process.platform === "win32"
