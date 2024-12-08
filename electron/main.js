@@ -110,7 +110,10 @@ app.on("activate", function () {
  * IPC handler to get the current server state
  * @returns {Object} The current server state
  */
-ipcMain.handle("get-server-state", () => serverState);
+ipcMain.handle("get-server-state", () => {
+  console.log("Getting server state: " + JSON.stringify(serverState));
+  return serverState;
+});
 /**
  * IPC handler to get the log file path
  * @returns {string} The path to the log file
