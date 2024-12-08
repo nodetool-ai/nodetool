@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from "react";
 import useMetadataStore from "../stores/MetadataStore";
 import useRemoteSettingsStore from "../stores/RemoteSettingStore";
+import { isProduction } from "../stores/ApiClient";
 
 /**
  * `createNamespaceTree` is a memoized function that builds a hierarchical grouping of the nodes based on their namespaces.
@@ -70,6 +71,9 @@ const useNamespaceTree = (): NamespaceTree => {
         .filter((namespace) => {
           if (namespace === "default") {
             return false;
+          }
+          if (isProduction) {
+            return true;
           }
           // Filter based on API keys presence
           if (namespace.startsWith("openai.")) {
