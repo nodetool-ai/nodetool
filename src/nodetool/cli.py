@@ -95,6 +95,11 @@ def serve(
     if worker_url:
         Environment.set_worker_url(worker_url)
 
+    if Environment.is_production():
+        Environment.set_nodetool_api_url(f"https://api.nodetool.ai")
+    else:
+        Environment.set_nodetool_api_url(f"http://127.0.0.1:{port}")
+
     if not reload:
         app = create_app(static_folder=static_folder)
     else:

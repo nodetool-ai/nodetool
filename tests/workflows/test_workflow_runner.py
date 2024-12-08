@@ -220,8 +220,8 @@ async def test_process_node_image_blend(user: User):
 
     job_updates = await get_workflow_updates(context)
 
-    assert len(job_updates) == 1
-    assert type(job_updates[0].result["output"]) == ImageRef
+    assert len(job_updates) == 2
+    assert type(job_updates[1].result["output"]) == ImageRef
 
 
 @pytest.mark.asyncio
@@ -295,8 +295,8 @@ async def test_process_graph(user: User, workflow_runner: WorkflowRunner):
 
     workflow_updates = await get_workflow_updates(context)
 
-    assert len(workflow_updates) == 1
-    assert workflow_updates[0].result["output"] == 3
+    assert len(workflow_updates) == 2
+    assert workflow_updates[1].result["output"] == 3
 
 
 @pytest.mark.asyncio

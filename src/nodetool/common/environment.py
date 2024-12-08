@@ -157,6 +157,13 @@ class Environment(object):
         os.environ["WORKER_URL"] = worker_url
 
     @classmethod
+    def set_nodetool_api_url(cls, nodetool_api_url: str):
+        """
+        Set the nodetool api url.
+        """
+        os.environ["NODETOOL_API_URL"] = nodetool_api_url
+
+    @classmethod
     def use_remote_auth(cls):
         """
         A single local user with id 1 is used for authentication when this evaluates to False.
@@ -370,10 +377,7 @@ class Environment(object):
         """
         The storage API endpoint.
         """
-        if cls.get_nodetool_api_url():
-            return f"{cls.get_nodetool_api_url()}/storage/"
-        else:
-            return "http://localhost:8000/api/storage/"
+        return f"{cls.get_nodetool_api_url()}/storage/"
 
     @classmethod
     def get_worker_api_client(cls):
@@ -565,17 +569,17 @@ class Environment(object):
 
             ngrok_token = cls.get_ngrok_token()
 
-            # run ngrok to expose http port 8000 and return the public url
+            # run ngrok to expose api port and return the public url
             # Optionally set your ngrok token if you haven't done so globally
             ngrok.set_auth_token(ngrok_token)
 
-            # Establish a tunnel to port 8000 (HTTP by default)
-            tunnel = ngrok.connect("localhost:8000")
+            # Establish a tunnel to API port (HTTP by default)
+            tunnel = ngrok.connect(cls.get_nodetool_api_url())
 
             # Retrieve the public URL where the tunnel is accessible
             assert tunnel.public_url, "No public url found"
             api_url = tunnel.public_url + "/api"
-            print(f'ngrok tunnel "api_url" -> "localhost:8000"')
+            print(f'ngrok tunnel "api_url" -> "{api_url}"')
 
             cls.api_tunnel_url = api_url
 
