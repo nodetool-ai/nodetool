@@ -159,12 +159,12 @@ const namespaceStyles = (theme: any) =>
       ".node-button": {
         padding: ".1em .5em",
         "& .MuiTypography-root": {
-          fontSize: theme.fontSizeSmaller
+          fontSize: theme.fontSizeNormal
         }
       }
     },
-    ".node.hovered": {
-      color: theme.palette.c_hl1
+    ".node:hover": {
+      backgroundColor: theme.palette.c_gray2
     },
     ".node.focused": {
       color: theme.palette.c_hl1,
