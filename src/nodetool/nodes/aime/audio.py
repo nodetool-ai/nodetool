@@ -1,6 +1,6 @@
 from enum import Enum
 from nodetool.common.environment import Environment
-from nodetool.providers.aime.types import JobResult, Progress
+from nodetool.providers.aime.types import Progress
 from nodetool.workflows.base_node import BaseNode
 from pydantic import Field
 from nodetool.metadata.types import Provider, AudioRef
