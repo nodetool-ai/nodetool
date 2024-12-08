@@ -11,6 +11,7 @@ const {
 } = require("./events");
 const { serverState } = require("./state");
 const fs = require("fs").promises;
+const net = require("net");
 
 const webPath = path.join(process.resourcesPath, "web");
 
@@ -19,17 +20,46 @@ let isAppQuitting = false;
 let viteProcess = null;
 
 /**
+ * Find a free port starting from the given port number
+ * @param {number} startPort - Port to start scanning from
+ * @returns {Promise<number>} - First available port
+ */
+async function findFreePort(startPort = 8088) {
+  const isPortFree = (port) => {
+    return new Promise((resolve) => {
+      const server = net
+        .createServer()
+        .listen(port, "127.0.0.1")
+        .once("listening", () => {
+          server.close();
+          resolve(true);
+        })
+        .once("error", () => resolve(false));
+    });
+  };
+
+  let port = startPort;
+  while (!(await isPortFree(port))) {
+    port++;
+  }
+  return port;
+}
+
+/**
  * Start the NodeTool backend server process.
  */
-function startNodeToolBackendProcess() {
+async function startNodeToolBackendProcess() {
   emitBootMessage("Configuring server environment...");
+
+  const freePort = await findFreePort(3000);
+  serverState.initialURL = `http://127.0.0.1:${freePort}`;
 
   const pythonExecutablePath =
     process.platform === "win32"
       ? path.join(PYTHON_ENV.condaEnvPath, "python.exe")
       : path.join(PYTHON_ENV.condaEnvPath, "bin", "python");
 
-  const args = ["-m", "nodetool.cli", "serve"];
+  const args = ["-m", "nodetool.cli", "serve", "--port", freePort.toString()];
 
   if (app.isPackaged) {
     args.push("--static-folder", webPath);
@@ -163,19 +193,24 @@ async function startViteServer() {
   logMessage("Starting Vite server...");
   emitBootMessage("Starting Vite server...");
 
+  const freePort = await findFreePort(3001);
+  serverState.initialURL = `http://127.0.0.1:${freePort}`;
+
   const npmCmd = process.platform === "win32" ? "npm.cmd" : "npm";
-  
-  serverState.initialURL = "http://127.0.0.1:3000";
 
   try {
-    viteProcess = spawn(npmCmd, ["start"], {
-      cwd: path.join(process.cwd(), "..", "web"),
-      stdio: "pipe",
-      shell: false,
-      detached: true,
-      windowsHide: true,
-      env: { ...process.env, NO_COLOR: "1" },
-    });
+    viteProcess = spawn(
+      npmCmd,
+      ["start", "--", "--port", freePort.toString()],
+      {
+        cwd: path.join(process.cwd(), "..", "web"),
+        stdio: "pipe",
+        shell: false,
+        detached: true,
+        windowsHide: true,
+        env: { ...process.env, NO_COLOR: "1" },
+      }
+    );
 
     // Create process group
     if (process.platform !== "win32") {
@@ -234,7 +269,7 @@ async function gracefulShutdown() {
     // Kill Vite process with more robust cleanup
     if (viteProcess) {
       logMessage("Stopping Vite process");
-      
+
       // Kill entire process tree on Windows
       if (process.platform === "win32") {
         spawn("taskkill", ["/pid", viteProcess.pid, "/F", "/T"]);
