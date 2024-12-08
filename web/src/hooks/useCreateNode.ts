@@ -8,7 +8,7 @@ import { useCreateLoopNode } from "./nodes/useCreateLoopNode";
 export const useCreateNode = (
   centerPosition: { x: number; y: number } | undefined = undefined
 ) => {
-  const menuPosition = useNodeMenuStore((state) => state.menuPosition);
+  const clickPosition = useNodeMenuStore((state) => state.clickPosition);
   const reactFlowInstance = useReactFlow();
   const addNode = useNodeStore((state) => state.addNode);
   const createNode = useNodeStore((state) => state.createNode);
@@ -21,20 +21,12 @@ export const useCreateNode = (
     (metadata: NodeMetadata) => {
       if (!reactFlowInstance) return;
 
-      const position = centerPosition
-        ? {
-            x: centerPosition.x,
-            y: centerPosition.y
-          }
-        : {
-            x: menuPosition.x,
-            y: menuPosition.y
-          };
+      const position = centerPosition ?? clickPosition;
+      const rfPos = reactFlowInstance.screenToFlowPosition(position);
 
       if (metadata.node_type === LOOP_NODE_TYPE) {
-        createLoopNode(metadata, position);
+        createLoopNode(metadata, rfPos);
       } else {
-        const rfPos = reactFlowInstance.screenToFlowPosition(position);
         const newNode = createNode(metadata, rfPos);
         addNode(newNode);
       }
@@ -42,8 +34,7 @@ export const useCreateNode = (
     [
       reactFlowInstance,
       centerPosition,
-      menuPosition.x,
-      menuPosition.y,
+      clickPosition,
       createLoopNode,
       createNode,
       addNode

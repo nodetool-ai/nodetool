@@ -102,7 +102,7 @@ export function graphNodeToReactFlowNode(
     },
     zIndex:
       node.type == "nodetool.group.Loop" ||
-        node.type == "nodetool.workflows.base_node.Group"
+      node.type == "nodetool.workflows.base_node.Group"
         ? -10
         : ui_properties?.zIndex
   };
@@ -709,13 +709,13 @@ export const useNodeStore = create<NodeStore>()(
             (node) =>
               (node.id === id
                 ? {
-                  ...node,
-                  data: {
-                    ...node.data,
-                    workflow_id,
-                    properties: { ...node.data.properties, ...properties }
+                    ...node,
+                    data: {
+                      ...node.data,
+                      workflow_id,
+                      properties: { ...node.data.properties, ...properties }
+                    }
                   }
-                }
                 : node) as Node<NodeData>
           )
         });
@@ -1058,7 +1058,7 @@ export const useNodeStore = create<NodeStore>()(
 
         const interval = setInterval(async () => {
           if (get().getWorkflowIsDirty()) {
-            devLog("Auto-saving workflow...");
+            // devLog("Auto-saving workflow...");
             await get().saveWorkflow();
           }
         }, AUTO_SAVE_INTERVAL);

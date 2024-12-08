@@ -8,6 +8,7 @@ import { useFileHandlers } from "./dropHandlerUtils";
 import useAuth from "../../stores/useAuth";
 import { useAddNodeFromAsset } from "./addNodeFromAsset";
 import { FileHandlerResult } from "./dropHandlerUtils";
+import { useCreateLoopNode } from "../nodes/useCreateLoopNode";
 
 // File type detection
 function detectFileType(file: File): string {
@@ -35,6 +36,7 @@ export const useDropHandler = () => {
     (state) => state.addNotification
   );
   const addNodeFromAsset = useAddNodeFromAsset();
+  const createLoopNode = useCreateLoopNode();
 
   const onDrop = useCallback(
     async (event: React.DragEvent<HTMLDivElement>) => {
@@ -52,8 +54,12 @@ export const useDropHandler = () => {
       const nodeJSON = event.dataTransfer.getData("create-node");
       const node = nodeJSON ? (JSON.parse(nodeJSON) as NodeMetadata) : null;
       if (node !== null) {
-        const newNode = createNode(node, position);
-        addNode(newNode);
+        if (node.node_type === "nodetool.group.Loop") {
+          createLoopNode(node, position);
+        } else {
+          const newNode = createNode(node, position);
+          addNode(newNode);
+        }
         return;
       }
 
@@ -112,7 +118,8 @@ export const useDropHandler = () => {
       handleJsonFile,
       handleCsvFile,
       handleGenericFile,
-      addNotification
+      addNotification,
+      createLoopNode
     ]
   );
 

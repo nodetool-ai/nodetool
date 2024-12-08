@@ -54,6 +54,7 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
 
   const handleDragStart = useCallback(
     (node: NodeMetadata) => (event: React.DragEvent<HTMLDivElement>) => {
+      console.log("drag start", node);
       setDragToCreate(true);
       event.dataTransfer.setData("create-node", JSON.stringify(node));
       event.dataTransfer.effectAllowed = "move";
