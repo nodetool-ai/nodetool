@@ -3,7 +3,7 @@ import {
   Button,
   ToggleButton,
   ToggleButtonGroup,
-  Tooltip,
+  Tooltip
 } from "@mui/material";
 import { TabulatorFull as Tabulator } from "tabulator-tables";
 import { useClipboard } from "../../../hooks/browser/useClipboard";
@@ -39,7 +39,7 @@ const TableActions: React.FC<TableActionsProps> = ({
   onChangeRows,
   isListTable = false,
   showResetSortingButton: showSortingButton = true,
-  showRowNumbersButton = true,
+  showRowNumbersButton = true
 }) => {
   const { writeClipboard } = useClipboard();
   const addNotification = useNotificationStore(
@@ -63,14 +63,43 @@ const TableActions: React.FC<TableActionsProps> = ({
     addNotification({
       content: "Copied to clipboard",
       type: "success",
-      alert: true,
+      alert: true
     });
   };
 
   const handleAddRow = () => {
-    if (isListTable) {
+    const shouldTreatAsList = isListTable || !dataframeColumns;
+    if (shouldTreatAsList) {
       if (Array.isArray(data)) {
-        onChangeRows([...data, ""]);
+        let defaultValue: any = "";
+
+        // If we have existing data, try to match its type
+        if (data.length > 0) {
+          const firstItem = data[0];
+          if (typeof firstItem === "number") {
+            defaultValue = 0;
+          } else if (typeof firstItem === "string") {
+            defaultValue = "";
+          } else {
+            defaultValue = "";
+          }
+        } else if (dataframeColumns?.[0]?.data_type) {
+          // Use the data_type from columns if available
+          switch (dataframeColumns[0].data_type) {
+            case "int":
+              defaultValue = 0;
+              break;
+            case "float":
+              defaultValue = 0.0;
+              break;
+            case "datetime":
+              defaultValue = "";
+              break;
+            default:
+              defaultValue = "";
+          }
+        }
+        onChangeRows([...data, defaultValue]);
       } else {
         const newKey = `new_key_${Object.keys(data).length}`;
         onChangeRows({ ...data, [newKey]: "" });

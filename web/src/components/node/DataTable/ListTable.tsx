@@ -6,7 +6,7 @@ import {
   CellComponent,
   Formatter,
   ColumnDefinitionAlign,
-  StandardValidatorType,
+  StandardValidatorType
 } from "tabulator-tables";
 import "tabulator-tables/dist/css/tabulator.min.css";
 import "tabulator-tables/dist/css/tabulator_midnight.css";
@@ -23,11 +23,27 @@ export type ListTableProps = {
 };
 
 const coerceValue = (value: any, type: ListDataType) => {
+  let intValue: number;
+  let floatValue: number;
+
+  if (value === "" || value === null || value === undefined) {
+    switch (type) {
+      case "int":
+        return 0;
+      case "float":
+        return 0.0;
+      default:
+        return value;
+    }
+  }
+
   switch (type) {
     case "int":
-      return parseInt(value);
+      intValue = parseInt(value);
+      return isNaN(intValue) ? 0 : intValue;
     case "float":
-      return parseFloat(value);
+      floatValue = parseFloat(value);
+      return isNaN(floatValue) ? 0.0 : floatValue;
     case "datetime":
       return new Date(value);
     default:
@@ -39,7 +55,7 @@ const ListTable: React.FC<ListTableProps> = ({
   data,
   editable,
   data_type,
-  onDataChange,
+  onDataChange
 }) => {
   const tableRef = useRef<HTMLDivElement>(null);
   const [tabulator, setTabulator] = useState<Tabulator>();
@@ -66,8 +82,8 @@ const ListTable: React.FC<ListTableProps> = ({
                 cell.getRow().toggleSelect();
               },
               editable: false,
-              cssClass: "row-select",
-            },
+              cssClass: "row-select"
+            }
           ]
         : []),
       {
@@ -80,7 +96,7 @@ const ListTable: React.FC<ListTableProps> = ({
         frozen: true,
         rowHandle: true,
         editable: false,
-        cssClass: "row-numbers",
+        cssClass: "row-numbers"
       },
       {
         title: "Value",
@@ -104,8 +120,8 @@ const ListTable: React.FC<ListTableProps> = ({
             ? (["required", "numeric"] as StandardValidatorType[])
             : data_type === "datetime"
             ? (["required", "date"] as StandardValidatorType[])
-            : undefined,
-      },
+            : undefined
+      }
     ],
     [data_type, editable, showSelect]
   );
@@ -143,7 +159,7 @@ const ListTable: React.FC<ListTableProps> = ({
       height: "300px",
       data: data.map((value, index) => ({
         rownum: index,
-        value: coerceValue(value, data_type),
+        value: coerceValue(value, data_type)
       })),
       columns: columns,
       columnDefaults: {
@@ -153,10 +169,10 @@ const ListTable: React.FC<ListTableProps> = ({
         editor: "input",
         resizable: true,
         editorParams: {
-          elementAttributes: { spellcheck: "false" },
-        },
+          elementAttributes: { spellcheck: "false" }
+        }
       },
-      movableRows: true,
+      movableRows: true
     });
 
     tabulatorInstance.on("cellEdited", onCellEdited);
@@ -181,6 +197,7 @@ const ListTable: React.FC<ListTableProps> = ({
         showSelect={showSelect}
         setShowSelect={setShowSelect}
         editable={editable}
+        isListTable={true}
       />
       <div ref={tableRef} className="listtable" />
     </div>
