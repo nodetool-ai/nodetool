@@ -31,8 +31,9 @@ class JobResult(BaseModel):
     job_id: str | None = None
     ep_version: int | None = None
     job_state: str | None = None
-    result: dict | None = None
+    job_result: dict | None = None
     images: List[str] | None = None
+    text: str | None = None
     prompt: str | None = None
     seed: int | None = None
     model_name: str | None = None

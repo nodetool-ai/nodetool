@@ -1,6 +1,7 @@
 from enum import Enum
 import json
 from pydantic import Field
+from nodetool.common.environment import Environment
 from nodetool.metadata.types import Message, Provider
 from nodetool.providers.aime.prediction import fetch_auth_key
 from nodetool.providers.aime.types import Progress
@@ -46,20 +47,12 @@ class BaseChatNode(BaseNode):
         ge=1,
         description="Maximum number of tokens to generate.",
     )
-    user: str = Field(
-        default="",
-        description="User for the Aime API.",
-    )
-    key: str = Field(
-        default="",
-        description="Key for the Aime API.",
-    )
 
     async def predict(self, context: ProcessingContext, model: str) -> str:
         auth_key = await fetch_auth_key(
             model=model,
-            user=self.user,
-            key=self.key,
+            user=Environment.get_aime_user(),
+            key=Environment.get_aime_api_key(),
         )
         chat_messages = [{"role": "system", "content": self.system_prompt}]
         for msg in self.messages:
@@ -81,8 +74,6 @@ class BaseChatNode(BaseNode):
             "top_p": self.top_p,
             "temperature": self.temperature,
             "max_gen_tokens": self.max_tokens,
-            "client_session_auth_key": auth_key,
-            "wait_for_result": True,
         }
 
         response = await context.run_prediction(
@@ -91,9 +82,11 @@ class BaseChatNode(BaseNode):
             model=model,
             params={
                 "data": payload,
+                "auth_key": auth_key,
                 "progress_callback": progress_callback,
             },
         )
+        print(response)
 
         return str(response.get("text", ""))
 

@@ -100,6 +100,46 @@ export interface paths {
     /** Get */
     get: operations["get_api_messages__message_id__get"];
   };
+  "/api/models/recommended_models": {
+    /** Recommended Models */
+    get: operations["recommended_models_api_models_recommended_models_get"];
+  };
+  "/api/models/huggingface_models": {
+    /** Get Huggingface Models */
+    get: operations["get_huggingface_models_api_models_huggingface_models_get"];
+  };
+  "/api/models/huggingface_model": {
+    /** Delete Huggingface Model */
+    delete: operations["delete_huggingface_model_api_models_huggingface_model_delete"];
+  };
+  "/api/models/ollama_models": {
+    /** Get Ollama Models */
+    get: operations["get_ollama_models_api_models_ollama_models_get"];
+  };
+  "/api/models/huggingface/try_cache_files": {
+    /** Try Cache Files */
+    post: operations["try_cache_files_api_models_huggingface_try_cache_files_post"];
+  };
+  "/api/models/ollama_model_info": {
+    /** Get Ollama Model Info */
+    get: operations["get_ollama_model_info_api_models_ollama_model_info_get"];
+  };
+  "/api/models/pull_ollama_model": {
+    /** Pull Ollama Model */
+    post: operations["pull_ollama_model_api_models_pull_ollama_model_post"];
+  };
+  "/api/models/system_stats": {
+    /** Get System Stats */
+    get: operations["get_system_stats_api_models_system_stats_get"];
+  };
+  "/api/models/huggingface/file_info": {
+    /** Get Huggingface File Info */
+    post: operations["get_huggingface_file_info_api_models_huggingface_file_info_post"];
+  };
+  "/api/models/{model_type}": {
+    /** Index */
+    get: operations["index_api_models__model_type__get"];
+  };
   "/api/nodes/dummy": {
     /**
      * Dummy
@@ -224,46 +264,6 @@ export interface paths {
     get: operations["get_settings_api_settings__get"];
     /** Update Settings */
     put: operations["update_settings_api_settings__put"];
-  };
-  "/api/models/recommended_models": {
-    /** Recommended Models */
-    get: operations["recommended_models_api_models_recommended_models_get"];
-  };
-  "/api/models/huggingface_models": {
-    /** Get Huggingface Models */
-    get: operations["get_huggingface_models_api_models_huggingface_models_get"];
-  };
-  "/api/models/huggingface_model": {
-    /** Delete Huggingface Model */
-    delete: operations["delete_huggingface_model_api_models_huggingface_model_delete"];
-  };
-  "/api/models/ollama_models": {
-    /** Get Ollama Models */
-    get: operations["get_ollama_models_api_models_ollama_models_get"];
-  };
-  "/api/models/huggingface/try_cache_files": {
-    /** Try Cache Files */
-    post: operations["try_cache_files_api_models_huggingface_try_cache_files_post"];
-  };
-  "/api/models/ollama_model_info": {
-    /** Get Ollama Model Info */
-    get: operations["get_ollama_model_info_api_models_ollama_model_info_get"];
-  };
-  "/api/models/pull_ollama_model": {
-    /** Pull Ollama Model */
-    post: operations["pull_ollama_model_api_models_pull_ollama_model_post"];
-  };
-  "/api/models/system_stats": {
-    /** Get System Stats */
-    get: operations["get_system_stats_api_models_system_stats_get"];
-  };
-  "/api/models/huggingface/file_info": {
-    /** Get Huggingface File Info */
-    post: operations["get_huggingface_file_info_api_models_huggingface_file_info_post"];
-  };
-  "/api/models/{model_type}": {
-    /** Index */
-    get: operations["index_api_models__model_type__get"];
   };
   "/health": {
     /** Health Check */
@@ -2043,7 +2043,7 @@ export interface components {
      * Provider
      * @enum {string}
      */
-    Provider: "openai" | "anthropic" | "replicate" | "huggingface" | "ollama" | "comfy" | "local" | "empty";
+    Provider: "aime" | "openai" | "anthropic" | "replicate" | "huggingface" | "ollama" | "comfy" | "local" | "empty";
     /** RepoPath */
     RepoPath: {
       /** Repo Id */
@@ -2169,6 +2169,16 @@ export interface components {
        * @description Luma AI API key
        */
       LUMAAI_API_KEY?: string | null;
+      /**
+       * Aime User
+       * @description Aime user
+       */
+      AIME_USER?: string | null;
+      /**
+       * Aime Api Key
+       * @description Aime API key
+       */
+      AIME_API_KEY?: string | null;
     };
     /** SettingsModel */
     SettingsModel: {
@@ -3189,6 +3199,272 @@ export interface operations {
       };
     };
   };
+  /** Recommended Models */
+  recommended_models_api_models_recommended_models_get: {
+    parameters: {
+      header?: {
+        authorization?: string | null;
+      };
+      cookie?: {
+        auth_cookie?: string | null;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["HuggingFaceModel"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Get Huggingface Models */
+  get_huggingface_models_api_models_huggingface_models_get: {
+    parameters: {
+      header?: {
+        authorization?: string | null;
+      };
+      cookie?: {
+        auth_cookie?: string | null;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["CachedModel"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Delete Huggingface Model */
+  delete_huggingface_model_api_models_huggingface_model_delete: {
+    parameters: {
+      query: {
+        repo_id: string;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": boolean;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Get Ollama Models */
+  get_ollama_models_api_models_ollama_models_get: {
+    parameters: {
+      header?: {
+        authorization?: string | null;
+      };
+      cookie?: {
+        auth_cookie?: string | null;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["LlamaModel"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Try Cache Files */
+  try_cache_files_api_models_huggingface_try_cache_files_post: {
+    parameters: {
+      header?: {
+        authorization?: string | null;
+      };
+      cookie?: {
+        auth_cookie?: string | null;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["RepoPath"][];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["RepoPath"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Get Ollama Model Info */
+  get_ollama_model_info_api_models_ollama_model_info_get: {
+    parameters: {
+      query: {
+        model_name: string;
+      };
+      header?: {
+        authorization?: string | null;
+      };
+      cookie?: {
+        auth_cookie?: string | null;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": Record<string, never> | null;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Pull Ollama Model */
+  pull_ollama_model_api_models_pull_ollama_model_post: {
+    parameters: {
+      query: {
+        model_name: string;
+      };
+      header?: {
+        authorization?: string | null;
+      };
+      cookie?: {
+        auth_cookie?: string | null;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Get System Stats */
+  get_system_stats_api_models_system_stats_get: {
+    parameters: {
+      header?: {
+        authorization?: string | null;
+      };
+      cookie?: {
+        auth_cookie?: string | null;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["SystemStats"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Get Huggingface File Info */
+  get_huggingface_file_info_api_models_huggingface_file_info_post: {
+    parameters: {
+      header?: {
+        authorization?: string | null;
+      };
+      cookie?: {
+        auth_cookie?: string | null;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["HFFileRequest"][];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["HFFileInfo"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Index */
+  index_api_models__model_type__get: {
+    parameters: {
+      header?: {
+        authorization?: string | null;
+      };
+      path: {
+        model_type: string;
+      };
+      cookie?: {
+        auth_cookie?: string | null;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["ModelFile"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   /**
    * Dummy
    * @description Returns a dummy node.
@@ -3920,272 +4196,6 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["SettingsResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /** Recommended Models */
-  recommended_models_api_models_recommended_models_get: {
-    parameters: {
-      header?: {
-        authorization?: string | null;
-      };
-      cookie?: {
-        auth_cookie?: string | null;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["HuggingFaceModel"][];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /** Get Huggingface Models */
-  get_huggingface_models_api_models_huggingface_models_get: {
-    parameters: {
-      header?: {
-        authorization?: string | null;
-      };
-      cookie?: {
-        auth_cookie?: string | null;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["CachedModel"][];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /** Delete Huggingface Model */
-  delete_huggingface_model_api_models_huggingface_model_delete: {
-    parameters: {
-      query: {
-        repo_id: string;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": boolean;
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /** Get Ollama Models */
-  get_ollama_models_api_models_ollama_models_get: {
-    parameters: {
-      header?: {
-        authorization?: string | null;
-      };
-      cookie?: {
-        auth_cookie?: string | null;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["LlamaModel"][];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /** Try Cache Files */
-  try_cache_files_api_models_huggingface_try_cache_files_post: {
-    parameters: {
-      header?: {
-        authorization?: string | null;
-      };
-      cookie?: {
-        auth_cookie?: string | null;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["RepoPath"][];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["RepoPath"][];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /** Get Ollama Model Info */
-  get_ollama_model_info_api_models_ollama_model_info_get: {
-    parameters: {
-      query: {
-        model_name: string;
-      };
-      header?: {
-        authorization?: string | null;
-      };
-      cookie?: {
-        auth_cookie?: string | null;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": Record<string, never> | null;
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /** Pull Ollama Model */
-  pull_ollama_model_api_models_pull_ollama_model_post: {
-    parameters: {
-      query: {
-        model_name: string;
-      };
-      header?: {
-        authorization?: string | null;
-      };
-      cookie?: {
-        auth_cookie?: string | null;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": unknown;
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /** Get System Stats */
-  get_system_stats_api_models_system_stats_get: {
-    parameters: {
-      header?: {
-        authorization?: string | null;
-      };
-      cookie?: {
-        auth_cookie?: string | null;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["SystemStats"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /** Get Huggingface File Info */
-  get_huggingface_file_info_api_models_huggingface_file_info_post: {
-    parameters: {
-      header?: {
-        authorization?: string | null;
-      };
-      cookie?: {
-        auth_cookie?: string | null;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["HFFileRequest"][];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["HFFileInfo"][];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /** Index */
-  index_api_models__model_type__get: {
-    parameters: {
-      header?: {
-        authorization?: string | null;
-      };
-      path: {
-        model_type: string;
-      };
-      cookie?: {
-        auth_cookie?: string | null;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["ModelFile"][];
         };
       };
       /** @description Validation Error */

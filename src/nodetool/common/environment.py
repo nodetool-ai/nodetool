@@ -37,6 +37,8 @@ DEFAULT_ENV = {
     "KLING_SECRET_KEY": None,
     "LUMAAI_API_KEY": None,
     "HF_TOKEN": None,
+    "AIME_USER": None,
+    "AIME_API_KEY": None,
     "ENV": "development",
     "LOG_LEVEL": "INFO",
     "REMOTE_AUTH": "0",
@@ -327,6 +329,20 @@ class Environment(object):
         The anthropic api key is the api key of the anthropic server.
         """
         return cls.get("ANTHROPIC_API_KEY")
+
+    @classmethod
+    def get_aime_user(cls):
+        """
+        The aime user is the user of the aime server.
+        """
+        return cls.get("AIME_USER")
+
+    @classmethod
+    def get_aime_api_key(cls):
+        """
+        The aime api key is the api key of the aime server.
+        """
+        return cls.get("AIME_API_KEY")
 
     @classmethod
     def get_asset_domain(cls):

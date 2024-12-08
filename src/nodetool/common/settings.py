@@ -37,6 +37,8 @@ class SecretsModel(BaseModel):
         default=None, description="Kling AI secret key"
     )
     LUMAAI_API_KEY: str | None = Field(default=None, description="Luma AI API key")
+    AIME_USER: str | None = Field(default=None, description="Aime user")
+    AIME_API_KEY: str | None = Field(default=None, description="Aime API key")
 
 
 def get_system_file_path(filename: str) -> Path:

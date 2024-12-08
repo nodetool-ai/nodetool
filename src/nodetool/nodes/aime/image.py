@@ -1,4 +1,5 @@
 from pydantic import Field
+from nodetool.common.environment import Environment
 from nodetool.metadata.types import ImageRef, Provider
 from nodetool.providers.aime.prediction import fetch_auth_key
 from nodetool.providers.aime.types import JobEvent, Progress
@@ -70,20 +71,12 @@ class StableDiffusion3(BaseNode):
         le=1.0,
         description="Denoising strength.",
     )
-    user: str = Field(
-        default="",
-        description="User for the Aime API.",
-    )
-    key: str = Field(
-        default="",
-        description="Key for the Aime API.",
-    )
 
     async def process(self, context: ProcessingContext) -> ImageRef:
         auth_key = await fetch_auth_key(
             model="stable_diffusion_3",
-            user=self.user,
-            key=self.key,
+            user=Environment.get_aime_user(),
+            key=Environment.get_aime_api_key(),
         )
 
         def progress_callback(progress: Progress):
@@ -96,7 +89,6 @@ class StableDiffusion3(BaseNode):
             )
 
         payload = {
-            "client_session_auth_key": auth_key,
             "prompt": self.prompt,
             "negative_prompt": self.negative_prompt,
             "height": self.height,
@@ -109,7 +101,8 @@ class StableDiffusion3(BaseNode):
         }
 
         if self.image.is_set():
-            payload["image"] = await context.image_to_base64(self.image)
+            b64 = await context.image_to_base64(self.image)
+            payload["image"] = "data:image/png;base64," + b64
 
         response = await context.run_prediction(
             node_id=self._id,
@@ -184,20 +177,12 @@ class Flux(BaseNode):
         le=1.0,
         description="Strength of image-to-image transformation.",
     )
-    user: str = Field(
-        default="",
-        description="User for the Aime API.",
-    )
-    key: str = Field(
-        default="",
-        description="Key for the Aime API.",
-    )
 
     async def process(self, context: ProcessingContext) -> ImageRef:
         auth_key = await fetch_auth_key(
             model="flux-dev",
-            user=self.user,
-            key=self.key,
+            user=Environment.get_aime_user(),
+            key=Environment.get_aime_api_key(),
         )
 
         def progress_callback(progress: Progress):
@@ -210,7 +195,6 @@ class Flux(BaseNode):
             )
 
         payload = {
-            "client_session_auth_key": auth_key,
             "prompt": self.prompt,
             "height": self.height,
             "width": self.width,
@@ -223,7 +207,8 @@ class Flux(BaseNode):
         }
 
         if self.image.is_set():
-            payload["image"] = await context.image_to_base64(self.image)
+            b64 = await context.image_to_base64(self.image)
+            payload["image"] = "data:image/png;base64," + b64
 
         response = await context.run_prediction(
             node_id=self._id,

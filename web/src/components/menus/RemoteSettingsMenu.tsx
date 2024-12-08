@@ -75,7 +75,9 @@ const RemoteSettings = ({
     REPLICATE_API_TOKEN: "",
     KLING_ACCESS_KEY: "",
     KLING_SECRET_KEY: "",
-    LUMAAI_API_KEY: ""
+    LUMAAI_API_KEY: "",
+    AIME_USER: "",
+    AIME_API_KEY: ""
   });
 
   const updateSettingsMutation = useMutation({
@@ -98,7 +100,9 @@ const RemoteSettings = ({
         REPLICATE_API_TOKEN: data.secrets.REPLICATE_API_TOKEN || "",
         KLING_ACCESS_KEY: data.secrets.KLING_ACCESS_KEY || "",
         KLING_SECRET_KEY: data.secrets.KLING_SECRET_KEY || "",
-        LUMAAI_API_KEY: data.secrets.LUMAAI_API_KEY || ""
+        LUMAAI_API_KEY: data.secrets.LUMAAI_API_KEY || "",
+        AIME_USER: data.secrets.AIME_USER || "",
+        AIME_API_KEY: data.secrets.AIME_API_KEY || ""
       });
     }
   }, [isSuccess, data]);
@@ -329,6 +333,38 @@ const RemoteSettings = ({
               </a>
             </Typography>
           </div>
+
+          <div className="settings-item">
+            <TextField
+              autoComplete="off"
+              id="aime-user-input"
+              label="AIME Username"
+              value={settings.AIME_USER}
+              onChange={(e) => handleChange("AIME_USER", e.target.value)}
+              variant="standard"
+            />
+            <TextField
+              autoComplete="off"
+              id="aime-api-key-input"
+              label="AIME API Key"
+              value={settings.AIME_API_KEY}
+              onChange={(e) => handleChange("AIME_API_KEY", e.target.value)}
+              variant="standard"
+              sx={{ marginTop: "1em" }}
+            />
+            <Typography className="description">
+              Enter your AIME account username and API key to access AIME API.
+              <br />
+              <a
+                href="https://api.aime.info/"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                &rarr; AIME API
+              </a>
+            </Typography>
+          </div>
+
           <div className="secrets">
             <WarningIcon sx={{ color: "#ff9800" }} />
             <Typography>

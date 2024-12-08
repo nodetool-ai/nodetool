@@ -1,14 +1,18 @@
 from typing import Any, AsyncGenerator, Optional, Callable
 
 import httpx
+from nodetool.common.environment import Environment
 from nodetool.types.prediction import Prediction, PredictionResult
 import asyncio
-from .types import JobEvent, JobStatus  # Add this import at the top
+from .types import JobEvent, JobStatus
+
+log = Environment.get_logger()
 
 
 async def fetch_auth_key(model: str, user: str, key: str) -> str:
     """Fetch authentication key from AIME API."""
     async with httpx.AsyncClient() as client:
+        log.info(f"Fetching auth key for {model} with user {user} and key {key}")
         response = await client.get(
             f"https://api.aime.info/{model}/login",
             params={
@@ -17,6 +21,8 @@ async def fetch_auth_key(model: str, user: str, key: str) -> str:
                 "version": "Python AIME API Client 0.8.2",
             },
         )
+
+        log.info(f"Response: {response.status_code}")
 
         if response.status_code != 200:
             raise ValueError(
@@ -39,7 +45,10 @@ async def run_aime(
     params = prediction.params
     model = prediction.model
     payload = params.get("data", {})
-    auth_key = params.get("auth_key")
+    auth_key = params.get("auth_key", None)
+
+    assert auth_key, "Auth key is required"
+
     progress_callback = params.get("progress_callback", None)
 
     async with httpx.AsyncClient() as client:
@@ -66,7 +75,11 @@ async def run_aime(
         # Progress monitoring flow
         response = await client.post(
             f"https://api.aime.info/{model}",
-            json={**payload, "wait_for_result": False},
+            json={
+                **payload,
+                "wait_for_result": False,
+                "client_session_auth_key": auth_key,
+            },
             timeout=60.0,
         )
 
@@ -109,7 +122,7 @@ async def run_aime(
                 break
             elif job_event.job_state == "failed":
                 raise ValueError(
-                    f"Job failed: {job_event.job_result.result if job_event.job_result else 'Unknown error'}"
+                    f"Job failed: {job_event.job_result if job_event.job_result else 'Unknown error'}"
                 )
 
             # Wait 1 second before next poll
