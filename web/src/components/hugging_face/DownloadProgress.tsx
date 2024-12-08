@@ -22,7 +22,10 @@ const styles = (theme: any) =>
     // background: theme.palette.c_gray2,
     position: "relative",
     ".download-progress-text": {
-      fontFamily: theme.fontFamily2
+      fontFamily: theme.fontFamily2,
+      paddingBottom: "0.5em",
+      width: "100%",
+      fontSize: "0.8em"
     },
     ".download-status": {
       padding: "1em 0",
