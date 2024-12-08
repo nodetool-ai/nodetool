@@ -28,6 +28,11 @@ const styles = (theme: any) =>
       padding: "1em 0",
       textTransform: "uppercase",
       fontFamily: theme.fontFamily2
+    },
+    ".repo-name": {
+      lineHeight: "1.3em",
+      wordBreak: "break-word",
+      paddingRight: "1.5em"
     }
   });
 
