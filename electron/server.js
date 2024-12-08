@@ -199,21 +199,24 @@ async function startViteServer() {
   const freePort = await findFreePort(3001);
   serverState.initialURL = `http://127.0.0.1:${freePort}`;
 
-  const npmCmd = process.platform === "win32" ? "npm.cmd" : "npm";
+  const viteExecutable = path.join(
+    process.cwd(),
+    "..",
+    "web",
+    "node_modules",
+    ".bin",
+    process.platform === "win32" ? "vite.cmd" : "vite"
+  );
 
   try {
-    viteProcess = spawn(
-      npmCmd,
-      ["start", "--", "--port", freePort.toString()],
-      {
-        cwd: path.join(process.cwd(), "..", "web"),
-        stdio: "pipe",
-        shell: false,
-        detached: true,
-        windowsHide: true,
-        env: { ...process.env, NO_COLOR: "1" },
-      }
-    );
+    viteProcess = spawn(viteExecutable, ["--port", freePort.toString()], {
+      cwd: path.join(process.cwd(), "..", "web"),
+      stdio: "pipe",
+      shell: false,
+      detached: true,
+      windowsHide: true,
+      env: { ...process.env, NO_COLOR: "1" },
+    });
 
     // Create process group
     if (process.platform !== "win32") {
