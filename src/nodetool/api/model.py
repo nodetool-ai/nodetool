@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 
-import json
 from fastapi.responses import StreamingResponse
-import psutil
-import torch
+from nodetool.common.huggingface_file import (
+    HFFileInfo,
+    HFFileRequest,
+    get_huggingface_file_infos,
+)
 from nodetool.common.environment import Environment
 from nodetool.metadata.types import (
     ModelFile,
@@ -19,17 +21,22 @@ from fastapi import APIRouter, Depends
 from nodetool.metadata.types import LlamaModel
 from nodetool.common.huggingface_models import (
     CachedModel,
-    delete_cached_model,
-    read_all_cached_models,
+    delete_cached_hf_model,
+    read_cached_hf_models,
 )
 from nodetool.workflows.base_node import get_recommended_models
 from pydantic import BaseModel, Field
+from nodetool.common.system_stats import SystemStats, get_system_stats
+from nodetool.api.services.ollama_service import (
+    get_ollama_models,
+    get_ollama_model_info,
+    stream_ollama_model_pull,
+)
 
 log = Environment.get_logger()
 router = APIRouter(prefix="/api/models", tags=["models"])
 
 # Simple module-level cache
-_cached_ollama_models = None
 _cached_huggingface_models = None
 
 
@@ -37,16 +44,6 @@ class RepoPath(BaseModel):
     repo_id: str
     path: str
     downloaded: bool = False
-
-
-class SystemStats(BaseModel):
-    cpu_percent: float = Field(..., description="CPU usage percentage")
-    memory_total_gb: float = Field(..., description="Total memory in GB")
-    memory_used_gb: float = Field(..., description="Used memory in GB")
-    memory_percent: float = Field(..., description="Memory usage percentage")
-    vram_total_gb: float | None = Field(None, description="Total VRAM in GB")
-    vram_used_gb: float | None = Field(None, description="Used VRAM in GB")
-    vram_percent: float | None = Field(None, description="VRAM usage percentage")
 
 
 @router.get("/recommended_models")
@@ -65,7 +62,7 @@ async def get_huggingface_models(
     if Environment.is_production() and _cached_huggingface_models is not None:
         return _cached_huggingface_models
 
-    models = await read_all_cached_models()
+    models = await read_cached_hf_models()
     if Environment.is_production():
         _cached_huggingface_models = models
     return models
@@ -76,33 +73,21 @@ async def delete_huggingface_model(repo_id: str) -> bool:
     if Environment.is_production():
         log.warning("Cannot delete models in production")
         return False
-    return delete_cached_model(repo_id)
+    return delete_cached_hf_model(repo_id)
 
 
 @router.get("/ollama_models")
-async def get_ollama_models(user: User = Depends(current_user)) -> list[LlamaModel]:
-    global _cached_ollama_models
+async def get_ollama_models_endpoint(
+    user: User = Depends(current_user),
+) -> list[LlamaModel]:
+    return await get_ollama_models()
 
-    if Environment.is_production() and _cached_ollama_models is not None:
-        return _cached_ollama_models
 
-    ollama = Environment.get_ollama_client()
-    models = await ollama.list()
-    result = [
-        LlamaModel(
-            name=model["name"],
-            repo_id=model["name"],
-            modified_at=model["modified_at"],
-            size=model["size"],
-            digest=model["digest"],
-            details=model["details"],
-        )
-        for model in models["models"]
-    ]
-
-    if Environment.is_production():
-        _cached_ollama_models = result
-    return result
+@router.get("/ollama_model_info")
+async def get_ollama_model_info_endpoint(
+    model_name: str, user: User = Depends(current_user)
+) -> dict | None:
+    return await get_ollama_model_info(model_name)
 
 
 @router.post("/huggingface/try_cache_files")
@@ -119,86 +104,26 @@ async def try_cache_files(
     ]
 
 
-@router.get("/ollama_model_info")
-async def get_ollama_model_info(
-    model_name: str, user: User = Depends(current_user)
-) -> dict | None:
-    ollama = Environment.get_ollama_client()
-    try:
-        res = await ollama.show(model_name)
-    except Exception as e:
-        return None
-    return dict(res)
-
-
 if not Environment.is_production():
 
     @router.post("/pull_ollama_model")
     async def pull_ollama_model(model_name: str, user: User = Depends(current_user)):
-        async def stream_response():
-            ollama = Environment.get_ollama_client()
-            res = await ollama.pull(model_name, stream=True)
-            async for chunk in res:
-                yield json.dumps(chunk) + "\n"
-
-        return StreamingResponse(stream_response(), media_type="application/json")
-
-    @router.get("/system_stats", response_model=SystemStats)
-    async def get_system_stats(user: User = Depends(current_user)) -> SystemStats:
-        # CPU usage
-        cpu_percent = psutil.cpu_percent(interval=1)
-
-        # Memory usage
-        memory = psutil.virtual_memory()
-        memory_total = memory.total / (1024**3)  # Convert to GB
-        memory_used = memory.used / (1024**3)  # Convert to GB
-        memory_percent = memory.percent
-
-        # VRAM usage (if GPU is available)
-        vram_total = vram_used = vram_percent = None
-        if torch.cuda.is_available():
-            vram_total = torch.cuda.get_device_properties(0).total_memory / (1024**3)
-            vram_used = torch.cuda.memory_allocated(0) / (1024**3)
-            vram_percent = (vram_used / vram_total) * 100
-
-        return SystemStats(
-            cpu_percent=cpu_percent,
-            memory_total_gb=round(memory_total, 2),
-            memory_used_gb=round(memory_used, 2),
-            memory_percent=memory_percent,
-            vram_total_gb=round(vram_total, 2) if vram_total is not None else None,
-            vram_used_gb=round(vram_used, 2) if vram_used is not None else None,
-            vram_percent=round(vram_percent, 2) if vram_percent is not None else None,
+        return StreamingResponse(
+            stream_ollama_model_pull(model_name), media_type="application/json"
         )
 
-    class HFFileInfo(BaseModel):
-        size: int
-        repo_id: str
-        path: str
-
-    class HFFileRequest(BaseModel):
-        repo_id: str
-        path: str
+    @router.get("/system_stats", response_model=SystemStats)
+    async def get_system_stats_endpoint(
+        user: User = Depends(current_user),
+    ) -> SystemStats:
+        return get_system_stats()
 
     @router.post("/huggingface/file_info")
     async def get_huggingface_file_info(
         requests: list[HFFileRequest],
         user: User = Depends(current_user),
     ) -> list[HFFileInfo]:
-        fs = HfFileSystem()
-        file_infos = []
-
-        for request in requests:
-            file_info = fs.info(f"{request.repo_id}/{request.path}")
-            file_infos.append(
-                HFFileInfo(
-                    size=file_info["size"],
-                    repo_id=request.repo_id,
-                    path=request.path,
-                )
-            )
-
-        return file_infos
+        return get_huggingface_file_infos(requests)
 
     @router.get("/{model_type}")
     async def index(
