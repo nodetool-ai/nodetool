@@ -144,7 +144,9 @@ def model_type_from_model_info(
     return None
 
 
-async def read_all_cached_models(load_model_info: bool = True) -> List[CachedModel]:
+async def read_cached_hf_models(
+    load_model_info: bool = True,
+) -> List[CachedModel]:
     """
     Reads all models from the Hugging Face cache.
 
@@ -175,7 +177,7 @@ async def read_all_cached_models(load_model_info: bool = True) -> List[CachedMod
     return models
 
 
-def delete_cached_model(model_id: str) -> bool:
+def delete_cached_hf_model(model_id: str) -> bool:
     """
     Deletes a model from the Hugging Face cache and the in-memory cache.
 

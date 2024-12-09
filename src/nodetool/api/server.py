@@ -6,13 +6,11 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from nodetool.api import prediction
-from nodetool.api.websocket_proxy import WebSocketProxy
+from nodetool.common.websocket_proxy import WebSocketProxy
 from nodetool.common.environment import Environment
 from nodetool.chat.help import index_documentation, index_examples, get_collection
 
-from nodetool.common.huggingface_cache import (
-    websocket_endpoint as hf_websocket_endpoint,
-)
+from nodetool.common.huggingface_cache import huggingface_download_endpoint
 
 from fastapi import APIRouter, FastAPI, Request, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
@@ -127,7 +125,7 @@ def create_app(
     #     index_examples(get_collection("examples"))
 
     if not Environment.is_production():
-        app.add_websocket_route("/hf/download", hf_websocket_endpoint)
+        app.add_websocket_route("/hf/download", huggingface_download_endpoint)
 
     if worker_url:
         predict_proxy = WebSocketProxy(worker_url=worker_url + "/predict")
@@ -167,13 +165,13 @@ def create_app(
 
         @app.websocket("/predict")
         async def websocket_endpoint(websocket: WebSocket):
-            from nodetool.api.websocket_runner import WebSocketRunner
+            from nodetool.common.websocket_runner import WebSocketRunner
 
             await WebSocketRunner().run(websocket)
 
         @app.websocket("/chat")
         async def chat_websocket_endpoint(websocket: WebSocket):
-            from nodetool.api.chat_websocket_runner import ChatWebSocketRunner
+            from nodetool.common.chat_websocket_runner import ChatWebSocketRunner
 
             await ChatWebSocketRunner().run(websocket)
 

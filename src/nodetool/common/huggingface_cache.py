@@ -319,7 +319,7 @@ class CustomTqdm(huggingface_hub.file_download.tqdm):
 huggingface_hub.file_download.tqdm = CustomTqdm
 
 
-async def websocket_endpoint(websocket: WebSocket):
+async def huggingface_download_endpoint(websocket: WebSocket):
     download_manager = DownloadManager()
     await websocket.accept()
     try:

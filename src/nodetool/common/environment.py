@@ -825,7 +825,7 @@ class Environment(object):
         """
         sentry_dsn = cls.get("SENTRY_DSN", None)
         if sentry_dsn:
-            import sentry_sdk
+            import sentry_sdk  # type: ignore
 
             sentry_sdk.init(
                 dsn=sentry_dsn,

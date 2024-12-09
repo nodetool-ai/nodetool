@@ -996,10 +996,17 @@ class GroupNode(BaseNode):
 
 def get_recommended_models() -> dict[str, list[HuggingFaceModel]]:
     node_classes = get_registered_node_classes()
+    model_ids = set()
     models = {}
     for node_class in node_classes:
         for model in node_class.get_recommended_models():
-            if model.repo_id not in models:
-                models[model.repo_id] = []
-            models[model.repo_id].append(model)
+            if model.path is not None:
+                model_id = "/".join([model.path, model.repo_id])
+            else:
+                model_id = model.repo_id
+            if model_id not in model_ids:
+                model_ids.add(model_id)
+                if model.repo_id not in models:
+                    models[model.repo_id] = []
+                models[model.repo_id].append(model)
     return models
