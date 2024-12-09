@@ -186,6 +186,14 @@ class TextToSpeech(HuggingFacePipelineNode):
                 repo_id="facebook/mms-tts-fra",
                 allow_patterns=["*.bin", "*.json", "*.txt"],
             ),
+            HFTextToSpeech(
+                repo_id="facebook/mms-tts-deu",
+                allow_patterns=["*.bin", "*.json", "*.txt"],
+            ),
+            HFTextToSpeech(
+                repo_id="SWivid/F5-TTS",
+                allow_patterns=["*.safetensors", "*.txt"],
+            ),
         ]
 
     def get_model_id(self):
