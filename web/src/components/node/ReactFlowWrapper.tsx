@@ -388,114 +388,95 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
 
   return (
     <div className="reactflow-wrapper" ref={reactFlowWrapper}>
-      <ErrorBoundary
-        fallback={({ error }) => (
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              flexDirection: "column",
-              alignItems: "center",
-              height: "100%"
-            }}
-          >
-            <h2>Error loading workflow</h2>
-            <p>{error.message}</p>
-          </div>
-        )}
+      <ReactFlow
+        onlyRenderVisibleElements={false}
+        ref={ref}
+        className={
+          isMinZoom ? "zoomed-out" : " " + (connecting ? "is-connecting" : "")
+        }
+        minZoom={MIN_ZOOM}
+        maxZoom={MAX_ZOOM}
+        zoomOnDoubleClick={false}
+        fitView
+        fitViewOptions={fitViewOptions}
+        nodes={nodes}
+        edges={edges}
+        nodeTypes={nodeTypes}
+        snapToGrid={true}
+        snapGrid={[settings.gridSnap, settings.gridSnap]}
+        defaultViewport={defaultViewport}
+        panOnDrag={panOnDrag}
+        {...(settings.panControls === "RMB" ? { selectionOnDrag: true } : {})}
+        elevateEdgesOnSelect={true}
+        connectionLineComponent={ConnectionLine}
+        connectionRadius={settings.connectionSnap}
+        attributionPosition="bottom-left"
+        selectNodesOnDrag={settings.selectNodesOnDrag}
+        onClick={handleClick}
+        onDrop={onDrop}
+        onDragOver={onDragOver}
+        onNodeDrag={onNodeDrag}
+        onSelectionDragStart={onSelectionDragStart}
+        onSelectionDrag={onSelectionDrag}
+        onSelectionDragStop={onSelectionDragStop}
+        onSelectionStart={onSelectionStart}
+        // onSelectionChange={onSelectionChange}
+        onSelectionContextMenu={handleSelectionContextMenu}
+        selectionMode={settings.selectionMode as SelectionMode}
+        onEdgesChange={onEdgesChange}
+        onEdgeMouseEnter={onEdgeMouseEnter}
+        onEdgeMouseLeave={onEdgeMouseLeave}
+        onEdgeContextMenu={onEdgeContextMenu}
+        connectionMode={ConnectionMode.Strict}
+        onConnect={triggerOnConnect}
+        onConnectStart={onConnectStart}
+        onConnectEnd={onConnectEnd}
+        onReconnect={onEdgeUpdate}
+        onReconnectStart={onEdgeUpdateStart}
+        onReconnectEnd={onEdgeUpdateEnd}
+        onNodesChange={handleNodesChange}
+        onNodeDragStart={onNodeDragStart}
+        onNodeDragStop={onNodeDragStop}
+        onNodeContextMenu={handleNodeContextMenu}
+        onPaneClick={closeSelect}
+        onPaneContextMenu={handlePaneContextMenu}
+        onNodeDoubleClick={onNodeDoubleClick}
+        onMoveStart={handleOnMoveStart}
+        onDoubleClick={handleDoubleClick}
+        proOptions={proOptions}
+        onInit={handleOnInit}
+        // edgeTypes={edgeTypes}
+        // onNodeClick={onNodeClick}
+        deleteKeyCode={["Delete", "Backspace"]}
       >
-        <ReactFlow
-          onlyRenderVisibleElements={false}
-          ref={ref}
-          className={
-            isMinZoom ? "zoomed-out" : " " + (connecting ? "is-connecting" : "")
-          }
-          minZoom={MIN_ZOOM}
-          maxZoom={MAX_ZOOM}
-          zoomOnDoubleClick={false}
-          fitView
-          fitViewOptions={fitViewOptions}
-          nodes={nodes}
-          edges={edges}
-          nodeTypes={nodeTypes}
-          snapToGrid={true}
-          snapGrid={[settings.gridSnap, settings.gridSnap]}
-          defaultViewport={defaultViewport}
-          panOnDrag={panOnDrag}
-          {...(settings.panControls === "RMB" ? { selectionOnDrag: true } : {})}
-          elevateEdgesOnSelect={true}
-          connectionLineComponent={ConnectionLine}
-          connectionRadius={settings.connectionSnap}
-          attributionPosition="bottom-left"
-          selectNodesOnDrag={settings.selectNodesOnDrag}
-          onClick={handleClick}
-          onDrop={onDrop}
-          onDragOver={onDragOver}
-          onNodeDrag={onNodeDrag}
-          onSelectionDragStart={onSelectionDragStart}
-          onSelectionDrag={onSelectionDrag}
-          onSelectionDragStop={onSelectionDragStop}
-          onSelectionStart={onSelectionStart}
-          // onSelectionChange={onSelectionChange}
-          onSelectionContextMenu={handleSelectionContextMenu}
-          selectionMode={settings.selectionMode as SelectionMode}
-          onEdgesChange={onEdgesChange}
-          onEdgeMouseEnter={onEdgeMouseEnter}
-          onEdgeMouseLeave={onEdgeMouseLeave}
-          onEdgeContextMenu={onEdgeContextMenu}
-          connectionMode={ConnectionMode.Strict}
-          onConnect={triggerOnConnect}
-          onConnectStart={onConnectStart}
-          onConnectEnd={onConnectEnd}
-          onReconnect={onEdgeUpdate}
-          onReconnectStart={onEdgeUpdateStart}
-          onReconnectEnd={onEdgeUpdateEnd}
-          onNodesChange={handleNodesChange}
-          onNodeDragStart={onNodeDragStart}
-          onNodeDragStop={onNodeDragStop}
-          onNodeContextMenu={handleNodeContextMenu}
-          onPaneClick={closeSelect}
-          onPaneContextMenu={handlePaneContextMenu}
-          onNodeDoubleClick={onNodeDoubleClick}
-          onMoveStart={handleOnMoveStart}
-          onDoubleClick={handleDoubleClick}
-          proOptions={proOptions}
-          onInit={handleOnInit}
-          // edgeTypes={edgeTypes}
-          // onNodeClick={onNodeClick}
-          deleteKeyCode={["Delete", "Backspace"]}
-        >
-          <Background
-            id="1"
-            gap={100}
-            offset={0.15}
-            size={8}
-            color={ThemeNodes.palette.c_editor_grid_color}
-            lineWidth={1}
-            style={{
-              backgroundColor: ThemeNodes.palette.c_editor_bg_color
-            }}
-            variant={BackgroundVariant.Cross}
+        <Background
+          id="1"
+          gap={100}
+          offset={0.15}
+          size={8}
+          color={ThemeNodes.palette.c_editor_grid_color}
+          lineWidth={1}
+          style={{
+            backgroundColor: ThemeNodes.palette.c_editor_bg_color
+          }}
+          variant={BackgroundVariant.Cross}
+        />
+        {reactFlowInstance && <AxisMarker />}
+        {editNodeTitle && anchorEl && (
+          <NodeTitleEditor
+            nodeId={editNodeTitle}
+            onClose={finishNodeTitle}
+            anchorEl={anchorEl}
           />
-          {reactFlowInstance && <AxisMarker />}
-          {editNodeTitle && anchorEl && (
-            <NodeTitleEditor
-              nodeId={editNodeTitle}
-              onClose={finishNodeTitle}
-              anchorEl={anchorEl}
-            />
-          )}
-          {openMenuType === "node-context-menu" && <NodeContextMenu />}
-          {openMenuType === "pane-context-menu" && <PaneContextMenu />}
-          {openMenuType === "property-context-menu" && <PropertyContextMenu />}
-          {openMenuType === "selection-context-menu" && (
-            <SelectionContextMenu />
-          )}
-          {openMenuType === "output-context-menu" && <OutputContextMenu />}
-          {openMenuType === "input-context-menu" && <InputContextMenu />}
-          <HuggingFaceDownloadDialog />
-        </ReactFlow>
-      </ErrorBoundary>
+        )}
+        {openMenuType === "node-context-menu" && <NodeContextMenu />}
+        {openMenuType === "pane-context-menu" && <PaneContextMenu />}
+        {openMenuType === "property-context-menu" && <PropertyContextMenu />}
+        {openMenuType === "selection-context-menu" && <SelectionContextMenu />}
+        {openMenuType === "output-context-menu" && <OutputContextMenu />}
+        {openMenuType === "input-context-menu" && <InputContextMenu />}
+        <HuggingFaceDownloadDialog />
+      </ReactFlow>
     </div>
   );
 };

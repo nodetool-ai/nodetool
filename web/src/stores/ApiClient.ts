@@ -41,23 +41,22 @@ export const pingWorker = () => {
   //   method: "GET",
   // });
 };
-
 const authMiddleware: Middleware = {
-  async onRequest(req: Request) {
+  async onRequest({ request }) {
     const user = useAuth.getState().user;
 
     if (user) {
-      req.headers.set("Authorization", `Bearer ${user.auth_token}`);
+      request.headers.set("Authorization", `Bearer ${user.auth_token}`);
     }
-    return req;
+    return request;
   },
-  async onResponse(res: Response) {
-    if (res.status == 401) {
+  async onResponse(options: { response: Response }) {
+    if (options.response.status == 401) {
       console.log("Unauthorized, signing out");
       useAuth.getState().signout();
       window.location.href = "/login";
     }
-    return res;
+    return options.response;
   }
 };
 
