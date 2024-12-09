@@ -85,7 +85,7 @@
       {
         "id": "5",
         "parent_id": "2",
-        "type": "openai.agents.ProcessChainOfThought",
+        "type": "openai.agents.ProcessThought",
         "data": {
           "thread_id": "123",
           "max_tokens": 2000,
