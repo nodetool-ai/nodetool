@@ -2,6 +2,7 @@ import React, { useCallback, useEffect } from "react";
 import useWorkflowChatStore from "../../stores/WorkflowChatStore";
 import { Message } from "../../stores/ApiTypes";
 import ChatView from "./ChatView";
+import { useNodeStore } from "../../stores/NodeStore";
 import {
   Alert,
   Box,
@@ -25,6 +26,8 @@ const WorkflowChat: React.FC<WorkflowChatProps> = ({
   isOpen = true
 }) => {
   const [isMinimized, setIsMinimized] = React.useState(true);
+  const { nodes } = useNodeStore();
+
   const {
     messages,
     status,
@@ -36,6 +39,11 @@ const WorkflowChat: React.FC<WorkflowChatProps> = ({
     total,
     error
   } = useWorkflowChatStore();
+
+  useEffect(() => {
+    connect(workflow_id);
+  }, [connect, workflow_id]);
+
   const handleSendMessage = useCallback(
     async (content: string) => {
       if (workflow_id) {
@@ -51,10 +59,6 @@ const WorkflowChat: React.FC<WorkflowChatProps> = ({
     [workflow_id, sendMessage]
   );
 
-  useEffect(() => {
-    connect(workflow_id);
-  }, [connect, workflow_id]);
-
   const handleReset = useCallback(() => {
     resetMessages();
     connect(workflow_id);
@@ -63,6 +67,14 @@ const WorkflowChat: React.FC<WorkflowChatProps> = ({
   const handleMinimize = useCallback(() => {
     setIsMinimized((prev) => !prev);
   }, []);
+
+  const hasChatInput = nodes.some(
+    (node) => node.type === "nodetool.input.ChatInput"
+  );
+
+  if (!hasChatInput) {
+    return null;
+  }
 
   return (
     <Fade in={isOpen}>
