@@ -42,21 +42,22 @@ export const pingWorker = () => {
   // });
 };
 const authMiddleware: Middleware = {
-  async onRequest({ request }) {
+  async onRequest({ request, options }) {
     const user = useAuth.getState().user;
 
-    if (user) {
+    if (user && request) {
       request.headers.set("Authorization", `Bearer ${user.auth_token}`);
     }
     return request;
   },
-  async onResponse(options: { response: Response }) {
-    if (options.response.status == 401) {
+  async onResponse({ request, response, options }) {
+    console.log("onResponse", request, response, options);
+    if (response?.status == 401) {
       console.log("Unauthorized, signing out");
       useAuth.getState().signout();
       window.location.href = "/login";
     }
-    return options.response;
+    return response;
   }
 };
 
