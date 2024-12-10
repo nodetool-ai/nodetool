@@ -67,10 +67,15 @@ useAssetStore.getState().setQueryClient(queryClient);
 useWorkflowStore.getState().setQueryClient(queryClient);
 useModelStore.getState().setQueryClient(queryClient);
 
-const metadata = await metadataQuery();
-queryClient.setQueryData(["metadata"], metadata);
-useMetadataStore.getState().setMetadata(metadata.metadataByType);
-useNodeStore.getState().startAutoSave();
+metadataQuery()
+  .then((metadata) => {
+    queryClient.setQueryData(["metadata"], metadata);
+    useMetadataStore.getState().setMetadata(metadata.metadataByType);
+    useNodeStore.getState().startAutoSave();
+  })
+  .catch((error) => {
+    console.error("Failed to fetch metadata:", error);
+  });
 
 const NavigateToStart = () => {
   const { state } = useAuth();
