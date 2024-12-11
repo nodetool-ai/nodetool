@@ -2,7 +2,6 @@ import React, { useCallback, useEffect } from "react";
 import ChatView from "./ChatView";
 import { useChatStore } from "../../stores/ChatStore";
 import { Box, Typography, Button } from "@mui/material";
-import ClearIcon from "@mui/icons-material/Clear";
 import { useTutorialStore } from "../../stores/TutorialStore";
 import { useNodeStore } from "../../stores/NodeStore";
 import useWorkflowRunnner from "../../stores/WorkflowRunner";
@@ -12,6 +11,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchOllamaModelInfo } from "../hugging_face/ModelUtils";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { isProduction } from "../../stores/ApiClient";
+import { ChatHeader } from "./chat/ChatHeader";
 
 const HelpChat: React.FC = () => {
   const { messages, isLoading, sendMessage, setMessages } = useChatStore();
@@ -79,8 +79,7 @@ const HelpChat: React.FC = () => {
   useEffect(() => {
     if (isInTutorial) {
       if (
-        step &&
-        step.isCompleted({
+        step?.isCompleted({
           nodes,
           edges,
           workflowState: state,
@@ -104,35 +103,22 @@ const HelpChat: React.FC = () => {
 
   return (
     <div className="help-chat" style={{ margin: ".5em" }}>
-      {messages.length > 0 && (
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "right",
-            mb: 2
-          }}
-        >
-          <Button
-            variant="outlined"
-            startIcon={<ClearIcon />}
-            onClick={handleResetChat}
-            disabled={messages.length === 0}
-          >
-            Reset Chat
-          </Button>
-        </Box>
-      )}
+      <ChatHeader
+        isMinimized={false}
+        onReset={messages.length > 0 ? handleResetChat : undefined}
+        messagesCount={messages.length}
+        title="Help Chat"
+        description="Help Chat"
+      />
+
       {messages.length === 0 && isModelAvailable && (
-        <>
+        <Box sx={{ mb: 2 }}>
           <Typography variant="h4">Hello</Typography>
-          <Box sx={{ mb: 2 }}>
-            <Typography>I&apos;m your experimental AI assistant!</Typography>
-            <Typography sx={{ mt: 2 }}>
-              Ask me anything about Nodetool&apos;s features, or try one of the
-              following tutorials:
-            </Typography>
-          </Box>
+          <Typography>I&apos;m your experimental AI assistant!</Typography>
+          <Typography sx={{ mt: 2 }}>
+            Ask me anything about Nodetool&apos;s features, or try one of the
+            following tutorials:
+          </Typography>
           <Box
             sx={{
               paddingLeft: "1em",
@@ -158,8 +144,9 @@ const HelpChat: React.FC = () => {
               </Button>
             ))}
           </Box>
-        </>
+        </Box>
       )}
+
       {isLoadingOllamaModel ? (
         <Typography>Checking model availability...</Typography>
       ) : isDownloading ? (

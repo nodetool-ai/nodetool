@@ -3,16 +3,8 @@ import useWorkflowChatStore from "../../stores/WorkflowChatStore";
 import { Message } from "../../stores/ApiTypes";
 import ChatView from "./ChatView";
 import { useNodeStore } from "../../stores/NodeStore";
-import {
-  Alert,
-  Box,
-  Button,
-  Typography,
-  Fade,
-  IconButton
-} from "@mui/material";
-import { ClearIcon } from "@mui/x-date-pickers/icons";
-import UnfoldLessIcon from "@mui/icons-material/UnfoldLess";
+import { Alert, Box, Fade, Typography } from "@mui/material";
+import { ChatHeader } from "./chat/ChatHeader";
 
 interface WorkflowChatProps {
   workflow_id: string;
@@ -107,86 +99,26 @@ const WorkflowChat: React.FC<WorkflowChatProps> = ({
           pointerEvents: isOpen ? "auto" : "none"
         }}
       >
-        <Box
-          className="workflow-chat-header"
-          sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            mb: isMinimized ? 0 : 2,
-            position: "sticky",
-            top: 0,
-            backgroundColor: "background.paper",
-            zIndex: 1,
-            py: 1
-          }}
-        >
-          {!isMinimized && (
-            <Button
-              className="reset-chat-button"
-              variant="text"
-              startIcon={<ClearIcon />}
-              onClick={handleReset}
-              disabled={messages.length === 0}
-              sx={{
-                color: "text.secondary",
-                "&:hover": {
-                  backgroundColor: "action.hover"
-                }
-              }}
-            >
-              Reset Chat
-            </Button>
-          )}
-          {isMinimized && (
-            <Typography
-              variant="body2"
-              onClick={handleMinimize}
-              sx={{
-                color: "text.secondary",
-                padding: "0.5em 1em 0 1em",
-                textAlign: "center",
-                width: "100%",
+        <ChatHeader
+          isMinimized={isMinimized}
+          onMinimize={handleMinimize}
+          onReset={handleReset}
+          messagesCount={messages.length}
+          title="Workflow Chat"
+          description="Chat with your workflow"
+        />
 
-                cursor: "pointer",
-                userSelect: "none",
-                "&:hover": {
-                  color: "c_gray6"
-                }
-              }}
-            >
-              Workflow Chat
-            </Typography>
-          )}
-          <IconButton
-            onClick={handleMinimize}
-            size="small"
-            sx={{
-              color: "text.secondary",
-              "&:hover": {
-                backgroundColor: "action.hover"
-              }
-            }}
-          >
-            {isMinimized ? <></> : <UnfoldLessIcon fontSize="small" />}
-          </IconButton>
-        </Box>
         {!isMinimized && (
           <Box
-            className="chat-container"
             sx={{
               flex: 1,
               display: "flex",
               flexDirection: "column",
-              height: "100%"
+              height: "calc(100% - 64px)",
+              overflow: "hidden"
             }}
           >
             {error && <Alert severity="error">{error}</Alert>}
-            <Box>
-              <Typography variant="body1" sx={{ margin: "0.5em" }}>
-                Chat with your workflow!
-              </Typography>
-            </Box>
             <ChatView
               status={status}
               messages={messages}

@@ -25,15 +25,16 @@ const styles = (theme: any) =>
   css({
     "&": {
       position: "relative",
-      height: "calc(100% - 50px)",
+      height: "100%",
       width: "100%",
       display: "flex",
-      flexDirection: "column"
+      flexDirection: "column",
+      backgroundColor: theme.palette.c_gray1
     },
     ".messages": {
+      flex: 1,
       overflowY: "auto",
       listStyleType: "none",
-      maxHeight: "100%",
       padding: "0",
       margin: "0"
     },
@@ -54,9 +55,12 @@ const styles = (theme: any) =>
       backgroundColor: theme.palette.c_gray2,
       marginLeft: "10%"
     },
+    ".messages li.user .markdown": {
+      padding: 0
+    },
     ".messages li.assistant": {
       color: theme.palette.c_white,
-      backgroundColor: theme.palette.c_black,
+      backgroundColor: theme.palette.c_gray0,
       marginRight: "10%"
     },
     ".messages li pre": {
@@ -85,9 +89,10 @@ const styles = (theme: any) =>
       marginLeft: "10px"
     },
     ".chat-controls": {
-      position: "sticky",
+      position: "relative",
       bottom: 0,
       padding: "0 1em",
+      marginTop: "auto",
       zIndex: 1
     },
     ".compose-message": {
@@ -185,9 +190,6 @@ const styles = (theme: any) =>
     ".progress-bar": {
       width: "80%",
       marginBottom: "0.5em"
-    },
-    ".output .markdown": {
-      padding: "0"
     }
   });
 
