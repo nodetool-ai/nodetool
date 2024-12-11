@@ -69,7 +69,16 @@ const WorkflowChat: React.FC<WorkflowChatProps> = ({
   }
 
   return (
-    <Fade in={isOpen}>
+    <Box
+      sx={{
+        position: "absolute",
+        bottom: 0,
+        left: "50%",
+        transform: "translateX(-50%)",
+        width: "100%",
+        height: "100%"
+      }}
+    >
       <Box
         className="workflow-chat-container"
         sx={{
@@ -92,9 +101,10 @@ const WorkflowChat: React.FC<WorkflowChatProps> = ({
           overflow: "hidden",
           m: 0,
           p: 2,
-          transitionProperty: "width, height, min-height, max-height",
-          transitionDuration: "300ms",
-          transitionTimingFunction: "cubic-bezier(0.4, 0, 0.2, 1)",
+          // transitionProperty: "width, height, min-height, max-height",
+          // transitionDuration: "300ms",
+          // transitionTimingFunction: "cubic-bezier(0.4, 0, 0.2, 1)",
+          transition: "all 0.3s ease-out",
           backdropFilter: !isOpen ? "blur(5px)" : "none",
           pointerEvents: isOpen ? "auto" : "none"
         }}
@@ -130,7 +140,7 @@ const WorkflowChat: React.FC<WorkflowChatProps> = ({
           </Box>
         )}
       </Box>
-    </Fade>
+    </Box>
   );
 };
 

@@ -55,14 +55,13 @@ const styles = (theme: any) =>
     ".messages li.user": {
       color: theme.palette.c_gray6,
       backgroundColor: theme.palette.c_gray2,
-      borderRight: "2px solid" + theme.palette.c_gray4
+      borderRight: "2px solid" + theme.palette.c_gray3
     },
     ".messages li .markdown": {
       padding: 0
     },
     ".messages li.assistant": {
       color: theme.palette.c_white
-      // borderLeft: "1px solid" + theme.palette.c_gray2
     },
     ".messages li pre": {
       fontFamily: theme.fontFamily2,
