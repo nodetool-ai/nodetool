@@ -115,6 +115,7 @@ class ProcessingContext:
         http_client: httpx.AsyncClient | None = None,
         device: str | None = None,
         endpoint_url: URL | None = None,
+        encode_assets_as_base64: bool = False,
     ):
         self.user_id = user_id
         self.auth_token = auth_token
@@ -132,6 +133,7 @@ class ProcessingContext:
             else http_client
         )
         assert self.auth_token is not None, "Auth token is required"
+        self.encode_assets_as_base64 = encode_assets_as_base64
 
     def copy(self):
         return ProcessingContext(
@@ -299,6 +301,8 @@ class ProcessingContext:
         res = self.results.get(node_id, {})
 
         if res:
+            if self.encode_assets_as_base64:
+                res = self.encode_assets_as_uri(res)
             return res.get(slot, None)
         else:
             return None
@@ -1509,3 +1513,24 @@ class ProcessingContext:
     async def is_huggingface_model_cached(self, repo_id: str):
         cache_path = try_to_load_from_cache(repo_id, "config.json")
         return cache_path is not None
+
+    def encode_assets_as_uri(self, value: Any) -> Any:
+        """
+        Recursively encodes any AssetRef objects found in the given value as URIs.
+
+        Args:
+            value: Any Python value that might contain AssetRef objects
+
+        Returns:
+            The value with all AssetRef objects encoded as URIs
+        """
+        if isinstance(value, AssetRef):
+            return value.encode_data_to_uri()
+        elif isinstance(value, dict):
+            return {k: self.encode_assets_as_uri(v) for k, v in value.items()}
+        elif isinstance(value, list):
+            return [self.encode_assets_as_uri(item) for item in value]
+        elif isinstance(value, tuple):
+            return tuple(self.encode_assets_as_uri(item) for item in value)
+        else:
+            return value

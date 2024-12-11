@@ -1,3 +1,4 @@
+import base64
 from enum import EnumMeta
 import functools
 import re
@@ -509,16 +510,27 @@ class BaseNode(BaseModel):
                     del value_without_model["model"]
                     props[p] = value_without_model
                 elif isinstance(value, AssetRef):
+                    # we only send assets with data in results
                     value_without_data = value.model_dump()
                     del value_without_data["data"]
                     props[p] = value_without_data
                 else:
                     props[p] = value
+
+        result_for_client = (
+            self.result_for_client(result) if result is not None else None
+        )
+
+        if result_for_client and context.encode_assets_as_base64:
+            for key, value in result_for_client.items():
+                if isinstance(value, AssetRef):
+                    result_for_client[key] = value.encode_data_to_uri()
+
         update = NodeUpdate(
             node_id=self.id,
             node_name=self.get_title(),
             status=status,
-            result=self.result_for_client(result) if result is not None else None,
+            result=result_for_client,
             properties=props,
         )
         context.post_message(update)

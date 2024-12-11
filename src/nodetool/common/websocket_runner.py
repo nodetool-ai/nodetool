@@ -1,5 +1,4 @@
 import asyncio
-import base64
 from enum import Enum
 import json
 import time
@@ -9,10 +8,8 @@ from typing import Any
 from anthropic import BaseModel
 from fastapi import WebSocket, WebSocketDisconnect
 from nodetool.common.environment import Environment
-from nodetool.metadata.types import AssetRef
 from nodetool.types.job import JobUpdate
 from nodetool.workflows.processing_context import ProcessingContext
-from nodetool.workflows.run_workflow import run_workflow
 from nodetool.workflows.run_job_request import RunJobRequest
 from nodetool.workflows.workflow_runner import WorkflowRunner
 from nodetool.api.types.wrap_primitive_types import wrap_primitive_types
@@ -142,6 +139,7 @@ class WebSocketRunner:
                 auth_token=req.auth_token,
                 workflow_id=req.workflow_id,
                 endpoint_url=self.websocket.url,
+                encode_assets_as_base64=self.mode == WebSocketMode.TEXT,
             )
             self.event_loop = ThreadedEventLoop()
 
@@ -170,23 +168,6 @@ class WebSocketRunner:
                             msg = await context.pop_message_async()
                             if isinstance(msg, Error):
                                 raise Exception(msg.error)
-
-                            # Handle message formatting
-                            if self.mode == WebSocketMode.TEXT:
-                                if msg.type == "job_update":
-                                    if msg.status == "completed":
-                                        result = msg.result
-                                        assert result, "Result is not set"
-                                        for key, value in result.items():
-                                            if (
-                                                isinstance(value, AssetRef)
-                                                and value.data
-                                            ):
-                                                if isinstance(value.data, bytes):
-                                                    value.uri = f"data:application/octet-stream;base64,{base64.b64encode(value.data).decode('utf-8')}"
-                                                elif isinstance(value.data, list):
-                                                    value.uri = f"data:application/octet-stream;base64,{base64.b64encode(value.data[0]).decode('utf-8')}"
-                                                value.data = None
 
                             msg_dict = msg.model_dump()
                             if req.explicit_types and "result" in msg_dict:

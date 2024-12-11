@@ -6,6 +6,7 @@ import numpy as np
 from pydantic import BaseModel, Field
 from typing import Any, Literal, Optional, Type, Union
 from typing import Literal
+import base64
 
 from nodetool.metadata.type_metadata import TypeMetadata
 from nodetool.models.asset import Asset
@@ -112,6 +113,15 @@ class AssetRef(BaseType):
 
     def is_set(self):
         return not self.is_empty()
+
+    def encode_data_to_uri(self):
+        if self.data:
+            new_ref = self.__class__(
+                uri=f"data:application/octet-stream;base64,{base64.b64encode(self.data[0] if isinstance(self.data, list) else self.data).decode('utf-8')}",
+                asset_id=self.asset_id,
+            )
+            return new_ref
+        return self
 
     @classmethod
     def __init_subclass__(cls):

@@ -59,6 +59,19 @@
             "args": ["."],
             "outputCapture": "std",
             "console": "integratedTerminal"
+        },
+        {
+            "name": "Debug: RunPod API",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/nodetool/api/runpod_handler.py",
+            "justMyCode": false,
+            "args": [
+                "--rp_serve_api",
+                "--rp_api_port",
+                "5000"
+            ],
+            "console": "integratedTerminal"
         }
     ]
 }
