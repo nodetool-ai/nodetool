@@ -24,14 +24,18 @@ import OutputRenderer from "../node/OutputRenderer";
 const styles = (theme: any) =>
   css({
     "&": {
-      height: "100%",
-      width: "100%"
+      position: "relative",
+      height: "calc(100% - 50px)",
+      width: "100%",
+      display: "flex",
+      flexDirection: "column"
     },
     ".messages": {
       overflowY: "auto",
       listStyleType: "none",
-      maxHeight: "500px",
-      padding: "0px"
+      maxHeight: "100%",
+      padding: "0",
+      margin: "0"
     },
     ".messages li.chat-message": {
       fontFamily: theme.fontFamily1,
@@ -42,7 +46,8 @@ const styles = (theme: any) =>
       borderRadius: "4px"
     },
     ".messages li.chat-message p": {
-      margin: "0.2em 0"
+      margin: "0.2em 0",
+      fontSize: theme.fontSizeBig
     },
     ".messages li.user": {
       color: theme.palette.c_gray5,
@@ -79,6 +84,12 @@ const styles = (theme: any) =>
       marginTop: "14px",
       marginLeft: "10px"
     },
+    ".chat-controls": {
+      position: "sticky",
+      bottom: 0,
+      padding: "0 1em",
+      zIndex: 1
+    },
     ".compose-message": {
       position: "relative",
       height: "auto",
@@ -88,8 +99,7 @@ const styles = (theme: any) =>
       borderColor: theme.palette.c_gray3,
       display: "flex",
       alignItems: "center",
-      borderRadius: "20px",
-      padding: "0",
+      borderRadius: "1em",
       boxShadow: "0 2px 6px rgba(0, 0, 0, 0.1)"
     },
     ".compose-message textarea": {
@@ -97,15 +107,22 @@ const styles = (theme: any) =>
       fontSize: theme.fontSizeSmall,
       backgroundColor: "transparent",
       color: theme.palette.c_white,
-      border: "none",
       resize: "none",
       overflowY: "auto",
-      width: "calc(100% - 48px)",
+      width: "calc(100% - 190px)",
       height: "100%",
       flexGrow: 1,
-      padding: "1em 2em",
+      outline: "none",
+      border: "1px solid transparent",
+      borderRadius: "1em",
+      padding: ".5em 1em",
+      transition: "border 0.2s ease-in-out",
       "&::placeholder": {
         color: theme.palette.c_gray3
+      },
+      "&:focus": {
+        border: "1px solid" + theme.palette.c_gray5,
+        borderRadius: "1em"
       }
     },
     ".compose-message button": {
@@ -168,6 +185,9 @@ const styles = (theme: any) =>
     ".progress-bar": {
       width: "80%",
       marginBottom: "0.5em"
+    },
+    ".output .markdown": {
+      padding: "0"
     }
   });
 
@@ -337,7 +357,7 @@ const ChatView = ({
   }, []);
 
   return (
-    <div css={styles}>
+    <div className="chat-view" css={styles}>
       <ul className="messages" ref={messagesListRef}>
         {messages.map((msg, index) => (
           <MessageView key={msg.id || `msg-${index}`} {...msg} />
@@ -362,21 +382,27 @@ const ChatView = ({
       <div className="chat-controls">
         <div className="compose-message">
           <TextareaAutosize
+            className="chat-input"
             id={"chat-prompt"}
             aria-labelledby="chat-prompt"
             ref={textareaRef}
             value={prompt}
             onChange={handleOnChange}
             onKeyDown={(e) => {
-              if (
-                e.key === "Enter" &&
-                status === "connected" &&
-                !metaKeyPressed &&
-                !altKeyPressed &&
-                !shiftKeyPressed
-              ) {
-                e.preventDefault();
-                chatPost();
+              if (e.key === "Enter") {
+                if (shiftKeyPressed) {
+                  e.preventDefault();
+                  setPrompt(prompt + "\n");
+                  return;
+                }
+                if (
+                  status === "connected" &&
+                  !metaKeyPressed &&
+                  !altKeyPressed
+                ) {
+                  e.preventDefault();
+                  chatPost();
+                }
               }
             }}
             disabled={submitted}
@@ -397,18 +423,25 @@ const ChatView = ({
               </div>
             }
           >
-            <>
-              <Button
-                disabled={status !== "connected" || prompt.trim() === ""}
-                onClick={() => {
-                  if (!submitted) {
-                    chatPost();
-                  }
-                }}
-              >
-                <SendIcon fontSize="small" />
-              </Button>
-            </>
+            <Button
+              className="chat-send-button"
+              onClick={() => {
+                if (
+                  !submitted &&
+                  !(status !== "connected" || prompt.trim() === "")
+                ) {
+                  chatPost();
+                }
+              }}
+              sx={{
+                marginTop: "0.25em",
+                "& .MuiSvgIcon-root": {
+                  filter: prompt.trim() === "" ? "saturate(0)" : "none"
+                }
+              }}
+            >
+              <SendIcon fontSize="small" />
+            </Button>
           </Tooltip>
         </div>
       </div>

@@ -12,7 +12,7 @@ import {
   IconButton
 } from "@mui/material";
 import { ClearIcon } from "@mui/x-date-pickers/icons";
-import MinimizeIcon from "@mui/icons-material/Minimize";
+import UnfoldLessIcon from "@mui/icons-material/UnfoldLess";
 
 interface WorkflowChatProps {
   workflow_id: string;
@@ -79,13 +79,16 @@ const WorkflowChat: React.FC<WorkflowChatProps> = ({
   return (
     <Fade in={isOpen}>
       <Box
+        className="workflow-chat-container"
         sx={{
           position: "absolute",
           bottom: 0,
           left: "50%",
           transform: "translateX(-50%)",
-          width: "400px",
+          width: isMinimized ? "180px" : "50vw",
           maxHeight: isMinimized ? "64px" : "80vh",
+          height: isMinimized ? "50px" : "50vh",
+          minHeight: isMinimized ? "50px" : "250px",
           display: "flex",
           flexDirection: "column",
           backgroundColor: isOpen
@@ -97,21 +100,30 @@ const WorkflowChat: React.FC<WorkflowChatProps> = ({
           overflow: "hidden",
           m: 0,
           p: 2,
-          transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+          transitionProperty: "width, height, min-height, max-height",
+          transitionDuration: "300ms",
+          transitionTimingFunction: "cubic-bezier(0.4, 0, 0.2, 1)",
           backdropFilter: !isOpen ? "blur(5px)" : "none",
           pointerEvents: isOpen ? "auto" : "none"
         }}
       >
         <Box
+          className="workflow-chat-header"
           sx={{
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            mb: isMinimized ? 0 : 2
+            mb: isMinimized ? 0 : 2,
+            position: "sticky",
+            top: 0,
+            backgroundColor: "background.paper",
+            zIndex: 1,
+            py: 1
           }}
         >
           {!isMinimized && (
             <Button
+              className="reset-chat-button"
               variant="text"
               startIcon={<ClearIcon />}
               onClick={handleReset}
@@ -127,7 +139,22 @@ const WorkflowChat: React.FC<WorkflowChatProps> = ({
             </Button>
           )}
           {isMinimized && (
-            <Typography variant="body2" sx={{ color: "text.secondary" }}>
+            <Typography
+              variant="body2"
+              onClick={handleMinimize}
+              sx={{
+                color: "text.secondary",
+                padding: "0.5em 1em 0 1em",
+                textAlign: "center",
+                width: "100%",
+
+                cursor: "pointer",
+                userSelect: "none",
+                "&:hover": {
+                  color: "c_gray6"
+                }
+              }}
+            >
               Workflow Chat
             </Typography>
           )}
@@ -136,20 +163,24 @@ const WorkflowChat: React.FC<WorkflowChatProps> = ({
             size="small"
             sx={{
               color: "text.secondary",
-              "& svg": {
-                transform: isMinimized ? "rotate(180deg)" : "rotate(0deg)",
-                transition: "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
-              },
               "&:hover": {
                 backgroundColor: "action.hover"
               }
             }}
           >
-            <MinimizeIcon fontSize="small" />
+            {isMinimized ? <></> : <UnfoldLessIcon fontSize="small" />}
           </IconButton>
         </Box>
         {!isMinimized && (
-          <>
+          <Box
+            className="chat-container"
+            sx={{
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              height: "100%"
+            }}
+          >
             {error && <Alert severity="error">{error}</Alert>}
             <Box>
               <Typography variant="body1" sx={{ margin: "0.5em" }}>
@@ -164,7 +195,7 @@ const WorkflowChat: React.FC<WorkflowChatProps> = ({
               progress={progress}
               total={total}
             />
-          </>
+          </Box>
         )}
       </Box>
     </Fade>

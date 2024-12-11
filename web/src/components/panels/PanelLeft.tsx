@@ -28,6 +28,9 @@ const styles = (theme: any) =>
     },
     ".panel-tabs button:hover:not(.Mui-selected)": {
       color: theme.palette.c_gray6
+    },
+    ".messages": {
+      overflowY: "hidden"
     }
   });
 
