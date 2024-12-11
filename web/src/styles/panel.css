@@ -26,11 +26,10 @@ img {
   direction: ltr;
   position: absolute;
   overflow-x: hidden;
-  overflow-y: scroll;
+  overflow-y: auto;
   width: 100%;
   padding: 0.5em;
   height: calc(-51px + 100vh);
-  /*transition: left .3s cubic-bezier(0, 0, 0.2, 1) 0ms;*/
   transition: left 0.25s ease-out;
 }
 

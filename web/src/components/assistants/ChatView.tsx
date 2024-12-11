@@ -20,6 +20,7 @@ import MarkdownRenderer from "../../utils/MarkdownRenderer";
 // constants
 import { TOOLTIP_DELAY } from "../../config/constants";
 import OutputRenderer from "../node/OutputRenderer";
+import { BorderRight } from "@mui/icons-material";
 
 const styles = (theme: any) =>
   css({
@@ -28,14 +29,15 @@ const styles = (theme: any) =>
       height: "100%",
       width: "100%",
       display: "flex",
+      flexGrow: 1,
       flexDirection: "column",
       backgroundColor: theme.palette.c_gray1
     },
     ".messages": {
-      flex: 1,
+      flexGrow: 1,
       overflowY: "auto",
       listStyleType: "none",
-      padding: "0",
+      padding: ".5em",
       margin: "0"
     },
     ".messages li.chat-message": {
@@ -51,17 +53,16 @@ const styles = (theme: any) =>
       fontSize: theme.fontSizeBig
     },
     ".messages li.user": {
-      color: theme.palette.c_gray5,
+      color: theme.palette.c_gray6,
       backgroundColor: theme.palette.c_gray2,
-      marginLeft: "10%"
+      borderRight: "2px solid" + theme.palette.c_gray4
     },
-    ".messages li.user .markdown": {
+    ".messages li .markdown": {
       padding: 0
     },
     ".messages li.assistant": {
-      color: theme.palette.c_white,
-      backgroundColor: theme.palette.c_gray0,
-      marginRight: "10%"
+      color: theme.palette.c_white
+      // borderLeft: "1px solid" + theme.palette.c_gray2
     },
     ".messages li pre": {
       fontFamily: theme.fontFamily2,

@@ -102,7 +102,15 @@ const HelpChat: React.FC = () => {
   ]);
 
   return (
-    <div className="help-chat" style={{ margin: ".5em" }}>
+    <div
+      className="help-chat"
+      style={{
+        margin: ".5em",
+        height: "calc(100% - 4em)",
+        display: "flex",
+        flexDirection: "column"
+      }}
+    >
       <ChatHeader
         isMinimized={false}
         onReset={messages.length > 0 ? handleResetChat : undefined}

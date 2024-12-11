@@ -3,7 +3,7 @@ import useWorkflowChatStore from "../../stores/WorkflowChatStore";
 import { Message } from "../../stores/ApiTypes";
 import ChatView from "./ChatView";
 import { useNodeStore } from "../../stores/NodeStore";
-import { Alert, Box, Fade, Typography } from "@mui/material";
+import { Alert, Box, Fade } from "@mui/material";
 import { ChatHeader } from "./chat/ChatHeader";
 
 interface WorkflowChatProps {
