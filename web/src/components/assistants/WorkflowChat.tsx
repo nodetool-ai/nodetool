@@ -74,9 +74,7 @@ const WorkflowChat: React.FC<WorkflowChatProps> = ({
         position: "absolute",
         bottom: 0,
         left: "50%",
-        transform: "translateX(-50%)",
-        width: "100%",
-        height: "100%"
+        transform: "translateX(-50%)"
       }}
     >
       <Box
