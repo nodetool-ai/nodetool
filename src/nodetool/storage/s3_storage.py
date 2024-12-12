@@ -42,7 +42,10 @@ class S3Storage(AbstractStorage):
         Get the URL for the given S3 object.
         """
         if self.domain:
-            return f"https://{self.domain}/{key}"
+            if self.domain.startswith("http"):
+                return f"{self.domain}/{key}"
+            else:
+                return f"https://{self.domain}/{key}"
         else:
             return f"{self.get_base_url()}/{key}"
 

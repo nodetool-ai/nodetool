@@ -115,7 +115,7 @@ def get_value(
     default values, raise an exception.
     """
     value = secrets.model_dump().get(key) or settings.model_dump().get(key)
-    if value is None:
+    if value is None or str(value) == "":
         value = os.environ.get(key)
 
     if value is None:

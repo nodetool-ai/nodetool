@@ -1,6 +1,7 @@
 import base64
 from io import BytesIO
 from typing import Any
+import openai
 import pydub
 
 from openai.types.chat import ChatCompletion, ChatCompletionMessageParam
@@ -16,9 +17,8 @@ from nodetool.providers.openai.cost_calculation import (
 from nodetool.types.prediction import Prediction, PredictionResult
 
 
-async def create_embedding(prediction: Prediction):
+async def create_embedding(prediction: Prediction, client: openai.AsyncClient):
     assert prediction.model is not None, "Model is not set"
-    client = Environment.get_openai_client()
     res = await client.embeddings.create(
         input=prediction.params["input"], model=prediction.model
     )
@@ -31,9 +31,8 @@ async def create_embedding(prediction: Prediction):
     )
 
 
-async def create_speech(prediction: Prediction):
+async def create_speech(prediction: Prediction, client: openai.AsyncClient):
     assert prediction.model is not None, "Model is not set"
-    client = Environment.get_openai_client()
     params = prediction.params
     res = await client.audio.speech.create(
         model=prediction.model,
@@ -49,10 +48,9 @@ async def create_speech(prediction: Prediction):
 
 
 async def create_chat_completion(
-    prediction: Prediction,
+    prediction: Prediction, client: openai.AsyncClient
 ) -> Any:
     assert prediction.model is not None, "Model is not set"
-    client = Environment.get_openai_client()
     res: ChatCompletion = await client.chat.completions.create(
         model=prediction.model,
         **prediction.params,
@@ -67,11 +65,8 @@ async def create_chat_completion(
     )
 
 
-async def create_whisper(
-    prediction: Prediction,
-) -> Any:
+async def create_whisper(prediction: Prediction, client: openai.AsyncClient) -> Any:
     assert prediction.model is not None, "Model is not set"
-    client = Environment.get_openai_client()
     params = prediction.params
     file = base64.b64decode(params["file"])
     audio_segment: pydub.AudioSegment = pydub.AudioSegment.from_file(BytesIO(file))
@@ -100,8 +95,7 @@ async def create_whisper(
     )
 
 
-async def create_image(prediction: Prediction) -> Any:
-    client = Environment.get_openai_client()
+async def create_image(prediction: Prediction, client: openai.AsyncClient):
     params = prediction.params
     image = await client.images.generate(
         model=prediction.model,
@@ -118,24 +112,29 @@ async def create_image(prediction: Prediction) -> Any:
     )
 
 
-async def run_openai(prediction: Prediction) -> Any:
+async def run_openai(prediction: Prediction, env: dict[str, str]) -> Any:
     model = prediction.model
     assert model is not None, "Model is not set"
 
+    api_key = env.get("OPENAI_API_KEY")
+    assert api_key, "OPENAI_API_KEY is not set"
+
+    client = openai.AsyncClient(api_key=api_key)
+
     if model.startswith("text-embedding-"):
-        yield await create_embedding(prediction)
+        yield await create_embedding(prediction, client)
 
     elif model.startswith("gpt-") or model.startswith("o1-"):
-        yield await create_chat_completion(prediction)
+        yield await create_chat_completion(prediction, client)
 
     elif model.startswith("tts-"):
-        yield await create_speech(prediction)
+        yield await create_speech(prediction, client)
 
     elif model.startswith("whisper-"):
-        yield await create_whisper(prediction)
+        yield await create_whisper(prediction, client)
 
     elif model.startswith("dall-e-"):
-        yield await create_image(prediction)
+        yield await create_image(prediction, client)
 
     else:
         raise ValueError(f"Unsupported model: {model}")

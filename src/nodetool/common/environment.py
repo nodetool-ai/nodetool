@@ -30,20 +30,10 @@ DEFAULT_ENV = {
     "MEMCACHE_HOST": None,
     "MEMCACHE_PORT": None,
     "DB_PATH": str(get_system_file_path("nodetool.sqlite3")),
-    "REPLICATE_API_TOKEN": None,
-    "OPENAI_API_KEY": None,
-    "OLLAMA_API_URL": "http://localhost:11434",
-    "KLING_ACCESS_KEY": None,
-    "KLING_SECRET_KEY": None,
-    "LUMAAI_API_KEY": None,
-    "HF_TOKEN": None,
-    "AIME_USER": None,
-    "AIME_API_KEY": None,
     "ENV": "development",
     "LOG_LEVEL": "INFO",
     "REMOTE_AUTH": "0",
     "DEBUG": None,
-    "USE_NGROK": None,
     "AWS_REGION": "us-east-1",
     "NODETOOL_API_URL": None,
     "SENTRY_DSN": None,
@@ -80,6 +70,20 @@ class Environment(object):
         cls.settings, cls.secrets = load_settings()
 
     @classmethod
+    def get_settings(cls):
+        if cls.settings is None:
+            cls.load_settings()
+        assert cls.settings is not None
+        return cls.settings
+
+    @classmethod
+    def get_secrets(cls):
+        if cls.secrets is None:
+            cls.load_settings()
+        assert cls.secrets is not None
+        return cls.secrets
+
+    @classmethod
     def get(cls, key: str, default: Any = ...):
         if cls.settings is None or cls.secrets is None:
             cls.load_settings()
@@ -102,10 +106,6 @@ class Environment(object):
         from nodetool.models.schema import create_all_tables
 
         create_all_tables()
-
-    @classmethod
-    def get_aws_execution_env(cls):
-        return os.getenv("AWS_EXECUTION_ENV", None)
 
     @classmethod
     def get_aws_region(cls):
@@ -274,24 +274,6 @@ class Environment(object):
             raise Exception("No database adapter configured")
 
     @classmethod
-    def get_aws_access_key_id(cls):
-        """
-        The access key id is the id of the AWS user.
-        """
-        # If we are in production, we don't need an access key id.
-        # We use the IAM role instead.
-        return os.environ.get("AWS_ACCESS_KEY_ID")
-
-    @classmethod
-    def get_aws_secret_access_key(cls):
-        """
-        The secret access key is the secret of the AWS user.
-        """
-        # If we are in production, we don't need a secret access key.
-        # We use the IAM role instead.
-        return os.environ.get("AWS_SECRET_ACCESS_KEY")
-
-    @classmethod
     def get_s3_endpoint_url(cls):
         """
         The endpoint url is the url of the S3 server.
@@ -322,34 +304,6 @@ class Environment(object):
         The region name is the region of the S3 server.
         """
         return os.environ.get("S3_REGION", cls.get_aws_region())
-
-    @classmethod
-    def get_openai_api_key(cls):
-        """
-        The openai api key is the api key of the openai server.
-        """
-        return cls.get("OPENAI_API_KEY")
-
-    @classmethod
-    def get_anthropic_api_key(cls):
-        """
-        The anthropic api key is the api key of the anthropic server.
-        """
-        return cls.get("ANTHROPIC_API_KEY")
-
-    @classmethod
-    def get_aime_user(cls):
-        """
-        The aime user is the user of the aime server.
-        """
-        return cls.get("AIME_USER")
-
-    @classmethod
-    def get_aime_api_key(cls):
-        """
-        The aime api key is the api key of the aime server.
-        """
-        return cls.get("AIME_API_KEY")
 
     @classmethod
     def get_asset_domain(cls):
@@ -420,44 +374,6 @@ class Environment(object):
             )
 
     @classmethod
-    def get_openai_client(cls):
-        from openai import AsyncClient
-
-        assert cls.get_openai_api_key() is not None, "OpenAI API key is not set"
-
-        return AsyncClient(api_key=cls.get_openai_api_key())
-
-    @classmethod
-    def get_anthropic_client(cls, use_async=True):
-        from anthropic import AsyncAnthropic
-
-        assert cls.get_anthropic_api_key() is not None, "Anthropic API key is not set"
-
-        return AsyncAnthropic(
-            api_key=cls.get_anthropic_api_key(),
-            default_headers={"anthropic-beta": "prompt-caching-2024-07-31"},
-        )
-
-    @classmethod
-    def get_ollama_api_url(cls):
-        """
-        The ollama api url is the url of the ollama api server.
-        """
-        return cls.get("OLLAMA_API_URL")
-
-    @classmethod
-    def get_ollama_client(cls):
-        from ollama import AsyncClient
-
-        return AsyncClient(cls.get_ollama_api_url())
-
-    @classmethod
-    def get_lumaai_client(cls):
-        from lumaai import AsyncLumaAI
-
-        return AsyncLumaAI(auth_token=cls.get_lumaai_api_key())
-
-    @classmethod
     def get_chroma_token(cls):
         """
         The chroma token is the token of the chroma server.
@@ -504,86 +420,11 @@ class Environment(object):
         return cls.get("COMFY_FOLDER")
 
     @classmethod
-    def get_sd_url(cls):
-        """
-        The url of the stable diffusion service.
-        """
-        return cls.get("SD_URL")
-
-    @classmethod
     def get_asset_folder(cls):
         """
         The asset folder is the folder where assets are located.
         """
         return cls.get("ASSET_FOLDER")
-
-    @classmethod
-    def get_lm_studio_folder(cls):
-        """
-        The LM Studio folder is the folder where LM Studio is located.
-        """
-        return cls.get("LM_STUDIO_FOLDER")
-
-    @classmethod
-    def get_replicate_api_token(cls):
-        """
-        The API token for replicate.com
-        """
-        return cls.get("REPLICATE_API_TOKEN")
-
-    @classmethod
-    def get_lumaai_api_key(cls):
-        """
-        The Luma AI API key
-        """
-        return cls.get("LUMAAI_API_KEY")
-
-    @classmethod
-    def get_huggingface_token(cls):
-        """
-        The huggingface token.
-        """
-        return cls.get("HF_TOKEN")
-
-    @classmethod
-    def get_ngrok_token(cls):
-        """
-        The ngrok token is the token of the ngrok server.
-        """
-        return cls.get("NGROK_TOKEN")
-
-    @classmethod
-    def get_use_ngrok(cls):
-        """
-        The use ngrok flag is the flag that determines if we use ngrok.
-        """
-        return cls.get("USE_NGROK")
-
-    @classmethod
-    def get_api_tunnel_url(cls):
-        """
-        The api tunnel url is the url of the api tunnel server.
-        """
-        if not hasattr(cls, "api_tunnel_url"):
-            from pyngrok import ngrok
-
-            ngrok_token = cls.get_ngrok_token()
-
-            # run ngrok to expose api port and return the public url
-            # Optionally set your ngrok token if you haven't done so globally
-            ngrok.set_auth_token(ngrok_token)
-
-            # Establish a tunnel to API port (HTTP by default)
-            tunnel = ngrok.connect(cls.get_nodetool_api_url())
-
-            # Retrieve the public URL where the tunnel is accessible
-            assert tunnel.public_url, "No public url found"
-            api_url = tunnel.public_url + "/api"
-            print(f'ngrok tunnel "api_url" -> "{api_url}"')
-
-            cls.api_tunnel_url = api_url
-
-        return cls.api_tunnel_url
 
     @classmethod
     def get_google_client_id(cls):
@@ -653,7 +494,9 @@ class Environment(object):
             else:
                 from nodetool.storage.file_storage import FileStorage
 
-                cls.get_logger().info(f"Using local file storage for asset storage")
+                cls.get_logger().info(
+                    f"Using folder {cls.get_asset_folder()} for asset storage"
+                )
                 cls.asset_storage = FileStorage(
                     base_path=cls.get_asset_folder(),
                     base_url=base_url,
@@ -711,44 +554,6 @@ class Environment(object):
         return cls.logger
 
     @classmethod
-    def get_replicate_client(cls):
-        """
-        The replicate client is a wrapper around the replicate SDK.
-        """
-        import replicate
-
-        if not hasattr(cls, "replicate_client"):
-            cls.replicate_client = replicate.Client(cls.get_replicate_api_token())
-        return cls.replicate_client
-
-    @classmethod
-    def get_aws_client(
-        cls,
-        endpoint_url: str | None = None,
-        access_key_id: str | None = None,
-        secret_access_key: str | None = None,
-        region_name: str | None = None,
-        session_token: str | None = None,
-    ):
-        """
-        The AWS client is a wrapper around the AWS SDK.
-
-        If the class has an instance of AWSClient, return it.
-        """
-        from nodetool.common.aws_client import AWSClient
-
-        if region_name is None:
-            region_name = cls.get_aws_region()
-        return AWSClient(
-            endpoint_url=endpoint_url,
-            access_key_id=access_key_id,
-            secret_access_key=secret_access_key,
-            region_name=region_name,
-            session_token=session_token,
-            log=cls.get_logger(),
-        )
-
-    @classmethod
     def get_google_oauth2_session(cls, state: str | None = None):
         """
         The google oauth2 session is a wrapper around the google SDK.
@@ -781,42 +586,6 @@ class Environment(object):
                 return torch.device("cuda")
         except:
             return torch.device("cpu")
-
-    @classmethod
-    def get_kling_access_key(cls):
-        """
-        The Kling AI API access key.
-        """
-        return cls.get("KLING_ACCESS_KEY")
-
-    @classmethod
-    def get_kling_secret_key(cls):
-        """
-        The Kling AI API secret key.
-        """
-        return cls.get("KLING_SECRET_KEY")
-
-    @classmethod
-    def get_kling_api_url(cls):
-        """
-        The Kling AI API base URL.
-        """
-        return "https://api.klingai.com"
-
-    @classmethod
-    def get_kling_ai_client(cls):
-        """
-        Get the Kling AI API client.
-        """
-        from nodetool.nodes.kling.api import KlingAIAPI
-
-        if not hasattr(cls, "kling_ai_client"):
-            cls.kling_ai_client = KlingAIAPI(
-                access_key=cls.get_kling_access_key(),
-                secret_key=cls.get_kling_secret_key(),
-                base_url=cls.get_kling_api_url(),
-            )
-        return cls.kling_ai_client
 
     @classmethod
     def initialize_sentry(cls):

@@ -6,6 +6,7 @@ from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.metadata.types import VideoRef, ImageRef
 from nodetool.common.environment import Environment
+from nodetool.nodes.kling.api import KlingAIAPI
 import aiohttp
 
 
@@ -63,7 +64,13 @@ class KlingTextToVideo(BaseNode):
     )
 
     async def process(self, context: ProcessingContext) -> VideoRef:
-        client = Environment.get_kling_ai_client()
+        access_key = context.environment["KLING_ACCESS_KEY"]
+        secret_key = context.environment["KLING_SECRET_KEY"]
+
+        assert access_key, "KLING_ACCESS_KEY not set"
+        assert secret_key, "KLING_SECRET_KEY not set"
+
+        client = KlingAIAPI(access_key=access_key, secret_key=secret_key)
 
         request = VideoGenerationRequest(
             prompt=self.prompt,
@@ -121,7 +128,13 @@ class KlingImageToVideo(BaseNode):
     )
 
     async def process(self, context: ProcessingContext) -> VideoRef:
-        client = Environment.get_kling_ai_client()
+        access_key = context.environment["KLING_ACCESS_KEY"]
+        secret_key = context.environment["KLING_SECRET_KEY"]
+
+        assert access_key, "KLING_ACCESS_KEY not set"
+        assert secret_key, "KLING_SECRET_KEY not set"
+
+        client = KlingAIAPI(access_key=access_key, secret_key=secret_key)
 
         image_url = await context.upload_tmp_asset(self.image)
 

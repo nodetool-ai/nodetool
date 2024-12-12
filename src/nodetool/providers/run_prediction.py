@@ -10,7 +10,7 @@ from typing import AsyncGenerator
 
 
 async def run_prediction(
-    prediction: Prediction,
+    prediction: Prediction, env: dict[str, str]
 ) -> AsyncGenerator[PredictionResult | Prediction, None]:
     """
     Run the prediction for a given model.
@@ -26,7 +26,7 @@ async def run_prediction(
 
     if prediction.provider in provider_functions:
         f = provider_functions[prediction.provider]
-        async for msg in f(prediction):
+        async for msg in f(prediction, env):
             yield msg
     else:
         raise ValueError("Provider not supported")

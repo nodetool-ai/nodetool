@@ -17,6 +17,7 @@ build/
 data/
 dist/
 electron/web/
+electron/dist/
 package/
 postgres_data/
 .ipynb_checkpoints

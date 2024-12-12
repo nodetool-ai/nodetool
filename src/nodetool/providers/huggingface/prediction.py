@@ -34,19 +34,19 @@ API_URL = "https://api-inference.huggingface.co/models"
 MAX_RETRY_COUNT = 10
 
 
-async def run_huggingface(
-    prediction: Prediction,
-):
+async def run_huggingface(prediction: Prediction, env: dict[str, str]):
     data = (
         base64.b64decode(prediction.data) if isinstance(prediction.data, str) else None
     )
     model = prediction.model
     log.info(f"Running model {model} on Huggingface.")
 
+    token = env.get("HF_TOKEN")
+    if not token:
+        raise ValueError("HF_TOKEN is not set")
+
     url = f"{API_URL}/{model}"
-    headers = {
-        "Authorization": f"Bearer {Environment.get_huggingface_token()}",
-    }
+    headers = {"Authorization": f"Bearer {token}"}
 
     try:
         async with httpx.AsyncClient(timeout=600) as client:

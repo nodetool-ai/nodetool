@@ -1,4 +1,5 @@
 from typing import AsyncGenerator
+import replicate
 
 import httpx
 from nodetool.types.prediction import Prediction, PredictionResult
@@ -57,7 +58,7 @@ async def get_model_status(owner: str, name: str) -> str:
 
 
 async def run_replicate(
-    prediction: Prediction,
+    prediction: Prediction, env: dict[str, str]
 ) -> AsyncGenerator[Prediction | PredictionResult, None]:
     """
     Run the model on Replicate API
@@ -66,10 +67,13 @@ async def run_replicate(
     params = prediction.params
     assert model, "Model not found"
 
+    token = env.get("REPLICATE_API_TOKEN")
+    assert token, "REPLICATE_API_TOKEN is not set"
+
+    client = replicate.Client(token)
+
     model_info = REPLICATE_MODELS.get(model) or {}
     hardware = model_info.get("hardware", "")
-
-    replicate = Environment.get_replicate_client()
 
     log.info(f"Running model {model}")
     started_at = datetime.now()
@@ -79,7 +83,7 @@ async def run_replicate(
     if not match:
         raise ValueError(f"Invalid model: {model}. Expected format: owner/name:version")
     version_id = match.group("version")
-    replicate_pred = replicate.predictions.create(
+    replicate_pred = client.predictions.create(
         version=version_id,
         input=params,
     )
@@ -92,7 +96,7 @@ async def run_replicate(
         current_status = "starting"
 
     for i in range(1800):
-        replicate_pred = replicate.predictions.get(replicate_pred.id)
+        replicate_pred = client.predictions.get(replicate_pred.id)
 
         if current_status == "booting" and replicate_pred.status == "starting":
             prediction.status = "booting"

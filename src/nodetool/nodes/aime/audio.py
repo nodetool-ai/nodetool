@@ -50,12 +50,6 @@ class TortoiseTTS(BaseNode):
         return "Tortoise TTS"
 
     async def process(self, context: ProcessingContext) -> AudioRef:
-        auth_key = await fetch_auth_key(
-            user=Environment.get_aime_user(),
-            key=Environment.get_aime_api_key(),
-            model="tts_tortoise",
-        )
-
         payload = {
             "language": "eng",
             "voice": self.voice.value,
@@ -80,7 +74,6 @@ class TortoiseTTS(BaseNode):
             model="tts_tortoise",
             params={
                 "data": payload,
-                "auth_key": auth_key,
                 "progress_callback": progress_callback,
             },
         )

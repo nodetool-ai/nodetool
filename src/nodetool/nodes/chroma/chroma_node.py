@@ -23,12 +23,10 @@ class ChromaNode(BaseNode):
         for id in ids:
             asset = await context.find_asset(str(id))
             if asset.content_type.startswith("image"):
-                uri = await context.get_asset_url(asset.id)
-                ref = ImageRef(asset_id=asset.id, uri=uri)
+                ref = ImageRef(asset_id=asset.id)
                 asset_refs.append(ref)
             if asset.content_type.startswith("text"):
-                uri = await context.get_asset_url(asset.id)
-                ref = TextRef(asset_id=asset.id, uri=uri)
+                ref = TextRef(asset_id=asset.id)
                 asset_refs.append(ref)
         return asset_refs
 
@@ -43,13 +41,13 @@ class ChromaNode(BaseNode):
             collection: The collection to get or create.
         """
         from chromadb.utils import data_loaders
-        from chromadb.utils.embedding_functions.open_clip_embedding_function import (
+        from chromadb.utils.embedding_functions.open_clip_embedding_function import (  # type: ignore
             OpenCLIPEmbeddingFunction,
         )
-        from chromadb.utils.embedding_functions.openai_embedding_function import (
+        from chromadb.utils.embedding_functions.openai_embedding_function import (  # type: ignore
             OpenAIEmbeddingFunction,
         )
-        from chromadb.utils.embedding_functions.ollama_embedding_function import (
+        from chromadb.utils.embedding_functions.ollama_embedding_function import (  # type: ignore
             OllamaEmbeddingFunction,
         )
 
@@ -63,8 +61,10 @@ class ChromaNode(BaseNode):
             == ChromaEmbeddingFunctionEnum.OPENAI
         ):
             assert collection.embedding_function.model is not None
+            api_key = context.environment["OPENAI_API_KEY"]
+
             embedding_function = OpenAIEmbeddingFunction(
-                api_key=Environment.get_openai_api_key(),
+                api_key=api_key,
                 model_name=collection.embedding_function.model,
             )
         elif (
@@ -72,8 +72,9 @@ class ChromaNode(BaseNode):
             == ChromaEmbeddingFunctionEnum.OLLAMA
         ):
             assert collection.embedding_function.model is not None
+            api_url = context.environment["OLLAMA_API_URL"]
             embedding_function = OllamaEmbeddingFunction(
-                url=Environment.get_ollama_api_url(),
+                url=api_url,
                 model_name=collection.embedding_function.model,
             )
         else:

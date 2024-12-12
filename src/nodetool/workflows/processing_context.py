@@ -3,6 +3,7 @@ from enum import Enum
 import io
 import json
 import multiprocessing
+import os
 import queue
 import urllib.parse
 import uuid
@@ -46,7 +47,6 @@ from nodetool.metadata.types import (
     AudioRef,
     ColumnDef,
     DataframeRef,
-    FunctionModel,
     ImageRef,
     ModelRef,
     TextRef,
@@ -108,6 +108,7 @@ class ProcessingContext:
         workflow_id: str = "",
         graph: Graph = Graph(),
         variables: dict[str, Any] | None = None,
+        environment: dict[str, str] | None = None,
         results: dict[str, Any] | None = None,
         message_queue: Union[
             queue.Queue, asyncio.Queue, multiprocessing.Queue, None
@@ -126,6 +127,9 @@ class ProcessingContext:
         self.message_queue = message_queue if message_queue else asyncio.Queue()
         self.device = device
         self.variables: dict[str, Any] = variables if variables else {}
+        self.environment: dict[str, str] = (
+            environment if environment else dict(os.environ)
+        )
         self.endpoint_url = endpoint_url
         self.http_client = (
             httpx.AsyncClient(follow_redirects=True, timeout=600, verify=False)
@@ -134,6 +138,12 @@ class ProcessingContext:
         )
         assert self.auth_token is not None, "Auth token is required"
         self.encode_assets_as_base64 = encode_assets_as_base64
+
+        settings = Environment.get_settings()
+        secrets = Environment.get_secrets()
+
+        self.environment.update(settings.model_dump())
+        self.environment.update(secrets.model_dump())
 
     def copy(self):
         return ProcessingContext(
@@ -145,6 +155,7 @@ class ProcessingContext:
             message_queue=self.message_queue,
             device=self.device,
             variables=self.variables,
+            environment=self.environment,
             http_client=self.http_client,
         )
 
@@ -159,6 +170,7 @@ class ProcessingContext:
     def get(self, key: str, default: Any = None) -> Any:
         """
         Gets the value of a variable from the context.
+        This is also used to set and retrieve api keys.
 
         Args:
             key (str): The key of the variable.
@@ -419,7 +431,7 @@ class ProcessingContext:
         # used for help endpoint
         prediction = Prediction(
             id="",
-            user_id="",
+            user_id=self.user_id,
             status="",
             provider=provider,
             model=model,
@@ -429,7 +441,7 @@ class ProcessingContext:
             data=data,
         )
 
-        async for msg in run_prediction(prediction):
+        async for msg in run_prediction(prediction, self.environment):
             if isinstance(msg, PredictionResult):
                 # TODO: save prediction result
                 return msg.decode_content()
@@ -1404,20 +1416,6 @@ class ProcessingContext:
         else:
             return value
 
-    async def image_from_openai(self, file_id: str) -> "ImageRef":
-        """
-        Creates an ImageRef from an OpenAI ImageFile object.
-
-        Args:
-            file_id (str): The ID of the file.
-
-        Returns:
-            ImageRef: The ImageRef object.
-        """
-        client = Environment.get_openai_client()
-        res = await client.files.content(file_id)
-        return await self.image_from_bytes(res.content)
-
     async def run_worker(self, req: RunJobRequest) -> dict[str, Any]:
         """
         Runs the workflow using the provided graph and parameters.
@@ -1445,11 +1443,6 @@ class ProcessingContext:
 
         if req.env is None:
             req.env = {}
-
-        if Environment.get_use_ngrok():
-            api_tunnel_url = Environment.get_api_tunnel_url()
-            req.env["NODETOOL_API_URL"] = api_tunnel_url
-            req.env["S3_ENDPOINT_URL"] = f"{api_tunnel_url}/storage"
 
         log.info("===== Run remote worker ====")
         log.info(url)

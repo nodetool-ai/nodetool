@@ -37,25 +37,29 @@ async def fetch_auth_key(model: str, user: str, key: str) -> str:
 
 
 async def run_aime(
-    prediction: Prediction,
+    prediction: Prediction, env: dict[str, str]
 ) -> AsyncGenerator[PredictionResult, None]:
     params = prediction.params
     model = prediction.model
     payload = params.get("data", {})
-    auth_key = params.get("auth_key", None)
     progress_callback = params.get("progress_callback", None)
+    user = env.get("AIME_USER")
+    api_key = env.get("AIME_API_KEY")
 
-    print(f"Running AIME prediction with model {model} and payload {payload}")
-
-    assert auth_key, "Auth key is required"
+    assert user, "AIME_USER not set"
+    assert api_key, "AIME_API_KEY not set"
     assert payload, "Payload is required"
     assert progress_callback, "Progress callback is required"
+    assert model, "model is required"
+
+    auth_key = await fetch_auth_key(model, user, api_key)
 
     async with httpx.AsyncClient() as client:
         response = await client.post(
             f"https://api.aime.info/{model}",
             json={
                 **payload,
+                "auth_key": auth_key,
                 "wait_for_result": False,
                 "client_session_auth_key": auth_key,
             },

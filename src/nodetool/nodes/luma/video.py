@@ -1,9 +1,7 @@
 import enum
 from io import BytesIO
-import tempfile
-import uuid
 import lumaai
-from typing import Any, Optional
+from lumaai import AsyncLumaAI
 from pydantic import Field
 from nodetool.types.prediction import Prediction
 from nodetool.workflows.base_node import BaseNode
@@ -43,8 +41,8 @@ class TextToVideo(BaseNode):
     )
 
     async def process(self, context: ProcessingContext) -> VideoRef:
-        client = Environment.get_lumaai_client()
-
+        auth_token = context.environment.get("LUMAAI_API_KEY")
+        client = AsyncLumaAI(auth_token=auth_token)
         generation = await client.generations.create(
             prompt=self.prompt, loop=self.loop, aspect_ratio=self.aspect_ratio.value
         )
@@ -101,7 +99,8 @@ class ImageToVideo(BaseNode):
     )
 
     async def process(self, context: ProcessingContext) -> VideoRef:
-        client = Environment.get_lumaai_client()
+        auth_token = context.environment.get("LUMAAI_API_KEY")
+        client = AsyncLumaAI(auth_token=auth_token)
 
         image_url = await context.upload_tmp_asset(self.image)
 
