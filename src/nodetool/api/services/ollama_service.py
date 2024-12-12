@@ -1,10 +1,19 @@
 import json
+import os
 from typing import AsyncGenerator
 from nodetool.common.environment import Environment
 from nodetool.metadata.types import LlamaModel
+from ollama import AsyncClient
 
 # Simple module-level cache
 _cached_ollama_models = None
+
+
+def get_ollama_client():
+    api_url = Environment.get("OLLAMA_API_URL")
+    assert api_url, "OLLAMA_API_URL not set"
+
+    return AsyncClient(api_url)
 
 
 async def get_ollama_models() -> list[LlamaModel]:
@@ -13,7 +22,7 @@ async def get_ollama_models() -> list[LlamaModel]:
     if Environment.is_production() and _cached_ollama_models is not None:
         return _cached_ollama_models
 
-    ollama = Environment.get_ollama_client()
+    ollama = get_ollama_client()
     models = await ollama.list()
     result = [
         LlamaModel(
@@ -33,7 +42,7 @@ async def get_ollama_models() -> list[LlamaModel]:
 
 
 async def get_ollama_model_info(model_name: str) -> dict | None:
-    ollama = Environment.get_ollama_client()
+    ollama = get_ollama_client()
     try:
         res = await ollama.show(model_name)
     except Exception:
@@ -42,7 +51,7 @@ async def get_ollama_model_info(model_name: str) -> dict | None:
 
 
 async def stream_ollama_model_pull(model_name: str) -> AsyncGenerator[str, None]:
-    ollama = Environment.get_ollama_client()
+    ollama = get_ollama_client()
     res = await ollama.pull(model_name, stream=True)
     async for chunk in res:
         yield json.dumps(chunk) + "\n"

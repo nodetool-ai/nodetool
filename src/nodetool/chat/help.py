@@ -5,6 +5,7 @@ import ollama
 
 import chromadb
 
+from nodetool.api.services.ollama_service import get_ollama_client
 from nodetool.chat.chat import process_messages, process_tool_calls
 from nodetool.chat.tools import Tool, sanitize_node_name
 from nodetool.common.environment import Environment
@@ -488,7 +489,7 @@ async def create_help_answer(
 ) -> list[Message]:
     assert len(messages) > 0
 
-    client = Environment.get_ollama_client()
+    client = get_ollama_client()
 
     prompt = str(messages[-1].content)
 

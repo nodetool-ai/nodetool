@@ -30,6 +30,7 @@ DEFAULT_ENV = {
     "MEMCACHE_HOST": None,
     "MEMCACHE_PORT": None,
     "DB_PATH": str(get_system_file_path("nodetool.sqlite3")),
+    "OLLAMA_API_URL": "http://localhost:11434",
     "ENV": "development",
     "LOG_LEVEL": "INFO",
     "REMOTE_AUTH": "0",
@@ -82,6 +83,18 @@ class Environment(object):
             cls.load_settings()
         assert cls.secrets is not None
         return cls.secrets
+
+    @classmethod
+    def get_environment(cls):
+        settings = cls.get_settings()
+        secrets = cls.get_secrets()
+
+        env = DEFAULT_ENV.copy()
+        env.update(os.environ)
+        env.update(settings.model_dump())
+        env.update(secrets.model_dump())
+
+        return env
 
     @classmethod
     def get(cls, key: str, default: Any = ...):

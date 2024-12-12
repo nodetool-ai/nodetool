@@ -139,11 +139,8 @@ class ProcessingContext:
         assert self.auth_token is not None, "Auth token is required"
         self.encode_assets_as_base64 = encode_assets_as_base64
 
-        settings = Environment.get_settings()
-        secrets = Environment.get_secrets()
-
-        self.environment.update(settings.model_dump())
-        self.environment.update(secrets.model_dump())
+        env = Environment.get_environment()
+        self.environment.update(env)
 
     def copy(self):
         return ProcessingContext(
