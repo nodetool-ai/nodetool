@@ -14,13 +14,18 @@
     "isolatedModules": true,
     "noEmit": true,
     "lib": ["dom", "dom.iterable", "esnext"],
-    "jsx": "react-jsx"
+    "jsx": "react-jsx",
+    "sourceMap": true,
+    "inlineSourceMap": false,
+    "inlineSources": true
   },
   "terserOptions": {
     "compress": false,
     "mangle": false, 
     "keep_classnames": true,
-    "keep_fnames": true
+    "keep_fnames": true,
+    "sourceMap": true,
+    "minify": false
   },
   "include": ["web/src"],
   "references": [{ "path": "./tsconfig.node.json" }]
