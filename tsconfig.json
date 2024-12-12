@@ -17,7 +17,7 @@
     "jsx": "react-jsx"
   },
   "terserOptions": {
-    "compress": true,
+    "compress": false,
     "mangle": false, 
     "keep_classnames": true,
     "keep_fnames": true
