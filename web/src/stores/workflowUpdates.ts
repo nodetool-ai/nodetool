@@ -4,7 +4,8 @@ import {
   Prediction,
   NodeProgress,
   NodeUpdate,
-  AssetRef
+  AssetRef,
+  Message
 } from "./ApiTypes";
 import useResultsStore from "./ResultsStore";
 import { useNodeStore } from "./NodeStore";
@@ -17,7 +18,7 @@ import useWorkflowRunner from "./WorkflowRunner";
 
 export const handleUpdate = (
   workflow: WorkflowAttributes,
-  data: JobUpdate | Prediction | NodeProgress | NodeUpdate
+  data: JobUpdate | Prediction | NodeProgress | NodeUpdate | Message
 ) => {
   const runner = useWorkflowRunner.getState();
   const getAsset = useAssetStore.getState().get;
@@ -86,9 +87,9 @@ export const handleUpdate = (
 
   if (data.type === "node_update") {
     const update = data as NodeUpdate;
-    const node = findNode(data.node_id);
+    const node = findNode(update.node_id);
     if (!node) {
-      devError("received message for deleted node", data.node_id);
+      devError("received message for deleted node", update.node_id);
       return;
     }
 
@@ -111,7 +112,7 @@ export const handleUpdate = (
     }
 
     if (update.status === "completed") {
-      setResult(workflow.id, data.node_id, update.result);
+      setResult(workflow.id, update.node_id, update.result);
 
       if (update.result) {
         Object.entries(update.result).forEach(([key, value]) => {
@@ -123,7 +124,7 @@ export const handleUpdate = (
                 if (res?.get_url) {
                   ref.uri = res.get_url;
                 }
-                setResult(workflow.id, data.node_id, { [key]: ref });
+                setResult(workflow.id, update.node_id, { [key]: ref });
               });
             } else {
               devError(
@@ -136,9 +137,9 @@ export const handleUpdate = (
     }
 
     if (update.properties) {
-      const nodeData = findNode(data.node_id)?.data;
+      const nodeData = findNode(update.node_id)?.data;
       if (nodeData) {
-        updateNode(data.node_id, {
+        updateNode(update.node_id, {
           ...nodeData,
           properties: { ...nodeData.properties, ...update.properties }
         });

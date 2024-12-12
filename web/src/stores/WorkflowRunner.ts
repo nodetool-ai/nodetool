@@ -24,7 +24,7 @@ import { useNotificationStore, Notification } from "./NotificationStore";
 import useStatusStore from "./StatusStore";
 import useLogsStore from "./LogStore";
 import useErrorStore from "./ErrorStore";
-import msgpack from "msgpack-lite";
+import msgpack from "@msgpack/msgpack";
 import { handleUpdate } from "./workflowUpdates";
 
 export type ProcessingContext = {
@@ -65,6 +65,8 @@ export type WorkflowRunner = {
   disconnect: () => void;
 };
 
+type MsgpackData = JobUpdate | Prediction | NodeProgress | NodeUpdate;
+
 const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
   socket: null,
   current_url: "",
@@ -99,7 +101,7 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
       // TODO: this needs to be part of the payload
       const workflow = useNodeStore.getState().workflow;
       const arrayBuffer = await event.data.arrayBuffer();
-      const data = msgpack.decode(new Uint8Array(arrayBuffer));
+      const data = msgpack.decode(new Uint8Array(arrayBuffer)) as MsgpackData;
       get().readMessage(workflow, data);
     };
 

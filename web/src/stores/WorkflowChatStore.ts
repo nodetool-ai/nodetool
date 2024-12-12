@@ -1,9 +1,15 @@
 import { create } from "zustand";
-import { JobUpdate, Message, NodeProgress, NodeUpdate } from "./ApiTypes";
+import {
+  JobUpdate,
+  Message,
+  NodeProgress,
+  NodeUpdate,
+  Prediction
+} from "./ApiTypes";
 import { CHAT_URL } from "./ApiClient";
 import { useAuth } from "./useAuth";
 import { devError, devLog } from "../utils/DevLog";
-import msgpack from "msgpack-lite";
+import msgpack from "@msgpack/msgpack";
 import { useNodeStore } from "./NodeStore";
 import { handleUpdate } from "./workflowUpdates";
 
@@ -21,6 +27,8 @@ type WorkflowChatState = {
   sendMessage: (message: Message) => Promise<void>;
   resetMessages: () => void;
 };
+
+type MsgpackData = JobUpdate | Prediction | NodeProgress | NodeUpdate | Message;
 
 const useWorkflowChatStore = create<WorkflowChatState>((set, get) => ({
   socket: null,
@@ -55,7 +63,7 @@ const useWorkflowChatStore = create<WorkflowChatState>((set, get) => ({
 
     socket.onmessage = async (event) => {
       const arrayBuffer = await event.data.arrayBuffer();
-      const data = msgpack.decode(new Uint8Array(arrayBuffer));
+      const data = msgpack.decode(new Uint8Array(arrayBuffer)) as MsgpackData;
 
       if (data.type === "message") {
         set((state) => ({
