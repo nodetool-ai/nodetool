@@ -15,32 +15,54 @@ ENV PYTHONPATH="/app"
 RUN apt-get update && \
     apt-get upgrade -y && \
     apt-get install -y --no-install-recommends \
-    ffmpeg \
-    git \
+    # Python and build essentials
+    python3-dev \
+    python3-venv \
+    python3-setuptools \
+    python3-wheel \
+    python3-distutils \
+    python3-doc \
+    python3-tk \
+    python3-pip \
+    build-essential \
     gcc \
     g++ \
-    build-essential \
+    git \
     wget \
     curl \
     software-properties-common \
-    python3-dev \
-    python3-venv \
-    python3-tk \
-    python3-setuptools \
-    python3-wheel \
-    tesseract-ocr \
-    python3-pip \
-    libssl-dev \
-    libffi-dev \
-    liblzma-dev \
-    libsqlite3-dev \
-    libcairo2-dev \
-    libgl1 \
-    libgl1-mesa-glx \
+
+    # Scientific Computing Libraries
+    libblas-dev \
+    liblapack-dev \
+    libatlas-base-dev \
+    libopenblas-dev \
+    libopenblas-base \
+    gfortran \
+    libeigen3-dev \
+    libgsl-dev \
+    intel-mkl \
+
+    # Image Processing
+    libopencv-dev \
+    libjpeg-dev \
+    libpng-dev \
+    libtiff-dev \
+    libwebp-dev \
+    libgif-dev \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+
+    # Audio and Video Processing
+    ffmpeg \
+    libsndfile1 \
+    libsndfile1-dev \
+    libasound2-dev \
+    portaudio19-dev \
     libopus-dev \
     libfdk-aac-dev \
     libx264-dev \
-    libwebp-dev \
     libmp3lame-dev \
     libtheora-dev \
     libvpx-dev \
@@ -51,14 +73,32 @@ RUN apt-get update && \
     libswscale-dev \
     libswresample-dev \
     libpostproc-dev \
-    libjpeg-dev \
-    libpng-dev \
-    libtiff-dev \
-    libgif-dev \
-    libsndfile1-dev \
     libgstreamer1.0-dev \
-    libgstreamer-plugins-base1.0-dev && \
-    apt-get clean && \  
+    libgstreamer-plugins-base1.0-dev \
+
+    # Data Processing and Storage
+    libhdf5-dev \
+    libhdf5-serial-dev \
+    libboost-all-dev \
+    libxml2-dev \
+    libxslt1-dev \
+    libsqlite3-dev \
+
+    # Document Processing
+    pandoc \
+    texlive-xetex \
+    tesseract-ocr \
+    graphviz \
+
+    # System Libraries
+    libssl-dev \
+    libffi-dev \
+    liblzma-dev \
+    libcairo2-dev \
+    libgl1 \
+    libgl1-mesa-glx \
+    nvidia-cuda-toolkit && \
+    apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
     echo "en_US.UTF-8 UTF-8" > /etc/locale.gen
 
