@@ -432,48 +432,7 @@ function SettingsMenu() {
             </Typography>
           </div>
 
-          <div className="settings-item">
-            <FormControl>
-              <InputLabel htmlFor={id}>Workflow Menu Order</InputLabel>
-              <Select
-                id={id}
-                labelId={id}
-                value={settings.workflowOrder === "name" ? "name" : "date"}
-                variant="standard"
-                onChange={(e) =>
-                  setWorkflowOrder(e.target.value === "name" ? "name" : "date")
-                }
-              >
-                <MenuItem value={"name"}>Name</MenuItem>
-                <MenuItem value={"date"}>Date</MenuItem>
-              </Select>
-            </FormControl>
-            <Typography className="description">
-              Sort <Link to="/workflows"> Workflows</Link> by name or date.
-            </Typography>
-          </div>
           <Typography variant="h3">Assets</Typography>
-          <div className="settings-item">
-            <TextField
-              type="number"
-              autoComplete="off"
-              inputProps={{
-                min: 1,
-                max: 10,
-                onClick: (e: React.MouseEvent<HTMLInputElement>) => {
-                  e.currentTarget.select();
-                }
-              }}
-              id="asset-item-size-input"
-              label="Asset item size"
-              value={settings.assetItemSize}
-              onChange={(e) => setAssetItemSize(Number(e.target.value))}
-              variant="standard"
-            />
-            <Typography className="description">
-              Default size for items in the asset browser.
-            </Typography>
-          </div>
 
           <Typography variant="h3">Appearance</Typography>
           <div className="settings-item">
