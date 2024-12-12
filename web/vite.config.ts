@@ -22,7 +22,13 @@ async function createViteConfig() {
       svgr()
     ],
     build: {
-      target: browserslistToEsbuild([">0.2%", "not dead", "not op_mini all"])
+      target: browserslistToEsbuild([">0.2%", "not dead", "not op_mini all"]),
+      minify: false,
+      rollupOptions: {
+        output: {
+          manualChunks: undefined
+        }
+      }
     }
   });
 }
