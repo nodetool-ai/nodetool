@@ -15,7 +15,7 @@ const net = require("net");
 
 const webPath = app.isPackaged
   ? path.join(process.resourcesPath, "web")
-  : path.join(__dirname, "../web");
+  : path.join(__dirname, "../web/dist");
 
 let nodeToolBackendProcess = null;
 let isAppQuitting = false;
@@ -72,10 +72,6 @@ async function startNodeToolBackendProcess() {
     "--static-folder",
     webPath,
   ];
-
-  if (!app.isPackaged) {
-    args.push("--reload");
-  }
 
   logMessage(`Using command: ${pythonExecutablePath} ${args.join(" ")}`);
 
