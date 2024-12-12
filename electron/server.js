@@ -52,11 +52,11 @@ async function findFreePort(startPort = 8088) {
 async function startNodeToolBackendProcess() {
   emitBootMessage("Configuring server environment...");
 
-  const freePort = await findFreePort(3000);
+  // const freePort = await findFreePort(3000);
 
-  if (app.isPackaged) {
-    serverState.initialURL = `http://127.0.0.1:${freePort}`;
-  }
+  // if (app.isPackaged) {
+  //   serverState.initialURL = `http://127.0.0.1:${freePort}`;
+  // }
 
   const pythonExecutablePath =
     process.platform === "win32"
@@ -68,7 +68,7 @@ async function startNodeToolBackendProcess() {
     "nodetool.cli",
     "serve",
     "--port",
-    freePort.toString(),
+    "8000",
     "--static-folder",
     webPath,
   ];
