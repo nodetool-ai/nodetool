@@ -18,9 +18,6 @@ class SettingsModel(BaseModel):
     CHROMA_PATH: str | None = Field(
         default=None, description="Location of ChromaDB folder"
     )
-    ASSET_FOLDER: str | None = Field(
-        default=None, description="Location of asset folder"
-    )
 
 
 class SecretsModel(BaseModel):

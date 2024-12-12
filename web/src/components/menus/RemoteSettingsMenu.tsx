@@ -68,7 +68,6 @@ const RemoteSettings = ({
   const [settings, setSettings] = useState({
     COMFY_FOLDER: "",
     CHROMA_PATH: "",
-    ASSET_FOLDER: "",
     OPENAI_API_KEY: "",
     ANTHROPIC_API_KEY: "",
     HF_TOKEN: "",
@@ -93,7 +92,6 @@ const RemoteSettings = ({
       setSettings({
         COMFY_FOLDER: data.settings.COMFY_FOLDER || "",
         CHROMA_PATH: data.settings.CHROMA_PATH || "",
-        ASSET_FOLDER: data.settings.ASSET_FOLDER || "",
         OPENAI_API_KEY: data.secrets.OPENAI_API_KEY || "",
         ANTHROPIC_API_KEY: data.secrets.ANTHROPIC_API_KEY || "",
         HF_TOKEN: data.secrets.HF_TOKEN || "",
@@ -112,13 +110,12 @@ const RemoteSettings = ({
   }, []);
 
   const handleSave = useCallback(() => {
-    const { COMFY_FOLDER, CHROMA_PATH, ASSET_FOLDER, ...secrets } = settings;
+    const { COMFY_FOLDER, CHROMA_PATH, ...secrets } = settings;
     updateSettingsMutation.mutate(
       {
         settings: {
           COMFY_FOLDER,
-          CHROMA_PATH,
-          ASSET_FOLDER
+          CHROMA_PATH
         },
         secrets
       },
@@ -403,25 +400,6 @@ const RemoteSettings = ({
             <Typography className="description">
               Set the path to your ChromaDB storage folder. ChromaDB is used to
               store and retrieve embeddings for semantic search.
-            </Typography>
-          </div>
-
-          <Typography variant="h3">Assets</Typography>
-
-          <div className="settings-item">
-            <TextField
-              autoComplete="off"
-              id="asset-folder-input"
-              label="Asset Folder"
-              value={settings.ASSET_FOLDER}
-              onChange={(e) => handleChange("ASSET_FOLDER", e.target.value)}
-              variant="standard"
-            />
-            <Typography className="description">
-              Set the path to your asset storage folder.
-              <br />
-              This folder is used to store images and other assets for your
-              workflows.
             </Typography>
           </div>
         </div>

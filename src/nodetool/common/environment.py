@@ -26,7 +26,6 @@ DEFAULT_ENV = {
     "CHROMA_URL": None,
     "CHROMA_PATH": str(get_system_file_path("chroma")),
     "COMFY_FOLDER": None,
-    "ASSET_FOLDER": str(get_system_file_path("assets")),
     "MEMCACHE_HOST": None,
     "MEMCACHE_PORT": None,
     "DB_PATH": str(get_system_file_path("nodetool.sqlite3")),
@@ -437,7 +436,7 @@ class Environment(object):
         """
         The asset folder is the folder where assets are located.
         """
-        return cls.get("ASSET_FOLDER")
+        return str(get_system_file_path("assets"))
 
     @classmethod
     def get_google_client_id(cls):
