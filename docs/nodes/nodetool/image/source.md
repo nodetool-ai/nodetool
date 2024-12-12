@@ -15,7 +15,7 @@ This node is mainly used for generating a base layer for image processing tasks.
 **Fields:**
 - **width** (int)
 - **height** (int)
-- **color** (str)
+- **color** (ColorRef)
 
 
 ## GaussianNoise
@@ -58,7 +58,7 @@ The Render Text Node offers customizable options, including the ability to choos
 - **x**: The x coordinate. (float)
 - **y**: The y coordinate. (float)
 - **size**: The font size. (int)
-- **color**: The font color. (str)
+- **color**: The font color. (ColorRef)
 - **align** (TextAlignment)
 - **image**: The image to render on. (ImageRef)
 

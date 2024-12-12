@@ -1,7 +1,5 @@
 # nodetool.nodes.nodetool.input
 
-## AssetSchemaMixin
-
 ## AudioFolder
 
 Folder of audio assets input for workflows.
@@ -56,10 +54,6 @@ Use cases:
 - **description**: The description for this input node. (str)
 - **value** (bool)
 
-### get_json_schema
-
-**Args:**
-
 
 ## ChatInput
 
@@ -76,11 +70,7 @@ Use cases:
 - **label**: The label for this input node. (str)
 - **name**: The parameter name for the workflow. (str)
 - **description**: The description for this input node. (str)
-- **value** (str)
-
-### get_json_schema
-
-**Args:**
+- **value**: The chat message to use as input. (list[nodetool.metadata.types.Message])
 
 
 ## FloatInput
@@ -101,10 +91,6 @@ Use cases:
 - **value** (float)
 - **min** (float)
 - **max** (float)
-
-### get_json_schema
-
-**Args:**
 
 
 ## Folder
@@ -195,10 +181,6 @@ Use cases:
 - **min** (int)
 - **max** (int)
 
-### get_json_schema
-
-**Args:**
-
 
 ## StringInput
 
@@ -216,10 +198,6 @@ Use cases:
 - **name**: The parameter name for the workflow. (str)
 - **description**: The description for this input node. (str)
 - **value** (str)
-
-### get_json_schema
-
-**Args:**
 
 
 ## TextFolder
@@ -257,10 +235,6 @@ Use cases:
 - **name**: The parameter name for the workflow. (str)
 - **description**: The description for this input node. (str)
 - **value**: The text to use as input. (TextRef)
-
-### get_json_schema
-
-**Args:**
 
 
 ## VideoFolder

@@ -18,44 +18,6 @@ Concatenate a list of audio segments
 
 **Returns:** AudioSegment
 
-### convert_audio_format
-
-Convert the audio to the given format.
-
-
-**Args:**
-
-- **audio (AudioSegment)**: The audio to convert.
-- **format (str)**: The format to convert the audio to.
-
-
-**Returns:**
-
-- **AudioSegment**: The converted audio segment.
-**Args:**
-- **audio (AudioSegment)**
-- **format (str)**
-
-**Returns:** AudioSegment
-
-### convert_audio_to_bytes
-
-Convert the audio to bytes.
-
-
-**Args:**
-
-- **audio (AudioSegment)**: The audio to convert.
-
-
-**Returns:**
-
-- **bytes**: The audio as bytes.
-**Args:**
-- **audio (AudioSegment)**
-
-**Returns:** bytes
-
 ### convert_to_float
 
 Converts audio data from integer format to float format.

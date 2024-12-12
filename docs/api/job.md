@@ -1,5 +1,11 @@
 # nodetool.api.job
 
+### create
+
+**Args:**
+- **job_request (RunJobRequest)**
+- **user (User) (default: Depends(current_user))**
+
 ### get
 
 Returns the status of a job.
@@ -24,6 +30,8 @@ Returns all assets for a given user or workflow.
 
 **Args:**
 - **job_request (RunJobRequest)**
+- **request (Request)**
+- **stream (bool) (default: False)**
 - **user (User) (default: Depends(current_user))**
 
 ### update

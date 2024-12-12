@@ -188,6 +188,16 @@ Use cases:
 - **axis** (int | None)
 
 
+## NearestNeighbors
+
+Stores input embeddings in a database and retrieves the nearest neighbors for a query embedding.
+
+**Fields:**
+- **documents**: The list of documents to search (list[nodetool.metadata.types.Tensor])
+- **query**: The query to search for (Tensor)
+- **n_neighbors**: The number of neighbors to return (int)
+
+
 ## PlotTSNE
 
 Create a t-SNE plot for high-dimensional tensor data.

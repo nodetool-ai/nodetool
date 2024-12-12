@@ -27,6 +27,8 @@ Values will be converted for model files and enums.
 - **Any**: The result of the processing.
 **Args:**
 - **context (ProcessingContext)**
+- **name (str | None) (default: None)**
+- **kwargs**
 
 ### convert_output
 
@@ -54,9 +56,24 @@ Comfy data types are wrapped with their respective classes.
 
 **Returns:** str
 
+### pre_process
+
+**Args:**
+- **context (ProcessingContext)**
+
+### properties_for_client
+
+**Args:**
+
 ### required_inputs
 
 **Args:**
+
+### requires_gpu
+
+**Args:**
+
+**Returns:** bool
 
 
 ## DensePoseModel

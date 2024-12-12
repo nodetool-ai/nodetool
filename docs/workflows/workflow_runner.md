@@ -1,5 +1,7 @@
 # nodetool.workflows.workflow_runner
 
+## OrderedLock
+
 ## WorkflowRunner
 
 Executes a directed acyclic graph (DAG) of computational nodes with parallel processing and result caching.
@@ -11,12 +13,10 @@ Key Features:
 5. Resource Management: Allocates appropriate computational resources (e.g., GPU) based on node requirements.
 6. Progress Tracking: Provides real-time updates on individual node and overall workflow status.
 7. Error Handling: Captures and reports exceptions during node execution.
-8. Cancellation Support: Allows for immediate termination of the workflow execution.
 
 Attributes:
 job_id (str): Unique identifier for the current workflow execution.
 status (str): Current state of the workflow. Possible values: "running", "completed", "cancelled", "error".
-is_cancelled (bool): Flag indicating whether the job has been manually cancelled.
 current_node (Optional[str]): Identifier of the node currently being processed, or None if no node is active.
 
 Note:
@@ -25,5 +25,13 @@ Note:
 
 **Tags:** 
 
+### acquire_gpu_lock
+
+**Args:**
+- **node (BaseNode)**
+- **context (ProcessingContext)**
+
 ### get_available_vram
+
+### release_gpu_lock
 

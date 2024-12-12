@@ -182,6 +182,7 @@ Use cases:
 
 **Fields:**
 - **value** (str | nodetool.metadata.types.TextRef)
+- **folder**: Name of the output folder. (FolderRef)
 - **name** (str)
 
 

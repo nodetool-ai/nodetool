@@ -9,6 +9,7 @@
 - **updated_at** (str)
 - **name** (str)
 - **description** (str)
+- **tags** (list[str] | None)
 - **thumbnail** (str | None)
 - **thumbnail_url** (str | None)
 - **graph** (Graph)
@@ -27,8 +28,10 @@
 
 **Fields:**
 - **name** (str)
-- **description** (str)
+- **tags** (list[str] | None)
+- **description** (str | None)
 - **thumbnail** (str | None)
+- **thumbnail_url** (str | None)
 - **access** (str)
 - **graph** (nodetool.types.graph.Graph | None)
 - **comfy_workflow** (dict[str, typing.Any] | None)

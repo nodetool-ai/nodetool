@@ -7,12 +7,19 @@
 - **ANTHROPIC_API_KEY**: ANTHROPIC API key (str | None)
 - **HF_TOKEN**: Hugging Face Token (str | None)
 - **REPLICATE_API_TOKEN**: Replicate API Token (str | None)
+- **KLING_ACCESS_KEY**: Kling AI access key (str | None)
+- **KLING_SECRET_KEY**: Kling AI secret key (str | None)
+- **LUMAAI_API_KEY**: Luma AI API key (str | None)
+- **AIME_USER**: Aime user (str | None)
+- **AIME_API_KEY**: Aime API key (str | None)
 
 
 ## SettingsModel
 
 **Fields:**
 - **COMFY_FOLDER**: Location of ComfyUI folder (str | None)
+- **CHROMA_PATH**: Location of ChromaDB folder (str | None)
+- **ASSET_FOLDER**: Location of asset folder (str | None)
 
 
 ### get_system_file_path
@@ -34,7 +41,7 @@ default values, raise an exception.
 - **settings (SettingsModel)**
 - **secrets (SecretsModel)**
 - **default_env (typing.Dict[str, typing.Any])**
-- **default (Any) (default: <object object at 0x12ff2b750>)**
+- **default (Any) (default: <object object at 0x143520040>)**
 
 **Returns:** Any
 
@@ -47,14 +54,4 @@ Save the user settings to the settings file and the user secrets to the secrets 
 **Args:**
 - **settings (SettingsModel)**
 - **secrets (SecretsModel)**
-
-### setup_settings
-
-Runs the configuration wizard to set up the environment.
-**Args:**
-- **settings (SettingsModel)**
-- **secrets (SecretsModel)**
-- **default_env (typing.Dict[str, typing.Any])**
-
-**Returns:** typing.Tuple[nodetool.common.settings.SettingsModel, nodetool.common.settings.SecretsModel]
 

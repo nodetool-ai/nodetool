@@ -315,6 +315,23 @@ Use cases:
 - **columns**: comma separated list of column names (str)
 
 
+## Slice
+
+Slice a dataframe by rows using start and end indices.
+
+Use cases:
+- Extract a specific range of rows from a large dataset
+- Create training and testing subsets for machine learning
+- Analyze data in smaller chunks
+
+**Tags:** slice, subset, rows
+
+**Fields:**
+- **dataframe**: The input dataframe to be sliced. (DataframeRef)
+- **start_index**: The starting index of the slice (inclusive). (int)
+- **end_index**: The ending index of the slice (exclusive). Use -1 for the last row. (int)
+
+
 ## SortByColumn
 
 Sort dataframe by specified column.

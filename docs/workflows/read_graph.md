@@ -113,6 +113,14 @@ Get the names of the widgets for a given node class.
 
 **Returns:** typing.List[str]
 
+### get_x_y_from_pos
+
+Get the x and y coordinates from a position list.
+**Args:**
+- **pos (list[int] | dict[str, int])**
+
+**Returns:** tuple[int, int]
+
 ### is_comfy_widget
 
 Check if the widget type is a Comfy widget.

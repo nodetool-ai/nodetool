@@ -198,3 +198,51 @@ Use cases:
 - **data**: The data to send in the PUT request. (str)
 
 
+## ImageDownloader
+
+Download images from URLs in a dataframe and return a list of ImageRefs.
+
+Use cases:
+- Prepare image datasets for machine learning tasks
+- Archive images from web pages
+- Process and analyze images extracted from websites
+
+**Tags:** image download, web scraping, data processing
+
+**Fields:**
+- **images**: Dataframe containing image URLs and alt text. (DataframeRef)
+- **base_url**: Base URL to prepend to relative image URLs. (str)
+- **max_concurrent_downloads**: Maximum number of concurrent image downloads. (int)
+
+### download_image
+
+**Args:**
+- **session (ClientSession)**
+- **url (str)**
+- **context (ProcessingContext)**
+
+**Returns:** nodetool.metadata.types.ImageRef | None
+
+
+## WebsiteContentExtractor
+
+Extract main content from a website, removing navigation, ads, and other non-essential elements.
+
+Use cases:
+- Clean web content for further analysis
+- Extract article text from news websites
+- Prepare web content for summarization
+
+**Tags:** web scraping, content extraction, text analysis
+
+**Fields:**
+- **html_content**: The raw HTML content of the website. (str)
+
+
+### extract_content
+
+**Args:**
+- **html_content (str)**
+
+**Returns:** str
+

@@ -1,6 +1,5 @@
 # nodetool.nodes.nodetool
 
-- [nodetool.nodes.nodetool.agents](nodetool/agents.md)
 - [nodetool.nodes.nodetool.audio](nodetool/audio.md)
 - [nodetool.nodes.nodetool.boolean](nodetool/boolean.md)
 - [nodetool.nodes.nodetool.constant](nodetool/constant.md)
@@ -13,7 +12,7 @@
 - [nodetool.nodes.nodetool.list](nodetool/list.md)
 - [nodetool.nodes.nodetool.math](nodetool/math.md)
 - [nodetool.nodes.nodetool.output](nodetool/output.md)
+- [nodetool.nodes.nodetool.svg](nodetool/svg.md)
 - [nodetool.nodes.nodetool.tensor](nodetool/tensor.md)
 - [nodetool.nodes.nodetool.text](nodetool/text.md)
-- [nodetool.nodes.nodetool.vector](nodetool/vector.md)
 - [nodetool.nodes.nodetool.video](nodetool/video.md)

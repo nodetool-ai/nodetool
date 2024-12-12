@@ -17,7 +17,14 @@ Use cases:
 **Fields:**
 - **input** (str | nodetool.metadata.types.TextRef)
 - **model** (LlamaModel)
+- **context_window**: The context window size to use for the model. (int)
 - **chunk_size**: The size of the chunks to split the input into (int)
+
+### requires_gpu
+
+**Args:**
+
+**Returns:** bool
 
 
 ## Ollama
@@ -36,8 +43,46 @@ Use cases:
 - **model**: The Llama model to use. (LlamaModel)
 - **prompt**: Prompt to send to the model. (str)
 - **system_prompt**: System prompt to send to the model. (str)
+- **context_window**: The context window size to use for the model. (int)
+- **image**: The image to analyze (ImageRef)
 - **temperature**: The temperature to use for the model. (float)
 - **top_k**: The number of highest probability tokens to keep for top-k sampling. (int)
 - **top_p**: The cumulative probability cutoff for nucleus/top-p sampling. (float)
+- **keep_alive**: The number of seconds to keep the model alive. (int)
+
+
+## OllamaChat
+
+Run Llama models to generate chat responses.
+
+Use cases:
+- Chat with an assistant
+- Workflows with chat nodes
+
+**Tags:** llama, text generation, language model, ai assistant
+
+**Fields:**
+- **model**: The Llama model to use. (LlamaModel)
+- **system_prompt**: System prompt to send to the model. (str)
+- **context_window**: The context window size to use for the model. (int)
+- **messages**: History of messages to send to the model. (list[nodetool.metadata.types.Message])
+- **temperature**: The temperature to use for the model. (float)
+- **top_k**: The number of highest probability tokens to keep for top-k sampling. (int)
+- **top_p**: The cumulative probability cutoff for nucleus/top-p sampling. (float)
+- **keep_alive**: The number of seconds to keep the model alive. (int)
+
+### create_message
+
+**Args:**
+- **message (Message)**
+- **context (ProcessingContext)**
+
+**Returns:** dict[str, str | list[str]]
+
+### requires_gpu
+
+**Args:**
+
+**Returns:** bool
 
 

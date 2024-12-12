@@ -4,6 +4,10 @@
 
 Tool for creating a new node.
 
+## TutorialTool
+
+Tool for starting a tutorial.
+
 ## WorkflowTool
 
 Tool for creating a new workflow.
@@ -12,6 +16,7 @@ Tool for creating a new workflow.
 
 **Args:**
 - **messages (list[nodetool.metadata.types.Message])**
+- **available_tutorials (list[str])**
 
 **Returns:** list[nodetool.metadata.types.Message]
 
@@ -27,33 +32,71 @@ Get or create a collection with the given name.
 **Args:**
 - **name**
 
+**Returns:** Collection
+
+### get_doc_collection
+
+### get_example_collection
+
 ### index_documentation
 
-Index the documentation.
+Index the documentation if it doesn't exist yet.
+**Args:**
+- **collection (Collection)**
+
 ### index_examples
 
-Index the examples.
-### search_documentation
+Index the examples if they don't exist yet.
+**Args:**
+- **collection (Collection)**
+
+### prompt_for_help
 
 **Args:**
+- **prompt (str)**
+- **docs (dict[str, str])**
+- **examples (list[str])**
+- **available_tutorials (list[str])**
+
+**Returns:** str
+
+### search_documentation
+
+Search the documentation for the given query string.
+
+
+**Args:**
+
+- **query**: The query to search for.
+- **n_results**: The number of results to return.
+
+
+**Returns:**
+
+A tuple of the ids and documents that match the query.
+**Args:**
 - **query (str)**
-- **n_results (int) (default: 30)**
+- **n_results (int) (default: 5)**
 
 **Returns:** tuple[list[str], list[str]]
 
 ### search_examples
 
+Search the examples for the given query string.
+
+
+**Args:**
+
+- **query**: The query to search for.
+- **n_results**: The number of results to return.
+
+
+**Returns:**
+
+A tuple of the ids and documents that match the query.
 **Args:**
 - **query (str)**
 - **n_results (int) (default: 3)**
-
-### system_prompt_for
-
-**Args:**
-- **docs (list[str])**
-- **examples (list[str])**
-
-**Returns:** str
 
 ### validate_schema
 

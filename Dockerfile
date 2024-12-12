@@ -35,12 +35,7 @@ RUN apt-get update && \
     # Scientific Computing Libraries
     libblas-dev \
     liblapack-dev \
-    libatlas-base-dev \
     libopenblas-dev \
-    libopenblas-base \
-    gfortran \
-    libeigen3-dev \
-    libgsl-dev \
 
     # Image Processing
     libopencv-dev \
@@ -57,37 +52,18 @@ RUN apt-get update && \
     ffmpeg \
     libsndfile1 \
     libsndfile1-dev \
-    libasound2-dev \
-    portaudio19-dev \
     libopus-dev \
-    libfdk-aac-dev \
     libx264-dev \
     libmp3lame-dev \
-    libtheora-dev \
-    libvpx-dev \
     libvorbis-dev \
-    libavcodec-dev \
-    libavformat-dev \
-    libavutil-dev \
-    libswscale-dev \
-    libswresample-dev \
-    libpostproc-dev \
-    libgstreamer1.0-dev \
-    libgstreamer-plugins-base1.0-dev \
 
     # Data Processing and Storage
-    libhdf5-dev \
-    libhdf5-serial-dev \
-    libboost-all-dev \
     libxml2-dev \
     libxslt1-dev \
     libsqlite3-dev \
 
     # Document Processing
-    pandoc \
-    texlive-xetex \
     tesseract-ocr \
-    graphviz \
 
     # System Libraries
     libssl-dev \
@@ -96,7 +72,6 @@ RUN apt-get update && \
     libcairo2-dev \
     libgl1 \
     libgl1-mesa-glx \
-    nvidia-cuda-toolkit && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
     echo "en_US.UTF-8 UTF-8" > /etc/locale.gen

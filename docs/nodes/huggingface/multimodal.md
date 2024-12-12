@@ -1,95 +1,33 @@
 # nodetool.nodes.huggingface.multimodal
 
-## FeaturesExtraction
+## GOTOCR
 
-Extracts features from text using pre-trained models.
-
-Use cases:
-- Text similarity comparison
-- Clustering text documents
-- Input for machine learning models
-- Semantic search applications
-
-**Tags:** text, feature extraction, embeddings, natural language processing
-
-**Fields:**
-- **model**: The model ID to use for feature extraction (FeaturesExtractionModelId)
-- **inputs**: The text to extract features from (str)
-
-### get_inputs
-
-**Args:**
-- **context (ProcessingContext)**
-
-### get_model_id
-
-**Args:**
-
-### process_local_result
-
-**Args:**
-- **context (ProcessingContext)**
-- **result (Any)**
-
-**Returns:** Tensor
-
-### process_remote_result
-
-**Args:**
-- **context (ProcessingContext)**
-- **result (Any)**
-
-**Returns:** Tensor
-
-### required_inputs
-
-**Args:**
-
-
-## ImageFeatureExtraction
-
-Extracts features from images using pre-trained models.
+Performs OCR on images using the GOT-OCR model.
 
 Use cases:
-- Image similarity comparison
-- Clustering images
-- Input for machine learning models
-- Content-based image retrieval
+- Text extraction from images
+- Document digitization
+- Image-based information retrieval
+- Accessibility tools for visually impaired users
 
-**Tags:** image, feature extraction, embeddings, computer vision
+**Tags:** image, text, OCR, multimodal
 
 **Fields:**
-- **model**: The model ID to use for image feature extraction (ImageFeatureExtractionModelId)
-- **inputs**: The image to extract features from (ImageRef)
+- **model**: The model ID to use for GOT-OCR (HFGOTOCR)
+- **image**: The image to perform OCR on (ImageRef)
+- **ocr_type**: The type of OCR to perform (OCRType)
+- **ocr_box**: Bounding box for fine-grained OCR (optional) (str)
+- **ocr_color**: Color for fine-grained OCR (optional) (str)
 
-### get_inputs
-
-**Args:**
-- **context (ProcessingContext)**
-
-### get_model_id
-
-**Args:**
-
-### process_local_result
+### initialize
 
 **Args:**
 - **context (ProcessingContext)**
-- **result (Any)**
 
-**Returns:** Tensor
-
-### process_remote_result
+### move_to_device
 
 **Args:**
-- **context (ProcessingContext)**
-- **result (Any)**
-
-**Returns:** Tensor
-
-### required_inputs
-
-**Args:**
+- **device (str)**
 
 
 ## ImageToText
@@ -105,94 +43,26 @@ Use cases:
 **Tags:** image, text, captioning, vision-language
 
 **Fields:**
-- **model**: The model ID to use for image-to-text generation (ImageToTextModelId)
-- **inputs**: The image to generate text from (ImageRef)
+- **model**: The model ID to use for image-to-text generation (HFImageToText)
+- **image**: The image to generate text from (ImageRef)
 - **max_new_tokens**: The maximum number of tokens to generate (int)
 
-### get_inputs
+### initialize
 
 **Args:**
 - **context (ProcessingContext)**
 
-### get_model_id
+### move_to_device
 
 **Args:**
-
-### get_params
-
-**Args:**
-
-### process_local_result
-
-**Args:**
-- **context (ProcessingContext)**
-- **result (Any)**
-
-**Returns:** str
-
-### process_remote_result
-
-**Args:**
-- **context (ProcessingContext)**
-- **result (Any)**
-
-**Returns:** str
+- **device (str)**
 
 ### required_inputs
 
 **Args:**
 
 
-## MaskGeneration
-
-Generates masks for images using segmentation models.
-
-Use cases:
-- Object segmentation in images
-- Background removal
-- Image editing and manipulation
-- Scene understanding and analysis
-
-**Tags:** image, segmentation, mask generation, computer vision
-
-**Fields:**
-- **model**: The model ID to use for mask generation (MaskGenerationModelId)
-- **inputs**: The image to generate masks for (ImageRef)
-- **points_per_side**: Number of points to be sampled along each side of the image (int)
-
-### get_inputs
-
-**Args:**
-- **context (ProcessingContext)**
-
-### get_model_id
-
-**Args:**
-
-### get_params
-
-**Args:**
-
-### process_local_result
-
-**Args:**
-- **context (ProcessingContext)**
-- **result (Any)**
-
-**Returns:** list[nodetool.metadata.types.ImageRef]
-
-### process_remote_result
-
-**Args:**
-- **context (ProcessingContext)**
-- **result (Any)**
-
-**Returns:** list[nodetool.metadata.types.ImageRef]
-
-### required_inputs
-
-**Args:**
-
+## OCRType
 
 ## VisualQuestionAnswering
 
@@ -207,37 +77,18 @@ Use cases:
 **Tags:** image, text, question answering, multimodal
 
 **Fields:**
-- **model**: The model ID to use for visual question answering (VisualQuestionAnsweringModelId)
+- **model**: The model ID to use for visual question answering (HFVisualQuestionAnswering)
 - **image**: The image to analyze (ImageRef)
 - **question**: The question to be answered about the image (str)
 
-### get_inputs
+### initialize
 
 **Args:**
 - **context (ProcessingContext)**
 
-### get_model_id
+### move_to_device
 
 **Args:**
-
-### process_local_result
-
-**Args:**
-- **context (ProcessingContext)**
-- **result (Any)**
-
-**Returns:** str
-
-### process_remote_result
-
-**Args:**
-- **context (ProcessingContext)**
-- **result (Any)**
-
-**Returns:** str
-
-### required_inputs
-
-**Args:**
+- **device (str)**
 
 

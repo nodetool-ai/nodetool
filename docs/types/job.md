@@ -35,6 +35,7 @@
 - **type** (typing.Literal['job_update'])
 - **status** (str)
 - **job_id** (str | None)
+- **message** (str | None)
 - **result** (dict | None)
 - **error** (str | None)
 

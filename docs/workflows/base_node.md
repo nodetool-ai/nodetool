@@ -77,12 +77,6 @@ Create a Node object from a dictionary representation.
 
 **Returns:** BaseNode
 
-### get_properties_for_update
-
-Includes all properties in the update message.
-**Args:**
-- **names (list[str])**
-
 ### has_parent
 
 **Args:**
@@ -94,6 +88,7 @@ Initialize the node when workflow starts.
 Responsible for setting up the node, including loading any necessary GPU models.
 **Args:**
 - **context (Any)**
+- **skip_cache (bool) (default: False)**
 
 ### move_to_device
 
@@ -120,6 +115,16 @@ Default implementation generates a seed for any field named seed.
 
 **Returns:** Any
 
+### process_with_gpu
+
+Process the node with GPU.
+Default implementation calls the process method in inference mode.
+For training nodes, this method should be overridden.
+**Args:**
+- **context (Any)**
+
+**Returns:** Any
+
 ### properties_for_client
 
 Properties to send to the client for updating the node.
@@ -129,6 +134,18 @@ Comfy types and tensors are excluded.
 ### required_inputs
 
 **Args:**
+
+### requires_gpu
+
+Determine if this node requires GPU for processing.
+
+
+**Returns:**
+
+- **bool**: True if GPU is required, False otherwise.
+**Args:**
+
+**Returns:** bool
 
 ### result_for_all_outputs
 
@@ -175,10 +192,12 @@ Send a status update for the node to the client.
 - **context (Any)**: The context in which the node is being processed.
 - **status (str)**: The status of the node.
 - **result (dict[str, Any], optional)**: The result of the node's processing. Defaults to {}.
+- **properties (list[str], optional)**: The properties to send to the client. Defaults to None.
 **Args:**
 - **context (Any)**
 - **status (str)**
 - **result (dict[str, typing.Any] | None) (default: None)**
+- **properties (list[str] | None) (default: None)**
 
 ### set_node_properties
 
@@ -390,6 +409,8 @@ Retrieve a node class based on its unique node type identifier.
 - **node_type (str)**
 
 **Returns:** type[nodetool.workflows.base_node.BaseNode] | None
+
+### get_recommended_models
 
 ### get_registered_node_classes
 

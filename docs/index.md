@@ -5,6 +5,7 @@
 - [nodetool.common](common.md)
 - [nodetool.dsl](dsl.md)
 - [nodetool.metadata](metadata.md)
+- [nodetool.model_manager](model_manager.md)
 - [nodetool.models](models.md)
 - [nodetool.nodes](nodes.md)
 - [nodetool.providers](providers.md)

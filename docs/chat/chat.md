@@ -184,9 +184,9 @@ Convert a message content to an OpenAI content part.
 
 - **OpenAIChatCompletionContentPartParam**: The OpenAI content part.
 **Args:**
-- **content (nodetool.models.message.MessageTextContent | nodetool.models.message.MessageImageContent)**
+- **content (nodetool.metadata.types.MessageTextContent | nodetool.metadata.types.MessageImageContent | nodetool.metadata.types.MessageAudioContent | nodetool.metadata.types.MessageVideoContent)**
 
-**Returns:** typing.Union[openai.types.chat.chat_completion_content_part_text_param.ChatCompletionContentPartTextParam, openai.types.chat.chat_completion_content_part_image_param.ChatCompletionContentPartImageParam]
+**Returns:** typing.Union[openai.types.chat.chat_completion_content_part_text_param.ChatCompletionContentPartTextParam, openai.types.chat.chat_completion_content_part_image_param.ChatCompletionContentPartImageParam, openai.types.chat.chat_completion_content_part_input_audio_param.ChatCompletionContentPartInputAudioParam]
 
 ### message_param
 
@@ -223,7 +223,7 @@ Parse a tool call from a string.
 **Args:**
 - **s**
 
-**Returns:** list[nodetool.models.message.ToolCall]
+**Returns:** list[nodetool.metadata.types.ToolCall]
 
 ### process_messages
 
@@ -278,10 +278,10 @@ It is required to call process_tool_responses if you want the chat model to resp
 - **Message**: The assistant message.
 **Args:**
 - **context (ProcessingContext)**
-- **tool_calls (typing.Sequence[nodetool.models.message.ToolCall])**
+- **tool_calls (typing.Sequence[nodetool.metadata.types.ToolCall])**
 - **tools (typing.Sequence[nodetool.chat.tools.Tool])**
 
-**Returns:** list[nodetool.models.message.ToolCall]
+**Returns:** list[nodetool.metadata.types.ToolCall]
 
 ### process_tool_responses
 
@@ -309,7 +309,7 @@ The completion created.
 - **node_id (str)**
 - **thread_id (str)**
 - **messages (list[nodetool.metadata.types.Message])**
-- **tool_responses (typing.Sequence[nodetool.models.message.ToolCall])**
+- **tool_responses (typing.Sequence[nodetool.metadata.types.ToolCall])**
 - **kwargs**
 
 ### run_tool

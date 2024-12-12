@@ -1,11 +1,5 @@
 # nodetool.models.message
 
-## ImageUrl
-
-**Fields:**
-- **url** (str)
-
-
 ## Message
 
 **Fields:**
@@ -15,31 +9,8 @@
 - **tool_call_id** (str | None)
 - **role** (str)
 - **name** (str)
-- **content** (str | list[nodetool.models.message.MessageTextContent | nodetool.models.message.MessageImageContent] | None)
-- **tool_calls** (list[nodetool.models.message.ToolCall] | None)
+- **content** (str | list[nodetool.metadata.types.MessageTextContent | nodetool.metadata.types.MessageImageContent | nodetool.metadata.types.MessageAudioContent | nodetool.metadata.types.MessageVideoContent] | None)
+- **tool_calls** (list[nodetool.metadata.types.ToolCall] | None)
 - **created_at** (datetime)
-
-
-## MessageImageContent
-
-**Fields:**
-- **type** (typing.Literal['image_url'])
-- **image_url** (ImageUrl)
-
-
-## MessageTextContent
-
-**Fields:**
-- **type** (typing.Literal['text'])
-- **text** (str)
-
-
-## ToolCall
-
-**Fields:**
-- **id** (str)
-- **name** (str)
-- **args** (dict[str, typing.Any])
-- **result** (Any)
 
 

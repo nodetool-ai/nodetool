@@ -4,6 +4,7 @@
 
 **Fields:**
 - **messages** (list[nodetool.metadata.types.Message])
+- **available_tutorials** (list[str])
 
 
 ### create

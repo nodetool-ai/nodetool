@@ -928,6 +928,9 @@ class StableDiffusionBaseNode(HuggingFacePipelineNode):
                 hires_kwargs["strength"] = denoising_strength
             if "image" in hires_kwargs:
                 del hires_kwargs["image"]
+            # Add width and height to ensure correct output dimensions
+            hires_kwargs["width"] = width
+            hires_kwargs["height"] = height
 
             img2img_pipe.vae.enable_tiling()
             image = img2img_pipe(

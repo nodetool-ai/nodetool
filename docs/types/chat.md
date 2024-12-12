@@ -8,8 +8,8 @@
 - **tool_call_id** (str | None)
 - **role** (str)
 - **name** (str)
-- **content** (str | list[nodetool.models.message.MessageTextContent | nodetool.models.message.MessageImageContent] | None)
-- **tool_calls** (list[nodetool.models.message.ToolCall] | None)
+- **content** (str | list[nodetool.metadata.types.MessageTextContent | nodetool.metadata.types.MessageImageContent | nodetool.metadata.types.MessageAudioContent | nodetool.metadata.types.MessageVideoContent] | None)
+- **tool_calls** (list[nodetool.metadata.types.ToolCall] | None)
 - **created_at** (str | None)
 - **workflow** (nodetool.models.workflow.Workflow | None)
 

@@ -12,10 +12,23 @@ Create a new asset.
 
 ### delete
 
-Deletes the asset for the given id.
+Deletes the asset for the given id. If the asset is a folder, it deletes all contents recursively.
 **Args:**
 - **id (str)**
 - **user (User) (default: Depends(current_user))**
+
+### delete_folder
+
+**Args:**
+- **user_id (str)**
+- **folder_id (str)**
+
+**Returns:** typing.List[str]
+
+### delete_single_asset
+
+**Args:**
+- **asset (Asset)**
 
 ### download_assets
 
@@ -33,6 +46,13 @@ Returns the asset for the given id.
 - **user (User) (default: Depends(current_user))**
 
 **Returns:** Asset
+
+### get_assets_recursive
+
+Get all assets in a folder recursively, including the folder structure.
+**Args:**
+- **folder_id (str)**
+- **user (User) (default: Depends(current_user))**
 
 ### index
 

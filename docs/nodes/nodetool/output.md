@@ -35,32 +35,6 @@ Use cases:
 - **description**: The description for this output node. (str)
 - **value** (bool)
 
-### get_json_schema
-
-**Args:**
-
-
-## ChatOutput
-
-Output node for chat message lists.
-
-Use cases:
-- Displaying conversation history
-- Returning chatbot responses
-- Formatting dialog for presentation
-
-**Tags:** chat, messages, conversation
-
-**Fields:**
-- **label**: The label for this output node. (str)
-- **name**: The parameter name for the workflow. (str)
-- **description**: The description for this output node. (str)
-- **value**: The messages to display in the chat. (list[nodetool.metadata.types.Message])
-
-### get_json_schema
-
-**Args:**
-
 
 ## DataframeOutput
 
@@ -115,10 +89,6 @@ Use cases:
 - **description**: The description for this output node. (str)
 - **value** (float)
 
-### get_json_schema
-
-**Args:**
-
 
 ## GroupOutput
 
@@ -151,10 +121,6 @@ Use cases:
 - **description**: The description for this output node. (str)
 - **value**: The images to display. (list[nodetool.metadata.types.ImageRef])
 
-### get_json_schema
-
-**Args:**
-
 
 ## ImageOutput
 
@@ -172,10 +138,6 @@ Use cases:
 - **name**: The parameter name for the workflow. (str)
 - **description**: The description for this output node. (str)
 - **value** (ImageRef)
-
-### get_json_schema
-
-**Args:**
 
 
 ## IntegerOutput
@@ -195,10 +157,6 @@ Use cases:
 - **description**: The description for this output node. (str)
 - **value** (int)
 
-### get_json_schema
-
-**Args:**
-
 
 ## ListOutput
 
@@ -215,10 +173,6 @@ Use cases:
 - **name**: The parameter name for the workflow. (str)
 - **description**: The description for this output node. (str)
 - **value** (list[typing.Any])
-
-### get_json_schema
-
-**Args:**
 
 
 ## ModelOutput
@@ -256,10 +210,6 @@ Use cases:
 - **description**: The description for this output node. (str)
 - **value** (str)
 
-### get_json_schema
-
-**Args:**
-
 
 ## TensorOutput
 
@@ -295,10 +245,6 @@ Use cases:
 - **name**: The parameter name for the workflow. (str)
 - **description**: The description for this output node. (str)
 - **value** (TextRef)
-
-### get_json_schema
-
-**Args:**
 
 
 ## VideoOutput

@@ -9,6 +9,7 @@
 - **created_at** (datetime)
 - **updated_at** (datetime)
 - **name** (str)
+- **tags** (list[str] | None)
 - **description** (str | None)
 - **thumbnail** (str | None)
 - **graph** (dict)

@@ -1,5 +1,30 @@
 # nodetool.nodes.nodetool.audio.transform
 
+## AudioMixer
+
+Mix up to 5 audio tracks together with individual volume controls.
+
+Use cases:
+- Mix multiple audio tracks into a single output
+- Create layered soundscapes
+- Combine music, voice, and sound effects
+- Adjust individual track volumes
+
+**Tags:** audio, mix, volume, combine
+
+**Fields:**
+- **track1**: First audio track to mix. (AudioRef)
+- **track2**: Second audio track to mix. (AudioRef)
+- **track3**: Third audio track to mix. (AudioRef)
+- **track4**: Fourth audio track to mix. (AudioRef)
+- **track5**: Fifth audio track to mix. (AudioRef)
+- **volume1**: Volume for track 1. 1.0 is original volume. (float)
+- **volume2**: Volume for track 2. 1.0 is original volume. (float)
+- **volume3**: Volume for track 3. 1.0 is original volume. (float)
+- **volume4**: Volume for track 4. 1.0 is original volume. (float)
+- **volume5**: Volume for track 5. 1.0 is original volume. (float)
+
+
 ## Concat
 
 Concatenates two audio files together.

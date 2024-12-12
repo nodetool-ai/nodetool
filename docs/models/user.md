@@ -16,3 +16,21 @@
 - **deleted_at** (datetime.datetime | None)
 
 
+### validate_email
+
+Validate email format.
+
+
+**Args:**
+
+- **email**: Email address to validate
+
+
+**Returns:**
+
+- **bool**: True if email format is valid, False otherwise
+**Args:**
+- **email (str)**
+
+**Returns:** bool
+

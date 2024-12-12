@@ -12,7 +12,7 @@ Metadata for a node.
 - **layout** (str)
 - **properties** (list[nodetool.workflows.property.Property])
 - **outputs** (list[nodetool.metadata.types.OutputSlot])
-- **model_info** (dict[str, typing.Any])
+- **the_model_info** (dict[str, typing.Any])
 - **recommended_models** (list[nodetool.metadata.types.HuggingFaceModel])
 
 

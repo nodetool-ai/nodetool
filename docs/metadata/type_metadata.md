@@ -25,6 +25,12 @@ Returns a JSON schema for the type.
 ### is_asset_type
 
 **Args:**
+- **recursive (bool) (default: False)**
+
+### is_audio_type
+
+**Args:**
+- **recursive (bool) (default: False)**
 
 ### is_cacheable_type
 
@@ -33,34 +39,47 @@ Returns a JSON schema for the type.
 ### is_comfy_data_type
 
 **Args:**
+- **recursive (bool) (default: False)**
 
 ### is_comfy_model
 
 **Args:**
+- **recursive (bool) (default: False)**
 
 ### is_comfy_type
 
 **Args:**
+- **recursive (bool) (default: False)**
 
 ### is_dict_type
 
 **Args:**
+- **recursive (bool) (default: False)**
 
 ### is_enum_type
 
 **Args:**
+- **recursive (bool) (default: False)**
+
+### is_image_type
+
+**Args:**
+- **recursive (bool) (default: False)**
 
 ### is_list_type
 
 **Args:**
+- **recursive (bool) (default: False)**
 
 ### is_model_file_type
 
 **Args:**
+- **recursive (bool) (default: False)**
 
 ### is_primitive_type
 
 **Args:**
+- **recursive (bool) (default: False)**
 
 ### is_serializable_type
 
@@ -69,9 +88,15 @@ Returns a JSON schema for the type.
 ### is_tuple_type
 
 **Args:**
+- **recursive (bool) (default: False)**
 
 ### is_union_type
 
 **Args:**
+
+### is_video_type
+
+**Args:**
+- **recursive (bool) (default: False)**
 
 

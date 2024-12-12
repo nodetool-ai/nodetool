@@ -10,13 +10,29 @@
 - **asset_id** (str | None)
 - **data** (bytes | list[bytes] | None)
 
+### encode_data_to_uri
+
+**Args:**
+
 ### is_empty
+
+**Args:**
+
+### is_set
 
 **Args:**
 
 ### to_dict
 
 **Args:**
+
+
+## AudioChunk
+
+**Fields:**
+- **type** (typing.Literal['audio_chunk'])
+- **timestamp** (tuple[float, float])
+- **text** (str)
 
 
 ## AudioRef
@@ -54,6 +70,7 @@ It is used to create a mapping of type names to their corresponding classes.
 **Fields:**
 - **type** (typing.Literal['comfy.clip'])
 - **name** (str)
+- **model** (Any)
 
 
 ## CLIPFile
@@ -68,6 +85,7 @@ It is used to create a mapping of type names to their corresponding classes.
 **Fields:**
 - **type** (typing.Literal['comfy.clip_vision'])
 - **name** (str)
+- **model** (Any)
 
 
 ## CLIPVisionFile
@@ -81,6 +99,95 @@ It is used to create a mapping of type names to their corresponding classes.
 
 **Fields:**
 - **type** (typing.Literal['comfy.clip_vision_output'])
+- **data** (Any)
+
+
+## ChartConfig
+
+**Fields:**
+- **type** (typing.Literal['chart_config'])
+- **title** (str)
+- **x_label** (str)
+- **y_label** (str)
+- **legend** (bool)
+- **data** (ChartData)
+- **height** (float | None)
+- **aspect** (float | None)
+- **x_lim** (tuple[float, float] | None)
+- **y_lim** (tuple[float, float] | None)
+- **x_scale** (typing.Optional[typing.Literal['linear', 'log']])
+- **y_scale** (typing.Optional[typing.Literal['linear', 'log']])
+- **legend_position** (typing.Literal['auto', 'right', 'left', 'top', 'bottom'])
+- **palette** (str | None)
+- **hue_order** (list[str] | None)
+- **hue_norm** (tuple[float, float] | None)
+- **sizes** (tuple[float, float] | None)
+- **size_order** (list[str] | None)
+- **size_norm** (tuple[float, float] | None)
+- **marginal_kws** (dict | None)
+- **joint_kws** (dict | None)
+- **diag_kind** (typing.Optional[typing.Literal['auto', 'hist', 'kde']])
+- **corner** (bool)
+- **center** (float | None)
+- **vmin** (float | None)
+- **vmax** (float | None)
+- **cmap** (str | None)
+- **annot** (bool)
+- **fmt** (str)
+- **square** (bool)
+
+
+## ChartConfigSchema
+
+**Fields:**
+- **title** (str)
+- **x_label** (str)
+- **y_label** (str)
+- **legend** (bool)
+- **data** (ChartDataSchema)
+- **height** (typing.Optional[float])
+- **aspect** (typing.Optional[float])
+- **x_lim** (typing.Optional[tuple[float, float]])
+- **y_lim** (typing.Optional[tuple[float, float]])
+- **x_scale** (typing.Optional[typing.Literal['linear', 'log']])
+- **y_scale** (typing.Optional[typing.Literal['linear', 'log']])
+- **legend_position** (typing.Literal['auto', 'right', 'left', 'top', 'bottom'])
+- **palette** (typing.Optional[str])
+- **hue_order** (typing.Optional[list[str]])
+- **hue_norm** (typing.Optional[tuple[float, float]])
+- **sizes** (typing.Optional[tuple[float, float]])
+- **size_order** (typing.Optional[list[str]])
+- **size_norm** (typing.Optional[tuple[float, float]])
+- **marginal_kws** (typing.Optional[dict])
+- **joint_kws** (typing.Optional[dict])
+- **diag_kind** (typing.Optional[typing.Literal['auto', 'hist', 'kde']])
+- **corner** (bool)
+- **center** (typing.Optional[float])
+- **vmin** (typing.Optional[float])
+- **vmax** (typing.Optional[float])
+- **cmap** (typing.Optional[str])
+- **annot** (bool)
+- **fmt** (str)
+- **square** (bool)
+
+
+## ChartData
+
+**Fields:**
+- **type** (typing.Literal['chart_data'])
+- **series** (list[nodetool.metadata.types.DataSeries])
+- **row** (str | None)
+- **col** (str | None)
+- **col_wrap** (int | None)
+
+
+## ChartDataSchema
+
+**Fields:**
+- **series** (list[nodetool.metadata.types.DataSeriesSchema])
+- **row** (typing.Optional[str])
+- **col** (typing.Optional[str])
+- **col_wrap** (typing.Optional[int])
 
 
 ## ChatAssistantMessageParam
@@ -134,7 +241,7 @@ The result of a chat conversation.
 
 **Fields:**
 - **role** (typing.Literal['user'])
-- **content** (str | list[nodetool.models.message.MessageTextContent | nodetool.models.message.MessageImageContent])
+- **content** (str | list[nodetool.metadata.types.MessageTextContent | nodetool.metadata.types.MessageImageContent | nodetool.metadata.types.MessageAudioContent | nodetool.metadata.types.MessageVideoContent])
 - **name** (typing.Optional[str])
 
 
@@ -143,6 +250,34 @@ The result of a chat conversation.
 **Fields:**
 - **type** (typing.Literal['comfy.checkpoint_file'])
 - **name** (str)
+
+
+## ChromaCollection
+
+**Fields:**
+- **type** (typing.Literal['chroma_collection'])
+- **name** (str)
+- **embedding_function** (ChromaEmbeddingFunction)
+
+
+## ChromaEmbeddingFunction
+
+**Fields:**
+- **type** (typing.Literal['chroma.embedding_function'])
+- **embedding_function** (ChromaEmbeddingFunctionEnum)
+- **model** (str | None)
+- **repo_id** (str | None)
+
+
+## ChromaEmbeddingFunctionEnum
+
+## ColorRef
+
+A reference to a color value.
+
+**Fields:**
+- **type** (typing.Literal['color'])
+- **value** (str | None)
 
 
 ## ColumnDef
@@ -169,6 +304,7 @@ The result of a chat conversation.
 **Fields:**
 - **type** (str)
 - **name** (str)
+- **model** (Any)
 
 
 ## Conditioning
@@ -183,6 +319,7 @@ The result of a chat conversation.
 **Fields:**
 - **type** (typing.Literal['comfy.control_net'])
 - **name** (str)
+- **model** (Any)
 
 
 ## ControlNetFile
@@ -190,6 +327,63 @@ The result of a chat conversation.
 **Fields:**
 - **type** (typing.Literal['comfy.control_net_file'])
 - **name** (str)
+
+
+## DataSeries
+
+**Fields:**
+- **type** (typing.Literal['data_series'])
+- **name** (str)
+- **x** (str)
+- **y** (str | None)
+- **hue** (str | None)
+- **size** (str | None)
+- **style** (str | None)
+- **weight** (str | None)
+- **color** (str | None)
+- **plot_type** (SeabornPlotType)
+- **estimator** (nodetool.metadata.types.SeabornEstimator | None)
+- **ci** (float | None)
+- **n_boot** (int)
+- **units** (str | None)
+- **seed** (int | None)
+- **stat** (nodetool.metadata.types.SeabornStatistic | None)
+- **bins** (int | str | None)
+- **binwidth** (float | None)
+- **binrange** (tuple[float, float] | None)
+- **discrete** (bool | None)
+- **line_style** (str)
+- **marker** (str)
+- **alpha** (float)
+- **orient** (typing.Optional[typing.Literal['v', 'h']])
+
+
+## DataSeriesSchema
+
+**Fields:**
+- **name** (str)
+- **x** (str)
+- **y** (typing.Optional[str])
+- **hue** (typing.Optional[str])
+- **size** (typing.Optional[str])
+- **style** (typing.Optional[str])
+- **weight** (typing.Optional[str])
+- **color** (typing.Optional[str])
+- **plot_type** (SeabornPlotType)
+- **estimator** (typing.Optional[nodetool.metadata.types.SeabornEstimator])
+- **ci** (typing.Optional[float])
+- **n_boot** (int)
+- **units** (typing.Optional[str])
+- **seed** (typing.Optional[int])
+- **stat** (typing.Optional[nodetool.metadata.types.SeabornStatistic])
+- **bins** (typing.Union[int, str, NoneType])
+- **binwidth** (typing.Optional[float])
+- **binrange** (typing.Optional[tuple[float, float]])
+- **discrete** (typing.Optional[bool])
+- **line_style** (str)
+- **marker** (str)
+- **alpha** (float)
+- **orient** (typing.Optional[typing.Literal['v', 'h']])
 
 
 ## DataframeRef
@@ -265,6 +459,7 @@ This class represents a dataset, which includes a dataframe of features and a da
 **Fields:**
 - **type** (typing.Literal['comfy.gligen'])
 - **name** (str)
+- **model** (Any)
 
 
 ## GLIGENFile
@@ -288,8 +483,9 @@ This class represents a dataset, which includes a dataframe of features and a da
 **Fields:**
 - **type** (typing.Literal['hf.audio_classification'])
 - **repo_id** (str)
-- **allow_patterns** (list[str])
-- **ignore_patterns** (list[str])
+- **path** (str | None)
+- **allow_patterns** (list[str] | None)
+- **ignore_patterns** (list[str] | None)
 
 
 ## HFAudioToAudio
@@ -297,8 +493,9 @@ This class represents a dataset, which includes a dataframe of features and a da
 **Fields:**
 - **type** (typing.Literal['hf.audio_to_audio'])
 - **repo_id** (str)
-- **allow_patterns** (list[str])
-- **ignore_patterns** (list[str])
+- **path** (str | None)
+- **allow_patterns** (list[str] | None)
+- **ignore_patterns** (list[str] | None)
 
 
 ## HFAutomaticSpeechRecognition
@@ -306,8 +503,39 @@ This class represents a dataset, which includes a dataframe of features and a da
 **Fields:**
 - **type** (typing.Literal['hf.automatic_speech_recognition'])
 - **repo_id** (str)
-- **allow_patterns** (list[str])
-- **ignore_patterns** (list[str])
+- **path** (str | None)
+- **allow_patterns** (list[str] | None)
+- **ignore_patterns** (list[str] | None)
+
+
+## HFCLIP
+
+**Fields:**
+- **type** (typing.Literal['hf.clip'])
+- **repo_id** (str)
+- **path** (str | None)
+- **allow_patterns** (list[str] | None)
+- **ignore_patterns** (list[str] | None)
+
+
+## HFCLIPVision
+
+**Fields:**
+- **type** (typing.Literal['hf.clip_vision'])
+- **repo_id** (str)
+- **path** (str | None)
+- **allow_patterns** (list[str] | None)
+- **ignore_patterns** (list[str] | None)
+
+
+## HFCheckpointModel
+
+**Fields:**
+- **type** (typing.Literal['hf.checkpoint_model'])
+- **repo_id** (str)
+- **path** (str | None)
+- **allow_patterns** (list[str] | None)
+- **ignore_patterns** (list[str] | None)
 
 
 ## HFComputerVision
@@ -315,8 +543,9 @@ This class represents a dataset, which includes a dataframe of features and a da
 **Fields:**
 - **type** (typing.Literal['hf.computer_vision'])
 - **repo_id** (str)
-- **allow_patterns** (list[str])
-- **ignore_patterns** (list[str])
+- **path** (str | None)
+- **allow_patterns** (list[str] | None)
+- **ignore_patterns** (list[str] | None)
 
 
 ## HFControlNet
@@ -324,8 +553,9 @@ This class represents a dataset, which includes a dataframe of features and a da
 **Fields:**
 - **type** (typing.Literal['hf.controlnet'])
 - **repo_id** (str)
-- **allow_patterns** (list[str])
-- **ignore_patterns** (list[str])
+- **path** (str | None)
+- **allow_patterns** (list[str] | None)
+- **ignore_patterns** (list[str] | None)
 
 
 ## HFControlNetSDXL
@@ -333,8 +563,9 @@ This class represents a dataset, which includes a dataframe of features and a da
 **Fields:**
 - **type** (typing.Literal['hf.controlnet_sdxl'])
 - **repo_id** (str)
-- **allow_patterns** (list[str])
-- **ignore_patterns** (list[str])
+- **path** (str | None)
+- **allow_patterns** (list[str] | None)
+- **ignore_patterns** (list[str] | None)
 
 
 ## HFDepthEstimation
@@ -342,8 +573,9 @@ This class represents a dataset, which includes a dataframe of features and a da
 **Fields:**
 - **type** (typing.Literal['hf.depth_estimation'])
 - **repo_id** (str)
-- **allow_patterns** (list[str])
-- **ignore_patterns** (list[str])
+- **path** (str | None)
+- **allow_patterns** (list[str] | None)
+- **ignore_patterns** (list[str] | None)
 
 
 ## HFDocumentQuestionAnswering
@@ -351,8 +583,9 @@ This class represents a dataset, which includes a dataframe of features and a da
 **Fields:**
 - **type** (typing.Literal['hf.document_question_answering'])
 - **repo_id** (str)
-- **allow_patterns** (list[str])
-- **ignore_patterns** (list[str])
+- **path** (str | None)
+- **allow_patterns** (list[str] | None)
+- **ignore_patterns** (list[str] | None)
 
 
 ## HFFeatureExtraction
@@ -360,8 +593,9 @@ This class represents a dataset, which includes a dataframe of features and a da
 **Fields:**
 - **type** (typing.Literal['hf.feature_extraction'])
 - **repo_id** (str)
-- **allow_patterns** (list[str])
-- **ignore_patterns** (list[str])
+- **path** (str | None)
+- **allow_patterns** (list[str] | None)
+- **ignore_patterns** (list[str] | None)
 
 
 ## HFFillMask
@@ -369,8 +603,29 @@ This class represents a dataset, which includes a dataframe of features and a da
 **Fields:**
 - **type** (typing.Literal['hf.fill_mask'])
 - **repo_id** (str)
-- **allow_patterns** (list[str])
-- **ignore_patterns** (list[str])
+- **path** (str | None)
+- **allow_patterns** (list[str] | None)
+- **ignore_patterns** (list[str] | None)
+
+
+## HFFlux
+
+**Fields:**
+- **type** (typing.Literal['hf.flux'])
+- **repo_id** (str)
+- **path** (str | None)
+- **allow_patterns** (list[str] | None)
+- **ignore_patterns** (list[str] | None)
+
+
+## HFGOTOCR
+
+**Fields:**
+- **type** (typing.Literal['hf.gotocr'])
+- **repo_id** (str)
+- **path** (str | None)
+- **allow_patterns** (list[str] | None)
+- **ignore_patterns** (list[str] | None)
 
 
 ## HFIPAdapter
@@ -378,19 +633,9 @@ This class represents a dataset, which includes a dataframe of features and a da
 **Fields:**
 - **type** (typing.Literal['hf.ip_adapter'])
 - **repo_id** (str)
-- **allow_patterns** (list[str])
-- **ignore_patterns** (list[str])
-- **file_name** (str)
-
-
-## HFIPAdapterSDXL
-
-**Fields:**
-- **type** (typing.Literal['hf.ip_adapter_sdxl'])
-- **repo_id** (str)
-- **allow_patterns** (list[str])
-- **ignore_patterns** (list[str])
-- **file_name** (str)
+- **path** (str | None)
+- **allow_patterns** (list[str] | None)
+- **ignore_patterns** (list[str] | None)
 
 
 ## HFImageClassification
@@ -398,8 +643,9 @@ This class represents a dataset, which includes a dataframe of features and a da
 **Fields:**
 - **type** (typing.Literal['hf.image_classification'])
 - **repo_id** (str)
-- **allow_patterns** (list[str])
-- **ignore_patterns** (list[str])
+- **path** (str | None)
+- **allow_patterns** (list[str] | None)
+- **ignore_patterns** (list[str] | None)
 
 
 ## HFImageFeatureExtraction
@@ -407,8 +653,9 @@ This class represents a dataset, which includes a dataframe of features and a da
 **Fields:**
 - **type** (typing.Literal['hf.image_feature_extraction'])
 - **repo_id** (str)
-- **allow_patterns** (list[str])
-- **ignore_patterns** (list[str])
+- **path** (str | None)
+- **allow_patterns** (list[str] | None)
+- **ignore_patterns** (list[str] | None)
 
 
 ## HFImageSegmentation
@@ -416,8 +663,9 @@ This class represents a dataset, which includes a dataframe of features and a da
 **Fields:**
 - **type** (typing.Literal['hf.image_segmentation'])
 - **repo_id** (str)
-- **allow_patterns** (list[str])
-- **ignore_patterns** (list[str])
+- **path** (str | None)
+- **allow_patterns** (list[str] | None)
+- **ignore_patterns** (list[str] | None)
 
 
 ## HFImageTextToText
@@ -425,8 +673,9 @@ This class represents a dataset, which includes a dataframe of features and a da
 **Fields:**
 - **type** (typing.Literal['hf.image_text_to_text'])
 - **repo_id** (str)
-- **allow_patterns** (list[str])
-- **ignore_patterns** (list[str])
+- **path** (str | None)
+- **allow_patterns** (list[str] | None)
+- **ignore_patterns** (list[str] | None)
 
 
 ## HFImageTo3D
@@ -434,8 +683,9 @@ This class represents a dataset, which includes a dataframe of features and a da
 **Fields:**
 - **type** (typing.Literal['hf.image_to_3d'])
 - **repo_id** (str)
-- **allow_patterns** (list[str])
-- **ignore_patterns** (list[str])
+- **path** (str | None)
+- **allow_patterns** (list[str] | None)
+- **ignore_patterns** (list[str] | None)
 
 
 ## HFImageToImage
@@ -443,8 +693,9 @@ This class represents a dataset, which includes a dataframe of features and a da
 **Fields:**
 - **type** (typing.Literal['hf.image_to_image'])
 - **repo_id** (str)
-- **allow_patterns** (list[str])
-- **ignore_patterns** (list[str])
+- **path** (str | None)
+- **allow_patterns** (list[str] | None)
+- **ignore_patterns** (list[str] | None)
 
 
 ## HFImageToText
@@ -452,8 +703,9 @@ This class represents a dataset, which includes a dataframe of features and a da
 **Fields:**
 - **type** (typing.Literal['hf.image_to_text'])
 - **repo_id** (str)
-- **allow_patterns** (list[str])
-- **ignore_patterns** (list[str])
+- **path** (str | None)
+- **allow_patterns** (list[str] | None)
+- **ignore_patterns** (list[str] | None)
 
 
 ## HFImageToVideo
@@ -461,18 +713,37 @@ This class represents a dataset, which includes a dataframe of features and a da
 **Fields:**
 - **type** (typing.Literal['hf.image_to_video'])
 - **repo_id** (str)
-- **allow_patterns** (list[str])
-- **ignore_patterns** (list[str])
+- **path** (str | None)
+- **allow_patterns** (list[str] | None)
+- **ignore_patterns** (list[str] | None)
 
 
-## HFLora
+## HFLTXV
 
 **Fields:**
-- **type** (typing.Literal['hf.lora'])
+- **type** (typing.Literal['hf.ltxv'])
 - **repo_id** (str)
-- **allow_patterns** (list[str])
-- **ignore_patterns** (list[str])
-- **file_name** (str)
+- **path** (str | None)
+- **allow_patterns** (list[str] | None)
+- **ignore_patterns** (list[str] | None)
+
+
+## HFLoraSD
+
+**Fields:**
+- **type** (typing.Literal['hf.lora_sd'])
+- **repo_id** (str)
+- **path** (str | None)
+- **allow_patterns** (list[str] | None)
+- **ignore_patterns** (list[str] | None)
+
+
+## HFLoraSDConfig
+
+**Fields:**
+- **type** (typing.Literal['hf.lora_sd_config'])
+- **lora**: The LoRA model to use. (HFLoraSD)
+- **strength**: LoRA strength (float)
 
 
 ## HFLoraSDXL
@@ -480,9 +751,17 @@ This class represents a dataset, which includes a dataframe of features and a da
 **Fields:**
 - **type** (typing.Literal['hf.lora_sdxl'])
 - **repo_id** (str)
-- **allow_patterns** (list[str])
-- **ignore_patterns** (list[str])
-- **file_name** (str)
+- **path** (str | None)
+- **allow_patterns** (list[str] | None)
+- **ignore_patterns** (list[str] | None)
+
+
+## HFLoraSDXLConfig
+
+**Fields:**
+- **type** (typing.Literal['hf.lora_sdxl_config'])
+- **lora**: The LoRA model to use. (HFLoraSDXL)
+- **strength**: LoRA strength (float)
 
 
 ## HFMaskGeneration
@@ -490,8 +769,19 @@ This class represents a dataset, which includes a dataframe of features and a da
 **Fields:**
 - **type** (typing.Literal['hf.mask_generation'])
 - **repo_id** (str)
-- **allow_patterns** (list[str])
-- **ignore_patterns** (list[str])
+- **path** (str | None)
+- **allow_patterns** (list[str] | None)
+- **ignore_patterns** (list[str] | None)
+
+
+## HFMiniCPM
+
+**Fields:**
+- **type** (typing.Literal['hf.minicpm'])
+- **repo_id** (str)
+- **path** (str | None)
+- **allow_patterns** (list[str] | None)
+- **ignore_patterns** (list[str] | None)
 
 
 ## HFNaturalLanguageProcessing
@@ -499,8 +789,9 @@ This class represents a dataset, which includes a dataframe of features and a da
 **Fields:**
 - **type** (typing.Literal['hf.natural_language_processing'])
 - **repo_id** (str)
-- **allow_patterns** (list[str])
-- **ignore_patterns** (list[str])
+- **path** (str | None)
+- **allow_patterns** (list[str] | None)
+- **ignore_patterns** (list[str] | None)
 
 
 ## HFObjectDetection
@@ -508,8 +799,9 @@ This class represents a dataset, which includes a dataframe of features and a da
 **Fields:**
 - **type** (typing.Literal['hf.object_detection'])
 - **repo_id** (str)
-- **allow_patterns** (list[str])
-- **ignore_patterns** (list[str])
+- **path** (str | None)
+- **allow_patterns** (list[str] | None)
+- **ignore_patterns** (list[str] | None)
 
 
 ## HFQuestionAnswering
@@ -517,8 +809,19 @@ This class represents a dataset, which includes a dataframe of features and a da
 **Fields:**
 - **type** (typing.Literal['hf.question_answering'])
 - **repo_id** (str)
-- **allow_patterns** (list[str])
-- **ignore_patterns** (list[str])
+- **path** (str | None)
+- **allow_patterns** (list[str] | None)
+- **ignore_patterns** (list[str] | None)
+
+
+## HFRealESRGAN
+
+**Fields:**
+- **type** (typing.Literal['hf.real_esrgan'])
+- **repo_id** (str)
+- **path** (str | None)
+- **allow_patterns** (list[str] | None)
+- **ignore_patterns** (list[str] | None)
 
 
 ## HFSentenceSimilarity
@@ -526,8 +829,9 @@ This class represents a dataset, which includes a dataframe of features and a da
 **Fields:**
 - **type** (typing.Literal['hf.sentence_similarity'])
 - **repo_id** (str)
-- **allow_patterns** (list[str])
-- **ignore_patterns** (list[str])
+- **path** (str | None)
+- **allow_patterns** (list[str] | None)
+- **ignore_patterns** (list[str] | None)
 
 
 ## HFStableDiffusion
@@ -535,8 +839,29 @@ This class represents a dataset, which includes a dataframe of features and a da
 **Fields:**
 - **type** (typing.Literal['hf.stable_diffusion'])
 - **repo_id** (str)
-- **allow_patterns** (list[str])
-- **ignore_patterns** (list[str])
+- **path** (str | None)
+- **allow_patterns** (list[str] | None)
+- **ignore_patterns** (list[str] | None)
+
+
+## HFStableDiffusion3
+
+**Fields:**
+- **type** (typing.Literal['hf.stable_diffusion_3'])
+- **repo_id** (str)
+- **path** (str | None)
+- **allow_patterns** (list[str] | None)
+- **ignore_patterns** (list[str] | None)
+
+
+## HFStableDiffusionUpscale
+
+**Fields:**
+- **type** (typing.Literal['hf.stable_diffusion_upscale'])
+- **repo_id** (str)
+- **path** (str | None)
+- **allow_patterns** (list[str] | None)
+- **ignore_patterns** (list[str] | None)
 
 
 ## HFStableDiffusionXL
@@ -544,8 +869,9 @@ This class represents a dataset, which includes a dataframe of features and a da
 **Fields:**
 - **type** (typing.Literal['hf.stable_diffusion_xl'])
 - **repo_id** (str)
-- **allow_patterns** (list[str])
-- **ignore_patterns** (list[str])
+- **path** (str | None)
+- **allow_patterns** (list[str] | None)
+- **ignore_patterns** (list[str] | None)
 
 
 ## HFStableDiffusionXLTurbo
@@ -553,8 +879,19 @@ This class represents a dataset, which includes a dataframe of features and a da
 **Fields:**
 - **type** (typing.Literal['hf.stable_diffusion_xl_turbo'])
 - **repo_id** (str)
-- **allow_patterns** (list[str])
-- **ignore_patterns** (list[str])
+- **path** (str | None)
+- **allow_patterns** (list[str] | None)
+- **ignore_patterns** (list[str] | None)
+
+
+## HFStyleModel
+
+**Fields:**
+- **type** (typing.Literal['hf.style_model'])
+- **repo_id** (str)
+- **path** (str | None)
+- **allow_patterns** (list[str] | None)
+- **ignore_patterns** (list[str] | None)
 
 
 ## HFSummarization
@@ -562,8 +899,9 @@ This class represents a dataset, which includes a dataframe of features and a da
 **Fields:**
 - **type** (typing.Literal['hf.summarization'])
 - **repo_id** (str)
-- **allow_patterns** (list[str])
-- **ignore_patterns** (list[str])
+- **path** (str | None)
+- **allow_patterns** (list[str] | None)
+- **ignore_patterns** (list[str] | None)
 
 
 ## HFTableQuestionAnswering
@@ -571,8 +909,9 @@ This class represents a dataset, which includes a dataframe of features and a da
 **Fields:**
 - **type** (typing.Literal['hf.table_question_answering'])
 - **repo_id** (str)
-- **allow_patterns** (list[str])
-- **ignore_patterns** (list[str])
+- **path** (str | None)
+- **allow_patterns** (list[str] | None)
+- **ignore_patterns** (list[str] | None)
 
 
 ## HFText2TextGeneration
@@ -580,8 +919,9 @@ This class represents a dataset, which includes a dataframe of features and a da
 **Fields:**
 - **type** (typing.Literal['hf.text2text_generation'])
 - **repo_id** (str)
-- **allow_patterns** (list[str])
-- **ignore_patterns** (list[str])
+- **path** (str | None)
+- **allow_patterns** (list[str] | None)
+- **ignore_patterns** (list[str] | None)
 
 
 ## HFTextClassification
@@ -589,8 +929,9 @@ This class represents a dataset, which includes a dataframe of features and a da
 **Fields:**
 - **type** (typing.Literal['hf.text_classification'])
 - **repo_id** (str)
-- **allow_patterns** (list[str])
-- **ignore_patterns** (list[str])
+- **path** (str | None)
+- **allow_patterns** (list[str] | None)
+- **ignore_patterns** (list[str] | None)
 
 
 ## HFTextGeneration
@@ -598,8 +939,9 @@ This class represents a dataset, which includes a dataframe of features and a da
 **Fields:**
 - **type** (typing.Literal['hf.text_generation'])
 - **repo_id** (str)
-- **allow_patterns** (list[str])
-- **ignore_patterns** (list[str])
+- **path** (str | None)
+- **allow_patterns** (list[str] | None)
+- **ignore_patterns** (list[str] | None)
 
 
 ## HFTextTo3D
@@ -607,8 +949,9 @@ This class represents a dataset, which includes a dataframe of features and a da
 **Fields:**
 - **type** (typing.Literal['hf.text_to_3d'])
 - **repo_id** (str)
-- **allow_patterns** (list[str])
-- **ignore_patterns** (list[str])
+- **path** (str | None)
+- **allow_patterns** (list[str] | None)
+- **ignore_patterns** (list[str] | None)
 
 
 ## HFTextToAudio
@@ -616,8 +959,9 @@ This class represents a dataset, which includes a dataframe of features and a da
 **Fields:**
 - **type** (typing.Literal['hf.text_to_audio'])
 - **repo_id** (str)
-- **allow_patterns** (list[str])
-- **ignore_patterns** (list[str])
+- **path** (str | None)
+- **allow_patterns** (list[str] | None)
+- **ignore_patterns** (list[str] | None)
 
 
 ## HFTextToImage
@@ -625,8 +969,9 @@ This class represents a dataset, which includes a dataframe of features and a da
 **Fields:**
 - **type** (typing.Literal['hf.text_to_image'])
 - **repo_id** (str)
-- **allow_patterns** (list[str])
-- **ignore_patterns** (list[str])
+- **path** (str | None)
+- **allow_patterns** (list[str] | None)
+- **ignore_patterns** (list[str] | None)
 
 
 ## HFTextToSpeech
@@ -634,8 +979,9 @@ This class represents a dataset, which includes a dataframe of features and a da
 **Fields:**
 - **type** (typing.Literal['hf.text_to_speech'])
 - **repo_id** (str)
-- **allow_patterns** (list[str])
-- **ignore_patterns** (list[str])
+- **path** (str | None)
+- **allow_patterns** (list[str] | None)
+- **ignore_patterns** (list[str] | None)
 
 
 ## HFTextToVideo
@@ -643,8 +989,9 @@ This class represents a dataset, which includes a dataframe of features and a da
 **Fields:**
 - **type** (typing.Literal['hf.text_to_video'])
 - **repo_id** (str)
-- **allow_patterns** (list[str])
-- **ignore_patterns** (list[str])
+- **path** (str | None)
+- **allow_patterns** (list[str] | None)
+- **ignore_patterns** (list[str] | None)
 
 
 ## HFTokenClassification
@@ -652,8 +999,9 @@ This class represents a dataset, which includes a dataframe of features and a da
 **Fields:**
 - **type** (typing.Literal['hf.token_classification'])
 - **repo_id** (str)
-- **allow_patterns** (list[str])
-- **ignore_patterns** (list[str])
+- **path** (str | None)
+- **allow_patterns** (list[str] | None)
+- **ignore_patterns** (list[str] | None)
 
 
 ## HFTranslation
@@ -661,8 +1009,9 @@ This class represents a dataset, which includes a dataframe of features and a da
 **Fields:**
 - **type** (typing.Literal['hf.translation'])
 - **repo_id** (str)
-- **allow_patterns** (list[str])
-- **ignore_patterns** (list[str])
+- **path** (str | None)
+- **allow_patterns** (list[str] | None)
+- **ignore_patterns** (list[str] | None)
 
 
 ## HFUnconditionalImageGeneration
@@ -670,8 +1019,29 @@ This class represents a dataset, which includes a dataframe of features and a da
 **Fields:**
 - **type** (typing.Literal['hf.unconditional_image_generation'])
 - **repo_id** (str)
-- **allow_patterns** (list[str])
-- **ignore_patterns** (list[str])
+- **path** (str | None)
+- **allow_patterns** (list[str] | None)
+- **ignore_patterns** (list[str] | None)
+
+
+## HFUnet
+
+**Fields:**
+- **type** (typing.Literal['hf.unet'])
+- **repo_id** (str)
+- **path** (str | None)
+- **allow_patterns** (list[str] | None)
+- **ignore_patterns** (list[str] | None)
+
+
+## HFVAE
+
+**Fields:**
+- **type** (typing.Literal['hf.vae'])
+- **repo_id** (str)
+- **path** (str | None)
+- **allow_patterns** (list[str] | None)
+- **ignore_patterns** (list[str] | None)
 
 
 ## HFVideoClassification
@@ -679,8 +1049,9 @@ This class represents a dataset, which includes a dataframe of features and a da
 **Fields:**
 - **type** (typing.Literal['hf.video_classification'])
 - **repo_id** (str)
-- **allow_patterns** (list[str])
-- **ignore_patterns** (list[str])
+- **path** (str | None)
+- **allow_patterns** (list[str] | None)
+- **ignore_patterns** (list[str] | None)
 
 
 ## HFVideoTextToText
@@ -688,8 +1059,9 @@ This class represents a dataset, which includes a dataframe of features and a da
 **Fields:**
 - **type** (typing.Literal['hf.video_text_to_text'])
 - **repo_id** (str)
-- **allow_patterns** (list[str])
-- **ignore_patterns** (list[str])
+- **path** (str | None)
+- **allow_patterns** (list[str] | None)
+- **ignore_patterns** (list[str] | None)
 
 
 ## HFVisualQuestionAnswering
@@ -697,8 +1069,9 @@ This class represents a dataset, which includes a dataframe of features and a da
 **Fields:**
 - **type** (typing.Literal['hf.visual_question_answering'])
 - **repo_id** (str)
-- **allow_patterns** (list[str])
-- **ignore_patterns** (list[str])
+- **path** (str | None)
+- **allow_patterns** (list[str] | None)
+- **ignore_patterns** (list[str] | None)
 
 
 ## HFVoiceActivityDetection
@@ -706,8 +1079,9 @@ This class represents a dataset, which includes a dataframe of features and a da
 **Fields:**
 - **type** (typing.Literal['hf.voice_activity_detection'])
 - **repo_id** (str)
-- **allow_patterns** (list[str])
-- **ignore_patterns** (list[str])
+- **path** (str | None)
+- **allow_patterns** (list[str] | None)
+- **ignore_patterns** (list[str] | None)
 
 
 ## HFZeroShotAudioClassification
@@ -715,8 +1089,9 @@ This class represents a dataset, which includes a dataframe of features and a da
 **Fields:**
 - **type** (typing.Literal['hf.zero_shot_audio_classification'])
 - **repo_id** (str)
-- **allow_patterns** (list[str])
-- **ignore_patterns** (list[str])
+- **path** (str | None)
+- **allow_patterns** (list[str] | None)
+- **ignore_patterns** (list[str] | None)
 
 
 ## HFZeroShotClassification
@@ -724,8 +1099,9 @@ This class represents a dataset, which includes a dataframe of features and a da
 **Fields:**
 - **type** (typing.Literal['hf.zero_shot_classification'])
 - **repo_id** (str)
-- **allow_patterns** (list[str])
-- **ignore_patterns** (list[str])
+- **path** (str | None)
+- **allow_patterns** (list[str] | None)
+- **ignore_patterns** (list[str] | None)
 
 
 ## HFZeroShotImageClassification
@@ -733,8 +1109,9 @@ This class represents a dataset, which includes a dataframe of features and a da
 **Fields:**
 - **type** (typing.Literal['hf.zero_shot_image_classification'])
 - **repo_id** (str)
-- **allow_patterns** (list[str])
-- **ignore_patterns** (list[str])
+- **path** (str | None)
+- **allow_patterns** (list[str] | None)
+- **ignore_patterns** (list[str] | None)
 
 
 ## HFZeroShotObjectDetection
@@ -742,8 +1119,9 @@ This class represents a dataset, which includes a dataframe of features and a da
 **Fields:**
 - **type** (typing.Literal['hf.zero_shot_object_detection'])
 - **repo_id** (str)
-- **allow_patterns** (list[str])
-- **ignore_patterns** (list[str])
+- **path** (str | None)
+- **allow_patterns** (list[str] | None)
+- **ignore_patterns** (list[str] | None)
 
 
 ## HuggingFaceModel
@@ -751,8 +1129,21 @@ This class represents a dataset, which includes a dataframe of features and a da
 **Fields:**
 - **type** (str)
 - **repo_id** (str)
-- **allow_patterns** (list[str])
-- **ignore_patterns** (list[str])
+- **path** (str | None)
+- **allow_patterns** (list[str] | None)
+- **ignore_patterns** (list[str] | None)
+
+### is_empty
+
+**Args:**
+
+**Returns:** bool
+
+### is_set
+
+**Args:**
+
+**Returns:** bool
 
 
 ## IPAdapter
@@ -760,6 +1151,7 @@ This class represents a dataset, which includes a dataframe of features and a da
 **Fields:**
 - **type** (typing.Literal['comfy.ip_adapter'])
 - **name** (str)
+- **model** (Any)
 
 
 ## IPAdapterFile
@@ -795,18 +1187,12 @@ A reference to an image asset.
 - **data** (Any)
 
 
-## InsightFace
-
-**Fields:**
-- **type** (typing.Literal['comfy.insight_face'])
-- **data** (Any)
-
-
 ## InstantID
 
 **Fields:**
 - **type** (typing.Literal['comfy.instant_id'])
 - **name** (str)
+- **model** (Any)
 
 
 ## InstantIDFile
@@ -821,6 +1207,7 @@ A reference to an image asset.
 **Fields:**
 - **type** (typing.Literal['comfy.lora'])
 - **name** (str)
+- **model** (Any)
 
 
 ## LORAFile
@@ -842,11 +1229,25 @@ A reference to an image asset.
 **Fields:**
 - **type** (typing.Literal['llama_model'])
 - **name** (str)
-- **model** (str)
+- **repo_id** (str)
 - **modified_at** (str)
 - **size** (int)
 - **digest** (str)
 - **details** (dict)
+
+### is_set
+
+**Args:**
+
+**Returns:** bool
+
+
+## LoRAConfig
+
+**Fields:**
+- **type** (typing.Literal['comfy.lora_config'])
+- **lora**: The LoRA model to use. (LORAFile)
+- **strength**: LoRA strength (float)
 
 
 ## Mask
@@ -865,13 +1266,16 @@ Abstract representation for a chat message.
 **Fields:**
 - **type** (str)
 - **id** (str | None)
+- **auth_token** (str | None)
+- **workflow_id** (str | None)
+- **graph** (nodetool.types.graph.Graph | None)
 - **thread_id** (str | None)
 - **user_id** (str | None)
 - **tool_call_id** (str | None)
 - **role** (str)
 - **name** (str)
-- **content** (str | list[nodetool.models.message.MessageTextContent | nodetool.models.message.MessageImageContent] | None)
-- **tool_calls** (list[nodetool.models.message.ToolCall] | None)
+- **content** (str | list[nodetool.metadata.types.MessageTextContent | nodetool.metadata.types.MessageImageContent | nodetool.metadata.types.MessageAudioContent | nodetool.metadata.types.MessageVideoContent] | None)
+- **tool_calls** (list[nodetool.metadata.types.ToolCall] | None)
 - **created_at** (str | None)
 
 ### from_model
@@ -888,7 +1292,35 @@ Convert a Model object to a Message object.
 
 - **Message**: The abstract Message object.
 **Args:**
-- **message (Message)**
+- **message (Any)**
+
+
+## MessageAudioContent
+
+**Fields:**
+- **type** (typing.Literal['audio'])
+- **audio** (AudioRef)
+
+
+## MessageImageContent
+
+**Fields:**
+- **type** (typing.Literal['image_url'])
+- **image** (ImageRef)
+
+
+## MessageTextContent
+
+**Fields:**
+- **type** (typing.Literal['text'])
+- **text** (str)
+
+
+## MessageVideoContent
+
+**Fields:**
+- **type** (typing.Literal['video'])
+- **video** (VideoRef)
 
 
 ## ModelFile
@@ -896,6 +1328,18 @@ Convert a Model object to a Message object.
 **Fields:**
 - **type** (str)
 - **name** (str)
+
+### is_empty
+
+**Args:**
+
+**Returns:** bool
+
+### is_set
+
+**Args:**
+
+**Returns:** bool
 
 
 ## ModelRef
@@ -929,6 +1373,8 @@ Convert a Model object to a Message object.
 - **score** (float)
 - **box** (BoundingBox)
 
+
+## OpenAIEmbeddingModel
 
 ## OutputSlot
 
@@ -973,6 +1419,35 @@ This is the base class for all strucutred output types when a node
 - **columns** (list[nodetool.metadata.types.ColumnDef])
 
 
+## SVGElement
+
+Base type for SVG elements that can be combined.
+
+**Fields:**
+- **type** (typing.Literal['svg_element'])
+- **name** (str)
+- **attributes** (dict[str, str])
+- **content** (str)
+- **children** (list[nodetool.metadata.types.SVGElement])
+
+### render_attributes
+
+**Args:**
+
+**Returns:** str
+
+
+## SVGRef
+
+A reference to an SVG asset.
+
+**Fields:**
+- **type** (typing.Literal['svg'])
+- **uri** (str)
+- **asset_id** (str | None)
+- **data** (bytes | None)
+
+
 ## Sampler
 
 **Fields:**
@@ -980,11 +1455,32 @@ This is the base class for all strucutred output types when a node
 - **data** (Any)
 
 
+## SeabornEstimator
+
+## SeabornPlotType
+
+## SeabornStatistic
+
 ## Sigmas
 
 **Fields:**
 - **type** (typing.Literal['comfy.sigmas'])
 - **data** (Any)
+
+
+## StyleModel
+
+**Fields:**
+- **type** (typing.Literal['comfy.style_model'])
+- **name** (str)
+- **model** (Any)
+
+
+## StyleModelFile
+
+**Fields:**
+- **type** (typing.Literal['comfy.style_model_file'])
+- **name** (str)
 
 
 ## Task
@@ -1051,11 +1547,21 @@ This is the base class for all strucutred output types when a node
 - **data** (bytes | list[bytes] | None)
 
 
+## ToolCall
+
+**Fields:**
+- **id** (str)
+- **name** (str)
+- **args** (dict[str, typing.Any])
+- **result** (Any)
+
+
 ## UNet
 
 **Fields:**
 - **type** (typing.Literal['comfy.unet'])
 - **name** (str)
+- **model** (Any)
 
 
 ## UNetFile
@@ -1070,6 +1576,7 @@ This is the base class for all strucutred output types when a node
 **Fields:**
 - **type** (typing.Literal['comfy.upscale_model'])
 - **name** (str)
+- **model** (Any)
 
 
 ## UpscaleModelFile
@@ -1084,6 +1591,7 @@ This is the base class for all strucutred output types when a node
 **Fields:**
 - **type** (typing.Literal['comfy.vae'])
 - **name** (str)
+- **model** (Any)
 
 
 ## VAEFile
@@ -1128,6 +1636,13 @@ Add type names to the TypeToEnum and EnumToType mappings.
 
 **Args:**
 - **asset (Asset)**
+
+### comfy_model_to_folder
+
+**Args:**
+- **type_name (str)**
+
+**Returns:** str
 
 ### dtype_name
 

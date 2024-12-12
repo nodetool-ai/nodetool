@@ -31,11 +31,12 @@ Use cases:
 
 **Fields:**
 - **video**: The input video to add subtitles to. (VideoRef)
-- **subtitles**: SRT Subtitles. (TextRef)
-- **font_size**: Font size for the subtitles. (int)
-- **font_color**: Color of the subtitle text. (str)
-- **outline_color**: Color of the text outline. (str)
-- **outline_width**: Width of the text outline. (int)
+- **chunks**: Audio chunks to add as subtitles. (list[nodetool.metadata.types.AudioChunk])
+- **font**: The font to use. (SubtitleTextFont)
+- **align**: Vertical alignment of subtitles. (SubtitleTextAlignment)
+- **font_size**: The font size. (int)
+- **font_color**: The font color. (ColorRef)
+- **outline_color**: The outline color for better text visibility. (ColorRef)
 
 
 ## Blur
@@ -67,7 +68,7 @@ Use cases:
 
 **Fields:**
 - **video**: The input video to apply chroma key effect. (VideoRef)
-- **key_color**: The color to key out (e.g., '0x00FF00' for green). (str)
+- **key_color**: The color to key out (e.g., '#00FF00' for green). (ColorRef)
 - **similarity**: Similarity threshold for the key color. (float)
 - **blend**: Blending of the keyed area edges. (float)
 
@@ -92,14 +93,9 @@ Use cases:
 
 ## Concat
 
-Concatenate multiple video files into a single video.
+Concatenate multiple video files into a single video, including audio when available.
 
-Use cases:
-1. Merge multiple video clips into a single continuous video
-2. Create compilations from various video sources
-3. Combine processed video segments back into a full video
-
-**Tags:** video, concat, merge, combine
+**Tags:** video, concat, merge, combine, audio
 
 **Fields:**
 - **video_a**: The first video to concatenate. (VideoRef)
@@ -138,9 +134,17 @@ Use cases:
 - **strength**: Strength of the denoising effect. Higher values mean more denoising. (float)
 
 
+## ExtractAudio
+
+Separate audio from a video file.
+
+**Fields:**
+- **video**: The input video to separate. (VideoRef)
+
+
 ## ExtractFrames
 
-Extract frames from a video file.
+Extract frames from a video file using OpenCV.
 
 Use cases:
 1. Generate image sequences for further processing
@@ -150,7 +154,7 @@ Use cases:
 **Tags:** video, frames, extract, sequence
 
 **Fields:**
-- **video**: The input video to adjust the brightness for. (VideoRef)
+- **video**: The input video to extract frames from. (VideoRef)
 - **start**: The frame to start extracting from. (int)
 - **end**: The frame to stop extracting from. (int)
 
@@ -179,14 +183,9 @@ Use cases:
 
 ## Overlay
 
-Overlay one video on top of another.
+Overlay one video on top of another, including audio overlay when available.
 
-Use cases:
-1. Add watermarks or logos to videos
-2. Create picture-in-picture effects
-3. Combine multiple video streams into a single output
-
-**Tags:** video, overlay, composite, picture-in-picture
+**Tags:** video, overlay, composite, picture-in-picture, audio
 
 **Fields:**
 - **main_video**: The main (background) video. (VideoRef)
@@ -194,6 +193,24 @@ Use cases:
 - **x**: X-coordinate for overlay placement. (int)
 - **y**: Y-coordinate for overlay placement. (int)
 - **scale**: Scale factor for the overlay video. (float)
+- **overlay_audio_volume**: Volume of the overlay audio relative to the main audio. (float)
+
+
+## ResizeNode
+
+Resize a video to a specific width and height.
+
+Use cases:
+1. Adjust video resolution for different display requirements
+2. Reduce file size by downscaling video
+3. Prepare videos for specific platforms with size constraints
+
+**Tags:** video, resize, scale, dimensions
+
+**Fields:**
+- **video**: The input video to resize. (VideoRef)
+- **width**: The target width. Use -1 to maintain aspect ratio. (int)
+- **height**: The target height. Use -1 to maintain aspect ratio. (int)
 
 
 ## Reverse
@@ -312,14 +329,15 @@ Use cases:
 
 ## Transition
 
-Create a transition effect between two videos.
+Create a transition effect between two videos, including audio transition when available.
 
 Use cases:
 1. Create smooth transitions between video clips in a montage
 2. Add professional-looking effects to video projects
 3. Blend scenes together for creative storytelling
+4. Smoothly transition between audio tracks of different video clips
 
-**Tags:** video, transition, effect, merge
+**Tags:** video, transition, effect, merge, audio
 
 **Fields:**
 - **video_a**: The first video in the transition. (VideoRef)
@@ -345,20 +363,8 @@ Use cases:
 - **end_time**: The end time in seconds for the trimmed video. Use -1 for the end of the video. (float)
 
 
-## VideoResizeNode
+### safe_unlink
 
-Resize a video to a specific width and height.
-
-Use cases:
-1. Adjust video resolution for different display requirements
-2. Reduce file size by downscaling video
-3. Prepare videos for specific platforms with size constraints
-
-**Tags:** video, resize, scale, dimensions
-
-**Fields:**
-- **video**: The input video to resize. (VideoRef)
-- **width**: The target width. Use -1 to maintain aspect ratio. (int)
-- **height**: The target height. Use -1 to maintain aspect ratio. (int)
-
+**Args:**
+- **path (str)**
 

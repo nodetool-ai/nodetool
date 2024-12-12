@@ -50,6 +50,15 @@
 
 **Returns:** WorkflowList
 
+### save_example_workflow
+
+**Args:**
+- **id (str)**
+- **workflow_request (WorkflowRequest)**
+- **user (User) (default: Depends(current_user))**
+
+**Returns:** Workflow
+
 ### update_workflow
 
 **Args:**

@@ -4,61 +4,43 @@
 
 **Fields:**
 
-### get_inputs
+### load_model
 
 **Args:**
 - **context (ProcessingContext)**
+- **model_class (type[~T])**
+- **model_id (str)**
+- **variant (str | None) (default: fp16)**
+- **torch_dtype (torch.dtype | None) (default: torch.float16)**
+- **path (str | None) (default: None)**
+- **skip_cache (bool) (default: False)**
+- **kwargs (Any)**
 
-### get_model_id
+**Returns:** ~T
 
-**Args:**
-
-### get_params
-
-**Args:**
-
-### get_torch_dtype
-
-**Args:**
-
-### initialize
+### load_pipeline
 
 **Args:**
 - **context (ProcessingContext)**
+- **pipeline_task (str)**
+- **model_id (Any)**
+- **device (str | None) (default: None)**
+- **torch_dtype (torch.dtype | None) (default: torch.float16)**
+- **kwargs (Any)**
 
 ### move_to_device
 
 **Args:**
 - **device (str)**
 
-### process_local
+### requires_gpu
 
 **Args:**
-- **context (ProcessingContext)**
 
-**Returns:** Any
+**Returns:** bool
 
-### process_local_result
-
-**Args:**
-- **context (Any)**
-- **result (Any)**
-
-**Returns:** Any
-
-### process_remote
+### should_skip_cache
 
 **Args:**
-- **context (ProcessingContext)**
-
-**Returns:** Any
-
-### process_remote_result
-
-**Args:**
-- **context (Any)**
-- **result (Any)**
-
-**Returns:** Any
 
 
