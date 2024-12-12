@@ -181,7 +181,7 @@
         "data": {
           "model": {
             "type": "hf.automatic_speech_recognition",
-            "repo_id": "openai/whisper-large-v3"
+            "repo_id": "openai/whisper-small"
           },
           "task": "transcribe",
           "language": "english",
