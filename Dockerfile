@@ -41,7 +41,6 @@ RUN apt-get update && \
     gfortran \
     libeigen3-dev \
     libgsl-dev \
-    intel-mkl \
 
     # Image Processing
     libopencv-dev \
