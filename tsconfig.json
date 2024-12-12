@@ -16,6 +16,12 @@
     "lib": ["dom", "dom.iterable", "esnext"],
     "jsx": "react-jsx"
   },
+  "terserOptions": {
+    "compress": true,
+    "mangle": false, 
+    "keep_classnames": true,
+    "keep_fnames": true
+  },
   "include": ["web/src"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
