@@ -1,10 +1,12 @@
+import dotenv
+
+dotenv.load_dotenv()
+
 import argparse
 import json
 import os
 import uuid
 import requests
-from pathlib import Path
-from typing import Dict, Any
 from nodetool.workflows.run_job_request import RunJobRequest
 
 
