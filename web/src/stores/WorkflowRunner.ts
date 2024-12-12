@@ -24,7 +24,7 @@ import { useNotificationStore, Notification } from "./NotificationStore";
 import useStatusStore from "./StatusStore";
 import useLogsStore from "./LogStore";
 import useErrorStore from "./ErrorStore";
-import msgpack from "@msgpack/msgpack";
+import { decode, encode } from "@msgpack/msgpack";
 import { handleUpdate } from "./workflowUpdates";
 
 export type ProcessingContext = {
@@ -101,7 +101,7 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
       // TODO: this needs to be part of the payload
       const workflow = useNodeStore.getState().workflow;
       const arrayBuffer = await event.data.arrayBuffer();
-      const data = msgpack.decode(new Uint8Array(arrayBuffer)) as MsgpackData;
+      const data = decode(new Uint8Array(arrayBuffer)) as MsgpackData;
       get().readMessage(workflow, data);
     };
 
@@ -225,7 +225,7 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
     console.log(req);
 
     socket.send(
-      msgpack.encode({
+      encode({
         command: "run_job",
         data: req
       })
@@ -272,7 +272,7 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
     }
 
     socket.send(
-      msgpack.encode({
+      encode({
         command: "cancel_job",
         data: { job_id }
       })

@@ -9,7 +9,7 @@ import {
 import { CHAT_URL } from "./ApiClient";
 import { useAuth } from "./useAuth";
 import { devError, devLog } from "../utils/DevLog";
-import msgpack from "@msgpack/msgpack";
+import { decode, encode } from "@msgpack/msgpack";
 import { useNodeStore } from "./NodeStore";
 import { handleUpdate } from "./workflowUpdates";
 
@@ -63,7 +63,7 @@ const useWorkflowChatStore = create<WorkflowChatState>((set, get) => ({
 
     socket.onmessage = async (event) => {
       const arrayBuffer = await event.data.arrayBuffer();
-      const data = msgpack.decode(new Uint8Array(arrayBuffer)) as MsgpackData;
+      const data = decode(new Uint8Array(arrayBuffer)) as MsgpackData;
 
       if (data.type === "message") {
         set((state) => ({
@@ -164,7 +164,7 @@ const useWorkflowChatStore = create<WorkflowChatState>((set, get) => ({
       status: "loading"
     }));
 
-    socket?.send(msgpack.encode(message));
+    socket?.send(encode(message));
   },
 
   resetMessages: () => {
