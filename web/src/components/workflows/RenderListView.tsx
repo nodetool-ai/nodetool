@@ -9,11 +9,11 @@ import { truncateString } from "../../utils/truncateString";
 import DeleteButton from "../buttons/DeleteButton";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { TOOLTIP_ENTER_DELAY } from "../node/BaseNode";
+import Checkbox from "@mui/material/Checkbox";
 
 interface RenderListViewProps {
   workflows: Workflow[];
-  onClickOpen: (workflow: Workflow) => void;
-  onDoubleClickWorkflow: (workflow: Workflow) => void;
+  onOpenWorkflow: (workflow: Workflow) => void;
   onDuplicateWorkflow: (event: React.MouseEvent, workflow: Workflow) => void;
   onSelect: (workflow: Workflow) => void;
   onDelete: (e: any, workflow: Workflow) => void;
@@ -89,7 +89,7 @@ const listStyles = (theme: any) =>
     ".actions": {
       display: "flex",
       alignItems: "center",
-      minWidth: "350px",
+      minWidth: "250px",
       marginLeft: "auto",
       gap: "0.5em",
       button: {
@@ -108,8 +108,7 @@ const listStyles = (theme: any) =>
 
 export const RenderListView: React.FC<RenderListViewProps> = ({
   workflows,
-  onClickOpen,
-  onDoubleClickWorkflow,
+  onOpenWorkflow,
   onDuplicateWorkflow,
   onDelete,
   onSelect,
@@ -121,88 +120,120 @@ export const RenderListView: React.FC<RenderListViewProps> = ({
   const addBreaks = (text: string) => {
     return text.replace(/([-_.])/g, "$1<wbr>");
   };
-  console.log(workflows);
 
   return (
     <Box className="container list" css={listStyles} onScroll={onScroll}>
       {workflows.map((workflow: Workflow) => (
-        <Box
-          key={workflow.id}
-          className={
-            "workflow list" +
-            (selectedWorkflows?.includes(workflow.id) ? " selected" : "")
-          }
-          onDoubleClick={() => onDoubleClickWorkflow(workflow)}
-          onClick={() => onSelect(workflow)}
+        <Tooltip
+          title="Click to open workflow"
+          placement="top"
+          enterDelay={TOOLTIP_ENTER_DELAY}
         >
           <Box
-            className="image-wrapper"
-            sx={{
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-              backgroundImage: workflow.thumbnail_url
-                ? `url(${workflow.thumbnail_url})`
-                : "none",
-              width: "50px",
-              height: "50px"
+            key={workflow.id}
+            className={
+              "workflow list" +
+              (selectedWorkflows?.includes(workflow.id) ? " selected" : "")
+            }
+            onClick={(e) => {
+              if (!e.defaultPrevented) {
+                onOpenWorkflow(workflow);
+              }
             }}
           >
-            {!workflow.thumbnail_url && <Box className="image-placeholder" />}
-          </Box>
-          <Box className="name-and-description">
-            <div
-              className="name"
-              dangerouslySetInnerHTML={{ __html: addBreaks(workflow.name) }}
-            ></div>
-            <Typography className="description">
-              {truncateString(workflow.description, 350)}
-            </Typography>
-          </Box>
-          <div className="actions">
-            <Typography className="date">
-              {relativeTime(workflow.updated_at)} <br />
-              {prettyDate(workflow.updated_at, "verbose", settings)}
-            </Typography>
-
             <Tooltip
-              title="DoubleClick a workflow to open it directly"
-              placement="bottom"
+              title="Select workflow"
+              placement="top"
               enterDelay={TOOLTIP_ENTER_DELAY}
             >
-              <Button
-                size="small"
-                color="primary"
-                onClick={() => onClickOpen(workflow)}
-              >
-                Open
-              </Button>
+              <Checkbox
+                checked={selectedWorkflows?.includes(workflow.id) || false}
+                onClick={(e) => {
+                  e.preventDefault();
+                  onSelect(workflow);
+                }}
+              />
             </Tooltip>
-            {workflowCategory === "user" && (
-              <>
-                <Tooltip
-                  title="Make a copy of this workflow"
-                  placement="bottom"
-                  enterDelay={TOOLTIP_ENTER_DELAY}
-                >
-                  <Button
-                    size="small"
-                    color="primary"
-                    onClick={(event) => onDuplicateWorkflow(event, workflow)}
+            <Tooltip
+              title="Workflow thumbnail"
+              placement="top"
+              enterDelay={TOOLTIP_ENTER_DELAY}
+            >
+              <Box
+                className="image-wrapper"
+                sx={{
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
+                  backgroundImage: workflow.thumbnail_url
+                    ? `url(${workflow.thumbnail_url})`
+                    : "none",
+                  width: "50px",
+                  height: "50px"
+                }}
+              >
+                {!workflow.thumbnail_url && (
+                  <Box className="image-placeholder" />
+                )}
+              </Box>
+            </Tooltip>
+            <Tooltip
+              title="Workflow details"
+              placement="top"
+              enterDelay={TOOLTIP_ENTER_DELAY}
+            >
+              <Box className="name-and-description">
+                <div
+                  className="name"
+                  dangerouslySetInnerHTML={{ __html: addBreaks(workflow.name) }}
+                ></div>
+                <Typography className="description">
+                  {truncateString(workflow.description, 350)}
+                </Typography>
+              </Box>
+            </Tooltip>
+            <div className="actions">
+              <Tooltip
+                title="Last modified"
+                placement="top"
+                enterDelay={TOOLTIP_ENTER_DELAY}
+              >
+                <Typography className="date">
+                  {relativeTime(workflow.updated_at)} <br />
+                  {prettyDate(workflow.updated_at, "verbose", settings)}
+                </Typography>
+              </Tooltip>
+
+              {workflowCategory === "user" && (
+                <>
+                  <Tooltip
+                    title="Make a copy of this workflow"
+                    placement="bottom"
+                    enterDelay={TOOLTIP_ENTER_DELAY}
                   >
-                    Duplicate
-                  </Button>
-                </Tooltip>
-                {workflowCategory === "user" && (
+                    <Button
+                      size="small"
+                      color="primary"
+                      onClick={(event) => {
+                        event.preventDefault();
+                        onDuplicateWorkflow(event, workflow);
+                      }}
+                    >
+                      Duplicate
+                    </Button>
+                  </Tooltip>
                   <DeleteButton<Workflow>
                     item={workflow}
-                    onClick={onDelete}
+                    onClick={(e, workflow) => {
+                      e.preventDefault();
+                      onDelete(e, workflow);
+                    }}
                     tooltip="Delete selected Workflows"
                   />
-                )}
-              </>
-            )}
-          </div>
-        </Box>
+                </>
+              )}
+            </div>
+          </Box>
+        </Tooltip>
       ))}
     </Box>
   );

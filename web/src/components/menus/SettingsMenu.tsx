@@ -119,8 +119,7 @@ export const settingsStyles = (theme: any): any =>
       },
       label: {
         color: theme.palette.c_white,
-        fontSize: theme.fontSizeBigger,
-        fontWeight: "300",
+        fontSize: theme.fontSizeBig,
         padding: ".5em 0 .25em 0"
       },
       ".description": {

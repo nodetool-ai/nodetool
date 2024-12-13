@@ -93,7 +93,7 @@ export interface ModelComponentProps {
 }
 
 export function formatId(id: string) {
-  if (id.includes("/")) {
+  if (id?.includes("/")) {
     const [owner, repo] = id.split("/");
     return (
       <>

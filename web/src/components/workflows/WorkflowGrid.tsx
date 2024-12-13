@@ -5,7 +5,7 @@ import SearchInput from "../search/SearchInput";
 import ConfirmDialog from "../dialogs/ConfirmDialog";
 import { RenderListView } from "./RenderListView";
 
-import { Typography, CircularProgress, Button } from "@mui/material";
+import { Typography, CircularProgress, Button, Tooltip } from "@mui/material";
 
 import { useWorkflowStore } from "../../stores/WorkflowStore";
 import { useCallback, useEffect, useState, useMemo } from "react";
@@ -179,13 +179,7 @@ const WorkflowGrid = () => {
     (workflow: Workflow) => {
       const sortedWorkflows = [...filteredWorkflows];
 
-      if (
-        selectedWorkflows.includes(workflow.id) &&
-        !controlKeyPressed &&
-        !shiftKeyPressed
-      ) {
-        setSelectedWorkflows([]);
-      } else if (shiftKeyPressed) {
+      if (shiftKeyPressed) {
         if (selectedWorkflows.length > 0) {
           const lastSelected = selectedWorkflows[selectedWorkflows.length - 1];
           const lastIndex = sortedWorkflows.findIndex(
@@ -207,17 +201,15 @@ const WorkflowGrid = () => {
         } else {
           setSelectedWorkflows([workflow.id]);
         }
-      } else if (controlKeyPressed) {
+      } else {
         setSelectedWorkflows((prev) =>
           prev.includes(workflow.id)
             ? prev.filter((id) => id !== workflow.id)
             : [...prev, workflow.id]
         );
-      } else {
-        setSelectedWorkflows([workflow.id]);
       }
     },
-    [filteredWorkflows, shiftKeyPressed, controlKeyPressed, selectedWorkflows]
+    [filteredWorkflows, shiftKeyPressed, selectedWorkflows]
   );
 
   const onDeselect = useCallback(
@@ -344,8 +336,7 @@ const WorkflowGrid = () => {
       <div className="workflow-items" ref={gridRef}>
         <RenderListView
           workflows={filteredWorkflows}
-          onClickOpen={onClickOpen}
-          onDoubleClickWorkflow={onDoubleClickWorkflow}
+          onOpenWorkflow={onDoubleClickWorkflow}
           onDuplicateWorkflow={duplicateWorkflow}
           onDelete={onDelete}
           onSelect={onSelect}
@@ -370,73 +361,52 @@ const WorkflowGrid = () => {
     () => (
       <>
         <div className="tools">
-          <Button
-            variant="outlined"
-            onClick={handleCreateWorkflow}
-            startIcon={<AddIcon />}
-            sx={{
-              fontWeight: "bold",
-              fontSize: "1.2em",
-              textTransform: "uppercase",
-              letterSpacing: "0.05em",
-              minWidth: "140px",
-              height: "36px",
-              padding: "6px 16px"
-            }}
-          >
-            Create New Workflow
-          </Button>
-          <SearchInput
-            onSearchChange={handleSearchChange}
-            focusOnTyping={true}
-          />
-          {/* <ToggleButtonGroup
-            exclusive
-            value={settings.workflowLayout}
-            onChange={handleLayoutChange}
-            sx={{ height: "36px" }}
-          >
-            <ToggleButton value="grid">
-              <ViewModuleIcon />
-            </ToggleButton>
-            <ToggleButton value="list">
-              <FormatListBulletedIcon />
-            </ToggleButton>
-          </ToggleButtonGroup> */}
-          {/* <ToggleButtonGroup
-            value={settings.workflowOrder}
-            onChange={handleOrderChange}
-            exclusive
-            aria-label="Sort workflows"
-            sx={{ height: "36px" }}
-          >
-            <ToggleButton value="name" aria-label="Sort by name">
-              Name
-            </ToggleButton>
-            <ToggleButton value="updated_at" aria-label="sort by date">
-              Date
-            </ToggleButton>
-          </ToggleButtonGroup> */}
-          {selectedWorkflows.length > 0 && (
+          <Tooltip title="Create a new workflow">
             <Button
-              className="delete-selected-button"
-              onClick={() => {
-                setWorkflowsToDelete(
-                  workflows.filter((w) => selectedWorkflows.includes(w.id))
-                );
-                setIsDeleteDialogOpen(true);
+              variant="outlined"
+              onClick={handleCreateWorkflow}
+              startIcon={<AddIcon />}
+              sx={{
+                fontWeight: "bold",
+                fontSize: "1.2em",
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+                minWidth: "140px",
+                height: "36px",
+                padding: "6px 16px"
               }}
-              sx={{ height: "36px" }}
             >
-              Delete Selected
+              Create New Workflow
             </Button>
+          </Tooltip>
+          <Tooltip title="Search workflows by name">
+            <div>
+              <SearchInput
+                onSearchChange={handleSearchChange}
+                focusOnTyping={true}
+              />
+            </div>
+          </Tooltip>
+          {selectedWorkflows.length > 0 && (
+            <Tooltip
+              title={`Delete ${selectedWorkflows.length} selected workflow${
+                selectedWorkflows.length > 1 ? "s" : ""
+              }`}
+            >
+              <Button
+                className="delete-selected-button"
+                onClick={() => {
+                  setWorkflowsToDelete(
+                    workflows.filter((w) => selectedWorkflows.includes(w.id))
+                  );
+                  setIsDeleteDialogOpen(true);
+                }}
+                sx={{ height: "36px" }}
+              >
+                Delete Selected
+              </Button>
+            </Tooltip>
           )}
-        </div>
-        <div className="explanations">
-          <Typography>
-            <strong>Double-click a workflow</strong> to open it. Select multiple
-            workflows for deletion by holding SHIFT or CONTROL keys.
-          </Typography>
         </div>
 
         <div className="status">

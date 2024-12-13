@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect } from "react";
 import ChatView from "./ChatView";
 import { useChatStore } from "../../stores/ChatStore";
-import { Box, Typography, Button } from "@mui/material";
+import { Box, Typography, Button, Tooltip } from "@mui/material";
 import { useTutorialStore } from "../../stores/TutorialStore";
 import { useNodeStore } from "../../stores/NodeStore";
 import useWorkflowRunnner from "../../stores/WorkflowRunner";
@@ -120,36 +120,80 @@ const HelpChat: React.FC = () => {
       />
 
       {messages.length === 0 && isModelAvailable && (
-        <Box sx={{ mb: 2 }}>
-          <Typography variant="h4">Hello</Typography>
-          <Typography>I&apos;m your experimental AI assistant!</Typography>
-          <Typography sx={{ mt: 2 }}>
-            Ask me anything about Nodetool&apos;s features, or try one of the
-            following tutorials:
+        <Box sx={{ mb: 2, px: 2 }}>
+          <Typography
+            variant="h4"
+            sx={{
+              fontSize: "1.25rem",
+              fontWeight: 500,
+              mb: 2
+            }}
+          >
+            Hello
+          </Typography>
+          <Typography sx={{ mb: 3 }}>
+            Ask me anything about Nodetool's features, or get started with one
+            of these interactive tutorials:
           </Typography>
           <Box
             sx={{
-              paddingLeft: "1em",
-              margin: ".5em 0 1em 0"
+              display: "flex",
+              flexDirection: "column",
+              gap: 1.5
             }}
           >
             {Object.keys(tutorials).map((name) => (
-              <Button
+              <Tooltip
                 key={name}
-                variant="outlined"
-                component="a"
-                href=""
-                onClick={(e) => {
-                  e.preventDefault();
-                  startTutorial(name);
-                }}
-                sx={{
-                  textTransform: "none",
-                  margin: ".25em"
-                }}
+                title={`Start the ${name} tutorial`}
+                arrow
+                placement="right"
               >
-                {name}
-              </Button>
+                <Button
+                  variant="contained"
+                  component="a"
+                  href=""
+                  onClick={(e) => {
+                    e.preventDefault();
+                    startTutorial(name);
+                  }}
+                  sx={{
+                    textTransform: "none",
+                    py: 1.5,
+                    px: 2.5,
+                    borderRadius: 2,
+                    backgroundColor: "rgba(80, 230, 180, 0.15)",
+                    color: "rgb(80, 230, 180)",
+                    fontWeight: 500,
+                    justifyContent: "flex-start",
+                    "&:hover": {
+                      backgroundColor: "rgba(80, 230, 180, 0.25)",
+                      transform: "translateY(-2px)",
+                      transition: "all 0.2s ease-in-out"
+                    }
+                  }}
+                >
+                  <Box
+                    component="span"
+                    sx={{
+                      mr: 1.5,
+                      display: "flex",
+                      alignItems: "center"
+                    }}
+                  >
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 16 16"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path d="M4 3.5V12.5L12 8L4 3.5Z" fill="currentColor" />
+                    </svg>
+                  </Box>
+                  {name}
+                </Button>
+              </Tooltip>
             ))}
           </Box>
         </Box>
@@ -164,13 +208,18 @@ const HelpChat: React.FC = () => {
           <Typography>
             You need to download the Qwen2.5 model to use the Help Chat.
           </Typography>
-          <Button
-            variant="outlined"
-            onClick={handleDownloadModel}
-            sx={{ mt: 1 }}
+          <Tooltip
+            title="Download the AI model to enable chat assistance features"
+            arrow
           >
-            Download Qwen2.5 1.5B Model
-          </Button>
+            <Button
+              variant="outlined"
+              onClick={handleDownloadModel}
+              sx={{ mt: 1 }}
+            >
+              Download Qwen2.5 1.5B Model
+            </Button>
+          </Tooltip>
         </Box>
       ) : (
         <ChatView

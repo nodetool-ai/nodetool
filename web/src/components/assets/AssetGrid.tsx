@@ -58,10 +58,10 @@ const styles = (theme: any) =>
       backgroundColor: theme.palette.c_gray1
     },
     ".current-folder": {
-      minWidth: "100px",
+      display: "block",
       fontSize: ThemeNodetool.fontSizeSmall,
       color: theme.palette.c_gray5,
-      padding: "0.5em 0 0 .25em"
+      margin: "2em 0 0 0"
     },
     ".folder-slash": {
       color: theme.palette.c_hl1,
@@ -73,8 +73,8 @@ const styles = (theme: any) =>
       fontSize: "12px !important",
       color: theme.palette.c_gray4,
       minHeight: "25px",
-      display: "block",
-      padding: "0.5em"
+      padding: "0",
+      margin: "0 0 0 0.5em"
     },
     ".folder-list-container": {
       padding: 0
@@ -128,6 +128,25 @@ const styles = (theme: any) =>
       paddingLeft: "4px",
       "&::before, &::after": {
         display: "none"
+      }
+    },
+    ".header-info": {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      padding: "0.5em",
+      fontSize: ThemeNodetool.fontSizeSmall,
+      color: theme.palette.c_gray5
+    },
+    ".file-info": {
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "flex-end",
+      "& > span": {
+        textOverflow: "ellipsis",
+        overflow: "hidden",
+        whiteSpace: "nowrap",
+        maxWidth: "200px"
       }
     }
   });
@@ -255,11 +274,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
         )}
         {containerWidth > 200 && <AssetActionsMenu maxItemSize={maxItemSize} />}
         {containerWidth > 300 && (
-          <>
-            <Typography className="current-folder">
-              <span className="folder-slash">/</span>
-              {currentFolder && `${currentFolder.name}`}
-            </Typography>
+          <div className="header-info">
             <div className="selected-asset-info">
               <Typography variant="body1" className="selected-info">
                 {selectedAssetIds.length > 0 && (
@@ -270,24 +285,19 @@ const AssetGrid: React.FC<AssetGridProps> = ({
                   </>
                 )}
               </Typography>
-              {selectedAssetIds.length === 1 && (
-                <Typography variant="body2" className="asset-info">
-                  <span style={{ color: "white", fontSize: "small" }}>
-                    {selectedAssets[0]?.name}{" "}
-                  </span>
-                  <br />
-                  {selectedAssets[0]?.content_type}
-                  <br />
-                </Typography>
-              )}
             </div>
-          </>
+            <Typography className="current-folder">
+              <span className="folder-slash">/</span>
+              {currentFolder && `${currentFolder.name}`}
+            </Typography>
+          </div>
         )}
         <Dropzone onDrop={uploadFiles}>
           <div
             style={{
               height: "100%",
               display: "flex",
+              margin: "0.5em",
               flexDirection: isHorizontal ? "row" : "column"
             }}
           >

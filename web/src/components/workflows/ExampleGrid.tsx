@@ -5,7 +5,8 @@ import {
   Box,
   CircularProgress,
   Button,
-  ButtonGroup
+  ButtonGroup,
+  Tooltip
 } from "@mui/material";
 import { useWorkflowStore } from "../../stores/WorkflowStore";
 import { useCallback, useMemo, useState } from "react";
@@ -146,31 +147,36 @@ const ExampleGrid = () => {
     <div className="workflow-grid" css={styles}>
       <Box className="tag-menu">
         <ButtonGroup variant="outlined">
-          <Button
-            onClick={() => setSelectedTag(null)}
-            variant={selectedTag === null ? "contained" : "outlined"}
-            className={selectedTag === null ? "selected" : ""}
-          >
-            All
-          </Button>
-          <Button
-            onClick={() => setSelectedTag("start")}
-            variant={selectedTag === "start" ? "contained" : "outlined"}
-            className={selectedTag === "start" ? "selected" : ""}
-          >
-            Start
-          </Button>
+          <Tooltip title="Show all example workflows">
+            <Button
+              onClick={() => setSelectedTag(null)}
+              variant={selectedTag === null ? "contained" : "outlined"}
+              className={selectedTag === null ? "selected" : ""}
+            >
+              All
+            </Button>
+          </Tooltip>
+          <Tooltip title="Basic examples to get started">
+            <Button
+              onClick={() => setSelectedTag("start")}
+              variant={selectedTag === "start" ? "contained" : "outlined"}
+              className={selectedTag === "start" ? "selected" : ""}
+            >
+              Start
+            </Button>
+          </Tooltip>
           {Object.keys(groupedWorkflows)
             .filter((tag) => tag !== "start")
             .map((tag) => (
-              <Button
-                key={tag}
-                onClick={() => setSelectedTag(tag)}
-                variant={selectedTag === tag ? "contained" : "outlined"}
-                className={selectedTag === tag ? "selected" : ""}
-              >
-                {tag}
-              </Button>
+              <Tooltip key={tag} title={`Show ${tag} examples`}>
+                <Button
+                  onClick={() => setSelectedTag(tag)}
+                  variant={selectedTag === tag ? "contained" : "outlined"}
+                  className={selectedTag === tag ? "selected" : ""}
+                >
+                  {tag}
+                </Button>
+              </Tooltip>
             ))}
         </ButtonGroup>
       </Box>
@@ -187,27 +193,26 @@ const ExampleGrid = () => {
           </ErrorOutlineRounded>
         )}
         {filteredWorkflows.map((workflow) => (
-          <Box
+          <Tooltip
             key={workflow.id}
-            className="workflow"
-            onClick={() => onClickWorkflow(workflow)}
+            title={workflow.description}
+            placement="bottom"
           >
-            <Box className="image-wrapper">
-              {workflow.thumbnail_url && (
-                <img
-                  width="200px"
-                  src={workflow.thumbnail_url}
-                  alt={workflow.name}
-                />
-              )}
+            <Box className="workflow" onClick={() => onClickWorkflow(workflow)}>
+              <Box className="image-wrapper">
+                {workflow.thumbnail_url && (
+                  <img
+                    width="200px"
+                    src={workflow.thumbnail_url}
+                    alt={workflow.name}
+                  />
+                )}
+              </Box>
+              <Typography variant="h4" component={"h4"}>
+                {workflow.name}
+              </Typography>
             </Box>
-            <Typography variant="h4" component={"h4"}>
-              {workflow.name}
-            </Typography>
-            <Typography style={{ fontFamily: ThemeNodetool.fontFamily1 }}>
-              {workflow.description}
-            </Typography>
-          </Box>
+          </Tooltip>
         ))}
       </Box>
     </div>
