@@ -390,6 +390,9 @@ class Build:
         logger.info("Packing conda environment")
         version = self.get_version()
 
+        s3_endpoint_url = os.getenv("S3_PACKAGES_ENDPOINT_URL")
+        assert s3_endpoint_url, "S3_PACKAGES_ENDPOINT_URL not set"
+
         # Install conda-pack
         self.run_command(["conda", "install", "conda-pack", "-y"])
 
@@ -463,22 +466,36 @@ class Build:
         logger.info(f"Environment packed successfully to {output_name}")
 
         # Upload the packed environment to S3
-        logger.info(f"Uploading {output_name} to s3://nodetool-conda/")
-        self.run_command(["aws", "s3", "cp", str(output_path), "s3://nodetool-conda/"])
+        logger.info(f"Uploading {output_name} to s3://nodetool-packages/")
+        self.run_command(
+            [
+                "aws",
+                "s3",
+                "cp",
+                str(output_path),
+                "s3://nodetool-packages/",
+                "--endpoint-url",
+                s3_endpoint_url,
+            ]
+        )
 
         # Upload requirements.txt with version number to S3
         requirements_versioned_name = f"requirements-{version}.txt"
         requirements_versioned_path = self.BUILD_DIR / requirements_versioned_name
         shutil.copy(PROJECT_ROOT / "requirements.txt", requirements_versioned_path)
 
-        logger.info(f"Uploading {requirements_versioned_name} to s3://nodetool-conda/")
+        logger.info(
+            f"Uploading {requirements_versioned_name} to s3://nodetool-packages/"
+        )
         self.run_command(
             [
                 "aws",
                 "s3",
                 "cp",
                 str(requirements_versioned_path),
-                "s3://nodetool-conda/",
+                "s3://nodetool-packages/",
+                "--endpoint-url",
+                s3_endpoint_url,
             ]
         )
 
