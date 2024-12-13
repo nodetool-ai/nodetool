@@ -333,10 +333,10 @@ const recommendedModels: UnifiedModel[] = [
     repo_id: "qwen2.5:1.5b"
   },
   {
-    id: "openai/whisper-large-v2",
-    name: "whisper-large-v2",
+    id: "openai/whisper-small",
+    name: "whisper-small",
     type: "hf.automatic_speech_recognition",
-    repo_id: "openai/whisper-large-v2",
+    repo_id: "openai/whisper-small",
     allow_patterns: ["model.safetensors", "*.json", "*.txt"]
   }
 ];
