@@ -39,7 +39,7 @@ const ModelDownloadList: React.FC<ModelDownloadListProps> = ({ models }) => {
         {modelsWithSize.map((model, index) => {
           const modelId = model.id;
           return (
-            <Grid item xs={12} sm={12} md={6} key={index}>
+            <Grid item xs={12} sm={12} md={12} lg={12} key={index}>
               <Box className="model-container">
                 {!downloads[modelId] && (
                   <ModelCard

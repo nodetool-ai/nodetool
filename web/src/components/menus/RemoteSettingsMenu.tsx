@@ -17,7 +17,7 @@ const remoteSettingsStyles = (theme: any): SerializedStyles => {
 
   return css`
     ${baseStyles}
-
+    
     .save-button-container {
       position: sticky;
       top: 0;
@@ -37,7 +37,7 @@ const remoteSettingsStyles = (theme: any): SerializedStyles => {
       color: ${theme.palette.c_gray0};
       border-radius: 0.2em;
       text-transform: none;
-      font-size: ${theme.fontSizeBig};
+      font-size: ${theme.fontSizeNormal};
       transition: transform 0.2s ease;
     }
 
@@ -46,7 +46,6 @@ const remoteSettingsStyles = (theme: any): SerializedStyles => {
       minWidth: "18em",
       marginTop: ".5em",
       padding: ".5em"
-        
     }
   `;
 };

@@ -126,7 +126,7 @@ export const settingsStyles = (theme: any): any =>
         color: theme.palette.c_gray6,
         fontSize: theme.fontSizeNormal,
         margin: "0",
-        padding: "0 1em",
+        padding: "0 1em 0 0.5em",
         lineHeight: "1.5",
         a: {
           color: theme.palette.c_hl1,
@@ -178,15 +178,16 @@ export const settingsStyles = (theme: any): any =>
     },
 
     h2: {
+      fontSize: theme.fontSizeHuge,
       color: theme.palette.c_gray6,
-      margin: "0",
+      margin: "0.5em 0 0.25em 0",
       padding: "0"
     },
     h3: {
-      fontSize: theme.fontSizeGiant,
-      margin: "0 0 0.25em 0",
+      fontSize: theme.fontSizeBigger,
+      margin: "2em 0 0.25em 0",
       padding: "0.5em 0 0",
-      fontWeight: "200",
+      fontWeight: "500",
       color: theme.palette.c_white
     }
   });

@@ -17,7 +17,6 @@ const styles = (theme: any) =>
       height: "300px",
       width: "100%",
       marginTop: ".5em",
-      maxWidth: "370px",
       display: "flex",
       flexDirection: "column",
       boxShadow:

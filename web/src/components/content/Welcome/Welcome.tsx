@@ -677,10 +677,9 @@ const Welcome = ({ handleClose }: { handleClose: () => void }) => {
                   </Typography>
                 </Box>
 
-                {/* RECOMMENDED MODELS */}
                 <Box
                   sx={{
-                    flex: 1,
+                    flex: 1.6,
                     backgroundColor: theme.palette.c_gray1,
                     padding: "20px",
                     borderRadius: "20px"
@@ -709,6 +708,12 @@ const Welcome = ({ handleClose }: { handleClose: () => void }) => {
                         <b>Qwen 2.5</b> - A multilingual large language model.
                       </Typography>
                     </li>
+                    <li>
+                      <Typography variant="body1">
+                        <b>Whisper</b> - A multilingual speech recognition
+                        model.
+                      </Typography>
+                    </li>
                   </ul>
 
                   <ModelDownloadList models={recommendedModels} />
@@ -716,7 +721,7 @@ const Welcome = ({ handleClose }: { handleClose: () => void }) => {
 
                 <Box
                   sx={{
-                    flex: 1,
+                    flex: 2.6,
                     backgroundColor: theme.palette.c_gray0,
                     p: 4,
                     borderRadius: ".2em"
