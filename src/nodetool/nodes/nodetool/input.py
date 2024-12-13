@@ -103,8 +103,20 @@ class ChatInput(InputNode):
         Message(), description="The chat message to use as input."
     )
 
+    @classmethod
+    def return_type(cls):
+        return {
+            "output": list[Message],
+            "text": str,
+        }
+
     async def process(self, context: ProcessingContext) -> list[Message]:
-        return self.value
+        return {
+            "output": self.value,
+            "text": (
+                self.value[-1].content if self.value and len(self.value) > 0 else ""
+            ),
+        }
 
 
 class TextInput(InputNode):

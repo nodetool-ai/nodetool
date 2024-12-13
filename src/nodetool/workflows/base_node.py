@@ -850,12 +850,10 @@ class InputNode(BaseNode):
     Attributes:
         label (str): A human-readable label for the input.
         name (str): The parameter name for this input in the workflow.
-        description (str): A detailed description of the input.
     """
 
     label: str = Field("Input Label", description="The label for this input node.")
     name: str = Field("", description="The parameter name for the workflow.")
-    description: str = Field("", description="The description for this input node.")
 
     @classmethod
     def is_visible(cls):
@@ -880,9 +878,6 @@ class OutputNode(BaseNode):
         default="Output Label", description="The label for this output node."
     )
     name: str = Field("", description="The parameter name for the workflow.")
-    description: str = Field(
-        default="", description="The description for this output node."
-    )
 
     @classmethod
     def is_visible(cls):

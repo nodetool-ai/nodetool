@@ -140,19 +140,20 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => ({
     // Store the original click position
     set({ clickPosition: { x, y } });
 
-    // Calculate centered menu position as before
+    // Calculate menu position
     const maxPosX = window.innerWidth - menuWidth + 150;
     const maxPosY = window.innerHeight - menuHeight;
-    const centerY = Math.max(0, (window.innerHeight - menuHeight) / 2 + 100);
-    const centerX = Math.max(0, (window.innerWidth - menuWidth) / 2 + 60);
-    const constrainedX = Math.min(Math.max(centerX, 0), maxPosX);
-    const constrainedY = Math.min(Math.max(y - menuHeight / 2, 0), maxPosY);
-    const finalY =
-      y < centerY || y > window.innerHeight - centerY ? constrainedY : centerY;
+
+    // Constrain x position to keep menu within window bounds
+    const constrainedX = Math.min(Math.max(x, 0), maxPosX);
+
+    // Position the menu below the click point, with some offset
+    const menuOffset = 20; // Add some space between click point and menu
+    const constrainedY = Math.min(y + menuOffset, maxPosY);
 
     set({
       isMenuOpen: true,
-      menuPosition: { x: constrainedX, y: finalY },
+      menuPosition: { x: constrainedX, y: constrainedY },
       openedByDrop,
       dropType,
       connectDirection,

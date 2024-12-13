@@ -28,7 +28,7 @@ const treeStyles = (theme: any) =>
       flexDirection: "column",
       height: "auto",
       maxHeight: "70vh",
-      minHeight: "65vh",
+      minHeight: "35vh",
       top: 0,
       left: 0,
       position: "absolute",
@@ -176,7 +176,7 @@ export default function NodeMenu({ focusSearchInput = false }: NodeMenuProps) {
       handle=".draggable-header"
     >
       <Box
-        sx={{ maxWidth: menuWidth, maxHeight: menuHeight }}
+        sx={{ minWidth: "400px", maxHeight: menuHeight }}
         className="floating-node-menu"
         css={memoizedStyles}
         ref={nodeRef}
