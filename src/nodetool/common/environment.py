@@ -20,7 +20,6 @@ from nodetool.common.settings import (
 
 DEFAULT_ENV = {
     "ASSET_BUCKET": "images",
-    "TEMP_BUCKET": "temp",
     "ASSET_DOMAIN": None,
     "TEMP_DOMAIN": None,
     "CHROMA_URL": None,
@@ -343,7 +342,7 @@ class Environment(object):
         """
         The storage API endpoint.
         """
-        return f"{cls.get_nodetool_api_url()}/storage/"
+        return f"{cls.get_nodetool_api_url()}/api/storage"
 
     @classmethod
     def get_worker_api_client(cls):
@@ -489,13 +488,12 @@ class Environment(object):
         Get the storage adapter for assets.
         """
         if not hasattr(cls, "asset_storage"):
-            base_url = cls.get_storage_api_url() + cls.get_asset_bucket()
             if cls.is_test():
                 from nodetool.storage.memory_storage import MemoryStorage
 
                 cls.get_logger().info(f"Using memory storage for asset storage")
 
-                cls.asset_storage = MemoryStorage(base_url=base_url)
+                cls.asset_storage = MemoryStorage(base_url=cls.get_storage_api_url())
             elif (
                 cls.is_production() or cls.get_s3_access_key_id() is not None or use_s3
             ):
@@ -511,7 +509,7 @@ class Environment(object):
                 )
                 cls.asset_storage = FileStorage(
                     base_path=cls.get_asset_folder(),
-                    base_url=base_url,
+                    base_url=cls.get_storage_api_url(),
                 )
 
         assert cls.asset_storage is not None
