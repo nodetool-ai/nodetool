@@ -30,7 +30,20 @@
     "mac": {
         "category": "public.app-category.developer-tools",
         "target": [
-            "dmg"
+            {
+                "target": "zip",
+                "arch": [
+                    "x64",
+                    "arm64"
+                ]
+            },
+            {
+                "target": "dmg",
+                "arch": [
+                    "x64",
+                    "arm64"
+                ]
+            }
         ],
         "hardenedRuntime": true,
         "gatekeeperAssess": false,
@@ -40,7 +53,12 @@
     },
     "win": {
         "target": [
-            "nsis"
+            {
+                "target": "nsis",
+                "arch": [
+                    "x64"
+                ]
+            }
         ],
         "azureSignOptions": {
             "endpoint": "https://weu.codesigning.azure.net",
@@ -51,12 +69,16 @@
     "linux": {
         "target": [
             "AppImage"
-        ]
+        ],
+        "category": "Development"
     },
     "nsis": {
         "oneClick": false,
         "allowToChangeInstallationDirectory": true,
         "createDesktopShortcut": true,
-        "runAfterFinish": true
-    }
+        "runAfterFinish": true,
+        "artifactName": "${productName}-Setup-${version}.${ext}"
+    },
+    "artifactName": "${productName}-${version}-${arch}.${ext}",
+    "generateUpdatesFilesForAllChannels": true
 }
