@@ -1,113 +1,131 @@
-import { useEffect, useCallback, useRef } from "react";
+import { useCallback, useRef } from "react";
 import { usePanelStore } from "../../stores/PanelStore";
-import useSessionStateStore from "../../stores/SessionStateStore";
+
+const PANEL_SIZE_KEY = "panel-sizes";
+
+// Helper function to get stored sizes
+export const getStoredPanelSizes = (): Record<string, number> => {
+  try {
+    const stored = localStorage.getItem(PANEL_SIZE_KEY);
+    return stored ? JSON.parse(stored) : {};
+  } catch {
+    return {};
+  }
+};
+
+// Helper function to store sizes
+const storePanelSize = (position: string, size: number) => {
+  try {
+    const currentSizes = getStoredPanelSizes();
+    localStorage.setItem(
+      PANEL_SIZE_KEY,
+      JSON.stringify({ ...currentSizes, [position]: size })
+    );
+  } catch {
+    // Silently fail if localStorage is not available
+  }
+};
 
 export const useResizePanel = (panelPosition: "left" | "right" = "left") => {
-  const { panels, setSize, setIsDragging, setHasDragged } = usePanelStore();
-  const { size, isDragging, hasDragged, maxWidth, minWidth } =
-    panels[panelPosition];
+  const panel = usePanelStore(
+    useCallback((state) => state.panels[panelPosition], [panelPosition])
+  );
 
-  const leftPanelWidth = useSessionStateStore((state) => state.leftPanelWidth);
-  const rightPanelWidth = useSessionStateStore(
-    (state) => state.rightPanelWidth
-  );
-  const setLeftPanelWidth = useSessionStateStore(
-    (state) => state.setLeftPanelWidth
-  );
-  const setRightPanelWidth = useSessionStateStore(
-    (state) => state.setRightPanelWidth
+  const actions = usePanelStore(
+    useCallback(
+      (state) => ({
+        setSize: (position: "left" | "right", size: number) => {
+          state.setSize(position, size);
+          storePanelSize(position, size);
+        },
+        setIsDragging: state.setIsDragging,
+        setHasDragged: state.setHasDragged
+      }),
+      []
+    )
   );
 
   const ref = useRef<HTMLDivElement>(null);
+  const lastSizeRef = useRef(panel.size);
   const dragThreshold = 20;
 
   const handleMouseDown = useCallback(
     (event: React.MouseEvent<HTMLElement>) => {
-      setIsDragging(panelPosition, true);
-      setHasDragged(panelPosition, false);
+      actions.setIsDragging(panelPosition, true);
+      actions.setHasDragged(panelPosition, false);
+
+      const handleMouseMove = (event: MouseEvent) => {
+        let newSize;
+        if (panelPosition === "left") {
+          newSize =
+            event.clientX -
+            30 -
+            (ref.current?.getBoundingClientRect().left || 0);
+        } else {
+          newSize = window.innerWidth - event.clientX - 30;
+        }
+
+        newSize = Math.max(panel.minWidth, Math.min(newSize, panel.maxWidth));
+        actions.setSize(panelPosition, newSize);
+
+        const distance = Math.abs(
+          event.clientX - (ref.current?.getBoundingClientRect().left || 0)
+        );
+
+        if (distance > dragThreshold) {
+          actions.setHasDragged(panelPosition, true);
+        }
+      };
+
+      const handleMouseUp = () => {
+        actions.setIsDragging(panelPosition, false);
+        setTimeout(() => actions.setHasDragged(panelPosition, false), 0);
+
+        document.removeEventListener("mousemove", handleMouseMove);
+        document.removeEventListener("mouseup", handleMouseUp);
+      };
+
+      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mouseup", handleMouseUp);
+
       event.preventDefault();
     },
-    [panelPosition, setHasDragged, setIsDragging]
-  );
-
-  const handleMouseUp = useCallback(() => {
-    setIsDragging(panelPosition, false);
-    setTimeout(() => setHasDragged(panelPosition, false), 0);
-  }, [panelPosition, setHasDragged, setIsDragging]);
-
-  const handleMouseMove = useCallback(
-    (event: MouseEvent) => {
-      if (!isDragging) return;
-
-      let newSize;
-      if (panelPosition === "left") {
-        newSize =
-          event.clientX - 30 - (ref.current?.getBoundingClientRect().left || 0);
-      } else {
-        newSize = window.innerWidth - event.clientX - 30;
-      }
-
-      newSize = Math.max(minWidth, Math.min(newSize, maxWidth));
-      setSize(panelPosition, newSize);
-
-      // Update SessionStateStore
-      if (panelPosition === "left") {
-        setLeftPanelWidth(newSize);
-      } else {
-        setRightPanelWidth(newSize);
-      }
-
-      const distance = Math.abs(
-        event.clientX - (ref.current?.getBoundingClientRect().left || 0)
-      );
-
-      if (distance > dragThreshold) {
-        setHasDragged(panelPosition, true);
-      }
-    },
-    [
-      isDragging,
-      panelPosition,
-      minWidth,
-      maxWidth,
-      setSize,
-      setHasDragged,
-      setLeftPanelWidth,
-      setRightPanelWidth
-    ]
+    [panelPosition, panel.minWidth, panel.maxWidth, actions]
   );
 
   const handlePanelToggle = useCallback(() => {
-    if (!hasDragged) {
-      const storedWidth =
-        panelPosition === "left" ? leftPanelWidth : rightPanelWidth;
-      const newSize = size > minWidth ? minWidth : storedWidth;
-      setSize(panelPosition, newSize);
+    if (!panel.hasDragged) {
+      if (panel.size <= panel.minWidth) {
+        // If panel is minimized, restore to last size or default size
+        const newSize =
+          lastSizeRef.current > panel.minWidth
+            ? lastSizeRef.current
+            : panel.defaultWidth || 250; // fallback default width
+        actions.setSize(panelPosition, newSize);
+      } else {
+        // If panel is open, store current size and minimize
+        lastSizeRef.current = panel.size;
+        actions.setSize(panelPosition, panel.minWidth);
+      }
     }
   }, [
-    hasDragged,
-    setSize,
-    panelPosition,
-    size,
-    minWidth,
-    leftPanelWidth,
-    rightPanelWidth
+    panel.hasDragged,
+    panel.size,
+    panel.minWidth,
+    panel.defaultWidth,
+    actions,
+    panelPosition
   ]);
 
-  useEffect(() => {
-    document.addEventListener("mouseup", handleMouseUp);
-    document.addEventListener("mousemove", handleMouseMove);
-
-    return () => {
-      document.removeEventListener("mouseup", handleMouseUp);
-      document.removeEventListener("mousemove", handleMouseMove);
-    };
-  }, [handleMouseMove, handleMouseUp]);
+  // Store initial size in lastSizeRef when it changes
+  if (panel.size > panel.minWidth) {
+    lastSizeRef.current = panel.size;
+  }
 
   return {
     ref,
-    size,
-    isDragging,
+    size: panel.size,
+    isDragging: panel.isDragging,
     handleMouseDown,
     handlePanelToggle
   };

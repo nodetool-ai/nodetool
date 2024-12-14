@@ -51,7 +51,6 @@ const authMiddleware: Middleware = {
     return request;
   },
   async onResponse({ request, response, options }) {
-    console.log("onResponse", request, response, options);
     if (response?.status == 401) {
       console.log("Unauthorized, signing out");
       useAuth.getState().signout();
