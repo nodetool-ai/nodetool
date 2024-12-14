@@ -8,8 +8,8 @@ import { useNodeStore } from "../../../stores/NodeStore";
 import { useReactFlow } from "@xyflow/react";
 import useNodeMenuStore from "../../../stores/NodeMenuStore";
 import ThemeNodetool from "../../themes/ThemeNodetool";
-import useSessionStateStore from "../../../stores/SessionStateStore";
 import useMetadataStore from "../../../stores/MetadataStore";
+import { usePanelStore } from "../../../stores/PanelStore";
 
 const styles = (theme: any) => css`
   position: absolute;
@@ -85,7 +85,7 @@ const DraggableNodeDocumentation: React.FC<DraggableNodeDocumentationProps> = ({
   const { createNode, addNode } = useNodeStore();
   const reactFlowInstance = useReactFlow();
   const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
-  const { leftPanelWidth } = useSessionStateStore();
+  const { panels } = usePanelStore();
   const handleAddNode = useCallback(() => {
     if (nodeMetadata && nodeRef.current) {
       const rect = nodeRef.current.getBoundingClientRect();
@@ -104,9 +104,9 @@ const DraggableNodeDocumentation: React.FC<DraggableNodeDocumentationProps> = ({
   const handleOpenNodeMenu = useCallback(() => {
     if (nodeType) {
       const searchTerm = nodeType.replace(/\./g, " ");
-      openNodeMenu(leftPanelWidth, 100, false, "", null, searchTerm);
+      openNodeMenu(panels.left.size, 100, false, "", null, searchTerm);
     }
-  }, [nodeType, openNodeMenu, leftPanelWidth]);
+  }, [nodeType, openNodeMenu, panels.left.size]);
 
   const content = useMemo(() => {
     if (!nodeMetadata)

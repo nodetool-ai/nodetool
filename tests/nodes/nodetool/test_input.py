@@ -36,7 +36,6 @@ from nodetool.nodes.nodetool.input import (
             FloatInput(
                 label="Float",
                 name="float_input",
-                description="A float input",
                 value=3.14,
             ),
             3.14,
@@ -46,7 +45,6 @@ from nodetool.nodes.nodetool.input import (
             BooleanInput(
                 label="Boolean",
                 name="bool_input",
-                description="A boolean input",
                 value=True,
             ),
             True,
@@ -56,7 +54,6 @@ from nodetool.nodes.nodetool.input import (
             IntegerInput(
                 label="Integer",
                 name="int_input",
-                description="An integer input",
                 value=42,
             ),
             42,
@@ -66,24 +63,20 @@ from nodetool.nodes.nodetool.input import (
             StringInput(
                 label="String",
                 name="string_input",
-                description="A string input",
                 value="test",
             ),
             "test",
             str,
         ),
         (
-            ChatInput(
-                label="Chat", name="chat_input", description="A chat input", value=[]
-            ),
+            ChatInput(label="Chat", name="chat_input", value=[]),
             [],
-            list,
+            dict,
         ),
         (
             TextInput(
                 label="Text",
                 name="text_input",
-                description="A text input",
                 value=TextRef(uri="test.txt"),
             ),
             TextRef(uri="test.txt"),
@@ -93,7 +86,6 @@ from nodetool.nodes.nodetool.input import (
             ImageInput(
                 label="Image",
                 name="image_input",
-                description="An image input",
                 value=ImageRef(uri="test.jpg"),
             ),
             ImageRef(uri="test.jpg"),
@@ -103,7 +95,6 @@ from nodetool.nodes.nodetool.input import (
             VideoInput(
                 label="Video",
                 name="video_input",
-                description="A video input",
                 value=VideoRef(uri="test.mp4"),
             ),
             VideoRef(uri="test.mp4"),
@@ -113,7 +104,6 @@ from nodetool.nodes.nodetool.input import (
             AudioInput(
                 label="Audio",
                 name="audio_input",
-                description="An audio input",
                 value=AudioRef(uri="test.mp3"),
             ),
             AudioRef(uri="test.mp3"),
@@ -123,7 +113,6 @@ from nodetool.nodes.nodetool.input import (
             Folder(
                 label="Folder",
                 name="folder_input",
-                description="A folder input",
                 folder=FolderRef(asset_id="test_folder"),
             ),
             [AssetRef()],
@@ -133,7 +122,6 @@ from nodetool.nodes.nodetool.input import (
             ImageFolder(
                 label="Image Folder",
                 name="image_folder_input",
-                description="An image folder input",
                 folder=FolderRef(asset_id="test_folder"),
             ),
             [ImageRef()],
@@ -143,7 +131,6 @@ from nodetool.nodes.nodetool.input import (
             AudioFolder(
                 label="Audio Folder",
                 name="audio_folder_input",
-                description="An audio folder input",
                 folder=FolderRef(asset_id="test_folder"),
             ),
             [AudioRef()],
@@ -153,7 +140,6 @@ from nodetool.nodes.nodetool.input import (
             VideoFolder(
                 label="Video Folder",
                 name="video_folder_input",
-                description="A video folder input",
                 folder=FolderRef(asset_id="test_folder"),
             ),
             [VideoRef()],
@@ -163,7 +149,6 @@ from nodetool.nodes.nodetool.input import (
             TextFolder(
                 label="Text Folder",
                 name="text_folder_input",
-                description="A text folder input",
                 folder=FolderRef(asset_id="test_folder"),
             ),
             [TextRef()],
@@ -207,7 +192,6 @@ async def test_input_node_json_schema(node_class):
     node = node_class(
         label=f"{node_class.__name__} Label",
         name=f"{node_class.__name__.lower()}_name",
-        description=f"Description for {node_class.__name__}",
     )
     schema = node.get_json_schema()
     assert isinstance(schema, dict)
@@ -225,7 +209,6 @@ async def test_folder_input_nodes(context: ProcessingContext, node_class):
     node = node_class(
         label=f"{node_class.__name__} Label",
         name=f"{node_class.__name__.lower()}_name",
-        description=f"Description for {node_class.__name__}",
         folder=folder,
     )
     context.paginate_assets = AsyncMock(return_value=[AssetRef()])
