@@ -1,6 +1,6 @@
 // APP
 export const APP_NAME = "nodetool";
-export const VERSION = "0.5.6";
+export const VERSION = "0.5.7";
 
 // TOOLTIPS
 export const TOOLTIP_DELAY = 500;
