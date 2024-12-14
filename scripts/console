@@ -1,0 +1,7 @@
+#!/bin/bash
+
+SCRIPT_DIR=$(dirname "$0")
+
+export PYTHONPATH=src:/app
+
+python3 "$SCRIPT_DIR/console.py"

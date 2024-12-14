@@ -1,0 +1,73 @@
+/* Media queries for responsive design */
+@media (max-width: 768px) {
+    body {
+        padding: 0;
+        overflow: hidden;
+    }
+
+    .main-container {
+        padding: 0;
+        overflow-y: auto;
+        height: 100vh;
+    }
+
+    .logo-container {
+        width: 100%;
+        left: .5em;
+        top: .5em;
+        position: relative;
+        font-size: .6em;
+        background-color: var(--bg-color);
+    }
+
+    .logo-container .logo {
+        height: 25px;
+    }
+
+    .container {
+        flex-direction: column;
+        height: auto;
+        overflow: visible;
+    }
+
+    .left-container,
+    .middle-container,
+    .right-container {
+        width: 100%;
+        height: auto;
+        overflow: visible;
+    }
+
+    .left-container {
+        min-height: auto;
+    }
+
+    #workflowList {
+        height: 15vh;
+    }
+
+    .middle-container,
+    .middle-container.expanded {
+        width: 100%;
+        min-height: auto;
+    }
+
+    #toggleLogsBtn {
+        position: static;
+        width: 100%;
+        margin-bottom: 1em;
+    }
+
+    .logs-container {
+        height: auto;
+    }
+
+    #runWorkflowBtn {
+        width: 90%;
+        height: 2em;
+        font-size: 1.2em;
+        border-radius: .2em;
+        margin-left: 5%;
+        margin-top: 1em;
+    }
+}

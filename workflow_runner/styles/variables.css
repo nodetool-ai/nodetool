@@ -1,0 +1,14 @@
+/* Color variables */
+:root {
+    --bg-color: #1a1a1a;
+    --text-color: #e0e0e0;
+    --text-gray-color: #a2a2a2;
+    --selection-color: #76e5b992;
+
+    --primary-color: #76e5b8;
+    --secondary-color: #2a2a2a;
+    --border-color: #333;
+    --button-bg-color: #494949;
+    --input-bg: #3e3e3e;
+    --warning-color: #ffcc00;
+}

@@ -1,0 +1,195 @@
+{
+  "id": "image_to_audio_story",
+  "access": "public",
+  "created_at": "2024-10-19T19:13:54.365143",
+  "updated_at": "2024-10-19T19:13:54.365165",
+  "name": "Image To Audio Story",
+  "description": "Tell a story about an image",
+  "tags": [
+    "start",
+    "multimodal"
+  ],
+  "thumbnail": "",
+  "thumbnail_url": "https://app.nodetool.ai/examples/porcelain_sculpture.jpg",
+  "graph": {
+    "nodes": [
+      {
+        "id": "1",
+        "parent_id": null,
+        "type": "nodetool.constant.Image",
+        "data": {
+          "value": {
+            "uri": "https://app.nodetool.ai/examples/porcelain_sculpture.jpg",
+            "type": "image"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 50,
+            "y": 118
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true
+        }
+      },
+      {
+        "id": "2",
+        "parent_id": null,
+        "type": "ollama.text.Ollama",
+        "data": {
+          "model": {
+            "type": "llama_model",
+            "repo_id": "qwen2.5:1.5b"
+          },
+          "system": "You are a friendly assistant.",
+          "prompt": "write a fictional short story about this image. the story should follow classical principles, short and witty, with a surprise at the end. written in the wild style of the 60s.",
+          "max_tokens": 100,
+          "temperature": 1,
+          "top_k": 40,
+          "top_p": 1
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 280,
+            "y": 50
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true
+        }
+      },
+      {
+        "id": "3",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 540,
+            "y": 99
+          },
+          "zIndex": 0,
+          "width": 306,
+          "height": 155,
+          "selectable": true
+        }
+      },
+      {
+        "id": "4",
+        "parent_id": null,
+        "type": "huggingface.text_to_speech.TextToSpeech",
+        "data": {
+          "model": {
+            "type": "hf.text_to_speech",
+            "repo_id": "facebook/mms-tts-eng"
+          },
+          "prompt": ""
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 593,
+            "y": 304
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true
+        }
+      },
+      {
+        "id": "5",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "audio_output_2024-07-06"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 876,
+            "y": 316
+          },
+          "zIndex": 0,
+          "width": 150,
+          "height": 150,
+          "selectable": true
+        }
+      },
+      {
+        "id": "6",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "headline": "Image To Audio Story",
+          "comment": [
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "Try with different images, prompts and voices"
+                }
+              ]
+            }
+          ]
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2,
+            "y": -90
+          },
+          "zIndex": 0,
+          "width": 242,
+          "height": 79,
+          "selectable": true
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "67119",
+        "source": "4",
+        "sourceHandle": "output",
+        "target": "5",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "audio"
+        }
+      },
+      {
+        "id": "e6a8f8b2-8f21-4b6d-8628-0dbee4cc36ad",
+        "source": "2",
+        "sourceHandle": "output",
+        "target": "4",
+        "targetHandle": "text",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "67117e75-7172-4df7-b796-78efcd3d9d85",
+        "source": "1",
+        "sourceHandle": "output",
+        "target": "2",
+        "targetHandle": "image",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "67118",
+        "source": "2",
+        "sourceHandle": "output",
+        "target": "3",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "str"
+        }
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null
+}

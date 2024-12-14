@@ -1,0 +1,13 @@
+{
+  "image": "mcr.microsoft.com/vscode/devcontainers/typescript-node:latest",
+  "privileged": true,
+  "postCreateCommand": "npm install",
+  "runArgs": [
+    "--network",
+    "host"
+  ],
+  "capAdd": [
+    "NET_RAW",
+    "NET_ADMIN"
+  ]
+}

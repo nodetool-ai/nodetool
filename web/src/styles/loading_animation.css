@@ -1,0 +1,146 @@
+:root {
+  --fade_duration: 0.3s;
+  --duration: 15s;
+  --mask_width: 200px;
+  --mask_height: 20px;
+  --mask_size: 90px;
+  --bg_size1: 1px 500px;
+  --bg_size2: 1px 500px;
+  --bg_size3: 1px 500px;
+  --bg_size4: 1px 500px;
+  --start_x: 0%;
+  --start_y: 500%;
+  --move_x: 0%;
+  --move_y: -500%;
+  --rotation_duration: 2s;
+  --rotate1: 100deg;
+  --rotate2: 90deg;
+  --rotate3: 80deg;
+  --rotate4: 70deg;
+  --degree: 0deg;
+}
+
+.loading-indicator {
+  width: 100px;
+  height: 40px;
+  position: absolute;
+  top: 0px;
+  left: 30px;
+  background: transparent;
+  /* opacity: 0; */
+  opacity: 1;
+  transition: opacity 1s 0.3s;
+  z-index: 99;
+}
+
+.loading.loading-indicator {
+  opacity: 1;
+}
+
+.loading-mask {
+  width: 0;
+  transition: width 1s ease, -webkit-mask-size 4s ease, mask-size 4s ease;
+  position: absolute;
+  overflow: visible;
+  -webkit-mask-image: url("../../image/mask.png");
+  -webkit-mask-repeat: repeat-x;
+  -webkit-mask-size: var(--mask_size);
+  mask-image: url("../../image/mask.png");
+  mask-repeat: repeat-x;
+  mask-size: var(--mask_size);
+  height: 20px;
+  bottom: 0;
+  left: 0;
+}
+.loading .loading-mask {
+  width: 100%;
+}
+
+.loading-gradient {
+  opacity: 1;
+  transition: all var(--rotation_duration) ease, opacity var(--fade_duration);
+  position: absolute;
+  top: -250px;
+  right: 0px;
+}
+/* .loading .loading-gradient { */
+.loading-gradient {
+  opacity: 1;
+  width: 350px;
+  height: 400px;
+  background-size: var(--bg_size1);
+  /*background: linear-gradient(var(--degree), #a69469, #cb864a, #eed54c, #c74e62, #c74e62, #62bbc2, #495dc2, #cccc5f, #66ddbb, #e47c8f, #c64bbb, #a69469);*/
+  background: linear-gradient(
+    var(--degree),
+    #707070,
+    #667c64,
+    #457937,
+    #36b1bf,
+    #c3aed6,
+    #03506f,
+    #b9b9b9,
+    #895a7b,
+    #dae558,
+    #bf967d,
+    #7a2e90,
+    #f2a413,
+    #936940,
+    #ddd000,
+    #707070
+  );
+  -webkit-animation: rainbow var(--duration) linear infinite;
+  -z-animation: rainbow var(--duration) linear infinite;
+  -o-animation: rainbow var(--duration) linear infinite;
+  animation: rainbow var(--duration) linear infinite;
+}
+
+.gradient1 {
+  transform: rotate(var(--rotate1));
+  background-size: var(--bg_size1) !important;
+}
+
+.gradient2 {
+  transform: rotate(var(--rotate2));
+  background-size: var(--bg_size2) !important;
+}
+.gradient3 {
+  transform: rotate(var(--rotate3));
+  background-size: var(--bg_size3) !important;
+}
+.gradient4 {
+  transform: rotate(var(--rotate4));
+  background-size: var(--bg_size4) !important;
+}
+
+@-webkit-keyframes rainbow {
+  0% {
+    background-position: var(--start_x) var(--start_y);
+  }
+  100% {
+    background-position: var(--move_x) var(--move_y);
+  }
+}
+@-moz-keyframes rainbow {
+  0% {
+    background-position: var(--start_x) var(--start_y);
+  }
+  100% {
+    background-position: var(--move_x) var(--move_y);
+  }
+}
+@-o-keyframes rainbow {
+  0% {
+    background-position: var(--start_x) var(--start_y);
+  }
+  100% {
+    background-position: var(--move_x) var(--move_y);
+  }
+}
+@keyframes rainbow {
+  0% {
+    background-position: var(--start_x) var(--start_y);
+  }
+  100% {
+    background-position: var(--move_x) var(--move_y);
+  }
+}

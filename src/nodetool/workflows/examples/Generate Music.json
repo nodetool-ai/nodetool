@@ -1,0 +1,322 @@
+{
+  "id": "generate_music",
+  "access": "public",
+  "created_at": "2024-10-19T19:12:02.311901",
+  "updated_at": "2024-10-19T19:12:02.311922",
+  "name": "Generate Music",
+  "description": "Generate 3 musical ideas and generate audio for each idea.",
+  "tags": [
+    "audio"
+  ],
+  "thumbnail": "",
+  "thumbnail_url": "/examples/generate_music.jpg",
+  "graph": {
+    "nodes": [
+      {
+        "id": "4",
+        "parent_id": null,
+        "type": "nodetool.group.Loop",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 310,
+            "y": 301
+          },
+          "zIndex": -10,
+          "width": 990,
+          "height": 300,
+          "selectable": false
+        }
+      },
+      {
+        "id": "5",
+        "parent_id": null,
+        "type": "nodetool.agents.DataGenerator",
+        "data": {
+          "image": {
+            "uri": "",
+            "type": "image",
+            "temp_id": null,
+            "asset_id": null
+          },
+          "model": {
+            "name": "gpt-4o",
+            "type": "function_model",
+            "repo_id": "",
+            "filename": "",
+            "provider": "openai",
+            "local_path": null
+          },
+          "top_k": 50,
+          "top_p": 1,
+          "prompt": "create 3 interesting musical ideas",
+          "columns": {
+            "type": "record_type",
+            "columns": [
+              {
+                "name": "instrument",
+                "data_type": "string",
+                "description": "name of the instrument"
+              },
+              {
+                "name": "rhythm",
+                "data_type": "string",
+                "description": "description of the rhythm"
+              },
+              {
+                "name": "harmony",
+                "data_type": "string",
+                "description": "chord syntax, like A-Major"
+              }
+            ]
+          },
+          "tool_name": "add_track",
+          "max_tokens": 1000,
+          "temperature": 1,
+          "tool_description": "create a music track"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 50,
+            "y": 50
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true
+        }
+      },
+      {
+        "id": "6",
+        "parent_id": "4",
+        "type": "nodetool.input.GroupInput",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 50,
+            "y": 136
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true
+        }
+      },
+      {
+        "id": "7",
+        "parent_id": "4",
+        "type": "nodetool.output.GroupOutput",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 740,
+            "y": 136
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true
+        }
+      },
+      {
+        "id": "8",
+        "parent_id": "4",
+        "type": "nodetool.text.Template",
+        "data": {
+          "string": "beat with {instrument} playing {rhythm} in {harmony}"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 280,
+            "y": 85
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true
+        }
+      },
+      {
+        "id": "9",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "any_output_2024-07-08"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1330,
+            "y": 154
+          },
+          "zIndex": 0,
+          "width": 167,
+          "height": 593,
+          "selectable": true
+        }
+      },
+      {
+        "id": "10",
+        "parent_id": "4",
+        "type": "huggingface.text_to_audio.MusicGen",
+        "data": {
+          "model": {
+            "type": "hf.text_to_audio",
+            "repo_id": "facebook/musicgen-medium"
+          },
+          "max_new_tokens": 256
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 510,
+            "y": 50
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true
+        }
+      },
+      {
+        "id": "11",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "dataframe_output_2024-08-18"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 310,
+            "y": 76
+          },
+          "zIndex": 0,
+          "width": 595,
+          "height": 175,
+          "selectable": true
+        }
+      },
+      {
+        "id": "12",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "headline": "Generate Music",
+          "comment": [
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "* The Data Generator creates 3 musical ideas"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "* The ideas are written into a dataframe with rhythm, instrument and harmony"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "* Music Gen generates 3 pieces of audio in a loop"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "* Preview shows 3 audio files, double click to open audio player"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "* Experiment with different prompts!"
+                }
+              ]
+            }
+          ]
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 27,
+            "y": -154
+          },
+          "zIndex": 0,
+          "width": 545,
+          "height": 142,
+          "selectable": true
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "0502a204-f656-4d8e-b762-6f738d7b34e2",
+        "source": "10",
+        "sourceHandle": "output",
+        "target": "7",
+        "targetHandle": "input",
+        "ui_properties": {
+          "className": "audio"
+        }
+      },
+      {
+        "id": "9e51dd2e-2626-4af2-a726-63e95681e2d6",
+        "source": "8",
+        "sourceHandle": "output",
+        "target": "10",
+        "targetHandle": "prompt",
+        "ui_properties": {
+          "className": "union"
+        }
+      },
+      {
+        "id": "60657",
+        "source": "5",
+        "sourceHandle": "output",
+        "target": "11",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "dataframe"
+        }
+      },
+      {
+        "id": "b08243a9-8c71-4e74-b761-45705a024c69",
+        "source": "5",
+        "sourceHandle": "output",
+        "target": "4",
+        "targetHandle": "input",
+        "ui_properties": {
+          "className": "dataframe"
+        }
+      },
+      {
+        "id": "60655de2-b848-4535-af76-5f6c0c614d90",
+        "source": "6",
+        "sourceHandle": "output",
+        "target": "8",
+        "targetHandle": "values",
+        "ui_properties": {
+          "className": "any"
+        }
+      },
+      {
+        "id": "60656",
+        "source": "4",
+        "sourceHandle": "output",
+        "target": "9",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "any"
+        }
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null
+}

@@ -1,0 +1,415 @@
+{
+  "id": "flux_schnell",
+  "access": "public",
+  "created_at": "2024-12-01T15:33:59.438347",
+  "updated_at": "2024-12-01T15:33:59.438367",
+  "name": "Flux Schnell",
+  "description": "Best-in-class image model, faster than Flux Dev",
+  "tags": [
+    "comfy"
+  ],
+  "thumbnail": "",
+  "thumbnail_url": "/examples/flux_schnell.jpg",
+  "graph": {
+    "nodes": [
+      {
+        "id": "17",
+        "parent_id": null,
+        "type": "comfy.sampling.schedulers.BasicScheduler",
+        "data": {
+          "scheduler": "simple",
+          "steps": 4,
+          "denoise": 1
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 801,
+            "y": 50
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true
+        }
+      },
+      {
+        "id": "16",
+        "parent_id": null,
+        "type": "comfy.sampling.samplers.KSamplerSelect",
+        "data": {
+          "sampler_name": "euler"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 801,
+            "y": 600
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true
+        }
+      },
+      {
+        "id": "26",
+        "parent_id": null,
+        "type": "comfy.flux.FluxGuidance",
+        "data": {
+          "guidance": 3.5
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 541,
+            "y": 323
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true
+        }
+      },
+      {
+        "id": "22",
+        "parent_id": null,
+        "type": "comfy.sampling.guiders.BasicGuider",
+        "data": {},
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 801,
+            "y": 305
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true
+        }
+      },
+      {
+        "id": "13",
+        "parent_id": null,
+        "type": "comfy.sampling.samplers.SamplerCustomAdvanced",
+        "data": {},
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1071,
+            "y": 375
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true
+        }
+      },
+      {
+        "id": "25",
+        "parent_id": null,
+        "type": "comfy.sampling.noise.RandomNoise",
+        "data": {
+          "noise_seed": 0,
+          "seed_control_mode": "randomize"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 801,
+            "y": 466
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true
+        }
+      },
+      {
+        "id": "8",
+        "parent_id": null,
+        "type": "comfy.latent.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1331,
+            "y": 208
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true
+        }
+      },
+      {
+        "id": "6",
+        "parent_id": null,
+        "type": "comfy.conditioning.CLIPTextEncode",
+        "data": {
+          "text": "cute anime girl with massive fluffy fennec ears and a big fluffy tail blonde messy long hair blue eyes wearing a maid outfit with a long black gold leaf pattern dress and a white apron mouth open holding a fancy black forest cake with candles on top in the kitchen of an old dark Victorian mansion lit by candlelight with a bright window to the foggy forest and very expensive stuff everywhere"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 281,
+            "y": 314
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true
+        }
+      },
+      {
+        "id": "30",
+        "parent_id": null,
+        "type": "comfy.advanced.model.ModelSamplingFlux",
+        "data": {
+          "max_shift": 1.15,
+          "base_shift": 0.5,
+          "width": 1024,
+          "height": 1024
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 541,
+            "y": 81
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true
+        }
+      },
+      {
+        "id": "27",
+        "parent_id": null,
+        "type": "comfy.latent.EmptySD3LatentImage",
+        "data": {
+          "batch_size": 1,
+          "width": 1024,
+          "height": 1024
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 801,
+            "y": 759
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true
+        }
+      },
+      {
+        "id": "38",
+        "parent_id": null,
+        "type": "comfy.loaders.HuggingFaceDualCLIPLoader",
+        "data": {
+          "type": "flux",
+          "clip_model_1": {
+            "type": "hf.clip",
+            "repo_id": "comfyanonymous/flux_text_encoders",
+            "path": "t5xxl_fp16.safetensors"
+          },
+          "clip_model_2": {
+            "type": "hf.clip",
+            "repo_id": "comfyanonymous/flux_text_encoders",
+            "path": "clip_l.safetensors"
+          }
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 50,
+            "y": 237
+          },
+          "zIndex": 0,
+          "width": 201,
+          "selectable": true
+        }
+      },
+      {
+        "id": "39",
+        "parent_id": null,
+        "type": "comfy.loaders.HuggingFaceVAELoader",
+        "data": {
+          "model": {
+            "type": "hf.vae",
+            "repo_id": "black-forest-labs/FLUX.1-schnell",
+            "path": "ae.safetensors"
+          }
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1071,
+            "y": 164
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true
+        }
+      },
+      {
+        "id": "40",
+        "parent_id": null,
+        "type": "comfy.loaders.HuggingFaceUNetLoader",
+        "data": {
+          "model": {
+            "type": "hf.unet",
+            "repo_id": "black-forest-labs/FLUX.1-schnell",
+            "path": "flux1-schnell.safetensors"
+          },
+          "weight_dtype": "default"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 281,
+            "y": 51
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true
+        }
+      },
+      {
+        "id": "41",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "image_image_2024-12-01"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1561,
+            "y": 184
+          },
+          "zIndex": 0,
+          "width": 160,
+          "height": 160,
+          "selectable": true
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "2",
+        "source": "6",
+        "sourceHandle": "conditioning",
+        "target": "26",
+        "targetHandle": "conditioning",
+        "ui_properties": null
+      },
+      {
+        "id": "8",
+        "source": "17",
+        "sourceHandle": "sigmas",
+        "target": "13",
+        "targetHandle": "sigmas",
+        "ui_properties": null
+      },
+      {
+        "id": "10",
+        "source": "13",
+        "sourceHandle": "output",
+        "target": "8",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "0228d36d-820a-4b7c-9fea-ff1df7f26b09",
+        "source": "40",
+        "sourceHandle": "unet",
+        "target": "30",
+        "targetHandle": "model",
+        "ui_properties": {
+          "className": "comfy_unet"
+        }
+      },
+      {
+        "id": "1",
+        "source": "30",
+        "sourceHandle": "model",
+        "target": "17",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "5",
+        "source": "25",
+        "sourceHandle": "noise",
+        "target": "13",
+        "targetHandle": "noise",
+        "ui_properties": null
+      },
+      {
+        "id": "7",
+        "source": "16",
+        "sourceHandle": "sampler",
+        "target": "13",
+        "targetHandle": "sampler",
+        "ui_properties": null
+      },
+      {
+        "id": "9",
+        "source": "27",
+        "sourceHandle": "latent",
+        "target": "13",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "229",
+        "source": "8",
+        "sourceHandle": "image",
+        "target": "41",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "12e7684c-2b5c-4121-8a1b-6f4f211b544d",
+        "source": "39",
+        "sourceHandle": "vae",
+        "target": "8",
+        "targetHandle": "vae",
+        "ui_properties": {
+          "className": "comfy_vae"
+        }
+      },
+      {
+        "id": "6",
+        "source": "22",
+        "sourceHandle": "guider",
+        "target": "13",
+        "targetHandle": "guider",
+        "ui_properties": null
+      },
+      {
+        "id": "04ac1b9b-925f-4881-8db0-d61799addbb8",
+        "source": "38",
+        "sourceHandle": "clip",
+        "target": "6",
+        "targetHandle": "clip",
+        "ui_properties": {
+          "className": "comfy_clip"
+        }
+      },
+      {
+        "id": "3",
+        "source": "30",
+        "sourceHandle": "model",
+        "target": "22",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "4",
+        "source": "26",
+        "sourceHandle": "conditioning",
+        "target": "22",
+        "targetHandle": "conditioning",
+        "ui_properties": null
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null
+}

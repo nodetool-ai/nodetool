@@ -1,0 +1,136 @@
+{
+  "id": "segment_audio",
+  "access": "public",
+  "created_at": "2024-10-19T21:05:14.936348",
+  "updated_at": "2024-10-19T21:05:14.936370",
+  "name": "Segment Audio",
+  "description": "Slices an audio file into segments.",
+  "tags": [
+    "audio"
+  ],
+  "thumbnail": "",
+  "thumbnail_url": "/examples/segment_audio.jpg",
+  "graph": {
+    "nodes": [
+      {
+        "id": "1",
+        "parent_id": null,
+        "type": "nodetool.audio.segmentation.DetectOnsets",
+        "data": {
+          "hop_length": 512
+        },
+        "ui_properties": {
+          "position": {
+            "x": 280,
+            "y": 70
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true
+        }
+      },
+      {
+        "id": "2",
+        "parent_id": null,
+        "type": "nodetool.constant.Audio",
+        "data": {
+          "value": {
+            "uri": "https://assets.nodetool.ai/5e55b296493d11efa40100005c4f3162.mp3",
+            "type": "audio"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 50,
+            "y": 50
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true
+        }
+      },
+      {
+        "id": "3",
+        "parent_id": null,
+        "type": "nodetool.audio.segmentation.SegmentAudioByOnsets",
+        "data": {
+          "min_segment_length": 0.1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 540,
+            "y": 111
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true
+        }
+      },
+      {
+        "id": "4",
+        "parent_id": null,
+        "type": "nodetool.audio.segmentation.SaveAudioSegments",
+        "data": {
+          "output_folder": {
+            "type": "folder",
+            "asset_id": "81e1b13e4f8511ef9875000007a05c8f"
+          },
+          "name_prefix": "segment"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 770,
+            "y": 93
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "cc950bcc-9553-4df8-a7bc-757746fb694b",
+        "source": "2",
+        "sourceHandle": "output",
+        "target": "1",
+        "targetHandle": "audio",
+        "ui_properties": {
+          "className": "audio"
+        }
+      },
+      {
+        "id": "f812b226-5115-4e50-9dd4-1dde10912b10",
+        "source": "2",
+        "sourceHandle": "output",
+        "target": "3",
+        "targetHandle": "audio",
+        "ui_properties": {
+          "className": "audio"
+        }
+      },
+      {
+        "id": "ac5698a8-9302-4821-8f56-994e87dd1d2c",
+        "source": "1",
+        "sourceHandle": "output",
+        "target": "3",
+        "targetHandle": "onsets",
+        "ui_properties": {
+          "className": "tensor"
+        }
+      },
+      {
+        "id": "142e1aeb-5049-437c-8e3b-c415abd7b527",
+        "source": "3",
+        "sourceHandle": "output",
+        "target": "4",
+        "targetHandle": "segments",
+        "ui_properties": {
+          "className": "list"
+        }
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null
+}

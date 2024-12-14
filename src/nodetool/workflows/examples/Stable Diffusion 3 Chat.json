@@ -1,0 +1,202 @@
+{
+  "id": "f009cfd1-2b02-45d8-b00d-d99f6fdf722c",
+  "access": "public",
+  "created_at": "2024-11-30T23:53:04.548399",
+  "updated_at": "2024-11-30T23:53:04.548419",
+  "name": "Stable Diffusion 3 Chat",
+  "description": "Chat bot that generates images. Use the workflow chat to send messages to the bot.",
+  "tags": null,
+  "thumbnail": "",
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "1",
+        "parent_id": null,
+        "type": "nodetool.input.ChatInput",
+        "data": {
+          "label": "Chat Message",
+          "name": "message",
+          "description": "",
+          "value": {
+            "type": "message",
+            "id": null,
+            "auth_token": null,
+            "workflow_id": null,
+            "graph": null,
+            "thread_id": null,
+            "user_id": null,
+            "tool_call_id": null,
+            "role": "",
+            "name": "",
+            "content": null,
+            "tool_calls": null,
+            "created_at": null
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 50,
+            "y": 209
+          },
+          "zIndex": 0,
+          "width": 187,
+          "selectable": true
+        }
+      },
+      {
+        "id": "2",
+        "parent_id": null,
+        "type": "ollama.text.OllamaChat",
+        "data": {
+          "model": {
+            "type": "llama_model",
+            "repo_id": "qwen2.5:1.5b"
+          },
+          "system_prompt": "You are an prompt engineer and write optimized Stable Diffusion prompts. The prompt should be roughly: <subject>, <style>, <scene>, <visual properties>. ONLY output the prompt, nothing else.",
+          "context_window": 4096,
+          "temperature": 0.7,
+          "top_k": 50,
+          "top_p": 0.95,
+          "keep_alive": "300"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 267,
+            "y": 151
+          },
+          "zIndex": 0,
+          "width": 185,
+          "selectable": true
+        }
+      },
+      {
+        "id": "5",
+        "parent_id": null,
+        "type": "nodetool.output.ImageOutput",
+        "data": {
+          "label": "Output Label",
+          "name": "img",
+          "description": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 800,
+            "y": 208
+          },
+          "zIndex": 0,
+          "width": 187,
+          "selectable": true
+        }
+      },
+      {
+        "id": "6",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "headline": "Chatbot",
+          "comment": [
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "Use the workflow chat on bottom of the screen to create images."
+                }
+              ]
+            }
+          ]
+        },
+        "ui_properties": {
+          "position": {
+            "x": 28,
+            "y": 20
+          },
+          "zIndex": 0,
+          "width": 437,
+          "height": 117,
+          "selectable": true
+        }
+      },
+      {
+        "id": "7",
+        "parent_id": null,
+        "type": "comfy.StableDiffusion3",
+        "data": {
+          "model": {
+            "type": "hf.stable_diffusion_3",
+            "repo_id": "Comfy-Org/stable-diffusion-3.5-fp8",
+            "path": "sd3.5_large_fp8_scaled.safetensors"
+          },
+          "negative_prompt": "",
+          "seed": 0,
+          "guidance_scale": 4,
+          "num_inference_steps": 20,
+          "width": 768,
+          "height": 768,
+          "scheduler": "sgm_uniform",
+          "sampler": "euler",
+          "input_image": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null
+          },
+          "mask_image": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null
+          },
+          "grow_mask_by": 6,
+          "denoise": 1,
+          "loras": null
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 506,
+            "y": 75
+          },
+          "zIndex": 0,
+          "width": 245,
+          "selectable": true
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "2a8c2aaf-b2d9-4fe3-9ffa-70f54c619b5a",
+        "source": "1",
+        "sourceHandle": "output",
+        "target": "2",
+        "targetHandle": "messages",
+        "ui_properties": {
+          "className": "list"
+        }
+      },
+      {
+        "id": "dd4001a5-175f-4111-8e09-bb4927da465e",
+        "source": "2",
+        "sourceHandle": "output",
+        "target": "7",
+        "targetHandle": "prompt",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "7b303942-2b63-4199-96ce-ca414309ffa0",
+        "source": "7",
+        "sourceHandle": "output",
+        "target": "5",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "image"
+        }
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null
+}

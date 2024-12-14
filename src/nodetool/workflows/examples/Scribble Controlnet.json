@@ -1,0 +1,285 @@
+{
+  "id": "Scribble Controlnet",
+  "access": "private",
+  "created_at": "2024-07-06T20:13:38.331865",
+  "updated_at": "2024-07-06T20:23:13.098945",
+  "name": "Scribble Controlnet in Comfy",
+  "description": "",
+  "thumbnail": "",
+  "thumbnail_url": "/examples/input_scribble_example.jpg",
+  "tags": [
+    "comfy"
+  ],
+  "graph": {
+    "edges": [
+      {
+        "id": "5",
+        "source": "14",
+        "sourceHandle": "clip",
+        "target": "6",
+        "targetHandle": "clip"
+      },
+      {
+        "id": "2",
+        "source": "10",
+        "sourceHandle": "conditioning",
+        "target": "3",
+        "targetHandle": "positive"
+      },
+      {
+        "id": "1",
+        "source": "7",
+        "sourceHandle": "conditioning",
+        "target": "3",
+        "targetHandle": "negative"
+      },
+      {
+        "id": "3",
+        "source": "5",
+        "sourceHandle": "latent",
+        "target": "3",
+        "targetHandle": "latent_image"
+      },
+      {
+        "id": "10",
+        "source": "6",
+        "sourceHandle": "conditioning",
+        "target": "10",
+        "targetHandle": "conditioning"
+      },
+      {
+        "id": "6",
+        "source": "14",
+        "sourceHandle": "clip",
+        "target": "7",
+        "targetHandle": "clip"
+      },
+      {
+        "id": "18c3c276-8c18-4a9d-a9b1-70dac9bed8ed",
+        "source": "16",
+        "sourceHandle": "control_net",
+        "target": "10",
+        "targetHandle": "control_net",
+        "ui_properties": {
+          "className": "comfy_control_net"
+        }
+      },
+      {
+        "id": "4",
+        "source": "14",
+        "sourceHandle": "model",
+        "target": "3",
+        "targetHandle": "model"
+      },
+      {
+        "id": "8",
+        "source": "14",
+        "sourceHandle": "vae",
+        "target": "8",
+        "targetHandle": "vae"
+      },
+      {
+        "id": "17",
+        "source": "11",
+        "sourceHandle": "image",
+        "target": "10",
+        "targetHandle": "image"
+      },
+      {
+        "id": "7",
+        "source": "3",
+        "sourceHandle": "latent",
+        "target": "8",
+        "targetHandle": "samples"
+      },
+      {
+        "id": "24",
+        "source": "8",
+        "sourceHandle": "image",
+        "target": "15",
+        "targetHandle": "value"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "3",
+        "type": "comfy.sampling.KSampler",
+        "data": {
+          "seed": 0,
+          "seed_control_mode": "increment",
+          "steps": 16,
+          "cfg": 6,
+          "sampler_name": "uni_pc",
+          "scheduler": "normal",
+          "denoise": 1
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 580,
+            "y": 137.25
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "5",
+        "type": "comfy.latent.EmptyLatentImage",
+        "data": {
+          "width": 512,
+          "height": 512,
+          "batch_size": 1
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 380.5,
+            "y": 95.5
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "6",
+        "type": "comfy.conditioning.CLIPTextEncode",
+        "data": {
+          "text": "(solo) girl (flat chest:0.9), (fennec ears:1.1)  (fox ears:1.1), (blonde hair:1.0), messy hair, sky clouds, standing in a grass field, (chibi), blue eyes"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 147,
+            "y": 294
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "7",
+        "type": "comfy.conditioning.CLIPTextEncode",
+        "data": {
+          "text": "(hands), text, error, cropped, (worst quality:1.2), (low quality:1.2), normal quality, (jpeg artifacts:1.3), signature, watermark, username, blurry, artist name, monochrome, sketch, censorship, censor, (copyright:1.2), extra legs, (forehead mark) (depth of field) (emotionless) (penis)"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 355,
+            "y": 387
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "8",
+        "type": "comfy.latent.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 734,
+            "y": 270
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "10",
+        "type": "comfy.conditioning.ControlNetApply",
+        "data": {
+          "strength": 0.8999999999999999
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 388,
+            "y": 251
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "11",
+        "type": "comfy.image.LoadImage",
+        "data": {
+          "image": {
+            "uri": "https://comfyanonymous.github.io/ComfyUI_examples/controlnet/input_scribble_example.png",
+            "type": "image"
+          }
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 147,
+            "y": 438
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "14",
+        "type": "comfy.loaders.HuggingFaceCheckpointLoader",
+        "data": {
+          "model": {
+            "type": "hf.checkpoint_model",
+            "repo_id": "SG161222/Realistic_Vision_V5.1_noVAE",
+            "path": "Realistic_Vision_V5.1_fp16-no-ema.safetensors"
+          }
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": -140,
+            "y": 289.5
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "15",
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "image_image_2024-08-06"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 880,
+            "y": 210
+          },
+          "zIndex": 0,
+          "width": 292,
+          "height": 284,
+          "selectable": true
+        }
+      },
+      {
+        "id": "16",
+        "type": "comfy.loaders.HuggingFaceControlNetLoader",
+        "data": {
+          "model": {
+            "type": "hf.controlnet",
+            "repo_id": "lllyasviel/control_v11p_sd15_scribble",
+            "path": "diffusion_pytorch_model.fp16.safetensors"
+          }
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 33,
+            "y": 170
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      }
+    ]
+  }
+}

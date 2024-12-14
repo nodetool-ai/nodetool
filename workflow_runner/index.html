@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>nodetoole | workflow runner</title>
+    <!-- CSS imports -->
+    <link rel="stylesheet" href="./styles/variables.css">
+    <link rel="stylesheet" href="./styles/base.css">
+    <link rel="stylesheet" href="./styles/layout.css">
+    <link rel="stylesheet" href="./styles/components.css">
+    <link rel="stylesheet" href="./styles/utilities.css">
+    <link rel="stylesheet" href="./styles/responsive.css">
+</head>
+
+<body>
+    <div class="main-container">
+        <div class="logo-container">
+            <img src="./nodetool_logo.png" alt="NodeTool" class="logo">
+            <span>nodetool | <span class="workflow-runner">workflow runner</span></span>
+        </div>
+        <div class="app-header">
+            <button id="runWorkflowBtn">Run Workflow</button>
+            <div id="progressContainer" style="display: none;">
+                <div class="progress-bar">
+                    <div class="progress-bar-fill" style="width: 0%;"></div>
+                </div>
+                <span id="progressText">0%</span>
+            </div>
+        </div>
+        <div class="container">
+            <div class="left-container">
+                <div class="inputs-container">
+                    <form id="tokenForm">
+                        <label for="token">Auth Token</label>
+                        <input type="text" id="token" required>
+                        <button type="submit" id="loadWorkflowsBtn">Load Workflows</button>
+                    </form>
+
+                    <form id="workflowForm" style="display: none;">
+                        <div id="workflowSelectContainer">
+                            <label for="workflowSearch">Search Workflows</label>
+                            <input type="text" id="workflowSearch" placeholder="Type to search...">
+                        </div>
+                        <div id="workflowList"></div>
+                        <div id="dynamicInputs"></div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="middle-container">
+                <div class="results-container">
+                    <div id="results"></div>
+                </div>
+            </div>
+
+            <div class="right-container">
+                <button id="toggleLogsBtn">Hide Logs</button>
+                <div class="logs-container">
+                    <div id="output">
+                        <h3>Output</h3>
+                        <pre id="outputContent"></pre>
+                    </div>
+
+                    <div id="wsMessages">
+                        <h3>WebSocket Messages</h3>
+                        <pre id="wsContent"></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/msgpack5/5.3.2/msgpack5.min.js"></script>
+        <script>
+            const msgpack = msgpack5();
+        </script>
+        <script src="./js/workflow-runner.js"></script>
+        <script src="./js/utils.js"></script>
+        <script src="./js/ui.js"></script>
+        <script src="./js/main.js"></script>
+
+    </div>
+</body>
+
+</html>

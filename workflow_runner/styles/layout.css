@@ -1,0 +1,121 @@
+/* Page structure and containers */
+.main-container {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    overflow: hidden;
+    height: 100vh;
+    padding: 5em 1em 1em 1em;
+}
+
+.container {
+    display: flex;
+    gap: 20px;
+    flex-grow: 1;
+    overflow: hidden;
+    height: calc(100vh - 40px);
+}
+
+.left-container {
+    display: flex;
+    flex-direction: column;
+    width: 30%;
+    overflow-y: auto;
+}
+
+.middle-container {
+    display: flex;
+    flex-direction: column;
+    width: 40%;
+    overflow-y: auto;
+    transition: width 0.3s ease-in-out;
+}
+
+.middle-container.expanded {
+    width: 70%;
+}
+
+.right-container {
+    display: flex;
+    flex-direction: column;
+    width: 30%;
+    transition: all 0.3s ease-in-out;
+}
+
+.right-container.hidden {
+    width: 30px;
+}
+
+/* Logo container */
+.logo-container {
+    position: absolute;
+    top: 20px;
+    left: 2em;
+    display: flex;
+    align-items: flex-start;
+    gap: .3em;
+}
+
+.logo { 
+    height: 40px;
+    width: auto;
+    object-fit: contain;
+    margin: 0;
+    padding: 0;
+}
+
+.logo-container > span {
+    font-size: 1.5em;
+    font-weight: normal;
+    color: var(--text-color);
+}
+
+/* App header */
+.app-header {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 1em;   
+}
+
+/* Progress container */
+#progressContainer {
+    display: flex;
+    align-items: center;
+    gap: 1em;
+    margin-left: 20px;
+}
+
+/* Logs container */
+.logs-container {
+    flex-grow: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.3s ease-in-out;
+}
+
+.right-container.hidden .logs-container {
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* Inputs container */
+.inputs-container {
+    margin-bottom: 20px;
+    flex-shrink: 0;
+}
+
+/* Results container */
+.results-container {
+    flex-grow: 1;
+    overflow-y: auto;
+    height: auto;
+}
+#results {
+    background-color: var(--secondary-color);
+    height: auto;
+    min-height: 8em;
+    padding: 1em;
+}

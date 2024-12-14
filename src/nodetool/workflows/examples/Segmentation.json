@@ -1,0 +1,155 @@
+{
+  "id": "segmentation",
+  "access": "private",
+  "created_at": "2024-08-09T01:14:25.486095",
+  "updated_at": "2024-08-09T18:27:22.572855",
+  "name": "Segmentation",
+  "description": "Segment images and visualize the segments",
+  "thumbnail": "",
+  "thumbnail_url": "/examples/segmentation.jpg",
+  "tags": [
+    "huggingface",
+    "image"
+  ],
+  "graph": {
+    "edges": [
+      {
+        "id": "5497a2de-ced1-429c-a54e-6a13113035dd",
+        "source": "1",
+        "sourceHandle": "output",
+        "target": "2",
+        "targetHandle": "image",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "5498",
+        "source": "3",
+        "sourceHandle": "output",
+        "target": "4",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "5499",
+        "source": "2",
+        "sourceHandle": "output",
+        "target": "5",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "any"
+        }
+      },
+      {
+        "id": "2cf7f442-5da7-4d2d-b6bd-ccccaca198fb",
+        "source": "1",
+        "sourceHandle": "output",
+        "target": "3",
+        "targetHandle": "image",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "a79d96af-bd2b-4d68-9625-03c89b4c83d8",
+        "source": "2",
+        "sourceHandle": "output",
+        "target": "3",
+        "targetHandle": "segments",
+        "ui_properties": {
+          "className": "any"
+        }
+      }
+    ],
+    "nodes": [
+      {
+        "id": "1",
+        "type": "nodetool.constant.Image",
+        "data": {
+          "value": {
+            "uri": "https://app.nodetool.ai/examples/abandoned_places.jpg",
+            "type": "image"
+          }
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 32,
+            "y": 33
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "2",
+        "type": "huggingface.image_segmentation.Segmentation",
+        "data": {
+          "model": "nvidia/segformer-b3-finetuned-ade-512-512"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 228,
+            "y": 33
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "3",
+        "type": "huggingface.image_segmentation.VisualizeSegmentation",
+        "data": {},
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 501,
+            "y": 33
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "4",
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "image_output_2024-08-09"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 686,
+            "y": 33
+          },
+          "zIndex": 0,
+          "width": 252,
+          "height": 245,
+          "selectable": true
+        }
+      },
+      {
+        "id": "5",
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "any_output_2024-08-09"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 688,
+            "y": 309
+          },
+          "zIndex": 0,
+          "width": 215,
+          "height": 341,
+          "selectable": true
+        }
+      }
+    ]
+  }
+}

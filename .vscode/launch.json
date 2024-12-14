@@ -1,0 +1,77 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Launch: Python Script",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "justMyCode": false,
+        },
+        {
+            "name": "Debug: Server",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "nodetool.cli",
+            "justMyCode": false,
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/src"
+            },
+            "args": [
+                "serve",
+                "--host",
+                "0.0.0.0",
+                // "--worker-url",
+                // "http://localhost:8001"
+            ],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Debug: Worker",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "nodetool.cli",
+            "justMyCode": false,
+            "args": [
+                "worker",
+            ],
+            "console": "integratedTerminal"
+        },
+        {
+            "type": "chrome",
+            "request": "launch",
+            "name": "Launch Chrome against localhost",
+            "url": "http://localhost:3000",
+            "webRoot": "${workspaceFolder}/web"
+        },
+        {
+            "name": "Debug: Electron",
+            "type": "node",
+            "request": "launch",
+            "cwd": "${workspaceFolder}/electron",
+            "runtimeExecutable": "${workspaceFolder}/electron/node_modules/.bin/electron",
+            "windows": {
+                "runtimeExecutable": "${workspaceFolder}/electron/node_modules/.bin/electron.cmd"
+            },
+            "args": ["."],
+            "outputCapture": "std",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Debug: RunPod API",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/nodetool/api/runpod_handler.py",
+            "justMyCode": false,
+            "args": [
+                "--rp_serve_api",
+                "--rp_api_port",
+                "5000"
+            ],
+            "console": "integratedTerminal"
+        }
+    ]
+}

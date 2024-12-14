@@ -1,0 +1,227 @@
+{
+  "id": "summarize_audio",
+  "access": "public",
+  "created_at": "2024-10-19T21:10:25.838095",
+  "updated_at": "2024-10-19T21:10:25.838113",
+  "name": "Summarize Audio",
+  "description": "Transcribe an audio file and summarize the text.",
+  "tags": [
+    "audio",
+    "start"
+  ],
+  "thumbnail": "",
+  "thumbnail_url": "/examples/summarize_audio.jpg",
+  "graph": {
+    "nodes": [
+      {
+        "id": "6",
+        "parent_id": null,
+        "type": "nodetool.constant.Audio",
+        "data": {
+          "value": {
+            "uri": "https://upload.wikimedia.org/wikipedia/commons/transcoded/4/4f/An_address_by_Opposition_Leader_Anthony_Albanese.ogg/An_address_by_Opposition_Leader_Anthony_Albanese.ogg.mp3?download",
+            "type": "audio"
+          }
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 50,
+            "y": 170
+          },
+          "zIndex": 0,
+          "width": 200,
+          "color": "#d33682",
+          "selectable": true
+        }
+      },
+      {
+        "id": "7",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "audio_output_2024-08-15"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 955,
+            "y": 165
+          },
+          "zIndex": 0,
+          "width": 150,
+          "height": 150,
+          "selectable": true
+        }
+      },
+      {
+        "id": "8",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "headline": "Summarize audio notes",
+          "comment": [
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "* Record audio into the audio node"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "* Run the workflow"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "* Listen to the summary"
+                }
+              ]
+            }
+          ]
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 43,
+            "y": -128
+          },
+          "zIndex": 0,
+          "width": 307,
+          "height": 110,
+          "selectable": true
+        }
+      },
+      {
+        "id": "9",
+        "parent_id": null,
+        "type": "ollama.text.Ollama",
+        "data": {
+          "model": {
+            "type": "llama_model",
+            "repo_id": "qwen2.5:1.5b"
+          },
+          "system_prompt": "Summarize",
+          "context_window": 4096,
+          "image": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null
+          },
+          "temperature": 0,
+          "top_k": 50,
+          "top_p": 0.95,
+          "keep_alive": "300"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 508,
+            "y": 50
+          },
+          "zIndex": 0,
+          "width": 187,
+          "selectable": true
+        }
+      },
+      {
+        "id": "10",
+        "parent_id": null,
+        "type": "huggingface.automatic_speech_recognition.Whisper",
+        "data": {
+          "model": {
+            "type": "hf.automatic_speech_recognition",
+            "repo_id": "openai/whisper-small"
+          },
+          "task": "transcribe",
+          "language": "english",
+          "chunk_length_s": 30,
+          "timestamps": "none"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 280,
+            "y": 51
+          },
+          "zIndex": 0,
+          "width": 198,
+          "selectable": true
+        }
+      },
+      {
+        "id": "11",
+        "parent_id": null,
+        "type": "huggingface.text_to_speech.TextToSpeech",
+        "data": {
+          "model": {
+            "type": "hf.text_to_speech",
+            "repo_id": "facebook/mms-tts-eng"
+          }
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 734,
+            "y": 153
+          },
+          "zIndex": 0,
+          "width": 187,
+          "selectable": true
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "b8f67e58-b6b2-430c-a347-957595a826e7",
+        "source": "6",
+        "sourceHandle": "output",
+        "target": "10",
+        "targetHandle": "audio",
+        "ui_properties": {
+          "className": "audio"
+        }
+      },
+      {
+        "id": "5ba168f7-a973-4d1b-96ff-f48ce6239acb",
+        "source": "10",
+        "sourceHandle": "text",
+        "target": "9",
+        "targetHandle": "prompt",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "79441cf3-b819-4a6d-b5b1-3581252d556b",
+        "source": "9",
+        "sourceHandle": "output",
+        "target": "11",
+        "targetHandle": "text",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "b70b64d8-dbc6-45c9-9f06-0784273e636e",
+        "source": "11",
+        "sourceHandle": "output",
+        "target": "7",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "audio"
+        }
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null
+}

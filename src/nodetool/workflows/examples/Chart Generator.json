@@ -1,0 +1,200 @@
+{
+  "id": "5372e9fba42211efb8d9000063df9847",
+  "access": "public",
+  "created_at": "2024-12-01T16:30:19.345142",
+  "updated_at": "2024-12-01T16:30:19.345163",
+  "name": "Chart Generator",
+  "description": "",
+  "tags": [
+    "agents"
+  ],
+  "thumbnail": "",
+  "thumbnail_url": "/examples/chart_generator.jpg",
+  "graph": {
+    "nodes": [
+      {
+        "id": "4",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "image_output_2024-11-16"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 930,
+            "y": 73
+          },
+          "zIndex": 0,
+          "width": 612,
+          "height": 495,
+          "selectable": true
+        }
+      },
+      {
+        "id": "7",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "dataframe_output_2024-11-16"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 360,
+            "y": 242
+          },
+          "zIndex": 0,
+          "width": 238,
+          "height": 226,
+          "selectable": true
+        }
+      },
+      {
+        "id": "8",
+        "parent_id": null,
+        "type": "openai.agents.ChartGenerator",
+        "data": {
+          "prompt": "make a line chart",
+          "max_tokens": 2528,
+          "temperature": 0.7,
+          "columns": {
+            "type": "record_type",
+            "columns": []
+          }
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 385.5,
+            "y": 518
+          },
+          "zIndex": 0,
+          "width": 187,
+          "selectable": true
+        }
+      },
+      {
+        "id": "9",
+        "parent_id": null,
+        "type": "openai.agents.DataGenerator",
+        "data": {
+          "prompt": "US GDP since 1990",
+          "input_text": "",
+          "image": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null
+          },
+          "max_tokens": 1000,
+          "temperature": 1,
+          "columns": {
+            "type": "record_type",
+            "columns": [
+              {
+                "name": "GDP",
+                "data_type": "int",
+                "description": "gross domestic product in M"
+              },
+              {
+                "name": "Year",
+                "data_type": "int",
+                "description": "the year to report"
+              },
+              {
+                "name": "Country",
+                "data_type": "string",
+                "description": "the country"
+              }
+            ]
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 50,
+            "y": 134
+          },
+          "zIndex": 0,
+          "width": 250,
+          "selectable": true
+        }
+      },
+      {
+        "id": "12",
+        "parent_id": null,
+        "type": "openai.agents.ChartRenderer",
+        "data": {
+          "width": 640,
+          "height": 480,
+          "style": "darkgrid",
+          "context": "notebook",
+          "palette": "pastel",
+          "font": "sans-serif",
+          "font_scale": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 658,
+            "y": 50
+          },
+          "zIndex": 0,
+          "width": 242,
+          "selectable": true
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "ebc2bd60-fa9a-4454-ba99-9e7307aa15b0",
+        "source": "12",
+        "sourceHandle": "output",
+        "target": "4",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "c8fe45e2-3f3e-4d3e-9115-dd04cf51ade0",
+        "source": "9",
+        "sourceHandle": "output",
+        "target": "8",
+        "targetHandle": "data",
+        "ui_properties": {
+          "className": "dataframe"
+        }
+      },
+      {
+        "id": "2a136c0d-6596-41df-8da3-74380dfd9b10",
+        "source": "8",
+        "sourceHandle": "output",
+        "target": "12",
+        "targetHandle": "chart_config",
+        "ui_properties": {
+          "className": "chart_config"
+        }
+      },
+      {
+        "id": "b7ca81fb-46e7-4fe0-9d7b-5b4f1c17107a",
+        "source": "9",
+        "sourceHandle": "output",
+        "target": "7",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "dataframe"
+        }
+      },
+      {
+        "id": "4afff8ae-17f3-4e27-9425-e6f39ae8b7fe",
+        "source": "9",
+        "sourceHandle": "output",
+        "target": "12",
+        "targetHandle": "data",
+        "ui_properties": {
+          "className": "dataframe"
+        }
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null
+}

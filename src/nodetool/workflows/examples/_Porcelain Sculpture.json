@@ -1,0 +1,599 @@
+{
+  "id": "porcelain_sculpture",
+  "access": "private",
+  "created_at": "2024-08-12T12:24:12.667168",
+  "updated_at": "2024-08-12T12:33:08.480280",
+  "name": "Porcelain Sculpture",
+  "tags": [
+    "batch_processing",
+    "start"
+  ],
+  "description": "Generate a seriese of images showing sculptures with different emotional and mental states.\n",
+  "thumbnail": "",
+  "thumbnail_url": "/examples/porcelain_sculpture.jpg",
+  "graph": {
+    "edges": [
+      {
+        "id": "9bfc67fa-e51e-4dae-83af-22f55aa1ada7",
+        "source": "5",
+        "sourceHandle": "output",
+        "target": "8",
+        "targetHandle": "prompt",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "670326b0-39cf-42c8-8015-fc9d70850651",
+        "source": "14",
+        "sourceHandle": "output",
+        "target": "26",
+        "targetHandle": "values",
+        "ui_properties": {
+          "className": "list"
+        }
+      },
+      {
+        "id": "723011cb-535a-46b4-b0c5-8be427ccc74a",
+        "source": "9405",
+        "sourceHandle": "output",
+        "target": "4",
+        "targetHandle": "image",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "49f3d670-3b1a-4cc2-ae22-ee737cc4f61b",
+        "source": "10",
+        "sourceHandle": "output",
+        "target": "9405",
+        "targetHandle": "image",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "927e9a7c-5b11-43a3-83f2-3a96942e27b6",
+        "source": "9414",
+        "sourceHandle": "output",
+        "target": "5",
+        "targetHandle": "prompt",
+        "ui_properties": {
+          "className": "union"
+        }
+      },
+      {
+        "id": "00db307c-e91f-47b2-9539-553ca5297703",
+        "source": "5",
+        "sourceHandle": "output",
+        "target": "10",
+        "targetHandle": "prompt",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "723014",
+        "source": "9405",
+        "sourceHandle": "output",
+        "target": "9413",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "c17bc32c-2cb9-4fab-a092-e398526ac134",
+        "source": "9405",
+        "sourceHandle": "output",
+        "target": "9411",
+        "targetHandle": "input",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "297c1a7b-0129-4332-9ec1-842d751ba0ec",
+        "source": "26",
+        "sourceHandle": "output",
+        "target": "11",
+        "targetHandle": "input",
+        "ui_properties": {
+          "className": "list"
+        }
+      },
+      {
+        "id": "723012",
+        "source": "5",
+        "sourceHandle": "output",
+        "target": "9409",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "194c2c6d-e48e-421a-bedc-22487ccc8d96",
+        "source": "9410",
+        "sourceHandle": "output",
+        "target": "9405",
+        "targetHandle": "text",
+        "ui_properties": {
+          "className": "any"
+        }
+      },
+      {
+        "id": "235f326c-098b-4ef4-aae7-7a28f8cf5625",
+        "source": "9410",
+        "sourceHandle": "output",
+        "target": "9414",
+        "targetHandle": "values",
+        "ui_properties": {
+          "className": "any"
+        }
+      },
+      {
+        "id": "ff367601-e49a-4b1c-9a61-fa0985edb5b5",
+        "source": "9410",
+        "sourceHandle": "output",
+        "target": "9415",
+        "targetHandle": "values",
+        "ui_properties": {
+          "className": "any"
+        }
+      },
+      {
+        "id": "764e37fc-50e4-4b45-a0f1-e159f95a09c6",
+        "source": "9415",
+        "sourceHandle": "output",
+        "target": "4",
+        "targetHandle": "name",
+        "ui_properties": {
+          "className": "union"
+        }
+      },
+      {
+        "id": "723013",
+        "source": "11",
+        "sourceHandle": "output",
+        "target": "9412",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "any"
+        }
+      }
+    ],
+    "nodes": [
+      {
+        "id": "4",
+        "type": "nodetool.image.SaveImage",
+        "data": {
+          "folder": {
+            "type": "folder",
+            "uri": "",
+            "asset_id": "3cdf43983bd311efa4c7000005d5a8c8",
+            "temp_id": null
+          }
+        },
+        "parent_id": "11",
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 813,
+            "y": 315
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "5",
+        "type": "openai.text.GPT",
+        "data": {
+          "model": "gpt-4o",
+          "system": "You are a professional prompt write for image generation AI.. You describe visual properties in a detailed and artistic manner.",
+          "image": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "temp_id": null
+          },
+          "presence_penalty": 0,
+          "frequency_penalty": 0,
+          "temperature": 0.9,
+          "max_tokens": 150,
+          "top_p": 1
+        },
+        "parent_id": "11",
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 457,
+            "y": 135
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "10",
+        "type": "huggingface.text_to_image.StableDiffusion",
+        "data": {
+          "model": {
+            "type": "hf.stable_diffusion",
+            "repo_id": "SG161222/Realistic_Vision_V5.1_noVAE",
+            "path": "Realistic_Vision_V5.1_fp16-no-ema.safetensors"
+          },
+          "negative_prompt": "nsfw, naked, nude, deformed, bad anatomy, mutated, ugly, disgusting",
+          "seed": -1,
+          "num_inference_steps": 50,
+          "guidance_scale": 7.5,
+          "scheduler": "HeunDiscreteScheduler",
+          "lora_scale": 0,
+          "ip_adapter_model": "",
+          "ip_adapter_image": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null
+          },
+          "ip_adapter_scale": 0.5,
+          "hires": true,
+          "enable_tiling": false,
+          "width": 512,
+          "height": 512,
+          "detail_level": 0.8
+        },
+        "parent_id": "11",
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 627,
+            "y": 115
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "11",
+        "type": "nodetool.group.Loop",
+        "data": {},
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 524,
+            "y": 151
+          },
+          "zIndex": -10,
+          "width": 1181,
+          "height": 610,
+          "selectable": false
+        }
+      },
+      {
+        "id": "14",
+        "type": "nodetool.constant.List",
+        "data": {
+          "value": [
+            "Sociopathy",
+            "Schizophrenia",
+            "PTSD",
+            "Eating Disorder",
+            "Autism",
+            "OCD",
+            "Depression",
+            "Anxiety",
+            "ADHD",
+            "Narcissism"
+          ]
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 55,
+            "y": 135
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "26",
+        "type": "nodetool.list.Slice",
+        "data": {
+          "start": 0,
+          "stop": 3,
+          "step": 1
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 369,
+            "y": 221
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "9404b68d-1bb6-425e-8274-7d10a1ae414e",
+        "type": "nodetool.constant.List",
+        "data": {
+          "value": [
+            "Serenity",
+            "Despair",
+            "Joy",
+            "Contemplation",
+            "Anguish",
+            "Fear",
+            "Love",
+            "Grief",
+            "Euphoria",
+            "Determination",
+            "Rage",
+            "Ecstasy",
+            "Panic",
+            "Agony",
+            "Pain",
+            "Manic Joy",
+            "Fury",
+            "Terror",
+            "Torment",
+            "Madness"
+          ]
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 55,
+            "y": 583
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "9405",
+        "type": "nodetool.image.source.RenderText",
+        "data": {
+          "font": "DejaVuSans.ttf",
+          "x": 0.02,
+          "y": 0.02,
+          "size": 25,
+          "color": "#000000",
+          "align": "center"
+        },
+        "parent_id": "11",
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 804,
+            "y": 61
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "9407",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "headline": "Porcelain Sculpture",
+          "comment": [
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "Feed a List of  of words  into a Loop."
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "Give GPT a base prompt to rewrite using each word."
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "Generate an image."
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "Use RenderText to write the word in the image."
+                }
+              ]
+            }
+          ],
+          "comment_color": "#f0f0f0"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 2,
+            "y": -124
+          },
+          "zIndex": 0,
+          "width": 267,
+          "height": 111,
+          "selectable": true
+        }
+      },
+      {
+        "id": "68b02751-a2a4-486e-a819-ca3d77f030dc",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "headline": "credits",
+          "comment": [
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": ""
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "idea and prompt from Artificial World | @ARTIV3RSE https://x.com/artiv3rse/status/1809383231701078410"
+                }
+              ]
+            }
+          ],
+          "comment_color": "#A8DADC"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 284,
+            "y": -102
+          },
+          "zIndex": 0,
+          "width": 265,
+          "height": 90,
+          "selectable": true
+        }
+      },
+      {
+        "id": "9409",
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "str_output_2024-07-07"
+        },
+        "parent_id": "11",
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 588,
+            "y": 428
+          },
+          "zIndex": 0,
+          "width": 183,
+          "height": 163,
+          "selectable": true
+        }
+      },
+      {
+        "id": "9410",
+        "type": "nodetool.input.GroupInput",
+        "data": {},
+        "parent_id": "11",
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 40,
+            "y": 288
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "9411",
+        "type": "nodetool.output.GroupOutput",
+        "data": {},
+        "parent_id": "11",
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 980,
+            "y": 170
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "9412",
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "any_output_2024-07-09"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1730,
+            "y": 140
+          },
+          "zIndex": 0,
+          "width": 447,
+          "height": 623,
+          "selectable": true
+        }
+      },
+      {
+        "id": "9413",
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "image_output_2024-07-09"
+        },
+        "parent_id": "11",
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 962,
+            "y": 290
+          },
+          "zIndex": 0,
+          "width": 150,
+          "height": 150,
+          "selectable": true
+        }
+      },
+      {
+        "id": "9414",
+        "type": "nodetool.text.Template",
+        "data": {
+          "string": "instead of bipolar disorder - use {0}\n\nkeep close to original text, shorten a bit, be brief, extreme, start with most important features.\nalwyays mention human porcelain sculpture and studio lighting\n\n// template:\n\nDSLR camera, 35mm lens, photograph of a surreal human porcelain glass sculpture capturing the essence of a person experiencing bipolar disorder. This dynamic piece merges smooth, white porcelain with vibrant, translucent glass to create a figure representing the extreme highs and lows of bipolar disorder. The sculpture's form is split, with one side radiating upward in bright, energetic shapes of reds, oranges, and yellows, while the other spirals downward in darker, muted tones of blues, purples, and grays. The vibrant side features swirls of iridescent glass threading through the figure, symbolizing the manic phases, with splashes of neon colors evoking heightened energy, creativity, and euphoria. The darker side is composed of deep, somber glass, representing depressive phases, with angular shards and fractured patterns depicting feelings of despair and lethargy. Glass bubbles emerge around the head, showing the mind's oscillation between these states. The sculpture stands on a base of clear, shimmering glass, suggesting the fragile balance and the cyclical nature of the experience, grounding the depiction in the ever-shifting landscape of bipolar disorder. This porcelain glass artwork invites viewers into a world of contrasting extremes, where the boundaries of emotion are in constant flux"
+        },
+        "parent_id": "11",
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 175,
+            "y": 105
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "9415",
+        "type": "nodetool.text.Template",
+        "data": {
+          "string": "{0}.png"
+        },
+        "parent_id": "11",
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 241,
+            "y": 477
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      }
+    ]
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {}
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {}
+  }
+}

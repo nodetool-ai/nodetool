@@ -1,0 +1,312 @@
+{
+  "id": "style_transfer",
+  "access": "public",
+  "created_at": "2024-10-19T15:47:12.158843",
+  "updated_at": "2024-10-19T15:47:12.158865",
+  "name": "Style Transfer",
+  "tags": [
+    "huggingface",
+    "image",
+    "start"
+  ],
+  "description": "Apply the style of an image to another image",
+  "thumbnail": "",
+  "thumbnail_url": "/examples/style_transfer.jpg",
+  "graph": {
+    "nodes": [
+      {
+        "id": "2",
+        "parent_id": null,
+        "type": "nodetool.constant.Image",
+        "data": {
+          "value": {
+            "uri": "https://www.mauritshuis.nl/media/rgxggmkv/vermeer-meisje-met-de-parel-mh670-mauritshuis-den-haag.jpg?center=0.44178550792733645,0.47243107769423559&mode=crop&width=1200&height=0&rnd=133018598924500000&quality=70",
+            "type": "image"
+          }
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 50,
+            "y": 552
+          },
+          "zIndex": 0,
+          "width": 200,
+          "title": "Control",
+          "color": "#d33682",
+          "selectable": true
+        }
+      },
+      {
+        "id": "3",
+        "parent_id": null,
+        "type": "nodetool.constant.Image",
+        "data": {
+          "value": {
+            "uri": "https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/e36b69a2-a218-4f43-97c0-dd316a21c699/dgc0peb-d694edce-d0eb-4b93-ab7b-81936a9ab15a.jpg/v1/fill/w_768,h_768,q_75,strp/futuristic_human_by_pickgameru_dgc0peb-fullview.jpg?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOjdlMGQxODg5ODIyNjQzNzNhNWYwZDQxNWVhMGQyNmUwIiwiaXNzIjoidXJuOmFwcDo3ZTBkMTg4OTgyMjY0MzczYTVmMGQ0MTVlYTBkMjZlMCIsIm9iaiI6W1t7ImhlaWdodCI6Ijw9NzY4IiwicGF0aCI6IlwvZlwvZTM2YjY5YTItYTIxOC00ZjQzLTk3YzAtZGQzMTZhMjFjNjk5XC9kZ2MwcGViLWQ2OTRlZGNlLWQwZWItNGI5My1hYjdiLTgxOTM2YTlhYjE1YS5qcGciLCJ3aWR0aCI6Ijw9NzY4In1dXSwiYXVkIjpbInVybjpzZXJ2aWNlOmltYWdlLm9wZXJhdGlvbnMiXX0.s-9V0oHC2cAeii6oDuazDBbG-hjMdZa0deSu1O23zhc",
+            "type": "image"
+          }
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 310,
+            "y": 456
+          },
+          "zIndex": 0,
+          "width": 200,
+          "title": "Style",
+          "color": "#cb4b16",
+          "selectable": true
+        }
+      },
+      {
+        "id": "4",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "image_output_2024-08-18"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 800,
+            "y": 408
+          },
+          "zIndex": 0,
+          "width": 271,
+          "height": 340,
+          "selectable": true
+        }
+      },
+      {
+        "id": "9",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "headline": "Style Transfer",
+          "comment": [
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "* IP Adapter apply the style of an image to the generated image"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "* Controlnet preserves the structure of the input image"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "* Experiment with different models"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "* Experiment with different IP Adapter images"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "* Experiment with parameters for "
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "  * IP Adapter Scale"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "  * Strength"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "  * Controlnet Conditioning Scale "
+                }
+              ]
+            }
+          ]
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 43,
+            "y": -200
+          },
+          "zIndex": 0,
+          "width": 509,
+          "height": 174,
+          "selectable": true
+        }
+      },
+      {
+        "id": "12",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "image_output_2024-09-23"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 570,
+            "y": 50
+          },
+          "zIndex": 0,
+          "width": 160,
+          "height": 160,
+          "selectable": true
+        }
+      },
+      {
+        "id": "13",
+        "parent_id": null,
+        "type": "nodetool.image.transform.Canny",
+        "data": {
+          "low_threshold": 84,
+          "high_threshold": 203
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 310,
+            "y": 268
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true
+        }
+      },
+      {
+        "id": "14",
+        "parent_id": null,
+        "type": "huggingface.image_to_image.StableDiffusionControlNetImg2Img",
+        "data": {
+          "model": {
+            "type": "hf.stable_diffusion",
+            "repo_id": "SG161222/Realistic_Vision_V5.1_noVAE",
+            "path": "Realistic_Vision_V5.1_fp16-no-ema.safetensors"
+          },
+          "prompt": "cyborg lady",
+          "negative_prompt": "",
+          "seed": -1,
+          "num_inference_steps": 25,
+          "guidance_scale": 7.5,
+          "scheduler": "HeunDiscreteScheduler",
+          "loras": [],
+          "lora_scale": 0.5,
+          "ip_adapter_model": "ip-adapter_sd15.bin",
+          "ip_adapter_scale": 0.5,
+          "hires": false,
+          "enable_tiling": true,
+          "controlnet": {
+            "type": "hf.controlnet",
+            "repo_id": "lllyasviel/control_v11p_sd15_canny",
+            "path": "diffusion_pytorch_model.fp16.safetensors"
+          },
+          "detail_level": 0.8,
+          "strength": 0.7
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 570,
+            "y": 260
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "3219b7c0-2743-4f05-8cab-ca1c4dec2ccc",
+        "source": "14",
+        "sourceHandle": "output",
+        "target": "4",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "c71c3532-031f-4a37-b77b-ffdaaaf89e6b",
+        "source": "13",
+        "sourceHandle": "output",
+        "target": "12",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "1b406ca5-b337-4fbc-855b-51426dd7645c",
+        "source": "3",
+        "sourceHandle": "output",
+        "target": "14",
+        "targetHandle": "ip_adapter_image",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "499f203b-b410-441d-8123-07b114b235c3",
+        "source": "2",
+        "sourceHandle": "output",
+        "target": "14",
+        "targetHandle": "image",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "3007fa12-05c1-4fef-b591-239b2bcc2a45",
+        "source": "2",
+        "sourceHandle": "output",
+        "target": "13",
+        "targetHandle": "image",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "852829a8-6978-496b-bf56-21112fb510b2",
+        "source": "13",
+        "sourceHandle": "output",
+        "target": "14",
+        "targetHandle": "control_image",
+        "ui_properties": {
+          "className": "image"
+        }
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null
+}

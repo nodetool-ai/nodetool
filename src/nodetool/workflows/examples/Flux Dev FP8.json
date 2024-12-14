@@ -1,0 +1,290 @@
+{
+  "id": "flux_dev_fp8",
+  "access": "public",
+  "created_at": "2024-11-30T13:22:49.703935",
+  "updated_at": "2024-11-30T13:22:49.703938",
+  "name": "Flux Dev FP8",
+  "description": "Best-in-class image model with lower VRAM usage",
+  "tags": [
+    "comfy",
+    "image"
+  ],
+  "thumbnail": "",
+  "thumbnail_url": "/examples/flux_dev.jpg",
+  "graph": {
+    "nodes": [
+      {
+        "id": "33",
+        "parent_id": null,
+        "type": "comfy.conditioning.CLIPTextEncode",
+        "data": {
+          "text": ""
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 310,
+            "y": 398
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true
+        }
+      },
+      {
+        "id": "27",
+        "parent_id": null,
+        "type": "comfy.latent.EmptySD3LatentImage",
+        "data": {
+          "width": 1024,
+          "height": 1024,
+          "batch_size": 1
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 570,
+            "y": 396
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true
+        }
+      },
+      {
+        "id": "35",
+        "parent_id": null,
+        "type": "comfy.flux.FluxGuidance",
+        "data": {
+          "guidance": 3.5
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 570,
+            "y": 228
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true
+        }
+      },
+      {
+        "id": "8",
+        "parent_id": null,
+        "type": "comfy.latent.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1090,
+            "y": 74
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true
+        }
+      },
+      {
+        "id": "34",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": [
+            {
+              "text": "Note that Flux dev and schnell do not have any negative prompt so CFG should be set to 1.0. Setting CFG to 1.0 means the negative prompt is ignored."
+            }
+          ]
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 14,
+            "y": -185
+          },
+          "zIndex": 0,
+          "width": 283,
+          "height": 164,
+          "selectable": true
+        }
+      },
+      {
+        "id": "6",
+        "parent_id": null,
+        "type": "comfy.conditioning.CLIPTextEncode",
+        "data": {
+          "text": "cute anime girl with massive fluffy fennec ears and a big fluffy tail blonde messy long hair blue eyes wearing a maid outfit with a long black gold leaf pattern dress and a white apron mouth open placing a fancy black forest cake with candles on top of a dinner table of an old dark Victorian mansion lit by candlelight with a bright window to the foggy forest and very expensive stuff everywhere there are paintings on the walls"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 310,
+            "y": 219
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true
+        }
+      },
+      {
+        "id": "31",
+        "parent_id": null,
+        "type": "comfy.sampling.KSampler",
+        "data": {
+          "seed": 11320909928236243000,
+          "seed_control_mode": "randomize",
+          "steps": 20,
+          "cfg": 1,
+          "sampler_name": "euler",
+          "scheduler": "simple",
+          "denoise": 1
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 830,
+            "y": 122
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true
+        }
+      },
+      {
+        "id": "36",
+        "parent_id": null,
+        "type": "comfy.loaders.HuggingFaceCheckpointLoader",
+        "data": {
+          "model": {
+            "type": "hf.checkpoint_model",
+            "repo_id": "Comfy-Org/flux1-dev",
+            "path": "flux1-dev-fp8.safetensors"
+          }
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 50,
+            "y": 139
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true
+        }
+      },
+      {
+        "id": "37",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "image_image_2024-11-30"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1320,
+            "y": 50
+          },
+          "zIndex": 0,
+          "width": 160,
+          "height": 160,
+          "selectable": true
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "8",
+        "source": "35",
+        "sourceHandle": "conditioning",
+        "target": "31",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "9",
+        "source": "33",
+        "sourceHandle": "conditioning",
+        "target": "31",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "12ac668e-46cc-474f-a298-485b8da4de59",
+        "source": "36",
+        "sourceHandle": "clip",
+        "target": "6",
+        "targetHandle": "clip",
+        "ui_properties": {
+          "className": "comfy_clip"
+        }
+      },
+      {
+        "id": "10",
+        "source": "27",
+        "sourceHandle": "latent",
+        "target": "31",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "82270951-4260-480c-8fba-5f01cc42d218",
+        "source": "36",
+        "sourceHandle": "clip",
+        "target": "33",
+        "targetHandle": "clip",
+        "ui_properties": {
+          "className": "comfy_clip"
+        }
+      },
+      {
+        "id": "292f5272-2bb9-4c29-8ed1-0b26581ce97a",
+        "source": "36",
+        "sourceHandle": "model",
+        "target": "31",
+        "targetHandle": "model",
+        "ui_properties": {
+          "className": "comfy_unet"
+        }
+      },
+      {
+        "id": "2",
+        "source": "6",
+        "sourceHandle": "conditioning",
+        "target": "35",
+        "targetHandle": "conditioning",
+        "ui_properties": null
+      },
+      {
+        "id": "3",
+        "source": "31",
+        "sourceHandle": "latent",
+        "target": "8",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "63a28d8e-eda5-43de-8584-750dc811fb6f",
+        "source": "36",
+        "sourceHandle": "vae",
+        "target": "8",
+        "targetHandle": "vae",
+        "ui_properties": {
+          "className": "comfy_vae"
+        }
+      },
+      {
+        "id": "82270952",
+        "source": "8",
+        "sourceHandle": "image",
+        "target": "37",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "image"
+        }
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null
+}

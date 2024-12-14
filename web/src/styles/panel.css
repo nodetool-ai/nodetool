@@ -1,0 +1,146 @@
+img {
+  cursor: grab;
+}
+
+/* TABS */
+.MuiTabs-indicator {
+  display: none;
+}
+
+/* PANEL */
+#root .panel {
+  top: 50px;
+}
+#root .panel-container .panel .MuiBox-root {
+  transition: opacity 0.5s ease;
+}
+#root .panel-container.closed .panel .MuiBox-root {
+  opacity: 0.01;
+}
+#root .panel-tabs {
+  direction: ltr;
+}
+
+/* PANEL LEFT */
+#root .panel-left {
+  direction: ltr;
+  position: absolute;
+  overflow-x: hidden;
+  overflow-y: auto;
+  width: 100%;
+  padding: 0.5em;
+  height: calc(-51px + 100vh);
+  transition: left 0.25s ease-out;
+}
+
+/* PANEL RIGHT */
+#root .panel-right {
+  position: fixed;
+  overflow-x: hidden;
+  overflow-y: auto;
+  right: 0;
+  left: unset;
+  padding: 0.5em;
+  bottom: 0;
+  min-width: 0px;
+  z-index: 1000;
+  height: calc(-51px + 100vh);
+}
+
+.tab-content {
+  direction: ltr;
+}
+
+.panel-right {
+  overflow: hidden !important;
+}
+
+.panel-right .MuiBox-root {
+  max-width: unset;
+}
+
+#root .panel-button {
+  position: absolute;
+  z-index: 1200;
+  left: unset;
+  right: unset;
+  width: 40px;
+  height: calc(100vh - 64px);
+  background-color: transparent;
+  border: 0;
+  border-radius: 0;
+  top: 50px;
+  cursor: e-resize;
+  transition: background-color 0.3s ease;
+}
+
+#root .panel-button svg {
+  font-size: 0.8em !important;
+  color: var(--c_white);
+  opacity: 0;
+  transition: all 0.5s ease;
+}
+
+/* hover */
+#root .panel-button:hover {
+  background-color: #33333344;
+}
+#root .panel-button:hover svg {
+  opacity: 1;
+  font-size: 1em !important;
+}
+
+/* btn right */
+#root .panel-button-right {
+  left: unset;
+}
+
+#root .MuiAccordionDetails-root {
+  padding: 2px 0;
+}
+
+#root .MuiAccordionDetails-root .MuiBox-root {
+  padding: 0;
+}
+
+/* UPLOAD */
+#root .MuiGrid2-container .MuiBox-root.upload div {
+  border: 2px dashed var(--c_gray3) !important;
+  background-color: var(--c_gray1);
+  margin-bottom: 20px;
+}
+
+#root .upload label.MuiButton-contained {
+  background-color: transparent !important;
+  padding: 0;
+  border: 0;
+  border: 2px dashed var(--c_gray2);
+  box-shadow: 0 0;
+  text-align: center;
+  border-radius: 0;
+  width: calc(100% - 20px);
+  margin: -5px 0 10px 0;
+  max-height: 40px;
+  overflow: hidden;
+}
+#root .upload label.MuiButton-contained:hover {
+  border: 2px dashed var(--c_gray3);
+}
+
+#root .file-upload-button:hover span.MuiTypography-root {
+  color: var(--c_hl1);
+}
+#root .file-upload-button span.MuiTypography-root {
+  padding: 0;
+  margin-top: 0.5em;
+  color: var(--c_gray4);
+}
+
+.MuiAccordionSummary-expandIconWrapper svg {
+  filter: brightness(0.5);
+}
+
+#root .MuiAccordionSummary-content.Mui-expanded,
+.MuiAccordion-root.Mui-expanded {
+  margin: 0 !important;
+}

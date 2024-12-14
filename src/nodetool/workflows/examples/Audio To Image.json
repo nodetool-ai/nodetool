@@ -1,0 +1,276 @@
+{
+  "id": "audio_to_image",
+  "access": "public",
+  "created_at": "2024-12-06T09:48:23.060657",
+  "updated_at": "2024-12-06T09:48:23.060657",
+  "name": "Audio To Image",
+  "description": "Convert any audio speech into an image",
+  "tags": [
+    "huggingface",
+    "multimodal",
+    "start"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": "/examples/audio_to_image.jpg",
+  "graph": {
+    "nodes": [
+      {
+        "id": "6",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {},
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1200,
+            "y": 118
+          },
+          "zIndex": 0,
+          "width": 519,
+          "height": 551,
+          "selectable": true
+        }
+      },
+      {
+        "id": "10",
+        "parent_id": null,
+        "type": "nodetool.text.Template",
+        "data": {
+          "string": "design an artwork based on this speech, describe in less than 20 words: {0}"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 510,
+            "y": 323
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true
+        }
+      },
+      {
+        "id": "11",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "headline": "Audio to Image",
+          "comment": [
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "* Convert any audio speech into an image"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "* Record your speech into the Audio node using the Record feature"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "* Run the workflow"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "* Look at the preview result"
+                }
+              ]
+            }
+          ]
+        },
+        "ui_properties": {
+          "position": {
+            "x": 38,
+            "y": -141
+          },
+          "zIndex": 0,
+          "width": 618,
+          "height": 127,
+          "selectable": true
+        }
+      },
+      {
+        "id": "12",
+        "parent_id": null,
+        "type": "ollama.text.Ollama",
+        "data": {
+          "model": {
+            "type": "llama_model",
+            "repo_id": "qwen2.5:1.5b"
+          },
+          "system_prompt": "You are a painter.",
+          "image": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null
+          },
+          "temperature": 0.7,
+          "top_k": 50,
+          "top_p": 0.95,
+          "keep_alive": "300"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 740,
+            "y": 196
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true
+        }
+      },
+      {
+        "id": "13",
+        "parent_id": null,
+        "type": "huggingface.text_to_image.StableDiffusion",
+        "data": {
+          "model": {
+            "type": "hf.stable_diffusion",
+            "repo_id": "SG161222/Realistic_Vision_V5.1_noVAE",
+            "path": "Realistic_Vision_V5.1_fp16-no-ema.safetensors"
+          },
+          "negative_prompt": "",
+          "seed": -1,
+          "num_inference_steps": 50,
+          "guidance_scale": 7.5,
+          "scheduler": "HeunDiscreteScheduler",
+          "loras": [],
+          "lora_scale": 0.5,
+          "ip_adapter_model": "",
+          "ip_adapter_image": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null
+          },
+          "ip_adapter_scale": 0.5,
+          "hires": true,
+          "enable_tiling": false,
+          "width": 512,
+          "height": 512,
+          "detail_level": 0.89,
+          "enable_cpu_offload": false
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 970,
+            "y": 50
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true
+        }
+      },
+      {
+        "id": "14",
+        "parent_id": null,
+        "type": "huggingface.automatic_speech_recognition.Whisper",
+        "data": {
+          "model": {
+            "type": "hf.automatic_speech_recognition",
+            "repo_id": "openai/whisper-small"
+          },
+          "task": "transcribe",
+          "language": "english",
+          "timestamps": "none"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 280,
+            "y": 201
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true
+        }
+      },
+      {
+        "id": "15",
+        "parent_id": null,
+        "type": "nodetool.constant.Audio",
+        "data": {
+          "value": {
+            "uri": "https://upload.wikimedia.org/wikipedia/commons/transcoded/4/4f/An_address_by_Opposition_Leader_Anthony_Albanese.ogg/An_address_by_Opposition_Leader_Anthony_Albanese.ogg.mp3?download",
+            "type": "audio"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 50,
+            "y": 269
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "909f3c44-2cf8-4c75-959e-8c4b4cc176e6",
+        "source": "15",
+        "sourceHandle": "output",
+        "target": "14",
+        "targetHandle": "audio",
+        "ui_properties": {
+          "className": "audio"
+        }
+      },
+      {
+        "id": "05c9cd53-cd41-4211-b852-e3afe84defea",
+        "source": "12",
+        "sourceHandle": "output",
+        "target": "13",
+        "targetHandle": "prompt",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "00f1542f-84cf-4bc2-885c-286b87c78bf2",
+        "source": "10",
+        "sourceHandle": "output",
+        "target": "12",
+        "targetHandle": "prompt",
+        "ui_properties": {
+          "className": "union"
+        }
+      },
+      {
+        "id": "672726ea-bdaf-4108-bb6f-ea8b4fd0eec6",
+        "source": "14",
+        "sourceHandle": "text",
+        "target": "10",
+        "targetHandle": "values",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "39781355-f211-4883-bde4-859973f7731d",
+        "source": "13",
+        "sourceHandle": "output",
+        "target": "6",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "image"
+        }
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null
+}

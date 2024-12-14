@@ -1,0 +1,396 @@
+{
+  "id": "tiling",
+  "access": "private",
+  "created_at": "2024-07-07T23:58:00.767663",
+  "updated_at": "2024-07-07T23:58:00.767751",
+  "name": "Tiling",
+  "description": "",
+  "thumbnail": "",
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "1",
+        "parent_id": null,
+        "type": "nodetool.image.grid.SliceImageGrid",
+        "data": {
+          "image": {
+            "type": "image",
+            "uri": "",
+            "asset_id": "",
+            "temp_id": null
+          },
+          "tile_width": 512,
+          "tile_height": 512,
+          "overlap": 0
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 387,
+            "y": 80
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "2",
+        "parent_id": null,
+        "type": "nodetool.constant.Image",
+        "data": {
+          "value": {
+            "type": "image",
+            "uri": "",
+            "asset_id": "",
+            "temp_id": null
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 206,
+            "y": 134
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "3",
+        "parent_id": null,
+        "type": "nodetool.group.Loop",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 517,
+            "y": 44
+          },
+          "zIndex": -10,
+          "width": 665,
+          "height": 784,
+          "selectable": false
+        }
+      },
+      {
+        "id": "4",
+        "parent_id": "3",
+        "type": "nodetool.input.GroupInput",
+        "data": {
+          "items": [],
+          "name": ""
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 17,
+            "y": 98
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "6",
+        "parent_id": "3",
+        "type": "nodetool.output.GroupOutput",
+        "data": {
+          "name": "",
+          "input": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "temp_id": null
+          }
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 355,
+            "y": 46
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "7",
+        "parent_id": null,
+        "type": "replicate.image.analyze.Blip",
+        "data": {
+          "task": "image_captioning",
+          "image": {
+            "type": "image",
+            "uri": "",
+            "asset_id": "",
+            "temp_id": null
+          },
+          "caption": null,
+          "question": null
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 383,
+            "y": 220
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "8",
+        "parent_id": null,
+        "type": "nodetool.image.grid.CombineImageGrid",
+        "data": {
+          "original_width": 1024,
+          "original_height": 1024,
+          "tile_width": 512,
+          "tile_height": 512,
+          "overlap": 0,
+          "tiles": []
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1209,
+            "y": 170
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "9",
+        "parent_id": null,
+        "type": "nodetool.image.GetImageMetadata",
+        "data": {
+          "image": {
+            "type": "image",
+            "uri": "",
+            "asset_id": "",
+            "temp_id": null
+          }
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 367,
+            "y": 407
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "10",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "image_output_2024-07-06",
+          "value": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "temp_id": ""
+          }
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1373,
+            "y": 26
+          },
+          "zIndex": 0,
+          "width": 348,
+          "height": 414,
+          "selectable": true
+        }
+      },
+      {
+        "id": "11",
+        "parent_id": "3",
+        "type": "replicate.image.generate.StableDiffusionXL",
+        "data": {
+          "mask": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "temp_id": null
+          },
+          "seed": 3206774622,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Caption: a white unicorn with pink hair standing on a rock",
+          "refine": "no_refiner",
+          "scheduler": "K_EULER",
+          "lora_scale": 0.6,
+          "num_outputs": 1,
+          "refine_steps": null,
+          "guidance_scale": 7.5,
+          "apply_watermark": true,
+          "high_noise_frac": 0.8,
+          "negative_prompt": "",
+          "prompt_strength": 0.49,
+          "replicate_weights": null,
+          "num_inference_steps": 50,
+          "disable_safety_checker": false,
+          "image": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "temp_id": ""
+          }
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 184,
+            "y": 48
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "05f93f4a-6851-4646-a488-36afc68d1413",
+        "source": "2",
+        "sourceHandle": "output",
+        "target": "1",
+        "targetHandle": "image",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "c9099acc-83da-49c1-917c-e37d7396279e",
+        "source": "2",
+        "sourceHandle": "output",
+        "target": "7",
+        "targetHandle": "image",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "dc4a19bb-cd2b-4336-9993-aa3aed978d18",
+        "source": "2",
+        "sourceHandle": "output",
+        "target": "9",
+        "targetHandle": "image",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "1290617",
+        "source": "8",
+        "sourceHandle": "output",
+        "target": "10",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "64b89335-07f9-48b7-aa09-d30a6a9517b5",
+        "source": "6",
+        "sourceHandle": "output",
+        "target": "8",
+        "targetHandle": "tiles",
+        "ui_properties": {
+          "className": "list"
+        }
+      },
+      {
+        "id": "e9bb8aaf-d453-4c78-8ad0-6c5655f59895",
+        "source": "1",
+        "sourceHandle": "output",
+        "target": "4",
+        "targetHandle": "items",
+        "ui_properties": {
+          "className": "list"
+        }
+      },
+      {
+        "id": "3fbab11d-7d13-473d-a220-8e8648b00f56",
+        "source": "11",
+        "sourceHandle": "output",
+        "target": "6",
+        "targetHandle": "input",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "7449e128-560b-42ec-b6d1-5c39df045c31",
+        "source": "4",
+        "sourceHandle": "output",
+        "target": "11",
+        "targetHandle": "image",
+        "ui_properties": {
+          "className": "any"
+        }
+      },
+      {
+        "id": "13a90c03-85a0-45e7-bcfa-93a5ed1027fb",
+        "source": "7",
+        "sourceHandle": "output",
+        "target": "11",
+        "targetHandle": "prompt",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "cce7571c-0eac-4c81-9341-43080b74f93c",
+        "source": "9",
+        "sourceHandle": "width",
+        "target": "11",
+        "targetHandle": "width",
+        "ui_properties": {
+          "className": "int"
+        }
+      },
+      {
+        "id": "a8b70d2e-ff2f-4eb7-91c5-77d3be586f9b",
+        "source": "9",
+        "sourceHandle": "width",
+        "target": "8",
+        "targetHandle": "original_width",
+        "ui_properties": {
+          "className": "int"
+        }
+      },
+      {
+        "id": "a3ce4c23-757a-4dcf-b387-8203848dc3c3",
+        "source": "9",
+        "sourceHandle": "height",
+        "target": "11",
+        "targetHandle": "height",
+        "ui_properties": {
+          "className": "int"
+        }
+      },
+      {
+        "id": "1183a166-d200-4952-ac53-7e62b59ecddc",
+        "source": "9",
+        "sourceHandle": "height",
+        "target": "8",
+        "targetHandle": "original_height",
+        "ui_properties": {
+          "className": "int"
+        }
+      }
+    ]
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {}
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {}
+  }
+}

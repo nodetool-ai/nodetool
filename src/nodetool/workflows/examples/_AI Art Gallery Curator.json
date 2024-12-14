@@ -1,0 +1,298 @@
+{
+  "id": "ai_art_gallery_curator",
+  "access": "private",
+  "created_at": "2024-08-08T10:52:19.152725",
+  "updated_at": "2024-08-09T10:55:43.359678",
+  "name": "AI Art Gallery Curator",
+  "tags": [
+    "batch_processing"
+  ],
+  "description": "Create an AI-curated art gallery based on famous art movements",
+  "thumbnail": "",
+  "thumbnail_url": "/examples/ai_art_gallery.jpg",
+  "graph": {
+    "edges": [
+      {
+        "id": "d0a90578-e342-47a0-a4d9-d209e6a90d74",
+        "source": "3",
+        "sourceHandle": "output",
+        "target": "13",
+        "targetHandle": "values",
+        "ui_properties": {
+          "className": "any"
+        }
+      },
+      {
+        "id": "e1",
+        "source": "1",
+        "sourceHandle": "output",
+        "target": "2",
+        "targetHandle": "input"
+      },
+      {
+        "id": "d1f4a93f-372f-4287-923d-95e5637079d5",
+        "source": "3",
+        "sourceHandle": "output",
+        "target": "12",
+        "targetHandle": "values",
+        "ui_properties": {
+          "className": "any"
+        }
+      },
+      {
+        "id": "1bd628df-494e-477e-a89b-deb80ccab87a",
+        "source": "14",
+        "sourceHandle": "output",
+        "target": "6",
+        "targetHandle": "image",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "b081dc41-0ae8-4963-8885-810e2b412825",
+        "source": "12",
+        "sourceHandle": "output",
+        "target": "6",
+        "targetHandle": "text",
+        "ui_properties": {
+          "className": "union"
+        }
+      },
+      {
+        "id": "e6",
+        "source": "6",
+        "sourceHandle": "output",
+        "target": "7",
+        "targetHandle": "input"
+      },
+      {
+        "id": "8c1c0238-82ce-4ef9-bd20-b0bb684eda23",
+        "source": "13",
+        "sourceHandle": "output",
+        "target": "14",
+        "targetHandle": "prompt",
+        "ui_properties": {
+          "className": "union"
+        }
+      }
+    ],
+    "nodes": [
+      {
+        "id": "1",
+        "type": "ollama.agents.DataframeAgent",
+        "data": {
+          "model": {
+            "type": "llama_model",
+            "repo_id": "qwen2.5:1.5b"
+          },
+          "prompt": "Generate 5 famous art movements with their key characteristics and a representative artist.",
+          "columns": {
+            "type": "record_type",
+            "columns": [
+              {
+                "name": "movement",
+                "data_type": "string",
+                "description": "Name of the art movement"
+              },
+              {
+                "name": "characteristics",
+                "data_type": "string",
+                "description": "Key characteristics of the art movement"
+              },
+              {
+                "name": "artist",
+                "data_type": "string",
+                "description": "A representative artist from the movement"
+              }
+            ]
+          },
+          "temperature": 0.7,
+          "tool_name": "add_row",
+          "tool_description": "Adds one row.",
+          "max_tokens": 1000,
+          "top_k": 50,
+          "top_p": 1,
+          "keep_alive": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 217,
+            "y": 107
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "2",
+        "type": "nodetool.group.Loop",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 584,
+            "y": 14
+          },
+          "zIndex": -10,
+          "width": 200,
+          "height": 200,
+          "selectable": false
+        }
+      },
+      {
+        "id": "3",
+        "type": "nodetool.input.GroupInput",
+        "data": {},
+        "parent_id": "2",
+        "ui_properties": {
+          "position": {
+            "x": 34,
+            "y": 194
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "6",
+        "type": "nodetool.image.source.RenderText",
+        "data": {
+          "font": "DejaVuSans.ttf",
+          "size": 26,
+          "color": "#FFFFFF",
+          "align": "center",
+          "x": 0.5,
+          "y": 0.95
+        },
+        "parent_id": "2",
+        "ui_properties": {
+          "position": {
+            "x": 540,
+            "y": 167
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "7",
+        "type": "nodetool.output.GroupOutput",
+        "data": {},
+        "parent_id": "2",
+        "ui_properties": {
+          "position": {
+            "x": 687,
+            "y": 265
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "9",
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "AI Art Gallery"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1428,
+            "y": 10
+          },
+          "zIndex": 0,
+          "width": 200,
+          "height": 200,
+          "selectable": true
+        }
+      },
+      {
+        "id": "10",
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "dataframe_output_2024-08-08"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 615,
+            "y": 582
+          },
+          "zIndex": 0,
+          "width": 200,
+          "height": 200,
+          "selectable": true
+        }
+      },
+      {
+        "id": "12",
+        "type": "nodetool.text.Template",
+        "data": {
+          "string": "{movement} {artist}"
+        },
+        "parent_id": "2",
+        "ui_properties": {
+          "position": {
+            "x": 189,
+            "y": 239
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "13",
+        "type": "nodetool.text.Template",
+        "data": {
+          "string": "Create a painting in the style of {movement}. Key characteristics: {characteristics}. Inspired by the work of {artist}. The painting should depict a futuristic cityscape."
+        },
+        "parent_id": "2",
+        "ui_properties": {
+          "position": {
+            "x": 185,
+            "y": 88
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "14",
+        "type": "huggingface.text_to_image.StableDiffusion",
+        "data": {
+          "model": {
+            "type": "hf.stable_diffusion",
+            "repo_id": "Yntec/epiCEpic",
+            "path": "epiCEpic.safetensors"
+          },
+          "negative_prompt": "",
+          "seed": -1,
+          "num_inference_steps": 25,
+          "guidance_scale": 7.5,
+          "scheduler": "HeunDiscreteScheduler",
+          "loras": [],
+          "lora_scale": 0.5,
+          "ip_adapter_model": "",
+          "ip_adapter_image": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null
+          },
+          "ip_adapter_scale": 0.5,
+          "hires": false,
+          "enable_tiling": false,
+          "width": 512,
+          "height": 512
+        },
+        "parent_id": "2",
+        "ui_properties": {
+          "position": {
+            "x": 347,
+            "y": 95
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      }
+    ]
+  }
+}

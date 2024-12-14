@@ -1,0 +1,132 @@
+{
+  "id": "e5827a0faff611efa02a00006da6d6e7",
+  "access": "public",
+  "created_at": "2024-12-01T16:17:38.821684",
+  "updated_at": "2024-12-01T16:17:38.821705",
+  "name": "Stable Diffusion",
+  "description": "Stable Diffusion Image Generation",
+  "tags": [
+    "image"
+  ],
+  "thumbnail": "",
+  "thumbnail_url": "/examples/stable_diffusion.jpg",
+  "graph": {
+    "nodes": [
+      {
+        "id": "1",
+        "parent_id": null,
+        "type": "comfy.StableDiffusion",
+        "data": {
+          "model": {
+            "type": "hf.checkpoint_model",
+            "repo_id": "SG161222/Realistic_Vision_V5.1_noVAE",
+            "path": "Realistic_Vision_V5.1_fp16-no-ema.safetensors"
+          },
+          "prompt": "A cat dressed as a Victorian gentleman, complete with a top hat, monocle, and cane, hosting a tea party for squirrels wearing tiny waistcoats, set in a lavishly decorated 19th-century garden with absurdly oversized teacups and a confused penguin as the butler.",
+          "negative_prompt": "",
+          "seed": 0,
+          "guidance_scale": 7,
+          "num_inference_steps": 30,
+          "width": 1024,
+          "height": 1024,
+          "scheduler": "simple",
+          "sampler": "euler",
+          "input_image": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null
+          },
+          "mask_image": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null
+          },
+          "grow_mask_by": 6,
+          "denoise": 1,
+          "loras": null
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 50,
+            "y": 63
+          },
+          "zIndex": 0,
+          "width": 250,
+          "selectable": true
+        }
+      },
+      {
+        "id": "2",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "image_output_2024-12-01"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 330,
+            "y": 50
+          },
+          "zIndex": 0,
+          "width": 604,
+          "height": 640,
+          "selectable": true
+        }
+      },
+      {
+        "id": "3",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": [
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "Classic Stable Diffusion 1.5"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "Try changing the prompt or the sampler"
+                }
+              ]
+            }
+          ]
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 47,
+            "y": -137
+          },
+          "zIndex": 0,
+          "width": 444,
+          "height": 103,
+          "selectable": true
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "1",
+        "source": "1",
+        "sourceHandle": "output",
+        "target": "2",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "image"
+        }
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null
+}

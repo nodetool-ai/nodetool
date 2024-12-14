@@ -1,0 +1,62 @@
+{
+    "appId": "ai.nodetool",
+    "productName": "Nodetool",
+    "directories": {
+        "output": "dist",
+        "buildResources": "resources"
+    },
+    "files": [
+        "*.js",
+        "index.html"
+    ],
+    "extraResources": [
+        "requirements.txt",
+        {
+            "from": "../web/dist",
+            "to": "web"
+        },
+        {
+            "from": "../src",
+            "to": "src"
+        }
+    ],
+    "publish": [
+        {
+            "provider": "github",
+            "owner": "nodetool-ai",
+            "repo": "nodetool"
+        }
+    ],
+    "mac": {
+        "category": "public.app-category.developer-tools",
+        "target": [
+            "dmg"
+        ],
+        "hardenedRuntime": true,
+        "gatekeeperAssess": false,
+        "entitlements": "entitlements.mac.plist",
+        "entitlementsInherit": "entitlements.mac.plist",
+        "notarize": true
+    },
+    "win": {
+        "target": [
+            "nsis"
+        ],
+        "azureSignOptions": {
+            "endpoint": "https://weu.codesigning.azure.net",
+            "codeSigningAccountName": "Nodetool",
+            "certificateProfileName": "nodetool"
+        }
+    },
+    "linux": {
+        "target": [
+            "AppImage"
+        ]
+    },
+    "nsis": {
+        "oneClick": false,
+        "allowToChangeInstallationDirectory": true,
+        "createDesktopShortcut": true,
+        "runAfterFinish": true
+    }
+}

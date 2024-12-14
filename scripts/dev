@@ -1,0 +1,8 @@
+#!/bin/bash
+
+# Start Vite in the background
+cd web && npm start &
+
+# Start Python server
+export PYTHONPATH=$PYTHONPATH:src
+python -m nodetool.cli serve 

@@ -1,0 +1,117 @@
+{
+  "3": {
+    "type": "comfy.sampling.KSampler",
+    "inputs": {
+      "seed": ["14", "output"],
+      "steps": ["15", "output"],
+      "cfg": ["16", "output"],
+      "sampler_name": "euler",
+      "scheduler": "normal",
+      "denoise": 1,
+      "model": ["4", "model"],
+      "positive": ["6", "conditioning"],
+      "negative": ["7", "conditioning"],
+      "latent_image": ["5", "latent"]
+    }
+  },
+  "4": {
+    "type": "comfy.loaders.CheckpointLoaderSimple",
+    "inputs": {
+      "ckpt_name": "Realistic_Vision_V6.safetensors"
+    }
+  },
+  "5": {
+    "type": "comfy.latent.EmptyLatentImage",
+    "inputs": {
+      "width": ["12", "output"],
+      "height": ["13", "output"],
+      "batch_size": 1
+    }
+  },
+  "6": {
+    "type": "comfy.conditioning.CLIPTextEncode",
+    "inputs": {
+      "text": ["10", "output"],
+      "clip": ["4", "clip"]
+    }
+  },
+  "7": {
+    "type": "comfy.conditioning.CLIPTextEncode",
+    "inputs": {
+      "text": ["11", "output"],
+      "clip": ["4", "clip"]
+    }
+  },
+  "8": {
+    "type": "comfy.latent.VAEDecode",
+    "inputs": {
+      "vae": ["4", "vae"],
+      "samples": ["3", "latent"]
+    }
+  },
+  "9": {
+    "type": "nodetool.output.ComfyImageOutput",
+    "inputs": {
+      "value": ["8", "image"]
+    }
+  },
+  "10": {
+    "type": "nodetool.input.StringInput",
+    "inputs": {
+      "name": "prompt",
+      "value": ""
+    }
+  },
+  "11": {
+    "type": "nodetool.input.StringInput",
+    "inputs": {
+      "name": "negative prompt",
+      "value": ""
+    }
+  },
+  "12": {
+    "type": "nodetool.input.IntegerInput",
+    "inputs": {
+      "name": "width",
+      "value": 512,
+      "min": 256,
+      "max": 1024
+    }
+  },
+  "13": {
+    "type": "nodetool.input.IntegerInput",
+    "inputs": {
+      "name": "height",
+      "value": 512,
+      "min": 256,
+      "max": 1024
+    }
+  },
+  "14": {
+    "type": "nodetool.input.IntegerInput",
+    "inputs": {
+      "name": "seed",
+      "value": 0,
+      "min": -1,
+      "max": 1000000
+    }
+  },
+  "15": {
+    "type": "nodetool.input.IntegerInput",
+    "inputs": {
+      "name": "steps",
+      "value": 10,
+      "min": 1,
+      "max": 100
+    }
+  },
+  "16": {
+    "type": "nodetool.input.FloatInput",
+    "inputs": {
+      "name": "cfg",
+      "value": 7.0,
+      "min": 1.0,
+      "max": 30.0
+    }
+  }
+}

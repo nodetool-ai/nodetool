@@ -1,0 +1,83 @@
+:root {
+  --font_family: Inter, Arial, sans-serif;
+  --font_family2: "Jetbrains Mono", Inter, Arial, sans-serif;
+  --font-size-bigger: 15px;
+  --font-size-big: 13.5px;
+  --font-size-normal: 12px;
+  --font-size-small: 10.5px;
+  --font-size-smaller: 9px;
+  --font-size-tiny: 7.5px;
+  --font-size-tinyer: 6.5px;
+
+  /* General */
+  --c_black: #020202;
+  --c_white: #fcfcfc;
+  --c_gray0: #0e0e0e;
+  --c_gray1: #242424;
+  --c_gray2: #444444;
+  --c_gray3: #6d6d6d;
+  --c_gray4: #959595;
+  --c_gray5: #bdbdbd;
+  --c_gray6: #d9d9d9;
+  --c_background: #424854;
+  --c_node_menu: #252525;
+  /* Highlights */
+  --c_hl1: #76e5b8;
+  --c_hl1_1: #b7e3d9;
+  --c_hl2: #1ec7c7;
+  --c_link: #e4ffde;
+  --c_link_visited: #d1e2cd;
+  /* --c_selection: #8eaca7; */
+  --c_selection: #8eaca777;
+  /* Statuses */
+  --c_attention: #e35bff;
+  --c_delete: #ff2222;
+  --c_debug: #ff3355;
+  --c_error: #ff5555;
+  --c_info: #ffffff;
+  --c_job: #223399;
+  --c_node: #029486;
+  --c_progress: #556611;
+  --c_success: #50fa7b;
+  --c_warn: #ffb86c;
+  --c_warning: #ffb86c;
+  /* Scrollbar*/
+  --c_scroll_bg: #484848;
+  --c_scroll_hover: #383838;
+  --c_scroll_thumb: #2a2a2a;
+  --c_input: #374f4f;
+  --c_output: #493f4d;
+  /* Data Types */
+  /*
+  --c_any: #FFFFFF;
+  --c_asset: #E6DB69;
+  --c_assistant: #56DB52;
+  --c_audio: #1E90FF;
+  --c_bool: #09152C;
+  --c_dataframe: #AAFFC3;
+  --c_dict: #FFD8B1;
+  --c_enum: #F54F31;
+  --c_file: #FFC63D;
+  --c_float: #747D82;
+  --c_folder: #B9AF8A;
+  --c_image: #36B1BF;
+  --c_int: #3B3F42;
+  --c_list: #E6BEFF;
+  --c_model: #800061;
+  --c_str: #12620b;
+  --c_tensor: #c331ed;
+  --c_text: #248809;
+  --c_thread: #3B1EBF;
+  --c_thread_message: #4D39D7;
+  --c_union: #7B5353;
+  --c_video: #BCF60C;
+*/
+  /* NODES */
+  --c_node_bg: #1a1c1e;
+  --c_node_bg_group: #2a2d30;
+  --c_node_header_bg: #151515;
+  --c_node_header_bg_group: #252525;
+
+  --handle_width: 6px;
+  --handle_height: 12px;
+}

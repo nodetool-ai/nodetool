@@ -1,0 +1,10 @@
+Dockerfile
+README.md
+electron/node_modules/
+web/node_modules/
+.venv/
+*.pyc
+*.pyo
+*.pyd
+__pycache__
+.pytest_cache
