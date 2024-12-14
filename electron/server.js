@@ -47,6 +47,35 @@ async function findFreePort(startPort = 8088) {
 }
 
 /**
+ * Check if a specific port is available
+ * @param {number} port - Port to check
+ * @returns {Promise<boolean>} - True if port is available, false otherwise
+ */
+async function isPortAvailable(port) {
+  return new Promise((resolve) => {
+    const server = net
+      .createServer()
+      .listen(port, "127.0.0.1")
+      .once("listening", () => {
+        server.close();
+        resolve(true);
+      })
+      .once("error", () => resolve(false));
+  });
+}
+
+/**
+ * Show port in use error dialog
+ */
+async function showPortInUseError() {
+  await dialog.showErrorBox(
+    "Port Already in Use",
+    "Port 8000 is already in use. Please ensure no other applications are using this port and try again."
+  );
+  app.quit();
+}
+
+/**
  * Start the NodeTool backend server process.
  */
 async function startNodeToolBackendProcess() {
@@ -183,7 +212,18 @@ async function showOllamaInstallDialog() {
  */
 async function initializeBackendServer() {
   try {
-    logMessage("Attempting to start NodeTool backend server");
+    logMessage("Checking if port 8000 is available");
+
+    const isPortFree = await isPortAvailable(8000);
+    if (!isPortFree) {
+      logMessage("Port 8000 is already in use", "error");
+      await showPortInUseError();
+      return;
+    }
+
+    logMessage(
+      "Port 8000 is available, attempting to start NodeTool backend server"
+    );
 
     await ensureOllamaIsRunning();
     startNodeToolBackendProcess();

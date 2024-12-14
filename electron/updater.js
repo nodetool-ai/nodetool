@@ -42,7 +42,11 @@ function setupAutoUpdaterEvents() {
       updateAvailable = true;
       const mainWindow = getMainWindow();
       if (mainWindow) {
-        mainWindow.webContents.send("update-available", info);
+        const releaseUrl = `https://github.com/nodetool-ai/nodetool/releases/tag/v${info.version}`;
+        mainWindow.webContents.send("update-available", {
+          version: info.version,
+          releaseUrl,
+        });
       }
     } catch (err) {
       logMessage(
@@ -101,25 +105,6 @@ function setupAutoUpdaterEvents() {
     }
   });
 }
-
-// Handle requests to install updates
-ipcMain.handle("install-update", async () => {
-  try {
-    if (updateAvailable) {
-      await autoUpdater.quitAndInstall(false, true);
-    }
-  } catch (err) {
-    logMessage(`Failed to install update: ${err.message}`, "error");
-    const mainWindow = getMainWindow();
-    if (mainWindow) {
-      mainWindow.webContents.send("update-error", {
-        message: "Failed to install update. Please try again later.",
-        details: err.message,
-      });
-    }
-    throw err;
-  }
-});
 
 module.exports = {
   setupAutoUpdater,

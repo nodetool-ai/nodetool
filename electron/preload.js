@@ -12,7 +12,7 @@
  *   update steps, and download progress
  */
 
-const { contextBridge, ipcRenderer } = require("electron");
+const { contextBridge, ipcRenderer, shell } = require("electron");
 
 /**
  * Expose protected methods that allow the renderer process to use
@@ -69,6 +69,8 @@ contextBridge.exposeInMainWorld("api", {
     ipcRenderer.on("update-available", (event, info) => callback(info)),
 
   installUpdate: () => ipcRenderer.invoke("install-update"),
+
+  openExternal: (url) => shell.openExternal(url),
 });
 
 /**

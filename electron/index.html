@@ -366,9 +366,11 @@
         <button id="open-log-file" class="log-button">
           <span aria-label="Open Log File">📁</span>
         </button>
-        <div id="update-notification" style="display: none;">
-          <span>Update available!</span>
-          <button id="install-update" class="log-button">Install</button>
+        <div id="update-notification" style="display: none; position: fixed; top: 10px; right: 10px; background: rgba(0,0,0,0.8); padding: 15px; border-radius: 5px; z-index: 1000;">
+          <p style="margin: 0; color: white;">A new version is available!</p>
+          <a id="release-link" href="#" style="color: #4a9eff; text-decoration: none; display: inline-block; margin-top: 5px;">
+            View Release Notes
+          </a>
         </div>
       </div>
       <div id="log"></div>
@@ -487,11 +489,13 @@
 
       api.onUpdateAvailable((info) => {
         const updateNotification = document.getElementById('update-notification');
+        const releaseLink = document.getElementById('release-link');
         updateNotification.style.display = 'block';
-      });
-
-      document.getElementById('install-update').addEventListener('click', async () => {
-        await api.installUpdate();
+        releaseLink.href = info.releaseUrl;
+        releaseLink.onclick = (e) => {
+          e.preventDefault();
+          api.openExternal(info.releaseUrl);
+        };
       });
     </script>
 
