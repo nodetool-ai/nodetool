@@ -21,10 +21,15 @@ import os
 
 from nodetool.common.environment import Environment
 
+log = Environment.get_logger()
+
 supported_pt_extensions = set([".ckpt", ".pt", ".bin", ".pth", ".safetensors", ".sft"])
 filename_list_cache: dict[str, tuple[list[str], dict[str, float], float]] = {}
 data_dir = Environment.get_comfy_folder() or ".data"
 models_dir = os.path.join(data_dir, "models")
+
+log.info(f"ComfyUI models dir: {models_dir}")
+
 
 custom_nodes_directory = os.path.join(
     os.path.dirname((os.path.realpath(__file__))),
@@ -104,8 +109,12 @@ def add_model_folder_path(folder_name: str, full_folder_path: str):
     global folder_names_and_paths
     if folder_name in folder_names_and_paths:
         folder_names_and_paths[folder_name][0].append(full_folder_path)
+        log.info(f"Added additional path for {folder_name}: {full_folder_path}")
     else:
         folder_names_and_paths[folder_name] = ([full_folder_path], set())
+        log.info(
+            f"Created new model folder type {folder_name} with path: {full_folder_path}"
+        )
 
 
 def get_folder_paths(folder_name: str) -> list[str]:
@@ -135,23 +144,34 @@ def recursive_search(
         tuple[list[str], dict[str, float]]: A tuple containing the list of file paths and a dictionary of directory paths and their modification times.
     """
     if not os.path.isdir(directory):
+        log.warning(f"Directory does not exist or is not accessible: {directory}")
         return [], {}
 
+    log.debug(f"Starting recursive search in: {directory}")
     if excluded_dir_names is None:
         excluded_dir_names = []
 
     result: list[str] = []
     dirs: dict[str, float] = {directory: os.path.getmtime(directory)}
-    for dirpath, subdirs, filenames in os.walk(
-        directory, followlinks=True, topdown=True
-    ):
-        subdirs[:] = [d for d in subdirs if d not in excluded_dir_names]
-        for file_name in filenames:
-            relative_path = os.path.relpath(os.path.join(dirpath, file_name), directory)
-            result.append(relative_path)
-        for d in subdirs:
-            path = os.path.join(dirpath, d)
-            dirs[path] = os.path.getmtime(path)
+
+    try:
+        for dirpath, subdirs, filenames in os.walk(
+            directory, followlinks=True, topdown=True
+        ):
+            subdirs[:] = [d for d in subdirs if d not in excluded_dir_names]
+            for file_name in filenames:
+                relative_path = os.path.relpath(
+                    os.path.join(dirpath, file_name), directory
+                )
+                result.append(relative_path)
+            for d in subdirs:
+                path = os.path.join(dirpath, d)
+                dirs[path] = os.path.getmtime(path)
+    except Exception as e:
+        log.error(f"Error during recursive search in {directory}: {str(e)}")
+        raise
+
+    log.debug(f"Completed recursive search in {directory}. Found {len(result)} files")
     return result, dirs
 
 
@@ -190,25 +210,32 @@ def get_full_path(folder_name: str, filename: str) -> str | None:
     """
     global folder_names_and_paths
     if folder_name not in folder_names_and_paths:
+        log.warning(f"Attempted to access non-existent folder type: {folder_name}")
         return None
+
     folders = folder_names_and_paths[folder_name]
     filename = os.path.relpath(os.path.join("/", filename), "/")
     for x in folders[0]:
         full_path = os.path.join(x, filename)
         if os.path.isfile(full_path):
+            log.debug(f"Found file {filename} in {folder_name} at: {full_path}")
             return full_path
 
+    log.warning(f"File {filename} not found in any {folder_name} directories")
     return None
 
 
 def get_full_path_or_raise(folder_name: str, filename: str) -> str:
     if filename.startswith("/"):
+        log.debug(f"Using absolute path: {filename}")
         return filename
     full_path = get_full_path(folder_name, filename)
     if full_path is None:
-        raise FileNotFoundError(
+        error_msg = (
             f"Model in folder '{folder_name}' with filename '{filename}' not found."
         )
+        log.error(error_msg)
+        raise FileNotFoundError(error_msg)
     return full_path
 
 
@@ -220,19 +247,30 @@ def get_filename_list_(folder_name: str) -> tuple[list[str], dict[str, float], f
         folder_name (str): The name of the folder.
 
     Returns:
-        tuple[list[str], dict[str, float], float]: A tuple containing the list of filenames, a dictionary of folder paths and their modification times, and the current time.
+        tuple[list[str], dict[str, float], float]: A tuple containing the list of filenames,
+        a dictionary of folder paths and their modification times, and the current time.
     """
     global folder_names_and_paths
     output_list: set[str] = set()
     folders = folder_names_and_paths[folder_name]
     output_folders: dict[str, float] = {}
 
-    for x in folders[0]:
-        files, folders_all = recursive_search(x, excluded_dir_names=[".git"])
-        output_list.update(filter_files_extensions(files, list(folders[1])))
-        output_folders = {**output_folders, **folders_all}
+    log.debug(f"Scanning files in {folder_name} directories")
 
-    return (sorted(list(output_list)), output_folders, time.perf_counter())
+    for x in folders[0]:
+        if not os.path.exists(x):
+            log.warning(f"Directory does not exist: {x}")
+            continue
+
+        files, folders_all = recursive_search(x, excluded_dir_names=[".git"])
+        filtered_files = filter_files_extensions(files, list(folders[1]))
+        output_list.update(filtered_files)
+        output_folders = {**output_folders, **folders_all}
+        log.debug(f"Found {len(filtered_files)} files in {x}")
+
+    result = (sorted(list(output_list)), output_folders, time.perf_counter())
+    log.info(f"Total files found for {folder_name}: {len(result[0])}")
+    return result
 
 
 def cached_filename_list_(
