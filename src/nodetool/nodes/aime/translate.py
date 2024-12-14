@@ -5,7 +5,6 @@ from nodetool.workflows.base_node import BaseNode
 from pydantic import Field
 from nodetool.metadata.types import Provider, AudioRef
 from nodetool.workflows.processing_context import ProcessingContext
-from nodetool.providers.aime.prediction import fetch_auth_key
 from nodetool.workflows.types import NodeProgress
 
 
@@ -67,12 +66,6 @@ class SeamlessCommunication(BaseNode):
         }
 
     async def process(self, context: ProcessingContext):
-        auth_key = await fetch_auth_key(
-            user=Environment.get_aime_user(),
-            key=Environment.get_aime_api_key(),
-            model="sc_m4tv2",
-        )
-
         payload = {
             "src_lang": self.src_lang.value,
             "tgt_lang": self.tgt_lang.value,
@@ -97,7 +90,6 @@ class SeamlessCommunication(BaseNode):
             model="sc_m4tv2",
             params={
                 "data": payload,
-                "auth_key": auth_key,
                 "progress_callback": progress_callback,
             },
         )

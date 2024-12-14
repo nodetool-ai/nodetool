@@ -29,6 +29,10 @@ class BaseChatNode(BaseNode):
     messages: list[Message] = Field(
         default=[], description="History of messages in the conversation."
     )
+    prompt: str = Field(
+        default="",
+        description="Prompt to send to the model. If provided, it will add a new message to the conversation.",
+    )
     temperature: float = Field(
         default=0.8,
         ge=0.0,
@@ -53,14 +57,12 @@ class BaseChatNode(BaseNode):
     )
 
     async def predict(self, context: ProcessingContext, model: str) -> str:
-        auth_key = await fetch_auth_key(
-            model=model,
-            user=Environment.get_aime_user(),
-            key=Environment.get_aime_api_key(),
-        )
         chat_messages = [{"role": "system", "content": self.system_prompt}]
         for msg in self.messages:
             chat_messages.append({"role": msg.role, "content": str(msg.content)})
+
+        if self.prompt != "":
+            chat_messages.append({"role": "user", "content": self.prompt})
 
         def progress_callback(progress: Progress):
             context.post_message(
@@ -73,7 +75,7 @@ class BaseChatNode(BaseNode):
 
         payload = {
             "chat_context": json.dumps(chat_messages),
-            "prompt_input": self.messages[-1].content if self.messages else "",
+            "prompt_input": chat_messages[-1]["content"] if chat_messages else "",
             "top_k": self.top_k,
             "top_p": self.top_p,
             "temperature": self.temperature,
@@ -86,11 +88,9 @@ class BaseChatNode(BaseNode):
             model=model,
             params={
                 "data": payload,
-                "auth_key": auth_key,
                 "progress_callback": progress_callback,
             },
         )
-        print(response)
 
         return str(response.get("text", ""))
 

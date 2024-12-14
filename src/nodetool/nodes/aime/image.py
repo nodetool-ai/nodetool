@@ -73,12 +73,6 @@ class StableDiffusion3(BaseNode):
     )
 
     async def process(self, context: ProcessingContext) -> ImageRef:
-        auth_key = await fetch_auth_key(
-            model="stable_diffusion_3",
-            user=Environment.get_aime_user(),
-            key=Environment.get_aime_api_key(),
-        )
-
         def progress_callback(progress: Progress):
             context.post_message(
                 NodeProgress(
@@ -111,7 +105,6 @@ class StableDiffusion3(BaseNode):
             params={
                 "data": payload,
                 "progress_callback": progress_callback,
-                "auth_key": auth_key,
             },
         )
 
@@ -179,12 +172,6 @@ class Flux(BaseNode):
     )
 
     async def process(self, context: ProcessingContext) -> ImageRef:
-        auth_key = await fetch_auth_key(
-            model="flux-dev",
-            user=Environment.get_aime_user(),
-            key=Environment.get_aime_api_key(),
-        )
-
         def progress_callback(progress: Progress):
             context.post_message(
                 NodeProgress(
@@ -217,7 +204,6 @@ class Flux(BaseNode):
             params={
                 "data": payload,
                 "progress_callback": progress_callback,
-                "auth_key": auth_key,
             },
         )
 

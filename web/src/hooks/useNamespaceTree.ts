@@ -79,6 +79,9 @@ const useNamespaceTree = (): NamespaceTree => {
           if (namespace.startsWith("openai.")) {
             return isApiKeySet("OPENAI_API_KEY");
           }
+          if (namespace.startsWith("aime.")) {
+            return isApiKeySet("AIME_API_KEY");
+          }
           if (namespace.startsWith("anthropic.")) {
             return isApiKeySet("ANTHROPIC_API_KEY");
           }

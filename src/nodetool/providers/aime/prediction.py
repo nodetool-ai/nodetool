@@ -59,7 +59,7 @@ async def run_aime(
             f"https://api.aime.info/{model}",
             json={
                 **payload,
-                "auth_key": auth_key,
+                # "auth_key": auth_key,
                 "wait_for_result": False,
                 "client_session_auth_key": auth_key,
             },
