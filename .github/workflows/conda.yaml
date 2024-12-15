@@ -4,8 +4,6 @@ on:
   push:
     tags:
       - "v*"
-    paths:
-      - "requirements.txt"
 
 jobs:
   pack-conda-env:

@@ -31,7 +31,7 @@ const path = require("path");
 async function checkPythonPackages() {
   try {
     const VERSION = app.getVersion();
-    const requirementsURL = `https://nodetool-conda.s3.amazonaws.com/requirements-${VERSION}.txt`;
+    const requirementsURL = `https://packages.nodetool.ai/requirements-${VERSION}.txt`;
 
     emitBootMessage(`Downloading requirements...`);
     logMessage(`Downloading requirements from ${requirementsURL}`);
@@ -361,20 +361,20 @@ async function installCondaEnvironment() {
     let archivePath = "";
 
     if (platform === "win32") {
-      environmentUrl = `https://nodetool-conda.s3.amazonaws.com/conda-env-windows-x64-${VERSION}.zip`;
+      environmentUrl = `https://packages.nodetool.ai/conda-env-windows-x64-${VERSION}.zip`;
       archivePath = path.join(
         os.tmpdir(),
         `conda-env-windows-x64-${VERSION}.zip`
       );
     } else if (platform === "darwin") {
       const archSuffix = arch === "arm64" ? "arm64" : "x86_64";
-      environmentUrl = `https://nodetool-conda.s3.amazonaws.com/conda-env-darwin-${archSuffix}-${VERSION}.tar.gz`;
+      environmentUrl = `https://packages.nodetool.ai/conda-env-darwin-${archSuffix}-${VERSION}.tar.gz`;
       archivePath = path.join(
         os.tmpdir(),
         `conda-env-darwin-${archSuffix}-${VERSION}.tar.gz`
       );
     } else if (platform === "linux") {
-      environmentUrl = `https://nodetool-conda.s3.amazonaws.com/conda-env-linux-x64-${VERSION}.tar.gz`;
+      environmentUrl = `https://packages.nodetool.ai/conda-env-linux-x64-${VERSION}.tar.gz`;
       archivePath = path.join(
         os.tmpdir(),
         `conda-env-linux-x64-${VERSION}.tar.gz`
