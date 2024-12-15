@@ -1,3 +1,4 @@
+import asyncio
 import runpod
 from typing import Dict, Any
 from dataclasses import asdict
@@ -5,6 +6,43 @@ from huggingface_hub import hf_hub_download, snapshot_download, scan_cache_dir
 from nodetool.common.huggingface_models import (
     delete_cached_hf_model,
 )
+
+
+def convert_file_info(file_info):
+    return {
+        "file_name": file_info.file_name,
+        "size_on_disk": file_info.size_on_disk,
+        "file_path": str(file_info.file_path),
+        "blob_path": str(file_info.blob_path),
+    }
+
+
+def convert_revision_info(revision_info):
+    return {
+        "commit_hash": revision_info.commit_hash,
+        "size_on_disk": revision_info.size_on_disk,
+        "snapshot_path": str(revision_info.snapshot_path),
+        "files": [convert_file_info(f) for f in revision_info.files],
+    }
+
+
+def convert_repo_info(repo_info):
+    return {
+        "repo_id": repo_info.repo_id,
+        "repo_type": repo_info.repo_type,
+        "repo_path": str(repo_info.repo_path),
+        "size_on_disk": repo_info.size_on_disk,
+        "nb_files": repo_info.nb_files,
+        "revisions": [convert_revision_info(r) for r in repo_info.revisions],
+    }
+
+
+def convert_cache_info(cache_info):
+    return {
+        "size_on_disk": cache_info.size_on_disk,
+        "repos": [convert_repo_info(r) for r in cache_info.repos],
+        "warnings": [str(w) for w in cache_info.warnings],
+    }
 
 
 async def handler(event: Dict[str, Any]) -> dict[str, Any]:
@@ -35,11 +73,11 @@ async def handler(event: Dict[str, Any]) -> dict[str, Any]:
                 )
             return {"local_path": local_path}
 
-        elif operation == "huggingface_models":
+        elif operation == "scan":
             cache_info = scan_cache_dir()
-            return asdict(cache_info)
+            return convert_cache_info(cache_info)
 
-        elif operation == "delete_hf_model":
+        elif operation == "delete":
             repo_id = job_input.get("repo_id")
             if not repo_id:
                 raise ValueError("repo_id is required for delete operation")
