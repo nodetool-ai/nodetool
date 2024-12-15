@@ -330,7 +330,7 @@ class Build:
                 "aws",
                 "s3",
                 "sync",
-                "s3://nodetool-conda/",
+                "s3://nodetool-packages/",
                 str(channel_dir),
             ],
             ignore_error=True,
@@ -377,7 +377,7 @@ class Build:
                 "s3",
                 "sync",
                 str(channel_dir) + "/",
-                "s3://nodetool-conda/",
+                "s3://nodetool-packages/",
                 "--size-only",  # Only upload files that differ in size
                 "--exact-timestamps",  # Use exact timestamp comparison
             ]
@@ -473,7 +473,7 @@ class Build:
                 "s3",
                 "cp",
                 str(output_path),
-                f"s3://{output_name}",
+                "s3://nodetool-packages/",
                 "--endpoint-url",
                 s3_endpoint_url,
             ]
@@ -491,7 +491,7 @@ class Build:
                 "s3",
                 "cp",
                 str(requirements_versioned_path),
-                f"s3://{requirements_versioned_name}",
+                "s3://nodetool-packages/",
                 "--endpoint-url",
                 s3_endpoint_url,
             ]

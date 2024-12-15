@@ -31,12 +31,10 @@ RUN apt-get update && \
     wget \
     curl \
     software-properties-common \
-
     # Scientific Computing Libraries
     libblas-dev \
     liblapack-dev \
     libopenblas-dev \
-
     # Image Processing
     libopencv-dev \
     libjpeg-dev \
@@ -47,7 +45,6 @@ RUN apt-get update && \
     libsm6 \
     libxext6 \
     libxrender-dev \
-
     # Audio and Video Processing
     ffmpeg \
     libsndfile1 \
@@ -56,15 +53,12 @@ RUN apt-get update && \
     libx264-dev \
     libmp3lame-dev \
     libvorbis-dev \
-
     # Data Processing and Storage
     libxml2-dev \
     libxslt1-dev \
     libsqlite3-dev \
-
     # Document Processing
     tesseract-ocr \
-
     # System Libraries
     libssl-dev \
     libffi-dev \
