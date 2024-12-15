@@ -19,13 +19,9 @@ export const BASE_URL = isLocalhost
   ? window.location.protocol + "//" + window.location.hostname + ":8000"
   : "https://api.nodetool.ai";
 
-export const PREDICT_URL =
-  BASE_URL.replace("http://", "ws://").replace("https://", "wss://") +
-  "/predict";
-
 export const WORKER_URL =
   BASE_URL.replace("http://", "ws://").replace("https://", "wss://") +
-  "/run_job";
+  "/predict";
 
 export const CHAT_URL =
   BASE_URL.replace("http://", "ws://").replace("https://", "wss://") + "/chat";
@@ -38,7 +34,10 @@ export const pingWorker = () => {
   if (isDevelopment) {
     return;
   }
-  // fetch(WORKER_URL, {
+  // only needed for the modal worker to wake up
+  // const ts = new Date().getTime();
+  // const url = WORKER_URL.replace("predict", "?" + ts);
+  // fetch(url, {
   //   method: "GET",
   // });
 };
