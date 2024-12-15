@@ -30,10 +30,7 @@ def send_workflow_request(endpoint_id: str, req: RunJobRequest) -> None:
     """Send workflow request to RunPod API and stream the response."""
     api_key = os.getenv("RUNPOD_API_KEY")
 
-    if endpoint_id == "localhost":
-        run_url = f"http://localhost:5000/run"
-    else:
-        run_url = f"https://api.runpod.ai/v2/{endpoint_id}/run"
+    run_url = f"https://api.runpod.ai/v2/{endpoint_id}/run"
 
     headers = {"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"}
     payload = {"input": req.model_dump()}
@@ -43,17 +40,15 @@ def send_workflow_request(endpoint_id: str, req: RunJobRequest) -> None:
         job = response.json()
 
     job_id = job["id"]
-    if endpoint_id == "localhost":
-        stream_url = f"http://localhost:5000/stream/{job_id}"
-    else:
-        stream_url = f"https://api.runpod.ai/v2/{endpoint_id}/stream/{job_id}"
+    stream_url = f"https://api.runpod.ai/v2/{endpoint_id}/stream/{job_id}"
 
-    with requests.post(
-        stream_url, headers=headers, json=payload, stream=True
-    ) as response:
-        response.raise_for_status()
-        for line in response.iter_lines():
-            print(line)
+    while True:
+        response = requests.post(stream_url, headers=headers)
+        status = response.json()
+        if status["status"] != "IN_PROGRESS":
+            break
+        for message in status["stream"]:
+            print(message)
 
 
 def main():

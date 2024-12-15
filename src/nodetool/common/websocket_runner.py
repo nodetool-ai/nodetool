@@ -45,8 +45,6 @@ class WebSocketRunner:
         context (ProcessingContext | None): The processing context for job execution.
         job_id (str | None): The ID of the current job.
         runner (WorkflowRunner | None): The workflow runner for job execution.
-        pre_run_hook (Any): A hook function to be executed before running a job.
-        post_run_hook (Any): A hook function to be executed after running a job.
         mode (WebSocketMode): The current mode for WebSocket communication.
     """
 
@@ -56,25 +54,14 @@ class WebSocketRunner:
     event_loop: ThreadedEventLoop | None = None
     job_id: str | None = None
     runner: WorkflowRunner | None = None
-    pre_run_hook: Any
-    post_run_hook: Any
     mode: WebSocketMode = WebSocketMode.BINARY
 
     def __init__(
         self,
-        pre_run_hook: Any = None,
-        post_run_hook: Any = None,
     ):
         """
         Initializes a new instance of the WebSocketRunner class.
-
-        Args:
-            pre_run_hook (Any, optional): A hook function to be executed before running a job.
-            post_run_hook (Any, optional): A hook function to be executed after running a job.
-            use_thread (bool, optional): Flag indicating whether to use a separate thread for job execution.
         """
-        self.pre_run_hook = pre_run_hook
-        self.post_run_hook = post_run_hook
         self.mode = WebSocketMode.BINARY
 
     async def connect(self, websocket: WebSocket):
@@ -130,9 +117,6 @@ class WebSocketRunner:
             self.runner = WorkflowRunner(job_id=self.job_id)
 
             log.info(f"Starting job execution: {self.job_id}")
-            if self.pre_run_hook:
-                log.debug("Executing pre-run hook")
-                self.pre_run_hook()
 
             context = ProcessingContext(
                 user_id=req.user_id,
@@ -196,10 +180,6 @@ class WebSocketRunner:
                 except Exception as e:
                     log.error(f"An error occurred during workflow execution: {e}")
                     await self.send_job_update("failed", str(e))
-
-            if self.post_run_hook:
-                log.debug("Executing post-run hook")
-                self.post_run_hook()
 
             total_time = time.time() - start_time
             log.info(

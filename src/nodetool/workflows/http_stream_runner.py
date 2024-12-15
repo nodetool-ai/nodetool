@@ -21,30 +21,19 @@ class HTTPStreamRunner:
         context (ProcessingContext | None): The processing context for job execution.
         job_id (str | None): The ID of the current job.
         runner (WorkflowRunner | None): The workflow runner for job execution.
-        pre_run_hook (Any): A hook function to be executed before running a job.
-        post_run_hook (Any): A hook function to be executed after running a job.
     """
 
     context: ProcessingContext | None = None
     job_id: str | None = None
     runner: WorkflowRunner | None = None
-    pre_run_hook: Any
-    post_run_hook: Any
 
     def __init__(
         self,
-        pre_run_hook: Any = None,
-        post_run_hook: Any = None,
     ):
         """
         Initializes a new instance of the HTTPStreamRunner class.
-
-        Args:
-            pre_run_hook (Any, optional): A hook function to be executed before running a job.
-            post_run_hook (Any, optional): A hook function to be executed after running a job.
         """
-        self.pre_run_hook = pre_run_hook
-        self.post_run_hook = post_run_hook
+        pass
 
     async def run_job(
         self,
@@ -65,8 +54,6 @@ class HTTPStreamRunner:
             self.runner = WorkflowRunner(job_id=self.job_id)
 
             log.info("Running job: %s", self.job_id)
-            if self.pre_run_hook:
-                self.pre_run_hook()
 
             async for msg in run_workflow(
                 req, self.runner, self.context, use_thread=True
@@ -81,9 +68,6 @@ class HTTPStreamRunner:
                 except Exception as e:
                     log.exception(f"Error processing message in job {self.job_id}: {e}")
                     yield json.dumps({"error": str(e)}) + "\n"
-
-            if self.post_run_hook:
-                self.post_run_hook()
 
             total_time = time.time() - start_time
             log.info(
@@ -107,7 +91,6 @@ class HTTPStreamRunner:
             dict: A dictionary with a message indicating the job was cancelled, or an error if no active job exists.
         """
         if self.runner:
-            self.runner.cancel()
             await asyncio.sleep(3.0)
             self.job_id = None
             self.runner = None

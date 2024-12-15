@@ -169,6 +169,15 @@ def create_app(
 
             await WebSocketRunner().run(websocket)
 
+        @app.websocket("/run_job")
+        async def runpod_websocket_endpoint(websocket: WebSocket):
+            from nodetool.common.runpod_websocket_runner import RunPodWebSocketRunner
+
+            runpod_endpoint_id = os.getenv("WORKFLOW_ENDPOINT_ID")
+            assert runpod_endpoint_id, "WORKFLOW_ENDPOINT_ID not set"
+
+            await RunPodWebSocketRunner(runpod_endpoint_id).run(websocket)
+
         @app.websocket("/chat")
         async def chat_websocket_endpoint(websocket: WebSocket):
             from nodetool.common.chat_websocket_runner import ChatWebSocketRunner
