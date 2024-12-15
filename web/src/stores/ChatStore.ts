@@ -53,7 +53,6 @@ export const useChatStore = create<ChatStore>((set, get) => ({
 
       // Check for workflow tool calls
       data.forEach((response: Message) => {
-        console.log("response", response);
         if (response.tool_calls) {
           response.tool_calls.forEach((toolCall: ToolCall) => {
             // if (toolCall.name === 'workflow_tool') {
