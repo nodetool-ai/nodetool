@@ -72,7 +72,8 @@ async def async_generator_handler(job):
                 # Convert message to dict and yield
                 msg_dict = msg.model_dump()
                 print(msg_dict)
-                # yield msg_dict
+
+                yield msg_dict
 
                 if isinstance(msg, Error):
                     return
