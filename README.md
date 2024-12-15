@@ -311,6 +311,13 @@ socket.send(msgpack.encode({ command: "get_status" }));
 - Conda, download and install from [miniconda.org](https://docs.conda.io/en/latest/miniconda.html)
 - Node.js, download and install from [nodejs.org](https://nodejs.org/en)
 
+### Download the codes
+
+```bash
+git clone https://github.com/nodetool-ai/nodetool
+cd nodetool
+```
+
 ### Conda Environment
 
 ```bash
