@@ -473,7 +473,7 @@ class Build:
                 "s3",
                 "cp",
                 str(output_path),
-                "s3://nodetool-packages/",
+                f"s3://{output_name}",
                 "--endpoint-url",
                 s3_endpoint_url,
             ]
@@ -484,16 +484,14 @@ class Build:
         requirements_versioned_path = self.BUILD_DIR / requirements_versioned_name
         shutil.copy(PROJECT_ROOT / "requirements.txt", requirements_versioned_path)
 
-        logger.info(
-            f"Uploading {requirements_versioned_name} to s3://nodetool-packages/"
-        )
+        logger.info(f"Uploading {requirements_versioned_name}")
         self.run_command(
             [
                 "aws",
                 "s3",
                 "cp",
                 str(requirements_versioned_path),
-                "s3://nodetool-packages/",
+                f"s3://{requirements_versioned_name}",
                 "--endpoint-url",
                 s3_endpoint_url,
             ]
