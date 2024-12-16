@@ -348,22 +348,38 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
         data: {
           asset_ids: ids
         },
-        responseType: "blob"
+        responseType: "arraybuffer"
       });
 
-      const blob = new Blob([response.data], {
-        type: response.headers["content-type"]
-      });
-      const downloadUrl = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = downloadUrl;
-      a.download = response.headers["content-disposition"]
+      const filename = response.headers["content-disposition"]
         ? response.headers["content-disposition"].split("filename=")[1]
         : "assets.zip";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(downloadUrl);
+
+      // Check for Electron's API (could be window.electron or window.api)
+      const electronApi = (window as any).electron || (window as any).api;
+
+      if (electronApi?.saveFile) {
+        const result = await electronApi.saveFile(response.data, filename, [
+          { name: "ZIP Files", extensions: ["zip"] }
+        ]);
+        if (!result.success && !result.canceled) {
+          throw new Error(result.error || "Failed to save file");
+        }
+      } else {
+        // Browser fallback
+        const blob = new Blob([response.data], {
+          type: response.headers["content-type"]
+        });
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = downloadUrl;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(downloadUrl);
+      }
+
       get().invalidateQueries(["assets"]);
       return true;
     } catch (error) {

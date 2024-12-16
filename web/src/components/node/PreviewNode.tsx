@@ -203,32 +203,60 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
         const assetFiles = createAssetFile(result.output, props.id);
         devLog("Created asset files:", assetFiles);
 
+        // Check for Electron's API (could be window.electron or window.api)
+        const electronApi = (window as any).electron || (window as any).api;
+
         if (assetFiles.length === 1) {
           // Single file download
           const { file, filename } = assetFiles[0];
-          const url = URL.createObjectURL(file);
-          const a = document.createElement("a");
-          a.href = url;
-          a.download = filename;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
+          const arrayBuffer = await file.arrayBuffer();
+
+          if (electronApi?.saveFile) {
+            const result = await electronApi.saveFile(arrayBuffer, filename, [
+              { name: "All Files", extensions: ["*"] }
+            ]);
+            if (!result.success && !result.canceled) {
+              throw new Error(result.error || "Failed to save file");
+            }
+          } else {
+            // Browser fallback
+            const url = URL.createObjectURL(file);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+          }
         } else {
           // Multiple files - create a zip
           const zip = new JSZip();
           assetFiles.forEach(({ file, filename }) => {
             zip.file(filename, file);
           });
-          const content = await zip.generateAsync({ type: "blob" });
-          const url = URL.createObjectURL(content);
-          const a = document.createElement("a");
-          a.href = url;
-          a.download = `preview_${props.id}.zip`;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
+          const content = await zip.generateAsync({ type: "arraybuffer" });
+          const zipName = `preview_${props.id}.zip`;
+
+          if (electronApi?.saveFile) {
+            const result = await electronApi.saveFile(content, zipName, [
+              { name: "ZIP Files", extensions: ["zip"] }
+            ]);
+            if (!result.success && !result.canceled) {
+              throw new Error(result.error || "Failed to save file");
+            }
+          } else {
+            // Browser fallback
+            const blob = new Blob([content], { type: "application/zip" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = zipName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+          }
         }
 
         devLog("File download initiated");

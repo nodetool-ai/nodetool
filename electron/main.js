@@ -16,6 +16,7 @@ const {
 const { LOG_FILE } = require("./logger");
 const { emitBootMessage } = require("./events");
 const { getMainWindow } = require("./state");
+const fs = require("fs");
 
 /** @type {boolean} */
 let isAppQuitting = false;
@@ -93,6 +94,28 @@ ipcMain.handle("update-installed", async () => {
   logMessage("Update installed, updating Python environment");
   await checkPythonEnvironment();
 });
+
+// Add save file handler
+ipcMain.handle(
+  "save-file",
+  async (_event, { buffer, defaultPath, filters }) => {
+    try {
+      const { filePath, canceled } = await dialog.showSaveDialog({
+        defaultPath,
+        filters: filters || [{ name: "All Files", extensions: ["*"] }],
+      });
+
+      if (!canceled && filePath) {
+        await fs.promises.writeFile(filePath, Buffer.from(buffer));
+        return { success: true, filePath };
+      }
+      return { success: false, canceled: true };
+    } catch (error) {
+      logMessage(`Save file error: ${error.message}`, "error");
+      return { success: false, error: error.message };
+    }
+  }
+);
 
 app.on("before-quit", (event) => {
   if (!isAppQuitting) {
