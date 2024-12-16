@@ -19,13 +19,15 @@ function createWindow() {
       nodeIntegration: false,
       backgroundThrottling: false,
       devTools: true,
-      webSecurity: false,
+      webSecurity: true,
     },
   });
 
   window.setBackgroundColor("#111111");
   window.loadFile("index.html");
   logMessage("index.html loaded into main window");
+
+  window.webContents.openDevTools();
 
   window.on("closed", function () {
     logMessage("Main window closed");
@@ -44,12 +46,15 @@ function createWindow() {
 function initializePermissionHandlers() {
   session.defaultSession.setPermissionRequestHandler(
     (webContents, permission, callback, details) => {
+      console.log(`Permission requested: ${permission}`);
       if (permission === "media") {
+        console.log("Granting media permission");
         callback(true);
         return;
       }
 
       // For other permissions, maintain existing behavior
+      console.log("Denying permission");
       callback(false);
     }
   );
