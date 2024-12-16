@@ -1,6 +1,7 @@
 import base64
 from enum import EnumMeta
 import functools
+import importlib
 import re
 import sys
 from types import UnionType
@@ -966,6 +967,7 @@ def find_node_class_by_name(class_name: str) -> type[BaseNode] | None:
 def get_node_class(node_type: str) -> type[BaseNode] | None:
     """
     Retrieve a node class based on its unique node type identifier.
+    Tries to load the module if the node type is not found.
 
     Args:
         node_type (str): The node type identifier.
@@ -976,6 +978,16 @@ def get_node_class(node_type: str) -> type[BaseNode] | None:
     if node_type in NODE_BY_TYPE:
         return NODE_BY_TYPE[node_type]
     else:
+        # Try to load the module if node type not found
+        try:
+            module_path = "nodetool.nodes." + ".".join(node_type.split(".")[:-1])
+            if module_path:
+                importlib.import_module(module_path)
+                # Check again after importing
+                if node_type in NODE_BY_TYPE:
+                    return NODE_BY_TYPE[node_type]
+        except ImportError:
+            log.debug(f"Could not import module {module_path}")
         return find_node_class_by_name(node_type.split(".")[-1])
 
 
@@ -1008,7 +1020,7 @@ def get_recommended_models() -> dict[str, list[HuggingFaceModel]]:
     for node_class in node_classes:
         for model in node_class.get_recommended_models():
             if model.path is not None:
-                model_id = "/".join([model.path, model.repo_id])
+                model_id = "/".join([model.repo_id, model.path])
             else:
                 model_id = model.repo_id
             if model_id not in model_ids:

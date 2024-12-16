@@ -522,40 +522,13 @@ class Environment(object):
         """
         import logging
 
-        class ColorFormatter(logging.Formatter):
-            COLORS = {
-                "DEBUG": "\033[0;36m",  # Cyan
-                "INFO": "\033[0;32m",  # Green
-                "WARNING": "\033[0;33m",  # Yellow
-                "ERROR": "\033[0;31m",  # Red
-                "CRITICAL": "\033[0;35m",  # Magenta
-            }
-            GREY = "\033[0;37m"
-            LIGHT_BLUE = "\033[0;94m"
-            RESET = "\033[0m"
-
-            def format(self, record):
-                levelname = f"{self.COLORS.get(record.levelname, self.RESET)}{record.levelname}{self.RESET}"
-                asctime = (
-                    f"{self.GREY}{self.formatTime(record, self.datefmt)}{self.RESET}"
-                )
-                message = f"{self.LIGHT_BLUE}{record.getMessage()}{self.RESET}"
-
-                return f"{levelname} [{asctime}] - {message}"
-
         if not hasattr(cls, "logger"):
             cls.logger = logging.getLogger("nodetool")
             cls.logger.setLevel(cls.get_log_level())
 
-            # Clear existing handlers
             cls.logger.handlers.clear()
 
             handler = logging.StreamHandler()
-            formatter = ColorFormatter(
-                "%(levelname)s [%(asctime)s] - %(message)s",
-                datefmt="%Y-%m-%d %H:%M:%S",
-            )
-            handler.setFormatter(formatter)
             cls.logger.addHandler(handler)
 
             # Prevent propagation to parent loggers

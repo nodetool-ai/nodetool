@@ -15,6 +15,8 @@ from nodetool.workflows.run_job_request import RunJobRequest
 
 log = Environment.get_logger()
 
+FINAL_STATES = ["COMPLETED", "FAILED", "TIMED_OUT"]
+
 
 class CommandType(str, Enum):
     RUN_JOB = "run_job"
@@ -124,11 +126,11 @@ class RunPodWebSocketRunner:
                     if self._should_stop:
                         break
                     async with session.post(stream_url, headers=headers) as response:
-                        status = await response.json()
-                        if status["status"] != "IN_PROGRESS":
+                        job = await response.json()
+                        if job["status"] in FINAL_STATES:
                             break
-                        for data in status["stream"]:
-                            message = data["output"]
+                        for chunk in job["stream"]:
+                            message = chunk["output"]
                             await self.send_message(message)
 
                             if message.get("error"):

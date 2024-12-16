@@ -11,6 +11,9 @@ from nodetool.common.environment import Environment
 from nodetool.chat.help import index_documentation, index_examples, get_collection
 
 from nodetool.common.huggingface_cache import huggingface_download_endpoint
+from nodetool.common.websocket_runner import WebSocketRunner
+from nodetool.common.runpod_websocket_runner import RunPodWebSocketRunner
+from nodetool.common.chat_websocket_runner import ChatWebSocketRunner
 
 from fastapi import APIRouter, FastAPI, Request, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
@@ -140,48 +143,17 @@ def create_app(
             await chat_proxy(websocket)
 
     else:
-        # if we don't run the worker, we need to initialize nodes
-        import nodetool.nodes.aime
-        import nodetool.nodes.anthropic
-        import nodetool.nodes.chroma
-
-        import nodetool.nodes.comfy
-        import nodetool.nodes.huggingface
-        import nodetool.nodes.nodetool
-        import nodetool.nodes.openai
-        import nodetool.nodes.replicate
-        import nodetool.nodes.ollama
-        import nodetool.nodes.luma
-        import nodetool.nodes.kling
-
-        import comfy.cli_args
-        import comfy.model_management
-        import comfy.utils
-        from nodes import init_extra_nodes
-
-        comfy.cli_args.args.force_fp16 = True
-
-        init_extra_nodes()
 
         @app.websocket("/predict")
         async def websocket_endpoint(websocket: WebSocket):
-            from nodetool.common.websocket_runner import WebSocketRunner
-
-            await WebSocketRunner().run(websocket)
-
-        @app.websocket("/run_job")
-        async def runpod_websocket_endpoint(websocket: WebSocket):
-            from nodetool.common.runpod_websocket_runner import RunPodWebSocketRunner
-
             runpod_endpoint_id = os.getenv("WORKFLOW_ENDPOINT_ID")
-            assert runpod_endpoint_id, "WORKFLOW_ENDPOINT_ID not set"
-
-            await RunPodWebSocketRunner(runpod_endpoint_id).run(websocket)
+            if runpod_endpoint_id:
+                await RunPodWebSocketRunner(runpod_endpoint_id).run(websocket)
+            else:
+                await WebSocketRunner().run(websocket)
 
         @app.websocket("/chat")
         async def chat_websocket_endpoint(websocket: WebSocket):
-            from nodetool.common.chat_websocket_runner import ChatWebSocketRunner
-
             await ChatWebSocketRunner().run(websocket)
 
     if static_folder and os.path.exists(static_folder):

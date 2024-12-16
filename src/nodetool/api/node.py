@@ -6,7 +6,7 @@ from nodetool.types.job import (
     JobUpdate,
 )
 from nodetool.types.prediction import Prediction
-from nodetool.metadata.node_metadata import NodeMetadata
+from nodetool.metadata.node_metadata import NodeMetadata, load_node_metadata
 from nodetool.metadata.types import (
     AssetRef,
     HuggingFaceModel,
@@ -154,12 +154,7 @@ async def metadata() -> list[NodeMetadata]:
     """
     Returns a list of all node metadata.
     """
-    worker_client = Environment.get_worker_api_client()
-    if worker_client:
-        res = await worker_client.get("/metadata")
-        return res.json()
-    else:
-        return [node_class.metadata() for node_class in get_registered_node_classes()]
+    return load_node_metadata()
 
 
 @router.get("/replicate_status")

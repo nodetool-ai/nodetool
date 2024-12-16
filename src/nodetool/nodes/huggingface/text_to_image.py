@@ -178,304 +178,304 @@ from pydantic import Field
 #         return await context.image_from_pil(image)
 
 
-class PixArtAlpha(HuggingFacePipelineNode):
-    """
-    Generates images from text prompts using the PixArt-Alpha model.
-    image, generation, AI, text-to-image
+# class PixArtAlpha(HuggingFacePipelineNode):
+#     """
+#     Generates images from text prompts using the PixArt-Alpha model.
+#     image, generation, AI, text-to-image
 
-    Use cases:
-    - Create unique images from detailed text descriptions
-    - Generate concept art for creative projects
-    - Produce visual content for digital media and marketing
-    - Explore AI-generated imagery for artistic inspiration
-    """
+#     Use cases:
+#     - Create unique images from detailed text descriptions
+#     - Generate concept art for creative projects
+#     - Produce visual content for digital media and marketing
+#     - Explore AI-generated imagery for artistic inspiration
+#     """
 
-    prompt: str = Field(
-        default="An astronaut riding a green horse",
-        description="A text prompt describing the desired image.",
-    )
-    negative_prompt: str = Field(
-        default="",
-        description="A text prompt describing what to avoid in the image.",
-    )
-    num_inference_steps: int = Field(
-        default=50,
-        description="The number of denoising steps.",
-        ge=1,
-        le=100,
-    )
-    guidance_scale: float = Field(
-        default=7.5,
-        description="The scale for classifier-free guidance.",
-        ge=1.0,
-        le=20.0,
-    )
-    width: int = Field(
-        default=768,
-        description="The width of the generated image.",
-        ge=128,
-        le=1024,
-    )
-    height: int = Field(
-        default=768,
-        description="The height of the generated image.",
-        ge=128,
-        le=1024,
-    )
-    seed: int = Field(
-        default=-1,
-        description="Seed for the random number generator. Use -1 for a random seed.",
-        ge=-1,
-    )
+#     prompt: str = Field(
+#         default="An astronaut riding a green horse",
+#         description="A text prompt describing the desired image.",
+#     )
+#     negative_prompt: str = Field(
+#         default="",
+#         description="A text prompt describing what to avoid in the image.",
+#     )
+#     num_inference_steps: int = Field(
+#         default=50,
+#         description="The number of denoising steps.",
+#         ge=1,
+#         le=100,
+#     )
+#     guidance_scale: float = Field(
+#         default=7.5,
+#         description="The scale for classifier-free guidance.",
+#         ge=1.0,
+#         le=20.0,
+#     )
+#     width: int = Field(
+#         default=768,
+#         description="The width of the generated image.",
+#         ge=128,
+#         le=1024,
+#     )
+#     height: int = Field(
+#         default=768,
+#         description="The height of the generated image.",
+#         ge=128,
+#         le=1024,
+#     )
+#     seed: int = Field(
+#         default=-1,
+#         description="Seed for the random number generator. Use -1 for a random seed.",
+#         ge=-1,
+#     )
 
-    _pipeline: PixArtAlphaPipeline | None = None
+#     _pipeline: PixArtAlphaPipeline | None = None
 
-    @classmethod
-    def get_recommended_models(cls) -> list[HFImageToImage]:
-        return [
-            HFImageToImage(
-                repo_id="PixArt-alpha/PixArt-XL-2-1024-MS",
-            ),
-        ]
+#     @classmethod
+#     def get_recommended_models(cls) -> list[HFImageToImage]:
+#         return [
+#             HFImageToImage(
+#                 repo_id="PixArt-alpha/PixArt-XL-2-1024-MS",
+#             ),
+#         ]
 
-    async def initialize(self, context: ProcessingContext):
-        self._pipeline = await self.load_model(
-            context=context,
-            model_id="PixArt-alpha/PixArt-XL-2-1024-MS",
-            model_class=PixArtAlphaPipeline,
-            variant=None,
-        )
+#     async def initialize(self, context: ProcessingContext):
+#         self._pipeline = await self.load_model(
+#             context=context,
+#             model_id="PixArt-alpha/PixArt-XL-2-1024-MS",
+#             model_class=PixArtAlphaPipeline,
+#             variant=None,
+#         )
 
-    async def move_to_device(self, device: str):
-        if self._pipeline is not None:
-            self._pipeline.to(device)
+#     async def move_to_device(self, device: str):
+#         if self._pipeline is not None:
+#             self._pipeline.to(device)
 
-    async def process(self, context: ProcessingContext) -> ImageRef:
-        if self._pipeline is None:
-            raise ValueError("Pipeline not initialized")
+#     async def process(self, context: ProcessingContext) -> ImageRef:
+#         if self._pipeline is None:
+#             raise ValueError("Pipeline not initialized")
 
-        # Set up the generator for reproducibility
-        generator = None
-        if self.seed != -1:
-            generator = torch.Generator(device="cpu").manual_seed(self.seed)
+#         # Set up the generator for reproducibility
+#         generator = None
+#         if self.seed != -1:
+#             generator = torch.Generator(device="cpu").manual_seed(self.seed)
 
-        def callback(step: int, timestep: int, latents: torch.Tensor) -> None:
-            context.post_message(
-                NodeProgress(
-                    node_id=self.id,
-                    progress=step,
-                    total=self.num_inference_steps,
-                )
-            )
+#         def callback(step: int, timestep: int, latents: torch.Tensor) -> None:
+#             context.post_message(
+#                 NodeProgress(
+#                     node_id=self.id,
+#                     progress=step,
+#                     total=self.num_inference_steps,
+#                 )
+#             )
 
-        # Generate the image
-        output = self._pipeline(
-            prompt=self.prompt,
-            negative_prompt=self.negative_prompt,
-            num_inference_steps=self.num_inference_steps,
-            guidance_scale=self.guidance_scale,
-            width=self.width,
-            height=self.height,
-            generator=generator,
-            callback=callback,
-            callback_steps=1,
-        )
+#         # Generate the image
+#         output = self._pipeline(
+#             prompt=self.prompt,
+#             negative_prompt=self.negative_prompt,
+#             num_inference_steps=self.num_inference_steps,
+#             guidance_scale=self.guidance_scale,
+#             width=self.width,
+#             height=self.height,
+#             generator=generator,
+#             callback=callback,
+#             callback_steps=1,
+#         )
 
-        image = output.images[0]  # type: ignore
+#         image = output.images[0]  # type: ignore
 
-        return await context.image_from_pil(image)
-
-
-class PixArtSigma(HuggingFacePipelineNode):
-    """
-    Generates images from text prompts using the PixArt-Sigma model.
-    image, generation, AI, text-to-image
-
-    Use cases:
-    - Create unique images from detailed text descriptions
-    - Generate concept art for creative projects
-    - Produce visual content for digital media and marketing
-    - Explore AI-generated imagery for artistic inspiration
-    """
-
-    prompt: str = Field(
-        default="An astronaut riding a green horse",
-        description="A text prompt describing the desired image.",
-    )
-    negative_prompt: str = Field(
-        default="",
-        description="A text prompt describing what to avoid in the image.",
-    )
-    num_inference_steps: int = Field(
-        default=50,
-        description="The number of denoising steps.",
-        ge=1,
-        le=100,
-    )
-    guidance_scale: float = Field(
-        default=7.5,
-        description="The scale for classifier-free guidance.",
-        ge=1.0,
-        le=20.0,
-    )
-    width: int = Field(
-        default=768,
-        description="The width of the generated image.",
-        ge=128,
-        le=1024,
-    )
-    height: int = Field(
-        default=768,
-        description="The height of the generated image.",
-        ge=128,
-        le=1024,
-    )
-    seed: int = Field(
-        default=-1,
-        description="Seed for the random number generator. Use -1 for a random seed.",
-        ge=-1,
-    )
-
-    _pipeline: PixArtAlphaPipeline | None = None
-
-    @classmethod
-    def get_recommended_models(cls) -> list[HFImageToImage]:
-        return [
-            HFImageToImage(
-                repo_id="PixArt-alpha/PixArt-Sigma-XL-2-1024-MS",
-            ),
-        ]
-
-    async def initialize(self, context: ProcessingContext):
-        self._pipeline = await self.load_model(
-            context=context,
-            model_id="PixArt-alpha/PixArt-Sigma-XL-2-1024-MS",
-            model_class=PixArtAlphaPipeline,
-            variant=None,
-        )
-
-    async def process(self, context: ProcessingContext) -> ImageRef:
-        if self._pipeline is None:
-            raise ValueError("Pipeline not initialized")
-
-        # Set up the generator for reproducibility
-        generator = None
-        if self.seed != -1:
-            generator = torch.Generator(device="cpu").manual_seed(self.seed)
-
-        def callback(step: int, timestep: int, latents: torch.FloatTensor) -> None:
-            context.post_message(
-                NodeProgress(
-                    node_id=self.id,
-                    progress=step,
-                    total=self.num_inference_steps,
-                )
-            )
-
-        # Generate the image
-        output = self._pipeline(
-            prompt=self.prompt,
-            negative_prompt=self.negative_prompt,
-            num_inference_steps=self.num_inference_steps,
-            guidance_scale=self.guidance_scale,
-            width=self.width,
-            height=self.height,
-            generator=generator,
-            callback=callback,  # type: ignore
-            callback_steps=1,
-        )
-
-        image = output.images[0]  # type: ignore
-
-        return await context.image_from_pil(image)
+#         return await context.image_from_pil(image)
 
 
-class Kandinsky3(HuggingFacePipelineNode):
-    """
-    Generates images using the Kandinsky-3 model from text prompts.
-    image, generation, AI, text-to-image
+# class PixArtSigma(HuggingFacePipelineNode):
+#     """
+#     Generates images from text prompts using the PixArt-Sigma model.
+#     image, generation, AI, text-to-image
 
-    Use cases:
-    - Create detailed images from text descriptions
-    - Generate unique illustrations for creative projects
-    - Produce visual content for digital media and art
-    - Explore AI-generated imagery for concept development
-    """
+#     Use cases:
+#     - Create unique images from detailed text descriptions
+#     - Generate concept art for creative projects
+#     - Produce visual content for digital media and marketing
+#     - Explore AI-generated imagery for artistic inspiration
+#     """
 
-    prompt: str = Field(
-        default="A photograph of the inside of a subway train. There are raccoons sitting on the seats. One of them is reading a newspaper. The window shows the city in the background.",
-        description="A text prompt describing the desired image.",
-    )
-    num_inference_steps: int = Field(
-        default=25, description="The number of denoising steps.", ge=1, le=100
-    )
-    width: int = Field(
-        default=1024, description="The width of the generated image.", ge=64, le=2048
-    )
-    height: int = Field(
-        default=1024, description="The height of the generated image.", ge=64, le=2048
-    )
-    seed: int = Field(
-        default=0,
-        description="Seed for the random number generator. Use -1 for a random seed.",
-        ge=-1,
-    )
+#     prompt: str = Field(
+#         default="An astronaut riding a green horse",
+#         description="A text prompt describing the desired image.",
+#     )
+#     negative_prompt: str = Field(
+#         default="",
+#         description="A text prompt describing what to avoid in the image.",
+#     )
+#     num_inference_steps: int = Field(
+#         default=50,
+#         description="The number of denoising steps.",
+#         ge=1,
+#         le=100,
+#     )
+#     guidance_scale: float = Field(
+#         default=7.5,
+#         description="The scale for classifier-free guidance.",
+#         ge=1.0,
+#         le=20.0,
+#     )
+#     width: int = Field(
+#         default=768,
+#         description="The width of the generated image.",
+#         ge=128,
+#         le=1024,
+#     )
+#     height: int = Field(
+#         default=768,
+#         description="The height of the generated image.",
+#         ge=128,
+#         le=1024,
+#     )
+#     seed: int = Field(
+#         default=-1,
+#         description="Seed for the random number generator. Use -1 for a random seed.",
+#         ge=-1,
+#     )
 
-    _pipeline: AutoPipelineForText2Image | None = None
+#     _pipeline: PixArtAlphaPipeline | None = None
 
-    @classmethod
-    def get_recommended_models(cls) -> list[HuggingFaceModel]:
-        return [
-            HuggingFaceModel(
-                repo_id="kandinsky-community/kandinsky-3",
-            ),
-        ]
+#     @classmethod
+#     def get_recommended_models(cls) -> list[HFImageToImage]:
+#         return [
+#             HFImageToImage(
+#                 repo_id="PixArt-alpha/PixArt-Sigma-XL-2-1024-MS",
+#             ),
+#         ]
 
-    @classmethod
-    def get_title(cls) -> str:
-        return "Kandinsky 3"
+#     async def initialize(self, context: ProcessingContext):
+#         self._pipeline = await self.load_model(
+#             context=context,
+#             model_id="PixArt-alpha/PixArt-Sigma-XL-2-1024-MS",
+#             model_class=PixArtAlphaPipeline,
+#             variant=None,
+#         )
 
-    def get_model_id(self):
-        return "kandinsky-community/kandinsky-3"
+#     async def process(self, context: ProcessingContext) -> ImageRef:
+#         if self._pipeline is None:
+#             raise ValueError("Pipeline not initialized")
 
-    async def initialize(self, context: ProcessingContext):
-        self._pipeline = await self.load_model(
-            context=context,
-            model_id="kandinsky-community/kandinsky-3",
-            model_class=AutoPipelineForText2Image,
-        )
+#         # Set up the generator for reproducibility
+#         generator = None
+#         if self.seed != -1:
+#             generator = torch.Generator(device="cpu").manual_seed(self.seed)
 
-    async def move_to_device(self, device: str):
-        # Commented out as in the original class
-        # if self._pipeline is not None:
-        #     self._pipeline.to(device)
-        pass
+#         def callback(step: int, timestep: int, latents: torch.FloatTensor) -> None:
+#             context.post_message(
+#                 NodeProgress(
+#                     node_id=self.id,
+#                     progress=step,
+#                     total=self.num_inference_steps,
+#                 )
+#             )
 
-    async def process(self, context: ProcessingContext) -> ImageRef:
-        if self._pipeline is None:
-            raise ValueError("Pipeline not initialized")
+#         # Generate the image
+#         output = self._pipeline(
+#             prompt=self.prompt,
+#             negative_prompt=self.negative_prompt,
+#             num_inference_steps=self.num_inference_steps,
+#             guidance_scale=self.guidance_scale,
+#             width=self.width,
+#             height=self.height,
+#             generator=generator,
+#             callback=callback,  # type: ignore
+#             callback_steps=1,
+#         )
 
-        # Set up the generator for reproducibility
-        generator = None
-        if self.seed != -1:
-            generator = torch.Generator(device="cpu").manual_seed(self.seed)
+#         image = output.images[0]  # type: ignore
 
-        self._pipeline.enable_sequential_cpu_offload()
+#         return await context.image_from_pil(image)
 
-        # Generate the image
-        output = self._pipeline(
-            prompt=self.prompt,
-            num_inference_steps=self.num_inference_steps,
-            generator=generator,
-            width=self.width,
-            height=self.height,
-            callback=progress_callback(self.id, self.num_inference_steps, context),
-            callback_steps=1,
-        )  # type: ignore
 
-        image = output.images[0]  # type: ignore
+# class Kandinsky3(HuggingFacePipelineNode):
+#     """
+#     Generates images using the Kandinsky-3 model from text prompts.
+#     image, generation, AI, text-to-image
 
-        return await context.image_from_pil(image)
+#     Use cases:
+#     - Create detailed images from text descriptions
+#     - Generate unique illustrations for creative projects
+#     - Produce visual content for digital media and art
+#     - Explore AI-generated imagery for concept development
+#     """
+
+#     prompt: str = Field(
+#         default="A photograph of the inside of a subway train. There are raccoons sitting on the seats. One of them is reading a newspaper. The window shows the city in the background.",
+#         description="A text prompt describing the desired image.",
+#     )
+#     num_inference_steps: int = Field(
+#         default=25, description="The number of denoising steps.", ge=1, le=100
+#     )
+#     width: int = Field(
+#         default=1024, description="The width of the generated image.", ge=64, le=2048
+#     )
+#     height: int = Field(
+#         default=1024, description="The height of the generated image.", ge=64, le=2048
+#     )
+#     seed: int = Field(
+#         default=0,
+#         description="Seed for the random number generator. Use -1 for a random seed.",
+#         ge=-1,
+#     )
+
+#     _pipeline: AutoPipelineForText2Image | None = None
+
+#     @classmethod
+#     def get_recommended_models(cls) -> list[HuggingFaceModel]:
+#         return [
+#             HuggingFaceModel(
+#                 repo_id="kandinsky-community/kandinsky-3",
+#             ),
+#         ]
+
+#     @classmethod
+#     def get_title(cls) -> str:
+#         return "Kandinsky 3"
+
+#     def get_model_id(self):
+#         return "kandinsky-community/kandinsky-3"
+
+#     async def initialize(self, context: ProcessingContext):
+#         self._pipeline = await self.load_model(
+#             context=context,
+#             model_id="kandinsky-community/kandinsky-3",
+#             model_class=AutoPipelineForText2Image,
+#         )
+
+#     async def move_to_device(self, device: str):
+#         # Commented out as in the original class
+#         # if self._pipeline is not None:
+#         #     self._pipeline.to(device)
+#         pass
+
+#     async def process(self, context: ProcessingContext) -> ImageRef:
+#         if self._pipeline is None:
+#             raise ValueError("Pipeline not initialized")
+
+#         # Set up the generator for reproducibility
+#         generator = None
+#         if self.seed != -1:
+#             generator = torch.Generator(device="cpu").manual_seed(self.seed)
+
+#         self._pipeline.enable_sequential_cpu_offload()
+
+#         # Generate the image
+#         output = self._pipeline(
+#             prompt=self.prompt,
+#             num_inference_steps=self.num_inference_steps,
+#             generator=generator,
+#             width=self.width,
+#             height=self.height,
+#             callback=progress_callback(self.id, self.num_inference_steps, context),
+#             callback_steps=1,
+#         )  # type: ignore
+
+#         image = output.images[0]  # type: ignore
+
+#         return await context.image_from_pil(image)
 
 
 class StableDiffusion(StableDiffusionBaseNode):
