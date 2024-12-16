@@ -361,13 +361,23 @@ Now, open your browser and navigate to `http://localhost:3000` to access the Nod
 
 Ensure you have the Conda environment activated.
 
+Before running Electron, you need to build the frontend located in the `/web` directory:
+
+```bash
+cd web
+npm install
+npm run build
+```
+
+Once the build is complete, you can start the Electron app:
+
 ```bash
 cd electron
 npm install
 npm start
 ```
 
-The electron app starts the frontend and backend.
+The Electron app starts the frontend and backend.
 
 ### Sync Dependencies
 
