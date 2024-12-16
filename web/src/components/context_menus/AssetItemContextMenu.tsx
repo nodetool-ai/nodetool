@@ -11,7 +11,6 @@ import { useAssetStore } from "../../stores/AssetStore";
 import { devLog } from "../../utils/DevLog";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
-
 const AssetItemContextMenu = () => {
   const menuPosition = useContextMenuStore((state) => state.menuPosition);
   const setRenameDialogOpen = useAssetGridStore(
@@ -34,8 +33,6 @@ const AssetItemContextMenu = () => {
       type: "info",
       content: "Download started. This may take a while."
     });
-
-    devLog("AssetItemContextMenu: Download assets", selectedAssetIds);
     download(selectedAssetIds);
   };
 
