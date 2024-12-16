@@ -43,11 +43,26 @@ function createWindow() {
  */
 function initializePermissionHandlers() {
   session.defaultSession.setPermissionRequestHandler(
-    (webContents, permission, callback) => {
-      callback(true); // Grant all permissions
+    (webContents, permission, callback, details) => {
+      if (permission === "media") {
+        callback(true);
+        return;
+      }
+
+      // For other permissions, maintain existing behavior
+      callback(false);
     }
   );
-  session.defaultSession.setPermissionCheckHandler(() => true);
+
+  session.defaultSession.setPermissionCheckHandler(
+    (webContents, permission, requestingOrigin) => {
+      if (permission === "media") {
+        return true;
+      }
+      return false;
+    }
+  );
+
   logMessage("Permission handlers initialized");
 }
 

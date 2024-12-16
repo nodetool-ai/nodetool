@@ -125,12 +125,12 @@ export function useWaveRecorder({ onChange }: WaveRecorderProps) {
         waveColor: "#333",
         progressColor: "#111",
         height: 30,
-        plugins: [recordPlugin],
+        plugins: [recordPlugin]
       });
 
       recordRef.current.on("record-end", (blob: Blob) => {
         const file = new File([blob], "recording.webm", {
-          type: `audio/${defaultFileType}`,
+          type: `audio/${defaultFileType}`
         });
         uploadAsset({
           file,
@@ -138,7 +138,7 @@ export function useWaveRecorder({ onChange }: WaveRecorderProps) {
           onCompleted: (asset: Asset) => {
             onChange(asset);
           },
-          onFailed: (error) => setError(`Upload failed: ${error}`),
+          onFailed: (error) => setError(`Upload failed: ${error}`)
         });
       });
     }
@@ -166,6 +166,6 @@ export function useWaveRecorder({ onChange }: WaveRecorderProps) {
     isLoading,
     audioDeviceNames: memoizedAudioDeviceNames,
     isDeviceListVisible,
-    toggleDeviceListVisibility,
+    toggleDeviceListVisibility
   };
 }

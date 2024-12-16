@@ -1,4 +1,4 @@
-const { app, ipcMain, dialog, shell } = require("electron");
+const { app, ipcMain, dialog, shell, systemPreferences } = require("electron");
 const { createWindow, forceQuit } = require("./window");
 const { setupAutoUpdater } = require("./updater");
 const { logMessage } = require("./logger");
@@ -67,7 +67,26 @@ async function initialize() {
 }
 
 // Application event handlers
-app.on("ready", initialize);
+app.on("ready", async () => {
+  if (process.platform === "win32" || process.platform === "darwin") {
+    try {
+      // Request microphone access on Windows and macOS
+      const microphoneStatus =
+        systemPreferences.getMediaAccessStatus("microphone");
+      if (microphoneStatus !== "granted") {
+        await systemPreferences.askForMediaAccess("microphone");
+      }
+    } catch (error) {
+      logMessage(
+        `Error requesting microphone access: ${error.message}`,
+        "error"
+      );
+    }
+  }
+
+  // Continue with rest of initialization
+  initialize();
+});
 
 // Handle update events
 ipcMain.handle("update-installed", async () => {
