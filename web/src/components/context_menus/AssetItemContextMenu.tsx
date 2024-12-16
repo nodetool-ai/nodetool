@@ -10,18 +10,31 @@ import useContextMenuStore from "../../stores/ContextMenuStore";
 import { useAssetStore } from "../../stores/AssetStore";
 import { devLog } from "../../utils/DevLog";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
+import { useNotificationStore } from "../../stores/NotificationStore";
 
 const AssetItemContextMenu = () => {
   const menuPosition = useContextMenuStore((state) => state.menuPosition);
-  const setRenameDialogOpen = useAssetGridStore((state) => state.setRenameDialogOpen);
-  const setMoveToFolderDialogOpen = useAssetGridStore((state) => state.setMoveToFolderDialogOpen);
-  const setDeleteDialogOpen = useAssetGridStore((state) => state.setDeleteDialogOpen);
-  const selectedAssetIds = useAssetGridStore(
-    (state) => state.selectedAssetIds
+  const setRenameDialogOpen = useAssetGridStore(
+    (state) => state.setRenameDialogOpen
   );
+  const setMoveToFolderDialogOpen = useAssetGridStore(
+    (state) => state.setMoveToFolderDialogOpen
+  );
+  const setDeleteDialogOpen = useAssetGridStore(
+    (state) => state.setDeleteDialogOpen
+  );
+  const selectedAssetIds = useAssetGridStore((state) => state.selectedAssetIds);
   const download = useAssetStore((state) => state.download);
+  const addNotification = useNotificationStore(
+    (state) => state.addNotification
+  );
 
   const handleDownloadAssets = (selectedAssetIds: string[]) => {
+    addNotification({
+      type: "info",
+      content: "Download started. This may take a while."
+    });
+
     devLog("AssetItemContextMenu: Download assets", selectedAssetIds);
     download(selectedAssetIds);
   };

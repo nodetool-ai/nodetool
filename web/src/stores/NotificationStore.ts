@@ -1,8 +1,8 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
 import { uuidv4 } from "./uuidv4";
 import { devLog, devWarn, devError } from "../utils/DevLog";
 import { DEVLOG_NOTIFICATION_VERBOSITY } from "../config/constants";
+// import { persist } from "zustand/middleware";
 export type NotificationType =
   | "info"
   | "debug"
@@ -42,41 +42,39 @@ export function verbosityCheck(
   return acceptedTypes.includes(notificationType);
 }
 
-export const useNotificationStore = create<NotificationStore>()(
-  (set) => ({
-    notifications: [],
-    lastDisplayedTimestamp: null,
+export const useNotificationStore = create<NotificationStore>()((set) => ({
+  notifications: [],
+  lastDisplayedTimestamp: null,
 
-    addNotification: (notification) => {
-      if (verbosityCheck(notification.type, DEVLOG_NOTIFICATION_VERBOSITY)) {
-        if (notification.type === "warning") {
-          devWarn("NOTIFICATION:", notification);
-        } else if (notification.type === "error") {
-          devError("NOTIFICATION:", notification);
-        } else {
-          devLog("NOTIFICATION:", notification);
-        }
+  addNotification: (notification) => {
+    if (verbosityCheck(notification.type, DEVLOG_NOTIFICATION_VERBOSITY)) {
+      if (notification.type === "warning") {
+        devWarn("NOTIFICATION:", notification);
+      } else if (notification.type === "error") {
+        devError("NOTIFICATION:", notification);
+      } else {
+        devLog("NOTIFICATION:", notification);
       }
-
-      set((state) => ({
-        notifications: [
-          ...state.notifications,
-          { ...notification, id: uuidv4(), timestamp: new Date() }
-        ]
-      }));
-    },
-    removeNotification: (id: string) => {
-      set((state) => ({
-        notifications: state.notifications.filter(
-          (notification) => notification.id !== id
-        )
-      }));
-    },
-    clearNotifications: () => {
-      set({ notifications: [] });
-    },
-    updateLastDisplayedTimestamp: (timestamp: Date) => {
-      set({ lastDisplayedTimestamp: timestamp });
     }
-  })
-);
+
+    set((state) => ({
+      notifications: [
+        ...state.notifications,
+        { ...notification, id: uuidv4(), timestamp: new Date() }
+      ]
+    }));
+  },
+  removeNotification: (id: string) => {
+    set((state) => ({
+      notifications: state.notifications.filter(
+        (notification) => notification.id !== id
+      )
+    }));
+  },
+  clearNotifications: () => {
+    set({ notifications: [] });
+  },
+  updateLastDisplayedTimestamp: (timestamp: Date) => {
+    set({ lastDisplayedTimestamp: timestamp });
+  }
+}));

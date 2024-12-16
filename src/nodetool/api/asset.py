@@ -260,9 +260,7 @@ async def download_assets(
     zip_buffer = BytesIO()
     storage = Environment.get_asset_storage()
 
-    # Dictionary to store asset paths
     asset_paths: Dict[str, str] = {}
-    # Dictionary to store all assets
     all_assets: Dict[str, AssetModel] = {}
 
     def fetch_all_assets(asset_ids: List[str]):
@@ -272,7 +270,6 @@ async def download_assets(
                 all_assets[asset.id] = asset
                 if asset.parent_id and asset.parent_id not in all_assets:
                     fetch_all_assets([asset.parent_id])
-                # Fetch all child assets if the asset is a folder
                 if asset.content_type == "folder":
                     child_assets = AssetModel.get_children(asset.id)
                     child_asset_ids = [child.id for child in child_assets]
@@ -309,28 +306,27 @@ async def download_assets(
             if asset.content_type == "folder":
                 return f"{asset_path}/", None
             else:
-                file_path = f"{asset_path}.{asset.file_extension}"
+                # Check if the file extension is already present
+                if asset.name.lower().endswith(f".{asset.file_extension.lower()}"):
+                    file_path = asset_path
+                else:
+                    file_path = f"{asset_path}.{asset.file_extension}"
+
                 file_content = BytesIO()
                 await storage.download(asset.file_name, file_content)
                 file_content.seek(0)
                 return file_path, file_content
         except Exception as e:
-            raise HTTPException(
-                status_code=500, detail=f"Error downloading asset {asset.id}: {str(e)}"
-            )
+            log.warning(f"Error downloading asset {asset.id}: {str(e)}")
+            return "", None
 
-    # Fetch all asset contents in parallel
     asset_contents = await asyncio.gather(
         *[fetch_asset_content(asset) for asset in all_assets.values()]
     )
 
-    # Write to zip file sequentially
     with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
         for file_path, content in asset_contents:
-            if content is None:
-                # This is a folder
-                zip_file.writestr(file_path, "")
-            else:
+            if file_path and content is not None:
                 zip_file.writestr(file_path, content.getvalue())
 
     zip_buffer.seek(0)

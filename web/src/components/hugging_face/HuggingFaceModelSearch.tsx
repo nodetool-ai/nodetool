@@ -27,7 +27,6 @@ const searchModels = async (query: string) => {
     throw new Error("Failed to fetch models");
   }
   const data = await response.json();
-  // console.log("Model data:", data); // Log the full model data
   return data;
 };
 
