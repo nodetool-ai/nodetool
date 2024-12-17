@@ -127,9 +127,8 @@ class RunPodWebSocketRunner:
                         break
                     async with session.post(stream_url, headers=headers) as response:
                         job = await response.json()
-                        if job["status"] in FINAL_STATES:
-                            break
                         for chunk in job["stream"]:
+                            print(chunk)
                             message = chunk["output"]
                             await self.send_message(message)
 
@@ -138,6 +137,8 @@ class RunPodWebSocketRunner:
                                     "failed", str(message["error"])
                                 )
                                 break
+                        if job["status"] in FINAL_STATES:
+                            break
 
             if not self._should_stop:
                 await self.send_job_update("completed")

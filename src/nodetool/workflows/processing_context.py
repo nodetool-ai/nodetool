@@ -117,6 +117,7 @@ class ProcessingContext:
         device: str | None = None,
         endpoint_url: URL | None = None,
         encode_assets_as_base64: bool = False,
+        upload_assets_to_s3: bool = False,
     ):
         self.user_id = user_id
         self.auth_token = auth_token
@@ -138,6 +139,7 @@ class ProcessingContext:
         )
         assert self.auth_token is not None, "Auth token is required"
         self.encode_assets_as_base64 = encode_assets_as_base64
+        self.upload_assets_to_s3 = upload_assets_to_s3
 
         env = Environment.get_environment()
         self.environment.update(env)
@@ -160,7 +162,7 @@ class ProcessingContext:
     def api_client(self) -> NodetoolAPIClient:
         if not hasattr(self, "_api_client"):
             self._api_client = Environment.get_nodetool_api_client(
-                self.user_id, self.auth_token
+                self.user_id, self.auth_token, 
             )
         return self._api_client
 
@@ -312,6 +314,8 @@ class ProcessingContext:
         if res:
             if self.encode_assets_as_base64:
                 res = self.encode_assets_as_uri(res)
+            if self.upload_assets_to_s3:
+                res = self.upload_assets_to_temp(res)
             return res.get(slot, None)
         else:
             return None
@@ -1521,6 +1525,41 @@ class ProcessingContext:
         elif isinstance(value, list):
             return [self.encode_assets_as_uri(item) for item in value]
         elif isinstance(value, tuple):
-            return tuple(self.encode_assets_as_uri(item) for item in value)
+            items = [self.encode_assets_as_uri(item) for item in value]
+            return tuple(items)
+        else:
+            return value
+
+    def upload_assets_to_temp(self, value: Any) -> Any:
+        """
+        Recursively uploads any AssetRef objects found in the given value to S3.
+
+        Args:
+            value: Any Python value that might contain AssetRef objects
+
+        Returns:
+            The value with all AssetRef objects uploaded to S3 and replaced with their URLs
+        """
+        if isinstance(value, AssetRef):
+            # Upload the asset data to S3 and return the URL
+            if value.data is not None:
+                storage = Environment.get_asset_temp_storage()
+                key = uuid.uuid4().hex
+                uri = storage.upload_sync(
+                    key,
+                    BytesIO(
+                        value.data[0] if isinstance(value.data, list) else value.data
+                    ),
+                )
+                return value.__class__(uri=uri, asset_id=value.asset_id)
+            else:
+                return value
+        elif isinstance(value, dict):
+            return {k: self.upload_assets_to_temp(v) for k, v in value.items()}
+        elif isinstance(value, list):
+            return [self.upload_assets_to_temp(item) for item in value]
+        elif isinstance(value, tuple):
+            items = [self.upload_assets_to_temp(item) for item in value]
+            return tuple(items)
         else:
             return value

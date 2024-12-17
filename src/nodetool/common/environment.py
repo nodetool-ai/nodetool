@@ -21,7 +21,8 @@ from nodetool.common.settings import (
 DEFAULT_ENV = {
     "ASSET_BUCKET": "images",
     "ASSET_DOMAIN": None,
-    "TEMP_DOMAIN": None,
+    "ASSET_TEMP_BUCKET": None,
+    "ASSET_TEMP_DOMAIN": None,
     "CHROMA_URL": None,
     "CHROMA_PATH": str(get_system_file_path("chroma")),
     "COMFY_FOLDER": None,
@@ -590,3 +591,52 @@ class Environment(object):
                 profiles_sample_rate=1.0,
             )
             cls.get_logger().info("Sentry initialized")
+
+    @classmethod
+    def get_asset_temp_bucket(cls):
+        """
+        The temp asset bucket is the S3 bucket where temporary assets are stored.
+        """
+        return cls.get("ASSET_TEMP_BUCKET")
+
+    @classmethod
+    def get_asset_temp_domain(cls):
+        """
+        The temp asset domain is the domain where temporary assets are stored.
+        """
+        return cls.get("ASSET_TEMP_DOMAIN")
+
+    @classmethod
+    def get_asset_temp_storage(cls, use_s3: bool = False):
+        """
+        Get the storage adapter for temporary assets.
+        """
+        if not hasattr(cls, "asset_temp_storage"):
+            if cls.is_test():
+                from nodetool.storage.memory_storage import MemoryStorage
+
+                cls.get_logger().info(f"Using memory storage for temp asset storage")
+                cls.asset_temp_storage = MemoryStorage(
+                    base_url=cls.get_storage_api_url()
+                )
+            elif (
+                cls.is_production() or cls.get_s3_access_key_id() is not None or use_s3
+            ) and cls.get_asset_temp_bucket() is not None:
+                cls.get_logger().info(f"Using S3 storage for temp asset storage")
+                cls.asset_temp_storage = cls.get_s3_storage(
+                    cls.get_asset_temp_bucket(), cls.get_asset_temp_domain()
+                )
+            else:
+                from nodetool.storage.file_storage import FileStorage
+
+                temp_folder = str(get_system_file_path("temp_assets"))
+                cls.get_logger().info(
+                    f"Using folder {temp_folder} for temp asset storage"
+                )
+                cls.asset_temp_storage = FileStorage(
+                    base_path=temp_folder,
+                    base_url=cls.get_storage_api_url(),
+                )
+
+        assert cls.asset_temp_storage is not None
+        return cls.asset_temp_storage

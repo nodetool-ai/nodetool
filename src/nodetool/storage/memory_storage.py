@@ -20,7 +20,7 @@ class MemoryStorage(AbstractStorage):
 
     def get_url(self, key: str):
         return f"{self.base_url}/{key}"
-    
+
     def generate_presigned_url(
         self, client_method: str, object_name: str, expiration=3600 * 24 * 7
     ):
@@ -53,6 +53,10 @@ class MemoryStorage(AbstractStorage):
             raise FileNotFoundError(f"File {key} not found")
 
     async def upload(self, key: str, content: io.BytesIO) -> str:
+        self.storage[key] = content.read()
+        return self.generate_presigned_url("get_object", key)
+
+    def upload_sync(self, key: str, content: io.BytesIO) -> str:
         self.storage[key] = content.read()
         return self.generate_presigned_url("get_object", key)
 

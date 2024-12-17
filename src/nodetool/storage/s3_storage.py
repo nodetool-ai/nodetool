@@ -81,6 +81,13 @@ class S3Storage(AbstractStorage):
         for chunk in body.iter_chunks(chunk_size=8192):
             stream.write(chunk)
 
+    def upload_sync(self, key: str, content: IO):
+        """
+        Uploads a blob to the bucket.
+        """
+        self.s3.upload_fileobj(content, self.bucket_name, key)
+        return self.get_url(key)
+
     async def upload(self, key: str, content: IO):
         """
         Uploads a blob to the bucket.

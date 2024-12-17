@@ -1,6 +1,14 @@
+import os
 from pydantic import Field
+from nodes import load_custom_node
 from nodetool.common.comfy_node import ComfyNode
 from nodetool.metadata.types import CLIP, Conditioning
+
+extras_dir = os.path.join(os.path.dirname(__file__), "..", "..", "..", "comfy_extras")
+
+load_custom_node(
+    os.path.join(extras_dir, "nodes_flux.py"), module_parent="comfy_extras"
+)
 
 
 class CLIPTextEncodeFlux(ComfyNode):

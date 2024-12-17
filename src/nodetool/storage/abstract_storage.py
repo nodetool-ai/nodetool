@@ -34,5 +34,9 @@ class AbstractStorage(ABC):
         pass
 
     @abstractmethod
+    def upload_sync(self, key: str, content: IO) -> str:
+        pass
+
+    @abstractmethod
     async def delete(self, file_name: str):
         pass

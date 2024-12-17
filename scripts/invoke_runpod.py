@@ -1,5 +1,7 @@
 import dotenv
 
+from nodetool.common.runpod_websocket_runner import FINAL_STATES
+
 dotenv.load_dotenv()
 
 import argparse
@@ -45,10 +47,10 @@ def send_workflow_request(endpoint_id: str, req: RunJobRequest) -> None:
     while True:
         response = requests.post(stream_url, headers=headers)
         status = response.json()
-        if status["status"] != "IN_PROGRESS":
-            break
         for message in status["stream"]:
             print(message)
+        if status["status"] in FINAL_STATES:
+            break
 
 
 def main():

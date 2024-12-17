@@ -57,5 +57,10 @@ class FileStorage(AbstractStorage):
 
         return self.generate_presigned_url("get_object", key)
 
+    def upload_sync(self, key: str, content: IO) -> str:
+        with open(os.path.join(self.base_path, key), "wb") as f:
+            f.write(content.read())
+        return self.generate_presigned_url("get_object", key)
+
     async def delete(self, file_name: str):
         os.remove(os.path.join(self.base_path, file_name))
