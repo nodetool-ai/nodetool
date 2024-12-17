@@ -6,10 +6,6 @@ from datetime import datetime
 class AbstractStorage(ABC):
 
     @abstractmethod
-    def get_base_url(self) -> str:
-        pass
-
-    @abstractmethod
     def get_url(self, key: str) -> str:
         pass
 

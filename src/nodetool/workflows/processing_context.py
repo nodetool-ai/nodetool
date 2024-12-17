@@ -162,7 +162,8 @@ class ProcessingContext:
     def api_client(self) -> NodetoolAPIClient:
         if not hasattr(self, "_api_client"):
             self._api_client = Environment.get_nodetool_api_client(
-                self.user_id, self.auth_token, 
+                self.user_id,
+                self.auth_token,
             )
         return self._api_client
 
@@ -1541,6 +1542,7 @@ class ProcessingContext:
             The value with all AssetRef objects uploaded to S3 and replaced with their URLs
         """
         if isinstance(value, AssetRef):
+            log.info(f"Uploading asset {value.uri} to S3")
             # Upload the asset data to S3 and return the URL
             if value.data is not None:
                 storage = Environment.get_asset_temp_storage()
@@ -1551,6 +1553,7 @@ class ProcessingContext:
                         value.data[0] if isinstance(value.data, list) else value.data
                     ),
                 )
+                log.info(f"Uploaded to {uri}")
                 return value.__class__(uri=uri, asset_id=value.asset_id)
             else:
                 return value

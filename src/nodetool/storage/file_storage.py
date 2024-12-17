@@ -16,9 +16,6 @@ class FileStorage(AbstractStorage):
         self.base_url = base_url
         os.makedirs(base_path, exist_ok=True)
 
-    def get_base_url(self):
-        return self.base_url
-
     def get_url(self, key: str):
         return f"{self.base_url}/{key}"
 

@@ -15,16 +15,8 @@ class MemoryStorage(AbstractStorage):
         self.mtimes = {}
         self.base_url = base_url
 
-    def get_base_url(self):
-        return self.base_url
-
     def get_url(self, key: str):
         return f"{self.base_url}/{key}"
-
-    def generate_presigned_url(
-        self, client_method: str, object_name: str, expiration=3600 * 24 * 7
-    ):
-        return f"{self.base_url}/{object_name}"
 
     async def file_exists(self, file_name: str) -> bool:
         return file_name in self.storage
@@ -44,7 +36,7 @@ class MemoryStorage(AbstractStorage):
             bytes_io.write(chunk)
         bytes_io.seek(0)
         self.storage[key] = bytes_io.getvalue()
-        return self.generate_presigned_url("get_object", key)
+        return self.get_url(key)
 
     async def download(self, key: str, stream: io.BytesIO):
         if key in self.storage:
@@ -54,11 +46,11 @@ class MemoryStorage(AbstractStorage):
 
     async def upload(self, key: str, content: io.BytesIO) -> str:
         self.storage[key] = content.read()
-        return self.generate_presigned_url("get_object", key)
+        return self.get_url(key)
 
     def upload_sync(self, key: str, content: io.BytesIO) -> str:
         self.storage[key] = content.read()
-        return self.generate_presigned_url("get_object", key)
+        return self.get_url(key)
 
     async def delete(self, file_name: str):
         if file_name in self.storage:

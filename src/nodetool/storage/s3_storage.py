@@ -19,35 +19,20 @@ class S3Storage(AbstractStorage):
     and deleting files (referred to as "objects" in S3 terminology) from an S3 bucket.
     """
 
-    def __init__(
-        self,
-        bucket_name: str,
-        endpoint_url: str,
-        client: Any,
-        domain: str | None = None,
-    ):
+    def __init__(self, bucket_name: str, endpoint_url: str, client: Any, domain: str):
         self.bucket_name = bucket_name
         self.endpoint_url = endpoint_url
         self.domain = domain
         self.s3 = client
 
-    def get_base_url(self):
-        """
-        Get the base URL for the S3 bucket.
-        """
-        return f"https://{self.bucket_name}.s3.{self.s3.meta.region_name}.amazonaws.com"
-
     def get_url(self, key: str):
         """
         Get the URL for the given S3 object.
         """
-        if self.domain:
-            if self.domain.startswith("http"):
-                return f"{self.domain}/{key}"
-            else:
-                return f"https://{self.domain}/{key}"
+        if self.domain.startswith("http"):
+            return f"{self.domain}/{key}"
         else:
-            return f"{self.get_base_url()}/{key}"
+            return f"https://{self.domain}/{key}"
 
     async def file_exists(self, file_name: str) -> bool:
         """

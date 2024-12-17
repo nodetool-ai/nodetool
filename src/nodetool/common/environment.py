@@ -336,7 +336,7 @@ class Environment(object):
         """
         The nodetool api url is the url of the nodetool api server.
         """
-        return cls.get("NODETOOL_API_URL")
+        return cls.get("NODETOOL_API_URL") or "http://localhost:8000"
 
     @classmethod
     def get_storage_api_url(cls):
@@ -453,7 +453,7 @@ class Environment(object):
         return cls.get("GOOGLE_CLIENT_SECRET")
 
     @classmethod
-    def get_s3_storage(cls, bucket: str, domain: str | None = None):
+    def get_s3_storage(cls, bucket: str, domain: str):
         """
         Get the S3 service.
         """
@@ -612,30 +612,26 @@ class Environment(object):
         Get the storage adapter for temporary assets.
         """
         if not hasattr(cls, "asset_temp_storage"):
-            if cls.is_test():
+            if not cls.is_production():
                 from nodetool.storage.memory_storage import MemoryStorage
 
                 cls.get_logger().info(f"Using memory storage for temp asset storage")
                 cls.asset_temp_storage = MemoryStorage(
                     base_url=cls.get_storage_api_url()
                 )
-            elif (
-                cls.is_production() or cls.get_s3_access_key_id() is not None or use_s3
-            ) and cls.get_asset_temp_bucket() is not None:
+            else:
+                assert (
+                    cls.get_s3_access_key_id() is not None or use_s3
+                ), "S3 access key ID is required"
+                assert (
+                    cls.get_asset_temp_bucket() is not None
+                ), "Asset temp bucket is required"
+                assert (
+                    cls.get_asset_temp_domain() is not None
+                ), "Asset temp domain is required"
                 cls.get_logger().info(f"Using S3 storage for temp asset storage")
                 cls.asset_temp_storage = cls.get_s3_storage(
                     cls.get_asset_temp_bucket(), cls.get_asset_temp_domain()
-                )
-            else:
-                from nodetool.storage.file_storage import FileStorage
-
-                temp_folder = str(get_system_file_path("temp_assets"))
-                cls.get_logger().info(
-                    f"Using folder {temp_folder} for temp asset storage"
-                )
-                cls.asset_temp_storage = FileStorage(
-                    base_path=temp_folder,
-                    base_url=cls.get_storage_api_url(),
                 )
 
         assert cls.asset_temp_storage is not None
