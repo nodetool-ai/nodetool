@@ -1,6 +1,23 @@
 <!DOCTYPE html>
 <html>
   <head>
+    <meta http-equiv="Content-Security-Policy" content="
+      default-src 'self';
+      script-src 'self' 'unsafe-inline';
+      style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+      font-src 'self' https://fonts.gstatic.com;
+      frame-src 'self' http://127.0.0.1:8000;
+      media-src 'self' mediadevices: *;
+      connect-src 'self' http://127.0.0.1:8000 mediadevices: *;
+      child-src 'self' http://127.0.0.1:8000;
+    ">
+    <meta http-equiv="Permissions-Policy" content="
+      microphone=*,
+      camera=*,
+      display-capture=*,
+      fullscreen=*,
+      midi=*,
+    ">
     <title>Nodetool</title>
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@200;400;500;600;700&display=swap"
@@ -357,7 +374,7 @@
         </div>
       </div>
     </div>
-    <iframe id="content"></iframe>
+    <iframe id="content" allow="microphone *; camera *"></iframe>
     <div id="log-container" class="expanded">
       <div id="log-controls">
         <button id="log-toggle" class="log-button">

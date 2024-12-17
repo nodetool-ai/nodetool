@@ -67,25 +67,60 @@ async function initialize() {
   await initializeBackendServer();
 }
 
-// Application event handlers
-app.on("ready", async () => {
+async function checkMediaPermissions() {
   if (process.platform === "win32" || process.platform === "darwin") {
     try {
-      // Request microphone access on Windows and macOS
+      logMessage("Starting microphone permission check");
+      console.log("Checking microphone permissions...");
+
       const microphoneStatus =
         systemPreferences.getMediaAccessStatus("microphone");
+      logMessage(`Current microphone status: ${microphoneStatus}`);
+      console.log(`Detailed microphone status:`, { microphoneStatus });
+
       if (microphoneStatus !== "granted") {
-        await systemPreferences.askForMediaAccess("microphone");
+        logMessage(
+          `Microphone not granted, current status: ${microphoneStatus}`
+        );
+
+        if (process.platform === "darwin") {
+          logMessage("Requesting microphone access on macOS");
+          const granted = await systemPreferences.askForMediaAccess(
+            "microphone"
+          );
+          logMessage(`Microphone permission request result: ${granted}`);
+          console.log(`macOS permission request result:`, { granted });
+
+          if (!granted) {
+            logMessage("Opening system preferences for microphone access");
+            shell.openExternal(
+              "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone"
+            );
+          }
+        } else if (process.platform === "win32") {
+          logMessage("Opening Windows privacy settings for microphone");
+          shell.openExternal("ms-settings:privacy-microphone");
+        }
+      } else {
+        logMessage("Microphone permission already granted");
       }
     } catch (error) {
       logMessage(
-        `Error requesting microphone access: ${error.message}`,
+        `Error handling microphone permissions: ${error.message}`,
         "error"
       );
+      console.error("Detailed permission error:", error);
     }
+  } else {
+    logMessage(
+      `Platform ${process.platform} does not require explicit microphone permissions`
+    );
   }
+}
 
-  // Continue with rest of initialization
+// Application event handlers
+app.on("ready", async () => {
+  await checkMediaPermissions();
   initialize();
 });
 

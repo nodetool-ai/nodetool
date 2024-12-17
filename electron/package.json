@@ -34,5 +34,17 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/nodetool-ai/nodetool.git"
+  },
+  "build": {
+    "mac": {
+      "extendInfo": {
+        "NSMicrophoneUsageDescription": "Allow access to your microphone for audio recording",
+        "NSCameraUsageDescription": "Allow access to your camera for video recording",
+        "com.apple.security.device.audio-input": true,
+        "com.apple.security.device.camera": true
+      },
+      "entitlements": "entitlements.mac.plist",
+      "entitlementsInherit": "entitlements.mac.plist"
+    }
   }
 }
