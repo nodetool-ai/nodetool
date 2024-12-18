@@ -221,6 +221,10 @@ const SearchInput: React.FC<SearchInputProps> = ({
     handleCreateNode
   ]);
 
+  React.useEffect(() => {
+    setLocalSearchTerm(externalSearchTerm);
+  }, [externalSearchTerm]);
+
   return (
     <div
       className="search-input-container"

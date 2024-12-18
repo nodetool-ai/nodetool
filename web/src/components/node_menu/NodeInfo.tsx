@@ -59,7 +59,8 @@ const nodeInfoStyles = (theme: any) =>
       color: theme.palette.c_gray4,
       display: "flex",
       flexWrap: "wrap",
-      gap: ".5em"
+      gap: ".5em",
+      maxWidth: "500px"
     },
     ".node-tags .tag": {
       fontSize: theme.fontSizeSmall,

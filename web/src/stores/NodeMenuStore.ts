@@ -116,7 +116,8 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => ({
   searchTerm: "",
   setSearchTerm: (term) => {
     set({
-      searchTerm: term
+      searchTerm: term,
+      selectedPath: []
     });
     get().performSearch(term);
   },
