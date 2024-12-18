@@ -206,7 +206,11 @@ const AppHeaderActions: React.FC = () => {
         >
           <>
             <Tooltip title="Create new workflow" enterDelay={TOOLTIP_DELAY}>
-              <Button className="action-button" onClick={handleCreateWorkflow}>
+              <Button
+                className="action-button"
+                onClick={handleCreateWorkflow}
+                tabIndex={-1}
+              >
                 <NoteAddIcon />
                 New
               </Button>
@@ -243,6 +247,7 @@ const AppHeaderActions: React.FC = () => {
               <Button
                 className="action-button"
                 onClick={() => openNodeMenu(400, 200)}
+                tabIndex={-1}
               >
                 <NodesIcon />
                 Nodes
@@ -253,7 +258,11 @@ const AppHeaderActions: React.FC = () => {
               title="Arranges all nodes or selected nodes"
               enterDelay={TOOLTIP_DELAY}
             >
-              <Button className="action-button" onClick={autoLayout}>
+              <Button
+                className="action-button"
+                onClick={autoLayout}
+                tabIndex={-1}
+              >
                 <LayoutIcon />
                 Layout
               </Button>
@@ -263,6 +272,7 @@ const AppHeaderActions: React.FC = () => {
               <Button
                 className="action-button"
                 onClick={() => saveWorkflow().then(onWorkflowSaved)}
+                tabIndex={-1}
               >
                 <SaveIcon />
                 Save
@@ -296,6 +306,7 @@ const AppHeaderActions: React.FC = () => {
                   isWorkflowRunning ? "disabled" : ""
                 }`}
                 onClick={() => !isWorkflowRunning && runWorkflow()}
+                tabIndex={-1}
               >
                 {state === "connecting" || state === "connected" ? (
                   <>
@@ -341,6 +352,7 @@ const AppHeaderActions: React.FC = () => {
                   !isWorkflowRunning ? "disabled" : ""
                 }`}
                 onClick={() => cancelWorkflow()}
+                tabIndex={-1}
               >
                 <StopIcon />
               </Button>

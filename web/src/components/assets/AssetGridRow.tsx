@@ -102,7 +102,7 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
           />
         </span>
 
-        <IconButton size="small">
+        <IconButton size="small" tabIndex={-1}>
           {isExpanded ? <ExpandLess /> : <ExpandMore />}
         </IconButton>
       </div>

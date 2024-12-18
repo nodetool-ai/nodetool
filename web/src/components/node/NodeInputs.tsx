@@ -24,21 +24,37 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
   onlyFields,
   layout
 }) => {
+  // use node id for tab index
+  const nodeOffset = parseInt(id) * 100;
+  const tabableProperties = properties.filter((property) => {
+    const type = property.type;
+    return !type.optional && type.type !== "readonly";
+  });
+
   return (
-    <div className="node-inputs">
-      {properties.map((property, index) => (
-        <PropertyField
-          key={property.name + id}
-          id={id}
-          value={data.properties[property.name]}
-          nodeType={nodeType}
-          layout={layout}
-          property={property}
-          propertyIndex={index.toString()}
-          onlyInput={onlyFields}
-          onlyHandle={onlyHandles}
-        />
-      ))}
+    <div className={`node-inputs node-${id}`}>
+      {properties.map((property, index) => {
+        const tabIndex = tabableProperties.findIndex(
+          (p) => p.name === property.name
+        );
+        const isTabable = tabIndex !== -1;
+        const finalTabIndex = isTabable ? nodeOffset + tabIndex + 1 : -1;
+
+        return (
+          <PropertyField
+            key={property.name + id}
+            id={id}
+            value={data.properties[property.name]}
+            nodeType={nodeType}
+            layout={layout}
+            property={property}
+            propertyIndex={index.toString()}
+            onlyInput={onlyFields}
+            onlyHandle={onlyHandles}
+            tabIndex={finalTabIndex}
+          />
+        );
+      })}
     </div>
   );
 };

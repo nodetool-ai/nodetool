@@ -53,6 +53,7 @@ function DeleteButton<T>({
       <Button
         css={styles}
         className={`${className} delete-button`}
+        tabIndex={-1}
         onClick={(e) => {
           e.stopPropagation();
           onClick(e, item ? item : ({} as T));

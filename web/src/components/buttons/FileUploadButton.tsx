@@ -55,6 +55,7 @@ const FileUploadButton = (props: FileUploadButtonProps): JSX.Element => {
         <Button
           className="upload-file"
           variant="outlined"
+          tabIndex={-1}
           onClick={handleClick}
           style={{ padding: "0" }}
         >

@@ -209,6 +209,7 @@ const LastWorkflowButton = React.memo(() => {
               className="edit-button"
               size="small"
               onClick={handleEdit}
+              tabIndex={-1}
             >
               <EditIcon fontSize="small" />
             </IconButton>

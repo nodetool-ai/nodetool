@@ -18,6 +18,7 @@ const FloatProperty = (props: PropertyProps) => {
         size="small"
         color="secondary"
         inputType="float"
+        tabIndex={props.tabIndex}
         onChange={(_, value) => props.onChange(value)}
       />
     </>

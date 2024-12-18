@@ -307,7 +307,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
       onDragOver={handleDragOver}
     >
       {showDeleteButton && (
-        <ButtonGroup className="asset-item-actions" size="small">
+        <ButtonGroup className="asset-item-actions" size="small" tabIndex={-1}>
           <DeleteButton<Asset>
             className="asset-delete"
             item={asset}

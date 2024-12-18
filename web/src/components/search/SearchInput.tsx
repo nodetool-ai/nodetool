@@ -249,6 +249,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
         className={`clear-search-btn ${
           localSearchTerm.trim() === "" ? "disabled" : ""
         }`}
+        tabIndex={-1}
         onClick={clearSearch}
       >
         <BackspaceIcon />

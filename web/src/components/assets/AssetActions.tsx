@@ -209,7 +209,7 @@ const AssetActions = ({
   };
   return (
     <div className="asset-actions" css={styles}>
-      <ButtonGroup className="asset-button-group">
+      <ButtonGroup className="asset-button-group" tabIndex={-1}>
         <span>
           {/* // span is needed for disabled buttons*/}
 
@@ -223,27 +223,31 @@ const AssetActions = ({
             className={`folder-up-button ${
               currentFolder?.parent_id !== "" ? " enabled" : " disabled"
             }`}
+            tabIndex={-1}
           >
             <NorthWestIcon />
           </Button>
         </span>
         <Tooltip enterDelay={TOOLTIP_DELAY} title="Create Folder">
-          <Button onClick={(e) => setCreateFolderAnchor(e.currentTarget)}>
+          <Button
+            onClick={(e) => setCreateFolderAnchor(e.currentTarget)}
+            tabIndex={-1}
+          >
             <CreateNewFolderIcon />
           </Button>
         </Tooltip>
         <Tooltip enterDelay={TOOLTIP_DELAY} title="Select all">
-          <Button onClick={handleSelectAllAssets}>
+          <Button onClick={handleSelectAllAssets} tabIndex={-1}>
             <SelectAllIcon />
           </Button>
         </Tooltip>
         <Tooltip enterDelay={TOOLTIP_DELAY} title="Deselect">
-          <Button onClick={handleDeselectAssets}>
+          <Button onClick={handleDeselectAssets} tabIndex={-1}>
             <DeselectIcon />
           </Button>
         </Tooltip>
         <Tooltip enterDelay={TOOLTIP_DELAY} title="Refresh">
-          <Button onClick={() => refetchAssetsAndFolders()}>
+          <Button onClick={() => refetchAssetsAndFolders()} tabIndex={-1}>
             <Refresh />
           </Button>
         </Tooltip>
@@ -272,6 +276,7 @@ const AssetActions = ({
           onChange={(e) => handleOrderChange(null, e.target.value)}
           displayEmpty
           inputProps={{ "aria-label": "Sort assets" }}
+          tabIndex={-1}
         >
           <MenuItem value="name">Name</MenuItem>
           <MenuItem value="date">Date</MenuItem>

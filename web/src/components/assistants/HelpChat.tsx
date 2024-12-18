@@ -157,6 +157,7 @@ const HelpChat: React.FC = () => {
                     e.preventDefault();
                     startTutorial(name);
                   }}
+                  tabIndex={-1}
                   sx={{
                     textTransform: "none",
                     py: 1.5,
@@ -216,6 +217,7 @@ const HelpChat: React.FC = () => {
               variant="outlined"
               onClick={handleDownloadModel}
               sx={{ mt: 1 }}
+              tabIndex={-1}
             >
               Download Qwen2.5 1.5B Model
             </Button>

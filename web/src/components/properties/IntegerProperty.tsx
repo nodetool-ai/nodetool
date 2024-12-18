@@ -27,6 +27,7 @@ const IntegerProperty = (props: PropertyProps) => {
         color="secondary"
         inputType="int"
         hideLabel={props.hideLabel}
+        tabIndex={props.tabIndex}
         onChange={(_, value) => props.onChange(Number(value))}
       />
     </>

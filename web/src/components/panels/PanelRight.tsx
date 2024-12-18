@@ -71,6 +71,7 @@ const PanelRight: React.FC = () => {
           edge="start"
           color="inherit"
           aria-label="menu"
+          tabIndex={-1}
           onMouseDown={(e) => {
             e.stopPropagation();
             handleMouseDown(e);

@@ -343,6 +343,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           >
             <Button
               size="large"
+              tabIndex={-1}
               className={`action-button run-stop-button run-workflow ${
                 isWorkflowRunning ? "disabled" : ""
               }`}

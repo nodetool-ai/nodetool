@@ -27,6 +27,7 @@ export type PropertyFieldProps = {
   onlyInput?: boolean;
   onlyHandle?: boolean;
   isInspector?: boolean;
+  tabIndex?: number;
 };
 
 /**
@@ -40,7 +41,8 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
   property,
   onlyInput,
   onlyHandle,
-  isInspector
+  isInspector,
+  tabIndex
 }) => {
   const controlKeyPressed = useKeyPressedStore((state) =>
     state.isKeyPressed("Control")
@@ -138,8 +140,8 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
           controlKeyPressed={controlKeyPressed}
           isInspector={isInspector}
           hideInput={false}
-          // hideInput={edgeConnected}
           hideLabel={false}
+          tabIndex={tabIndex}
         />
       ) : (
         <div className="property-spacer" style={{ height: "20px" }} />

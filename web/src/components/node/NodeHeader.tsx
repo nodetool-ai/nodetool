@@ -152,8 +152,12 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
       {!data.title && <span className="node-title">{titleizedType}</span>}
       {showMenu && (
         <>
-          <div className="menu-button">
-            <button className="menu-button" onClick={handleOpenContextMenu}>
+          <div className="menu-button" tabIndex={-1}>
+            <button
+              className="menu-button"
+              tabIndex={-1}
+              onClick={handleOpenContextMenu}
+            >
               <MoreHoriz />
             </button>
           </div>

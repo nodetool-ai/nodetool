@@ -12,7 +12,8 @@ const StringProperty = ({
   property,
   propertyIndex,
   value,
-  onChange
+  onChange,
+  tabIndex
 }: PropertyProps) => {
   const id = `textfield-${property.name}-${propertyIndex}`;
   const [isExpanded, setIsExpanded] = useState(false);
@@ -47,12 +48,16 @@ const StringProperty = ({
           autoCorrect="off"
           autoCapitalize="off"
           spellCheck="false"
+          tabIndex={tabIndex}
         />
-        <Tooltip title="Open Editor" enterDelay={TOOLTIP_ENTER_DELAY}>
-          <button className="expand-button" onClick={toggleExpand}>
-            {isExpanded ? "↙" : "↗"}
-          </button>
-        </Tooltip>
+        <button
+          className="expand-button"
+          onClick={toggleExpand}
+          tabIndex={-1}
+          aria-label="Open Editor"
+        >
+          {isExpanded ? "↙" : "↗"}
+        </button>
       </div>
       {isExpanded && (
         <TextEditorModal

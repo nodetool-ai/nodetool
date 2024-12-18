@@ -37,6 +37,7 @@ export type PropertyProps = {
   propertyIndex: string;
   isInspector?: boolean;
   onChange: (value: any) => void;
+  tabIndex?: number;
 };
 
 function InputProperty(props: PropertyProps) {
@@ -183,6 +184,7 @@ export type PropertyInputProps = {
   isInspector?: boolean;
   hideInput: boolean;
   hideLabel: boolean;
+  tabIndex?: number;
 };
 
 const PropertyInput: React.FC<PropertyInputProps> = ({
@@ -192,7 +194,9 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
   property,
   propertyIndex,
   controlKeyPressed,
-  hideInput
+  hideInput,
+  hideLabel,
+  tabIndex
 }: PropertyInputProps) => {
   const onChange = useCallback(
     (value: any) => {
@@ -207,7 +211,8 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
     value: value,
     propertyIndex: propertyIndex || "",
     nodeType: nodeType,
-    onChange: onChange
+    onChange: onChange,
+    tabIndex: tabIndex
   };
 
   // Property Context Menu

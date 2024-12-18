@@ -104,7 +104,11 @@ export const NodeFooter: React.FC<NodeFooterProps> = ({
   return (
     <div className="node-footer" css={footerStyles} style={{ backgroundColor }}>
       <Tooltip title="Click to show in NodeMenu" placement="bottom-start">
-        <Button className="namespace-button" onClick={handleOpenNodeMenu}>
+        <Button
+          tabIndex={-1}
+          className="namespace-button"
+          onClick={handleOpenNodeMenu}
+        >
           <PrettyNamespace namespace={nodeNamespace} />
         </Button>
       </Tooltip>

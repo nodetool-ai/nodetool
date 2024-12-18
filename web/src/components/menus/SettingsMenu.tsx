@@ -241,6 +241,8 @@ function SettingsMenu() {
     <div className="settings">
       <Tooltip title="Settings" enterDelay={TOOLTIP_DELAY}>
         <Button
+          tabIndex={-1}
+          className="settings-button"
           aria-controls={isMenuOpen ? "basic-menu" : undefined}
           aria-haspopup="true"
           aria-expanded={isMenuOpen ? "true" : undefined}

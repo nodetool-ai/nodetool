@@ -317,12 +317,20 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
         />
         <div className="actions">
           <Tooltip title="Download">
-            <Button onClick={handleDownload} className="action-button download">
+            <Button
+              onClick={handleDownload}
+              className="action-button download"
+              tabIndex={-1}
+            >
               <FileDownloadIcon />
             </Button>
           </Tooltip>
           <Tooltip title="Add to Assets">
-            <Button onClick={handleAddToAssets} className="action-button">
+            <Button
+              onClick={handleAddToAssets}
+              className="action-button"
+              tabIndex={-1}
+            >
               <AddIcon />
             </Button>
           </Tooltip>

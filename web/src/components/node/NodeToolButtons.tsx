@@ -59,31 +59,34 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
   if (!nodeId) return null;
 
   return (
-    <Toolbar variant="dense">
+    <Toolbar variant="dense" className="node-toolbar">
       {node?.parentId && (
         <Tooltip title="Remove from Group">
-          <IconButton onClick={() => removeFromGroup([node as Node<NodeData>])}>
+          <IconButton
+            onClick={() => removeFromGroup([node as Node<NodeData>])}
+            tabIndex={-1}
+          >
             <GroupRemoveIcon />
           </IconButton>
         </Tooltip>
       )}
       <Tooltip title="Duplicate (Space+D)">
-        <IconButton onClick={handleDuplicateNodes}>
+        <IconButton onClick={handleDuplicateNodes} tabIndex={-1}>
           <QueueIcon />
         </IconButton>
       </Tooltip>
       <Tooltip title="Documentation">
-        <IconButton onClick={handleOpenDocumentation}>
+        <IconButton onClick={handleOpenDocumentation} tabIndex={-1}>
           <HelpIcon />
         </IconButton>
       </Tooltip>
       <Tooltip title="Copy (CTRL+C | Meta+C)">
-        <IconButton onClick={handleCopyClicked}>
+        <IconButton onClick={handleCopyClicked} tabIndex={-1}>
           <CopyAllIcon />
         </IconButton>
       </Tooltip>
       <Tooltip title="Delete (Backspace | Del)">
-        <IconButton className="delete" onClick={handleDelete}>
+        <IconButton className="delete" onClick={handleDelete} tabIndex={-1}>
           <RemoveCircleIcon />
         </IconButton>
       </Tooltip>

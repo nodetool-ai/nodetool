@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, memo, useMemo } from "react";
+import React, { useState, useEffect, useCallback, memo } from "react";
 import { useCombo, useKeyPressedStore } from "../../stores/KeyPressedStore";
 import PropertyLabel from "../node/PropertyLabel";
 import ThemeNodes from "../themes/ThemeNodes";
@@ -21,6 +21,7 @@ interface InputProps {
   className?: string;
   inputType?: "int" | "float";
   hideLabel?: boolean;
+  tabIndex?: number;
 }
 
 interface NumberInputState {
@@ -189,12 +190,14 @@ const EditableInput: React.FC<{
   onBlur: () => void;
   onFocus: (event: React.FocusEvent<HTMLInputElement>) => void;
   isDefault: boolean;
+  tabIndex?: number;
 }> = ({
   value,
   onChange,
   onBlur: onBlurProp,
   onFocus: onFocusProp,
-  isDefault
+  isDefault,
+  tabIndex
 }) => {
   const _onFocus = useCallback(
     (event: React.FocusEvent<HTMLInputElement>) => {
@@ -210,14 +213,14 @@ const EditableInput: React.FC<{
   return (
     <input
       type="text"
-      className={`edit-value nodrag${
-        isDefault ? " default" : ""
-      } edit-value-input`}
+      className={`edit-value nodrag${isDefault ? " default" : ""}
+       edit-value-input`}
       style={{ width: `${Math.max(value.length * 12, 50)}px` }}
       value={value}
       onChange={onChange}
       onBlur={_onBlur}
       onFocus={_onFocus}
+      tabIndex={tabIndex}
       autoFocus
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.code === "NumpadEnter") {
@@ -400,11 +403,12 @@ const NumberInput: React.FC<InputProps> = (props) => {
           onBlur={() => handleBlur(true)}
           onFocus={handleInputFocus}
           isDefault={state.isDefault}
+          tabIndex={props.tabIndex}
         />
       ) : (
         <></>
       )}
-      <div id={props.id} className="slider-value nodrag">
+      <div id={props.id} className="slider-value nodrag" tabIndex={-1}>
         {props.hideLabel ? null : (
           <PropertyLabel
             name={props.name}

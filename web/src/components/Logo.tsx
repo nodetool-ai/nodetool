@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { DATA_TYPES } from "../config/data_types";
 import ThemeNodetool from "./themes/ThemeNodetool";
 
@@ -89,11 +89,11 @@ const Logo = ({
   const [textColor, setTextColor] = useState(rdt.textColor);
   const [opacity, setOpacity] = useState(0);
 
-  const handleMouseEnter = () => {
+  const handleMouseEnter = useCallback(() => {
     setRdt(randomDatatype());
     setHoverColor(rdt.color);
     setTextColor(rdt.textColor);
-  };
+  }, [rdt]);
 
   useEffect(() => {
     setOpacity(1);
@@ -117,8 +117,8 @@ const Logo = ({
       {small && (
         <img className="logo-image" src="/nodetool_icon.png" alt="NodeTool" />
       )}
-      <div className="nt" onMouseEnter={handleMouseEnter}>
-        <div className="nodetool">
+      <div className="nt" onMouseEnter={handleMouseEnter} aria-hidden="true">
+        <div className="nodetool" aria-hidden="true">
           {singleLine ? (
             "NODETOOL"
           ) : (

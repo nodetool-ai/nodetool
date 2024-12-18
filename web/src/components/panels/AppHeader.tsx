@@ -202,6 +202,7 @@ const AppHeader: React.FC = React.memo(() => {
               path.startsWith("/workflows") ? "active" : ""
             }`}
             onClick={() => navigate("/workflows")}
+            tabIndex={-1}
             style={{
               color: path.startsWith("/workflows")
                 ? ThemeNodetool.palette.c_hl1
@@ -217,6 +218,7 @@ const AppHeader: React.FC = React.memo(() => {
           <Button
             className={`nav-button ${path === "/examples" ? "active" : ""}`}
             onClick={() => navigate("/examples")}
+            tabIndex={-1}
             style={{
               color: path.startsWith("/examples")
                 ? ThemeNodetool.palette.c_hl1
@@ -232,6 +234,7 @@ const AppHeader: React.FC = React.memo(() => {
           <Button
             className={`nav-button ${path === "/assets" ? "active" : ""}`}
             onClick={() => navigate("/assets")}
+            tabIndex={-1}
             style={{
               color: path.startsWith("/assets")
                 ? ThemeNodetool.palette.c_hl1
@@ -264,7 +267,11 @@ const AppHeader: React.FC = React.memo(() => {
 
         {path.startsWith("/editor") && (
           <Tooltip title="Nodetool Chat Assistant" enterDelay={TOOLTIP_DELAY}>
-            <Button className="action-button" onClick={toggleChat}>
+            <Button
+              className="action-button"
+              onClick={toggleChat}
+              tabIndex={-1}
+            >
               <ChatIcon />
               Chat
             </Button>
@@ -286,6 +293,7 @@ const AppHeader: React.FC = React.memo(() => {
               <Button
                 className="action-button"
                 onClick={() => navigate("/models")}
+                tabIndex={-1}
                 style={{
                   color: path.startsWith("/models")
                     ? ThemeNodetool.palette.c_hl1
@@ -343,6 +351,7 @@ const AppHeader: React.FC = React.memo(() => {
               e.preventDefault();
               handleOpenHelp();
             }}
+            tabIndex={-1}
           >
             <QuestionMarkIcon />
             Help
@@ -375,6 +384,7 @@ const AppHeader: React.FC = React.memo(() => {
           >
             <Button
               className="logo"
+              tabIndex={-1}
               onClick={(e) => {
                 e.preventDefault();
                 handleOpenWelcome();
