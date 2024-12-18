@@ -90,7 +90,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ isMinZoom }) => {
     closeDocumentation: state.closeDocumentation
   }));
 
-  useCombo(["TAB"], () => {
+  useCombo(["f"], () => {
     // fit view bounds to selected nodes, fitView when no nodes are selected
     if (selectedNodes.length) {
       setTimeout(() => {
