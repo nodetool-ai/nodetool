@@ -202,11 +202,11 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ isMinZoom }) => {
   );
 
   useCombo(
-    ["Control", " "],
-    useCallback(
-      () => openNodeMenu(getMousePosition().x, getMousePosition().y),
-      [openNodeMenu]
-    )
+    [" "],
+    useCallback(() => {
+      const mousePos = getMousePosition();
+      openNodeMenu(mousePos.x, mousePos.y);
+    }, [openNodeMenu])
   );
 
   return (

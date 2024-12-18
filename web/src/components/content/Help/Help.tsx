@@ -238,7 +238,7 @@ const Help = ({ handleClose }: { handleClose: () => void }) => {
             <div className="help-item">
               <Typography>Open Node Menu</Typography>
               <Button className="no-border">Double Click on Canvas</Button>
-              <Button className="no-border">CTRL+Space</Button>
+              <Button className="no-border">Space Key</Button>
             </div>
             <div className="help-item">
               <Typography>Focus Search in NodeMenu</Typography>

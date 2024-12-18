@@ -430,7 +430,7 @@ Other Keyboard Shortcuts and Tips:
 important: when a user asks about shortcuts, provide the following information and suggest the help menu in the top right corner:
 
  Node Menu Shortcuts
- - Open Node Menu: Double click on canvas, Shift + Space, or CTRL + Space
+ - Open Node Menu: Double click on canvas, or press Space Key
  - Focus Search in NodeMenu: Esc or just start typing with menu opened
  
  Nodes Shortcuts
