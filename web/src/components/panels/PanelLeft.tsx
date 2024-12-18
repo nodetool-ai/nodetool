@@ -30,7 +30,7 @@ const styles = (theme: any) =>
       color: theme.palette.c_gray6
     },
     ".messages": {
-      overflowY: "hidden"
+      overflowY: "auto"
     }
   });
 
