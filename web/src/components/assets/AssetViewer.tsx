@@ -281,7 +281,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
         } else if (
           direction === "right" &&
           currentIndex < assetsToUse.length - 1
-        )
+        ) {
           if (controlKeyPressed) {
             handleChangeAsset(
               assetsToUse[
@@ -291,35 +291,59 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
           } else {
             handleChangeAsset(assetsToUse[currentIndex + 1]);
           }
+        }
       }
     },
     [handleChangeAsset, currentIndex, assetsToUse]
   );
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!open) return;
+
+      if (e.key === "ArrowLeft") {
+        changeAsset("left", e.ctrlKey);
+      } else if (e.key === "ArrowRight") {
+        changeAsset("right", e.ctrlKey);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [open, changeAsset]);
+
   useCombo(["Escape"], handleClose);
   useCombo(
     ["left"],
     useCallback(() => {
-      changeAsset("left", false);
-    }, [changeAsset])
+      if (open) {
+        changeAsset("left", false);
+      }
+    }, [changeAsset, open])
   );
   useCombo(
     ["right"],
     useCallback(() => {
-      changeAsset("right", false);
-    }, [changeAsset])
+      if (open) {
+        changeAsset("right", false);
+      }
+    }, [changeAsset, open])
   );
   useCombo(
     ["ctrl", "left"],
     useCallback(() => {
-      changeAsset("left", true);
-    }, [changeAsset])
+      if (open) {
+        changeAsset("left", true);
+      }
+    }, [changeAsset, open])
   );
   useCombo(
     ["ctrl", "right"],
     useCallback(() => {
-      changeAsset("right", true);
-    }, [changeAsset])
+      if (open) {
+        changeAsset("right", true);
+      }
+    }, [changeAsset, open])
   );
 
   const renderAsset = () => {
