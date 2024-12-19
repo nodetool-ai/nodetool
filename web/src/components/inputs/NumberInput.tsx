@@ -26,7 +26,6 @@ interface InputProps {
 
 interface NumberInputState {
   isDefault: boolean;
-  isEditable: boolean;
   localValue: string;
   originalValue: number;
   dragStartX: number;
@@ -72,7 +71,9 @@ const useValueCalculation = () => {
 const useDragHandling = (
   props: InputProps,
   state: NumberInputState,
-  setState: React.Dispatch<React.SetStateAction<NumberInputState>>
+  setState: React.Dispatch<React.SetStateAction<NumberInputState>>,
+  inputIsFocused: boolean,
+  setInputIsFocused: (focused: boolean) => void
 ) => {
   const { controlKeyPressed, shiftKeyPressed } = useKeyPressedStore(
     (state) => ({
@@ -84,7 +85,7 @@ const useDragHandling = (
 
   const handleMouseMove = useCallback(
     (e: MouseEvent) => {
-      if (state.isDragging && !state.isEditable) {
+      if (state.isDragging && !inputIsFocused) {
         const moveX = e.clientX - state.dragStartX;
         if (Math.abs(moveX) > DRAG_THRESHOLD) {
           setState((prevState) => ({
@@ -163,7 +164,8 @@ const useDragHandling = (
       shiftKeyPressed,
       setState,
       calculateStep,
-      calculateDecimalPlaces
+      calculateDecimalPlaces,
+      inputIsFocused
     ]
   );
 
@@ -171,14 +173,13 @@ const useDragHandling = (
     if (state.isDragging) {
       setState((prevState) => ({
         ...prevState,
-        isDragging: false,
-        isEditable: !prevState.hasExceededDragThreshold,
-        originalValue: !prevState.hasExceededDragThreshold
-          ? Number(prevState.localValue)
-          : prevState.originalValue
+        isDragging: false
       }));
+      if (!state.hasExceededDragThreshold) {
+        setInputIsFocused(true);
+      }
     }
-  }, [state, setState]);
+  }, [state.isDragging, state.hasExceededDragThreshold, setInputIsFocused]);
 
   return { handleMouseMove, handleMouseUp };
 };
@@ -190,32 +191,47 @@ const EditableInput: React.FC<{
   onBlur: () => void;
   onFocus: (event: React.FocusEvent<HTMLInputElement>) => void;
   isDefault: boolean;
+  isEditable: boolean;
   tabIndex?: number;
+  onFocusChange?: (isFocused: boolean) => void;
 }> = ({
   value,
   onChange,
   onBlur: onBlurProp,
   onFocus: onFocusProp,
   isDefault,
-  tabIndex
+  tabIndex,
+  onFocusChange
 }) => {
+  const [isFocused, setIsFocused] = useState(false);
+
   const _onFocus = useCallback(
     (event: React.FocusEvent<HTMLInputElement>) => {
+      setIsFocused(true);
+      onFocusChange?.(true);
       onFocusProp(event);
     },
-    [onFocusProp]
+    [onFocusProp, onFocusChange]
   );
 
   const _onBlur = useCallback(() => {
+    setIsFocused(false);
+    onFocusChange?.(false);
     onBlurProp();
-  }, [onBlurProp]);
+  }, [onBlurProp, onFocusChange]);
 
   return (
     <input
       type="text"
       className={`edit-value nodrag${isDefault ? " default" : ""}
        edit-value-input`}
-      style={{ width: `${Math.max(value.length * 12, 50)}px` }}
+      style={{
+        width: isFocused ? `${Math.max(value.length * 12, 50)}px` : "0px",
+        // position: isFocused ? "inherit" : "absolute",
+        color: isFocused ? "inherit" : "transparent",
+        backgroundColor: isFocused ? "inherit" : "transparent",
+        opacity: isFocused ? 1 : 0.001 // Nearly invisible but still interactive when unfocused
+      }}
       value={value}
       onChange={onChange}
       onBlur={_onBlur}
@@ -250,7 +266,6 @@ const DisplayValue: React.FC<{
 const NumberInput: React.FC<InputProps> = (props) => {
   const [state, setState] = useState<NumberInputState>({
     isDefault: false,
-    isEditable: false,
     localValue: props.value?.toString() ?? "",
     originalValue: props.value ?? 0,
     dragStartX: 0,
@@ -260,11 +275,14 @@ const NumberInput: React.FC<InputProps> = (props) => {
     dragInitialValue: props.value ?? 0,
     currentDragValue: props.value ?? 0
   });
+  const [inputIsFocused, setInputIsFocused] = useState(false);
 
   const { handleMouseMove, handleMouseUp } = useDragHandling(
     props,
     state,
-    setState
+    setState,
+    inputIsFocused,
+    setInputIsFocused
   );
 
   useCombo(
@@ -272,20 +290,11 @@ const NumberInput: React.FC<InputProps> = (props) => {
     useCallback(() => {
       setState((prevState) => ({
         ...prevState,
-        localValue: (props.value ?? 0).toString(),
-        isEditable: false
-      }));
-    }, [props.value])
-  );
-
-  useEffect(() => {
-    if (!state.isEditable) {
-      setState((prevState) => ({
-        ...prevState,
         localValue: (props.value ?? 0).toString()
       }));
-    }
-  }, [props.value, state.isEditable]);
+      setInputIsFocused(false);
+    }, [props.value])
+  );
 
   const handleValueChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -301,6 +310,7 @@ const NumberInput: React.FC<InputProps> = (props) => {
   const handleInputFocus = useCallback(
     (event: React.FocusEvent<HTMLInputElement>) => {
       event.target.select();
+      setState((prevState) => ({ ...prevState, isFocused: true }));
     },
     []
   );
@@ -337,8 +347,6 @@ const NumberInput: React.FC<InputProps> = (props) => {
           localValue: (props.value ?? 0).toString()
         }));
       }
-
-      setState((prevState) => ({ ...prevState, isEditable: false }));
     },
     [props, state.localValue]
   );
@@ -351,10 +359,11 @@ const NumberInput: React.FC<InputProps> = (props) => {
           dragStartX: e.clientX,
           isDragging: true,
           hasExceededDragThreshold: false,
-          dragInitialValue: props.value
+          dragInitialValue: props.value,
+          isFocused: true
         }));
       } else {
-        setState((prevState) => ({ ...prevState, isEditable: false }));
+        setState((prevState) => ({ ...prevState, isFocused: false }));
       }
     },
     [props.value]
@@ -366,13 +375,22 @@ const NumberInput: React.FC<InputProps> = (props) => {
         e.preventDefault();
         setState((prevState) => ({
           ...prevState,
-          originalValue: Number(prevState.localValue),
-          isEditable: true
+          originalValue: Number(prevState.localValue)
         }));
+        setInputIsFocused(true);
       }
     },
     [state.hasExceededDragThreshold]
   );
+
+  useEffect(() => {
+    if (!inputIsFocused) {
+      setState((prevState) => ({
+        ...prevState,
+        localValue: (props.value ?? 0).toString()
+      }));
+    }
+  }, [props.value, inputIsFocused]);
 
   useEffect(() => {
     if (state.isDragging) {
@@ -387,7 +405,9 @@ const NumberInput: React.FC<InputProps> = (props) => {
 
   return (
     <div
-      className={`number-input ${props.inputType}`}
+      className={`number-input ${props.inputType} ${
+        inputIsFocused ? "focused" : ""
+      }`}
       onClick={handleClick}
       onMouseDown={handleMouseDown}
       style={{
@@ -396,18 +416,16 @@ const NumberInput: React.FC<InputProps> = (props) => {
         color: ThemeNodes.palette.c_hl1
       }}
     >
-      {state.isEditable ? (
-        <EditableInput
-          value={state.localValue}
-          onChange={handleValueChange}
-          onBlur={() => handleBlur(true)}
-          onFocus={handleInputFocus}
-          isDefault={state.isDefault}
-          tabIndex={props.tabIndex}
-        />
-      ) : (
-        <></>
-      )}
+      <EditableInput
+        value={state.localValue}
+        onChange={handleValueChange}
+        onBlur={() => handleBlur(true)}
+        onFocus={handleInputFocus}
+        isDefault={state.isDefault}
+        tabIndex={props.tabIndex}
+        isEditable={inputIsFocused}
+        onFocusChange={setInputIsFocused}
+      />
       <div id={props.id} className="slider-value nodrag" tabIndex={-1}>
         {props.hideLabel ? null : (
           <PropertyLabel
@@ -416,7 +434,7 @@ const NumberInput: React.FC<InputProps> = (props) => {
             id={props.id}
           />
         )}
-        {!state.isEditable && (
+        {!inputIsFocused && (
           <DisplayValue
             value={props.value}
             isFloat={props.inputType === "float"}
@@ -429,7 +447,7 @@ const NumberInput: React.FC<InputProps> = (props) => {
         min={props.min || 0}
         max={props.max || 4096}
         isDragging={state.isDragging}
-        isEditable={state.isEditable}
+        isEditable={inputIsFocused}
       />
     </div>
   );

@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { css, keyframes } from "@emotion/react";
+import { css } from "@emotion/react";
 import { isEqual } from "lodash";
 import React, {
   useCallback,
@@ -14,6 +14,7 @@ import useSelect from "../../hooks/nodes/useSelect";
 interface Option {
   value: any;
   label: string | React.ReactNode;
+  tabIndex?: number;
 }
 
 interface SelectProps {
@@ -21,6 +22,7 @@ interface SelectProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
+  tabIndex?: number;
 }
 
 const ChevronIcon = ({ className }: { className?: string }) => (
@@ -118,7 +120,8 @@ const Select: React.FC<SelectProps> = ({
   options,
   value,
   onChange,
-  placeholder
+  placeholder,
+  tabIndex
 }) => {
   const selectRef = useRef<HTMLDivElement>(null);
   const optionsRef = useRef<HTMLUListElement>(null);
@@ -166,13 +169,32 @@ const Select: React.FC<SelectProps> = ({
     return () => window.removeEventListener("resize", updateDropdownPosition);
   }, [updateDropdownPosition]);
 
+  const handleKeyDown = useCallback(
+    (event: React.KeyboardEvent) => {
+      if (event.key === " " || event.key === "Enter") {
+        event.preventDefault();
+        toggleDropdown();
+      } else if (event.key === "Escape" && activeSelect === id) {
+        event.preventDefault();
+        close();
+      }
+    },
+    [toggleDropdown, close, activeSelect, id]
+  );
+
   return (
     <div
       ref={selectRef}
       className={`custom-select ${activeSelect === id ? "open" : ""}`}
       css={menuStyles}
     >
-      <div className="select-header" onClick={toggleDropdown}>
+      <div
+        className="select-header"
+        onClick={toggleDropdown}
+        onKeyDown={handleKeyDown}
+        tabIndex={tabIndex}
+        role="button"
+      >
         <span className="select-header-text">
           {selectedOption
             ? selectedOption.label

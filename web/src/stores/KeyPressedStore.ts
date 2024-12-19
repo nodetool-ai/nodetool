@@ -112,7 +112,12 @@ const initKeyListeners = () => {
     const { key, shiftKey, ctrlKey, altKey, metaKey, repeat } = event;
     const normalizedKey = key.toLowerCase();
 
-    if (event.target instanceof HTMLInputElement) {
+    if (
+      event &&
+      (event.target instanceof HTMLInputElement ||
+        (event.target as HTMLElement)?.classList?.contains("select-header"))
+    ) {
+      console.log("RETURNING");
       return;
     }
     if (event.target instanceof HTMLTextAreaElement) {
