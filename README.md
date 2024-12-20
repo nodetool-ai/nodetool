@@ -408,6 +408,7 @@ NodeTool is licensed under the [AGPLv3 License](LICENSE.txt)
 Got ideas, suggestions, or just want to say hi? We'd love to hear from you!
 
 - **Email**: [hello@nodetool.ai](mailto:hello@nodetool.ai)
+- **Discord**: [Nodetool Discord](https://discord.gg/26m5xBwe)
 - **Forum**: [Nodetool Forum](https://forum.nodetool.ai)
 - **GitHub**: [https://github.com/nodetool-ai/nodetool](https://github.com/nodetool-ai/nodetool)
 - **Matthias Georgi**: matti@nodetool.ai
