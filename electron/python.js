@@ -1,15 +1,12 @@
-const { PYTHON_ENV, getProcessEnv } = require("./config");
-const processEnv = getProcessEnv();
-const fs = require("fs").promises;
-
 const {
-  condaEnvPath,
   getPythonPath,
   getPipPath,
   getCondaUnpackPath,
   saveUserRequirements,
   getRequirementsPath,
-} = PYTHON_ENV;
+  getProcessEnv,
+} = require("./config");
+const fs = require("fs").promises;
 
 const { spawn } = require("child_process");
 const os = require("os");
@@ -24,6 +21,7 @@ const tar = require("tar-fs");
 const gunzip = require("gunzip-maybe");
 const { createReadStream, createWriteStream } = require("fs");
 const path = require("path");
+const { readSettings, updateSetting } = require("./settings");
 
 /**
  * Check if installed packages match requirements
@@ -92,6 +90,8 @@ async function verifyApplicationPaths() {
  */
 async function isCondaEnvironmentInstalled() {
   try {
+    const settings = require("./settings").readSettings();
+    logMessage(`CONDA_ENV: ${settings.CONDA_ENV}`);
     const pythonExecutablePath = getPythonPath();
 
     await fs.access(pythonExecutablePath);
@@ -113,6 +113,22 @@ async function updateCondaEnvironment() {
     if (!installNeeded) {
       logMessage("No packages to update");
       emitBootMessage("No packages to update");
+      return;
+    }
+
+    // Add confirmation dialog
+    const { response } = await dialog.showMessageBox({
+      type: "question",
+      buttons: ["Update", "Cancel"],
+      defaultId: 0,
+      title: "Python Package Updates",
+      message: "Python package updates are available",
+      detail: "Would you like to update the Python packages now?",
+    });
+
+    if (response === 1) {
+      logMessage("Package update cancelled by user");
+      emitBootMessage("Update cancelled");
       return;
     }
 
@@ -145,11 +161,13 @@ async function updateCondaEnvironment() {
   }
 }
 
-// Helper function to run pip commands
+/**
+ * Helper function to run pip commands
+ */
 async function runPipCommand(command) {
   const updateProcess = spawn(command[0], command.slice(1), {
     stdio: "pipe",
-    env: processEnv,
+    env: getProcessEnv(),
   });
 
   logMessage(`Running pip command: ${command.join(" ")}`);
@@ -345,45 +363,147 @@ async function downloadFile(url, dest) {
   });
 }
 
+// Add this function to get environment size based on platform
+function getEnvironmentSize() {
+  switch (process.platform) {
+    case "darwin":
+      return "2.5 GB";
+    case "linux":
+      return "8 GB";
+    case "win32":
+      return "8 GB";
+    default:
+      return "unknown";
+  }
+}
+
+function getDefaultInstallLocation() {
+  switch (process.platform) {
+    case "win32":
+      // Use ProgramData on Windows for all users, or AppData for current user
+      return process.env.ALLUSERSPROFILE
+        ? path.join(process.env.ALLUSERSPROFILE, "nodetool", "conda_env")
+        : path.join(process.env.APPDATA, "nodetool", "conda_env");
+    case "darwin":
+      // Use /Library/Application Support for all users, or ~/Library/Application Support for current user
+      return process.env.SUDO_USER
+        ? path.join("/Library/Application Support/nodetool/conda_env")
+        : path.join(
+            os.homedir(),
+            "Library/Application Support/nodetool/conda_env"
+          );
+    case "linux":
+      // Use /opt for all users, or ~/.local/share for current user
+      return process.env.SUDO_USER
+        ? "/opt/nodetool/conda_env"
+        : path.join(os.homedir(), ".local/share/nodetool/conda_env");
+    default:
+      return path.join(os.homedir(), ".nodetool/conda_env");
+  }
+}
+
+// Helper function to format bytes to human readable size
+function formatBytes(bytes) {
+  if (bytes === 0) return "0 B";
+  const k = 1024;
+  const sizes = ["B", "KB", "MB", "GB", "TB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${(bytes / Math.pow(k, i)).toFixed(1)} ${sizes[i]}`;
+}
+
+// Update promptForInstallLocation to show both sizes
+async function promptForInstallLocation() {
+  let downloadSize;
+  let installedSize = getEnvironmentSize();
+  try {
+    const sizeInBytes = await getCondaEnvSize();
+    downloadSize = formatBytes(sizeInBytes);
+  } catch (error) {
+    logMessage(`Failed to get download size: ${error.message}`, "warn");
+    downloadSize = getEnvironmentSize();
+  }
+
+  const defaultLocation = getDefaultInstallLocation();
+
+  const result = await dialog.showMessageBox({
+    type: "info",
+    buttons: ["Use Default Location", "Choose Custom Location", "Cancel"],
+    defaultId: 0,
+    title: "Python Environment Setup",
+    message: "Installing Machine Learning Environment",
+    detail:
+      `Nodetool comes with a complete machine learning environment that includes:\n\n` +
+      `• PyTorch for ML inference\n` +
+      `• CUDA support for GPU acceleration (Windows/Linux)\n` +
+      `• Scientific computing libraries (NumPy, SciPy, etc.)\n` +
+      `• Image processing libraries\n` +
+      `• All required dependencies\n\n` +
+      `This "batteries included" approach ensures everything works correctly without manual setup.\n\n` +
+      `Download size: ${downloadSize}\n` +
+      `Size on disk after installation: ${installedSize}\n\n` +
+      `Recommended location:\n${defaultLocation}`,
+  });
+
+  if (result.response === 2) {
+    throw new Error("Installation cancelled by user");
+  }
+
+  let selectedPath;
+  if (result.response === 0) {
+    selectedPath = defaultLocation;
+  } else {
+    const { filePaths, canceled } = await dialog.showOpenDialog({
+      properties: ["openDirectory", "createDirectory"],
+      title: "Select Python Environment Location",
+      buttonLabel: "Select Folder",
+      defaultPath: defaultLocation,
+    });
+
+    if (canceled || !filePaths?.[0]) {
+      throw new Error("No installation location selected");
+    }
+    selectedPath = path.join(filePaths[0], "nodetool-python");
+  }
+
+  await updateSetting("CONDA_ENV", selectedPath);
+  return selectedPath;
+}
+
+/**
+ * Get the conda environment URL for the current platform
+ * @returns {string} The URL for downloading the conda environment
+ */
+function getCondaEnvUrl() {
+  const VERSION = app.getVersion();
+  const platform = process.platform;
+  const arch = process.arch;
+  let fileName;
+
+  if (platform === "win32") {
+    fileName = `conda-env-windows-x64-${VERSION}.zip`;
+  } else if (platform === "darwin") {
+    const archSuffix = arch === "arm64" ? "arm64" : "x86_64";
+    fileName = `conda-env-darwin-${archSuffix}-${VERSION}.tar.gz`;
+  } else if (platform === "linux") {
+    fileName = `conda-env-linux-x64-${VERSION}.tar.gz`;
+  } else {
+    throw new Error("Unsupported platform");
+  }
+
+  return `https://packages.nodetool.ai/${fileName}`;
+}
+
 /**
  * Install the Python environment
  */
 async function installCondaEnvironment() {
   try {
+    const customEnvPath = await promptForInstallLocation();
     emitBootMessage("Setting up Python environment...");
-    logMessage(`Setting up Python environment at: ${condaEnvPath}`);
+    logMessage(`Setting up Python environment at: ${customEnvPath}`);
 
-    const platform = process.platform;
-    const arch = process.arch;
-    const VERSION = app.getVersion();
-
-    let environmentUrl = "";
-    let archivePath = "";
-
-    if (platform === "win32") {
-      environmentUrl = `https://packages.nodetool.ai/conda-env-windows-x64-${VERSION}.zip`;
-      archivePath = path.join(
-        os.tmpdir(),
-        `conda-env-windows-x64-${VERSION}.zip`
-      );
-    } else if (platform === "darwin") {
-      const archSuffix = arch === "arm64" ? "arm64" : "x86_64";
-      environmentUrl = `https://packages.nodetool.ai/conda-env-darwin-${archSuffix}-${VERSION}.tar.gz`;
-      archivePath = path.join(
-        os.tmpdir(),
-        `conda-env-darwin-${archSuffix}-${VERSION}.tar.gz`
-      );
-    } else if (platform === "linux") {
-      environmentUrl = `https://packages.nodetool.ai/conda-env-linux-x64-${VERSION}.tar.gz`;
-      archivePath = path.join(
-        os.tmpdir(),
-        `conda-env-linux-x64-${VERSION}.tar.gz`
-      );
-    } else {
-      throw new Error(
-        "Unsupported platform for Python environment installation."
-      );
-    }
+    const environmentUrl = getCondaEnvUrl();
+    const archivePath = path.join(os.tmpdir(), path.basename(environmentUrl));
 
     logMessage(`Creating download directory: ${path.dirname(archivePath)}`);
     await fs.mkdir(path.dirname(archivePath), { recursive: true });
@@ -403,13 +523,13 @@ async function installCondaEnvironment() {
       }
     }
 
-    await fs.mkdir(condaEnvPath, { recursive: true });
-    logMessage(`Unpacking Python environment to ${condaEnvPath}`);
+    await fs.mkdir(customEnvPath, { recursive: true });
+    logMessage(`Unpacking Python environment to ${customEnvPath}`);
     emitBootMessage("Unpacking Python environment...");
-    if (platform === "win32") {
-      await unpackPythonEnvironment(archivePath, condaEnvPath);
+    if (process.platform === "win32") {
+      await unpackPythonEnvironment(archivePath, customEnvPath);
     } else {
-      await unpackTarGzEnvironment(archivePath, condaEnvPath);
+      await unpackTarGzEnvironment(archivePath, customEnvPath);
     }
 
     logMessage(`Removing downloaded archive: ${archivePath}`);
@@ -576,7 +696,7 @@ async function unpackPythonEnvironment(zipPath, destPath) {
 
     const unpackProcess = spawn(unpackScript, [], {
       stdio: "pipe",
-      env: processEnv,
+      env: getProcessEnv(),
       cwd: destPath,
     });
 
@@ -722,7 +842,7 @@ async function unpackTarGzEnvironment(tarPath, destPath) {
 
     const unpackProcess = spawn(unpackScript, [], {
       stdio: "pipe",
-      env: processEnv,
+      env: getProcessEnv(),
       cwd: destPath,
     });
 
@@ -837,6 +957,21 @@ async function downloadToString(url) {
   });
 }
 
+/**
+ * Get the conda environment size from remote URL
+ * @returns {Promise<number>} Size in bytes
+ */
+async function getCondaEnvSize() {
+  try {
+    const url = getCondaEnvUrl();
+    const size = await getFileSizeFromUrl(url);
+    return size;
+  } catch (error) {
+    logMessage(`Failed to get conda env size: ${error.message}`, "error");
+    throw error;
+  }
+}
+
 module.exports = {
   checkPythonPackages,
   verifyApplicationPaths,
@@ -844,4 +979,6 @@ module.exports = {
   updateCondaEnvironment,
   installCondaEnvironment,
   downloadToString,
+  getCondaEnvUrl,
+  getCondaEnvSize,
 };

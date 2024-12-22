@@ -1,6 +1,8 @@
 const path = require("path");
 const { app } = require("electron");
 const { logMessage } = require("./logger");
+const fs = require("fs");
+const os = require("os");
 
 // Base paths
 const resourcesPath = process.resourcesPath;
@@ -9,93 +11,102 @@ const srcPath = app.isPackaged
   : path.join(__dirname, "..", "src");
 
 const userDataPath = app.getPath("userData");
+const legacyCondaPath = path.join(userDataPath, "conda_env");
 
-// Python environment paths
-const PYTHON_ENV = {
-  condaEnvPath: path.join(userDataPath, "conda_env"),
-  getRequirementsPath: () => {
-    const userRequirements = path.join(userDataPath, "requirements.txt");
-    const defaultRequirements = app.isPackaged
-      ? path.join(resourcesPath, "requirements.txt")
-      : path.join(__dirname, "..", "requirements.txt");
+const getCondaEnvPath = () => {
+  const settings = require("./settings").readSettings();
 
-    try {
-      // Synchronously check if user requirements exists
-      require("fs").accessSync(userRequirements);
-      return userRequirements;
-    } catch {
-      return defaultRequirements;
-    }
-  },
+  // Check if legacy path exists and settings doesn't have CONDA_ENV
+  if (!settings.CONDA_ENV && fs.existsSync(legacyCondaPath)) {
+    // Update settings with legacy path
+    const settingsManager = require("./settings");
+    settingsManager.updateSetting("CONDA_ENV", legacyCondaPath);
+    logMessage("Migrated legacy conda environment path to settings");
+    return legacyCondaPath;
+  }
 
-  getPythonPath: () =>
-    process.platform === "win32"
-      ? path.join(userDataPath, "conda_env", "python.exe")
-      : path.join(userDataPath, "conda_env", "bin", "python"),
+  const condaPath = settings.CONDA_ENV || legacyCondaPath;
 
-  getPipPath: () =>
-    process.platform === "win32"
-      ? path.join(userDataPath, "conda_env", "Scripts", "pip.exe")
-      : path.join(userDataPath, "conda_env", "bin", "pip"),
-
-  getCondaUnpackPath: () =>
-    process.platform === "win32"
-      ? path.join(userDataPath, "conda_env", "Scripts", "conda-unpack.exe")
-      : path.join(userDataPath, "conda_env", "bin", "conda-unpack"),
-
-  saveUserRequirements: (requirements) => {
-    logMessage(
-      `Saving user requirements to ${path.join(
-        userDataPath,
-        "requirements.txt"
-      )}`
-    );
-    const fs = require("fs");
-    try {
-      fs.writeFileSync(
-        path.join(userDataPath, "requirements.txt"),
-        requirements
-      );
-      return true;
-    } catch (error) {
-      logMessage(`Failed to save user requirements: ${error}`);
-      return false;
-    }
-  },
+  return condaPath;
 };
 
-// Environment variables
-const getProcessEnv = () => ({
-  ...process.env,
-  PYTHONPATH: srcPath,
-  PYTHONUNBUFFERED: "1",
-  PYTHONNOUSERSITE: "1",
-  PATH:
-    process.platform === "win32"
-      ? [
-          path.join(PYTHON_ENV.condaEnvPath),
-          path.join(PYTHON_ENV.condaEnvPath, "Library", "mingw-w64", "bin"),
-          path.join(PYTHON_ENV.condaEnvPath, "Library", "usr", "bin"),
-          path.join(PYTHON_ENV.condaEnvPath, "Library", "bin"),
-          path.join(
-            PYTHON_ENV.condaEnvPath,
-            "Lib",
-            "site-packages",
-            "torch",
-            "lib"
-          ),
-          path.join(PYTHON_ENV.condaEnvPath, "Scripts"),
-          process.env.PATH,
-        ].join(path.delimiter)
-      : [
-          path.join(PYTHON_ENV.condaEnvPath, "bin"),
-          path.join(PYTHON_ENV.condaEnvPath, "lib"),
-          process.env.PATH,
-        ].join(path.delimiter),
-});
+const getRequirementsPath = () => {
+  const userRequirements = path.join(userDataPath, "requirements.txt");
+  const defaultRequirements = app.isPackaged
+    ? path.join(resourcesPath, "requirements.txt")
+    : path.join(__dirname, "..", "requirements.txt");
+
+  try {
+    // Synchronously check if user requirements exists
+    fs.accessSync(userRequirements);
+    return userRequirements;
+  } catch {
+    return defaultRequirements;
+  }
+};
+
+const getPythonPath = () =>
+  process.platform === "win32"
+    ? path.join(getCondaEnvPath(), "python.exe")
+    : path.join(getCondaEnvPath(), "bin", "python");
+
+const getPipPath = () =>
+  process.platform === "win32"
+    ? path.join(getCondaEnvPath(), "Scripts", "pip.exe")
+    : path.join(getCondaEnvPath(), "bin", "pip");
+
+const getCondaUnpackPath = () =>
+  process.platform === "win32"
+    ? path.join(getCondaEnvPath(), "Scripts", "conda-unpack.exe")
+    : path.join(getCondaEnvPath(), "bin", "conda-unpack");
+
+const saveUserRequirements = (requirements) => {
+  logMessage(
+    `Saving user requirements to ${path.join(userDataPath, "requirements.txt")}`
+  );
+  try {
+    fs.writeFileSync(path.join(userDataPath, "requirements.txt"), requirements);
+    return true;
+  } catch (error) {
+    logMessage(`Failed to save user requirements: ${error}`);
+    return false;
+  }
+};
+
+const getProcessEnv = () => {
+  const condaPath = getCondaEnvPath();
+
+  return {
+    ...process.env,
+    PYTHONPATH: srcPath,
+    PYTHONUNBUFFERED: "1",
+    PYTHONNOUSERSITE: "1",
+    PATH:
+      process.platform === "win32"
+        ? [
+            path.join(condaPath),
+            path.join(condaPath, "Library", "mingw-w64", "bin"),
+            path.join(condaPath, "Library", "usr", "bin"),
+            path.join(condaPath, "Library", "bin"),
+            path.join(condaPath, "Lib", "site-packages", "torch", "lib"),
+            path.join(condaPath, "Scripts"),
+            process.env.PATH,
+          ].join(path.delimiter)
+        : [
+            path.join(condaPath, "bin"),
+            path.join(condaPath, "lib"),
+            process.env.PATH,
+          ].join(path.delimiter),
+  };
+};
 
 module.exports = {
-  PYTHON_ENV,
+  getCondaEnvPath,
+  getRequirementsPath,
+  getPythonPath,
+  getPipPath,
+  getCondaUnpackPath,
+  saveUserRequirements,
   getProcessEnv,
   srcPath,
 };
