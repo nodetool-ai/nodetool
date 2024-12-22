@@ -117,7 +117,6 @@ const initKeyListeners = () => {
       (event.target instanceof HTMLInputElement ||
         (event.target as HTMLElement)?.classList?.contains("select-header"))
     ) {
-      console.log("RETURNING");
       return;
     }
     if (event.target instanceof HTMLTextAreaElement) {
