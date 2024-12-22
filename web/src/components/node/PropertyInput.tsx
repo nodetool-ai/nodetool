@@ -226,7 +226,10 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
         id,
         event.clientX,
         event.clientY,
-        "node-property"
+        "node-property",
+        undefined,
+        undefined,
+        prop.description || undefined
       );
     },
     [id, openContextMenu]
