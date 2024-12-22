@@ -86,13 +86,14 @@ const useDragHandling = (
 
   const handleMouseMove = useCallback(
     (e: MouseEvent) => {
-      if (state.isDragging && !inputIsFocused) {
+      if (state.isDragging) {
         const moveX = e.clientX - state.dragStartX;
         if (Math.abs(moveX) > DRAG_THRESHOLD) {
           setState((prevState) => ({
             ...prevState,
             hasExceededDragThreshold: true
           }));
+          setInputIsFocused(false);
         }
 
         let baseStep = calculateStep(
@@ -268,9 +269,10 @@ const NumberInput: React.FC<InputProps> = (props) => {
           props.min ?? 0,
           Math.min(props.max ?? 4096, finalValue)
         );
-
+        setInputIsFocused(false);
         setState((prevState) => ({
           ...prevState,
+          inputIsFocused: false,
           isDefault: finalValue === props.value,
           localValue: finalValue.toString()
         }));
@@ -279,6 +281,7 @@ const NumberInput: React.FC<InputProps> = (props) => {
       } else {
         setState((prevState) => ({
           ...prevState,
+          inputIsFocused: false,
           localValue: (props.value ?? 0).toString()
         }));
       }
@@ -288,7 +291,8 @@ const NumberInput: React.FC<InputProps> = (props) => {
 
   const handleMouseDown = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
-      if (e.button === 0 && !inputIsFocused) {
+      if (e.button === 0) {
+        setInputIsFocused(false);
         setState((prevState) => ({
           ...prevState,
           dragStartX: e.clientX,
@@ -298,7 +302,7 @@ const NumberInput: React.FC<InputProps> = (props) => {
         }));
       }
     },
-    [props.value, inputIsFocused]
+    [props.value]
   );
 
   const handleClick = useCallback(
@@ -328,6 +332,15 @@ const NumberInput: React.FC<InputProps> = (props) => {
     }
   }, []);
 
+  const handleContextMenu = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      handleBlur(true);
+      setInputIsFocused(false);
+    },
+    [handleBlur]
+  );
+
   useEffect(() => {
     if (!inputIsFocused) {
       setState((prevState) => ({
@@ -356,6 +369,7 @@ const NumberInput: React.FC<InputProps> = (props) => {
       onClick={handleClick}
       onMouseDown={handleMouseDown}
       onBlur={handleContainerBlur}
+      onContextMenu={handleContextMenu}
       tabIndex={-1}
       style={{
         fontFamily: ThemeNodes.fontFamily1,

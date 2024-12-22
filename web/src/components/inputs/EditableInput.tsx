@@ -25,6 +25,12 @@ const EditableInput: React.FC<EditableInputProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    if (!shouldFocus) {
+      setIsFocused(false);
+    }
+  }, [shouldFocus]);
+
+  useEffect(() => {
     if (onFocusChange) {
       setIsFocused(true);
       if (inputRef.current) {
