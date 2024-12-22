@@ -6,6 +6,7 @@ interface ContextMenuState {
   menuPosition: MenuPosition | null;
   type: string | null;
   handleId: string | null;
+  description?: string;
 
   openContextMenu: (
     contextMenuClass: string,
@@ -14,7 +15,8 @@ interface ContextMenuState {
     y: number,
     outsideClickIgnoreClass?: string,
     type?: string,
-    handleId?: string
+    handleId?: string,
+    description?: string
   ) => void;
   closeContextMenu: () => void;
 }
@@ -47,7 +49,8 @@ const useContextMenuStore = create<ContextMenuState>((set) => {
     y: number,
     outsideClickIgnoreClass?: string,
     type?: string,
-    handleId?: string
+    handleId?: string,
+    description?: string
   ) => {
     // Remove existing event listener if any
     if (currentClickOutsideHandler) {
@@ -69,7 +72,8 @@ const useContextMenuStore = create<ContextMenuState>((set) => {
         nodeId: nodeId,
         menuPosition: { x, y },
         type: type,
-        handleId: handleId
+        handleId: handleId,
+        description: description
       });
       setTimeout(() => {
         currentClickOutsideHandler = clickOutsideHandler(
@@ -86,7 +90,14 @@ const useContextMenuStore = create<ContextMenuState>((set) => {
       currentClickOutsideHandler = null;
     }
     setTimeout(() => {
-      set({ openMenuType: null, menuPosition: null });
+      set({
+        openMenuType: null,
+        nodeId: null,
+        menuPosition: null,
+        type: null,
+        handleId: null,
+        description: undefined
+      });
     }, 50);
   };
 
@@ -97,7 +108,8 @@ const useContextMenuStore = create<ContextMenuState>((set) => {
     openContextMenu,
     closeContextMenu,
     type: null,
-    handleId: null
+    handleId: null,
+    description: undefined
   };
 });
 
