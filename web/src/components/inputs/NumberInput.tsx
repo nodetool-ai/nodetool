@@ -3,6 +3,7 @@ import { useCombo, useKeyPressedStore } from "../../stores/KeyPressedStore";
 import PropertyLabel from "../node/PropertyLabel";
 import ThemeNodes from "../themes/ThemeNodes";
 import RangeIndicator from "./RangeIndicator";
+import EditableInput from "./EditableInput";
 
 const DRAG_THRESHOLD = 5;
 const PIXELS_PER_STEP = 10;
@@ -184,71 +185,6 @@ const useDragHandling = (
   return { handleMouseMove, handleMouseUp };
 };
 
-// Smaller Components
-const EditableInput: React.FC<{
-  value: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  onBlur: () => void;
-  onFocus: (event: React.FocusEvent<HTMLInputElement>) => void;
-  isDefault: boolean;
-  isEditable: boolean;
-  tabIndex?: number;
-  onFocusChange?: (isFocused: boolean) => void;
-}> = ({
-  value,
-  onChange,
-  onBlur: onBlurProp,
-  onFocus: onFocusProp,
-  isDefault,
-  tabIndex,
-  onFocusChange
-}) => {
-  const [isFocused, setIsFocused] = useState(false);
-
-  const _onFocus = useCallback(
-    (event: React.FocusEvent<HTMLInputElement>) => {
-      setIsFocused(true);
-      onFocusChange?.(true);
-      onFocusProp(event);
-    },
-    [onFocusProp, onFocusChange]
-  );
-
-  const _onBlur = useCallback(() => {
-    setIsFocused(false);
-    onFocusChange?.(false);
-    onBlurProp();
-  }, [onBlurProp, onFocusChange]);
-
-  return (
-    <input
-      type="text"
-      className={`edit-value nodrag${isDefault ? " default" : ""}
-       edit-value-input`}
-      style={{
-        width: isFocused ? `${Math.max(value.length * 12, 50)}px` : "0px",
-        // position: isFocused ? "inherit" : "absolute",
-        color: isFocused ? "inherit" : "transparent",
-        backgroundColor: isFocused ? "inherit" : "transparent",
-        opacity: isFocused ? 1 : 0.001 // Nearly invisible but still interactive when unfocused
-      }}
-      value={value}
-      onChange={onChange}
-      onBlur={_onBlur}
-      onFocus={_onFocus}
-      tabIndex={tabIndex}
-      autoFocus
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.code === "NumpadEnter") {
-          e.preventDefault();
-          e.stopPropagation();
-          _onBlur();
-        }
-      }}
-    />
-  );
-};
-
 const DisplayValue: React.FC<{
   value: number;
   isFloat: boolean;
@@ -318,7 +254,6 @@ const NumberInput: React.FC<InputProps> = (props) => {
   const handleBlur = useCallback(
     (shouldSave: boolean) => {
       let finalValue: number;
-
       if (shouldSave) {
         if (props.inputType === "float") {
           finalValue = parseFloat(state.localValue);
@@ -353,35 +288,45 @@ const NumberInput: React.FC<InputProps> = (props) => {
 
   const handleMouseDown = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
-      if (e.button === 0) {
+      if (e.button === 0 && !inputIsFocused) {
         setState((prevState) => ({
           ...prevState,
           dragStartX: e.clientX,
           isDragging: true,
           hasExceededDragThreshold: false,
-          dragInitialValue: props.value,
-          isFocused: true
+          dragInitialValue: props.value
         }));
-      } else {
-        setState((prevState) => ({ ...prevState, isFocused: false }));
       }
     },
-    [props.value]
+    [props.value, inputIsFocused]
   );
 
   const handleClick = useCallback(
     (e: React.MouseEvent) => {
-      if (!state.hasExceededDragThreshold) {
-        e.preventDefault();
-        setState((prevState) => ({
-          ...prevState,
-          originalValue: Number(prevState.localValue)
-        }));
-        setInputIsFocused(true);
+      if (state.hasExceededDragThreshold) {
+        return;
       }
+      e.preventDefault();
+      e.stopPropagation();
+      setInputIsFocused(true);
+      setState((prevState) => ({
+        ...prevState,
+        originalValue: Number(prevState.localValue),
+        isDragging: false
+      }));
     },
     [state.hasExceededDragThreshold]
   );
+
+  const handleContainerBlur = useCallback((e: React.FocusEvent) => {
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      setInputIsFocused(false);
+      setState((prevState) => ({
+        ...prevState,
+        isDragging: false
+      }));
+    }
+  }, []);
 
   useEffect(() => {
     if (!inputIsFocused) {
@@ -410,6 +355,8 @@ const NumberInput: React.FC<InputProps> = (props) => {
       }`}
       onClick={handleClick}
       onMouseDown={handleMouseDown}
+      onBlur={handleContainerBlur}
+      tabIndex={-1}
       style={{
         fontFamily: ThemeNodes.fontFamily1,
         fontSize: ThemeNodes.fontSizeSmall,
@@ -423,8 +370,8 @@ const NumberInput: React.FC<InputProps> = (props) => {
         onFocus={handleInputFocus}
         isDefault={state.isDefault}
         tabIndex={props.tabIndex}
-        isEditable={inputIsFocused}
         onFocusChange={setInputIsFocused}
+        shouldFocus={inputIsFocused}
       />
       <div id={props.id} className="slider-value nodrag" tabIndex={-1}>
         {props.hideLabel ? null : (
