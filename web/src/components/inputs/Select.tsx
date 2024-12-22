@@ -182,11 +182,25 @@ const Select: React.FC<SelectProps> = ({
     [toggleDropdown, close, activeSelect, id]
   );
 
+  const handleBlur = useCallback(
+    (event: React.FocusEvent) => {
+      if (
+        selectRef.current &&
+        event.relatedTarget &&
+        !selectRef.current.contains(event.relatedTarget as Node)
+      ) {
+        close();
+      }
+    },
+    [close]
+  );
+
   return (
     <div
       ref={selectRef}
       className={`custom-select ${activeSelect === id ? "open" : ""}`}
       css={menuStyles}
+      onBlur={handleBlur}
     >
       <div
         className="select-header"
