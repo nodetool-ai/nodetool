@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { client, useRemoteAuth } from "./ApiClient";
 import { OAuthAuthorizeRequest, User } from "./ApiTypes";
 import { devLog } from "../utils/DevLog";
+import { createErrorMessage } from "../utils/errorHandling";
 
 export type OAuthProvider = "google" | "facebook";
 
@@ -49,7 +50,9 @@ export const useAuth = create<LoginStore>((set, get) => ({
     if (!useRemoteAuth) {
       set({
         user: {
-          id: "1", email: "", auth_token: "local_token",
+          id: "1",
+          email: "",
+          auth_token: "local_token"
         },
         state: "logged_in"
       });
@@ -95,7 +98,7 @@ export const useAuth = create<LoginStore>((set, get) => ({
       }
     });
     if (error) {
-      throw error;
+      throw createErrorMessage(error, "Failed to login with OAuth");
     }
     sessionStorage.setItem("oauth_state", data.state);
     window.location.href = data.url;

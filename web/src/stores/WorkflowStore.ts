@@ -3,6 +3,7 @@ import { client } from "./ApiClient";
 import { Workflow, WorkflowList, WorkflowRequest } from "./ApiTypes";
 import { QueryClient, QueryKey } from "@tanstack/react-query";
 import { uuidv4 } from "./uuidv4";
+import { createErrorMessage } from "../utils/errorHandling";
 
 export interface WorkflowStore {
   shouldFitToScreen: boolean;
@@ -104,7 +105,7 @@ export const useWorkflowStore = create<WorkflowStore>()((set, get) => ({
       body: workflow
     });
     if (error) {
-      throw error;
+      throw createErrorMessage(error, "Failed to create workflow");
     }
     get().invalidateQueries(["workflows"]);
     return data;
@@ -116,7 +117,7 @@ export const useWorkflowStore = create<WorkflowStore>()((set, get) => ({
       params: { query: { cursor, limit } }
     });
     if (error) {
-      throw error;
+      throw createErrorMessage(error, "Failed to load workflows");
     }
     for (const workflow of data.workflows) {
       get().add(workflow);
@@ -150,7 +151,7 @@ export const useWorkflowStore = create<WorkflowStore>()((set, get) => ({
   loadExamples: async () => {
     const { data, error } = await client.GET("/api/workflows/examples", {});
     if (error) {
-      throw error;
+      throw createErrorMessage(error, "Failed to load examples");
     }
     return data;
   },
@@ -167,7 +168,7 @@ export const useWorkflowStore = create<WorkflowStore>()((set, get) => ({
       body: workflow
     });
     if (error) {
-      throw error;
+      throw createErrorMessage(error, "Failed to update workflow");
     }
     get().add(data);
     return data;
@@ -193,7 +194,7 @@ export const useWorkflowStore = create<WorkflowStore>()((set, get) => ({
       params: { path: { id } }
     });
     if (error) {
-      throw error;
+      throw createErrorMessage(error, "Failed to delete workflow");
     }
     get().invalidateQueries(["workflows"]);
   },
@@ -212,7 +213,7 @@ export const useWorkflowStore = create<WorkflowStore>()((set, get) => ({
     });
 
     if (error) {
-      throw error;
+      throw createErrorMessage(error, "Failed to save example");
     }
 
     get().invalidateQueries(["workflows", "examples"]);

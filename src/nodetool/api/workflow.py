@@ -33,8 +33,10 @@ async def create(
             )
         )
     elif workflow_request.comfy_workflow:
-        print(workflow_request.comfy_workflow)
-        edges, nodes = read_graph(workflow_request.comfy_workflow)
+        try:
+            edges, nodes = read_graph(workflow_request.comfy_workflow)
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=str(e))
         return Workflow.from_model(
             WorkflowModel.create(
                 name=workflow_request.name,
