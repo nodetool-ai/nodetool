@@ -65,13 +65,16 @@ def create_node(node_id: str, node_data: Dict[str, Any]) -> Node:
         GraphParsingError: If the node type cannot be determined or found.
     """
     if CLASS_TYPE_KEY in node_data:
-        node_type = get_comfy_class_by_name(node_data[CLASS_TYPE_KEY]).get_node_type()
+        node_class = get_comfy_class_by_name(node_data[CLASS_TYPE_KEY])
+        if not node_class:
+            raise GraphParsingError(
+                f"Could not find node {node_data[CLASS_TYPE_KEY]} in comfy namespace"
+            )
+        node_type = node_class.get_node_type()
     elif TYPE_KEY in node_data:
         node_class = get_node_class(node_data[TYPE_KEY])
         if not node_class:
-            raise GraphParsingError(
-                f"Could not find node class {node_data[TYPE_KEY]} for node {node_id}"
-            )
+            raise GraphParsingError(f"Could not find node {node_data[TYPE_KEY]}")
         node_type = node_data[TYPE_KEY]
     else:
         raise GraphParsingError(f"Node {node_id} does not have a type")

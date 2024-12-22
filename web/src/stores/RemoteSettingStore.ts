@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { client } from "./ApiClient";
 import { SecretsModel, SettingsModel } from "./ApiTypes";
+import { createErrorMessage } from "../utils/errorHandling";
 
 interface SettingsResponse {
   settings: SettingsModel;
@@ -28,7 +29,7 @@ const useRemoteSettingsStore = create<RemoteSettingsStore>((set, get) => ({
   fetchSettings: async () => {
     const { error, data } = await client.GET("/api/settings/", {});
     if (error) {
-      throw error;
+      throw createErrorMessage(error, "Failed to load settings");
     }
     set({ settings: data.settings, secrets: data.secrets, isLoading: false });
     return data;
@@ -43,7 +44,7 @@ const useRemoteSettingsStore = create<RemoteSettingsStore>((set, get) => ({
       }
     });
     if (error) {
-      throw error;
+      throw createErrorMessage(error, "Failed to update settings");
     }
     set({ settings: data.settings, secrets: data.secrets, isLoading: false });
   }

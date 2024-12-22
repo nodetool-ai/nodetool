@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { client } from "./ApiClient";
 import { CachedModel, LlamaModel, ModelFile } from "./ApiTypes";
 import { QueryClient } from "@tanstack/react-query";
+import { createErrorMessage } from "../utils/errorHandling";
 
 type ModelStore = {
   queryClient: QueryClient | null;
@@ -26,7 +27,7 @@ const useModelStore = create<ModelStore>((set, get) => ({
       {}
     );
     if (error) {
-      throw new Error("Failed to fetch models: " + error);
+      throw createErrorMessage(error, "Failed to fetch models");
     }
     return data;
   },
@@ -42,10 +43,10 @@ const useModelStore = create<ModelStore>((set, get) => ({
       params: { path: { model_type: modelType } }
     });
     if (error) {
-      throw new Error("Failed to fetch models: " + error);
+      throw createErrorMessage(error, "Failed to fetch models");
     }
     return data;
-  },
+  }
 }));
 
 export default useModelStore;

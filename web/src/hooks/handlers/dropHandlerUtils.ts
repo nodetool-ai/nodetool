@@ -200,14 +200,21 @@ export const useFileHandlers = () => {
         const workflow = await extractWorkflowFromPng(file);
 
         if (workflow) {
-          const createdWorkflow = await createWorkflow({
-            name: file.name,
-            description: "created from comfy",
-            access: "private",
-            comfy_workflow: workflow
-          });
-          setWorkflow(createdWorkflow);
-          return { success: true, data: createdWorkflow };
+          try {
+            const createdWorkflow = await createWorkflow({
+              name: file.name,
+              description: "created from comfy",
+              access: "private",
+              comfy_workflow: workflow
+            });
+            setWorkflow(createdWorkflow);
+            return { success: true, data: createdWorkflow };
+          } catch (error: any) {
+            return {
+              success: false,
+              error: error.message || "Failed to create workflow"
+            };
+          }
         } else {
           return await handleGenericFile(file, position);
         }
@@ -227,23 +234,37 @@ export const useFileHandlers = () => {
         const jsonContent = await file.text();
         const jsonData = JSON.parse(jsonContent);
         if (isComfyWorkflowJson(jsonData)) {
-          const createdWorkflow = await createWorkflow({
-            name: file.name,
-            description: "created from comfy",
-            access: "private",
-            comfy_workflow: jsonData
-          });
-          setWorkflow(createdWorkflow);
-          return { success: true, data: createdWorkflow };
+          try {
+            const createdWorkflow = await createWorkflow({
+              name: file.name,
+              description: "created from comfy",
+              access: "private",
+              comfy_workflow: jsonData
+            });
+            setWorkflow(createdWorkflow);
+            return { success: true, data: createdWorkflow };
+          } catch (error: any) {
+            return {
+              success: false,
+              error: error.detail || "Failed to create workflow"
+            };
+          }
         } else if (isNodetoolWorkflowJson(jsonData)) {
-          const createdWorkflow = await createWorkflow({
-            name: jsonData.name,
-            description: "created from json",
-            access: "private",
-            graph: jsonData.graph
-          });
-          setWorkflow(createdWorkflow);
-          return { success: true, data: createdWorkflow };
+          try {
+            const createdWorkflow = await createWorkflow({
+              name: jsonData.name,
+              description: "created from json",
+              access: "private",
+              graph: jsonData.graph
+            });
+            setWorkflow(createdWorkflow);
+            return { success: true, data: createdWorkflow };
+          } catch (error: any) {
+            return {
+              success: false,
+              error: error.message || "Failed to create workflow"
+            };
+          }
         } else {
           // Handle as regular JSON file
           return await handleGenericFile(file, position);

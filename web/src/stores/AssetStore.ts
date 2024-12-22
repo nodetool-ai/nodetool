@@ -5,6 +5,7 @@ import { devError } from "../utils/DevLog";
 import { QueryClient, QueryKey } from "@tanstack/react-query";
 import axios from "axios";
 import { useAssetGridStore } from "./AssetGridStore";
+import { createErrorMessage } from "../utils/errorHandling";
 
 const createAsset = (
   url: string,
@@ -182,7 +183,7 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
       params: { path: { id } }
     });
     if (error) {
-      throw error;
+      throw createErrorMessage(error, "Failed to load asset");
     }
     get().add(data);
     return data;
@@ -202,7 +203,7 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
       }
     });
     if (error) {
-      throw error;
+      throw createErrorMessage(error, "Failed to load assets");
     }
     for (const asset of data.assets) {
       get().add(asset);
@@ -293,7 +294,7 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
       });
 
       if (error) {
-        throw error;
+        throw createErrorMessage(error, "Failed to load assets in folder");
       }
       const assetList = data as { assets: Asset[] };
       for (const asset of assetList.assets) {
@@ -318,8 +319,7 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
     });
 
     if (error) {
-      devError(`Error deleting asset ${id}:`, error);
-      throw error;
+      throw createErrorMessage(error, "Failed to delete asset");
     }
 
     const response = data as { deleted_asset_ids: string[] };
@@ -415,7 +415,7 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
       }
     });
     if (error) {
-      throw error;
+      throw createErrorMessage(error, "Failed to update asset");
     }
     get().add(data);
     get().invalidateQueries(["assets", { parent_id: prev.parent_id }]);
@@ -455,8 +455,7 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
       get().add(asset);
       return asset;
     } catch (error) {
-      devError("Error in createAsset:", error);
-      throw error;
+      throw createErrorMessage(error, "Failed to create asset");
     }
   },
 
@@ -468,8 +467,7 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
       }
     );
     if (error) {
-      devError("AssetStore: Error fetching assets recursively:", error);
-      throw error;
+      throw createErrorMessage(error, "Failed to load assets recursively");
     }
 
     if (

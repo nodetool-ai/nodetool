@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { UnifiedModel } from "../stores/ApiTypes";
 import { client } from "../stores/ApiClient";
 import { tryCacheFiles } from "../serverState/tryCacheFiles";
+import { createErrorMessage } from "../utils/errorHandling";
 
 export function useModelsWithSize(recommendedModels: UnifiedModel[]) {
   const singleFileModels = recommendedModels.filter((model) => model.path);
@@ -34,7 +35,7 @@ export function useModelsWithSize(recommendedModels: UnifiedModel[]) {
           body: filePaths
         }
       );
-      if (error) throw error;
+      if (error) throw createErrorMessage(error, "Failed to load file info");
       return data;
     },
     enabled: filePaths && filePaths.length > 0

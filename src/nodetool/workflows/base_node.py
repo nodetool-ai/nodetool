@@ -935,7 +935,7 @@ class Preview(BaseNode):
         return self.result_for_all_outputs(result)
 
 
-def get_comfy_class_by_name(class_name: str) -> type[BaseNode]:
+def get_comfy_class_by_name(class_name: str) -> type[BaseNode] | None:
     """
     Retrieve node classes based on their class name.
 
@@ -953,7 +953,7 @@ def get_comfy_class_by_name(class_name: str) -> type[BaseNode]:
     if not class_name in COMFY_NODE_CLASSES:
         class_name = class_name.replace("-", "")
     if not class_name in COMFY_NODE_CLASSES:
-        log.error(f"Could not find comfy class {class_name}")
+        return None
     return COMFY_NODE_CLASSES[class_name]
 
 
