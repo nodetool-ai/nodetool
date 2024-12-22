@@ -3,7 +3,7 @@
   NodeTool - Your Creative AI Playground
 </h1>
 
-NodeTool is the ultimate platform for AI enthusiasts, innovators, and creators. It brings together a wide range of AI tools and models in a simple, visual interface. Whether you're an artist, developer, data scientist, or complete beginner, NodeTool has everything you need to power your AI projects and bring your ideas to life.
+NodeTool is a platform designed for AI enthusiasts, developers, and creators. It provides a visual interface to access a variety of AI tools and models. Whether you’re an artist, programmer, data scientist, or just exploring AI, NodeTool offers resources to support your projects and ideas.
 
 With NodeTool, you can:
 
@@ -408,6 +408,7 @@ NodeTool is licensed under the [AGPLv3 License](LICENSE.txt)
 Got ideas, suggestions, or just want to say hi? We'd love to hear from you!
 
 - **Email**: [hello@nodetool.ai](mailto:hello@nodetool.ai)
+- **Discord**: [Nodetool Discord](https://discord.gg/26m5xBwe)
 - **Forum**: [Nodetool Forum](https://forum.nodetool.ai)
 - **GitHub**: [https://github.com/nodetool-ai/nodetool](https://github.com/nodetool-ai/nodetool)
 - **Matthias Georgi**: matti@nodetool.ai
