@@ -1,7 +1,7 @@
 const { spawn } = require("child_process");
 const { dialog, shell, app } = require("electron");
 const { logMessage } = require("./logger");
-const { PYTHON_ENV, getProcessEnv } = require("./config");
+const { getPythonPath, getProcessEnv } = require("./config");
 const path = require("path");
 const { forceQuit } = require("./window");
 const {
@@ -87,10 +87,7 @@ async function startNodeToolBackendProcess() {
   //   serverState.initialURL = `http://127.0.0.1:${freePort}`;
   // }
 
-  const pythonExecutablePath =
-    process.platform === "win32"
-      ? path.join(PYTHON_ENV.condaEnvPath, "python.exe")
-      : path.join(PYTHON_ENV.condaEnvPath, "bin", "python");
+  const pythonExecutablePath = getPythonPath();
 
   const args = [
     "-m",
