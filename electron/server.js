@@ -19,6 +19,8 @@ const webPath = app.isPackaged
 
 let nodeToolBackendProcess = null;
 let isAppQuitting = false;
+let recentServerMessages = [];
+const MAX_RECENT_MESSAGES = 5;
 
 /**
  * Find a free port starting from the given port number
@@ -115,8 +117,8 @@ async function startNodeToolBackendProcess() {
   }
 
   nodeToolBackendProcess.on("spawn", () => {
-    logMessage("Server process spawned successfully");
-    emitBootMessage("Server process started...");
+    logMessage("NodeTool backend starting...");
+    emitBootMessage("NodeTool backend starting...");
   });
 
   nodeToolBackendProcess.stdout.on("data", handleServerOutput);
@@ -129,6 +131,11 @@ async function startNodeToolBackendProcess() {
   nodeToolBackendProcess.on("exit", (code, signal) => {
     logMessage(`Server process exited with code ${code} and signal ${signal}`);
     if (code !== 0 && !isAppQuitting) {
+      const recentLogs = recentServerMessages.join("\n");
+      dialog.showErrorBox(
+        "Server Terminated Unexpectedly",
+        `The server process terminated unexpectedly with code ${code}\n\nRecent server messages:\n${recentLogs}`
+      );
       forceQuit(`The server process terminated unexpectedly with code ${code}`);
     }
   });
@@ -142,6 +149,10 @@ function handleServerOutput(data) {
   const output = data.toString().trim();
   if (output) {
     logMessage(`Server output: ${output}`);
+    recentServerMessages.push(output);
+    if (recentServerMessages.length > MAX_RECENT_MESSAGES) {
+      recentServerMessages.shift();
+    }
   }
 
   if (output.includes("Address already in use")) {

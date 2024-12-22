@@ -25,6 +25,8 @@ const { readSettings, updateSetting } = require("./settings");
 
 /**
  * Check if installed packages match requirements
+ * @returns {Promise<boolean>} True if updates are needed, false otherwise
+ * @throws {Error} If package check fails
  */
 async function checkPythonPackages() {
   try {
@@ -54,6 +56,7 @@ async function checkPythonPackages() {
 
 /**
  * Verify write permissions for critical paths
+ * @returns {Promise<{valid: boolean, errors: string[]}>} Validation result and any errors
  */
 async function verifyApplicationPaths() {
   const pathsToCheck = [
@@ -87,6 +90,7 @@ async function verifyApplicationPaths() {
 
 /**
  * Check if the Python environment is installed
+ * @returns {Promise<boolean>} True if environment is installed, false otherwise
  */
 async function isCondaEnvironmentInstalled() {
   try {
@@ -105,6 +109,8 @@ async function isCondaEnvironmentInstalled() {
 
 /**
  * Update the Python environment packages
+ * @returns {Promise<void>}
+ * @throws {Error} If update fails
  */
 async function updateCondaEnvironment() {
   try {
@@ -163,6 +169,9 @@ async function updateCondaEnvironment() {
 
 /**
  * Helper function to run pip commands
+ * @param {string[]} command - The pip command array
+ * @returns {Promise<void>}
+ * @throws {Error} If pip command fails
  */
 async function runPipCommand(command) {
   const updateProcess = spawn(command[0], command.slice(1), {
@@ -201,6 +210,9 @@ async function runPipCommand(command) {
 
 /**
  * Get file size from URL using HEAD request
+ * @param {string} url - The URL to check
+ * @returns {Promise<number>} File size in bytes
+ * @throws {Error} If size cannot be determined
  */
 async function getFileSizeFromUrl(url) {
   return new Promise((resolve, reject) => {
@@ -228,7 +240,11 @@ async function getFileSizeFromUrl(url) {
 }
 
 /**
- * Download a file from a URL with validation.
+ * Download a file from a URL with validation
+ * @param {string} url - Source URL
+ * @param {string} dest - Destination file path
+ * @returns {Promise<void>}
+ * @throws {Error} If download fails
  */
 async function downloadFile(url, dest) {
   logMessage(`Downloading file from ${url} to ${dest}`);
@@ -363,7 +379,10 @@ async function downloadFile(url, dest) {
   });
 }
 
-// Add this function to get environment size based on platform
+/**
+ * Get environment size based on platform
+ * @returns {string} Human readable size (e.g., "2.5 GB")
+ */
 function getEnvironmentSize() {
   switch (process.platform) {
     case "darwin":
@@ -377,6 +396,10 @@ function getEnvironmentSize() {
   }
 }
 
+/**
+ * Get the default installation location based on platform
+ * @returns {string} Path to default installation directory
+ */
 function getDefaultInstallLocation() {
   switch (process.platform) {
     case "win32":
@@ -402,7 +425,11 @@ function getDefaultInstallLocation() {
   }
 }
 
-// Helper function to format bytes to human readable size
+/**
+ * Format bytes to human readable size
+ * @param {number} bytes - Size in bytes
+ * @returns {string} Formatted size string (e.g., "1.5 GB")
+ */
 function formatBytes(bytes) {
   if (bytes === 0) return "0 B";
   const k = 1024;
@@ -411,7 +438,11 @@ function formatBytes(bytes) {
   return `${(bytes / Math.pow(k, i)).toFixed(1)} ${sizes[i]}`;
 }
 
-// Update promptForInstallLocation to show both sizes
+/**
+ * Prompt user for installation location
+ * @returns {Promise<string>} Selected installation path
+ * @throws {Error} If user cancels or no location selected
+ */
 async function promptForInstallLocation() {
   let downloadSize;
   let installedSize = getEnvironmentSize();
@@ -471,7 +502,8 @@ async function promptForInstallLocation() {
 
 /**
  * Get the conda environment URL for the current platform
- * @returns {string} The URL for downloading the conda environment
+ * @returns {string} Download URL for conda environment
+ * @throws {Error} If platform is not supported
  */
 function getCondaEnvUrl() {
   const VERSION = app.getVersion();
@@ -549,204 +581,47 @@ async function installCondaEnvironment() {
 /**
  * Extract the Python environment from a zip archive
  */
-async function unpackPythonEnvironment(zipPath, destPath) {
+async function unpackEnvironment(sourcePath, destPath, extractFn) {
   emitBootMessage("Unpacking the Python environment...");
-  logMessage(`Unpacking Python environment from ${zipPath} to ${destPath}`);
-  let zip = null;
+  logMessage(`Unpacking Python environment from ${sourcePath} to ${destPath}`);
 
   try {
-    const { accessible: canReadZip, error: zipError } = await checkPermissions(
-      zipPath,
+    // Check source file permissions and existence
+    const { accessible: canRead, error: readError } = await checkPermissions(
+      sourcePath,
       fs.constants.R_OK
     );
-    if (!canReadZip) {
-      logMessage(`Cannot read zip file: ${zipError}`, "error");
-      throw new Error(`Cannot read zip file: ${zipError}`);
+    if (!canRead) {
+      throw new Error(`Cannot read source file: ${readError}`);
     }
 
-    logMessage(
-      `Checking destination directory permissions: ${path.dirname(destPath)}`
-    );
-    const { accessible: canWriteDest, error: destError } =
-      await checkPermissions(path.dirname(destPath), fs.constants.W_OK);
-    if (!canWriteDest) {
-      throw new Error(`Cannot write to destination: ${destError}`);
-    }
-
-    logMessage(`Checking if zip file exists: ${zipPath}`);
-    if (!(await fileExists(zipPath))) {
-      throw new Error(`Zip file not found at: ${zipPath}`);
-    }
-
-    const stats = await fs.stat(zipPath);
+    const stats = await fs.stat(sourcePath);
     if (stats.size === 0) {
-      throw new Error("Downloaded zip file is empty");
+      throw new Error("Downloaded archive file is empty");
     }
 
-    const totalSize = stats.size;
-    let extractedSize = 0;
-    const startTime = Date.now();
-    let lastUpdate = startTime;
-
+    // Clean up existing environment
     if (await fileExists(destPath)) {
       logMessage(`Removing existing environment at ${destPath}`);
       await fs.rm(destPath, { recursive: true, force: true });
     }
 
-    function calculateETA() {
-      const elapsedSeconds = (Date.now() - startTime) / 1000;
-      const bytesPerSecond = extractedSize / elapsedSeconds;
-      const remainingBytes = totalSize - extractedSize;
-      const remainingSeconds = remainingBytes / bytesPerSecond;
+    // Create destination directory
+    await fs.mkdir(destPath, { recursive: true });
 
-      if (remainingSeconds < 60) {
-        return `${Math.round(remainingSeconds)} seconds left`;
-      } else if (remainingSeconds < 3600) {
-        return `${Math.round(remainingSeconds / 60)} minutes left`;
-      } else {
-        return `${Math.round(remainingSeconds / 3600)} hours left`;
-      }
-    }
+    // Extract files
+    await extractFn(sourcePath, destPath, stats.size);
 
-    try {
-      zip = new StreamZip.async({ file: zipPath });
-      const entries = await zip.entries();
-      const totalEntries = Object.keys(entries).length;
-      logMessage(`Total entries in zip file: ${totalEntries}`);
-
-      if (totalEntries === 0) {
-        throw new Error("Zip file contains no entries");
-      }
-
-      let processedEntries = 0;
-      const failedEntries = [];
-
-      for (const [name, entry] of Object.entries(entries)) {
-        try {
-          const fullPath = path.join(destPath, name);
-          const dirPath = path.dirname(fullPath);
-
-          if (!fullPath.startsWith(destPath)) {
-            throw new Error(`Invalid zip entry path: ${name}`);
-          }
-
-          await fs.mkdir(dirPath, { recursive: true });
-
-          if (!entry.isDirectory) {
-            await zip.extract(name, fullPath);
-            extractedSize += entry.size;
-            processedEntries++;
-
-            const fileStats = await fs.stat(fullPath);
-            if (fileStats.size !== entry.size) {
-              throw new Error(`Size mismatch for ${name}`);
-            }
-
-            const progress = (processedEntries / totalEntries) * 100;
-            const now = Date.now();
-
-            if (now - lastUpdate >= 1000) {
-              const eta = calculateETA();
-              emitUpdateProgress(
-                "Python environment",
-                progress,
-                "Extracting",
-                eta
-              );
-              lastUpdate = now;
-            }
-          }
-        } catch (entryError) {
-          failedEntries.push({ name, error: entryError.message });
-          logMessage(
-            `Failed to extract entry ${name}: ${entryError.message}`,
-            "error"
-          );
-        }
-      }
-
-      if (failedEntries.length > 0) {
-        try {
-          await fs.rm(destPath, { recursive: true, force: true });
-        } catch (cleanupError) {
-          logMessage(
-            `Warning: Failed to clean up after extraction error: ${cleanupError.message}`,
-            "warn"
-          );
-        }
-        throw new Error(`Failed to extract ${failedEntries.length} files`);
-      }
-    } finally {
-      if (zip) {
-        try {
-          await zip.close();
-        } catch (closeError) {
-          logMessage(`Error closing zip file: ${closeError.message}`, "warn");
-        }
-      }
-    }
-
-    emitBootMessage("Running conda-unpack...");
-    const unpackScript = getCondaUnpackPath();
-
-    logMessage(`Conda-unpack script: ${unpackScript}`);
-    if (!(await fileExists(unpackScript))) {
-      throw new Error(`conda-unpack script not found at: ${unpackScript}`);
-    }
-
-    const unpackProcess = spawn(unpackScript, [], {
-      stdio: "pipe",
-      env: getProcessEnv(),
-      cwd: destPath,
-    });
-
-    const unpackTimeout = setTimeout(() => {
-      unpackProcess.kill();
-      throw new Error("conda-unpack process timed out after 30 minutes");
-    }, 30 * 60 * 1000);
-
-    unpackProcess.stdout.on("data", (data) => {
-      const message = data.toString().trim();
-      if (message) {
-        logMessage(`conda-unpack: ${message}`);
-      }
-    });
-
-    unpackProcess.stderr.on("data", (data) => {
-      const message = data.toString().trim();
-      if (message) {
-        logMessage(`conda-unpack error: ${message}`, "error");
-      }
-    });
-
-    await new Promise((resolve, reject) => {
-      unpackProcess.on("exit", (code) => {
-        clearTimeout(unpackTimeout);
-        if (code === 0) {
-          logMessage("conda-unpack completed successfully");
-          emitBootMessage("Python environment unpacked successfully");
-          resolve();
-        } else {
-          reject(new Error(`conda-unpack failed with code ${code}`));
-        }
-      });
-
-      unpackProcess.on("error", (err) => {
-        clearTimeout(unpackTimeout);
-        reject(new Error(`Error running conda-unpack: ${err.message}`));
-      });
-    });
+    // Run conda-unpack
+    await runCondaUnpack(destPath);
   } catch (err) {
     const errorMsg = `Failed to unpack Python environment: ${err.message}`;
     logMessage(errorMsg, "error");
     logMessage(`Stack trace: ${err.stack}`, "error");
 
-    try {
-      if (await fileExists(destPath)) {
-        await fs.rm(destPath, { recursive: true, force: true });
-      }
-    } catch (cleanupError) {
-      logMessage(`Error during cleanup: ${cleanupError.message}`, "error");
+    // Clean up destination directory on error
+    if (await fileExists(destPath)) {
+      await fs.rm(destPath, { recursive: true, force: true });
     }
 
     dialog.showErrorBox(
@@ -759,152 +634,168 @@ async function unpackPythonEnvironment(zipPath, destPath) {
 }
 
 /**
- * Extract the Python environment from a tar.gz archive for Mac/Linux
+ * Run conda-unpack process
+ * @param {string} destPath - Destination path where environment is installed
+ * @returns {Promise<void>}
+ * @throws {Error} If conda-unpack fails
  */
-async function unpackTarGzEnvironment(tarPath, destPath) {
-  emitBootMessage("Unpacking the Python environment...");
-  logMessage(`Unpacking Python environment from ${tarPath} to ${destPath}`);
+async function runCondaUnpack(destPath) {
+  emitBootMessage("Running conda-unpack (may take a few minutes)...");
+  const unpackScript = getCondaUnpackPath();
 
-  try {
-    const { accessible: canReadTar, error: tarError } = await checkPermissions(
-      tarPath,
-      fs.constants.R_OK
-    );
-    if (!canReadTar) {
-      logMessage(`Cannot read tar file: ${tarError}`, "error");
-      throw new Error(`Cannot read tar file: ${tarError}`);
-    }
+  logMessage(`Conda-unpack script: ${unpackScript}`);
+  if (!(await fileExists(unpackScript))) {
+    throw new Error(`conda-unpack script not found at: ${unpackScript}`);
+  }
 
-    const stats = await fs.stat(tarPath);
-    if (stats.size === 0) {
-      logMessage("Downloaded tar.gz file is empty", "error");
-      throw new Error("Downloaded tar.gz file is empty");
-    }
-
-    if (await fileExists(destPath)) {
-      logMessage(`Removing existing environment at ${destPath}`);
-      await fs.rm(destPath, { recursive: true, force: true });
-    }
-
-    logMessage(`Creating destination directory: ${destPath}`);
-    await fs.mkdir(destPath, { recursive: true });
-
-    // Extract using tar-fs and gunzip-maybe
-    await new Promise((resolve, reject) => {
-      const startTime = Date.now();
-      let lastUpdate = startTime;
-      let processedBytes = 0;
-
-      const extractStream = createReadStream(tarPath)
-        .pipe(gunzip())
-        .pipe(
-          tar.extract(destPath, {
-            map: (header) => {
-              processedBytes += header.size;
-              const progress = (processedBytes / stats.size) * 100;
-
-              const now = Date.now();
-              if (now - lastUpdate >= 1000) {
-                const eta = calculateExtractETA(
-                  startTime,
-                  processedBytes,
-                  stats.size
-                );
-                emitUpdateProgress(
-                  "Python environment",
-                  progress,
-                  "Extracting",
-                  eta
-                );
-                lastUpdate = now;
-              }
-
-              return header;
-            },
-          })
-        );
-
-      extractStream.on("finish", resolve);
-      extractStream.on("error", reject);
-    });
-
-    // Run conda-unpack
-    emitBootMessage("Running conda-unpack...");
-    const unpackScript = getCondaUnpackPath();
-
-    logMessage(`Conda-unpack script: ${unpackScript}`);
-    if (!(await fileExists(unpackScript))) {
-      throw new Error(`conda-unpack script not found at: ${unpackScript}`);
-    }
-
-    // Make the script executable
+  // Make script executable on Unix systems
+  if (process.platform !== "win32") {
     await fs.chmod(unpackScript, "755");
+  }
 
-    const unpackProcess = spawn(unpackScript, [], {
-      stdio: "pipe",
-      env: getProcessEnv(),
-      cwd: destPath,
-    });
+  const unpackProcess = spawn(unpackScript, [], {
+    stdio: "pipe",
+    env: getProcessEnv(),
+    cwd: destPath,
+  });
 
+  emitUpdateProgress("Python environment", 100, "Finalizing", "Almost done");
+
+  return new Promise((resolve, reject) => {
     const unpackTimeout = setTimeout(() => {
       unpackProcess.kill();
-      throw new Error("conda-unpack process timed out after 30 minutes");
+      reject(new Error("conda-unpack process timed out after 30 minutes"));
     }, 30 * 60 * 1000);
 
     unpackProcess.stdout.on("data", (data) => {
       const message = data.toString().trim();
-      if (message) {
-        logMessage(`conda-unpack: ${message}`);
-      }
+      if (message) logMessage(`conda-unpack: ${message}`);
     });
 
     unpackProcess.stderr.on("data", (data) => {
       const message = data.toString().trim();
-      if (message) {
-        logMessage(`conda-unpack error: ${message}`, "error");
+      if (message) logMessage(`conda-unpack error: ${message}`, "error");
+    });
+
+    unpackProcess.on("exit", (code) => {
+      clearTimeout(unpackTimeout);
+      if (code === 0) {
+        logMessage("conda-unpack completed successfully");
+        emitBootMessage("Python environment unpacked successfully");
+        resolve();
+      } else {
+        reject(new Error(`conda-unpack failed with code ${code}`));
       }
     });
 
-    await new Promise((resolve, reject) => {
-      unpackProcess.on("exit", (code) => {
-        clearTimeout(unpackTimeout);
-        if (code === 0) {
-          logMessage("conda-unpack completed successfully");
-          emitBootMessage("Python environment unpacked successfully");
-          resolve();
-        } else {
-          reject(new Error(`conda-unpack failed with code ${code}`));
-        }
-      });
-
-      unpackProcess.on("error", (err) => {
-        clearTimeout(unpackTimeout);
-        reject(new Error(`Error running conda-unpack: ${err.message}`));
-      });
+    unpackProcess.on("error", (err) => {
+      clearTimeout(unpackTimeout);
+      reject(new Error(`Error running conda-unpack: ${err.message}`));
     });
-  } catch (err) {
-    const errorMsg = `Failed to unpack Python environment: ${err.message}`;
-    logMessage(errorMsg, "error");
-    logMessage(`Stack trace: ${err.stack}`, "error");
+  });
+}
 
-    try {
-      if (await fileExists(destPath)) {
-        await fs.rm(destPath, { recursive: true, force: true });
-      }
-    } catch (cleanupError) {
-      logMessage(`Error during cleanup: ${cleanupError.message}`, "error");
+/**
+ * Extract zip archive
+ * @param {string} zipPath - Path to zip file
+ * @param {string} destPath - Destination directory
+ * @param {number} totalSize - Total size of archive in bytes
+ * @returns {Promise<void>}
+ * @throws {Error} If extraction fails
+ */
+async function extractZip(zipPath, destPath, totalSize) {
+  const zip = new StreamZip.async({ file: zipPath });
+  try {
+    const entries = await zip.entries();
+    if (Object.keys(entries).length === 0) {
+      throw new Error("Zip file contains no entries");
     }
 
-    dialog.showErrorBox(
-      "Installation Error",
-      `Failed to install Python environment.\n\nError: ${err.message}\n\nPlease check the log file for more details.`
-    );
+    let extractedCompressedSize = 0;
+    const startTime = Date.now();
+    let lastUpdate = startTime;
 
-    throw err;
+    for (const [name, entry] of Object.entries(entries)) {
+      const fullPath = path.join(destPath, name);
+      if (!fullPath.startsWith(destPath)) {
+        throw new Error(`Invalid zip entry path: ${name}`);
+      }
+
+      await fs.mkdir(path.dirname(fullPath), { recursive: true });
+      if (!entry.isDirectory) {
+        await zip.extract(name, fullPath);
+        extractedCompressedSize += entry.compressedSize;
+
+        const progress = (extractedCompressedSize / totalSize) * 100;
+        const now = Date.now();
+        if (now - lastUpdate >= 1000) {
+          const eta = calculateExtractETA(
+            startTime,
+            extractedCompressedSize,
+            totalSize
+          );
+          emitUpdateProgress("Python environment", progress, "Extracting", eta);
+          lastUpdate = now;
+        }
+      }
+    }
+  } finally {
+    await zip.close();
   }
 }
 
-// Helper function to calculate ETA
+/**
+ * Extract tar.gz archive
+ * @param {string} tarPath - Path to tar.gz file
+ * @param {string} destPath - Destination directory
+ * @param {number} totalSize - Total size of archive in bytes
+ * @returns {Promise<void>}
+ * @throws {Error} If extraction fails
+ */
+async function extractTarGz(tarPath, destPath, totalSize) {
+  return new Promise((resolve, reject) => {
+    const startTime = Date.now();
+    let lastUpdate = startTime;
+    let processedBytes = 0;
+
+    const extractStream = createReadStream(tarPath, {
+      highWaterMark: 64 * 1024,
+    })
+      .on("data", (chunk) => {
+        processedBytes += chunk.length;
+        const progress = (processedBytes / totalSize) * 100;
+
+        const now = Date.now();
+        if (now - lastUpdate >= 1000) {
+          const eta = calculateExtractETA(startTime, processedBytes, totalSize);
+          emitUpdateProgress("Python environment", progress, "Extracting", eta);
+          lastUpdate = now;
+        }
+      })
+      .pipe(gunzip())
+      .pipe(tar.extract(destPath));
+
+    extractStream.on("finish", resolve);
+    extractStream.on("error", reject);
+  });
+}
+
+// Replace existing unpack functions with calls to the new unified function
+async function unpackPythonEnvironment(zipPath, destPath) {
+  await unpackEnvironment(zipPath, destPath, extractZip);
+}
+
+async function unpackTarGzEnvironment(tarPath, destPath) {
+  await unpackEnvironment(tarPath, destPath, extractTarGz);
+}
+
+/**
+ * Calculate estimated time remaining for extraction
+ * @param {number} startTime - Start time in milliseconds
+ * @param {number} processedBytes - Number of bytes processed
+ * @param {number} totalBytes - Total number of bytes
+ * @returns {string} Formatted time remaining string
+ */
 function calculateExtractETA(startTime, processedBytes, totalBytes) {
   const elapsedSeconds = (Date.now() - startTime) / 1000;
   const bytesPerSecond = processedBytes / elapsedSeconds;
@@ -924,6 +815,7 @@ function calculateExtractETA(startTime, processedBytes, totalBytes) {
  * Download a file's contents directly to a string
  * @param {string} url - The URL to download from
  * @returns {Promise<string>} The file contents as a string
+ * @throws {Error} If download fails
  */
 async function downloadToString(url) {
   return new Promise((resolve, reject) => {
@@ -960,6 +852,7 @@ async function downloadToString(url) {
 /**
  * Get the conda environment size from remote URL
  * @returns {Promise<number>} Size in bytes
+ * @throws {Error} If size cannot be determined
  */
 async function getCondaEnvSize() {
   try {
