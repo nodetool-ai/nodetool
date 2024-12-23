@@ -59,7 +59,9 @@ class Response:
         )
 
 
-NODETOOL_INTERNAL_API = "http://127.0.0.1:123"
+# This URL is used for internal API calls
+# directly on the ASGI layer without going through the HTTP server.
+NODETOOL_INTERNAL_API = "asgi://nodetool"
 
 
 class NodetoolAPIClient:
