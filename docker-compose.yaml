@@ -41,7 +41,8 @@ services:
       POSTGRES_HOST: ${POSTGRES_HOST}
       POSTGRES_PORT: ${POSTGRES_PORT}
       CHROMA_URL: http://chroma:9000
-      OLLAMA_API_URL: http://ollama:11434
+      OLLAMA_API_URL: ${OLLAMA_API_URL}
+      OLLAMA_API_KEY: ${OLLAMA_API_KEY}
       HF_HOME: /app/huggingface
       SENTRY_DSN: ${SENTRY_DSN}
       RUNPOD_API_KEY: ${RUNPOD_API_KEY}
@@ -87,12 +88,16 @@ services:
     volumes:
       - ${POSTGRES_DATA_DIR:-./postgres-data}:/var/lib/postgresql/data
   ollama:
-    image: ollama/ollama
+    image: georgi/ollama-bearer-auth
     restart: unless-stopped
     volumes:
       - ${OLLAMA_PATH:-./ollama-data}:/root/.ollama
     expose:
-      - "11434"
+      - "8081"
+    ports:
+      - "8081:8081"
+    environment:
+      OLLAMA_API_KEY: ${OLLAMA_API_KEY}
     deploy:
       resources:
         reservations:
