@@ -4,23 +4,84 @@ import { css } from "@emotion/react";
 import React, { useCallback, useState } from "react";
 import { MuiColorInput } from "mui-color-input";
 import styled from "@emotion/styled";
-import { Popover, Button } from "@mui/material";
-import ColorizeIcon from "@mui/icons-material/Colorize";
+import { Popover, Button, Tooltip } from "@mui/material";
 import { solarizedColors } from "../../constants/colors";
+import {
+  TOOLTIP_ENTER_NEXT_DELAY,
+  TOOLTIP_LEAVE_DELAY
+} from "../node/BaseNode";
+import { TOOLTIP_ENTER_DELAY } from "../node/BaseNode";
 
-const colorMatrixStyle = (theme: any) => css`
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 4px;
-  padding: 16px;
-  margin-bottom: 16px;
+const ColorCircle = styled.div<{ color: string | null }>`
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background-color: ${({ color }) => color || "#808080"};
+  border: 1px solid rgba(0, 0, 0, 0.2);
 `;
+
+const styles = (theme: any) =>
+  css({
+    "&": {
+      background: "transparent",
+      position: "absolute",
+      zIndex: 100,
+      width: "12px",
+      height: "12px",
+      left: 5,
+
+      bottom: 5,
+      padding: 0,
+      margin: 0,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center"
+    },
+    ".color-picker-button": {
+      width: "100%",
+      height: "100%",
+      minWidth: "unset",
+      boxShadow: "0 0 2px" + theme.palette.c_gray0,
+      borderRadius: "100%",
+      pointerEvents: "all",
+      margin: 0,
+      padding: 0,
+      overflow: "hidden",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      opacity: 0.6,
+      transition: "all 0.2s ease",
+      "&:hover": {
+        opacity: 1,
+        background: "transparent"
+      },
+      "& .color-circle": {
+        width: "100%",
+        height: "100%",
+        position: "relative"
+      }
+    },
+    ".custom-selection": {
+      marginTop: 16,
+      padding: 16
+    }
+  });
+
+const colorMatrixStyle = (theme: any) =>
+  css({
+    display: "grid",
+    gridTemplateColumns: "repeat(4, 1fr)",
+    gap: 4,
+    padding: 16,
+    marginBottom: 16
+  });
 
 const ColorCell = styled.button<{ color: string | null; isEmpty: boolean }>`
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  border: ${({ isEmpty }) => (isEmpty ? "2px solid red" : "none")};
+  border: ${({ isEmpty }) => (isEmpty ? "2px dashed gray" : "none")};
   background-color: ${({ color }) => color || "transparent"};
   cursor: pointer;
   &:hover {
@@ -28,25 +89,18 @@ const ColorCell = styled.button<{ color: string | null; isEmpty: boolean }>`
   }
 `;
 
-const customSectionStyle = css`
-  margin-top: 16px;
-  padding: 16px;
-`;
-
 interface ColorPickerProps {
   color: string | null;
   onColorChange: (newColor: string | null) => void;
   label?: string;
   showCustom?: boolean;
-  size?: "small" | "medium";
 }
 
 const ColorPicker: React.FC<ColorPickerProps> = ({
   color,
   onColorChange,
   label,
-  showCustom = true,
-  size = "medium"
+  showCustom = false
 }) => {
   const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -69,15 +123,17 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
   );
 
   return (
-    <>
-      <Button
-        className="color-picker-button action"
-        onClick={handleClick}
-        size={size}
+    <div className="color-picker" css={styles}>
+      <Tooltip
+        title="Set color"
+        placement="bottom"
+        enterDelay={TOOLTIP_ENTER_DELAY}
       >
-        {label}
-        <ColorizeIcon fontSize={size} />
-      </Button>
+        <Button className="color-picker-button action" onClick={handleClick}>
+          {label}
+          <ColorCircle className="color-circle" color={color || "#ffffffaa"} />
+        </Button>
+      </Tooltip>
       <Popover
         id={id}
         open={open}
@@ -92,32 +148,30 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
           horizontal: "left"
         }}
       >
-        <div>
-          <div css={colorMatrixStyle}>
-            {solarizedColors.map((cellColor, index) => (
-              <ColorCell
-                key={index}
-                color={cellColor || ""}
-                isEmpty={cellColor === null}
-                onClick={() => handleColorCellClick(cellColor)}
-              />
-            ))}
-          </div>
-          {showCustom && (
-            <div css={customSectionStyle}>
-              <div>CUSTOM</div>
-              <MuiColorInput
-                format="hex"
-                value={color || ""}
-                onChange={(newColor) => {
-                  onColorChange(newColor);
-                }}
-              />
-            </div>
-          )}
+        <div css={colorMatrixStyle}>
+          {solarizedColors.map((cellColor, index) => (
+            <ColorCell
+              key={index}
+              color={cellColor || ""}
+              isEmpty={cellColor === null}
+              onClick={() => handleColorCellClick(cellColor)}
+            />
+          ))}
         </div>
+        {showCustom && (
+          <div className="custom-selection">
+            <div>CUSTOM</div>
+            <MuiColorInput
+              format="hex"
+              value={color || ""}
+              onChange={(newColor) => {
+                onColorChange(newColor);
+              }}
+            />
+          </div>
+        )}
       </Popover>
-    </>
+    </div>
   );
 };
 

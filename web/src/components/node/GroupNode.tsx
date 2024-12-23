@@ -3,14 +3,7 @@ import { css } from "@emotion/react";
 
 import ThemeNodes from "../themes/ThemeNodes";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
-import {
-  Node,
-  NodeProps,
-  NodeResizeControl,
-  NodeResizer,
-  ResizeDragEvent
-} from "@xyflow/react";
-import SouthEastIcon from "@mui/icons-material/SouthEast";
+import { Node, NodeProps, ResizeDragEvent } from "@xyflow/react";
 
 // utils
 import { getMousePosition } from "../../utils/MousePosition";
@@ -27,6 +20,8 @@ import { TOOLTIP_DELAY } from "../../config/constants";
 import useWorkflowRunner from "../../stores/WorkflowRunner";
 import { PlayArrow } from "@mui/icons-material";
 import ColorPicker from "../inputs/ColorPicker";
+import NodeResizer from "./NodeResizer";
+import NodeResizeHandle from "./NodeResizeHandle";
 
 // constants
 const MIN_WIDTH = 200;
@@ -96,74 +91,32 @@ const styles = (theme: any, minWidth: number, minHeight: number) =>
         padding: ".5em 0.5em",
         border: 0,
         fontSize: "1.5em",
-        // textShadow: "0 0 2px #2b2b2b",
         fontWeight: 300
       }
     },
     // run stop button
     ".workflow-actions": {
-      padding: 0
+      marginRight: ".5em",
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+      width: "2em",
+      height: "2em"
     },
     ".workflow-actions button": {
       padding: 0,
       margin: 0,
-      width: "1em",
-      height: "2em",
-      color: "white"
+      width: "100%",
+      height: "100%",
+      minWidth: "unset",
+      minHeight: "unset",
+      color: "white",
+      opacity: 0.6,
+      transition: "all 0.2s ease"
     },
     ".workflow-actions button:hover": {
-      backgroundColor: "rgba(0,0,0,0.2)"
-    },
-    // resizer
-    ".tools .react-flow__resize-control.handle.bottom.right": {
       opacity: 1,
-      right: "-8px",
-      bottom: "-8px",
-      margin: 0,
-      borderRadius: "0 0 5px 0",
-      width: "1.5em",
-      height: "1.5em",
-      backgroundColor: theme.palette.c_gray2,
-      pointerEvents: "all",
-      "&:hover": {
-        backgroundColor: theme.palette.c_gray3
-      }
-    },
-    ".tools .react-flow__resize-control.handle:hover": {
-      backgroundColor: theme.palette.c_gray3
-    },
-    ".node-resizer .react-flow__resize-control.handle": {
-      opacity: 0
-    },
-    ".node-resizer .react-flow__resize-control.line": {
-      opacity: 0,
-      borderWidth: "1px",
-      borderColor: theme.palette.c_gray2,
-      transition: "all 0.15s ease-in-out"
-    },
-    ".node-resizer .react-flow__resize-control.line:hover": {
-      opacity: 1
-    },
-    ".color-picker-button": {
-      pointerEvents: "all",
-      position: "absolute",
-      bottom: "0",
-      margin: "0",
-      padding: "0",
-      right: "1em",
-      left: "unset",
-      width: "0em",
-      height: "1.1em",
-      zIndex: 10000,
-      backgroundColor: theme.palette.c_gray2,
-      borderRadius: "0",
-      "& svg": {
-        color: theme.palette.c_gray5,
-        width: ".5em",
-        height: ".5em",
-        // scale: ".5",
-        rotate: "-86deg"
-      }
+      background: "transparent"
     }
   });
 
@@ -369,20 +322,13 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           </Tooltip>
         </div>
       </div>
-      <ColorPicker color={color} onColorChange={handleColorChange} />
-      <div className="tools">
-        <NodeResizeControl
-          style={{ background: "transparent", border: "none" }}
-          minWidth={MIN_WIDTH}
-          minHeight={MIN_HEIGHT}
-          onResize={handleResize}
-        >
-          <SouthEastIcon />
-        </NodeResizeControl>
-      </div>
-      <div className="node-resizer">
-        <NodeResizer minWidth={MIN_WIDTH} minHeight={MIN_HEIGHT} />
-      </div>
+      <ColorPicker color={color || null} onColorChange={handleColorChange} />
+      <NodeResizeHandle
+        minWidth={MIN_WIDTH}
+        minHeight={MIN_HEIGHT}
+        onResize={handleResize}
+      />
+      <NodeResizer minWidth={MIN_WIDTH} minHeight={MIN_HEIGHT} />
     </div>
   );
 };
