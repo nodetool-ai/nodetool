@@ -368,14 +368,7 @@ class Environment(object):
         if api_url is None:
             api_url = cls.get_nodetool_api_url()
 
-        if api_url is not None:
-            return NodetoolAPIClient(
-                user_id=user_id,
-                auth_token=auth_token,
-                base_url=api_url,
-                client=AsyncClient(timeout=30, verify=False),
-            )
-        else:
+        if api_url is None or Environment.is_test():
             app = create_app()
             transport = ASGITransport(app=app)  # type: ignore
             return NodetoolAPIClient(
@@ -383,6 +376,13 @@ class Environment(object):
                 auth_token=auth_token,
                 base_url=NODETOOL_INTERNAL_API,
                 client=AsyncClient(transport=transport),
+            )
+        else:
+            return NodetoolAPIClient(
+                user_id=user_id,
+                auth_token=auth_token,
+                base_url=api_url,
+                client=AsyncClient(timeout=30, verify=False),
             )
 
     @classmethod
