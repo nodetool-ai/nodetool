@@ -1,11 +1,14 @@
 from pydantic import Field
 from nodetool.common.comfy_node import ComfyNode
+import nodes
 
 
 class EmptyImage(ComfyNode):
     """
     Generates an empty image.
     """
+
+    _comfy_class = nodes.EmptyImage
 
     width: int = Field(default=512, description="The width of the empty image.")
     height: int = Field(default=512, description="The height of the empty image.")

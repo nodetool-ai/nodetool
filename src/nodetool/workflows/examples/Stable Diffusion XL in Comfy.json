@@ -1,14 +1,14 @@
 {
   "id": "stable_diffusion_xl",
   "access": "public",
-  "created_at": "2024-10-19T21:00:51.951877",
-  "updated_at": "2024-10-19T21:00:51.951900",
+  "created_at": "2024-12-23T11:27:22.508990",
+  "updated_at": "2024-12-23T11:27:22.509007",
   "name": "Stable Diffusion XL in Comfy",
   "description": "",
   "tags": [
     "comfy"
   ],
-  "thumbnail": "",
+  "thumbnail": null,
   "thumbnail_url": "/examples/stable_diffusion_xl.jpg",
   "graph": {
     "nodes": [
@@ -22,10 +22,9 @@
           "batch_size": 1
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 370,
-            "y": 432
+            "y": 456
           },
           "zIndex": 0,
           "width": 200,
@@ -40,7 +39,6 @@
           "text": "a butterfly in rainbow colors"
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 370,
             "y": 50
@@ -60,10 +58,9 @@
           "text": "deformed"
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 370,
-            "y": 241
+            "y": 253
           },
           "zIndex": 0,
           "width": 200,
@@ -78,10 +75,9 @@
         "type": "comfy.latent.VAEDecode",
         "data": {},
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 816,
-            "y": 550
+            "y": 589
           },
           "zIndex": 0,
           "width": 200,
@@ -96,10 +92,9 @@
           "name": "image_image_2024-08-06"
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 1046,
-            "y": 485
+            "y": 526
           },
           "zIndex": 0,
           "width": 237,
@@ -113,16 +108,16 @@
         "type": "comfy.loaders.HuggingFaceCheckpointLoader",
         "data": {
           "model": {
-            "type": "hf.checkpoint_model_xl",
-            "repo_id": "stabilityai/stable-diffusion-xl-base-1.0",
-            "path": "sd_xl_base_1.0.safetensors"
+            "type": "hf.checkpoint_model",
+            "repo_id": "SG161222/Realistic_Vision_V5.1_noVAE",
+            "path": "Realistic_Vision_V5.1_fp16-no-ema.safetensors"
           }
         },
         "ui_properties": {
           "selected": false,
           "position": {
             "x": 50,
-            "y": 448
+            "y": 464
           },
           "zIndex": 0,
           "width": 250,
@@ -163,7 +158,6 @@
           "headline": "Stable Diffusion XL"
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 54,
             "y": -174
@@ -191,10 +185,10 @@
           "selected": false,
           "position": {
             "x": 630,
-            "y": 206
+            "y": 193
           },
           "zIndex": 0,
-          "width": 126,
+          "width": 152,
           "selectable": true
         }
       }
@@ -216,16 +210,6 @@
         "targetHandle": "vae",
         "ui_properties": {
           "className": "comfy_vae"
-        }
-      },
-      {
-        "id": "5ea01e7a-866a-4a47-aa11-76c32f05b747",
-        "source": "47",
-        "sourceHandle": "clip",
-        "target": "7",
-        "targetHandle": "clip",
-        "ui_properties": {
-          "className": "comfy_clip"
         }
       },
       {
@@ -286,6 +270,16 @@
         "targetHandle": "samples",
         "ui_properties": {
           "className": "comfy_latent"
+        }
+      },
+      {
+        "id": "5ea01e7a-866a-4a47-aa11-76c32f05b747",
+        "source": "47",
+        "sourceHandle": "clip",
+        "target": "7",
+        "targetHandle": "clip",
+        "ui_properties": {
+          "className": "comfy_clip"
         }
       }
     ]

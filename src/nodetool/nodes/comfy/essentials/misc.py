@@ -2,6 +2,7 @@ from typing import Any
 from nodetool.common.comfy_node import ComfyNode
 from nodetool.metadata.types import UNet, Latent
 from pydantic import Field
+from comfy_custom_nodes.ComfyUI_essentials import misc
 
 
 class SimpleMathFloat(ComfyNode):
@@ -15,7 +16,7 @@ class SimpleMathFloat(ComfyNode):
     - Provide flexible numeric inputs
     """
 
-    _comfy_class = "SimpleMathFloat+"
+    _comfy_class = misc.SimpleMathFloat
     value: float = Field(default=0.0, description="Floating-point value.")
 
     @classmethod
@@ -34,7 +35,7 @@ class SimpleMathPercent(ComfyNode):
     - Control strength of effects or blending
     """
 
-    _comfy_class = "SimpleMathPercent+"
+    _comfy_class = misc.SimpleMathPercent
     value: float = Field(default=0.0, ge=0, le=1, description="Percentage value (0-1).")
 
     @classmethod
@@ -53,7 +54,7 @@ class SimpleMathInt(ComfyNode):
     - Provide discrete numeric inputs
     """
 
-    _comfy_class = "SimpleMathInt+"
+    _comfy_class = misc.SimpleMathInt
     value: int = Field(default=0, description="Integer value.")
 
     @classmethod
@@ -72,7 +73,7 @@ class SimpleMathSlider(ComfyNode):
     - Provide bounded numeric inputs
     """
 
-    _comfy_class = "SimpleMathSlider+"
+    _comfy_class = misc.SimpleMathSlider
     value: float = Field(default=0.5, ge=0.0, le=1.0, description="Slider value.")
 
     @classmethod
@@ -91,7 +92,7 @@ class SimpleMathBoolean(ComfyNode):
     - Toggle between two states
     """
 
-    _comfy_class = "SimpleMathBoolean+"
+    _comfy_class = misc.SimpleMathBoolean
     value: bool = Field(default=False, description="Boolean value.")
 
     @classmethod
@@ -110,7 +111,7 @@ class SimpleMath(ComfyNode):
     - Implement custom numeric logic
     """
 
-    _comfy_class = "SimpleMath+"
+    _comfy_class = misc.SimpleMath
     a: int | float = Field(default=0.0, description="First optional value.")
     b: int | float = Field(default=0.0, description="Second optional value.")
     c: int | float = Field(default=0.0, description="Third optional value.")
@@ -132,7 +133,7 @@ class SimpleMathCondition(ComfyNode):
     - Combine conditional and mathematical operations
     """
 
-    _comfy_class = "SimpleMathCondition+"
+    _comfy_class = misc.SimpleMathCondition
     a: Any = Field(default=0.0, description="First optional value.")
     b: Any = Field(default=0.0, description="Second optional value.")
     c: Any = Field(default=0.0, description="Third optional value.")
@@ -160,7 +161,7 @@ class SimpleCondition(ComfyNode):
     - Create dynamic workflows with branching
     """
 
-    _comfy_class = "SimpleCondition+"
+    _comfy_class = misc.SimpleCondition
     evaluate: Any = Field(default=0, description="Condition to evaluate.")
     on_true: Any = Field(default=0, description="Value to return if condition is true.")
     on_false: Any = Field(
@@ -183,7 +184,7 @@ class SimpleComparison(ComfyNode):
     - Implement decision logic in workflows
     """
 
-    _comfy_class = "SimpleComparison+"
+    _comfy_class = misc.SimpleComparison
     a: Any = Field(default=0, description="First value to compare.")
     b: Any = Field(default=0, description="Second value to compare.")
     comparison: str = Field(default="==", description="Comparison operator.")
@@ -204,7 +205,7 @@ class ConsoleDebug(ComfyNode):
     - Verify data flow through nodes
     """
 
-    _comfy_class = "ConsoleDebug+"
+    _comfy_class = misc.ConsoleDebug
     value: Any = Field(description="Value to debug.")
     prefix: str = Field(default="Value:", description="Prefix for the debug output.")
 
@@ -224,7 +225,7 @@ class DebugTensorShape(ComfyNode):
     - Inspect complex nested tensor structures
     """
 
-    _comfy_class = "DebugTensorShape+"
+    _comfy_class = misc.DebugTensorShape
     tensor: Any = Field(
         description="Tensor or structure containing tensors to inspect."
     )
@@ -245,7 +246,7 @@ class BatchCount(ComfyNode):
     - Adapt processing based on batch size
     """
 
-    _comfy_class = "BatchCount+"
+    _comfy_class = misc.BatchCount
     batch: Any = Field(description="Batch to count items from.")
 
     @classmethod
@@ -253,26 +254,26 @@ class BatchCount(ComfyNode):
         return {"count": int}
 
 
-class UNetCompile(ComfyNode):
+class ModelCompile(ComfyNode):
     """
-    Compile a PyTorch UNet for optimized execution.
-    UNet, compilation, optimization
+    Compile a PyTorch model for optimized execution.
+    model, compilation, optimization
 
     Use cases:
-    - Optimize UNet performance
-    - Prepare UNets for specific execution environments
-    - Fine-tune UNet compilation settings
+    - Optimize model performance
+    - Prepare models for specific execution environments
+    - Fine-tune model compilation settings
     """
 
-    _comfy_class = "UNetCompile+"
-    unet: UNet = Field(description="UNet to compile.")
+    _comfy_class = misc.ModelCompile
+    model: UNet = Field(description="Model to compile.")
     fullgraph: bool = Field(default=False, description="Use full graph compilation.")
     dynamic: bool = Field(default=False, description="Use dynamic shape compilation.")
     mode: str = Field(default="default", description="Compilation mode.")
 
     @classmethod
     def return_type(cls):
-        return {"UNet": UNet}
+        return {"model": UNet}
 
 
 class RemoveLatentMask(ComfyNode):
@@ -286,7 +287,7 @@ class RemoveLatentMask(ComfyNode):
     - Remove unwanted mask information
     """
 
-    _comfy_class = "RemoveLatentMask+"
+    _comfy_class = misc.RemoveLatentMask
     samples: Latent = Field(description="Latent samples to process.")
 
     @classmethod
@@ -305,7 +306,7 @@ class SDXLEmptyLatentSizePicker(ComfyNode):
     - Set up batch processing with specific dimensions
     """
 
-    _comfy_class = "SDXLEmptyLatentSizePicker+"
+    _comfy_class = misc.SDXLEmptyLatentSizePicker
     resolution: str = Field(
         default="1024x1024 (1.0)", description="Predefined resolution option."
     )

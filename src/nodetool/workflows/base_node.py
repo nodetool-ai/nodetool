@@ -950,6 +950,10 @@ def get_comfy_class_by_name(class_name: str) -> type[BaseNode] | None:
     """
     if class_name == "Note":
         return Comment
+    if class_name == "PreviewImage":
+        return Preview
+    # TODO: handle more comfy special nodes
+
     if not class_name in COMFY_NODE_CLASSES:
         class_name = class_name.replace("-", "")
     if not class_name in COMFY_NODE_CLASSES:

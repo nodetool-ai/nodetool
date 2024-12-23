@@ -3,6 +3,9 @@ from pydantic import Field, validator
 from nodetool.metadata.types import ImageRef, UpscaleModel
 from nodetool.common.comfy_node import ComfyNode
 
+import nodes
+import comfy_extras.nodes_upscale_model
+
 
 class CropMethod(str, Enum):
     DISABLED = "disabled"
@@ -18,6 +21,12 @@ class UpscaleMethod(str, Enum):
 
 
 class ImageScale(ComfyNode):
+    """
+    Scale an image to a given size.
+    """
+
+    _comfy_class = nodes.ImageScale
+
     image: ImageRef = Field(default=ImageRef(), description="The image to scale.")
     upscale_method: UpscaleMethod = Field(
         default=UpscaleMethod.NEAREST_EXACT,
@@ -36,6 +45,12 @@ class ImageScale(ComfyNode):
 
 
 class ImageScaleBy(ComfyNode):
+    """
+    Scale an image by a given factor.
+    """
+
+    _comfy_class = nodes.ImageScaleBy
+
     image: ImageRef = Field(default=ImageRef(), description="The image to scale.")
     upscale_method: UpscaleMethod = Field(
         default=UpscaleMethod.NEAREST_EXACT,
@@ -51,6 +66,12 @@ class ImageScaleBy(ComfyNode):
 
 
 class ImageUpscaleWithModel(ComfyNode):
+    """
+    Upscale an image using a given model.
+    """
+
+    _comfy_class = comfy_extras.nodes_upscale_model.ImageUpscaleWithModel
+
     upscale_model: UpscaleModel = Field(
         default="",
         description="The model to use for upscaling the image.",

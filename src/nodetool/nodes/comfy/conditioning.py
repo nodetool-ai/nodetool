@@ -20,11 +20,17 @@ from pydantic import Field
 from nodetool.common.comfy_node import ComfyNode, MAX_RESOLUTION
 from nodetool.metadata.types import ImageRef, Conditioning, Latent, VAE
 
+import nodes
+import comfy_extras.nodes_video_model
+import comfy_extras.nodes_lt
+
 
 class CLIPTextEncode(ComfyNode):
     """
     The CLIP Text Encode node can be used to encode a text prompt using a CLIP model into an embedding that can be used to guide the diffusion model towards generating specific images.
     """
+
+    _comfy_class = nodes.CLIPTextEncode
 
     text: str = Field(default="", description="The prompt to use.")
     clip: CLIP = Field(default=CLIP(), description="The CLIP model to use.")
@@ -42,6 +48,8 @@ class ConditioningCombine(ComfyNode):
     """
     The Conditioning (Combine) node can be used to combine multiple conditionings by averaging the predicted noise of the diffusion model. Note that this is different from the Conditioning (Average) node. Here outputs of the diffusion model conditioned on different conditionings (i.e. all parts that make up the conditioning) are averaged out, while the Conditioning (Average) node interpolates the text embeddings that are stored inside the conditioning.
     """
+
+    _comfy_class = nodes.ConditioningCombine
 
     conditioning_1: Conditioning = Field(
         default=Conditioning(), description="The first conditioning input."
@@ -63,6 +71,8 @@ class ConditioningAverage(ComfyNode):
     """
     The Conditioning (Average) node can be used to interpolate between two text embeddings according to a strength factor set in conditioning_to_strength.
     """
+
+    _comfy_class = nodes.ConditioningAverage
 
     conditioning_to: Conditioning = Field(
         default=Conditioning(), description="The target conditioning."
@@ -88,6 +98,7 @@ class ConditioningConcat(ComfyNode):
     The Conditioning (Concat) node can be used to concatenate two conditionings. This allows for combining different conditioning inputs sequentially, which can be useful for creating more complex guidance for the diffusion model.
     """
 
+    _comfy_class = nodes.ConditioningConcat
     conditioning_to: Conditioning = Field(
         default=Conditioning(), description="The conditioning to concatenate to."
     )
@@ -109,6 +120,7 @@ class ConditioningSetArea(ComfyNode):
     The Conditioning (Set Area) node can be used to limit a conditioning to a specified area of the image. Together with the Conditioning (Combine) node this can be used to add more control over the composition of the final image.
     """
 
+    _comfy_class = nodes.ConditioningSetArea
     conditioning: Conditioning = Field(
         default=Conditioning(), description="The conditioning to modify."
     )
@@ -157,6 +169,8 @@ class ConditioningSetArea(ComfyNode):
 
 
 class ConditioningSetAreaPercentage(ComfyNode):
+    _comfy_class = nodes.ConditioningSetAreaPercentage
+
     conditioning: Conditioning = Field(
         default=Conditioning(), description="The conditioning to modify."
     )
@@ -210,6 +224,8 @@ class ConditioningSetMask(ComfyNode):
     The Conditioning (Set Mask) node can be used to limit a conditioning to a specified mask. Together with the Conditioning (Combine) node this can be used to add more control over the composition of the final image.
     """
 
+    _comfy_class = nodes.ConditioningSetMask
+
     conditioning: Conditioning = Field(
         default=Conditioning(), description="The conditioning to modify."
     )
@@ -240,6 +256,8 @@ class ConditioningZeroOut(ComfyNode):
     """
     The Conditioning (Zero Out) node can be used to zero out a conditioning. This effectively removes the influence of the conditioning on the diffusion process, which can be useful for creating areas of the image that are not influenced by the prompt or other conditioning inputs.
     """
+
+    _comfy_class = nodes.ConditioningZeroOut
 
     conditioning: Conditioning = Field(
         default=Conditioning(), description="The conditioning to be zeroed out."
@@ -282,6 +300,8 @@ class CLIPVisionEncode(ComfyNode):
     The CLIP Vision Encode node can be used to encode an image using a CLIP vision model into an embedding that can be used to guide unCLIP diffusion models or as input to style models.
     """
 
+    _comfy_class = nodes.CLIPVisionEncode
+
     clip_vision: CLIPVision = Field(
         default=CLIPVision(),
         description="The CLIP vision model to use for encoding.",
@@ -301,6 +321,7 @@ class CLIPSetLastLayer(ComfyNode):
     The CLIP Set Last Layer node can be used to set the CLIP output layer from which to take the text embeddings. Encoding text into an embedding happens by the text being transformed by various layers in the CLIP model. Although traditionally diffusion models are conditioned on the output of the last layer in CLIP, some diffusion models have been conditioned on earlier layers and might not work as well when using the output of the last layer.
     """
 
+    _comfy_class = nodes.CLIPSetLastLayer
     clip: CLIP = Field(default=CLIP(), description="The CLIP model to modify.")
     stop_at_clip_layer: int = Field(
         default=-1,
@@ -323,6 +344,8 @@ class ControlNetApply(ComfyNode):
     """
     The Apply ControlNet node can be used to provide further visual guidance to a diffusion model. Unlike unCLIP embeddings, controlnets and T2I adaptors work on any model. By chaining together multiple nodes it is possible to guide the diffusion model using multiple controlNets or T2I adaptors. This can be useful to e.g. hint at the diffusion model where the edges in the final image should be by providing an image containing edge detections along with a controlNet trained on edge detection images to this node.
     """
+
+    _comfy_class = nodes.ControlNetApply
 
     conditioning: Conditioning = Field(
         default=Conditioning(), description="The conditioning to apply."
@@ -349,6 +372,7 @@ class ControlNetApplyAdvanced(ComfyNode):
     The Apply ControlNet (Advanced) node provides more fine-grained control over the application of a ControlNet to the diffusion process. It allows for separate positive and negative conditioning, as well as control over the strength and range of application of the ControlNet.
     """
 
+    _comfy_class = nodes.ControlNetApplyAdvanced
     positive: Conditioning = Field(
         default=Conditioning(), description="The positive conditioning to apply."
     )
@@ -396,6 +420,7 @@ class unCLIPConditioning(ComfyNode):
     The unCLIP Conditioning node can be used to incorporate CLIP vision output into the conditioning process. This allows for image-guided generation, where the content and style of an input image can influence the output of the diffusion model.
     """
 
+    _comfy_class = nodes.unCLIPConditioning
     conditioning: Conditioning = Field(
         default=Conditioning(), description="The conditioning to modify."
     )
@@ -425,6 +450,8 @@ class GLIGENTextBoxApply(ComfyNode):
     """
     The GLIGEN Textbox Apply node can be used to provide further spatial guidance to a diffusion model, guiding it to generate the specified parts of the prompt in a specific region of the image. Although the text input will accept any text, GLIGEN works best if the input to it is an object that is part of the text prompt.
     """
+
+    _comfy_class = nodes.GLIGENTextBoxApply
 
     conditioning_to: Conditioning = Field(
         default=Conditioning(), description="The input conditioning to modify."
@@ -476,6 +503,8 @@ class SVD_img2vid_Conditioning(ComfyNode):
     The SVD Image to Video Conditioning node prepares conditioning for transforming a single image into a video sequence. It utilizes CLIP vision encoding and VAE processing to create appropriate conditioning for video generation models.
     """
 
+    _comfy_class = comfy_extras.nodes_video_model.SVD_img2vid_Conditioning
+
     clip_vision: CLIPVision = Field(
         default=CLIPVision(), description="The CLIP vision model to use."
     )
@@ -518,6 +547,8 @@ class InpaintModelConditioning(ComfyNode):
     The Inpaint Model Conditioning node prepares conditioning for inpainting models by combining the input image, mask, and conditioning information.
     """
 
+    _comfy_class = nodes.InpaintModelConditioning
+
     positive: Conditioning = Field(
         default=Conditioning(), description="The positive conditioning to apply."
     )
@@ -547,6 +578,7 @@ class StyleModelApply(ComfyNode):
     allowing for style transfer effects in the generation process.
     """
 
+    _comfy_class = nodes.StyleModelApply
     conditioning: Conditioning = Field(
         default=Conditioning(), description="The conditioning to modify."
     )
@@ -578,6 +610,8 @@ class LTXVConditioning(ComfyNode):
     - Prepare conditioning for LTXV models
     """
 
+    _comfy_class = comfy_extras.nodes_lt.LTXVConditioning
+
     positive: Conditioning = Field(
         default=Conditioning(), description="Positive conditioning."
     )
@@ -607,6 +641,8 @@ class LTXVImgToVideo(ComfyNode):
     - Prepare conditioning for LTXV video models
     - Transition from image to video in latent space
     """
+
+    _comfy_class = comfy_extras.nodes_lt.LTXVImgToVideo
 
     positive: Conditioning = Field(
         default=Conditioning(), description="Positive conditioning."

@@ -3,6 +3,7 @@ from nodetool.metadata.types import ImageRef, Mask, Latent, VAE, REMBGSession
 from pydantic import Field
 from enum import Enum
 from typing import Optional, List, Tuple
+from comfy_custom_nodes.ComfyUI_essentials import image
 
 
 class ImageEnhanceDifference(ComfyNode):
@@ -16,7 +17,7 @@ class ImageEnhanceDifference(ComfyNode):
     - Create visual effects based on image differences
     """
 
-    _comfy_class = "ImageEnhanceDifference+"
+    _comfy_class = image.ImageEnhanceDifference
 
     image1: ImageRef = Field(default=ImageRef(), description="The first image")
     image2: ImageRef = Field(default=ImageRef(), description="The second image")
@@ -43,7 +44,7 @@ class ImageBatchMultiple(ComfyNode):
     - Create image collections for analysis
     """
 
-    _comfy_class = "ImageBatchMultiple+"
+    _comfy_class = image.ImageBatchMultiple
 
     image_1: ImageRef = Field(
         default=ImageRef(), description="First image in the batch"
@@ -80,7 +81,7 @@ class ImageExpandBatch(ComfyNode):
     - Adjust batch size for model input
     """
 
-    _comfy_class = "ImageExpandBatch+"
+    _comfy_class = image.ImageExpandBatch
 
     image: ImageRef = Field(default=ImageRef(), description="Input image batch")
     size: int = Field(default=16, ge=1, description="Target batch size")
@@ -102,7 +103,7 @@ class ImageFromBatch(ComfyNode):
     - Isolate images for individual processing
     """
 
-    _comfy_class = "ImageFromBatch+"
+    _comfy_class = image.ImageFromBatch
 
     image: ImageRef = Field(default=ImageRef(), description="Input image batch")
     start: int = Field(default=0, ge=0, description="Starting index")
@@ -124,7 +125,7 @@ class ImageListToBatch(ComfyNode):
     - Standardize image formats for model input
     """
 
-    _comfy_class = "ImageListToBatch+"
+    _comfy_class = image.ImageListToBatch
 
     image: List[ImageRef] = Field(
         default_factory=list, description="List of input images"
@@ -146,7 +147,7 @@ class ImageCompositeFromMaskBatch(ComfyNode):
     - Batch process image compositions
     """
 
-    _comfy_class = "ImageCompositeFromMaskBatch+"
+    _comfy_class = image.ImageCompositeFromMaskBatch
 
     image_from: ImageRef = Field(default=ImageRef(), description="Source image batch")
     image_to: ImageRef = Field(
@@ -170,7 +171,7 @@ class ImageComposite(ComfyNode):
     - Overlay elements on background images
     """
 
-    _comfy_class = "ImageComposite+"
+    _comfy_class = image.ImageComposite
 
     destination: ImageRef = Field(default=ImageRef(), description="Destination image")
     source: ImageRef = Field(
@@ -200,7 +201,7 @@ class ImageResize(ComfyNode):
     - Adjust images for specific display requirements
     """
 
-    _comfy_class = "ImageResize+"
+    _comfy_class = image.ImageResize
 
     image: ImageRef = Field(default=ImageRef(), description="Input image")
     width: int = Field(default=512, ge=0, description="Target width")
@@ -228,7 +229,7 @@ class ImageFlip(ComfyNode):
     - Correct image orientations
     """
 
-    _comfy_class = "ImageFlip+"
+    _comfy_class = image.ImageFlip
 
     image: ImageRef = Field(default=ImageRef(), description="Input image")
     axis: str = Field(default="x", description="Axis to flip (x, y, or xy)")
@@ -249,7 +250,7 @@ class ImageCrop(ComfyNode):
     - Create uniform image sizes from varied inputs
     """
 
-    _comfy_class = "ImageCrop+"
+    _comfy_class = image.ImageCrop
 
     image: ImageRef = Field(default=ImageRef(), description="Input image")
     width: int = Field(default=256, ge=0, description="Crop width")
@@ -274,7 +275,7 @@ class ImageTile(ComfyNode):
     - Analyze image sections separately
     """
 
-    _comfy_class = "ImageTile+"
+    _comfy_class = image.ImageTile
 
     image: ImageRef = Field(default=ImageRef(), description="Input image")
     rows: int = Field(default=2, ge=1, le=256, description="Number of rows")
@@ -305,7 +306,7 @@ class ImageUntile(ComfyNode):
     - Create panoramas from image sections
     """
 
-    _comfy_class = "ImageUntile+"
+    _comfy_class = image.ImageUntile
 
     tiles: ImageRef = Field(default=ImageRef(), description="Tiled image input")
     overlap_x: int = Field(default=0, ge=0, description="X overlap between tiles")
@@ -329,7 +330,7 @@ class ImageColorMatch(ComfyNode):
     - Correct color inconsistencies in image sets
     """
 
-    _comfy_class = "ImageColorMatch+"
+    _comfy_class = image.ImageColorMatch
 
     image: ImageRef = Field(default=ImageRef(), description="Input image")
     reference: ImageRef = Field(
@@ -361,7 +362,7 @@ class ImageSmartSharpen(ComfyNode):
     - Prepare images for high-quality display or printing
     """
 
-    _comfy_class = "ImageSmartSharpen+"
+    _comfy_class = image.ImageSmartSharpen
 
     image: ImageRef = Field(default=ImageRef(), description="Input image")
     noise_radius: int = Field(
@@ -396,7 +397,7 @@ class ImagePreviewFromLatent(ComfyNode):
     - Create quick previews of latent manipulations
     """
 
-    _comfy_class = "ImagePreviewFromLatent+"
+    _comfy_class = image.ImagePreviewFromLatent
 
     latent: Latent = Field(default=Latent(), description="Input latent representation")
     vae: VAE = Field(default=VAE(), description="VAE model for decoding")
@@ -421,7 +422,7 @@ class NoiseFromImage(ComfyNode):
     - Produce image-specific distortion effects
     """
 
-    _comfy_class = "NoiseFromImage+"
+    _comfy_class = image.NoiseFromImage
 
     image: ImageRef = Field(default=ImageRef(), description="Input image")
     noise_strength: float = Field(

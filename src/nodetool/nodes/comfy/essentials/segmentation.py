@@ -2,6 +2,7 @@ from nodetool.common.comfy_node import ComfyNode
 from nodetool.metadata.types import ImageRef, Mask
 from pydantic import Field
 from typing import Tuple, Any
+from comfy_custom_nodes.ComfyUI_essentials import segmentation
 
 
 class LoadCLIPSegModels(ComfyNode):
@@ -15,7 +16,7 @@ class LoadCLIPSegModels(ComfyNode):
     - Initialize segmentation pipeline
     """
 
-    _comfy_class = "LoadCLIPSegModels+"
+    _comfy_class = segmentation.LoadCLIPSegModels
 
     @classmethod
     def return_type(cls):
@@ -33,7 +34,7 @@ class ApplyCLIPSeg(ComfyNode):
     - Create masks based on text prompts
     """
 
-    _comfy_class = "ApplyCLIPSeg+"
+    _comfy_class = segmentation.ApplyCLIPSeg
 
     clip_seg: Tuple[Any, Any] = Field(
         default=(None, None), description="The CLIP segmentation models"

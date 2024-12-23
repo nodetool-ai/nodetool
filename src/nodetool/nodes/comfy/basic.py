@@ -3,6 +3,8 @@ import PIL.Image
 import torch
 import comfy
 import comfy.sd
+import comfy.utils
+import comfy.model_management
 from comfy.model_patcher import ModelPatcher
 from comfy_extras.nodes_flux import FluxGuidance
 from comfy_extras.nodes_sd3 import EmptySD3LatentImage
@@ -540,7 +542,9 @@ class Flux(BaseNode):
             clip_t5xxl_path is not None
         ), "Second CLIP model checkpoint not found. Download from Recommended Models."
 
-        vae_path = try_to_load_from_cache(self.vae.repo_id, self.vae.path)
+        assert FLUX_VAE.path is not None, "VAE model path must be set."
+
+        vae_path = try_to_load_from_cache(FLUX_VAE.repo_id, FLUX_VAE.path)
         assert (
             vae_path is not None
         ), "VAE model checkpoint not found. Download from Recommended Models."

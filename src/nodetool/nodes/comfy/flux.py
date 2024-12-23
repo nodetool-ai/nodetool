@@ -4,14 +4,16 @@ from nodes import load_custom_node
 from nodetool.common.comfy_node import ComfyNode
 from nodetool.metadata.types import CLIP, Conditioning
 
-extras_dir = os.path.join(os.path.dirname(__file__), "..", "..", "..", "comfy_extras")
-
-load_custom_node(
-    os.path.join(extras_dir, "nodes_flux.py"), module_parent="comfy_extras"
-)
+import comfy_extras.nodes_flux
 
 
 class CLIPTextEncodeFlux(ComfyNode):
+    """
+    The CLIP Text Encode Flux node can be used to encode a text prompt using a CLIP model into an embedding that can be used to guide the diffusion model towards generating specific images.
+    """
+
+    _comfy_class = comfy_extras.nodes_flux.CLIPTextEncodeFlux
+
     clip: CLIP = Field(
         default=CLIP(),
         description="The CLIP model to use for encoding.",
@@ -39,6 +41,12 @@ class CLIPTextEncodeFlux(ComfyNode):
 
 
 class FluxGuidance(ComfyNode):
+    """
+    The Flux Guidance node can be used to append guidance to a conditioning.
+    """
+
+    _comfy_class = comfy_extras.nodes_flux.FluxGuidance
+
     conditioning: Conditioning = Field(
         default=Conditioning(),
         description="The conditioning to append guidance to.",

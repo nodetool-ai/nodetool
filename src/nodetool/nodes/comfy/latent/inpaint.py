@@ -1,12 +1,15 @@
 from pydantic import Field
 from nodetool.metadata.types import Latent, Mask
 from nodetool.common.comfy_node import ComfyNode
+import nodes
 
 
 class SetLatentNoiseMask(ComfyNode):
     """
     The Set Latent Noise Mask node can be used to add a mask to the latent images for inpainting. When the noise mask is set a sampler node will only operate on the masked area. If a single mask is provided, all the latents in the batch will use this mask.
     """
+
+    _comfy_class = nodes.SetLatentNoiseMask
 
     samples: Latent = Field(
         default=Latent(), description="The latent samples to set the noise mask for."

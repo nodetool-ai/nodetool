@@ -4,9 +4,15 @@ from pydantic import Field
 from nodetool.metadata.types import ImageRef, ImageRef
 from nodetool.common.comfy_node import ComfyNode
 from nodetool.workflows.processing_context import ProcessingContext
+import comfy_extras.nodes_images
 
 
 class SaveAnimatedWEBP(ComfyNode):
+    """
+    Save a list of images as an animated WEBP.
+    """
+
+    _comfy_class = comfy_extras.nodes_images.SaveAnimatedWEBP
     images: list[ImageRef] = Field(
         default_factory=list, description="list of images to save as animated WEBP."
     )
@@ -28,6 +34,12 @@ class SaveAnimatedWEBP(ComfyNode):
 
 
 class SaveAnimatedPNG(ComfyNode):
+    """
+    Save a list of images as an animated PNG.
+    """
+
+    _comfy_class = comfy_extras.nodes_images.SaveAnimatedPNG
+
     images: list[ImageRef] = Field(
         default_factory=list, description="list of images to save as animated PNG."
     )

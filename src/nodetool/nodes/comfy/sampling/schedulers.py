@@ -3,12 +3,17 @@ from nodetool.metadata.types import Latent, Sigmas, UNet
 from nodetool.common.comfy_node import ComfyNode
 from nodetool.nodes.comfy.sampling import SchedulerEnum
 
+import comfy_extras.nodes_custom_sampler
+import comfy_extras.nodes_lt
+
 
 class BasicScheduler(ComfyNode):
     """
     The Basic Scheduler node provides a simple scheduling mechanism for the sampling process.
     It allows selection of different scheduler types and control over steps and denoising.
     """
+
+    _comfy_class = comfy_extras.nodes_custom_sampler.BasicScheduler
 
     model: UNet = Field(default=UNet(), description="The model to use.")
     scheduler: SchedulerEnum = Field(
@@ -28,6 +33,8 @@ class KarrasScheduler(ComfyNode):
     improved sampling quality, especially for fewer sampling steps.
     """
 
+    _comfy_class = comfy_extras.nodes_custom_sampler.KarrasScheduler
+
     steps: int = Field(default=20, description="The number of steps.")
     sigma_max: float = Field(default=14.614642, description="The maximum sigma value.")
     sigma_min: float = Field(default=0.0291675, description="The minimum sigma value.")
@@ -44,6 +51,8 @@ class ExponentialScheduler(ComfyNode):
     which can offer a balance between speed and quality.
     """
 
+    _comfy_class = comfy_extras.nodes_custom_sampler.ExponentialScheduler
+
     steps: int = Field(default=20, description="The number of steps.")
     sigma_max: float = Field(default=14.614642, description="The maximum sigma value.")
     sigma_min: float = Field(default=0.0291675, description="The minimum sigma value.")
@@ -58,6 +67,8 @@ class PolyexponentialScheduler(ComfyNode):
     The Polyexponential Scheduler node implements a more flexible scheduling mechanism,
     allowing for fine-tuned control over the noise schedule through the rho parameter.
     """
+
+    _comfy_class = comfy_extras.nodes_custom_sampler.PolyexponentialScheduler
 
     steps: int = Field(
         default=20, description="The number of steps to compute the sigmas."
@@ -78,6 +89,8 @@ class SDTurboScheduler(ComfyNode):
     real-time or near-real-time applications.
     """
 
+    _comfy_class = comfy_extras.nodes_custom_sampler.SDTurboScheduler
+
     model: UNet = Field(
         default=UNet(), description="The model for which to use the scheduler."
     )
@@ -97,6 +110,8 @@ class VPScheduler(ComfyNode):
     differential equation (SDE) based scheduler, which can provide high-quality results
     for certain types of models and generation tasks.
     """
+
+    _comfy_class = comfy_extras.nodes_custom_sampler.VPScheduler
 
     steps: int = Field(
         default=20, description="The number of steps to compute the sigmas."
@@ -126,6 +141,8 @@ class LTXVScheduler(ComfyNode):
     - Adjust sigmas based on latent tokens
     - Fine-tune sampling parameters for video models
     """
+
+    _comfy_class = comfy_extras.nodes_lt.LTXVScheduler
 
     steps: int = Field(default=20, ge=1, le=10000, description="Number of steps.")
     max_shift: float = Field(

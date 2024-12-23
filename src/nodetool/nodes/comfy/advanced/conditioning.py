@@ -1,6 +1,7 @@
 from pydantic import Field
 from nodetool.metadata.types import CLIP, Conditioning
 from nodetool.common.comfy_node import ComfyNode
+import comfy_extras.nodes_clip_sdxl
 
 
 class CLIPTextEncodeSDXLRefiner(ComfyNode):
@@ -13,6 +14,8 @@ class CLIPTextEncodeSDXLRefiner(ComfyNode):
     - Incorporate aesthetic scores in text encoding
     - Generate conditionings for high-resolution image refinement
     """
+
+    _comfy_class = comfy_extras.nodes_clip_sdxl.CLIPTextEncodeSDXLRefiner
 
     ascore: float = Field(default=6.0, description="The ascore to use.")
     width: int = Field(default=1024, le=2048, description="The width to use.")
@@ -35,6 +38,8 @@ class CLIPTextEncodeSDXL(ComfyNode):
     - Handle separate global and local text prompts
     - Generate conditionings with specific crop and target dimensions
     """
+
+    _comfy_class = comfy_extras.nodes_clip_sdxl.CLIPTextEncodeSDXL
 
     width: int = Field(default=1024, le=2048, description="The width to use.")
     height: int = Field(default=1024, le=2048, description="The height to use.")

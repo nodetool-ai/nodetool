@@ -6,6 +6,9 @@ from nodetool.common.comfy_node import DensePoseModel
 
 from nodetool.common.comfy_node import ComfyNode, EnableDisable
 from nodetool.nodes.comfy.controlnet import PreprocessImage
+import comfy_custom_nodes.comfyui_controlnet_aux.node_wrappers.densepose as densepose
+import comfy_custom_nodes.comfyui_controlnet_aux.node_wrappers.dwpose as dwpose
+import comfy_custom_nodes.comfyui_controlnet_aux.node_wrappers.openpose as openpose
 
 
 class Toggle(str, Enum):
@@ -33,6 +36,13 @@ class PoseEstimatorModel(str, Enum):
 
 
 class DensePosePreprocessor(PreprocessImage):
+    """
+    Estimates dense poses from an image.
+    controlnet, faces_and_poses, densepose
+    """
+
+    _comfy_class = densepose.DensePose_Preprocessor
+
     model: DensePoseModel = Field(
         default=DensePoseModel.DENSEPOSE_R50_FPN_DL, description="The model to use."
     )
@@ -42,6 +52,13 @@ class DensePosePreprocessor(PreprocessImage):
 
 
 class DWPose_Preprocessor(ComfyNode):
+    """
+    Estimates poses from an image.
+    controlnet, faces_and_poses, dw_pose
+    """
+
+    _comfy_class = dwpose.DWPose_Preprocessor
+
     detect_hand: Toggle = Field(
         default=Toggle.ENABLE, description="Toggle to enable or disable hand detection."
     )
@@ -66,6 +83,13 @@ class DWPose_Preprocessor(ComfyNode):
 
 
 class OpenposePreprocessor(PreprocessImage):
+    """
+    Estimates poses from an image.
+    controlnet, faces_and_poses, openpose
+    """
+
+    _comfy_class = openpose.OpenPose_Preprocessor
+
     detect_hand: EnableDisable = Field(
         default=EnableDisable.ENABLE,
         description="Whether to detect hands.",

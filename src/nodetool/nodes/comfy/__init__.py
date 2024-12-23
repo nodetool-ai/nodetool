@@ -24,7 +24,6 @@ import nodetool.nodes.comfy.generate
 import nodetool.nodes.comfy.image
 import nodetool.nodes.comfy.image.animation
 import nodetool.nodes.comfy.image.batch
-import nodetool.nodes.comfy.image.preprocessors
 import nodetool.nodes.comfy.image.transform
 import nodetool.nodes.comfy.image.upscaling
 import nodetool.nodes.comfy.ipadapter
@@ -45,58 +44,28 @@ import nodetool.nodes.comfy.sampling.sigmas
 import nodetool.nodes.comfy.sampling.guiders
 import nodetool.nodes.comfy.sampling.noise
 import nodetool.nodes.comfy.basic
+from nodetool.workflows.processing_context import ProcessingContext
 
 
 class PrimitiveNode(ComfyNode):
-    _comfy_class = "PrimitiveNode"
-
     @classmethod
     def return_type(cls):
         return Any
 
+    async def process(self, context: ProcessingContext) -> Any:
+        raise NotImplementedError("PrimitiveNode is not implemented")
+
+
+class Reroute(ComfyNode):
+    @classmethod
+    def return_type(cls):
+        return Any
+
+    async def process(self, context: ProcessingContext) -> Any:
+        raise NotImplementedError("Reroute is not implemented")
+
 
 class Note(ComfyNode):
-    _comfy_class = "Note"
-
     @classmethod
     def is_visible(cls):
         return False
-
-
-# hs issues
-# class UpscaleModel(BaseNode):
-#     """
-#     Upscales an image using a specified upscale model.
-#     image, upscaling, high-resolution
-
-#     Use cases:
-#     - Enhancing the resolution of images
-#     - Improving image quality for further editing or processing
-#     - Creating high-resolution versions of low-resolution inputs
-#     """
-
-#     upscale_model: UpscaleModelFile = Field(
-#         default=UpscaleModelFile(name="RealESRGAN_x2.pth"),
-#         description="Upscale model to use.",
-#     )
-#     input_image: ImageRef = Field(
-#         default=ImageRef(),
-#         description="The image to upscale.",
-#     )
-
-#     _upscale_model: Any | None = None
-
-#     async def initialize(self, context: ProcessingContext):
-#         upscale_loader = UpscaleModelLoader()
-#         self._upscale_model = upscale_loader.load_model(self.upscale_model.name)[0]
-
-#     async def process(self, context: ProcessingContext) -> ImageRef:
-#         input_tensor = await context.image_to_torch_tensor(self.input_image)
-
-#         upscaled_tensor = ImageUpscaleWithModel().upscale(
-#             self._upscale_model, input_tensor.unsqueeze(0)
-#         )[0]
-
-#         return await context.image_from_numpy(
-#             upscaled_tensor.to(dtype=torch.float16).squeeze().cpu().numpy()
-#         )

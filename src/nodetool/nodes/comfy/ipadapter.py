@@ -19,6 +19,8 @@ from nodetool.common.comfy_node import ComfyNode
 from nodetool.nodes.huggingface.stable_diffusion_base import HF_IP_ADAPTER_MODELS
 from nodetool.workflows.processing_context import ProcessingContext
 
+from comfy_custom_nodes.ComfyUI_IPAdapter_plus import IPAdapterPlus
+
 
 class InterpolationMethod(Enum):
     LANCZOS = "LANCZOS"
@@ -45,6 +47,12 @@ class ProviderEnum(str, Enum):
 
 
 class PrepImageForClipVision(ComfyNode):
+    """
+    The Prep Image For Clip Vision node can be used to prepare an image for use with a CLIPVision model.
+    """
+
+    _comfy_class = IPAdapterPlus.PrepImageForClipVision
+
     image: ImageRef = Field(default=ImageRef(), description="The image to prepare.")
     interpolation: InterpolationMethod = Field(
         default=InterpolationMethod.LANCZOS,
@@ -63,6 +71,12 @@ class PrepImageForClipVision(ComfyNode):
 
 
 class IPAdapterEncoder(ComfyNode):
+    """
+    The IPAdapter Encoder node can be used to encode an image into an embedding that can be used to guide the diffusion model towards generating specific images.
+    """
+
+    _comfy_class = IPAdapterPlus.IPAdapterEncoder
+
     clip_vision: CLIPVision = Field(
         default=CLIPVision(), description="The CLIP vision to use."
     )
@@ -107,6 +121,12 @@ class WeightTypeEnum(str, Enum):
 
 
 class IPAdapterApply(ComfyNode):
+    """
+    The IPAdapter Apply node can be used to apply an IPAdapter to a model.
+    """
+
+    _comfy_class = IPAdapterPlus.IPAdapterApply
+
     ipadapter: IPAdapter = Field(
         default=IPAdapter(), description="The IPAdapter to apply."
     )
@@ -146,6 +166,10 @@ class IPAdapterApply(ComfyNode):
 
 
 class IPAdapterApplyEncoded(IPAdapterApply):
+    """
+    The IPAdapter Apply Encoded node can be used to apply an encoded IPAdapter to a model.
+    """
+
     # Inherits all required and optional fields from IPAdapterApply except for the added "embeds" field
     embeds: Embeds = Field(
         default=Embeds(), description="The encoded embeddings to apply."
@@ -157,6 +181,12 @@ class IPAdapterApplyEncoded(IPAdapterApply):
 
 
 class IPAdapterSaveEmbeds(ComfyNode):
+    """
+    The IPAdapter Save Embeds node can be used to save an embedding to a file.
+    """
+
+    _comfy_class = IPAdapterPlus.IPAdapterSaveEmbeds
+
     embeds: Embeds = Field(default=Embeds(), description="The embeddings to save.")
     filename_prefix: str = Field(
         default="embeds/IPAdapter",
@@ -177,6 +207,12 @@ class IPAdapterSaveEmbeds(ComfyNode):
 
 
 class IPAdapterBatchEmbeds(ComfyNode):
+    """
+    The IPAdapter Batch Embeds node can be used to batch two sets of embeddings.
+    """
+
+    _comfy_class = IPAdapterPlus.IPAdapterBatchEmbeds
+
     embed1: Embeds = Field(default=Embeds(), description="The first set of embeddings.")
     embed2: Embeds = Field(
         default=Embeds(), description="The second set of embeddings."

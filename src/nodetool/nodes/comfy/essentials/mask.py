@@ -1,6 +1,7 @@
 from nodetool.common.comfy_node import ComfyNode
 from nodetool.metadata.types import Mask, ImageRef
 from pydantic import Field
+from comfy_custom_nodes.ComfyUI_essentials import mask
 
 
 class MaskBlur(ComfyNode):
@@ -14,7 +15,7 @@ class MaskBlur(ComfyNode):
     - Create gradient effects in masks
     """
 
-    _comfy_class = "MaskBlur+"
+    _comfy_class = mask.MaskBlur
 
     mask: Mask = Field(default=Mask(), description="The input mask to blur.")
     amount: int = Field(default=6, ge=0, le=256, description="Blur amount.")
@@ -36,7 +37,7 @@ class MaskFlip(ComfyNode):
     - Generate variations of existing masks
     """
 
-    _comfy_class = "MaskFlip+"
+    _comfy_class = mask.MaskFlip
 
     mask: Mask = Field(default=Mask(), description="The input mask to flip.")
     axis: str = Field(default="x", description="Axis to flip along: 'x', 'y', or 'xy'.")
@@ -57,7 +58,7 @@ class MaskPreview(ComfyNode):
     - Export mask as viewable image
     """
 
-    _comfy_class = "MaskPreview+"
+    _comfy_class = mask.MaskPreview
 
     mask: Mask = Field(default=Mask(), description="The mask to preview.")
 
@@ -77,7 +78,7 @@ class MaskBatch(ComfyNode):
     - Create mask sequences for animations
     """
 
-    _comfy_class = "MaskBatch+"
+    _comfy_class = mask.MaskBatch
 
     mask1: Mask = Field(default=Mask(), description="First mask to batch.")
     mask2: Mask = Field(default=Mask(), description="Second mask to batch.")
@@ -98,7 +99,7 @@ class MaskExpandBatch(ComfyNode):
     - Adjust mask batch size for compatibility
     """
 
-    _comfy_class = "MaskExpandBatch+"
+    _comfy_class = mask.MaskExpandBatch
 
     mask: Mask = Field(default=Mask(), description="The mask batch to expand.")
     size: int = Field(default=16, ge=1, description="Target batch size.")
@@ -120,7 +121,7 @@ class MaskBoundingBox(ComfyNode):
     - Extract region of interest from masks
     """
 
-    _comfy_class = "MaskBoundingBox+"
+    _comfy_class = mask.MaskBoundingBox
 
     mask: Mask = Field(default=Mask(), description="The input mask.")
     padding: int = Field(
@@ -156,7 +157,7 @@ class MaskFromColor(ComfyNode):
     - Isolate elements based on color information
     """
 
-    _comfy_class = "MaskFromColor+"
+    _comfy_class = mask.MaskFromColor
 
     image: ImageRef = Field(default=ImageRef(), description="The input image.")
     red: int = Field(
@@ -188,7 +189,7 @@ class MaskFromSegmentation(ComfyNode):
     - Prepare masks for selective processing
     """
 
-    _comfy_class = "MaskFromSegmentation+"
+    _comfy_class = mask.MaskFromSegmentation
 
     image: ImageRef = Field(
         default=ImageRef(), description="The input image to segment."
@@ -225,7 +226,7 @@ class MaskFix(ComfyNode):
     - Prepare masks for specific processing requirements
     """
 
-    _comfy_class = "MaskFix+"
+    _comfy_class = mask.MaskFix
 
     mask: Mask = Field(default=Mask(), description="The input mask to fix.")
     erode_dilate: int = Field(
@@ -263,7 +264,7 @@ class TransitionMask(ComfyNode):
     - Produce animated mask patterns
     """
 
-    _comfy_class = "TransitionMask+"
+    _comfy_class = mask.TransitionMask
 
     width: int = Field(default=512, ge=1, le=8192, description="Width of the mask.")
     height: int = Field(default=512, ge=1, le=8192, description="Height of the mask.")

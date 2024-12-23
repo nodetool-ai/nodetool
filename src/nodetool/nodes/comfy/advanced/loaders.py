@@ -3,15 +3,22 @@ from nodetool.common.comfy_node import ComfyNode
 from nodetool.metadata.types import (
     CLIP,
     Conditioning,
-    Latent,
     ImageRef,
     VAE,
     ControlNet,
 )
 from enum import Enum
 
+import comfy_extras.nodes_sd3
+
 
 class TripleCLIPLoader(ComfyNode):
+    """
+    Loads three CLIP models.
+    """
+
+    _comfy_class = comfy_extras.nodes_sd3.TripleCLIPLoader
+
     clip_name1: str = Field(
         ..., description="The name of the first CLIP model to load."
     )
@@ -37,6 +44,12 @@ class EmptyPaddingEnum(str, Enum):
 
 
 class CLIPTextEncodeSD3(ComfyNode):
+    """
+    Encodes text using CLIP for the SD3 model.
+    """
+
+    _comfy_class = comfy_extras.nodes_sd3.CLIPTextEncodeSD3
+
     clip: CLIP = Field(
         default=CLIP(), description="The CLIP model to use for encoding."
     )
@@ -57,6 +70,12 @@ class CLIPTextEncodeSD3(ComfyNode):
 
 
 class ControlNetApplySD3(ComfyNode):
+    """
+    Applies a ControlNet to the image.
+    """
+
+    _comfy_class = comfy_extras.nodes_sd3.ControlNetApplySD3
+
     positive: Conditioning = Field(
         default=Conditioning(), description="The positive conditioning."
     )
