@@ -1,6 +1,8 @@
 import os
 import dotenv
 
+from nodetool.workflows.examples import load_example
+
 dotenv.load_dotenv()
 
 import asyncio
@@ -79,94 +81,14 @@ async def async_generator_handler(job):
 
         run_future.result()
 
-
-runpod.serverless.start({"handler": async_generator_handler})
-
-# For local testing
-if False:
+if __name__ == "__main__":
     os.environ["ENV"] = "production"
-    workflow = {
-        "id": "image_enhance",
-        "auth_token": "1234567890",
-        "access": "public",
-        "created_at": "2024-10-19T19:08:03.772840",
-        "updated_at": "2024-10-19T19:08:03.772863",
-        "name": "Image Enhance",
-        "description": "",
-        "tags": ["image", "start"],
-        "thumbnail": "",
-        "thumbnail_url": "/examples/image_enhance.jpg",
-        "graph": {
-            "nodes": [
-                {
-                    "id": "3",
-                    "parent_id": None,
-                    "type": "nodetool.workflows.base_node.Preview",
-                    "data": {"name": "image_output_2024-07-06"},
-                    "ui_properties": {
-                        "selected": False,
-                        "position": {"x": 839, "y": 394},
-                        "zIndex": 0,
-                        "width": 214,
-                        "height": 211,
-                        "selectable": True,
-                    },
-                },
-                {
-                    "id": "6",
-                    "parent_id": None,
-                    "type": "nodetool.image.enhance.Color",
-                    "data": {"factor": 1.4},
-                    "ui_properties": {
-                        "position": {"x": 600, "y": 444},
-                        "zIndex": 0,
-                        "width": 200,
-                        "selectable": True,
-                    },
-                },
-                {
-                    "id": "97877",
-                    "parent_id": None,
-                    "type": "nodetool.constant.Image",
-                    "data": {
-                        "value": {
-                            "uri": "https://www.mauritshuis.nl/media/rgxggmkv/vermeer-meisje-met-de-parel-mh670-mauritshuis-den-haag.jpg?center=0.44178550792733645,0.47243107769423559&mode=crop&width=1200&height=0&rnd=133018598924500000&quality=70",
-                            "type": "image",
-                        }
-                    },
-                    "ui_properties": {
-                        "position": {"x": 50, "y": 293},
-                        "zIndex": 0,
-                        "width": 200,
-                        "selectable": True,
-                    },
-                },
-            ],
-            "edges": [
-                {
-                    "id": "27594e37-fde4-400f-9e5f-60f90ef03c30",
-                    "source": "97877",
-                    "sourceHandle": "output",
-                    "target": "6",
-                    "targetHandle": "image",
-                    "ui_properties": {"className": "image"},
-                },
-                {
-                    "id": "380ae2ba-c21e-4460-b411-4853fae085d4",
-                    "source": "6",
-                    "sourceHandle": "output",
-                    "target": "3",
-                    "targetHandle": "value",
-                    "ui_properties": {"className": "image"},
-                },
-            ],
-        },
-        "input_schema": None,
-        "output_schema": None,
-    }
+    workflow = load_example("Stable Diffusion in Comfy.json").model_dump()
 
     async def main():
         async for msg in async_generator_handler({"input": workflow}):
             print(msg)
 
     asyncio.run(main())
+
+runpod.serverless.start({"handler": async_generator_handler})

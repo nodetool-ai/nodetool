@@ -1,5 +1,4 @@
 from enum import Enum
-from nodes import load_custom_node, extras_dir, load_extras_node
 import os
 from pydantic import Field
 from nodetool.metadata.types import Conditioning, Latent, UNet
@@ -160,6 +159,3 @@ class DifferentialDiffusion(ComfyNode):
     @classmethod
     def return_type(cls):
         return {"model": UNet}
-
-    def import_modules(self):
-        load_extras_node("nodes_differential_diffusion.py")

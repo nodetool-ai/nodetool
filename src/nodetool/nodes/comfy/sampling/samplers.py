@@ -1,6 +1,5 @@
 from enum import Enum
 from pydantic import Field
-from nodes import load_extras_node
 from nodetool.metadata.types import (
     Conditioning,
     Guider,
