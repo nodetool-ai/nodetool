@@ -3,24 +3,15 @@ import { css } from "@emotion/react";
 import ThemeNodetool from "../themes/ThemeNodetool";
 
 import { memo, useCallback, useEffect, useRef } from "react";
-import {
-  Node,
-  NodeProps,
-  NodeResizeControl,
-  NodeResizer,
-  ResizeDragEvent
-} from "@xyflow/react";
-import SouthEastIcon from "@mui/icons-material/SouthEast";
+import { Node, NodeProps, ResizeDragEvent } from "@xyflow/react";
 import { Tooltip } from "@mui/material";
 // components
 import { NodeHeader } from "./NodeHeader";
 import { NodeInputs } from "./NodeInputs";
 import { NodeOutputs } from "./NodeOutputs";
+import NodeResizer from "./NodeResizer";
 // utils
 import { getMousePosition } from "../../utils/MousePosition";
-
-// hooks
-import { useMetadata } from "../../serverState/useMetadata";
 // store
 import { NodeStore, useNodeStore } from "../../stores/NodeStore";
 import { NodeData } from "../../stores/NodeData";
@@ -34,6 +25,7 @@ import {
 } from "./BaseNode";
 import { isEqual } from "lodash";
 import useMetadataStore from "../../stores/MetadataStore";
+import NodeResizeHandle from "./NodeResizeHandle";
 
 const styles = (theme: any) =>
   css({
@@ -56,29 +48,6 @@ const styles = (theme: any) =>
       marginTop: "10px",
       left: "10px",
       top: "0px"
-    },
-    // resize control
-    ".tools .react-flow__resize-control.handle.bottom.right": {
-      opacity: 1,
-      right: "-8px",
-      bottom: "-8px",
-      margin: 0,
-      borderRadius: "0 0 5px 0",
-      width: "1.5em",
-      height: "1.5em",
-      background: "#222 !important"
-    },
-    ".node-resizer .react-flow__resize-control.handle": {
-      opacity: 0
-    },
-    ".node-resizer .react-flow__resize-control.line": {
-      opacity: 0,
-      borderWidth: "1px",
-      borderColor: theme.palette.c_gray2,
-      transition: "all 0.15s ease-in-out"
-    },
-    ".node-resizer .react-flow__resize-control.line:hover": {
-      opacity: 1
     },
     // header
     ".node-header": {
@@ -115,7 +84,6 @@ const styles = (theme: any) =>
     },
     "& .react-flow__handle-right": {
       top: "4.5em"
-      // bottom: "3em"
     },
     ".info": {
       position: "absolute",
@@ -275,19 +243,12 @@ const LoopNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       >
         <div className="output-label">Output</div>
       </Tooltip>
-      <div className="tools">
-        <NodeResizeControl
-          style={{ background: "transparent", border: "none" }}
-          minWidth={400}
-          minHeight={250}
-          onResize={handleResize}
-        >
-          <SouthEastIcon />
-        </NodeResizeControl>
-      </div>
-      <div className="node-resizer">
-        <NodeResizer minWidth={400} minHeight={250} />
-      </div>
+      <NodeResizeHandle
+        minWidth={400}
+        minHeight={250}
+        onResize={handleResize}
+      />
+      <NodeResizer minWidth={400} minHeight={250} />
     </div>
   );
 };

@@ -14,7 +14,7 @@ import SouthEastIcon from "@mui/icons-material/SouthEast";
 import { hexToRgba } from "../../utils/ColorUtils";
 import ThemeNodes from "../../components/themes/ThemeNodes";
 import ColorPicker from "../inputs/ColorPicker";
-
+import NodeResizeHandle from "./NodeResizeHandle";
 type CustomElement = { type: "paragraph"; children: CustomText[] };
 type CustomText = { text: string };
 
@@ -25,12 +25,12 @@ const styles = (theme: any) =>
       height: "100%",
       margin: 0,
       padding: 0,
-      border: `1px solid ${hexToRgba(theme.palette.c_white, 0.3)}`,
+      // border: `1px solid ${hexToRgba(theme.palette.c_white, 0.3)}`,
       boxShadow: `0 0 8px ${hexToRgba(theme.palette.c_white, 0.1)}`,
       backgroundColor: "transparent",
-      transition: "border-color 0.2s ease, box-shadow 0.2s ease",
+      // transition: "border-color 0.2s ease, box-shadow 0.2s ease",
       "&:hover": {
-        border: `1px solid ${hexToRgba(theme.palette.c_white, 0.5)}`,
+        // border: `1px solid ${hexToRgba(theme.palette.c_white, 0.5)}`,
         boxShadow: `0 0 12px ${hexToRgba(theme.palette.c_white, 0.2)}`
       },
       "&.collapsed": {
@@ -91,32 +91,32 @@ const styles = (theme: any) =>
     ".MuiTouchRipple-root": {
       width: 0,
       height: 0
-    },
-    ".color-picker-button": {
-      pointerEvents: "all",
-      opacity: 0,
-      position: "absolute",
-      bottom: "0",
-      margin: "0",
-      padding: "0",
-      right: "1em",
-      left: "unset",
-      width: "0em",
-      height: "1.1em",
-      zIndex: 10000,
-      backgroundColor: theme.palette.c_gray2,
-      borderRadius: "0",
-      "& svg": {
-        color: theme.palette.c_gray5,
-        width: ".5em",
-        height: ".5em",
-        // scale: ".5",
-        rotate: "-86deg"
-      },
-      "&:hover svg": {
-        color: theme.palette.c_hl1
-      }
     }
+    // ".color-picker-button": {
+    //   pointerEvents: "all",
+    //   opacity: 0,
+    //   position: "absolute",
+    //   bottom: "0",
+    //   margin: "0",
+    //   padding: "0",
+    //   right: "1em",
+    //   left: "unset",
+    //   width: "0em",
+    //   height: "1.1em",
+    //   zIndex: 10000,
+    //   backgroundColor: theme.palette.c_gray2,
+    //   borderRadius: "0",
+    //   "& svg": {
+    //     color: theme.palette.c_gray5,
+    //     width: ".5em",
+    //     height: ".5em",
+    //     // scale: ".5",
+    //     rotate: "-86deg"
+    //   },
+    //   "&:hover svg": {
+    //     color: theme.palette.c_hl1
+    //   }
+    // }
   });
 
 declare module "slate" {
@@ -209,17 +209,10 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 
   return (
     <Container
-      style={{ backgroundColor: hexToRgba(color, 0.3) }}
+      style={{ backgroundColor: hexToRgba(color, 0.5) }}
       className={className}
       css={styles}
     >
-      <NodeResizeControl
-        style={{ background: "transparent", border: "none" }}
-        minWidth={30}
-        minHeight={40}
-      >
-        <SouthEastIcon />
-      </NodeResizeControl>
       <div
         className="node-header"
         onClick={handleHeaderClick}
@@ -259,6 +252,7 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         onColorChange={handleColorChange}
         showCustom={false}
       />
+      <NodeResizeHandle minWidth={30} minHeight={40} />
     </Container>
   );
 };

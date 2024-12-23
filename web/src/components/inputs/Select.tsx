@@ -141,35 +141,6 @@ const Select: React.FC<SelectProps> = ({
     [onChange, close]
   );
 
-  const handleWheel = useCallback(
-    (event: WheelEvent) => {
-      event.preventDefault();
-      const currentIndex = options.findIndex(
-        (option) => option.value === value
-      );
-      let newIndex;
-
-      if (event.deltaY > 0) {
-        // Scrolling down
-        newIndex = currentIndex + 1 >= options.length ? 0 : currentIndex + 1;
-      } else {
-        // Scrolling up
-        newIndex = currentIndex - 1 < 0 ? options.length - 1 : currentIndex - 1;
-      }
-
-      onChange(options[newIndex].value);
-    },
-    [options, value, onChange]
-  );
-
-  useEffect(() => {
-    const element = selectRef.current;
-    if (element) {
-      element.addEventListener("wheel", handleWheel, { passive: false });
-      return () => element.removeEventListener("wheel", handleWheel);
-    }
-  }, [handleWheel]);
-
   const selectedOption = useMemo(
     () => options.find((option) => option.value === value),
     [options, value]

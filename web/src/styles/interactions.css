@@ -30,32 +30,3 @@
 .react-flow .react-flow__pane.dragging {
   cursor: grabbing !important;
 }
-
-/* Resize control */
-.react-flow__resize-control.handle.bottom.right {
-  opacity: 0;
-  z-index: 500;
-  top: unset;
-  left: unset !important;
-  bottom: -9px;
-  right: -10px;
-  width: 17px;
-  height: 17px;
-  background-color: var(--c_gray2) !important;
-}
-
-.react-flow__node
-  .comment-node:hover
-  .react-flow__resize-control.handle.bottom.right {
-  opacity: 1;
-}
-
-.react-flow__resize-control svg {
-  width: 15px;
-  height: 15px;
-  color: var(--c_gray5);
-}
-
-.react-flow__resize-control:hover svg {
-  color: var(--c_hl1);
-}
