@@ -141,6 +141,35 @@ const Select: React.FC<SelectProps> = ({
     [onChange, close]
   );
 
+  const handleWheel = useCallback(
+    (event: WheelEvent) => {
+      event.preventDefault();
+      const currentIndex = options.findIndex(
+        (option) => option.value === value
+      );
+      let newIndex;
+
+      if (event.deltaY > 0) {
+        // Scrolling down
+        newIndex = currentIndex + 1 >= options.length ? 0 : currentIndex + 1;
+      } else {
+        // Scrolling up
+        newIndex = currentIndex - 1 < 0 ? options.length - 1 : currentIndex - 1;
+      }
+
+      onChange(options[newIndex].value);
+    },
+    [options, value, onChange]
+  );
+
+  useEffect(() => {
+    const element = selectRef.current;
+    if (element) {
+      element.addEventListener("wheel", handleWheel, { passive: false });
+      return () => element.removeEventListener("wheel", handleWheel);
+    }
+  }, [handleWheel]);
+
   const selectedOption = useMemo(
     () => options.find((option) => option.value === value),
     [options, value]
@@ -170,6 +199,23 @@ const Select: React.FC<SelectProps> = ({
     return () => window.removeEventListener("resize", updateDropdownPosition);
   }, [updateDropdownPosition]);
 
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        selectRef.current &&
+        !selectRef.current.contains(event.target as Node) &&
+        activeSelect === id
+      ) {
+        close();
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [close, activeSelect, id]);
+
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent) => {
       if (event.key === " " || event.key === "Enter") {
@@ -177,6 +223,8 @@ const Select: React.FC<SelectProps> = ({
         toggleDropdown();
       } else if (event.key === "Escape" && activeSelect === id) {
         event.preventDefault();
+        close();
+      } else if (event.key === "Tab" && activeSelect === id) {
         close();
       }
     },
@@ -188,6 +236,8 @@ const Select: React.FC<SelectProps> = ({
       ref={selectRef}
       className={`custom-select ${activeSelect === id ? "open" : ""}`}
       css={menuStyles}
+      onKeyDown={handleKeyDown}
+      tabIndex={-1}
     >
       <div
         className="select-header"
