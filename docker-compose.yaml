@@ -27,12 +27,12 @@ services:
       ENV: ${ENV:-development}
       ASSET_BUCKET: ${ASSET_BUCKET}
       ASSET_DOMAIN: ${ASSET_DOMAIN}
+      ASSET_TEMP_BUCKET: ${ASSET_TEMP_BUCKET}
+      ASSET_TEMP_DOMAIN: ${ASSET_TEMP_DOMAIN}
       S3_ENDPOINT_URL: ${S3_ENDPOINT_URL}
       S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID}
       S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY}
       S3_REGION: ${S3_REGION}
-      OPENAI_API_KEY: ${OPENAI_API_KEY}
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -41,56 +41,13 @@ services:
       POSTGRES_HOST: ${POSTGRES_HOST}
       POSTGRES_PORT: ${POSTGRES_PORT}
       CHROMA_URL: http://chroma:9000
-      OLLAMA_API_URL: http://ollama:11434
-      WORKER_URL: http://worker:5001
+      OLLAMA_API_URL: ${OLLAMA_API_URL}
+      OLLAMA_API_KEY: ${OLLAMA_API_KEY}
       HF_HOME: /app/huggingface
       SENTRY_DSN: ${SENTRY_DSN}
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
-  worker:
-    restart: unless-stopped
-    build:
-      context: .
-      dockerfile: Dockerfile
-    volumes:
-      - ${COMFY_FOLDER:-./comfy}:/comfy
-      - ${HF_HOME:-./huggingface}:/app/huggingface
-    command:
-      [
-        "uvicorn",
-        "nodetool.api.worker:app",
-        "--host",
-        "0.0.0.0",
-        "--port",
-        "5001",
-      ]
-    expose:
-      - "5001"
-    environment:
-      ENV: ${ENV:-development}
-      ASSET_BUCKET: ${ASSET_BUCKET}
-      ASSET_DOMAIN: ${ASSET_DOMAIN}
-      S3_ENDPOINT_URL: ${S3_ENDPOINT_URL}
-      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID}
-      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY}
-      S3_REGION: ${S3_REGION}
-      OPENAI_API_KEY: ${OPENAI_API_KEY}
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
-      REPLICATE_API_TOKEN: ${REPLICATE_API_TOKEN}
-      HF_TOKEN: ${HF_TOKEN}
-      HF_HOME: /app/huggingface
-      MEMCACHE_HOST: memcached
-      MEMCACHE_PORT: 11211
-      COMFY_FOLDER: /comfy
-      OLLAMA_API_URL: http://ollama:11434
-      CHROMA_URL: http://chroma:9000
-      NODETOOL_API_URL: https://api:443
-      SENTRY_DSN: ${SENTRY_DSN}
+      RUNPOD_API_KEY: ${RUNPOD_API_KEY}
+      MODELS_ENDPOINT_ID: ${MODELS_ENDPOINT_ID}
+      WORKFLOW_ENDPOINT_ID: ${WORKFLOW_ENDPOINT_ID}
     deploy:
       resources:
         reservations:
@@ -131,12 +88,16 @@ services:
     volumes:
       - ${POSTGRES_DATA_DIR:-./postgres-data}:/var/lib/postgresql/data
   ollama:
-    image: ollama/ollama
+    image: georgi/ollama-bearer-auth
     restart: unless-stopped
     volumes:
       - ${OLLAMA_PATH:-./ollama-data}:/root/.ollama
     expose:
-      - "11434"
+      - "8081"
+    ports:
+      - "8081:8081"
+    environment:
+      OLLAMA_API_KEY: ${OLLAMA_API_KEY}
     deploy:
       resources:
         reservations:

@@ -20,6 +20,7 @@ def storage(s3_client):
     s3_client.create_bucket(Bucket=bucket_name)
     return S3Storage(
         bucket_name=bucket_name,
+        domain="nodetool.test",
         endpoint_url="http://localhost:5000",  # This is ignored by moto
         client=s3_client,
     )
@@ -62,7 +63,7 @@ async def test_download(storage):
 async def test_upload(storage):
     # Upload a file
     url = await storage.upload(file_name, io.BytesIO(data))
-    assert url.startswith(f"https://{storage.bucket_name}.s3")
+    assert url.startswith(f"https://nodetool.test")
 
     # Verify the file was uploaded
     assert await storage.file_exists(file_name)
@@ -96,20 +97,5 @@ async def test_delete(storage):
 
 
 @pytest.mark.asyncio
-async def test_get_base_url(storage):
-    base_url = storage.get_base_url()
-    assert (
-        base_url
-        == f"https://{storage.bucket_name}.s3.{storage.s3.meta.region_name}.amazonaws.com"
-    )
-
-
-@pytest.mark.asyncio
 async def test_get_url(storage):
-    # Test with domain
-    storage.domain = "example.com"
-    assert storage.get_url(file_name) == f"https://example.com/{file_name}"
-
-    # Test without domain
-    storage.domain = None
-    assert storage.get_url(file_name) == f"{storage.get_base_url()}/{file_name}"
+    assert storage.get_url(file_name) == f"https://nodetool.test/{file_name}"

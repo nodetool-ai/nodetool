@@ -1,6 +1,7 @@
 from typing import Any
 from ollama import AsyncClient
 from nodetool.common.environment import Environment
+from nodetool.providers.ollama.ollama_service import get_ollama_client
 from nodetool.types.prediction import Prediction, PredictionResult
 
 log = Environment.get_logger()
@@ -10,10 +11,7 @@ async def run_ollama(prediction: Prediction, env: dict[str, str]) -> Any:
     model = prediction.model
     assert model is not None, "Model is not set"
 
-    api_url = env.get("OLLAMA_API_URL")
-    assert api_url, "OLLAMA_API_URL not set"
-
-    client = AsyncClient(api_url)
+    client = get_ollama_client()
     params = prediction.params
 
     if "raw" in params:
