@@ -52,6 +52,8 @@ const styles = (theme: any) =>
     },
     "button.action svg, span svg": {
       position: "absolute",
+      width: "1em",
+      height: "1em",
       left: "-0.3em",
       padding: "2px",
       top: "2px",
