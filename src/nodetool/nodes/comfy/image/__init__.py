@@ -11,9 +11,17 @@ from nodetool.metadata.types import ImageRef, Mask
 from nodetool.common.comfy_node import ComfyNode
 from nodetool.nodes.nodetool import constant
 from nodetool.workflows.processing_context import ProcessingContext
+import comfy_extras.nodes_mask
+import nodes
 
 
 class ImageCompositeMasked(ComfyNode):
+    """
+    The Image Composite Masked node can be used to composite an image onto another image using a mask.
+    """
+
+    _comfy_class = comfy_extras.nodes_mask.ImageCompositeMasked
+
     destination: ImageRef = Field(
         default=ImageRef(), description="The destination image."
     )
@@ -99,6 +107,10 @@ class LoadImage(ComfyNode):
 
 
 class LoadImageMask(ComfyNode):
+    """
+    Load an Image and extract a mask from it.
+    """
+
     image: ImageRef = Field(default=ImageRef(), description="The image to load.")
     channel: ColorChannel = Field(
         default=ColorChannel.ALPHA, description="The color channel to use."
@@ -155,18 +167,12 @@ class SaveImage(ComfyNode):
         return images
 
 
-class PreviewImage(SaveImage):
-    """
-    The Preview Image node can be used to preview images inside the node graph.
-    """
-
-    pass
-
-
 class ImagePadForOutpaint(ComfyNode):
     """
     The Pad Image for Outpainting node can be used to to add padding to an image for outpainting. This image can then be given to an inpaint diffusion model via the VAE Encode for Inpainting.
     """
+
+    _comfy_class = nodes.ImagePadForOutpaint
 
     image: ImageRef = Field(default=ImageRef(), description="The image to pad.")
     left: int = Field(default=0, description="The padding size on the left side.")

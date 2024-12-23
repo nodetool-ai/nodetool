@@ -2,6 +2,7 @@ from enum import Enum
 from pydantic import Field
 from nodetool.metadata.types import Latent
 from nodetool.common.comfy_node import ComfyNode
+import nodes
 
 
 class Rotation(str, Enum):
@@ -15,6 +16,8 @@ class LatentRotate(ComfyNode):
     """
     The Latent Rotate node can be used to rotate latent samples by a specified degree. This allows for orientation adjustments in the latent space, which can be useful for aligning or reorienting generated images.
     """
+
+    _comfy_class = nodes.LatentRotate
 
     samples: Latent = Field(
         default=Latent(), description="The latent samples to rotate."
@@ -38,6 +41,8 @@ class LatentFlip(ComfyNode):
     The Latent Flip node can be used to flip latent samples either horizontally or vertically. This operation allows for mirror transformations in the latent space, which can create interesting variations of the generated images.
     """
 
+    _comfy_class = nodes.LatentFlip
+
     samples: Latent = Field(default=Latent(), description="The latent samples to flip.")
     flip_method: FlipMethod = Field(
         default=FlipMethod.HORIZONTAL, description="The method to use for flipping."
@@ -52,6 +57,8 @@ class LatentCrop(ComfyNode):
     """
     The Latent Crop node can be used to crop a specific area from latent samples. This operation allows for focusing on particular regions in the latent space, which can be useful for generating or manipulating specific parts of an image.
     """
+
+    _comfy_class = nodes.LatentCrop
 
     samples: Latent = Field(default=Latent(), description="The latent samples to crop.")
     width: int = Field(default=512, description="The width of the crop.")

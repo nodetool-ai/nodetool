@@ -9,6 +9,7 @@ import comfy.clip_vision
 from huggingface_hub import try_to_load_from_cache
 from pydantic import Field
 import folder_paths
+import nodes
 from nodetool.metadata.types import (
     CLIP,
     GLIGEN,
@@ -58,6 +59,7 @@ from nodetool.nodes.huggingface.stable_diffusion_base import (
     HF_UNET_MODELS,
 )
 from nodetool.nodes.huggingface.stable_diffusion_base import HF_CONTROLNET_MODELS
+from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
 from pydantic import Field
 from nodetool.common.comfy_node import ComfyNode, MAX_RESOLUTION
@@ -108,7 +110,11 @@ class CheckpointLoader(CheckpointLoaderSimple):
 
 
 class HuggingFaceCheckpointLoader(ComfyNode):
-    # The HuggingFaceModelSelect component will filter the recommended models
+    """
+    Loads a checkpoint from Huggingface.
+    """
+
+    # The HuggingFaceModelSelect react component will filter the recommended models
     # to HFStableDiffusion, HFStableDiffusionXL, HFStableDiffusion3, HFFlux, or HFLTXV
     # hardcoded in the HuggingFaceModelSelect component
     model: HFCheckpointModel = Field(
@@ -157,6 +163,10 @@ class HuggingFaceCheckpointLoader(ComfyNode):
 
 
 class unCLIPCheckpointLoader(ComfyNode):
+    """
+    Loads a unCLIP checkpoint.
+    """
+
     ckpt_name: unCLIPFile = Field(
         default=unCLIPFile(), description="The checkpoint to load."
     )
@@ -184,6 +194,10 @@ class unCLIPCheckpointLoader(ComfyNode):
 
 
 class CLIPVisionLoader(ComfyNode):
+    """
+    Loads a CLIPVision model.
+    """
+
     clip_name: CLIPVisionFile = Field(
         default=CLIPVisionFile(),
         description="The name of the CLIP vision model to load.",
@@ -205,6 +219,10 @@ class CLIPVisionLoader(ComfyNode):
 
 
 class HuggingFaceCLIPVisionLoader(ComfyNode):
+    """
+    Loads a CLIPVision model from Huggingface.
+    """
+
     model: HFCLIPVision = Field(
         default=HFCLIPVision(),
         description="The CLIP vision model to load.",
@@ -242,6 +260,10 @@ class HuggingFaceCLIPVisionLoader(ComfyNode):
 
 
 class ControlNetLoader(ComfyNode):
+    """
+    Loads a ControlNet model.
+    """
+
     control_net_name: ControlNetFile = Field(
         default=ControlNetFile(), description="The filename of the control net to load."
     )
@@ -270,6 +292,10 @@ class ControlNetLoader(ComfyNode):
 
 
 class HuggingFaceControlNetLoader(ComfyNode):
+    """
+    Loads a ControlNet model from Huggingface.
+    """
+
     model: HFControlNet = Field(
         default=HFControlNet(),
         description="The ControlNet model to load.",
@@ -305,6 +331,10 @@ class HuggingFaceControlNetLoader(ComfyNode):
 
 
 class UpscaleModelLoader(ComfyNode):
+    """
+    Loads an upscale model.
+    """
+
     model_name: UpscaleModelFile = Field(
         default=UpscaleModelFile(),
         description="The filename of the upscale model to load.",
@@ -334,6 +364,10 @@ class UpscaleModelLoader(ComfyNode):
 
 
 class GLIGENLoader(ComfyNode):
+    """
+    Loads a GLIGEN model.
+    """
+
     gligen_name: GLIGENFile = Field(
         default=GLIGENFile(),
         description="The GLIGEN checkpoint to load.",
@@ -359,6 +393,10 @@ class GLIGENLoader(ComfyNode):
 
 
 class LoraLoader(ComfyNode):
+    """
+    Loads a LoRA model.
+    """
+
     model: UNet = Field(default=UNet(), description="The model to apply Lora to.")
     clip: CLIP = Field(default=CLIP(), description="The CLIP model to apply Lora to.")
     lora_name: LORAFile = Field(
@@ -404,6 +442,10 @@ class LoraLoader(ComfyNode):
 
 
 class HuggingFaceLoraLoader(ComfyNode):
+    """
+    Loads a LoRA model from Huggingface.
+    """
+
     model: UNet = Field(default=UNet(), description="The model to apply LoRA to.")
     clip: CLIP = Field(default=CLIP(), description="The CLIP model to apply LoRA to.")
     lora: HFLoraSD = Field(
@@ -465,6 +507,10 @@ class HuggingFaceLoraLoader(ComfyNode):
 
 
 class LoraLoaderModelOnly(ComfyNode):
+    """
+    Loads a LoRA model (model only).
+    """
+
     model: UNet = Field(default=UNet(), description="The model to apply Lora to.")
     lora_name: LORAFile = Field(
         default=LORAFile(), description="The name of the LoRA to load."
@@ -496,6 +542,10 @@ class LoraLoaderModelOnly(ComfyNode):
 
 
 class VAELoader(ComfyNode):
+    """
+    Loads a VAE model.
+    """
+
     vae_name: VAEFile = Field(
         default=VAEFile(), description="The name of the VAE to load."
     )
@@ -517,6 +567,10 @@ class VAELoader(ComfyNode):
 
 
 class HuggingFaceVAELoader(ComfyNode):
+    """
+    Loads a VAE model from Huggingface.
+    """
+
     model: HFVAE = Field(
         default=HFVAE(),
         description="The VAE model to load.",
@@ -555,12 +609,16 @@ class HuggingFaceVAELoader(ComfyNode):
         if vae_path is None:
             raise Exception("VAE path not found in cache.")
 
-        (vae,) = await self.call_comfy_node(context, "VAELoader", vae_name=vae_path)
+        (vae,) = await self.call_comfy_node(context, nodes.VAELoader, vae_name=vae_path)
 
         return {"vae": VAE(name=self.model.repo_id, model=vae)}
 
 
 class CLIPLoader(ComfyNode):
+    """
+    Loads a CLIP model.
+    """
+
     clip_name: CLIPFile = Field(
         default=CLIPFile(),
         description="The name of the CLIP to load.",
@@ -602,6 +660,10 @@ class CLIPTypeEnum(str, Enum):
 
 
 class HuggingFaceCLIPLoader(ComfyNode):
+    """
+    Loads a CLIP model from Huggingface.
+    """
+
     model: HFCLIP = Field(
         default=HFCLIP(),
         description="The CLIP model to load.",
@@ -648,12 +710,20 @@ class HuggingFaceCLIPLoader(ComfyNode):
 
 
 class DualCLIPEnum(str, Enum):
+    """
+    The type of the dual CLIP model to load.
+    """
+
     SDXL = "sdxl"
     SD3 = "sd3"
     FLUX = "flux"
 
 
 class DualCLIPLoader(ComfyNode):
+    """
+    Loads a dual CLIP model.
+    """
+
     clip_name1: CLIPFile = Field(
         default=CLIPFile(),
         description="The name of the CLIP to load.",
@@ -685,6 +755,10 @@ class DualCLIPLoader(ComfyNode):
 
 
 class HuggingFaceDualCLIPLoader(ComfyNode):
+    """
+    Loads a dual CLIP model from Huggingface.
+    """
+
     type: DualCLIPEnum = Field(
         default=DualCLIPEnum.SDXL,
         description="The type of the dual CLIP model to load.",
@@ -753,6 +827,10 @@ class WeightDataTypeEnum(str, Enum):
 
 
 class UNETLoader(ComfyNode):
+    """
+    Loads a UNet model.
+    """
+
     unet_name: UNetFile = Field(
         default=UNetFile(),
         description="The name of the UNet model to load.",
@@ -780,6 +858,10 @@ class UNETLoader(ComfyNode):
 
 
 class HuggingFaceUNetLoader(ComfyNode):
+    """
+    Loads a UNet model from Huggingface.
+    """
+
     model: HFUnet = Field(
         default=HFUnet(),
         description="The UNet model to load.",
@@ -825,6 +907,10 @@ class HuggingFaceUNetLoader(ComfyNode):
 
 
 class ImageOnlyCheckpointLoader(ComfyNode):
+    """
+    Loads a checkpoint for img2vid.
+    """
+
     ckpt_name: str = Field(
         default="", description="The name of the checkpoint to load."
     )
@@ -839,6 +925,10 @@ class ImageOnlyCheckpointLoader(ComfyNode):
 
 
 class IPAdapterModelLoader(ComfyNode):
+    """
+    Loads an IPAdapter model.
+    """
+
     ipadapter_file: IPAdapterFile = Field(
         default=IPAdapterFile(),
         description="List of available IPAdapter model names.",
@@ -862,6 +952,10 @@ class IPAdapterModelLoader(ComfyNode):
 
 
 class HuggingFaceIPAdapterLoader(ComfyNode):
+    """
+    Loads an IPAdapter model from Huggingface.
+    """
+
     ipadapter: HFIPAdapter = Field(
         default=HFIPAdapter(), description="The IPAdapter to load."
     )

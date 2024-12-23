@@ -3,6 +3,7 @@ from nodetool.metadata.types import ImageRef, Mask
 from pydantic import Field
 from enum import Enum
 from typing import Optional
+from comfy_custom_nodes.ComfyUI_essentials import text
 
 
 class HorizontalAlign(str, Enum):
@@ -33,7 +34,7 @@ class DrawText(ComfyNode):
     - Overlay text on existing images with customizable styles
     """
 
-    _comfy_class = "DrawText+"
+    _comfy_class = text.DrawText
 
     text: str = Field(default="Hello, World!", description="The text to draw")
     font: str = Field(default="", description="Font file name")

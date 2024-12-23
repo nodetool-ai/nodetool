@@ -1,12 +1,16 @@
 from pydantic import Field
 from nodetool.metadata.types import Latent
 from nodetool.common.comfy_node import ComfyNode
+import nodes
+import comfy_extras.nodes_latent
 
 
 class LatentFromBatch(ComfyNode):
     """
     The Latent From Batch node can be used to pick a slice from a batch of latents. This is useful when a specific latent image or images inside the batch need to be isolated in the workflow.
     """
+
+    _comfy_class = nodes.LatentFromBatch
 
     samples: Latent = Field(
         default=Latent(), description="The batch of latent samples."
@@ -28,6 +32,8 @@ class RepeatLatentBatch(ComfyNode):
     The Repeat Latent Batch node can be used to repeat a batch of latent images. This can e.g. be used to create multiple variations of an image in an image to image workflow.
     """
 
+    _comfy_class = nodes.RepeatLatentBatch
+
     samples: Latent = Field(
         default=Latent(), description="The latent samples to repeat."
     )
@@ -41,6 +47,12 @@ class RepeatLatentBatch(ComfyNode):
 
 
 class LatentBatch(ComfyNode):
+    """
+    The Latent Batch node can be used to batch latent images.
+    """
+
+    _comfy_class = comfy_extras.nodes_latent.LatentBatch
+
     samples1: Latent = Field(
         default=Latent(),
         description="The first set of latent samples for the batch process.",

@@ -4,6 +4,9 @@ from nodetool.metadata.types import Latent, UNet
 from enum import Enum
 
 from nodetool.workflows.processing_context import ProcessingContext
+import comfy.model_sampling
+import comfy_extras.nodes_model_advanced
+import comfy_extras.nodes_lt
 
 
 class SamplingEnum(str, Enum):
@@ -28,6 +31,17 @@ class ModelSamplingBase(ComfyNode):
 
 
 class ModelSamplingDiscrete(ModelSamplingBase):
+    """
+    Patches a model for discrete sampling.
+    advanced, model, sampling, discrete
+
+    Use cases:
+    - Apply different sampling methods to a model
+    - Enable zero SNR sampling
+    """
+
+    _comfy_class = comfy.model_sampling.ModelSamplingDiscrete
+
     model: UNet = Field(default=UNet(), description="The model to patch.")
     sampling: SamplingEnum = Field(
         default=SamplingEnum.EPS, description="The sampling method to use."
@@ -43,6 +57,17 @@ class ModelSamplingDiscrete(ModelSamplingBase):
 
 
 class ModelSamplingStableCascade(ModelSamplingBase):
+    """
+    Patches a model for stable cascade sampling.
+    advanced, model, sampling, stable, cascade
+
+    Use cases:
+    - Apply stable cascade sampling to a model
+    - Adjust shift parameters for stable cascade sampling
+    """
+
+    _comfy_class = comfy_extras.nodes_model_advanced.ModelSamplingStableCascade
+
     model: UNet = Field(default=UNet(), description="The model to patch.")
     shift: float = Field(
         default=2.0, description="The shift parameter.", ge=0.0, le=100.0
@@ -57,6 +82,17 @@ class ModelSamplingStableCascade(ModelSamplingBase):
 
 
 class ModelSamplingSD3(ModelSamplingBase):
+    """
+    Patches a model for SD3 sampling.
+    advanced, model, sampling, sd3
+
+    Use cases:
+    - Apply SD3 sampling to a model
+    - Adjust shift parameters for SD3 sampling
+    """
+
+    _comfy_class = comfy_extras.nodes_model_advanced.ModelSamplingSD3
+
     model: UNet = Field(default=UNet(), description="The model to patch.")
     shift: float = Field(
         default=3.0, description="The shift parameter.", ge=0.0, le=100.0
@@ -71,6 +107,17 @@ class ModelSamplingSD3(ModelSamplingBase):
 
 
 class ModelSamplingAuraFlow(ModelSamplingBase):
+    """
+    Patches a model for Aura Flow sampling.
+    advanced, model, sampling, aura, flow
+
+    Use cases:
+    - Apply Aura Flow sampling to a model
+    - Adjust shift parameters for Aura Flow sampling
+    """
+
+    _comfy_class = comfy_extras.nodes_model_advanced.ModelSamplingAuraFlow
+
     model: UNet = Field(default=UNet(), description="The model to patch.")
     shift: float = Field(
         default=1.73, description="The shift parameter.", ge=0.0, le=100.0
@@ -85,6 +132,17 @@ class ModelSamplingAuraFlow(ModelSamplingBase):
 
 
 class ModelSamplingFlux(ModelSamplingBase):
+    """
+    Patches a model for Flux sampling.
+    advanced, model, sampling, flux
+
+    Use cases:
+    - Apply Flux sampling to a model
+    - Adjust shift parameters for Flux sampling
+    """
+
+    _comfy_class = comfy_extras.nodes_model_advanced.ModelSamplingFlux
+
     model: UNet = Field(default=UNet(), description="The model to patch.")
     max_shift: float = Field(
         default=1.15, description="The maximum shift parameter.", ge=0.0, le=100.0
@@ -120,6 +178,17 @@ class SamplingEnumEDM(str, Enum):
 
 
 class ModelSamplingContinuousEDM(ModelSamplingBase):
+    """
+    Patches a model for continuous EDM sampling.
+    advanced, model, sampling, edm, continuous
+
+    Use cases:
+    - Apply continuous EDM sampling to a model
+    - Adjust sigma parameters for continuous EDM sampling
+    """
+
+    _comfy_class = comfy_extras.nodes_model_advanced.ModelSamplingContinuousEDM
+
     model: UNet = Field(default=UNet(), description="The model to patch.")
     sampling: SamplingEnumEDM = Field(
         default=SamplingEnumEDM.V_PREDICTION, description="The sampling method to use."
@@ -148,6 +217,17 @@ class ModelSamplingContinuousEDM(ModelSamplingBase):
 
 
 class ModelSamplingContinuousV(ModelSamplingBase):
+    """
+    Patches a model for continuous V sampling.
+    advanced, model, sampling, v, continuous
+
+    Use cases:
+    - Apply continuous V sampling to a model
+    - Adjust sigma parameters for continuous V sampling
+    """
+
+    _comfy_class = comfy_extras.nodes_model_advanced.ModelSamplingContinuousV
+
     model: UNet = Field(default=UNet(), description="The model to patch.")
     sampling: SamplingEnumEDM = Field(
         default=SamplingEnumEDM.V_PREDICTION, description="The sampling method to use."
@@ -176,6 +256,17 @@ class ModelSamplingContinuousV(ModelSamplingBase):
 
 
 class RescaleCFG(ModelSamplingBase):
+    """
+    Patches a model for rescale CFG.
+    advanced, model, rescale, cfg
+
+    Use cases:
+    - Adjust the CFG multiplier for a model
+    - Apply rescale CFG to a model
+    """
+
+    _comfy_class = comfy_extras.nodes_model_advanced.RescaleCFG
+
     model: UNet = Field(default=UNet(), description="The model to patch.")
     multiplier: float = Field(
         default=0.7, description="The rescale multiplier.", ge=0.0, le=1.0
@@ -199,6 +290,8 @@ class ModelSamplingLTXV(ComfyNode):
     - Adjust shift parameters based on latent tokens
     - Enable advanced sampling techniques
     """
+
+    _comfy_class = comfy_extras.nodes_lt.ModelSamplingLTXV
 
     model: UNet = Field(description="The model to patch.")
     max_shift: float = Field(

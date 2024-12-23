@@ -1,9 +1,16 @@
 from pydantic import Field
 from nodetool.common.comfy_node import ComfyNode, MAX_RESOLUTION
 from nodetool.metadata.types import ImageRef, Latent, VAE, Conditioning
+import comfy_extras.nodes_stable_cascade
 
 
 class StableCascade_EmptyLatentImage(ComfyNode):
+    """
+    The Stable Cascade Empty Latent Image node can be used to create an empty latent image.
+    """
+
+    _comfy_class = comfy_extras.nodes_stable_cascade.StableCascade_EmptyLatentImage
+
     width: int = Field(
         default=1024,
         ge=256,
@@ -38,6 +45,12 @@ class StableCascade_EmptyLatentImage(ComfyNode):
 
 
 class StableCascade_StageC_VAEEncode(ComfyNode):
+    """
+    The Stable Cascade Stage C VAE Encode node can be used to encode an image into a latent image.
+    """
+
+    _comfy_class = comfy_extras.nodes_stable_cascade.StableCascade_StageC_VAEEncode
+
     image: ImageRef = Field(
         default=ImageRef(), description="The input image to encode."
     )
@@ -59,6 +72,12 @@ class StableCascade_StageC_VAEEncode(ComfyNode):
 
 
 class StableCascade_StageB_Conditioning(ComfyNode):
+    """
+    The Stable Cascade Stage B Conditioning node can be used to condition the stage B latent image.
+    """
+
+    _comfy_class = comfy_extras.nodes_stable_cascade.StableCascade_StageB_Conditioning
+
     conditioning: Conditioning = Field(
         default=Conditioning(), description="The input conditioning."
     )
@@ -74,6 +93,14 @@ class StableCascade_StageB_Conditioning(ComfyNode):
 
 
 class StableCascade_SuperResolutionControlnet(ComfyNode):
+    """
+    The Stable Cascade Super Resolution Controlnet node can be used to encode an image into a latent image.
+    """
+
+    _comfy_class = (
+        comfy_extras.nodes_stable_cascade.StableCascade_SuperResolutionControlnet
+    )
+
     image: ImageRef = Field(
         default=ImageRef(), description="The input image for super-resolution."
     )

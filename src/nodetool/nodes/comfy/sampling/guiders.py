@@ -2,12 +2,17 @@ from pydantic import Field
 from nodetool.common.comfy_node import ComfyNode
 from nodetool.metadata.types import Conditioning, Guider, UNet
 
+import comfy_extras.nodes_custom_sampler
+import comfy_extras.nodes_video_model
+
 
 class BasicGuider(ComfyNode):
     """
     The Basic Guider node provides a simple guidance mechanism for the sampling process.
     It uses a single conditioning input to guide the model's generation.
     """
+
+    _comfy_class = comfy_extras.nodes_custom_sampler.BasicGuider
 
     model: UNet = Field(default=UNet(), description="The model used by the sampler.")
     conditioning: Conditioning = Field(
@@ -25,6 +30,8 @@ class CFGGuider(ComfyNode):
     method for controlling the generation process. It allows for separate positive and
     negative conditioning, along with a CFG scale parameter.
     """
+
+    _comfy_class = comfy_extras.nodes_custom_sampler.CFGGuider
 
     model: UNet = Field(default=UNet(), description="The model used by the sampler.")
     positive: str = Field(default="", description="The positive conditioning.")
@@ -44,6 +51,8 @@ class DualCFGGuider(ComfyNode):
     conditioning inputs, each with its own CFG scale. This can be useful for more
     complex guidance scenarios or when combining multiple concepts.
     """
+
+    _comfy_class = comfy_extras.nodes_custom_sampler.DualCFGGuider
 
     model: UNet = Field(default=UNet(), description="The model used by the sampler.")
     cond1: Conditioning = Field(
@@ -73,6 +82,7 @@ class VideoLinearCFGGuidance(ComfyNode):
     the strength of the guidance throughout the video frames.
     """
 
+    _comfy_class = comfy_extras.nodes_video_model.VideoLinearCFGGuidance
     model: UNet = Field(default=UNet(), description="The model to apply guidance to.")
     min_cfg: float = Field(
         default=1.0, description="The minimum CFG value.", ge=0.0, le=100.0
@@ -89,6 +99,8 @@ class VideoTriangleCFGGuidance(ComfyNode):
     video generation. This can create a varying strength of guidance across video frames,
     potentially leading to more dynamic or consistent video outputs.
     """
+
+    _comfy_class = comfy_extras.nodes_video_model.VideoTriangleCFGGuidance
 
     model: UNet = Field(default=UNet(), description="The model to apply guidance to.")
     min_cfg: float = Field(

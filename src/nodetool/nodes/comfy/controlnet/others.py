@@ -1,8 +1,16 @@
 from pydantic import Field
 from nodetool.nodes.comfy.controlnet import PreprocessImage
+import comfy_custom_nodes.comfyui_controlnet_aux.node_wrappers.tile as tile
+import comfy_custom_nodes.comfyui_controlnet_aux.node_wrappers.recolor as recolor
 
 
 class TilePreprocessor(PreprocessImage):
+    """
+    Tile preprocessor.
+    """
+
+    _comfy_class = tile.Tile_Preprocessor
+
     pyrUp_iters: int = Field(
         default=3,
         description="The number of times to apply pyrUp.",
@@ -15,6 +23,8 @@ class ImageLuminanceDetector(PreprocessImage):
     """
     Detect the luminance of an image.
     """
+
+    _comfy_class = recolor.ImageLuminanceDetector
 
     gamma_correction: float = Field(
         default=1.0,
@@ -29,6 +39,12 @@ class ImageLuminanceDetector(PreprocessImage):
 
 
 class ImageIntensityDetector(PreprocessImage):
+    """
+    Detect the intensity of an image.
+    """
+
+    _comfy_class = recolor.ImageIntensityDetector
+
     gamma_correction: float = Field(
         default=1.0,
         description="The gamma correction value.",

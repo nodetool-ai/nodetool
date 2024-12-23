@@ -5,10 +5,21 @@ from nodetool.metadata.types import ImageRef, Mask
 from nodetool.common.comfy_node import MAX_RESOLUTION, EnableDisable
 from nodetool.nodes.comfy.controlnet import PreprocessImage
 from nodetool.workflows.base_node import add_comfy_classname
+import comfy_custom_nodes.comfyui_controlnet_aux.node_wrappers.leres as leres
+import comfy_custom_nodes.comfyui_controlnet_aux.node_wrappers.midas as midas
+import comfy_custom_nodes.comfyui_controlnet_aux.node_wrappers.normalbae as bae
+import comfy_custom_nodes.comfyui_controlnet_aux.node_wrappers.zoe as zoe
+import comfy_custom_nodes.comfyui_controlnet_aux.node_wrappers.depth_anything as depth_anything
+import comfy_custom_nodes.comfyui_controlnet_aux.node_wrappers.dsine as dsin
+import comfy_custom_nodes.comfyui_controlnet_aux.node_wrappers.metric3d as metric3d
 
 
 class LeReSDepthMapPreprocessor(PreprocessImage):
-    _comfy_class: str = "LeReS-DepthMapPreprocessor"
+    """
+    Preprocesses an image for LeReS depth map detection.
+    """
+
+    _comfy_class = leres.LERES_Depth_Map_Preprocessor
 
     rm_nearest: float = Field(
         default=0.0, description="The nearest depth to remove.", ge=0.0, le=100.0
@@ -40,7 +51,11 @@ class InpaintPreprocessor(PreprocessImage):
 
 
 class MIDASNormalMapPreprocessor(PreprocessImage):
-    _comfy_class: str = "MiDaS-NormalMapPreprocessor"
+    """
+    Preprocesses an image for MIDAS normal map detection.
+    """
+
+    _comfy_class = midas.MIDAS_Normal_Map_Preprocessor
 
     a: float = Field(
         default=np.pi * 2.0,
@@ -57,7 +72,11 @@ class MIDASNormalMapPreprocessor(PreprocessImage):
 
 
 class MIDASDepthMapPreprocessor(PreprocessImage):
-    _comfy_class = "MiDaS-DepthMapPreprocessor"
+    """
+    MIDAS depth map detection preprocessor.
+    """
+
+    _comfy_class = midas.MIDAS_Depth_Map_Preprocessor
 
     a: float = Field(
         default=np.pi * 2.0,
@@ -74,14 +93,22 @@ class MIDASDepthMapPreprocessor(PreprocessImage):
 
 
 class BAE_Normal_Map_Preprocessor(PreprocessImage):
-    _comfy_class: str = "BAE-NormalMapPreprocessor"
+    """
+    BAE normal map detection preprocessor.
+    """
+
+    _comfy_class = bae.BAE_Normal_Map_Preprocessor
 
 
 add_comfy_classname(BAE_Normal_Map_Preprocessor)
 
 
 class ZoeDepthMapPreprocessor(PreprocessImage):
-    _comfy_class: str = "Zoe-DepthMapPreprocessor"
+    """
+    Zoe depth map detection preprocessor.
+    """
+
+    _comfy_class = zoe.Zoe_Depth_Map_Preprocessor
 
 
 class DepthAnythingModel(str, Enum):
@@ -91,6 +118,12 @@ class DepthAnythingModel(str, Enum):
 
 
 class DepthAnythingV2Preprocessor(PreprocessImage):
+    """
+    Depth Anything V2 preprocessor.
+    """
+
+    _comfy_class = depth_anything.Depth_Anything_Preprocessor
+
     ckpt_name: DepthAnythingModel = Field(
         default=DepthAnythingModel.DEPTH_ANYTHING_V2_VITS,
         description="The checkpoint name to use.",
@@ -103,6 +136,12 @@ class ZoeDepthAnythingEnvironment(str, Enum):
 
 
 class Zoe_DepthAnythingPreprocessor(PreprocessImage):
+    """
+    Zoe depth anything preprocessor.
+    """
+
+    _comfy_class = depth_anything.Zoe_Depth_Anything_Preprocessor
+
     environment: ZoeDepthAnythingEnvironment = Field(
         default=ZoeDepthAnythingEnvironment.INDOOR,
         description="The environment to use.",
@@ -110,7 +149,11 @@ class Zoe_DepthAnythingPreprocessor(PreprocessImage):
 
 
 class DSINE_Normal_Map_Preprocessor(PreprocessImage):
-    _comfy_class: str = "DSINE-NormalMapPreprocessor"
+    """
+    DSINE normal map preprocessor.
+    """
+
+    _comfy_class = dsin.DSINE_Normal_Map_Preprocessor
 
     fov: float = Field(
         default=60.0,
@@ -133,7 +176,7 @@ class Metric3D_Depth_Map_Backbone(str, Enum):
 
 
 class Metric3D_Depth_Map_Preprocessor(PreprocessImage):
-    _comfy_class: str = "Metric3D-DepthMapPreprocessor"
+    _comfy_class = metric3d.Metric3D_Depth_Map_Preprocessor
 
     backbone: Metric3D_Depth_Map_Backbone = Field(
         default=Metric3D_Depth_Map_Backbone.VIT_SMALL,

@@ -164,21 +164,20 @@ def is_comfy_widget(type: str | list) -> bool:
     return type in ["INT", "FLOAT", "STRING", "BOOLEAN"]
 
 
-def get_edge_names(class_name: str) -> List[str]:
+def get_edge_names(comfy_class: type) -> List[str]:
     """
     Get the names of the input edgeds for a given node class.
 
     Args:
-        class_name (str): The name of the node class.
+        comfy_class (type): The comfy class.
 
     Returns:
         List[str]: A list of input names for the node class.
     """
-    node_class = resolve_comfy_class(class_name)
-    if node_class:
+    if comfy_class:
         inputs = list(
-            getattr(node_class, "INPUT_TYPES")
-            .__func__(node_class)
+            getattr(comfy_class, "INPUT_TYPES")
+            .__func__(comfy_class)
             .get("required", {})
             .items()
         )

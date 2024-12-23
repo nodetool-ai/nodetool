@@ -1,6 +1,7 @@
 from pydantic import Field
 from nodetool.common.comfy_node import ComfyNode, MAX_RESOLUTION
 from nodetool.metadata.types import Latent
+import comfy_extras.nodes_mochi
 
 
 class EmptyMochiLatentVideo(ComfyNode):
@@ -8,6 +9,8 @@ class EmptyMochiLatentVideo(ComfyNode):
     The Empty Mochi Latent Video node creates a new set of empty latent
     images specifically formatted for video processing.
     """
+
+    _comfy_class = comfy_extras.nodes_mochi.EmptyMochiLatentVideo
 
     width: int = Field(
         default=848,
@@ -55,6 +58,8 @@ class EmptyLTXVLatentVideo(ComfyNode):
     - Initialize a latent tensor for video generation
     - Prepare inputs for LTXV-based models
     """
+
+    _comfy_class = comfy_extras.nodes_mochi.EmptyMochiLatentVideo
 
     width: int = Field(
         default=768, ge=64, le=MAX_RESOLUTION, description="Width of the latent video."

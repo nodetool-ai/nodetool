@@ -28,25 +28,29 @@ def resolve_comfy_class(name: str) -> type | None:
 class ComfyNode(BaseNode):
     """
     A comfy node wraps around a comfy class and delegates processing to the actual
-    implementation. The comfy class is looed up in the NODE_CLASS_MAPPINGS.
+    implementation. The comfy class is defined in the class variable _comfy_class.
 
     Attributes:
-        _comfy_class (str): The comfy class wrapped by this node.
+        _comfy_class (type): The comfy class wrapped by this node.
     """
 
-    _comfy_class: str = ""
+    _comfy_class: type | None = None
 
     @classmethod
     def is_visible(cls) -> bool:
         return cls is not ComfyNode
 
-    def get_comfy_class_name(self) -> str:
-        return self._comfy_class if self._comfy_class != "" else self.__class__.__name__
-
     def required_inputs(self):
+        """
+        Returns the required inputs for the comfy node.
+        """
+        # this is to avoid circular imports
         from nodetool.workflows.read_graph import get_edge_names
 
-        return get_edge_names(self.get_comfy_class_name())
+        if self._comfy_class is None:
+            return []
+
+        return get_edge_names(self._comfy_class)
 
     def requires_gpu(self) -> bool:
         for prop in self.properties():
@@ -57,7 +61,7 @@ class ComfyNode(BaseNode):
     async def call_comfy_node(
         self,
         context: ProcessingContext,
-        name: str | None = None,
+        comfy_class: type | None = None,
         **kwargs,
     ):
         """
@@ -70,14 +74,13 @@ class ComfyNode(BaseNode):
         Returns:
             Any: The result of the processing.
         """
-        if name is None:
-            name = self.get_comfy_class_name()
+        if comfy_class is None:
+            comfy_class = self._comfy_class
 
-        node_class = resolve_comfy_class(name)
-        if node_class is None:
-            raise ValueError(f"Comfy class not found: {name}")
+        if comfy_class is None:
+            raise ValueError(f"Comfy class not set for node {self.__class__.__name__}")
 
-        function_name = node_class.FUNCTION
+        function_name = comfy_class.FUNCTION
 
         async def convert_value(name: str, value: Any) -> Any:
             prop = self.find_property(name)
@@ -115,10 +118,13 @@ class ComfyNode(BaseNode):
         if "seed_control_mode" in kwargs:
             del kwargs["seed_control_mode"]
 
-        comfy_node = node_class()
+        comfy_node = comfy_class()
         return getattr(comfy_node, function_name)(**kwargs)
 
     def properties_for_client(self):
+        """
+        Returns the properties to be sent to the client.
+        """
         properties = self.node_properties()
         if "seed" in properties:
             return {

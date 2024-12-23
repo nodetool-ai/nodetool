@@ -1,8 +1,13 @@
 from enum import Enum
+from nodes import load_custom_node, extras_dir, load_extras_node
+import os
 from pydantic import Field
 from nodetool.metadata.types import Conditioning, Latent, UNet
 from nodetool.common.comfy_node import EnableDisable
 from nodetool.common.comfy_node import ComfyNode
+
+import nodes
+import comfy_extras.nodes_differential_diffusion
 
 
 class SamplerEnum(str, Enum):
@@ -51,6 +56,8 @@ class KSampler(ComfyNode):
     The KSampler uses the provided model and positive and negative conditioning to generate a new version of the given latent. First the latent is noised up according to the given seed and denoise strength, erasing some of the latent image. then this noise is removed using the given Model and the positive and negative conditioning as guidance, "dreaming" up new details in places where the image was erased by noise.
     """
 
+    _comfy_class = nodes.KSampler
+
     model: UNet = Field(default=UNet(), description="The model to use.")
     seed: int = Field(default=0, description="The seed to use.")
     seed_control_mode: SeedControlMode = Field(
@@ -84,6 +91,8 @@ class KSamplerAdvanced(ComfyNode):
     """
     The KSampler Advanced node is the more advanced version of the KSampler node. While the KSampler node always adds noise to the latent followed by completely denoising the noised up latent, the KSampler Advanced node provides extra settings to control this behavior. The KSampler Advanced node can be told not to add noise into the latent with the add_noise setting. It can also be made to return partially denoised images via the return_with_leftover_noise setting. Unlike the KSampler node, this node does not have a denoise setting but this process is instead controlled by the start_at_step and end_at_step settings. This makes it possible to e.g. hand over a partially denoised latent to a separate KSampler Advanced node to finish the process.
     """
+
+    _comfy_class = nodes.KSamplerAdvanced
 
     model: UNet = Field(default=UNet(), description="The model to use.")
     add_noise: EnableDisable = Field(
@@ -130,12 +139,17 @@ class KSamplerAdvanced(ComfyNode):
     def return_type(cls):
         return {"latent": Latent}
 
+    def import_modules(self):
+        import comfy.samplers
+
 
 class DifferentialDiffusion(ComfyNode):
     """
     Implements differential diffusion by modifying the model's denoise mask function.
     Adapted from https://github.com/exx8/differential-diffusion
     """
+
+    _comfy_class = comfy_extras.nodes_differential_diffusion.DifferentialDiffusion
 
     model: UNet = Field(default=UNet(), description="The model to modify.")
 
@@ -146,3 +160,6 @@ class DifferentialDiffusion(ComfyNode):
     @classmethod
     def return_type(cls):
         return {"model": UNet}
+
+    def import_modules(self):
+        load_extras_node("nodes_differential_diffusion.py")

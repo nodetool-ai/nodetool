@@ -1,6 +1,7 @@
 from nodetool.common.comfy_node import ComfyNode
 from nodetool.metadata.types import Conditioning, CLIP
 from pydantic import Field
+from comfy_custom_nodes.ComfyUI_essentials import conditioning
 
 
 class CLIPTextEncodeSDXLSimplified(ComfyNode):
@@ -13,6 +14,8 @@ class CLIPTextEncodeSDXLSimplified(ComfyNode):
     - Prepare text inputs for SDXL image generation
     - Customize text encoding for SDXL workflows
     """
+
+    _comfy_class = conditioning.CLIPTextEncodeSDXLSimplified
 
     width: int = Field(
         default=1024, ge=0, le=8192, description="Width of the target image."
@@ -41,6 +44,8 @@ class ConditioningCombineMultiple(ComfyNode):
     - Combine various conditioning signals
     - Create complex conditioning for advanced image generation
     """
+
+    _comfy_class = conditioning.ConditioningCombineMultiple
 
     conditioning_1: Conditioning = Field(
         default=Conditioning(), description="First conditioning input."
@@ -73,6 +78,8 @@ class SD3NegativeConditioning(ComfyNode):
     - Fine-tune image generation by specifying what not to include
     - Implement advanced prompt engineering techniques for SD3
     """
+
+    _comfy_class = conditioning.SD3NegativeConditioning
 
     conditioning: Conditioning = Field(
         default=Conditioning(), description="Input conditioning to modify."

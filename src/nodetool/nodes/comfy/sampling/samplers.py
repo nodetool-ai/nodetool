@@ -1,5 +1,6 @@
 from enum import Enum
 from pydantic import Field
+from nodes import load_extras_node
 from nodetool.metadata.types import (
     Conditioning,
     Guider,
@@ -12,12 +13,16 @@ from nodetool.metadata.types import (
 from nodetool.common.comfy_node import ComfyNode
 from nodetool.nodes.comfy.sampling import SamplerEnum
 
+import comfy_extras.nodes_custom_sampler
+
 
 class KSamplerSelect(ComfyNode):
     """
     The KSampler Select node allows choosing a specific sampler for the diffusion process.
     Different samplers can produce varying results or have different performance characteristics.
     """
+
+    _comfy_class = comfy_extras.nodes_custom_sampler.KSamplerSelect
 
     sampler_name: SamplerEnum = Field(
         default=SamplerEnum.DDIM, description="The name of the sampler."
@@ -44,6 +49,8 @@ class SamplerDPMPP_2M_SDE(ComfyNode):
     sampling method that can potentially produce high-quality results with fewer steps.
     """
 
+    _comfy_class = comfy_extras.nodes_custom_sampler.SamplerDPMPP_2M_SDE
+
     solver_type: SolverTypeEnum = Field(
         default=SolverTypeEnum.MIDPOINT, description="The type of solver."
     )
@@ -65,6 +72,8 @@ class SamplerDPMPP_SDE(ComfyNode):
     method that can offer good performance and quality in certain scenarios.
     """
 
+    _comfy_class = comfy_extras.nodes_custom_sampler.SamplerDPMPP_SDE
+
     eta: float = Field(default=1.0, description="The eta parameter.")
     s_noise: float = Field(default=1.0, description="The scale noise factor.")
     r: float = Field(default=0.5, description="The r parameter.")
@@ -83,6 +92,8 @@ class SamplerCustom(ComfyNode):
     The SamplerCustom node provides a customizable sampling process, allowing fine-grained
     control over various sampling parameters including noise, CFG, and conditioning.
     """
+
+    _comfy_class = comfy_extras.nodes_custom_sampler.SamplerCustom
 
     model: UNet = Field(default=UNet(), description="The model used by the sampler.")
     add_noise: bool = Field(default=True, description="Whether to add noise or not.")
@@ -113,6 +124,8 @@ class SamplerCustomAdvanced(ComfyNode):
     the sampling process, including separate control over noise, guidance, and the ability
     to output both the final latent and the denoised latent.
     """
+
+    _comfy_class = comfy_extras.nodes_custom_sampler.SamplerCustomAdvanced
 
     noise: Noise = Field(default=Noise(), description="The noise to apply.")
     guider: Guider = Field(default=Guider(), description="The guider to apply.")

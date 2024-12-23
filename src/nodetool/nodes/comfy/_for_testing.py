@@ -3,9 +3,12 @@ from typing import Literal
 from pydantic import Field
 from nodetool.metadata.types import UNet
 from nodetool.common.comfy_node import ComfyNode
+import comfy_extras.nodes_hypertile
 
 
 class HyperTile(ComfyNode):
+    _comfy_class = comfy_extras.nodes_hypertile.HyperTile
+
     model: UNet = Field(
         default=UNet(), description="The model to use for generating hyper-tiles."
     )
