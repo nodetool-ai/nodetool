@@ -81,6 +81,7 @@ async def async_generator_handler(job):
 
         run_future.result()
 
+
 if __name__ == "__main__":
     os.environ["ENV"] = "production"
     workflow = load_example("Stable Diffusion in Comfy.json").model_dump()

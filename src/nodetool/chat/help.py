@@ -1,15 +1,12 @@
-from datetime import datetime
-import json
 import os
 import ollama
 
 import chromadb
 
-from nodetool.api.services.ollama_service import get_ollama_client
-from nodetool.chat.chat import process_messages, process_tool_calls
+from nodetool.providers.ollama.ollama_service import get_ollama_client
 from nodetool.chat.tools import Tool, sanitize_node_name
 from nodetool.common.environment import Environment
-from nodetool.metadata.types import FunctionModel, Message, Provider
+from nodetool.metadata.types import Message
 from nodetool.workflows.base_node import (
     BaseNode,
     get_node_class,
@@ -17,7 +14,6 @@ from nodetool.workflows.base_node import (
 )
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.workflows.examples import load_examples
-from nodetool.models.message import Message as MessageModel
 from jsonschema import validators
 
 
@@ -204,7 +200,7 @@ def get_collection(name) -> chromadb.Collection:
 
     return client.get_or_create_collection(
         name=name,
-        embedding_function=embedding_function,
+        embedding_function=embedding_function,  # type: ignore
     )
 
 

@@ -27,7 +27,7 @@ from nodetool.common.huggingface_models import (
 from nodetool.workflows.base_node import get_recommended_models
 from pydantic import BaseModel, Field
 from nodetool.common.system_stats import SystemStats, get_system_stats
-from nodetool.api.services.ollama_service import (
+from nodetool.providers.ollama.ollama_service import (
     get_ollama_models,
     get_ollama_model_info,
     stream_ollama_model_pull,
