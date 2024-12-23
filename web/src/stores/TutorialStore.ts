@@ -173,11 +173,11 @@ export const tutorials: Record<string, TutorialStep[]> = {
     },
     addNodeStep(
       "nodetool.constant.Video",
-      "Add a 'Nodetool → Constant → Video' node. Choose a short video file when prompted."
+      "Add a 'Nodetool → Constant → Video' node. Drag a short video file inside the node."
     ),
     addNodeStep(
       "nodetool.video.ExtractFrames",
-      "Add an 'Nodetool → Video → Transform → ExtractFrames' node."
+      "Add a 'Nodetool → Video → Transform → ExtractFrames' node."
     ),
     connectNodesStep(
       "nodetool.constant.Video",
@@ -200,33 +200,33 @@ export const tutorials: Record<string, TutorialStep[]> = {
       "Set the 'bits' parameter to 2 in the Posterize node."
     ),
     connectNodesStep(
-      "nodetool.group.Loop",
+      "nodetool.input.GroupInput",
       "nodetool.image.transform.Posterize",
       "Connect the GroupInput to the Posterize node's input."
     ),
     connectNodesStep(
       "nodetool.image.transform.Posterize",
-      "nodetool.group.Loop",
+      "nodetool.output.GroupOutput",
       "Connect the Posterize node's output to the GroupOutput."
     ),
     addNodeStep(
-      "nodetool.video.transform.CreateVideo",
+      "nodetool.video.CreateVideo",
       "Add a 'Nodetool → Video → Transform → CreateVideo' node."
     ),
     configureNodeStep(
-      "nodetool.video.transform.CreateVideo",
+      "nodetool.video.CreateVideo",
       (properties) => properties.fps === 5.0,
       "Set the 'FPS' parameter to 5.0 in the CreateVideo node."
     ),
     connectNodesStep(
       "nodetool.group.Loop",
-      "nodetool.video.transform.CreateVideo",
+      "nodetool.video.CreateVideo",
       "Connect the Loop node's output to the CreateVideo node's input."
     ),
     connectNodesStep(
-      "nodetool.video.transform.CreateVideo",
+      "nodetool.video.CreateVideo",
       "nodetool.workflows.base_node.Preview",
-      "Add a 'Preview' node and connect it to the CreateVideo node's output."
+      "Drag the output onto the canvas and select 'Create Preview Node' from the menu that appears."
     ),
     {
       step: "Click the 'Run' button (▶️) in the top toolbar to process the video. Wait for completion and check the Preview node for the result. Congratulations! 🎉 You've created your first video processing workflow!",
