@@ -82,14 +82,13 @@ async def async_generator_handler(job):
         run_future.result()
 
 
-if __name__ == "__main__":
-    os.environ["ENV"] = "production"
-    workflow = load_example("Stable Diffusion in Comfy.json").model_dump()
+#     os.environ["ENV"] = "production"
+#     workflow = load_example("Stable Diffusion in Comfy.json").model_dump()
 
-    async def main():
-        async for msg in async_generator_handler({"input": workflow}):
-            print(msg)
+#     async def main():
+#         async for msg in async_generator_handler({"input": workflow}):
+#             print(msg)
 
-    asyncio.run(main())
+#     asyncio.run(main())
 
 runpod.serverless.start({"handler": async_generator_handler})
