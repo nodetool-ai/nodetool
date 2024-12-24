@@ -181,6 +181,10 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
     const clearProgress = useResultsStore.getState().clearProgress;
     const connectUrl = WORKER_URL;
 
+    set({
+      statusMessage: "Workflow starting..."
+    });
+
     if (!get().socket || get().current_url !== connectUrl) {
       await get().connect(connectUrl);
     }

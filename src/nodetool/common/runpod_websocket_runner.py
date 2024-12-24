@@ -17,6 +17,15 @@ log = Environment.get_logger()
 
 FINAL_STATES = ["COMPLETED", "FAILED", "TIMED_OUT"]
 
+RUNPOD_TO_NODETOOL_STATUS = {
+    "in_queue": "queued",
+    "in_progress": "running",
+    "completed": "completed",
+    "failed": "failed",
+    "cancelled": "cancelled",
+    "timed_out": "failed",
+}
+
 
 class CommandType(str, Enum):
     RUN_JOB = "run_job"
@@ -55,27 +64,32 @@ class RunPodWebSocketRunner:
         self.active_job_id: Optional[str] = None
         self.mode = WebSocketMode.BINARY
         self._should_stop = False
+        self.session: Optional[aiohttp.ClientSession] = None
         self.api_key = os.getenv("RUNPOD_API_KEY")
         if not self.api_key:
             raise ValueError("RUNPOD_API_KEY environment variable is required")
 
     async def connect(self, websocket: WebSocket):
-        """Establishes the WebSocket connection."""
+        """Establishes the WebSocket connection and creates aiohttp session."""
         await websocket.accept()
         self.websocket = websocket
+        self.session = aiohttp.ClientSession()
         log.info("WebSocket connection established")
 
     async def disconnect(self):
-        """Closes the WebSocket connection and cancels any active job."""
+        """Closes the WebSocket connection, session and cancels any active job."""
         log.info("Disconnecting WebSocket")
         if self.active_job_id:
             await self.cancel_job()
+        if self.session:
+            await self.session.close()
         if self.websocket:
             try:
                 await self.websocket.close()
             except Exception as e:
                 log.error(f"Error closing WebSocket: {e}")
         self.websocket = None
+        self.session = None
         self.active_job_id = None
         log.info("WebSocket disconnected and resources cleaned up")
 
@@ -93,11 +107,15 @@ class RunPodWebSocketRunner:
         except Exception as e:
             log.error(f"Error sending message: {e}")
 
+    def _map_status(self, runpod_status: str) -> str:
+        """Maps RunPod status to Nodetool status."""
+        return RUNPOD_TO_NODETOOL_STATUS.get(runpod_status.lower(), "unknown")
+
     async def run_job(self, req: RunJobRequest):
         """Runs a job by delegating to RunPod endpoint."""
         try:
-            if not self.websocket:
-                raise ValueError("WebSocket is not connected")
+            if not self.websocket or not self.session:
+                raise ValueError("WebSocket or session is not connected")
 
             start_time = time.time()
             self._should_stop = False
@@ -109,39 +127,68 @@ class RunPodWebSocketRunner:
             }
             payload = {"input": req.model_dump()}
 
+            # Log job start
+            log.info(f"Starting new RunPod job {self.active_job_id}")
+
             # Start the job
             run_url = f"https://api.runpod.ai/v2/{self.endpoint_id}/run"
-            async with aiohttp.ClientSession() as session:
-                async with session.post(
-                    run_url, headers=headers, json=payload
-                ) as response:
-                    response.raise_for_status()
+            async with self.session.post(
+                run_url, headers=headers, json=payload
+            ) as response:
+                response.raise_for_status()
+                job = await response.json()
+                self.active_job_id = job["id"]
+                log.info(f"Job created successfully with ID: {self.active_job_id}")
+
+            status_url = f"https://api.runpod.ai/v2/{self.endpoint_id}/status/{self.active_job_id}"
+            last_status = None
+            while True:
+                if self._should_stop:
+                    log.info(f"Job {self.active_job_id} stopped by user")
+                    break
+                async with self.session.get(status_url, headers=headers) as response:
                     job = await response.json()
-                    self.active_job_id = job["id"]
+                    current_status = job["status"].lower()
+                    mapped_status = self._map_status(current_status)
+                    log.debug(
+                        f"Job {self.active_job_id} status update: {mapped_status}"
+                    )
+                    if last_status != mapped_status:
+                        await self.send_job_update(mapped_status)
+                    last_status = mapped_status
+                    if job["status"] != "IN_QUEUE":
+                        break
+                    await asyncio.sleep(0.5)
 
             # Stream results
             stream_url = f"https://api.runpod.ai/v2/{self.endpoint_id}/stream/{self.active_job_id}"
-            async with aiohttp.ClientSession() as session:
-                while True:
-                    if self._should_stop:
-                        break
-                    async with session.post(stream_url, headers=headers) as response:
-                        job = await response.json()
-                        for chunk in job["stream"]:
-                            print(chunk)
-                            message = chunk["output"]
-                            await self.send_message(message)
+            while True:
+                if self._should_stop:
+                    break
+                async with self.session.post(stream_url, headers=headers) as response:
+                    job = await response.json()
+                    for chunk in job["stream"]:
+                        message = chunk["output"]
+                        log.debug(message)
+                        await self.send_message(message)
 
-                            if message.get("error"):
-                                await self.send_job_update(
-                                    "failed", str(message["error"])
-                                )
-                                break
-                        if job["status"] in FINAL_STATES:
+                        if message.get("error"):
+                            error_msg = str(message["error"])
+                            log.error(
+                                f"Job {self.active_job_id} failed with error: {error_msg}"
+                            )
+                            await self.send_job_update(
+                                "failed", error=error_msg, message="Job failed"
+                            )
                             break
-
-            if not self._should_stop:
-                await self.send_job_update("completed")
+                    status = job["status"].lower()
+                    mapped_status = self._map_status(status)
+                    if job["status"] in FINAL_STATES:
+                        await self.send_job_update(mapped_status)
+                        log.info(
+                            f"Job {self.active_job_id} reached final state: {mapped_status}"
+                        )
+                        break
 
             total_time = time.time() - start_time
             log.info(
@@ -154,27 +201,33 @@ class RunPodWebSocketRunner:
         finally:
             self.active_job_id = None
 
-    async def send_job_update(self, status: str, error: str | None = None):
+    async def send_job_update(
+        self, status: str, error: str | None = None, message: str | None = None
+    ):
         """Sends a job status update through the WebSocket."""
         msg = {
             "type": "job_update",
             "status": status,
             "error": error,
             "job_id": self.active_job_id,
+            "message": message,
         }
+        log.info(
+            f"Job {self.active_job_id} status update: {status}"
+            + (f" (Error: {error})" if error else "")
+        )
         await self.send_message(msg)
 
     async def cancel_job(self):
         """Cancels the active RunPod job if one exists."""
-        if not self.active_job_id:
-            return {"error": "No active job to cancel"}
+        if not self.active_job_id or not self.session:
+            return {"error": "No active job to cancel or session not connected"}
 
         try:
             headers = {"Authorization": f"Bearer {self.api_key}"}
             cancel_url = f"https://api.runpod.ai/v2/{self.endpoint_id}/cancel/{self.active_job_id}"
-            async with aiohttp.ClientSession() as session:
-                async with session.post(cancel_url, headers=headers) as response:
-                    response.raise_for_status()
+            async with self.session.post(cancel_url, headers=headers) as response:
+                response.raise_for_status()
 
             self._should_stop = True
             await self.send_job_update("cancelled")
