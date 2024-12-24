@@ -14,15 +14,6 @@ import nodetool.nodes.ollama
 import nodetool.nodes.luma
 import nodetool.nodes.kling
 
-import comfy.cli_args
-import comfy.model_management
-import comfy.utils
-from nodes import init_extra_nodes
-
-comfy.cli_args.args.force_fp16 = True
-
-init_extra_nodes()
-
 
 class EnumEncoder(json.JSONEncoder):
     def default(self, obj):

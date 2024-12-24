@@ -41,13 +41,13 @@ class ChromaNode(BaseNode):
             collection: The collection to get or create.
         """
         from chromadb.utils import data_loaders
-        from chromadb.utils.embedding_functions.open_clip_embedding_function import (  # type: ignore
-            OpenCLIPEmbeddingFunction,
-        )
-        from chromadb.utils.embedding_functions.openai_embedding_function import (  # type: ignore
+        from chromadb.utils.embedding_functions.openai_embedding_function import (
             OpenAIEmbeddingFunction,
         )
-        from chromadb.utils.embedding_functions.ollama_embedding_function import (  # type: ignore
+        from chromadb.utils.embedding_functions.open_clip_embedding_function import (
+            OpenCLIPEmbeddingFunction,
+        )
+        from chromadb.utils.embedding_functions.ollama_embedding_function import (
             OllamaEmbeddingFunction,
         )
 

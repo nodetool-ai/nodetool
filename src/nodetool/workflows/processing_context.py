@@ -1,5 +1,6 @@
 import asyncio
 from enum import Enum
+from urllib.parse import urlparse
 import io
 import json
 import multiprocessing
@@ -63,6 +64,7 @@ from nodetool.common.environment import Environment
 from io import BytesIO
 from typing import IO, Any, Literal, Union
 from pickle import dumps, loads
+from chromadb.config import Settings
 
 
 log = Environment.get_logger()
@@ -1485,18 +1487,38 @@ class ProcessingContext:
         import chromadb
         from chromadb.config import DEFAULT_DATABASE, DEFAULT_TENANT
 
-        settings = Environment.get_chroma_settings()
+        url = Environment.get_chroma_url()
+        token = Environment.get_chroma_token()
 
-        if Environment.get_chroma_url():
-            admin = chromadb.AdminClient()
+        if url is not None:
+            parsed_url = urlparse(url)
+            admin = chromadb.AdminClient(
+                settings=Settings(
+                    chroma_api_impl="chromadb.api.fastapi.FastAPI",
+                    chroma_client_auth_provider="chromadb.auth.token_authn.TokenAuthClientProvider",
+                    chroma_client_auth_credentials=token,
+                    chroma_server_host=parsed_url.hostname,
+                    chroma_server_http_port=parsed_url.port,
+                ),
+            )
             tenant = f"tenant_{self.user_id}"
             try:
                 admin.get_tenant(tenant)
-            except Exception:
+            except Exception as e:
+                log.info(f"Creating tenant {tenant}")
                 admin.create_tenant(tenant)
+                log.info(f"Creating database {DEFAULT_DATABASE}")
                 admin.create_database(DEFAULT_DATABASE, tenant)
+
             return chromadb.HttpClient(
-                host=Environment.get_chroma_url(), settings=settings
+                host=parsed_url.hostname,
+                port=parsed_url.port,
+                settings=Settings(
+                    chroma_client_auth_provider="chromadb.auth.token_authn.TokenAuthClientProvider",
+                    chroma_client_auth_credentials=token,
+                ),
+                tenant=tenant,
+                database=DEFAULT_DATABASE,
             )
         else:
             return chromadb.PersistentClient(

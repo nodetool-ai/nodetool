@@ -79,7 +79,9 @@ class IndexImageList(ChromaNode):
 
         for i, image_ref in enumerate(self.images):
             if not image_ref.asset_id:
-                raise ValueError("The image needs to be an asset")
+                raise ValueError(
+                    "The image needs to be an asset that is saved to a folder"
+                )
 
             res = collection.get(image_ref.asset_id)
 
@@ -115,7 +117,9 @@ class IndexTextList(ChromaNode):
 
         for doc in self.docs:
             if not doc.asset_id:
-                raise ValueError("The text needs to be an asset")
+                raise ValueError(
+                    "The text needs to be an asset that is saved to a folder"
+                )
 
             res = collection.get(doc.asset_id)
 
@@ -126,3 +130,51 @@ class IndexTextList(ChromaNode):
             ids.append(doc.asset_id)
 
         return ids
+
+
+class IndexImage(ChromaNode):
+    """
+    Index a single image asset.
+    """
+
+    collection: ChromaCollection = Field(
+        default=ChromaCollection(), description="The collection to index"
+    )
+    image: ImageRef = Field(default=ImageRef(), description="Image asset to index")
+
+    async def process(self, context: ProcessingContext) -> str:
+        if not self.image.asset_id:
+            raise ValueError("The image needs to be an asset that is saved to a folder")
+
+        collection = self.get_or_create_collection(context, self.collection)
+        res = collection.get(self.image.asset_id)
+
+        if len(res["ids"]) == 0:
+            image = await context.image_to_pil(self.image)
+            collection.add(ids=[self.image.asset_id], images=[np.array(image)])
+
+        return self.image.asset_id
+
+
+class IndexText(ChromaNode):
+    """
+    Index a single text asset.
+    """
+
+    collection: ChromaCollection = Field(
+        default=ChromaCollection(), description="The collection to index"
+    )
+    text: TextRef = Field(default=TextRef(), description="Text asset to index")
+
+    async def process(self, context: ProcessingContext) -> str:
+        if not self.text.asset_id:
+            raise ValueError("The text needs to be an asset that is saved to a folder")
+
+        collection = self.get_or_create_collection(context, self.collection)
+        res = collection.get(self.text.asset_id)
+
+        if len(res["ids"]) == 0:
+            text = await context.text_to_str(self.text.asset_id)
+            collection.add(ids=[self.text.asset_id], documents=[text])
+
+        return self.text.asset_id
