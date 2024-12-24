@@ -39,7 +39,6 @@ const ColorProperty: React.FC<PropertyProps> = ({
           color={color}
           onColorChange={handleColorChange}
           showCustom={true}
-          size="small"
         />
         <Box
           css={{
