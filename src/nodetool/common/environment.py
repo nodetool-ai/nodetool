@@ -406,23 +406,23 @@ class Environment(object):
         """
         return cls.get("CHROMA_PATH")
 
-    @classmethod
-    def get_chroma_settings(cls):
-        from chromadb.config import Settings
+    # @classmethod
+    # def get_chroma_settings(cls):
+    #     from chromadb.config import Settings
 
-        if cls.get_chroma_url() is not None:
-            return Settings(
-                chroma_api_impl="chromadb.api.fastapi.FastAPI",
-                # chroma_client_auth_provider="token",
-                # chroma_client_auth_credentials=cls.get_chroma_token(),
-                chroma_server_host=cls.get_chroma_url(),
-            )
-        else:
-            return Settings(
-                chroma_api_impl="chromadb.api.segment.SegmentAPI",
-                is_persistent=True,
-                persist_directory="multitenant",
-            )
+    #     if cls.get_chroma_url() is not None:
+    #         return Settings(
+    #             chroma_api_impl="chromadb.api.fastapi.FastAPI",
+    #             chroma_client_auth_provider="token",
+    #             chroma_client_auth_credentials=cls.get_chroma_token(),
+    #             # chroma_server_host=cls.get_chroma_url(),
+    #         )
+    #     else:
+    #         return Settings(
+    #             chroma_api_impl="chromadb.api.segment.SegmentAPI",
+    #             is_persistent=True,
+    #             persist_directory="multitenant",
+    #         )
 
     @classmethod
     def get_comfy_folder(cls):
