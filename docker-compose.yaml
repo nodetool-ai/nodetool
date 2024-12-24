@@ -76,8 +76,13 @@ services:
         "--path",
         "/chroma-data",
       ]
+    environment:
+      CHROMA_SERVER_AUTHN_CREDENTIALS: ${CHROMA_TOKEN}}
+      CHROMA_SERVER_AUTHN_PROVIDER: chromadb.auth.token_authn.TokenAuthenticationServerProvider
     expose:
       - "9000"
+    ports:
+      - "9000:9000"
   postgres:
     image: postgres:16.3
     restart: unless-stopped
