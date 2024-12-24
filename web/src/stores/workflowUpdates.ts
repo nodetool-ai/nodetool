@@ -32,17 +32,19 @@ export const handleUpdate = (
 
   if (data.type === "job_update") {
     const job = data as JobUpdate;
+    console.log(job);
     useWorkflowRunner.setState({
-      state: job.status === "running" ? "running" : "idle"
+      state:
+        job.status === "running" || job.status === "queued" ? "running" : "idle"
     });
     if (job.job_id) {
       useWorkflowRunner.setState({ job_id: job.job_id });
     }
-
     switch (job.status) {
       case "completed":
       case "cancelled":
       case "failed":
+      case "timed_out":
         runner.addNotification({
           type: job.status === "failed" ? "error" : "info",
           alert: true,
@@ -52,6 +54,11 @@ export const handleUpdate = (
           timeout: job.status === "failed" ? 30000 : undefined
         });
         runner.disconnect();
+        break;
+      case "queued":
+        useWorkflowRunner.setState({
+          statusMessage: "Worker is booting (may take a 15 seconds)..."
+        });
         break;
       case "running":
         if (job.message) {
