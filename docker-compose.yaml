@@ -77,7 +77,7 @@ services:
         "/chroma-data",
       ]
     environment:
-      CHROMA_SERVER_AUTHN_CREDENTIALS: ${CHROMA_TOKEN}}
+      CHROMA_SERVER_AUTHN_CREDENTIALS: ${CHROMA_TOKEN}
       CHROMA_SERVER_AUTHN_PROVIDER: chromadb.auth.token_authn.TokenAuthenticationServerProvider
     expose:
       - "9000"
