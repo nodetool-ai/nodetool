@@ -108,17 +108,32 @@ export default function useConnectionHandlers() {
           );
 
           if (possibleInputs.length > 0) {
-            // connect first possible input
-            const firstInput = possibleInputs[0];
-            const newConnection = {
-              source: connectNodeId || "",
-              sourceHandle: connectHandleId || "",
-              target: nodeId,
-              targetHandle: firstInput.name
-            };
+            const edges = useNodeStore.getState().edges;
+            const unusedInput = possibleInputs.find(
+              (input) =>
+                !edges.some(
+                  (edge) =>
+                    edge.target === nodeId && edge.targetHandle === input.name
+                )
+            );
 
-            handleOnConnect(newConnection);
-            endConnecting();
+            if (unusedInput) {
+              const newConnection = {
+                source: connectNodeId || "",
+                sourceHandle: connectHandleId || "",
+                target: nodeId,
+                targetHandle: unusedInput.name
+              };
+              handleOnConnect(newConnection);
+              endConnecting();
+            } else {
+              endConnecting();
+              addNotification({
+                type: "warning",
+                alert: true,
+                content: "All possible inputs are already connected"
+              });
+            }
           } else {
             endConnecting();
             addNotification({
