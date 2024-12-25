@@ -125,12 +125,12 @@ export const RenderListView: React.FC<RenderListViewProps> = ({
     <Box className="container list" css={listStyles} onScroll={onScroll}>
       {workflows.map((workflow: Workflow) => (
         <Tooltip
+          key={workflow.id}
           title="Click to open workflow"
           placement="top"
           enterDelay={TOOLTIP_ENTER_DELAY}
         >
           <Box
-            key={workflow.id}
             className={
               "workflow list" +
               (selectedWorkflows?.includes(workflow.id) ? " selected" : "")
