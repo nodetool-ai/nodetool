@@ -18,14 +18,17 @@ class SaveAudio(BaseNode):
     - Create backups of generated audio
     """
 
-    value: AudioRef = AudioRef()
+    audio: AudioRef = AudioRef()
     folder: FolderRef = Field(
         FolderRef(), description="The folder to save the audio file to. "
     )
     name: str = Field(default="audio", description="The name of the audio file.")
 
+    def required_inputs(self):
+        return ["audio"]
+
     async def process(self, context: ProcessingContext) -> AudioRef:
-        audio = await context.audio_to_audio_segment(self.value)
+        audio = await context.audio_to_audio_segment(self.audio)
         file = io.BytesIO()
         audio.export(file)
         file.seek(0)

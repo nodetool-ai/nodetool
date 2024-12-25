@@ -174,14 +174,17 @@ class SaveText(BaseNode):
     - Archiving text data within the workflow
     """
 
-    value: str | TextRef = Field(title="Text", default_factory=TextRef)
+    text: str | TextRef = Field(title="Text", default_factory=TextRef)
     folder: FolderRef = Field(
         default=FolderRef(), description="Name of the output folder."
     )
     name: str = Field(title="Name", default="text.txt")
 
+    def required_inputs(self):
+        return ["text"]
+
     async def process(self, context: ProcessingContext) -> TextRef:
-        string = await to_string(context, self.value)
+        string = await to_string(context, self.text)
         file = BytesIO(string.encode("utf-8"))
         parent_id = self.folder.asset_id if self.folder.is_set() else None
         asset = await context.create_asset(self.name, "text/plain", file, parent_id)

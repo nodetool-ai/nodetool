@@ -41,14 +41,17 @@ class SaveVideo(BaseNode):
     3. Create a copy of a video in a different location
     """
 
-    value: VideoRef = Field(default=VideoRef(), description="The video to save.")
+    video: VideoRef = Field(default=VideoRef(), description="The video to save.")
     folder: FolderRef = Field(
         default=FolderRef(), description="Name of the output folder."
     )
     name: str = Field(default="video", description="Name of the output video.")
 
+    def required_inputs(self):
+        return ["video"]
+
     async def process(self, context: ProcessingContext) -> VideoRef:
-        video = await context.asset_to_io(self.value)
+        video = await context.asset_to_io(self.video)
         return await context.video_from_io(
             buffer=video,
             name=self.name,

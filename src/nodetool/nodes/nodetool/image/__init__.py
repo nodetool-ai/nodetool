@@ -31,6 +31,9 @@ class SaveImage(BaseNode):
     )
     name: str = Field(default="%Y-%m-%d_%H-%M-%S.png")
 
+    def required_inputs(self):
+        return ["image"]
+
     async def process(self, context: ProcessingContext) -> ImageRef:
         if self.image.is_empty():
             raise ValueError("The input image is not connected.")
