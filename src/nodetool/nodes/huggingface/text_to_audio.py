@@ -490,7 +490,10 @@ class StableAudioNode(HuggingFacePipelineNode):
 
     async def initialize(self, context: ProcessingContext):
         self._pipeline = await self.load_model(
-            context, StableAudioPipeline, "stabilityai/stable-audio-open-1.0"
+            context=context,
+            model_class=StableAudioPipeline,
+            model_id="stabilityai/stable-audio-open-1.0",
+            variant=None,
         )
 
     async def process(self, context: ProcessingContext) -> AudioRef:

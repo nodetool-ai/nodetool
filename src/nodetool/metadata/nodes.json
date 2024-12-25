@@ -15934,6 +15934,278 @@
     "recommended_models": []
   },
   {
+    "title": "Chart Renderer",
+    "description": "Node responsible for rendering chart configurations into image format using seaborn.",
+    "namespace": "nodetool.image.chart",
+    "node_type": "nodetool.image.chart.ChartRenderer",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "chart_config",
+        "type": {
+          "type": "chart_config",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "chart_config",
+          "title": "",
+          "x_label": "",
+          "y_label": "",
+          "legend": true,
+          "data": {
+            "type": "chart_data",
+            "series": [],
+            "row": null,
+            "col": null,
+            "col_wrap": null
+          },
+          "height": null,
+          "aspect": null,
+          "x_lim": null,
+          "y_lim": null,
+          "x_scale": null,
+          "y_scale": null,
+          "legend_position": "auto",
+          "palette": null,
+          "hue_order": null,
+          "hue_norm": null,
+          "sizes": null,
+          "size_order": null,
+          "size_norm": null,
+          "marginal_kws": null,
+          "joint_kws": null,
+          "diag_kind": null,
+          "corner": false,
+          "center": null,
+          "vmin": null,
+          "vmax": null,
+          "cmap": null,
+          "annot": false,
+          "fmt": ".2g",
+          "square": false
+        },
+        "title": "Chart Config",
+        "description": "The chart configuration to render.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "width",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 640,
+        "title": "Width",
+        "description": "The width of the chart in pixels.",
+        "min": 0.0,
+        "max": 10000.0
+      },
+      {
+        "name": "height",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 480,
+        "title": "Height",
+        "description": "The height of the chart in pixels.",
+        "min": 0.0,
+        "max": 10000.0
+      },
+      {
+        "name": "data",
+        "type": {
+          "type": "any",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Data",
+        "description": "The data to visualize as a pandas DataFrame.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "style",
+        "type": {
+          "type": "enum",
+          "optional": false,
+          "values": [
+            "darkgrid",
+            "whitegrid",
+            "dark",
+            "white",
+            "ticks"
+          ],
+          "type_args": [],
+          "type_name": "nodetool.nodes.nodetool.image.chart.SeabornStyle"
+        },
+        "default": "whitegrid",
+        "title": "Style",
+        "description": "The style of the plot background and grid.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "context",
+        "type": {
+          "type": "enum",
+          "optional": false,
+          "values": [
+            "paper",
+            "notebook",
+            "talk",
+            "poster"
+          ],
+          "type_args": [],
+          "type_name": "nodetool.nodes.nodetool.image.chart.SeabornContext"
+        },
+        "default": "notebook",
+        "title": "Context",
+        "description": "The context of the plot, affecting scale and aesthetics.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "palette",
+        "type": {
+          "type": "enum",
+          "optional": false,
+          "values": [
+            "deep",
+            "muted",
+            "pastel",
+            "bright",
+            "dark",
+            "colorblind"
+          ],
+          "type_args": [],
+          "type_name": "nodetool.nodes.nodetool.image.chart.SeabornPalette"
+        },
+        "default": "deep",
+        "title": "Palette",
+        "description": "Color palette for the plot.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "font_scale",
+        "type": {
+          "type": "float",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 1.0,
+        "title": "Font Scale",
+        "description": "Scale factor for font sizes.",
+        "min": 0.1,
+        "max": 5.0
+      },
+      {
+        "name": "font",
+        "type": {
+          "type": "enum",
+          "optional": false,
+          "values": [
+            "sans-serif",
+            "serif",
+            "monospace",
+            "Arial",
+            "Helvetica",
+            "Times New Roman"
+          ],
+          "type_args": [],
+          "type_name": "nodetool.nodes.nodetool.image.chart.SeabornFont"
+        },
+        "default": "sans-serif",
+        "title": "Font",
+        "description": "Font family for text elements.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "despine",
+        "type": {
+          "type": "bool",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": true,
+        "title": "Despine",
+        "description": "Whether to remove top and right spines.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "trim_margins",
+        "type": {
+          "type": "bool",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": true,
+        "title": "Trim Margins",
+        "description": "Whether to use tight layout for margins.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "model",
+        "type": {
+          "type": "enum",
+          "optional": false,
+          "values": [
+            "gpt-3.5-turbo-0125",
+            "gpt-4o",
+            "gpt-4o-mini",
+            "o1-preview",
+            "o1-mini"
+          ],
+          "type_args": [],
+          "type_name": "nodetool.metadata.types.GPTModel"
+        },
+        "default": "gpt-4o-mini",
+        "title": "Model",
+        "description": "The GPT model to use for rendering the chart.",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "image",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
     "title": "Auto Contrast",
     "description": "Automatically adjusts image contrast for enhanced visual quality.\n    image, contrast, balance\n\n    Use cases:\n    - Enhance image clarity for better visual perception\n    - Pre-process images for computer vision tasks\n    - Improve photo aesthetics in editing workflows",
     "namespace": "nodetool.image.enhance",
@@ -21265,6 +21537,53 @@
         },
         "title": "B",
         "description": "The second audio file.",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "audio",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
+    "title": "Concat List",
+    "description": "Concatenates multiple audio files together in sequence.\n    audio, edit, join, multiple\n\n    Use cases:\n    - Combine multiple audio clips into a single file\n    - Create longer audio tracks from multiple segments\n    - Chain multiple audio files in order",
+    "namespace": "nodetool.audio.transform",
+    "node_type": "nodetool.audio.transform.ConcatList",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "audio_files",
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "audio",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": [],
+        "title": "Audio Files",
+        "description": "List of audio files to concatenate in sequence.",
         "min": null,
         "max": null
       }
@@ -58793,278 +59112,6 @@
     "recommended_models": []
   },
   {
-    "title": "Chart Renderer",
-    "description": "Node responsible for rendering chart configurations into image format using seaborn.",
-    "namespace": "openai.agents",
-    "node_type": "openai.agents.ChartRenderer",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "chart_config",
-        "type": {
-          "type": "chart_config",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": {
-          "type": "chart_config",
-          "title": "",
-          "x_label": "",
-          "y_label": "",
-          "legend": true,
-          "data": {
-            "type": "chart_data",
-            "series": [],
-            "row": null,
-            "col": null,
-            "col_wrap": null
-          },
-          "height": null,
-          "aspect": null,
-          "x_lim": null,
-          "y_lim": null,
-          "x_scale": null,
-          "y_scale": null,
-          "legend_position": "auto",
-          "palette": null,
-          "hue_order": null,
-          "hue_norm": null,
-          "sizes": null,
-          "size_order": null,
-          "size_norm": null,
-          "marginal_kws": null,
-          "joint_kws": null,
-          "diag_kind": null,
-          "corner": false,
-          "center": null,
-          "vmin": null,
-          "vmax": null,
-          "cmap": null,
-          "annot": false,
-          "fmt": ".2g",
-          "square": false
-        },
-        "title": "Chart Config",
-        "description": "The chart configuration to render.",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "width",
-        "type": {
-          "type": "int",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": 640,
-        "title": "Width",
-        "description": "The width of the chart in pixels.",
-        "min": 0.0,
-        "max": 10000.0
-      },
-      {
-        "name": "height",
-        "type": {
-          "type": "int",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": 480,
-        "title": "Height",
-        "description": "The height of the chart in pixels.",
-        "min": 0.0,
-        "max": 10000.0
-      },
-      {
-        "name": "data",
-        "type": {
-          "type": "any",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": null,
-        "title": "Data",
-        "description": "The data to visualize as a pandas DataFrame.",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "style",
-        "type": {
-          "type": "enum",
-          "optional": false,
-          "values": [
-            "darkgrid",
-            "whitegrid",
-            "dark",
-            "white",
-            "ticks"
-          ],
-          "type_args": [],
-          "type_name": "nodetool.nodes.openai.agents.SeabornStyle"
-        },
-        "default": "whitegrid",
-        "title": "Style",
-        "description": "The style of the plot background and grid.",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "context",
-        "type": {
-          "type": "enum",
-          "optional": false,
-          "values": [
-            "paper",
-            "notebook",
-            "talk",
-            "poster"
-          ],
-          "type_args": [],
-          "type_name": "nodetool.nodes.openai.agents.SeabornContext"
-        },
-        "default": "notebook",
-        "title": "Context",
-        "description": "The context of the plot, affecting scale and aesthetics.",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "palette",
-        "type": {
-          "type": "enum",
-          "optional": false,
-          "values": [
-            "deep",
-            "muted",
-            "pastel",
-            "bright",
-            "dark",
-            "colorblind"
-          ],
-          "type_args": [],
-          "type_name": "nodetool.nodes.openai.agents.SeabornPalette"
-        },
-        "default": "deep",
-        "title": "Palette",
-        "description": "Color palette for the plot.",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "font_scale",
-        "type": {
-          "type": "float",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": 1.0,
-        "title": "Font Scale",
-        "description": "Scale factor for font sizes.",
-        "min": 0.1,
-        "max": 5.0
-      },
-      {
-        "name": "font",
-        "type": {
-          "type": "enum",
-          "optional": false,
-          "values": [
-            "sans-serif",
-            "serif",
-            "monospace",
-            "Arial",
-            "Helvetica",
-            "Times New Roman"
-          ],
-          "type_args": [],
-          "type_name": "nodetool.nodes.openai.agents.SeabornFont"
-        },
-        "default": "sans-serif",
-        "title": "Font",
-        "description": "Font family for text elements.",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "despine",
-        "type": {
-          "type": "bool",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": true,
-        "title": "Despine",
-        "description": "Whether to remove top and right spines.",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "trim_margins",
-        "type": {
-          "type": "bool",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": true,
-        "title": "Trim Margins",
-        "description": "Whether to use tight layout for margins.",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "model",
-        "type": {
-          "type": "enum",
-          "optional": false,
-          "values": [
-            "gpt-3.5-turbo-0125",
-            "gpt-4o",
-            "gpt-4o-mini",
-            "o1-preview",
-            "o1-mini"
-          ],
-          "type_args": [],
-          "type_name": "nodetool.metadata.types.GPTModel"
-        },
-        "default": "gpt-4o-mini",
-        "title": "Model",
-        "description": "The GPT model to use for rendering the chart.",
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "image",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": []
-  },
-  {
     "title": "Synthesizer Agent",
     "description": "Agent that interprets natural language descriptions to create sounds using basic synthesis algorithms.\n    llm, audio synthesis, sound design\n\n    Use cases:\n    - Creating sounds from text descriptions\n    - Automated sound design\n    - Converting musical ideas into synthesized audio",
     "namespace": "openai.agents",
@@ -79280,7 +79327,7 @@
     "recommended_models": []
   },
   {
-    "title": "SVGGenerator",
+    "title": "SVG Generator",
     "description": "LLM Agent to create SVG elements based on a user prompt.\n    llm, svg generation, vector graphics\n\n    Use cases:\n    - Generating SVG graphics from natural language descriptions\n    - Creating vector illustrations programmatically\n    - Converting text descriptions into visual elements",
     "namespace": "ollama.agents",
     "node_type": "ollama.agents.SVGGenerator",
@@ -79415,6 +79462,182 @@
               "type_name": null
             }
           ],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
+    "title": "Chart Generator",
+    "description": "LLM Agent to create chart configurations based on natural language descriptions.\n    llm, data visualization, charts\n\n    Use cases:\n    - Generating chart configurations from natural language descriptions\n    - Creating data visualizations programmatically\n    - Converting data analysis requirements into visual representations",
+    "namespace": "ollama.agents",
+    "node_type": "ollama.agents.ChartGenerator",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "model",
+        "type": {
+          "type": "llama_model",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "llama_model",
+          "name": "",
+          "repo_id": "",
+          "modified_at": "",
+          "size": 0,
+          "digest": "",
+          "details": {}
+        },
+        "title": "Model",
+        "description": "The Llama model to use for chart generation.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "context_window",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 4096,
+        "title": "Context Window",
+        "description": "The context window size to use for the model.",
+        "min": 1.0,
+        "max": null
+      },
+      {
+        "name": "prompt",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Prompt",
+        "description": "Natural language description of the desired chart",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "data",
+        "type": {
+          "type": "dataframe",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "dataframe",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "columns": null
+        },
+        "title": "Data",
+        "description": "The data to visualize",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "temperature",
+        "type": {
+          "type": "float",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 0.7,
+        "title": "Temperature",
+        "description": "The temperature to use for sampling.",
+        "min": 0.0,
+        "max": 2.0
+      },
+      {
+        "name": "top_k",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 50,
+        "title": "Top K",
+        "description": "The number of highest probability tokens to keep for top-k sampling.",
+        "min": 1.0,
+        "max": 100.0
+      },
+      {
+        "name": "top_p",
+        "type": {
+          "type": "float",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 0.95,
+        "title": "Top P",
+        "description": "The cumulative probability cutoff for nucleus/top-p sampling.",
+        "min": 0.0,
+        "max": 1.0
+      },
+      {
+        "name": "keep_alive",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "300",
+        "title": "Keep Alive",
+        "description": "The number of seconds to keep the model alive.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "columns",
+        "type": {
+          "type": "record_type",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "record_type",
+          "columns": []
+        },
+        "title": "Columns",
+        "description": "The columns available in the data.",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "chart_config",
+          "optional": false,
+          "values": null,
+          "type_args": [],
           "type_name": null
         },
         "name": "output",

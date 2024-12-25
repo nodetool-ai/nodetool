@@ -271,6 +271,11 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
     const { socket, job_id } = get();
     console.log("Cancelling job", job_id);
 
+    const workflow = useNodeStore.getState().workflow;
+    const clearStatuses = useStatusStore.getState().clearStatuses;
+
+    clearStatuses(workflow.id);
+
     if (!socket || !job_id) {
       return;
     }

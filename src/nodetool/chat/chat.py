@@ -62,6 +62,28 @@ def json_schema_for_column(column: ColumnDef) -> dict:
     raise ValueError(f"Unknown data type {data_type}")
 
 
+def json_schema_for_dataframe(columns: list[ColumnDef]) -> dict:
+    return {
+        "type": "object",
+        "properties": {
+            "data": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        column.name: json_schema_for_column(column)
+                        for column in columns
+                    },
+                    "required": [column.name for column in columns],
+                    "additionalProperties": False,
+                },
+            }
+        },
+        "required": ["data"],
+        "additionalProperties": False,
+    }
+
+
 def default_serializer(obj: Any) -> dict:
     if isinstance(obj, BaseModel):
         return obj.model_dump()

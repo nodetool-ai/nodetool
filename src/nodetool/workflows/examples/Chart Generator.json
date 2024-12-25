@@ -13,49 +13,20 @@
   "graph": {
     "nodes": [
       {
-        "id": "4",
+        "id": "1",
         "parent_id": null,
-        "type": "nodetool.workflows.base_node.Preview",
+        "type": "ollama.agents.ChartGenerator",
         "data": {
-          "name": "image_output_2024-11-16"
-        },
-        "ui_properties": {
-          "position": {
-            "x": 930,
-            "y": 73
+          "model": {
+            "type": "llama_model",
+            "repo_id": "qwen2.5-coder:7b"
           },
-          "zIndex": 0,
-          "width": 612,
-          "height": 495,
-          "selectable": true
-        }
-      },
-      {
-        "id": "7",
-        "parent_id": null,
-        "type": "nodetool.workflows.base_node.Preview",
-        "data": {
-          "name": "dataframe_output_2024-11-16"
-        },
-        "ui_properties": {
-          "position": {
-            "x": 360,
-            "y": 242
-          },
-          "zIndex": 0,
-          "width": 238,
-          "height": 226,
-          "selectable": true
-        }
-      },
-      {
-        "id": "8",
-        "parent_id": null,
-        "type": "openai.agents.ChartGenerator",
-        "data": {
-          "prompt": "make a line chart",
-          "max_tokens": 2528,
+          "context_window": 4096,
+          "prompt": "make a nice line chart",
           "temperature": 0.7,
+          "top_k": 50,
+          "top_p": 0.95,
+          "keep_alive": 0,
           "columns": {
             "type": "record_type",
             "columns": []
@@ -64,88 +35,126 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 385.5,
+            "x": 510,
             "y": 518
           },
           "zIndex": 0,
-          "width": 187,
+          "width": 197,
           "selectable": true
         }
       },
       {
-        "id": "9",
+        "id": "2",
         "parent_id": null,
-        "type": "openai.agents.DataGenerator",
+        "type": "nodetool.image.chart.ChartRenderer",
         "data": {
-          "prompt": "US GDP since 1990",
-          "input_text": "",
-          "image": {
-            "type": "image",
-            "uri": "",
-            "asset_id": null,
-            "data": null
+          "width": 640,
+          "height": 480,
+          "style": "whitegrid",
+          "context": "notebook",
+          "palette": "deep",
+          "font_scale": 1,
+          "font": "sans-serif",
+          "despine": true,
+          "trim_margins": true,
+          "model": "gpt-4o-mini"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 767,
+            "y": 50
           },
-          "max_tokens": 1000,
+          "zIndex": 0,
+          "width": 137,
+          "selectable": true
+        }
+      },
+      {
+        "id": "3",
+        "parent_id": null,
+        "type": "ollama.agents.DataGenerator",
+        "data": {
+          "model": {
+            "type": "llama_model",
+            "repo_id": "qwen2.5:1.5b"
+          },
+          "context_window": 4096,
+          "prompt": "GDP for USA 1900-2000",
           "temperature": 1,
+          "top_k": 50,
+          "top_p": 0.95,
+          "keep_alive": 0,
           "columns": {
             "type": "record_type",
             "columns": [
               {
-                "name": "GDP",
+                "name": "year",
                 "data_type": "int",
-                "description": "gross domestic product in M"
+                "description": "year of gdp"
               },
               {
-                "name": "Year",
+                "name": "gdp",
                 "data_type": "int",
-                "description": "the year to report"
-              },
-              {
-                "name": "Country",
-                "data_type": "string",
-                "description": "the country"
+                "description": "gdp in millions"
               }
             ]
           }
         },
         "ui_properties": {
+          "selected": false,
           "position": {
             "x": 50,
-            "y": 134
+            "y": 132
           },
           "zIndex": 0,
-          "width": 250,
+          "width": 400,
           "selectable": true
         }
       },
       {
-        "id": "12",
+        "id": "4",
         "parent_id": null,
-        "type": "openai.agents.ChartRenderer",
+        "type": "nodetool.workflows.base_node.Preview",
         "data": {
-          "width": 640,
-          "height": 480,
-          "style": "darkgrid",
-          "context": "notebook",
-          "palette": "pastel",
-          "font": "sans-serif",
-          "font_scale": 1
+          "name": "image_output_2024-12-25"
         },
         "ui_properties": {
+          "selected": false,
           "position": {
-            "x": 658,
-            "y": 50
+            "x": 934,
+            "y": 247
           },
           "zIndex": 0,
-          "width": 242,
+          "width": 160,
+          "height": 160,
+          "selectable": true
+        }
+      },
+      {
+        "id": "5",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "dataframe_output_2024-12-25"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 510,
+            "y": 246
+          },
+          "zIndex": 0,
+          "width": 171,
+          "height": 222,
           "selectable": true
         }
       }
     ],
     "edges": [
       {
-        "id": "ebc2bd60-fa9a-4454-ba99-9e7307aa15b0",
-        "source": "12",
+        "id": "1",
+        "source": "2",
         "sourceHandle": "output",
         "target": "4",
         "targetHandle": "value",
@@ -154,40 +163,40 @@
         }
       },
       {
-        "id": "c8fe45e2-3f3e-4d3e-9115-dd04cf51ade0",
-        "source": "9",
+        "id": "f125057e-e4a9-40e0-aff4-708383c1b63b",
+        "source": "3",
         "sourceHandle": "output",
-        "target": "8",
+        "target": "1",
         "targetHandle": "data",
         "ui_properties": {
           "className": "dataframe"
         }
       },
       {
-        "id": "2a136c0d-6596-41df-8da3-74380dfd9b10",
-        "source": "8",
+        "id": "2",
+        "source": "3",
         "sourceHandle": "output",
-        "target": "12",
-        "targetHandle": "chart_config",
-        "ui_properties": {
-          "className": "chart_config"
-        }
-      },
-      {
-        "id": "b7ca81fb-46e7-4fe0-9d7b-5b4f1c17107a",
-        "source": "9",
-        "sourceHandle": "output",
-        "target": "7",
+        "target": "5",
         "targetHandle": "value",
         "ui_properties": {
           "className": "dataframe"
         }
       },
       {
-        "id": "4afff8ae-17f3-4e27-9425-e6f39ae8b7fe",
-        "source": "9",
+        "id": "be98a5da-9bfe-4802-b0b6-130ef98dc7fb",
+        "source": "1",
         "sourceHandle": "output",
-        "target": "12",
+        "target": "2",
+        "targetHandle": "chart_config",
+        "ui_properties": {
+          "className": "chart_config"
+        }
+      },
+      {
+        "id": "e96d2fd6-773a-4807-9b2d-282ac8afcb21",
+        "source": "3",
+        "sourceHandle": "output",
+        "target": "2",
         "targetHandle": "data",
         "ui_properties": {
           "className": "dataframe"
@@ -195,6 +204,4 @@
       }
     ]
   },
-  "input_schema": null,
-  "output_schema": null
 }
