@@ -22,7 +22,7 @@ import {
   TOOLTIP_ENTER_DELAY,
   TOOLTIP_ENTER_NEXT_DELAY,
   TOOLTIP_LEAVE_DELAY
-} from "./BaseNode";
+} from "../../config/constants";
 import { isEqual } from "lodash";
 import useMetadataStore from "../../stores/MetadataStore";
 import NodeResizeHandle from "./NodeResizeHandle";

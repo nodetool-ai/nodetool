@@ -16,7 +16,7 @@ import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 import { debounce, isEqual } from "lodash";
 import { hexToRgba } from "../../utils/ColorUtils";
 import { Button, CircularProgress, Tooltip } from "@mui/material";
-import { TOOLTIP_DELAY } from "../../config/constants";
+import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import useWorkflowRunner from "../../stores/WorkflowRunner";
 import { PlayArrow } from "@mui/icons-material";
 import ColorPicker from "../inputs/ColorPicker";
@@ -292,7 +292,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
                 </span> */}
               </div>
             }
-            enterDelay={TOOLTIP_DELAY}
+            enterDelay={TOOLTIP_ENTER_DELAY}
           >
             <Button
               size="large"

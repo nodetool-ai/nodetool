@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import React, { ReactElement, ReactNode } from "react";
 import { Tooltip, MenuItem, Button } from "@mui/material";
-import { TOOLTIP_ENTER_DELAY } from "../node/BaseNode";
+import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
 interface ContextMenuItemProps {
   onClick?: (event?: React.MouseEvent<HTMLElement>) => void;

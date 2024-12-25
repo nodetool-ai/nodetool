@@ -2,7 +2,7 @@ import React, { useState, useMemo, useCallback, memo } from "react";
 import { Button, Tooltip } from "@mui/material";
 import ThemeNodetool from "../themes/ThemeNodetool";
 import RecommendedModelsDialog from "../hugging_face/RecommendedModelsDialog";
-import { TOOLTIP_ENTER_DELAY } from "./BaseNode";
+import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { UnifiedModel } from "../../stores/ApiTypes";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { llama_models } from "../../config/models";

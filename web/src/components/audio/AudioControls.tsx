@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 
 import React, { useCallback, ReactElement } from "react";
 import { Typography, Button, Tooltip } from "@mui/material";
-import { TOOLTIP_ENTER_DELAY } from "../node/BaseNode";
+import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import SliderBasic from "../inputs/SliderBasic";
 import PlayIcon from "@mui/icons-material/PlayArrow";
 import PauseIcon from "@mui/icons-material/Pause";

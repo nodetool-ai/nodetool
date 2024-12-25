@@ -1,7 +1,7 @@
 import { useRef, useCallback, ChangeEvent } from "react";
 import { Button, Typography, Tooltip } from "@mui/material";
 import FileUploadIcon from "@mui/icons-material/FileUpload";
-import { TOOLTIP_DELAY } from "../../config/constants";
+import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import ThemeNodes from "../themes/ThemeNodes";
 
 export type FileUploadButtonProps = {
@@ -26,7 +26,7 @@ const FileUploadButton = (props: FileUploadButtonProps): JSX.Element => {
   return (
     <div className="file-upload-button">
       <Tooltip
-        enterDelay={TOOLTIP_DELAY}
+        enterDelay={TOOLTIP_ENTER_DELAY}
         title={
           <>
             <Typography

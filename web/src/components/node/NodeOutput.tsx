@@ -11,7 +11,7 @@ import {
   TOOLTIP_ENTER_DELAY,
   TOOLTIP_LEAVE_DELAY,
   TOOLTIP_ENTER_NEXT_DELAY
-} from "./BaseNode";
+} from "../../config/constants";
 import { OutputSlot } from "../../stores/ApiTypes";
 import { colorForType, textColorForType } from "../../config/data_types";
 import useContextMenuStore from "../../stores/ContextMenuStore";

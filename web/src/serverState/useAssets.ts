@@ -30,6 +30,7 @@ export const useAssets = (initialFolderId: string | null = null) => {
   const currentFolderId = useAssetGridStore((state) => state.currentFolderId);
   const currentUser = useAuth((state) => state.getUser());
   const setCurrentFolder = useAssetGridStore((state) => state.setCurrentFolder);
+  const loadCurrentFolder = useAssetStore((state) => state.loadCurrentFolder);
   const {
     load,
     loadFolderTree,
@@ -185,6 +186,7 @@ export const useAssets = (initialFolderId: string | null = null) => {
         setCurrentFolderId(folder.id || currentUser?.id || "");
         setCurrentFolder(folder || null);
         setSelectedAssetIds([]);
+        loadCurrentFolder();
       }
     },
     [
@@ -208,6 +210,7 @@ export const useAssets = (initialFolderId: string | null = null) => {
         setCurrentFolderId(folderId || currentUser?.id || "");
         setCurrentFolder(folder || null);
         setSelectedAssetIds([]);
+        loadCurrentFolder();
       }
     },
     [

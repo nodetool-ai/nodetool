@@ -6,7 +6,7 @@ import { Button, IconButton, InputBase, Box, Tooltip } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
-import { TOOLTIP_DELAY } from "../../config/constants";
+import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { useNodeStore } from "../../stores/NodeStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -204,7 +204,7 @@ const LastWorkflowButton = React.memo(() => {
     <div className="last-workflow" css={styles}>
       {!isEditing ? (
         <>
-          <Tooltip title="Edit workflow name" enterDelay={TOOLTIP_DELAY}>
+          <Tooltip title="Edit workflow name" enterDelay={TOOLTIP_ENTER_DELAY}>
             <IconButton
               className="edit-button"
               size="small"
@@ -227,12 +227,12 @@ const LastWorkflowButton = React.memo(() => {
             }}
           />
           <div className="confirm-buttons">
-            <Tooltip title="Save" enterDelay={TOOLTIP_DELAY}>
+            <Tooltip title="Save" enterDelay={TOOLTIP_ENTER_DELAY}>
               <IconButton size="small" onClick={handleSave}>
                 <CheckIcon fontSize="small" />
               </IconButton>
             </Tooltip>
-            <Tooltip title="Cancel" enterDelay={TOOLTIP_DELAY}>
+            <Tooltip title="Cancel" enterDelay={TOOLTIP_ENTER_DELAY}>
               <IconButton
                 className="cancel"
                 size="small"

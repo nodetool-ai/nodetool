@@ -6,7 +6,7 @@ import AssetGrid from "../assets/AssetGrid";
 import { IconButton, Box, Tooltip, Drawer, Tabs, Tab } from "@mui/material";
 import CodeIcon from "@mui/icons-material/Code";
 import { useResizePanel } from "../../hooks/handlers/useResizePanel";
-import { TOOLTIP_ENTER_DELAY } from "../node/BaseNode";
+import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 // import Inspector from "../Inspector";
 // hooks
 import WorkflowForm from "../workflows/WorkflowForm";

@@ -11,7 +11,7 @@ import {
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import { UnifiedModel } from "../../stores/ApiTypes";
-import { TOOLTIP_ENTER_DELAY } from "../node/BaseNode";
+import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import RecommendedModels from "./RecommendedModels";
 
 const styles = (theme: any) =>

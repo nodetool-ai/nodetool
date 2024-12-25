@@ -13,7 +13,7 @@ import NoteAddIcon from "@mui/icons-material/NoteAdd";
 
 import PlayArrow from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
-import { TOOLTIP_DELAY } from "../../config/constants";
+import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { css } from "@emotion/react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { memo, useCallback, useEffect } from "react";
@@ -205,7 +205,10 @@ const AppHeaderActions: React.FC = () => {
           css={actionsStyles(ThemeNodetool, buttonAppearance)}
         >
           <>
-            <Tooltip title="Create new workflow" enterDelay={TOOLTIP_DELAY}>
+            <Tooltip
+              title="Create new workflow"
+              enterDelay={TOOLTIP_ENTER_DELAY}
+            >
               <Button
                 className="action-button"
                 onClick={handleCreateWorkflow}
@@ -242,7 +245,7 @@ const AppHeaderActions: React.FC = () => {
                   </span>
                 </>
               }
-              enterDelay={TOOLTIP_DELAY}
+              enterDelay={TOOLTIP_ENTER_DELAY}
             >
               <Button
                 className="action-button"
@@ -256,7 +259,7 @@ const AppHeaderActions: React.FC = () => {
 
             <Tooltip
               title="Arranges all nodes or selected nodes"
-              enterDelay={TOOLTIP_DELAY}
+              enterDelay={TOOLTIP_ENTER_DELAY}
             >
               <Button
                 className="action-button"
@@ -268,7 +271,7 @@ const AppHeaderActions: React.FC = () => {
               </Button>
             </Tooltip>
 
-            <Tooltip title="Save workflow" enterDelay={TOOLTIP_DELAY}>
+            <Tooltip title="Save workflow" enterDelay={TOOLTIP_ENTER_DELAY}>
               <Button
                 className="action-button"
                 onClick={() => saveWorkflow().then(onWorkflowSaved)}
@@ -298,7 +301,7 @@ const AppHeaderActions: React.FC = () => {
                   </span>
                 </div>
               }
-              enterDelay={TOOLTIP_DELAY}
+              enterDelay={TOOLTIP_ENTER_DELAY}
             >
               <Button
                 size="large"
@@ -344,7 +347,7 @@ const AppHeaderActions: React.FC = () => {
                   <span style={{ fontSize: "1em", color: "white" }}>ESC</span>
                 </div>
               }
-              enterDelay={TOOLTIP_DELAY}
+              enterDelay={TOOLTIP_ENTER_DELAY}
             >
               <Button
                 size="large"

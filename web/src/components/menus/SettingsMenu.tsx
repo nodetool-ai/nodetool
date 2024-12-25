@@ -22,7 +22,7 @@ import WarningIcon from "@mui/icons-material/Warning";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import ThemeNodetool from "../themes/ThemeNodetool";
 import { useNavigate } from "react-router";
-import { TOOLTIP_DELAY } from "../../config/constants";
+import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import useAuth from "../../stores/useAuth";
 import CloseButton from "../buttons/CloseButton";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
@@ -239,7 +239,7 @@ function SettingsMenu() {
   };
   return (
     <div className="settings">
-      <Tooltip title="Settings" enterDelay={TOOLTIP_DELAY}>
+      <Tooltip title="Settings" enterDelay={TOOLTIP_ENTER_DELAY}>
         <Button
           tabIndex={-1}
           className="settings-button"

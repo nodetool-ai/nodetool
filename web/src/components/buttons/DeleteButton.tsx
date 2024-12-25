@@ -5,7 +5,7 @@ import React from "react";
 import Button from "@mui/material/Button";
 import ClearIcon from "@mui/icons-material/Clear";
 import { Tooltip } from "@mui/material";
-import { TOOLTIP_ENTER_DELAY } from "../node/BaseNode";
+import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
 interface DeleteButtonProps<T> {
   item?: T;

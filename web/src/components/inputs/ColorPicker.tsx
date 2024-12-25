@@ -6,11 +6,7 @@ import { MuiColorInput } from "mui-color-input";
 import styled from "@emotion/styled";
 import { Popover, Button, Tooltip } from "@mui/material";
 import { solarizedColors } from "../../constants/colors";
-import {
-  TOOLTIP_ENTER_NEXT_DELAY,
-  TOOLTIP_LEAVE_DELAY
-} from "../node/BaseNode";
-import { TOOLTIP_ENTER_DELAY } from "../node/BaseNode";
+import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
 const ColorCircle = styled.div<{ color: string | null }>`
   width: 16px;

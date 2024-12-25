@@ -4,7 +4,7 @@ import axios from "axios";
 import { useAssetStore } from "../../stores/AssetStore";
 import { Typography, Tooltip } from "@mui/material";
 import TextEditorModal from "./TextEditorModal";
-import { TOOLTIP_ENTER_DELAY } from "../node/BaseNode";
+import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { isEqual } from "lodash";
 
 const MAX_TEXT_LENGTH = 1000;

@@ -6,7 +6,7 @@ import { memo, useEffect, useRef } from "react";
 import TextareaAutosize from "react-textarea-autosize";
 import { useClipboard } from "../../hooks/browser/useClipboard";
 import CloseIcon from "@mui/icons-material/Close";
-import { TOOLTIP_ENTER_DELAY } from "../node/BaseNode";
+import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { Tooltip } from "@mui/material";
 import ThemeNodes from "../themes/ThemeNodes";
 import CircularProgress from "@mui/material/CircularProgress";

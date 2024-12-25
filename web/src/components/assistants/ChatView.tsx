@@ -18,7 +18,7 @@ import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 // utils
 import MarkdownRenderer from "../../utils/MarkdownRenderer";
 // constants
-import { TOOLTIP_DELAY } from "../../config/constants";
+import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import OutputRenderer from "../node/OutputRenderer";
 import { BorderRight } from "@mui/icons-material";
 
@@ -417,7 +417,7 @@ const ChatView = ({
             autoComplete="off"
           />
           <Tooltip
-            enterDelay={TOOLTIP_DELAY}
+            enterDelay={TOOLTIP_ENTER_DELAY}
             title={
               <div style={{ textAlign: "center" }}>
                 <Typography variant="inherit">Send Message</Typography>

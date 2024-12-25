@@ -25,7 +25,7 @@ import AssetGridContent from "../assets/AssetGridContent";
 import { uint8ArrayToDataUri } from "../../utils/binary";
 import TensorView from "./TensorView"; // We'll create this component
 import { useAssetGridStore } from "../../stores/AssetGridStore";
-import { TOOLTIP_ENTER_DELAY } from "./BaseNode";
+import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { isEqual } from "lodash";
 import { SVGElement } from "../../stores/ApiTypes";
 export type OutputRendererProps = {

@@ -11,7 +11,7 @@ import {
   TOOLTIP_ENTER_DELAY,
   TOOLTIP_ENTER_NEXT_DELAY,
   TOOLTIP_LEAVE_DELAY
-} from "../node/BaseNode";
+} from "../../config/constants";
 import NodeInfo from "./NodeInfo";
 import { isEqual } from "lodash";
 import ThemeNodetool from "../themes/ThemeNodetool";
