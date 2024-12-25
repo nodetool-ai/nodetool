@@ -209,17 +209,29 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   const handleClickOutside = useCallback(
     (e: MouseEvent) => {
       const clickedElement = e.target as HTMLElement;
+      const deselectableClassNames = [
+        "content-type-header",
+        "selected-info",
+        "infinite-scroll-component",
+        "asset-grid-flex",
+        "current-folder",
+        "asset-info",
+        "asset-grid-container",
+        "MuiTabs-flexContainer",
+        "asset-list",
+        "autosizer-list",
+        "asset-grid-content",
+        "asset-menu",
+        "panel-right",
+        "dropzone",
+        "asset-menu-item"
+      ];
+
       if (
         !clickedElement.classList.contains("selected-asset-info") &&
-        (clickedElement.classList.contains("content-type-header") ||
-          clickedElement.classList.contains("selected-info") ||
-          clickedElement.classList.contains("infinite-scroll-component") ||
-          clickedElement.classList.contains("asset-grid-flex") ||
-          clickedElement.classList.contains("divider") ||
-          clickedElement.classList.contains("current-folder") ||
-          clickedElement.classList.contains("asset-info") ||
-          clickedElement.classList.contains("asset-grid-container") ||
-          clickedElement.classList.contains("MuiTabs-flexContainer"))
+        deselectableClassNames.some((className) =>
+          clickedElement.classList.contains(className)
+        )
       ) {
         if (selectedAssetIds.length > 0) {
           setSelectedAssetIds([]);

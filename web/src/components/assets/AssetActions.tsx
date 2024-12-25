@@ -26,7 +26,7 @@ import { useAssetStore } from "../../stores/AssetStore";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 
-import { TOOLTIP_DELAY } from "../../config/constants";
+import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import SliderBasic from "../inputs/SliderBasic";
 import dialogStyles from "../../styles/DialogStyles";
 import useAuth from "../../stores/useAuth";
@@ -156,6 +156,8 @@ const AssetActions = ({
   maxItemSize = 10
 }: AssetActionsProps) => {
   const currentFolder = useAssetGridStore((state) => state.currentFolder);
+  const parentFolder = useAssetGridStore((state) => state.parentFolder);
+  console.log("parentFolder", parentFolder);
   const { refetchAssetsAndFolders, navigateToFolderId, isLoading } =
     useAssets();
   const currentUser = useAuth((state) => state.getUser());
@@ -210,25 +212,29 @@ const AssetActions = ({
   return (
     <div className="asset-actions" css={styles}>
       <ButtonGroup className="asset-button-group" tabIndex={-1}>
-        <span>
-          {/* // span is needed for disabled buttons*/}
-
-          <Button
-            disabled={!currentFolder?.parent_id}
-            onClick={() => {
-              navigateToFolderId(
-                currentFolder?.parent_id || currentUser?.id || ""
-              );
-            }}
-            className={`folder-up-button ${
-              currentFolder?.parent_id !== "" ? " enabled" : " disabled"
-            }`}
-            tabIndex={-1}
-          >
-            <NorthWestIcon />
-          </Button>
-        </span>
-        <Tooltip enterDelay={TOOLTIP_DELAY} title="Create Folder">
+        <Tooltip
+          enterDelay={TOOLTIP_ENTER_DELAY}
+          title={parentFolder?.name ? `Up to "${parentFolder?.name}"` : ""}
+        >
+          <span>
+            {/* // span is needed for disabled buttons*/}
+            <Button
+              disabled={!currentFolder?.parent_id}
+              onClick={() => {
+                navigateToFolderId(
+                  currentFolder?.parent_id || currentUser?.id || ""
+                );
+              }}
+              className={`folder-up-button ${
+                currentFolder?.parent_id !== "" ? " enabled" : " disabled"
+              }`}
+              tabIndex={-1}
+            >
+              <NorthWestIcon />
+            </Button>
+          </span>
+        </Tooltip>
+        <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="Create Folder">
           <Button
             onClick={(e) => setCreateFolderAnchor(e.currentTarget)}
             tabIndex={-1}
@@ -236,17 +242,17 @@ const AssetActions = ({
             <CreateNewFolderIcon />
           </Button>
         </Tooltip>
-        <Tooltip enterDelay={TOOLTIP_DELAY} title="Select all">
+        <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="Select all">
           <Button onClick={handleSelectAllAssets} tabIndex={-1}>
             <SelectAllIcon />
           </Button>
         </Tooltip>
-        <Tooltip enterDelay={TOOLTIP_DELAY} title="Deselect">
+        <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="Deselect">
           <Button onClick={handleDeselectAssets} tabIndex={-1}>
             <DeselectIcon />
           </Button>
         </Tooltip>
-        <Tooltip enterDelay={TOOLTIP_DELAY} title="Refresh">
+        <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="Refresh">
           <Button onClick={() => refetchAssetsAndFolders()} tabIndex={-1}>
             <Refresh />
           </Button>
@@ -268,7 +274,11 @@ const AssetActions = ({
         )}
       </ButtonGroup>
 
-      <Tooltip enterDelay={TOOLTIP_DELAY} title="Sort assets" placement="top">
+      <Tooltip
+        enterDelay={TOOLTIP_ENTER_DELAY}
+        title="Sort assets"
+        placement="bottom"
+      >
         <Select
           variant="standard"
           className="sort-assets"

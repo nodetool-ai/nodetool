@@ -33,6 +33,7 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
     itemSpacing,
     selectedAssetIds,
     handleSelectAsset,
+    setSelectedAssetIds,
     onDoubleClick,
     expandedTypes,
     toggleExpanded
@@ -111,6 +112,7 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
 
   return (
     <div
+      className="asset-grid-row"
       style={{
         ...style,
         display: "flex",
@@ -129,6 +131,7 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
 
         return (
           <div
+            className="asset-grid-row-item"
             key={`asset-${item.id}`}
             style={{
               width: `${gridDimensions.itemWidth}px`,
