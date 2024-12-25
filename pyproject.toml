@@ -66,7 +66,7 @@ moto = { version = "*", extras = ["s3"] }
 moviepy = "1.0.3"
 msgpack = "1.1.0"
 numpy = "1.26.4"
-ollama = "0.3.3"
+ollama = "0.4.4"
 omegaconf = "2.3.0"
 onnxruntime = "1.20.0"
 # onnx = "1.16.2"

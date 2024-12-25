@@ -25,6 +25,42 @@ class Concat(BaseNode):
         return await context.audio_from_segment(res)
 
 
+class ConcatList(BaseNode):
+    """
+    Concatenates multiple audio files together in sequence.
+    audio, edit, join, multiple
+
+    Use cases:
+    - Combine multiple audio clips into a single file
+    - Create longer audio tracks from multiple segments
+    - Chain multiple audio files in order
+    """
+
+    audio_files: list[AudioRef] = Field(
+        default=[], description="List of audio files to concatenate in sequence."
+    )
+
+    async def process(self, context: ProcessingContext) -> AudioRef:
+        if not self.audio_files:
+            return AudioRef()
+
+        if len(self.audio_files) == 0:
+            raise ValueError("No audio files provided")
+
+        if len(self.audio_files) == 1:
+            return self.audio_files[0]
+
+        # Convert first file to base segment
+        result = await context.audio_to_audio_segment(self.audio_files[0])
+
+        # Concatenate remaining files in sequence
+        for audio_ref in self.audio_files[1:]:
+            next_segment = await context.audio_to_audio_segment(audio_ref)
+            result = result + next_segment
+
+        return await context.audio_from_segment(result)
+
+
 class Normalize(BaseNode):
     """
     Normalizes the volume of an audio file.

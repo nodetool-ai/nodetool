@@ -2,6 +2,7 @@ import asyncio
 from contextlib import contextmanager
 from datetime import datetime
 import gc
+import time
 from typing import Any, Optional
 from collections import deque
 
@@ -186,6 +187,7 @@ class WorkflowRunner:
         input_nodes = {node.name: node for node in graph.inputs()}
         output_nodes = graph.outputs()
 
+        start_time = time.time()
         context.post_message(JobUpdate(job_id=self.job_id, status="running"))
 
         if req.params:
@@ -233,8 +235,15 @@ class WorkflowRunner:
         output = {
             node.name: context.get_result(node._id, "output") for node in output_nodes
         }
+        total_time = time.time() - start_time
+        log.info(f"Finished job {self.job_id} - Total time: {total_time:.2f} seconds")
         context.post_message(
-            JobUpdate(job_id=self.job_id, status="completed", result=output)
+            JobUpdate(
+                job_id=self.job_id,
+                status="completed",
+                result=output,
+                message=f"Workflow {self.job_id} completed in {total_time:.2f} seconds",
+            )
         )
         self.status = "completed"
 
