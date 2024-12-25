@@ -157,7 +157,6 @@ const AssetActions = ({
 }: AssetActionsProps) => {
   const currentFolder = useAssetGridStore((state) => state.currentFolder);
   const parentFolder = useAssetGridStore((state) => state.parentFolder);
-  console.log("parentFolder", parentFolder);
   const { refetchAssetsAndFolders, navigateToFolderId, isLoading } =
     useAssets();
   const currentUser = useAuth((state) => state.getUser());

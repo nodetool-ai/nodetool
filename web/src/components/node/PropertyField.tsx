@@ -10,7 +10,7 @@ import {
   TOOLTIP_ENTER_DELAY,
   TOOLTIP_LEAVE_DELAY,
   TOOLTIP_ENTER_NEXT_DELAY
-} from "./BaseNode";
+} from "../../config/constants";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 import { colorForType, textColorForType } from "../../config/data_types";
 import ThemeNodetool from "../themes/ThemeNodetool";

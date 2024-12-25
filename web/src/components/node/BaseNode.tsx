@@ -32,11 +32,6 @@ import useMetadataStore from "../../stores/MetadataStore";
 import NodeFooter from "./NodeFooter";
 import useSelect from "../../hooks/nodes/useSelect";
 
-// Tooltip timing constants
-export const TOOLTIP_ENTER_DELAY = 650;
-export const TOOLTIP_LEAVE_DELAY = 200;
-export const TOOLTIP_ENTER_NEXT_DELAY = 350;
-
 // Node sizing constants
 const BASE_HEIGHT = 0; // Minimum height for the node
 const INCREMENT_PER_OUTPUT = 25; // Height increase per output in the node

@@ -8,7 +8,7 @@ import { prettyDate, relativeTime } from "../../utils/formatDateAndTime";
 import { truncateString } from "../../utils/truncateString";
 import DeleteButton from "../buttons/DeleteButton";
 import { useSettingsStore } from "../../stores/SettingsStore";
-import { TOOLTIP_ENTER_DELAY } from "../node/BaseNode";
+import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import Checkbox from "@mui/material/Checkbox";
 
 interface RenderListViewProps {

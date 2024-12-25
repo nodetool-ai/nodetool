@@ -45,7 +45,7 @@ import { useResizePanel } from "../../hooks/handlers/useResizePanel";
 import { useNotificationStore } from "../../stores/NotificationStore";
 
 // constants
-import { TOOLTIP_DELAY } from "../../config/constants";
+import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { useEffect, useState } from "react";
 import SystemStatsDisplay from "./SystemStats";
 import { isProduction } from "../../stores/ApiClient";
@@ -197,7 +197,10 @@ const AppHeader: React.FC = React.memo(() => {
   const NavigationButtons = useMemo(
     () => (
       <Box className="nav-buttons">
-        <Tooltip title="Load and create workflows" enterDelay={TOOLTIP_DELAY}>
+        <Tooltip
+          title="Load and create workflows"
+          enterDelay={TOOLTIP_ENTER_DELAY}
+        >
           <Button
             aria-controls="simple-menu"
             aria-haspopup="true"
@@ -217,7 +220,7 @@ const AppHeader: React.FC = React.memo(() => {
           </Button>
         </Tooltip>
 
-        <Tooltip title="Example Workflows" enterDelay={TOOLTIP_DELAY}>
+        <Tooltip title="Example Workflows" enterDelay={TOOLTIP_ENTER_DELAY}>
           <Button
             className={`nav-button ${path === "/examples" ? "active" : ""}`}
             onClick={() => navigate("/examples")}
@@ -233,7 +236,10 @@ const AppHeader: React.FC = React.memo(() => {
           </Button>
         </Tooltip>
 
-        <Tooltip title="View and manage Assets" enterDelay={TOOLTIP_DELAY}>
+        <Tooltip
+          title="View and manage Assets"
+          enterDelay={TOOLTIP_ENTER_DELAY}
+        >
           <Button
             className={`nav-button ${path === "/assets" ? "active" : ""}`}
             onClick={() => navigate("/assets")}
@@ -269,7 +275,10 @@ const AppHeader: React.FC = React.memo(() => {
         </Tooltip>
 
         {path.startsWith("/editor") && (
-          <Tooltip title="Nodetool Chat Assistant" enterDelay={TOOLTIP_DELAY}>
+          <Tooltip
+            title="Nodetool Chat Assistant"
+            enterDelay={TOOLTIP_ENTER_DELAY}
+          >
             <Button
               className="action-button"
               onClick={toggleChat}
@@ -314,7 +323,7 @@ const AppHeader: React.FC = React.memo(() => {
   const NotificationButton = useMemo(
     () => (
       <>
-        <Tooltip title="Notifications" enterDelay={TOOLTIP_DELAY}>
+        <Tooltip title="Notifications" enterDelay={TOOLTIP_ENTER_DELAY}>
           <Button
             className="action-button"
             onClick={handleNotificationClick}
@@ -400,7 +409,7 @@ const AppHeader: React.FC = React.memo(() => {
           <>
             <SystemStatsDisplay />
             <OverallDownloadProgress />
-            <Tooltip title="Model Manager" enterDelay={TOOLTIP_DELAY}>
+            <Tooltip title="Model Manager" enterDelay={TOOLTIP_ENTER_DELAY}>
               <Button
                 className="action-button"
                 onClick={() => navigate("/models")}
@@ -448,7 +457,7 @@ const AppHeader: React.FC = React.memo(() => {
           <Help handleClose={handleCloseHelp} />
         </Popover>
         <Tooltip
-          enterDelay={TOOLTIP_DELAY}
+          enterDelay={TOOLTIP_ENTER_DELAY}
           title={
             <div style={{ textAlign: "center" }}>
               <Typography variant="inherit">Help</Typography>
@@ -486,7 +495,7 @@ const AppHeader: React.FC = React.memo(() => {
       <AppBar position="static" className="app-bar">
         <Toolbar variant="dense" className="toolbar">
           <Tooltip
-            enterDelay={TOOLTIP_DELAY}
+            enterDelay={TOOLTIP_ENTER_DELAY}
             title={
               <div style={{ textAlign: "center" }}>
                 <Typography variant="inherit">NodeTool</Typography>

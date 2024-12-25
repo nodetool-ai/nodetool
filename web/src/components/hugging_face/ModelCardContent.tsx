@@ -8,7 +8,7 @@ import {
   Tooltip
 } from "@mui/material";
 import { formatId, modelSize, renderModelSecondaryInfo } from "./ModelUtils";
-import { TOOLTIP_ENTER_DELAY } from "../node/BaseNode";
+import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import ThemeNodetool from "../themes/ThemeNodetool";
 import ReadmeDialog from "./ReadmeDialog";
 import { UnifiedModel } from "../../stores/ApiTypes";

@@ -4,7 +4,7 @@ import { useState, useCallback, memo } from "react";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import TextEditorModal from "./TextEditorModal";
-import { TOOLTIP_ENTER_DELAY } from "../node/BaseNode";
+import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { Tooltip } from "@mui/material";
 import { isEqual } from "lodash";
 

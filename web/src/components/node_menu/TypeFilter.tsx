@@ -7,7 +7,7 @@ import React, { useEffect, useState } from "react";
 // import AddIcon from "@mui/icons-material/Add";
 import FilterAltIcon from "@mui/icons-material/FilterAlt";
 import { DATA_TYPES } from "../../config/data_types";
-import { TOOLTIP_ENTER_DELAY } from "../node/BaseNode";
+import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { InputLabel, MenuItem, Select, Button, Tooltip } from "@mui/material";
 import ThemeNodetool from "../themes/ThemeNodetool";
 

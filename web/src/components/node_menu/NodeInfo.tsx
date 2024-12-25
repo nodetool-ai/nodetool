@@ -4,7 +4,7 @@ import React, { useCallback, useMemo } from "react";
 import { Typography, Divider, Tooltip } from "@mui/material";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import { colorForType, descriptionForType } from "../../config/data_types";
-import { TOOLTIP_DELAY } from "../../config/constants";
+import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { useQuery } from "@tanstack/react-query";
 import { client } from "../../stores/ApiClient";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
@@ -218,7 +218,7 @@ const NodeInfo: React.FC<NodeInfoProps> = ({ nodeMetadata }) => {
           {nodeMetadata.properties.map((property) => (
             <div key={property.name} className="item">
               <Tooltip
-                enterDelay={TOOLTIP_DELAY}
+                enterDelay={TOOLTIP_ENTER_DELAY}
                 placement="top-start"
                 title={property.description}
               >
@@ -231,7 +231,7 @@ const NodeInfo: React.FC<NodeInfoProps> = ({ nodeMetadata }) => {
                 </Typography>
               </Tooltip>
               <Tooltip
-                enterDelay={TOOLTIP_DELAY}
+                enterDelay={TOOLTIP_ENTER_DELAY}
                 placement="top-end"
                 title={descriptionForType(property.type.type || "")}
               >
@@ -253,7 +253,7 @@ const NodeInfo: React.FC<NodeInfoProps> = ({ nodeMetadata }) => {
             <div key={property.name} className="item">
               <Typography className="property">{property.name}</Typography>
               <Tooltip
-                enterDelay={TOOLTIP_DELAY}
+                enterDelay={TOOLTIP_ENTER_DELAY}
                 placement="top-end"
                 title={descriptionForType(property.type.type || "")}
               >

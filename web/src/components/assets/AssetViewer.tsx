@@ -21,7 +21,7 @@ import VideoViewer from "../asset_viewer/VideoViewer";
 import { useAssetStore } from "../../stores/AssetStore";
 import { Asset } from "../../stores/ApiTypes";
 //utils
-import { TOOLTIP_ENTER_DELAY } from "../node/BaseNode";
+import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import useAssets from "../../serverState/useAssets";
 import { useCombo } from "../../stores/KeyPressedStore";
 

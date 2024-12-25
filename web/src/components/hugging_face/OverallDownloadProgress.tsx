@@ -3,7 +3,7 @@ import { Box, Tooltip, Typography } from "@mui/material";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { keyframes } from "@emotion/react";
 import ThemeNodetool from "../themes/ThemeNodetool";
-import { TOOLTIP_ENTER_DELAY } from "../node/BaseNode";
+import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
 
 const pulse = keyframes`

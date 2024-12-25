@@ -4,7 +4,7 @@ import { css } from "@emotion/react";
 import { Drawer, IconButton, Tooltip } from "@mui/material";
 import CodeIcon from "@mui/icons-material/Code";
 import { useResizePanel } from "../../hooks/handlers/useResizePanel";
-import { TOOLTIP_ENTER_DELAY } from "../node/BaseNode";
+import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import "../../styles/panel.css";
 import HelpChat from "../assistants/HelpChat";
 import { useCombo } from "../../stores/KeyPressedStore";

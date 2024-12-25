@@ -1,31 +1,14 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+
+import { Tooltip } from "@mui/material";
+import { TOOLTIP_ENTER_DELAY } from "../config/constants";
+import ThemeNodetool from "../components/themes/ThemeNodetool";
+import { memo } from "react";
+import { isEqual } from "lodash";
+
+// icons
 import stc from "string-to-color";
-
-// import {
-//   Abc, // For text or descriptions
-//   DataObject, // Generic icon for data-related types
-//   Description, // For text or descriptions
-//   Image, // For images
-//   Audiotrack, // For audio
-//   Videocam, // For video
-//   CheckBoxOutlineBlank, // For boolean (true/false)
-//   TableChart, // For structured d
-//   List, // For lists or collections
-//   ShortText, // For strings
-//   Functions, // For mathematical or computational concepts
-//   Folder, // For folders
-//   InsertDriveFile, // For files
-//   Message, // For messages
-//   Memory, // For technical, computing resources
-//   Numbers, // For numbers
-//   ModelTraining, // For machine learning models
-//   TextSnippet, // For longer text blocks
-//   MergeType, // For unions or combined types
-//   QuestionMark // Fallback or generic icon for undefined types
-// } from "@mui/icons-material";
-
-// Import statements for each icon
 import any from "../icons/any.svg?react";
 import asset from "../icons/asset.svg?react";
 import audio from "../icons/audio.svg?react";
@@ -47,11 +30,7 @@ import thread from "../icons/thread.svg?react";
 import thread_message from "../icons/thread_message.svg?react";
 import union from "../icons/union.svg?react";
 import video from "../icons/video.svg?react";
-import { Tooltip } from "@mui/material";
-import { TOOLTIP_ENTER_DELAY } from "../components/node/BaseNode";
-import ThemeNodetool from "../components/themes/ThemeNodetool";
-import { memo } from "react";
-import { isEqual } from "lodash";
+
 // import comfy_taesd from "../icons/comfy.taesd.svg?react";
 // import comfy_clip from "../icons/comfy.clip.svg?react";
 // import comfy_clip_vision from "../icons/comfy.clip_vision.svg?react";
