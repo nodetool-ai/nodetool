@@ -1,12 +1,14 @@
 import { useCallback } from "react";
 import { XYPosition } from "@xyflow/react";
-import { TypeName } from "../../stores/ApiTypes";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useWorkflowStore } from "../../stores/WorkflowStore";
 import { useNodeStore } from "../../stores/NodeStore";
 import { useCreateDataframe } from "./useCreateDataframe";
-import { constantForType } from "./useConnectionHandlers";
+import {
+  constantForType,
+  contentTypeToNodeType
+} from "../../utils/NodeTypeMapping";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import useAuth from "../../stores/useAuth";
 import { Asset } from "../../stores/ApiTypes";
@@ -16,34 +18,6 @@ export type FileHandlerResult = {
   success: boolean;
   data?: any;
   error?: string;
-};
-
-export const nodeTypeFor = (contentType: string): TypeName | null => {
-  switch (contentType) {
-    case "application/json":
-    case "text/plain":
-      return "text";
-    case "text/csv":
-      return "dataframe";
-    case "image/png":
-    case "image/jpeg":
-    case "image/gif":
-    case "image/webp":
-      return "image";
-    case "video/mp4":
-    case "video/mpeg":
-    case "video/ogg":
-    case "video/webm":
-      return "video";
-    case "audio/mpeg":
-    case "audio/ogg":
-    case "audio/wav":
-    case "audio/webm":
-    case "audio/mp3":
-      return "audio";
-    default:
-      return null;
-  }
 };
 
 export const extractWorkflowFromPng = async (
@@ -145,7 +119,7 @@ export const useFileHandlers = () => {
           workflow_id: workflow.id,
           parent_id: currentFolderId || user?.id,
           onCompleted: (uploadedAsset: Asset) => {
-            const assetType = nodeTypeFor(file.type);
+            const assetType = contentTypeToNodeType(uploadedAsset.content_type);
             const nodeType = constantForType(assetType || "");
 
             if (nodeType === null) {
@@ -162,8 +136,6 @@ export const useFileHandlers = () => {
               throw new Error("No metadata for node type: " + nodeType);
             }
             const newNode = createNode(nodeMetadata, position);
-
-            // Set the node's value to the uploaded asset
             newNode.data.properties.value = {
               type: assetType,
               uri: uploadedAsset.get_url,

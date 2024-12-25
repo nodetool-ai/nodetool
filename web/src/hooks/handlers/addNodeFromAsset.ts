@@ -6,9 +6,11 @@ import { Asset, NodeMetadata } from "../../stores/ApiTypes";
 import { useNodeStore } from "../../stores/NodeStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import axios from "axios";
-import { constantForType } from "./useConnectionHandlers";
+import {
+  constantForType,
+  contentTypeToNodeType
+} from "../../utils/NodeTypeMapping";
 import { devError } from "../../utils/DevLog";
-import { nodeTypeFor } from "./dropHandlerUtils";
 import Papa from "papaparse";
 import useMetadataStore from "../../stores/MetadataStore";
 interface ParsedCSV {
@@ -68,7 +70,7 @@ export const useAddNodeFromAsset = () => {
       if (asset === undefined) {
         return;
       }
-      const assetType = nodeTypeFor(asset.content_type);
+      const assetType = contentTypeToNodeType(asset.content_type);
       const nodeType = constantForType(assetType || "");
       if (nodeType === null) {
         addNotification({
@@ -85,12 +87,23 @@ export const useAddNodeFromAsset = () => {
           throw new Error("metadata for node type " + nodeType + " is missing");
         }
         const newNode = createNode(metadata, position);
-        newNode.data.properties.value = {
-          type: assetType,
-          asset_id: asset.id,
-          uri: asset.get_url,
-          ...(content && { value: content })
-        };
+        if (asset.content_type === "folder") {
+          newNode.data.properties.folder = {
+            type: "folder",
+            asset_id: asset.id
+          };
+          newNode.data.properties.label = asset.name;
+          newNode.data.properties.name = asset.name
+            .toLowerCase()
+            .replace(/\s+/g, "_");
+        } else {
+          newNode.data.properties.value = {
+            type: assetType,
+            asset_id: asset.id,
+            uri: asset.get_url,
+            ...(content && { value: content })
+          };
+        }
         addNode(newNode);
         return newNode;
       };
@@ -127,6 +140,9 @@ export const useAddNodeFromAsset = () => {
             .catch((error) => {
               devError("Failed to download asset content", error);
             });
+          break;
+        case "folder":
+          createNodeWithAsset(nodeType);
           break;
         default:
           createNodeWithAsset(nodeType);
