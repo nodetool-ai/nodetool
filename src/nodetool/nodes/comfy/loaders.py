@@ -614,21 +614,61 @@ class HuggingFaceVAELoader(ComfyNode):
         return {"vae": VAE(name=self.model.repo_id, model=vae)}
 
 
+def get_clip_type(type: str) -> comfy.sd.CLIPType:
+    if type == "stable_cascade":
+        return comfy.sd.CLIPType.STABLE_CASCADE
+    elif type == "sd3":
+        return comfy.sd.CLIPType.SD3
+    elif type == "stable_audio":
+        return comfy.sd.CLIPType.STABLE_AUDIO
+    elif type == "ltxv":
+        return comfy.sd.CLIPType.LTXV
+    elif type == "mochi":
+        return comfy.sd.CLIPType.MOCHI
+    else:
+        return comfy.sd.CLIPType.STABLE_DIFFUSION
+
+
+class CLIPTypeEnum(str, Enum):
+    STABLE_DIFFUSION = "stable_diffusion"
+    STABLE_CASCADE = "stable_cascade"
+    SD3 = "sd3"
+    STABLE_AUDIO = "stable_audio"
+    MOCHI = "mochi"
+    LTXV = "ltxv"
+
+
 class CLIPLoader(ComfyNode):
     """
     Loads a CLIP model.
     """
 
+    _comfy_class = nodes.CLIPLoader
+
     clip_name: CLIPFile = Field(
         default=CLIPFile(),
         description="The name of the CLIP to load.",
+    )
+    type: CLIPTypeEnum = Field(
+        default=CLIPTypeEnum.STABLE_DIFFUSION,
+        description="The type of the CLIP model to load.",
     )
 
     async def process(self, context: ProcessingContext):
         if self.clip_name.name == "":
             raise Exception("CLIP name must be selected")
 
-        (clip,) = await self.call_comfy_node(context)
+        clip_path = folder_paths.get_full_path_or_raise(
+            "text_encoders", self.clip_name.name
+        )
+        clip_type = get_clip_type(self.type)
+        clip = comfy.sd.load_clip(
+            ckpt_paths=[clip_path],
+            embedding_directory=folder_paths.get_folder_paths("embeddings"),
+            clip_type=clip_type,
+        )
+        print(clip)
+
         return {"clip": CLIP(name=self.clip_name.name, model=clip)}
 
     @classmethod
@@ -638,25 +678,6 @@ class CLIPLoader(ComfyNode):
     @classmethod
     def return_type(cls):
         return {"clip": CLIP}
-
-
-class CLIPTypeEnum(str, Enum):
-    STABLE_DIFFUSION = "stable_diffusion"
-    STABLE_CASCADE = "stable_cascade"
-    SD3 = "sd3"
-    STABLE_AUDIO = "stable_audio"
-    MOCHI = "mochi"
-
-    @classmethod
-    def get_clip_type(cls, type: str) -> comfy.sd.CLIPType:
-        if type == "stable_cascade":
-            return comfy.sd.CLIPType.STABLE_CASCADE
-        elif type == "sd3":
-            return comfy.sd.CLIPType.SD3
-        elif type == "stable_audio":
-            return comfy.sd.CLIPType.STABLE_AUDIO
-        else:
-            return comfy.sd.CLIPType.STABLE_DIFFUSION
 
 
 class HuggingFaceCLIPLoader(ComfyNode):
@@ -696,7 +717,7 @@ class HuggingFaceCLIPLoader(ComfyNode):
         assert self.model.path is not None, "Model must be single file"
 
         clip_path = try_to_load_from_cache(self.model.repo_id, self.model.path)
-        clip_type = CLIPTypeEnum.get_clip_type(self.type)
+        clip_type = get_clip_type(self.type)
 
         clip = comfy.sd.load_clip(
             ckpt_paths=[clip_path],

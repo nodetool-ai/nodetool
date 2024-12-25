@@ -1,8 +1,8 @@
 {
   "id": "0a7f8a0cb0b411ef8d90000061502181",
   "access": "public",
-  "created_at": "2024-12-02T16:16:38.528615",
-  "updated_at": "2024-12-02T16:16:38.528636",
+  "created_at": "2024-12-25T01:46:26.492473",
+  "updated_at": "2024-12-25T01:46:26.492478",
   "name": "LTXV Video",
   "description": "fast video generation with LTXV",
   "tags": [
@@ -10,7 +10,7 @@
     "video",
     "start"
   ],
-  "thumbnail": "",
+  "thumbnail": null,
   "thumbnail_url": "https://media.githubusercontent.com/media/Lightricks/LTX-Video/main/docs/_static/ltx-video_example_00001.gif",
   "graph": {
     "nodes": [
@@ -20,7 +20,6 @@
         "type": "comfy.latent.VAEDecode",
         "data": {},
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 1111,
             "y": 938
@@ -38,7 +37,6 @@
           "frame_rate": 25
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 571,
             "y": 185
@@ -59,7 +57,6 @@
           "cfg": 3
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 851,
             "y": 342
@@ -76,11 +73,10 @@
         "data": {
           "width": 768,
           "height": 512,
-          "length": 97,
+          "length": 3,
           "batch_size": 1
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 311,
             "y": 414
@@ -96,9 +92,10 @@
         "type": "comfy.sampling.schedulers.LTXVScheduler",
         "data": {
           "max_shift": 2.05,
-          "base_shift": 0.95,
+          "base_shift": 0.1,
           "terminal": 0.1,
-          "steps": 20
+          "steps": 30,
+          "stretch": true
         },
         "ui_properties": {
           "selected": false,
@@ -119,7 +116,6 @@
           "text": "A woman with long brown hair and light skin smiles at another woman with long blonde hair. The woman with brown hair wears a black jacket and has a small, barely noticeable mole on her right cheek. The camera angle is a close-up, focused on the woman with brown hair's face. The lighting is warm and natural, likely from the setting sun, casting a soft glow on the scene. The scene appears to be real-life footage."
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 311,
             "y": 56
@@ -137,7 +133,6 @@
           "text": "low quality, worst quality, deformed, distorted, disfigured, motion smear, motion artifacts, fused fingers, bad anatomy, weird hand, ugly"
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 311,
             "y": 235
@@ -155,7 +150,6 @@
           "sampler_name": "euler"
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 571,
             "y": 692
@@ -177,7 +171,6 @@
           ]
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 10,
             "y": 360
@@ -201,7 +194,6 @@
           "type": "stable_diffusion"
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 50,
             "y": 50
@@ -223,7 +215,6 @@
           }
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 571,
             "y": 851
@@ -239,7 +230,6 @@
         "type": "nodetool.image.BatchToList",
         "data": {},
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 1341,
             "y": 952
@@ -257,7 +247,6 @@
           "fps": 25
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 1495,
             "y": 938
@@ -275,7 +264,6 @@
           "name": "video_output_2024-12-02"
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 1649,
             "y": 914
@@ -333,14 +321,6 @@
         "ui_properties": null
       },
       {
-        "id": "10",
-        "source": "70",
-        "sourceHandle": "latent",
-        "target": "72",
-        "targetHandle": "latent_image",
-        "ui_properties": null
-      },
-      {
         "id": "858211e3-534b-481f-9711-35e31d56abd6",
         "source": "8",
         "sourceHandle": "image",
@@ -371,45 +351,11 @@
         }
       },
       {
-        "id": "25407db3-83fb-4d6c-b93b-a4f0a4cf93f0",
-        "source": "78",
-        "sourceHandle": "model",
-        "target": "72",
-        "targetHandle": "model",
-        "ui_properties": {
-          "className": "comfy_unet"
-        }
-      },
-      {
-        "id": "9",
-        "source": "71",
-        "sourceHandle": "sigmas",
-        "target": "72",
-        "targetHandle": "sigmas",
-        "ui_properties": null
-      },
-      {
-        "id": "8",
-        "source": "73",
-        "sourceHandle": "sampler",
-        "target": "72",
-        "targetHandle": "sampler",
-        "ui_properties": null
-      },
-      {
         "id": "17",
         "source": "70",
         "sourceHandle": "latent",
         "target": "71",
         "targetHandle": "latent",
-        "ui_properties": null
-      },
-      {
-        "id": "1",
-        "source": "72",
-        "sourceHandle": "latent",
-        "target": "8",
-        "targetHandle": "samples",
         "ui_properties": null
       },
       {
@@ -428,6 +374,48 @@
         "targetHandle": "clip",
         "ui_properties": {
           "className": "comfy_clip"
+        }
+      },
+      {
+        "id": "1",
+        "source": "72",
+        "sourceHandle": "latent",
+        "target": "8",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "9",
+        "source": "71",
+        "sourceHandle": "sigmas",
+        "target": "72",
+        "targetHandle": "sigmas",
+        "ui_properties": null
+      },
+      {
+        "id": "8",
+        "source": "73",
+        "sourceHandle": "sampler",
+        "target": "72",
+        "targetHandle": "sampler",
+        "ui_properties": null
+      },
+      {
+        "id": "10",
+        "source": "70",
+        "sourceHandle": "latent",
+        "target": "72",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "25407db3-83fb-4d6c-b93b-a4f0a4cf93f0",
+        "source": "78",
+        "sourceHandle": "model",
+        "target": "72",
+        "targetHandle": "model",
+        "ui_properties": {
+          "className": "comfy_unet"
         }
       }
     ]

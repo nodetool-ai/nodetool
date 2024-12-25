@@ -1,4 +1,3 @@
-import folder_paths
 import comfy.sd
 import comfy.model_sampling
 import comfy.latent_formats
@@ -241,7 +240,6 @@ class ModelSamplingContinuousV:
     def patch(self, model, sampling, sigma_max, sigma_min):
         m = model.clone()
 
-        latent_format = None
         sigma_data = 1.0
         if sampling == "v_prediction":
             sampling_type = comfy.model_sampling.V_PREDICTION
