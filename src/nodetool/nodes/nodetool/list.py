@@ -185,6 +185,9 @@ class SaveList(BaseNode):
     values: list[Any] = Field(default_factory=list, description="The list to save.")
     name: str = Field(title="Name", default="text.txt")
 
+    def required_inputs(self):
+        return ["values"]
+
     async def process(self, context: ProcessingContext) -> TextRef:
         values = "\n".join([str(value) for value in self.values])
         asset = await context.create_asset(

@@ -18087,7 +18087,7 @@
     "layout": "default",
     "properties": [
       {
-        "name": "value",
+        "name": "audio",
         "type": {
           "type": "audio",
           "optional": false,
@@ -18101,7 +18101,7 @@
           "asset_id": null,
           "data": null
         },
-        "title": "Value",
+        "title": "Audio",
         "description": null,
         "min": null,
         "max": null
@@ -30108,7 +30108,7 @@
     "layout": "default",
     "properties": [
       {
-        "name": "value",
+        "name": "tensor",
         "type": {
           "type": "tensor",
           "optional": false,
@@ -30121,7 +30121,7 @@
           "value": [],
           "dtype": null
         },
-        "title": "Value",
+        "title": "Tensor",
         "description": "The tensor to save.",
         "min": null,
         "max": null
@@ -32195,7 +32195,7 @@
     "layout": "default",
     "properties": [
       {
-        "name": "value",
+        "name": "text",
         "type": {
           "type": "union",
           "optional": false,
@@ -32964,7 +32964,7 @@
     "layout": "default",
     "properties": [
       {
-        "name": "value",
+        "name": "video",
         "type": {
           "type": "video",
           "optional": false,
@@ -32980,7 +32980,7 @@
           "duration": null,
           "format": null
         },
-        "title": "Value",
+        "title": "Video",
         "description": "The video to save.",
         "min": null,
         "max": null

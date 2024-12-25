@@ -33,6 +33,9 @@ class SaveDataframe(BaseNode):
     )
     name: str = Field(default="output.csv", description="Name of the output file.")
 
+    def required_inputs(self):
+        return ["df"]
+
     async def process(self, context: ProcessingContext) -> DataframeRef:
         df = await context.dataframe_to_pandas(self.df)
         parent_id = self.folder.asset_id if self.folder.is_set() else None

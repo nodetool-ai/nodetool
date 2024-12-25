@@ -27,7 +27,7 @@ class SaveTensor(BaseNode):
     - Save intermediate tensor outputs for debugging
     """
 
-    value: Tensor = Field(
+    tensor: Tensor = Field(
         Tensor(),
         description="The tensor to save.",
     )
@@ -37,8 +37,11 @@ class SaveTensor(BaseNode):
     )
     name: str = Field("tensor.npy", description="The name of the asset to save.")
 
+    def required_inputs(self):
+        return ["tensor"]
+
     async def process(self, context: ProcessingContext) -> Tensor:
-        tensor = self.value.to_numpy()
+        tensor = self.tensor.to_numpy()
         buffer = BytesIO()
         np.save(buffer, tensor)
         buffer.seek(0)
