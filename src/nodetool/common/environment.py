@@ -194,8 +194,6 @@ class Environment(object):
         """
         The log level is the level of logging that we use.
         """
-        if not cls.is_production():
-            return "DEBUG"
         return cls.get("LOG_LEVEL")
 
     @classmethod

@@ -51455,6 +51455,28 @@
         "description": "The name of the CLIP to load.",
         "min": null,
         "max": null
+      },
+      {
+        "name": "type",
+        "type": {
+          "type": "enum",
+          "optional": false,
+          "values": [
+            "stable_diffusion",
+            "stable_cascade",
+            "sd3",
+            "stable_audio",
+            "mochi",
+            "ltxv"
+          ],
+          "type_args": [],
+          "type_name": "nodetool.nodes.comfy.loaders.CLIPTypeEnum"
+        },
+        "default": "stable_diffusion",
+        "title": "Type",
+        "description": "The type of the CLIP model to load.",
+        "min": null,
+        "max": null
       }
     ],
     "outputs": [
@@ -51511,7 +51533,8 @@
             "stable_cascade",
             "sd3",
             "stable_audio",
-            "mochi"
+            "mochi",
+            "ltxv"
           ],
           "type_args": [],
           "type_name": "nodetool.nodes.comfy.loaders.CLIPTypeEnum"
