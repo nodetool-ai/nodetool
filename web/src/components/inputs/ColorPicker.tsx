@@ -7,6 +7,7 @@ import styled from "@emotion/styled";
 import { Popover, Button, Tooltip } from "@mui/material";
 import { solarizedColors } from "../../constants/colors";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import ThemeNodes from "../themes/ThemeNodes";
 
 const ColorCircle = styled.div<{ color: string | null }>`
   width: 16px;
@@ -16,17 +17,18 @@ const ColorCircle = styled.div<{ color: string | null }>`
   border: 1px solid rgba(0, 0, 0, 0.2);
 `;
 
-const styles = (theme: any) =>
+const styles = (theme: any, isNodeProperty?: boolean) =>
   css({
     "&": {
       background: "transparent",
-      position: "absolute",
-      zIndex: 100,
-      width: "12px",
-      height: "12px",
-      left: 5,
-
-      bottom: 5,
+      position: isNodeProperty ? "relative" : "absolute",
+      ...(isNodeProperty && {
+        zIndex: 100,
+        width: isNodeProperty ? "16px" : "12px",
+        height: isNodeProperty ? "16px" : "12px",
+        left: isNodeProperty ? 0 : 5,
+        bottom: isNodeProperty ? 0 : 5
+      }),
       padding: 0,
       margin: 0,
       display: "flex",
@@ -46,7 +48,7 @@ const styles = (theme: any) =>
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      opacity: 0.6,
+      opacity: isNodeProperty ? 1 : 0.6,
       transition: "all 0.2s ease",
       "&:hover": {
         opacity: 1,
@@ -59,18 +61,20 @@ const styles = (theme: any) =>
       }
     },
     ".custom-selection": {
-      marginTop: 16,
-      padding: 16
+      marginTop: "1em",
+      padding: ".5em 0"
     }
   });
 
 const colorMatrixStyle = (theme: any) =>
   css({
-    display: "grid",
-    gridTemplateColumns: "repeat(4, 1fr)",
-    gap: 4,
-    padding: 16,
-    marginBottom: 16
+    display: "flex",
+    flexWrap: "wrap",
+    gap: "0.5em",
+    padding: "1em 1em 0 1em",
+    marginBottom: 4,
+    width: "100%",
+    maxWidth: "300px"
   });
 
 const ColorCell = styled.button<{ color: string | null; isEmpty: boolean }>`
@@ -90,13 +94,15 @@ interface ColorPickerProps {
   onColorChange: (newColor: string | null) => void;
   label?: string;
   showCustom?: boolean;
+  isNodeProperty?: boolean;
 }
 
 const ColorPicker: React.FC<ColorPickerProps> = ({
   color,
   onColorChange,
   label,
-  showCustom = false
+  showCustom = false,
+  isNodeProperty = false
 }) => {
   const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -119,7 +125,7 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
   );
 
   return (
-    <div className="color-picker" css={styles}>
+    <div className="color-picker" css={styles(ThemeNodes, isNodeProperty)}>
       <Tooltip
         title="Set color"
         placement="bottom"
@@ -155,9 +161,13 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
           ))}
         </div>
         {showCustom && (
-          <div className="custom-selection">
-            <div>CUSTOM</div>
+          <div className="custom-selection" style={{ padding: "1em 0" }}>
+            <div style={{ padding: "0 1em" }}>CUSTOM</div>
             <MuiColorInput
+              style={{
+                padding: "0 1em",
+                margin: "1em 0 0"
+              }}
               format="hex"
               value={color || ""}
               onChange={(newColor) => {
