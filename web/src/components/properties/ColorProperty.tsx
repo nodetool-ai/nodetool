@@ -5,6 +5,7 @@ import PropertyLabel from "../node/PropertyLabel";
 import ColorPicker from "../inputs/ColorPicker";
 import { isEqual } from "lodash";
 import { Box } from "@mui/material";
+import ThemeNodes from "../themes/ThemeNodes";
 
 const ColorProperty: React.FC<PropertyProps> = ({
   property,
@@ -32,26 +33,22 @@ const ColorProperty: React.FC<PropertyProps> = ({
         css={{
           display: "flex",
           alignItems: "center",
-          gap: "8px"
+          gap: "1em"
         }}
       >
         <ColorPicker
           color={color}
           onColorChange={handleColorChange}
           showCustom={true}
+          isNodeProperty={true}
         />
-        <Box
+
+        <span
           css={{
-            backgroundColor: color || "#f0f0f0",
-            border: color ? "1px solid rgba(0,0,0,0.1)" : "none",
-            borderRadius: "4px",
-            minWidth: "16px",
-            maxWidth: "16px",
-            height: "16px",
-            display: "flex"
+            color: ThemeNodes.palette.c_gray4,
+            fontSize: ThemeNodes.fontSizeNormal
           }}
-        />
-        <span css={{ color: "#666", fontSize: "0.875em" }}>
+        >
           {color || "No color selected"}
         </span>
       </div>
