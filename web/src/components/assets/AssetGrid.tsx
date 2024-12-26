@@ -220,6 +220,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
         "MuiTabs-flexContainer",
         "asset-list",
         "autosizer-list",
+        "asset-grid-row",
         "asset-grid-content",
         "asset-menu",
         "panel-right",
