@@ -39,41 +39,78 @@ const styles = (theme: any) =>
       border: "1px solid transparent",
       borderRadius: ".25em",
       transition: "border 0.125s ease-in",
+      wordBreak: "break-word",
 
       "&.compact": {
         padding: 0,
         backgroundColor: theme.palette.c_gray0
       },
-      "&.compact li": {
-        display: "flex",
-        flexDirection: "column",
-        gap: ".5em",
-        alignItems: "flex-start"
-      },
-      "&.model-list-item:hover": {
+
+      "&:hover": {
         border: "1px solid" + theme.palette.c_gray2
       },
+
+      "& .model-content": {
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "flex-start",
+        gap: "1em",
+        width: "100%",
+        padding: "1em"
+      },
+
+      "& .model-info-container": {
+        flex: 1,
+        minWidth: 0 // Prevents flex item from overflowing
+      },
+
+      "& .model-header": {
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "flex-start",
+        gap: "0.5em",
+        marginBottom: "0.5em"
+      },
+
       "& .model-name": {
         fontWeight: "bold",
         textTransform: "uppercase",
         color: theme.palette.c_hl1,
-        width: "400px",
-        display: "inline-block"
+        overflow: "hidden",
+        textOverflow: "ellipsis"
       },
-      "& .model-path": {},
+
+      "& .model-details": {
+        display: "flex",
+        flexWrap: "wrap",
+        gap: "0.5em",
+        alignItems: "center"
+      },
+
       "& .model-info": {
         color: theme.palette.text.secondary,
         fontSize: "0.875rem"
       },
-      "& .pipeline-tag": {
-        marginRight: "1em"
+
+      "& .actions-container": {
+        display: "flex",
+        gap: "1em",
+        alignItems: "center",
+        flexShrink: 0
       },
+
       "& .model-stats": {
         display: "flex",
         alignItems: "center",
-        gap: "1em",
-        marginRight: "16px"
+        gap: "0.5em"
       },
+
+      "& .model-actions": {
+        display: "flex",
+        gap: "1.5em",
+        alignItems: "center"
+      },
+
       "& .secondary-action": {
         display: "flex",
         gap: ".1em",
@@ -121,9 +158,9 @@ const ModelListItem: React.FC<ModelComponentProps> = ({
         css={styles}
         className={`model-list-item ${compactView ? "compact" : ""}`}
       >
-        <ListItem className={`model-list-item ${compactView ? "compact" : ""}`}>
+        <div className="model-content">
           <CircularProgress size={24} />
-        </ListItem>
+        </div>
       </Box>
     );
   }
@@ -134,9 +171,9 @@ const ModelListItem: React.FC<ModelComponentProps> = ({
         css={styles}
         className={`model-list-item ${compactView ? "compact" : ""}`}
       >
-        <ListItem>
+        <div className="model-content">
           <DownloadProgress name={modelId} />
-        </ListItem>
+        </div>
       </Box>
     );
   }
@@ -147,28 +184,37 @@ const ModelListItem: React.FC<ModelComponentProps> = ({
         css={styles}
         className={`model-list-item ${compactView ? "compact" : ""}`}
       >
-        <ListItem className={`model-list-item ${compactView ? "compact" : ""}`}>
-          <ListItemText
-            primary={formatId(model.id)}
-            secondary={
-              isOllama ? (
-                "Model not downloaded."
-              ) : (
-                <span style={{ color: ThemeNodetool.palette.c_warning }}>
-                  Failed to find matching repository.
-                </span>
-              )
-            }
-          />
-          <ListItemSecondaryAction className="secondary-action">
-            {isHuggingFace && <HuggingFaceLink modelId={model.id} />}
-            {isOllama && <OllamaLink modelId={model.id} />}
-            {renderModelActions(
-              { model, handleDelete, onDownload },
-              downloaded
-            )}
-          </ListItemSecondaryAction>
-        </ListItem>
+        <div className="model-content">
+          <div className="model-info-container">
+            <div className="model-header">
+              <Typography component="span" className="model-name">
+                {formatId(model.id)}
+              </Typography>
+            </div>
+            <div className="model-details">
+              <Typography component="span" className="model-info">
+                {isOllama ? (
+                  "Model not downloaded."
+                ) : (
+                  <span style={{ color: ThemeNodetool.palette.c_warning }}>
+                    Failed to find matching repository.
+                  </span>
+                )}
+              </Typography>
+            </div>
+          </div>
+
+          <div className="actions-container">
+            <div className="model-actions">
+              {isHuggingFace && <HuggingFaceLink modelId={model.id} />}
+              {isOllama && <OllamaLink modelId={model.id} />}
+              {renderModelActions(
+                { model, handleDelete, onDownload },
+                downloaded
+              )}
+            </div>
+          </div>
+        </div>
       </Box>
     );
   }
@@ -178,48 +224,47 @@ const ModelListItem: React.FC<ModelComponentProps> = ({
       css={styles}
       className={`model-list-item ${compactView ? "compact" : ""}`}
     >
-      <ListItem>
-        <ListItemText
-          primary={
-            <>
-              <Typography component="span" className="model-name">
-                {model.repo_id ? model.repo_id : model.id}{" "}
+      <div className="model-content">
+        <div className="model-info-container">
+          <div className="model-header">
+            <Typography component="span" className="model-name">
+              {model.repo_id ? model.repo_id : model.id}
+            </Typography>
+            {model.path && (
+              <Typography component="span" className="model-path">
+                {model.path}
               </Typography>
-              {model.path && (
-                <Typography component="span" className="model-path">
-                  {model.path}
+            )}
+          </div>
+
+          <div className="model-details">
+            <Typography component="span" className="model-info">
+              {renderModelSecondaryInfo(modelData, isHuggingFace)}
+            </Typography>
+
+            {model.size_on_disk && (
+              <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="Size on disk">
+                <Typography component="span" className="model-info">
+                  {" • "}
+                  {modelSize(model)}
                 </Typography>
-              )}
-            </>
-          }
-          secondary={
-            <React.Fragment>
-              <Typography component="span" className="model-info">
-                {renderModelSecondaryInfo(modelData, isHuggingFace)}
-              </Typography>
-              {model.size_on_disk && (
-                <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="Size on disk">
-                  <Typography component="span" className="model-info">
-                    {" • "}
-                    {modelSize(model)}
-                  </Typography>
-                </Tooltip>
-              )}
-              {modelData.cardData?.pipeline_tag && (
-                <Chip
-                  label={modelData.cardData.pipeline_tag}
-                  size="small"
-                  className="pipeline-tag"
-                  component="span"
-                />
-              )}
-            </React.Fragment>
-          }
-          secondaryTypographyProps={{ component: "div" }} // Add this line
-        />
-        <ListItemSecondaryAction className="secondary-action">
+              </Tooltip>
+            )}
+
+            {modelData.cardData?.pipeline_tag && (
+              <Chip
+                label={modelData.cardData.pipeline_tag}
+                size="small"
+                className="pipeline-tag"
+                component="span"
+              />
+            )}
+          </div>
+        </div>
+
+        <div className="actions-container">
           {isHuggingFace && (
-            <Box className="model-stats" sx={{ display: "flex", gap: ".5em" }}>
+            <div className="model-stats">
               <Tooltip title="Downloads on HF last month">
                 <CloudDownloadIcon fontSize="small" />
               </Tooltip>
@@ -232,18 +277,19 @@ const ModelListItem: React.FC<ModelComponentProps> = ({
               <Typography component="span" variant="body2">
                 {modelData.likes?.toLocaleString() || "N/A"}
               </Typography>
-            </Box>
+            </div>
           )}
-          {isHuggingFace && <HuggingFaceLink modelId={model.id} />}
-          {isOllama && <OllamaLink modelId={model.id} />}
-          <Box sx={{ display: "flex", gap: "1.5em" }}>
+
+          <div className="model-actions">
+            {isHuggingFace && <HuggingFaceLink modelId={model.id} />}
+            {isOllama && <OllamaLink modelId={model.id} />}
             {renderModelActions(
               { model, handleDelete, onDownload },
               downloaded
             )}
-          </Box>
-        </ListItemSecondaryAction>
-      </ListItem>
+          </div>
+        </div>
+      </div>
     </Box>
   );
 };
