@@ -130,26 +130,27 @@ export const ModelDownloadButton: React.FC<{ onClick: () => void }> = ({
 
 export const HuggingFaceLink: React.FC<{
   modelId: string;
-}> = ({ modelId }) => (
-  <Tooltip title="View on HuggingFace">
-    <Button
-      size="small"
-      href={`https://huggingface.co/${modelId}`}
-      className="model-external-link-icon huggingface-link"
-      target="_blank"
-      rel="noopener noreferrer"
-    >
-      <img
-        src="https://huggingface.co/front/assets/huggingface_logo-noborder.svg"
-        alt="Hugging Face"
-        style={{
-          width: "1.5em",
-          height: "auto"
-        }}
-      />
-    </Button>
-  </Tooltip>
-);
+}> = ({ modelId }) =>
+  !modelId.endsWith("safetensors") && (
+    <Tooltip title="View on HuggingFace">
+      <Button
+        size="small"
+        href={`https://huggingface.co/${modelId}`}
+        className="model-external-link-icon huggingface-link"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <img
+          src="https://huggingface.co/front/assets/huggingface_logo-noborder.svg"
+          alt="Hugging Face"
+          style={{
+            width: "1.5em",
+            height: "auto"
+          }}
+        />
+      </Button>
+    </Tooltip>
+  );
 
 export const OllamaLink: React.FC<{
   modelId: string;

@@ -71,10 +71,11 @@ const ModelDownloadDialog: React.FC<ModelDownloadDialogProps> = ({
       }}
       fullWidth
     >
-      <DialogTitle style={{ marginBottom: 2 }}>
+      <DialogTitle className="model-title" style={{ marginBottom: 2 }}>
         Required Models Download
         <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="Close | ESC">
           <IconButton
+            className="model-close"
             aria-label="close"
             onClick={onClose}
             sx={{
@@ -89,13 +90,21 @@ const ModelDownloadDialog: React.FC<ModelDownloadDialogProps> = ({
         </Tooltip>
       </DialogTitle>
 
-      <DialogContent sx={{ paddingBottom: "3em" }}>
-        <Box sx={{ mb: 3 }}>
-          <Typography variant="body1" sx={{ mb: 1 }}>
+      <DialogContent className="model-content" sx={{ paddingBottom: "3em" }}>
+        <Box className="model-desc" sx={{ mb: 3 }}>
+          <Typography
+            className="model-desc-title"
+            variant="body1"
+            sx={{ mb: 1 }}
+          >
             To run this workflow, the following AI models need to be downloaded
             to your local machine:
           </Typography>
-          <Typography variant="body2" color="text.secondary">
+          <Typography
+            className="model-desc-details"
+            variant="body2"
+            color="text.secondary"
+          >
             • Models will be stored locally in the Hugging Face cache
             <br />
             • Download times may vary based on model size and internet speed
@@ -104,11 +113,18 @@ const ModelDownloadDialog: React.FC<ModelDownloadDialogProps> = ({
           </Typography>
         </Box>
 
-        <Grid container spacing={2} className="models-grid">
+        <Grid container spacing={2} className="model-grid models-grid">
           {repoPaths.map((repoPath, index) => {
             const modelId = `${repoPath.repo_id}/${repoPath.path}`;
             return (
-              <Grid item xs={12} sm={6} md={4} key={index}>
+              <Grid
+                item
+                xs={12}
+                sm={6}
+                md={4}
+                key={index}
+                className="model-item"
+              >
                 <Box className="model-container">
                   {!downloads[modelId] && (
                     <ModelCard
