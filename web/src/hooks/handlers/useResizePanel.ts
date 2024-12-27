@@ -66,6 +66,10 @@ export const useResizePanel = (panelPosition: "left" | "right" = "left") => {
         }
 
         newSize = Math.max(panel.minWidth, Math.min(newSize, panel.maxWidth));
+
+        if (newSize < panel.minWidth * 3) {
+          newSize = panel.minWidth;
+        }
         actions.setSize(panelPosition, newSize);
 
         const distance = Math.abs(
@@ -125,6 +129,7 @@ export const useResizePanel = (panelPosition: "left" | "right" = "left") => {
   return {
     ref,
     size: panel.size,
+    collapsed: panel.size == panel.minWidth,
     isDragging: panel.isDragging,
     handleMouseDown,
     handlePanelToggle
