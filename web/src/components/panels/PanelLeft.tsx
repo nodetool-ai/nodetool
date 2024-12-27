@@ -1,15 +1,19 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-
-import { Drawer, IconButton, Tooltip } from "@mui/material";
+import { Drawer, IconButton, Tooltip, Box } from "@mui/material";
 import CodeIcon from "@mui/icons-material/Code";
+import ImageIcon from "@mui/icons-material/Image";
+import AccountTreeIcon from "@mui/icons-material/AccountTree";
+import ChatIcon from "@mui/icons-material/Chat";
 import { useResizePanel } from "../../hooks/handlers/useResizePanel";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import "../../styles/panel.css";
 import HelpChat from "../assistants/HelpChat";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { isEqual } from "lodash";
-import { memo } from "react";
+import { memo, useState, useCallback } from "react";
+import AssetGrid from "../assets/AssetGrid";
+import WorkflowForm from "../workflows/WorkflowForm";
 
 const styles = (theme: any) =>
   css({
@@ -31,6 +35,26 @@ const styles = (theme: any) =>
     },
     ".messages": {
       overflowY: "auto"
+    },
+    ".vertical-toolbar": {
+      display: "flex",
+      flexDirection: "column",
+      backgroundColor: theme.palette.background.paper,
+      "& .MuiIconButton-root": {
+        padding: "12px",
+        borderRadius: "6px",
+        "&.active": {
+          backgroundColor: theme.palette.action.selected
+        },
+        "&:hover": {
+          backgroundColor: theme.palette.action.hover
+        }
+      }
+    },
+    ".panel-content": {
+      display: "flex",
+      flex: 1,
+      height: "100%"
     }
   });
 
@@ -38,6 +62,7 @@ const PanelLeft: React.FC = () => {
   const {
     ref: panelRef,
     size: panelSize,
+    collapsed,
     isDragging,
     handleMouseDown,
     handlePanelToggle
@@ -45,38 +70,44 @@ const PanelLeft: React.FC = () => {
 
   useCombo(["1"], handlePanelToggle, false);
 
+  const [activeView, setActiveView] = useState<"chat" | "assets" | "workflow">(
+    "chat"
+  );
+
+  const handleViewChange = useCallback(
+    (view: "chat" | "assets" | "workflow") => {
+      if (view === activeView) {
+        handlePanelToggle();
+      } else {
+        if (collapsed) {
+          handlePanelToggle();
+        }
+        setActiveView(view);
+      }
+    },
+    [activeView, handlePanelToggle]
+  );
+
   return (
     <div
       css={styles}
       className={`panel-container ${panelSize > 80 ? "open" : "closed"}`}
     >
-      <Tooltip
-        className="tooltip-1"
-        title={
-          <span className="tooltip-1">
-            Drag to scale <br /> Click to open/close <br /> Keyboard shortcut: 1
-          </span>
-        }
-        placement="right"
-        enterDelay={TOOLTIP_ENTER_DELAY}
+      <IconButton
+        disableRipple={true}
+        className={"panel-button panel-button-left"}
+        edge="start"
+        color="inherit"
+        aria-label="menu"
+        tabIndex={-1}
+        onMouseDown={(e) => {
+          e.stopPropagation();
+          handleMouseDown(e);
+        }}
+        style={{ left: `${Math.max(panelSize + 10, 25)}px` }}
       >
-        <IconButton
-          disableRipple={true}
-          className={"panel-button panel-button-left"}
-          edge="start"
-          color="inherit"
-          aria-label="menu"
-          tabIndex={-1}
-          onMouseDown={(e) => {
-            e.stopPropagation();
-            handleMouseDown(e);
-          }}
-          onClick={handlePanelToggle}
-          style={{ left: `${Math.max(panelSize + 10, 25)}px` }}
-        >
-          <CodeIcon />
-        </IconButton>
-      </Tooltip>
+        <CodeIcon />
+      </IconButton>
       <Drawer
         PaperProps={{
           ref: panelRef,
@@ -87,7 +118,45 @@ const PanelLeft: React.FC = () => {
         anchor="left"
         open={true}
       >
-        {panelSize > 40 && <HelpChat />}
+        <div className="panel-content">
+          <div className="vertical-toolbar">
+            <Tooltip title="Chat" placement="right">
+              <IconButton
+                onClick={() => handleViewChange("chat")}
+                className={activeView === "chat" ? "active" : ""}
+              >
+                <ChatIcon />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Assets" placement="right">
+              <IconButton
+                onClick={() => handleViewChange("assets")}
+                className={activeView === "assets" ? "active" : ""}
+              >
+                <ImageIcon />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Workflow" placement="right">
+              <IconButton
+                onClick={() => handleViewChange("workflow")}
+                className={activeView === "workflow" ? "active" : ""}
+              >
+                <AccountTreeIcon />
+              </IconButton>
+            </Tooltip>
+          </div>
+
+          {activeView === "chat" && panelSize > 40 && <HelpChat />}
+          {activeView === "assets" && (
+            <Box
+              className="assets-container"
+              sx={{ width: "100%", height: "100%" }}
+            >
+              <AssetGrid maxItemSize={5} />
+            </Box>
+          )}
+          {activeView === "workflow" && <WorkflowForm />}
+        </div>
       </Drawer>
     </div>
   );

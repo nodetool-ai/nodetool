@@ -11,7 +11,7 @@ const initiateEditor = async (workflowId: string | undefined) => {
     return { workflow: null };
   }
 
-  if (currentWorkflow) {
+  if (currentWorkflow && currentWorkflow.id !== "") {
     // Check if the current workflow is the same as the one we are trying to load
     if (currentWorkflow.id === workflowId) {
       return { workflow: currentWorkflow };

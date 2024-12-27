@@ -1,9 +1,9 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import React, { memo, useState } from "react";
+import React, { memo, useCallback, useState } from "react";
 import AssetGrid from "../assets/AssetGrid";
-import { IconButton, Box, Tooltip, Drawer, Tabs, Tab } from "@mui/material";
+import { IconButton, Box, Tooltip, Drawer } from "@mui/material";
 import CodeIcon from "@mui/icons-material/Code";
 import { useResizePanel } from "../../hooks/handlers/useResizePanel";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
@@ -12,9 +12,32 @@ import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import WorkflowForm from "../workflows/WorkflowForm";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { isEqual } from "lodash";
+import ImageIcon from "@mui/icons-material/Image";
+import AccountTreeIcon from "@mui/icons-material/AccountTree";
 
 const styles = (theme: any) =>
   css({
+    ".vertical-toolbar": {
+      display: "flex",
+      flexDirection: "column",
+      borderRight: `1px solid ${theme.palette.divider}`,
+      backgroundColor: theme.palette.background.paper,
+      "& .MuiIconButton-root": {
+        padding: "12px",
+        borderRadius: 0,
+        "&.active": {
+          backgroundColor: theme.palette.action.selected
+        },
+        "&:hover": {
+          backgroundColor: theme.palette.action.hover
+        }
+      }
+    },
+    ".panel-content": {
+      display: "flex",
+      flex: 1,
+      height: "100%"
+    },
     ".panel-tabs ": {
       minHeight: "2em"
     },
@@ -44,16 +67,23 @@ const PanelRight: React.FC = () => {
 
   useCombo(["2"], handlePanelToggle, false);
 
-  const [tabIndex, setTabIndex] = useState(0);
+  const [activeView, setActiveView] = useState<"assets" | "workflow">("assets");
 
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
-    setTabIndex(newValue);
-  };
+  const handleViewChange = useCallback(
+    (view: "assets" | "workflow") => {
+      if (view === activeView) {
+        handlePanelToggle();
+      } else {
+        setActiveView(view);
+      }
+    },
+    [activeView, handlePanelToggle]
+  );
 
   return (
     <div
       css={styles}
-      className={`panel-container ${panelSize > 80 ? "open" : "closed"}`}
+      className={`panel-container ${panelSize > 48 ? "open" : "closed"}`}
     >
       <Tooltip
         className="tooltip-1"
@@ -86,36 +116,42 @@ const PanelRight: React.FC = () => {
         PaperProps={{
           ref: panelRef,
           className: `panel panel-right ${isDragging ? "dragging" : ""}`,
-          style: { width: `${panelSize}px` }
+          style: { width: `${panelSize}px`, padding: "0px" }
         }}
         variant="persistent"
         anchor="left"
         open={true}
       >
-        {panelSize > 40 && (
-          <>
-            <Tabs
-              className="panel-tabs"
-              value={tabIndex}
-              onChange={handleTabChange}
-              aria-label="Panel tabs"
-            >
-              <Tab label="Assets" />
-              {/* <Tab label="Inspector" /> */}
-              <Tab label="Workflow" />
-            </Tabs>
-            {tabIndex === 0 && (
-              <Box
-                className="assets-container"
-                sx={{ width: "100%", height: "100%" }}
+        <div className="panel-content">
+          <div className="vertical-toolbar">
+            <Tooltip title="Assets" placement="right">
+              <IconButton
+                onClick={() => handleViewChange("assets")}
+                className={activeView === "assets" ? "active" : ""}
               >
-                <AssetGrid maxItemSize={5} />
-              </Box>
-            )}
-            {/* {tabIndex === 1 && <Inspector />} */}
-            {tabIndex === 1 && <WorkflowForm />}
-          </>
-        )}
+                <ImageIcon />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Workflow" placement="right">
+              <IconButton
+                onClick={() => handleViewChange("workflow")}
+                className={activeView === "workflow" ? "active" : ""}
+              >
+                <AccountTreeIcon />
+              </IconButton>
+            </Tooltip>
+          </div>
+
+          {activeView === "assets" && (
+            <Box
+              className="assets-container"
+              sx={{ width: "100%", height: "100%" }}
+            >
+              <AssetGrid maxItemSize={5} />
+            </Box>
+          )}
+          {activeView === "workflow" && <WorkflowForm />}
+        </div>
       </Drawer>
     </div>
   );
