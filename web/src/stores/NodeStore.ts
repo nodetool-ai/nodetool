@@ -135,7 +135,7 @@ export function reactFlowNodeToGraphNode(node: Node<NodeData>): GraphNode {
 
   return {
     id: node.id,
-    type: node.type,
+    type: node.type || "",
     data: node.data?.properties,
     parent_id: node.parentId,
     ui_properties: ui_properties
@@ -1096,7 +1096,8 @@ const extractModelFiles = (nodes: GraphNode[]): RepoPath[] => {
         if (value.repo_id && value.path) {
           acc.push({
             repo_id: value.repo_id,
-            path: value.path
+            path: value.path,
+            downloaded: false
           });
         }
       }
