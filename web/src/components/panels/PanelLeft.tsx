@@ -6,7 +6,6 @@ import ImageIcon from "@mui/icons-material/Image";
 import AccountTreeIcon from "@mui/icons-material/AccountTree";
 import ChatIcon from "@mui/icons-material/Chat";
 import { useResizePanel } from "../../hooks/handlers/useResizePanel";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import "../../styles/panel.css";
 import HelpChat from "../assistants/HelpChat";
 import { useCombo } from "../../stores/KeyPressedStore";
@@ -14,6 +13,8 @@ import { isEqual } from "lodash";
 import { memo, useState, useCallback } from "react";
 import AssetGrid from "../assets/AssetGrid";
 import WorkflowForm from "../workflows/WorkflowForm";
+import GridViewIcon from "@mui/icons-material/GridView";
+import WorkflowGrid from "../workflows/WorkflowGrid";
 
 const styles = (theme: any) =>
   css({
@@ -70,12 +71,12 @@ const PanelLeft: React.FC = () => {
 
   useCombo(["1"], handlePanelToggle, false);
 
-  const [activeView, setActiveView] = useState<"chat" | "assets" | "workflow">(
-    "chat"
-  );
+  const [activeView, setActiveView] = useState<
+    "chat" | "assets" | "workflow" | "workflowGrid"
+  >("chat");
 
   const handleViewChange = useCallback(
-    (view: "chat" | "assets" | "workflow") => {
+    (view: "chat" | "assets" | "workflow" | "workflowGrid") => {
       if (view === activeView) {
         handlePanelToggle();
       } else {
@@ -136,12 +137,20 @@ const PanelLeft: React.FC = () => {
                 <ImageIcon />
               </IconButton>
             </Tooltip>
-            <Tooltip title="Workflow" placement="right">
+            <Tooltip title="Workflow Properties" placement="right">
               <IconButton
                 onClick={() => handleViewChange("workflow")}
                 className={activeView === "workflow" ? "active" : ""}
               >
                 <AccountTreeIcon />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Workflows" placement="right">
+              <IconButton
+                onClick={() => handleViewChange("workflowGrid")}
+                className={activeView === "workflowGrid" ? "active" : ""}
+              >
+                <GridViewIcon />
               </IconButton>
             </Tooltip>
           </div>
@@ -156,6 +165,11 @@ const PanelLeft: React.FC = () => {
             </Box>
           )}
           {activeView === "workflow" && <WorkflowForm />}
+          {activeView === "workflowGrid" && (
+            <Box sx={{ width: "100%", height: "100%", overflow: "auto" }}>
+              <WorkflowGrid />
+            </Box>
+          )}
         </div>
       </Drawer>
     </div>

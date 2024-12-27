@@ -79,17 +79,8 @@ class Workflow(DBModel):
         limit: int = 100,
         start_key: Optional[str] = None,
     ) -> tuple[list["Workflow"], str]:
-        Asset.adapter()  # force table creation
         query = f"""
-    SELECT w.*,
-           a.id as asset_id,
-           a.content_type as asset_content_type
-    FROM {cls.get_table_schema()['table_name']} w
-    LEFT OUTER JOIN (
-        SELECT workflow_id, id, content_type,
-               ROW_NUMBER() OVER (PARTITION BY workflow_id ORDER BY created_at DESC) as rn
-        FROM nodetool_assets
-    ) a ON (w.id = a.workflow_id AND a.rn = 1) OR (a.id = w.thumbnail)
+    SELECT * FROM {cls.get_table_schema()['table_name']} w
     WHERE """
         params = {}
 
@@ -110,21 +101,7 @@ class Workflow(DBModel):
 
         results = cls.adapter().execute_sql(query, params)
 
-        workflows = [
-            Workflow.from_dict(
-                {
-                    **row,
-                    "thumbnail": (
-                        row["asset_id"]
-                        + "."
-                        + CONTENT_TYPE_TO_EXTENSION[row["asset_content_type"]]
-                        if row["asset_id"] is not None
-                        else None
-                    ),
-                }
-            )
-            for row in results[:limit]
-        ]
+        workflows = [Workflow.from_dict(row) for row in results[:limit]]
 
         if len(results) > limit:
             last_evaluated_key = results[-1]["id"]

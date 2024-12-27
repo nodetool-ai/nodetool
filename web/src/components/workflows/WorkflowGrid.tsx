@@ -17,6 +17,9 @@ import { useNodeStore } from "../../stores/NodeStore";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 import AddIcon from "@mui/icons-material/Add";
 import { useResizeObserver } from "@mantine/hooks";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
+import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
 const tile_width = "200px";
 const tile_height = "200px";
@@ -81,9 +84,7 @@ const styles = (theme: any) =>
       color: theme.palette.c_gray6
     },
     ".date": {
-      lineHeight: "1.2em",
-      margin: "auto 0 0",
-      fontSize: theme.fontSizeSmaller,
+      fontSize: theme.fontSizeTiny,
       color: theme.palette.c_gray5
     },
     ".status": { margin: "1em 1em 0 2em" },
@@ -145,6 +146,7 @@ const WorkflowGrid = () => {
   const deleteWorkflow = useWorkflowStore((state) => state.delete);
   const [workflowsToDelete, setWorkflowsToDelete] = useState<Workflow[]>([]);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false);
+  const [showCheckboxes, setShowCheckboxes] = useState(true);
 
   // OPEN WORKFLOW
   const onDoubleClickWorkflow = useCallback(
@@ -342,6 +344,7 @@ const WorkflowGrid = () => {
           onSelect={onSelect}
           selectedWorkflows={selectedWorkflows}
           workflowCategory="user"
+          showCheckboxes={showCheckboxes}
         />
       </div>
     ),
@@ -353,30 +356,29 @@ const WorkflowGrid = () => {
       duplicateWorkflow,
       onDelete,
       onSelect,
-      selectedWorkflows
+      selectedWorkflows,
+      showCheckboxes
     ]
   );
 
   const tools = useMemo(
     () => (
       <>
+        <Typography variant="h3">Workflows</Typography>
         <div className="tools">
           <Tooltip title="Create a new workflow">
             <Button
               variant="outlined"
               onClick={handleCreateWorkflow}
-              startIcon={<AddIcon />}
               sx={{
                 fontWeight: "bold",
-                fontSize: "1.2em",
                 textTransform: "uppercase",
                 letterSpacing: "0.05em",
-                minWidth: "140px",
                 height: "36px",
                 padding: "6px 16px"
               }}
             >
-              Create New Workflow
+              <AddIcon />
             </Button>
           </Tooltip>
           <Tooltip title="Search workflows by name">
@@ -386,6 +388,19 @@ const WorkflowGrid = () => {
                 focusOnTyping={true}
               />
             </div>
+          </Tooltip>
+          <Tooltip
+            title={`${showCheckboxes ? "Hide" : "Show"} selection checkboxes`}
+            placement="top"
+            enterDelay={TOOLTIP_ENTER_DELAY}
+          >
+            <Button
+              size="small"
+              onClick={() => setShowCheckboxes(!showCheckboxes)}
+              sx={{ height: "36px" }}
+            >
+              {showCheckboxes ? <VisibilityOffIcon /> : <VisibilityIcon />}
+            </Button>
           </Tooltip>
           {selectedWorkflows.length > 0 && (
             <Tooltip
@@ -431,6 +446,7 @@ const WorkflowGrid = () => {
       handleCreateWorkflow,
       handleSearchChange,
       selectedWorkflows,
+      showCheckboxes,
       isLoading,
       isError,
       error?.message,
