@@ -157,7 +157,7 @@ export function reactFlowEdgeToGraphEdge(edge: Edge): GraphEdge {
 }
 
 const undo_limit = 1000;
-const AUTO_SAVE_INTERVAL = 5000; // 5 seconds
+const AUTO_SAVE_INTERVAL = 60000; // 1 minute
 
 export interface NodeStore {
   explicitSave: boolean;
@@ -460,15 +460,15 @@ export const useNodeStore = create<NodeStore>()(
           (e: GraphEdge) => graphEdgeToReactFlowEdge(e)
         );
 
-        const { nodes: sanitizedNodes, edges: sanitizedEdges } =
-          get().sanitizeGraph(unsanitizedNodes, unsanitizedEdges, metadata);
+        // const { nodes: sanitizedNodes, edges: sanitizedEdges } =
+        //   get().sanitizeGraph(unsanitizedNodes, unsanitizedEdges, metadata);
 
         set({
           workflow: workflow,
           lastWorkflow: workflow,
           shouldAutoLayout: false,
-          edges: sanitizedEdges,
-          nodes: sanitizedNodes,
+          edges: unsanitizedEdges,
+          nodes: unsanitizedNodes,
           workflowIsDirty: false
         });
 
