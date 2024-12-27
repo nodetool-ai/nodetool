@@ -148,6 +148,13 @@ const SearchInput: React.FC<SearchInputProps> = ({
 
   React.useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      const shouldHandleEvent =
+        document.activeElement === inputRef.current ||
+        (focusOnTyping &&
+          !document.activeElement?.classList.contains("search-input"));
+
+      if (!shouldHandleEvent) return;
+
       if (
         (event.key === "Delete" || event.key === "Backspace") &&
         isControlOrMetaPressed
