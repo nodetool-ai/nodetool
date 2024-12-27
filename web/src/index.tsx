@@ -16,7 +16,6 @@ import NodeEditor from "./components/node_editor/NodeEditor";
 import initiateEditor from "./core/initiateEditor";
 
 import PanelLeft from "./components/panels/PanelLeft";
-import PanelRight from "./components/panels/PanelRight";
 
 import { ThemeProvider } from "@emotion/react";
 import { CssBaseline } from "@mui/material";
@@ -182,7 +181,6 @@ function getRoutes() {
             <CssBaseline />
             <AppHeader />
             <PanelLeft />
-            <PanelRight />
             {/* <AppFooter /> */}
           </ThemeProvider>
           <ThemeProvider theme={ThemeNodes}>

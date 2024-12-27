@@ -17,7 +17,7 @@ const styles = (theme: any) =>
       flexDirection: "row",
       alignItems: "center",
       gap: "0.1em",
-      width: "200px",
+      width: "150px",
       margin: "0",
       padding: 0,
       overflow: "hidden"

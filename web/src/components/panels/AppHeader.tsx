@@ -18,7 +18,6 @@ import OverallDownloadProgress from "../hugging_face/OverallDownloadProgress";
 import WorkflowsIcon from "@mui/icons-material/ListAlt";
 // import AssetIcon from "@mui/icons-material/ImageSharp";
 import QuestionMarkIcon from "@mui/icons-material/QuestionMark";
-import ChatIcon from "@mui/icons-material/Chat";
 import ExamplesIcon from "@mui/icons-material/AutoAwesome"; // Add this import
 import NotificationsIcon from "@mui/icons-material/Notifications";
 
@@ -161,8 +160,6 @@ const AppHeader: React.FC = React.memo(() => {
     handleOpenWelcome
   } = useAppHeaderStore();
 
-  const { handlePanelToggle: toggleChat } = useResizePanel("left");
-
   const showWelcomeOnStartup = useSettingsStore(
     (state) => state.settings.showWelcomeOnStartup
   );
@@ -197,30 +194,7 @@ const AppHeader: React.FC = React.memo(() => {
   const NavigationButtons = useMemo(
     () => (
       <Box className="nav-buttons">
-        <Tooltip
-          title="Load and create workflows"
-          enterDelay={TOOLTIP_ENTER_DELAY}
-        >
-          <Button
-            aria-controls="simple-menu"
-            aria-haspopup="true"
-            className={`nav-button ${
-              path.startsWith("/workflows") ? "active" : ""
-            }`}
-            onClick={() => navigate("/workflows")}
-            tabIndex={-1}
-            style={{
-              color: path.startsWith("/workflows")
-                ? ThemeNodetool.palette.c_hl1
-                : ThemeNodetool.palette.c_white
-            }}
-          >
-            <WorkflowsIcon />
-            Workflows
-          </Button>
-        </Tooltip>
-
-        <Tooltip title="Example Workflows" enterDelay={TOOLTIP_ENTER_DELAY}>
+        <Tooltip title="Explore Examples" enterDelay={TOOLTIP_ENTER_DELAY}>
           <Button
             className={`nav-button ${path === "/examples" ? "active" : ""}`}
             onClick={() => navigate("/examples")}
@@ -273,25 +247,9 @@ const AppHeader: React.FC = React.memo(() => {
             Assets
           </Button>
         </Tooltip>
-
-        {path.startsWith("/editor") && (
-          <Tooltip
-            title="Nodetool Chat Assistant"
-            enterDelay={TOOLTIP_ENTER_DELAY}
-          >
-            <Button
-              className="action-button"
-              onClick={toggleChat}
-              tabIndex={-1}
-            >
-              <ChatIcon />
-              Chat
-            </Button>
-          </Tooltip>
-        )}
       </Box>
     ),
-    [path, buttonAppearance, toggleChat, navigate]
+    [path, buttonAppearance, navigate]
   );
 
   const [notificationAnchor, setNotificationAnchor] =

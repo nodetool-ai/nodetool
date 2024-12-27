@@ -4,12 +4,11 @@ import { css } from "@emotion/react";
 import React from "react";
 import { Box, Button, Tooltip, Typography } from "@mui/material";
 import { Workflow } from "../../stores/ApiTypes";
-import { prettyDate, relativeTime } from "../../utils/formatDateAndTime";
-import { truncateString } from "../../utils/truncateString";
-import DeleteButton from "../buttons/DeleteButton";
+import { relativeTime } from "../../utils/formatDateAndTime";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import Checkbox from "@mui/material/Checkbox";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 
 interface RenderListViewProps {
   workflows: Workflow[];
@@ -20,6 +19,7 @@ interface RenderListViewProps {
   onScroll?: (event: React.UIEvent<HTMLDivElement>) => void;
   selectedWorkflows: string[] | null;
   workflowCategory: string;
+  showCheckboxes: boolean;
 }
 
 const listStyles = (theme: any) =>
@@ -40,7 +40,7 @@ const listStyles = (theme: any) =>
       alignItems: "flex-start",
       margin: ".25em 0",
       padding: "0.4em 0",
-      width: "calc(100% - 100px)",
+      width: "100%",
       cursor: "pointer",
       borderBottom: "1px solid black",
       transition: "background 0.2s"
@@ -71,11 +71,12 @@ const listStyles = (theme: any) =>
       userSelect: "none"
     },
     ".date": {
-      marginLeft: "auto",
       paddingRight: "1em",
       fontFamily: theme.fontFamily2,
+      fontSize: theme.fontSizeTiny,
       right: "0",
-      minWidth: "150px",
+      height: "1em",
+      minWidth: "80px",
       userSelect: "none",
       textAlign: "right"
     },
@@ -86,21 +87,21 @@ const listStyles = (theme: any) =>
       overflow: "hidden",
       position: "relative"
     },
+    ".duplicate-button": {
+      padding: "0"
+    },
+    ".duplicate-button svg": {
+      transform: "scale(0.7)"
+    },
     ".actions": {
       display: "flex",
-      alignItems: "center",
-      minWidth: "250px",
+      alignItems: "right",
+      minWidth: "48px",
       marginLeft: "auto",
-      gap: "0.5em",
       button: {
-        backgroundColor: theme.palette.c_gray2,
         color: theme.palette.c_gray6,
-        padding: "0 0.5em",
         "&:hover": {
           backgroundColor: theme.palette.c_gray3
-        },
-        "&.delete-button:hover": {
-          backgroundColor: theme.palette.c_delete
         }
       }
     }
@@ -114,9 +115,11 @@ export const RenderListView: React.FC<RenderListViewProps> = ({
   onSelect,
   onScroll,
   selectedWorkflows,
-  workflowCategory
+  workflowCategory,
+  showCheckboxes
 }) => {
   const settings = useSettingsStore((state) => state.settings);
+
   const addBreaks = (text: string) => {
     return text.replace(/([-_.])/g, "$1<wbr>");
   };
@@ -141,43 +144,23 @@ export const RenderListView: React.FC<RenderListViewProps> = ({
               }
             }}
           >
-            <Tooltip
-              title="Select workflow"
-              placement="top"
-              enterDelay={TOOLTIP_ENTER_DELAY}
-            >
-              <Checkbox
-                checked={selectedWorkflows?.includes(workflow.id) || false}
-                onClick={(e) => {
-                  e.preventDefault();
-                  onSelect(workflow);
-                }}
-              />
-            </Tooltip>
-            <Tooltip
-              title="Workflow thumbnail"
-              placement="top"
-              enterDelay={TOOLTIP_ENTER_DELAY}
-            >
-              <Box
-                className="image-wrapper"
-                sx={{
-                  backgroundSize: "cover",
-                  backgroundPosition: "center",
-                  backgroundImage: workflow.thumbnail_url
-                    ? `url(${workflow.thumbnail_url})`
-                    : "none",
-                  width: "50px",
-                  height: "50px"
-                }}
+            {showCheckboxes && (
+              <Tooltip
+                title="Select workflow"
+                placement="top"
+                enterDelay={TOOLTIP_ENTER_DELAY}
               >
-                {!workflow.thumbnail_url && (
-                  <Box className="image-placeholder" />
-                )}
-              </Box>
-            </Tooltip>
+                <Checkbox
+                  checked={selectedWorkflows?.includes(workflow.id) || false}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onSelect(workflow);
+                  }}
+                />
+              </Tooltip>
+            )}
             <Tooltip
-              title="Workflow details"
+              title={workflow.description}
               placement="top"
               enterDelay={TOOLTIP_ENTER_DELAY}
             >
@@ -186,9 +169,6 @@ export const RenderListView: React.FC<RenderListViewProps> = ({
                   className="name"
                   dangerouslySetInnerHTML={{ __html: addBreaks(workflow.name) }}
                 ></div>
-                <Typography className="description">
-                  {truncateString(workflow.description, 350)}
-                </Typography>
               </Box>
             </Tooltip>
             <div className="actions">
@@ -199,7 +179,6 @@ export const RenderListView: React.FC<RenderListViewProps> = ({
               >
                 <Typography className="date">
                   {relativeTime(workflow.updated_at)} <br />
-                  {prettyDate(workflow.updated_at, "verbose", settings)}
                 </Typography>
               </Tooltip>
 
@@ -212,23 +191,15 @@ export const RenderListView: React.FC<RenderListViewProps> = ({
                   >
                     <Button
                       size="small"
-                      color="primary"
+                      className="duplicate-button"
                       onClick={(event) => {
                         event.preventDefault();
                         onDuplicateWorkflow(event, workflow);
                       }}
                     >
-                      Duplicate
+                      <ContentCopyIcon />
                     </Button>
                   </Tooltip>
-                  <DeleteButton<Workflow>
-                    item={workflow}
-                    onClick={(e, workflow) => {
-                      e.preventDefault();
-                      onDelete(e, workflow);
-                    }}
-                    tooltip="Delete selected Workflows"
-                  />
                 </>
               )}
             </div>
