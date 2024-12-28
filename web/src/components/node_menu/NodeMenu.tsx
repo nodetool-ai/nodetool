@@ -32,11 +32,12 @@ const treeStyles = (theme: any) =>
       top: 0,
       left: 0,
       position: "absolute",
-      overflow: "hidden",
+      overflow: "scroll",
       zIndex: 1300,
       border: `2px solid ${theme.palette.c_gray1}`,
       borderRadius: ".6em",
-      outline: `2px solid ${theme.palette.c_gray4}`
+      outline: `2px solid ${theme.palette.c_gray4}`,
+      backgroundColor: theme.palette.c_gray1
     },
     ".draggable-header": {
       borderRadius: "8px 8px 0 0",
@@ -50,7 +51,6 @@ const treeStyles = (theme: any) =>
       opacity: 0.95
     },
     ".node-menu-container": {
-      backgroundColor: theme.palette.c_gray1,
       borderRadius: "0 0 8px 8px",
       padding: ".5em 0px 1em .5em",
       width: "100%",

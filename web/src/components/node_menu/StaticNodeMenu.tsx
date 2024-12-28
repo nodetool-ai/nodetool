@@ -23,8 +23,8 @@ const staticMenuStyles = (theme: any) =>
       display: "flex",
       flexDirection: "column",
       height: "100%", // Changed to 100% for static layout
-      width: "100%", // Added full width
-      overflow: "hidden"
+      width: "100%" // Added full width
+      //   overflow: "hidden"
     }
   });
 
