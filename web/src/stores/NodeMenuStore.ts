@@ -157,10 +157,7 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => ({
       menuPosition: { x: constrainedX, y: constrainedY },
       openedByDrop,
       dropType,
-      connectDirection,
-      searchTerm,
-      selectedPath: [],
-      highlightedNamespaces: []
+      connectDirection
     });
 
     setTimeout(() => {
