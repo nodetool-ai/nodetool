@@ -40,7 +40,11 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
   const handleCreateNode = useCreateNode();
   const currentHoveredNodeRef = useRef<NodeMetadata | null>(null);
   const onInfoClick = useCallback(() => {
-    setHoveredNode(currentHoveredNodeRef.current);
+    if (hoveredNode) {
+      setHoveredNode(null);
+    } else {
+      setHoveredNode(currentHoveredNodeRef.current);
+    }
   }, [setHoveredNode]);
 
   const { handleMouseEnter, handleMouseLeave } = useDelayedHover(

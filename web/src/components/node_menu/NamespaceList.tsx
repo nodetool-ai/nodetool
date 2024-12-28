@@ -31,7 +31,10 @@ interface NamespaceListProps {
 const namespaceStyles = (theme: any) =>
   css({
     "&": {
-      margin: "1em 0 0 1em"
+      margin: "1em 0 0 1em",
+      height: "100%",
+      display: "flex",
+      flexDirection: "column"
     },
     ".header": {
       display: "flex",
@@ -49,16 +52,15 @@ const namespaceStyles = (theme: any) =>
     },
     ".list-box": {
       display: "flex",
-      overflowY: "auto",
       flexDirection: "row",
       alignItems: "stretch",
       marginLeft: "0",
-      width: "100%"
+      width: "100%",
+      flex: "1 1 auto",
+      minHeight: 0
     },
     ".namespace-list": {
-      overflowY: "scroll",
-      overflowX: "hidden",
-      // maxHeight: "55vh",
+      overflowY: "auto",
       height: "100%",
       width: "40%",
       boxShadow: "inset 0 0 10px rgba(0, 0, 0, 0.4)",
@@ -69,12 +71,12 @@ const namespaceStyles = (theme: any) =>
     },
     ".node-list": {
       padding: "0 1em 1em 1em",
-      maxHeight: "55vh",
+      height: "100%",
       width: "60%",
       flex: "0 1 auto",
       transition: "max-width 1s ease-out, width 1s ease-out",
       overflowX: "hidden",
-      overflowY: "scroll"
+      overflowY: "auto"
     },
     ".no-selection": {
       display: "flex",
