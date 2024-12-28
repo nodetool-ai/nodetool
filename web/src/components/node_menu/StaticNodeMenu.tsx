@@ -29,14 +29,10 @@ const staticMenuStyles = (theme: any) =>
   });
 
 type StaticNodeMenuProps = {
-  focusSearchInput?: boolean;
   className?: string;
 };
 
-export default function StaticNodeMenu({
-  focusSearchInput = false,
-  className
-}: StaticNodeMenuProps) {
+export default function StaticNodeMenu({ className }: StaticNodeMenuProps) {
   const containerRef = useRef(null);
   const namespaceTree = useNamespaceTree();
 
@@ -58,8 +54,8 @@ export default function StaticNodeMenu({
     >
       <Box className="search-toolbar">
         <SearchInput
-          focusSearchInput={focusSearchInput}
-          focusOnTyping={true}
+          focusSearchInput={false}
+          focusOnTyping={false}
           placeholder="Search for nodes..."
           debounceTime={300}
           maxWidth={"400px"}
