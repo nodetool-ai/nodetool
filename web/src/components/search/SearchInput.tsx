@@ -17,7 +17,6 @@ const styles = (theme: any) =>
       flexDirection: "row",
       alignItems: "center",
       gap: "0.1em",
-      width: "150px",
       margin: "0",
       padding: 0,
       overflow: "hidden"
@@ -89,6 +88,7 @@ interface SearchInputProps {
   maxWidth?: string;
   searchTerm?: string;
   searchResults?: NodeMetadata[];
+  width?: number;
 }
 
 const SearchInput: React.FC<SearchInputProps> = ({
@@ -100,7 +100,8 @@ const SearchInput: React.FC<SearchInputProps> = ({
   maxWidth = "unset",
   debounceTime = 30,
   searchTerm: externalSearchTerm = "",
-  searchResults = []
+  searchResults = [],
+  width = 150
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const [localSearchTerm, setLocalSearchTerm] = useState(externalSearchTerm);
@@ -236,7 +237,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
     <div
       className="search-input-container"
       css={styles}
-      style={{ maxWidth: maxWidth }}
+      style={{ maxWidth: maxWidth, width: `${width}px` }}
     >
       <input
         id={`search-input`}

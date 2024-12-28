@@ -200,6 +200,7 @@ export default function NodeMenu({ focusSearchInput = false }: NodeMenuProps) {
               focusOnTyping={true}
               placeholder="Search for nodes..."
               debounceTime={300}
+              width={200}
               maxWidth={"400px"}
               searchTerm={searchTerm}
               onSearchChange={setSearchTerm}

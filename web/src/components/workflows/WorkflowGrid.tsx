@@ -383,10 +383,7 @@ const WorkflowGrid = () => {
           </Tooltip>
           <Tooltip title="Search workflows by name">
             <div>
-              <SearchInput
-                onSearchChange={handleSearchChange}
-                focusOnTyping={true}
-              />
+              <SearchInput onSearchChange={handleSearchChange} />
             </div>
           </Tooltip>
           <Tooltip

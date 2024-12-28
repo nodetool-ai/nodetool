@@ -15,6 +15,8 @@ import AssetGrid from "../assets/AssetGrid";
 import WorkflowForm from "../workflows/WorkflowForm";
 import GridViewIcon from "@mui/icons-material/GridView";
 import WorkflowGrid from "../workflows/WorkflowGrid";
+import ExtensionIcon from "@mui/icons-material/Extension";
+import StaticNodeMenu from "../node_menu/StaticNodeMenu";
 
 const styles = (theme: any) =>
   css({
@@ -72,11 +74,11 @@ const PanelLeft: React.FC = () => {
   useCombo(["1"], handlePanelToggle, false);
 
   const [activeView, setActiveView] = useState<
-    "chat" | "assets" | "workflow" | "workflowGrid"
+    "chat" | "assets" | "workflow" | "workflowGrid" | "nodes"
   >("chat");
 
   const handleViewChange = useCallback(
-    (view: "chat" | "assets" | "workflow" | "workflowGrid") => {
+    (view: "chat" | "assets" | "workflow" | "workflowGrid" | "nodes") => {
       if (view === activeView) {
         handlePanelToggle();
       } else {
@@ -153,6 +155,14 @@ const PanelLeft: React.FC = () => {
                 <GridViewIcon />
               </IconButton>
             </Tooltip>
+            <Tooltip title="Nodes" placement="right">
+              <IconButton
+                onClick={() => handleViewChange("nodes")}
+                className={activeView === "nodes" ? "active" : ""}
+              >
+                <ExtensionIcon />
+              </IconButton>
+            </Tooltip>
           </div>
 
           {activeView === "chat" && panelSize > 40 && <HelpChat />}
@@ -168,6 +178,11 @@ const PanelLeft: React.FC = () => {
           {activeView === "workflowGrid" && (
             <Box sx={{ width: "100%", height: "100%", overflow: "auto" }}>
               <WorkflowGrid />
+            </Box>
+          )}
+          {activeView === "nodes" && (
+            <Box sx={{ width: "100%", height: "100%", overflow: "auto" }}>
+              <StaticNodeMenu />
             </Box>
           )}
         </div>

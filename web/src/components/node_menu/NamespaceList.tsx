@@ -52,15 +52,15 @@ const namespaceStyles = (theme: any) =>
       overflowY: "auto",
       flexDirection: "row",
       alignItems: "stretch",
-      gap: "2em",
-      marginLeft: "0"
+      marginLeft: "0",
+      width: "100%"
     },
     ".namespace-list": {
       overflowY: "scroll",
       overflowX: "hidden",
-      maxHeight: "55vh",
-      flexShrink: "1",
-      minWidth: "200px",
+      // maxHeight: "55vh",
+      height: "100%",
+      width: "40%",
       boxShadow: "inset 0 0 10px rgba(0, 0, 0, 0.4)",
       borderRadius: "8px",
       display: "flex",
@@ -68,11 +68,9 @@ const namespaceStyles = (theme: any) =>
       gap: "0"
     },
     ".node-list": {
-      paddingTop: "0",
+      padding: "0 1em 1em 1em",
       maxHeight: "55vh",
-      minWidth: "300px",
-      paddingRight: ".5em",
-      paddingBottom: "1em",
+      width: "60%",
       flex: "0 1 auto",
       transition: "max-width 1s ease-out, width 1s ease-out",
       overflowX: "hidden",
@@ -83,7 +81,7 @@ const namespaceStyles = (theme: any) =>
       flexDirection: "column",
       color: theme.palette.c_white,
       fontFamily: theme.fontFamily1,
-      fontSize: theme.fontSizeNormal,
+      // fontSize: theme.fontSizeNormal,
       wordSpacing: "0",
       padding: "0 1em",
       margin: 0,
@@ -159,7 +157,7 @@ const namespaceStyles = (theme: any) =>
       ".node-button": {
         padding: ".1em .5em",
         "& .MuiTypography-root": {
-          fontSize: theme.fontSizeNormal
+          // fontSize: theme.fontSizeNormal
         }
       }
     },
@@ -175,6 +173,7 @@ const namespaceStyles = (theme: any) =>
     ".namespace-text": {
       color: theme.palette.c_gray4,
       fontWeight: "500",
+      fontSize: "75%",
       borderBottom: `1px solid ${theme.palette.c_gray3}`,
       borderTop: `1px solid ${theme.palette.c_gray3}`,
       padding: ".5em 0",
@@ -200,10 +199,10 @@ const namespaceStyles = (theme: any) =>
       backgroundColor: "transparent",
       borderLeft: `3px solid ${theme.palette.c_gray3}`,
       fontFamily: theme.fontFamily1,
-      fontSize: theme.fontSizeNormal,
+      fontSize: theme.fontSizeSmall,
       fontWeight: "300",
       transition: "all 0.2s ease-in-out",
-      maxHeight: "40px",
+      // maxHeight: "40px",
       overflow: "hidden",
       margin: "0",
       borderRadius: "0 4px 4px 0"
@@ -213,7 +212,7 @@ const namespaceStyles = (theme: any) =>
       borderLeft: `3px solid ${theme.palette.c_hl1}`
     },
     ".namespaces .list-item.expanded": {
-      maxHeight: "40px",
+      // maxHeight: "40px",
       opacity: 1
     },
     ".namespaces .list-item.collapsed": {
