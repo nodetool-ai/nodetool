@@ -612,13 +612,6 @@ export const useNodeStore = create<NodeStore>()(
 
         set({ nodes: updatedNodes });
         get().setWorkflowDirty(true);
-
-        useNotificationStore.getState().addNotification({
-          type: "node",
-          content: "NODE: " + node.type?.replaceAll("_", " "),
-          alert: true,
-          dismissable: false
-        });
       },
 
       /**
