@@ -107,11 +107,12 @@ const styles = (theme: any) =>
 
       ".MuiDialogContent-root": {
         padding: "24px",
-        minHeight: "400px",
+        minHeight: "400px"
+      },
 
+      ".MuiTreeItem-content": {
         ".Mui-selected": {
           backgroundColor: `${theme.palette.c_hl1} !important`,
-          borderRadius: "4px",
 
           "&:hover": {
             backgroundColor: `${theme.palette.c_hl1} !important`
