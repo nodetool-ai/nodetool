@@ -16,8 +16,8 @@ export const typeToString = (type: TypeMetadata): string => {
     case "dict":
       return type.type_args && type.type_args.length === 2
         ? `{ ${typeToString(type.type_args[0])}: ${typeToString(
-          type.type_args[1]
-        )} }`
+            type.type_args[1]
+          )} }`
         : "dict";
     case "union":
       return type.type_args
@@ -117,9 +117,13 @@ export const isConnectable = (
       return target.type === "enum" && isEnumConnectable(source, target);
     case "list":
       if (target.type === "list") {
+        if (source.type_args === undefined || target.type_args === undefined) {
+          return true;
+        }
+        if (source.type_args.length === 0 || target.type_args.length === 0) {
+          return true;
+        }
         if (
-          source.type_args &&
-          target.type_args &&
           source.type_args.length === 1 &&
           target.type_args.length === 1 &&
           source.type_args[0] !== undefined &&
@@ -133,17 +137,19 @@ export const isConnectable = (
         return false;
       }
     case "dict":
-      if (
-        target.type === "dict" &&
-        source.type_args &&
-        target.type_args &&
-        source.type_args.length === 2 &&
-        target.type_args.length === 2
-      ) {
-        return (
-          isConnectable(source.type_args[0], target.type_args[0]) &&
-          isConnectable(source.type_args[1], target.type_args[1])
-        );
+      if (target.type === "dict") {
+        if (source.type_args === undefined || target.type_args === undefined) {
+          return true;
+        }
+        if (source.type_args.length < 2 || target.type_args.length < 2) {
+          return true;
+        }
+        if (source.type_args.length === 2 && target.type_args.length === 2) {
+          return (
+            isConnectable(source.type_args[0], target.type_args[0]) &&
+            isConnectable(source.type_args[1], target.type_args[1])
+          );
+        }
       } else {
         return false;
       }
