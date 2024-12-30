@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { useCallback, useMemo } from "react";
-import { Typography, Divider, Tooltip } from "@mui/material";
+import { Typography, Divider, Tooltip, IconButton } from "@mui/material";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import { colorForType, descriptionForType } from "../../config/data_types";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
@@ -9,9 +9,11 @@ import { useQuery } from "@tanstack/react-query";
 import { client } from "../../stores/ApiClient";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { titleizeString } from "../../utils/titleizeString";
+import CloseIcon from "@mui/icons-material/Close";
 
 interface NodeInfoProps {
   nodeMetadata: NodeMetadata;
+  onClose?: () => void;
 }
 
 const nodeInfoStyles = (theme: any) =>
@@ -131,7 +133,7 @@ const parseDescription = (description: string) => {
   };
 };
 
-const NodeInfo: React.FC<NodeInfoProps> = ({ nodeMetadata }) => {
+const NodeInfo: React.FC<NodeInfoProps> = ({ nodeMetadata, onClose }) => {
   const description = useMemo(
     () => parseDescription(nodeMetadata?.description || ""),
     [nodeMetadata]
@@ -181,9 +183,31 @@ const NodeInfo: React.FC<NodeInfoProps> = ({ nodeMetadata }) => {
 
   return (
     <div css={nodeInfoStyles}>
-      <Typography className="node-title">
-        {titleizeString(nodeMetadata.title)}
-      </Typography>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center"
+        }}
+      >
+        <Typography className="node-title">
+          {titleizeString(nodeMetadata.title)}
+        </Typography>
+        {onClose && (
+          <IconButton
+            onClick={onClose}
+            size="small"
+            sx={{
+              color: (theme) => theme.palette.c_gray4,
+              "&:hover": {
+                color: (theme) => theme.palette.c_white
+              }
+            }}
+          >
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        )}
+      </div>
       {replicateStatus !== "unknown" && (
         <Typography className={`replicate-status ${replicateStatus}`}>
           {replicateStatus}
