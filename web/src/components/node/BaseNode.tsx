@@ -320,6 +320,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         nodeNamespace={metadata.namespace}
         metadata={metadata}
         backgroundColor={footerColor}
+        nodeType={props.type}
       />
     </Container>
   );

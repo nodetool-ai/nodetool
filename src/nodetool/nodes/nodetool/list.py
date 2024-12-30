@@ -8,6 +8,7 @@ from nodetool.metadata.types import TextRef
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.workflows.base_node import BaseNode
 from typing import Any, Literal
+import pandas as pd
 
 
 class Length(BaseNode):
@@ -57,10 +58,10 @@ class Slice(BaseNode):
     - Extract every nth element
     """
 
-    values: list[Any] = []
-    start: int = 0
-    stop: int = 0
-    step: int = 1
+    values: list[Any] = Field(default_factory=list)
+    start: int = Field(default=0)
+    stop: int = Field(default=0)
+    step: int = Field(default=1)
 
     async def process(self, context: ProcessingContext) -> list[Any]:
         return self.values[self.start : self.stop : self.step]
@@ -77,8 +78,8 @@ class SelectElements(BaseNode):
     - Create a new list from selected indices
     """
 
-    values: list[Any] = []
-    indices: list[int] = []
+    values: list[Any] = Field(default_factory=list)
+    indices: list[int] = Field(default_factory=list)
 
     async def process(self, context: ProcessingContext) -> list[Any]:
         return [self.values[index] for index in self.indices]
@@ -95,8 +96,8 @@ class GetElement(BaseNode):
     - Extract the first or last element
     """
 
-    values: list[Any] = []
-    index: int = 0
+    values: list[Any] = Field(default_factory=list)
+    index: int = Field(default=0)
 
     async def process(self, context: ProcessingContext) -> Any:
         return self.values[self.index]
@@ -235,3 +236,774 @@ class Sort(BaseNode):
 
     async def process(self, context: ProcessingContext) -> list[Any]:
         return sorted(self.values, reverse=(self.order == self.SortOrder.DESCENDING))
+
+
+class FilterDicts(BaseNode):
+    """
+    Filter a list of dictionaries based on a condition.
+    list, filter, query, condition
+
+    Example conditions:
+    age > 30
+    age > 30 and salary < 50000
+    name == 'John Doe'
+    100 <= price <= 200
+    status in ['Active', 'Pending']
+    not (age < 18)
+
+    Use cases:
+    - Filter list of dictionary objects based on criteria
+    - Extract subset of data meeting specific conditions
+    - Clean data by removing unwanted entries
+    """
+
+    values: list[dict] = Field(
+        default_factory=list, description="The list of dictionaries to filter."
+    )
+    condition: str = Field(
+        default="",
+        description="The filtering condition to be applied, e.g. 'age > 30'.",
+    )
+
+    async def process(self, context: ProcessingContext) -> list[dict]:
+        # check for valid list of dicts
+        if not isinstance(self.values, list) or not all(
+            isinstance(item, dict) for item in self.values
+        ):
+            raise ValueError("Input must be a list of dictionaries.")
+
+        # Convert list of dicts to pandas DataFrame for consistent query handling
+        df = pd.DataFrame(self.values)
+        filtered_df = df.query(self.condition)
+        # Convert back to list of dicts
+        return filtered_df.to_dict("records")
+
+
+class FilterStrings(BaseNode):
+    """
+    Filters a list of strings based on various criteria.
+    list, filter, strings, text
+
+    Use cases:
+    - Filter strings by length
+    - Filter strings containing specific text
+    - Filter strings by prefix/suffix
+    - Filter strings using regex patterns
+    """
+
+    class FilterType(str, Enum):
+        CONTAINS = "contains"
+        STARTS_WITH = "starts_with"
+        ENDS_WITH = "ends_with"
+        LENGTH_GREATER = "length_greater"
+        LENGTH_LESS = "length_less"
+        EXACT_LENGTH = "exact_length"
+
+    values: list[str] = Field(
+        default_factory=list, description="The list of strings to filter."
+    )
+    filter_type: FilterType = Field(
+        default=FilterType.CONTAINS, description="The type of filter to apply"
+    )
+    criteria: str = Field(
+        default="",
+        description="The filtering criteria (text to match or length as string)",
+    )
+
+    async def process(self, context: ProcessingContext) -> list[str]:
+        if not isinstance(self.values, list) or not all(
+            isinstance(item, str) for item in self.values
+        ):
+            raise ValueError("Input must be a list of strings")
+
+        if self.filter_type in [
+            self.FilterType.LENGTH_GREATER,
+            self.FilterType.LENGTH_LESS,
+            self.FilterType.EXACT_LENGTH,
+        ]:
+            try:
+                length_criteria = int(self.criteria)
+            except ValueError:
+                raise ValueError("Length criteria must be a valid integer")
+
+        filtered = []
+        for item in self.values:
+            if self.filter_type == self.FilterType.CONTAINS:
+                if self.criteria in item:
+                    filtered.append(item)
+            elif self.filter_type == self.FilterType.STARTS_WITH:
+                if item.startswith(self.criteria):
+                    filtered.append(item)
+            elif self.filter_type == self.FilterType.ENDS_WITH:
+                if item.endswith(self.criteria):
+                    filtered.append(item)
+            elif self.filter_type == self.FilterType.LENGTH_GREATER:
+                if len(item) > length_criteria:
+                    filtered.append(item)
+            elif self.filter_type == self.FilterType.LENGTH_LESS:
+                if len(item) < length_criteria:
+                    filtered.append(item)
+            elif self.filter_type == self.FilterType.EXACT_LENGTH:
+                if len(item) == length_criteria:
+                    filtered.append(item)
+
+        return filtered
+
+
+class FilterNumbers(BaseNode):
+    """
+    Filters a list of numbers based on various numerical conditions.
+    list, filter, numbers, numeric
+
+    Use cases:
+    - Filter numbers by comparison (greater than, less than, equal to)
+    - Filter even/odd numbers
+    - Filter positive/negative numbers
+    """
+
+    class FilterType(str, Enum):
+        GREATER_THAN = "greater_than"
+        LESS_THAN = "less_than"
+        EQUAL_TO = "equal_to"
+        EVEN = "even"
+        ODD = "odd"
+        POSITIVE = "positive"
+        NEGATIVE = "negative"
+
+    values: list[float] = Field(
+        default_factory=list, description="The list of numbers to filter."
+    )
+    filter_type: FilterType = Field(
+        default=FilterType.GREATER_THAN, description="The type of filter to apply"
+    )
+    value: float | None = Field(
+        default=None,
+        description="The comparison value (for greater_than, less_than, equal_to)",
+    )
+
+    async def process(self, context: ProcessingContext) -> list[float]:
+        if not isinstance(self.values, list) or not all(
+            isinstance(item, (int, float)) for item in self.values
+        ):
+            raise ValueError("Input must be a list of numbers")
+
+        filtered = []
+        for item in self.values:
+            if self.filter_type == self.FilterType.GREATER_THAN:
+                if self.value is None:
+                    raise ValueError("Value must be specified for greater_than filter")
+                if item > self.value:
+                    filtered.append(item)
+            elif self.filter_type == self.FilterType.LESS_THAN:
+                if self.value is None:
+                    raise ValueError("Value must be specified for less_than filter")
+                if item < self.value:
+                    filtered.append(item)
+            elif self.filter_type == self.FilterType.EQUAL_TO:
+                if self.value is None:
+                    raise ValueError("Value must be specified for equal_to filter")
+                if item == self.value:
+                    filtered.append(item)
+            elif self.filter_type == self.FilterType.EVEN:
+                if isinstance(item, int) and item % 2 == 0:
+                    filtered.append(item)
+            elif self.filter_type == self.FilterType.ODD:
+                if isinstance(item, int) and item % 2 != 0:
+                    filtered.append(item)
+            elif self.filter_type == self.FilterType.POSITIVE:
+                if item > 0:
+                    filtered.append(item)
+            elif self.filter_type == self.FilterType.NEGATIVE:
+                if item < 0:
+                    filtered.append(item)
+
+        return filtered
+
+
+class FilterNumberRange(BaseNode):
+    """
+    Filters a list of numbers to find values within a specified range.
+    list, filter, numbers, range, between
+
+    Use cases:
+    - Find numbers within a specific range
+    - Filter data points within bounds
+    - Implement range-based filtering
+    """
+
+    values: list[float] = Field(default_factory=list)
+    min_value: float = Field(default=0)
+    max_value: float = Field(default=0)
+    inclusive: bool = Field(default=True)
+
+    async def process(self, context: ProcessingContext) -> list[float]:
+        if not isinstance(self.values, list) or not all(
+            isinstance(item, (int, float)) for item in self.values
+        ):
+            raise ValueError("Input must be a list of numbers")
+
+        if self.inclusive:
+            return [x for x in self.values if self.min_value <= x <= self.max_value]
+        else:
+            return [x for x in self.values if self.min_value < x < self.max_value]
+
+
+class FilterRegex(BaseNode):
+    """
+    Filters a list of strings using regular expressions.
+    list, filter, regex, pattern, text
+
+    Use cases:
+    - Filter strings using complex patterns
+    - Extract strings matching specific formats (emails, dates, etc.)
+    - Advanced text pattern matching
+    """
+
+    values: list[str] = Field(
+        default_factory=list, description="The list of strings to filter."
+    )
+    pattern: str = Field(
+        default="", description="The regular expression pattern to match against."
+    )
+    full_match: bool = Field(
+        default=False,
+        description="Whether to match the entire string or find pattern anywhere in string",
+    )
+
+    async def process(self, context: ProcessingContext) -> list[str]:
+        if not isinstance(self.values, list) or not all(
+            isinstance(item, str) for item in self.values
+        ):
+            raise ValueError("Input must be a list of strings")
+
+        import re
+
+        try:
+            regex = re.compile(self.pattern)
+        except re.error as e:
+            raise ValueError(f"Invalid regular expression pattern: {e}")
+
+        filtered = []
+        for item in self.values:
+            if self.full_match:
+                if regex.fullmatch(item):
+                    filtered.append(item)
+            else:  # partial match
+                if regex.search(item):
+                    filtered.append(item)
+
+        return filtered
+
+
+class FilterNone(BaseNode):
+    """
+    Filters out None values from a list.
+    list, filter, none, null
+
+    Use cases:
+    - Clean data by removing null values
+    - Get only valid entries
+    - Remove placeholder values
+    """
+
+    values: list[Any] = Field(
+        default_factory=list, description="The list to filter None values from."
+    )
+
+    async def process(self, context: ProcessingContext) -> list[Any]:
+        return [x for x in self.values if x is not None]
+
+
+class FilterDictsByValue(BaseNode):
+    """
+    Filters a list of dictionaries based on their values using various criteria.
+    list, filter, dictionary, values
+
+    Use cases:
+    - Filter dictionaries by value content
+    - Filter dictionaries by value type
+    - Filter dictionaries by value patterns
+    """
+
+    class FilterType(str, Enum):
+        CONTAINS = "contains"
+        STARTS_WITH = "starts_with"
+        ENDS_WITH = "ends_with"
+        EQUALS = "equals"
+        TYPE_IS = "type_is"
+        LENGTH_GREATER = "length_greater"
+        LENGTH_LESS = "length_less"
+        EXACT_LENGTH = "exact_length"
+
+    values: list[dict] = Field(
+        default_factory=list, description="The list of dictionaries to filter."
+    )
+    key: str = Field(default="", description="The dictionary key to check")
+    filter_type: FilterType = Field(
+        default=FilterType.CONTAINS, description="The type of filter to apply"
+    )
+    criteria: str = Field(
+        default="",
+        description="The filtering criteria (text to match, type name, or length as string)",
+    )
+
+    async def process(self, context: ProcessingContext) -> list[dict]:
+        if not isinstance(self.values, list) or not all(
+            isinstance(item, dict) for item in self.values
+        ):
+            raise ValueError("Input must be a list of dictionaries")
+
+        if self.filter_type in [
+            self.FilterType.LENGTH_GREATER,
+            self.FilterType.LENGTH_LESS,
+            self.FilterType.EXACT_LENGTH,
+        ]:
+            try:
+                length_criteria = int(self.criteria)
+            except ValueError:
+                raise ValueError("Length criteria must be a valid integer")
+
+        filtered = []
+        for item in self.values:
+            if self.key not in item:
+                continue
+
+            value = item[self.key]
+            value_str = str(value)
+
+            if self.filter_type == self.FilterType.CONTAINS:
+                if self.criteria in value_str:
+                    filtered.append(item)
+            elif self.filter_type == self.FilterType.STARTS_WITH:
+                if value_str.startswith(self.criteria):
+                    filtered.append(item)
+            elif self.filter_type == self.FilterType.ENDS_WITH:
+                if value_str.endswith(self.criteria):
+                    filtered.append(item)
+            elif self.filter_type == self.FilterType.EQUALS:
+                if value_str == self.criteria:
+                    filtered.append(item)
+            elif self.filter_type == self.FilterType.TYPE_IS:
+                if type(value).__name__ == self.criteria:
+                    filtered.append(item)
+            elif self.filter_type == self.FilterType.LENGTH_GREATER:
+                if hasattr(value, "__len__") and len(value) > length_criteria:
+                    filtered.append(item)
+            elif self.filter_type == self.FilterType.LENGTH_LESS:
+                if hasattr(value, "__len__") and len(value) < length_criteria:
+                    filtered.append(item)
+            elif self.filter_type == self.FilterType.EXACT_LENGTH:
+                if hasattr(value, "__len__") and len(value) == length_criteria:
+                    filtered.append(item)
+
+        return filtered
+
+
+class FilterDictsByRange(BaseNode):
+    """
+    Filters a list of dictionaries based on a numeric range for a specified key.
+    list, filter, dictionary, range, between
+
+    Use cases:
+    - Filter records based on numeric ranges (e.g., price range, age range)
+    - Find entries with values within specified bounds
+    - Filter data sets based on numeric criteria
+    """
+
+    values: list[dict] = Field(
+        default_factory=list, description="The list of dictionaries to filter."
+    )
+    key: str = Field(description="The dictionary key to check for the range")
+    min_value: float = Field(description="The minimum value (inclusive) of the range")
+    max_value: float = Field(description="The maximum value (inclusive) of the range")
+    inclusive: bool = Field(
+        default=True,
+        description="If True, includes the min and max values in the results",
+    )
+
+    async def process(self, context: ProcessingContext) -> list[dict]:
+        if not isinstance(self.values, list) or not all(
+            isinstance(item, dict) for item in self.values
+        ):
+            raise ValueError("Input must be a list of dictionaries")
+
+        filtered = []
+        for item in self.values:
+            if self.key not in item:
+                continue
+
+            value = item[self.key]
+            if not isinstance(value, (int, float)):
+                continue
+
+            if self.inclusive:
+                if self.min_value <= value <= self.max_value:
+                    filtered.append(item)
+            else:
+                if self.min_value < value < self.max_value:
+                    filtered.append(item)
+
+        return filtered
+
+
+class FilterDictsByNumber(BaseNode):
+    """
+    Filters a list of dictionaries based on numeric values for a specified key.
+    list, filter, dictionary, numbers, numeric
+
+    Use cases:
+    - Filter dictionaries by numeric comparisons (greater than, less than, equal to)
+    - Filter records with even/odd numeric values
+    - Filter entries with positive/negative numbers
+    """
+
+    class FilterType(str, Enum):
+        GREATER_THAN = "greater_than"
+        LESS_THAN = "less_than"
+        EQUAL_TO = "equal_to"
+        EVEN = "even"
+        ODD = "odd"
+        POSITIVE = "positive"
+        NEGATIVE = "negative"
+
+    values: list[dict] = Field(default_factory=list)
+    key: str = Field(default="")
+    filter_type: FilterType = Field(default=FilterType.GREATER_THAN)
+    value: float | None = Field(default=None)
+
+    async def process(self, context: ProcessingContext) -> list[dict]:
+        if not isinstance(self.values, list) or not all(
+            isinstance(item, dict) for item in self.values
+        ):
+            raise ValueError("Input must be a list of dictionaries")
+
+        filtered = []
+        for item in self.values:
+            if self.key not in item:
+                continue
+
+            num = item[self.key]
+            if not isinstance(num, (int, float)):
+                continue
+
+            if self.filter_type == self.FilterType.GREATER_THAN:
+                if self.value is None:
+                    raise ValueError("Value must be specified for greater_than filter")
+                if num > self.value:
+                    filtered.append(item)
+            elif self.filter_type == self.FilterType.LESS_THAN:
+                if self.value is None:
+                    raise ValueError("Value must be specified for less_than filter")
+                if num < self.value:
+                    filtered.append(item)
+            elif self.filter_type == self.FilterType.EQUAL_TO:
+                if self.value is None:
+                    raise ValueError("Value must be specified for equal_to filter")
+                if num == self.value:
+                    filtered.append(item)
+            elif self.filter_type == self.FilterType.EVEN:
+                if isinstance(num, int) and num % 2 == 0:
+                    filtered.append(item)
+            elif self.filter_type == self.FilterType.ODD:
+                if isinstance(num, int) and num % 2 != 0:
+                    filtered.append(item)
+            elif self.filter_type == self.FilterType.POSITIVE:
+                if num > 0:
+                    filtered.append(item)
+            elif self.filter_type == self.FilterType.NEGATIVE:
+                if num < 0:
+                    filtered.append(item)
+
+        return filtered
+
+
+class FilterDictsRegex(BaseNode):
+    """
+    Filters a list of dictionaries using regular expressions on specified keys.
+    list, filter, regex, dictionary, pattern
+
+    Use cases:
+    - Filter dictionaries with values matching complex patterns
+    - Search for dictionaries containing emails, dates, or specific formats
+    - Advanced text pattern matching across dictionary values
+    """
+
+    values: list[dict] = Field(default_factory=list)
+    key: str = Field(default="")
+    pattern: str = Field(default="")
+    full_match: bool = Field(default=False)
+
+    async def process(self, context: ProcessingContext) -> list[dict]:
+        if not isinstance(self.values, list) or not all(
+            isinstance(item, dict) for item in self.values
+        ):
+            raise ValueError("Input must be a list of dictionaries")
+
+        import re
+
+        try:
+            regex = re.compile(self.pattern)
+        except re.error as e:
+            raise ValueError(f"Invalid regular expression pattern: {e}")
+
+        filtered = []
+        for item in self.values:
+            if self.key not in item:
+                continue
+
+            value = str(item[self.key])
+
+            if self.full_match:
+                if regex.fullmatch(value):
+                    filtered.append(item)
+            else:  # partial match
+                if regex.search(value):
+                    filtered.append(item)
+
+        return filtered
+
+
+class Intersection(BaseNode):
+    """
+    Finds common elements between two lists.
+    list, set, intersection, common
+
+    Use cases:
+    - Find elements present in both lists
+    - Identify shared items between collections
+    - Filter for matching elements
+    """
+
+    list1: list[Any] = Field(default_factory=list)
+    list2: list[Any] = Field(default_factory=list)
+
+    async def process(self, context: ProcessingContext) -> list[Any]:
+        return list(set(self.list1).intersection(set(self.list2)))
+
+
+class Union(BaseNode):
+    """
+    Combines unique elements from two lists.
+    list, set, union, combine
+
+    Use cases:
+    - Merge lists while removing duplicates
+    - Combine collections uniquely
+    - Create comprehensive set of items
+    """
+
+    list1: list[Any] = Field(default_factory=list)
+    list2: list[Any] = Field(default_factory=list)
+
+    async def process(self, context: ProcessingContext) -> list[Any]:
+        return list(set(self.list1).union(set(self.list2)))
+
+
+class Difference(BaseNode):
+    """
+    Finds elements that exist in first list but not in second list.
+    list, set, difference, subtract
+
+    Use cases:
+    - Find unique elements in one list
+    - Remove items present in another list
+    - Identify distinct elements
+    """
+
+    list1: list[Any] = Field(default_factory=list)
+    list2: list[Any] = Field(default_factory=list)
+
+    async def process(self, context: ProcessingContext) -> list[Any]:
+        return list(set(self.list1).difference(set(self.list2)))
+
+
+class Chunk(BaseNode):
+    """
+    Splits a list into smaller chunks of specified size.
+    list, chunk, split, group
+
+    Use cases:
+    - Batch processing
+    - Pagination
+    - Creating sublists of fixed size
+    """
+
+    values: list[Any] = Field(default_factory=list)
+    chunk_size: int = Field(default=1, gt=0)
+
+    async def process(self, context: ProcessingContext) -> list[list[Any]]:
+        return [
+            self.values[i : i + self.chunk_size]
+            for i in range(0, len(self.values), self.chunk_size)
+        ]
+
+
+class Transform(BaseNode):
+    """
+    Applies a transformation to each element in a list.
+    list, transform, map, convert
+
+    Use cases:
+    - Convert types (str to int, etc.)
+    - Apply formatting
+    - Mathematical operations
+    """
+
+    class TransformType(str, Enum):
+        TO_INT = "to_int"
+        TO_FLOAT = "to_float"
+        TO_STRING = "to_string"
+        UPPERCASE = "uppercase"
+        LOWERCASE = "lowercase"
+        STRIP = "strip"
+
+    values: list[Any] = Field(
+        default_factory=list, description="The list of values to transform"
+    )
+    transform_type: TransformType = Field(default=TransformType.TO_STRING)
+
+    async def process(self, context: ProcessingContext) -> list[Any]:
+        try:
+            if self.transform_type == self.TransformType.TO_INT:
+                return [int(x) for x in self.values]
+            elif self.transform_type == self.TransformType.TO_FLOAT:
+                return [float(x) for x in self.values]
+            elif self.transform_type == self.TransformType.TO_STRING:
+                return [str(x) for x in self.values]
+            elif self.transform_type == self.TransformType.UPPERCASE:
+                return [str(x).upper() for x in self.values]
+            elif self.transform_type == self.TransformType.LOWERCASE:
+                return [str(x).lower() for x in self.values]
+            else:  # STRIP
+                return [str(x).strip() for x in self.values]
+        except (ValueError, TypeError) as e:
+            raise ValueError(f"Transform failed: {str(e)}")
+
+
+class Sum(BaseNode):
+    """
+    Calculates the sum of a list of numbers.
+    list, sum, aggregate, math
+
+    Use cases:
+    - Calculate total of numeric values
+    - Add up all elements in a list
+    """
+
+    values: list[float] = Field(default_factory=list)
+
+    async def process(self, context: ProcessingContext) -> float:
+        if not self.values:
+            raise ValueError("Cannot sum empty list")
+        if not all(isinstance(x, (int, float)) for x in self.values):
+            raise ValueError("All values must be numbers")
+        return sum(self.values)
+
+
+class Average(BaseNode):
+    """
+    Calculates the arithmetic mean of a list of numbers.
+    list, average, mean, aggregate, math
+
+    Use cases:
+    - Find average value
+    - Calculate mean of numeric data
+    """
+
+    values: list[float] = Field(default_factory=list)
+
+    async def process(self, context: ProcessingContext) -> float:
+        if not self.values:
+            raise ValueError("Cannot average empty list")
+        if not all(isinstance(x, (int, float)) for x in self.values):
+            raise ValueError("All values must be numbers")
+        return sum(self.values) / len(self.values)
+
+
+class Minimum(BaseNode):
+    """
+    Finds the smallest value in a list of numbers.
+    list, min, minimum, aggregate, math
+
+    Use cases:
+    - Find lowest value
+    - Get smallest number in dataset
+    """
+
+    values: list[float] = Field(default_factory=list)
+
+    async def process(self, context: ProcessingContext) -> float:
+        if not self.values:
+            raise ValueError("Cannot find minimum of empty list")
+        if not all(isinstance(x, (int, float)) for x in self.values):
+            raise ValueError("All values must be numbers")
+        return min(self.values)
+
+
+class Maximum(BaseNode):
+    """
+    Finds the largest value in a list of numbers.
+    list, max, maximum, aggregate, math
+
+    Use cases:
+    - Find highest value
+    - Get largest number in dataset
+    """
+
+    values: list[float] = Field(default_factory=list)
+
+    async def process(self, context: ProcessingContext) -> float:
+        if not self.values:
+            raise ValueError("Cannot find maximum of empty list")
+        if not all(isinstance(x, (int, float)) for x in self.values):
+            raise ValueError("All values must be numbers")
+        return max(self.values)
+
+
+class Product(BaseNode):
+    """
+    Calculates the product of all numbers in a list.
+    list, product, multiply, aggregate, math
+
+    Use cases:
+    - Multiply all numbers together
+    - Calculate compound values
+    """
+
+    values: list[float] = Field(default_factory=list)
+
+    async def process(self, context: ProcessingContext) -> float:
+        if not self.values:
+            raise ValueError("Cannot calculate product of empty list")
+        if not all(isinstance(x, (int, float)) for x in self.values):
+            raise ValueError("All values must be numbers")
+        return reduce(lambda x, y: x * y, self.values)
+
+
+class MapField(BaseNode):
+    """
+    Extracts a specific field from a list of dictionaries.
+    list, map, field, extract, pluck
+
+    Use cases:
+    - Extract specific fields from a list of objects
+    - Transform complex data structures into simple lists
+    - Collect values for a particular key across multiple dictionaries
+    """
+
+    values: list[dict] = Field(
+        default_factory=list, description="The list of dictionaries to extract from"
+    )
+    field: str = Field(default="", description="The dictionary key to extract")
+    default: Any = Field(
+        default=None,
+        description="Default value if field is missing (None if not specified)",
+    )
+
+    async def process(self, context: ProcessingContext) -> list[Any]:
+        if not isinstance(self.values, list) or not all(
+            isinstance(item, dict) for item in self.values
+        ):
+            raise ValueError("Input must be a list of dictionaries")
+
+        return [item.get(self.field, self.default) for item in self.values]
