@@ -1,6 +1,6 @@
 from enum import EnumMeta
 import inspect
-from typing import Any, Union, get_args, get_origin
+from typing import Any, Sequence, Union, get_args, get_origin
 from types import UnionType
 from collections.abc import Generator, AsyncGenerator
 
@@ -82,7 +82,9 @@ def is_list_type(t):
     Returns:
         True if the type is a list, False otherwise.
     """
-    return t is list or get_origin(t) is list
+    return (
+        t is list or get_origin(t) is list or t is Sequence or get_origin(t) is Sequence
+    )
 
 
 def is_tuple_type(t):

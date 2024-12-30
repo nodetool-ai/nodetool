@@ -11,6 +11,7 @@ from nodetool.storage.abstract_node_cache import AbstractNodeCache
 from nodetool.common.settings import (
     SecretsModel,
     SettingsModel,
+    get_system_data_path,
     load_settings,
     get_value,
     get_system_file_path,
@@ -24,7 +25,7 @@ DEFAULT_ENV = {
     "ASSET_TEMP_BUCKET": None,
     "ASSET_TEMP_DOMAIN": None,
     "CHROMA_URL": None,
-    "CHROMA_PATH": str(get_system_file_path("chroma")),
+    "CHROMA_PATH": str(get_system_data_path("chroma")),
     "COMFY_FOLDER": None,
     "MEMCACHE_HOST": None,
     "MEMCACHE_PORT": None,

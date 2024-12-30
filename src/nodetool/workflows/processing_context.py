@@ -63,6 +63,7 @@ from nodetool.common.environment import Environment
 
 from io import BytesIO
 from typing import IO, Any, Literal, Union
+from chromadb.api import ClientAPI
 from pickle import dumps, loads
 from chromadb.config import Settings
 
@@ -120,6 +121,7 @@ class ProcessingContext:
         endpoint_url: URL | None = None,
         encode_assets_as_base64: bool = False,
         upload_assets_to_s3: bool = False,
+        chroma_client: ClientAPI | None = None,
     ):
         self.user_id = user_id
         self.auth_token = auth_token
@@ -142,7 +144,7 @@ class ProcessingContext:
         assert self.auth_token is not None, "Auth token is required"
         self.encode_assets_as_base64 = encode_assets_as_base64
         self.upload_assets_to_s3 = upload_assets_to_s3
-
+        self.chroma_client = chroma_client
         env = Environment.get_environment()
         self.environment.update(env)
 
@@ -1511,6 +1513,9 @@ class ProcessingContext:
         import chromadb
         from chromadb.config import DEFAULT_DATABASE, DEFAULT_TENANT
 
+        if self.chroma_client is not None:
+            return self.chroma_client
+
         url = Environment.get_chroma_url()
         token = Environment.get_chroma_token()
 
@@ -1534,7 +1539,7 @@ class ProcessingContext:
                 log.info(f"Creating database {DEFAULT_DATABASE}")
                 admin.create_database(DEFAULT_DATABASE, tenant)
 
-            return chromadb.HttpClient(
+            self.chroma_client = chromadb.HttpClient(
                 host=parsed_url.hostname,
                 port=parsed_url.port,
                 settings=Settings(
@@ -1545,11 +1550,13 @@ class ProcessingContext:
                 database=DEFAULT_DATABASE,
             )
         else:
-            return chromadb.PersistentClient(
+            self.chroma_client = chromadb.PersistentClient(
                 path=Environment.get_chroma_path(),
                 tenant=DEFAULT_TENANT,
                 database=DEFAULT_DATABASE,
             )
+
+        return self.chroma_client
 
     async def is_huggingface_model_cached(self, repo_id: str):
         cache_path = try_to_load_from_cache(repo_id, "config.json")
