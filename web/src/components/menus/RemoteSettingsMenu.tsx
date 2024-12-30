@@ -75,7 +75,8 @@ const RemoteSettings = ({
     KLING_SECRET_KEY: "",
     LUMAAI_API_KEY: "",
     AIME_USER: "",
-    AIME_API_KEY: ""
+    AIME_API_KEY: "",
+    GOOGLE_APP_PASSWORD: ""
   });
 
   const updateSettingsMutation = useMutation({
@@ -99,7 +100,8 @@ const RemoteSettings = ({
         KLING_SECRET_KEY: data.secrets.KLING_SECRET_KEY || "",
         LUMAAI_API_KEY: data.secrets.LUMAAI_API_KEY || "",
         AIME_USER: data.secrets.AIME_USER || "",
-        AIME_API_KEY: data.secrets.AIME_API_KEY || ""
+        AIME_API_KEY: data.secrets.AIME_API_KEY || "",
+        GOOGLE_APP_PASSWORD: data.secrets.GOOGLE_APP_PASSWORD || ""
       });
     }
   }, [isSuccess, data]);
@@ -359,6 +361,43 @@ const RemoteSettings = ({
                 &rarr; AIME API
               </a>
             </Typography>
+          </div>
+
+          <div className="settings-item">
+            <TextField
+              autoComplete="off"
+              id="google-app-password-input"
+              label="Google App Password"
+              value={settings.GOOGLE_APP_PASSWORD}
+              onChange={(e) =>
+                handleChange("GOOGLE_APP_PASSWORD", e.target.value)
+              }
+              variant="standard"
+            />
+            <div className="text-and-button">
+              <Typography className="description">
+                To use Gmail integration, you need to generate an App Password.
+                To get Gmail credentials:
+                <br />
+                1. Go to your Google Account settings
+                <br />
+                2. Navigate to Security &gt; 2-Step Verification
+                <br />
+                3. Scroll to the bottom and click on "App passwords"
+                <br />
+                4. Select "Mail" and your device
+                <br />
+                5. Click "Generate" and use the 16-character password
+                <br />
+                <a
+                  href="https://myaccount.google.com/security"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  &rarr; Google Account Security Settings
+                </a>
+              </Typography>
+            </div>
           </div>
 
           <div className="secrets">
