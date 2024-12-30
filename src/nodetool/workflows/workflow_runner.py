@@ -498,12 +498,8 @@ class WorkflowRunner:
 
                 if requires_gpu and self.device != "cpu":
                     # Acquire the global GPU lock
-                    log.debug(f"Node {node.get_title()} ({node._id}) requires GPU")
                     await acquire_gpu_lock(node, context)
                     try:
-                        log.info(
-                            f"Node {node.get_title()} ({node._id}) starts processing with GPU"
-                        )
                         # Move node model to GPU
                         await node.move_to_device(self.device)
                         self.log_vram_usage(
@@ -524,14 +520,8 @@ class WorkflowRunner:
                         finally:
                             # Release the GPU lock
                             release_gpu_lock()
-                            log.debug(
-                                f"Node {node.get_title()} ({node._id}) released GPU lock"
-                            )
                 else:
                     # Process the node without GPU
-                    log.info(
-                        f"Node {node.get_title()} ({node._id}) processing without GPU"
-                    )
                     result = await node.process(context)
                     result = await node.convert_output(context, result)
 

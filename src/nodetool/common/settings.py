@@ -60,6 +60,25 @@ def get_system_file_path(filename: str) -> Path:
         return Path("data") / filename
 
 
+def get_system_data_path(filename: str) -> Path:
+    """
+    Returns the path to the data folder for the current OS.
+    """
+    import platform
+
+    os_name = platform.system()
+    if os_name == "Linux" or os_name == "Darwin":
+        return Path.home() / ".local" / "share" / "nodetool" / filename
+    elif os_name == "Windows":
+        appdata = os.getenv("LOCALAPPDATA")
+        if appdata is not None:
+            return Path(appdata) / "nodetool" / filename
+        else:
+            return Path("data") / filename
+    else:
+        return Path("data") / filename
+
+
 def load_settings() -> Tuple[SettingsModel, SecretsModel]:
     """
     Load the settings from the settings file and the secrets from the secrets file.
