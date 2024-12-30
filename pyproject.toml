@@ -40,7 +40,7 @@ chromadb = "0.5.23"
 click = "8.1.7"
 cryptography = "*"
 datasets = "3.1.0"
-docx = "0.2.4"
+python-docx = "1.1.2"
 diffusers = { extras = ["torch"], version = "0.31.0" }
 einops = "0.8.0"
 fastapi = "0.115.5"
