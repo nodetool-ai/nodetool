@@ -217,3 +217,34 @@ class ReduceDictionaries(BaseNode):
                 result[key] = value
 
         return result
+
+
+class MakeDictionary(BaseNode):
+    """
+    Creates a simple dictionary with up to three key-value pairs.
+    dictionary, create, simple
+
+    Use cases:
+    - Create configuration entries
+    - Initialize simple data structures
+    - Build basic key-value mappings
+    """
+
+    _layout = "small"
+
+    key1: str = Field(default="", description="First key")
+    value1: Any = Field(default=None, description="First value")
+    key2: str = Field(default="", description="Second key (optional)")
+    value2: Any = Field(default=None, description="Second value (optional)")
+    key3: str = Field(default="", description="Third key (optional)")
+    value3: Any = Field(default=None, description="Third value (optional)")
+
+    async def process(self, context: ProcessingContext) -> dict[str, Any]:
+        result = {}
+        if self.key1:
+            result[self.key1] = self.value1
+        if self.key2:
+            result[self.key2] = self.value2
+        if self.key3:
+            result[self.key3] = self.value3
+        return result
