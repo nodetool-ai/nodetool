@@ -1,0 +1,266 @@
+{
+  "id": "16bb9572c57411efa9aa000050502141",
+  "access": "public",
+  "created_at": "2024-12-30T23:55:14.710871",
+  "updated_at": "2024-12-30T23:55:14.711021",
+  "name": "Categorize Mails",
+  "description": "",
+  "tags": null,
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "12",
+        "parent_id": null,
+        "type": "nodetool.group.Loop",
+        "data": {},
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 307,
+            "y": 331
+          },
+          "zIndex": -10,
+          "width": 1056,
+          "height": 587,
+          "selectable": false
+        }
+      },
+      {
+        "id": "11",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "list_output_2024-12-29"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 307,
+            "y": 50
+          },
+          "zIndex": 0,
+          "width": 346,
+          "height": 231,
+          "selectable": true
+        }
+      },
+      {
+        "id": "13",
+        "parent_id": "12",
+        "type": "nodetool.input.GroupInput",
+        "data": {},
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 50,
+            "y": 224
+          },
+          "zIndex": 0,
+          "width": 117,
+          "selectable": true
+        }
+      },
+      {
+        "id": "14",
+        "parent_id": "12",
+        "type": "nodetool.output.GroupOutput",
+        "data": {},
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 681,
+            "y": 159
+          },
+          "zIndex": 0,
+          "width": 127,
+          "selectable": true
+        }
+      },
+      {
+        "id": "16",
+        "parent_id": "12",
+        "type": "ollama.text.Ollama",
+        "data": {
+          "model": {
+            "type": "llama_model",
+            "repo_id": "gemma2:2b"
+          },
+          "system_prompt": "You categorize emails from subject and sender, respond with CATEGORY ONLY",
+          "context_window": 512,
+          "image": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null
+          },
+          "temperature": 0,
+          "top_k": 50,
+          "top_p": 0.95,
+          "keep_alive": 0
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 424,
+            "y": 50
+          },
+          "zIndex": 0,
+          "width": 197,
+          "selectable": true
+        }
+      },
+      {
+        "id": "17",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "any_output_2024-12-29"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1393,
+            "y": 388
+          },
+          "zIndex": 0,
+          "width": 413,
+          "height": 402,
+          "selectable": true
+        }
+      },
+      {
+        "id": "18",
+        "parent_id": "12",
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "str_output_2024-12-29"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 681,
+            "y": 249
+          },
+          "zIndex": 0,
+          "width": 325,
+          "height": 288,
+          "selectable": true
+        }
+      },
+      {
+        "id": "19",
+        "parent_id": "12",
+        "type": "nodetool.text.Template",
+        "data": {
+          "string": "Categorize following subject: {subject} - {from}. RESPOND WITH CATEGORY ONLY"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 197,
+            "y": 177
+          },
+          "zIndex": 0,
+          "width": 197,
+          "selectable": true
+        }
+      },
+      {
+        "id": "20",
+        "parent_id": null,
+        "type": "google.mail.GmailSearch",
+        "data": {
+          "email_address": "matti.georgi@gmail.com",
+          "search_query": "",
+          "max_results": 50
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 50,
+            "y": 107
+          },
+          "zIndex": 0,
+          "width": 197,
+          "selectable": true
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "2c0fe712-0fab-4de8-8c06-8204daf036cd",
+        "source": "13",
+        "sourceHandle": "output",
+        "target": "19",
+        "targetHandle": "values",
+        "ui_properties": {
+          "className": "any"
+        }
+      },
+      {
+        "id": "58334e63-282a-4f5d-91b5-beb9b1d5fc8d",
+        "source": "16",
+        "sourceHandle": "output",
+        "target": "14",
+        "targetHandle": "input",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "58336",
+        "source": "16",
+        "sourceHandle": "output",
+        "target": "18",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "7f2e2d52-0247-481d-9ae1-1be572d446b0",
+        "source": "20",
+        "sourceHandle": "output",
+        "target": "11",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "list"
+        }
+      },
+      {
+        "id": "08465db1-1dfd-4199-bf47-14c0a6b3610c",
+        "source": "20",
+        "sourceHandle": "output",
+        "target": "12",
+        "targetHandle": "input",
+        "ui_properties": {
+          "className": "list"
+        }
+      },
+      {
+        "id": "4131d90f-2b14-444f-9dee-756be6b55ae9",
+        "source": "19",
+        "sourceHandle": "output",
+        "target": "16",
+        "targetHandle": "prompt",
+        "ui_properties": {
+          "className": "union"
+        }
+      },
+      {
+        "id": "58335",
+        "source": "12",
+        "sourceHandle": "output",
+        "target": "17",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "any"
+        }
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null
+}
