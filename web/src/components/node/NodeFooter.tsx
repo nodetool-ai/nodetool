@@ -6,6 +6,7 @@ import { NodeMetadata } from "../../stores/ApiTypes";
 import { memo, useCallback } from "react";
 import ThemeNodes from "../themes/ThemeNodes";
 import { isEqual } from "lodash";
+import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 
 const PrettyNamespace = memo<{ namespace: string }>(({ namespace }) => {
   const parts = namespace.split(".");
@@ -37,6 +38,7 @@ export interface NodeFooterProps {
   nodeNamespace: string;
   metadata: NodeMetadata;
   backgroundColor?: string;
+  nodeType: string;
 }
 export const footerStyles = (theme: any) =>
   css({
@@ -66,24 +68,43 @@ export const footerStyles = (theme: any) =>
     },
     ".namespace-button:hover .pretty-namespace span": {
       color: theme.palette.c_hl1
+    },
+    ".help-button": {
+      height: "24px",
+      display: "block",
+      padding: "0",
+      margin: "0",
+      color: theme.palette.c_gray6,
+      backgroundColor: "transparent",
+      border: "none",
+      cursor: "pointer",
+      "&:hover": {
+        color: theme.palette.c_white
+      }
+    },
+    ".help-button svg": {
+      scale: "0.5"
     }
   });
 
 export const NodeFooter: React.FC<NodeFooterProps> = ({
   nodeNamespace,
   metadata,
-  backgroundColor
+  backgroundColor,
+  nodeType
 }) => {
   const {
     openNodeMenu,
     setHighlightedNamespaces,
     setSelectedPath,
-    setHoveredNode
+    setHoveredNode,
+    openDocumentation
   } = useNodeMenuStore((state) => ({
     openNodeMenu: state.openNodeMenu,
     setHighlightedNamespaces: state.setHighlightedNamespaces,
     setSelectedPath: state.setSelectedPath,
-    setHoveredNode: state.setHoveredNode
+    setHoveredNode: state.setHoveredNode,
+    openDocumentation: state.openDocumentation
   }));
 
   const handleOpenNodeMenu = useCallback(() => {
@@ -101,15 +122,35 @@ export const NodeFooter: React.FC<NodeFooterProps> = ({
     setHighlightedNamespaces
   ]);
 
+  const handleOpenDocumentation = useCallback(
+    (event: React.MouseEvent) => {
+      console.log("openDocumentation", nodeType);
+      openDocumentation(nodeType, {
+        x: event.clientX,
+        y: event.clientY
+      });
+    },
+    [nodeType, openDocumentation]
+  );
+
   return (
     <div className="node-footer" css={footerStyles} style={{ backgroundColor }}>
       <Tooltip title="Click to show in NodeMenu" placement="bottom-start">
         <Button
-          tabIndex={-1}
+          tabIndex={1}
           className="namespace-button"
           onClick={handleOpenNodeMenu}
         >
           <PrettyNamespace namespace={nodeNamespace} />
+        </Button>
+      </Tooltip>
+      <Tooltip title="Click to show documentation" placement="bottom-start">
+        <Button
+          className="help-button"
+          tabIndex={2}
+          onClick={handleOpenDocumentation}
+        >
+          <HelpOutlineIcon />
         </Button>
       </Tooltip>
     </div>
