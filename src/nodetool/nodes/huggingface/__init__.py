@@ -10,6 +10,7 @@ import nodetool.nodes.huggingface.image_segmentation
 import nodetool.nodes.huggingface.lora
 import nodetool.nodes.huggingface.multimodal
 import nodetool.nodes.huggingface.object_detection
+import nodetool.nodes.huggingface.ranking
 import nodetool.nodes.huggingface.sentence_similarity
 import nodetool.nodes.huggingface.summarization
 import nodetool.nodes.huggingface.text_to_audio

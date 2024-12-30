@@ -6,7 +6,7 @@ from typing import Any
 import pandas as pd
 from pydantic import Field
 from nodetool.workflows.processing_context import ProcessingContext
-from nodetool.metadata.types import DataframeRef, FolderRef
+from nodetool.metadata.types import DataframeRef, FolderRef, TextChunk
 from nodetool.metadata.types import TextRef
 from nodetool.workflows.base_node import BaseNode
 import json
@@ -17,6 +17,8 @@ from pydantic import Field
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.metadata.types import TextRef
 from nodetool.workflows.base_node import BaseNode
+from dataclasses import dataclass
+from typing import Optional
 
 
 async def to_string(context: ProcessingContext, text: TextRef | str) -> str:
@@ -362,3 +364,234 @@ class ExtractJSON(BaseNode):
             return [match.value for match in jsonpath_expr.find(parsed_json)]
         else:
             return jsonpath_expr.find(parsed_json)[0].value
+
+
+class SentenceSplitter(BaseNode):
+    """
+    Splits text into sentences with source tracking metadata.
+    text, split, sentences
+
+    Use cases:
+    - Breaking down documents into traceable sentence-level chunks
+    - Preparing text for sentence-based analysis with source tracking
+    - Creating manageable units for language model processing
+    """
+
+    text: str | TextRef = Field(title="Text", default="")
+    min_length: int = Field(title="Minimum Length", default=10)
+    source_id: str = Field(title="Source ID", default="")
+
+    async def process(self, context: ProcessingContext) -> list[TextChunk]:
+        text = await to_string(context, self.text)
+        current_pos = 0
+        chunks = []
+
+        # Simple sentence splitting using common punctuation
+        for match in re.finditer(r"[^.!?]+[.!?]+", text):
+            sentence = match.group().strip()
+            if len(sentence) >= self.min_length:
+                start_idx = match.start()
+                end_idx = match.end()
+                chunks.append(
+                    TextChunk(
+                        text=sentence,
+                        source_id=self.source_id,
+                        start_idx=start_idx,
+                        end_idx=end_idx,
+                        chunk_type="sentence",
+                    )
+                )
+
+        return chunks
+
+
+class ParagraphSplitter(BaseNode):
+    """
+    Splits text into paragraphs with source tracking metadata.
+    text, split, paragraphs
+
+    Use cases:
+    - Dividing documents into traceable paragraph chunks
+    - Processing text by natural document sections with source tracking
+    - Maintaining context in text analysis
+    """
+
+    text: str | TextRef = Field(title="Text", default="")
+    min_length: int = Field(title="Minimum Length", default=50)
+    source_id: str = Field(title="Source ID", default="")
+
+    async def process(self, context: ProcessingContext) -> list[TextChunk]:
+        text = await to_string(context, self.text)
+        chunks = []
+        current_pos = 0
+
+        paragraphs = text.split("\n\n")
+        for p in paragraphs:
+            p = p.strip()
+            if len(p) >= self.min_length:
+                # Find the actual position in original text
+                start_idx = text.find(p, current_pos)
+                end_idx = start_idx + len(p)
+                current_pos = end_idx
+
+                chunks.append(
+                    TextChunk(
+                        text=p,
+                        source_id=self.source_id,
+                        start_idx=start_idx,
+                        end_idx=end_idx,
+                        chunk_type="paragraph",
+                    )
+                )
+
+        return chunks
+
+
+class TokenSplitter(BaseNode):
+    """
+    Splits text into token-based chunks with source tracking metadata.
+    text, split, tokens
+
+    Use cases:
+    - Creating fixed-size chunks for language model input with source tracking
+    - Maintaining context with overlapping text segments
+    - Optimizing text processing for specific token limits
+    """
+
+    text: str | TextRef = Field(title="Text", default="")
+    chunk_size: int = Field(title="Chunk Size", default=500)
+    overlap: int = Field(title="Overlap Size", default=50)
+    source_id: str = Field(title="Source ID", default="")
+
+    async def process(self, context: ProcessingContext) -> list[TextChunk]:
+        text = await to_string(context, self.text)
+        chunks = []
+        words = text.split()
+
+        for i in range(0, len(words), self.chunk_size - self.overlap):
+            chunk_words = words[i : i + self.chunk_size]
+            chunk_text = " ".join(chunk_words)
+
+            # Find the actual position in original text
+            start_idx = text.find(chunk_text)
+            end_idx = start_idx + len(chunk_text)
+
+            chunks.append(
+                TextChunk(
+                    text=chunk_text,
+                    source_id=self.source_id,
+                    start_idx=start_idx,
+                    end_idx=end_idx,
+                    chunk_type="token",
+                )
+            )
+
+        return chunks
+
+
+class RegexMatch(BaseNode):
+    """
+    Find all matches of a regex pattern in text.
+    regex, search, pattern, match
+
+    Use cases:
+    - Extract specific patterns from text
+    - Validate text against patterns
+    - Find all occurrences of a pattern
+    """
+
+    text: str = Field(default="", description="Text to search in")
+    pattern: str = Field(default="", description="Regular expression pattern")
+    group: Optional[int] = Field(
+        default=None, description="Capture group to extract (0 for full match)"
+    )
+
+    async def process(self, context: ProcessingContext) -> list[str]:
+        if self.group is None:
+            return re.findall(self.pattern, self.text)
+        matches = re.finditer(self.pattern, self.text)
+        return [match.group(self.group) for match in matches]
+
+
+class RegexReplace(BaseNode):
+    """
+    Replace text matching a regex pattern.
+    regex, replace, substitute
+
+    Use cases:
+    - Clean or standardize text
+    - Remove unwanted patterns
+    - Transform text formats
+    """
+
+    text: str = Field(default="", description="Text to perform replacements on")
+    pattern: str = Field(default="", description="Regular expression pattern")
+    replacement: str = Field(default="", description="Replacement text")
+    count: int = Field(default=0, description="Maximum replacements (0 for unlimited)")
+
+    async def process(self, context: ProcessingContext) -> str:
+        return re.sub(self.pattern, self.replacement, self.text, count=self.count)
+
+
+class RegexSplit(BaseNode):
+    """
+    Split text using a regex pattern as delimiter.
+    regex, split, tokenize
+
+    Use cases:
+    - Parse structured text
+    - Extract fields from formatted strings
+    - Tokenize text
+    """
+
+    text: str = Field(default="", description="Text to split")
+    pattern: str = Field(
+        default="", description="Regular expression pattern to split on"
+    )
+    maxsplit: int = Field(
+        default=0, description="Maximum number of splits (0 for unlimited)"
+    )
+
+    async def process(self, context: ProcessingContext) -> list[str]:
+        return re.split(self.pattern, self.text, maxsplit=self.maxsplit)
+
+
+class RegexValidate(BaseNode):
+    """
+    Check if text matches a regex pattern.
+    regex, validate, check
+
+    Use cases:
+    - Validate input formats (email, phone, etc)
+    - Check text structure
+    - Filter text based on patterns
+    """
+
+    text: str = Field(default="", description="Text to validate")
+    pattern: str = Field(default="", description="Regular expression pattern")
+
+    async def process(self, context: ProcessingContext) -> bool:
+        return bool(re.match(self.pattern, self.text))
+
+
+class RegexExtract(BaseNode):
+    """
+    Extract named groups from text using regex.
+    regex, extract, groups
+
+    Use cases:
+    - Parse structured data
+    - Extract semantic components
+    - Named field extraction
+    """
+
+    text: str = Field(default="", description="Text to extract from")
+    pattern: str = Field(
+        default="", description="Regular expression pattern with named groups"
+    )
+
+    async def process(self, context: ProcessingContext) -> dict:
+        match = re.search(self.pattern, self.text)
+        if match:
+            return match.groupdict()
+        return {}
