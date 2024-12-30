@@ -27,12 +27,14 @@ class FileExists(BaseNode):
     - Implement conditional logic based on file existence
     """
 
-    path: str = Field(default="", description="Path to check for existence")
+    path: FilePath = Field(
+        default=FilePath(), description="Path to check for existence"
+    )
 
     async def process(self, context: ProcessingContext):
-        if not self.path or not self.path.strip():
+        if not self.path or not self.path.path:
             raise ValueError("'path' field cannot be empty")
-        expanded_path = os.path.expanduser(self.path)
+        expanded_path = os.path.expanduser(self.path.path)
         return os.path.exists(expanded_path)
 
 
@@ -46,21 +48,25 @@ class ListFiles(BaseNode):
     - Filter files by extension or pattern
     """
 
-    directory: str = Field(default="~", description="Directory to scan")
+    directory: FilePath = Field(
+        default=FilePath(path="~"), description="Directory to scan"
+    )
     pattern: str = Field(default="*", description="File pattern to match (e.g. *.txt)")
     recursive: bool = Field(default=False, description="Search subdirectories")
 
-    async def process(self, context: ProcessingContext) -> list[str]:
-        if not self.directory.strip():
+    async def process(self, context: ProcessingContext) -> list[FilePath]:
+        if not self.directory.path:
             raise ValueError("directory cannot be empty")
-        expanded_directory = os.path.expanduser(self.directory)
+        expanded_directory = os.path.expanduser(self.directory.path)
 
         if self.recursive:
             pattern = os.path.join(expanded_directory, "**", self.pattern)
-            return glob.glob(pattern, recursive=True)
+            paths = glob.glob(pattern, recursive=True)
         else:
             pattern = os.path.join(expanded_directory, self.pattern)
-            return glob.glob(pattern)
+            paths = glob.glob(pattern)
+
+        return [FilePath(path=p) for p in paths]
 
 
 class CopyFile(BaseNode):
@@ -74,16 +80,18 @@ class CopyFile(BaseNode):
     - Copy files to new locations
     """
 
-    source_path: str = Field(default="", description="Source file path")
-    destination_path: str = Field(default="", description="Destination file path")
+    source_path: FilePath = Field(default=FilePath(), description="Source file path")
+    destination_path: FilePath = Field(
+        default=FilePath(), description="Destination file path"
+    )
 
     async def process(self, context: ProcessingContext):
-        if not self.source_path or not self.source_path.strip():
+        if not self.source_path or not self.source_path.path:
             raise ValueError("'source_path' field cannot be empty")
-        if not self.destination_path or not self.destination_path.strip():
+        if not self.destination_path or not self.destination_path.path:
             raise ValueError("'destination_path' field cannot be empty")
-        expanded_source = os.path.expanduser(self.source_path)
-        expanded_dest = os.path.expanduser(self.destination_path)
+        expanded_source = os.path.expanduser(self.source_path.path)
+        expanded_dest = os.path.expanduser(self.destination_path.path)
 
         shutil.copy2(expanded_source, expanded_dest)
 
@@ -99,12 +107,14 @@ class MoveFile(BaseNode):
     - Relocate completed files
     """
 
-    source_path: str = Field(default="", description="Source file path")
-    destination_path: str = Field(default="", description="Destination file path")
+    source_path: FilePath = Field(default=FilePath(), description="Source file path")
+    destination_path: FilePath = Field(
+        default=FilePath(), description="Destination file path"
+    )
 
     async def process(self, context: ProcessingContext):
-        expanded_source = os.path.expanduser(self.source_path)
-        expanded_dest = os.path.expanduser(self.destination_path)
+        expanded_source = os.path.expanduser(self.source_path.path)
+        expanded_dest = os.path.expanduser(self.destination_path.path)
 
         shutil.move(expanded_source, expanded_dest)
 
@@ -119,13 +129,13 @@ class CreateDirectory(BaseNode):
     - Create output directories for processed files
     """
 
-    path: str = Field(default="", description="Directory path to create")
+    path: FilePath = Field(default=FilePath(), description="Directory path to create")
     exist_ok: bool = Field(
         default=True, description="Don't error if directory already exists"
     )
 
     async def process(self, context: ProcessingContext):
-        expanded_path = os.path.expanduser(self.path)
+        expanded_path = os.path.expanduser(self.path.path)
         os.makedirs(expanded_path, exist_ok=self.exist_ok)
 
 
@@ -140,10 +150,10 @@ class GetFileInfo(BaseNode):
     - Generate file reports
     """
 
-    path: str = Field(default="", description="Path to file")
+    path: FilePath = Field(default=FilePath(), description="Path to file")
 
     async def process(self, context: ProcessingContext) -> dict:
-        expanded_path = os.path.expanduser(self.path)
+        expanded_path = os.path.expanduser(self.path.path)
         stats = os.stat(expanded_path)
         return {
             "size": stats.st_size,
@@ -605,8 +615,8 @@ class JoinPaths(BaseNode):
         default_factory=list, description="Path components to join"
     )
 
-    async def process(self, context: ProcessingContext) -> str:
-        return os.path.join(*self.paths)
+    async def process(self, context: ProcessingContext) -> FilePath:
+        return FilePath(path=os.path.join(*self.paths))
 
 
 class NormalizePath(BaseNode):
@@ -621,8 +631,8 @@ class NormalizePath(BaseNode):
 
     path: str = Field(default="", description="Path to normalize")
 
-    async def process(self, context: ProcessingContext) -> str:
-        return os.path.normpath(self.path)
+    async def process(self, context: ProcessingContext) -> FilePath:
+        return FilePath(path=os.path.normpath(self.path))
 
 
 class GetPathInfo(BaseNode):
@@ -663,9 +673,9 @@ class AbsolutePath(BaseNode):
 
     path: str = Field(default="", description="Path to convert to absolute")
 
-    async def process(self, context: ProcessingContext) -> str:
+    async def process(self, context: ProcessingContext) -> FilePath:
         expanded_path = os.path.expanduser(self.path)
-        return os.path.abspath(expanded_path)
+        return FilePath(path=os.path.abspath(expanded_path))
 
 
 class SplitPath(BaseNode):
@@ -724,7 +734,28 @@ class RelativePath(BaseNode):
         default=".", description="Start path for relative conversion"
     )
 
-    async def process(self, context: ProcessingContext) -> str:
+    async def process(self, context: ProcessingContext) -> FilePath:
         expanded_target = os.path.expanduser(self.target_path)
         expanded_start = os.path.expanduser(self.start_path)
-        return os.path.relpath(expanded_target, expanded_start)
+        return FilePath(path=os.path.relpath(expanded_target, expanded_start))
+
+
+class PathToString(BaseNode):
+    """
+    Convert a FilePath object to a string.
+    files, path, string, convert
+
+    Use cases:
+    - Get raw string path from FilePath object
+    - Convert FilePath for string operations
+    - Extract path string for external use
+    """
+
+    file_path: FilePath = Field(
+        default=FilePath(), description="FilePath object to convert to string"
+    )
+
+    async def process(self, context: ProcessingContext) -> str:
+        if not self.file_path:
+            raise ValueError("file_path cannot be empty")
+        return self.file_path.path

@@ -59,9 +59,12 @@ async def index(
     user: User = Depends(current_user),
     cursor: Optional[str] = None,
     limit: int = 100,
+    columns: Optional[str] = None,
 ) -> WorkflowList:
+    column_list = columns.split(",") if columns else None
+
     workflows, cursor = WorkflowModel.paginate(
-        user_id=user.id, limit=limit, start_key=cursor
+        user_id=user.id, limit=limit, start_key=cursor, columns=column_list
     )
     return WorkflowList(
         workflows=[Workflow.from_model(workflow) for workflow in workflows], next=cursor
@@ -69,8 +72,16 @@ async def index(
 
 
 @router.get("/public")
-async def public(limit: int = 100, cursor: Optional[str] = None) -> WorkflowList:
-    workflows, cursor = WorkflowModel.paginate(limit=limit, start_key=cursor)
+async def public(
+    limit: int = 100,
+    cursor: Optional[str] = None,
+    columns: Optional[str] = None,
+) -> WorkflowList:
+    column_list = columns.split(",") if columns else None
+
+    workflows, cursor = WorkflowModel.paginate(
+        limit=limit, start_key=cursor, columns=column_list
+    )
     return WorkflowList(
         workflows=[Workflow.from_model(workflow) for workflow in workflows], next=cursor
     )
@@ -88,10 +99,15 @@ async def get_public_workflow(id: str) -> Workflow:
 
 @router.get("/user/{user_id}")
 async def user_workflows(
-    user_id: str, limit: int = 100, cursor: Optional[str] = None
+    user_id: str,
+    limit: int = 100,
+    cursor: Optional[str] = None,
+    columns: Optional[str] = None,
 ) -> WorkflowList:
+    column_list = columns.split(",") if columns else None
+
     workflows, cursor = WorkflowModel.paginate(
-        user_id=user_id, limit=limit, start_key=cursor
+        user_id=user_id, limit=limit, start_key=cursor, columns=column_list
     )
     workflows = [Workflow.from_model(workflow) for workflow in workflows]
     return WorkflowList(workflows=workflows, next=cursor)
