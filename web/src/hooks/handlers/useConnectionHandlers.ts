@@ -102,8 +102,16 @@ export default function useConnectionHandlers() {
         if (connectDirection === "source") {
           const possibleInputs = nodeMetadata.properties.filter((prop) =>
             isConnectable(
-              { type: connectType?.type || "any" },
-              { type: prop.type.type as TypeName }
+              {
+                type: connectType?.type || "any",
+                optional: false,
+                type_args: []
+              },
+              {
+                type: prop.type.type as TypeName,
+                optional: false,
+                type_args: []
+              }
             )
           );
 
@@ -145,8 +153,16 @@ export default function useConnectionHandlers() {
         } else if (connectDirection === "target") {
           const possibleOutputs = nodeMetadata.outputs.filter((prop) =>
             isConnectable(
-              { type: connectType?.type || "any" },
-              { type: prop.type.type as TypeName }
+              {
+                type: connectType?.type || "any",
+                optional: false,
+                type_args: []
+              },
+              {
+                type: prop.type.type as TypeName,
+                optional: false,
+                type_args: []
+              }
             )
           );
           if (possibleOutputs.length > 0) {
