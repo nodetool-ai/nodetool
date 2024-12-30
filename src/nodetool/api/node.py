@@ -11,6 +11,8 @@ from nodetool.metadata.types import (
     AssetRef,
     HuggingFaceModel,
     NodeRef,
+    Email,
+    FilePath,
     SVGElement,
     WorkflowRef,
     AudioRef,
@@ -79,6 +81,7 @@ UnionType = (
     AssetRef
     | AudioRef
     | DataframeRef
+    | FilePath
     | FolderRef
     | ImageRef
     | Tensor

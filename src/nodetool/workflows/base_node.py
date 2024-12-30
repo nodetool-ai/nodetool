@@ -159,7 +159,6 @@ def type_metadata(python_type: Type | UnionType) -> TypeMetadata:
             values=[e.value for e in python_type.__members__.values()],  # type: ignore
         )
     else:
-        print()
         raise ValueError(f"Unknown type: {python_type}")
 
 

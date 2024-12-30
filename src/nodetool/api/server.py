@@ -5,7 +5,7 @@ import warnings
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
-from nodetool.api import prediction
+from nodetool.api import file, prediction
 from nodetool.common.websocket_proxy import WebSocketProxy
 from nodetool.common.environment import Environment
 from nodetool.chat.help import index_documentation, index_examples, get_collection
@@ -70,6 +70,10 @@ DEFAULT_ROUTERS = [
     task.router,
     settings.router,
 ]
+
+
+if not Environment.is_production():
+    DEFAULT_ROUTERS.append(file.router)
 
 
 class PermissionsPolicyMiddleware(BaseHTTPMiddleware):

@@ -1,50 +1,7 @@
-const apiUrl = "https://api.nodetool.ai/api";
-const workerUrl = "wss://api.nodetool.ai/predict";
-
-const workflowRunner = new WorkflowRunner(apiUrl, workerUrl);
-workflowRunner.onProgress = (progress) => {
-  updateProgress(progress);
-};
-workflowRunner.onMessage = (message) => {
-  updateWsMessages(JSON.stringify(message, null, 2));
-  if (message.type === "progress_update") {
-    updateProgress(message.progress);
-  }
-};
-const loadWorkflowsBtn = document.getElementById("loadWorkflowsBtn");
-const runWorkflowBtn = document.getElementById("runWorkflowBtn");
-window.workflows = [];
-
-document.addEventListener("DOMContentLoaded", () => {
-  document.getElementById("workflowForm").style.display = "none";
-
-  const toggleLogsBtn = document.getElementById("toggleLogsBtn");
-  const rightContainer = document.querySelector(".right-container");
-  const middleContainer = document.querySelector(".middle-container");
-
-  toggleLogsBtn.addEventListener("click", () => {
-    rightContainer.classList.toggle("hidden");
-    middleContainer.classList.toggle("expanded");
-    toggleLogsBtn.textContent = rightContainer.classList.contains("hidden")
-      ? "Show Logs"
-      : "Hide Logs";
-  });
-
-  // Add event listener for the runWorkflowBtn
-  runWorkflowBtn.addEventListener("click", runSelectedWorkflow);
-});
-
-document
-  .getElementById("tokenForm")
-  .addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const token = document.getElementById("token").value;
-    workflowRunner.token = token;
-    await loadWorkflows();
-  });
+const apiUrl = "http://localhost:8000/api";
+const workerUrl = "ws://localhost:8000/predict";
 
 async function loadWorkflows() {
-  updateOutput("Loading workflows...");
   try {
     const response = await workflowRunner.loadWorkflows();
     window.workflows = Array.isArray(response)
@@ -165,3 +122,36 @@ async function runSelectedWorkflow() {
     runWorkflowBtn.disabled = false;
   }
 }
+
+const workflowRunner = new WorkflowRunner(apiUrl, workerUrl);
+workflowRunner.onProgress = (progress) => {
+  updateProgress(progress);
+};
+workflowRunner.onMessage = (message) => {
+  updateWsMessages(JSON.stringify(message, null, 2));
+  if (message.type === "progress_update") {
+    updateProgress(message.progress);
+  }
+};
+const runWorkflowBtn = document.getElementById("runWorkflowBtn");
+window.workflows = [];
+
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("workflowForm").style.display = "none";
+
+  const toggleLogsBtn = document.getElementById("toggleLogsBtn");
+  const rightContainer = document.querySelector(".right-container");
+  const middleContainer = document.querySelector(".middle-container");
+
+  toggleLogsBtn.addEventListener("click", () => {
+    rightContainer.classList.toggle("hidden");
+    middleContainer.classList.toggle("expanded");
+    toggleLogsBtn.textContent = rightContainer.classList.contains("hidden")
+      ? "Show Logs"
+      : "Hide Logs";
+  });
+
+  // Add event listener for the runWorkflowBtn
+  runWorkflowBtn.addEventListener("click", runSelectedWorkflow);
+  loadWorkflows();
+});

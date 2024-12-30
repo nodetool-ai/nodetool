@@ -1,3 +1,4 @@
+from datetime import date, datetime
 from enum import Enum
 import enum
 from pathlib import Path
@@ -46,8 +47,11 @@ add_type_names(
         float: "float",
         bool: "bool",
         str: "str",
+        bytes: "bytes",
         Enum: "enum",
         Union: "union",
+        datetime: "datetime",
+        date: "date",
     }
 )
 
@@ -98,7 +102,7 @@ class AssetRef(BaseType):
     type: str = "asset"
     uri: str = ""
     asset_id: str | None = None
-    data: bytes | list[bytes] | None = None
+    data: Any = None
 
     def to_dict(self):
         res = {
@@ -130,6 +134,11 @@ class AssetRef(BaseType):
             asset_types.add(cls.type)
 
 
+class FilePath(BaseType):
+    type: Literal["file_path"] = "file_path"
+    path: str = ""
+
+
 class FolderRef(AssetRef):
     type: Literal["folder"] = "folder"
 
@@ -139,16 +148,22 @@ class ModelRef(AssetRef):
 
 
 class VideoRef(AssetRef):
+    """A reference to a video asset."""
+
     type: Literal["video"] = "video"
     duration: Optional[float] = None  # Duration in seconds
     format: Optional[str] = None
 
 
 class TextRef(AssetRef):
+    """A reference to a plain text asset."""
+
     type: Literal["text"] = "text"
 
 
 class AudioRef(AssetRef):
+    """A reference to an audio asset."""
+
     type: Literal["audio"] = "audio"
 
 
@@ -156,6 +171,15 @@ class ImageRef(AssetRef):
     """A reference to an image asset."""
 
     type: Literal["image"] = "image"
+
+
+class DocumentRef(AssetRef):
+    """
+    A reference to a document asset.
+    Can be a PDF, DOCX, etc.
+    """
+
+    type: Literal["document"] = "document"
 
 
 class WorkflowRef(BaseType):
@@ -166,6 +190,14 @@ class WorkflowRef(BaseType):
 class NodeRef(BaseType):
     type: Literal["node"] = "node"
     id: str = ""
+
+
+class Email(BaseType):
+    type: Literal["email"] = "email"
+    sender: str = Field(default="", description="Sender email address")
+    to: str = Field(default="", description="Recipient email address")
+    subject: str = Field(default="", description="Email subject line")
+    body: str | TextRef = Field(default="", description="Email body content")
 
 
 class Provider(str, enum.Enum):
@@ -458,6 +490,10 @@ class HFFillMask(HuggingFaceModel):
 
 class HFSentenceSimilarity(HuggingFaceModel):
     type: Literal["hf.sentence_similarity"] = "hf.sentence_similarity"
+
+
+class HFReranker(HuggingFaceModel):
+    type: Literal["hf.reranker"] = "hf.reranker"
 
 
 class HFTextToSpeech(HuggingFaceModel):
@@ -916,6 +952,10 @@ class DataframeRef(AssetRef):
     data: list[list[Any]] | None = None
 
 
+class ExcelRef(AssetRef):
+    type: Literal["excel"] = "excel"
+
+
 class RankingResult(BaseType):
     type: Literal["ranking_result"] = "ranking_result"
     score: float
@@ -1152,15 +1192,32 @@ class Message(BaseType):
 
 
 class AudioChunk(BaseType):
+    """Represents a chunk of audio with metadata about its source"""
+
     type: Literal["audio_chunk"] = "audio_chunk"
-    timestamp: tuple[float, float]
-    text: str
+    timestamp: tuple[float, float] = (0, 0)
+    text: str = ""
+
+
+class TextChunk(BaseType):
+    """Represents a chunk of text with metadata about its source"""
+
+    type: Literal["text_chunk"] = "text_chunk"
+    text: str = ""
+    source_id: str = ""
+    start_idx: int = 0
+    end_idx: int = 0
+    chunk_type: str = ""
+
+    def get_document_id(self):
+        return f"{self.source_id}:{self.start_idx}-{self.end_idx}"
 
 
 class ChromaEmbeddingFunctionEnum(str, Enum):
     OPENCLIP = "openclip"
     OPENAI = "openai"
     OLLAMA = "ollama"
+    SENTENCE_TRANSFORMER = "sentence_transformer"
 
 
 class ChromaEmbeddingFunction(BaseType):
@@ -1429,3 +1486,18 @@ class ChartConfigSchema(BaseModel):
     annot: bool = False
     fmt: str = ".2g"
     square: bool = False
+
+
+class IMAPConnection(BaseType):
+    """Configuration for an IMAP email connection."""
+
+    type: Literal["imap_connection"] = "imap_connection"
+    host: str = Field(default="", description="IMAP server hostname")
+    port: int = Field(default=993, description="IMAP server port")
+    username: str = Field(default="", description="Email account username")
+    password: str = Field(default="", description="Email account password")
+    use_ssl: bool = Field(default=True, description="Whether to use SSL/TLS connection")
+
+    def is_configured(self) -> bool:
+        """Check if the connection has all required fields set."""
+        return bool(self.host and self.username and self.password)

@@ -63,6 +63,7 @@ export type MessageContent =
   | MessageVideoContent
   | MessageAudioContent;
 export type RepoPath = components["schemas"]["RepoPath"];
+export type FileInfo = components["schemas"]["FileInfo"];
 
 export interface UnifiedModel {
   id: string;

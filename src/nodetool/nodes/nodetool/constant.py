@@ -1,13 +1,11 @@
 from typing import Any, Literal
 
 from pydantic import Field
-from nodetool.metadata.types import ColumnDef, Tensor
 from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.metadata.types import AudioRef
 
 from nodetool.metadata.types import DataframeRef as DataFrameRef
-from nodetool.metadata.types import ModelRef
 from nodetool.metadata.types import ImageRef
 from nodetool.metadata.types import TextRef
 from nodetool.metadata.types import VideoRef

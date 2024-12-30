@@ -10,6 +10,7 @@ from nodetool.workflows.run_job_request import RunJobRequest
 from nodetool.workflows.workflow_runner import WorkflowRunner
 from nodetool.workflows.types import Error
 from nodetool.workflows.threaded_event_loop import ThreadedEventLoop
+from nodetool.common.websocket_runner import process_workflow_messages
 
 log = Environment.get_logger()
 
@@ -50,9 +51,6 @@ async def run_workflow(
 
     async def run():
         try:
-            # Load the workflow graph if not already loaded
-            # Must be done in the same event loop as the runner
-            # TODO: Create a job model and save it to the database
             if req.graph is None:
                 log.info(f"Loading workflow graph for {req.workflow_id}")
                 workflow = await context.get_workflow(req.workflow_id)
@@ -70,20 +68,8 @@ async def run_workflow(
             run_future = tel.run_coroutine(run())
 
             try:
-                while runner.is_running():
-                    if context.has_messages():
-                        msg = await context.pop_message_async()
-                        if isinstance(msg, Error):
-                            raise Exception(msg.error)
-                        yield msg
-                    else:
-                        await asyncio.sleep(0.1)
-
-                # Process remaining messages
-                while context.has_messages():
-                    msg = await context.pop_message_async()
+                async for msg in process_workflow_messages(context, runner):
                     yield msg
-
             except Exception as e:
                 log.exception(e)
                 run_future.cancel()
@@ -97,20 +83,8 @@ async def run_workflow(
         run_task = asyncio.create_task(run())
 
         try:
-            while not run_task.done():
-                if context.has_messages():
-                    msg = await context.pop_message_async()
-                    if isinstance(msg, Error):
-                        raise Exception(msg.error)
-                    yield msg
-                else:
-                    await asyncio.sleep(0.01)
-
-            # Process remaining messages
-            while context.has_messages():
-                msg = await context.pop_message_async()
+            async for msg in process_workflow_messages(context, runner):
                 yield msg
-
         except Exception as e:
             log.exception(e)
             run_task.cancel()

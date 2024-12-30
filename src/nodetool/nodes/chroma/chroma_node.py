@@ -50,6 +50,9 @@ class ChromaNode(BaseNode):
         from chromadb.utils.embedding_functions.ollama_embedding_function import (
             OllamaEmbeddingFunction,
         )
+        from chromadb.utils.embedding_functions.sentence_transformer_embedding_function import (
+            SentenceTransformerEmbeddingFunction,
+        )
 
         if (
             collection.embedding_function.embedding_function
@@ -75,6 +78,14 @@ class ChromaNode(BaseNode):
             api_url = context.environment["OLLAMA_API_URL"]
             embedding_function = OllamaEmbeddingFunction(
                 url=api_url,
+                model_name=collection.embedding_function.model,
+            )
+        elif (
+            collection.embedding_function.embedding_function
+            == ChromaEmbeddingFunctionEnum.SENTENCE_TRANSFORMER
+        ):
+            assert collection.embedding_function.model is not None
+            embedding_function = SentenceTransformerEmbeddingFunction(
                 model_name=collection.embedding_function.model,
             )
         else:

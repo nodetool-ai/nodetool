@@ -3,8 +3,9 @@ from enum import Enum
 import json
 import time
 import uuid
+from fastapi.websockets import WebSocketState
 import msgpack
-from typing import Any
+from typing import Any, AsyncGenerator, Callable
 from anthropic import BaseModel
 from fastapi import WebSocket, WebSocketDisconnect
 from nodetool.common.environment import Environment
@@ -14,7 +15,7 @@ from nodetool.workflows.run_job_request import RunJobRequest
 from nodetool.workflows.workflow_runner import WorkflowRunner
 from nodetool.api.types.wrap_primitive_types import wrap_primitive_types
 from nodetool.workflows.threaded_event_loop import ThreadedEventLoop
-from nodetool.workflows.types import Error
+from nodetool.workflows.types import Error, RunFunction
 
 log = Environment.get_logger()
 
@@ -34,6 +35,89 @@ class WebSocketCommand(BaseModel):
 class WebSocketMode(str, Enum):
     BINARY = "binary"
     TEXT = "text"
+
+
+async def process_message(context: ProcessingContext, explicit_types: bool = False):
+    """
+    Helper method to process and send individual messages.
+    Yields the message to the caller.
+
+    Args:
+        context (ProcessingContext): The processing context
+        req (RunJobRequest): The request object for the job.
+    """
+    msg = await context.pop_message_async()
+    if isinstance(msg, Error):
+        raise Exception(msg.error)
+    elif isinstance(msg, RunFunction):
+        msg.function(*msg.args, **msg.kwargs)
+    else:
+        msg_dict = msg.model_dump()
+
+        if explicit_types and "result" in msg_dict:
+            msg_dict["result"] = wrap_primitive_types(msg_dict["result"])
+
+        yield msg_dict
+
+
+async def process_workflow_messages(
+    context: ProcessingContext,
+    runner: WorkflowRunner,
+    sleep_interval: float = 0.01,
+    explicit_types: bool = False,
+) -> AsyncGenerator[dict, None]:
+    """
+    Process messages from a running workflow.
+
+    Args:
+        context (ProcessingContext): The processing context
+        runner (WorkflowRunner): The workflow runner
+        message_handler: Async function to handle messages
+        sleep_interval (float): Time to sleep between message checks
+        explicit_types (bool): Whether to wrap primitive types in explicit types
+    """
+    try:
+        while runner.is_running():
+            if context.has_messages():
+                async for msg in process_message(context, explicit_types):
+                    yield msg
+            else:
+                await asyncio.sleep(sleep_interval)
+
+        # Process remaining messages
+        while context.has_messages():
+            async for msg in process_message(context, explicit_types):
+                yield msg
+
+    except Exception as e:
+        log.exception(e)
+        raise
+
+
+async def execute_workflow(
+    context: ProcessingContext, runner: WorkflowRunner, req: RunJobRequest
+):
+    """
+    Execute a workflow with the given context and request.
+
+    Args:
+        context (ProcessingContext): The processing context
+        runner (WorkflowRunner): The workflow runner
+        req (RunJobRequest): The job request
+    """
+    try:
+        if req.graph is None:
+            log.info(f"Loading workflow graph for {req.workflow_id}")
+            workflow = await context.get_workflow(req.workflow_id)
+            req.graph = workflow.graph
+        assert runner, "Runner is not set"
+        await runner.run(req, context)
+    except Exception as e:
+        log.exception(e)
+        context.post_message(
+            JobUpdate(job_id=runner.job_id, status="failed", error=str(e))
+        )
+        raise
 
 
 class WebSocketRunner:
@@ -85,37 +169,30 @@ class WebSocketRunner:
                 self.event_loop.stop()
             except Exception as e:
                 log.error(f"Error cancelling active job during disconnect: {e}")
-        if self.websocket:
+
+        # Only attempt to close if websocket exists and is not already closed
+        if (
+            self.websocket
+            and not self.websocket.client_state == WebSocketState.DISCONNECTED
+        ):
             try:
                 await self.websocket.close()
                 log.info("WebSocket closed successfully")
             except Exception as e:
                 log.error(f"Error closing WebSocket: {e}")
+
         self.websocket = None
         self.event_loop = None
         self.job_id = None
         log.info("WebSocket disconnected and resources cleaned up")
 
-    async def run_job(
-        self,
-        req: RunJobRequest,
-    ):
-        """
-        Runs a job based on the provided RunJobRequest.
-
-        Args:
-            req (RunJobRequest): The RunJobRequest containing job details.
-
-        Raises:
-            ValueError: If WebSocket is not connected.
-        """
+    async def run_job(self, req: RunJobRequest):
         try:
             if not self.websocket:
                 raise ValueError("WebSocket is not connected")
-            start_time = time.time()
+
             self.job_id = uuid.uuid4().hex
             self.runner = WorkflowRunner(job_id=self.job_id)
-
             log.info(f"Starting job execution: {self.job_id}")
 
             context = ProcessingContext(
@@ -127,49 +204,18 @@ class WebSocketRunner:
             )
             self.event_loop = ThreadedEventLoop()
 
-            # Create ThreadedEventLoop instance
             with self.event_loop as tel:
-
-                async def run():
-                    try:
-                        if req.graph is None:
-                            log.info(f"Loading workflow graph for {req.workflow_id}")
-                            workflow = await context.get_workflow(req.workflow_id)
-                            req.graph = workflow.graph
-                        assert self.runner, "Runner is not set"
-                        await self.runner.run(req, context)
-                    except Exception as e:
-                        log.exception(e)
-                        context.post_message(
-                            JobUpdate(job_id=self.job_id, status="failed", error=str(e))
-                        )
-
-                run_future = tel.run_coroutine(run())
+                run_future = tel.run_coroutine(
+                    execute_workflow(context, self.runner, req)
+                )
 
                 try:
-                    while self.runner.is_running():
-                        if context.has_messages():
-                            msg = await context.pop_message_async()
-                            if isinstance(msg, Error):
-                                raise Exception(msg.error)
-
-                            msg_dict = msg.model_dump()
-                            if req.explicit_types and "result" in msg_dict:
-                                msg_dict["result"] = wrap_primitive_types(
-                                    msg_dict["result"]
-                                )
-
-                            await self.send_message(msg_dict)
-                            log.debug(f"Sent message for job {self.job_id}: {msg.type}")
-                        else:
-                            await asyncio.sleep(0.1)
-
-                    # Process remaining messages
-                    while context.has_messages():
-                        msg = await context.pop_message_async()
-                        msg_dict = msg.model_dump()
-                        await self.send_message(msg_dict)
-
+                    async for msg in process_workflow_messages(
+                        context=context,
+                        runner=self.runner,
+                        explicit_types=req.explicit_types,
+                    ):
+                        await self.send_message(msg)
                 except Exception as e:
                     log.exception(e)
                     run_future.cancel()
@@ -180,11 +226,6 @@ class WebSocketRunner:
                 except Exception as e:
                     log.error(f"An error occurred during workflow execution: {e}")
                     await self.send_job_update("failed", str(e))
-
-            total_time = time.time() - start_time
-            log.info(
-                f"Finished job {self.job_id} - Total time: {total_time:.2f} seconds"
-            )
 
         except Exception as e:
             log.exception(f"Error in job {self.job_id}: {e}")
@@ -291,29 +332,31 @@ class WebSocketRunner:
         Args:
             websocket (WebSocket): The WebSocket connection.
         """
-        await self.connect(websocket)
         try:
+            await self.connect(websocket)
             while True:
                 assert self.websocket, "WebSocket is not connected"
-                message = await self.websocket.receive()
-                if message["type"] == "websocket.disconnect":
-                    log.info("Received websocket disconnect message")
-                    break
-                if "bytes" in message:
-                    data = msgpack.unpackb(message["bytes"])  # type: ignore
-                    log.debug("Received binary message")
-                elif "text" in message:
-                    data = json.loads(message["text"])
-                    log.debug("Received text message")
-                else:
-                    log.warning("Received message with unknown format")
-                    continue
+                try:
+                    message = await self.websocket.receive()
+                    if message["type"] == "websocket.disconnect":
+                        log.info("Received websocket disconnect message")
+                        break
+                    if "bytes" in message:
+                        data = msgpack.unpackb(message["bytes"])  # type: ignore
+                        log.debug("Received binary message")
+                    elif "text" in message:
+                        data = json.loads(message["text"])
+                        log.debug("Received text message")
+                    else:
+                        log.warning("Received message with unknown format")
+                        continue
 
-                command = WebSocketCommand(**data)
-                response = await self.handle_command(command)
-                await self.send_message(response)
-        except WebSocketDisconnect:
-            log.info("WebSocket disconnected")
+                    command = WebSocketCommand(**data)
+                    response = await self.handle_command(command)
+                    await self.send_message(response)
+                except WebSocketDisconnect:
+                    log.info("WebSocket disconnected")
+                    break
         except Exception as e:
             log.error(f"WebSocket error: {str(e)}")
             log.exception(e)
