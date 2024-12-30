@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 
 
-from typing import Any, Literal
+from typing import Any, Callable, Literal
 
 from nodetool.types.job import JobUpdate
 from nodetool.types.prediction import Prediction
@@ -50,4 +50,17 @@ class Error(BaseModel):
     error: str
 
 
-ProcessingMessage = NodeUpdate | NodeProgress | JobUpdate | Error | Prediction
+class RunFunction(BaseModel):
+    """
+    A message to run a function in the main thread.
+    """
+
+    type: Literal["run_function"] = "run_function"
+    function: Callable
+    args: list[Any] = []
+    kwargs: dict[str, Any] = {}
+
+
+ProcessingMessage = (
+    NodeUpdate | NodeProgress | JobUpdate | Error | Prediction | RunFunction
+)

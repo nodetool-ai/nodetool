@@ -28,6 +28,7 @@ import RecordTypeProperty from "../properties/RecordTypeProperty";
 import ModelProperty from "../properties/ModelProperty";
 import { isEqual } from "lodash";
 import ColorProperty from "../properties/ColorProperty";
+import FilePathProperty from "../properties/FilePathProperty";
 
 export type PropertyProps = {
   property: Property;
@@ -99,6 +100,8 @@ function handleAdvancedDataTypes(
       return ThreadMessageProperty;
     case "file":
       return FileProperty;
+    case "file_path":
+      return FilePathProperty;
     case "folder":
       return FolderProperty;
     case "asset":
@@ -122,7 +125,15 @@ function handleUnionType(
   property: Property
 ): React.ComponentType<PropertyProps> {
   const reducedType = reduceUnionType(property.type);
-  return getComponentForType({ ...property, type: { type: reducedType } });
+  return getComponentForType({
+    ...property,
+    type: {
+      type: reducedType,
+      optional: property.type.optional,
+      type_args: property.type.type_args,
+      type_name: property.type.type_name
+    }
+  });
 }
 
 function handleListType(

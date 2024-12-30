@@ -268,6 +268,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
   }, [type, value]);
 
   const renderContent = useMemo(() => {
+    console.log(value);
     if (value === null || value === undefined) {
       return null;
     }
@@ -386,6 +387,30 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
         );
       case "svg_element":
         return renderSVGDocument([value]);
+      case "email":
+        return (
+          <div css={styles}>
+            <div className="email-header">
+              <p>
+                <strong>From:</strong> {value.sender}
+              </p>
+              <p>
+                <strong>To:</strong> {value.to}
+              </p>
+              {value.cc && (
+                <p>
+                  <strong>CC:</strong> {value.cc}
+                </p>
+              )}
+              <p>
+                <strong>Subject:</strong> {value.subject}
+              </p>
+            </div>
+            <div className="email-body">
+              <MarkdownRenderer content={value.body} />
+            </div>
+          </div>
+        );
       default:
         return (
           <div className="output value nodrag nowheel" css={styles}>

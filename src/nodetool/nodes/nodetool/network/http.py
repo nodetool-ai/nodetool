@@ -1,4 +1,5 @@
 import asyncio
+import os
 import re
 from urllib.parse import urljoin
 import aiohttp
@@ -24,6 +25,8 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from bs4 import BeautifulSoup
 
+from nodetool.workflows.types import NodeProgress
+
 
 class HTTPBaseNode(BaseNode):
     url: str = Field(
@@ -47,7 +50,7 @@ class HTTPBaseNode(BaseNode):
         }
 
 
-class HTTPGet(HTTPBaseNode):
+class GetRequest(HTTPBaseNode):
     """
     Perform an HTTP GET request to retrieve data from a specified URL.
     http, get, request, url
@@ -64,7 +67,7 @@ class HTTPGet(HTTPBaseNode):
         return res.content.decode(res.encoding or "utf-8")
 
 
-class HTTPPost(HTTPBaseNode):
+class PostRequest(HTTPBaseNode):
     """
     Send data to a server using an HTTP POST request.
     http, post, request, url, data
@@ -88,7 +91,7 @@ class HTTPPost(HTTPBaseNode):
         return res.content.decode(res.encoding or "utf-8")
 
 
-class HTTPPut(HTTPBaseNode):
+class PutRequest(HTTPBaseNode):
     """
     Update existing resources on a server using an HTTP PUT request.
     http, put, request, url, data
@@ -112,7 +115,7 @@ class HTTPPut(HTTPBaseNode):
         return res.content.decode(res.encoding or "utf-8")
 
 
-class HTTPDelete(HTTPBaseNode):
+class DeleteRequest(HTTPBaseNode):
     """
     Remove a resource from a server using an HTTP DELETE request.
     http, delete, request, url
@@ -129,7 +132,7 @@ class HTTPDelete(HTTPBaseNode):
         return res.content.decode(res.encoding or "utf-8")
 
 
-class HTTPHead(HTTPBaseNode):
+class HeadRequest(HTTPBaseNode):
     """
     Retrieve headers from a resource using an HTTP HEAD request.
     http, head, request, url
@@ -522,3 +525,233 @@ class ImageDownloader(BaseNode):
                 images.extend([img for img in completed if img is not None])
 
         return images
+
+
+class GetRequestBinary(HTTPBaseNode):
+    """
+    Perform an HTTP GET request and return raw binary data.
+    http, get, request, url, binary, download
+
+    Use cases:
+    - Download binary files
+    - Fetch images or media
+    - Retrieve PDF documents
+    - Download any non-text content
+    """
+
+    async def process(self, context: ProcessingContext) -> bytes:
+        res = await context.http_get(self.url, **self.get_request_kwargs())
+        return res.content
+
+
+class PostRequestBinary(HTTPBaseNode):
+    """
+    Send data using an HTTP POST request and return raw binary data.
+    http, post, request, url, data, binary
+
+    Use cases:
+    - Upload and receive binary files
+    - Interact with binary APIs
+    - Process image or media uploads
+    - Handle binary file transformations
+    """
+
+    data: str | bytes = Field(
+        default="",
+        description="The data to send in the POST request. Can be string or binary.",
+    )
+
+    async def process(self, context: ProcessingContext) -> bytes:
+        res = await context.http_post(
+            self.url, data=self.data, **self.get_request_kwargs()
+        )
+        return res.content
+
+
+class FilterValidURLs(HTTPBaseNode):
+    """
+    Filter a list of URLs by checking their validity using HEAD requests.
+    url validation, http, head request
+
+    Use cases:
+    - Clean URL lists by removing broken links
+    - Verify resource availability
+    - Validate website URLs before processing
+    """
+
+    urls: list[str] = Field(
+        default_factory=list,
+        description="List of URLs to validate.",
+    )
+    max_concurrent_requests: int = Field(
+        default=10,
+        description="Maximum number of concurrent HEAD requests.",
+    )
+
+    async def check_url(
+        self,
+        session: aiohttp.ClientSession,
+        url: str,
+    ) -> tuple[str, bool]:
+        try:
+            async with session.head(
+                url,
+                allow_redirects=True,
+                **self.get_request_kwargs(),
+            ) as response:
+                is_valid = 200 <= response.status < 400
+                return url, is_valid
+        except Exception:
+            return url, False
+
+    async def process(self, context: ProcessingContext) -> list[str]:
+        results = []
+
+        async with aiohttp.ClientSession() as session:
+            tasks = []
+            for url in self.urls:
+                task = self.check_url(session, url)
+                tasks.append(task)
+
+                if len(tasks) >= self.max_concurrent_requests:
+                    completed = await asyncio.gather(*tasks)
+                    results.extend(completed)
+                    tasks = []
+
+            if tasks:
+                completed = await asyncio.gather(*tasks)
+                results.extend(completed)
+
+        valid_urls = [url for url, is_valid in results if is_valid]
+
+        return valid_urls
+
+
+class DownloadFiles(BaseNode):
+    """
+    Download files from a list of URLs into a local folder.
+    download, files, urls, batch
+
+    Use cases:
+    - Batch download files from multiple URLs
+    - Create local copies of remote resources
+    - Archive web content
+    - Download datasets
+    """
+
+    urls: list[str] = Field(
+        default_factory=list,
+        description="List of URLs to download.",
+    )
+    output_folder: str = Field(
+        default="downloads",
+        description="Local folder path where files will be saved.",
+    )
+    headers: dict[str, str] = Field(
+        default_factory=dict,
+        description="Optional headers to include in the request.",
+    )
+    auth: str | None = Field(default=None, description="Authentication credentials.")
+
+    @classmethod
+    def is_visible(cls) -> bool:
+        return cls is not HTTPBaseNode
+
+    def get_request_kwargs(self):
+        return {
+            "headers": self.headers,
+            "auth": self.auth,
+        }
+
+    max_concurrent_downloads: int = Field(
+        default=5,
+        description="Maximum number of concurrent downloads.",
+    )
+
+    async def download_file(
+        self,
+        session: aiohttp.ClientSession,
+        url: str,
+    ) -> str:
+        try:
+            async with session.get(url, **self.get_request_kwargs()) as response:
+                if response.status == 200:
+                    # Extract filename from URL or Content-Disposition header
+                    filename = response.headers.get("Content-Disposition")
+                    if filename and "filename=" in filename:
+                        filename = filename.split("filename=")[-1].strip("\"'")
+                    else:
+                        filename = url.split("/")[-1]
+                        if not filename:
+                            filename = "unnamed_file"
+
+                    expanded_path = os.path.expanduser(self.output_folder)
+                    os.makedirs(os.path.dirname(expanded_path), exist_ok=True)
+
+                    filepath = os.path.join(expanded_path, filename)
+                    content = await response.read()
+
+                    with open(filepath, "wb") as f:
+                        f.write(content)
+
+                    return filepath
+                else:
+                    return ""
+        except Exception as e:
+            return ""
+
+    @classmethod
+    def return_type(cls):
+        return {
+            "success": list[str],
+            "failed": list[str],
+        }
+
+    async def process(self, context: ProcessingContext):
+        successful = []
+        failed = []
+
+        async with aiohttp.ClientSession() as session:
+            tasks = []
+            num_completed = 0
+            for url in self.urls:
+                task = self.download_file(session, url)
+                tasks.append(task)
+
+                if len(tasks) >= self.max_concurrent_downloads:
+                    completed = await asyncio.gather(*tasks)
+                    num_completed += len(completed)
+                    context.post_message(
+                        NodeProgress(
+                            node_id=self.id,
+                            progress=num_completed,
+                            total=len(self.urls),
+                        )
+                    )
+                    for filepath in completed:
+                        if filepath:
+                            successful.append(filepath)
+                        else:
+                            failed.append(url)
+                    tasks = []
+
+            if tasks:
+                completed = await asyncio.gather(*tasks)
+                num_completed += len(completed)
+                context.post_message(
+                    NodeProgress(
+                        node_id=self.id,
+                        progress=num_completed,
+                        total=len(self.urls),
+                    )
+                )
+                for filepath in completed:
+                    if filepath:
+                        successful.append(filepath)
+                    else:
+                        failed.append(url)
+
+        return {
+            "successful": successful,
+            "failed": failed,
+        }

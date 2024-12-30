@@ -786,6 +786,9 @@ class ProcessingContext:
             file.name = f"{uuid.uuid4()}.{ext}"
             return file
 
+        if url_parsed.scheme == "file":
+            return open(url_parsed.path)
+
         response = await self.http_get(url)
         return BytesIO(response.content)
 
@@ -819,6 +822,11 @@ class ProcessingContext:
         elif asset_ref.uri != "":
             return await self.download_file(asset_ref.uri)
         raise ValueError(f"AssetRef is empty {asset_ref}")
+
+    async def asset_to_bytes(self, asset_ref: AssetRef) -> bytes:
+        io = await self.asset_to_io(asset_ref)
+        assert isinstance(io, BytesIO)
+        return io.getvalue()
 
     async def upload_tmp_asset(self, asset: AssetRef):
         if asset.uri:
@@ -1334,6 +1342,22 @@ class ProcessingContext:
             return VideoRef(asset_id=asset.id, uri=asset.get_url or "")
         else:
             return VideoRef(data=buffer.read())
+
+    async def video_from_bytes(
+        self, b: bytes, name: str | None = None, parent_id: str | None = None
+    ) -> VideoRef:
+        """
+        Creates a VideoRef from a bytes object.
+
+        Args:
+            b (bytes): The bytes object.
+            name (Optional[str], optional): The name of the asset. Defaults to None.
+            parent_id (Optional[str], optional): The parent ID of the asset. Defaults to None.
+
+        Returns:
+            VideoRef: The VideoRef object.
+        """
+        return await self.video_from_io(BytesIO(b), name=name, parent_id=parent_id)
 
     async def to_estimator(self, model_ref: ModelRef):
         """
