@@ -169,6 +169,7 @@ class LoadDocument(BaseNode):
     )
 
     async def process(self, context: ProcessingContext) -> DocumentRef:
+        print(self.path)
         if not self.path.path:
             raise ValueError("path cannot be empty")
         expanded_path = os.path.expanduser(self.path.path)

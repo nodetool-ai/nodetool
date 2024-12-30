@@ -244,11 +244,11 @@ const FilePathProperty = (props: PropertyProps) => {
   }, []);
 
   const handleClear = useCallback(() => {
-    props.onChange({ path: "" });
+    props.onChange({ type: "file_path", path: "" });
   }, [props.onChange]);
 
   const handleConfirm = useCallback(() => {
-    props.onChange({ path: selectedPath });
+    props.onChange({ type: "file_path", path: selectedPath });
     setIsFileBrowserOpen(false);
   }, [props.onChange, selectedPath]);
 
