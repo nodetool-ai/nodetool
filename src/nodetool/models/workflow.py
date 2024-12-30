@@ -37,16 +37,22 @@ class Workflow(DBModel):
         Create a new Workflow object from a dictionary.
         """
         return cls(
-            id=data["id"],
-            user_id=data["user_id"],
-            access=data["access"],
-            created_at=data["created_at"],
-            updated_at=data["updated_at"],
-            name=data["name"],
+            id=data.get("id", ""),
+            user_id=data.get("user_id", ""),
+            access=data.get("access", ""),
+            created_at=data.get("created_at", datetime.now()),
+            updated_at=data.get("updated_at", datetime.now()),
+            name=data.get("name", ""),
             tags=data.get("tags", []),
             description=data.get("description", ""),
-            thumbnail=data.get("thumbnail"),
-            graph=data["graph"],
+            thumbnail=data.get("thumbnail", None),
+            graph=data.get(
+                "graph",
+                {
+                    "nodes": [],
+                    "edges": [],
+                },
+            ),
         )
 
     @classmethod
@@ -78,9 +84,33 @@ class Workflow(DBModel):
         user_id: str | None = None,
         limit: int = 100,
         start_key: Optional[str] = None,
+        columns: list[str] | None = None,
     ) -> tuple[list["Workflow"], str]:
+        allowed_columns = {
+            "id",
+            "name",
+            "description",
+            "thumbnail",
+            "access",
+            "user_id",
+            "created_at",
+            "updated_at",
+            "tags",
+            "graph",
+        }
+
+        # Validate and sanitize column names
+        if columns:
+            invalid_columns = set(columns) - allowed_columns
+            if invalid_columns:
+                raise ValueError(f"Invalid columns requested: {invalid_columns}")
+            sanitized_columns = [col for col in columns if col in allowed_columns]
+            select_clause = ", ".join(f"w.{col}" for col in sanitized_columns)
+        else:
+            select_clause = "*"
+
         query = f"""
-    SELECT * FROM {cls.get_table_schema()['table_name']} w
+    SELECT {select_clause} FROM {cls.get_table_schema()['table_name']} w
     WHERE """
         params = {}
 

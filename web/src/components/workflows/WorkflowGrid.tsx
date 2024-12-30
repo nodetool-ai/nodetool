@@ -20,6 +20,8 @@ import { useResizeObserver } from "@mantine/hooks";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { createErrorMessage } from "../../utils/errorHandling";
+import { client } from "../../stores/ApiClient";
 
 const tile_width = "200px";
 const tile_height = "200px";
@@ -115,6 +117,19 @@ const styles = (theme: any) =>
     }
   });
 
+const loadWorkflows = async (cursor?: string, limit?: number) => {
+  cursor = cursor || "";
+  const { data, error } = await client.GET("/api/workflows/", {
+    params: {
+      query: { cursor, limit, columns: "name,id,updated_at,description" }
+    }
+  });
+  if (error) {
+    throw createErrorMessage(error, "Failed to load workflows");
+  }
+  return data;
+};
+
 const WorkflowGrid = () => {
   const [filterValue, setFilterValue] = useState("");
   const navigate = useNavigate();
@@ -124,7 +139,6 @@ const WorkflowGrid = () => {
       controlKeyPressed: state.isKeyPressed("Control")
     })
   );
-  const loadWorkflows = useWorkflowStore((state) => state.load);
   const createNewWorkflow = useWorkflowStore((state) => state.createNew);
   const copyWorkflow = useWorkflowStore((state) => state.copy);
   const updateWorkflow = useWorkflowStore((state) => state.update);

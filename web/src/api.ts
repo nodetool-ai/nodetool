@@ -4454,6 +4454,7 @@ export interface operations {
             query?: {
                 cursor?: string | null;
                 limit?: number;
+                columns?: string | null;
             };
             header?: {
                 authorization?: string | null;
@@ -4527,6 +4528,7 @@ export interface operations {
             query?: {
                 limit?: number;
                 cursor?: string | null;
+                columns?: string | null;
             };
             header?: never;
             path?: never;
@@ -4590,6 +4592,7 @@ export interface operations {
             query?: {
                 limit?: number;
                 cursor?: string | null;
+                columns?: string | null;
             };
             header?: never;
             path: {

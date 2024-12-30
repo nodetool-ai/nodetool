@@ -22821,13 +22821,16 @@
       {
         "name": "path",
         "type": {
-          "type": "str",
+          "type": "file_path",
           "optional": false,
           "values": null,
           "type_args": [],
           "type_name": null
         },
-        "default": "",
+        "default": {
+          "type": "file_path",
+          "path": ""
+        },
         "title": "Path",
         "description": "Path to check for existence",
         "min": null,
@@ -22848,13 +22851,16 @@
       {
         "name": "directory",
         "type": {
-          "type": "str",
+          "type": "file_path",
           "optional": false,
           "values": null,
           "type_args": [],
           "type_name": null
         },
-        "default": "~",
+        "default": {
+          "type": "file_path",
+          "path": "~"
+        },
         "title": "Directory",
         "description": "Directory to scan",
         "min": null,
@@ -22899,7 +22905,7 @@
           "values": null,
           "type_args": [
             {
-              "type": "str",
+              "type": "file_path",
               "optional": false,
               "values": null,
               "type_args": [],
@@ -22925,13 +22931,16 @@
       {
         "name": "source_path",
         "type": {
-          "type": "str",
+          "type": "file_path",
           "optional": false,
           "values": null,
           "type_args": [],
           "type_name": null
         },
-        "default": "",
+        "default": {
+          "type": "file_path",
+          "path": ""
+        },
         "title": "Source Path",
         "description": "Source file path",
         "min": null,
@@ -22940,13 +22949,16 @@
       {
         "name": "destination_path",
         "type": {
-          "type": "str",
+          "type": "file_path",
           "optional": false,
           "values": null,
           "type_args": [],
           "type_name": null
         },
-        "default": "",
+        "default": {
+          "type": "file_path",
+          "path": ""
+        },
         "title": "Destination Path",
         "description": "Destination file path",
         "min": null,
@@ -22967,13 +22979,16 @@
       {
         "name": "source_path",
         "type": {
-          "type": "str",
+          "type": "file_path",
           "optional": false,
           "values": null,
           "type_args": [],
           "type_name": null
         },
-        "default": "",
+        "default": {
+          "type": "file_path",
+          "path": ""
+        },
         "title": "Source Path",
         "description": "Source file path",
         "min": null,
@@ -22982,13 +22997,16 @@
       {
         "name": "destination_path",
         "type": {
-          "type": "str",
+          "type": "file_path",
           "optional": false,
           "values": null,
           "type_args": [],
           "type_name": null
         },
-        "default": "",
+        "default": {
+          "type": "file_path",
+          "path": ""
+        },
         "title": "Destination Path",
         "description": "Destination file path",
         "min": null,
@@ -23009,13 +23027,16 @@
       {
         "name": "path",
         "type": {
-          "type": "str",
+          "type": "file_path",
           "optional": false,
           "values": null,
           "type_args": [],
           "type_name": null
         },
-        "default": "",
+        "default": {
+          "type": "file_path",
+          "path": ""
+        },
         "title": "Path",
         "description": "Directory path to create",
         "min": null,
@@ -23051,13 +23072,16 @@
       {
         "name": "path",
         "type": {
-          "type": "str",
+          "type": "file_path",
           "optional": false,
           "values": null,
           "type_args": [],
           "type_name": null
         },
-        "default": "",
+        "default": {
+          "type": "file_path",
+          "path": ""
+        },
         "title": "Path",
         "description": "Path to file",
         "min": null,
@@ -23999,7 +24023,7 @@
     "outputs": [
       {
         "type": {
-          "type": "str",
+          "type": "file_path",
           "optional": false,
           "values": null,
           "type_args": [],
@@ -24038,7 +24062,7 @@
     "outputs": [
       {
         "type": {
-          "type": "str",
+          "type": "file_path",
           "optional": false,
           "values": null,
           "type_args": [],
@@ -24116,7 +24140,7 @@
     "outputs": [
       {
         "type": {
-          "type": "str",
+          "type": "file_path",
           "optional": false,
           "values": null,
           "type_args": [],
@@ -24241,6 +24265,48 @@
         "default": ".",
         "title": "Start Path",
         "description": "Start path for relative conversion",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "file_path",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
+    "title": "Path To String",
+    "description": "Convert a FilePath object to a string.\n    files, path, string, convert\n\n    Use cases:\n    - Get raw string path from FilePath object\n    - Convert FilePath for string operations\n    - Extract path string for external use",
+    "namespace": "nodetool.file",
+    "node_type": "nodetool.file.PathToString",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "file_path",
+        "type": {
+          "type": "file_path",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "file_path",
+          "path": ""
+        },
+        "title": "File Path",
+        "description": "FilePath object to convert to string",
         "min": null,
         "max": null
       }
