@@ -1,4 +1,5 @@
 import logging
+import traceback
 import uuid
 import json
 import msgpack
@@ -91,6 +92,7 @@ class ChatWebSocketRunner:
 
             except Exception as e:
                 log.error(f"Error processing message: {str(e)}")
+                traceback.print_exc()
                 error_message = {"type": "error", "message": str(e)}
                 await self.send_message(error_message)
                 # Optionally, you can decide whether to break the loop or continue
@@ -121,9 +123,9 @@ class ChatWebSocketRunner:
         async for update in run_workflow(
             request, workflow_runner, processing_context, use_thread=True
         ):
-            await self.send_message(update.model_dump())
-            if update.type == "job_update" and update.status == "completed":
-                result = update.result
+            await self.send_message(update)
+            if update["type"] == "job_update" and update["status"] == "completed":
+                result = update["result"]
 
         return result
 
