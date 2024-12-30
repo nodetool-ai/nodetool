@@ -342,8 +342,10 @@ export const useTutorialStore = create<TutorialState>((set, get) => ({
     });
     useChatStore.getState().addMessages([
       {
+        type: "message",
         id: uuidv4(),
         role: "assistant",
+        name: "tutorial",
         content: tutorials[tutorialName][0].step,
         tool_calls: []
       }
@@ -361,8 +363,10 @@ export const useTutorialStore = create<TutorialState>((set, get) => ({
     if (tutorialName === null) return;
     useChatStore.getState().addMessages([
       {
+        type: "message",
         id: uuidv4(),
         role: "assistant",
+        name: "tutorial",
         content: tutorials[tutorialName][currentStepIndex + 1].step,
         tool_calls: []
       }
