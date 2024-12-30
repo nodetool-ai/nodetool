@@ -35,8 +35,9 @@ const styles = (theme: any) =>
 
       ".file-picker__inputs": {
         display: "flex",
-        gap: "1em",
-        alignItems: "center"
+        alignItems: "center",
+        gap: "8px",
+        height: "20px"
       },
 
       ".file-browser": {
@@ -54,7 +55,8 @@ const styles = (theme: any) =>
         borderRadius: "4px",
         color: theme.palette.common.white,
         cursor: "pointer",
-        padding: "8px 16px",
+        padding: "2px 4px",
+        height: "100%",
         transition: "all 0.2s ease",
         "&:hover": {
           backgroundColor: theme.palette.c_gray3
@@ -62,11 +64,11 @@ const styles = (theme: any) =>
       },
 
       ".file-picker__preview": {
-        marginTop: "0.5em",
         color: theme.palette.c_gray4,
         display: "flex",
         alignItems: "center",
-        gap: "0.5em"
+        flex: 1,
+        marginLeft: "8px"
       },
 
       ".file-picker__reset-button": {
@@ -108,21 +110,6 @@ const styles = (theme: any) =>
       ".MuiDialogContent-root": {
         padding: "24px",
         minHeight: "400px"
-      },
-
-      ".MuiTreeItem-content": {
-        ".Mui-selected": {
-          backgroundColor: `${theme.palette.c_hl1} !important`,
-
-          "&:hover": {
-            backgroundColor: `${theme.palette.c_hl1} !important`
-          },
-
-          "& .MuiTypography-root": {
-            color: theme.palette.common.white,
-            fontWeight: 500
-          }
-        }
       },
 
       ".MuiDialogActions-root": {
@@ -271,8 +258,20 @@ const FilePathProperty = (props: PropertyProps) => {
           onClick={handleBrowseClick}
           className="file-picker__browse-button"
         >
-          Browse Files
+          Browse
         </button>
+        <div className="file-picker__preview">
+          <Typography>{props.value?.path}</Typography>
+          {props.value?.path && (
+            <button
+              onClick={handleClear}
+              className="file-picker__reset-button"
+              aria-label="Clear file selection"
+            >
+              ×
+            </button>
+          )}
+        </div>
       </div>
 
       <Dialog
@@ -294,6 +293,7 @@ const FilePathProperty = (props: PropertyProps) => {
             <Typography>Loading files...</Typography>
           ) : (
             <RichTreeView
+              className="file-browser"
               onItemClick={handleItemClick}
               items={files ?? []}
               aria-label="file browser"
@@ -307,19 +307,6 @@ const FilePathProperty = (props: PropertyProps) => {
           </Button>
         </DialogActions>
       </Dialog>
-
-      <div className="file-picker__preview">
-        <Typography>{props.value?.path}</Typography>
-        {props.value?.path && (
-          <button
-            onClick={handleClear}
-            className="file-picker__reset-button"
-            aria-label="Clear file selection"
-          >
-            ×
-          </button>
-        )}
-      </div>
     </div>
   );
 };

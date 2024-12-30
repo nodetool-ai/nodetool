@@ -385,7 +385,6 @@ class SentenceSplitter(BaseNode):
 
     async def process(self, context: ProcessingContext) -> list[TextChunk]:
         text = await to_string(context, self.text)
-        current_pos = 0
         chunks = []
 
         # Simple sentence splitting using common punctuation
