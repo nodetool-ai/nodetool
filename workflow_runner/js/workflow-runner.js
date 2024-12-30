@@ -1,16 +1,38 @@
+/**
+ * @typedef {Object} JobUpdate
+ * @property {string} type - The type of update ('job_update', 'node_progress', 'node_update')
+ * @property {string} [status] - The job status ('completed', 'failed')
+ * @property {any} [result] - The result data when job is completed
+ * @property {string} [error] - Error message if job failed
+ * @property {number} [progress] - Progress value for node_progress
+ * @property {number} [total] - Total value for node_progress
+ */
+
+/**
+ * Class for managing workflow execution and WebSocket communication
+ */
 class WorkflowRunner {
+  /**
+   * @param {string} apiUrl - The API endpoint URL
+   * @param {string} workerUrl - The WebSocket worker URL
+   */
   constructor(apiUrl, workerUrl) {
     this.apiUrl = apiUrl;
     this.workerUrl = workerUrl;
     this.socket = null;
     this.state = "idle";
-    this.token = "";
+    this.token = "local_token";
     this.onMessage = null;
     this.onProgress = null;
     this.onComplete = null;
     this.onError = null;
   }
 
+  /**
+   * Establishes WebSocket connection
+   * @returns {Promise<void>}
+   * @throws {Error} If connection fails
+   */
   async connect() {
     return new Promise((resolve, reject) => {
       const connectWebSocket = () => {
@@ -46,9 +68,14 @@ class WorkflowRunner {
     });
   }
 
+  /**
+   * Loads available workflows from the API
+   * @returns {Promise<Array<Object>>} Array of workflow objects
+   * @throws {Error} If API request fails
+   */
   async loadWorkflows() {
     try {
-      const response = await fetch(`${this.apiUrl}/workflows`, {
+      const response = await fetch(`${this.apiUrl}/workflows/`, {
         headers: {
           Authorization: `Bearer ${this.token}`,
           "Content-Type": "application/json",
@@ -66,6 +93,12 @@ class WorkflowRunner {
     }
   }
 
+  /**
+   * Retrieves details for a specific workflow
+   * @param {string} workflowId - ID of the workflow to fetch
+   * @returns {Promise<Object>} Workflow details
+   * @throws {Error} If API request fails
+   */
   async getWorkflowDetails(workflowId) {
     try {
       const response = await fetch(`${this.apiUrl}/workflows/${workflowId}`, {
@@ -84,6 +117,13 @@ class WorkflowRunner {
     }
   }
 
+  /**
+   * Runs a workflow with specified parameters
+   * @param {string} workflowId - ID of the workflow to run
+   * @param {Object} [params={}] - Parameters to pass to the workflow
+   * @returns {Promise<any>} Result of the workflow execution
+   * @throws {Error} If execution fails or times out
+   */
   async run(workflowId, params = {}) {
     if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
       await this.connect();
@@ -119,6 +159,11 @@ class WorkflowRunner {
     });
   }
 
+  /**
+   * Handles incoming WebSocket messages
+   * @private
+   * @param {JobUpdate} data - The decoded message data
+   */
   handleMessage(data) {
     console.log("Received message:", data);
     if (data.type === "job_update" && data.status === "completed") {
@@ -138,6 +183,11 @@ class WorkflowRunner {
     }
   }
 
+  /**
+   * Handles progress updates from the workflow
+   * @private
+   * @param {JobUpdate} data - The progress update data
+   */
   handleProgress(data) {
     if (data.type === "node_progress") {
       const progress = (data.progress / data.total) * 100;

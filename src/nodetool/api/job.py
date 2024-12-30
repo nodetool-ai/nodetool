@@ -123,17 +123,22 @@ async def run(
     else:
         result = {}
         async for msg in run_workflow(job_request):
-            if msg.type == "job_update":
-                if msg.status == "completed":
-                    result = msg.result
+            if msg.get("type") == "job_update":
+                if msg.get("status") == "completed":
+                    result = msg.get("result", {})
                     for key, value in result.items():
-                        if isinstance(value, AssetRef) and value.data:
-                            if isinstance(value.data, bytes):
-                                value.uri = f"data:application/octet-stream;base64,{base64.b64encode(value.data).decode('utf-8')}"
-                            elif isinstance(value.data, list):
+                        if isinstance(value, dict) and value.get("data"):
+                            data = value.get("data")
+                            if isinstance(data, bytes):
+                                value["uri"] = (
+                                    f"data:application/octet-stream;base64,{base64.b64encode(data).decode('utf-8')}"
+                                )
+                            elif isinstance(data, list):
                                 # TODO: handle multiple assets
-                                value.uri = f"data:application/octet-stream;base64,{base64.b64encode(value.data[0]).decode('utf-8')}"
-                            value.data = None
-                elif msg.status == "failed":
-                    raise HTTPException(status_code=500, detail=msg.error)
+                                value["uri"] = (
+                                    f"data:application/octet-stream;base64,{base64.b64encode(data[0]).decode('utf-8')}"
+                                )
+                            value["data"] = None
+                elif msg.get("status") == "failed":
+                    raise HTTPException(status_code=500, detail=msg.get("error"))
         return result

@@ -3,6 +3,7 @@ from enum import Enum
 from nodetool.workflows.base_node import get_registered_node_classes
 
 import nodetool.nodes.aime
+import nodetool.nodes.apple
 import nodetool.nodes.anthropic
 import nodetool.nodes.chroma
 import nodetool.nodes.comfy
@@ -17,9 +18,12 @@ import nodetool.nodes.kling
 
 class EnumEncoder(json.JSONEncoder):
     def default(self, obj):
-        if isinstance(obj, Enum):
-            return obj.value
-        return super().default(obj)
+        try:
+            if isinstance(obj, Enum):
+                return obj.value
+            return super().default(obj)
+        except TypeError as e:
+            raise TypeError(f"Error encoding {obj}: {e}")
 
 
 # write metadata to src/nodetool/metadata/nodes.json
