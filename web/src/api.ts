@@ -763,7 +763,7 @@ export interface paths {
         };
         /**
          * List Files
-         * @description List files and directories in the specified path
+         * @description List files and directories in the specified path, excluding hidden files (starting with dot)
          */
         get: operations["list_files_api_files_list_get"];
         put?: never;
