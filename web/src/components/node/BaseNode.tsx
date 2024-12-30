@@ -236,18 +236,21 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     const firstOutputColor = metadata?.outputs?.[0]?.type?.type;
     return {
       headerColor: firstOutputColor
-        ? simulateOpacity(
-            colorForType(firstOutputColor),
-            0.7,
-            ThemeNodes.palette.c_editor_bg_color
+        ? darkenHexColor(
+            simulateOpacity(
+              colorForType(firstOutputColor),
+              0.5,
+              ThemeNodes.palette.c_node_bg
+            ),
+            20
           )
         : "",
       footerColor: firstOutputColor
         ? darkenHexColor(
             simulateOpacity(
               colorForType(firstOutputColor),
-              0.5,
-              ThemeNodes.palette.c_editor_bg_color
+              0.25,
+              ThemeNodes.palette.c_node_bg
             ),
             100
           )
