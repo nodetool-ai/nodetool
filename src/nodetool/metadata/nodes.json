@@ -986,7 +986,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": 0,
+        "default": 10,
         "title": "Note Limit",
         "description": "Maximum number of notes to export (0 for unlimited)",
         "min": null,
@@ -1001,69 +1001,9 @@
           "type_args": [],
           "type_name": null
         },
-        "default": 0,
+        "default": 10,
         "title": "Note Limit Per Folder",
         "description": "Maximum notes per folder (0 for unlimited)",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "note_pick_probability",
-        "type": {
-          "type": "float",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": 1.0,
-        "title": "Note Pick Probability",
-        "description": "Probability of picking each note (0.0-1.0)",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "filename_format",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "&title",
-        "title": "Filename Format",
-        "description": "Format for exported filenames",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "subdir_format",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "&account-&folder",
-        "title": "Subdir Format",
-        "description": "Format for subdirectories",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "use_subdirs",
-        "type": {
-          "type": "bool",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": true,
-        "title": "Use Subdirs",
-        "description": "Whether to use subdirectories",
         "min": null,
         "max": null
       }
@@ -1347,125 +1287,6 @@
         "default": 10,
         "title": "Limit",
         "description": "Maximum number of recent messages to retrieve",
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "list",
-          "optional": false,
-          "values": null,
-          "type_args": [
-            {
-              "type": "dict",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": []
-  },
-  {
-    "title": "Import Photo",
-    "description": "Import photos into Apple Photos via AppleScript\n    photos, automation, macos, media\n\n    Use cases:\n    - Automate photo imports\n    - Add images to specific albums\n    - Process and organize photos",
-    "namespace": "apple.photos",
-    "node_type": "apple.photos.ImportPhoto",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "image",
-        "type": {
-          "type": "image",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": null,
-        "title": "Image",
-        "description": "Image to import",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "album_name",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Album Name",
-        "description": "Optional album to add the photo to",
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [],
-    "the_model_info": {},
-    "recommended_models": []
-  },
-  {
-    "title": "Read Photos",
-    "description": "Read photos from Apple Photos via AppleScript\n    photos, automation, macos, media\n\n    Use cases:\n    - Search through photo library\n    - Extract photo metadata\n    - Process photo information",
-    "namespace": "apple.photos",
-    "node_type": "apple.photos.ReadPhotos",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "album_name",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Album Name",
-        "description": "Optional album to search in",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "search_term",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Search Term",
-        "description": "Optional search term",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "limit",
-        "type": {
-          "type": "int",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": 10,
-        "title": "Limit",
-        "description": "Maximum number of photos to return",
         "min": null,
         "max": null
       }
@@ -22862,6 +22683,135 @@
     "recommended_models": []
   },
   {
+    "title": "Make Dictionary",
+    "description": "Creates a simple dictionary with up to three key-value pairs.\n    dictionary, create, simple\n\n    Use cases:\n    - Create configuration entries\n    - Initialize simple data structures\n    - Build basic key-value mappings",
+    "namespace": "nodetool.dictionary",
+    "node_type": "nodetool.dictionary.MakeDictionary",
+    "layout": "small",
+    "properties": [
+      {
+        "name": "key1",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Key1",
+        "description": "First key",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "value1",
+        "type": {
+          "type": "any",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Value1",
+        "description": "First value",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "key2",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Key2",
+        "description": "Second key (optional)",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "value2",
+        "type": {
+          "type": "any",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Value2",
+        "description": "Second value (optional)",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "key3",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Key3",
+        "description": "Third key (optional)",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "value3",
+        "type": {
+          "type": "any",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Value3",
+        "description": "Third value (optional)",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "dict",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "str",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            },
+            {
+              "type": "any",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
     "title": "File Exists",
     "description": "Check if a file or directory exists at the specified path.\n    files, check, exists\n\n    Use cases:\n    - Validate file presence before processing\n    - Implement conditional logic based on file existence",
     "namespace": "nodetool.file",
@@ -24948,13 +24898,16 @@
       {
         "name": "path",
         "type": {
-          "type": "str",
+          "type": "file_path",
           "optional": false,
           "values": null,
           "type_args": [],
           "type_name": null
         },
-        "default": "",
+        "default": {
+          "type": "file_path",
+          "path": ""
+        },
         "title": "Path",
         "description": "The path to write the document to",
         "min": null,
@@ -25337,13 +25290,16 @@
       {
         "name": "filepath",
         "type": {
-          "type": "str",
+          "type": "file_path",
           "optional": false,
           "values": null,
           "type_args": [],
           "type_name": null
         },
-        "default": "",
+        "default": {
+          "type": "file_path",
+          "path": ""
+        },
         "title": "Filepath",
         "description": "Path where to save the file",
         "min": null,
@@ -25787,13 +25743,16 @@
       {
         "name": "input_path",
         "type": {
-          "type": "str",
+          "type": "file_path",
           "optional": false,
           "values": null,
           "type_args": [],
           "type_name": null
         },
-        "default": "",
+        "default": {
+          "type": "file_path",
+          "path": ""
+        },
         "title": "Input Path",
         "description": "Path to the input file",
         "min": null,
@@ -32325,7 +32284,7 @@
           ],
           "type_name": null
         },
-        "default": [],
+        "default": null,
         "title": "Values",
         "description": null,
         "min": null,
@@ -32425,7 +32384,7 @@
           ],
           "type_name": null
         },
-        "default": [],
+        "default": null,
         "title": "Values",
         "description": null,
         "min": null,
@@ -32448,7 +32407,7 @@
           ],
           "type_name": null
         },
-        "default": [],
+        "default": null,
         "title": "Indices",
         "description": null,
         "min": null,
@@ -32503,7 +32462,7 @@
           ],
           "type_name": null
         },
-        "default": [],
+        "default": null,
         "title": "Values",
         "description": null,
         "min": null,
@@ -32961,6 +32920,1672 @@
         "default": "ascending",
         "title": "Order",
         "description": null,
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "any",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
+    "title": "Filter Dicts",
+    "description": "Filter a list of dictionaries based on a condition.\n    list, filter, query, condition\n\n    Example conditions:\n    age > 30\n    age > 30 and salary < 50000\n    name == 'John Doe'\n    100 <= price <= 200\n    status in ['Active', 'Pending']\n    not (age < 18)\n\n    Use cases:\n    - Filter list of dictionary objects based on criteria\n    - Extract subset of data meeting specific conditions\n    - Clean data by removing unwanted entries",
+    "namespace": "nodetool.list",
+    "node_type": "nodetool.list.FilterDicts",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "values",
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "dict",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Values",
+        "description": "The list of dictionaries to filter.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "condition",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Condition",
+        "description": "The filtering condition to be applied, e.g. 'age > 30'.",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "dict",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
+    "title": "Filter Strings",
+    "description": "Filters a list of strings based on various criteria.\n    list, filter, strings, text\n\n    Use cases:\n    - Filter strings by length\n    - Filter strings containing specific text\n    - Filter strings by prefix/suffix\n    - Filter strings using regex patterns",
+    "namespace": "nodetool.list",
+    "node_type": "nodetool.list.FilterStrings",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "values",
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "str",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Values",
+        "description": "The list of strings to filter.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "filter_type",
+        "type": {
+          "type": "enum",
+          "optional": false,
+          "values": [
+            "contains",
+            "starts_with",
+            "ends_with",
+            "length_greater",
+            "length_less",
+            "exact_length"
+          ],
+          "type_args": [],
+          "type_name": "nodetool.nodes.nodetool.list.FilterType"
+        },
+        "default": "contains",
+        "title": "Filter Type",
+        "description": "The type of filter to apply",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "criteria",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Criteria",
+        "description": "The filtering criteria (text to match or length as string)",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "str",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
+    "title": "Filter Numbers",
+    "description": "Filters a list of numbers based on various numerical conditions.\n    list, filter, numbers, numeric\n\n    Use cases:\n    - Filter numbers by comparison (greater than, less than, equal to)\n    - Filter even/odd numbers\n    - Filter positive/negative numbers",
+    "namespace": "nodetool.list",
+    "node_type": "nodetool.list.FilterNumbers",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "values",
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "float",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Values",
+        "description": "The list of numbers to filter.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "filter_type",
+        "type": {
+          "type": "enum",
+          "optional": false,
+          "values": [
+            "greater_than",
+            "less_than",
+            "equal_to",
+            "even",
+            "odd",
+            "positive",
+            "negative"
+          ],
+          "type_args": [],
+          "type_name": "nodetool.nodes.nodetool.list.FilterType"
+        },
+        "default": "greater_than",
+        "title": "Filter Type",
+        "description": "The type of filter to apply",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "value",
+        "type": {
+          "type": "union",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "float",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            },
+            {
+              "type": "none",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Value",
+        "description": "The comparison value (for greater_than, less_than, equal_to)",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "float",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
+    "title": "Filter Number Range",
+    "description": "Filters a list of numbers to find values within a specified range.\n    list, filter, numbers, range, between\n\n    Use cases:\n    - Find numbers within a specific range\n    - Filter data points within bounds\n    - Implement range-based filtering",
+    "namespace": "nodetool.list",
+    "node_type": "nodetool.list.FilterNumberRange",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "values",
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "float",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Values",
+        "description": null,
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "min_value",
+        "type": {
+          "type": "float",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 0,
+        "title": "Min Value",
+        "description": null,
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "max_value",
+        "type": {
+          "type": "float",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 0,
+        "title": "Max Value",
+        "description": null,
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "inclusive",
+        "type": {
+          "type": "bool",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": true,
+        "title": "Inclusive",
+        "description": null,
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "float",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
+    "title": "Filter Regex",
+    "description": "Filters a list of strings using regular expressions.\n    list, filter, regex, pattern, text\n\n    Use cases:\n    - Filter strings using complex patterns\n    - Extract strings matching specific formats (emails, dates, etc.)\n    - Advanced text pattern matching",
+    "namespace": "nodetool.list",
+    "node_type": "nodetool.list.FilterRegex",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "values",
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "str",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Values",
+        "description": "The list of strings to filter.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "pattern",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Pattern",
+        "description": "The regular expression pattern to match against.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "full_match",
+        "type": {
+          "type": "bool",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": false,
+        "title": "Full Match",
+        "description": "Whether to match the entire string or find pattern anywhere in string",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "str",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
+    "title": "Filter None",
+    "description": "Filters out None values from a list.\n    list, filter, none, null\n\n    Use cases:\n    - Clean data by removing null values\n    - Get only valid entries\n    - Remove placeholder values",
+    "namespace": "nodetool.list",
+    "node_type": "nodetool.list.FilterNone",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "values",
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "any",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Values",
+        "description": "The list to filter None values from.",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "any",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
+    "title": "Filter Dicts By Value",
+    "description": "Filters a list of dictionaries based on their values using various criteria.\n    list, filter, dictionary, values\n\n    Use cases:\n    - Filter dictionaries by value content\n    - Filter dictionaries by value type\n    - Filter dictionaries by value patterns",
+    "namespace": "nodetool.list",
+    "node_type": "nodetool.list.FilterDictsByValue",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "values",
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "dict",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Values",
+        "description": "The list of dictionaries to filter.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "key",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Key",
+        "description": "The dictionary key to check",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "filter_type",
+        "type": {
+          "type": "enum",
+          "optional": false,
+          "values": [
+            "contains",
+            "starts_with",
+            "ends_with",
+            "equals",
+            "type_is",
+            "length_greater",
+            "length_less",
+            "exact_length"
+          ],
+          "type_args": [],
+          "type_name": "nodetool.nodes.nodetool.list.FilterType"
+        },
+        "default": "contains",
+        "title": "Filter Type",
+        "description": "The type of filter to apply",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "criteria",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Criteria",
+        "description": "The filtering criteria (text to match, type name, or length as string)",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "dict",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
+    "title": "Filter Dicts By Range",
+    "description": "Filters a list of dictionaries based on a numeric range for a specified key.\n    list, filter, dictionary, range, between\n\n    Use cases:\n    - Filter records based on numeric ranges (e.g., price range, age range)\n    - Find entries with values within specified bounds\n    - Filter data sets based on numeric criteria",
+    "namespace": "nodetool.list",
+    "node_type": "nodetool.list.FilterDictsByRange",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "values",
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "dict",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Values",
+        "description": "The list of dictionaries to filter.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "key",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Key",
+        "description": "The dictionary key to check for the range",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "min_value",
+        "type": {
+          "type": "float",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Min Value",
+        "description": "The minimum value (inclusive) of the range",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "max_value",
+        "type": {
+          "type": "float",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Max Value",
+        "description": "The maximum value (inclusive) of the range",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "inclusive",
+        "type": {
+          "type": "bool",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": true,
+        "title": "Inclusive",
+        "description": "If True, includes the min and max values in the results",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "dict",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
+    "title": "Filter Dicts By Number",
+    "description": "Filters a list of dictionaries based on numeric values for a specified key.\n    list, filter, dictionary, numbers, numeric\n\n    Use cases:\n    - Filter dictionaries by numeric comparisons (greater than, less than, equal to)\n    - Filter records with even/odd numeric values\n    - Filter entries with positive/negative numbers",
+    "namespace": "nodetool.list",
+    "node_type": "nodetool.list.FilterDictsByNumber",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "values",
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "dict",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Values",
+        "description": null,
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "key",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Key",
+        "description": null,
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "filter_type",
+        "type": {
+          "type": "enum",
+          "optional": false,
+          "values": [
+            "greater_than",
+            "less_than",
+            "equal_to",
+            "even",
+            "odd",
+            "positive",
+            "negative"
+          ],
+          "type_args": [],
+          "type_name": "nodetool.nodes.nodetool.list.FilterType"
+        },
+        "default": "greater_than",
+        "title": "Filter Type",
+        "description": null,
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "value",
+        "type": {
+          "type": "union",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "float",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            },
+            {
+              "type": "none",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Value",
+        "description": null,
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "dict",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
+    "title": "Filter Dicts Regex",
+    "description": "Filters a list of dictionaries using regular expressions on specified keys.\n    list, filter, regex, dictionary, pattern\n\n    Use cases:\n    - Filter dictionaries with values matching complex patterns\n    - Search for dictionaries containing emails, dates, or specific formats\n    - Advanced text pattern matching across dictionary values",
+    "namespace": "nodetool.list",
+    "node_type": "nodetool.list.FilterDictsRegex",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "values",
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "dict",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Values",
+        "description": null,
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "key",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Key",
+        "description": null,
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "pattern",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Pattern",
+        "description": null,
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "full_match",
+        "type": {
+          "type": "bool",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": false,
+        "title": "Full Match",
+        "description": null,
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "dict",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
+    "title": "Intersection",
+    "description": "Finds common elements between two lists.\n    list, set, intersection, common\n\n    Use cases:\n    - Find elements present in both lists\n    - Identify shared items between collections\n    - Filter for matching elements",
+    "namespace": "nodetool.list",
+    "node_type": "nodetool.list.Intersection",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "list1",
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "any",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": null,
+        "title": "List1",
+        "description": null,
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "list2",
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "any",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": null,
+        "title": "List2",
+        "description": null,
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "any",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
+    "title": "Union",
+    "description": "Combines unique elements from two lists.\n    list, set, union, combine\n\n    Use cases:\n    - Merge lists while removing duplicates\n    - Combine collections uniquely\n    - Create comprehensive set of items",
+    "namespace": "nodetool.list",
+    "node_type": "nodetool.list.Union",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "list1",
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "any",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": null,
+        "title": "List1",
+        "description": null,
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "list2",
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "any",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": null,
+        "title": "List2",
+        "description": null,
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "any",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
+    "title": "Difference",
+    "description": "Finds elements that exist in first list but not in second list.\n    list, set, difference, subtract\n\n    Use cases:\n    - Find unique elements in one list\n    - Remove items present in another list\n    - Identify distinct elements",
+    "namespace": "nodetool.list",
+    "node_type": "nodetool.list.Difference",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "list1",
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "any",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": null,
+        "title": "List1",
+        "description": null,
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "list2",
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "any",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": null,
+        "title": "List2",
+        "description": null,
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "any",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
+    "title": "Chunk",
+    "description": "Splits a list into smaller chunks of specified size.\n    list, chunk, split, group\n\n    Use cases:\n    - Batch processing\n    - Pagination\n    - Creating sublists of fixed size",
+    "namespace": "nodetool.list",
+    "node_type": "nodetool.list.Chunk",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "values",
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "any",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Values",
+        "description": null,
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "chunk_size",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 1,
+        "title": "Chunk Size",
+        "description": null,
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "list",
+              "optional": false,
+              "values": null,
+              "type_args": [
+                {
+                  "type": "any",
+                  "optional": false,
+                  "values": null,
+                  "type_args": [],
+                  "type_name": null
+                }
+              ],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
+    "title": "Transform",
+    "description": "Applies a transformation to each element in a list.\n    list, transform, map, convert\n\n    Use cases:\n    - Convert types (str to int, etc.)\n    - Apply formatting\n    - Mathematical operations",
+    "namespace": "nodetool.list",
+    "node_type": "nodetool.list.Transform",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "values",
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "any",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Values",
+        "description": "The list of values to transform",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "transform_type",
+        "type": {
+          "type": "enum",
+          "optional": false,
+          "values": [
+            "to_int",
+            "to_float",
+            "to_string",
+            "uppercase",
+            "lowercase",
+            "strip"
+          ],
+          "type_args": [],
+          "type_name": "nodetool.nodes.nodetool.list.TransformType"
+        },
+        "default": "to_string",
+        "title": "Transform Type",
+        "description": null,
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "any",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
+    "title": "Sum",
+    "description": "Calculates the sum of a list of numbers.\n    list, sum, aggregate, math\n\n    Use cases:\n    - Calculate total of numeric values\n    - Add up all elements in a list",
+    "namespace": "nodetool.list",
+    "node_type": "nodetool.list.Sum",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "values",
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "float",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Values",
+        "description": null,
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "float",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
+    "title": "Average",
+    "description": "Calculates the arithmetic mean of a list of numbers.\n    list, average, mean, aggregate, math\n\n    Use cases:\n    - Find average value\n    - Calculate mean of numeric data",
+    "namespace": "nodetool.list",
+    "node_type": "nodetool.list.Average",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "values",
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "float",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Values",
+        "description": null,
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "float",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
+    "title": "Minimum",
+    "description": "Finds the smallest value in a list of numbers.\n    list, min, minimum, aggregate, math\n\n    Use cases:\n    - Find lowest value\n    - Get smallest number in dataset",
+    "namespace": "nodetool.list",
+    "node_type": "nodetool.list.Minimum",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "values",
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "float",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Values",
+        "description": null,
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "float",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
+    "title": "Maximum",
+    "description": "Finds the largest value in a list of numbers.\n    list, max, maximum, aggregate, math\n\n    Use cases:\n    - Find highest value\n    - Get largest number in dataset",
+    "namespace": "nodetool.list",
+    "node_type": "nodetool.list.Maximum",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "values",
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "float",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Values",
+        "description": null,
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "float",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
+    "title": "Product",
+    "description": "Calculates the product of all numbers in a list.\n    list, product, multiply, aggregate, math\n\n    Use cases:\n    - Multiply all numbers together\n    - Calculate compound values",
+    "namespace": "nodetool.list",
+    "node_type": "nodetool.list.Product",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "values",
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "float",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Values",
+        "description": null,
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "float",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
+    "title": "Map Field",
+    "description": "Extracts a specific field from a list of dictionaries.\n    list, map, field, extract, pluck\n\n    Use cases:\n    - Extract specific fields from a list of objects\n    - Transform complex data structures into simple lists\n    - Collect values for a particular key across multiple dictionaries",
+    "namespace": "nodetool.list",
+    "node_type": "nodetool.list.MapField",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "values",
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "dict",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Values",
+        "description": "The list of dictionaries to extract from",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "field",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Field",
+        "description": "The dictionary key to extract",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "default",
+        "type": {
+          "type": "any",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Default",
+        "description": "Default value if field is missing (None if not specified)",
         "min": null,
         "max": null
       }
@@ -40709,6 +42334,249 @@
           "optional": false,
           "values": null,
           "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
+    "title": "HTMLTo Text",
+    "description": "Converts HTML to plain text by removing tags and decoding entities.\n    html, text, convert\n\n    Use cases:\n    - Cleaning HTML content for text analysis\n    - Extracting readable content from web pages\n    - Preparing HTML data for natural language processing",
+    "namespace": "nodetool.text",
+    "node_type": "nodetool.text.HTMLToText",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "text",
+        "type": {
+          "type": "union",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "str",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            },
+            {
+              "type": "text",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": "",
+        "title": "HTML",
+        "description": null,
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "preserve_linebreaks",
+        "type": {
+          "type": "bool",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": true,
+        "title": "Preserve Line Breaks",
+        "description": "Convert <br> and </p> tags to newlines",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "union",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "str",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            },
+            {
+              "type": "text",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
+    "title": "Slice",
+    "description": "Slices text using Python's slice notation (start:stop:step).\n    text, slice, substring\n\n    Use cases:\n    - Extracting specific portions of text with flexible indexing\n    - Reversing text using negative step\n    - Taking every nth character with step parameter\n\n    Examples:\n    - start=0, stop=5: first 5 characters\n    - start=-5: last 5 characters\n    - step=2: every second character\n    - step=-1: reverse the text",
+    "namespace": "nodetool.text",
+    "node_type": "nodetool.text.Slice",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "text",
+        "type": {
+          "type": "union",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "str",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            },
+            {
+              "type": "text",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Text",
+        "description": null,
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "start",
+        "type": {
+          "type": "union",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "int",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            },
+            {
+              "type": "none",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Start Index",
+        "description": null,
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "stop",
+        "type": {
+          "type": "union",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "int",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            },
+            {
+              "type": "none",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Stop Index",
+        "description": null,
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "step",
+        "type": {
+          "type": "union",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "int",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            },
+            {
+              "type": "none",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Step",
+        "description": null,
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "union",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "str",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            },
+            {
+              "type": "text",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
           "type_name": null
         },
         "name": "output",
@@ -52410,6 +54278,39 @@
       {
         "type": "hf.zero_shot_classification",
         "repo_id": "facebook/bart-large-mnli",
+        "path": null,
+        "allow_patterns": [
+          "*.json",
+          "*.txt",
+          "*.safetensors"
+        ],
+        "ignore_patterns": null
+      },
+      {
+        "type": "hf.zero_shot_classification",
+        "repo_id": "MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli",
+        "path": null,
+        "allow_patterns": [
+          "*.json",
+          "*.txt",
+          "*.safetensors"
+        ],
+        "ignore_patterns": null
+      },
+      {
+        "type": "hf.zero_shot_classification",
+        "repo_id": "MoritzLaurer/mDeBERTa-v3-base-mnli-xnli",
+        "path": null,
+        "allow_patterns": [
+          "*.json",
+          "*.txt",
+          "*.safetensors"
+        ],
+        "ignore_patterns": null
+      },
+      {
+        "type": "hf.zero_shot_classification",
+        "repo_id": "tasksource/ModernBERT-base-nli",
         "path": null,
         "allow_patterns": [
           "*.json",
@@ -87814,6 +89715,245 @@
           "optional": false,
           "values": null,
           "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
+    "title": "Gmail Search",
+    "description": "Searches Gmail using Gmail-specific search operators.\n    email, gmail, search\n\n    Examples of Gmail search operators:\n    - from:sender@example.com\n    - to:recipient@example.com\n    - subject:hello\n    - has:attachment\n    - newer_than:2d\n    - older_than:1y\n    - label:important",
+    "namespace": "google.mail",
+    "node_type": "google.mail.GmailSearch",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "email_address",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Email Address",
+        "description": "Gmail address to connect to",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "search_query",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Search Query",
+        "description": "Gmail search query using Gmail search operators: from:sender@example.com to:recipient@example.com subject:hello has:attachment newer_than:2d older_than:1y label:important",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "max_results",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 50,
+        "title": "Max Results",
+        "description": "Maximum number of emails to return",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "dict",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
+    "title": "Gmail Label",
+    "description": "Searches Gmail for emails with specific labels.\n    email, gmail, label",
+    "namespace": "google.mail",
+    "node_type": "google.mail.GmailLabel",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "email_address",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Email Address",
+        "description": "Gmail address to connect to",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "label",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "INBOX",
+        "title": "Label",
+        "description": "Gmail label to search (e.g., INBOX, SENT, DRAFT, SPAM)",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "unread_only",
+        "type": {
+          "type": "bool",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": false,
+        "title": "Unread Only",
+        "description": "Only return unread emails",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "max_results",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 50,
+        "title": "Max Results",
+        "description": "Maximum number of emails to return",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "dict",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
+    "title": "Move To Archive",
+    "description": "Moves specified emails to Gmail archive.\n    email, gmail, archive",
+    "namespace": "google.mail",
+    "node_type": "google.mail.MoveToArchive",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "email_address",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Email Address",
+        "description": "Gmail address to connect to",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "message_ids",
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "str",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Message Ids",
+        "description": "List of message IDs to archive",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "str",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
           "type_name": null
         },
         "name": "output",

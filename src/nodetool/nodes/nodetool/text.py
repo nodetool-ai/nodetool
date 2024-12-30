@@ -19,6 +19,8 @@ from nodetool.metadata.types import TextRef
 from nodetool.workflows.base_node import BaseNode
 from dataclasses import dataclass
 from typing import Optional
+from html import unescape
+from bs4 import BeautifulSoup
 
 
 async def to_string(context: ProcessingContext, text: TextRef | str) -> str:
@@ -595,3 +597,80 @@ class RegexExtract(BaseNode):
         if match:
             return match.groupdict()
         return {}
+
+
+class HTMLToText(BaseNode):
+    """
+    Converts HTML to plain text by removing tags and decoding entities using BeautifulSoup.
+    html, text, convert
+
+    Use cases:
+    - Cleaning HTML content for text analysis
+    - Extracting readable content from web pages
+    - Preparing HTML data for natural language processing
+    """
+
+    text: str | TextRef = Field(title="HTML", default="")
+    preserve_linebreaks: bool = Field(
+        title="Preserve Line Breaks",
+        default=True,
+        description="Convert block-level elements to newlines",
+    )
+
+    async def process(self, context: ProcessingContext) -> str | TextRef:
+        html = await to_string(context, self.text)
+
+        # Parse HTML with BeautifulSoup
+        soup = BeautifulSoup(html, "html.parser")
+
+        # Handle line breaks if preserve_linebreaks is True
+        if self.preserve_linebreaks:
+            # Replace <br> tags with newlines
+            for br in soup.find_all("br"):
+                br.replace_with("\n")
+
+            # Add newlines after block-level elements
+            for tag in soup.find_all(
+                ["p", "div", "h1", "h2", "h3", "h4", "h5", "h6", "li"]
+            ):
+                tag.append("\n")
+
+        # Get text content
+        text = soup.get_text()
+
+        # Clean up whitespace
+        text = re.sub(
+            r"\n\s*\n", "\n\n", text
+        )  # Convert multiple blank lines to double line breaks
+        text = re.sub(r" +", " ", text)  # Remove multiple spaces
+        text = text.strip()
+
+        return await convert_result(context, [self.text], text)
+
+
+class Slice(BaseNode):
+    """
+    Slices text using Python's slice notation (start:stop:step).
+    text, slice, substring
+
+    Use cases:
+    - Extracting specific portions of text with flexible indexing
+    - Reversing text using negative step
+    - Taking every nth character with step parameter
+
+    Examples:
+    - start=0, stop=5: first 5 characters
+    - start=-5: last 5 characters
+    - step=2: every second character
+    - step=-1: reverse the text
+    """
+
+    text: str | TextRef = Field(title="Text", default="")
+    start: int | None = Field(title="Start Index", default=None)
+    stop: int | None = Field(title="Stop Index", default=None)
+    step: int | None = Field(title="Step", default=None)
+
+    async def process(self, context: ProcessingContext) -> str | TextRef:
+        text = await to_string(context, self.text)
+        res = text[slice(self.start, self.stop, self.step)]
+        return await convert_result(context, [self.text], res)
