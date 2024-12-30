@@ -1930,6 +1930,234 @@
     "recommended_models": []
   },
   {
+    "title": "Count",
+    "description": "Count the number of documents in a collection.",
+    "namespace": "chroma.collections",
+    "node_type": "chroma.collections.Count",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "collection",
+        "type": {
+          "type": "chroma_collection",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "chroma_collection",
+          "name": "",
+          "embedding_function": {
+            "type": "chroma.embedding_function",
+            "embedding_function": "openclip",
+            "model": null,
+            "repo_id": null
+          }
+        },
+        "title": "Collection",
+        "description": "The collection to count",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
+    "title": "Get Documents",
+    "description": "Get documents from a chroma collection.",
+    "namespace": "chroma.collections",
+    "node_type": "chroma.collections.GetDocuments",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "collection",
+        "type": {
+          "type": "chroma_collection",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "chroma_collection",
+          "name": "",
+          "embedding_function": {
+            "type": "chroma.embedding_function",
+            "embedding_function": "openclip",
+            "model": null,
+            "repo_id": null
+          }
+        },
+        "title": "Collection",
+        "description": "The collection to get",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "ids",
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "str",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Ids",
+        "description": "The ids of the documents to get",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "limit",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 100,
+        "title": "Limit",
+        "description": "The limit of the documents to get",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "offset",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 0,
+        "title": "Offset",
+        "description": "The offset of the documents to get",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "str",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
+    "title": "Peek",
+    "description": "Peek at the documents in a collection.",
+    "namespace": "chroma.collections",
+    "node_type": "chroma.collections.Peek",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "collection",
+        "type": {
+          "type": "chroma_collection",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "chroma_collection",
+          "name": "",
+          "embedding_function": {
+            "type": "chroma.embedding_function",
+            "embedding_function": "openclip",
+            "model": null,
+            "repo_id": null
+          }
+        },
+        "title": "Collection",
+        "description": "The collection to peek",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "limit",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 100,
+        "title": "Limit",
+        "description": "The limit of the documents to peek",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "str",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
     "title": "Index Images",
     "description": "Index a list of image assets or files.",
     "namespace": "chroma.index",
@@ -89336,6 +89564,166 @@
       {
         "type": {
           "type": "chart_config",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
+    "title": "Question Answer Agent",
+    "description": "LLM Agent to generate answers based on a question and context from RAG results.\n    llm, question-answering, RAG\n\n    Use cases:\n    - Answering questions using retrieved context\n    - Generating coherent responses from multiple text sources\n    - Knowledge-based Q&A systems",
+    "namespace": "ollama.agents",
+    "node_type": "ollama.agents.QuestionAnswerAgent",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "model",
+        "type": {
+          "type": "llama_model",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "llama_model",
+          "name": "",
+          "repo_id": "",
+          "modified_at": "",
+          "size": 0,
+          "digest": "",
+          "details": {}
+        },
+        "title": "Model",
+        "description": "The Llama model to use for answer generation.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "context_window",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 4096,
+        "title": "Context Window",
+        "description": "The context window size to use for the model.",
+        "min": 1.0,
+        "max": null
+      },
+      {
+        "name": "question",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Question",
+        "description": "The question to answer",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "context",
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "str",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Context",
+        "description": "List of context strings from RAG retrieval",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "temperature",
+        "type": {
+          "type": "float",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 0.7,
+        "title": "Temperature",
+        "description": "The temperature to use for sampling.",
+        "min": 0.0,
+        "max": 2.0
+      },
+      {
+        "name": "top_k",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 50,
+        "title": "Top K",
+        "description": "The number of highest probability tokens to keep for top-k sampling.",
+        "min": 1.0,
+        "max": 100.0
+      },
+      {
+        "name": "top_p",
+        "type": {
+          "type": "float",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 0.95,
+        "title": "Top P",
+        "description": "The cumulative probability cutoff for nucleus/top-p sampling.",
+        "min": 0.0,
+        "max": 1.0
+      },
+      {
+        "name": "keep_alive",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "300",
+        "title": "Keep Alive",
+        "description": "The number of seconds to keep the model alive.",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "str",
           "optional": false,
           "values": null,
           "type_args": [],

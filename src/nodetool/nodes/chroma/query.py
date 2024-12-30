@@ -29,7 +29,7 @@ class QueryImage(ChromaNode):
         if not self.image.asset_id and self.image.uri.startswith("file://"):
             raise ValueError("The image needs to be selected")
 
-        collection = self.get_or_create_collection(context, self.collection)
+        collection = self.get_collection(context, self.collection)
         image = await context.image_to_pil(self.image)
         result = collection.query(
             query_images=[np.array(image)], n_results=self.n_results
@@ -82,7 +82,7 @@ class QueryDocuments(ChromaNode):
         if not self.text:
             raise ValueError("The text needs to be provided")
 
-        collection = self.get_or_create_collection(context, self.collection)
+        collection = self.get_collection(context, self.collection)
 
         result = collection.query(
             query_texts=[self.text],
