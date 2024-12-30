@@ -88,8 +88,15 @@ class IndexImages(ChromaNode):
         default_factory=list, description="List of image assets to index"
     )
 
+    @classmethod
+    def required_inputs(cls):
+        return [
+            "collection",
+            "images",
+        ]
+
     async def process(self, context: ProcessingContext):
-        collection = self.get_or_create_collection(context, self.collection)
+        collection = self.get_collection(context, self.collection)
         total = len(self.images)
         context.post_message(NodeProgress(node_id=self._id, progress=0, total=total))
         # Validate all images have asset_ids
@@ -109,7 +116,7 @@ class IndexImages(ChromaNode):
         image_arrays = [np.array(img) for img in images]
 
         # Add all images in one call
-        collection.add(ids=image_ids, images=image_arrays)
+        collection.upsert(ids=image_ids, images=image_arrays)
 
 
 class IndexTexts(ChromaNode):
@@ -124,6 +131,10 @@ class IndexTexts(ChromaNode):
         default=[],
         description="Dictionary of ID to text content pairs to index",
     )
+
+    @classmethod
+    def required_inputs(cls):
+        return ["collection"]
 
     async def process(self, context: ProcessingContext):
         collection = self.get_or_create_collection(context, self.collection)
@@ -158,6 +169,10 @@ class IndexImage(ChromaNode):
     )
     image: ImageRef = Field(default=ImageRef(), description="Image asset to index")
 
+    @classmethod
+    def required_inputs(cls):
+        return ["collection"]
+
     async def process(self, context: ProcessingContext):
         if not self.image.asset_id and not self.image.uri.startswith("file://"):
             raise ValueError("The image needs to be an asset or a local file")
@@ -177,6 +192,10 @@ class IndexText(ChromaNode):
         default=ChromaCollection(), description="The collection to index"
     )
     text: TextRef = Field(default=TextRef(), description="Text asset to index")
+
+    @classmethod
+    def required_inputs(cls):
+        return ["collection"]
 
     async def process(self, context: ProcessingContext):
         if not self.text.asset_id:
@@ -200,6 +219,10 @@ class IndexTextChunk(ChromaNode):
         default=TextChunk(), description="Text chunk to index"
     )
 
+    @classmethod
+    def required_inputs(cls):
+        return ["collection"]
+
     async def process(self, context: ProcessingContext):
         if not self.text_chunk.source_id.strip():
             raise ValueError("The source ID cannot be empty")
@@ -221,6 +244,10 @@ class IndexTextChunks(ChromaNode):
     text_chunks: List[TextChunk] = Field(
         default_factory=list, description="List of text chunks to index"
     )
+
+    @classmethod
+    def required_inputs(cls):
+        return ["collection"]
 
     async def process(self, context: ProcessingContext):
         if not self.text_chunks:
@@ -256,9 +283,15 @@ class IndexString(ChromaNode):
         default="", description="Document ID to associate with the text content"
     )
 
+    @classmethod
+    def required_inputs(cls):
+        return ["collection"]
+
     async def process(self, context: ProcessingContext):
         if not self.document_id.strip():
             raise ValueError("The document ID cannot be empty")
 
-        collection = self.get_or_create_collection(context, self.collection)
+        print("COLLECTION", self.collection)
+
+        collection = self.get_collection(context, self.collection)
         collection.add(ids=[self.document_id], documents=[self.text])
