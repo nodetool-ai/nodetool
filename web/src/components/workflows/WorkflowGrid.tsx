@@ -160,7 +160,7 @@ const WorkflowGrid = () => {
   const deleteWorkflow = useWorkflowStore((state) => state.delete);
   const [workflowsToDelete, setWorkflowsToDelete] = useState<Workflow[]>([]);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false);
-  const [showCheckboxes, setShowCheckboxes] = useState(true);
+  const [showCheckboxes, setShowCheckboxes] = useState(false);
 
   // OPEN WORKFLOW
   const onDoubleClickWorkflow = useCallback(
