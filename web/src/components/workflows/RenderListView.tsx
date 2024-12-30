@@ -38,12 +38,16 @@ const listStyles = (theme: any) =>
       flexDirection: "row",
       gap: "1em",
       alignItems: "flex-start",
-      margin: ".25em 0",
-      padding: "0.4em 0",
+      margin: "2px 0",
+      padding: "0",
       width: "100%",
       cursor: "pointer",
       borderBottom: "1px solid black",
-      transition: "background 0.2s"
+      transition: "background 0.2s",
+      "& .MuiCheckbox-root": {
+        margin: 0,
+        padding: 0
+      }
     },
     ".workflow:hover": {
       backgroundColor: theme.palette.c_gray1,
@@ -56,8 +60,8 @@ const listStyles = (theme: any) =>
     },
     ".name-and-description": {
       display: "flex",
-      flexDirection: "column",
-      gap: "0.1em"
+      flexDirection: "column"
+      // gap: "0.1em"
     },
     ".name": {
       fontSize: theme.fontSizeNormal,
@@ -151,6 +155,7 @@ export const RenderListView: React.FC<RenderListViewProps> = ({
                 enterDelay={TOOLTIP_ENTER_DELAY}
               >
                 <Checkbox
+                  size="small"
                   checked={selectedWorkflows?.includes(workflow.id) || false}
                   onClick={(e) => {
                     e.preventDefault();
