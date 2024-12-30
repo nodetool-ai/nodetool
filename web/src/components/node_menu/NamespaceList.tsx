@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import React, { memo, useMemo } from "react";
+import React, { memo, useCallback, useMemo } from "react";
 import { Box, List, Tooltip, Typography } from "@mui/material";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import RenderNamespaces from "./RenderNamespaces";
@@ -248,6 +248,7 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
     selectedPath,
     searchResults,
     hoveredNode,
+    setHoveredNode,
     selectedInputType,
     selectedOutputType
   } = useNodeMenuStore((state) => ({
@@ -256,6 +257,7 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
     selectedPath: state.selectedPath,
     searchResults: state.searchResults,
     hoveredNode: state.hoveredNode,
+    setHoveredNode: state.setHoveredNode,
     selectedInputType: state.selectedInputType,
     selectedOutputType: state.selectedOutputType
   }));
@@ -264,6 +266,10 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
     () => selectedPath.join("."),
     [selectedPath]
   );
+
+  const closeNodeInfo = useCallback(() => {
+    setHoveredNode(null);
+  }, [setHoveredNode]);
 
   const currentNodes = useMemo(() => {
     if (!metadata) return [];
@@ -306,7 +312,10 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
   );
 
   const renderNodeInfo = useMemo(
-    () => hoveredNode && <NodeInfo nodeMetadata={hoveredNode} />,
+    () =>
+      hoveredNode && (
+        <NodeInfo nodeMetadata={hoveredNode} onClose={closeNodeInfo} />
+      ),
     [hoveredNode]
   );
   const memoizedStyles = useMemo(() => namespaceStyles(ThemeNodetool), []);
