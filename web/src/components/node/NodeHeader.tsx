@@ -8,6 +8,8 @@ import ThemeNodes from "../themes/ThemeNodes";
 import { isEqual } from "lodash";
 import { titleizeString } from "../../utils/titleizeString";
 import { NodeData } from "../../stores/NodeData";
+import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
+import useNodeMenuStore from "../../stores/NodeMenuStore";
 
 export interface NodeHeaderProps {
   id: string;
@@ -64,6 +66,7 @@ export const headerStyle = (theme: any, hasParent: boolean) =>
       alignItems: "center",
       justifyContent: "center",
       marginLeft: "0.2em",
+      marginRight: "0.2em",
       padding: 0,
       color: theme.palette.c_gray6,
       backgroundColor: "transparent",
@@ -151,17 +154,15 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
       )}
       {!data.title && <span className="node-title">{titleizedType}</span>}
       {showMenu && (
-        <>
-          <div className="menu-button" tabIndex={-1}>
-            <button
-              className="menu-button"
-              tabIndex={-1}
-              onClick={handleOpenContextMenu}
-            >
-              <MoreHoriz />
-            </button>
-          </div>
-        </>
+        <div className="menu-button" tabIndex={-1}>
+          <button
+            className="menu-button"
+            tabIndex={-1}
+            onClick={handleOpenContextMenu}
+          >
+            <MoreHoriz />
+          </button>
+        </div>
       )}
     </div>
   );
