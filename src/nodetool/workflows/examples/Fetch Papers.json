@@ -1,0 +1,290 @@
+{
+  "id": "6ad9a7aec3d811efbfc1000055ce688e",
+  "access": "public",
+  "created_at": "2024-12-30T16:28:00.482140",
+  "updated_at": "2024-12-30T16:28:00.482178",
+  "name": "Fetch Papers",
+  "description": "",
+  "tags": null,
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "2",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "str_output_2024-12-27"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 307,
+            "y": 400
+          },
+          "zIndex": 0,
+          "width": 290,
+          "height": 664,
+          "selectable": true
+        }
+      },
+      {
+        "id": "5",
+        "parent_id": null,
+        "type": "nodetool.dataframe.FromList",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 773,
+            "y": 488
+          },
+          "zIndex": 0,
+          "width": 103,
+          "selectable": true
+        }
+      },
+      {
+        "id": "6",
+        "parent_id": null,
+        "type": "nodetool.dataframe.Filter",
+        "data": {
+          "condition": "title == 'Paper'"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1022,
+            "y": 460
+          },
+          "zIndex": 0,
+          "width": 197,
+          "selectable": true
+        }
+      },
+      {
+        "id": "25",
+        "parent_id": null,
+        "type": "nodetool.dataframe.ExtractColumn",
+        "data": {
+          "column_name": "url"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360.3333333333333,
+            "y": 435
+          },
+          "zIndex": 0,
+          "width": 197,
+          "selectable": true
+        }
+      },
+      {
+        "id": "26",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "dataframe_output_2024-12-27"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 657,
+            "y": 50
+          },
+          "zIndex": 0,
+          "width": 335,
+          "height": 388,
+          "selectable": true
+        }
+      },
+      {
+        "id": "27",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "dataframe_output_2024-12-27"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1279,
+            "y": 637
+          },
+          "zIndex": 0,
+          "width": 319,
+          "height": 392,
+          "selectable": true
+        }
+      },
+      {
+        "id": "28",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "list_output_2024-12-27"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1658,
+            "y": 406
+          },
+          "zIndex": 0,
+          "width": 160,
+          "height": 160,
+          "selectable": true
+        }
+      },
+      {
+        "id": "31",
+        "parent_id": null,
+        "type": "nodetool.network.http.GetRequest",
+        "data": {
+          "url": "https://raw.githubusercontent.com/abacaj/awesome-transformers/refs/heads/main/README.md",
+          "headers": null,
+          "auth": null
+        },
+        "ui_properties": {
+          "position": {
+            "x": 43,
+            "y": 124
+          },
+          "zIndex": 0,
+          "width": 197,
+          "selectable": true
+        }
+      },
+      {
+        "id": "32",
+        "parent_id": null,
+        "type": "nodetool.file.markdown.ExtractLinks",
+        "data": {
+          "include_titles": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 300,
+            "y": 122
+          },
+          "zIndex": 0,
+          "width": 196,
+          "selectable": true
+        }
+      },
+      {
+        "id": "33",
+        "parent_id": null,
+        "type": "nodetool.network.http.DownloadFiles",
+        "data": {
+          "output_folder": {
+            "type": "file_path",
+            "path": "/Users/mmg/papers"
+          },
+          "headers": null,
+          "auth": null,
+          "max_concurrent_downloads": 5
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1645,
+            "y": 608
+          },
+          "zIndex": 0,
+          "width": 197,
+          "selectable": true
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "d53acf64-51fa-4a44-be42-4885940b4e41",
+        "source": "5",
+        "sourceHandle": "output",
+        "target": "6",
+        "targetHandle": "df",
+        "ui_properties": {
+          "className": "dataframe"
+        }
+      },
+      {
+        "id": "560bcb7e-8c28-4080-9cde-561ec5e4d609",
+        "source": "6",
+        "sourceHandle": "output",
+        "target": "27",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "dataframe"
+        }
+      },
+      {
+        "id": "1d80f214-6ba1-4123-9078-cf54c814f108",
+        "source": "31",
+        "sourceHandle": "output",
+        "target": "32",
+        "targetHandle": "markdown",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "b552dd8b-0449-4567-9216-4a846af1eded",
+        "source": "32",
+        "sourceHandle": "output",
+        "target": "26",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "list"
+        }
+      },
+      {
+        "id": "bb6f84a0-ff68-48f3-ab82-c50bf5fe6435",
+        "source": "32",
+        "sourceHandle": "output",
+        "target": "5",
+        "targetHandle": "values",
+        "ui_properties": {
+          "className": "list"
+        }
+      },
+      {
+        "id": "523eb6b9-acd9-461d-8d93-13d7513d7617",
+        "source": "31",
+        "sourceHandle": "output",
+        "target": "2",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "062f298d-a041-4c80-b8b2-73541c8e6bdf",
+        "source": "25",
+        "sourceHandle": "output",
+        "target": "28",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "list"
+        }
+      },
+      {
+        "id": "666d5645-3707-4353-afac-aed9d975b164",
+        "source": "25",
+        "sourceHandle": "output",
+        "target": "33",
+        "targetHandle": "urls",
+        "ui_properties": {
+          "className": "list"
+        }
+      },
+      {
+        "id": "d93925f9-166b-4d0b-ba69-92f9e1b208c9",
+        "source": "6",
+        "sourceHandle": "output",
+        "target": "25",
+        "targetHandle": "dataframe",
+        "ui_properties": {
+          "className": "dataframe"
+        }
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null
+}

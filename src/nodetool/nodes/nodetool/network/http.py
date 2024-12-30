@@ -8,6 +8,7 @@ from nodetool.metadata.types import (
     AudioRef,
     ColumnDef,
     DataframeRef,
+    FilePath,
     ImageRef,
     VideoRef,
 )
@@ -643,7 +644,7 @@ class DownloadFiles(BaseNode):
         default_factory=list,
         description="List of URLs to download.",
     )
-    output_folder: str = Field(
+    output_folder: FilePath = Field(
         default="downloads",
         description="Local folder path where files will be saved.",
     )
@@ -685,7 +686,7 @@ class DownloadFiles(BaseNode):
                         if not filename:
                             filename = "unnamed_file"
 
-                    expanded_path = os.path.expanduser(self.output_folder)
+                    expanded_path = os.path.expanduser(self.output_folder.path)
                     os.makedirs(os.path.dirname(expanded_path), exist_ok=True)
 
                     filepath = os.path.join(expanded_path, filename)

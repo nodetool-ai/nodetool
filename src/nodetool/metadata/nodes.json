@@ -37127,7 +37127,7 @@
       {
         "name": "output_folder",
         "type": {
-          "type": "str",
+          "type": "file_path",
           "optional": false,
           "values": null,
           "type_args": [],
@@ -42345,7 +42345,7 @@
   },
   {
     "title": "HTMLTo Text",
-    "description": "Converts HTML to plain text by removing tags and decoding entities.\n    html, text, convert\n\n    Use cases:\n    - Cleaning HTML content for text analysis\n    - Extracting readable content from web pages\n    - Preparing HTML data for natural language processing",
+    "description": "Converts HTML to plain text by removing tags and decoding entities using BeautifulSoup.\n    html, text, convert\n\n    Use cases:\n    - Cleaning HTML content for text analysis\n    - Extracting readable content from web pages\n    - Preparing HTML data for natural language processing",
     "namespace": "nodetool.text",
     "node_type": "nodetool.text.HTMLToText",
     "layout": "default",
@@ -42391,7 +42391,7 @@
         },
         "default": true,
         "title": "Preserve Line Breaks",
-        "description": "Convert <br> and </p> tags to newlines",
+        "description": "Convert block-level elements to newlines",
         "min": null,
         "max": null
       }
