@@ -14,6 +14,7 @@ import nodetool.nodes.replicate
 import nodetool.nodes.ollama
 import nodetool.nodes.luma
 import nodetool.nodes.kling
+import nodetool.nodes.google
 
 
 class EnumEncoder(json.JSONEncoder):

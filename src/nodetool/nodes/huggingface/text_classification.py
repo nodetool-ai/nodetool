@@ -64,6 +64,18 @@ class ZeroShotTextClassifier(HuggingFacePipelineNode):
                 allow_patterns=["*.json", "*.txt", "*.safetensors"],
             ),
             HFZeroShotClassification(
+                repo_id="MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli",
+                allow_patterns=["*.json", "*.txt", "*.safetensors"],
+            ),
+            HFZeroShotClassification(
+                repo_id="MoritzLaurer/mDeBERTa-v3-base-mnli-xnli",
+                allow_patterns=["*.json", "*.txt", "*.safetensors"],
+            ),
+            HFZeroShotClassification(
+                repo_id="tasksource/ModernBERT-base-nli",
+                allow_patterns=["*.json", "*.txt", "*.safetensors"],
+            ),
+            HFZeroShotClassification(
                 repo_id="cross-encoder/nli-deberta-v3-base",
                 allow_patterns=["*.json", "*.txt", "*.safetensors"],
             ),
