@@ -12,6 +12,7 @@
 - [nodetool.nodes.huggingface.lora](huggingface/lora.md)
 - [nodetool.nodes.huggingface.multimodal](huggingface/multimodal.md)
 - [nodetool.nodes.huggingface.object_detection](huggingface/object_detection.md)
+- [nodetool.nodes.huggingface.ranking](huggingface/ranking.md)
 - [nodetool.nodes.huggingface.sentence_similarity](huggingface/sentence_similarity.md)
 - [nodetool.nodes.huggingface.stable_diffusion_base](huggingface/stable_diffusion_base.md)
 - [nodetool.nodes.huggingface.summarization](huggingface/summarization.md)

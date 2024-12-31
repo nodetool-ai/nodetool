@@ -243,9 +243,13 @@ Use cases:
 **Tags:** tensor, save, file, storage
 
 **Fields:**
-- **value**: The tensor to save. (Tensor)
+- **tensor**: The tensor to save. (Tensor)
 - **folder**: The folder to save the tensor in. (FolderRef)
 - **name**: The name of the asset to save. (str)
+
+### required_inputs
+
+**Args:**
 
 
 ## ScalarToTensor

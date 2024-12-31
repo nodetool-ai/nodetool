@@ -12,6 +12,7 @@
 - **LUMAAI_API_KEY**: Luma AI API key (str | None)
 - **AIME_USER**: Aime user (str | None)
 - **AIME_API_KEY**: Aime API key (str | None)
+- **GOOGLE_APP_PASSWORD**: Google app password (str | None)
 
 
 ## SettingsModel
@@ -19,8 +20,15 @@
 **Fields:**
 - **COMFY_FOLDER**: Location of ComfyUI folder (str | None)
 - **CHROMA_PATH**: Location of ChromaDB folder (str | None)
-- **ASSET_FOLDER**: Location of asset folder (str | None)
 
+
+### get_system_data_path
+
+Returns the path to the data folder for the current OS.
+**Args:**
+- **filename (str)**
+
+**Returns:** Path
 
 ### get_system_file_path
 
@@ -41,7 +49,7 @@ default values, raise an exception.
 - **settings (SettingsModel)**
 - **secrets (SecretsModel)**
 - **default_env (typing.Dict[str, typing.Any])**
-- **default (Any) (default: <object object at 0x143520040>)**
+- **default (Any) (default: <object object at 0x136a93fd0>)**
 
 **Returns:** Any
 

@@ -17,3 +17,11 @@
 **Fields:**
 
 
+## SentenceTransformerEmbeddingFunctionNode
+
+**Fields:**
+- **model**: The embedding model to use (SentenceTransformerModel)
+
+
+## SentenceTransformerModel
+

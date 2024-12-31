@@ -272,9 +272,13 @@ Use cases:
 **Tags:** video, save, file, output
 
 **Fields:**
-- **value**: The video to save. (VideoRef)
+- **video**: The video to save. (VideoRef)
 - **folder**: Name of the output folder. (FolderRef)
 - **name**: Name of the output video. (str)
+
+### required_inputs
+
+**Args:**
 
 
 ## SetSpeed

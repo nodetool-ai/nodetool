@@ -40,6 +40,21 @@ Use cases:
 - **b**: The second audio file. (AudioRef)
 
 
+## ConcatList
+
+Concatenates multiple audio files together in sequence.
+
+Use cases:
+- Combine multiple audio clips into a single file
+- Create longer audio tracks from multiple segments
+- Chain multiple audio files in order
+
+**Tags:** audio, edit, join, multiple
+
+**Fields:**
+- **audio_files**: List of audio files to concatenate in sequence. (list[nodetool.metadata.types.AudioRef])
+
+
 ## FadeIn
 
 Applies a fade-in effect to the beginning of an audio file.
