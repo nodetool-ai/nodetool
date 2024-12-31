@@ -62,7 +62,8 @@ const namespaceStyles = (theme: any) =>
     ".namespace-list": {
       overflowY: "auto",
       height: "100%",
-      width: "40%",
+      width: "35%",
+      minWidth: "65px",
       boxShadow: "inset 0 0 10px rgba(0, 0, 0, 0.4)",
       borderRadius: "8px",
       display: "flex",
@@ -72,7 +73,8 @@ const namespaceStyles = (theme: any) =>
     ".node-list": {
       padding: "0 1em 1em 1em",
       height: "100%",
-      width: "60%",
+      width: "65%",
+      minWidth: "220px",
       flex: "0 1 auto",
       transition: "max-width 1s ease-out, width 1s ease-out",
       overflowX: "hidden",
