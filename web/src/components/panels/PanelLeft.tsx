@@ -1,9 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { Drawer, IconButton, Tooltip, Box } from "@mui/material";
+import { Drawer, IconButton, Tooltip, Box, Button } from "@mui/material";
 import CodeIcon from "@mui/icons-material/Code";
-import ImageIcon from "@mui/icons-material/Image";
-import AccountTreeIcon from "@mui/icons-material/AccountTree";
 import ChatIcon from "@mui/icons-material/Chat";
 import { useResizePanel } from "../../hooks/handlers/useResizePanel";
 import "../../styles/panel.css";
@@ -15,8 +13,14 @@ import AssetGrid from "../assets/AssetGrid";
 import WorkflowForm from "../workflows/WorkflowForm";
 import GridViewIcon from "@mui/icons-material/GridView";
 import WorkflowGrid from "../workflows/WorkflowGrid";
-import ExtensionIcon from "@mui/icons-material/Extension";
 import StaticNodeMenu from "../node_menu/StaticNodeMenu";
+import CircleIcon from "@mui/icons-material/Circle";
+import { IconForType } from "../../config/data_types";
+import TuneIcon from "@mui/icons-material/Tune";
+// import ThemeNodetool from "../themes/ThemeNodetool";
+// import ExtensionIcon from "@mui/icons-material/Extension";
+// import ImageIcon from "@mui/icons-material/Image";
+// import AccountTreeIcon from "@mui/icons-material/AccountTree";
 
 const styles = (theme: any) =>
   css({
@@ -43,7 +47,7 @@ const styles = (theme: any) =>
       display: "flex",
       flexDirection: "column",
       backgroundColor: theme.palette.background.paper,
-      "& .MuiIconButton-root": {
+      "& .MuiIconButton-root, .MuiButton-root": {
         padding: "12px",
         borderRadius: "6px",
         "&.active": {
@@ -132,19 +136,33 @@ const PanelLeft: React.FC = () => {
               </IconButton>
             </Tooltip>
             <Tooltip title="Assets" placement="right">
-              <IconButton
+              <Button
                 onClick={() => handleViewChange("assets")}
                 className={activeView === "assets" ? "active" : ""}
               >
-                <ImageIcon />
-              </IconButton>
+                <IconForType
+                  iconName="asset"
+                  showTooltip={false}
+                  containerStyle={{
+                    borderRadius: "0 0 3px 0",
+                    marginLeft: "0.1em",
+                    marginTop: "0",
+                    color: "white"
+                  }}
+                  bgStyle={{
+                    backgroundColor: "transparent",
+                    width: "20px",
+                    height: "20px"
+                  }}
+                />
+              </Button>
             </Tooltip>
             <Tooltip title="Workflow Properties" placement="right">
               <IconButton
                 onClick={() => handleViewChange("workflow")}
                 className={activeView === "workflow" ? "active" : ""}
               >
-                <AccountTreeIcon />
+                <TuneIcon />
               </IconButton>
             </Tooltip>
             <Tooltip title="Workflows" placement="right">
@@ -160,7 +178,8 @@ const PanelLeft: React.FC = () => {
                 onClick={() => handleViewChange("nodes")}
                 className={activeView === "nodes" ? "active" : ""}
               >
-                <ExtensionIcon />
+                {/* <ExtensionIcon /> */}
+                <CircleIcon />
               </IconButton>
             </Tooltip>
           </div>
