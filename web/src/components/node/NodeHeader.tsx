@@ -74,12 +74,15 @@ export const headerStyle = (theme: any, hasParent: boolean) =>
         pointerEvents: "none",
         position: "absolute",
         bottom: "0",
+        left: ".2em",
+        width: "100%",
         color: theme.palette.c_white,
         fontSize: theme.fontSizeNormal,
+        lineHeight: "1.1em",
         fontWeight: "300",
         fontStyle: "italic",
         margin: 0,
-        padding: "0 0 .2em 0"
+        padding: 0
       },
       "& .type": {
         pointerEvents: "none"
