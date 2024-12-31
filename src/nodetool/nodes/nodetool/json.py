@@ -202,3 +202,45 @@ class FilterJSON(BaseNode):
 
     async def process(self, context: ProcessingContext) -> List[dict]:
         return [item for item in self.array if item.get(self.key) == self.value]
+
+
+class JSONTemplate(BaseNode):
+    """
+    Template JSON strings with variable substitution.
+    json, template, substitute, variables
+
+    Example:
+    template: '{"name": "$user", "age": $age}'
+    values: {"user": "John", "age": 30}
+    result: '{"name": "John", "age": 30}'
+
+    Use cases:
+    - Create dynamic JSON payloads
+    - Generate JSON with variable data
+    - Build API request templates
+    """
+
+    @classmethod
+    def get_title(cls):
+        return "JSON Template"
+
+    template: str = Field(
+        default="", description="JSON template string with $variable placeholders"
+    )
+    values: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Dictionary of values to substitute into the template",
+    )
+
+    async def process(self, context: ProcessingContext) -> dict:
+        result = self.template
+        for key, value in self.values.items():
+            placeholder = "$" + key
+            result = result.replace(placeholder, str(value))
+
+        try:
+            res = json.loads(result)
+            assert isinstance(res, dict), f"Resulting JSON must be a dictionary: {res}"
+            return res
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Resulting JSON is invalid: {e} \n {result}")
