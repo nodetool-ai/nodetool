@@ -275,14 +275,12 @@ A special node type representing an input to the workflow.
 Attributes:
 label (str): A human-readable label for the input.
 name (str): The parameter name for this input in the workflow.
-description (str): A detailed description of the input.
 
 **Tags:** 
 
 **Fields:**
 - **label**: The label for this input node. (str)
 - **name**: The parameter name for the workflow. (str)
-- **description**: The description for this input node. (str)
 
 
 ## OutputNode
@@ -298,7 +296,6 @@ description (str): A detailed description of the output.
 **Fields:**
 - **label**: The label for this output node. (str)
 - **name**: The parameter name for the workflow. (str)
-- **description**: The description for this output node. (str)
 
 ### result_for_client
 
@@ -390,11 +387,12 @@ If no exact match is found, it attempts to find a match by removing hyphens from
 **Args:**
 - **class_name (str)**
 
-**Returns:** type[nodetool.workflows.base_node.BaseNode]
+**Returns:** type[nodetool.workflows.base_node.BaseNode] | None
 
 ### get_node_class
 
 Retrieve a node class based on its unique node type identifier.
+Tries to load the module if the node type is not found.
 
 
 **Args:**

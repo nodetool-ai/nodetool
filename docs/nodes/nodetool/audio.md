@@ -12,9 +12,13 @@ Use cases:
 **Tags:** audio, folder, name
 
 **Fields:**
-- **value** (AudioRef)
+- **audio** (AudioRef)
 - **folder**: The folder to save the audio file to.  (FolderRef)
 - **name**: The name of the audio file. (str)
+
+### required_inputs
+
+**Args:**
 
 
 - [nodetool.nodes.nodetool.audio.analysis](audio/analysis.md)

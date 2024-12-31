@@ -8,7 +8,6 @@
 
 **Returns:** bool
 
-- [nodetool.metadata.node_metadata](metadata/node_metadata.md)
 - [nodetool.metadata.type_metadata](metadata/type_metadata.md)
 ### typecheck
 

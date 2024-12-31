@@ -14,7 +14,6 @@ Use cases:
 **Fields:**
 - **label**: The label for this input node. (str)
 - **name**: The parameter name for the workflow. (str)
-- **description**: The description for this input node. (str)
 - **folder**: The folder to use as input. (FolderRef)
 - **limit** (int)
 
@@ -33,7 +32,6 @@ Use cases:
 **Fields:**
 - **label**: The label for this input node. (str)
 - **name**: The parameter name for the workflow. (str)
-- **description**: The description for this input node. (str)
 - **value**: The audio to use as input. (AudioRef)
 
 
@@ -51,7 +49,6 @@ Use cases:
 **Fields:**
 - **label**: The label for this input node. (str)
 - **name**: The parameter name for the workflow. (str)
-- **description**: The description for this input node. (str)
 - **value** (bool)
 
 
@@ -69,7 +66,6 @@ Use cases:
 **Fields:**
 - **label**: The label for this input node. (str)
 - **name**: The parameter name for the workflow. (str)
-- **description**: The description for this input node. (str)
 - **value**: The chat message to use as input. (list[nodetool.metadata.types.Message])
 
 
@@ -87,7 +83,6 @@ Use cases:
 **Fields:**
 - **label**: The label for this input node. (str)
 - **name**: The parameter name for the workflow. (str)
-- **description**: The description for this input node. (str)
 - **value** (float)
 - **min** (float)
 - **max** (float)
@@ -107,7 +102,6 @@ Use cases:
 **Fields:**
 - **label**: The label for this input node. (str)
 - **name**: The parameter name for the workflow. (str)
-- **description**: The description for this input node. (str)
 - **folder**: The folder to use as input. (FolderRef)
 - **limit** (int)
 
@@ -139,7 +133,6 @@ Use cases:
 **Fields:**
 - **label**: The label for this input node. (str)
 - **name**: The parameter name for the workflow. (str)
-- **description**: The description for this input node. (str)
 - **folder**: The folder to use as input. (FolderRef)
 - **limit** (int)
 
@@ -158,7 +151,6 @@ Use cases:
 **Fields:**
 - **label**: The label for this input node. (str)
 - **name**: The parameter name for the workflow. (str)
-- **description**: The description for this input node. (str)
 - **value**: The image to use as input. (ImageRef)
 
 
@@ -176,7 +168,6 @@ Use cases:
 **Fields:**
 - **label**: The label for this input node. (str)
 - **name**: The parameter name for the workflow. (str)
-- **description**: The description for this input node. (str)
 - **value** (int)
 - **min** (int)
 - **max** (int)
@@ -196,7 +187,6 @@ Use cases:
 **Fields:**
 - **label**: The label for this input node. (str)
 - **name**: The parameter name for the workflow. (str)
-- **description**: The description for this input node. (str)
 - **value** (str)
 
 
@@ -214,7 +204,6 @@ Use cases:
 **Fields:**
 - **label**: The label for this input node. (str)
 - **name**: The parameter name for the workflow. (str)
-- **description**: The description for this input node. (str)
 - **folder**: The folder to use as input. (FolderRef)
 - **limit** (int)
 
@@ -233,7 +222,6 @@ Use cases:
 **Fields:**
 - **label**: The label for this input node. (str)
 - **name**: The parameter name for the workflow. (str)
-- **description**: The description for this input node. (str)
 - **value**: The text to use as input. (TextRef)
 
 
@@ -251,7 +239,6 @@ Use cases:
 **Fields:**
 - **label**: The label for this input node. (str)
 - **name**: The parameter name for the workflow. (str)
-- **description**: The description for this input node. (str)
 - **folder**: The folder to use as input. (FolderRef)
 - **limit** (int)
 
@@ -270,7 +257,6 @@ Use cases:
 **Fields:**
 - **label**: The label for this input node. (str)
 - **name**: The parameter name for the workflow. (str)
-- **description**: The description for this input node. (str)
 - **value**: The video to use as input. (VideoRef)
 
 

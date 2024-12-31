@@ -8,7 +8,7 @@
 - **type** (str)
 - **uri** (str)
 - **asset_id** (str | None)
-- **data** (bytes | list[bytes] | None)
+- **data** (Any)
 
 ### encode_data_to_uri
 
@@ -29,6 +29,8 @@
 
 ## AudioChunk
 
+Represents a chunk of audio with metadata about its source
+
 **Fields:**
 - **type** (typing.Literal['audio_chunk'])
 - **timestamp** (tuple[float, float])
@@ -37,11 +39,13 @@
 
 ## AudioRef
 
+A reference to an audio asset.
+
 **Fields:**
 - **type** (typing.Literal['audio'])
 - **uri** (str)
 - **asset_id** (str | None)
-- **data** (bytes | list[bytes] | None)
+- **data** (Any)
 
 
 ## BaseType
@@ -405,10 +409,42 @@ This class represents a dataset, which includes a dataframe of features and a da
 - **target** (DataframeRef)
 
 
+## DocumentRef
+
+A reference to a document asset.
+
+**Tags:** Can be a PDF, DOCX, etc.
+
+**Fields:**
+- **type** (typing.Literal['document'])
+- **uri** (str)
+- **asset_id** (str | None)
+- **data** (Any)
+
+
+## Email
+
+**Fields:**
+- **type** (typing.Literal['email'])
+- **sender**: Sender email address (str)
+- **to**: Recipient email address (str)
+- **subject**: Email subject line (str)
+- **body**: Email body content (str | nodetool.metadata.types.TextRef)
+
+
 ## Embeds
 
 **Fields:**
 - **type** (typing.Literal['comfy.embeds'])
+- **data** (Any)
+
+
+## ExcelRef
+
+**Fields:**
+- **type** (typing.Literal['excel'])
+- **uri** (str)
+- **asset_id** (str | None)
 - **data** (Any)
 
 
@@ -426,13 +462,20 @@ This class represents a dataset, which includes a dataframe of features and a da
 - **data** (Any)
 
 
+## FilePath
+
+**Fields:**
+- **type** (typing.Literal['file_path'])
+- **path** (str)
+
+
 ## FolderRef
 
 **Fields:**
 - **type** (typing.Literal['folder'])
 - **uri** (str)
 - **asset_id** (str | None)
-- **data** (bytes | list[bytes] | None)
+- **data** (Any)
 
 
 ## FunctionDefinition
@@ -824,6 +867,16 @@ This class represents a dataset, which includes a dataframe of features and a da
 - **ignore_patterns** (list[str] | None)
 
 
+## HFReranker
+
+**Fields:**
+- **type** (typing.Literal['hf.reranker'])
+- **repo_id** (str)
+- **path** (str | None)
+- **allow_patterns** (list[str] | None)
+- **ignore_patterns** (list[str] | None)
+
+
 ## HFSentenceSimilarity
 
 **Fields:**
@@ -1146,6 +1199,26 @@ This class represents a dataset, which includes a dataframe of features and a da
 **Returns:** bool
 
 
+## IMAPConnection
+
+Configuration for an IMAP email connection.
+
+**Fields:**
+- **type** (typing.Literal['imap_connection'])
+- **host**: IMAP server hostname (str)
+- **port**: IMAP server port (int)
+- **username**: Email account username (str)
+- **password**: Email account password (str)
+- **use_ssl**: Whether to use SSL/TLS connection (bool)
+
+### is_configured
+
+Check if the connection has all required fields set.
+**Args:**
+
+**Returns:** bool
+
+
 ## IPAdapter
 
 **Fields:**
@@ -1169,7 +1242,7 @@ A reference to an image asset.
 - **type** (typing.Literal['image'])
 - **uri** (str)
 - **asset_id** (str | None)
-- **data** (bytes | list[bytes] | None)
+- **data** (Any)
 
 
 ## ImageSegmentationResult
@@ -1348,7 +1421,7 @@ Convert a Model object to a Message object.
 - **type** (typing.Literal['model_ref'])
 - **uri** (str)
 - **asset_id** (str | None)
-- **data** (bytes | list[bytes] | None)
+- **data** (Any)
 
 
 ## NodeRef
@@ -1538,13 +1611,32 @@ A reference to an SVG asset.
 **Returns:** ndarray
 
 
+## TextChunk
+
+Represents a chunk of text with metadata about its source
+
+**Fields:**
+- **type** (typing.Literal['text_chunk'])
+- **text** (str)
+- **source_id** (str)
+- **start_idx** (int)
+- **end_idx** (int)
+- **chunk_type** (str)
+
+### get_document_id
+
+**Args:**
+
+
 ## TextRef
+
+A reference to a plain text asset.
 
 **Fields:**
 - **type** (typing.Literal['text'])
 - **uri** (str)
 - **asset_id** (str | None)
-- **data** (bytes | list[bytes] | None)
+- **data** (Any)
 
 
 ## ToolCall
@@ -1603,11 +1695,13 @@ A reference to an SVG asset.
 
 ## VideoRef
 
+A reference to a video asset.
+
 **Fields:**
 - **type** (typing.Literal['video'])
 - **uri** (str)
 - **asset_id** (str | None)
-- **data** (bytes | list[bytes] | None)
+- **data** (Any)
 - **duration** (typing.Optional[float])
 - **format** (typing.Optional[str])
 
