@@ -703,6 +703,18 @@ class ProcessingContext:
         response.raise_for_status()
         return response
 
+    async def http_patch(
+        self,
+        url: str,
+        **kwargs,
+    ) -> httpx.Response:
+        _headers = HTTP_HEADERS.copy()
+        kwargs["headers"] = _headers.update(kwargs.get("headers", {}))
+        response = await self.http_client.patch(url, **kwargs)
+        log.info(f"PATCH {url} {response.status_code}")
+        response.raise_for_status()
+        return response
+
     async def http_put(
         self,
         url: str,
