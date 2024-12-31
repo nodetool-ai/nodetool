@@ -789,6 +789,9 @@ class ProcessingContext:
         Returns:
             IO: The downloaded file.
         """
+        if url.startswith("/"):
+            url = f"file://{url}"
+
         url_parsed = urllib.parse.urlparse(url)
 
         if url_parsed.scheme == "data":
@@ -801,7 +804,7 @@ class ProcessingContext:
             return file
 
         if url_parsed.scheme == "file":
-            return open(url_parsed.path)
+            return open(url_parsed.path, "rb")
 
         response = await self.http_get(url)
         return BytesIO(response.content)
