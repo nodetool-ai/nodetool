@@ -25836,6 +25836,324 @@
     "recommended_models": []
   },
   {
+    "title": "Extract Links",
+    "description": "Extract links from HTML content.\n    extract, links, urls\n\n    Use cases:\n    - Analyze website structure\n    - Discover related content\n    - Build sitemaps",
+    "namespace": "nodetool.html",
+    "node_type": "nodetool.html.ExtractLinks",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "html",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Html",
+        "description": "The HTML content to extract links from.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "base_url",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Base Url",
+        "description": "The base URL of the page, used to determine internal/external links.",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "dataframe",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
+    "title": "Extract Metadata",
+    "description": "Extract metadata from HTML content.\n    extract, metadata, seo\n\n    Use cases:\n    - Analyze SEO elements\n    - Gather page information\n    - Extract structured data",
+    "namespace": "nodetool.html",
+    "node_type": "nodetool.html.ExtractMetadata",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "html",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Html",
+        "description": "The HTML content to extract metadata from.",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "dict",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "metadata",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
+    "title": "Extract Images",
+    "description": "Extract images from HTML content.\n    extract, images, src\n\n    Use cases:\n    - Collect images from web pages\n    - Analyze image usage on websites\n    - Create image galleries",
+    "namespace": "nodetool.html",
+    "node_type": "nodetool.html.ExtractImages",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "html",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Html",
+        "description": "The HTML content to extract images from.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "base_url",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Base Url",
+        "description": "The base URL of the page, used to resolve relative image URLs.",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "image",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
+    "title": "Extract Videos",
+    "description": "Extract videos from HTML content.\n    extract, videos, src\n\n    Use cases:\n    - Collect video sources from web pages\n    - Analyze video usage on websites\n    - Create video playlists",
+    "namespace": "nodetool.html",
+    "node_type": "nodetool.html.ExtractVideos",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "html",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Html",
+        "description": "The HTML content to extract videos from.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "base_url",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Base Url",
+        "description": "The base URL of the page, used to resolve relative video URLs.",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "video",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
+    "title": "Extract Audio",
+    "description": "Extract audio elements from HTML content.\n    extract, audio, src\n\n    Use cases:\n    - Collect audio sources from web pages\n    - Analyze audio usage on websites\n    - Create audio playlists",
+    "namespace": "nodetool.html",
+    "node_type": "nodetool.html.ExtractAudio",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "html",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Html",
+        "description": "The HTML content to extract audio from.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "base_url",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Base Url",
+        "description": "The base URL of the page, used to resolve relative audio URLs.",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "audio",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
+    "title": "Website Content Extractor",
+    "description": "Extract main content from a website, removing navigation, ads, and other non-essential elements.\n    web scraping, content extraction, text analysis\n\n    Use cases:\n    - Clean web content for further analysis\n    - Extract article text from news websites\n    - Prepare web content for summarization",
+    "namespace": "nodetool.html",
+    "node_type": "nodetool.html.WebsiteContentExtractor",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "html_content",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Html Content",
+        "description": "The raw HTML content of the website.",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
     "title": "Save Image",
     "description": "Save an image to specified folder with customizable name format.\n    save, image, folder, naming\n\n    Use cases:\n    - Save generated images with timestamps\n    - Organize outputs into specific folders\n    - Create backups of processed images",
     "namespace": "nodetool.image",
@@ -35787,324 +36105,6 @@
           "type_name": null
         },
         "name": "error_message",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": []
-  },
-  {
-    "title": "Extract Links",
-    "description": "Extract links from HTML content.\n    extract, links, urls\n\n    Use cases:\n    - Analyze website structure\n    - Discover related content\n    - Build sitemaps",
-    "namespace": "nodetool.network.http",
-    "node_type": "nodetool.network.http.ExtractLinks",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "html",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Html",
-        "description": "The HTML content to extract links from.",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "base_url",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Base Url",
-        "description": "The base URL of the page, used to determine internal/external links.",
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "dataframe",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": []
-  },
-  {
-    "title": "Extract Metadata",
-    "description": "Extract metadata from HTML content.\n    extract, metadata, seo\n\n    Use cases:\n    - Analyze SEO elements\n    - Gather page information\n    - Extract structured data",
-    "namespace": "nodetool.network.http",
-    "node_type": "nodetool.network.http.ExtractMetadata",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "html",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Html",
-        "description": "The HTML content to extract metadata from.",
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "dict",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "name": "metadata",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": []
-  },
-  {
-    "title": "Extract Images",
-    "description": "Extract images from HTML content.\n    extract, images, src\n\n    Use cases:\n    - Collect images from web pages\n    - Analyze image usage on websites\n    - Create image galleries",
-    "namespace": "nodetool.network.http",
-    "node_type": "nodetool.network.http.ExtractImages",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "html",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Html",
-        "description": "The HTML content to extract images from.",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "base_url",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Base Url",
-        "description": "The base URL of the page, used to resolve relative image URLs.",
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "list",
-          "optional": false,
-          "values": null,
-          "type_args": [
-            {
-              "type": "image",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": []
-  },
-  {
-    "title": "Extract Videos",
-    "description": "Extract videos from HTML content.\n    extract, videos, src\n\n    Use cases:\n    - Collect video sources from web pages\n    - Analyze video usage on websites\n    - Create video playlists",
-    "namespace": "nodetool.network.http",
-    "node_type": "nodetool.network.http.ExtractVideos",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "html",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Html",
-        "description": "The HTML content to extract videos from.",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "base_url",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Base Url",
-        "description": "The base URL of the page, used to resolve relative video URLs.",
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "list",
-          "optional": false,
-          "values": null,
-          "type_args": [
-            {
-              "type": "video",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": []
-  },
-  {
-    "title": "Extract Audio",
-    "description": "Extract audio elements from HTML content.\n    extract, audio, src\n\n    Use cases:\n    - Collect audio sources from web pages\n    - Analyze audio usage on websites\n    - Create audio playlists",
-    "namespace": "nodetool.network.http",
-    "node_type": "nodetool.network.http.ExtractAudio",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "html",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Html",
-        "description": "The HTML content to extract audio from.",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "base_url",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Base Url",
-        "description": "The base URL of the page, used to resolve relative audio URLs.",
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "list",
-          "optional": false,
-          "values": null,
-          "type_args": [
-            {
-              "type": "audio",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": []
-  },
-  {
-    "title": "Website Content Extractor",
-    "description": "Extract main content from a website, removing navigation, ads, and other non-essential elements.\n    web scraping, content extraction, text analysis\n\n    Use cases:\n    - Clean web content for further analysis\n    - Extract article text from news websites\n    - Prepare web content for summarization",
-    "namespace": "nodetool.network.http",
-    "node_type": "nodetool.network.http.WebsiteContentExtractor",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "html_content",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Html Content",
-        "description": "The raw HTML content of the website.",
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "name": "output",
         "stream": false
       }
     ],
