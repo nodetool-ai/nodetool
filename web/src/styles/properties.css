@@ -177,16 +177,16 @@
   width: 100%;
   outline: none;
   margin: 0;
-  padding: 0 0.3em;
+  padding: 1em .5em;
   color: var(--c_white);
   background-color: var(--c_gray1);
   border: none;
   border-radius: 0.1em;
   font-family: var(--font-family-1);
   font-weight: 300;
-  font-size: var(--font-size-normal);
-  line-height: 18px;
-  height: 18px;
+  font-size: var(--font-size-smaller);
+  line-height: 1.2em;
+  height: 1.2em;
 }
 .string-property .expand-button {
   cursor: pointer;
@@ -485,7 +485,7 @@
 
 .container input {
   flex: 1;
-  padding: 8px;
+  padding: em .5em;
   border: 1px solid var(--c_gray3);
   border-radius: 4px;
   color: var(--text-primary);
