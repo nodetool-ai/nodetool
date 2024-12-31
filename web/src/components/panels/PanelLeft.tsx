@@ -14,9 +14,11 @@ import WorkflowForm from "../workflows/WorkflowForm";
 import GridViewIcon from "@mui/icons-material/GridView";
 import WorkflowGrid from "../workflows/WorkflowGrid";
 import StaticNodeMenu from "../node_menu/StaticNodeMenu";
-import CircleIcon from "@mui/icons-material/Circle";
 import { IconForType } from "../../config/data_types";
 import TuneIcon from "@mui/icons-material/Tune";
+import ControlPointIcon from "@mui/icons-material/ControlPoint";
+// import PolylineIcon from "@mui/icons-material/Polyline";
+// import CircleIcon from "@mui/icons-material/Circle";
 // import ThemeNodetool from "../themes/ThemeNodetool";
 // import ExtensionIcon from "@mui/icons-material/Extension";
 // import ImageIcon from "@mui/icons-material/Image";
@@ -179,7 +181,8 @@ const PanelLeft: React.FC = () => {
                 className={activeView === "nodes" ? "active" : ""}
               >
                 {/* <ExtensionIcon /> */}
-                <CircleIcon />
+                {/* <CircleIcon /> */}
+                <ControlPointIcon />
               </IconButton>
             </Tooltip>
           </div>
