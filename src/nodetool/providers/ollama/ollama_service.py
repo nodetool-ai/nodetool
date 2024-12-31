@@ -31,14 +31,14 @@ async def get_ollama_models() -> list[LlamaModel]:
     models = await ollama.list()
     result = [
         LlamaModel(
-            name=model["name"],
-            repo_id=model["name"],
-            modified_at=model["modified_at"],
-            size=model["size"],
-            digest=model["digest"],
-            details=model["details"],
+            name=model.model or "",
+            repo_id=model.model or "",
+            modified_at=model.modified_at.isoformat() if model.modified_at else "",
+            size=model.size or 0,
+            digest=model.digest or "",
+            details=model.details.model_dump() if model.details else {},
         )
-        for model in models["models"]
+        for model in models.models
     ]
 
     if Environment.is_production():
