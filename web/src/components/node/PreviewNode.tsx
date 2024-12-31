@@ -1,11 +1,10 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import { memo, useCallback, useEffect, useState } from "react";
-import { NodeProps, NodeResizeControl } from "@xyflow/react";
+import { memo } from "react";
+import { NodeProps } from "@xyflow/react";
 import { Container, Typography } from "@mui/material";
 import { NodeData } from "../../stores/NodeData";
-import SouthEastIcon from "@mui/icons-material/SouthEast";
 import React, { useMemo } from "react";
 import { NodeHeader } from "../node/NodeHeader";
 import OutputRenderer from "./OutputRenderer";
@@ -13,7 +12,6 @@ import useResultsStore from "../../stores/ResultsStore";
 import { Position, Handle } from "@xyflow/react";
 import { tableStyles } from "../../styles/TableStyles";
 import ThemeNodes from "../themes/ThemeNodes";
-import { useNodeStore } from "../../stores/NodeStore";
 import { Button, Tooltip } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
@@ -23,6 +21,7 @@ import { devLog, devWarn, devError } from "../../utils/DevLog";
 import { createAssetFile } from "../../utils/createAssetFile";
 import JSZip from "jszip";
 import { isEqual } from "lodash";
+import NodeResizeHandle from "./NodeResizeHandle";
 
 const styles = (theme: any) =>
   css([
@@ -300,15 +299,7 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
         isConnectable={true}
       />
       <>
-        <NodeResizeControl
-          style={{ background: "red", border: "none" }}
-          minWidth={150}
-          minHeight={150}
-          maxWidth={1000}
-          maxHeight={1000}
-        >
-          <SouthEastIcon />
-        </NodeResizeControl>
+        <NodeResizeHandle minWidth={150} minHeight={150} />
         <NodeHeader
           id={props.id}
           data={props.data}
