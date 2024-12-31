@@ -112,6 +112,10 @@ Use cases:
 - **folder**: The folder to save the image in. (FolderRef)
 - **name** (str)
 
+### required_inputs
+
+**Args:**
+
 ### result_for_client
 
 **Args:**
@@ -120,7 +124,9 @@ Use cases:
 **Returns:** dict[str, typing.Any]
 
 
+- [nodetool.nodes.nodetool.image.chart](image/chart.md)
 - [nodetool.nodes.nodetool.image.enhance](image/enhance.md)
 - [nodetool.nodes.nodetool.image.grid](image/grid.md)
 - [nodetool.nodes.nodetool.image.source](image/source.md)
+- [nodetool.nodes.nodetool.image.svg](image/svg.md)
 - [nodetool.nodes.nodetool.image.transform](image/transform.md)

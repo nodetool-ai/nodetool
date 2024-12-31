@@ -1,7 +1,10 @@
 # nodetool.nodes
 
+- [nodetool.nodes.aime](nodes/aime.md)
 - [nodetool.nodes.anthropic](nodes/anthropic.md)
+- [nodetool.nodes.apple](nodes/apple.md)
 - [nodetool.nodes.chroma](nodes/chroma.md)
+- [nodetool.nodes.google](nodes/google.md)
 - [nodetool.nodes.huggingface](nodes/huggingface.md)
 - [nodetool.nodes.kling](nodes/kling.md)
 - [nodetool.nodes.luma](nodes/luma.md)

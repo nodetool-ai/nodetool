@@ -45,3 +45,14 @@ Create an encoded message containing two null-terminated strings and PNG data.
 - **properties** (dict[str, typing.Any] | None)
 
 
+## RunFunction
+
+A message to run a function in the main thread.
+
+**Fields:**
+- **type** (typing.Literal['run_function'])
+- **function** (typing.Callable)
+- **args** (list[typing.Any])
+- **kwargs** (dict[str, typing.Any])
+
+

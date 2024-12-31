@@ -51,6 +51,26 @@ Use cases:
 - **default** (Any)
 
 
+## MakeDictionary
+
+Creates a simple dictionary with up to three key-value pairs.
+
+Use cases:
+- Create configuration entries
+- Initialize simple data structures
+- Build basic key-value mappings
+
+**Tags:** dictionary, create, simple
+
+**Fields:**
+- **key1**: First key (str)
+- **value1**: First value (Any)
+- **key2**: Second key (optional) (str)
+- **value2**: Second value (optional) (Any)
+- **key3**: Third key (optional) (str)
+- **value3**: Third value (optional) (Any)
+
+
 ## ParseJSON
 
 Parses a JSON string into a Python dictionary.

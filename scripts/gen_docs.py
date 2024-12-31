@@ -316,36 +316,18 @@ def document_function(
 
 
 if __name__ == "__main__":
+    import nodetool.nodes.aime
     import nodetool.nodes.anthropic
+    import nodetool.nodes.apple
+    import nodetool.nodes.chroma
+    import nodetool.nodes.google
     import nodetool.nodes.huggingface
-    import nodetool.nodes.nodetool
-    import nodetool.nodes.openai
-    import nodetool.nodes.replicate
-    import nodetool.nodes.ollama
     import nodetool.nodes.kling
     import nodetool.nodes.luma
-    import nodetool.nodes.chroma
-    import nodetool.api.asset
-    import nodetool.api.auth
-    import nodetool.api.job
-    import nodetool.api.message
-    import nodetool.api.model
-    import nodetool.api.node
-    import nodetool.api.prediction
-    import nodetool.api.storage
-    import nodetool.api.task
-    import nodetool.api.workflow
-    import nodetool.models.asset
-    import nodetool.models.job
-    import nodetool.models.message
-    import nodetool.models.user
-    import nodetool.models.message
-    import nodetool.models.prediction
-    import nodetool.models.task
-    import nodetool.models.workflow
-    import nodetool.models.schema
-    import nodetool.models.sqlite_adapter
-    import nodetool.models.thread
+    import nodetool.nodes.nodetool
+    import nodetool.nodes.ollama
+    import nodetool.nodes.openai
+    import nodetool.nodes.replicate
 
     # Generate full documentation
     generate_documentation(nodetool, "docs")
