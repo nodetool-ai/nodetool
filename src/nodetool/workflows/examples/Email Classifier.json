@@ -51,7 +51,7 @@
         "parent_id": null,
         "type": "nodetool.constant.String",
         "data": {
-          "value": "matti.georgi@gmail.com"
+          "value": "your_email@gmail.com"
         },
         "ui_properties": {
           "selected": false,
