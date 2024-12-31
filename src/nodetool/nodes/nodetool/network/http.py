@@ -282,6 +282,10 @@ class GetRequestBinary(HTTPBaseNode):
     - Download any non-text content
     """
 
+    @classmethod
+    def get_title(cls):
+        return "HTTP GET Request (Binary)"
+
     async def process(self, context: ProcessingContext) -> bytes:
         res = await context.http_get(self.url, **self.get_request_kwargs())
         return res.content
@@ -298,6 +302,10 @@ class PostRequestBinary(HTTPBaseNode):
     - Process image or media uploads
     - Handle binary file transformations
     """
+
+    @classmethod
+    def get_title(cls):
+        return "HTTP POST Request (Binary)"
 
     data: str | bytes = Field(
         default="",
@@ -321,6 +329,10 @@ class FilterValidURLs(HTTPBaseNode):
     - Verify resource availability
     - Validate website URLs before processing
     """
+
+    @classmethod
+    def get_title(cls):
+        return "Filter Valid URLs"
 
     urls: list[str] = Field(
         default_factory=list,
@@ -498,3 +510,125 @@ class DownloadFiles(BaseNode):
             "successful": successful,
             "failed": failed,
         }
+
+
+class JSONPostRequest(HTTPBaseNode):
+    """
+    Send JSON data to a server using an HTTP POST request.
+    http, post, request, url, json, api
+
+    Use cases:
+    - Send structured data to REST APIs
+    - Create resources with JSON payloads
+    - Interface with modern web services
+    """
+
+    @classmethod
+    def get_title(cls):
+        return "JSON POST Request"
+
+    data: dict = Field(
+        default_factory=dict,
+        description="The JSON data to send in the POST request.",
+    )
+
+    async def process(self, context: ProcessingContext) -> dict:
+        headers = self.headers.copy()
+        headers["Content-Type"] = "application/json"
+        res = await context.http_post(
+            self.url,
+            json=self.data,
+            headers=headers,
+            auth=self.auth,
+        )
+        return res.json()
+
+
+class JSONPutRequest(HTTPBaseNode):
+    """
+    Update resources with JSON data using an HTTP PUT request.
+    http, put, request, url, json, api
+
+    Use cases:
+    - Update existing API resources
+    - Replace complete objects in REST APIs
+    - Set configuration with JSON data
+    """
+
+    @classmethod
+    def get_title(cls):
+        return "JSON PUT Request"
+
+    data: dict = Field(
+        default_factory=dict,
+        description="The JSON data to send in the PUT request.",
+    )
+
+    async def process(self, context: ProcessingContext) -> dict:
+        headers = self.headers.copy()
+        headers["Content-Type"] = "application/json"
+        res = await context.http_put(
+            self.url,
+            json=self.data,
+            headers=headers,
+            auth=self.auth,
+        )
+        return res.json()
+
+
+class JSONPatchRequest(HTTPBaseNode):
+    """
+    Partially update resources with JSON data using an HTTP PATCH request.
+    http, patch, request, url, json, api
+
+    Use cases:
+    - Partial updates to API resources
+    - Modify specific fields without full replacement
+    - Efficient updates for large objects
+    """
+
+    @classmethod
+    def get_title(cls):
+        return "JSON PATCH Request"
+
+    data: dict = Field(
+        default_factory=dict,
+        description="The JSON data to send in the PATCH request.",
+    )
+
+    async def process(self, context: ProcessingContext) -> dict:
+        headers = self.headers.copy()
+        headers["Content-Type"] = "application/json"
+        res = await context.http_patch(
+            self.url,
+            json=self.data,
+            headers=headers,
+            auth=self.auth,
+        )
+        return res.json()
+
+
+class JSONGetRequest(HTTPBaseNode):
+    """
+    Perform an HTTP GET request and parse the response as JSON.
+    http, get, request, url, json, api
+
+    Use cases:
+    - Fetch data from REST APIs
+    - Retrieve JSON-formatted responses
+    - Interface with JSON web services
+    """
+
+    @classmethod
+    def get_title(cls):
+        return "JSON GET Request"
+
+    async def process(self, context: ProcessingContext) -> dict:
+        headers = self.headers.copy()
+        headers["Accept"] = "application/json"
+        res = await context.http_get(
+            self.url,
+            headers=headers,
+            auth=self.auth,
+        )
+        return res.json()

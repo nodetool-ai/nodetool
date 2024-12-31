@@ -26,6 +26,7 @@ import nodetool.nodes.nodetool.image.source
 import nodetool.nodes.nodetool.image.svg
 import nodetool.nodes.nodetool.image.transform
 import nodetool.nodes.nodetool.input
+import nodetool.nodes.nodetool.json
 import nodetool.nodes.nodetool.list
 import nodetool.nodes.nodetool.math
 import nodetool.nodes.nodetool.network.http
