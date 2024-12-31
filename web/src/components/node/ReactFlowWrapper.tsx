@@ -311,7 +311,10 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   const onNodeDoubleClick = useCallback(
     (event: React.MouseEvent, node: Node) => {
       const clickedElement = event.target as HTMLElement;
-      if (clickedElement.classList.contains("node-title")) {
+      if (
+        clickedElement.classList.contains("node-title") ||
+        clickedElement.classList.contains("title-container")
+      ) {
         setEditNodeTitle(node.id);
         setAnchorEl(clickedElement);
         // updateNodeData(node.id, {

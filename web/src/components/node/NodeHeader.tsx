@@ -26,6 +26,7 @@ export const headerStyle = (theme: any, hasParent: boolean) =>
     display: "flex",
     justifyContent: "space-between",
     alignItems: "flex-start",
+    gap: 0,
     width: "100%",
     minHeight: "24px",
     backgroundColor: hasParent
@@ -42,16 +43,47 @@ export const headerStyle = (theme: any, hasParent: boolean) =>
       transition: "opacity 0.15s",
       color: theme.palette.c_gray6
     },
+
     ".node-title": {
+      display: "flex",
+      flexDirection: "column",
+      gap: 0,
       flexGrow: 1,
       textAlign: "left",
       maxWidth: 170,
       wordWrap: "break-word",
       lineHeight: "1em",
+      color: theme.palette.c_white,
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeNormal,
       fontFeatureSettings: '"smcp"',
-      padding: "8px 10px"
+      padding: ".5em 0 .5em .7em",
+
+      "& .title-container": {
+        position: "absolute",
+        top: "-1.2em",
+        left: ".5em",
+        width: "100%",
+        minHeight: "1em",
+        backgroundColor: "transparent",
+        display: "flex",
+        flexDirection: "column",
+        gap: 0
+      },
+      "& .title": {
+        pointerEvents: "none",
+        position: "absolute",
+        bottom: "0",
+        color: theme.palette.c_white,
+        fontSize: theme.fontSizeNormal,
+        fontWeight: "300",
+        fontStyle: "italic",
+        margin: 0,
+        padding: "0 0 .2em 0"
+      },
+      "& .type": {
+        pointerEvents: "none"
+      }
     },
     ".big": {
       flex: 1,
@@ -61,7 +93,7 @@ export const headerStyle = (theme: any, hasParent: boolean) =>
       fontSize: 28
     },
     ".menu-button": {
-      height: "28px",
+      height: "24px",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
@@ -149,7 +181,10 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
     >
       {data.title && (
         <span className="node-title">
-          {data.title} ({titleizedType})
+          <span className="title-container">
+            <span className="title">{data.title}</span>
+          </span>
+          <span className="type">{titleizedType}</span>
         </span>
       )}
       {!data.title && <span className="node-title">{titleizedType}</span>}
