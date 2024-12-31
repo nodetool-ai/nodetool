@@ -30,6 +30,9 @@ def is_assignable(type_meta: TypeMetadata, value: Any) -> bool:
     if type_meta.is_comfy_type():
         return True
 
+    if isinstance(value, dict) and "type" in value:
+        return value["type"] == type_meta.type
+
     if python_type == dict and "type" in value:
         return value["type"] == type_meta.type
 
@@ -38,6 +41,7 @@ def is_assignable(type_meta: TypeMetadata, value: Any) -> bool:
             t = type_meta.type_args[0]
             return all(is_assignable(t, v) for v in value)
         if python_type == ImageRef:
+            assert isinstance(value, ImageRef)
             return type(value.data) == list
     if type_meta.type == "dict" and python_type == dict:
         if len(type_meta.type_args) != 2:
