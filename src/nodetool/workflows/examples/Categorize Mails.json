@@ -172,7 +172,7 @@
         "parent_id": null,
         "type": "google.mail.GmailSearch",
         "data": {
-          "email_address": "matti.georgi@gmail.com",
+          "email_address": "your_email@gmail.com",
           "search_query": "",
           "max_results": 50
         },
