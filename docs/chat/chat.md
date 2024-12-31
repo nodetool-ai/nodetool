@@ -170,6 +170,13 @@ Create a JSON schema for a column.
 
 **Returns:** dict
 
+### json_schema_for_dataframe
+
+**Args:**
+- **columns (list[nodetool.metadata.types.ColumnDef])**
+
+**Returns:** dict
+
 ### message_content_to_openai_content_part
 
 Convert a message content to an OpenAI content part.

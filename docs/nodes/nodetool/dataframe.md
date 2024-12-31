@@ -298,6 +298,10 @@ Use cases:
 - **folder**: Name of the output folder. (FolderRef)
 - **name**: Name of the output file. (str)
 
+### required_inputs
+
+**Args:**
+
 
 ## SelectColumn
 

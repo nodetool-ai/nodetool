@@ -14,7 +14,6 @@ Use cases:
 **Fields:**
 - **label**: The label for this output node. (str)
 - **name**: The parameter name for the workflow. (str)
-- **description**: The description for this output node. (str)
 - **value** (AudioRef)
 
 
@@ -32,7 +31,6 @@ Use cases:
 **Fields:**
 - **label**: The label for this output node. (str)
 - **name**: The parameter name for the workflow. (str)
-- **description**: The description for this output node. (str)
 - **value** (bool)
 
 
@@ -50,7 +48,6 @@ Use cases:
 **Fields:**
 - **label**: The label for this output node. (str)
 - **name**: The parameter name for the workflow. (str)
-- **description**: The description for this output node. (str)
 - **value** (DataframeRef)
 
 
@@ -68,7 +65,6 @@ Use cases:
 **Fields:**
 - **label**: The label for this output node. (str)
 - **name**: The parameter name for the workflow. (str)
-- **description**: The description for this output node. (str)
 - **value** (dict[str, typing.Any])
 
 
@@ -86,7 +82,6 @@ Use cases:
 **Fields:**
 - **label**: The label for this output node. (str)
 - **name**: The parameter name for the workflow. (str)
-- **description**: The description for this output node. (str)
 - **value** (float)
 
 
@@ -118,7 +113,6 @@ Use cases:
 **Fields:**
 - **label**: The label for this output node. (str)
 - **name**: The parameter name for the workflow. (str)
-- **description**: The description for this output node. (str)
 - **value**: The images to display. (list[nodetool.metadata.types.ImageRef])
 
 
@@ -136,7 +130,6 @@ Use cases:
 **Fields:**
 - **label**: The label for this output node. (str)
 - **name**: The parameter name for the workflow. (str)
-- **description**: The description for this output node. (str)
 - **value** (ImageRef)
 
 
@@ -154,7 +147,6 @@ Use cases:
 **Fields:**
 - **label**: The label for this output node. (str)
 - **name**: The parameter name for the workflow. (str)
-- **description**: The description for this output node. (str)
 - **value** (int)
 
 
@@ -171,7 +163,6 @@ Use cases:
 **Fields:**
 - **label**: The label for this output node. (str)
 - **name**: The parameter name for the workflow. (str)
-- **description**: The description for this output node. (str)
 - **value** (list[typing.Any])
 
 
@@ -189,7 +180,6 @@ Use cases:
 **Fields:**
 - **label**: The label for this output node. (str)
 - **name**: The parameter name for the workflow. (str)
-- **description**: The description for this output node. (str)
 - **value** (ModelRef)
 
 
@@ -207,7 +197,6 @@ Use cases:
 **Fields:**
 - **label**: The label for this output node. (str)
 - **name**: The parameter name for the workflow. (str)
-- **description**: The description for this output node. (str)
 - **value** (str)
 
 
@@ -225,7 +214,6 @@ Use cases:
 **Fields:**
 - **label**: The label for this output node. (str)
 - **name**: The parameter name for the workflow. (str)
-- **description**: The description for this output node. (str)
 - **value** (Tensor)
 
 
@@ -243,7 +231,6 @@ Use cases:
 **Fields:**
 - **label**: The label for this output node. (str)
 - **name**: The parameter name for the workflow. (str)
-- **description**: The description for this output node. (str)
 - **value** (TextRef)
 
 
@@ -261,7 +248,6 @@ Use cases:
 **Fields:**
 - **label**: The label for this output node. (str)
 - **name**: The parameter name for the workflow. (str)
-- **description**: The description for this output node. (str)
 - **value** (VideoRef)
 
 
