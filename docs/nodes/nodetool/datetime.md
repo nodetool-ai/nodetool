@@ -76,7 +76,6 @@ Use cases:
 **Tags:** datetime, current, now
 
 **Fields:**
-- **format**: Output format for the datetime (DateFormat)
 
 
 ## GetQuarter

@@ -17,6 +17,7 @@ import nodetool.nodes.nodetool.file.markdown
 import nodetool.nodes.nodetool.file.pandoc
 import nodetool.nodes.nodetool.file.pdf
 import nodetool.nodes.nodetool.group
+import nodetool.nodes.nodetool.html
 import nodetool.nodes.nodetool.image
 import nodetool.nodes.nodetool.image.chart
 import nodetool.nodes.nodetool.image.enhance

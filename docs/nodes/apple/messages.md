@@ -1,21 +1,5 @@
 # nodetool.nodes.apple.messages
 
-## ReadMessages
-
-Read recent messages from macOS Messages.app via AppleScript
-
-Use cases:
-- Monitor conversations
-- Process incoming messages in workflows
-- Extract message content for automation
-
-**Tags:** messages, imessage, automation, macos, communication
-
-**Fields:**
-- **contact**: Optional contact name/number to filter messages (empty for all recent) (str)
-- **limit**: Maximum number of recent messages to retrieve (int)
-
-
 ## SendMessage
 
 Send messages using macOS Messages.app via AppleScript
