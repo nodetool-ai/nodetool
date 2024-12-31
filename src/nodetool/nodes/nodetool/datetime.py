@@ -25,12 +25,8 @@ class GetCurrentDateTime(BaseNode):
     - Calculate time-based metrics
     """
 
-    format: DateFormat = Field(
-        default=DateFormat.ISO_WITH_TIME, description="Output format for the datetime"
-    )
-
-    async def process(self, context: ProcessingContext) -> str:
-        return datetime.now().strftime(self.format.value)
+    async def process(self, context: ProcessingContext) -> datetime:
+        return datetime.now()
 
 
 class MakeDateTime(BaseNode):
@@ -81,17 +77,8 @@ class ParseDateTime(BaseNode):
             "weekday": int,
         }
 
-    async def process(self, context: ProcessingContext) -> dict:
-        dt = datetime.strptime(self.datetime_string, self.input_format.value)
-        return {
-            "year": dt.year,
-            "month": dt.month,
-            "day": dt.day,
-            "hour": dt.hour,
-            "minute": dt.minute,
-            "second": dt.second,
-            "weekday": dt.weekday(),
-        }
+    async def process(self, context: ProcessingContext) -> datetime:
+        return datetime.strptime(self.datetime_string, self.input_format.value)
 
 
 class AddTimeDelta(BaseNode):

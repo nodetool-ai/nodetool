@@ -65,7 +65,8 @@ const RecordTypeProperty = ({ value, onChange }: PropertyProps) => {
     }
     const newColumn: ColumnDef = {
       name: newColumnName,
-      data_type: "string"
+      data_type: "string",
+      description: ""
     };
     onChange({
       ...value,
