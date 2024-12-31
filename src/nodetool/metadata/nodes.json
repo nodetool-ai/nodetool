@@ -31928,6 +31928,760 @@
     "recommended_models": []
   },
   {
+    "title": "Parse Dict",
+    "description": "Parse a JSON string into a Python dictionary.\n    json, parse, decode, dictionary\n\n    Use cases:\n    - Convert JSON API responses to Python dictionaries\n    - Process JSON configuration files\n    - Parse object-like JSON data",
+    "namespace": "nodetool.json",
+    "node_type": "nodetool.json.ParseDict",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "json_string",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Json String",
+        "description": "JSON string to parse into a dictionary",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "dict",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
+    "title": "Parse List",
+    "description": "Parse a JSON string into a Python list.\n    json, parse, decode, array, list\n\n    Use cases:\n    - Convert JSON array responses to Python lists\n    - Process JSON data collections\n    - Parse array-like JSON data",
+    "namespace": "nodetool.json",
+    "node_type": "nodetool.json.ParseList",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "json_string",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Json String",
+        "description": "JSON string to parse into a list",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
+    "title": "Stringify JSON",
+    "description": "Convert a Python object to a JSON string.\n    json, stringify, encode\n\n    Use cases:\n    - Prepare data for API requests\n    - Save data in JSON format",
+    "namespace": "nodetool.json",
+    "node_type": "nodetool.json.StringifyJSON",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "data",
+        "type": {
+          "type": "any",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Data",
+        "description": "Data to convert to JSON",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "indent",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Indent",
+        "description": "Number of spaces for indentation",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
+    "title": "Get JSONPath Str",
+    "description": "Extract a string value from a JSON path",
+    "namespace": "nodetool.json",
+    "node_type": "nodetool.json.GetJSONPathStr",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "data",
+        "type": {
+          "type": "any",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Data",
+        "description": "JSON object to extract from",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "path",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Path",
+        "description": "Path to the desired value (dot notation)",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "default",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Default",
+        "description": null,
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "str",
+          "optional": true,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
+    "title": "Get JSONPath Int",
+    "description": "Extract an integer value from a JSON path",
+    "namespace": "nodetool.json",
+    "node_type": "nodetool.json.GetJSONPathInt",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "data",
+        "type": {
+          "type": "any",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Data",
+        "description": "JSON object to extract from",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "path",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Path",
+        "description": "Path to the desired value (dot notation)",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "default",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Default",
+        "description": null,
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
+    "title": "Get JSONPath Float",
+    "description": "Extract a float value from a JSON path",
+    "namespace": "nodetool.json",
+    "node_type": "nodetool.json.GetJSONPathFloat",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "data",
+        "type": {
+          "type": "any",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Data",
+        "description": "JSON object to extract from",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "path",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Path",
+        "description": "Path to the desired value (dot notation)",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "default",
+        "type": {
+          "type": "float",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Default",
+        "description": null,
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "float",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
+    "title": "Get JSONPath Bool",
+    "description": "Extract a boolean value from a JSON path",
+    "namespace": "nodetool.json",
+    "node_type": "nodetool.json.GetJSONPathBool",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "data",
+        "type": {
+          "type": "any",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Data",
+        "description": "JSON object to extract from",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "path",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Path",
+        "description": "Path to the desired value (dot notation)",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "default",
+        "type": {
+          "type": "bool",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Default",
+        "description": null,
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "bool",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
+    "title": "Get JSONPath List",
+    "description": "Extract a list value from a JSON path",
+    "namespace": "nodetool.json",
+    "node_type": "nodetool.json.GetJSONPathList",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "data",
+        "type": {
+          "type": "any",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Data",
+        "description": "JSON object to extract from",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "path",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Path",
+        "description": "Path to the desired value (dot notation)",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "default",
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Default",
+        "description": null,
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
+    "title": "Get JSONPath Dict",
+    "description": "Extract a dictionary value from a JSON path",
+    "namespace": "nodetool.json",
+    "node_type": "nodetool.json.GetJSONPathDict",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "data",
+        "type": {
+          "type": "any",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Data",
+        "description": "JSON object to extract from",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "path",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Path",
+        "description": "Path to the desired value (dot notation)",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "default",
+        "type": {
+          "type": "dict",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Default",
+        "description": null,
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "dict",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
+    "title": "Validate JSON",
+    "description": "Validate JSON data against a schema.\n    json, validate, schema\n\n    Use cases:\n    - Ensure API payloads match specifications\n    - Validate configuration files",
+    "namespace": "nodetool.json",
+    "node_type": "nodetool.json.ValidateJSON",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "data",
+        "type": {
+          "type": "any",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Data",
+        "description": "JSON data to validate",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "schema",
+        "type": {
+          "type": "dict",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Schema",
+        "description": "JSON schema for validation",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "bool",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
+    "title": "Filter JSON",
+    "description": "Filter JSON array based on a key-value condition.\n    json, filter, array\n\n    Use cases:\n    - Filter arrays of objects\n    - Search JSON data",
+    "namespace": "nodetool.json",
+    "node_type": "nodetool.json.FilterJSON",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "array",
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "dict",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Array",
+        "description": "Array of JSON objects to filter",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "key",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Key",
+        "description": "Key to filter on",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "value",
+        "type": {
+          "type": "any",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Value",
+        "description": "Value to match",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "dict",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
+    "title": "JSON Template",
+    "description": "Template JSON strings with variable substitution.\n    json, template, substitute, variables\n\n    Example:\n    template: '{\"name\": \"$user\", \"age\": $age}'\n    values: {\"user\": \"John\", \"age\": 30}\n    result: '{\"name\": \"John\", \"age\": 30}'\n\n    Use cases:\n    - Create dynamic JSON payloads\n    - Generate JSON with variable data\n    - Build API request templates",
+    "namespace": "nodetool.json",
+    "node_type": "nodetool.json.JSONTemplate",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "template",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Template",
+        "description": "JSON template string with $variable placeholders",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "values",
+        "type": {
+          "type": "dict",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "str",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            },
+            {
+              "type": "any",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Values",
+        "description": "Dictionary of values to substitute into the template",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "dict",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
     "title": "Length",
     "description": "Calculates the length of a list.\n    list, count, size\n\n    Use cases:\n    - Determine the number of elements in a list\n    - Check if a list is empty\n    - Validate list size constraints",
     "namespace": "nodetool.list",
@@ -36195,7 +36949,7 @@
     "recommended_models": []
   },
   {
-    "title": "Get Request Binary",
+    "title": "HTTP GET Request (Binary)",
     "description": "Perform an HTTP GET request and return raw binary data.\n    http, get, request, url, binary, download\n\n    Use cases:\n    - Download binary files\n    - Fetch images or media\n    - Retrieve PDF documents\n    - Download any non-text content",
     "namespace": "nodetool.network.http",
     "node_type": "nodetool.network.http.GetRequestBinary",
@@ -36294,7 +37048,7 @@
     "recommended_models": []
   },
   {
-    "title": "Post Request Binary",
+    "title": "HTTP POST Request (Binary)",
     "description": "Send data using an HTTP POST request and return raw binary data.\n    http, post, request, url, data, binary\n\n    Use cases:\n    - Upload and receive binary files\n    - Interact with binary APIs\n    - Process image or media uploads\n    - Handle binary file transformations",
     "namespace": "nodetool.network.http",
     "node_type": "nodetool.network.http.PostRequestBinary",
@@ -36725,6 +37479,447 @@
           "type_name": null
         },
         "name": "failed",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
+    "title": "JSON POST Request",
+    "description": "Send JSON data to a server using an HTTP POST request.\n    http, post, request, url, json, api\n\n    Use cases:\n    - Send structured data to REST APIs\n    - Create resources with JSON payloads\n    - Interface with modern web services",
+    "namespace": "nodetool.network.http",
+    "node_type": "nodetool.network.http.JSONPostRequest",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "url",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Url",
+        "description": "The URL to make the request to.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "headers",
+        "type": {
+          "type": "dict",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "str",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            },
+            {
+              "type": "str",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Headers",
+        "description": "Optional headers to include in the request.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "auth",
+        "type": {
+          "type": "union",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "str",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            },
+            {
+              "type": "none",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Auth",
+        "description": "Authentication credentials.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "data",
+        "type": {
+          "type": "dict",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Data",
+        "description": "The JSON data to send in the POST request.",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "dict",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
+    "title": "JSON PUT Request",
+    "description": "Update resources with JSON data using an HTTP PUT request.\n    http, put, request, url, json, api\n\n    Use cases:\n    - Update existing API resources\n    - Replace complete objects in REST APIs\n    - Set configuration with JSON data",
+    "namespace": "nodetool.network.http",
+    "node_type": "nodetool.network.http.JSONPutRequest",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "url",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Url",
+        "description": "The URL to make the request to.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "headers",
+        "type": {
+          "type": "dict",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "str",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            },
+            {
+              "type": "str",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Headers",
+        "description": "Optional headers to include in the request.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "auth",
+        "type": {
+          "type": "union",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "str",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            },
+            {
+              "type": "none",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Auth",
+        "description": "Authentication credentials.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "data",
+        "type": {
+          "type": "dict",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Data",
+        "description": "The JSON data to send in the PUT request.",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "dict",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
+    "title": "JSON PATCH Request",
+    "description": "Partially update resources with JSON data using an HTTP PATCH request.\n    http, patch, request, url, json, api\n\n    Use cases:\n    - Partial updates to API resources\n    - Modify specific fields without full replacement\n    - Efficient updates for large objects",
+    "namespace": "nodetool.network.http",
+    "node_type": "nodetool.network.http.JSONPatchRequest",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "url",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Url",
+        "description": "The URL to make the request to.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "headers",
+        "type": {
+          "type": "dict",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "str",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            },
+            {
+              "type": "str",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Headers",
+        "description": "Optional headers to include in the request.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "auth",
+        "type": {
+          "type": "union",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "str",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            },
+            {
+              "type": "none",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Auth",
+        "description": "Authentication credentials.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "data",
+        "type": {
+          "type": "dict",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Data",
+        "description": "The JSON data to send in the PATCH request.",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "dict",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
+    "title": "JSON GET Request",
+    "description": "Perform an HTTP GET request and parse the response as JSON.\n    http, get, request, url, json, api\n\n    Use cases:\n    - Fetch data from REST APIs\n    - Retrieve JSON-formatted responses\n    - Interface with JSON web services",
+    "namespace": "nodetool.network.http",
+    "node_type": "nodetool.network.http.JSONGetRequest",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "url",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Url",
+        "description": "The URL to make the request to.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "headers",
+        "type": {
+          "type": "dict",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "str",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            },
+            {
+              "type": "str",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Headers",
+        "description": "Optional headers to include in the request.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "auth",
+        "type": {
+          "type": "union",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "str",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            },
+            {
+              "type": "none",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Auth",
+        "description": "Authentication credentials.",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "dict",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
         "stream": false
       }
     ],

@@ -128,17 +128,17 @@ def type_metadata(python_type: Type | UnionType) -> TypeMetadata:
     elif is_list_type(python_type):
         return TypeMetadata(
             type="list",
-            type_args=[type_metadata(python_type.__args__[0])],  # type: ignore
+            type_args=[type_metadata(python_type.__args__[0])] if hasattr(python_type, "__args__") else [],  # type: ignore
         )
     elif is_tuple_type(python_type):
         return TypeMetadata(
             type="tuple",
-            type_args=[type_metadata(t) for t in python_type.__args__],  # type: ignore
+            type_args=[type_metadata(t) for t in python_type.__args__] if hasattr(python_type, "__args__") else [],  # type: ignore
         )
     elif is_dict_type(python_type):
         return TypeMetadata(
             type="dict",
-            type_args=[type_metadata(t) for t in python_type.__args__],  # type: ignore
+            type_args=[type_metadata(t) for t in python_type.__args__] if hasattr(python_type, "__args__") else [],  # type: ignore
         )
     # check optional type before union type as optional is a union of None and the type
     elif is_optional_type(python_type):
@@ -148,7 +148,7 @@ def type_metadata(python_type: Type | UnionType) -> TypeMetadata:
     elif is_union_type(python_type):
         return TypeMetadata(
             type="union",
-            type_args=[type_metadata(t) for t in python_type.__args__],  # type: ignore
+            type_args=[type_metadata(t) for t in python_type.__args__] if hasattr(python_type, "__args__") else [],  # type: ignore
         )
     elif is_enum_type(python_type):
         assert not isinstance(python_type, UnionType)
