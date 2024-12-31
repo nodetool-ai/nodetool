@@ -7,7 +7,6 @@ import nodetool.nodes.nodetool.audio.synthesis
 import nodetool.nodes.nodetool.audio.transform
 import nodetool.nodes.nodetool.boolean
 import nodetool.nodes.nodetool.constant
-import nodetool.nodes.nodetool.data.sqlite
 import nodetool.nodes.nodetool.dataframe
 import nodetool.nodes.nodetool.datetime
 import nodetool.nodes.nodetool.dictionary
