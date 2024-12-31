@@ -110,7 +110,7 @@ class ChatInput(InputNode):
             "text": str,
         }
 
-    async def process(self, context: ProcessingContext) -> list[Message]:
+    async def process(self, context: ProcessingContext):
         return {
             "output": self.value,
             "text": (
