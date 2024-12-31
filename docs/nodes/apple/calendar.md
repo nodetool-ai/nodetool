@@ -20,20 +20,3 @@ Use cases:
 - **description**: Description/notes for the event (str)
 
 
-## ReadCalendarEvents
-
-Read events from Apple Calendar via AppleScript
-
-Use cases:
-- Monitor upcoming events
-- Process calendar data in workflows
-- Extract event information
-
-**Tags:** calendar, automation, macos, productivity
-
-**Fields:**
-- **calendar_name**: Name of the calendar (str)
-- **days_ahead**: Number of days ahead to fetch events (int)
-- **search_term**: Optional search term to filter events (str)
-
-
