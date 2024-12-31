@@ -52,11 +52,11 @@ async def get_ollama_model_info(model_name: str) -> dict | None:
         res = await ollama.show(model_name)
     except Exception:
         return None
-    return dict(res)
+    return res.model_dump()
 
 
 async def stream_ollama_model_pull(model_name: str) -> AsyncGenerator[str, None]:
     ollama = get_ollama_client()
     res = await ollama.pull(model_name, stream=True)
     async for chunk in res:
-        yield json.dumps(chunk) + "\n"
+        yield json.dumps(chunk.model_dump()) + "\n"
