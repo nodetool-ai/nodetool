@@ -33,7 +33,7 @@ async function checkPythonPackages() {
     const VERSION = app.getVersion();
     const requirementsURL = app.isPackaged
       ? `https://packages.nodetool.ai/requirements-${VERSION}.txt`
-      : path.join(__dirname, "..", "requirements.txt");
+      : `file://${path.join(__dirname, "..", "requirements.txt")}`;
 
     emitBootMessage(`Downloading requirements...`);
     logMessage(`Downloading requirements from ${requirementsURL}`);
@@ -835,8 +835,8 @@ async function downloadFromFile(filePath) {
  * @throws {Error} If download fails
  */
 async function downloadToString(url) {
-  if (url.startsWith("/")) {
-    return downloadFromFile(url);
+  if (url.startsWith("file://")) {
+    return downloadFromFile(url.replace("file://", ""));
   }
 
   return new Promise((resolve, reject) => {
