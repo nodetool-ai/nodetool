@@ -157,6 +157,7 @@ async def update_workflow(
         raise HTTPException(status_code=400, detail="Invalid workflow")
     workflow.name = workflow_request.name
     workflow.description = workflow_request.description
+    workflow.tags = workflow_request.tags
     if workflow_request.thumbnail is not None:
         workflow.thumbnail = workflow_request.thumbnail
     workflow.access = workflow_request.access
