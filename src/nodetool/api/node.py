@@ -2,6 +2,7 @@
 
 from fastapi import APIRouter, HTTPException
 import httpx
+from nodetool.common.system_stats import SystemStats
 from nodetool.types.job import (
     JobUpdate,
 )
@@ -140,6 +141,7 @@ UnionType = (
     | HFZeroShotAudioClassification
     | HFVoiceActivityDetection
     | SVGElement
+    | SystemStats
     | dict
 )
 
