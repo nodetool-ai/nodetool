@@ -213,3 +213,29 @@ function determineStepSize(min, max) {
   if (range <= 100) return "1";
   return Math.pow(10, Math.floor(Math.log10(range) - 2)).toString();
 }
+
+/**
+ * Disables all input fields
+ * @param {HTMLElement} container
+ */
+export function disableInputFields(container) {
+  const inputFields = container.querySelectorAll("input, textarea");
+  inputFields.forEach((input) => {
+    if (input instanceof HTMLInputElement) {
+      input.disabled = true;
+    }
+  });
+}
+
+/**
+ * Enables all input fields
+ * @param {HTMLElement} container
+ */
+export function enableInputFields(container) {
+  const inputFields = container.querySelectorAll("input, textarea");
+  inputFields.forEach((input) => {
+    if (input instanceof HTMLInputElement) {
+      input.disabled = false;
+    }
+  });
+}
