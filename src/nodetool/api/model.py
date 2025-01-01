@@ -112,12 +112,6 @@ if not Environment.is_production():
             stream_ollama_model_pull(model_name), media_type="application/json"
         )
 
-    @router.get("/system_stats", response_model=SystemStats)
-    async def get_system_stats_endpoint(
-        user: User = Depends(current_user),
-    ) -> SystemStats:
-        return get_system_stats()
-
     @router.post("/huggingface/file_info")
     async def get_huggingface_file_info(
         requests: list[HFFileRequest],

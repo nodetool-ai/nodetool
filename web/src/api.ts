@@ -381,23 +381,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/models/system_stats": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get System Stats Endpoint */
-        get: operations["get_system_stats_endpoint_api_models_system_stats_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/models/huggingface/file_info": {
         parameters: {
             query?: never;
@@ -736,24 +719,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/settings/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Settings */
-        get: operations["get_settings_api_settings__get"];
-        /** Update Settings */
-        put: operations["update_settings_api_settings__put"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/files/list": {
         parameters: {
             query?: never;
@@ -828,6 +793,24 @@ export interface paths {
          * @description Upload a file to the specified path
          */
         post: operations["upload_file_api_files_upload__path__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/settings/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Settings */
+        get: operations["get_settings_api_settings__get"];
+        /** Update Settings */
+        put: operations["update_settings_api_settings__put"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2826,44 +2809,6 @@ export interface components {
             /** Rfilename */
             rfilename: string;
         };
-        /** SystemStats */
-        SystemStats: {
-            /**
-             * Cpu Percent
-             * @description CPU usage percentage
-             */
-            cpu_percent: number;
-            /**
-             * Memory Total Gb
-             * @description Total memory in GB
-             */
-            memory_total_gb: number;
-            /**
-             * Memory Used Gb
-             * @description Used memory in GB
-             */
-            memory_used_gb: number;
-            /**
-             * Memory Percent
-             * @description Memory usage percentage
-             */
-            memory_percent: number;
-            /**
-             * Vram Total Gb
-             * @description Total VRAM in GB
-             */
-            vram_total_gb?: number | null;
-            /**
-             * Vram Used Gb
-             * @description Used VRAM in GB
-             */
-            vram_used_gb?: number | null;
-            /**
-             * Vram Percent
-             * @description VRAM usage percentage
-             */
-            vram_percent?: number | null;
-        };
         /** Task */
         Task: {
             /**
@@ -4165,39 +4110,6 @@ export interface operations {
             };
         };
     };
-    get_system_stats_endpoint_api_models_system_stats_get: {
-        parameters: {
-            query?: never;
-            header?: {
-                authorization?: string | null;
-            };
-            path?: never;
-            cookie?: {
-                auth_cookie?: string | null;
-            };
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SystemStats"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     get_huggingface_file_info_api_models_huggingface_file_info_post: {
         parameters: {
             query?: never;
@@ -5105,76 +5017,6 @@ export interface operations {
             };
         };
     };
-    get_settings_api_settings__get: {
-        parameters: {
-            query?: never;
-            header?: {
-                authorization?: string | null;
-            };
-            path?: never;
-            cookie?: {
-                auth_cookie?: string | null;
-            };
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SettingsResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    update_settings_api_settings__put: {
-        parameters: {
-            query?: never;
-            header?: {
-                authorization?: string | null;
-            };
-            path?: never;
-            cookie?: {
-                auth_cookie?: string | null;
-            };
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["SettingsUpdateRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SettingsResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     list_files_api_files_list_get: {
         parameters: {
             query?: {
@@ -5306,6 +5148,76 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_settings_api_settings__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: {
+                auth_cookie?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_settings_api_settings__put: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: {
+                auth_cookie?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SettingsUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingsResponse"];
                 };
             };
             /** @description Validation Error */
