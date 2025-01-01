@@ -1,4 +1,4 @@
-const { Tray, Menu } = require("electron");
+const { Tray, Menu, app } = require("electron");
 const path = require("path");
 const { logMessage } = require("./logger");
 const { BrowserWindow } = require("electron");
@@ -18,10 +18,76 @@ let wsConnection = null;
 async function createTray() {
   if (trayInstance) return trayInstance;
 
-  const iconPath = path.join(__dirname, "resources", "tray-icon.png");
+  const isWindows = process.platform === "win32";
+  const iconPath = path.join(
+    __dirname,
+    "resources",
+    isWindows ? "tray-icon.ico" : "tray-icon.png"
+  );
+
+  // Windows-specific: Set the app user model ID to ensure proper taskbar grouping
+  if (isWindows) {
+    app.setAppUserModelId("com.nodetool.desktop");
+  }
+
   trayInstance = new Tray(iconPath);
 
+  // Windows-specific: Force the tray icon to be always visible
+  if (isWindows) {
+    // Set high priority for the tray icon
+    trayInstance.setIgnoreDoubleClickEvents(true);
+
+    // Update the tray icon's visibility preference in Windows registry
+    const { execSync } = require("child_process");
+    try {
+      const iconPreferenceKey =
+        "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\TrayNotify";
+      execSync(
+        `reg add "${iconPreferenceKey}" /v "IconStreams" /t REG_BINARY /d "" /f`
+      );
+      execSync(
+        `reg add "${iconPreferenceKey}" /v "PastIconsStream" /t REG_BINARY /d "" /f`
+      );
+    } catch (error) {
+      logMessage(
+        `Failed to set tray icon preference: ${error.message}`,
+        "warn"
+      );
+    }
+  }
+
   await connectToWebSocketUpdates();
+  await updateTrayMenu();
+
+  // Windows-specific settings
+  if (isWindows) {
+    // Double click should open/focus the main window
+    trayInstance.on("double-click", () => {
+      const { getMainWindow } = require("./state");
+      const mainWindow = getMainWindow();
+      if (mainWindow) {
+        if (mainWindow.isMinimized()) mainWindow.restore();
+        mainWindow.show();
+        mainWindow.focus();
+      } else {
+        createWindow();
+      }
+    });
+
+    // Single click should show the context menu
+    trayInstance.on("click", () => {
+      const { getMainWindow } = require("./state");
+      const mainWindow = getMainWindow();
+      if (mainWindow) {
+        trayInstance.popUpContextMenu();
+      }
+    });
+
+    // Right click should show the context menu
+    trayInstance.on("right-click", () => {
+      trayInstance.popUpContextMenu();
+    });
+  }
 
   return trayInstance;
 }
@@ -103,15 +169,18 @@ async function updateTrayMenu() {
     },
   }));
 
+  const { getMainWindow } = require("./state");
+  const mainWindow = getMainWindow();
+
   const contextMenu = Menu.buildFromTemplate([
-    ...workflowMenuItems,
-    { type: "separator" },
     {
-      label: "Open NodeTool",
+      label:
+        mainWindow && !mainWindow.isVisible()
+          ? "Show NodeTool"
+          : "Focus NodeTool",
       click: () => {
-        const { getMainWindow } = require("./state");
-        const mainWindow = getMainWindow();
         if (mainWindow) {
+          if (mainWindow.isMinimized()) mainWindow.restore();
           mainWindow.show();
           mainWindow.focus();
         } else {
@@ -120,11 +189,28 @@ async function updateTrayMenu() {
       },
     },
     { type: "separator" },
-    { label: "Quit", role: "quit" },
+    {
+      label: "Workflows",
+      submenu:
+        workflowMenuItems.length > 0
+          ? workflowMenuItems
+          : [{ label: "No workflows available", enabled: false }],
+    },
+    { type: "separator" },
+    {
+      label: "Open Log File",
+      click: () => {
+        const { shell } = require("electron");
+        const { LOG_FILE } = require("./logger");
+        shell.showItemInFolder(LOG_FILE);
+      },
+    },
+    { type: "separator" },
+    { label: "Quit NodeTool", role: "quit" },
   ]);
 
   trayInstance.setContextMenu(contextMenu);
-  trayInstance.setToolTip("NodeTool");
+  trayInstance.setToolTip("NodeTool Desktop");
 }
 
 /**
