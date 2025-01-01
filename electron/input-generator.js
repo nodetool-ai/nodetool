@@ -69,8 +69,9 @@ async function getInputValues(schema) {
     } else if (input instanceof HTMLInputElement && input.type === "number") {
       values[key] = parseFloat(input.value);
     } else if (input instanceof HTMLInputElement && input.type === "file") {
+      const file = input.files[0];
       values[key] = {
-        uri: await fileToDataURI(input.files[0]),
+        uri: "file://" + file.path,
         type: value.properties.type.enum[0],
       };
     } else if (input instanceof HTMLInputElement && input.type === "text") {
@@ -97,23 +98,36 @@ export function generateInputFields(schema, container, onSubmit) {
     return;
   }
 
+  const autoSubmit = Object.keys(schema.properties).length === 1;
+
+  // if we have a single field, we can automatically submit
+  // when the field changes
+  const onChangeField = () => {
+    if (autoSubmit) {
+      getInputValues(schema).then(onSubmit);
+    }
+  };
+
   for (const [key, value] of Object.entries(schema.properties)) {
-    const formGroup = createFormGroup(key, value);
+    const formGroup = createFormGroup(key, value, onChangeField);
     container.appendChild(formGroup);
   }
 
-  const submitButton = createSubmitButton(() =>
-    getInputValues(schema).then(onSubmit)
-  );
-  container.appendChild(submitButton);
+  if (!autoSubmit) {
+    const submitButton = createSubmitButton(() =>
+      getInputValues(schema).then(onSubmit)
+    );
+    container.appendChild(submitButton);
+  }
 }
 
 /**
  * Creates a form group with label and input
  * @param {string} key
  * @param {JSONSchema} value
+ * @param {() => void} onChange
  */
-function createFormGroup(key, value) {
+function createFormGroup(key, value, onChange) {
   const formGroup = document.createElement("div");
   formGroup.className = "form-group";
 
@@ -121,8 +135,7 @@ function createFormGroup(key, value) {
   label.textContent = value.title || key;
   label.setAttribute("for", key);
 
-  const input = createInput(key, value);
-
+  const input = createInput(key, value, onChange);
   formGroup.appendChild(label);
   formGroup.appendChild(input);
   return formGroup;
@@ -132,31 +145,34 @@ function createFormGroup(key, value) {
  * Creates an appropriate input element based on schema
  * @param {string} key
  * @param {JSONSchema} value
+ * @param {() => void} onChange
  */
-function createInput(key, value) {
+function createInput(key, value, onChange) {
   if (value.type === "string") {
-    return createTextArea(key);
+    return createTextArea(key, onChange);
   } else if (value.type === "integer" || value.type === "number") {
     return value.minimum !== undefined && value.maximum !== undefined
-      ? createRangeInput(key, value)
-      : createNumberInput(key, value);
+      ? createRangeInput(key, value, onChange)
+      : createNumberInput(key, value, onChange);
   } else if (value.type === "boolean") {
-    return createCheckbox(key);
+    return createCheckbox(key, onChange);
   } else if (value.type === "object" && value.properties?.uri) {
-    return createFileInput(key);
+    return createFileInput(key, onChange);
   }
-  return createTextArea(key);
+  return createTextArea(key, onChange);
 }
 
 /**
  * Creates a textarea input element
  * @param {string} key
+ * @param {() => void} onChange
  * @returns {HTMLTextAreaElement}
  */
-function createTextArea(key) {
+function createTextArea(key, onChange) {
   const textarea = document.createElement("textarea");
   textarea.id = key;
   textarea.className = "form-control";
+  textarea.addEventListener("change", () => onChange());
   return textarea;
 }
 
@@ -166,7 +182,7 @@ function createTextArea(key) {
  * @param {JSONSchema} value
  * @returns {HTMLInputElement}
  */
-function createRangeInput(key, value) {
+function createRangeInput(key, value, onChange) {
   const input = document.createElement("input");
   input.type = "range";
   input.id = key;
@@ -174,6 +190,7 @@ function createRangeInput(key, value) {
   input.min = String(value.minimum ?? 0);
   input.max = String(value.maximum ?? 100);
   input.step = determineStepSize(value.minimum, value.maximum);
+  input.addEventListener("change", () => onChange());
   return input;
 }
 
@@ -181,37 +198,42 @@ function createRangeInput(key, value) {
  * Creates a number input element
  * @param {string} key
  * @param {JSONSchema} value
+ * @param {() => void} onChange
  * @returns {HTMLInputElement}
  */
-function createNumberInput(key, value) {
+function createNumberInput(key, value, onChange) {
   const input = document.createElement("input");
   input.type = "number";
   input.id = key;
   input.className = "form-control";
   if (value.minimum !== undefined) input.min = String(value.minimum);
   if (value.maximum !== undefined) input.max = String(value.maximum);
+  input.addEventListener("change", () => onChange());
   return input;
 }
 
 /**
  * Creates a checkbox input element
  * @param {string} key
+ * @param {() => void} onChange
  * @returns {HTMLInputElement}
  */
-function createCheckbox(key) {
+function createCheckbox(key, onChange) {
   const input = document.createElement("input");
   input.type = "checkbox";
   input.id = key;
   input.className = "form-check-input";
+  input.addEventListener("change", () => onChange());
   return input;
 }
 
 /**
  * Creates a file input element with drag and drop functionality
  * @param {string} key
+ * @param {() => void} onChange
  * @returns {HTMLDivElement}
  */
-function createFileInput(key) {
+function createFileInput(key, onChange) {
   const wrapper = document.createElement("div");
   wrapper.className = "file-drop-area";
 
@@ -246,6 +268,7 @@ function createFileInput(key) {
     if (file) {
       input.files = e.dataTransfer.files;
       updateFileName(dropZone, file.name);
+      onChange();
     }
   });
 
@@ -258,6 +281,7 @@ function createFileInput(key) {
     const file = input.files?.[0];
     if (file) {
       updateFileName(dropZone, file.name);
+      onChange();
     }
   });
 
