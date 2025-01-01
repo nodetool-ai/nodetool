@@ -31,7 +31,9 @@ const { readSettings, updateSetting } = require("./settings");
 async function checkPythonPackages() {
   try {
     const VERSION = app.getVersion();
-    const requirementsURL = `https://packages.nodetool.ai/requirements-${VERSION}.txt`;
+    const requirementsURL = app.isPackaged
+      ? `https://packages.nodetool.ai/requirements-${VERSION}.txt`
+      : path.join(__dirname, "..", "requirements.txt");
 
     emitBootMessage(`Downloading requirements...`);
     logMessage(`Downloading requirements from ${requirementsURL}`);
@@ -813,11 +815,31 @@ function calculateExtractETA(startTime, processedBytes, totalBytes) {
 
 /**
  * Download a file's contents directly to a string
+ * @param {string} filePath - The path to the file to download
+ * @returns {Promise<string>} The file contents as a string
+ * @throws {Error} If download fails
+ */
+async function downloadFromFile(filePath) {
+  return new Promise((resolve, reject) => {
+    // @ts-ignore
+    fs.readFile(filePath, (err, data) => {
+      if (err) reject(err);
+      resolve(data);
+    });
+  });
+}
+
+/**
+ * Download a file's contents directly to a string
  * @param {string} url - The URL to download from
  * @returns {Promise<string>} The file contents as a string
  * @throws {Error} If download fails
  */
 async function downloadToString(url) {
+  if (url.startsWith("/")) {
+    return downloadFromFile(url);
+  }
+
   return new Promise((resolve, reject) => {
     let data = "";
 
