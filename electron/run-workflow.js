@@ -11,6 +11,7 @@ import {
   generateInputFields,
 } from "./input-generator.js";
 
+// @ts-ignore
 import WaveSurfer from "https://cdn.jsdelivr.net/npm/wavesurfer.js@7/dist/wavesurfer.esm.js";
 
 const WORKER_URL = "ws://127.0.0.1:8000/predict";
@@ -163,6 +164,138 @@ function updateProgress(percentage) {
 }
 
 /**
+ * Creates an audio player component using WaveSurfer
+ * @param {Uint8Array} data - The audio data
+ * @returns {HTMLElement} The audio player container
+ */
+function createAudioPlayer(data) {
+  const audioContainer = document.createElement("div");
+  audioContainer.className = "audio-controls-container";
+
+  const waveformContainer = document.createElement("div");
+  waveformContainer.className = "waveform";
+
+  const timeDisplay = document.createElement("div");
+  timeDisplay.className = "time-display";
+
+  const controls = document.createElement("div");
+  controls.className = "audio-controls";
+
+  // Create blob and URL only once
+  const blob = new Blob([data], { type: "audio/wav" });
+  const url = URL.createObjectURL(blob);
+
+  // Clean up the URL when the audio is loaded
+  const cleanup = () => {
+    URL.revokeObjectURL(url);
+  };
+
+  const wavesurfer = WaveSurfer.create({
+    container: waveformContainer,
+    waveColor: "#76e5b8",
+    progressColor: "#a2a2a2",
+    cursorColor: "#e0e0e0",
+    barWidth: 1,
+    barHeight: 1.0,
+    barGap: 1,
+    height: 50,
+    responsive: true,
+    normalize: true,
+    fillParent: true,
+  });
+
+  // Add load event listener to clean up URL
+  wavesurfer.on("destroy", cleanup);
+  wavesurfer.load(url);
+
+  const playButton = document.createElement("button");
+  playButton.innerHTML = "▶";
+  playButton.onclick = () => {
+    wavesurfer.playPause();
+    playButton.innerHTML = wavesurfer.isPlaying() ? "⏸" : "▶";
+  };
+  playButton.classList.add("play-button");
+
+  wavesurfer.on("audioprocess", () => {
+    const currentTime = wavesurfer.getCurrentTime();
+    const duration = wavesurfer.getDuration();
+    timeDisplay.textContent = `${formatTime(currentTime)} / ${formatTime(
+      duration
+    )}`;
+  });
+
+  controls.appendChild(playButton);
+  audioContainer.appendChild(waveformContainer);
+  audioContainer.appendChild(controls);
+  audioContainer.appendChild(timeDisplay);
+
+  return audioContainer;
+}
+
+/**
+ * Creates a video player component
+ * @param {Uint8Array} data - The video data
+ * @returns {HTMLDivElement} The video player element
+ */
+function createVideoPlayer(data) {
+  const videoContainer = document.createElement("div");
+  videoContainer.className = "video-container";
+
+  const blob = new Blob([data], { type: "video/mp4" });
+  const url = URL.createObjectURL(blob);
+
+  const video = document.createElement("video");
+  video.controls = true;
+  video.src = url;
+
+  // Clean up URL when video loads
+  video.onload = () => URL.revokeObjectURL(url);
+
+  videoContainer.appendChild(video);
+  return videoContainer;
+}
+
+/**
+ * Creates an image component
+ * @param {Uint8Array} data - The image data
+ * @returns {HTMLImageElement} The image element
+ */
+function createImage(data) {
+  const img = document.createElement("img");
+  const blob = new Blob([data], { type: "image/png" });
+  const url = URL.createObjectURL(blob);
+
+  // Clean up URL when image loads
+  img.onload = () => URL.revokeObjectURL(url);
+  img.src = url;
+
+  return img;
+}
+
+/**
+ * Creates a text component
+ * @param {string} text - The text to display
+ * @returns {HTMLParagraphElement} The text element
+ */
+function createText(text) {
+  const p = document.createElement("p");
+  p.textContent = text;
+  return p;
+}
+
+/**
+ * Creates a pre-formatted text component
+ * @param {any} value - The value to display
+ * @returns {HTMLPreElement} The pre element
+ */
+function createPreformatted(value) {
+  const pre = document.createElement("pre");
+  pre.textContent =
+    typeof value === "object" ? JSON.stringify(value, null, 2) : String(value);
+  return pre;
+}
+
+/**
  * Displays the workflow results in the UI
  * @param {Object} results - The results object from the workflow
  * @returns {void}
@@ -181,88 +314,20 @@ function displayResults(results) {
     const field = document.createElement("div");
     field.className = "output-field";
 
+    let content;
     if (value.type === "audio") {
-      const audioContainer = document.createElement("div");
-      audioContainer.className = "audio-controls-container";
-
-      // Create waveform container
-      const waveformContainer = document.createElement("div");
-      waveformContainer.className = "waveform";
-
-      // Create time display
-      const timeDisplay = document.createElement("div");
-      timeDisplay.className = "time-display";
-
-      // Create controls container
-      const controls = document.createElement("div");
-      controls.className = "audio-controls";
-
-      // Create audio element (hidden but needed for WaveSurfer)
-      const audio = document.createElement("audio");
-      const data = new Uint8Array(value.data);
-      const blob = new Blob([data], { type: "audio/wav" });
-      const url = URL.createObjectURL(blob);
-      audio.src = url;
-
-      // Initialize WaveSurfer
-      const wavesurfer = WaveSurfer.create({
-        container: waveformContainer,
-        waveColor: "#ddd",
-        progressColor: "#555",
-        cursorColor: "#eee",
-        barWidth: 1,
-        barHeight: 1.0,
-        barGap: 1,
-        height: 50,
-        responsive: true,
-        normalize: true,
-        fillParent: true,
-      });
-
-      wavesurfer.load(url);
-
-      // Add play button
-      const playButton = document.createElement("button");
-      playButton.innerHTML = "▶";
-      playButton.onclick = () => {
-        wavesurfer.playPause();
-        playButton.innerHTML = wavesurfer.isPlaying() ? "⏸" : "▶";
-      };
-
-      controls.appendChild(playButton);
-      audioContainer.appendChild(waveformContainer);
-      audioContainer.appendChild(controls);
-      audioContainer.appendChild(timeDisplay);
-
-      // Update time display
-      wavesurfer.on("audioprocess", () => {
-        const currentTime = wavesurfer.getCurrentTime();
-        const duration = wavesurfer.getDuration();
-        timeDisplay.textContent = `${formatTime(currentTime)} / ${formatTime(
-          duration
-        )}`;
-      });
-
-      field.appendChild(audioContainer);
+      content = createAudioPlayer(value.data);
+    } else if (value.type === "video") {
+      content = createVideoPlayer(value.data);
     } else if (value.type === "image") {
-      const img = document.createElement("img");
-      const data = new Uint8Array(value.data);
-      const blob = new Blob([data], { type: "image/png" });
-      img.src = URL.createObjectURL(blob);
-      field.appendChild(img);
+      content = createImage(value.data);
     } else if (value.type === "string") {
-      const text = document.createElement("p");
-      text.textContent = value.value;
-      field.appendChild(text);
+      content = createText(value.value);
     } else {
-      const pre = document.createElement("pre");
-      pre.textContent =
-        typeof value === "object"
-          ? JSON.stringify(value, null, 2)
-          : String(value);
-      field.appendChild(pre);
+      content = createPreformatted(value);
     }
 
+    field.appendChild(content);
     resultsContainer.appendChild(field);
   }
 }
@@ -347,8 +412,13 @@ export async function init() {
         )[0];
         if (firstProperty && firstProperty[1].format === "chat") {
           const chatView = document.querySelector(".chat-view");
+          const container = document.querySelector(".container");
+
           if (chatView instanceof HTMLElement) {
             chatView.style.display = "block";
+          }
+          if (container instanceof HTMLElement) {
+            container.style.display = "none";
           }
 
           /**

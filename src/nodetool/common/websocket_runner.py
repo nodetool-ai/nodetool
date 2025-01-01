@@ -163,7 +163,7 @@ class WebSocketRunner:
         """
         Closes the WebSocket connection and cancels any active job.
         """
-        log.info("Disconnecting WebSocket")
+        log.info("WebSocketRunner: Disconnecting")
         if self.event_loop:
             try:
                 self.event_loop.stop()
@@ -177,14 +177,14 @@ class WebSocketRunner:
         ):
             try:
                 await self.websocket.close()
-                log.info("WebSocket closed successfully")
+                log.info("WebSocketRunner: WebSocket closed successfully")
             except Exception as e:
-                log.error(f"Error closing WebSocket: {e}")
+                log.error(f"WebSocketRunner: Error closing WebSocket: {e}")
 
         self.websocket = None
         self.event_loop = None
         self.job_id = None
-        log.info("WebSocket disconnected and resources cleaned up")
+        log.info("WebSocketRunner: Disconnected and resources cleaned up")
 
     async def run_job(self, req: RunJobRequest):
         try:
@@ -193,7 +193,7 @@ class WebSocketRunner:
 
             self.job_id = uuid.uuid4().hex
             self.runner = WorkflowRunner(job_id=self.job_id)
-            log.info(f"Starting job execution: {self.job_id}")
+            log.info(f"WebSocketRunner: Starting job execution: {self.job_id}")
 
             context = ProcessingContext(
                 user_id=req.user_id,
