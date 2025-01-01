@@ -9,7 +9,10 @@ import {
   Select,
   MenuItem,
   SelectChangeEvent,
-  Typography
+  Typography,
+  Autocomplete,
+  Chip,
+  TextField
 } from "@mui/material";
 import { useEffect, useState } from "react";
 import { useNodeStore } from "../../stores/NodeStore";
@@ -21,11 +24,26 @@ import { useNotificationStore } from "../../stores/NotificationStore";
 import { prettyDate } from "../../utils/formatDateAndTime";
 import { useSettingsStore } from "../../stores/SettingsStore";
 
+const AVAILABLE_TAGS = [
+  "image",
+  "audio",
+  "video",
+  "comfy",
+  "chat",
+  "docs",
+  "mail",
+  "rag"
+];
+
 const styles = (theme: any) =>
   css({
+    "&": {
+      marginLeft: "16px",
+      marginRight: "16px"
+    },
     ".thumbnail-img": {
       position: "relative",
-      border: `2px solid ${theme.palette.c_gray2}`,
+      border: `1px solid ${theme.palette.c_gray2}`,
       borderRadius: "4px",
       display: "flex",
       alignItems: "center",
@@ -33,11 +51,12 @@ const styles = (theme: any) =>
       backgroundSize: "contain",
       backgroundRepeat: "no-repeat",
       backgroundPosition: "center",
-      width: "100%",
-      height: "200px",
+      width: "64px",
+      height: "64px",
       userSelect: "none",
       color: theme.palette.c_gray4,
-      textTransform: "uppercase"
+      padding: "0px 10px",
+      fontSize: theme.fontSizeSmall
     },
     ".thumbnail button": {
       position: "absolute",
@@ -79,6 +98,57 @@ const styles = (theme: any) =>
       whiteSpace: "normal",
       transition:
         "all var(--microtip-transition-duration) var(--microtip-transition-easing) .5s"
+    },
+    ".tag-input": {
+      marginBottom: theme.spacing(2),
+      "& .MuiOutlinedInput-root": {
+        fontFamily: theme.fontFamily1,
+        color: theme.palette.c_white
+      },
+      "& .MuiAutocomplete-popper": {
+        backgroundColor: theme.palette.c_gray1,
+        "& .MuiPaper-root": {
+          backgroundColor: theme.palette.c_gray1,
+          color: theme.palette.c_white
+        },
+        "& .MuiAutocomplete-option": {
+          "&:hover": {
+            backgroundColor: theme.palette.c_gray2
+          },
+          "&[aria-selected='true']": {
+            backgroundColor: theme.palette.c_gray3
+          }
+        }
+      },
+      "& .MuiChip-root": {
+        color: theme.palette.c_white,
+        borderColor: theme.palette.c_gray3
+      }
+    },
+    ".workflow-header": {
+      display: "flex",
+      alignItems: "center",
+      gap: theme.spacing(2),
+      marginBottom: theme.spacing(3),
+      padding: theme.spacing(2, 0),
+      borderBottom: `1px solid ${theme.palette.c_gray3}`,
+      "& h3": {
+        margin: 0,
+        fontSize: "1.5rem",
+        fontWeight: 500,
+        background: `linear-gradient(90deg, ${theme.palette.c_hl1}, ${theme.palette.c_hl2})`,
+        WebkitBackgroundClip: "text",
+        WebkitTextFillColor: "transparent",
+        animation: "shimmer 2s infinite linear"
+      }
+    },
+    "@keyframes shimmer": {
+      "0%": {
+        backgroundPosition: "-200% center"
+      },
+      "100%": {
+        backgroundPosition: "200% center"
+      }
     }
   });
 
@@ -180,9 +250,21 @@ const WorkflowForm = () => {
       }
     : {};
 
+  const handleTagChange = (_event: React.SyntheticEvent, newTags: string[]) => {
+    setLocalWorkflow((prev: WorkflowAttributes) => ({
+      ...prev,
+      tags: newTags
+    }));
+    setWorkflowAttributes({ ...localWorkflow, tags: newTags });
+    handleSaveWorkflow();
+  };
+
   return (
     <div css={styles} className="workflow-form">
       <Box sx={{ pl: 2, pr: 2 }}>
+        <div className="workflow-header">
+          <Typography variant="h3">Workflow</Typography>
+        </div>
         <FormControl>
           <FormLabel htmlFor="name">Name</FormLabel>
           <OutlinedInput
@@ -205,7 +287,7 @@ const WorkflowForm = () => {
             spellCheck={false}
             autoComplete="off"
             autoCorrect="off"
-            minRows={4}
+            minRows={1}
             style={{
               width: "100%",
               backgroundColor: "transparent",
@@ -233,6 +315,19 @@ const WorkflowForm = () => {
               />
             )}
           </Box>
+        </FormControl>
+        <FormControl fullWidth>
+          <FormLabel htmlFor="tags">Tags</FormLabel>
+          <Autocomplete
+            className="tag-input"
+            multiple
+            options={AVAILABLE_TAGS}
+            value={localWorkflow.tags || []}
+            onChange={handleTagChange}
+            renderInput={(params) => (
+              <TextField {...params} placeholder="Select tags..." />
+            )}
+          />
         </FormControl>
         <FormControl>
           <FormLabel htmlFor="access">Access</FormLabel>

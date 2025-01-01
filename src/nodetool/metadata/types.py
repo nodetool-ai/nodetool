@@ -127,6 +127,12 @@ class AssetRef(BaseType):
             return new_ref
         return self
 
+    @property
+    def document_id(self):
+        if self.asset_id:
+            return self.asset_id
+        return self.uri
+
     @classmethod
     def __init_subclass__(cls):
         super().__init_subclass__()
