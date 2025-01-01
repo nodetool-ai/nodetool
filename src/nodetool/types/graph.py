@@ -81,10 +81,14 @@ def get_input_schema(graph: Graph):
                     "maximum": node.data.get("max", 100),
                     "default": node.data.get("value", 0),
                 }
-            elif input_type in ["StringInput", "ChatInput"]:
+            elif input_type == "StringInput":
+                node_schema = {"type": "string", "default": node.data.get("value", "")}
+            elif input_type == "ChatInput":
                 node_schema = {
                     "type": "string",
+                    "format": "chat",
                     "default": node.data.get("value", ""),
+                    "description": "A chat input field for conversational interactions",
                 }
             elif input_type == "BooleanInput":
                 node_schema = {

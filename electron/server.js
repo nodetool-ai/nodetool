@@ -12,41 +12,27 @@ const {
 const { serverState } = require("./state");
 const fs = require("fs").promises;
 const net = require("net");
+const { updateTrayMenu } = require("./tray");
 
 const webPath = app.isPackaged
   ? path.join(process.resourcesPath, "web")
   : path.join(__dirname, "../web/dist");
 
-let nodeToolBackendProcess = null;
-let isAppQuitting = false;
-let recentServerMessages = [];
-const MAX_RECENT_MESSAGES = 5;
+const PID_FILE_PATH = path.join(app.getPath("userData"), "server.pid");
 
 /**
- * Find a free port starting from the given port number
- * @param {number} startPort - Port to start scanning from
- * @returns {Promise<number>} - First available port
+ * @typedef {Object} ServerState
+ * @property {string} initialURL - The initial URL of the server
  */
-async function findFreePort(startPort = 8088) {
-  const isPortFree = (port) => {
-    return new Promise((resolve) => {
-      const server = net
-        .createServer()
-        .listen(port, "127.0.0.1")
-        .once("listening", () => {
-          server.close();
-          resolve(true);
-        })
-        .once("error", () => resolve(false));
-    });
-  };
 
-  let port = startPort;
-  while (!(await isPortFree(port))) {
-    port++;
-  }
-  return port;
-}
+/** @type {import('child_process').ChildProcess | null} */
+let nodeToolBackendProcess = null;
+/** @type {boolean} */
+let isAppQuitting = false;
+/** @type {string[]} */
+let recentServerMessages = [];
+/** @type {number} */
+const MAX_RECENT_MESSAGES = 5;
 
 /**
  * Check if a specific port is available
@@ -70,7 +56,7 @@ async function isPortAvailable(port) {
  * Show port in use error dialog
  */
 async function showPortInUseError() {
-  await dialog.showErrorBox(
+  dialog.showErrorBox(
     "Port Already in Use",
     "Port 8000 is already in use. Please ensure no other applications are using this port and try again."
   );
@@ -78,16 +64,72 @@ async function showPortInUseError() {
 }
 
 /**
+ * Write process ID to PID file
+ * @param {number} pid - Process ID to write
+ */
+async function writePidFile(pid) {
+  try {
+    await fs.writeFile(PID_FILE_PATH, pid.toString());
+    logMessage(`Written PID ${pid} to ${PID_FILE_PATH}`);
+  } catch (error) {
+    logMessage(`Failed to write PID file: ${error.message}`, "error");
+  }
+}
+
+/**
+ * Kill existing server process if running
+ */
+async function killExistingServer() {
+  try {
+    const pidContent = await fs.readFile(PID_FILE_PATH, "utf8");
+    const pid = parseInt(pidContent, 10);
+
+    if (pid) {
+      try {
+        logMessage(`Killing existing server process ${pid}`);
+        process.kill(pid);
+
+        // Wait for the process to be killed
+        await new Promise((resolve) => {
+          const checkInterval = setInterval(() => {
+            try {
+              // Try to send signal 0 to check if process exists
+              process.kill(pid, 0);
+            } catch (e) {
+              // ESRCH means process doesn't exist
+              if (e.code === "ESRCH") {
+                clearInterval(checkInterval);
+                resolve();
+              }
+            }
+          }, 100);
+
+          // Timeout after 5 seconds
+          setTimeout(() => {
+            clearInterval(checkInterval);
+            resolve();
+          }, 5000);
+        });
+
+        logMessage(`Killed existing server process ${pid}`);
+      } catch (error) {
+        if (error.code !== "ESRCH") {
+          logMessage(`Error killing process ${pid}: ${error.message}`, "error");
+        }
+      }
+    }
+  } catch (error) {
+    if (error.code !== "ENOENT") {
+      logMessage(`Error reading PID file: ${error.message}`, "error");
+    }
+  }
+}
+
+/**
  * Start the NodeTool backend server process.
  */
 async function startNodeToolBackendProcess() {
   emitBootMessage("Configuring server environment...");
-
-  // const freePort = await findFreePort(3000);
-
-  // if (app.isPackaged) {
-  //   serverState.initialURL = `http://127.0.0.1:${freePort}`;
-  // }
 
   const pythonExecutablePath = getPythonPath();
 
@@ -119,6 +161,7 @@ async function startNodeToolBackendProcess() {
   nodeToolBackendProcess.on("spawn", () => {
     logMessage("NodeTool backend starting...");
     emitBootMessage("NodeTool backend starting...");
+    writePidFile(nodeToolBackendProcess.pid);
   });
 
   nodeToolBackendProcess.stdout.on("data", handleServerOutput);
@@ -142,13 +185,14 @@ async function startNodeToolBackendProcess() {
 }
 
 /**
- * Handle output from the server process.
- * @param {Buffer} data - Output data from the server process.
+ * Handle output from the server process
+ * @param {Buffer} data - Output data from the server process
+ * @returns {void}
  */
 function handleServerOutput(data) {
   const output = data.toString().trim();
   if (output) {
-    logMessage(`Server output: ${output}`);
+    logMessage(output);
     recentServerMessages.push(output);
     if (recentServerMessages.length > MAX_RECENT_MESSAGES) {
       recentServerMessages.shift();
@@ -177,12 +221,14 @@ function handleServerOutput(data) {
     logMessage("Server startup complete");
     emitBootMessage("Loading application...");
     emitServerStarted();
+    updateTrayMenu();
   }
   emitServerLog(output);
 }
 
 /**
- * Ensure Ollama is installed and running.
+ * Ensure Ollama is installed and running
+ * @returns {Promise<boolean>} True if Ollama is running, false otherwise
  */
 async function ensureOllamaIsRunning() {
   try {
@@ -195,7 +241,8 @@ async function ensureOllamaIsRunning() {
 }
 
 /**
- * Show dialog explaining Ollama and providing download links.
+ * Show dialog explaining Ollama and providing download links
+ * @returns {Promise<void>}
  */
 async function showOllamaInstallDialog() {
   const downloadUrl = "https://ollama.com/download";
@@ -216,10 +263,14 @@ async function showOllamaInstallDialog() {
 }
 
 /**
- * Initialize the backend server.
+ * Initialize the backend server
+ * @returns {Promise<void>}
+ * @throws {Error} If server fails to start
  */
 async function initializeBackendServer() {
   try {
+    await killExistingServer();
+
     logMessage("Checking if port 8000 is available");
 
     const isPortFree = await isPortAvailable(8000);
@@ -241,20 +292,23 @@ async function initializeBackendServer() {
 }
 
 /**
- * Perform graceful shutdown of the server.
+ * Perform graceful shutdown of the server
+ * @returns {Promise<void>}
  */
 async function gracefulShutdown() {
   logMessage("Initiating graceful shutdown");
   isAppQuitting = true;
 
   try {
-    // Existing NodeTool backend process shutdown
     if (nodeToolBackendProcess) {
       logMessage("Stopping NodeTool backend process");
       nodeToolBackendProcess.kill("SIGTERM");
 
       await new Promise((resolve, reject) => {
-        nodeToolBackendProcess.on("exit", resolve);
+        nodeToolBackendProcess.on("exit", () => {
+          fs.unlink(PID_FILE_PATH).catch(() => {});
+          resolve();
+        });
         nodeToolBackendProcess.on("error", reject);
 
         setTimeout(() => {
@@ -272,6 +326,7 @@ async function gracefulShutdown() {
   logMessage("Graceful shutdown complete");
 }
 
+/** @type {Object.<string, any>} */
 module.exports = {
   serverState,
   initializeBackendServer,
