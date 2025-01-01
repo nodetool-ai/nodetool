@@ -1,6 +1,6 @@
 from typing import Any
 from pydantic import Field
-from nodetool.metadata.types import Message, asset_to_ref
+from nodetool.metadata.types import DocumentRef, FilePath, Message, asset_to_ref
 from nodetool.models.asset import Asset
 from nodetool.metadata.types import FolderRef
 from nodetool.metadata.types import AssetRef
@@ -136,6 +136,25 @@ class TextInput(InputNode):
         return self.value
 
 
+class DocumentInput(InputNode):
+    """
+    Document asset input for workflows.
+    input, parameter, document
+
+    Use cases:
+    - Load documents for processing
+    - Analyze document content
+    - Provide document input to models
+    """
+
+    value: DocumentRef = Field(
+        DocumentRef(), description="The document to use as input."
+    )
+
+    async def process(self, context: ProcessingContext) -> DocumentRef:
+        return self.value
+
+
 class ImageInput(InputNode):
     """
     Image asset input for workflows.
@@ -187,99 +206,21 @@ class AudioInput(InputNode):
         return self.value
 
 
-class Folder(InputNode):
+class PathInput(InputNode):
     """
-    Folder of assets input for workflows.
-    input, parameter, folder
+    Local path input for workflows.
+    input, parameter, path
 
     Use cases:
-    - Batch process multiple assets
-    - Select a collection of related files
-    - Iterate over a set of inputs
+    - Provide a local path to a file or directory
+    - Specify a file or directory for processing
+    - Load local data for analysis
     """
 
-    folder: FolderRef = Field(FolderRef(), description="The folder to use as input.")
-    limit: int = 1000
+    value: FilePath = Field(FilePath(), description="The path to use as input.")
 
-    async def process(self, context: ProcessingContext) -> list[AssetRef]:
-        if self.folder.is_empty():
-            return []
-
-        assets, cursor = Asset.paginate(
-            user_id=context.user_id,
-            parent_id=self.folder.asset_id,
-            limit=self.limit,
-        )
-
-        return [asset_to_ref(asset) for asset in assets]
-
-
-class ImageFolder(Folder):
-    """
-    Folder of image assets input for workflows.
-    input, parameter, folder, image
-
-    Use cases:
-    - Batch process multiple images
-    - Train models on image datasets
-    - Create image galleries or collections
-    """
-
-    async def process(self, context: ProcessingContext) -> list[ImageRef]:
-        assets = await super().process(context)
-        images = [asset for asset in assets if isinstance(asset, ImageRef)]
-        return images
-
-
-class AudioFolder(Folder):
-    """
-    Folder of audio assets input for workflows.
-    input, parameter, folder, audio
-
-    Use cases:
-    - Batch process multiple audio files
-    - Analyze audio datasets
-    - Create playlists or audio collections
-    """
-
-    async def process(self, context: ProcessingContext) -> list[AudioRef]:
-        assets = await super().process(context)
-        audios = [asset for asset in assets if isinstance(asset, AudioRef)]
-        return audios
-
-
-class VideoFolder(Folder):
-    """
-    Folder of video assets input for workflows.
-    input, parameter, folder, video
-
-    Use cases:
-    - Batch process multiple video files
-    - Analyze video datasets
-    - Create video playlists or collections
-    """
-
-    async def process(self, context: ProcessingContext) -> list[VideoRef]:
-        assets = await super().process(context)
-        videos = [asset for asset in assets if isinstance(asset, VideoRef)]
-        return videos
-
-
-class TextFolder(Folder):
-    """
-    Folder of text assets input for workflows.
-    input, parameter, folder, text
-
-    Use cases:
-    - Batch process multiple text documents
-    - Analyze text corpora
-    - Create document collections
-    """
-
-    async def process(self, context: ProcessingContext) -> list[TextRef]:
-        assets = await super().process(context)
-        texts = [asset for asset in assets if isinstance(asset, TextRef)]
-        return texts
+    async def process(self, context: ProcessingContext) -> FilePath:
+        return self.value
 
 
 class GroupInput(BaseNode):

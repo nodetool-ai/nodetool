@@ -39,13 +39,26 @@
  * @property {JSONSchema} input_schema - Input schema of the workflow
  * @property {JSONSchema} output_schema - Output schema of the workflow
  */
+/**
+ * Converts a File object to a data URI
+ * @param {File} file
+ * @returns {Promise<string>}
+ */
+function fileToDataURI(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    // @ts-ignore
+    reader.onload = () => resolve(reader.result);
+    reader.readAsDataURL(file);
+  });
+}
 
 /**
  * Generates input fields based on a JSON schema
  * @param {JSONSchema} schema - The JSON schema defining the input fields
- * @returns {Object} The input values
+ * @returns {Promise<Object>} The input values
  */
-function getInputValues(schema) {
+async function getInputValues(schema) {
   const values = {};
   for (const [key, value] of Object.entries(schema.properties)) {
     const input = document.getElementById(key);
@@ -55,7 +68,12 @@ function getInputValues(schema) {
       values[key] = parseFloat(input.value);
     } else if (input instanceof HTMLInputElement && input.type === "number") {
       values[key] = parseFloat(input.value);
-    } else if (input instanceof HTMLInputElement) {
+    } else if (input instanceof HTMLInputElement && input.type === "file") {
+      values[key] = {
+        uri: await fileToDataURI(input.files[0]),
+        type: value.properties.type.enum[0],
+      };
+    } else if (input instanceof HTMLInputElement && input.type === "text") {
       values[key] = input.value;
     } else if (input instanceof HTMLTextAreaElement) {
       values[key] = input.value;
@@ -85,7 +103,7 @@ export function generateInputFields(schema, container, onSubmit) {
   }
 
   const submitButton = createSubmitButton(() =>
-    onSubmit(getInputValues(schema))
+    getInputValues(schema).then(onSubmit)
   );
   container.appendChild(submitButton);
 }
@@ -124,6 +142,8 @@ function createInput(key, value) {
       : createNumberInput(key, value);
   } else if (value.type === "boolean") {
     return createCheckbox(key);
+  } else if (value.type === "object" && value.properties?.uri) {
+    return createFileInput(key);
   }
   return createTextArea(key);
 }
@@ -184,6 +204,78 @@ function createCheckbox(key) {
   input.id = key;
   input.className = "form-check-input";
   return input;
+}
+
+/**
+ * Creates a file input element with drag and drop functionality
+ * @param {string} key
+ * @returns {HTMLDivElement}
+ */
+function createFileInput(key) {
+  const wrapper = document.createElement("div");
+  wrapper.className = "file-drop-area";
+
+  const input = document.createElement("input");
+  input.type = "file";
+  input.id = key;
+  input.className = "file-input";
+
+  const dropZone = document.createElement("div");
+  dropZone.className = "drop-zone";
+  dropZone.innerHTML = `
+    <div class="drop-zone-text">
+      Drop files here or click to upload
+      <span class="selected-file"></span>
+    </div>
+  `;
+
+  // Handle drag and drop events
+  dropZone.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    dropZone.classList.add("drag-over");
+  });
+
+  dropZone.addEventListener("dragleave", () => {
+    dropZone.classList.remove("drag-over");
+  });
+
+  dropZone.addEventListener("drop", (e) => {
+    e.preventDefault();
+    dropZone.classList.remove("drag-over");
+    const file = e.dataTransfer?.files[0];
+    if (file) {
+      input.files = e.dataTransfer.files;
+      updateFileName(dropZone, file.name);
+    }
+  });
+
+  // Handle click to upload
+  dropZone.addEventListener("click", () => {
+    input.click();
+  });
+
+  input.addEventListener("change", () => {
+    const file = input.files?.[0];
+    if (file) {
+      updateFileName(dropZone, file.name);
+    }
+  });
+
+  wrapper.appendChild(input);
+  wrapper.appendChild(dropZone);
+  return wrapper;
+}
+
+/**
+ * Updates the displayed file name in the drop zone
+ * @param {HTMLElement} dropZone
+ * @param {string} fileName
+ */
+function updateFileName(dropZone, fileName) {
+  const fileNameElement = dropZone.querySelector(".selected-file");
+  if (fileNameElement) {
+    fileNameElement.textContent = `Selected: ${fileName}`;
+  }
 }
 
 /**
