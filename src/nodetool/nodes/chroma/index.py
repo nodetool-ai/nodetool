@@ -1,11 +1,12 @@
 import asyncio
+import os
 from nodetool.metadata.types import (
     ChromaCollection,
-    FolderRef,
     ImageRef,
     TextChunk,
     TextRef,
 )
+from nodetool.models.asset import Asset as AssetModel
 from nodetool.nodes.chroma import MAX_INDEX_SIZE
 from nodetool.nodes.chroma.chroma_node import ChromaNode
 from nodetool.workflows.processing_context import ProcessingContext
@@ -96,6 +97,9 @@ class IndexImages(ChromaNode):
         ]
 
     async def process(self, context: ProcessingContext):
+        if any(img.document_id is None for img in self.images):
+            raise ValueError("document_id cannot be None for any image")
+
         collection = self.get_collection(context, self.collection)
         total = len(self.images)
         context.post_message(NodeProgress(node_id=self._id, progress=0, total=total))
@@ -112,7 +116,7 @@ class IndexImages(ChromaNode):
         images = await asyncio.gather(
             *[context.image_to_pil(img) for img in self.images]
         )
-        image_ids = [img.asset_id or img.uri[7:] for img in self.images]
+        image_ids = [img.document_id for img in self.images]
         image_arrays = [np.array(img) for img in images]
 
         # Add all images in one call
@@ -137,22 +141,18 @@ class IndexTexts(ChromaNode):
         return ["collection"]
 
     async def process(self, context: ProcessingContext):
-        collection = self.get_or_create_collection(context, self.collection)
-        ids = []
+        if any(doc.document_id is None for doc in self.docs):
+            raise ValueError("document_id cannot be None for any text document")
 
-        # Validate all docs have asset_ids or file:// URIs
-        invalid_docs = [
-            doc
-            for doc in self.docs
-            if not doc.asset_id and not doc.uri.startswith("file://")
-        ]
+        collection = self.get_or_create_collection(context, self.collection)
+
+        # Validate all docs have asset_ids or uris
+        invalid_docs = [doc for doc in self.docs if doc.asset_id or doc.uri]
         if invalid_docs:
-            raise ValueError("All texts need to be assets or local files")
+            raise ValueError("All texts need to have asset IDs or URIs")
 
         # Get document IDs and texts in parallel
-        document_ids = [
-            doc.asset_id if doc.asset_id else doc.uri[7:] for doc in self.docs
-        ]
+        document_ids = [doc.document_id for doc in self.docs]
         texts = await asyncio.gather(*[context.text_to_str(doc) for doc in self.docs])
 
         # Add all documents in one call
@@ -174,10 +174,13 @@ class IndexImage(ChromaNode):
         return ["collection"]
 
     async def process(self, context: ProcessingContext):
+        if self.image.document_id is None:
+            raise ValueError("document_id cannot be None")
+
         if not self.image.asset_id and not self.image.uri.startswith("file://"):
             raise ValueError("The image needs to be an asset or a local file")
 
-        document_id = self.image.asset_id if self.image.asset_id else self.image.uri[7:]
+        document_id = self.image.document_id
         collection = self.get_or_create_collection(context, self.collection)
         image = await context.image_to_pil(self.image)
         collection.add(ids=[document_id], images=[np.array(image)])
@@ -198,13 +201,16 @@ class IndexText(ChromaNode):
         return ["collection"]
 
     async def process(self, context: ProcessingContext):
+        if self.text.document_id is None:
+            raise ValueError("document_id cannot be None")
+
         if not self.text.asset_id:
             raise ValueError("The text needs to be an asset that is saved to a folder")
 
         collection = self.get_or_create_collection(context, self.collection)
 
         text = await context.text_to_str(self.text)
-        collection.add(ids=[self.text.asset_id], documents=[text])
+        collection.add(ids=[self.text.document_id], documents=[text])
 
 
 class IndexTextChunk(ChromaNode):
@@ -290,8 +296,6 @@ class IndexString(ChromaNode):
     async def process(self, context: ProcessingContext):
         if not self.document_id.strip():
             raise ValueError("The document ID cannot be empty")
-
-        print("COLLECTION", self.collection)
 
         collection = self.get_collection(context, self.collection)
         collection.add(ids=[self.document_id], documents=[self.text])

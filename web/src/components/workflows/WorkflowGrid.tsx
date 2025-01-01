@@ -28,12 +28,15 @@ const tile_height = "200px";
 
 const styles = (theme: any) =>
   css({
+    "&": {
+      marginLeft: "20px"
+    },
     ".tools": {
       display: "flex",
       flexDirection: "row",
       gap: "1em",
       alignItems: "center",
-      margin: "2em 1em 1em 1.5em"
+      margin: "0"
     },
     ".tools button": {
       fontSize: "0.7em"
@@ -60,7 +63,7 @@ const styles = (theme: any) =>
       width: "100%"
     },
     ".workflow-items": {
-      paddingTop: "2em"
+      paddingTop: "0.5em"
     },
     ".workflow": {
       outline: `0px solid transparent`,
@@ -114,6 +117,23 @@ const styles = (theme: any) =>
       padding: 0,
       fontSize: theme.fontSizeSmall,
       color: theme.palette.c_gray5
+    },
+    ".workflow-header": {
+      display: "flex",
+      alignItems: "center",
+      gap: theme.spacing(2),
+      marginBottom: theme.spacing(3),
+      padding: theme.spacing(2, 0),
+      borderBottom: `1px solid ${theme.palette.c_gray3}`,
+      "& h3": {
+        margin: 0,
+        fontSize: "1.5rem",
+        fontWeight: 500,
+        background: `linear-gradient(90deg, ${theme.palette.c_hl1}, ${theme.palette.c_hl2})`,
+        WebkitBackgroundClip: "text",
+        WebkitTextFillColor: "transparent",
+        animation: "shimmer 2s infinite linear"
+      }
     }
   });
 
@@ -378,7 +398,9 @@ const WorkflowGrid = () => {
   const tools = useMemo(
     () => (
       <>
-        <Typography variant="h3">Workflows</Typography>
+        <div className="workflow-header">
+          <Typography variant="h3">Workflows</Typography>
+        </div>
         <div className="tools">
           <Tooltip title="Create a new workflow">
             <Button
@@ -389,7 +411,7 @@ const WorkflowGrid = () => {
                 textTransform: "uppercase",
                 letterSpacing: "0.05em",
                 height: "36px",
-                padding: "6px 16px"
+                padding: "6px 1a6px"
               }}
             >
               <AddIcon />
