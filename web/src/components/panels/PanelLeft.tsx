@@ -17,12 +17,6 @@ import StaticNodeMenu from "../node_menu/StaticNodeMenu";
 import { IconForType } from "../../config/data_types";
 import TuneIcon from "@mui/icons-material/Tune";
 import ControlPointIcon from "@mui/icons-material/ControlPoint";
-// import PolylineIcon from "@mui/icons-material/Polyline";
-// import CircleIcon from "@mui/icons-material/Circle";
-// import ThemeNodetool from "../themes/ThemeNodetool";
-// import ExtensionIcon from "@mui/icons-material/Extension";
-// import ImageIcon from "@mui/icons-material/Image";
-// import AccountTreeIcon from "@mui/icons-material/AccountTree";
 
 const styles = (theme: any) =>
   css({
@@ -180,8 +174,6 @@ const PanelLeft: React.FC = () => {
                 onClick={() => handleViewChange("nodes")}
                 className={activeView === "nodes" ? "active" : ""}
               >
-                {/* <ExtensionIcon /> */}
-                {/* <CircleIcon /> */}
                 <ControlPointIcon />
               </IconButton>
             </Tooltip>
