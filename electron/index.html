@@ -1,7 +1,9 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <meta http-equiv="Content-Security-Policy" content="
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="
       default-src 'self';
       script-src 'self' 'unsafe-inline';
       style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
@@ -10,314 +12,24 @@
       media-src 'self' mediadevices: *;
       connect-src 'self' http://127.0.0.1:8000 mediadevices: *;
       child-src 'self' http://127.0.0.1:8000;
-    ">
-    <meta http-equiv="Permissions-Policy" content="
+    "
+    />
+    <meta
+      http-equiv="Permissions-Policy"
+      content="
       microphone=*,
       camera=*,
       display-capture=*,
       fullscreen=*,
       midi=*,
-    ">
+    "
+    />
     <title>Nodetool</title>
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@200;400;500;600;700&display=swap"
       rel="stylesheet"
     />
-
-    <style>
-      /* SCROLLBARS */
-      ::-webkit-scrollbar {
-        width: 15px !important;
-        height: 15px !important;
-      }
-      ::-webkit-scrollbar-track {
-        background: var(--c_scroll_bg);
-      }
-      ::-webkit-scrollbar-thumb {
-        background: var(--c_scroll_thumb);
-        border-radius: 0;
-      }
-      ::-webkit-scrollbar-thumb:hover {
-        background: var(--c_scroll_hover);
-      }
-      /* Firefox 64+ */
-      * {
-        scrollbar-width: thin;
-        scrollbar-color: var(--c_scroll_thumb) var(--c_scroll_bg);
-      }
-
-      body,
-      html {
-        height: 100%;
-        margin: 0;
-        padding: 0;
-        display: flex;
-        flex-direction: column;
-        background-color: #111;
-        font-family: Arial, sans-serif;
-      }
-
-      #content {
-        flex: 1;
-        border: none;
-      }
-
-      .nodetool-icon {
-        width: 250px;
-        height: 250px;
-        padding-bottom: 1em;
-        z-index: 10000;
-        --stroke-color: transparent;
-        --fill-color: transparent;
-        --transition-speed: 0.7s;
-        stroke: var(--stroke-color);
-        fill: var(--fill-color);
-        transition: stroke var(--transition-speed) ease,
-          fill var(--transition-speed) ease;
-      }
-      .nodetool-icon:hover .path-4 {
-        fill: var(--stroke-color);
-      }
-      .nodetool-icon path {
-        stroke: var(--stroke-color);
-        fill: var(--fill-color);
-        transition: stroke var(--transition-speed) ease,
-          fill var(--transition-speed) ease;
-      }
-
-      .inter-font {
-        font-family: "Inter", sans-serif;
-      }
-
-      #log-container {
-        display: flex;
-        flex-direction: column;
-        bottom: -20px;
-        left: 0;
-        right: 0;
-        background-color: #212121;
-        transition: height 0.3s ease-out;
-        height: 30px;
-        overflow: hidden;
-        z-index: 1000;
-      }
-
-      #log-container.expanded {
-        height: 200px;
-      }
-
-      #log-toggle {
-        width: 100%;
-        height: 30px;
-        background-color: #2a2a2a;
-        color: #ffffff;
-        border: none;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 10px;
-        font-family: "Inter", sans-serif;
-        font-weight: 500;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        transition: all 0.3s ease;
-        position: relative;
-        overflow: hidden;
-        background: linear-gradient(to right, #2a2a2a, #3a3a3a);
-      }
-
-      #log-toggle:hover {
-        background: linear-gradient(to right, #3a3a3a, #2a2a2a);
-      }
-
-      #log {
-        flex: 1;
-        overflow-y: auto;
-        color: #fff;
-        padding: 10px;
-        font-family: "Courier New", monospace;
-        font-size: 10px;
-        background-color: #111;
-      }
-
-      .log-line {
-        overflow: hidden;
-        white-space: nowrap;
-        margin: 0;
-        line-height: 1.2;
-      }
-
-      #boot-message {
-        display: flex;
-        gap: 12px;
-        padding-top: 100px;
-        flex-direction: column;
-        justify-content: flex-start;
-        align-items: center;
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        min-height: 2em;
-        background-color: #222222;
-        border: 12px solid #111;
-        border-radius: 36px;
-        color: #ffffff;
-        font-size: 36px;
-        font-weight: 200;
-        font-family: "Inter", sans-serif;
-        text-transform: uppercase;
-        text-align: center;
-        overflow: hidden;
-        z-index: 1000;
-        background: radial-gradient(circle, #252525, #242424, #202020);
-        background-position-y: -20vh;
-        background-size: 100%;
-        background-repeat: no-repeat;
-      }
-
-      .boot-text {
-        position: relative;
-        font-size: 20px;
-        color: #eee;
-        font-family: "Inter", sans-serif;
-      }
-
-      .boot-text::before,
-      .boot-text::after {
-        content: "";
-        position: absolute;
-        top: 50%;
-        width: 100vw;
-        height: 2px;
-        background: linear-gradient(
-          to right,
-          transparent,
-          #ffffff,
-          transparent
-        );
-        transform: translateY(-50%);
-
-        animation: lineExpand 5s ease infinite;
-      }
-
-      .boot-text::before {
-        right: 100%;
-        margin-right: 20px;
-      }
-
-      .boot-text::after {
-        left: 100%;
-        margin-left: 20px;
-      }
-
-      @keyframes zoomInOut {
-        0%,
-        100% {
-          transform: scale(1);
-        }
-        50% {
-          transform: scale(1.1);
-        }
-      }
-
-      @keyframes lineExpand {
-        0% {
-          width: 0;
-          opacity: 0;
-        }
-        50% {
-          opacity: 0.25;
-        }
-        100% {
-          width: 50vw;
-          opacity: 0;
-        }
-      }
-
-      #update-steps {
-        display: none;
-        font-size: 18px;
-        color: #eee;
-        text-align: center;
-        width: 80%;
-        max-width: 80%;
-      }
-
-      .progress-container {
-        margin-top: 10px;
-      }
-
-      .progress-label {
-        display: flex;
-        justify-content: space-between;
-        padding: 0 .5em;
-        margin-bottom: 5px;
-        max-height: 200px;
-        overflow-y: auto;
-        font-size: 14px;
-        
-      }
-      
-      .progress-eta {
-        font-size: 12px;
-        color: #888;
-        text-transform: lowercase;
-      }
-
-      .progress-bar {
-        width: 100%;
-        height: 4px;
-        background-color: #333;
-        border-radius: 2px;
-        overflow: hidden;
-      }
-
-      .progress {
-        width: 0;
-        height: 100%;
-        background-color: #4caf50;
-        transition: width 0.3s ease;
-      }
-
-      #log-controls {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 0 10px;
-        background-color: #2a2a2a;
-        position: sticky;
-        top: 0;
-        z-index: 1;
-      }
-
-      #open-log-file {
-        display: none;
-      }
-      
-      .expanded #open-log-file {
-        display: block;
-      }
-
-      .log-button {
-        background: none;
-        border: none;
-        color: #ffffff;
-        cursor: pointer;
-        padding: 5px 10px;
-        font-family: "Inter", sans-serif;
-        font-size: 12px;
-        display: flex;
-        align-items: center;
-        gap: 5px;
-      }
-
-      .log-button:hover {
-        color: #4caf50;
-      }
-    </style>
+    <link rel="stylesheet" href="index.css" />
   </head>
   <body>
     <div id="boot-message">
@@ -383,9 +95,30 @@
         <button id="open-log-file" class="log-button">
           <span aria-label="Open Log File">📁</span>
         </button>
-        <div id="update-notification" style="display: none; position: fixed; top: 10px; right: 10px; background: rgba(0,0,0,0.8); padding: 15px; border-radius: 5px; z-index: 1000;">
-          <p style="margin: 0; color: white;">A new version is available!</p>
-          <a id="release-link" href="#" style="color: #4a9eff; text-decoration: none; display: inline-block; margin-top: 5px;">
+        <div
+          id="update-notification"
+          style="
+            display: none;
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 5px;
+            z-index: 1000;
+          "
+        >
+          <p style="margin: 0; color: white">A new version is available!</p>
+          <a
+            id="release-link"
+            href="#"
+            style="
+              color: #4a9eff;
+              text-decoration: none;
+              display: inline-block;
+              margin-top: 5px;
+            "
+          >
             View Release Notes
           </a>
         </div>
@@ -393,169 +126,6 @@
       <div id="log"></div>
     </div>
 
-    <script>
-      const contentElement = document.getElementById("content");
-      const logElement = document.getElementById("log");
-      const bootMessage = document.getElementById("boot-message");
-      const logContainer = document.getElementById("log-container");
-      const logToggle = document.getElementById("log-toggle");
-      const updateStepsElement = document.getElementById("update-steps");
-      const openLogFileButton = document.getElementById('open-log-file');
-
-      function createSimpleLogger(logElement) {
-        function log(message) {
-          const logLine = document.createElement("p");
-          logLine.className = "log-line";
-          logLine.textContent = message;
-          logElement.appendChild(logLine);
-          logElement.scrollTop = logElement.scrollHeight;
-        }
-
-        return { log };
-      }
-
-      function toggleLog() {
-        logContainer.classList.toggle("expanded");
-        const isExpanded = logContainer.classList.contains("expanded");
-        logToggle.innerHTML = isExpanded
-          ? "<span>▼ Hide Log</span>"
-          : "<span>▲ Show Log</span>";
-      }
-
-      const simpleLogger = createSimpleLogger(logElement);
-
-      function loadContentWithNoCaching(initialURL) {
-        const timestamp = new Date().getTime();
-        contentElement.src = `${initialURL}?nocache=${timestamp}`;
-      }
-
-      function updateProgress(componentName, progress, action, eta) {
-        const updateStepsElement = document.getElementById("update-steps");
-        const progressBar = document.querySelector(".progress");
-        const progressPercentage = document.querySelector(
-          ".progress-percentage"
-        );
-        const progressEta = document.querySelector(".progress-eta");
-        const actionLabel = document.querySelector(".action-label");
-        
-        if (progress < 100) {
-          updateStepsElement.style.display = "block";
-        }
-        
-        if (progressBar && progressPercentage && actionLabel) {
-          progressBar.style.width = `${progress}%`;
-          progressPercentage.textContent = `${Math.round(progress)}%`;
-          actionLabel.textContent = `${action} ${componentName}`;
-          
-          // Add ETA display
-          if (eta && progressEta) {
-            progressEta.textContent = ` (${eta})`;
-          } else {
-            progressEta.textContent = '';
-          }
-        }
-        
-        if (progress === 100) {
-          setTimeout(() => {
-            updateStepsElement.style.display = "none";
-          }, 5000);
-        }
-      }
-
-      function initializeApp() {
-        api.getServerState().then(({ isStarted, bootMsg, logs, initialURL }) => {
-          console.log("Server state:", { isStarted, bootMsg, logs });
-          if (isStarted) {
-            loadContentWithNoCaching(initialURL);
-            bootMessage.style.display = "none";
-            updateStepsElement.style.display = "none";
-            // Hide the log pane
-            logContainer.classList.remove("expanded");
-            logToggle.innerHTML = "<span>▲ Show Log</span>";
-          } else {
-            const bootTextElement = document.querySelector(".boot-text");
-            bootTextElement.textContent = bootMsg;
-          }
-
-          logs.forEach((log) => simpleLogger.log(log));
-        });
-      }
-
-      api.onUpdateProgress(({ componentName, progress, action, eta }) => {
-        updateProgress(componentName, progress, action, eta);
-      });
-
-      api.onServerStarted(() => {
-        initializeApp();
-      });
-
-      api.onBootMessage((message) => {
-        const bootTextElement = document.querySelector(".boot-text");
-        bootTextElement.textContent = message;
-      });
-
-      api.onServerLog((message) => {
-        simpleLogger.log(message);
-      });
-
-      logToggle.addEventListener("click", toggleLog);
-      openLogFileButton.addEventListener('click', async () => {
-        await api.openLogFile();
-      });
-      initializeApp();
-
-      api.onUpdateAvailable((info) => {
-        const updateNotification = document.getElementById('update-notification');
-        const releaseLink = document.getElementById('release-link');
-        updateNotification.style.display = 'block';
-        releaseLink.href = info.releaseUrl;
-        releaseLink.onclick = (e) => {
-          e.preventDefault();
-          api.openExternal(info.releaseUrl);
-        };
-      });
-    </script>
-
-    <script>
-      function getRandomGrayColor() {
-        const grayValue = Math.floor(Math.random() * 100);
-        return `#${grayValue.toString(16).padStart(2, "0").repeat(3)}`;
-      }
-
-      function getRandomColor() {
-        const randomColor = Math.floor(Math.random() * 16777215).toString(16);
-        return `#${randomColor.padStart(6, "0")}`;
-      }
-
-      function updateStroke() {
-        const icon = document.querySelector(".nodetool-icon");
-        icon.style.setProperty("--stroke-color", getRandomGrayColor());
-      }
-
-      function updateFill() {
-        const icon = document.querySelector(".nodetool-icon");
-        icon.style.setProperty("--fill-color", getRandomGrayColor());
-      }
-
-      setInterval(updateStroke, 5000);
-      setTimeout(() => {
-        setInterval(updateFill, 5000);
-      }, 60000 + 2500);
-
-      setTimeout(() => {
-        setInterval(() => {
-          const icon = document.querySelector(".nodetool-icon");
-          icon.style.setProperty("--stroke-color", getRandomColor());
-        }, 5000);
-      }, 5 * 60000);
-      setTimeout(() => {
-        setInterval(() => {
-          const icon = document.querySelector(".nodetool-icon");
-          icon.style.setProperty("--fill-color", getRandomColor());
-        }, 5000);
-      }, 10 * 60000 + 2500);
-
-      updateStroke();
-    </script>
+    <script type="module" src="index.js"></script>
   </body>
 </html>

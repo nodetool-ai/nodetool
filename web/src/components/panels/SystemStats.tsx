@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useCallback } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   Box,
   Tooltip,
@@ -6,26 +6,32 @@ import {
   LinearProgress,
   Popover
 } from "@mui/material";
-import { useQuery } from "@tanstack/react-query";
-import { client } from "../../stores/ApiClient";
+import { useWebSocketUpdatesStore } from "../../stores/WebSocketUpdatesStore";
 
 const SystemStatsDisplay: React.FC = () => {
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+  const systemStats = useWebSocketUpdatesStore((state) => state.systemStats);
+  const connect = useWebSocketUpdatesStore((state) => state.connect);
 
-  const { data: systemStats } = useQuery({
-    queryKey: ["systemStats"],
-    queryFn: async () => {
-      const res = await client.GET("/api/models/system_stats");
-      return res.data;
-    },
-    refetchInterval: anchorEl ? 500 : 5000
-  });
+  // Connect to WebSocket when component mounts
+  React.useEffect(() => {
+    connect();
+  }, [connect]);
 
   const stats = useMemo(
     () => [
-      { label: "CPU", value: systemStats?.cpu_percent ?? 0 },
-      { label: "RAM", value: systemStats?.memory_percent ?? 0 },
-      { label: "VRAM", value: systemStats?.vram_percent ?? 0 }
+      {
+        label: "CPU",
+        value: systemStats?.cpu_percent ?? 0
+      },
+      {
+        label: "Memory",
+        value: systemStats?.memory_percent ?? 0
+      },
+      {
+        label: "GPU Memory",
+        value: systemStats?.vram_percent ?? 0
+      }
     ],
     [systemStats]
   );

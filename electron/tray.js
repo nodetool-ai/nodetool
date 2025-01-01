@@ -3,9 +3,13 @@ const path = require("path");
 const { logMessage } = require("./logger");
 const { BrowserWindow } = require("electron");
 const { createWindow } = require("./window");
+const WebSocket = require("ws");
 
 /** @type {Electron.Tray|null} */
 let trayInstance = null;
+
+/** @type {WebSocket|null} */
+let wsConnection = null;
 
 /**
  * Creates and initializes the system tray icon
@@ -17,7 +21,8 @@ async function createTray() {
   const iconPath = path.join(__dirname, "resources", "tray-icon.png");
   trayInstance = new Tray(iconPath);
 
-  setInterval(updateTrayMenu, 60 * 1000);
+  await connectToWebSocketUpdates();
+
   return trayInstance;
 }
 
@@ -33,7 +38,7 @@ function createWorkflowWindow(workflow) {
     frame: false,
     webPreferences: {
       preload: path.join(__dirname, "preload-workflow.js"),
-      contextIsolation: false,
+      contextIsolation: true,
       nodeIntegration: true,
     },
   });
@@ -120,6 +125,48 @@ async function updateTrayMenu() {
 
   trayInstance.setContextMenu(contextMenu);
   trayInstance.setToolTip("NodeTool");
+}
+
+/**
+ * Connects to the WebSocket updates endpoint
+ * @returns {Promise<void>}
+ */
+async function connectToWebSocketUpdates() {
+  if (wsConnection) {
+    wsConnection.close();
+  }
+
+  wsConnection = new WebSocket("ws://127.0.0.1:8000/updates");
+
+  wsConnection.on("message", (data) => {
+    try {
+      const update = JSON.parse(data.toString());
+      if (update.type === "delete_workflow") {
+        logMessage(`Deleting workflow: ${update.id}`);
+        updateTrayMenu();
+      } else if (update.type === "update_workflow") {
+        logMessage(`Updating workflow: ${update.workflow.name}`);
+        updateTrayMenu();
+      } else if (update.type === "create_workflow") {
+        logMessage(`Creating workflow: ${update.workflow.name}`);
+        updateTrayMenu();
+      }
+    } catch (error) {
+      logMessage(`WebSocket message parse error: ${error.message}`, "error");
+    }
+  });
+
+  wsConnection.on("close", () => {
+    logMessage(
+      "WebSocket connection closed, attempting to reconnect...",
+      "warn"
+    );
+    setTimeout(connectToWebSocketUpdates, 5000); // Reconnect after 5 seconds
+  });
+
+  wsConnection.on("error", (error) => {
+    logMessage(`WebSocket error: ${error.message}`, "error");
+  });
 }
 
 module.exports = {

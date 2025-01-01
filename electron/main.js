@@ -26,7 +26,7 @@ const { emitBootMessage } = require("./events");
 const { getMainWindow } = require("./state");
 const fs = require("fs");
 const path = require("path");
-const { createTray, updateTrayMenu } = require("./tray");
+const { createTray } = require("./tray");
 
 /**
  * Global application state flags and objects

@@ -43,7 +43,9 @@ const WorkflowChat: React.FC<WorkflowChatProps> = ({
           id: Date.now().toString(),
           role: "user",
           content,
-          workflow_id
+          workflow_id,
+          type: "message",
+          name: ""
         };
         await sendMessage(newMessage);
       }

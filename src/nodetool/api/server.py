@@ -23,6 +23,7 @@ from uvicorn import run as uvicorn
 from . import asset, job, auth, message, node, storage, task, workflow, model, settings
 import mimetypes
 
+from nodetool.common.websocket_updates import websocket_updates
 
 # FIX: Windows: mimetypes.guess_type() returns None for some files
 # See:
@@ -68,12 +69,12 @@ DEFAULT_ROUTERS = [
     workflow.router,
     storage.router,
     task.router,
-    settings.router,
 ]
 
 
 if not Environment.is_production():
     DEFAULT_ROUTERS.append(file.router)
+    DEFAULT_ROUTERS.append(settings.router)
 
 
 class PermissionsPolicyMiddleware(BaseHTTPMiddleware):
@@ -159,6 +160,10 @@ def create_app(
         @app.websocket("/chat")
         async def chat_websocket_endpoint(websocket: WebSocket):
             await ChatWebSocketRunner().run(websocket)
+
+        @app.websocket("/updates")
+        async def updates_websocket_endpoint(websocket: WebSocket):
+            await websocket_updates.handle_client(websocket)
 
     if static_folder and os.path.exists(static_folder):
         print(f"Mounting static folder: {static_folder}")
