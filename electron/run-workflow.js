@@ -11,6 +11,8 @@ import {
   generateInputFields,
 } from "./input-generator.js";
 
+import WaveSurfer from "https://cdn.jsdelivr.net/npm/wavesurfer.js@7/dist/wavesurfer.esm.js";
+
 const WORKER_URL = "ws://127.0.0.1:8000/predict";
 /**
  * @typedef {Object} JSONSchema
@@ -149,10 +151,10 @@ function updateProgress(percentage) {
   if (progressFill instanceof HTMLElement) {
     progressFill.style.width = `${percentage}%`;
   }
-  const progressText = document.querySelector(".progress-text");
-  if (progressText instanceof HTMLElement) {
-    progressText.textContent = `${Math.round(percentage)}%`;
-  }
+  // const progressText = document.querySelector(".progress-text");
+  // if (progressText instanceof HTMLElement) {
+  //   progressText.textContent = `${Math.round(percentage)}%`;
+  // }
 
   const futuristicLoader = document.querySelector(".futuristic-loader");
   if (futuristicLoader instanceof HTMLElement) {
@@ -166,8 +168,6 @@ function updateProgress(percentage) {
  * @returns {void}
  */
 function displayResults(results) {
-  const container = document.getElementById("results");
-
   const loaderContainer = document.querySelector(".loader-container");
   if (loaderContainer instanceof HTMLElement) {
     loaderContainer.style.display = "none";
@@ -181,12 +181,79 @@ function displayResults(results) {
     const field = document.createElement("div");
     field.className = "output-field";
 
-    if (value.type === "image") {
+    if (value.type === "audio") {
+      const audioContainer = document.createElement("div");
+      audioContainer.className = "audio-controls-container";
+
+      // Create waveform container
+      const waveformContainer = document.createElement("div");
+      waveformContainer.className = "waveform";
+
+      // Create time display
+      const timeDisplay = document.createElement("div");
+      timeDisplay.className = "time-display";
+
+      // Create controls container
+      const controls = document.createElement("div");
+      controls.className = "audio-controls";
+
+      // Create audio element (hidden but needed for WaveSurfer)
+      const audio = document.createElement("audio");
+      const data = new Uint8Array(value.data);
+      const blob = new Blob([data], { type: "audio/wav" });
+      const url = URL.createObjectURL(blob);
+      audio.src = url;
+
+      // Initialize WaveSurfer
+      const wavesurfer = WaveSurfer.create({
+        container: waveformContainer,
+        waveColor: "#ddd",
+        progressColor: "#555",
+        cursorColor: "#eee",
+        barWidth: 1,
+        barHeight: 1.0,
+        barGap: 1,
+        height: 50,
+        responsive: true,
+        normalize: true,
+        fillParent: true,
+      });
+
+      wavesurfer.load(url);
+
+      // Add play button
+      const playButton = document.createElement("button");
+      playButton.innerHTML = "▶";
+      playButton.onclick = () => {
+        wavesurfer.playPause();
+        playButton.innerHTML = wavesurfer.isPlaying() ? "⏸" : "▶";
+      };
+
+      controls.appendChild(playButton);
+      audioContainer.appendChild(waveformContainer);
+      audioContainer.appendChild(controls);
+      audioContainer.appendChild(timeDisplay);
+
+      // Update time display
+      wavesurfer.on("audioprocess", () => {
+        const currentTime = wavesurfer.getCurrentTime();
+        const duration = wavesurfer.getDuration();
+        timeDisplay.textContent = `${formatTime(currentTime)} / ${formatTime(
+          duration
+        )}`;
+      });
+
+      field.appendChild(audioContainer);
+    } else if (value.type === "image") {
       const img = document.createElement("img");
       const data = new Uint8Array(value.data);
       const blob = new Blob([data], { type: "image/png" });
       img.src = URL.createObjectURL(blob);
       field.appendChild(img);
+    } else if (value.type === "string") {
+      const text = document.createElement("p");
+      text.textContent = value.value;
+      field.appendChild(text);
     } else {
       const pre = document.createElement("pre");
       pre.textContent =
@@ -196,8 +263,15 @@ function displayResults(results) {
       field.appendChild(pre);
     }
 
-    container.appendChild(field);
+    resultsContainer.appendChild(field);
   }
+}
+
+// Helper function to format time
+function formatTime(seconds) {
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = Math.floor(seconds % 60);
+  return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
 }
 
 /**
