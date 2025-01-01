@@ -47,3 +47,5 @@ docs.chromadb
 cert.pem
 key.pem
 .aider*
+
+.codegpt

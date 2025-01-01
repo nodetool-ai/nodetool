@@ -28,7 +28,7 @@ const listStyles = (theme: any) =>
       display: "flex",
       flexDirection: "column",
       alignItems: "flex-start",
-      margin: ".5em 1em 0 1.5em",
+      margin: ".5em .5em 0 0",
       maxHeight: "calc(100vh - 280px)",
       overflow: "hidden auto"
     },
