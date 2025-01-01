@@ -1,3 +1,13 @@
+import ChatRunner from "./chat-runner.js";
+import {
+  generateChatInterface,
+  appendMessage,
+  handleChatMessage,
+} from "./chat-interface.js";
+
+import { generateInputFields } from "./input-generator.js";
+
+const WORKER_URL = "ws://127.0.0.1:8000/predict";
 /**
  * @typedef {Object} JSONSchema
  * @property {string} type - The data type (string, number, boolean, object, array, null)
@@ -27,20 +37,13 @@
  */
 
 /**
- * @typedef {Object} Workflow
- * @property {string} id - Unique identifier of the workflow
- * @property {string} name - Display name of the workflow
- * @property {string} description - Description of the workflow
- * @property {string} created_at - Date and time the workflow was created
- * @property {string} updated_at - Date and time the workflow was last updated
- * @property {string} tags - Tags of the workflow
- * @property {string} thumbnail - thumbnail ID
- * @property {string} thumbnail_url - URL of the workflow thumbnail
- * @property {JSONSchema} input_schema - Input schema of the workflow
- * @property {JSONSchema} output_schema - Output schema of the workflow
+ * Checks if the schema has input fields
+ * @param {JSONSchema} schema - The JSON schema to check
+ * @returns {boolean} Whether the schema has input fields
  */
-
-const WORKER_URL = "ws://127.0.0.1:8000/predict";
+function hasInputFields(schema) {
+  return schema.properties && Object.keys(schema.properties).length > 0;
+}
 
 /**
  * Class to handle workflow execution and WebSocket communication
@@ -144,199 +147,6 @@ function updateProgress(percentage) {
 }
 
 /**
- * Checks if the schema has input fields
- * @param {JSONSchema} schema - The JSON schema to check
- * @returns {boolean} Whether the schema has input fields
- */
-function hasInputFields(schema) {
-  return schema.properties && Object.keys(schema.properties).length > 0;
-}
-
-/**
- * Generates input fields based on a JSON schema
- * @param {JSONSchema} schema - The JSON schema defining the input fields
- * @returns {Object} The input values
- */
-function getInputValues(schema) {
-  const values = {};
-  for (const [key, value] of Object.entries(schema.properties)) {
-    const input = document.getElementById(key);
-    if (input instanceof HTMLInputElement && input.type === "checkbox") {
-      values[key] = input.checked;
-    } else if (input instanceof HTMLInputElement && input.type === "range") {
-      values[key] = parseFloat(input.value);
-    } else if (input instanceof HTMLInputElement && input.type === "number") {
-      values[key] = parseFloat(input.value);
-    } else if (input instanceof HTMLInputElement) {
-      values[key] = input.value;
-    } else if (input instanceof HTMLTextAreaElement) {
-      values[key] = input.value;
-    } else {
-      throw new Error(`Unsupported input type: ${input}`);
-    }
-  }
-  return values;
-}
-
-/**
- * Generates input fields based on a JSON schema
- * @param {JSONSchema} schema - The JSON schema defining the input fields
- * @param {HTMLElement} container - The container element to append the fields to
- * @param {(message: string) => Promise<void>} onSubmit - The function to call when the submit button is clicked
- * @returns {void}
- */
-function generateInputFields(schema, container, onSubmit) {
-  container.innerHTML = "";
-  container.className = "form-container";
-
-  if (
-    !schema ||
-    !schema.properties ||
-    Object.keys(schema.properties).length === 0
-  ) {
-    return;
-  }
-
-  for (const [key, value] of Object.entries(schema.properties)) {
-    const formGroup = document.createElement("div");
-    formGroup.className = "form-group";
-
-    const label = document.createElement("label");
-    label.textContent = value.title || key;
-    label.setAttribute("for", key);
-
-    let input;
-    if (value.type === "string") {
-      input = document.createElement("textarea");
-      input.rows = 3;
-    } else if (value.type === "integer" || value.type === "number") {
-      if (value.minimum !== undefined && value.maximum !== undefined) {
-        const wrapper = document.createElement("div");
-        wrapper.className = "range-wrapper";
-
-        const rangeInput = document.createElement("input");
-        rangeInput.type = "range";
-        rangeInput.min = value.minimum.toString();
-        rangeInput.max = value.maximum.toString();
-        rangeInput.step = determineStepSize(
-          value.minimum,
-          value.maximum,
-          value.type
-        );
-        rangeInput.value =
-          value.default ||
-          (
-            (parseFloat(rangeInput.max) + parseFloat(rangeInput.min)) /
-            2
-          ).toString();
-
-        const numberInput = document.createElement("input");
-        numberInput.type = "number";
-        numberInput.min = value.minimum.toString();
-        numberInput.max = value.maximum.toString();
-        numberInput.step = rangeInput.step;
-        numberInput.value = rangeInput.value;
-        rangeInput.addEventListener("input", (event) => {
-          if (event.target instanceof HTMLInputElement) {
-            numberInput.value = event.target.value;
-            console.log("Slider value changed:", event.target.value);
-          }
-        });
-
-        numberInput.addEventListener("input", (event) => {
-          if (event.target instanceof HTMLInputElement) {
-            rangeInput.value = event.target.value;
-            console.log("Number input value changed:", event.target.value);
-          }
-        });
-
-        const sliderWrapper = document.createElement("div");
-        sliderWrapper.className = "slider-wrapper";
-
-        const min = document.createElement("span");
-        min.textContent = value.minimum.toString();
-        min.className = "range-min";
-        const max = document.createElement("span");
-        max.textContent = value.maximum.toString();
-        max.className = "range-max";
-
-        sliderWrapper.appendChild(min);
-        sliderWrapper.appendChild(rangeInput);
-        sliderWrapper.appendChild(max);
-
-        wrapper.appendChild(sliderWrapper);
-        wrapper.appendChild(numberInput);
-        input = wrapper;
-      } else {
-        input = document.createElement("input");
-        input.type = "number";
-        if (value.type === "integer") {
-          input.step = "1";
-        }
-      }
-    } else if (value.type === "boolean") {
-      input = document.createElement("input");
-      input.type = "checkbox";
-    } else {
-      input = document.createElement("textarea");
-      input.rows = 3;
-    }
-
-    if (input.tagName !== "DIV") {
-      if (input instanceof HTMLInputElement) {
-        input.id = key;
-        input.name = key;
-      } else if (input instanceof HTMLTextAreaElement) {
-        input.id = key;
-      }
-    } else {
-      if (input.querySelector("input") instanceof HTMLInputElement) {
-        input.querySelector("input").id = key;
-        input.querySelector("input").name = key;
-      }
-    }
-
-    formGroup.appendChild(label);
-    formGroup.appendChild(input);
-    container.appendChild(formGroup);
-  }
-
-  // Update submit button with new styling
-  const submitButton = document.createElement("button");
-  submitButton.textContent = "Run Workflow";
-  submitButton.className = "submit-button";
-  submitButton.id = "submit-button";
-  submitButton.addEventListener("click", () =>
-    onSubmit(getInputValues(schema))
-  );
-  container.appendChild(submitButton);
-}
-
-/**
- * Determines the step size for number inputs based on the range and type
- * @param {number} min - The minimum value of the range
- * @param {number} max - The maximum value of the range
- * @param {string} type - The data type ('integer' or 'number')
- * @returns {string} The step size as a string
- */
-function determineStepSize(min, max, type) {
-  const range = max - min;
-  if (type === "integer") {
-    return "1";
-  } else {
-    if (range <= 1) {
-      return "0.01";
-    } else if (range <= 10) {
-      return "0.1";
-    } else if (range <= 100) {
-      return "1";
-    } else {
-      return Math.pow(10, Math.floor(Math.log10(range)) - 2).toString();
-    }
-  }
-}
-
-/**
  * Displays the workflow results in the UI
  * @param {Object} results - The results object from the workflow
  * @returns {void}
@@ -384,7 +194,7 @@ function displayResults(results) {
  * Initializes the workflow runner and sets up event handlers
  * @returns {Promise<void>}
  */
-async function init() {
+export async function init() {
   const outputContainer = document.querySelector(".output-container");
   if (outputContainer instanceof HTMLElement) {
     outputContainer.style.display = "block";
@@ -398,45 +208,7 @@ async function init() {
     throw new Error("Messages list not found");
   }
 
-  chatRunner.onMessage((/** @type {ChatMessage} */ message) => {
-    console.log("Chat message received:", message);
-    // Remove any loading message
-    const loadingMessage = document.querySelector(".message.system.loading");
-    if (loadingMessage) {
-      loadingMessage.remove();
-    }
-    if (message.role === "assistant") {
-      if (typeof message.content === "string") {
-        appendMessage(messagesList, "assistant", message.content);
-      } else if (Array.isArray(message.content)) {
-        for (const item of message.content) {
-          appendMessage(messagesList, "assistant", item);
-        }
-      } else {
-        appendMessage(
-          messagesList,
-          "assistant",
-          JSON.stringify(message.content)
-        );
-      }
-      // Re-enable after a short delay or when response is received
-      const textarea = document.querySelector(".chat-input");
-      const sendButton = document.querySelector(".chat-send-button");
-      if (
-        textarea instanceof HTMLTextAreaElement &&
-        sendButton instanceof HTMLButtonElement
-      ) {
-        textarea.disabled = false;
-        sendButton.disabled = false;
-        textarea.focus();
-      }
-      // hide loading indicator
-      const loaderContainer = document.querySelector(".loader-container");
-      if (loaderContainer instanceof HTMLElement) {
-        loaderContainer.style.display = "none";
-      }
-    }
-  });
+  chatRunner.onMessage(handleChatMessage);
 
   chatRunner.onProgress((progress, total) => {
     if (total > 0) {
@@ -580,151 +352,6 @@ function isChatWorkflow(schema) {
   return firstProperty && firstProperty[1].format === "chat";
 }
 
-/**
- * @typedef {Object} MessageTextContent
- * @property {'text'} type - Type of message content
- * @property {string} text - The text content
- */
-
-/**
- * @typedef {Object} MessageImageContent
- * @property {'image_url'} type - Type of message content
- * @property {Object} image - The image reference
- */
-
-/**
- * @typedef {Object} MessageAudioContent
- * @property {'audio'} type - Type of message content
- * @property {Object} audio - The audio reference
- */
-
-/**
- * @typedef {Object} MessageVideoContent
- * @property {'video'} type - Type of message content
- * @property {Object} video - The video reference
- */
-
-/** @typedef {MessageTextContent | MessageImageContent | MessageAudioContent | MessageVideoContent} MessageContent */
-
-/**
- * @typedef {Object} ChatMessage
- * @property {string} type - Message type
- * @property {string} role - Role of the message sender (user/assistant)
- * @property {MessageContent | string} content - Content of the message
- * @property {string} workflow_id - ID of the associated workflow
- * @property {string} auth_token - Authentication token
- */
-
-/**
- * Generates a chat interface for workflow interaction
- * @param {HTMLElement} container - The container element to append the chat interface to
- * @param {string} inputKey - The key for the input field
- * @param {(message: string) => Promise<void>} onSubmit - Callback function when a message is submitted
- * @returns {void}
- */
-function generateChatInterface(container, inputKey, onSubmit) {
-  const chatContainer = document.querySelector(".chat-view");
-  const messagesList = document.querySelector(".messages");
-  const controlsContainer = document.querySelector(".chat-controls");
-  const composeContainer = document.querySelector(".compose-message");
-  const textarea = document.querySelector(".chat-input");
-  const sendButton = document.querySelector(".chat-send-button");
-
-  if (!(chatContainer instanceof HTMLElement)) {
-    throw new Error("Chat container not found");
-  }
-  if (!(messagesList instanceof HTMLUListElement)) {
-    throw new Error("Messages list not found");
-  }
-  if (!(controlsContainer instanceof HTMLElement)) {
-    throw new Error("Controls container not found");
-  }
-  if (!(composeContainer instanceof HTMLElement)) {
-    throw new Error("Compose container not found");
-  }
-  if (!(textarea instanceof HTMLTextAreaElement)) {
-    throw new Error("Textarea not found");
-  }
-  if (!(sendButton instanceof HTMLButtonElement)) {
-    throw new Error("Send button not found");
-  }
-
-  const handleSubmit = () => {
-    const message = textarea.value.trim();
-    if (message) {
-      appendMessage(messagesList, "user", message);
-      textarea.value = "";
-      adjustTextareaHeight(textarea);
-      onSubmit(message);
-
-      // Disable input while processing
-      textarea.disabled = true;
-      sendButton.disabled = true;
-
-      // Add loading indicator
-      const loadingMessage = document.createElement("li");
-      loadingMessage.className = "message system loading";
-      // Replace text content with animated dots
-      for (let i = 0; i < 3; i++) {
-        const dot = document.createElement("span");
-        dot.className = "dot";
-        loadingMessage.appendChild(dot);
-      }
-      messagesList.appendChild(loadingMessage);
-    }
-  };
-
-  textarea.addEventListener("input", () => {
-    adjustTextareaHeight(textarea);
-  });
-
-  textarea.addEventListener("keydown", (e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSubmit();
-    }
-  });
-
-  sendButton.addEventListener("click", handleSubmit);
-}
-
-/**
- * Adjusts the height of a textarea based on its content
- * @param {HTMLTextAreaElement} textarea - The textarea element to adjust
- * @returns {void}
- */
-function adjustTextareaHeight(textarea) {
-  textarea.style.height = "auto";
-  textarea.style.height = textarea.scrollHeight + "px";
-}
-
-/**
- * Appends a new message to the chat interface
- * @param {HTMLUListElement} messagesList - The messages list element
- * @param {'user' | 'assistant' | 'system'} role - The role of the message sender
- * @param {string | MessageContent} content - The content of the message
- * @returns {void}
- */
-function appendMessage(messagesList, role, content) {
-  const message = document.createElement("li");
-  message.className = `message ${role}`;
-
-  console.log("message", content);
-
-  if (typeof content === "object" && content.type === "image_url") {
-    const img = document.createElement("img");
-    const blob = new Blob([content.image.data], { type: "image/png" });
-    img.src = URL.createObjectURL(blob);
-    img.onload = () => URL.revokeObjectURL(img.src); // Clean up the blob URL after image loads
-    message.appendChild(img);
-  } else if (typeof content === "object" && content.type === "text") {
-    message.textContent = content.text;
-  } else if (typeof content === "string") {
-    message.textContent = content;
-  }
-
-  messagesList.appendChild(message);
-  message.scrollIntoView({ behavior: "smooth" });
-}
-
-init();
+document.addEventListener("DOMContentLoaded", () => {
+  init();
+});

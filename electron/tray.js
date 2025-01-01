@@ -33,8 +33,8 @@ function createWorkflowWindow(workflow) {
     frame: false,
     webPreferences: {
       preload: path.join(__dirname, "preload-workflow.js"),
-      contextIsolation: true,
-      nodeIntegration: false,
+      contextIsolation: false,
+      nodeIntegration: true,
     },
   });
 
