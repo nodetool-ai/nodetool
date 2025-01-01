@@ -5,7 +5,11 @@ import {
   handleChatMessage,
 } from "./chat-interface.js";
 
-import { generateInputFields } from "./input-generator.js";
+import {
+  disableInputFields,
+  enableInputFields,
+  generateInputFields,
+} from "./input-generator.js";
 
 const WORKER_URL = "ws://127.0.0.1:8000/predict";
 /**
@@ -110,8 +114,6 @@ class WorkflowRunner {
         // @ts-ignore
         const data = msgpack.decode(new Uint8Array(arrayBuffer));
 
-        console.log(data);
-
         if (data.type === "job_update") {
           if (data.status === "completed") {
             resolve(data.result);
@@ -127,22 +129,34 @@ class WorkflowRunner {
 }
 
 /**
+ * Clears the results container
+ * @returns {void}
+ */
+function clearResults() {
+  const resultsContainer = document.querySelector(".results-container");
+  if (resultsContainer instanceof HTMLElement) {
+    resultsContainer.innerHTML = "";
+  }
+}
+
+/**
  * Updates the progress bar and percentage text
  * @param {number} percentage - The progress percentage (0-100)
  * @returns {void}
  */
 function updateProgress(percentage) {
-  const progressContainer = document.querySelector(".progress-container");
-  if (progressContainer instanceof HTMLElement) {
-    progressContainer.style.display = "block";
-    const progressFill = progressContainer.querySelector(".progress-fill");
-    if (progressFill instanceof HTMLElement) {
-      progressFill.style.width = `${percentage}%`;
-    }
-    const progressText = progressContainer.querySelector("#progressText");
-    if (progressText instanceof HTMLElement) {
-      progressText.textContent = `${Math.round(percentage)}%`;
-    }
+  const progressFill = document.querySelector(".progress-fill");
+  if (progressFill instanceof HTMLElement) {
+    progressFill.style.width = `${percentage}%`;
+  }
+  const progressText = document.querySelector(".progress-text");
+  if (progressText instanceof HTMLElement) {
+    progressText.textContent = `${Math.round(percentage)}%`;
+  }
+
+  const futuristicLoader = document.querySelector(".futuristic-loader");
+  if (futuristicLoader instanceof HTMLElement) {
+    futuristicLoader.style.display = "none";
   }
 }
 
@@ -157,10 +171,6 @@ function displayResults(results) {
   const loaderContainer = document.querySelector(".loader-container");
   if (loaderContainer instanceof HTMLElement) {
     loaderContainer.style.display = "none";
-  }
-  const progressContainer = document.querySelector(".progress-container");
-  if (progressContainer instanceof HTMLElement) {
-    progressContainer.style.display = "none";
   }
   const resultsContainer = document.querySelector(".results-container");
   if (resultsContainer instanceof HTMLElement) {
@@ -241,54 +251,85 @@ export async function init() {
         throw new Error("No workflow received");
       }
 
+      const workflowName = document.querySelector(".workflow-name");
+      if (workflowName instanceof HTMLElement) {
+        workflowName.textContent = workflow.name;
+      }
+
+      const workflowDescription = document.querySelector(
+        ".workflow-description"
+      );
+      if (workflowDescription instanceof HTMLElement) {
+        if (workflow.description) {
+          workflowDescription.textContent = workflow.description;
+        } else {
+          workflowDescription.style.display = "none";
+        }
+      }
+
       if (hasInputFields(workflow.input_schema)) {
-        /**
-         * @param {string} message - The message to send to the chat runner
-         * @returns {Promise<void>}
-         */
-        const onSubmitChat = async (message) => {
-          if (!chatRunner.socket || chatRunner.status === "disconnected") {
-            await chatRunner.connect(workflow.id);
-          }
-          await chatRunner.sendMessage({
-            type: "message",
-            role: "user",
-            content: message,
-            workflow_id: workflow.id,
-            auth_token: "local_token",
-          });
-        };
-
-        /**
-         * @param {Object} params - The parameters to pass to the workflow
-         * @returns {Promise<void>}
-         */
-        const onSubmitWorkflow = async (params) => {
-          // For non-chat workflows, use the regular WorkflowRunner
-          const runner = new WorkflowRunner({ token: "local_token" });
-          runner
-            .run(workflow.id, params)
-            .then((results) => {
-              displayResults(results);
-            })
-            .catch((error) => {
-              console.error("Workflow error:", error);
-            });
-        };
-
         const firstProperty = Object.entries(
           workflow.input_schema.properties
         )[0];
         if (firstProperty && firstProperty[1].format === "chat") {
+          const chatView = document.querySelector(".chat-view");
+          if (chatView instanceof HTMLElement) {
+            chatView.style.display = "block";
+          }
+
+          /**
+           * @param {string} message - The message to send to the chat runner
+           * @returns {Promise<void>}
+           */
+          const onSubmitChat = async (message) => {
+            if (!chatRunner.socket || chatRunner.status === "disconnected") {
+              await chatRunner.connect(workflow.id);
+            }
+            await chatRunner.sendMessage({
+              type: "message",
+              role: "user",
+              content: message,
+              workflow_id: workflow.id,
+              auth_token: "local_token",
+            });
+          };
+
           generateChatInterface(
             document.querySelector(".chat-view"),
             firstProperty[0],
             onSubmitChat
           );
         } else {
+          const inputContainer = document.getElementById("input-container");
+          if (inputContainer instanceof HTMLElement) {
+            inputContainer.style.display = "block";
+          }
+
+          /**
+           * @param {Object} params - The parameters to pass to the workflow
+           * @returns {Promise<void>}
+           */
+          const onSubmitWorkflow = async (params) => {
+            disableInputFields(inputContainer);
+            clearResults();
+
+            // For non-chat workflows, use the regular WorkflowRunner
+            const runner = new WorkflowRunner({ token: "local_token" });
+            runner
+              .run(workflow.id, params)
+              .then((results) => {
+                displayResults(results);
+                enableInputFields(inputContainer);
+              })
+              .catch((error) => {
+                console.error("Workflow error:", error);
+                enableInputFields(inputContainer);
+              });
+          };
+
           generateInputFields(
             workflow.input_schema,
-            document.getElementById("input-container"),
+            inputContainer,
             onSubmitWorkflow
           );
         }

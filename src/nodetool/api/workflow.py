@@ -2,7 +2,13 @@
 
 from datetime import datetime
 import time
-from fastapi import APIRouter, Depends, HTTPException, Body
+from fastapi import APIRouter, Depends, HTTPException, Body, BackgroundTasks
+from nodetool.common.websocket_updates import (
+    CreateWorkflow,
+    DeleteWorkflow,
+    UpdateWorkflow,
+    websocket_updates,
+)
 from nodetool.types.graph import remove_connected_slots
 from nodetool.types.workflow import WorkflowList, Workflow, WorkflowRequest
 from nodetool.api.utils import current_user, User
@@ -19,10 +25,12 @@ router = APIRouter(prefix="/api/workflows", tags=["workflows"])
 
 @router.post("/")
 async def create(
-    workflow_request: WorkflowRequest, user: User = Depends(current_user)
+    workflow_request: WorkflowRequest,
+    background_tasks: BackgroundTasks,
+    user: User = Depends(current_user),
 ) -> Workflow:
     if workflow_request.graph:
-        return Workflow.from_model(
+        workflow = Workflow.from_model(
             WorkflowModel.create(
                 name=workflow_request.name,
                 description=workflow_request.description,
@@ -37,7 +45,7 @@ async def create(
             edges, nodes = read_graph(workflow_request.comfy_workflow)
         except Exception as e:
             raise HTTPException(status_code=400, detail=str(e))
-        return Workflow.from_model(
+        workflow = Workflow.from_model(
             WorkflowModel.create(
                 name=workflow_request.name,
                 description=workflow_request.description,
@@ -52,6 +60,11 @@ async def create(
         )
     else:
         raise HTTPException(status_code=400, detail="Invalid workflow")
+
+    background_tasks.add_task(
+        websocket_updates.broadcast_update, CreateWorkflow(workflow=workflow)
+    )
+    return workflow
 
 
 @router.get("/")
@@ -132,6 +145,7 @@ async def get_workflow(id: str, user: User = Depends(current_user)) -> Workflow:
 async def update_workflow(
     id: str,
     workflow_request: WorkflowRequest,
+    background_tasks: BackgroundTasks,
     user: User = Depends(current_user),
 ) -> Workflow:
     workflow = WorkflowModel.get(id)
@@ -149,18 +163,30 @@ async def update_workflow(
     workflow.graph = remove_connected_slots(workflow_request.graph).model_dump()
     workflow.updated_at = datetime.now()
     workflow.save()
-    return Workflow.from_model(workflow)
+    updated_workflow = Workflow.from_model(workflow)
+
+    background_tasks.add_task(
+        websocket_updates.broadcast_update, UpdateWorkflow(workflow=updated_workflow)
+    )
+
+    return updated_workflow
 
 
 # Endpoint to delete a specific workflow by ID
 @router.delete("/{id}")
-async def delete_workflow(id: str, user: User = Depends(current_user)) -> None:
+async def delete_workflow(
+    id: str,
+    background_tasks: BackgroundTasks,
+    user: User = Depends(current_user),
+) -> None:
     workflow = WorkflowModel.get(id)
     if not workflow:
         raise HTTPException(status_code=404, detail="Workflow not found")
     if workflow.user_id != user.id:
         raise HTTPException(status_code=404, detail="Workflow not found")
     workflow.delete()
+
+    background_tasks.add_task(websocket_updates.broadcast_update, DeleteWorkflow(id=id))
 
 
 @router.put("/examples/{id}")

@@ -14,6 +14,7 @@
   "license": "AGPL-3.0-only",
   "devDependencies": {
     "@types/node": "^20.11.0",
+    "@types/ws": "^8.5.13",
     "electron": "29.4.6",
     "electron-builder": "^26.0.0-alpha.4",
     "typescript": "^5.3.3"
@@ -27,7 +28,8 @@
     "gunzip-maybe": "^1.4.2",
     "js-yaml": "^4.1.0",
     "node-stream-zip": "^1.15.0",
-    "tar-fs": "^3.0.6"
+    "tar-fs": "^3.0.6",
+    "ws": "^8.18.0"
   },
   "permissions": [
     "audioCapture"
