@@ -1,4 +1,12 @@
-const { app, ipcMain, dialog, shell, systemPreferences } = require("electron");
+const {
+  app,
+  ipcMain,
+  dialog,
+  shell,
+  systemPreferences,
+  Tray,
+  Menu,
+} = require("electron");
 const { createWindow, forceQuit } = require("./window");
 const { setupAutoUpdater } = require("./updater");
 const { logMessage } = require("./logger");
@@ -17,9 +25,18 @@ const { LOG_FILE } = require("./logger");
 const { emitBootMessage } = require("./events");
 const { getMainWindow } = require("./state");
 const fs = require("fs");
+const path = require("path");
+const { createTray, updateTrayMenu } = require("./tray");
 
-/** @type {boolean} */
+/**
+ * Global application state flags and objects
+ * @type {boolean}
+ */
 let isAppQuitting = false;
+/** @type {import('electron').Tray|null} */
+let tray = null;
+/** @type {import('electron').Menu} */
+let contextMenu = null;
 
 /**
  * Checks and sets up the Python Conda environment
@@ -67,6 +84,10 @@ async function initialize() {
   await initializeBackendServer();
 }
 
+/**
+ * Checks system media permissions and requests access if needed
+ * @returns {Promise<void>}
+ */
 async function checkMediaPermissions() {
   if (process.platform === "win32" || process.platform === "darwin") {
     try {
@@ -118,19 +139,31 @@ async function checkMediaPermissions() {
   }
 }
 
-// Application event handlers
+/**
+ * Event handler for app ready state
+ * @returns {Promise<void>}
+ */
 app.on("ready", async () => {
   await checkMediaPermissions();
-  initialize();
+  await initialize();
+  await createTray();
 });
 
-// Handle update events
+/**
+ * Event handler for update installation
+ * @returns {Promise<void>}
+ */
 ipcMain.handle("update-installed", async () => {
   logMessage("Update installed, updating Python environment");
   await checkPythonEnvironment();
 });
 
-// Add save file handler
+/**
+ * IPC handler for save file dialog
+ * @param {Electron.IpcMainInvokeEvent} _event - The IPC event
+ * @param {{buffer: Buffer, defaultPath: string, filters?: Array<{name: string, extensions: string[]}>}} options - Save options
+ * @returns {Promise<{success: boolean, filePath?: string, canceled?: boolean, error?: string}>}
+ */
 ipcMain.handle(
   "save-file",
   async (_event, { buffer, defaultPath, filters }) => {
@@ -152,6 +185,11 @@ ipcMain.handle(
   }
 );
 
+/**
+ * Event handler for app quit
+ * @param {Electron.Event} event - The quit event
+ * @returns {void}
+ */
 app.on("before-quit", (event) => {
   if (!isAppQuitting) {
     isAppQuitting = true;
