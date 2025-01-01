@@ -820,13 +820,12 @@ function calculateExtractETA(startTime, processedBytes, totalBytes) {
  * @throws {Error} If download fails
  */
 async function downloadFromFile(filePath) {
-  return new Promise((resolve, reject) => {
-    // @ts-ignore
-    fs.readFile(filePath, (err, data) => {
-      if (err) reject(err);
-      resolve(data);
-    });
-  });
+  try {
+    const data = await fs.readFile(filePath, "utf8");
+    return data;
+  } catch (error) {
+    throw new Error(`Failed to read file ${filePath}: ${error.message}`);
+  }
 }
 
 /**
