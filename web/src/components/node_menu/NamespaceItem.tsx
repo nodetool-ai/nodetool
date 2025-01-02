@@ -42,23 +42,10 @@ const NamespaceItem: React.FC<NamespaceItemProps> = ({
 
   const handleNamespaceClick = useCallback(() => {
     setHoveredNode(null);
-    console.log("NamespaceItem Click - Before:", {
-      namespace,
-      path,
-      isSelected,
-      isDisabled: tree[namespace]?.disabled,
-      currentSelectedPath: selectedPath
-    });
-
     if (isSelected) {
       setSelectedPath(path.slice(0, -1));
-      console.log(
-        "NamespaceItem Click - Setting Parent Path:",
-        path.slice(0, -1)
-      );
     } else {
       setSelectedPath(path);
-      console.log("NamespaceItem Click - Setting Full Path:", path);
     }
   }, [
     setHoveredNode,

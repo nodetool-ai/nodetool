@@ -63,7 +63,7 @@ const namespaceStyles = (theme: any) =>
     ".namespace-list": {
       overflowY: "auto",
       height: "100%",
-      maxHeight: "700px",
+      maxHeight: "80vh",
       width: "fit-content",
       paddingRight: "1em",
       marginRight: ".5em",
@@ -343,12 +343,6 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
 
   const currentNodes = useMemo(() => {
     if (!metadata) return [];
-
-    console.log("Filtering nodes:", {
-      selectedPathString,
-      metadata: metadata.slice(0, 3)
-    });
-
     return metadata
       .filter((node) => {
         const startsWithPath = node.namespace.startsWith(
@@ -361,13 +355,6 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
           selectedOutputType ||
           node.namespace === selectedPathString ||
           startsWithPath;
-
-        console.log("Node check:", {
-          namespace: node.namespace,
-          selectedPathString,
-          startsWithPath,
-          willInclude
-        });
 
         return willInclude;
       })
