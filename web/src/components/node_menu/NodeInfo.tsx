@@ -10,17 +10,19 @@ import { client } from "../../stores/ApiClient";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { titleizeString } from "../../utils/titleizeString";
 import CloseIcon from "@mui/icons-material/Close";
+import ThemeNodetool from "../themes/ThemeNodetool";
 
 interface NodeInfoProps {
   nodeMetadata: NodeMetadata;
   onClose?: () => void;
+  inPanel?: boolean;
 }
 
-const nodeInfoStyles = (theme: any) =>
+const nodeInfoStyles = (theme: any, inPanel: boolean) =>
   css({
     display: "flex",
     flexDirection: "column",
-    width: "400px",
+    width: inPanel ? "250px" : "400px",
     overflowY: "auto",
     gap: ".5em",
     paddingRight: "1em",
@@ -135,7 +137,11 @@ const parseDescription = (description: string) => {
   };
 };
 
-const NodeInfo: React.FC<NodeInfoProps> = ({ nodeMetadata, onClose }) => {
+const NodeInfo: React.FC<NodeInfoProps> = ({
+  nodeMetadata,
+  onClose,
+  inPanel = false
+}) => {
   const description = useMemo(
     () => parseDescription(nodeMetadata?.description || ""),
     [nodeMetadata]
@@ -184,7 +190,7 @@ const NodeInfo: React.FC<NodeInfoProps> = ({ nodeMetadata, onClose }) => {
   };
 
   return (
-    <div css={nodeInfoStyles}>
+    <div css={nodeInfoStyles(ThemeNodetool, inPanel)}>
       <div
         style={{
           display: "flex",

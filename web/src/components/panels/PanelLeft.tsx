@@ -195,7 +195,7 @@ const PanelLeft: React.FC = () => {
             </Box>
           )}
           {activeView === "nodes" && (
-            <Box sx={{ width: "100%", height: "100%", overflow: "auto" }}>
+            <Box sx={{ width: "100%", height: "100%", overflow: "hidden" }}>
               <StaticNodeMenu />
             </Box>
           )}
