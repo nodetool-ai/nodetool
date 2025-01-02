@@ -2,6 +2,7 @@
  * @typedef {Object} JSONSchema
  * @property {string} type - The data type (string, number, boolean, object, array, null)
  * @property {string} [title] - Human-readable title
+ * @property {string} [label] - Human-readable label (preferred over title)
  * @property {string} [description] - Human-readable description
  * @property {string} [format] - Format of the input
  * @property {*} [default] - Default value for the schema
@@ -134,7 +135,7 @@ function createFormGroup(key, value, onChange) {
   formGroup.className = "form-group";
 
   const label = document.createElement("label");
-  label.textContent = value.title || key;
+  label.textContent = value.label || key;
   label.setAttribute("for", key);
 
   const input = createInput(key, value, onChange);

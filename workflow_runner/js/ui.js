@@ -55,7 +55,7 @@ function generateInputFields(schema, container) {
 
   for (const [key, value] of Object.entries(schema.properties)) {
     const label = document.createElement("label");
-    label.textContent = value.title || key;
+    label.textContent = value.label || key;
     label.setAttribute("for", key);
 
     let input;
@@ -183,7 +183,7 @@ function generateOutputFields(outputSchema, resultsContainer) {
     outputDiv.className = "output-field";
 
     const label = document.createElement("label");
-    label.textContent = key;
+    label.textContent = value.label || key;
     outputDiv.appendChild(label);
 
     let placeholder;
