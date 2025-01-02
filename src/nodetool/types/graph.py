@@ -110,6 +110,7 @@ def get_input_schema(graph: Graph):
 
             if node_schema:
                 name = node.data.get("name", node.id)
+                node_schema["label"] = node.data.get("label", "")
                 input_schema["properties"][name] = node_schema
                 input_schema["required"].append(name)
 
@@ -180,6 +181,7 @@ def get_output_schema(graph: Graph):
 
             if node_schema:
                 name = node.data.get("name", node.id)
+                node_schema["label"] = node.data.get("label", "")
                 output_schema["properties"][name] = node_schema
                 output_schema["required"].append(name)
 
