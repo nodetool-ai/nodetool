@@ -792,6 +792,9 @@ class ProcessingContext:
         if url.startswith("/"):
             url = f"file://{url}"
 
+        # replace backslashes with forward slashes
+        url = url.replace("\\", "/")
+
         url_parsed = urllib.parse.urlparse(url)
 
         if url_parsed.scheme == "data":
@@ -804,7 +807,21 @@ class ProcessingContext:
             return file
 
         if url_parsed.scheme == "file":
-            return open(url_parsed.path, "rb")
+            # Handle Windows paths
+            if url_parsed.netloc and ":" in url_parsed.path:
+                # Windows path with drive letter (file://C:/path)
+                path = url_parsed.netloc + url_parsed.path
+            elif url_parsed.netloc:
+                # Windows UNC path (file://server/share)
+                path = "//" + url_parsed.netloc + url_parsed.path
+            else:
+                # Unix path or relative Windows path
+                path = url_parsed.path
+
+            # Replace URL-encoded characters and normalize slashes
+            path = urllib.parse.unquote(path)
+            path = os.path.normpath(path)
+            return open(path, "rb")
 
         response = await self.http_get(url)
         return BytesIO(response.content)
