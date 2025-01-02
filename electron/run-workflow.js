@@ -19,6 +19,7 @@ const WORKER_URL = "ws://127.0.0.1:8000/predict";
  * @typedef {Object} JSONSchema
  * @property {string} type - The data type (string, number, boolean, object, array, null)
  * @property {string} [title] - Human-readable title
+ * @property {string} [label] - Human-readable label (preferred over title)
  * @property {string} [description] - Human-readable description
  * @property {string} [format] - Format of the input
  * @property {string} [const] - Constant value for the schema

@@ -95,7 +95,12 @@ class Graph(BaseModel):
         """
         return {
             "type": "object",
-            "properties": {node.name: node.get_json_schema() for node in self.inputs()},
+            "properties": {
+                node.name: {
+                    **node.get_json_schema(),
+                    "label": node.label
+                } for node in self.inputs()
+            },
         }
 
     def get_output_schema(self):
@@ -105,7 +110,10 @@ class Graph(BaseModel):
         return {
             "type": "object",
             "properties": {
-                node.name: node.get_json_schema() for node in self.outputs()
+                node.name: {
+                    **node.get_json_schema(),
+                    "label": node.label
+                } for node in self.outputs()
             },
         }
 
