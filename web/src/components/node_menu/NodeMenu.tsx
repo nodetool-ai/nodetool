@@ -32,7 +32,7 @@ const treeStyles = (theme: any) =>
       top: 0,
       left: 0,
       position: "absolute",
-      overflow: "scroll",
+      overflow: "hidden",
       zIndex: 1300,
       border: `2px solid ${theme.palette.c_gray1}`,
       borderRadius: ".6em",
