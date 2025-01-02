@@ -9,11 +9,15 @@ import { useDelayedHover } from "../../hooks/useDelayedHover";
 import NodeItem from "./NodeItem";
 import { Typography } from "@mui/material";
 import { isEqual } from "lodash";
+import ApiKeyValidation from "../node/ApiKeyValidation";
+import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
+import ThemeNodes from "../themes/ThemeNodes";
 
 interface RenderNodesProps {
   nodes: NodeMetadata[];
   hoverDelay?: number;
 }
+
 const groupNodes = (nodes: NodeMetadata[]) => {
   const groups: { [key: string]: NodeMetadata[] } = {};
   nodes.forEach((node) => {
@@ -23,6 +27,11 @@ const groupNodes = (nodes: NodeMetadata[]) => {
     groups[node.namespace].push(node);
   });
   return groups;
+};
+
+const getServiceFromNamespace = (namespace: string): string => {
+  const parts = namespace.split(".");
+  return parts[0];
 };
 
 const RenderNodes: React.FC<RenderNodesProps> = ({
@@ -36,6 +45,8 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
       setHoveredNode: state.setHoveredNode,
       setDragToCreate: state.setDragToCreate
     }));
+
+  const secrets = useRemoteSettingsStore((state) => state.secrets);
 
   const handleCreateNode = useCreateNode();
   const currentHoveredNodeRef = useRef<NodeMetadata | null>(null);
@@ -116,26 +127,51 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
 
   const elements = useMemo(() => {
     let globalIndex = 0;
+    const seenServices = new Set<string>();
+
     return Object.entries(groupedNodes).flatMap(
-      ([namespace, nodesInNamespace]) => [
-        <Typography
-          key={`namespace-${namespace}`}
-          variant="h5"
-          component="div"
-          className="namespace-text"
-        >
-          {namespace}
-        </Typography>,
-        ...nodesInNamespace.map((node) => {
-          const element = renderNode(node, globalIndex);
-          globalIndex += 1;
-          return element;
-        })
-      ]
+      ([namespace, nodesInNamespace]) => {
+        const service = getServiceFromNamespace(namespace);
+        const isFirstNamespaceForService = !seenServices.has(service);
+        seenServices.add(service);
+
+        const elements = [];
+
+        if (isFirstNamespaceForService) {
+          elements.push(
+            <ApiKeyValidation
+              key={`api-key-${service}`}
+              nodeNamespace={namespace}
+            />
+          );
+        }
+
+        elements.push(
+          <Typography
+            key={`namespace-${namespace}`}
+            variant="h5"
+            component="div"
+            className="namespace-text"
+          >
+            {namespace}
+          </Typography>,
+          ...nodesInNamespace.map((node) => {
+            const element = renderNode(node, globalIndex);
+            globalIndex += 1;
+            return element;
+          })
+        );
+
+        return elements;
+      }
     );
   }, [groupedNodes, renderNode]);
 
-  return <div className="nodes">{elements}</div>;
+  return (
+    <>
+      <div className="nodes">{elements}</div>
+    </>
+  );
 };
 
 export default memo(RenderNodes, isEqual);
