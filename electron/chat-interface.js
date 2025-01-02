@@ -105,6 +105,13 @@ function appendLoadingMessage(messagesList) {
     dot.className = "dot";
     loadingMessage.appendChild(dot);
   }
+  loadingMessage.textContent = "Loading...";
+  const progressBar = document.createElement("div");
+  progressBar.className = "chat-progress-bar";
+  loadingMessage.appendChild(progressBar);
+  const progressFill = document.createElement("div");
+  progressFill.className = "chat-progress-fill";
+  progressBar.appendChild(progressFill);
   messagesList.appendChild(loadingMessage);
 }
 
