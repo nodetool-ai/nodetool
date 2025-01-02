@@ -256,7 +256,6 @@ const namespaceStyles = (theme: any) =>
       borderLeft: `3px solid ${theme.palette.c_hl1}`
     },
     ".namespaces .list-item.expanded": {
-      // maxHeight: "40px",
       opacity: 1
     },
     ".namespaces .list-item.collapsed": {
@@ -325,81 +324,14 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
     setHoveredNode(null);
   }, [setHoveredNode]);
 
-  const currentNodes = useMemo(() => {
-    if (!metadata) return [];
-
-    console.log("Debug - NamespaceList Filtering:", {
-      selectedPathString,
-      searchTerm,
-      selectedInputType,
-      selectedOutputType,
-      totalNodes: metadata.length
-    });
-
-    const filteredNodes = metadata.filter((node) => {
-      const nodeRoot = node.namespace.split(".")[0];
-      const selectedRoot = selectedPathString.split(".")[0];
-      const startsWithPath = node.namespace.startsWith(
-        selectedPathString + "."
-      );
-      const exactMatch = node.namespace === selectedPathString;
-      const rootMatch = nodeRoot === selectedRoot;
-
-      // Show nodes if:
-      // 1. There's a search term
-      // 2. There's a type filter
-      // 3. The namespace exactly matches
-      // 4. The namespace starts with the selected path
-      // 5. We're at a root namespace (e.g., 'openai') and this is an openai node
-      const willInclude =
-        (selectedPathString === "" && searchTerm.length > 1) ||
-        selectedInputType ||
-        selectedOutputType ||
-        exactMatch ||
-        (startsWithPath && rootMatch) || // Only show nodes that start with the path AND match the root
-        (selectedPathString === nodeRoot && rootMatch); // Only show root nodes when at root level
-
-      if (willInclude) {
-        console.log("Debug - Including Node:", {
-          namespace: node.namespace,
-          nodeRoot,
-          selectedRoot,
-          startsWithPath,
-          exactMatch,
-          rootMatch,
-          isRootLevel: selectedPathString === nodeRoot,
-          willInclude
-        });
-      }
-
-      return willInclude;
-    });
-
-    console.log("Debug - Filtered Results:", {
-      filteredCount: filteredNodes.length,
-      namespaces: filteredNodes.map((n) => n.namespace)
-    });
-
-    return filteredNodes.sort((a, b) => {
-      const namespaceComparison = a.namespace.localeCompare(b.namespace);
-      return namespaceComparison !== 0
-        ? namespaceComparison
-        : a.title.localeCompare(b.title);
-    });
-  }, [
-    metadata,
-    selectedPathString,
-    searchTerm.length,
-    selectedInputType,
-    selectedOutputType
-  ]);
-
   const { enabledTree, disabledTree } = useMemo(() => {
     const enabled: NamespaceTree = {};
     const disabled: NamespaceTree = {};
 
     Object.entries(namespaceTree).forEach(([key, value]) => {
-      if (value.disabled) {
+      // Check if the root namespace is disabled
+      const isRootDisabled = value.disabled;
+      if (isRootDisabled) {
         disabled[key] = value;
       } else {
         enabled[key] = value;
@@ -408,6 +340,50 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
 
     return { enabledTree: enabled, disabledTree: disabled };
   }, [namespaceTree]);
+
+  const currentNodes = useMemo(() => {
+    if (!metadata) return [];
+
+    console.log("Filtering nodes:", {
+      selectedPathString,
+      metadata: metadata.slice(0, 3)
+    });
+
+    return metadata
+      .filter((node) => {
+        const startsWithPath = node.namespace.startsWith(
+          selectedPathString + "."
+        );
+
+        const willInclude =
+          (selectedPathString === "" && searchTerm.length > 1) ||
+          selectedInputType ||
+          selectedOutputType ||
+          node.namespace === selectedPathString ||
+          startsWithPath;
+
+        console.log("Node check:", {
+          namespace: node.namespace,
+          selectedPathString,
+          startsWithPath,
+          willInclude
+        });
+
+        return willInclude;
+      })
+      .sort((a, b) => {
+        const namespaceComparison = a.namespace.localeCompare(b.namespace);
+        return namespaceComparison !== 0
+          ? namespaceComparison
+          : a.title.localeCompare(b.title);
+      });
+  }, [
+    metadata,
+    selectedPathString,
+    searchTerm.length,
+    selectedInputType,
+    selectedOutputType
+  ]);
 
   const renderNamespaces = useMemo(
     () => (

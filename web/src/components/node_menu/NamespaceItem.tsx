@@ -42,12 +42,33 @@ const NamespaceItem: React.FC<NamespaceItemProps> = ({
 
   const handleNamespaceClick = useCallback(() => {
     setHoveredNode(null);
+    console.log("NamespaceItem Click - Before:", {
+      namespace,
+      path,
+      isSelected,
+      isDisabled: tree[namespace]?.disabled,
+      currentSelectedPath: selectedPath
+    });
+
     if (isSelected) {
       setSelectedPath(path.slice(0, -1));
+      console.log(
+        "NamespaceItem Click - Setting Parent Path:",
+        path.slice(0, -1)
+      );
     } else {
       setSelectedPath(path);
+      console.log("NamespaceItem Click - Setting Full Path:", path);
     }
-  }, [setHoveredNode, setSelectedPath, path, isSelected]);
+  }, [
+    setHoveredNode,
+    setSelectedPath,
+    path,
+    isSelected,
+    namespace,
+    tree,
+    selectedPath
+  ]);
 
   const isDisabled = tree[namespace]?.disabled;
   const isFirstDisabled = tree[namespace]?.firstDisabled;
@@ -60,7 +81,7 @@ const NamespaceItem: React.FC<NamespaceItemProps> = ({
         } ${isHighlighted ? "highlighted" : ""} ${
           isDisabled ? "disabled" : ""
         } ${isFirstDisabled ? "firstDisabled" : ""}`}
-        onMouseDown={handleNamespaceClick}
+        onClick={handleNamespaceClick}
       >
         <div className="namespace-item">{toPascalCase(namespace)}</div>
       </div>
