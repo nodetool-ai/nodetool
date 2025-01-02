@@ -195,53 +195,57 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => ({
       return;
     }
 
-    // Filter out nodes in the "default" namespace and nodes with missing API keys
+    // Filter out nodes in the "default" namespace
     const filteredMetadata = metadata.filter((node) => {
       if (node.namespace === "default") return false;
 
-      // Check for required API keys based on namespace
-      if (
-        node.namespace.startsWith("openai.") &&
-        (!secrets.OPENAI_API_KEY || secrets.OPENAI_API_KEY.trim() === "")
-      ) {
-        return false;
-      }
-      if (
-        node.namespace.startsWith("replicate.") &&
-        (!secrets.REPLICATE_API_TOKEN ||
-          secrets.REPLICATE_API_TOKEN.trim() === "")
-      ) {
-        return false;
-      }
-      if (
-        node.namespace.startsWith("anthropic.") &&
-        (!secrets.ANTHROPIC_API_KEY || secrets.ANTHROPIC_API_KEY.trim() === "")
-      ) {
-        return false;
-      }
-      if (
-        node.namespace.startsWith("aime.") &&
-        (!secrets.AIME_API_KEY ||
-          secrets.AIME_API_KEY.trim() === "" ||
-          !secrets.AIME_USER ||
-          secrets.AIME_USER.trim() === "")
-      ) {
-        return false;
-      }
-      if (
-        node.namespace.startsWith("kling.") &&
-        (!secrets.KLING_ACCESS_KEY ||
-          secrets.KLING_ACCESS_KEY.trim() === "" ||
-          !secrets.KLING_SECRET_KEY ||
-          secrets.KLING_SECRET_KEY.trim() === "")
-      ) {
-        return false;
-      }
-      if (
-        node.namespace.startsWith("lumaai.") &&
-        (!secrets.LUMAAI_API_KEY || secrets.LUMAAI_API_KEY.trim() === "")
-      ) {
-        return false;
+      // Only filter by API keys during search, not when browsing
+      if (term.trim() || get().selectedInputType || get().selectedOutputType) {
+        // Check for required API keys based on namespace
+        if (
+          node.namespace.startsWith("openai.") &&
+          (!secrets.OPENAI_API_KEY || secrets.OPENAI_API_KEY.trim() === "")
+        ) {
+          return false;
+        }
+        if (
+          node.namespace.startsWith("replicate.") &&
+          (!secrets.REPLICATE_API_TOKEN ||
+            secrets.REPLICATE_API_TOKEN.trim() === "")
+        ) {
+          return false;
+        }
+        if (
+          node.namespace.startsWith("anthropic.") &&
+          (!secrets.ANTHROPIC_API_KEY ||
+            secrets.ANTHROPIC_API_KEY.trim() === "")
+        ) {
+          return false;
+        }
+        if (
+          node.namespace.startsWith("aime.") &&
+          (!secrets.AIME_API_KEY ||
+            secrets.AIME_API_KEY.trim() === "" ||
+            !secrets.AIME_USER ||
+            secrets.AIME_USER.trim() === "")
+        ) {
+          return false;
+        }
+        if (
+          node.namespace.startsWith("kling.") &&
+          (!secrets.KLING_ACCESS_KEY ||
+            secrets.KLING_ACCESS_KEY.trim() === "" ||
+            !secrets.KLING_SECRET_KEY ||
+            secrets.KLING_SECRET_KEY.trim() === "")
+        ) {
+          return false;
+        }
+        if (
+          node.namespace.startsWith("lumaai.") &&
+          (!secrets.LUMAAI_API_KEY || secrets.LUMAAI_API_KEY.trim() === "")
+        ) {
+          return false;
+        }
       }
 
       return true;
