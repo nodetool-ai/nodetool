@@ -335,18 +335,31 @@ function createVideoPlayer(data) {
 /**
  * Creates an image component
  * @param {Uint8Array} data - The image data
- * @returns {HTMLImageElement} The image element
+ * @returns {HTMLElement} The image element
  */
 function createImage(data) {
+  // Create container
+  const container = document.createElement("div");
+  container.className = "image-result";
+
+  // Create drag indicator
+  const dragIndicator = document.createElement("div");
+  dragIndicator.className = "drag-indicator";
+  dragIndicator.textContent = "↓ Drag image to save ↓";
+
+  // Create and setup image
   const img = document.createElement("img");
+  img.draggable = true;
   const blob = new Blob([data], { type: "image/png" });
   const url = URL.createObjectURL(blob);
-
-  // Clean up URL when image loads
   img.onload = () => URL.revokeObjectURL(url);
   img.src = url;
 
-  return img;
+  // Assemble
+  container.appendChild(dragIndicator);
+  container.appendChild(img);
+
+  return container;
 }
 
 /**

@@ -23,7 +23,7 @@ h1 {
   color: var(--primary-color);
   font-size: 24px;
   font-weight: 600;
-  line-height: 3em;
+  line-height: 1.2em;
   margin: 0;
 }
 
@@ -33,13 +33,10 @@ h4 {
 
 .container {
   width: 100%;
-  overflow-y: auto;
+  height: calc(100vh - 40px);
   -webkit-app-region: no-drag;
-  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  flex: auto;
 }
 
 .progress-bar {
@@ -141,22 +138,18 @@ h4 {
 }
 
 .input-container {
-  margin-bottom: 0;
   width: 100%;
   -webkit-app-region: no-drag;
-  flex-shrink: 0;
 }
 
 .results-container {
   -webkit-app-region: no-drag;
-  min-height: min-content;
-  height: auto;
-  flex: 1 1 auto;
-  overflow-y: auto;
+  padding-bottom: 80px;
+  overflow: hidden;
 }
 
 .output-field {
-  margin-bottom: 20px;
+  height: 100%;
 }
 
 .output-field h3 {
@@ -612,21 +605,21 @@ textarea:disabled {
 }
 
 .drop-zone {
-  border: 2px dashed #ccc;
+  border: 2px dashed var(--border-color);
   border-radius: 4px;
-  padding: 20px;
+  padding: 12px;
   text-align: center;
   cursor: pointer;
   transition: border-color 0.3s ease;
 }
 
 .drop-zone:hover {
-  border-color: #999;
+  border-color: var(--primary-color);
 }
 
 .drop-zone.drag-over {
-  border-color: #666;
-  background-color: rgba(0, 0, 0, 0.05);
+  border-color: var(--primary-color);
+  background-color: rgba(118, 229, 184, 0.05);
 }
 
 .drop-zone-text {
@@ -638,6 +631,7 @@ textarea:disabled {
   margin-top: 8px;
   font-size: 0.9em;
   color: #666;
+  word-break: break-all;
 }
 
 .waveform ::part(wrapper) {
@@ -729,4 +723,33 @@ textarea:disabled {
 
 #close-button:hover {
   background-color: #e81123;
+}
+
+.image-result {
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.image-result img {
+  width: 100%;
+  height: calc(100% - 30px);
+  object-fit: contain;
+  border-radius: 4px;
+  cursor: grab;
+}
+
+.image-result img:active {
+  cursor: grabbing;
+}
+
+.drag-indicator {
+  padding: 4px;
+  color: var(--text-color);
+  opacity: 0.7;
+  font-size: 0.9rem;
+  user-select: none;
+  cursor: grab;
 }
