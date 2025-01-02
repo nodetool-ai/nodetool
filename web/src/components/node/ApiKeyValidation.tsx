@@ -52,7 +52,7 @@ const ApiKeyValidation: React.FC<ApiKeyValidationProps> = React.memo(
         return "Kling Access and Secret Keys";
       }
       if (
-        nodeNamespace.startsWith("luma.") &&
+        nodeNamespace.startsWith("lumaai.") &&
         (!secrets.LUMAAI_API_KEY || secrets.LUMAAI_API_KEY.trim() === "")
       ) {
         return "Luma AI API Key";

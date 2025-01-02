@@ -4,6 +4,7 @@ import { ConnectDirection } from "./ConnectionStore";
 import Fuse from "fuse.js";
 import { filterDataByType } from "../components/node_menu/typeFilterUtils";
 import useMetadataStore from "./MetadataStore";
+import useRemoteSettingsStore from "./RemoteSettingStore";
 const fuseOptions = {
   keys: [
     { name: "title", weight: 0.4 },
@@ -187,30 +188,81 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => ({
 
   performSearch: (term: string) => {
     const metadata = useMetadataStore.getState().getAllMetadata();
+    const secrets = useRemoteSettingsStore.getState().secrets;
 
     if (metadata.length === 0) {
       set({ searchResults: metadata, highlightedNamespaces: [] });
       return;
     }
 
-    // Filter out nodes in the "default" namespace and then filter by type
-    const nonDefaultMetadata = metadata.filter(
-      (node) => node.namespace !== "default"
-    );
-    const filteredMetadata = filterDataByType(
-      nonDefaultMetadata,
+    // Filter out nodes in the "default" namespace and nodes with missing API keys
+    const filteredMetadata = metadata.filter((node) => {
+      if (node.namespace === "default") return false;
+
+      // Check for required API keys based on namespace
+      if (
+        node.namespace.startsWith("openai.") &&
+        (!secrets.OPENAI_API_KEY || secrets.OPENAI_API_KEY.trim() === "")
+      ) {
+        return false;
+      }
+      if (
+        node.namespace.startsWith("replicate.") &&
+        (!secrets.REPLICATE_API_TOKEN ||
+          secrets.REPLICATE_API_TOKEN.trim() === "")
+      ) {
+        return false;
+      }
+      if (
+        node.namespace.startsWith("anthropic.") &&
+        (!secrets.ANTHROPIC_API_KEY || secrets.ANTHROPIC_API_KEY.trim() === "")
+      ) {
+        return false;
+      }
+      if (
+        node.namespace.startsWith("aime.") &&
+        (!secrets.AIME_API_KEY ||
+          secrets.AIME_API_KEY.trim() === "" ||
+          !secrets.AIME_USER ||
+          secrets.AIME_USER.trim() === "")
+      ) {
+        return false;
+      }
+      if (
+        node.namespace.startsWith("kling.") &&
+        (!secrets.KLING_ACCESS_KEY ||
+          secrets.KLING_ACCESS_KEY.trim() === "" ||
+          !secrets.KLING_SECRET_KEY ||
+          secrets.KLING_SECRET_KEY.trim() === "")
+      ) {
+        return false;
+      }
+      if (
+        node.namespace.startsWith("lumaai.") &&
+        (!secrets.LUMAAI_API_KEY || secrets.LUMAAI_API_KEY.trim() === "")
+      ) {
+        return false;
+      }
+
+      return true;
+    });
+
+    // Filter by type
+    const typeFilteredMetadata = filterDataByType(
+      filteredMetadata,
       get().selectedInputType as TypeName,
       get().selectedOutputType as TypeName
     );
 
     // If no search term is provided, return filtered metadata
     if (!term.trim()) {
-      set({ searchResults: filteredMetadata });
-      get().updateHighlightedNamespaces(filteredMetadata);
+      set({ searchResults: typeFilteredMetadata });
+      get().updateHighlightedNamespaces(typeFilteredMetadata);
       return;
     }
+
     // Prepare search entries with combined searchable text
-    const entries = filteredMetadata.map((node: NodeMetadata) => ({
+    const entries = typeFilteredMetadata.map((node: NodeMetadata) => ({
       title: node.title,
       node_type: node.node_type,
       namespace: node.namespace,
