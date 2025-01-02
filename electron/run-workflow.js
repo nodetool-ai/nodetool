@@ -143,6 +143,24 @@ function clearResults() {
 }
 
 /**
+ * Updates the chat progress bar and percentage text
+ * @param {number} percentage - The progress percentage (0-100)
+ * @returns {void}
+ */
+function updateChatProgress(percentage) {
+  const progressBar = document.querySelector(".chat-progress-bar");
+  const progressFill = document.querySelector(".chat-progress-fill");
+  if (
+    progressBar instanceof HTMLElement &&
+    progressFill instanceof HTMLElement
+  ) {
+    progressBar.style.display = "block";
+    progressFill.style.display = "block";
+    progressFill.style.width = `${percentage}%`;
+  }
+}
+
+/**
  * Updates the progress bar and percentage text
  * @param {number} percentage - The progress percentage (0-100)
  * @returns {void}
@@ -360,8 +378,16 @@ export async function init() {
   chatRunner.onMessage(handleChatMessage);
 
   chatRunner.onProgress((progress, total) => {
+    console.log("Progress:", progress, total);
     if (total > 0) {
-      updateProgress((progress / total) * 100);
+      updateChatProgress((progress / total) * 100);
+    }
+  });
+
+  chatRunner.onNodeUpdate((data) => {
+    const messageLoading = document.querySelector(".system.message.loading");
+    if (messageLoading instanceof HTMLElement) {
+      messageLoading.textContent = `${data.node_name} ${data.status}`;
     }
   });
 
