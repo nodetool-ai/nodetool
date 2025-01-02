@@ -33,6 +33,30 @@ const ApiKeyValidation: React.FC<ApiKeyValidationProps> = React.memo(
       ) {
         return "Anthropic API Key";
       }
+      if (
+        nodeNamespace.startsWith("aime.") &&
+        (!secrets.AIME_API_KEY ||
+          secrets.AIME_API_KEY.trim() === "" ||
+          !secrets.AIME_USER ||
+          secrets.AIME_USER.trim() === "")
+      ) {
+        return "Aime API Key and User";
+      }
+      if (
+        nodeNamespace.startsWith("kling.") &&
+        (!secrets.KLING_ACCESS_KEY ||
+          secrets.KLING_ACCESS_KEY.trim() === "" ||
+          !secrets.KLING_SECRET_KEY ||
+          secrets.KLING_SECRET_KEY.trim() === "")
+      ) {
+        return "Kling Access and Secret Keys";
+      }
+      if (
+        nodeNamespace.startsWith("luma.") &&
+        (!secrets.LUMAAI_API_KEY || secrets.LUMAAI_API_KEY.trim() === "")
+      ) {
+        return "Luma AI API Key";
+      }
       return null;
     }, [nodeNamespace, secrets]);
 
@@ -65,6 +89,8 @@ const ApiKeyValidation: React.FC<ApiKeyValidationProps> = React.memo(
               padding: ".2em 0 0",
               height: "1.8em",
               lineHeight: "1.2em",
+              color: ThemeNodes.palette.c_black,
+              backgroundColor: ThemeNodes.palette.c_warning,
               fontSize: ThemeNodes.fontSizeSmaller,
               borderRadius: ".1em"
             }}

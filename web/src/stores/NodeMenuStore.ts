@@ -209,7 +209,6 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => ({
       get().updateHighlightedNamespaces(filteredMetadata);
       return;
     }
-
     // Prepare search entries with combined searchable text
     const entries = filteredMetadata.map((node: NodeMetadata) => ({
       title: node.title,
