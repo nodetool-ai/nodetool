@@ -20,6 +20,7 @@ const nodeInfoStyles = (theme: any) =>
   css({
     display: "flex",
     flexDirection: "column",
+    width: "400px",
     overflowY: "auto",
     gap: ".5em",
     paddingRight: "1em",
