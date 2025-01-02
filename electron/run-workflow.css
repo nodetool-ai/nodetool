@@ -51,6 +51,15 @@ h4 {
   position: relative;
 }
 
+.chat-progress-bar {
+  width: 100%;
+  border-color: var(--border-color);
+  border-width: 1px;
+  height: 25px;
+  overflow: hidden;
+  position: relative;
+}
+
 .progress-text {
   color: var(--text-color);
   font-size: 12px;
@@ -68,6 +77,15 @@ h4 {
 }
 
 .progress-fill {
+  background-color: var(--primary-color);
+  transition: width 0.3s ease;
+  width: 0%;
+  height: 100%;
+  float: left;
+  transform-origin: left;
+}
+
+.chat-progress-fill {
   background-color: var(--primary-color);
   transition: width 0.3s ease;
   width: 0%;

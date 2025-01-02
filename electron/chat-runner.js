@@ -17,7 +17,6 @@ class ChatRunner {
     this.socket = null;
     this.status = "disconnected";
     this.messages = [];
-    this.currentNodeName = null;
     this.progress = 0;
     this.total = 0;
     this.error = null;
@@ -28,6 +27,7 @@ class ChatRunner {
     this.onStatusChangeCallback = null;
     this.onProgressCallback = null;
     this.onErrorCallback = null;
+    this.onNodeUpdateCallback = null;
   }
 
   /**
@@ -148,6 +148,14 @@ class ChatRunner {
     this.onErrorCallback = callback;
   }
 
+  /**
+   * Set callback for node updates
+   * @param {Function} callback
+   */
+  onNodeUpdate(callback) {
+    this.onNodeUpdateCallback = callback;
+  }
+
   // Private methods
   _setStatus(status) {
     this.status = status;
@@ -169,21 +177,22 @@ class ChatRunner {
     if (data.type === "job_update") {
       if (data.status === "completed") {
         this._setProgress(0, 0);
-        this.currentNodeName = null;
         this._setStatus("connected");
+        this.onStatusChangeCallback?.("connected");
       } else if (data.status === "failed") {
         this._setError(data.error);
         this._setStatus("error");
-        this.currentNodeName = null;
         this._setProgress(0, 0);
+        this.onStatusChangeCallback?.("error");
       }
     } else if (data.type === "node_update") {
-      this.currentNodeName = data.node_name;
+      this.onNodeUpdateCallback?.(data);
       if (data.status === "completed") {
         this._setProgress(0, 0);
       }
     } else if (data.type === "node_progress") {
       this._setProgress(data.progress, data.total);
+      this.onProgressCallback?.(data.progress, data.total);
     }
   }
 }
