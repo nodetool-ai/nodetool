@@ -64,12 +64,13 @@ export default function StaticNodeMenu({ className }: StaticNodeMenuProps) {
           onSearchChange={setSearchTerm}
           searchResults={searchResults}
         />
-        <Box>
-          <NamespaceList
-            namespaceTree={namespaceTree}
-            metadata={searchResults}
-          />
-        </Box>
+      </Box>
+      <Box>
+        <NamespaceList
+          namespaceTree={namespaceTree}
+          metadata={searchResults}
+          inPanel={true}
+        />
       </Box>
     </Box>
   );

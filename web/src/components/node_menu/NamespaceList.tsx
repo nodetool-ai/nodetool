@@ -27,15 +27,17 @@ type NamespaceTree = {
 interface NamespaceListProps {
   namespaceTree: NamespaceTree;
   metadata: NodeMetadata[];
+  inPanel?: boolean;
 }
 
-const namespaceStyles = (theme: any) =>
+const namespaceStyles = (theme: any, inPanel: boolean) =>
   css({
     "&": {
       margin: "1em 0 0 1em",
-      height: "100%",
+      height: inPanel ? "100%" : "60vh",
       display: "flex",
-      flexDirection: "column"
+      flexDirection: "column",
+      marginTop: inPanel ? "-32px" : "0"
     },
     ".header": {
       display: "flex",
@@ -61,25 +63,28 @@ const namespaceStyles = (theme: any) =>
       minHeight: 0
     },
     ".namespace-list": {
-      overflowY: "auto",
-      height: "100%",
-      maxHeight: "80vh",
-      width: "fit-content",
-      paddingRight: "1em",
-      marginRight: ".5em",
-      minWidth: "65px",
-      boxShadow: "inset 0 0 10px rgba(0, 0, 0, 0.4)",
-      borderRadius: "8px",
       display: "flex",
       flexDirection: "column",
-      gap: "0"
+      gap: "0",
+      overflowY: "auto",
+      width: "fit-content",
+      height: "fit-content",
+      maxHeight: inPanel ? "85vh" : "800px",
+      paddingRight: inPanel ? ".5em" : "1em",
+      paddingBottom: "3em",
+      marginRight: ".5em",
+      minWidth: inPanel ? "120px" : "100px",
+      boxShadow: "inset 0 0 10px rgba(0, 0, 0, 0.4)",
+      borderRadius: "8px"
     },
     ".namespace-list-enabled": {
       flex: "1 1 auto",
+      height: "fit-content",
       overflowY: "visible"
     },
     ".namespace-list-disabled": {
       flex: "0 0 auto",
+      height: "fit-content",
       overflowY: "visible",
       borderTop: `1px solid ${theme.palette.c_gray0}`,
       marginTop: "0.5em",
@@ -89,7 +94,7 @@ const namespaceStyles = (theme: any) =>
       padding: "0 1em 1em .5em",
       marginRight: ".5em",
       height: "100%",
-      maxHeight: "700px",
+      maxHeight: inPanel ? "85vh" : "700px",
       width: "fit-content",
       paddingRight: "1em",
       minWidth: "220px",
@@ -293,7 +298,8 @@ const namespaceStyles = (theme: any) =>
 
 const NamespaceList: React.FC<NamespaceListProps> = ({
   namespaceTree,
-  metadata
+  metadata,
+  inPanel = false
 }) => {
   const {
     searchTerm,
@@ -341,36 +347,58 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
     return { enabledTree: enabled, disabledTree: disabled };
   }, [namespaceTree]);
 
-  const currentNodes = useMemo(() => {
-    if (!metadata) return [];
-    return metadata
-      .filter((node) => {
-        const startsWithPath = node.namespace.startsWith(
-          selectedPathString + "."
-        );
+  const filterNodes = useCallback(
+    (nodes: NodeMetadata[]) => {
+      if (!nodes) return [];
 
-        const willInclude =
-          (selectedPathString === "" && searchTerm.length > 1) ||
-          selectedInputType ||
-          selectedOutputType ||
-          node.namespace === selectedPathString ||
-          startsWithPath;
-
-        return willInclude;
-      })
-      .sort((a, b) => {
-        const namespaceComparison = a.namespace.localeCompare(b.namespace);
-        return namespaceComparison !== 0
-          ? namespaceComparison
-          : a.title.localeCompare(b.title);
+      console.log("Filtering nodes:", {
+        selectedPathString,
+        nodeCount: nodes.length
       });
-  }, [
-    metadata,
-    selectedPathString,
-    searchTerm.length,
-    selectedInputType,
-    selectedOutputType
-  ]);
+
+      return nodes
+        .filter((node) => {
+          const startsWithPath = node.namespace.startsWith(
+            selectedPathString + "."
+          );
+          const exactMatch = node.namespace === selectedPathString;
+
+          const willInclude =
+            (selectedPathString === "" && searchTerm.length > 1) ||
+            selectedInputType ||
+            selectedOutputType ||
+            exactMatch ||
+            startsWithPath;
+
+          console.log("Node check:", {
+            namespace: node.namespace,
+            selectedPathString,
+            startsWithPath,
+            exactMatch,
+            willInclude
+          });
+
+          return willInclude;
+        })
+        .sort((a, b) => {
+          const namespaceComparison = a.namespace.localeCompare(b.namespace);
+          return namespaceComparison !== 0
+            ? namespaceComparison
+            : a.title.localeCompare(b.title);
+        });
+    },
+    [
+      selectedPathString,
+      searchTerm.length,
+      selectedInputType,
+      selectedOutputType
+    ]
+  );
+
+  const currentNodes = useMemo(
+    () => filterNodes(metadata),
+    [metadata, filterNodes]
+  );
 
   const renderNamespaces = useMemo(
     () => (
@@ -394,11 +422,18 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
   const renderNodeInfo = useMemo(
     () =>
       hoveredNode && (
-        <NodeInfo nodeMetadata={hoveredNode} onClose={closeNodeInfo} />
+        <NodeInfo
+          nodeMetadata={hoveredNode}
+          onClose={closeNodeInfo}
+          inPanel={inPanel}
+        />
       ),
     [hoveredNode]
   );
-  const memoizedStyles = useMemo(() => namespaceStyles(ThemeNodetool), []);
+  const memoizedStyles = useMemo(
+    () => namespaceStyles(ThemeNodetool, inPanel),
+    [inPanel]
+  );
 
   return (
     <div css={memoizedStyles}>

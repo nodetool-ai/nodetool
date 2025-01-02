@@ -215,12 +215,10 @@ export default function NodeMenu({ focusSearchInput = false }: NodeMenuProps) {
               setSelectedOutputType={setSelectedOutputType}
             />
           </Box>
-          <Box>
-            <NamespaceList
-              namespaceTree={namespaceTree}
-              metadata={searchResults}
-            />
-          </Box>
+          <NamespaceList
+            namespaceTree={namespaceTree}
+            metadata={searchResults}
+          />
         </Box>
       </Box>
     </Draggable>
