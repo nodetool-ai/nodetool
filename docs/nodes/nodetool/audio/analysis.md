@@ -5,68 +5,74 @@
 Converts an amplitude spectrogram to a dB-scaled spectrogram.
 
 This node is useful for:
+
 - Compressing the dynamic range of spectrograms for visualization
 - Preparing input for audio models that expect dB-scaled data
 
 **Tags:** audio, analysis, spectrogram
 
 **Fields:**
-- **tensor**: The amplitude tensor to be converted to dB scale. (Tensor)
 
+- **tensor**: The amplitude tensor to be converted to dB scale. (Tensor)
 
 ## ChromaSTFT
 
 This node creates a chromagram from a waveform or power spectrogram to identify different pitch classes in an audio signal.
 Applications:
+
 - Chord recognition in music
 - Music genre classification based on pitch content
 
-**Tags:** 
+**Tags:**
 
 **Fields:**
+
 - **audio**: The audio file to extract chromagram from. (AudioRef)
 - **n_fft**: The number of samples per frame. (int)
 - **hop_length**: The number of samples between frames. (int)
-
 
 ## DBToAmplitude
 
 The DBToAmplitude node Converts a dB-scaled spectrogram to an amplitude spectrogram.
 Useful for:
+
 - Reversing dB scaling before audio synthesis
 - Preparing data for models that expect linear amplitude scaling
 
-**Tags:** 
+**Tags:**
 
 **Fields:**
-- **tensor**: The dB-scaled tensor to be converted to amplitude scale. (Tensor)
 
+- **tensor**: The dB-scaled tensor to be converted to amplitude scale. (Tensor)
 
 ## DBToPower
 
 This node converts a decibel (dB) spectrogram back to power scale.
 
 Useful for:
+
 - Reversing dB scaling for audio synthesis
 - Preparing data for models that expect power-scaled data
 
 **Tags:** audio, analysis, spectrogram
 
 **Fields:**
-- **tensor**: The tensor containing the decibel spectrogram. (Tensor)
 
+- **tensor**: The tensor containing the decibel spectrogram. (Tensor)
 
 ## GriffinLim
 
 GriffinLim Node performs phase reconstruction on a magnitude spectrogram utilizing the Griffin-Lim algorithm.
 
 Applications:
+
 - Audio synthesis from spectrograms
 - Phase reconstruction in audio processing pipelines
 
 **Tags:** audio, synthesis, phase reconstruction
 
 **Fields:**
+
 - **magnitude_spectrogram**: Magnitude spectrogram input for phase reconstruction. (Tensor)
 - **n_iter**: Number of iterations for the Griffin-Lim algorithm. (int)
 - **hop_length**: Number of samples between successive frames. (int)
@@ -75,12 +81,12 @@ Applications:
 - **center**: If True, the signal `y` is padded so that frame `D[:, t]` is centered at `y[t * hop_length]`. (bool)
 - **length**: If given, the resulting signal will be zero-padded or clipped to this length. (typing.Optional[int])
 
-
 ## MFCC
 
 MFCC Node computes the Mel-frequency cepstral coefficients (MFCCs) from an audio signal.
 
 **Fields:**
+
 - **audio**: The audio file to extract MFCCs from. (AudioRef)
 - **n_mfcc**: The number of MFCCs to extract. (int)
 - **n_fft**: The number of samples per frame. (int)
@@ -88,18 +94,19 @@ MFCC Node computes the Mel-frequency cepstral coefficients (MFCCs) from an audio
 - **fmin**: The lowest frequency (in Hz). (int)
 - **fmax**: The highest frequency (in Hz). (int)
 
-
 ## MelSpectrogram
 
 MelSpecNode computes the Mel-frequency spectrogram for an audio signal.
 
 Useful for:
+
 - Audio feature extraction for machine learning
 - Speech and music analysis tasks
 
 **Tags:** audio, analysis, spectrogram
 
 **Fields:**
+
 - **audio**: The audio file to convert to a tensor. (AudioRef)
 - **n_fft**: The number of samples per frame. (int)
 - **hop_length**: The number of samples between frames. (int)
@@ -107,57 +114,61 @@ Useful for:
 - **fmin**: The lowest frequency (in Hz). (int)
 - **fmax**: The highest frequency (in Hz). (int)
 
-
 ## PlotSpectrogram
 
 The PlotSpectrogram node generates a visual representation of the spectrum of frequencies in an audio signal as they vary with time.
+
 #### Applications
+
 - Audio Analysis: Allows users to visually see the spectrum of frequencies in their data.
 - Machine Learning: Used as a preprocessing step for feeding data into image-based ML models.
 - Sound engineering: Helps in identifying specific tones or frequencies in a music piece or a sound bite.
 
-**Tags:** 
+**Tags:**
 
 **Fields:**
+
 - **tensor**: The tensor containing the mel spectrogram. (Tensor)
 - **fmax**: The highest frequency (in Hz). (int)
 
 ### result_for_client
 
 **Args:**
+
 - **result (dict[str, typing.Any])**
 
 **Returns:** dict[str, typing.Any]
-
 
 ## PowertToDB
 
 Converts a power spectrogram to decibel (dB) scale.
 
 **Fields:**
-- **tensor**: The tensor containing the power spectrogram. (Tensor)
 
+- **tensor**: The tensor containing the power spectrogram. (Tensor)
 
 ## STFT
 
 This node computes the Short-Time Fourier Transform (STFT) matrix for an audio signal.
+The STFT matrix represents the signal in both time and frequency domains, forming the foundation for many audio processing tasks.
 
 #### Applications
+
 - Audio Analysis: By transforming the audio signal into a visualizable format, it helps in understanding and analyzing the audio signal.
 - Sound Processing: It plays a key foundational role in sound effects, tuning, compression, and more.
 - Audio Feature Extraction: It can be used to analyze frequency-based features for sound classification.
 - Music Information Retrieval: It helps in music transcription, rhythm and tempo analysis.
 
-**Tags:** The STFT matrix represents the signal in both time and frequency domains, forming the foundation for many audio processing tasks.
+**Tags:** stft, audio, analysis, spectrogram
 
 **Fields:**
+
 - **audio**: The audio file to compute the STFT matrix from. (AudioRef)
 - **n_fft**: The number of samples per frame. (int)
 - **hop_length**: The number of samples between frames. (int)
 - **win_length**: The window length. If None, it defaults to n_fft. (typing.Optional[int])
 - **window**: The type of window to use. (str)
 - **center**: If True, input signal is padded so that frame D[:, t] is centered at y[t * hop_length]. (bool)
-
 
 ## SpectralCentroid
 
@@ -167,6 +178,7 @@ The spectral centroid indicates where the "center of mass" of the spectrum is lo
 Perceptually, it has a connection with the impression of "brightness" of a sound.
 
 Use cases:
+
 - Analyze the timbral characteristics of audio
 - Track changes in sound brightness over time
 - Feature extraction for music genre classification
@@ -175,26 +187,27 @@ Use cases:
 **Tags:** audio, analysis, spectral
 
 **Fields:**
+
 - **audio**: The audio file to analyze. (AudioRef)
 - **n_fft**: The length of the FFT window. (int)
 - **hop_length**: Number of samples between successive frames. (int)
 
-
 ## SpectralContrast
 
 The spectral contrast measures the difference in amplitude between the most noticeable parts (peaks) and the less noticeable parts (valleys) in a sound spectrum.
+
 #### Applications
+
 - Music genre classification: distinguishing between different types of music based on the color of sound.
 - Instrument recognition: recognizing different musical instruments by the difference in their spectral contrast.
 - Audio analysis: determining various characteristics of audio files.
 
 Useful note: The `n_fft` and `hop_length` parameters affect the resolution of the analysis. A higher `n_fft` provides better frequency resolution but worse time resolution, and vice versa for a lower `hop_length`.
 
-**Tags:** 
+**Tags:**
 
 **Fields:**
+
 - **audio**: The audio file to extract spectral contrast from. (AudioRef)
 - **n_fft**: The number of samples per frame. (int)
 - **hop_length**: The number of samples between frames. (int)
-
-
