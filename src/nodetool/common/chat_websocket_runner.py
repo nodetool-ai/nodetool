@@ -134,14 +134,17 @@ class ChatWebSocketRunner:
         for key, value in result.items():
             if isinstance(value, str):
                 content.append(MessageTextContent(text=value))
-            elif isinstance(value, ImageRef):
-                content.append(MessageImageContent(image=value))
-            elif isinstance(value, VideoRef):
-                content.append(MessageVideoContent(video=value))
-            elif isinstance(value, AudioRef):
-                content.append(MessageAudioContent(audio=value))
+            elif isinstance(value, dict):
+                if value.get("type") == "image":
+                    content.append(MessageImageContent(image=ImageRef(**value)))
+                elif value.get("type") == "video":
+                    content.append(MessageVideoContent(video=VideoRef(**value)))
+                elif value.get("type") == "audio":
+                    content.append(MessageAudioContent(audio=AudioRef(**value)))
+                else:
+                    raise ValueError(f"Unknown type: {value}")
             else:
-                raise ValueError(f"Unknown type: {type(value)}")
+                raise ValueError(f"Unknown type: {type(value)} {value}")
         return Message(
             role="assistant",
             content=content,
