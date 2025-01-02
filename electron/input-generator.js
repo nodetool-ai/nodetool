@@ -98,7 +98,9 @@ export function generateInputFields(schema, container, onSubmit) {
     return;
   }
 
-  const autoSubmit = Object.keys(schema.properties).length === 1;
+  const autoSubmit =
+    Object.keys(schema.properties).length === 1 &&
+    schema.properties[Object.keys(schema.properties)[0]].type !== "string";
 
   // if we have a single field, we can automatically submit
   // when the field changes

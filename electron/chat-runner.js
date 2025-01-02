@@ -28,6 +28,7 @@ class ChatRunner {
     this.onProgressCallback = null;
     this.onErrorCallback = null;
     this.onNodeUpdateCallback = null;
+    this.onJobUpdateCallback = null;
   }
 
   /**
@@ -156,6 +157,14 @@ class ChatRunner {
     this.onNodeUpdateCallback = callback;
   }
 
+  /**
+   * Set callback for job updates
+   * @param {Function} callback
+   */
+  onJobUpdate(callback) {
+    this.onJobUpdateCallback = callback;
+  }
+
   // Private methods
   _setStatus(status) {
     this.status = status;
@@ -175,6 +184,7 @@ class ChatRunner {
 
   _handleUpdate(data) {
     if (data.type === "job_update") {
+      this.onJobUpdateCallback?.(data);
       if (data.status === "completed") {
         this._setProgress(0, 0);
         this._setStatus("connected");

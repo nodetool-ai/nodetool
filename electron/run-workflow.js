@@ -21,6 +21,7 @@ const WORKER_URL = "ws://127.0.0.1:8000/predict";
  * @property {string} [title] - Human-readable title
  * @property {string} [description] - Human-readable description
  * @property {string} [format] - Format of the input
+ * @property {string} [const] - Constant value for the schema
  * @property {*} [default] - Default value for the schema
  * @property {boolean} [required] - Whether the property is required
  * @property {number} [minimum] - Minimum value for numbers
@@ -64,6 +65,47 @@ class WorkflowRunner {
   constructor(config) {
     this.token = config.token;
     this.socket = null;
+
+    this.onProgressCallback = null;
+    this.onErrorCallback = null;
+    this.onNodeUpdateCallback = null;
+    this.onJobUpdateCallback = null;
+  }
+
+  /**
+   * Sets the progress callback
+   * @param {Function} callback - The callback function
+   * @returns {void}
+   */
+  onProgress(callback) {
+    this.onProgressCallback = callback;
+  }
+
+  /**
+   * Sets the error callback
+   * @param {Function} callback - The callback function
+   * @returns {void}
+   */
+  onError(callback) {
+    this.onErrorCallback = callback;
+  }
+
+  /**
+   * Sets the node update callback
+   * @param {Function} callback - The callback function
+   * @returns {void}
+   */
+  onNodeUpdate(callback) {
+    this.onNodeUpdateCallback = callback;
+  }
+
+  /**
+   * Sets the job update callback
+   * @param {Function} callback - The callback function
+   * @returns {void}
+   */
+  onJobUpdate(callback) {
+    this.onJobUpdateCallback = callback;
   }
 
   /**
@@ -118,13 +160,22 @@ class WorkflowRunner {
         const data = msgpack.decode(new Uint8Array(arrayBuffer));
 
         if (data.type === "job_update") {
+          if (this.onJobUpdateCallback) {
+            this.onJobUpdateCallback(data);
+          }
           if (data.status === "completed") {
             resolve(data.result);
           } else if (data.status === "failed") {
             reject(new Error(data.error));
           }
         } else if (data.type === "node_progress") {
-          updateProgress((data.progress / data.total) * 100);
+          if (this.onProgressCallback) {
+            this.onProgressCallback(data.progress, data.total);
+          }
+        } else if (data.type === "node_update") {
+          if (this.onNodeUpdateCallback) {
+            this.onNodeUpdateCallback(data);
+          }
         }
       };
     });
@@ -157,23 +208,31 @@ function updateChatProgress(percentage) {
     progressBar.style.display = "block";
     progressFill.style.display = "block";
     progressFill.style.width = `${percentage}%`;
+    if (percentage > 10) {
+      progressFill.textContent = `${Math.round(percentage)}%`;
+    }
   }
 }
 
 /**
  * Updates the progress bar and percentage text
- * @param {number} percentage - The progress percentage (0-100)
+ * @param {number} progress - The progress count
+ * @param {number} total - The total progress
  * @returns {void}
  */
-function updateProgress(percentage) {
+function updateProgress(progress, total) {
+  const percentage = (progress / total) * 100;
+  const progressBar = document.querySelector(".progress-bar");
+  if (progressBar instanceof HTMLElement) {
+    progressBar.style.display = "block";
+  }
   const progressFill = document.querySelector(".progress-fill");
   if (progressFill instanceof HTMLElement) {
     progressFill.style.width = `${percentage}%`;
+    if (percentage > 10) {
+      progressFill.textContent = `${Math.round(percentage)}%`;
+    }
   }
-  // const progressText = document.querySelector(".progress-text");
-  // if (progressText instanceof HTMLElement) {
-  //   progressText.textContent = `${Math.round(percentage)}%`;
-  // }
 
   const futuristicLoader = document.querySelector(".futuristic-loader");
   if (futuristicLoader instanceof HTMLElement) {
@@ -316,9 +375,10 @@ function createPreformatted(value) {
 /**
  * Displays the workflow results in the UI
  * @param {Object} results - The results object from the workflow
+ * @param {JSONSchema} outputSchema - The output schema of the workflow
  * @returns {void}
  */
-function displayResults(results) {
+function displayResults(results, outputSchema) {
   const loaderContainer = document.querySelector(".loader-container");
   if (loaderContainer instanceof HTMLElement) {
     loaderContainer.style.display = "none";
@@ -329,18 +389,23 @@ function displayResults(results) {
   }
 
   for (const [key, value] of Object.entries(results)) {
+    const fieldSchema = outputSchema.properties[key];
     const field = document.createElement("div");
     field.className = "output-field";
 
     let content;
-    if (value.type === "audio") {
-      content = createAudioPlayer(value.data);
-    } else if (value.type === "video") {
-      content = createVideoPlayer(value.data);
-    } else if (value.type === "image") {
-      content = createImage(value.data);
-    } else if (value.type === "string") {
-      content = createText(value.value);
+    if (fieldSchema.type === "object") {
+      if (fieldSchema.properties.type.const === "audio") {
+        content = createAudioPlayer(value.data);
+      } else if (fieldSchema.properties.type.const === "video") {
+        content = createVideoPlayer(value.data);
+      } else if (fieldSchema.properties.type.const === "image") {
+        content = createImage(value.data);
+      } else {
+        content = createPreformatted(value);
+      }
+    } else if (fieldSchema.type === "string") {
+      content = createText(value);
     } else {
       content = createPreformatted(value);
     }
@@ -384,10 +449,19 @@ export async function init() {
     }
   });
 
+  chatRunner.onJobUpdate((data) => {
+    const loadingMessage = document.querySelector(".loading-message");
+    if (data.message) {
+      if (loadingMessage instanceof HTMLElement) {
+        loadingMessage.textContent = data.message;
+      }
+    }
+  });
+
   chatRunner.onNodeUpdate((data) => {
-    const messageLoading = document.querySelector(".system.message.loading");
-    if (messageLoading instanceof HTMLElement) {
-      messageLoading.textContent = `${data.node_name} ${data.status}`;
+    const loadingMessage = document.querySelector(".loading-message");
+    if (loadingMessage instanceof HTMLElement) {
+      loadingMessage.textContent = `${data.node_name} ${data.status}`;
     }
   });
 
@@ -485,10 +559,19 @@ export async function init() {
 
             // For non-chat workflows, use the regular WorkflowRunner
             const runner = new WorkflowRunner({ token: "local_token" });
+            runner.onProgress(updateProgress);
+            runner.onNodeUpdate((data) => {
+              const nodeUpdateMessage = document.querySelector(
+                ".node-update-message"
+              );
+              if (nodeUpdateMessage instanceof HTMLElement) {
+                nodeUpdateMessage.textContent = `${data.node_name} ${data.status}`;
+              }
+            });
             runner
               .run(workflow.id, params)
               .then((results) => {
-                displayResults(results);
+                displayResults(results, workflow.output_schema);
                 enableInputFields(inputContainer);
               })
               .catch((error) => {
