@@ -96,7 +96,7 @@ const namespaceStyles = (theme: any) =>
       flex: "0 1 auto",
       transition: "max-width 1s ease-out, width 1s ease-out",
       overflowX: "hidden",
-      overflowY: "scroll"
+      overflowY: "auto"
     },
     ".no-selection": {
       display: "flex",
@@ -277,6 +277,7 @@ const namespaceStyles = (theme: any) =>
       border: "none"
     },
     ".namespaces .list-item.highlighted": {
+      textShadow: "0 0 4px #000000cc",
       borderLeft: `3px solid ${theme.palette.c_hl1}`
     },
     ".namespaces .sublist": {
