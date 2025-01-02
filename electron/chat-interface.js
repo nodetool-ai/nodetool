@@ -75,7 +75,18 @@ export function generateChatInterface(container, inputKey, onSubmit) {
       sendButton.disabled = true;
 
       // Add loading indicator
-      appendLoadingMessage(messagesList);
+      const messageLoading = document.querySelector(".message-loading");
+      if (messageLoading instanceof HTMLElement) {
+        messageLoading.style.display = "flex";
+      }
+      const loadingMessage = document.querySelector(".loading-message");
+      if (loadingMessage instanceof HTMLElement) {
+        loadingMessage.textContent = "";
+      }
+      const progressBar = document.querySelector(".chat-progress-bar");
+      if (progressBar instanceof HTMLElement) {
+        progressBar.style.display = "none";
+      }
     }
   };
 
@@ -91,28 +102,6 @@ export function generateChatInterface(container, inputKey, onSubmit) {
   });
 
   sendButton.addEventListener("click", handleSubmit);
-}
-
-/**
- * Appends a loading message to the chat
- * @param {HTMLUListElement} messagesList
- */
-function appendLoadingMessage(messagesList) {
-  const loadingMessage = document.createElement("li");
-  loadingMessage.className = "message system loading";
-  for (let i = 0; i < 3; i++) {
-    const dot = document.createElement("span");
-    dot.className = "dot";
-    loadingMessage.appendChild(dot);
-  }
-  loadingMessage.textContent = "Loading...";
-  const progressBar = document.createElement("div");
-  progressBar.className = "chat-progress-bar";
-  loadingMessage.appendChild(progressBar);
-  const progressFill = document.createElement("div");
-  progressFill.className = "chat-progress-fill";
-  progressBar.appendChild(progressFill);
-  messagesList.appendChild(loadingMessage);
 }
 
 /**
@@ -187,9 +176,9 @@ export function handleChatMessage(message) {
       textarea.focus();
     }
     // hide loading indicator
-    const loaderContainer = document.querySelector(".loader-container");
-    if (loaderContainer instanceof HTMLElement) {
-      loaderContainer.style.display = "none";
+    const loadingMessage = document.querySelector(".message-loading");
+    if (loadingMessage instanceof HTMLElement) {
+      loadingMessage.style.display = "none";
     }
   }
 }
