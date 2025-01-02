@@ -277,8 +277,10 @@ const namespaceStyles = (theme: any) =>
       border: "none"
     },
     ".namespaces .list-item.highlighted": {
-      textShadow: "0 0 4px #000000cc",
       borderLeft: `3px solid ${theme.palette.c_hl1}`
+    },
+    ".namespaces .list-item.highlighted.selected .namespace-item": {
+      color: theme.palette.c_black
     },
     ".namespaces .sublist": {
       paddingLeft: "1em"
