@@ -6,6 +6,7 @@ const {
   systemPreferences,
   Tray,
   Menu,
+  BrowserWindow,
 } = require("electron");
 const { createWindow, forceQuit } = require("./window");
 const { setupAutoUpdater } = require("./updater");
@@ -27,6 +28,7 @@ const { getMainWindow } = require("./state");
 const fs = require("fs");
 const path = require("path");
 const { createTray } = require("./tray");
+const { createWorkflowWindow, isWorkflowWindow } = require("./workflow-window");
 
 /**
  * Global application state flags and objects
@@ -261,4 +263,30 @@ process.on("unhandledRejection", (reason, promise) => {
     logMessage(`Stack Trace: ${reason.stack}`, "error");
   }
   forceQuit(`Unhandled Promise Rejection: ${errorMessage}`);
+});
+
+// Update the IPC handlers to use the new isWorkflowWindow function
+ipcMain.on("CLOSE-APP", (event) => {
+  const window = BrowserWindow.fromWebContents(event.sender);
+  if (window && isWorkflowWindow(window)) {
+    window.close();
+  }
+});
+
+ipcMain.on("MINIMIZE-APP", (event) => {
+  const window = BrowserWindow.fromWebContents(event.sender);
+  if (window && isWorkflowWindow(window)) {
+    window.minimize();
+  }
+});
+
+ipcMain.on("MAXIMIZE-APP", (event) => {
+  const window = BrowserWindow.fromWebContents(event.sender);
+  if (window && isWorkflowWindow(window)) {
+    if (window.isMaximized()) {
+      window.unmaximize();
+    } else {
+      window.maximize();
+    }
+  }
 });
