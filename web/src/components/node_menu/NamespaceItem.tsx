@@ -39,6 +39,7 @@ const NamespaceItem: React.FC<NamespaceItemProps> = ({
       setSelectedPath: state.setSelectedPath
     })
   );
+
   const handleNamespaceClick = useCallback(() => {
     setHoveredNode(null);
     if (isSelected) {
@@ -48,12 +49,17 @@ const NamespaceItem: React.FC<NamespaceItemProps> = ({
     }
   }, [setHoveredNode, setSelectedPath, path, isSelected]);
 
+  const isDisabled = tree[namespace]?.disabled;
+  const isFirstDisabled = tree[namespace]?.firstDisabled;
+
   return (
     <div>
       <div
         className={`list-item ${isExpanded ? "expanded" : "collapsed"} ${
           isSelected ? "selected" : ""
-        } ${isHighlighted ? "highlighted" : ""}`}
+        } ${isHighlighted ? "highlighted" : ""} ${
+          isDisabled ? "disabled" : ""
+        } ${isFirstDisabled ? "firstDisabled" : ""}`}
         onMouseDown={handleNamespaceClick}
       >
         <div className="namespace-item">{toPascalCase(namespace)}</div>

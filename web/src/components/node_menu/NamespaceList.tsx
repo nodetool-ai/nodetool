@@ -16,12 +16,13 @@ import NodeInfo from "./NodeInfo";
 import { isEqual } from "lodash";
 import ThemeNodetool from "../themes/ThemeNodetool";
 
-type NamespaceTree = Record<
-  string,
-  {
+type NamespaceTree = {
+  [key: string]: {
     children: NamespaceTree;
-  }
->;
+    disabled: boolean;
+    requiredKey?: string;
+  };
+};
 
 interface NamespaceListProps {
   namespaceTree: NamespaceTree;
@@ -69,6 +70,17 @@ const namespaceStyles = (theme: any) =>
       display: "flex",
       flexDirection: "column",
       gap: "0"
+    },
+    ".namespace-list-enabled": {
+      flex: "1 1 auto",
+      overflowY: "auto"
+    },
+    ".namespace-list-disabled": {
+      flex: "0 0 auto",
+      overflowY: "auto",
+      borderTop: `1px solid ${theme.palette.c_gray0}`,
+      marginTop: "0.5em",
+      paddingTop: "0.5em"
     },
     ".node-list": {
       padding: "0 1em 1em 1em",
@@ -197,6 +209,12 @@ const namespaceStyles = (theme: any) =>
       flexDirection: "column",
       gap: "0"
     },
+    ".namespace-item": {
+      color: theme.palette.c_white
+    },
+    ".disabled .namespace-item": {
+      color: theme.palette.c_gray4
+    },
     ".namespaces .list-item": {
       cursor: "pointer",
       padding: ".4em .75em",
@@ -206,10 +224,23 @@ const namespaceStyles = (theme: any) =>
       fontSize: theme.fontSizeSmall,
       fontWeight: "300",
       transition: "all 0.2s ease-in-out",
-      // maxHeight: "40px",
       overflow: "hidden",
       margin: "0",
       borderRadius: "0 4px 4px 0"
+    },
+    ".namespaces .list-item.disabled": {
+      backgroundColor: "transparent",
+      border: "none !important",
+      // borderLeft: `3px solid ${theme.palette.c_gray3}`,
+      color: theme.palette.c_gray5,
+      "&:hover": {
+        backgroundColor: theme.palette.c_gray2
+        // borderLeft: `3px solid ${theme.palette.c_gray3}`
+      }
+    },
+    ".list-item.firstDisabled": {
+      borderTop: `1px solid ${theme.palette.c_gray5}`,
+      marginTop: "0.5em"
     },
     ".namespaces .list-item:hover": {
       backgroundColor: theme.palette.c_gray3,
@@ -232,11 +263,20 @@ const namespaceStyles = (theme: any) =>
       borderLeft: `3px solid ${theme.palette.c_hl1}`,
       fontWeight: "500"
     },
+    ".namespaces .list-item.disabled.selected": {
+      backgroundColor: theme.palette.c_gray2,
+      border: "none"
+    },
     ".namespaces .list-item.highlighted": {
       borderLeft: `3px solid ${theme.palette.c_hl1}`
     },
     ".namespaces .sublist": {
       paddingLeft: "1em"
+    },
+    ".api-key-warning": {
+      color: theme.palette.c_gray5,
+      fontSize: theme.fontSizeSmall,
+      margin: "0.5em 0"
     }
   });
 
@@ -303,9 +343,33 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
     selectedOutputType
   ]);
 
+  const { enabledTree, disabledTree } = useMemo(() => {
+    const enabled: NamespaceTree = {};
+    const disabled: NamespaceTree = {};
+
+    Object.entries(namespaceTree).forEach(([key, value]) => {
+      if (value.disabled) {
+        disabled[key] = value;
+      } else {
+        enabled[key] = value;
+      }
+    });
+
+    return { enabledTree: enabled, disabledTree: disabled };
+  }, [namespaceTree]);
+
   const renderNamespaces = useMemo(
-    () => <RenderNamespaces tree={namespaceTree} />,
-    [namespaceTree]
+    () => (
+      <>
+        <div className="namespace-list-enabled">
+          <RenderNamespaces tree={enabledTree} />
+        </div>
+        <div className="namespace-list-disabled">
+          <RenderNamespaces tree={disabledTree} />
+        </div>
+      </>
+    ),
+    [enabledTree, disabledTree]
   );
 
   const renderNodes = useMemo(
