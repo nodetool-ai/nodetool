@@ -19,3 +19,9 @@ contextBridge.exposeInMainWorld("api", {
     return () => ipcRenderer.removeListener("cleanup", listener);
   },
 });
+
+contextBridge.exposeInMainWorld("windowControls", {
+  close: () => ipcRenderer.send("CLOSE-APP"),
+  minimize: () => ipcRenderer.send("MINIMIZE-APP"),
+  maximize: () => ipcRenderer.send("MAXIMIZE-APP"),
+});
