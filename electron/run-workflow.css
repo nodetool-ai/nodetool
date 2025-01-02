@@ -280,6 +280,7 @@ textarea:focus {
 
 input[type="range"] {
   flex: 1;
+  appearance: none;
   -webkit-appearance: none;
   height: 4px;
   background: var(--border-color);
@@ -311,6 +312,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
 
 /* Checkbox Styling */
 input[type="checkbox"] {
+  appearance: none;
   -webkit-appearance: none;
   width: 20px;
   height: 20px;
