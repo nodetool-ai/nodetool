@@ -63,7 +63,10 @@ const namespaceStyles = (theme: any) =>
     ".namespace-list": {
       overflowY: "auto",
       height: "100%",
-      width: "35%",
+      maxHeight: "700px",
+      width: "fit-content",
+      paddingRight: "1em",
+      marginRight: ".5em",
       minWidth: "65px",
       boxShadow: "inset 0 0 10px rgba(0, 0, 0, 0.4)",
       borderRadius: "8px",
@@ -73,31 +76,33 @@ const namespaceStyles = (theme: any) =>
     },
     ".namespace-list-enabled": {
       flex: "1 1 auto",
-      overflowY: "auto"
+      overflowY: "visible"
     },
     ".namespace-list-disabled": {
       flex: "0 0 auto",
-      overflowY: "auto",
+      overflowY: "visible",
       borderTop: `1px solid ${theme.palette.c_gray0}`,
       marginTop: "0.5em",
       paddingTop: "0.5em"
     },
     ".node-list": {
-      padding: "0 1em 1em 1em",
+      padding: "0 1em 1em .5em",
+      marginRight: ".5em",
       height: "100%",
-      width: "65%",
+      maxHeight: "700px",
+      width: "fit-content",
+      paddingRight: "1em",
       minWidth: "220px",
       flex: "0 1 auto",
       transition: "max-width 1s ease-out, width 1s ease-out",
       overflowX: "hidden",
-      overflowY: "auto"
+      overflowY: "scroll"
     },
     ".no-selection": {
       display: "flex",
       flexDirection: "column",
       color: theme.palette.c_white,
       fontFamily: theme.fontFamily1,
-      // fontSize: theme.fontSizeNormal,
       wordSpacing: "0",
       padding: "0 1em",
       margin: 0,
@@ -193,7 +198,11 @@ const namespaceStyles = (theme: any) =>
       borderBottom: `1px solid ${theme.palette.c_gray3}`,
       borderTop: `1px solid ${theme.palette.c_gray3}`,
       padding: ".5em 0",
-      letterSpacing: "0.5px"
+      letterSpacing: "0.5px",
+      wordBreak: "break-word"
+    },
+    ".info-button": {
+      marginLeft: "auto"
     },
     ".node-info:hover": {
       color: theme.palette.c_hl1
@@ -316,25 +325,64 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
   const currentNodes = useMemo(() => {
     if (!metadata) return [];
 
-    return metadata
-      .filter((node) => {
-        const startsWithPath = node.namespace.startsWith(
-          selectedPathString + "."
-        );
-        return (
-          (selectedPathString === "" && searchTerm.length > 1) ||
-          selectedInputType ||
-          selectedOutputType ||
-          node.namespace === selectedPathString ||
-          startsWithPath
-        );
-      })
-      .sort((a, b) => {
-        const namespaceComparison = a.namespace.localeCompare(b.namespace);
-        return namespaceComparison !== 0
-          ? namespaceComparison
-          : a.title.localeCompare(b.title);
-      });
+    console.log("Debug - NamespaceList Filtering:", {
+      selectedPathString,
+      searchTerm,
+      selectedInputType,
+      selectedOutputType,
+      totalNodes: metadata.length
+    });
+
+    const filteredNodes = metadata.filter((node) => {
+      const nodeRoot = node.namespace.split(".")[0];
+      const selectedRoot = selectedPathString.split(".")[0];
+      const startsWithPath = node.namespace.startsWith(
+        selectedPathString + "."
+      );
+      const exactMatch = node.namespace === selectedPathString;
+      const rootMatch = nodeRoot === selectedRoot;
+
+      // Show nodes if:
+      // 1. There's a search term
+      // 2. There's a type filter
+      // 3. The namespace exactly matches
+      // 4. The namespace starts with the selected path
+      // 5. We're at a root namespace (e.g., 'openai') and this is an openai node
+      const willInclude =
+        (selectedPathString === "" && searchTerm.length > 1) ||
+        selectedInputType ||
+        selectedOutputType ||
+        exactMatch ||
+        (startsWithPath && rootMatch) || // Only show nodes that start with the path AND match the root
+        (selectedPathString === nodeRoot && rootMatch); // Only show root nodes when at root level
+
+      if (willInclude) {
+        console.log("Debug - Including Node:", {
+          namespace: node.namespace,
+          nodeRoot,
+          selectedRoot,
+          startsWithPath,
+          exactMatch,
+          rootMatch,
+          isRootLevel: selectedPathString === nodeRoot,
+          willInclude
+        });
+      }
+
+      return willInclude;
+    });
+
+    console.log("Debug - Filtered Results:", {
+      filteredCount: filteredNodes.length,
+      namespaces: filteredNodes.map((n) => n.namespace)
+    });
+
+    return filteredNodes.sort((a, b) => {
+      const namespaceComparison = a.namespace.localeCompare(b.namespace);
+      return namespaceComparison !== 0
+        ? namespaceComparison
+        : a.title.localeCompare(b.title);
+    });
   }, [
     metadata,
     selectedPathString,
@@ -451,7 +499,7 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
               <Typography variant="h5">Create Nodes</Typography>
               <ul>
                 <li>Click on a node</li>
-                <li>Drag nodes on canvas</li>
+                <li>Drag a node onto the canvas</li>
               </ul>
             </div>
           </div>
