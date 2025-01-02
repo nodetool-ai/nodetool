@@ -808,19 +808,31 @@ class ProcessingContext:
 
         if url_parsed.scheme == "file":
             # Handle Windows paths
-            if url_parsed.netloc and ":" in url_parsed.path:
-                # Windows path with drive letter (file://C:/path)
-                path = url_parsed.netloc + url_parsed.path
-            elif url_parsed.netloc:
-                # Windows UNC path (file://server/share)
-                path = "//" + url_parsed.netloc + url_parsed.path
+            if os.name == 'nt':  # Windows system
+                if url_parsed.netloc:
+                    # Handle drive letter paths (file://C:/path) and UNC paths (file://server/share)
+                    if ':' in url_parsed.netloc:
+                        # Drive letter path
+                        path = url_parsed.netloc + url_parsed.path
+                    else:
+                        # UNC path
+                        path = '//' + url_parsed.netloc + url_parsed.path
+                else:
+                    # Direct path
+                    path = url_parsed.path
+                    if path.startswith('/'):
+                        path = path[1:]  # Remove leading slash for Windows
             else:
-                # Unix path or relative Windows path
+                # Unix path
                 path = url_parsed.path
 
             # Replace URL-encoded characters and normalize slashes
             path = urllib.parse.unquote(path)
             path = os.path.normpath(path)
+            
+            if not os.path.exists(path):
+                raise FileNotFoundError(f"No such file or directory: '{path}'")
+                
             return open(path, "rb")
 
         response = await self.http_get(url)
