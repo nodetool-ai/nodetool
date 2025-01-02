@@ -4,6 +4,7 @@ const { logMessage } = require("./logger");
 const { BrowserWindow } = require("electron");
 const { createWindow } = require("./window");
 const WebSocket = require("ws");
+const { createWorkflowWindow } = require("./workflow-window");
 
 /** @type {Electron.Tray|null} */
 let trayInstance = null;
@@ -93,31 +94,6 @@ async function createTray() {
 }
 
 /**
- * Creates a new window to run a workflow
- * @param {Workflow} workflow - The workflow to run
- * @returns {void}
- */
-function createWorkflowWindow(workflow) {
-  const window = new BrowserWindow({
-    width: 600,
-    height: 600,
-    frame: false,
-    webPreferences: {
-      preload: path.join(__dirname, "preload-workflow.js"),
-      contextIsolation: true,
-      nodeIntegration: true,
-    },
-  });
-
-  window.setBackgroundColor("#111111");
-  window.loadFile("run-workflow.html");
-
-  window.webContents.on("did-finish-load", () => {
-    window.webContents.send("workflow", workflow);
-  });
-}
-
-/**
  * @typedef {Object} Workflow
  * @property {string} id - Unique identifier of the workflow
  * @property {string} name - Display name of the workflow
@@ -165,7 +141,13 @@ async function updateTrayMenu() {
     label: workflow.name,
     click: () => {
       logMessage(`Executing workflow: ${workflow.name}`);
-      createWorkflowWindow(workflow);
+      const workflowWindow = createWorkflowWindow();
+      workflowWindow.loadFile(path.join(__dirname, "run-workflow.html"));
+
+      // Send the workflow data after the window loads
+      workflowWindow.webContents.on("did-finish-load", () => {
+        workflowWindow.webContents.send("workflow", workflow);
+      });
     },
   }));
 

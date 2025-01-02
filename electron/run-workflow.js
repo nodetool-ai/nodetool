@@ -423,10 +423,49 @@ function formatTime(seconds) {
 }
 
 /**
- * Initializes the workflow runner and sets up event handlers
- * @returns {Promise<void>}
+ * Sets up the window control buttons
+ * @returns {HTMLDivElement} The window controls container element
  */
+function setupWindowControls() {
+  const windowControls = document.createElement("div");
+  windowControls.className = "window-controls";
+
+  const minimizeButton = document.createElement("button");
+  minimizeButton.className = "window-control-button";
+  minimizeButton.innerHTML = "&#x2014;";
+  minimizeButton.onclick = () => {
+    // @ts-ignore
+    window.windowControls.minimize();
+  };
+
+  const maximizeButton = document.createElement("button");
+  maximizeButton.className = "window-control-button";
+  maximizeButton.innerHTML = "&#x2610;";
+  maximizeButton.onclick = () => {
+    // @ts-ignore
+    window.windowControls.maximize();
+  };
+
+  const closeButton = document.createElement("button");
+  closeButton.className = "window-control-button";
+  closeButton.id = "close-button";
+  closeButton.innerHTML = "&#x2715;";
+  closeButton.onclick = () => {
+    // @ts-ignore
+    window.windowControls.close();
+  };
+
+  windowControls.appendChild(minimizeButton);
+  windowControls.appendChild(maximizeButton);
+  windowControls.appendChild(closeButton);
+
+  document.body.appendChild(windowControls);
+
+  return windowControls;
+}
+
 export async function init() {
+  setupWindowControls();
   const outputContainer = document.querySelector(".output-container");
   if (outputContainer instanceof HTMLElement) {
     outputContainer.style.display = "block";
@@ -591,7 +630,7 @@ export async function init() {
         runner
           .run(workflow.id, {})
           .then((results) => {
-            displayResults(results);
+            displayResults(results, workflow.output_schema);
           })
           .catch((error) => {
             console.error("Workflow error:", error);
