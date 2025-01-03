@@ -8,10 +8,13 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  CircularProgress
+  CircularProgress,
+  Typography
 } from "@mui/material";
 import { CollectionCreate, EmbeddingModel } from "../../stores/ApiTypes";
 import { client } from "../../stores/ApiClient";
+import CloseIcon from "@mui/icons-material/Close";
+import IconButton from "@mui/material/IconButton";
 
 const EMBEDDING_MODELS = [
   "all-MiniLM-L6-v2",
@@ -21,7 +24,11 @@ const EMBEDDING_MODELS = [
   "openclip"
 ];
 
-const CollectionForm = () => {
+interface CollectionFormProps {
+  onClose: () => void;
+}
+
+const CollectionForm = ({ onClose }: CollectionFormProps) => {
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState<CollectionCreate>({
     name: "",
@@ -62,16 +69,28 @@ const CollectionForm = () => {
         flexDirection: "column",
         padding: 3,
         borderRadius: 1,
-        backgroundColor: "background.paper"
+        backgroundColor: "background.paper",
+        position: "relative"
       }}
     >
+      <IconButton
+        onClick={onClose}
+        sx={{
+          position: "absolute",
+          right: 8,
+          top: 8
+        }}
+      >
+        <CloseIcon />
+      </IconButton>
+
       <Box sx={{ mb: 2 }}>
-        <h2>Create New Collection</h2>
-        <p style={{ color: "text.secondary" }}>
+        <Typography variant="h6">Create New Collection</Typography>
+        <Typography variant="body1" color="text.secondary">
           A collection is a dedicated storage space for related documents in the
           vector database. Each collection maintains its own vector index for
           similarity search.
-        </p>
+        </Typography>
       </Box>
 
       <TextField
@@ -120,7 +139,7 @@ const CollectionForm = () => {
 
       <Button
         type="submit"
-        variant="contained"
+        variant="outlined"
         disabled={isSubmitDisabled}
         startIcon={
           createMutation.isPending ? (

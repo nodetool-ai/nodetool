@@ -1,13 +1,13 @@
 import asyncio
 import os
+from nodetool.common.chroma_client import get_collection
 from nodetool.metadata.types import (
-    ChromaCollection,
+    Collection,
     ImageRef,
     TextChunk,
     TextRef,
 )
 from nodetool.models.asset import Asset as AssetModel
-from nodetool.nodes.chroma import MAX_INDEX_SIZE
 from nodetool.nodes.chroma.chroma_node import ChromaNode
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.workflows.types import NodeProgress
@@ -82,12 +82,13 @@ class IndexImages(ChromaNode):
     Index a list of image assets or files.
     """
 
-    collection: ChromaCollection = Field(
-        default=ChromaCollection(), description="The collection to index"
+    collection: Collection = Field(
+        default=Collection(), description="The collection to index"
     )
     images: list[ImageRef] = Field(
         default_factory=list, description="List of image assets to index"
     )
+    upsert: bool = Field(default=False, description="Whether to upsert the images")
 
     @classmethod
     def required_inputs(cls):
@@ -100,7 +101,7 @@ class IndexImages(ChromaNode):
         if any(img.document_id is None for img in self.images):
             raise ValueError("document_id cannot be None for any image")
 
-        collection = self.get_collection(context, self.collection)
+        collection = get_collection(self.collection.name)
         total = len(self.images)
         context.post_message(NodeProgress(node_id=self._id, progress=0, total=total))
         # Validate all images have asset_ids
@@ -119,8 +120,10 @@ class IndexImages(ChromaNode):
         image_ids = [img.document_id for img in self.images]
         image_arrays = [np.array(img) for img in images]
 
-        # Add all images in one call
-        collection.upsert(ids=image_ids, images=image_arrays)
+        if self.upsert:
+            collection.upsert(ids=image_ids, images=image_arrays)
+        else:
+            collection.add(ids=image_ids, images=image_arrays)
 
 
 class IndexTexts(ChromaNode):
@@ -128,8 +131,8 @@ class IndexTexts(ChromaNode):
     Index a list of text assets or files.
     """
 
-    collection: ChromaCollection = Field(
-        default=ChromaCollection(), description="The collection to index"
+    collection: Collection = Field(
+        default=Collection(), description="The collection to index"
     )
     docs: list[TextRef] = Field(
         default=[],
@@ -144,7 +147,7 @@ class IndexTexts(ChromaNode):
         if any(doc.document_id is None for doc in self.docs):
             raise ValueError("document_id cannot be None for any text document")
 
-        collection = self.get_or_create_collection(context, self.collection)
+        collection = get_collection(self.collection.name)
 
         # Validate all docs have asset_ids or uris
         invalid_docs = [doc for doc in self.docs if doc.asset_id or doc.uri]
@@ -164,8 +167,8 @@ class IndexImage(ChromaNode):
     Index a single image asset.
     """
 
-    collection: ChromaCollection = Field(
-        default=ChromaCollection(), description="The collection to index"
+    collection: Collection = Field(
+        default=Collection(), description="The collection to index"
     )
     image: ImageRef = Field(default=ImageRef(), description="Image asset to index")
 
@@ -181,7 +184,7 @@ class IndexImage(ChromaNode):
             raise ValueError("The image needs to be an asset or a local file")
 
         document_id = self.image.document_id
-        collection = self.get_or_create_collection(context, self.collection)
+        collection = get_collection(self.collection.name)
         image = await context.image_to_pil(self.image)
         collection.add(ids=[document_id], images=[np.array(image)])
 
@@ -191,8 +194,8 @@ class IndexText(ChromaNode):
     Index a single text asset.
     """
 
-    collection: ChromaCollection = Field(
-        default=ChromaCollection(), description="The collection to index"
+    collection: Collection = Field(
+        default=Collection(), description="The collection to index"
     )
     text: TextRef = Field(default=TextRef(), description="Text asset to index")
 
@@ -207,7 +210,7 @@ class IndexText(ChromaNode):
         if not self.text.asset_id:
             raise ValueError("The text needs to be an asset that is saved to a folder")
 
-        collection = self.get_or_create_collection(context, self.collection)
+        collection = get_collection(self.collection.name)
 
         text = await context.text_to_str(self.text)
         collection.add(ids=[self.text.document_id], documents=[text])
@@ -218,8 +221,8 @@ class IndexTextChunk(ChromaNode):
     Index a single text chunk.
     """
 
-    collection: ChromaCollection = Field(
-        default=ChromaCollection(), description="The collection to index"
+    collection: Collection = Field(
+        default=Collection(), description="The collection to index"
     )
     text_chunk: TextChunk = Field(
         default=TextChunk(), description="Text chunk to index"
@@ -233,7 +236,7 @@ class IndexTextChunk(ChromaNode):
         if not self.text_chunk.source_id.strip():
             raise ValueError("The source ID cannot be empty")
 
-        collection = self.get_or_create_collection(context, self.collection)
+        collection = get_collection(self.collection.name)
         collection.add(
             ids=[self.text_chunk.get_document_id()], documents=[self.text_chunk.text]
         )
@@ -244,8 +247,8 @@ class IndexTextChunks(ChromaNode):
     Index multiple text chunks at once.
     """
 
-    collection: ChromaCollection = Field(
-        default=ChromaCollection(), description="The collection to index"
+    collection: Collection = Field(
+        default=Collection(), description="The collection to index"
     )
     text_chunks: List[TextChunk] = Field(
         default_factory=list, description="List of text chunks to index"
@@ -259,7 +262,7 @@ class IndexTextChunks(ChromaNode):
         if not self.text_chunks:
             return
 
-        collection = self.get_or_create_collection(context, self.collection)
+        collection = get_collection(self.collection.name)
 
         # Extract document IDs and texts from chunks
         doc_ids = [chunk.get_document_id() for chunk in self.text_chunks]
@@ -281,8 +284,8 @@ class IndexString(ChromaNode):
     - Index documents for a vector search
     """
 
-    collection: ChromaCollection = Field(
-        default=ChromaCollection(), description="The collection to index"
+    collection: Collection = Field(
+        default=Collection(), description="The collection to index"
     )
     text: str = Field(default="", description="Text content to index")
     document_id: str = Field(
@@ -297,5 +300,5 @@ class IndexString(ChromaNode):
         if not self.document_id.strip():
             raise ValueError("The document ID cannot be empty")
 
-        collection = self.get_collection(context, self.collection)
+        collection = get_collection(self.collection.name)
         collection.add(ids=[self.document_id], documents=[self.text])
