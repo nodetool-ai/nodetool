@@ -63,13 +63,14 @@ const helpStyles = (theme: any) =>
       overflowY: "auto"
     },
     ".help-item": {
-      marginBottom: "0.4em",
+      marginBottom: "0.5em",
+      paddingBottom: "0.5em",
       display: "flex",
       alignItems: "center",
+      borderBottom: `1px solid ${theme.palette.c_gray2}`,
       gap: "1rem",
       p: {
         minWidth: "240px",
-        borderRight: `1px solid ${theme.palette.c_gray3}`,
         fontFamily: theme.fontFamily
       },
       button: {
@@ -82,6 +83,11 @@ const helpStyles = (theme: any) =>
           border: "0"
         }
       }
+    },
+    ".explanation": {
+      marginBottom: "1em",
+      fontSize: theme.fontSizeSmall,
+      color: theme.palette.c_gray5
     }
   });
 
@@ -107,100 +113,110 @@ const Help = ({ handleClose }: { handleClose: () => void }) => {
         <div className="top">
           <Typography variant="h4">Help</Typography>
           <Tabs className="help-tabs" value={helpIndex} onChange={handleChange}>
-            <Tab label="Nodes" />
-            <Tab label="Values" />
-            <Tab label="Shortcuts" />
+            <Tab label="General" />
             <Tab label="DataTypes" />
           </Tabs>
         </div>
         <div className="content">
           <TabPanel value={helpIndex} index={0}>
+            <Typography variant="h1" color="#999">
+              Nodes
+            </Typography>
             <Typography variant="h5" color="#999">
               Create Nodes
             </Typography>
             <div className="help-item">
-              <Typography>Node Menu</Typography>
-              <Button className="no-border">Double click on canvas</Button>
-              <Button className="no-border">Shift+Space</Button>
+              <Typography>Open NodeMenu</Typography>
+              <Button className="no-border">
+                Double click on canvas
+              </Button> OR <Button className="no-border">SPACE</Button>
             </div>
             <div className="help-item">
-              <Typography>Command Menu</Typography>
-              <Button className="no-border">Alt+K</Button>
-              <Button className="no-border">Option+K</Button>
+              <Typography>Search in NodeMenu</Typography>
+              Start typing anywhere while the NodeMenu is opened
+              <br />
             </div>
+
             <div className="help-item">
               <Typography>Connection Menu</Typography>
-              <Button className="no-border">
-                End a connection on the canvas
-              </Button>
+              End a connection on the canvas
             </div>
             <div className="help-item">
-              <Typography>Asset Node</Typography>
-              <Button className="no-border">
-                Drop an asset from the Asset Menu or File Explorer on the Canvas
-              </Button>
+              <Typography>Quick Asset Node</Typography>
+              Drop any asset from the Asset Menu or external File Manager onto
+              the Canvas
             </div>
             <Typography variant="h5" color="#999">
               Edit Nodes
             </Typography>
             <div className="help-item">
-              <Typography>Delete Node</Typography>
-              <Button className="no-border">Backspace</Button>
-              <Button className="no-border">Delete</Button>
+              <Typography>Copy selected Nodes</Typography>
+              <Button>CTRL + C</Button> | <Button>CMD + C</Button>
             </div>
-            {/* <div className="help-item">
-              <Typography>Un/Collapse Node</Typography>
-              <Button className="no-border">Double click on node name</Button>
-            </div> */}
+            <div className="help-item">
+              <Typography>Paste selected Nodes</Typography>
+              <Button>CTRL + V</Button> | <Button>CMD + V</Button>
+            </div>
+            <div className="help-item">
+              <Typography>Duplicate selected Nodes</Typography>
+              <Button>CTRL + D</Button> | <Button>CMD + D</Button>
+            </div>
+            <div className="help-item">
+              <Typography>History Undo</Typography>
+              <Button>CTRL + Z</Button> | <Button>CMD + Z</Button>
+            </div>
+            <div className="help-item">
+              <Typography>History Redo</Typography>
+              <Button>CTRL + SHIFT + Z</Button> |{" "}
+              <Button>CMD + Shift + Z</Button>
+            </div>
+            <div className="help-item">
+              <Typography>Align selected Nodes</Typography>
+              <Button>A</Button>
+            </div>
+            <div className="help-item">
+              <Typography>Arrange selected Nodes</Typography>
+              <Button>CTRL + A</Button> | <Button>CMD + A</Button>
+            </div>
+
+            <div className="help-item">
+              <Typography>Delete Node</Typography>
+              <Button>BACKSPACE</Button> OR <Button>DELETE</Button>
+            </div>
+
             <div className="help-item">
               <Typography>Select multiple Nodes</Typography>
-              <Button className="no-border">
-                Drag area with left click
-                <br />
-                Shift + Left Click if using LMB for panning
-              </Button>
+              Drag area with SHIFT + Left Click (default)
+              <br />
+              Drag area with Left Click if using RMB for panning (configurable
+              in settings)
+            </div>
+
+            <div className="help-item">
+              <Typography>Fit Screen (Focus all Nodes)</Typography>
+              <Button>F</Button>
+            </div>
+            <div className="help-item">
+              <Typography>Focus selected Nodes</Typography>
+              <Button>F</Button>
             </div>
 
             <Typography variant="h5" color="#999">
-              Context Menus
-            </Typography>
-            <div className="help-item">
-              <Typography>Node Menu</Typography>
-              <Button className="no-border">
-                Right click on node name or left click on top-right menu icon
-              </Button>
-            </div>
-            <div className="help-item">
-              <Typography>Selection Menu</Typography>
-              <Button className="no-border">
-                Right click on selection rectangle
-              </Button>
-            </div>
-            <div className="help-item">
-              <Typography>Canvas Menu</Typography>
-              <Button className="no-border">Right click on empty canvas</Button>
-            </div>
-          </TabPanel>
-          <TabPanel value={helpIndex} index={1}>
-            <Typography variant="h5" color="#999">
-              Edit Values
+              Edit Node Parameters
             </Typography>
             <div className="help-item">
               <Typography>Drag Number</Typography>
-              <Button className="no-border">Drag Horizontal</Button>
-            </div>
-            <div className="help-item">
-              <Typography></Typography>
+              <Button className="no-border">Click + Drag Horizontal</Button>
               <Typography
                 variant="body2"
                 color="#999"
                 style={{ border: "0", marginLeft: ".5em" }}
               >
-                Shift: Slow
+                SHIFT: Slow
                 <br />
                 CTRL: Fast
                 <br />
-                Shift+CTRL: Faster
+                SHIFT + CTRL: Faster
                 <br />
               </Typography>
             </div>
@@ -213,96 +229,50 @@ const Help = ({ handleClose }: { handleClose: () => void }) => {
             </div>
             <div className="help-item">
               <Typography>Set Default</Typography>
-              <Button className="no-border">CTRL + Right Click</Button>
+              <Button>CTRL + RightClick</Button> |{" "}
+              <Button>CMD + RightClick</Button>
             </div>
             <div className="help-item">
               <Typography>Confirm Editing</Typography>
-              <Button>Enter</Button>/<Button>Click anywhere outside</Button>
+              <Button>Enter</Button> OR <Button>Click anywhere outside</Button>
             </div>
             <div className="help-item">
               <Typography>Cancel Editing</Typography>
               <Button>ESC</Button>
             </div>
-          </TabPanel>
 
-          <TabPanel value={helpIndex} index={2}>
-            <Typography variant="h5" color="#999">
-              Menu
+            <Typography variant="h1" color="#999">
+              Workflows
             </Typography>
-
-            <div className="help-item">
-              <Typography>Command Menu</Typography>
-              <Button>Alt+k</Button>
-              <Button>Option+k</Button>
-            </div>
-            <div className="help-item">
-              <Typography>Open Node Menu</Typography>
-              <Button className="no-border">Double Click on Canvas</Button>
-              <Button className="no-border">Space Key</Button>
-            </div>
-            <div className="help-item">
-              <Typography>Focus Search in NodeMenu</Typography>
-              <Button>Esc</Button> or just start typing with menu opened
-            </div>
-            <Typography variant="h5" color="#999">
-              Nodes
-            </Typography>
-
-            <div className="help-item">
-              <Typography>Help Menu</Typography>
-              <Button>Alt+h</Button>
-              <Button>Meta+h</Button>
-            </div>
-            <div className="help-item">
-              <Typography>Copy selected nodes</Typography>
-              <Button>CTRL+C | Meta+C</Button>
-            </div>
-            <div className="help-item">
-              <Typography>Paste selected nodes</Typography>
-              <Button>CTRL+V | Meta+V</Button>
-            </div>
-            <div className="help-item">
-              <Typography>Duplicate selected nodes</Typography>
-              <Button>SPACE+D</Button>
-            </div>
-            <div className="help-item">
-              <Typography>History Undo</Typography>
-              <Button>CTRL+z</Button>
-              <Button>Option+z</Button>
-            </div>
-            <div className="help-item">
-              <Typography>History Redo</Typography>
-              <Button>CTRL+SHIFT+z</Button>
-              <Button>Option+Shift+z</Button>
-            </div>
-            <div className="help-item">
-              <Typography>Align selected nodes</Typography>
-              <Button>a</Button>
-            </div>
-            <div className="help-item">
-              <Typography>Arrange selected nodes</Typography>
-              <Button>Control+a | Meta+a</Button>
-            </div>
-            <div className="help-item">
-              <Typography>Fit Screen</Typography>
-              <Button>Alt+S</Button>
-              <Button>Option+S</Button>
-            </div>
-
-            <Typography variant="h5" color="#999">
-              Workflow
+            <Typography className="explanation">
+              Control starting and stopping of workflows with shortcuts instead
+              of the center menu.
+              <br />
+              Stopping a workflow may take a few seconds, depending on the task.
             </Typography>
 
             <div className="help-item">
               <Typography>Run Workflow</Typography>
-              <Button>CTRL+Enter</Button>
+              <Button>CTRL + Enter</Button>
             </div>
             <div className="help-item">
               <Typography>Cancel Workflow</Typography>
               <Button>ESC</Button>
             </div>
+
+            <Typography variant="h1" color="#999">
+              Command Menu
+            </Typography>
+            <Typography className="explanation">
+              The command menu provides quick keyboard access to most features.
+            </Typography>
+            <div className="help-item">
+              <Typography>Open Command Menu</Typography>
+              <Button className="no-border">ALT + K</Button>
+              <Button className="no-border">CMD + K</Button>
+            </div>
           </TabPanel>
-          <TabPanel value={helpIndex} index={3}>
+          <TabPanel value={helpIndex} index={1}>
             <DataTypesList />
           </TabPanel>
         </div>

@@ -312,7 +312,6 @@ const AppHeader: React.FC = React.memo(() => {
           title={
             <div style={{ textAlign: "center" }}>
               <Typography variant="inherit">Help</Typography>
-              <Typography variant="inherit">[ALT+H | OPTION+H]</Typography>
             </div>
           }
         >
