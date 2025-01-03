@@ -727,7 +727,7 @@ const Welcome = ({ handleClose }: { handleClose: () => void }) => {
                     borderRadius: ".2em"
                   }}
                 >
-                  <RemoteSettingsMenu enableCollapse={false} />
+                  <RemoteSettingsMenu />
                 </Box>
               </Box>
             </Box>
