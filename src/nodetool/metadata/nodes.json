@@ -24843,6 +24843,50 @@
     "recommended_models": []
   },
   {
+    "title": "Convert To Markdown",
+    "description": "Converts various document formats to markdown using MarkItDown.\n    markdown, convert, document\n\n    Use cases:\n    - Convert Word documents to markdown\n    - Convert Excel files to markdown tables\n    - Convert PowerPoint to markdown content",
+    "namespace": "nodetool.file.markitdown",
+    "node_type": "nodetool.file.markitdown.ConvertToMarkdown",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "document",
+        "type": {
+          "type": "document",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "document",
+          "uri": "",
+          "asset_id": null,
+          "data": null
+        },
+        "title": "Document",
+        "description": "The document to convert to markdown",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
     "title": "Extract Links",
     "description": "Extracts all links from markdown text.\n    markdown, links, extraction\n\n    Use cases:\n    - Extract references and citations from academic documents\n    - Build link graphs from markdown documentation\n    - Analyze external resources referenced in markdown files",
     "namespace": "nodetool.file.markdown",
@@ -31065,21 +31109,7 @@
           ],
           "type_name": null
         },
-        "default": {
-          "type": "message",
-          "id": null,
-          "auth_token": null,
-          "workflow_id": null,
-          "graph": null,
-          "thread_id": null,
-          "user_id": null,
-          "tool_call_id": null,
-          "role": "",
-          "name": "",
-          "content": null,
-          "tool_calls": null,
-          "created_at": null
-        },
+        "default": [],
         "title": "Value",
         "description": "The chat message to use as input.",
         "min": null,
@@ -31103,7 +31133,7 @@
           ],
           "type_name": null
         },
-        "name": "output",
+        "name": "history",
         "stream": false
       },
       {
@@ -31115,6 +31145,50 @@
           "type_name": null
         },
         "name": "text",
+        "stream": false
+      },
+      {
+        "type": {
+          "type": "image",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "image",
+        "stream": false
+      },
+      {
+        "type": {
+          "type": "audio",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "audio",
+        "stream": false
+      },
+      {
+        "type": {
+          "type": "video",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "video",
+        "stream": false
+      },
+      {
+        "type": {
+          "type": "document",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "document",
         "stream": false
       }
     ],
@@ -88727,21 +88801,6 @@
         "max": null
       },
       {
-        "name": "prompt",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Prompt",
-        "description": "Prompt to send to the model.",
-        "min": null,
-        "max": null
-      },
-      {
         "name": "system_prompt",
         "type": {
           "type": "str",
@@ -88757,18 +88816,41 @@
         "max": null
       },
       {
-        "name": "context_window",
+        "name": "prompt",
         "type": {
-          "type": "int",
+          "type": "str",
           "optional": false,
           "values": null,
           "type_args": [],
           "type_name": null
         },
-        "default": 4096,
-        "title": "Context Window",
-        "description": "The context window size to use for the model.",
-        "min": 1.0,
+        "default": "",
+        "title": "Prompt",
+        "description": "Prompt to send to the model.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "messages",
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "message",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": [],
+        "title": "Messages",
+        "description": "History of messages to send to the model.",
+        "min": null,
         "max": null
       },
       {
@@ -88789,6 +88871,21 @@
         "title": "Image",
         "description": "The image to analyze",
         "min": null,
+        "max": null
+      },
+      {
+        "name": "context_window",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 4096,
+        "title": "Context Window",
+        "description": "The context window size to use for the model.",
+        "min": 1.0,
         "max": null
       },
       {

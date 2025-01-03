@@ -808,19 +808,19 @@ class ProcessingContext:
 
         if url_parsed.scheme == "file":
             # Handle Windows paths
-            if os.name == 'nt':  # Windows system
+            if os.name == "nt":  # Windows system
                 if url_parsed.netloc:
                     # Handle drive letter paths (file://C:/path) and UNC paths (file://server/share)
-                    if ':' in url_parsed.netloc:
+                    if ":" in url_parsed.netloc:
                         # Drive letter path
                         path = url_parsed.netloc + url_parsed.path
                     else:
                         # UNC path
-                        path = '//' + url_parsed.netloc + url_parsed.path
+                        path = "//" + url_parsed.netloc + url_parsed.path
                 else:
                     # Direct path
                     path = url_parsed.path
-                    if path.startswith('/'):
+                    if path.startswith("/"):
                         path = path[1:]  # Remove leading slash for Windows
             else:
                 # Unix path
@@ -829,10 +829,10 @@ class ProcessingContext:
             # Replace URL-encoded characters and normalize slashes
             path = urllib.parse.unquote(path)
             path = os.path.normpath(path)
-            
+
             if not os.path.exists(path):
                 raise FileNotFoundError(f"No such file or directory: '{path}'")
-                
+
             return open(path, "rb")
 
         response = await self.http_get(url)
@@ -871,8 +871,7 @@ class ProcessingContext:
 
     async def asset_to_bytes(self, asset_ref: AssetRef) -> bytes:
         io = await self.asset_to_io(asset_ref)
-        assert isinstance(io, BytesIO)
-        return io.getvalue()
+        return io.read()
 
     async def upload_tmp_asset(self, asset: AssetRef):
         if asset.uri:

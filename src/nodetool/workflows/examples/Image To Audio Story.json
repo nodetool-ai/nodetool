@@ -1,15 +1,15 @@
 {
   "id": "image_to_audio_story",
   "access": "public",
-  "created_at": "2024-10-19T19:13:54.365143",
-  "updated_at": "2024-10-19T19:13:54.365165",
+  "created_at": "2025-01-03T16:11:32.724826",
+  "updated_at": "2025-01-03T16:11:32.724853",
   "name": "Image To Audio Story",
   "description": "Tell a story about an image",
   "tags": [
     "start",
     "multimodal"
   ],
-  "thumbnail": "",
+  "thumbnail": null,
   "thumbnail_url": "https://app.nodetool.ai/examples/porcelain_sculpture.jpg",
   "graph": {
     "nodes": [
@@ -40,14 +40,16 @@
         "data": {
           "model": {
             "type": "llama_model",
-            "repo_id": "qwen2.5:1.5b"
+            "repo_id": "llava:latest"
           },
           "system": "You are a friendly assistant.",
           "prompt": "write a fictional short story about this image. the story should follow classical principles, short and witty, with a surprise at the end. written in the wild style of the 60s.",
           "max_tokens": 100,
           "temperature": 1,
           "top_k": 40,
-          "top_p": 1
+          "top_p": 1,
+          "context_window": 4096,
+          "keep_alive": 300
         },
         "ui_properties": {
           "selected": false,
@@ -159,16 +161,6 @@
         }
       },
       {
-        "id": "e6a8f8b2-8f21-4b6d-8628-0dbee4cc36ad",
-        "source": "2",
-        "sourceHandle": "output",
-        "target": "4",
-        "targetHandle": "text",
-        "ui_properties": {
-          "className": "str"
-        }
-      },
-      {
         "id": "67117e75-7172-4df7-b796-78efcd3d9d85",
         "source": "1",
         "sourceHandle": "output",
@@ -184,6 +176,16 @@
         "sourceHandle": "output",
         "target": "3",
         "targetHandle": "value",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "e6a8f8b2-8f21-4b6d-8628-0dbee4cc36ad",
+        "source": "2",
+        "sourceHandle": "output",
+        "target": "4",
+        "targetHandle": "text",
         "ui_properties": {
           "className": "str"
         }

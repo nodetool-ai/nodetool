@@ -37,7 +37,8 @@ const styles = (theme: any) =>
         display: "flex",
         alignItems: "center",
         gap: "8px",
-        height: "20px"
+        minHeight: "20px",
+        flex: 1
       },
 
       ".file-browser": {
@@ -68,7 +69,9 @@ const styles = (theme: any) =>
         display: "flex",
         alignItems: "center",
         flex: 1,
-        marginLeft: "8px"
+        marginLeft: "8px",
+        wordBreak: "break-all",
+        minHeight: "20px"
       },
 
       ".file-picker__reset-button": {

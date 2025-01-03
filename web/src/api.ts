@@ -996,6 +996,29 @@ export interface components {
             /** Columns */
             columns?: components["schemas"]["ColumnDef"][] | null;
         };
+        /**
+         * DocumentRef
+         * @description A reference to a document asset.
+         *     Can be a PDF, DOCX, etc.
+         */
+        DocumentRef: {
+            /**
+             * Type
+             * @default document
+             * @constant
+             * @enum {string}
+             */
+            type: "document";
+            /**
+             * Uri
+             * @default
+             */
+            uri: string;
+            /** Asset Id */
+            asset_id?: string | null;
+            /** Data */
+            data?: unknown;
+        };
         /** Edge */
         Edge: {
             /** Id */
@@ -2178,7 +2201,7 @@ export interface components {
              */
             name: string;
             /** Content */
-            content?: string | (components["schemas"]["MessageTextContent"] | components["schemas"]["MessageImageContent"] | components["schemas"]["MessageAudioContent"] | components["schemas"]["MessageVideoContent"])[] | null;
+            content?: string | (components["schemas"]["MessageTextContent"] | components["schemas"]["MessageImageContent"] | components["schemas"]["MessageAudioContent"] | components["schemas"]["MessageVideoContent"] | components["schemas"]["MessageDocumentContent"])[] | null;
             /** Tool Calls */
             tool_calls?: components["schemas"]["ToolCall"][] | null;
             /** Created At */
@@ -2219,7 +2242,7 @@ export interface components {
              */
             name: string;
             /** Content */
-            content?: string | (components["schemas"]["MessageTextContent"] | components["schemas"]["MessageImageContent"] | components["schemas"]["MessageAudioContent"] | components["schemas"]["MessageVideoContent"])[] | null;
+            content?: string | (components["schemas"]["MessageTextContent"] | components["schemas"]["MessageImageContent"] | components["schemas"]["MessageAudioContent"] | components["schemas"]["MessageVideoContent"] | components["schemas"]["MessageDocumentContent"])[] | null;
             /** Tool Calls */
             tool_calls?: components["schemas"]["ToolCall"][] | null;
             /** Created At */
@@ -2259,12 +2282,27 @@ export interface components {
              */
             name: string;
             /** Content */
-            content?: string | (components["schemas"]["MessageTextContent"] | components["schemas"]["MessageImageContent"] | components["schemas"]["MessageAudioContent"] | components["schemas"]["MessageVideoContent"])[] | null;
+            content?: string | (components["schemas"]["MessageTextContent"] | components["schemas"]["MessageImageContent"] | components["schemas"]["MessageAudioContent"] | components["schemas"]["MessageVideoContent"] | components["schemas"]["MessageDocumentContent"])[] | null;
             /** Tool Calls */
             tool_calls?: components["schemas"]["ToolCall"][] | null;
             /** Created At */
             created_at?: string | null;
             workflow?: components["schemas"]["Workflow-Input"] | null;
+        };
+        /** MessageDocumentContent */
+        MessageDocumentContent: {
+            /**
+             * Type
+             * @default document
+             * @constant
+             * @enum {string}
+             */
+            type: "document";
+            /** @default {
+             *       "type": "document",
+             *       "uri": ""
+             *     } */
+            document: components["schemas"]["DocumentRef"];
         };
         /** MessageImageContent */
         MessageImageContent: {
@@ -2639,7 +2677,7 @@ export interface components {
          * Provider
          * @enum {string}
          */
-        Provider: "aime" | "openai" | "anthropic" | "replicate" | "huggingface" | "ollama" | "comfy" | "local" | "empty";
+        Provider: "aime" | "openai" | "anthropic" | "replicate" | "huggingface" | "ollama" | "comfy" | "local" | "gemini" | "empty";
         /** RepoPath */
         RepoPath: {
             /** Repo Id */
@@ -2780,6 +2818,11 @@ export interface components {
              * @description Google app password
              */
             GOOGLE_APP_PASSWORD?: string | null;
+            /**
+             * Gemini Api Key
+             * @description Gemini API key
+             */
+            GEMINI_API_KEY?: string | null;
         };
         /** SettingsModel */
         SettingsModel: {
@@ -2808,6 +2851,44 @@ export interface components {
         Sibling: {
             /** Rfilename */
             rfilename: string;
+        };
+        /** SystemStats */
+        SystemStats: {
+            /**
+             * Cpu Percent
+             * @description CPU usage percentage
+             */
+            cpu_percent: number;
+            /**
+             * Memory Total Gb
+             * @description Total memory in GB
+             */
+            memory_total_gb: number;
+            /**
+             * Memory Used Gb
+             * @description Used memory in GB
+             */
+            memory_used_gb: number;
+            /**
+             * Memory Percent
+             * @description Memory usage percentage
+             */
+            memory_percent: number;
+            /**
+             * Vram Total Gb
+             * @description Total VRAM in GB
+             */
+            vram_total_gb?: number | null;
+            /**
+             * Vram Used Gb
+             * @description Used VRAM in GB
+             */
+            vram_used_gb?: number | null;
+            /**
+             * Vram Percent
+             * @description VRAM usage percentage
+             */
+            vram_percent?: number | null;
         };
         /** Task */
         Task: {
@@ -4197,7 +4278,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AssetRef"] | components["schemas"]["AudioRef"] | components["schemas"]["DataframeRef"] | components["schemas"]["FilePath"] | components["schemas"]["FolderRef"] | components["schemas"]["ImageRef"] | components["schemas"]["Tensor"] | components["schemas"]["VideoRef"] | components["schemas"]["ModelRef"] | components["schemas"]["TextRef"] | components["schemas"]["WorkflowRef"] | components["schemas"]["NodeRef"] | components["schemas"]["Prediction"] | components["schemas"]["JobUpdate"] | components["schemas"]["NodeUpdate"] | components["schemas"]["NodeProgress"] | components["schemas"]["HuggingFaceModel"] | components["schemas"]["HFImageTextToText"] | components["schemas"]["HFVisualQuestionAnswering"] | components["schemas"]["HFDocumentQuestionAnswering"] | components["schemas"]["HFVideoTextToText"] | components["schemas"]["HFComputerVision"] | components["schemas"]["HFDepthEstimation"] | components["schemas"]["HFImageClassification"] | components["schemas"]["HFObjectDetection"] | components["schemas"]["HFImageSegmentation"] | components["schemas"]["HFTextToImage"] | components["schemas"]["HFStableDiffusion"] | components["schemas"]["HFStableDiffusionXL"] | components["schemas"]["HFImageToText"] | components["schemas"]["HFImageToImage"] | components["schemas"]["HFImageToVideo"] | components["schemas"]["HFUnconditionalImageGeneration"] | components["schemas"]["HFVideoClassification"] | components["schemas"]["HFTextToVideo"] | components["schemas"]["HFZeroShotImageClassification"] | components["schemas"]["HFMaskGeneration"] | components["schemas"]["HFZeroShotObjectDetection"] | components["schemas"]["HFTextTo3D"] | components["schemas"]["HFImageTo3D"] | components["schemas"]["HFImageFeatureExtraction"] | components["schemas"]["HFNaturalLanguageProcessing"] | components["schemas"]["HFTextClassification"] | components["schemas"]["HFTokenClassification"] | components["schemas"]["HFTableQuestionAnswering"] | components["schemas"]["HFQuestionAnswering"] | components["schemas"]["HFZeroShotClassification"] | components["schemas"]["HFTranslation"] | components["schemas"]["HFSummarization"] | components["schemas"]["HFFeatureExtraction"] | components["schemas"]["HFTextGeneration"] | components["schemas"]["HFText2TextGeneration"] | components["schemas"]["HFFillMask"] | components["schemas"]["HFSentenceSimilarity"] | components["schemas"]["HFTextToSpeech"] | components["schemas"]["HFTextToAudio"] | components["schemas"]["HFAutomaticSpeechRecognition"] | components["schemas"]["HFAudioToAudio"] | components["schemas"]["HFAudioClassification"] | components["schemas"]["HFZeroShotAudioClassification"] | components["schemas"]["HFVoiceActivityDetection"] | components["schemas"]["SVGElement"] | Record<string, never>;
+                    "application/json": components["schemas"]["AssetRef"] | components["schemas"]["AudioRef"] | components["schemas"]["DataframeRef"] | components["schemas"]["FilePath"] | components["schemas"]["FolderRef"] | components["schemas"]["ImageRef"] | components["schemas"]["Tensor"] | components["schemas"]["VideoRef"] | components["schemas"]["ModelRef"] | components["schemas"]["TextRef"] | components["schemas"]["WorkflowRef"] | components["schemas"]["NodeRef"] | components["schemas"]["Prediction"] | components["schemas"]["JobUpdate"] | components["schemas"]["NodeUpdate"] | components["schemas"]["NodeProgress"] | components["schemas"]["HuggingFaceModel"] | components["schemas"]["HFImageTextToText"] | components["schemas"]["HFVisualQuestionAnswering"] | components["schemas"]["HFDocumentQuestionAnswering"] | components["schemas"]["HFVideoTextToText"] | components["schemas"]["HFComputerVision"] | components["schemas"]["HFDepthEstimation"] | components["schemas"]["HFImageClassification"] | components["schemas"]["HFObjectDetection"] | components["schemas"]["HFImageSegmentation"] | components["schemas"]["HFTextToImage"] | components["schemas"]["HFStableDiffusion"] | components["schemas"]["HFStableDiffusionXL"] | components["schemas"]["HFImageToText"] | components["schemas"]["HFImageToImage"] | components["schemas"]["HFImageToVideo"] | components["schemas"]["HFUnconditionalImageGeneration"] | components["schemas"]["HFVideoClassification"] | components["schemas"]["HFTextToVideo"] | components["schemas"]["HFZeroShotImageClassification"] | components["schemas"]["HFMaskGeneration"] | components["schemas"]["HFZeroShotObjectDetection"] | components["schemas"]["HFTextTo3D"] | components["schemas"]["HFImageTo3D"] | components["schemas"]["HFImageFeatureExtraction"] | components["schemas"]["HFNaturalLanguageProcessing"] | components["schemas"]["HFTextClassification"] | components["schemas"]["HFTokenClassification"] | components["schemas"]["HFTableQuestionAnswering"] | components["schemas"]["HFQuestionAnswering"] | components["schemas"]["HFZeroShotClassification"] | components["schemas"]["HFTranslation"] | components["schemas"]["HFSummarization"] | components["schemas"]["HFFeatureExtraction"] | components["schemas"]["HFTextGeneration"] | components["schemas"]["HFText2TextGeneration"] | components["schemas"]["HFFillMask"] | components["schemas"]["HFSentenceSimilarity"] | components["schemas"]["HFTextToSpeech"] | components["schemas"]["HFTextToAudio"] | components["schemas"]["HFAutomaticSpeechRecognition"] | components["schemas"]["HFAudioToAudio"] | components["schemas"]["HFAudioClassification"] | components["schemas"]["HFZeroShotAudioClassification"] | components["schemas"]["HFVoiceActivityDetection"] | components["schemas"]["SVGElement"] | components["schemas"]["SystemStats"] | Record<string, never>;
                 };
             };
         };

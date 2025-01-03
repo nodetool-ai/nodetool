@@ -1,6 +1,14 @@
 from typing import Any
 from pydantic import Field
-from nodetool.metadata.types import DocumentRef, FilePath, Message, asset_to_ref
+from nodetool.metadata.types import (
+    DocumentRef,
+    FilePath,
+    Message,
+    MessageAudioContent,
+    MessageDocumentContent,
+    MessageVideoContent,
+    asset_to_ref,
+)
 from nodetool.models.asset import Asset
 from nodetool.metadata.types import FolderRef
 from nodetool.metadata.types import AssetRef
@@ -99,23 +107,63 @@ class ChatInput(InputNode):
     - Provide instructions to language models
     """
 
-    value: list[Message] = Field(
-        Message(), description="The chat message to use as input."
-    )
+    value: list[Message] = Field([], description="The chat message to use as input.")
 
     @classmethod
     def return_type(cls):
         return {
-            "output": list[Message],
+            "history": list[Message],
             "text": str,
+            "image": ImageRef,
+            "audio": AudioRef,
+            "video": VideoRef,
+            "document": DocumentRef,
         }
 
     async def process(self, context: ProcessingContext):
+        history = self.value[:-1]
+
+        last_message = self.value[-1] if self.value else None
+        if last_message and last_message.content:
+            text = (
+                last_message.content[0].text
+                if isinstance(last_message.content[0], MessageTextContent)
+                else ""
+            )
+            image = (
+                last_message.content[0].image
+                if isinstance(last_message.content[0], MessageImageContent)
+                else None
+            )
+            audio = (
+                last_message.content[0].audio
+                if isinstance(last_message.content[0], MessageAudioContent)
+                else None
+            )
+            video = (
+                last_message.content[0].video
+                if isinstance(last_message.content[0], MessageVideoContent)
+                else None
+            )
+            document = (
+                last_message.content[0].document
+                if isinstance(last_message.content[0], MessageDocumentContent)
+                else None
+            )
+        else:
+            text = ""
+            image = ImageRef()
+            audio = AudioRef()
+            video = VideoRef()
+            document = DocumentRef()
+
         return {
-            "output": self.value,
-            "text": (
-                self.value[-1].content if self.value and len(self.value) > 0 else ""
-            ),
+            "history": history,
+            "text": text,
+            "image": image,
+            "audio": audio,
+            "video": video,
+            "document": document,
         }
 
 

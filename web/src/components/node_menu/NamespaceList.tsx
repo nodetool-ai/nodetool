@@ -370,14 +370,6 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
             exactMatch ||
             startsWithPath;
 
-          console.log("Node check:", {
-            namespace: node.namespace,
-            selectedPathString,
-            startsWithPath,
-            exactMatch,
-            willInclude
-          });
-
           return willInclude;
         })
         .sort((a, b) => {

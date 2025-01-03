@@ -19,7 +19,7 @@
         "data": {
           "model": {
             "type": "llama_model",
-            "repo_id": "qwen2.5-coder:7b"
+            "repo_id": "gemma2:2b"
           },
           "context_window": 4096,
           "prompt": "make a nice line chart",
@@ -77,7 +77,7 @@
         "data": {
           "model": {
             "type": "llama_model",
-            "repo_id": "qwen2.5:1.5b"
+            "repo_id": "gemma2:2b"
           },
           "context_window": 4096,
           "prompt": "GDP for USA 1900-2000",

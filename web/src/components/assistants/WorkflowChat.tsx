@@ -41,32 +41,12 @@ const WorkflowChat: React.FC<WorkflowChatProps> = ({
   }, [connect, workflow_id]);
 
   const handleSendMessage = useCallback(
-    async (text: string, image?: string) => {
+    async (message: Message) => {
       if (workflow_id) {
-        const content: (MessageTextContent | MessageImageContent)[] = [
-          {
-            type: "text",
-            text
-          }
-        ];
-        if (image) {
-          content.push({
-            type: "image_url",
-            image: {
-              type: "image",
-              uri: image
-            }
-          });
-        }
-        const newMessage: Message = {
-          id: Date.now().toString(),
-          role: "user",
-          content,
-          workflow_id,
-          type: "message",
-          name: ""
-        };
-        await sendMessage(newMessage);
+        message.workflow_id = workflow_id;
+        await sendMessage(message);
+      } else {
+        console.error("Workflow ID is not set");
       }
     },
     [workflow_id, sendMessage]
@@ -112,9 +92,11 @@ const WorkflowChat: React.FC<WorkflowChatProps> = ({
           display: "flex",
           flexDirection: "column",
           backgroundColor: isOpen
-            ? "background.paper"
-            : "rgba(255, 255, 255, 0.1)",
-          boxShadow: isOpen ? 3 : 1,
+            ? "rgba(8, 8, 8, 0.9)"
+            : "rgba(16, 16, 16, 0.5)",
+          boxShadow: isOpen
+            ? "0 -32px 64px rgba(0, 0, 0, 0.2)"
+            : "0 -16px 32px rgba(0, 0, 0, 0.1)",
           borderTopLeftRadius: 8,
           borderTopRightRadius: 8,
           overflow: "hidden",
@@ -124,7 +106,7 @@ const WorkflowChat: React.FC<WorkflowChatProps> = ({
           // transitionDuration: "300ms",
           // transitionTimingFunction: "cubic-bezier(0.4, 0, 0.2, 1)",
           transition: "all 0.3s ease-out",
-          backdropFilter: !isOpen ? "blur(5px)" : "none",
+          backdropFilter: "blur(10px)",
           pointerEvents: isOpen ? "auto" : "none"
         }}
       >
