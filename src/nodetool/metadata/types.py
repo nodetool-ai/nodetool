@@ -1221,36 +1221,15 @@ class TextChunk(BaseType):
     type: Literal["text_chunk"] = "text_chunk"
     text: str = ""
     source_id: str = ""
-    start_idx: int = 0
-    end_idx: int = 0
-    chunk_type: str = ""
+    start_index: int = 0
 
     def get_document_id(self):
-        return f"{self.source_id}:{self.start_idx}-{self.end_idx}"
+        return f"{self.source_id}:{self.start_index}"
 
 
-class ChromaEmbeddingFunctionEnum(str, Enum):
-    OPENCLIP = "openclip"
-    OPENAI = "openai"
-    OLLAMA = "ollama"
-    SENTENCE_TRANSFORMER = "sentence_transformer"
-
-
-class ChromaEmbeddingFunction(BaseType):
-    type: Literal["chroma.embedding_function"] = "chroma.embedding_function"
-    embedding_function: ChromaEmbeddingFunctionEnum = Field(
-        default=ChromaEmbeddingFunctionEnum.OPENCLIP
-    )
-    model: str | None = None
-    repo_id: str | None = None
-
-
-class ChromaCollection(BaseType):
-    type: Literal["chroma_collection"] = "chroma_collection"
+class Collection(BaseType):
+    type: Literal["collection"] = "collection"
     name: str = ""
-    embedding_function: ChromaEmbeddingFunction = Field(
-        default=ChromaEmbeddingFunction()
-    )
 
 
 class SVGRef(AssetRef):

@@ -37,7 +37,8 @@ const HuggingFaceModelSelect = ({
         );
         const loraPaths = loras?.map((lora) => ({
           repo_id: lora.repo_id || "",
-          path: lora.path || ""
+          path: lora.path || "",
+          downloaded: false
         }));
         const loraModels = await tryCacheFiles(loraPaths || []);
         return loraModels
@@ -69,8 +70,9 @@ const HuggingFaceModelSelect = ({
             );
             if (model) {
               acc.push({
-                ...model,
-                path: recommendedModel.path
+                type: modelType,
+                repo_id: model.repo_id,
+                path: recommendedModel.path || ""
               });
             }
             return acc;
