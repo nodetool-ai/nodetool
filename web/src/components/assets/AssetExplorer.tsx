@@ -13,7 +13,8 @@ const styles = (theme: any) =>
       display: "flex",
       width: "100%",
       height: "calc(-120px + 100vh)",
-      padding: "2em"
+      padding: "2em",
+      left: "60px"
     },
     ".asset-explorer": {
       width: "100%"

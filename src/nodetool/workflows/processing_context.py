@@ -59,6 +59,7 @@ from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.property import Property
 from nodetool.metadata.types import ImageRef
 from nodetool.common.environment import Environment
+from nodetool.common.chroma_client import get_chroma_client
 
 
 from io import BytesIO
@@ -1553,52 +1554,14 @@ class ProcessingContext:
         return result
 
     def get_chroma_client(self):
-        import chromadb
-        from chromadb.config import DEFAULT_DATABASE, DEFAULT_TENANT
+        """
+        Get a ChromaDB client instance for this context.
 
-        if self.chroma_client is not None:
-            return self.chroma_client
-
-        url = Environment.get_chroma_url()
-        token = Environment.get_chroma_token()
-
-        if url is not None:
-            parsed_url = urlparse(url)
-            admin = chromadb.AdminClient(
-                settings=Settings(
-                    chroma_api_impl="chromadb.api.fastapi.FastAPI",
-                    chroma_client_auth_provider="chromadb.auth.token_authn.TokenAuthClientProvider",
-                    chroma_client_auth_credentials=token,
-                    chroma_server_host=parsed_url.hostname,
-                    chroma_server_http_port=parsed_url.port,
-                ),
-            )
-            tenant = f"tenant_{self.user_id}"
-            try:
-                admin.get_tenant(tenant)
-            except Exception as e:
-                log.info(f"Creating tenant {tenant}")
-                admin.create_tenant(tenant)
-                log.info(f"Creating database {DEFAULT_DATABASE}")
-                admin.create_database(DEFAULT_DATABASE, tenant)
-
-            self.chroma_client = chromadb.HttpClient(
-                host=parsed_url.hostname,
-                port=parsed_url.port,
-                settings=Settings(
-                    chroma_client_auth_provider="chromadb.auth.token_authn.TokenAuthClientProvider",
-                    chroma_client_auth_credentials=token,
-                ),
-                tenant=tenant,
-                database=DEFAULT_DATABASE,
-            )
-        else:
-            self.chroma_client = chromadb.PersistentClient(
-                path=Environment.get_chroma_path(),
-                tenant=DEFAULT_TENANT,
-                database=DEFAULT_DATABASE,
-            )
-
+        Returns:
+            ClientAPI: ChromaDB client instance
+        """
+        if self.chroma_client is None:
+            self.chroma_client = get_chroma_client(self.user_id)
         return self.chroma_client
 
     async def is_huggingface_model_cached(self, repo_id: str):

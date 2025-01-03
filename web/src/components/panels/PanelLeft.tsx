@@ -17,6 +17,8 @@ import StaticNodeMenu from "../node_menu/StaticNodeMenu";
 import { IconForType } from "../../config/data_types";
 import TuneIcon from "@mui/icons-material/Tune";
 import ControlPointIcon from "@mui/icons-material/ControlPoint";
+import CollectionsIcon from "@mui/icons-material/Collections";
+import CollectionGrid from "../collections/CollectionGrid";
 
 const styles = (theme: any) =>
   css({
@@ -74,11 +76,19 @@ const PanelLeft: React.FC = () => {
   useCombo(["1"], handlePanelToggle, false);
 
   const [activeView, setActiveView] = useState<
-    "chat" | "assets" | "workflow" | "workflowGrid" | "nodes"
+    "chat" | "assets" | "workflow" | "workflowGrid" | "nodes" | "collections"
   >("chat");
 
   const handleViewChange = useCallback(
-    (view: "chat" | "assets" | "workflow" | "workflowGrid" | "nodes") => {
+    (
+      view:
+        | "chat"
+        | "assets"
+        | "workflow"
+        | "workflowGrid"
+        | "nodes"
+        | "collections"
+    ) => {
       if (view === activeView) {
         handlePanelToggle();
       } else {
@@ -177,6 +187,14 @@ const PanelLeft: React.FC = () => {
                 <ControlPointIcon />
               </IconButton>
             </Tooltip>
+            <Tooltip title="Collections" placement="right">
+              <IconButton
+                onClick={() => handleViewChange("collections")}
+                className={activeView === "collections" ? "active" : ""}
+              >
+                <CollectionsIcon />
+              </IconButton>
+            </Tooltip>
           </div>
 
           {activeView === "chat" && panelSize > 40 && <HelpChat />}
@@ -197,6 +215,18 @@ const PanelLeft: React.FC = () => {
           {activeView === "nodes" && (
             <Box sx={{ width: "100%", height: "100%", overflow: "hidden" }}>
               <StaticNodeMenu />
+            </Box>
+          )}
+          {activeView === "collections" && (
+            <Box
+              sx={{
+                width: "100%",
+                height: "100%",
+                overflow: "hidden",
+                padding: 5
+              }}
+            >
+              <CollectionGrid />
             </Box>
           )}
         </div>
