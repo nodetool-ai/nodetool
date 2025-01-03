@@ -22,7 +22,7 @@ const remoteSettingsStyles = (theme: any): SerializedStyles => {
       position: sticky;
       top: 0;
       z-index: 100;
-      background-color: ${theme.palette.c_gray0};
+      background-color: ${theme.palette.c_gray1};
       margin: 0;
       padding: 0.5em 0;
       display: flex;
