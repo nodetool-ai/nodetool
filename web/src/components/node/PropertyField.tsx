@@ -47,6 +47,9 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
   const controlKeyPressed = useKeyPressedStore((state) =>
     state.isKeyPressed("Control")
   );
+  const metaKeyPressed = useKeyPressedStore((state) =>
+    state.isKeyPressed("Meta")
+  );
   const { connectType, connectDirection, connectNodeId } = useConnectionStore();
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
   const showHandle = onlyHandle || !onlyInput;
@@ -137,7 +140,7 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
           value={value}
           nodeType={nodeType}
           property={property}
-          controlKeyPressed={controlKeyPressed}
+          controlKeyPressed={controlKeyPressed || metaKeyPressed}
           isInspector={isInspector}
           hideInput={false}
           hideLabel={false}
