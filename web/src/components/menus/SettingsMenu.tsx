@@ -249,6 +249,7 @@ function SettingsMenu() {
           onClick={handleClick}
         >
           <SettingsIcon />
+          Settings
         </Button>
       </Tooltip>
       <Menu

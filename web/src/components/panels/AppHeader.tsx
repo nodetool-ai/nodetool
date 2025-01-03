@@ -16,8 +16,6 @@ import OverallDownloadProgress from "../hugging_face/OverallDownloadProgress";
 import NotificationButton from "./NotificationButton";
 
 // mui icons
-import WorkflowsIcon from "@mui/icons-material/ListAlt";
-// import AssetIcon from "@mui/icons-material/ImageSharp";
 import QuestionMarkIcon from "@mui/icons-material/QuestionMark";
 import ExamplesIcon from "@mui/icons-material/AutoAwesome"; // Add this import
 
@@ -32,16 +30,13 @@ import {
   Tooltip,
   Toolbar,
   Typography,
-  Box,
-  Badge
+  Box
 } from "@mui/material";
 
 // hooks and stores
 import { useLocation, useNavigate } from "react-router-dom";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { useAppHeaderStore } from "../../stores/AppHeaderStore";
-import { useResizePanel } from "../../hooks/handlers/useResizePanel";
-import { useNotificationStore } from "../../stores/NotificationStore";
 
 // constants
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
@@ -324,6 +319,7 @@ const AppHeader: React.FC = React.memo(() => {
             tabIndex={-1}
           >
             <QuestionMarkIcon />
+            Help
           </Button>
         </Tooltip>
         <SettingsMenu />
