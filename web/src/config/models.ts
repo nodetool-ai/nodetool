@@ -37,6 +37,11 @@ export const llama_models: UnifiedModel[] = [
     type: "llama_model"
   },
   {
+    id: "moondream",
+    name: "MoonDream",
+    type: "llama_model"
+  },
+  {
     id: "minicpm-v:8b",
     name: "MiniCPM-V - 8B",
     type: "llama_model"

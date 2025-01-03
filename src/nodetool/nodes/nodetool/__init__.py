@@ -13,6 +13,7 @@ import nodetool.nodes.nodetool.dictionary
 import nodetool.nodes.nodetool.file
 import nodetool.nodes.nodetool.file.docx
 import nodetool.nodes.nodetool.file.excel
+import nodetool.nodes.nodetool.file.markitdown
 import nodetool.nodes.nodetool.file.markdown
 import nodetool.nodes.nodetool.file.pandoc
 import nodetool.nodes.nodetool.file.pdf

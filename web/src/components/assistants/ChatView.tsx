@@ -6,6 +6,7 @@ import { LinearProgress, Typography } from "@mui/material";
 // mui
 import { Button, TextareaAutosize, Tooltip } from "@mui/material";
 import SendIcon from "@mui/icons-material/Send";
+import FileIcon from "@mui/icons-material/InsertDriveFile";
 
 // store
 import {
@@ -20,7 +21,6 @@ import MarkdownRenderer from "../../utils/MarkdownRenderer";
 // constants
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import OutputRenderer from "../node/OutputRenderer";
-import { BorderRight } from "@mui/icons-material";
 
 const styles = (theme: any) =>
   css({
@@ -30,8 +30,7 @@ const styles = (theme: any) =>
       width: "100%",
       display: "flex",
       flexGrow: 1,
-      flexDirection: "column",
-      backgroundColor: theme.palette.c_gray1
+      flexDirection: "column"
     },
     ".messages": {
       flexGrow: 1,
@@ -54,7 +53,7 @@ const styles = (theme: any) =>
     },
     ".messages li.user": {
       color: theme.palette.c_gray6,
-      backgroundColor: theme.palette.c_gray2,
+      backgroundColor: "rgba(0,0,0, 0.9)",
       borderRight: "2px solid" + theme.palette.c_gray3
     },
     ".messages li .markdown": {
@@ -65,7 +64,7 @@ const styles = (theme: any) =>
     },
     ".messages li pre": {
       fontFamily: theme.fontFamily2,
-      backgroundColor: theme.palette.c_black,
+      backgroundColor: "rgba(0,0,0, 0.8)",
       padding: "0.5em"
     },
     ".messages li pre code": {
@@ -208,7 +207,7 @@ type ChatViewProps = {
   progress: number;
   total: number;
   messages: Array<Message>;
-  sendMessage: (text: string, image?: string) => Promise<void>;
+  sendMessage: (message: Message) => Promise<void>;
 };
 export const Progress = ({
   progress,
@@ -247,6 +246,16 @@ export const Progress = ({
   );
 };
 
+// Add new type for dropped files
+type DroppedFile = {
+  dataUri: string;
+  type: string;
+  name: string;
+};
+
+const DOC_TYPES_REGEX =
+  /application\/pdf|application\/msword|application\/vnd\.openxmlformats-officedocument\.*|application\/vnd\.ms-.*|application\/vnd\.apple\.*|application\/x-iwork.*/;
+
 const ChatView = ({
   status,
   currentNodeName,
@@ -268,6 +277,7 @@ const ChatView = ({
   const [prompt, setPrompt] = useState("");
   const loading = false;
   const [isDragging, setIsDragging] = useState(false);
+  const [droppedFiles, setDroppedFiles] = useState<DroppedFile[]>([]);
 
   const handleOnChange = useCallback(
     (event: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -282,18 +292,75 @@ const ChatView = ({
     }
   }, [loading, submitted]);
 
+  const makeMessageContent = (file: DroppedFile): MessageContent => {
+    if (file.type.startsWith("image/")) {
+      return {
+        type: "image_url",
+        image: {
+          type: "image",
+          uri: file.dataUri
+        }
+      };
+    } else if (file.type.startsWith("audio/")) {
+      return {
+        type: "audio",
+        audio: {
+          type: "audio",
+          uri: file.dataUri
+        }
+      };
+    } else if (file.type.startsWith("video/")) {
+      return {
+        type: "video",
+        video: {
+          type: "video",
+          uri: file.dataUri
+        }
+      };
+    } else if (file.type.match(DOC_TYPES_REGEX)) {
+      return {
+        type: "document",
+        document: {
+          type: "document",
+          uri: file.dataUri
+        }
+      };
+    } else {
+      return {
+        type: "text",
+        text: file.name
+      };
+    }
+  };
+
   const chatPost = useCallback(() => {
     setSubmitted(true);
 
     if (!loading && prompt.length > 0) {
       try {
         setPrompt("");
-        sendMessage(prompt);
+        const content: MessageContent[] = [
+          {
+            type: "text",
+            text: prompt
+          }
+        ];
+
+        const fileContents: MessageContent[] =
+          droppedFiles.map(makeMessageContent);
+
+        sendMessage({
+          type: "message",
+          name: "",
+          role: "user",
+          content: [...content, ...fileContents]
+        });
+        setDroppedFiles([]);
       } catch (error) {
         console.error("Error sending message:", error);
       }
     }
-  }, [loading, prompt, sendMessage]);
+  }, [loading, prompt, sendMessage, droppedFiles]);
 
   const scrollToBottom = useCallback(() => {
     if (messagesListRef.current) {
@@ -355,6 +422,8 @@ const ChatView = ({
               return <OutputRenderer key={i} value={c.audio} />;
             } else if (c.type === "video") {
               return <OutputRenderer key={i} value={c.video} />;
+            } else if (c.type === "document") {
+              return <OutputRenderer key={i} value={c.document} />;
             } else {
               return <></>;
             }
@@ -373,23 +442,95 @@ const ChatView = ({
     setIsDragging(false);
   }, []);
 
-  const handleDrop = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault();
-      setIsDragging(false);
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
 
-      const file = e.dataTransfer.files[0];
-      if (file && file.type.startsWith("image/")) {
+    const files = Array.from(e.dataTransfer.files);
+    const filePromises = files.map((file) => {
+      return new Promise<DroppedFile>((resolve) => {
         const reader = new FileReader();
         reader.onload = () => {
-          const dataUri = reader.result as string;
-          sendMessage(prompt, dataUri);
-          setPrompt("");
+          resolve({
+            dataUri: reader.result as string,
+            type: file.type,
+            name: file.name
+          });
         };
         reader.readAsDataURL(file);
-      }
-    },
-    [prompt, sendMessage]
+      });
+    });
+
+    Promise.all(filePromises).then((newFiles) => {
+      setDroppedFiles((prev) => [...prev, ...newFiles]);
+    });
+  }, []);
+
+  // Add file preview component
+  const FilePreview = ({
+    file,
+    onRemove
+  }: {
+    file: DroppedFile;
+    onRemove: () => void;
+  }) => (
+    <div
+      css={css`
+        position: relative;
+        padding: 8px;
+        max-width: 100px;
+
+        .remove-button {
+          position: absolute;
+          top: 0;
+          right: 0;
+          padding: 2px;
+          background: rgba(0, 0, 0, 0.5);
+          border-radius: 50%;
+          cursor: pointer;
+          color: white;
+          &:hover {
+            background: rgba(0, 0, 0, 0.8);
+          }
+        }
+      `}
+    >
+      {file.type.startsWith("image/") ? (
+        <img
+          src={file.dataUri}
+          alt={file.name}
+          css={css`
+            width: 100%;
+            height: auto;
+            border-radius: 4px;
+          `}
+        />
+      ) : (
+        <div
+          css={css`
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px;
+            border-radius: 4px;
+            text-align: center;
+          `}
+        >
+          <FileIcon />
+          <div
+            css={css`
+              font-size: 0.8em;
+              overflow: hidden;
+              text-overflow: ellipsis;
+              white-space: nowrap;
+            `}
+          >
+            {file.name}
+          </div>
+        </div>
+      )}
+      <div className="remove-button" onClick={onRemove}>
+        ×
+      </div>
+    </div>
   );
 
   return (
@@ -422,6 +563,28 @@ const ChatView = ({
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
         >
+          {droppedFiles.length > 0 && (
+            <div
+              css={css`
+                display: flex;
+                flex-wrap: wrap;
+                gap: 8px;
+                padding: 8px;
+              `}
+            >
+              {droppedFiles.map((file, index) => (
+                <FilePreview
+                  key={index}
+                  file={file}
+                  onRemove={() => {
+                    setDroppedFiles((files) =>
+                      files.filter((_, i) => i !== index)
+                    );
+                  }}
+                />
+              ))}
+            </div>
+          )}
           <TextareaAutosize
             className="chat-input"
             id={"chat-prompt"}

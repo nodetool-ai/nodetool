@@ -30,9 +30,6 @@ class ExtractText(BaseNode):
     )
 
     async def process(self, context: ProcessingContext) -> str:
-        if self.pdf.data is None:
-            raise ValueError("pdf is not connected")
-
         pdf_data = await context.asset_to_bytes(self.pdf)
         text = []
 

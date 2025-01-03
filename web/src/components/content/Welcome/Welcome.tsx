@@ -327,10 +327,10 @@ const recommendedModels: UnifiedModel[] = [
     allow_patterns: ["**/*.json", "**/*.txt", "**/*.json"]
   },
   {
-    id: "qwen2.5:1.5b",
-    name: "Qwen 2.5 - 0.5B",
+    id: "gemma2:2b",
+    name: "Gemma2 2B",
     type: "llama_model",
-    repo_id: "qwen2.5:1.5b"
+    repo_id: "gemma2:2b"
   },
   {
     id: "openai/whisper-small",
@@ -705,7 +705,7 @@ const Welcome = ({ handleClose }: { handleClose: () => void }) => {
                     </li>
                     <li>
                       <Typography variant="body1">
-                        <b>Qwen 2.5</b> - A multilingual large language model.
+                        <b>Gemma2 2B</b> - A multilingual large language model.
                       </Typography>
                     </li>
                     <li>

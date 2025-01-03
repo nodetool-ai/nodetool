@@ -29,7 +29,6 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
       mb: isMinimized ? 0 : 2,
       position: "sticky",
       top: 0,
-      backgroundColor: "background.paper",
       zIndex: 1,
       py: 1
     }}

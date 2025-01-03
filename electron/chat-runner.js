@@ -1,8 +1,51 @@
 /**
+ * @typedef {Object} ImageRef
+ * @property {string} url - URL of the image
+ */
+
+/**
+ * @typedef {Object} AudioRef
+ * @property {string} url - URL of the audio file
+ */
+
+/**
+ * @typedef {Object} VideoRef
+ * @property {string} url - URL of the video file
+ */
+
+/**
+ * @typedef {Object} MessageTextContent
+ * @property {'text'} type - Content type
+ * @property {string} text - Text content
+ */
+
+/**
+ * @typedef {Object} MessageImageContent
+ * @property {'image_url'} type - Content type
+ * @property {ImageRef} image - Image reference
+ */
+
+/**
+ * @typedef {Object} MessageAudioContent
+ * @property {'audio'} type - Content type
+ * @property {AudioRef} audio - Audio reference
+ */
+
+/**
+ * @typedef {Object} MessageVideoContent
+ * @property {'video'} type - Content type
+ * @property {VideoRef} video - Video reference
+ */
+
+/**
+ * @typedef {MessageTextContent|MessageImageContent|MessageAudioContent|MessageVideoContent} MessageContent
+ */
+
+/**
  * @typedef {Object} Message
  * @property {string} type - Message type
  * @property {string} role - Message role
- * @property {string} content - Message content
+ * @property {string|MessageContent[]} content - Message content
  * @property {string} [workflow_id] - ID of the workflow
  * @property {Object} [graph] - Workflow graph data
  * @property {string} [auth_token] - Authentication token
