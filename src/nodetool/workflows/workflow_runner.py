@@ -191,6 +191,7 @@ class WorkflowRunner:
         context.post_message(JobUpdate(job_id=self.job_id, status="running"))
 
         if req.params:
+            print(req.params)
             for key, value in req.params.items():
                 if key not in input_nodes:
                     raise ValueError(f"No input node found for param: {key}")

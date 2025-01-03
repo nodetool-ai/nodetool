@@ -4,8 +4,6 @@ from nodetool.metadata.types import (
     ImageRef,
     LlamaModel,
     Message,
-    MessageAudioContent,
-    MessageContent,
     MessageImageContent,
     MessageTextContent,
     Provider,

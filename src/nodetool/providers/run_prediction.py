@@ -1,5 +1,6 @@
 from nodetool.metadata.types import Provider
 from nodetool.providers.anthropic.prediction import run_anthropic
+from nodetool.providers.google.prediction import run_gemini
 from nodetool.providers.huggingface.prediction import run_huggingface
 from nodetool.providers.ollama.prediction import run_ollama
 from nodetool.providers.openai.prediction import run_openai
@@ -22,6 +23,7 @@ async def run_prediction(
         Provider.Anthropic: run_anthropic,
         Provider.Ollama: run_ollama,
         Provider.AIME: run_aime,
+        Provider.Gemini: run_gemini,
     }
 
     if prediction.provider in provider_functions:
