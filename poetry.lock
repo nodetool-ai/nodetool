@@ -538,13 +538,13 @@ crt = ["botocore[crt] (>=1.21.0,<2.0a0)"]
 
 [[package]]
 name = "botocore"
-version = "1.35.90"
+version = "1.35.91"
 description = "Low-level, data-driven core of boto 3."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "botocore-1.35.90-py3-none-any.whl", hash = "sha256:51dcbe1b32e2ac43dac17091f401a00ce5939f76afe999081802009cce1e92e4"},
-    {file = "botocore-1.35.90.tar.gz", hash = "sha256:f007f58e8e3c1ad0412a6ddfae40ed92a7bca571c068cb959902bcf107f2ae48"},
+    {file = "botocore-1.35.91-py3-none-any.whl", hash = "sha256:93de9d0f52f7e36a2c190d55520d3b2654f32c5a628fdd484bffa00bc7865e1d"},
+    {file = "botocore-1.35.91.tar.gz", hash = "sha256:7b0b9c5954701fff4d2c516918f45641b04ff4ca92bbd9f5b37c0b80f8c14220"},
 ]
 
 [package.dependencies]
@@ -1934,6 +1934,24 @@ reauth = ["pyu2f (>=0.1.5)"]
 requests = ["requests (>=2.20.0,<3.0.0.dev0)"]
 
 [[package]]
+name = "google-genai"
+version = "0.3.0"
+description = "GenAI Python SDK"
+optional = false
+python-versions = ">=3.9"
+files = [
+    {file = "google_genai-0.3.0-py3-none-any.whl", hash = "sha256:e45eb1732cf5b1f7c5a4103fe64cc4b577981d7e592e3edfba6d34ec734f56be"},
+    {file = "google_genai-0.3.0.tar.gz", hash = "sha256:1e080ca381268912dacc8e0cb15eb203eb4e38f51f6ae35cc5768e5af323c8cc"},
+]
+
+[package.dependencies]
+google-auth = ">=2.14.1,<3.0.0dev"
+pillow = ">=10.0.0,<12.0.0"
+pydantic = ">=2.0.0,<3.0.0dev"
+requests = ">=2.28.1,<3.0.0dev"
+websockets = ">=13.0,<15.0dev"
+
+[[package]]
 name = "googleapis-common-protos"
 version = "1.66.0"
 description = "Common protobufs used in Google APIs"
@@ -2669,46 +2687,48 @@ x = ["accelerate", "onnxruntime-gpu (>=1.16)"]
 
 [[package]]
 name = "kornia-rs"
-version = "0.1.7"
+version = "0.1.8"
 description = "Low level implementations for computer vision in Rust"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "kornia_rs-0.1.7-cp310-cp310-macosx_10_12_x86_64.whl", hash = "sha256:fe407d6bb9e830e872b7e582b7035aa56092ad8a9b7881f6826706fdb63058bc"},
-    {file = "kornia_rs-0.1.7-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:6c67c7c13a380fb6f8a16d03e9e4311550f789196051197217f910af8e21158d"},
-    {file = "kornia_rs-0.1.7-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:a57a2c8484fecae5a9dbe1e3ad8e5b507b7f643549441d6309f404f45f27aa8b"},
-    {file = "kornia_rs-0.1.7-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:b4641703b3498e84c47ceadf1ecc9c8f05bcb9b9aa9e8f0d48e3dc4aa2e2946a"},
-    {file = "kornia_rs-0.1.7-cp310-none-win_amd64.whl", hash = "sha256:c409b9c9612d7025847b4e8d93f43a235cee69a2a990481d072cb90cec94badd"},
-    {file = "kornia_rs-0.1.7-cp311-cp311-macosx_10_12_x86_64.whl", hash = "sha256:fd3506c8e61fb7f55a289fb34998804b0cd35be1e8f2374ee5eb9081b026c472"},
-    {file = "kornia_rs-0.1.7-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:b67f07d435d55a4f32051bc65a324b51f43252bf6f7f3405695d1015819c9d30"},
-    {file = "kornia_rs-0.1.7-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:5c44e9b36f47bccbaeae99f37d312a3aa75da1c0f0fafb1a581a5a0981e94f8a"},
-    {file = "kornia_rs-0.1.7-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:7d7ba0dd9c680c28444eed2cf7611faccf3f85eeb9bfa600df53d62d14deefba"},
-    {file = "kornia_rs-0.1.7-cp311-none-win_amd64.whl", hash = "sha256:4f90e5c1f7dfa422889c2af8a570e774604352fc1596f77a00992c1195528c59"},
-    {file = "kornia_rs-0.1.7-cp312-cp312-macosx_10_12_x86_64.whl", hash = "sha256:fffb88d9a37251e0e2ca4fbe09589e66da4b4929e9dee428b73302a9d2d6c820"},
-    {file = "kornia_rs-0.1.7-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:29f4b18989d08bc96af393997890a8578a619696f842811879fa1172b267efd1"},
-    {file = "kornia_rs-0.1.7-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:3fccf8d4bb1b28ff7f9c252006379d1426317afc215f03dfec99b3fe5ce7773d"},
-    {file = "kornia_rs-0.1.7-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:80d09d41c0bc31f308d27ae49f0c647f036c9cc205caee3bbc8e5bd0bbb30912"},
-    {file = "kornia_rs-0.1.7-cp312-none-win_amd64.whl", hash = "sha256:3fb9aeebf1676b2f2be442905b2112510aea8333e8949ceaaf348a4094887727"},
-    {file = "kornia_rs-0.1.7-cp37-cp37m-macosx_10_12_x86_64.whl", hash = "sha256:e9bf3a264683b730aa90aeb138fa29c0905c220be36d32869eaf1e3227e25075"},
-    {file = "kornia_rs-0.1.7-cp37-cp37m-macosx_11_0_arm64.whl", hash = "sha256:df495f9aa4ea01e3126f5d07d73685f410f320e2c9aff52e215f597d8714c0c1"},
-    {file = "kornia_rs-0.1.7-cp37-cp37m-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:b73f48e21f2a3ab533065d6d4600e53ec20096de4ad739dfa0edbad8b9adf499"},
-    {file = "kornia_rs-0.1.7-cp37-cp37m-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:0e72aea6b688b5a9ad42d0ca703c1f0fb6423a66771d2e8670df765ac38cfe85"},
-    {file = "kornia_rs-0.1.7-cp37-none-win_amd64.whl", hash = "sha256:aeab05a54d691f7978b6cd99e3d0cad3619c8316196ddc9e2aff72947ce51577"},
-    {file = "kornia_rs-0.1.7-cp38-cp38-macosx_10_12_x86_64.whl", hash = "sha256:d9c10ffcc151e1a99075b95fdf09adeab8d7f2212e93ee9aef44fe4489505a9a"},
-    {file = "kornia_rs-0.1.7-cp38-cp38-macosx_11_0_arm64.whl", hash = "sha256:7de372e194fc43efd12d928e75d6d52e1f18590a944c073d19444658a6060aae"},
-    {file = "kornia_rs-0.1.7-cp38-cp38-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:0fb7b6ab2e48365bc09814d2d86e8205fab9484abf607894b96237bdd6408990"},
-    {file = "kornia_rs-0.1.7-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:df9b0348f31e7bb5960615cb645a11036f8e0dcddc169b87ff28bad3149bdbbd"},
-    {file = "kornia_rs-0.1.7-cp38-none-win_amd64.whl", hash = "sha256:872fdb89d55f80cd3a39034669b162b801fba83be93b25683d4fc48249dd2277"},
-    {file = "kornia_rs-0.1.7-cp39-cp39-macosx_10_12_x86_64.whl", hash = "sha256:4f45a6a0323655e781d513d197def2a0001b526e6191a34f6e2d99ef193a6654"},
-    {file = "kornia_rs-0.1.7-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:473d5197fa356a3230c4126867cfce8c433f9af20fec11734aace30fd8c3bc92"},
-    {file = "kornia_rs-0.1.7-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:c3b68c2bd10f2a3ad3eb75b993ef56f492e0b347b73f21a022dbf027fa88d0a5"},
-    {file = "kornia_rs-0.1.7-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:33170fa6c60d9d0e544211b1a8b802559971561449e010e50cf1e4564ec0182c"},
-    {file = "kornia_rs-0.1.7-cp39-none-win_amd64.whl", hash = "sha256:74d9018f1674fdf975941a924c4cad402a1e035578adb09ad56bbfb219a37a33"},
-    {file = "kornia_rs-0.1.7.tar.gz", hash = "sha256:601aeacd17826d3a796e847d558d9e32c08aa686653eb21b2f93031438af93a1"},
+    {file = "kornia_rs-0.1.8-cp310-cp310-macosx_10_12_x86_64.whl", hash = "sha256:1380edbbb841f9579bc8677d388e326b7363e1d0d49e8bab567ec9ef1aec782f"},
+    {file = "kornia_rs-0.1.8-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:b82cf759df6f5fd935c1afd25aa3a145fd47f14af3650ad37c71189f49171bd8"},
+    {file = "kornia_rs-0.1.8-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:1f12aeaf672493b456f2d35b4b3c88eda3dd8284807430d0b173cb3272c7ef61"},
+    {file = "kornia_rs-0.1.8-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:3b57fd6262ef932a3131dd211764bf184380742a2aea0a12c54949af7c61c2ac"},
+    {file = "kornia_rs-0.1.8-cp310-cp310-win_amd64.whl", hash = "sha256:06f60ff032ce9824b5fe746d1e1cca06ea3f5ba72b71a907a1c48f0e27094333"},
+    {file = "kornia_rs-0.1.8-cp311-cp311-macosx_10_12_x86_64.whl", hash = "sha256:61b9822a68556198c5b526da939ddc3f9c630cab37c2d6bcf613c2de1bb3d088"},
+    {file = "kornia_rs-0.1.8-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:2dc98296aeeccf2536c1f8efa99d3c273962c7a07a8ae7c088de09ecc19543c4"},
+    {file = "kornia_rs-0.1.8-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:4968efcd26ca190977cfe84d38492a912ad95f13222473dbeb90f330aab51d82"},
+    {file = "kornia_rs-0.1.8-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:b64be28fbac1f2e1bab3903b5016e1a957968fe43141ee7866c2ec5ebafc71ab"},
+    {file = "kornia_rs-0.1.8-cp311-cp311-win_amd64.whl", hash = "sha256:2886f3a586728fe4a3586b3cc1df1dbea5d8984c74f77e23f5ab198441ec6e3c"},
+    {file = "kornia_rs-0.1.8-cp312-cp312-macosx_10_12_x86_64.whl", hash = "sha256:983200f2b336dd832d81154295ff152195ade0228054ecbe7ac9ed7d5bf3b031"},
+    {file = "kornia_rs-0.1.8-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:bf8a78b1fac32fe05974272c5659c6a2f8754d1c15372aa529e0b5802ea2daed"},
+    {file = "kornia_rs-0.1.8-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:4ca82f982d92d3b90f462848557ebd1500ea02d65b38b032305d1966c3bbc153"},
+    {file = "kornia_rs-0.1.8-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:297e48f800c93e7cc8b089e472b77a272f9887509ce9d8756fab0fa7714f8439"},
+    {file = "kornia_rs-0.1.8-cp312-cp312-win_amd64.whl", hash = "sha256:dba6d86df9d3bb3e99f2d6017b9939b9e2683929277e959d11ea86fb3153eaec"},
+    {file = "kornia_rs-0.1.8-cp313-cp313-macosx_10_12_x86_64.whl", hash = "sha256:9197fc690b79562ff745a9ebda05c1408b9938045aecbbdafeaa8aed1f238b31"},
+    {file = "kornia_rs-0.1.8-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:1014eac46dd75c8ba9ca61579593d77b84918236877fcae9dca362ff5d6960e4"},
+    {file = "kornia_rs-0.1.8-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:c7d7c90c6244a37e0d1994e532ddf3484b3e7f767c54121d514feda83974a934"},
+    {file = "kornia_rs-0.1.8-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:2ef0c4a19103ff9c3c7e7acb2a7db0a276a0ab1ea1c19fe151aea384a98cd63c"},
+    {file = "kornia_rs-0.1.8-cp313-cp313-win_amd64.whl", hash = "sha256:434fb087e2caef5b2ecd5222ea54cc443e907851b708be15142bc65ae82cef63"},
+    {file = "kornia_rs-0.1.8-cp37-cp37m-macosx_10_12_x86_64.whl", hash = "sha256:db56ba011f96cb15139a00828370b587e0a0a4287c7d8f004bf1b97e7581e341"},
+    {file = "kornia_rs-0.1.8-cp37-cp37m-macosx_11_0_arm64.whl", hash = "sha256:58f8b6ed43e08d04d77a09573f7904d62046b9b8df53b537ffd3ff94a495b746"},
+    {file = "kornia_rs-0.1.8-cp37-cp37m-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:992d04a63f382185424127f29ad8db8e258a6d906c6d9c29529e46ca59d4ab43"},
+    {file = "kornia_rs-0.1.8-cp37-cp37m-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:8d42a21858fbc416669bc6fd3a31ad1082733a288e03c906cad44945bccd6d60"},
+    {file = "kornia_rs-0.1.8-cp37-cp37m-win_amd64.whl", hash = "sha256:4d846492d6651c3e04205c04cbc21e3b37122c0ce5208fe40f1ed367d07257e1"},
+    {file = "kornia_rs-0.1.8-cp38-cp38-macosx_10_12_x86_64.whl", hash = "sha256:420f89bbe13d9a83dc82e71cb543182b7104dcf7ab40da36c5bbfca1683d7ccc"},
+    {file = "kornia_rs-0.1.8-cp38-cp38-macosx_11_0_arm64.whl", hash = "sha256:66590d87b75ff38656c5976718c875536a1526549041fc29114db31202574114"},
+    {file = "kornia_rs-0.1.8-cp38-cp38-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:9405009b248221c01c124c6c3d48c6a3e624fad4103a5b006a4289b0fbfad9cd"},
+    {file = "kornia_rs-0.1.8-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:77af8b8758db1edf59fdbf1c1e2a62bda79f76317e7f61854be4ada38d8a96cc"},
+    {file = "kornia_rs-0.1.8-cp38-cp38-win_amd64.whl", hash = "sha256:d053bfbf4ef05c5225b5bcb04aca7ef03cd3e0bfbbeae4f08f8465577f196880"},
+    {file = "kornia_rs-0.1.8-cp39-cp39-macosx_10_12_x86_64.whl", hash = "sha256:c7555eb7f5586a5ad4e0cf528d972b06335cc9cde429a8bb0115ef876d9e105e"},
+    {file = "kornia_rs-0.1.8-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:23b4aed00ee6d34300e6e2406ddb130a3ef07af7698a6aaf86a08b64cfe149b5"},
+    {file = "kornia_rs-0.1.8-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:283aa6203c3217734d02696877b455081d14eeb8b0cfa4740919078f90a6da74"},
+    {file = "kornia_rs-0.1.8-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:21a303660b5e66b1cb9dd30033d075790d2e8b879e65db073a3d87c7710e0bda"},
+    {file = "kornia_rs-0.1.8-cp39-cp39-win_amd64.whl", hash = "sha256:ff12844b8e92ff5805827cb04f1d5130c07798d023d9c17f33d4eab7bc72dbdf"},
+    {file = "kornia_rs-0.1.8.tar.gz", hash = "sha256:519e05f51deb4c8e849889292b9c109e0ea0943ae5024685781c35018effafd9"},
 ]
-
-[package.extras]
-dev = ["jax[cpu]", "kornia (>=0.7.2)", "numpy (==1.23.0)", "pytest"]
 
 [[package]]
 name = "kubernetes"
@@ -4711,13 +4731,13 @@ xxhash = ["xxhash (>=1.4.3)"]
 
 [[package]]
 name = "portalocker"
-version = "3.0.0"
+version = "3.1.1"
 description = "Wraps the portalocker recipe for easy usage"
 optional = false
-python-versions = ">=3.8"
+python-versions = ">=3.9"
 files = [
-    {file = "portalocker-3.0.0-py3-none-any.whl", hash = "sha256:211916b539a0dc3c128a3d9e86893ecfefec5379c4ff684e798f0a00f99db406"},
-    {file = "portalocker-3.0.0.tar.gz", hash = "sha256:21f535de2e7a82c94c130c054adb5c7421d480d5619d61073996e2f89bcb879b"},
+    {file = "portalocker-3.1.1-py3-none-any.whl", hash = "sha256:80e984e24de292ff258a5bea0e4f3f778fff84c0ae1275dbaebc4658de4aacb3"},
+    {file = "portalocker-3.1.1.tar.gz", hash = "sha256:ec20f6dda2ad9ce89fa399a5f31f4f1495f515958f0cb7ca6543cef7bb5a749e"},
 ]
 
 [package.dependencies]
@@ -4726,7 +4746,7 @@ pywin32 = {version = ">=226", markers = "platform_system == \"Windows\""}
 [package.extras]
 docs = ["sphinx (>=1.7.1)"]
 redis = ["redis"]
-tests = ["pytest (>=5.4.1)", "pytest-cov (>=2.8.1)", "pytest-mypy (>=0.8.0)", "pytest-timeout (>=2.1.0)", "redis", "sphinx (>=6.0.0)", "types-redis"]
+tests = ["pytest (>=5.4.1)", "pytest-cov (>=2.8.1)", "pytest-mypy (>=0.8.0)", "pytest-rerunfailures (>=15.0)", "pytest-timeout (>=2.1.0)", "redis", "sphinx (>=6.0.0)", "types-redis"]
 
 [[package]]
 name = "posthog"
@@ -5363,13 +5383,13 @@ semver = ["semver (>=3.0.2)"]
 
 [[package]]
 name = "pydantic-settings"
-version = "2.7.0"
+version = "2.7.1"
 description = "Settings management using Pydantic"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "pydantic_settings-2.7.0-py3-none-any.whl", hash = "sha256:e00c05d5fa6cbbb227c84bd7487c5c1065084119b750df7c8c1a554aed236eb5"},
-    {file = "pydantic_settings-2.7.0.tar.gz", hash = "sha256:ac4bfd4a36831a48dbf8b2d9325425b549a0a6f18cea118436d728eb4f1c4d66"},
+    {file = "pydantic_settings-2.7.1-py3-none-any.whl", hash = "sha256:590be9e6e24d06db33a4262829edef682500ef008565a969c73d39d5f8bfb3fd"},
+    {file = "pydantic_settings-2.7.1.tar.gz", hash = "sha256:10c9caad35e64bfb3c2fbf70a078c0e25cc92499782e5200747f942a065dec93"},
 ]
 
 [package.dependencies]
@@ -5474,13 +5494,13 @@ files = [
 
 [[package]]
 name = "pyparsing"
-version = "3.2.0"
+version = "3.2.1"
 description = "pyparsing module - Classes and methods to define and execute parsing grammars"
 optional = false
 python-versions = ">=3.9"
 files = [
-    {file = "pyparsing-3.2.0-py3-none-any.whl", hash = "sha256:93d9577b88da0bbea8cc8334ee8b918ed014968fd2ec383e868fb8afb1ccef84"},
-    {file = "pyparsing-3.2.0.tar.gz", hash = "sha256:cbf74e27246d595d9a74b186b810f6fbb86726dbf3b9532efb343f6d7294fe9c"},
+    {file = "pyparsing-3.2.1-py3-none-any.whl", hash = "sha256:506ff4f4386c4cec0590ec19e6302d3aedb992fdc02c761e90416f158dacf8e1"},
+    {file = "pyparsing-3.2.1.tar.gz", hash = "sha256:61980854fd66de3a90028d679a954d5f2623e83144b5afe5ee86f43d762e5f0a"},
 ]
 
 [package.extras]
@@ -5594,13 +5614,13 @@ dev = ["argcomplete", "attrs (>=19.2)", "hypothesis (>=3.56)", "mock", "pygments
 
 [[package]]
 name = "pytest-asyncio"
-version = "0.25.0"
+version = "0.25.1"
 description = "Pytest support for asyncio"
 optional = false
 python-versions = ">=3.9"
 files = [
-    {file = "pytest_asyncio-0.25.0-py3-none-any.whl", hash = "sha256:db5432d18eac6b7e28b46dcd9b69921b55c3b1086e85febfe04e70b18d9e81b3"},
-    {file = "pytest_asyncio-0.25.0.tar.gz", hash = "sha256:8c0610303c9e0442a5db8604505fc0f545456ba1528824842b37b4a626cbf609"},
+    {file = "pytest_asyncio-0.25.1-py3-none-any.whl", hash = "sha256:c84878849ec63ff2ca509423616e071ef9cd8cc93c053aa33b5b8fb70a990671"},
+    {file = "pytest_asyncio-0.25.1.tar.gz", hash = "sha256:79be8a72384b0c917677e00daa711e07db15259f4d23203c59012bcd989d4aee"},
 ]
 
 [package.dependencies]
@@ -6756,26 +6776,24 @@ files = [
 
 [[package]]
 name = "soundfile"
-version = "0.12.1"
+version = "0.13.0"
 description = "An audio library based on libsndfile, CFFI and NumPy"
 optional = false
 python-versions = "*"
 files = [
-    {file = "soundfile-0.12.1-py2.py3-none-any.whl", hash = "sha256:828a79c2e75abab5359f780c81dccd4953c45a2c4cd4f05ba3e233ddf984b882"},
-    {file = "soundfile-0.12.1-py2.py3-none-macosx_10_9_x86_64.whl", hash = "sha256:d922be1563ce17a69582a352a86f28ed8c9f6a8bc951df63476ffc310c064bfa"},
-    {file = "soundfile-0.12.1-py2.py3-none-macosx_11_0_arm64.whl", hash = "sha256:bceaab5c4febb11ea0554566784bcf4bc2e3977b53946dda2b12804b4fe524a8"},
-    {file = "soundfile-0.12.1-py2.py3-none-manylinux_2_17_x86_64.whl", hash = "sha256:2dc3685bed7187c072a46ab4ffddd38cef7de9ae5eb05c03df2ad569cf4dacbc"},
-    {file = "soundfile-0.12.1-py2.py3-none-manylinux_2_31_x86_64.whl", hash = "sha256:074247b771a181859d2bc1f98b5ebf6d5153d2c397b86ee9e29ba602a8dfe2a6"},
-    {file = "soundfile-0.12.1-py2.py3-none-win32.whl", hash = "sha256:59dfd88c79b48f441bbf6994142a19ab1de3b9bb7c12863402c2bc621e49091a"},
-    {file = "soundfile-0.12.1-py2.py3-none-win_amd64.whl", hash = "sha256:0d86924c00b62552b650ddd28af426e3ff2d4dc2e9047dae5b3d8452e0a49a77"},
-    {file = "soundfile-0.12.1.tar.gz", hash = "sha256:e8e1017b2cf1dda767aef19d2fd9ee5ebe07e050d430f77a0a7c66ba08b8cdae"},
+    {file = "soundfile-0.13.0-py2.py3-none-any.whl", hash = "sha256:6a732002843d267267de52367cbdb16dfea6c1f4e3de5e4ddfb2bd0b9b65dddf"},
+    {file = "soundfile-0.13.0-py2.py3-none-macosx_10_9_x86_64.whl", hash = "sha256:c28024e59ebf2e5b12f5d77a16eb3ef1527e7580d7bbebfb5645253368391385"},
+    {file = "soundfile-0.13.0-py2.py3-none-macosx_11_0_arm64.whl", hash = "sha256:af3d06019040dd3db0e0b173baca76db9f7d59b5750a347892f2bf7763a8083c"},
+    {file = "soundfile-0.13.0-py2.py3-none-manylinux_2_28_aarch64.whl", hash = "sha256:3adcf4b70d2c872f6cb5a1b3eeb916b90233860a7d13652652753c4e628ac9f5"},
+    {file = "soundfile-0.13.0-py2.py3-none-manylinux_2_28_x86_64.whl", hash = "sha256:5f2c7d389d6cde9af49ec73f5a32a06f7397a2add3808ceb94ebff4a116e3446"},
+    {file = "soundfile-0.13.0-py2.py3-none-win32.whl", hash = "sha256:217fd97b9a515b6b92d817c917bd7c3bc838e4ffe9b68c2a0659b70b9af1a5dd"},
+    {file = "soundfile-0.13.0-py2.py3-none-win_amd64.whl", hash = "sha256:9fd67b1867fb7ce4a1bf1fd6600dfe9bf2af26b7ae3671719196c1d5632fa462"},
+    {file = "soundfile-0.13.0.tar.gz", hash = "sha256:e83399d8bde7d73b117c33d6a1ec8571318338f89ce72f4c3d457e9768798355"},
 ]
 
 [package.dependencies]
 cffi = ">=1.0"
-
-[package.extras]
-numpy = ["numpy"]
+numpy = "*"
 
 [[package]]
 name = "soupsieve"
@@ -8479,4 +8497,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "10c93f42a513718e83ec78e3fbbca96dfadb952380354a73d0a4875a95ef51ba"
+content-hash = "7796422d8eac79aae7fe186b6be3db1f380bdae466ddf882ec7c61a0df67c038"

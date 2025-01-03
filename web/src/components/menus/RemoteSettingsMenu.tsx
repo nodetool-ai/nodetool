@@ -101,7 +101,8 @@ const RemoteSettings = ({
         LUMAAI_API_KEY: data.secrets.LUMAAI_API_KEY || "",
         AIME_USER: data.secrets.AIME_USER || "",
         AIME_API_KEY: data.secrets.AIME_API_KEY || "",
-        GOOGLE_APP_PASSWORD: data.secrets.GOOGLE_APP_PASSWORD || ""
+        GOOGLE_APP_PASSWORD: data.secrets.GOOGLE_APP_PASSWORD || "",
+        GEMINI_API_KEY: data.secrets.GEMINI_API_KEY || ""
       });
     }
   }, [isSuccess, data]);
