@@ -1,8 +1,8 @@
 {
   "id": "image-chat",
   "access": "public",
-  "created_at": "2024-11-29T18:30:51.773442",
-  "updated_at": "2024-11-29T18:30:51.773460",
+  "created_at": "2025-01-03T16:05:52.708188",
+  "updated_at": "2025-01-03T16:05:52.708208",
   "name": "Image Chat",
   "description": "Chat bot that generates images. Use the workflow chat to send messages to the bot.",
   "tags": [
@@ -10,7 +10,7 @@
     "image",
     "start"
   ],
-  "thumbnail": "",
+  "thumbnail": null,
   "thumbnail_url": "/examples/chatbot.png",
   "graph": {
     "nodes": [
@@ -49,32 +49,6 @@
         }
       },
       {
-        "id": "2",
-        "parent_id": null,
-        "type": "ollama.text.OllamaChat",
-        "data": {
-          "model": {
-            "type": "llama_model",
-            "repo_id": "qwen2.5:1.5b"
-          },
-          "system_prompt": "You are an prompt engineer and write optimized Stable Diffusion prompts. The prompt should be roughly: <subject>, <style>, <scene>, <visual properties>. ONLY output the prompt, nothing else.",
-          "context_window": 4096,
-          "temperature": 0.7,
-          "top_k": 50,
-          "top_p": 0.95,
-          "keep_alive": "300"
-        },
-        "ui_properties": {
-          "position": {
-            "x": 267,
-            "y": 151
-          },
-          "zIndex": 0,
-          "width": 185,
-          "selectable": true
-        }
-      },
-      {
         "id": "4",
         "parent_id": null,
         "type": "huggingface.text_to_image.StableDiffusion",
@@ -88,7 +62,7 @@
           "seed": -1,
           "num_inference_steps": 25,
           "guidance_scale": 7.5,
-          "scheduler": "HeunDiscreteScheduler",
+          "scheduler": "EulerDiscreteScheduler",
           "loras": [],
           "ip_adapter_model": "",
           "ip_adapter_image": {
@@ -99,10 +73,11 @@
           },
           "ip_adapter_scale": 0.5,
           "detail_level": 0.5,
-          "width": 768,
-          "height": 768
+          "width": 512,
+          "height": 512
         },
         "ui_properties": {
+          "selected": false,
           "position": {
             "x": 482,
             "y": 50
@@ -149,7 +124,6 @@
           ]
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 52,
             "y": -130
@@ -159,17 +133,69 @@
           "height": 117,
           "selectable": true
         }
+      },
+      {
+        "id": "7",
+        "parent_id": null,
+        "type": "ollama.text.Ollama",
+        "data": {
+          "model": {
+            "type": "llama_model",
+            "repo_id": "gemma2:2b"
+          },
+          "system_prompt": "You are an prompt engineer and write optimized Stable Diffusion prompts. The prompt should be roughly: <subject>, <style>, <scene>, <visual properties>. ONLY output the prompt, nothing else.",
+          "image": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null
+          },
+          "context_window": 4096,
+          "temperature": 0.7,
+          "top_k": 50,
+          "top_p": 0.95,
+          "keep_alive": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 289,
+            "y": 136
+          },
+          "zIndex": 0,
+          "width": 159,
+          "selectable": true
+        }
       }
     ],
     "edges": [
       {
-        "id": "2a8c2aaf-b2d9-4fe3-9ffa-70f54c619b5a",
+        "id": "d3cfd954-fdf4-439b-be8b-e004bfa07162",
         "source": "1",
-        "sourceHandle": "output",
-        "target": "2",
+        "sourceHandle": "text",
+        "target": "7",
+        "targetHandle": "prompt",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "468f8aec-1c9f-4519-89bf-b3c59fe42444",
+        "source": "1",
+        "sourceHandle": "history",
+        "target": "7",
         "targetHandle": "messages",
         "ui_properties": {
           "className": "list"
+        }
+      },
+      {
+        "id": "382b99fb-a015-4ac8-8154-6d905a6426fd",
+        "source": "7",
+        "sourceHandle": "output",
+        "target": "4",
+        "targetHandle": "prompt",
+        "ui_properties": {
+          "className": "str"
         }
       },
       {
@@ -180,16 +206,6 @@
         "targetHandle": "value",
         "ui_properties": {
           "className": "image"
-        }
-      },
-      {
-        "id": "ab4a5778-6554-48d7-be2c-325797cd4596",
-        "source": "2",
-        "sourceHandle": "output",
-        "target": "4",
-        "targetHandle": "prompt",
-        "ui_properties": {
-          "className": "str"
         }
       }
     ]

@@ -1,4 +1,5 @@
 import asyncio
+from typing import Mapping
 from pydantic import Field, validator
 from nodetool.metadata.types import (
     ImageRef,
@@ -29,20 +30,23 @@ class Ollama(BaseNode):
     model: LlamaModel = Field(
         default=LlamaModel(), description="The Llama model to use."
     )
-    prompt: str = Field(default="", description="Prompt to send to the model.")
     system_prompt: str = Field(
         default="You are an assistant.",
         description="System prompt to send to the model.",
     )
-    context_window: int = Field(
-        default=4096,
-        ge=1,
-        description="The context window size to use for the model.",
+    prompt: str = Field(default="", description="Prompt to send to the model.")
+    messages: list[Message] = Field(
+        default=[], description="History of messages to send to the model."
     )
     image: ImageRef = Field(
         default=ImageRef(),
         title="Image",
         description="The image to analyze",
+    )
+    context_window: int = Field(
+        default=4096,
+        ge=1,
+        description="The context window size to use for the model.",
     )
     temperature: float = Field(
         default=0.7,
@@ -67,28 +71,66 @@ class Ollama(BaseNode):
         description="The number of seconds to keep the model alive.",
     )
 
-    async def process(self, context: ProcessingContext) -> str:
-        user_message: dict[str, str | list[str]] = {
-            "role": "user",
-            "content": self.prompt,
+    async def create_message(
+        self, message: Message, context: ProcessingContext
+    ) -> Mapping[str, str | list[str]]:
+        ollama_message: dict[str, str | list[str]] = {
+            "role": message.role,
         }
 
-        if self.image.is_set():
-            image_base64 = await context.image_to_base64(self.image)
-            user_message["images"] = [image_base64]
+        if isinstance(message.content, list):
+            ollama_message["content"] = "\n".join(
+                content.text
+                for content in message.content
+                if isinstance(content, MessageTextContent)
+            )
+            ollama_message["images"] = await asyncio.gather(
+                *[
+                    context.image_to_base64(content.image)
+                    for content in message.content
+                    if isinstance(content, MessageImageContent)
+                ]
+            )
+        else:
+            ollama_message["content"] = str(message.content)
+
+        return ollama_message
+
+    async def process(self, context: ProcessingContext) -> str:
+        if not self.messages and not self.prompt and not self.image.is_set():
+            raise ValueError("Either messages, prompt, or image must be provided")
+
+        messages: list[Mapping[str, str | list[str]]] = [
+            {
+                "role": "system",
+                "content": self.system_prompt,
+            },
+        ]
+
+        # Add existing messages if any
+        if self.messages:
+            message_dicts = await asyncio.gather(
+                *[self.create_message(message, context) for message in self.messages]
+            )
+            messages.extend(message_dicts)
+
+        # Add prompt and image as final message if provided
+        if self.prompt or self.image.is_set():
+            user_message: dict[str, str | list[str]] = {
+                "role": "user",
+                "content": self.prompt,
+            }
+            if self.image.is_set():
+                image_base64 = await context.image_to_base64(self.image)
+                user_message["images"] = [image_base64]
+            messages.append(user_message)
 
         res = await context.run_prediction(
             node_id=self._id,
             provider=Provider.Ollama,
             model=self.model.repo_id,
             params={
-                "messages": [
-                    {
-                        "role": "system",
-                        "content": self.system_prompt,
-                    },
-                    user_message,
-                ],
+                "messages": messages,
                 "options": {
                     "temperature": self.temperature,
                     "top_k": self.top_k,

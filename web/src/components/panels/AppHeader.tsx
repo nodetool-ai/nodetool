@@ -13,13 +13,13 @@ import Welcome from "../content/Welcome/Welcome";
 import AppHeaderActions from "./AppHeaderActions";
 import LastWorkflowButton from "./LastWorkflowButton";
 import OverallDownloadProgress from "../hugging_face/OverallDownloadProgress";
+import NotificationButton from "./NotificationButton";
 
 // mui icons
 import WorkflowsIcon from "@mui/icons-material/ListAlt";
 // import AssetIcon from "@mui/icons-material/ImageSharp";
 import QuestionMarkIcon from "@mui/icons-material/QuestionMark";
 import ExamplesIcon from "@mui/icons-material/AutoAwesome"; // Add this import
-import NotificationsIcon from "@mui/icons-material/Notifications";
 
 // nodetool icons
 import { IconForType } from "../../config/data_types";
@@ -253,114 +253,6 @@ const AppHeader: React.FC = React.memo(() => {
     [path, buttonAppearance, navigate]
   );
 
-  const [notificationAnchor, setNotificationAnchor] =
-    useState<null | HTMLElement>(null);
-  const {
-    notifications,
-    lastDisplayedTimestamp,
-    updateLastDisplayedTimestamp
-  } = useNotificationStore();
-
-  const unreadCount = useMemo(() => {
-    if (!lastDisplayedTimestamp) return notifications.length;
-    return notifications.filter((n) => n.timestamp > lastDisplayedTimestamp)
-      .length;
-  }, [notifications, lastDisplayedTimestamp]);
-
-  const handleNotificationClick = useCallback(
-    (event: React.MouseEvent<HTMLElement>) => {
-      setNotificationAnchor(event.currentTarget);
-      updateLastDisplayedTimestamp(new Date());
-    },
-    [updateLastDisplayedTimestamp]
-  );
-
-  const handleNotificationClose = useCallback(() => {
-    setNotificationAnchor(null);
-  }, []);
-
-  const NotificationButton = useMemo(
-    () => (
-      <>
-        <Tooltip title="Notifications" enterDelay={TOOLTIP_ENTER_DELAY}>
-          <Button
-            className="action-button"
-            onClick={handleNotificationClick}
-            tabIndex={-1}
-          >
-            <Badge badgeContent={unreadCount} color="error">
-              <NotificationsIcon />
-            </Badge>
-          </Button>
-        </Tooltip>
-        <Popover
-          open={Boolean(notificationAnchor)}
-          anchorEl={notificationAnchor}
-          onClose={handleNotificationClose}
-          anchorOrigin={{
-            vertical: "bottom",
-            horizontal: "right"
-          }}
-          transformOrigin={{
-            vertical: "top",
-            horizontal: "right"
-          }}
-        >
-          <Box
-            sx={{
-              p: 2,
-              width: "400px",
-              maxHeight: "500px",
-              overflow: "auto",
-              backgroundColor: ThemeNodetool.palette.c_gray0
-            }}
-          >
-            {notifications.length === 0 ? (
-              <Typography color="textSecondary">No notifications</Typography>
-            ) : (
-              notifications.map((notification) => (
-                <Box
-                  key={notification.id}
-                  sx={{
-                    p: 1,
-                    mb: 1,
-                    borderRadius: 1,
-                    backgroundColor: ThemeNodetool.palette.c_gray1,
-                    borderLeft: `4px solid ${
-                      notification.type === "error"
-                        ? "#f44336"
-                        : notification.type === "warning"
-                        ? "#ff9800"
-                        : notification.type === "success"
-                        ? "#4caf50"
-                        : notification.type === "info"
-                        ? "#2196f3"
-                        : ThemeNodetool.palette.c_gray2
-                    }`
-                  }}
-                >
-                  <Typography variant="body2" color="textPrimary">
-                    {notification.content}
-                  </Typography>
-                  <Typography variant="caption" color="textSecondary">
-                    {notification.timestamp.toLocaleString()}
-                  </Typography>
-                </Box>
-              ))
-            )}
-          </Box>
-        </Popover>
-      </>
-    ),
-    [
-      notifications,
-      unreadCount,
-      notificationAnchor,
-      handleNotificationClick,
-      handleNotificationClose
-    ]
-  );
-
   const RightSideButtons = useMemo(
     () => (
       <Box className="buttons-right">
@@ -399,7 +291,7 @@ const AppHeader: React.FC = React.memo(() => {
             </Tooltip>
           </>
         )}
-        {NotificationButton}
+        <NotificationButton />
         <Popover
           open={helpOpen}
           onClose={handleCloseHelp}
@@ -444,8 +336,7 @@ const AppHeader: React.FC = React.memo(() => {
       helpOpen,
       handleCloseHelp,
       navigate,
-      handleOpenHelp,
-      NotificationButton
+      handleOpenHelp
     ]
   );
 

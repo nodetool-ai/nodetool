@@ -37,19 +37,9 @@ const HelpChat: React.FC = () => {
   });
 
   const { data: ollamaModelInfo, isLoading: isLoadingOllamaModel } = useQuery({
-    queryKey: ["ollamaModel", "qwen2.5:1.5b"],
-    queryFn: () => fetchOllamaModelInfo("qwen2.5:1.5b")
+    queryKey: ["ollamaModel", "gemma2:2b"],
+    queryFn: () => fetchOllamaModelInfo("gemma2:2b")
   });
-
-  const handleSendMessage = useCallback(
-    async (prompt: string) => {
-      await sendMessage({
-        role: "user",
-        content: prompt
-      });
-    },
-    [sendMessage]
-  );
 
   const handleResetChat = useCallback(() => {
     setMessages([]);
@@ -57,21 +47,21 @@ const HelpChat: React.FC = () => {
   }, [setMessages]);
 
   const handleDownloadModel = useCallback(() => {
-    startDownload("qwen2.5:1.5b", "llama_model");
+    startDownload("gemma2:2b", "llama_model");
     openDialog();
   }, [startDownload, openDialog]);
 
   const isModelAvailable = isProduction || Boolean(ollamaModelInfo);
   const { downloads } = useModelDownloadStore();
-  const isDownloading = downloads["qwen2.5:1.5b"]?.status === "running";
+  const isDownloading = downloads["gemma2:2b"]?.status === "running";
 
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    const downloadStatus = downloads["qwen2.5:1.5b"]?.status;
+    const downloadStatus = downloads["gemma2:2b"]?.status;
     if (downloadStatus === "completed") {
       queryClient.invalidateQueries({
-        queryKey: ["ollamaModel", "qwen2.5:1.5b"]
+        queryKey: ["ollamaModel", "gemma2:2b"]
       });
     }
   }, [downloads, queryClient]);
@@ -207,7 +197,7 @@ const HelpChat: React.FC = () => {
       ) : !isModelAvailable ? (
         <Box sx={{ mb: 2 }}>
           <Typography>
-            You need to download the Qwen2.5 model to use the Help Chat.
+            You need to download the Gemma2 model to use the Help Chat.
           </Typography>
           <Tooltip
             title="Download the AI model to enable chat assistance features"
@@ -219,7 +209,7 @@ const HelpChat: React.FC = () => {
               sx={{ mt: 1 }}
               tabIndex={-1}
             >
-              Download Qwen2.5 1.5B Model
+              Download Gemma2 2B Model
             </Button>
           </Tooltip>
         </Box>
@@ -227,7 +217,7 @@ const HelpChat: React.FC = () => {
         <ChatView
           status={isLoading ? "loading" : "connected"}
           messages={messages}
-          sendMessage={handleSendMessage}
+          sendMessage={sendMessage}
           currentNodeName={null}
           progress={0}
           total={0}

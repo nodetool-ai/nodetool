@@ -179,13 +179,10 @@ class LoadDocument(BaseNode):
     )
 
     async def process(self, context: ProcessingContext) -> DocumentRef:
-        print(self.path)
         if not self.path.path:
             raise ValueError("path cannot be empty")
         expanded_path = os.path.expanduser(self.path.path)
-        with open(expanded_path, "rb") as f:
-            data = f.read()
-        return DocumentRef(uri="file://" + expanded_path, data=data)
+        return DocumentRef(uri="file://" + expanded_path)
 
 
 class SaveDocument(BaseNode):
@@ -204,15 +201,10 @@ class SaveDocument(BaseNode):
     async def process(self, context: ProcessingContext):
         if not self.path.path:
             raise ValueError("path cannot be empty")
+        data = await context.asset_to_bytes(self.document)
         expanded_path = os.path.expanduser(self.path.path)
         with open(expanded_path, "wb") as f:
-            if isinstance(self.document.data, (bytes, bytearray)):
-                f.write(self.document.data)
-            elif isinstance(self.document.data, list):
-                for chunk in self.document.data:
-                    f.write(chunk)
-            elif self.document.data is not None:
-                f.write(self.document.data)
+            f.write(data)
 
 
 class LoadCSV(BaseNode):

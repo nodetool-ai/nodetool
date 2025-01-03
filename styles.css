@@ -1,0 +1,23 @@
+.audio-message {
+  width: 100%;
+  max-width: 300px;
+  margin: 8px 0;
+}
+
+.audio-message audio {
+  width: 100%;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.video-message {
+  width: 100%;
+  max-width: 400px;
+  margin: 8px 0;
+}
+
+.video-message video {
+  width: 100%;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.05);
+}
