@@ -14,7 +14,10 @@ import {
   InputLabel,
   FormControl,
   Tooltip,
-  Switch
+  Switch,
+  Tabs,
+  Tab,
+  Box
 } from "@mui/material";
 import Select from "@mui/material/Select";
 import SettingsIcon from "@mui/icons-material/Settings";
@@ -189,12 +192,56 @@ export const settingsStyles = (theme: any): any =>
       padding: "0.5em 0 0",
       fontWeight: "500",
       color: theme.palette.c_white
+    },
+    ".settings-tabs": {
+      borderBottom: `1px solid ${theme.palette.c_gray3}`,
+      marginBottom: "1em",
+      "& .MuiTabs-indicator": {
+        backgroundColor: theme.palette.c_hl1
+      },
+      "& .MuiTab-root": {
+        color: theme.palette.c_gray6,
+        "&.Mui-selected": {
+          color: theme.palette.c_white
+        }
+      }
+    },
+    ".tab-panel": {
+      padding: "1em 0"
     }
   });
+
+interface TabPanelProps {
+  children?: React.ReactNode;
+  index: number;
+  value: number;
+}
+
+function TabPanel(props: TabPanelProps) {
+  const { children, value, index, ...other } = props;
+
+  return (
+    <div
+      role="tabpanel"
+      hidden={value !== index}
+      id={`settings-tabpanel-${index}`}
+      aria-labelledby={`settings-tab-${index}`}
+      className="tab-panel"
+      {...other}
+    >
+      {value === index && <Box>{children}</Box>}
+    </div>
+  );
+}
 
 function SettingsMenu() {
   const { user, signout } = useAuth();
   const navigate = useNavigate();
+  const [tabValue, setTabValue] = useState(0);
+
+  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+    setTabValue(newValue);
+  };
 
   const {
     isMenuOpen,
@@ -277,267 +324,190 @@ function SettingsMenu() {
         </div>
 
         <div className="settings-menu">
-          {!isProduction && <RemoteSettingsMenu />}
+          <Tabs
+            value={tabValue}
+            onChange={handleTabChange}
+            className="settings-tabs"
+            aria-label="settings tabs"
+          >
+            <Tab label="General" id="settings-tab-0" />
+            <Tab label="External Services" id="settings-tab-1" />
+          </Tabs>
 
-          <Typography variant="h3">Editor</Typography>
+          <TabPanel value={tabValue} index={0}>
+            <Typography variant="h3">Editor</Typography>
 
-          <div className="settings-item">
-            <FormControl>
-              <InputLabel htmlFor={id}>Show Welcome Screen</InputLabel>
-              <Switch
-                checked={!!settings.showWelcomeOnStartup}
-                onChange={(e) => setShowWelcomeOnStartup(e.target.checked)}
-                inputProps={{ "aria-label": id }}
-              />
-            </FormControl>
-            <Typography className="description">
-              Show the welcome screen when starting the application.
-            </Typography>
-          </div>
-
-          <div className="settings-item">
-            <FormControl>
-              <InputLabel htmlFor={id}>Select Nodes On Drag</InputLabel>
-              <Switch
-                sx={{
-                  "&.MuiSwitch-root": {
-                    margin: "16px 0 0"
-                  }
-                }}
-                checked={!!settings.selectNodesOnDrag}
-                onChange={(e) =>
-                  setSelectNodesOnDrag(e.target.checked ?? false)
-                }
-                inputProps={{ "aria-label": id }}
-              />
-            </FormControl>
-            <Typography className="description">
-              Select nodes when dragging.
-            </Typography>
-          </div>
-
-          <div className="settings-item">
-            <FormControl>
-              <InputLabel htmlFor={id}>Pan Controls</InputLabel>
-              <Select
-                id={id}
-                labelId={id}
-                value={settings.panControls}
-                variant="standard"
-                onChange={(e) => setPanControls(e.target.value)}
-              >
-                <MenuItem value={"LMB"}>Pan with LMB</MenuItem>
-                <MenuItem value={"RMB"}>Pan with RMB</MenuItem>
-              </Select>
-            </FormControl>
-
-            <div className="description">
-              <Typography>
-                Move the canvas by dragging with the left or right mouse button.
-              </Typography>
-              <Typography>
-                With RightMouseButton selected, you can also pan with:
-              </Typography>
-              <ul>
-                <li>Space + LeftClick</li>
-                <li>Middle Mouse Button</li>
-              </ul>
-            </div>
-          </div>
-
-          <div className="settings-item">
-            <FormControl>
-              <InputLabel htmlFor={id}>Node Selection Mode</InputLabel>
-              <Select
-                id={id}
-                labelId={id}
-                value={settings.selectionMode}
-                variant="standard"
-                onChange={(e) => setSelectionMode(e.target.value)}
-              >
-                <MenuItem value={"full"}>Full</MenuItem>
-                <MenuItem value={"partial"}>Partial</MenuItem>
-              </Select>
-            </FormControl>
-            <Typography className="description">
-              When drawing a selection box for node selections:
-              <br />
-              <b>Full:</b> nodes have to be fully enclosed.
-              <br />
-              <b>Partial:</b> intersecting nodes will be selected.
-            </Typography>
-          </div>
-
-          <div className="settings-item">
-            <TextField
-              type="number"
-              autoComplete="off"
-              inputProps={{
-                min: 1,
-                max: 100,
-                onClick: (e: React.MouseEvent<HTMLInputElement>) => {
-                  e.currentTarget.select();
-                }
-              }}
-              id="grid-snap-input"
-              label="Grid Snap Precision"
-              value={settings.gridSnap}
-              onChange={(e) => setGridSnap(Number(e.target.value))}
-              variant="standard"
-            />
-            <Typography className="description">
-              Snap precision for moving nodes on the canvas.
-            </Typography>
-          </div>
-
-          <div className="settings-item">
-            <TextField
-              type="number"
-              autoComplete="off"
-              inputProps={{
-                min: 5,
-                max: 30,
-                onClick: (e: React.MouseEvent<HTMLInputElement>) => {
-                  e.currentTarget.select();
-                }
-              }}
-              id="connection-snap-input"
-              label="Connection Snap Range"
-              value={settings.connectionSnap}
-              onChange={(e) => setConnectionSnap(Number(e.target.value))}
-              variant="standard"
-            />
-            <Typography className="description">
-              Snap distance for connecting nodes.
-            </Typography>
-          </div>
-          <Typography variant="h3">Workflows</Typography>
-          <div className="settings-item">
-            <FormControl>
-              <InputLabel htmlFor={id}>Workflow Menu Layout</InputLabel>
-              <Select
-                id={id}
-                labelId={id}
-                value={settings.workflowLayout === "grid" ? "grid" : "list"}
-                variant="standard"
-                onChange={(e) =>
-                  setWorkflowLayout(e.target.value === "grid" ? "grid" : "list")
-                }
-              >
-                <MenuItem value={"grid"}>Grid</MenuItem>
-                <MenuItem value={"list"}>List</MenuItem>
-              </Select>
-            </FormControl>
-            <Typography className="description">
-              Choose grid or list layout for{" "}
-              <Link to="/workflows">Workflows</Link>
-            </Typography>
-          </div>
-
-          <Typography variant="h3">Assets</Typography>
-
-          <Typography variant="h3">Appearance</Typography>
-          <div className="settings-item">
-            <FormControl>
-              <InputLabel htmlFor={id}>Time Format</InputLabel>
-              <Select
-                id={id}
-                labelId={id}
-                value={settings.timeFormat}
-                variant="standard"
-                onChange={(e) =>
-                  setTimeFormat(e.target.value === "12h" ? "12h" : "24h")
-                }
-              >
-                <MenuItem value={"12h"}>12h</MenuItem>
-                <MenuItem value={"24h"}>24h</MenuItem>
-              </Select>
-            </FormControl>
-            <Typography className="description">
-              Display time in 12h or 24h format.
-            </Typography>
-          </div>
-
-          <div className="settings-item">
-            <FormControl>
-              <InputLabel htmlFor={id}>Button Appearance</InputLabel>
-              <Select
-                id={id}
-                labelId={id}
-                value={settings.buttonAppearance || "both"}
-                variant="standard"
-                onChange={(e) =>
-                  setButtonAppearance(
-                    e.target.value as "text" | "icon" | "both"
-                  )
-                }
-              >
-                <MenuItem value={"text"}>Text</MenuItem>
-                <MenuItem value={"icon"}>Icon</MenuItem>
-                <MenuItem value={"both"}>Both</MenuItem>
-              </Select>
-            </FormControl>
-            <Typography className="description">
-              Display the buttons in the top panel as text, icon or both.
-            </Typography>
-          </div>
-
-          {/* <div className="settings-item">
-            <FormControl>
-              <InputLabel htmlFor={id}>Show alert on close</InputLabel>
-              <Switch
-                sx={{
-                  "&.MuiSwitch-root": {
-                    margin: "16px 0 0"
-                  }
-                }}
-                checked={!!settings.alertBeforeTabClose}
-                onChange={(e) =>
-                  setAlertBeforeTabClose(e.target.checked ?? false)
-                }
-                inputProps={{ "aria-label": id }}
-              />
-            </FormControl>
-            <Typography className="description">
-              Prevent closing of the browser tab when there are unsaved changes.
-            </Typography>
-          </div> */}
-
-          {user && user.auth_token && (
-            <div
-              className="settings-item"
-              style={{
-                border: "1px solid" + ThemeNodetool.palette.c_warning,
-                borderRight: "1px solid" + ThemeNodetool.palette.c_warning
-              }}
-            >
+            <div className="settings-item">
               <FormControl>
-                <InputLabel>Nodetool API Token</InputLabel>
+                <InputLabel htmlFor={id}>Show Welcome Screen</InputLabel>
+                <Switch
+                  checked={!!settings.showWelcomeOnStartup}
+                  onChange={(e) => setShowWelcomeOnStartup(e.target.checked)}
+                  inputProps={{ "aria-label": id }}
+                />
               </FormControl>
               <Typography className="description">
-                This token is used to authenticate your account with the
-                Nodetool API. <br />
-                <div className="secrets">
-                  <WarningIcon sx={{ color: "#ff9800" }} />
-                  <Typography>
-                    Keep this token secure and do not share it publicly
-                  </Typography>
-                </div>
-                <br />
-                <Tooltip title="Copy to clipboard">
-                  <Button
-                    style={{ margin: ".5em 0" }}
-                    size="small"
-                    variant="outlined"
-                    startIcon={<ContentCopyIcon />}
-                    onClick={copyAuthToken}
-                  >
-                    Copy Token
-                  </Button>
-                </Tooltip>
+                Show the welcome screen when starting the application.
               </Typography>
             </div>
-          )}
+
+            <div className="settings-item">
+              <FormControl>
+                <InputLabel htmlFor={id}>Select Nodes On Drag</InputLabel>
+                <Switch
+                  sx={{
+                    "&.MuiSwitch-root": {
+                      margin: "16px 0 0"
+                    }
+                  }}
+                  checked={!!settings.selectNodesOnDrag}
+                  onChange={(e) =>
+                    setSelectNodesOnDrag(e.target.checked ?? false)
+                  }
+                  inputProps={{ "aria-label": id }}
+                />
+              </FormControl>
+              <Typography className="description">
+                Select nodes when dragging.
+              </Typography>
+            </div>
+
+            <div className="settings-item">
+              <FormControl>
+                <InputLabel htmlFor={id}>Pan Controls</InputLabel>
+                <Select
+                  id={id}
+                  labelId={id}
+                  value={settings.panControls}
+                  variant="standard"
+                  onChange={(e) => setPanControls(e.target.value)}
+                >
+                  <MenuItem value={"LMB"}>Pan with LMB</MenuItem>
+                  <MenuItem value={"RMB"}>Pan with RMB</MenuItem>
+                </Select>
+              </FormControl>
+
+              <div className="description">
+                <Typography>
+                  Move the canvas by dragging with the left or right mouse
+                  button.
+                </Typography>
+                <Typography>
+                  With RightMouseButton selected, you can also pan with:
+                </Typography>
+                <ul>
+                  <li>Space + LeftClick</li>
+                  <li>Middle Mouse Button</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="settings-item">
+              <FormControl>
+                <InputLabel htmlFor={id}>Node Selection Mode</InputLabel>
+                <Select
+                  id={id}
+                  labelId={id}
+                  value={settings.selectionMode}
+                  variant="standard"
+                  onChange={(e) => setSelectionMode(e.target.value)}
+                >
+                  <MenuItem value={"full"}>Full</MenuItem>
+                  <MenuItem value={"partial"}>Partial</MenuItem>
+                </Select>
+              </FormControl>
+              <Typography className="description">
+                When drawing a selection box for node selections:
+                <br />
+                <b>Full:</b> nodes have to be fully enclosed.
+                <br />
+                <b>Partial:</b> intersecting nodes will be selected.
+              </Typography>
+            </div>
+
+            <div className="settings-item">
+              <TextField
+                type="number"
+                autoComplete="off"
+                inputProps={{
+                  min: 1,
+                  max: 100,
+                  onClick: (e: React.MouseEvent<HTMLInputElement>) => {
+                    e.currentTarget.select();
+                  }
+                }}
+                id="grid-snap-input"
+                label="Grid Snap Precision"
+                value={settings.gridSnap}
+                onChange={(e) => setGridSnap(Number(e.target.value))}
+                variant="standard"
+              />
+              <Typography className="description">
+                Snap precision for moving nodes on the canvas.
+              </Typography>
+            </div>
+
+            <div className="settings-item">
+              <TextField
+                type="number"
+                autoComplete="off"
+                inputProps={{
+                  min: 5,
+                  max: 30,
+                  onClick: (e: React.MouseEvent<HTMLInputElement>) => {
+                    e.currentTarget.select();
+                  }
+                }}
+                id="connection-snap-input"
+                label="Connection Snap Range"
+                value={settings.connectionSnap}
+                onChange={(e) => setConnectionSnap(Number(e.target.value))}
+                variant="standard"
+              />
+              <Typography className="description">
+                Snap distance for connecting nodes.
+              </Typography>
+            </div>
+            {user && user.auth_token && (
+              <div
+                className="settings-item"
+                style={{
+                  border: "1px solid" + ThemeNodetool.palette.c_warning,
+                  borderRight: "1px solid" + ThemeNodetool.palette.c_warning
+                }}
+              >
+                <FormControl>
+                  <InputLabel>Nodetool API Token</InputLabel>
+                </FormControl>
+                <Typography className="description">
+                  This token is used to authenticate your account with the
+                  Nodetool API. <br />
+                  <div className="secrets">
+                    <WarningIcon sx={{ color: "#ff9800" }} />
+                    <Typography>
+                      Keep this token secure and do not share it publicly
+                    </Typography>
+                  </div>
+                  <br />
+                  <Tooltip title="Copy to clipboard">
+                    <Button
+                      style={{ margin: ".5em 0" }}
+                      size="small"
+                      variant="outlined"
+                      startIcon={<ContentCopyIcon />}
+                      onClick={copyAuthToken}
+                    >
+                      Copy Token
+                    </Button>
+                  </Tooltip>
+                </Typography>
+              </div>
+            )}
+          </TabPanel>
+
+          <TabPanel value={tabValue} index={1}>
+            {!isProduction && <RemoteSettingsMenu />}
+          </TabPanel>
         </div>
         <div className="bottom">
           {user && (
