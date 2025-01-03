@@ -83,7 +83,7 @@ const ApiKeyValidation: React.FC<ApiKeyValidationProps> = React.memo(
             variant="contained"
             color="primary"
             size="small"
-            onClick={() => setMenuOpen(true)}
+            onClick={() => setMenuOpen(true, 1)}
             sx={{
               margin: "0 1em",
               padding: ".2em 0 0",
