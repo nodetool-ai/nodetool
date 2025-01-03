@@ -1068,8 +1068,17 @@ class MessageVideoContent(BaseModel):
     video: VideoRef = VideoRef()
 
 
+class MessageDocumentContent(BaseModel):
+    type: Literal["document"] = "document"
+    document: DocumentRef = DocumentRef()
+
+
 MessageContent = (
-    MessageTextContent | MessageImageContent | MessageAudioContent | MessageVideoContent
+    MessageTextContent
+    | MessageImageContent
+    | MessageAudioContent
+    | MessageVideoContent
+    | MessageDocumentContent
 )
 
 

@@ -15,31 +15,40 @@ const styles = (theme: any) =>
       overflowY: "auto",
       height: "100%",
       maxHeight: "730px !important",
-      paddingBottom: "5em"
+      paddingBottom: "5em",
+      padding: "0.5em 1em"
     },
     li: {
-      margin: "0",
-      padding: "0.1em",
-      borderBottom: "1px solid #1e1e1e"
+      margin: "0.4em 0",
+      padding: "0.5em 0.8em",
+      borderBottom: "1px solid rgba(30, 30, 30, 0.1)",
+      borderRadius: "4px",
+      transition: "background-color 0.2s ease",
+      "&:hover": {
+        backgroundColor: "rgba(0, 0, 0, 0.02)"
+      }
     },
     "li span.time": {
       fontFamily: theme.fontFamily1,
-      fontSize: "0.7em",
-      width: "5em",
+      fontSize: "0.65em",
+      width: "4.5em",
       whiteSpace: "nowrap",
       flexShrink: 0,
-      marginRight: "1em",
-      color: theme.palette.c_gray4
+      marginRight: "1.2em",
+      color: theme.palette.c_gray4,
+      opacity: 0.8
     },
     "li span.message": {
       fontFamily: theme.fontFamily,
-      fontSize: "0.9em",
+      fontSize: "0.8em",
       display: "block",
       overflow: "hidden auto",
       maxHeight: "2.5em",
       flex: 1,
       minWidth: 0,
-      whiteSpace: "normal"
+      whiteSpace: "normal",
+      lineHeight: "1.4",
+      letterSpacing: "0.01em"
     },
     "li.info span.message": {
       color: theme.palette.c_info

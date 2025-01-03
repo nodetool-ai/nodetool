@@ -45,6 +45,8 @@ const WORKER_URL = "ws://127.0.0.1:8000/predict";
  * @property {string} [$ref] - Reference to another schema definition
  */
 
+/** @typedef {import('./chat-interface.js').MessageContent} MessageContent */
+
 /**
  * Checks if the schema has input fields
  * @param {JSONSchema} schema - The JSON schema to check
@@ -575,17 +577,18 @@ export async function init() {
           }
 
           /**
-           * @param {string} message - The message to send to the chat runner
+           * @param {MessageContent[]} messageContents - The message to send to the chat runner
            * @returns {Promise<void>}
            */
-          const onSubmitChat = async (message) => {
+          const onSubmitChat = async (messageContents) => {
             if (!chatRunner.socket || chatRunner.status === "disconnected") {
               await chatRunner.connect(workflow.id);
             }
+            console.log("Sending message:", messageContents);
             await chatRunner.sendMessage({
               type: "message",
               role: "user",
-              content: message,
+              content: messageContents,
               workflow_id: workflow.id,
               auth_token: "local_token",
             });

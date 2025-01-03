@@ -10,6 +10,7 @@ from nodetool.types.prediction import Prediction
 from nodetool.metadata.node_metadata import NodeMetadata, load_node_metadata
 from nodetool.metadata.types import (
     AssetRef,
+    DocumentRef,
     HuggingFaceModel,
     NodeRef,
     Email,
@@ -88,6 +89,7 @@ UnionType = (
     | Tensor
     | VideoRef
     | ModelRef
+    | DocumentRef
     | TextRef
     | WorkflowRef
     | NodeRef

@@ -1,14 +1,14 @@
 {
   "id": "7d2b216faff911ef8e4d000021f9958f",
   "access": "public",
-  "created_at": "2024-12-01T16:36:22.771719",
-  "updated_at": "2024-12-01T16:36:22.771739",
+  "created_at": "2025-01-03T16:08:09.251098",
+  "updated_at": "2025-01-03T16:08:09.251114",
   "name": "Data Generator",
   "description": "",
   "tags": [
     "agents"
   ],
-  "thumbnail": "",
+  "thumbnail": null,
   "thumbnail_url": "/examples/data_generator.png",
   "graph": {
     "nodes": [
@@ -19,14 +19,14 @@
         "data": {
           "model": {
             "type": "llama_model",
-            "repo_id": "qwen2.5:1.5b"
+            "repo_id": "gemma2:2b"
           },
           "context_window": 4096,
           "prompt": "Create 10 female characters",
           "temperature": 1,
           "top_k": 50,
           "top_p": 0.95,
-          "keep_alive": "300",
+          "keep_alive": 600,
           "columns": {
             "type": "record_type",
             "columns": [
@@ -64,7 +64,6 @@
           "name": "dataframe_output_2024-12-01"
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 330,
             "y": 55

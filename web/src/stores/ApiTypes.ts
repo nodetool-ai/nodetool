@@ -33,6 +33,8 @@ export type MessageTextContent = components["schemas"]["MessageTextContent"];
 export type MessageImageContent = components["schemas"]["MessageImageContent"];
 export type MessageVideoContent = components["schemas"]["MessageVideoContent"];
 export type MessageAudioContent = components["schemas"]["MessageAudioContent"];
+export type MessageDocumentContent =
+  components["schemas"]["MessageDocumentContent"];
 export type OAuthAuthorizeRequest =
   components["schemas"]["OAuthAuthorizeRequest"];
 export type Image = components["schemas"]["ImageRef"];
@@ -54,6 +56,7 @@ export type HuggingFaceModel = components["schemas"]["HuggingFaceModel"];
 export type SystemStats = components["schemas"]["SystemStats"];
 export type ToolCall = components["schemas"]["ToolCall"];
 export type SVGElement = components["schemas"]["SVGElement"];
+export type DocumentRef = components["schemas"]["DocumentRef"];
 // a type that allows arbitrary members
 export type TypeName = string;
 export type WorkflowAttributes = Omit<Workflow, "graph">;
@@ -61,7 +64,8 @@ export type MessageContent =
   | MessageTextContent
   | MessageImageContent
   | MessageVideoContent
-  | MessageAudioContent;
+  | MessageAudioContent
+  | MessageDocumentContent;
 export type RepoPath = components["schemas"]["RepoPath"];
 export type FileInfo = components["schemas"]["FileInfo"];
 
