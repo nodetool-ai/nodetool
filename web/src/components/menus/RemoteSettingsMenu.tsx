@@ -50,15 +50,10 @@ const remoteSettingsStyles = (theme: any): SerializedStyles => {
   `;
 };
 
-const RemoteSettings = ({
-  enableCollapse = true
-}: {
-  enableCollapse?: boolean;
-}) => {
+const RemoteSettings = () => {
   const queryClient = useQueryClient();
   const { updateSettings, fetchSettings } = useRemoteSettingsStore();
   const { addNotification } = useNotificationStore();
-  const [showRemoteSettings, setShowRemoteSettings] = useState(true);
   const { data, isSuccess, isLoading } = useQuery({
     queryKey: ["settings"],
     queryFn: fetchSettings
@@ -76,7 +71,8 @@ const RemoteSettings = ({
     LUMAAI_API_KEY: "",
     AIME_USER: "",
     AIME_API_KEY: "",
-    GOOGLE_APP_PASSWORD: ""
+    GOOGLE_APP_PASSWORD: "",
+    GEMINI_API_KEY: ""
   });
 
   const updateSettingsMutation = useMutation({
@@ -135,23 +131,12 @@ const RemoteSettings = ({
 
   return (
     <>
-      {enableCollapse && (
-        <Button
-          onClick={() => setShowRemoteSettings(!showRemoteSettings)}
-          endIcon={showRemoteSettings ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-          className="show-hide-button"
-          sx={{ width: "100%" }}
-        >
-          {showRemoteSettings ? "Hide Remote Settings" : "Show Remote Settings"}
-        </Button>
-      )}
-
       {isLoading && (
         <Typography sx={{ textAlign: "center", padding: "2em" }}>
           Loading API providers...
         </Typography>
       )}
-      {isSuccess && (enableCollapse ? showRemoteSettings : true) && (
+      {isSuccess && (
         <div
           className="remote-settings"
           css={remoteSettingsStyles(ThemeNodetool)}
@@ -396,6 +381,31 @@ const RemoteSettings = ({
                   rel="noopener noreferrer"
                 >
                   &rarr; Google Account Security Settings
+                </a>
+              </Typography>
+            </div>
+          </div>
+
+          <div className="settings-item">
+            <TextField
+              autoComplete="off"
+              id="gemini-api-key-input"
+              label="Google Gemini API Key"
+              value={settings.GEMINI_API_KEY}
+              onChange={(e) => handleChange("GEMINI_API_KEY", e.target.value)}
+              variant="standard"
+            />
+            <div className="text-and-button">
+              <Typography className="description">
+                Enter your Google Gemini API key to access Google's latest AI
+                models.
+                <br />
+                <a
+                  href="https://makersuite.google.com/app/apikey"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  &rarr; Google AI Studio API Keys
                 </a>
               </Typography>
             </div>
