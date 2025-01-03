@@ -17,7 +17,7 @@ const remoteSettingsStyles = (theme: any): SerializedStyles => {
 
   return css`
     ${baseStyles}
-    
+
     .save-button-container {
       position: sticky;
       top: 0;
@@ -42,10 +42,25 @@ const remoteSettingsStyles = (theme: any): SerializedStyles => {
     }
 
     .show-hide-button {
-      color: "red",
-      minWidth: "18em",
-      marginTop: ".5em",
-      padding: ".5em"
+      color: red;
+      min-width: 18em;
+      margin-top: 0.5em;
+      padding: 0.5em;
+    }
+
+    h1 {
+      font-size: ${theme.fontSizeGiant};
+      margin: 1em 0 0.2em 0;
+      padding: 0;
+    }
+
+    h2 {
+      font-size: ${theme.fontSizeBigger};
+      font-weight: 100;
+      margin: 1em 0 0.25em 0;
+      padding: 0.5em 0 0;
+      font-weight: 500;
+      color: ${theme.palette.c_white};
     }
   `;
 };
@@ -153,8 +168,16 @@ const RemoteSettings = () => {
             </Button>
           </div>
 
-          <Typography variant="h3">API Provider Settings</Typography>
+          <Typography variant="h1">API Provider Settings</Typography>
 
+          <div className="secrets">
+            <WarningIcon sx={{ color: "#ff9800" }} />
+            <Typography>
+              Keep your keys and tokens secure and do not share them publicly
+            </Typography>
+          </div>
+
+          <Typography variant="h2">Replicate</Typography>
           <div className="settings-item">
             <TextField
               autoComplete="off"
@@ -185,6 +208,7 @@ const RemoteSettings = () => {
             </div>
           </div>
 
+          <Typography variant="h2">OpenAI</Typography>
           <div className="settings-item">
             <TextField
               autoComplete="off"
@@ -211,6 +235,7 @@ const RemoteSettings = () => {
             </div>
           </div>
 
+          <Typography variant="h2">Anthropic</Typography>
           <div className="settings-item">
             <TextField
               autoComplete="off"
@@ -222,7 +247,6 @@ const RemoteSettings = () => {
               }
               variant="standard"
             />
-
             <div className="text-and-button">
               <Typography className="description">
                 By entering your Anthropic API token, you&apos;ll be able to use
@@ -239,6 +263,7 @@ const RemoteSettings = () => {
             </div>
           </div>
 
+          <Typography variant="h2">HuggingFace</Typography>
           <div className="settings-item">
             <TextField
               autoComplete="off"
@@ -264,6 +289,7 @@ const RemoteSettings = () => {
             </div>
           </div>
 
+          <Typography variant="h2">Kling AI</Typography>
           <div className="settings-item">
             <TextField
               autoComplete="off"
@@ -295,6 +321,7 @@ const RemoteSettings = () => {
             </Typography>
           </div>
 
+          <Typography variant="h2">Luma AI</Typography>
           <div className="settings-item">
             <TextField
               autoComplete="off"
@@ -318,6 +345,7 @@ const RemoteSettings = () => {
             </Typography>
           </div>
 
+          <Typography variant="h2">AIME</Typography>
           <div className="settings-item">
             <TextField
               autoComplete="off"
@@ -349,6 +377,7 @@ const RemoteSettings = () => {
             </Typography>
           </div>
 
+          <Typography variant="h2">Google</Typography>
           <div className="settings-item">
             <TextField
               autoComplete="off"
@@ -411,13 +440,9 @@ const RemoteSettings = () => {
             </div>
           </div>
 
-          <div className="secrets">
-            <WarningIcon sx={{ color: "#ff9800" }} />
-            <Typography>
-              Keep your keys and tokens secure and do not share them publicly
-            </Typography>
-          </div>
-          <Typography variant="h3">ComfyUI</Typography>
+          <Typography variant="h1">Folder Settings</Typography>
+
+          <Typography variant="h2">ComfyUI</Typography>
 
           <div className="settings-item folder-path">
             <TextField
@@ -435,7 +460,7 @@ const RemoteSettings = () => {
             </Typography>
           </div>
 
-          <Typography variant="h3">ChromaDB</Typography>
+          <Typography variant="h2">ChromaDB</Typography>
 
           <div className="settings-item">
             <TextField
@@ -447,8 +472,14 @@ const RemoteSettings = () => {
               variant="standard"
             />
             <Typography className="description">
-              Set the path to your ChromaDB storage folder. ChromaDB is used to
-              store and retrieve embeddings for semantic search.
+              ChromaDB is used to store and retrieve embeddings for semantic
+              search.
+              <br />
+              Set the path where you want ChromaDB to store its data.
+              <br />
+              This can be any folder path - ChromaDB will create and manage the
+              storage automatically.
+              <br />
             </Typography>
           </div>
         </div>
