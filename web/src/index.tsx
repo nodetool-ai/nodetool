@@ -132,6 +132,7 @@ function getRoutes() {
           <ThemeProvider theme={ThemeNodetool}>
             <CssBaseline />
             <AppHeader />
+            <PanelLeft />
             <AssetExplorer />
           </ThemeProvider>
         </ProtectedRoute>
@@ -144,19 +145,8 @@ function getRoutes() {
           <ThemeProvider theme={ThemeNodetool}>
             <CssBaseline />
             <AppHeader />
+            <PanelLeft />
             <ExampleGrid />
-          </ThemeProvider>
-        </ProtectedRoute>
-      )
-    },
-    {
-      path: "workflows",
-      element: (
-        <ProtectedRoute>
-          <ThemeProvider theme={ThemeNodetool}>
-            <CssBaseline />
-            <AppHeader />
-            <WorkflowGrid />
           </ThemeProvider>
         </ProtectedRoute>
       )
@@ -202,19 +192,10 @@ function getRoutes() {
           <ThemeProvider theme={ThemeNodetool}>
             <CssBaseline />
             <AppHeader />
+            <PanelLeft />
             <OpenOrCreateDialog />
           </ThemeProvider>
         </ProtectedRoute>
-      )
-    },
-    {
-      path: "help/:nodeType",
-      element: (
-        <ThemeProvider theme={ThemeNodetool}>
-          <CssBaseline />
-          <AppHeader />
-          <NodeDocumentation />
-        </ThemeProvider>
       )
     }
   ];

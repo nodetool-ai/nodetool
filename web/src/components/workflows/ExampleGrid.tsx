@@ -19,6 +19,11 @@ import { css } from "@emotion/react";
 
 const styles = (theme: any) =>
   css({
+    "&": {
+      position: "relative",
+      width: "100%",
+      left: "60px"
+    },
     ".container": {
       display: "flex",
       flexWrap: "wrap",
