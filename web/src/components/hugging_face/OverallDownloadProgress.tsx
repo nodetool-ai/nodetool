@@ -1,5 +1,5 @@
 import React from "react";
-import { Box, Tooltip, Typography } from "@mui/material";
+import { Box, Button, Tooltip, Typography } from "@mui/material";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { keyframes } from "@emotion/react";
 import ThemeNodetool from "../themes/ThemeNodetool";
@@ -50,26 +50,27 @@ const OverallDownloadProgress: React.FC = () => {
       <Box
         className="overall-download-progress"
         sx={{
-          padding: "10px 10px",
+          padding: "10px 0",
           cursor: "pointer"
         }}
         onClick={() => {
           openDialog();
         }}
       >
-        <Box
+        <Button
+          className="action-button"
+          tabIndex={-1}
           sx={{
             display: "flex",
             alignItems: "center",
-            gap: "4px",
-            fontSize: "0.8em"
+            gap: "2px"
           }}
         >
-          <FileDownloadIcon
-            sx={{ fontSize: "0.9em", color: ThemeNodetool.palette.c_gray5 }}
-          />
+          <div className="icon-container">
+            <FileDownloadIcon sx={{ fontSize: "1.5em" }} />
+          </div>
           DOWNLOADS
-        </Box>
+        </Button>
         {progress > 0 && (
           <>
             <Box sx={{ fontSize: "0.6em", float: "left", marginRight: "10px" }}>

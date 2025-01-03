@@ -58,6 +58,7 @@ const NotificationButton: React.FC = React.memo(() => {
           <Badge badgeContent={unreadCount} color="error">
             <NotificationsIcon sx={{ fontSize: "1.2rem" }} />
           </Badge>
+          Notifications
         </Button>
       </Tooltip>
       <Popover
