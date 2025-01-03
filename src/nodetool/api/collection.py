@@ -128,12 +128,19 @@ async def index(name: str, req: IndexRequest, user: User = Depends(current_user)
         md = MarkItDown()
 
         def convert_file(file: IndexFile):
-            return (file.path, md.convert(file.path).text_content)
+            try:
+                return (file.path, md.convert(file.path).text_content)
+            except Exception as e:
+                print(e)
+                return (file.path, None)
 
         converted = [convert_file(file) for file in req.files]
         chunks = []
         for path, text in converted:
-            chunks.extend(split_document(text, path))
+            if text:
+                chunks.extend(split_document(text, path))
+
+        chunks = [chunk for chunk in chunks if chunk.text]
 
         ids = [chunk.get_document_id() for chunk in chunks]
         docs = [chunk.text for chunk in chunks]
