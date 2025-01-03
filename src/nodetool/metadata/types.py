@@ -215,6 +215,7 @@ class Provider(str, enum.Enum):
     Ollama = "ollama"
     Comfy = "comfy"
     Local = "local"
+    Gemini = "gemini"
     Empty = "empty"
 
 
