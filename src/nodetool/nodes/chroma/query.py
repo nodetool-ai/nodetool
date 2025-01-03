@@ -1,6 +1,7 @@
+from nodetool.common.chroma_client import get_collection
 from nodetool.metadata.types import (
     AssetRef,
-    ChromaCollection,
+    Collection,
     FolderRef,
     ImageRef,
     TextRef,
@@ -19,52 +20,55 @@ class QueryImage(ChromaNode):
     Query the index for similar images.
     """
 
-    collection: ChromaCollection = Field(
-        default=ChromaCollection(), description="The collection to query"
+    collection: Collection = Field(
+        default=Collection(), description="The collection to query"
     )
     image: ImageRef = Field(default=ImageRef(), description="The image to query")
     n_results: int = Field(default=1, description="The number of results to return")
 
-    async def process(self, context: ProcessingContext) -> list[AssetRef]:
-        if not self.image.asset_id and self.image.uri.startswith("file://"):
-            raise ValueError("The image needs to be selected")
+    @classmethod
+    def return_type(cls):
+        return {
+            "ids": list[str],
+            "documents": list[str],
+            "metadatas": list[dict],
+            "distances": list[float],
+        }
 
-        collection = self.get_collection(context, self.collection)
+    async def process(self, context: ProcessingContext):
+        if not self.image.asset_id and not self.image.uri:
+            raise ValueError("Image is not connected")
+
+        collection = get_collection(self.collection.name)
         image = await context.image_to_pil(self.image)
         result = collection.query(
             query_images=[np.array(image)], n_results=self.n_results
         )
+        assert result["ids"] is not None, "Ids are not returned"
+        assert result["documents"] is not None, "Documents are not returned"
+        assert result["metadatas"] is not None, "Metadatas are not returned"
+        assert result["distances"] is not None, "Distances are not returned"
+
         ids = [str(id) for id in result["ids"][0]]
+        documents = result["documents"][0]
+        metadatas = result["metadatas"][0]
+        distances = result["distances"][0]
 
-        return await self.load_results(context, ids)
-
-
-# class QueryText(ChromaNode):
-#     """
-#     Query the index for similar text.
-#     """
-
-#     collection: ChromaCollection = Field(
-#         default=ChromaCollection(), description="The collection to query"
-#     )
-#     text: str = Field(default="", description="The text to query")
-#     n_results: int = Field(default=1, description="The number of results to return")
-
-#     async def process(self, context: ProcessingContext) -> list[AssetRef]:
-#         collection = self.get_or_create_collection(context, self.collection)
-#         result = collection.query(query_texts=[self.text], n_results=self.n_results)
-#         ids = [str(id) for id in result["ids"][0]]
-
-#         return await self.load_results(context, ids)
+        return {
+            "ids": ids,
+            "documents": documents,
+            "metadatas": metadatas,
+            "distances": distances,
+        }
 
 
-class QueryDocuments(ChromaNode):
+class QueryText(ChromaNode):
     """
-    Query the index for similar documents and return their content.
+    Query the index for similar text.
     """
 
-    collection: ChromaCollection = Field(
-        default=ChromaCollection(), description="The collection to query"
+    collection: Collection = Field(
+        default=Collection(), description="The collection to query"
     )
     text: str = Field(default="", description="The text to query")
     n_results: int = Field(default=1, description="The number of results to return")
@@ -78,25 +82,23 @@ class QueryDocuments(ChromaNode):
             "distances": list[float],
         }
 
-    async def process(self, context: ProcessingContext) -> dict:
-        if not self.text:
-            raise ValueError("The text needs to be provided")
-
-        collection = self.get_collection(context, self.collection)
-
-        result = collection.query(
-            query_texts=[self.text],
-            n_results=self.n_results,
-        )
+    async def process(self, context: ProcessingContext):
+        collection = get_collection(self.collection.name)
+        result = collection.query(query_texts=[self.text], n_results=self.n_results)
 
         assert result["ids"] is not None, "Ids are not returned"
         assert result["documents"] is not None, "Documents are not returned"
         assert result["metadatas"] is not None, "Metadatas are not returned"
         assert result["distances"] is not None, "Distances are not returned"
 
+        ids = [str(id) for id in result["ids"][0]]
+        documents = result["documents"][0]
+        metadatas = result["metadatas"][0]
+        distances = result["distances"][0]
+
         return {
-            "ids": result["ids"][0],
-            "documents": result["documents"][0],
-            "metadatas": result["metadatas"][0],
-            "distances": result["distances"][0],
+            "ids": ids,
+            "documents": documents,
+            "metadatas": metadatas,
+            "distances": distances,
         }
