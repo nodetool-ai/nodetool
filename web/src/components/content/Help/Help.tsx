@@ -5,6 +5,7 @@ import { Typography, Button, Tabs, Tab, Box } from "@mui/material";
 import CloseButton from "../../buttons/CloseButton";
 import { useAppHeaderStore } from "../../../stores/AppHeaderStore";
 import DataTypesList from "./DataTypesList";
+import ThemeNodetool from "../../themes/ThemeNodetool";
 
 interface TabPanelProps {
   children: React.ReactNode;
@@ -19,22 +20,20 @@ const helpStyles = (theme: any) =>
       padding: "2em",
       borderRadius: "1em",
       position: "fixed",
-      width: "50vw",
+      width: "70vw",
       minWidth: "600px",
-      maxWidth: "800px",
+      maxWidth: "1000px",
       height: "85vh",
       top: "50%",
       left: "50%",
       transform: "translate(-50%, -50%)",
       border: "2px solid" + theme.palette.c_gray3
-      //overflow: "hidden",
     },
     ".help": {
       display: "flex",
       flexDirection: "column",
       height: "100%",
       gap: ".1em"
-      // overflow: "hidden"
     },
 
     ".top": {
@@ -113,7 +112,7 @@ const Help = ({ handleClose }: { handleClose: () => void }) => {
         <div className="top">
           <Typography variant="h4">Help</Typography>
           <Tabs className="help-tabs" value={helpIndex} onChange={handleChange}>
-            <Tab label="General" />
+            <Tab label="Controls & Shortcuts" />
             <Tab label="DataTypes" />
           </Tabs>
         </div>
@@ -209,23 +208,26 @@ const Help = ({ handleClose }: { handleClose: () => void }) => {
               <Button className="no-border">Click + Drag Horizontal</Button>
               <Typography
                 variant="body2"
-                color="#999"
-                style={{ border: "0", marginLeft: ".5em" }}
+                // color="#999"
+                style={{
+                  border: "0",
+                  marginLeft: ".5em",
+                  color: ThemeNodetool.palette.c_gray6,
+                  fontSize: ThemeNodetool.fontSizeSmaller
+                }}
               >
-                SHIFT: Slow
+                hold SHIFT for FINE adjustment
                 <br />
-                CTRL: Fast
+                hold CTRL for FAST adjustment
                 <br />
-                SHIFT + CTRL: Faster
+                hold SHIFT + CTRL for FASTER adjustment
                 <br />
               </Typography>
             </div>
 
             <div className="help-item">
               <Typography>Edit Number</Typography>
-              <Button className="no-border">
-                Double click a number property
-              </Button>
+              Click a number property and enter a value
             </div>
             <div className="help-item">
               <Typography>Set Default</Typography>
@@ -253,7 +255,7 @@ const Help = ({ handleClose }: { handleClose: () => void }) => {
 
             <div className="help-item">
               <Typography>Run Workflow</Typography>
-              <Button>CTRL + Enter</Button>
+              <Button>CTRL + Enter</Button> | <Button>CMD + Enter</Button>
             </div>
             <div className="help-item">
               <Typography>Cancel Workflow</Typography>
