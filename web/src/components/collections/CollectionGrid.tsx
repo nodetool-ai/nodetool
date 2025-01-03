@@ -243,6 +243,10 @@ const CollectionGrid = () => {
                               100
                             }
                           />
+                          <CircularProgress
+                            size={16}
+                            sx={{ ml: 1, verticalAlign: "middle" }}
+                          />
                           <Typography variant="caption" sx={{ ml: 1 }}>
                             {indexProgress.current}/{indexProgress.total}
                           </Typography>
