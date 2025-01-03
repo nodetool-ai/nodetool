@@ -182,6 +182,7 @@ const namespaceStyles = (theme: any, inPanel: boolean) =>
       cursor: "pointer",
       ".node-button": {
         padding: ".1em .5em",
+        flexGrow: 1,
         "& .MuiTypography-root": {
           // fontSize: theme.fontSizeNormal
         }
