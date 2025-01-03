@@ -20592,7 +20592,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": 2024,
+        "default": 2025,
         "title": "Year",
         "description": "Year of the datetime",
         "min": null,
@@ -20607,7 +20607,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": 12,
+        "default": 1,
         "title": "Month",
         "description": "Month of the datetime",
         "min": null,
@@ -20622,7 +20622,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": 31,
+        "default": 3,
         "title": "Day",
         "description": "Day of the datetime",
         "min": null,
@@ -31196,6 +31196,80 @@
     "recommended_models": []
   },
   {
+    "title": "Document Input",
+    "description": "Document asset input for workflows.\n    input, parameter, document\n\n    Use cases:\n    - Load documents for processing\n    - Analyze document content\n    - Provide document input to models",
+    "namespace": "nodetool.input",
+    "node_type": "nodetool.input.DocumentInput",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "label",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "Input Label",
+        "title": "Label",
+        "description": "The label for this input node.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "name",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Name",
+        "description": "The parameter name for the workflow.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "value",
+        "type": {
+          "type": "document",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "document",
+          "uri": "",
+          "asset_id": null,
+          "data": null
+        },
+        "title": "Value",
+        "description": "The document to use as input.",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "document",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
     "title": "Image Input",
     "description": "Image asset input for workflows.\n    input, parameter, image\n\n    Use cases:\n    - Load images for processing or analysis\n    - Provide visual input to models\n    - Select images for manipulation",
     "namespace": "nodetool.input",
@@ -31420,10 +31494,10 @@
     "recommended_models": []
   },
   {
-    "title": "Folder",
-    "description": "Folder of assets input for workflows.\n    input, parameter, folder\n\n    Use cases:\n    - Batch process multiple assets\n    - Select a collection of related files\n    - Iterate over a set of inputs",
+    "title": "Path Input",
+    "description": "Local path input for workflows.\n    input, parameter, path\n\n    Use cases:\n    - Provide a local path to a file or directory\n    - Specify a file or directory for processing\n    - Load local data for analysis",
     "namespace": "nodetool.input",
-    "node_type": "nodetool.input.Folder",
+    "node_type": "nodetool.input.PathInput",
     "layout": "default",
     "properties": [
       {
@@ -31457,37 +31531,20 @@
         "max": null
       },
       {
-        "name": "folder",
+        "name": "value",
         "type": {
-          "type": "folder",
+          "type": "file_path",
           "optional": false,
           "values": null,
           "type_args": [],
           "type_name": null
         },
         "default": {
-          "type": "folder",
-          "uri": "",
-          "asset_id": null,
-          "data": null
+          "type": "file_path",
+          "path": ""
         },
-        "title": "Folder",
-        "description": "The folder to use as input.",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "limit",
-        "type": {
-          "type": "int",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": 1000,
-        "title": "Limit",
-        "description": null,
+        "title": "Value",
+        "description": "The path to use as input.",
         "min": null,
         "max": null
       }
@@ -31495,406 +31552,10 @@
     "outputs": [
       {
         "type": {
-          "type": "list",
-          "optional": false,
-          "values": null,
-          "type_args": [
-            {
-              "type": "asset",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": []
-  },
-  {
-    "title": "Image Folder",
-    "description": "Folder of image assets input for workflows.\n    input, parameter, folder, image\n\n    Use cases:\n    - Batch process multiple images\n    - Train models on image datasets\n    - Create image galleries or collections",
-    "namespace": "nodetool.input",
-    "node_type": "nodetool.input.ImageFolder",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "label",
-        "type": {
-          "type": "str",
+          "type": "file_path",
           "optional": false,
           "values": null,
           "type_args": [],
-          "type_name": null
-        },
-        "default": "Input Label",
-        "title": "Label",
-        "description": "The label for this input node.",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "name",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Name",
-        "description": "The parameter name for the workflow.",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "folder",
-        "type": {
-          "type": "folder",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": {
-          "type": "folder",
-          "uri": "",
-          "asset_id": null,
-          "data": null
-        },
-        "title": "Folder",
-        "description": "The folder to use as input.",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "limit",
-        "type": {
-          "type": "int",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": 1000,
-        "title": "Limit",
-        "description": null,
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "list",
-          "optional": false,
-          "values": null,
-          "type_args": [
-            {
-              "type": "image",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": []
-  },
-  {
-    "title": "Audio Folder",
-    "description": "Folder of audio assets input for workflows.\n    input, parameter, folder, audio\n\n    Use cases:\n    - Batch process multiple audio files\n    - Analyze audio datasets\n    - Create playlists or audio collections",
-    "namespace": "nodetool.input",
-    "node_type": "nodetool.input.AudioFolder",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "label",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "Input Label",
-        "title": "Label",
-        "description": "The label for this input node.",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "name",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Name",
-        "description": "The parameter name for the workflow.",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "folder",
-        "type": {
-          "type": "folder",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": {
-          "type": "folder",
-          "uri": "",
-          "asset_id": null,
-          "data": null
-        },
-        "title": "Folder",
-        "description": "The folder to use as input.",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "limit",
-        "type": {
-          "type": "int",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": 1000,
-        "title": "Limit",
-        "description": null,
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "list",
-          "optional": false,
-          "values": null,
-          "type_args": [
-            {
-              "type": "audio",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": []
-  },
-  {
-    "title": "Video Folder",
-    "description": "Folder of video assets input for workflows.\n    input, parameter, folder, video\n\n    Use cases:\n    - Batch process multiple video files\n    - Analyze video datasets\n    - Create video playlists or collections",
-    "namespace": "nodetool.input",
-    "node_type": "nodetool.input.VideoFolder",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "label",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "Input Label",
-        "title": "Label",
-        "description": "The label for this input node.",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "name",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Name",
-        "description": "The parameter name for the workflow.",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "folder",
-        "type": {
-          "type": "folder",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": {
-          "type": "folder",
-          "uri": "",
-          "asset_id": null,
-          "data": null
-        },
-        "title": "Folder",
-        "description": "The folder to use as input.",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "limit",
-        "type": {
-          "type": "int",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": 1000,
-        "title": "Limit",
-        "description": null,
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "list",
-          "optional": false,
-          "values": null,
-          "type_args": [
-            {
-              "type": "video",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": []
-  },
-  {
-    "title": "Text Folder",
-    "description": "Folder of text assets input for workflows.\n    input, parameter, folder, text\n\n    Use cases:\n    - Batch process multiple text documents\n    - Analyze text corpora\n    - Create document collections",
-    "namespace": "nodetool.input",
-    "node_type": "nodetool.input.TextFolder",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "label",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "Input Label",
-        "title": "Label",
-        "description": "The label for this input node.",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "name",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Name",
-        "description": "The parameter name for the workflow.",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "folder",
-        "type": {
-          "type": "folder",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": {
-          "type": "folder",
-          "uri": "",
-          "asset_id": null,
-          "data": null
-        },
-        "title": "Folder",
-        "description": "The folder to use as input.",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "limit",
-        "type": {
-          "type": "int",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": 1000,
-        "title": "Limit",
-        "description": null,
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "list",
-          "optional": false,
-          "values": null,
-          "type_args": [
-            {
-              "type": "text",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
           "type_name": null
         },
         "name": "output",
@@ -90782,6 +90443,212 @@
               "type_name": null
             }
           ],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
+    "title": "Gemini",
+    "description": "Generate text using Gemini.",
+    "namespace": "google.gemini",
+    "node_type": "google.gemini.Gemini",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "model",
+        "type": {
+          "type": "enum",
+          "optional": false,
+          "values": [
+            "gemini-1.5-pro",
+            "gemini-1.5-flash",
+            "gemini-2.0-flash-exp"
+          ],
+          "type_args": [],
+          "type_name": "nodetool.nodes.google.gemini.GeminiModel"
+        },
+        "default": "gemini-1.5-pro",
+        "title": "Model",
+        "description": null,
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "prompt",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Prompt",
+        "description": null,
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "messages",
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "message",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": [],
+        "title": "Messages",
+        "description": "History of messages to send to the model.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "image",
+        "type": {
+          "type": "image",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null
+        },
+        "title": "Image",
+        "description": "Image to use for generation",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "system_instruction",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "System Instruction",
+        "description": "Instructions for the model to steer it toward better performance.\n      For example, \"Answer as concisely as possible\" or \"Don't use technical\n      terms in your response\".\n      ",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "temperature",
+        "type": {
+          "type": "float",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 0.5,
+        "title": "Temperature",
+        "description": "Value that controls the degree of randomness in token selection.\n      Lower temperatures are good for prompts that require a less open-ended or\n      creative response, while higher temperatures can lead to more diverse or\n      creative results.\n      ",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "top_p",
+        "type": {
+          "type": "float",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 0.5,
+        "title": "Top P",
+        "description": "Tokens are selected from the most to least probable until the sum\n      of their probabilities equals this value. Use a lower value for less\n      random responses and a higher value for more random responses.\n      ",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "top_k",
+        "type": {
+          "type": "float",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 40,
+        "title": "Top K",
+        "description": "For each token selection step, the ``top_k`` tokens with the\n          highest probabilities are sampled. Then tokens are further filtered based\n          on ``top_p`` with the final token selected using temperature sampling. Use\n          a lower number for less random responses and a higher number for more\n          random responses.\n          ",
+        "min": 1.0,
+        "max": 50.0
+      },
+      {
+        "name": "max_output_tokens",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 100,
+        "title": "Max Output Tokens",
+        "description": "Maximum number of tokens that can be generated in the response.\n      ",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "presence_penalty",
+        "type": {
+          "type": "float",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 0.0,
+        "title": "Presence Penalty",
+        "description": "Positive values penalize tokens that already appear in the\n      generated text, increasing the probability of generating more diverse\n      content.\n      ",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "frequency_penalty",
+        "type": {
+          "type": "float",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 0.0,
+        "title": "Frequency Penalty",
+        "description": "Positive values penalize tokens that repeatedly appear in the\n      generated text, increasing the probability of generating more diverse\n      content.\n      ",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
           "type_name": null
         },
         "name": "output",

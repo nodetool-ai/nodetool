@@ -190,6 +190,10 @@ const styles = (theme: any) =>
     ".progress-bar": {
       width: "80%",
       marginBottom: "0.5em"
+    },
+    ".compose-message.dragging": {
+      borderColor: theme.palette.c_hl1,
+      backgroundColor: `${theme.palette.c_gray2}80`
     }
   });
 
@@ -204,7 +208,7 @@ type ChatViewProps = {
   progress: number;
   total: number;
   messages: Array<Message>;
-  sendMessage: (prompt: string) => Promise<void>;
+  sendMessage: (text: string, image?: string) => Promise<void>;
 };
 export const Progress = ({
   progress,
@@ -263,6 +267,7 @@ const ChatView = ({
   const [submitted, setSubmitted] = useState(false);
   const [prompt, setPrompt] = useState("");
   const loading = false;
+  const [isDragging, setIsDragging] = useState(false);
 
   const handleOnChange = useCallback(
     (event: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -358,6 +363,35 @@ const ChatView = ({
     );
   }, []);
 
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  }, []);
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      setIsDragging(false);
+
+      const file = e.dataTransfer.files[0];
+      if (file && file.type.startsWith("image/")) {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const dataUri = reader.result as string;
+          sendMessage(prompt, dataUri);
+          setPrompt("");
+        };
+        reader.readAsDataURL(file);
+      }
+    },
+    [prompt, sendMessage]
+  );
+
   return (
     <div className="chat-view" css={styles}>
       <ul className="messages" ref={messagesListRef}>
@@ -382,7 +416,12 @@ const ChatView = ({
       </ul>
 
       <div className="chat-controls">
-        <div className="compose-message">
+        <div
+          className={`compose-message ${isDragging ? "dragging" : ""}`}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+        >
           <TextareaAutosize
             className="chat-input"
             id={"chat-prompt"}

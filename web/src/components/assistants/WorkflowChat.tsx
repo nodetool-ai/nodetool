@@ -1,6 +1,10 @@
 import React, { useCallback, useEffect } from "react";
 import useWorkflowChatStore from "../../stores/WorkflowChatStore";
-import { Message } from "../../stores/ApiTypes";
+import {
+  Message,
+  MessageImageContent,
+  MessageTextContent
+} from "../../stores/ApiTypes";
 import ChatView from "./ChatView";
 import { useNodeStore } from "../../stores/NodeStore";
 import { Alert, Box, Fade } from "@mui/material";
@@ -37,8 +41,23 @@ const WorkflowChat: React.FC<WorkflowChatProps> = ({
   }, [connect, workflow_id]);
 
   const handleSendMessage = useCallback(
-    async (content: string) => {
+    async (text: string, image?: string) => {
       if (workflow_id) {
+        const content: (MessageTextContent | MessageImageContent)[] = [
+          {
+            type: "text",
+            text
+          }
+        ];
+        if (image) {
+          content.push({
+            type: "image_url",
+            image: {
+              type: "image",
+              uri: image
+            }
+          });
+        }
         const newMessage: Message = {
           id: Date.now().toString(),
           role: "user",
