@@ -853,11 +853,7 @@ export interface paths {
          * @description Get a specific collection by name
          */
         get: operations["get_collection_api_collections__name__get"];
-        /**
-         * Modify Collection
-         * @description Modify an existing collection
-         */
-        put: operations["modify_collection_api_collections__name__put"];
+        put?: never;
         post?: never;
         /**
          * Delete Collection
@@ -869,20 +865,17 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/collections/{name}/count": {
+    "/api/collections/{name}/index": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /**
-         * Count Documents
-         * @description Count documents in a collection
-         */
-        get: operations["count_documents_api_collections__name__count_get"];
+        get?: never;
         put?: never;
-        post?: never;
+        /** Index */
+        post: operations["index_api_collections__name__index_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1049,17 +1042,12 @@ export interface components {
             /** Count */
             count: number;
         };
-        /** CollectionModify */
-        CollectionModify: {
-            /** Name */
-            name?: string | null;
-            /** Metadata */
-            metadata?: Record<string, never> | null;
-        };
         /** CollectionResponse */
         CollectionResponse: {
             /** Name */
             name: string;
+            /** Count */
+            count: number;
             /** Metadata */
             metadata: Record<string, never>;
         };
@@ -2187,6 +2175,18 @@ export interface components {
             asset_id?: string | null;
             /** Data */
             data?: unknown;
+        };
+        /** IndexFile */
+        IndexFile: {
+            /** Path */
+            path: string;
+            /** Mime Type */
+            mime_type: string;
+        };
+        /** IndexRequest */
+        IndexRequest: {
+            /** Files */
+            files: components["schemas"]["IndexFile"][];
         };
         /** Job */
         Job: {
@@ -5525,45 +5525,6 @@ export interface operations {
             };
         };
     };
-    modify_collection_api_collections__name__put: {
-        parameters: {
-            query?: never;
-            header?: {
-                authorization?: string | null;
-            };
-            path: {
-                name: string;
-            };
-            cookie?: {
-                auth_cookie?: string | null;
-            };
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CollectionModify"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CollectionResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     delete_collection_api_collections__name__delete: {
         parameters: {
             query?: never;
@@ -5599,7 +5560,7 @@ export interface operations {
             };
         };
     };
-    count_documents_api_collections__name__count_get: {
+    index_api_collections__name__index_post: {
         parameters: {
             query?: never;
             header?: {
@@ -5612,7 +5573,11 @@ export interface operations {
                 auth_cookie?: string | null;
             };
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IndexRequest"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {
@@ -5620,9 +5585,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: number;
-                    };
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
