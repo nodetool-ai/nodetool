@@ -58,7 +58,7 @@ const OverallDownloadProgress: React.FC = () => {
         }}
       >
         <Button
-          className="action-button"
+          className="command-icon"
           tabIndex={-1}
           sx={{
             display: "flex",
@@ -69,7 +69,6 @@ const OverallDownloadProgress: React.FC = () => {
           <div className="icon-container">
             <FileDownloadIcon sx={{ fontSize: "1.5em" }} />
           </div>
-          DOWNLOADS
         </Button>
         {progress > 0 && (
           <>
