@@ -6,6 +6,12 @@ const logToggle = document.getElementById("log-toggle");
 const updateStepsElement = document.getElementById("update-steps");
 const openLogFileButton = document.getElementById("open-log-file");
 
+// Add these variables at the top with other declarations
+const strokeInterval = { current: null };
+const fillInterval = { current: null };
+const colorfulStrokeInterval = { current: null };
+const colorfulFillInterval = { current: null };
+
 /**
  * Creates a simple logging utility
  * @param {HTMLElement} logElement - The DOM element to append log messages to
@@ -128,9 +134,14 @@ function initializeApp() {
         // Hide the log pane
         logContainer.classList.remove("expanded");
         logToggle.innerHTML = "<span>▲ Show Log</span>";
+
+        // Clear all animation intervals when server starts
+        clearAllAnimations();
       } else {
         const bootTextElement = document.querySelector(".boot-text");
         bootTextElement.textContent = bootMsg;
+        // Start animations only if server hasn't started
+        startIconAnimations();
       }
 
       logs.forEach((log) => simpleLogger.log(log));
@@ -229,33 +240,48 @@ function updateFill() {
   icon.style.setProperty("--fill-color", getRandomGrayColor());
 }
 
-setInterval(updateStroke, 5000);
-setTimeout(() => {
-  setInterval(updateFill, 5000);
-}, 60000 + 2500);
-
-setTimeout(() => {
-  setInterval(() => {
-    const icon = document.querySelector(".nodetool-icon");
-    if (!(icon instanceof HTMLElement)) {
-      console.warn("Icon element not found or invalid");
-      return;
+function clearAllAnimations() {
+  [
+    strokeInterval,
+    fillInterval,
+    colorfulStrokeInterval,
+    colorfulFillInterval,
+  ].forEach((interval) => {
+    if (interval.current) {
+      clearInterval(interval.current);
+      interval.current = null;
     }
+  });
+}
 
-    icon.style.setProperty("--stroke-color", getRandomColor());
-  }, 5000);
-}, 5 * 60000);
+function startIconAnimations() {
+  updateStroke(); // Initial stroke update
 
-setTimeout(() => {
-  setInterval(() => {
-    const icon = document.querySelector(".nodetool-icon");
-    if (!(icon instanceof HTMLElement)) {
-      console.warn("Icon element not found or invalid");
-      return;
-    }
+  strokeInterval.current = setInterval(updateStroke, 5000);
 
-    icon.style.setProperty("--fill-color", getRandomColor());
-  }, 5000);
-}, 10 * 60000 + 2500);
+  setTimeout(() => {
+    fillInterval.current = setInterval(updateFill, 5000);
+  }, 60000 + 2500);
 
-updateStroke();
+  setTimeout(() => {
+    colorfulStrokeInterval.current = setInterval(() => {
+      const icon = document.querySelector(".nodetool-icon");
+      if (!(icon instanceof HTMLElement)) {
+        console.warn("Icon element not found or invalid");
+        return;
+      }
+      icon.style.setProperty("--stroke-color", getRandomColor());
+    }, 5000);
+  }, 5 * 60000);
+
+  setTimeout(() => {
+    colorfulFillInterval.current = setInterval(() => {
+      const icon = document.querySelector(".nodetool-icon");
+      if (!(icon instanceof HTMLElement)) {
+        console.warn("Icon element not found or invalid");
+        return;
+      }
+      icon.style.setProperty("--fill-color", getRandomColor());
+    }, 5000);
+  }, 10 * 60000 + 2500);
+}

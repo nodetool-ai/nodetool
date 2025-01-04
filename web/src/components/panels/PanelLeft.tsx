@@ -12,7 +12,7 @@ import { memo, useState, useCallback } from "react";
 import AssetGrid from "../assets/AssetGrid";
 import WorkflowForm from "../workflows/WorkflowForm";
 import GridViewIcon from "@mui/icons-material/GridView";
-import WorkflowGrid from "../workflows/WorkflowGrid";
+import WorkflowList from "../workflows/WorkflowList";
 import StaticNodeMenu from "../node_menu/StaticNodeMenu";
 import { IconForType } from "../../config/data_types";
 import TuneIcon from "@mui/icons-material/Tune";
@@ -216,7 +216,7 @@ const PanelLeft: React.FC = () => {
           {activeView === "workflow" && <WorkflowForm />}
           {activeView === "workflowGrid" && (
             <Box sx={{ width: "100%", height: "100%", overflow: "auto" }}>
-              <WorkflowGrid />
+              <WorkflowList />
             </Box>
           )}
           {activeView === "nodes" && (

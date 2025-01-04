@@ -3,13 +3,16 @@ import { css } from "@emotion/react";
 
 import SearchInput from "../search/SearchInput";
 import ConfirmDialog from "../dialogs/ConfirmDialog";
-import { RenderListView } from "./RenderListView";
+import { WorkflowListView } from "./WorkflowListView";
 
 import { Typography, CircularProgress, Button, Tooltip } from "@mui/material";
 
 import { useWorkflowStore } from "../../stores/WorkflowStore";
 import { useCallback, useEffect, useState, useMemo } from "react";
-import { Workflow, WorkflowList } from "../../stores/ApiTypes";
+import {
+  Workflow,
+  WorkflowList as WorkflowListType
+} from "../../stores/ApiTypes";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { ErrorOutlineRounded } from "@mui/icons-material";
@@ -150,7 +153,7 @@ const loadWorkflows = async (cursor?: string, limit?: number) => {
   return data;
 };
 
-const WorkflowGrid = () => {
+const WorkflowList = () => {
   const [filterValue, setFilterValue] = useState("");
   const navigate = useNavigate();
   const { shiftKeyPressed, controlKeyPressed } = useKeyPressedStore(
@@ -171,11 +174,13 @@ const WorkflowGrid = () => {
   const [selectedWorkflows, setSelectedWorkflows] = useState<string[]>([]);
   const pageSize = 200;
 
-  const { data, isLoading, error, isError } = useQuery<WorkflowList, Error>({
-    queryKey: ["workflows"],
-    queryFn: () => loadWorkflows("", pageSize),
-    staleTime: 1000 * 60 * 15 // 15 minutes
-  });
+  const { data, isLoading, error, isError } = useQuery<WorkflowListType, Error>(
+    {
+      queryKey: ["workflows"],
+      queryFn: () => loadWorkflows("", pageSize),
+      staleTime: 1000 * 60 * 15 // 15 minutes
+    }
+  );
   const workflows = useMemo(() => data?.workflows || [], [data?.workflows]);
   const deleteWorkflow = useWorkflowStore((state) => state.delete);
   const [workflowsToDelete, setWorkflowsToDelete] = useState<Workflow[]>([]);
@@ -285,6 +290,7 @@ const WorkflowGrid = () => {
     async (event: React.MouseEvent<Element>, workflow: Workflow) => {
       event.stopPropagation();
       const newWorkflow = await copyWorkflow(workflow);
+      debugger;
       const baseName = workflow.name.replace(/ \(\d+\)$/, "");
       const existingNames = workflows
         .filter((w) => w.name.startsWith(baseName))
@@ -370,7 +376,7 @@ const WorkflowGrid = () => {
   const workflowItems = useMemo(
     () => (
       <div className="workflow-items" ref={gridRef}>
-        <RenderListView
+        <WorkflowListView
           workflows={filteredWorkflows}
           onOpenWorkflow={onDoubleClickWorkflow}
           onDuplicateWorkflow={duplicateWorkflow}
@@ -513,4 +519,4 @@ const WorkflowGrid = () => {
   );
 };
 
-export default WorkflowGrid;
+export default WorkflowList;
