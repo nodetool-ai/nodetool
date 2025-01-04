@@ -3,7 +3,6 @@ import { css } from "@emotion/react";
 import { VERSION } from "../../config/constants";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
-import { Link } from "react-router-dom";
 import {
   TextField,
   Button,
@@ -301,7 +300,6 @@ function SettingsMenu() {
           onClick={handleClick}
         >
           <SettingsIcon />
-          Settings
         </Button>
       </Tooltip>
       <Menu
@@ -518,8 +516,7 @@ function SettingsMenu() {
                   </Select>
                 </FormControl>
                 <Typography className="description">
-                  Choose grid or list layout for{" "}
-                  <Link to="/workflows">Workflows</Link>
+                  Choose grid or list layout for the Workflow menu.
                 </Typography>
               </div>
 
@@ -543,7 +540,7 @@ function SettingsMenu() {
                   </Select>
                 </FormControl>
                 <Typography className="description">
-                  Display the buttons in the top panel as text, icon or both.
+                  Change the display of the buttons in the top and center panel.
                 </Typography>
               </div>
 
