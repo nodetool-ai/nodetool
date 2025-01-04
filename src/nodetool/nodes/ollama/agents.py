@@ -616,3 +616,112 @@ class QuestionAnswerAgent(BaseNode):
         )
 
         return str(res["message"]["content"])
+
+
+class SchemaGenerator(BaseNode):
+    """
+    LLM Agent to generate structured data based on a provided JSON schema.
+    llm, json schema, data generation, structured data
+
+    Use cases:
+    - Generate sample data matching a specific schema
+    - Create test data with specific structure
+    - Convert natural language to structured data
+    - Populate templates with generated content
+    """
+
+    model: LlamaModel = Field(
+        default=LlamaModel(), description="The Llama model to use."
+    )
+    context_window: int = Field(
+        default=4096,
+        ge=1,
+        description="The context window size to use for the model.",
+    )
+    prompt: str = Field(
+        default="",
+        description="The user prompt for data generation",
+    )
+    schema: str = Field(
+        default="",
+        description="The JSON schema that defines the structure of the output",
+    )
+    temperature: float = Field(
+        default=0.7,
+        ge=0.0,
+        le=2.0,
+        description="The temperature to use for sampling.",
+    )
+    top_k: int = Field(
+        default=50,
+        ge=1,
+        le=100,
+        description="The number of highest probability tokens to keep for top-k sampling.",
+    )
+    top_p: float = Field(
+        default=0.95,
+        ge=0.0,
+        le=1.0,
+        description="The cumulative probability cutoff for nucleus/top-p sampling.",
+    )
+    keep_alive: int = Field(
+        default="300",
+        description="The number of seconds to keep the model alive.",
+    )
+
+    def requires_gpu(self) -> bool:
+        return True
+
+    async def process(self, context: ProcessingContext) -> dict:
+        if not self.schema:
+            raise ValueError(f"JSON schema must be provided: {self.schema}")
+
+        schema = json.loads(self.schema)
+
+        res = await context.run_prediction(
+            node_id=self._id,
+            provider=Provider.Ollama,
+            model=self.model.repo_id,
+            params={
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": """You are an assistant that generates data according to JSON schemas.
+                        You will be provided with a schema and a prompt, and should return valid JSON that matches the schema.
+                        Ensure all required fields are included and data types are correct.""",
+                    },
+                    {
+                        "role": "user",
+                        "content": f"""Generate data according to this schema:
+                        {json.dumps(self.schema, indent=2)}
+
+                        Requirements: {self.prompt}
+
+                        Respond with valid JSON that matches the schema.""",
+                    },
+                ],
+                "options": {
+                    "temperature": self.temperature,
+                    "top_k": self.top_k,
+                    "top_p": self.top_p,
+                    "keep_alive": self.keep_alive,
+                    "stream": False,
+                    "format": schema,
+                    "num_ctx": self.context_window,
+                },
+            },
+        )
+
+        content = str(res["message"]["content"])
+
+        # Extract JSON content
+        start = content.find("{")
+        end = content.rfind("}")
+
+        if start == -1 or end == -1:
+            raise ValueError(
+                f"No valid JSON data found in the response: {content[:1000]}"
+            )
+
+        content = content[start : end + 1]
+        return json.loads(content)
