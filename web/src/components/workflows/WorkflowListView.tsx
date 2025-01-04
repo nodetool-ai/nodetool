@@ -10,7 +10,7 @@ import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import Checkbox from "@mui/material/Checkbox";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 
-interface RenderListViewProps {
+interface WorkflowListViewProps {
   workflows: Workflow[];
   onOpenWorkflow: (workflow: Workflow) => void;
   onDuplicateWorkflow: (event: React.MouseEvent, workflow: Workflow) => void;
@@ -111,7 +111,7 @@ const listStyles = (theme: any) =>
     }
   });
 
-export const RenderListView: React.FC<RenderListViewProps> = ({
+export const WorkflowListView: React.FC<WorkflowListViewProps> = ({
   workflows,
   onOpenWorkflow,
   onDuplicateWorkflow,
