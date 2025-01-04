@@ -17,15 +17,15 @@ export const errorStyles = (theme: any) =>
     maxWidth: "240px",
 
     ".error-text": {
-      maxHeight: "4em",
+      maxHeight: "5em",
       fontFamily: theme.fontFamily1,
-      fontSize: theme.fontSizeNormal,
+      fontSize: theme.fontSizeSmaller,
       color: theme.palette.c_black,
       cursor: "auto",
       userSelect: "text",
-      lineHeight: "1.2em",
-      padding: "0.25em",
-      overflowX: "visible",
+      lineHeight: "1em",
+      padding: "0.25em .2em 0 0",
+      overflowX: "hidden",
       overflowY: "auto",
       "&::selection": {
         backgroundColor: theme.palette.c_white
