@@ -8,7 +8,8 @@ import {
   Box,
   Button,
   CircularProgress,
-  IconButton
+  IconButton,
+  Tooltip
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
@@ -18,14 +19,14 @@ const styles = (theme: any) =>
   css({
     // border: `1px solid ${theme.palette.c_gray1}`,
     borderRadius: "4px",
-    padding: "1em",
+    padding: ".5em",
     // background: theme.palette.c_gray2,
     position: "relative",
     ".download-progress-text": {
       fontFamily: theme.fontFamily2,
-      paddingBottom: "0.5em",
+      paddingBottom: "0.2em",
       width: "100%",
-      fontSize: "0.8em"
+      fontSize: theme.fontSizeSmaller
     },
     ".download-status": {
       padding: "1em 0",
@@ -33,9 +34,34 @@ const styles = (theme: any) =>
       fontFamily: theme.fontFamily2
     },
     ".repo-name": {
-      lineHeight: "1.3em",
+      lineHeight: "1.2em",
       wordBreak: "break-word",
-      paddingRight: "1.5em"
+      paddingRight: "1em"
+    },
+    ".progress-bar-container": {
+      height: "6px",
+      borderRadius: "3px",
+      overflow: "hidden",
+      position: "relative",
+      background: "#555",
+      marginTop: "1em"
+    },
+    ".progress-bar": {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      background: "linear-gradient(90deg, #3a6ba5, #5a9bd5)",
+      backgroundSize: "200% 100%",
+      transformOrigin: "right center"
+    },
+    ".download-details": {
+      minHeight: "120px"
+    },
+    ".cancel-button": {
+      padding: "1em",
+      marginTop: ".5em"
     }
   });
 
@@ -88,22 +114,38 @@ export const DownloadProgress: React.FC<{ name: string }> = ({ name }) => {
     download.status === "running" ||
     download.status === "progress";
 
+  const getCloseButtonTooltip = () => {
+    switch (download.status) {
+      case "completed":
+        return "Remove download from history";
+      case "cancelled":
+        return "Clear cancelled download";
+      case "error":
+        return "Clear failed download";
+      default:
+        return "Remove download";
+    }
+  };
+
   if (!download) return null;
 
   return (
     <Box css={styles}>
-      <IconButton
-        onClick={handleRemove}
-        size="small"
-        sx={{
-          position: "absolute",
-          top: 8,
-          right: 8,
-          color: "white"
-        }}
-      >
-        <CloseIcon fontSize="small" />
-      </IconButton>
+      <Tooltip title={getCloseButtonTooltip()}>
+        <IconButton
+          onClick={handleRemove}
+          size="small"
+          sx={{
+            position: "absolute",
+            top: 8,
+            right: 8,
+            color: "white"
+          }}
+          className="close-button"
+        >
+          <CloseIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
 
       <Typography className="repo-name" variant="subtitle1">
         {name}
@@ -125,112 +167,107 @@ export const DownloadProgress: React.FC<{ name: string }> = ({ name }) => {
         </Box>
       )}
       {download.status === "completed" && (
-        <Typography
-          className="download-status"
-          variant="body2"
-          color={ThemeNodetool.palette.c_success}
-        >
-          Download completed
-        </Typography>
+        <Tooltip title="Download has finished successfully">
+          <Typography
+            className="download-status"
+            variant="body2"
+            color={ThemeNodetool.palette.c_success}
+          >
+            Download completed
+          </Typography>
+        </Tooltip>
       )}
       {download.status === "cancelled" && (
-        <Typography
-          className="download-status"
-          variant="body2"
-          color={ThemeNodetool.palette.c_error}
-        >
-          Download cancelled
-        </Typography>
+        <Tooltip title="Download was cancelled. You can restart it from the model browser.">
+          <Typography
+            className="download-status"
+            variant="body2"
+            color={ThemeNodetool.palette.c_error}
+          >
+            Download cancelled
+          </Typography>
+        </Tooltip>
       )}
       {download.status === "error" && (
-        <Typography
-          className="download-status"
-          variant="body2"
-          color={ThemeNodetool.palette.c_error}
-        >
-          Download error
-        </Typography>
+        <Tooltip title="An error occurred during download. Try downloading again from the model browser.">
+          <Typography
+            className="download-status"
+            variant="body2"
+            color={ThemeNodetool.palette.c_error}
+          >
+            Download error
+          </Typography>
+        </Tooltip>
       )}
       {showDetails && download.totalBytes >= 0 && (
         <>
-          <Box
-            sx={{
-              height: "6px",
-              borderRadius: "3px",
-              overflow: "hidden",
-              position: "relative",
-              background: "#555",
-              marginTop: "1em"
-            }}
-          >
+          <Box className="progress-bar-container">
             <Box
+              className="progress-bar"
               sx={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
                 width: `${
                   (download.downloadedBytes / download.totalBytes) * 100
                 }%`,
-                background: "linear-gradient(90deg, #3a6ba5, #5a9bd5)",
-                backgroundSize: "200% 100%",
-                animation: `${pulse} 3s ease-in-out infinite, ${moveRight} 8s linear infinite`,
-                transformOrigin: "right center"
+                animation: `${pulse} 3s ease-in-out infinite, ${moveRight} 8s linear infinite`
               }}
             />
           </Box>
-          <Typography
-            className="download-progress-text"
-            variant="body2"
-            style={{ marginTop: "1em" }}
-          >
-            Size: {(download.downloadedBytes / 1024 / 1024).toFixed(2)} MB /{" "}
-            {(download.totalBytes / 1024 / 1024).toFixed(2)} MB
-          </Typography>
-          <Typography
-            className="download-progress-text"
-            variant="body2"
-            style={{ marginTop: "0.5em" }}
-          >
-            Files: {download.downloadedFiles} / {download.totalFiles}
-          </Typography>
-          <Typography
-            className="download-progress-text"
-            variant="body2"
-            style={{ marginTop: "0.5em" }}
-          >
-            Downloading: {download.currentFiles?.join(", ")}
-          </Typography>
-          {download.speed !== null && (
-            <>
+          <Box className="download-details">
+            <Tooltip title="Total size of files being downloaded">
               <Typography
-                className="download-progress-text"
+                className="download-progress-text download-size"
+                variant="body2"
+                style={{ marginTop: "1em" }}
+              >
+                Size: {(download.downloadedBytes / 1024 / 1024).toFixed(2)} MB /{" "}
+                {(download.totalBytes / 1024 / 1024).toFixed(2)} MB
+              </Typography>
+            </Tooltip>
+            <Tooltip title="Number of files downloaded vs total files">
+              <Typography
+                className="download-progress-text download-files"
                 variant="body2"
                 style={{ marginTop: "0.5em" }}
               >
-                Speed: {(download.speed / 1024 / 1024).toFixed(2)} MB/s
+                Files: {download.downloadedFiles} / {download.totalFiles}
               </Typography>
-              {eta && (
-                <Typography
-                  className="download-progress-text"
-                  variant="body2"
-                  style={{ marginTop: "0.5em" }}
-                >
-                  ETA: {eta}
-                </Typography>
-              )}
-            </>
-          )}
-          <Button
-            onClick={() => cancelDownload(name)}
-            variant="contained"
-            color="secondary"
-            size="small"
-            style={{ padding: "1em", marginTop: "1em" }}
-          >
-            Cancel
-          </Button>
+            </Tooltip>
+            <Typography
+              className="download-progress-text download-current"
+              variant="body2"
+              style={{ marginTop: "0.5em" }}
+            >
+              Downloading: {download.currentFiles?.join(", ")}
+            </Typography>
+            <Typography
+              className="download-progress-text download-speed"
+              variant="body2"
+              style={{ marginTop: "0.5em", minHeight: "1.5em" }}
+            >
+              Speed:{" "}
+              {download.speed
+                ? `${(download.speed / 1024 / 1024).toFixed(2)} MB/s`
+                : "-"}
+            </Typography>
+            <Typography
+              className="download-progress-text download-eta"
+              variant="body2"
+              style={{ marginTop: "0.5em", minHeight: "1.2em" }}
+            >
+              ETA: {eta || "-"}
+            </Typography>
+          </Box>
+          <Tooltip title="Stop the current download. You can restart it later.">
+            <Button
+              onClick={() => cancelDownload(name)}
+              variant="contained"
+              color="secondary"
+              size="small"
+              className="cancel-button"
+            >
+              Cancel Download
+            </Button>
+          </Tooltip>
         </>
       )}
     </Box>
