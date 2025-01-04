@@ -370,13 +370,13 @@ class ExtractJSON(BaseNode):
 
 class SentenceSplitter(BaseNode):
     """
-    Splits text into sentences with source tracking metadata.
+    Splits text into chunks of a minimum length.
     text, split, sentences
 
     Use cases:
-    - Breaking down documents into traceable sentence-level chunks
-    - Preparing text for sentence-based analysis with source tracking
-    - Creating manageable units for language model processing
+    - Splitting text into manageable chunks for processing
+    - Creating traceable units for analysis or storage
+    - Preparing text for language model processing
     """
 
     text: str | TextRef = Field(title="Text", default="")
@@ -392,100 +392,13 @@ class SentenceSplitter(BaseNode):
             sentence = match.group().strip()
             if len(sentence) >= self.min_length:
                 start_idx = match.start()
-                end_idx = match.end()
                 chunks.append(
                     TextChunk(
                         text=sentence,
                         source_id=self.source_id,
-                        start_idx=start_idx,
-                        end_idx=end_idx,
-                        chunk_type="sentence",
+                        start_index=start_idx,
                     )
                 )
-
-        return chunks
-
-
-class ParagraphSplitter(BaseNode):
-    """
-    Splits text into paragraphs with source tracking metadata.
-    text, split, paragraphs
-
-    Use cases:
-    - Dividing documents into traceable paragraph chunks
-    - Processing text by natural document sections with source tracking
-    - Maintaining context in text analysis
-    """
-
-    text: str | TextRef = Field(title="Text", default="")
-    min_length: int = Field(title="Minimum Length", default=50)
-    source_id: str = Field(title="Source ID", default="")
-
-    async def process(self, context: ProcessingContext) -> list[TextChunk]:
-        text = await to_string(context, self.text)
-        chunks = []
-        current_pos = 0
-
-        paragraphs = text.split("\n\n")
-        for p in paragraphs:
-            p = p.strip()
-            if len(p) >= self.min_length:
-                # Find the actual position in original text
-                start_idx = text.find(p, current_pos)
-                end_idx = start_idx + len(p)
-                current_pos = end_idx
-
-                chunks.append(
-                    TextChunk(
-                        text=p,
-                        source_id=self.source_id,
-                        start_idx=start_idx,
-                        end_idx=end_idx,
-                        chunk_type="paragraph",
-                    )
-                )
-
-        return chunks
-
-
-class TokenSplitter(BaseNode):
-    """
-    Splits text into token-based chunks with source tracking metadata.
-    text, split, tokens
-
-    Use cases:
-    - Creating fixed-size chunks for language model input with source tracking
-    - Maintaining context with overlapping text segments
-    - Optimizing text processing for specific token limits
-    """
-
-    text: str | TextRef = Field(title="Text", default="")
-    chunk_size: int = Field(title="Chunk Size", default=500)
-    overlap: int = Field(title="Overlap Size", default=50)
-    source_id: str = Field(title="Source ID", default="")
-
-    async def process(self, context: ProcessingContext) -> list[TextChunk]:
-        text = await to_string(context, self.text)
-        chunks = []
-        words = text.split()
-
-        for i in range(0, len(words), self.chunk_size - self.overlap):
-            chunk_words = words[i : i + self.chunk_size]
-            chunk_text = " ".join(chunk_words)
-
-            # Find the actual position in original text
-            start_idx = text.find(chunk_text)
-            end_idx = start_idx + len(chunk_text)
-
-            chunks.append(
-                TextChunk(
-                    text=chunk_text,
-                    source_id=self.source_id,
-                    start_idx=start_idx,
-                    end_idx=end_idx,
-                    chunk_type="token",
-                )
-            )
 
         return chunks
 
@@ -673,3 +586,138 @@ class Slice(BaseNode):
         text = await to_string(context, self.text)
         res = text[slice(self.start, self.stop, self.step)]
         return await convert_result(context, [self.text], res)
+
+
+class RecursiveTextSplitter(BaseNode):
+    """
+    Splits text recursively using LangChain's RecursiveCharacterTextSplitter.
+    text, split, chunks
+
+    Use cases:
+    - Splitting documents while preserving semantic relationships
+    - Creating chunks for language model processing
+    - Handling text in languages with/without word boundaries
+    """
+
+    text: str | TextRef = Field(title="Text", default="")
+    source_id: str = Field(title="Document ID", default="")
+    chunk_size: int = Field(
+        title="Chunk Size",
+        default=1000,
+        description="Maximum size of each chunk in characters",
+    )
+    chunk_overlap: int = Field(
+        title="Chunk Overlap",
+        default=200,
+        description="Number of characters to overlap between chunks",
+    )
+    separators: list[str] = Field(
+        default=[
+            "\n\n",
+            "\n",
+            ".",
+        ],
+        description="List of separators to use for splitting, in order of preference",
+    )
+
+    async def process(self, context: ProcessingContext) -> list[TextChunk]:
+        from langchain_text_splitters import RecursiveCharacterTextSplitter
+        from langchain_core.documents import Document
+
+        assert self.source_id, "document_id is required"
+
+        content = await to_string(context, self.text)
+
+        splitter = RecursiveCharacterTextSplitter(
+            chunk_size=self.chunk_size,
+            chunk_overlap=self.chunk_overlap,
+            separators=self.separators,
+            length_function=len,
+            is_separator_regex=False,
+            add_start_index=True,
+        )
+
+        docs = splitter.split_documents([Document(page_content=content)])
+
+        return [
+            TextChunk(
+                text=doc.page_content,
+                source_id=self.source_id,
+                start_index=doc.metadata["start_index"],
+            )
+            for doc in docs
+        ]
+
+
+class MarkdownSplitter(BaseNode):
+    """
+    Splits markdown text by headers while preserving header hierarchy in metadata.
+    markdown, split, headers
+
+    Use cases:
+    - Splitting markdown documentation while preserving structure
+    - Processing markdown files for semantic search
+    - Creating context-aware chunks from markdown content
+    """
+
+    text: str | TextRef = Field(title="Markdown Text", default="")
+    source_id: str = Field(title="Document ID", default="")
+    headers_to_split_on: list[tuple[str, str]] = Field(
+        default=[
+            ("#", "Header 1"),
+            ("##", "Header 2"),
+            ("###", "Header 3"),
+        ],
+        description="List of tuples containing (header_symbol, header_name)",
+    )
+    strip_headers: bool = Field(
+        default=True,
+        description="Whether to remove headers from the output content",
+    )
+    return_each_line: bool = Field(
+        default=False,
+        description="Whether to split into individual lines instead of header sections",
+    )
+    chunk_size: int | None = Field(
+        default=None,
+        description="Optional maximum chunk size for further splitting",
+    )
+    chunk_overlap: int = Field(
+        default=30,
+        description="Overlap size when using chunk_size",
+    )
+
+    async def process(self, context: ProcessingContext) -> list[TextChunk]:
+        from langchain_text_splitters import (
+            MarkdownHeaderTextSplitter,
+            RecursiveCharacterTextSplitter,
+        )
+
+        content = await to_string(context, self.text)
+
+        # Initialize markdown splitter
+        markdown_splitter = MarkdownHeaderTextSplitter(
+            headers_to_split_on=self.headers_to_split_on,
+            strip_headers=self.strip_headers,
+            return_each_line=self.return_each_line,
+        )
+
+        # Split by headers
+        splits = markdown_splitter.split_text(content)
+
+        # Further split by chunk size if specified
+        if self.chunk_size:
+            text_splitter = RecursiveCharacterTextSplitter(
+                chunk_size=self.chunk_size, chunk_overlap=self.chunk_overlap
+            )
+            splits = text_splitter.split_documents(splits)
+
+        # Convert Document objects to dictionaries
+        return [
+            TextChunk(
+                text=doc.page_content,
+                source_id=self.source_id,
+                start_index=doc.metadata["start_index"],
+            )
+            for doc in splits
+        ]

@@ -1,0 +1,284 @@
+{
+  "id": "44a8e720ca1811efa79a00000be9010f",
+  "access": "public",
+  "created_at": "2025-01-04T00:59:28.334183",
+  "updated_at": "2025-01-04T00:59:28.334193",
+  "name": "Simple RAG",
+  "description": "",
+  "tags": null,
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "1",
+        "parent_id": null,
+        "type": "chroma.query.QueryText",
+        "data": {
+          "collection": {
+            "type": "collection",
+            "name": "Papers"
+          },
+          "n_results": 20
+        },
+        "ui_properties": {
+          "position": {
+            "x": 269,
+            "y": 253
+          },
+          "zIndex": 0,
+          "width": 159,
+          "selectable": true
+        }
+      },
+      {
+        "id": "2",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "list_documents_2025-01-04"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 477,
+            "y": 542
+          },
+          "zIndex": 0,
+          "width": 607,
+          "height": 194,
+          "selectable": true
+        }
+      },
+      {
+        "id": "3",
+        "parent_id": null,
+        "type": "ollama.text.Ollama",
+        "data": {
+          "model": {
+            "type": "llama_model",
+            "repo_id": "gemma2:2b"
+          },
+          "system_prompt": "You answer use questions based on search results.\n\nIgnore sections that look like appendix. \n\nFocus on explanations.",
+          "messages": [],
+          "image": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null
+          },
+          "context_window": 4096,
+          "temperature": 0.7,
+          "top_k": 50,
+          "top_p": 0.95,
+          "keep_alive": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1110,
+            "y": 205
+          },
+          "zIndex": 0,
+          "width": 158,
+          "selectable": true
+        }
+      },
+      {
+        "id": "4",
+        "parent_id": null,
+        "type": "nodetool.text.Join",
+        "data": {
+          "separator": "."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 500.5,
+            "y": 372
+          },
+          "zIndex": 0,
+          "width": 159,
+          "selectable": true
+        }
+      },
+      {
+        "id": "6",
+        "parent_id": null,
+        "type": "nodetool.input.ChatInput",
+        "data": {
+          "label": "msg",
+          "name": "msg",
+          "value": []
+        },
+        "ui_properties": {
+          "position": {
+            "x": 53,
+            "y": 142
+          },
+          "zIndex": 0,
+          "width": 159,
+          "selectable": true
+        }
+      },
+      {
+        "id": "7",
+        "parent_id": null,
+        "type": "nodetool.text.Concat",
+        "data": {
+          "a": "Phrase an answer to following question:"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 694,
+            "y": 156
+          },
+          "zIndex": 0,
+          "width": 159,
+          "selectable": true
+        }
+      },
+      {
+        "id": "8",
+        "parent_id": null,
+        "type": "nodetool.text.Concat",
+        "data": {
+          "a": "=================\n\nFollowing a list of search results retrieved from the database:\n"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 702,
+            "y": 362
+          },
+          "zIndex": 0,
+          "width": 159,
+          "selectable": true
+        }
+      },
+      {
+        "id": "8678b1eb-0a66-4b8c-a8c3-4ac87c711f00",
+        "parent_id": null,
+        "type": "nodetool.text.Concat",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 921,
+            "y": 336
+          },
+          "zIndex": 0,
+          "width": 159,
+          "selectable": true
+        }
+      },
+      {
+        "id": "8679",
+        "parent_id": null,
+        "type": "nodetool.output.StringOutput",
+        "data": {
+          "label": "Output Label",
+          "name": "str_output_2025-01-04"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1298,
+            "y": 210
+          },
+          "zIndex": 0,
+          "width": 1151,
+          "selectable": true
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "81757fd9-aedb-4263-8556-d51fa1a459c8",
+        "source": "4",
+        "sourceHandle": "output",
+        "target": "8",
+        "targetHandle": "b",
+        "ui_properties": {
+          "className": "union"
+        }
+      },
+      {
+        "id": "ea8dfcd0-b417-4a83-b2c2-77600c2fb3cb",
+        "source": "8678b1eb-0a66-4b8c-a8c3-4ac87c711f00",
+        "sourceHandle": "output",
+        "target": "3",
+        "targetHandle": "prompt",
+        "ui_properties": {
+          "className": "union"
+        }
+      },
+      {
+        "id": "81758",
+        "source": "3",
+        "sourceHandle": "output",
+        "target": "8679",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "53dbad28-c072-426e-aa48-57ec1f763cb7",
+        "source": "7",
+        "sourceHandle": "output",
+        "target": "8678b1eb-0a66-4b8c-a8c3-4ac87c711f00",
+        "targetHandle": "a",
+        "ui_properties": {
+          "className": "union"
+        }
+      },
+      {
+        "id": "12b2d857-ebec-4109-afd0-231d57fb2954",
+        "source": "6",
+        "sourceHandle": "text",
+        "target": "1",
+        "targetHandle": "text",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "1",
+        "source": "1",
+        "sourceHandle": "documents",
+        "target": "2",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "list"
+        }
+      },
+      {
+        "id": "896c04aa-c600-461a-ada9-f84fab25bfda",
+        "source": "1",
+        "sourceHandle": "documents",
+        "target": "4",
+        "targetHandle": "strings",
+        "ui_properties": {
+          "className": "list"
+        }
+      },
+      {
+        "id": "311ff345-c317-4127-ac05-dae9dec6aa0c",
+        "source": "6",
+        "sourceHandle": "text",
+        "target": "7",
+        "targetHandle": "b",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "8fecd508-6afc-4f54-9e45-b96930f40600",
+        "source": "8",
+        "sourceHandle": "output",
+        "target": "8678b1eb-0a66-4b8c-a8c3-4ac87c711f00",
+        "targetHandle": "b",
+        "ui_properties": {
+          "className": "union"
+        }
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null
+}

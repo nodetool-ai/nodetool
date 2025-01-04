@@ -1,13 +1,18 @@
 #!/usr/bin/env python
 
 from enum import Enum
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from nodetool.api.utils import current_user, User
-from nodetool.common.chroma_client import get_chroma_client
-from nodetool.common.environment import Environment
+from nodetool.common.chroma_client import (
+    get_chroma_client,
+    get_collection,
+    split_document,
+)
 import chromadb
+from markitdown import MarkItDown
+
 
 router = APIRouter(prefix="/api/collections", tags=["collections"])
 
@@ -20,6 +25,15 @@ class EmbeddingModel(str, Enum):
     ALL_MINI_LM_L12_V3_HFP = "all-MiniLM-L12-v3-HFP"
 
 
+class IndexFile(BaseModel):
+    path: str
+    mime_type: str
+
+
+class IndexRequest(BaseModel):
+    files: List[IndexFile]
+
+
 class CollectionCreate(BaseModel):
     name: str
     embedding_model: EmbeddingModel = EmbeddingModel.ALL_MINI_LM_L6_V2
@@ -27,6 +41,7 @@ class CollectionCreate(BaseModel):
 
 class CollectionResponse(BaseModel):
     name: str
+    count: int
     metadata: chromadb.CollectionMetadata
 
 
@@ -51,7 +66,9 @@ async def create_collection(
             "embedding_model": req.embedding_model.value,
         }
         collection = client.create_collection(name=req.name, metadata=metadata)
-        return CollectionResponse(name=collection.name, metadata=collection.metadata)
+        return CollectionResponse(
+            name=collection.name, metadata=collection.metadata, count=0
+        )
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -68,7 +85,9 @@ async def list_collections(
         collections = client.list_collections(offset=offset, limit=limit)
         return CollectionList(
             collections=[
-                CollectionResponse(name=col.name, metadata=col.metadata or {})
+                CollectionResponse(
+                    name=col.name, metadata=col.metadata or {}, count=col.count()
+                )
                 for col in collections
             ],
             count=client.count_collections(),
@@ -78,31 +97,15 @@ async def list_collections(
 
 
 @router.get("/{name}", response_model=CollectionResponse)
-async def get_collection(
-    name: str, user: User = Depends(current_user)
-) -> CollectionResponse:
+async def get(name: str, user: User = Depends(current_user)) -> CollectionResponse:
     """Get a specific collection by name"""
     try:
         client = get_chroma_client()
         collection = client.get_collection(name=name)
-        return CollectionResponse(name=collection.name, metadata=collection.metadata)
-    except Exception as e:
-        raise HTTPException(status_code=404, detail=f"Collection {name} not found")
-
-
-@router.put("/{name}", response_model=CollectionResponse)
-async def modify_collection(
-    name: str, req: CollectionModify, user: User = Depends(current_user)
-) -> CollectionResponse:
-    """Modify an existing collection"""
-    try:
-        client = get_chroma_client()
-        collection = client.get_collection(name=name)
-
-        if req.name or req.metadata:
-            collection.modify(name=req.name, metadata=req.metadata)
-
-        return CollectionResponse(name=collection.name, metadata=collection.metadata)
+        count = collection.count()
+        return CollectionResponse(
+            name=collection.name, metadata=collection.metadata, count=count
+        )
     except Exception as e:
         raise HTTPException(status_code=404, detail=f"Collection {name} not found")
 
@@ -118,15 +121,30 @@ async def delete_collection(name: str, user: User = Depends(current_user)):
         raise HTTPException(status_code=404, detail=f"Collection {name} not found")
 
 
-@router.get("/{name}/count")
-async def count_documents(
-    name: str, user: User = Depends(current_user)
-) -> Dict[str, int]:
-    """Count documents in a collection"""
+@router.post("/{name}/index")
+async def index(name: str, req: IndexRequest, user: User = Depends(current_user)):
     try:
-        client = get_chroma_client()
-        collection = client.get_collection(name=name)
-        count = collection.count()
-        return {"count": count}
+        collection = get_collection(name)
+        md = MarkItDown()
+
+        def convert_file(file: IndexFile):
+            try:
+                return (file.path, md.convert(file.path).text_content)
+            except Exception as e:
+                print(e)
+                return (file.path, None)
+
+        converted = [convert_file(file) for file in req.files]
+        chunks = []
+        for path, text in converted:
+            if text:
+                chunks.extend(split_document(text, path))
+
+        chunks = [chunk for chunk in chunks if chunk.text]
+
+        ids = [chunk.get_document_id() for chunk in chunks]
+        docs = [chunk.text for chunk in chunks]
+
+        collection.upsert(documents=docs, ids=ids)
     except Exception as e:
-        raise HTTPException(status_code=404, detail=f"Collection {name} not found")
+        raise HTTPException(status_code=400, detail=str(e))
