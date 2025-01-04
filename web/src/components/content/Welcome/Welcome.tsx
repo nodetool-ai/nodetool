@@ -333,6 +333,12 @@ const recommendedModels: UnifiedModel[] = [
     repo_id: "gemma2:2b"
   },
   {
+    id: "nomic-embed-text",
+    name: "Nomic Embed Text",
+    type: "llama_model",
+    repo_id: "nomic-embed-text:latest"
+  },
+  {
     id: "openai/whisper-small",
     name: "whisper-small",
     type: "hf.automatic_speech_recognition",

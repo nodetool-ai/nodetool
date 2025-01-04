@@ -18,7 +18,7 @@ import { IconForType } from "../../config/data_types";
 import TuneIcon from "@mui/icons-material/Tune";
 import ControlPointIcon from "@mui/icons-material/ControlPoint";
 import CollectionsIcon from "@mui/icons-material/Collections";
-import CollectionGrid from "../collections/CollectionGrid";
+import CollectionList from "../collections/CollectionList";
 
 const styles = (theme: any) =>
   css({
@@ -233,7 +233,7 @@ const PanelLeft: React.FC = () => {
                 padding: 5
               }}
             >
-              <CollectionGrid />
+              <CollectionList />
             </Box>
           )}
         </div>

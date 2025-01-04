@@ -6,33 +6,90 @@ import {
   Box,
   FormControl,
   InputLabel,
-  Select,
-  MenuItem,
   CircularProgress,
   Typography
 } from "@mui/material";
-import { CollectionCreate, EmbeddingModel } from "../../stores/ApiTypes";
+import { CollectionCreate } from "../../stores/ApiTypes";
 import { client } from "../../stores/ApiClient";
 import CloseIcon from "@mui/icons-material/Close";
 import IconButton from "@mui/material/IconButton";
-
-const EMBEDDING_MODELS = [
-  "all-MiniLM-L6-v2",
-  "all-MiniLM-L12-v2",
-  "all-MiniLM-L12-v3",
-  "all-MiniLM-L12-v3-HFP",
-  "openclip"
-];
+import LlamaModelSelect from "../properties/LlamaModelSelect";
+import RecommendedModels from "../hugging_face/RecommendedModels";
+import ModelRecommendationsButton from "../node/ModelRecommendationsButton";
 
 interface CollectionFormProps {
   onClose: () => void;
 }
 
+const embeddingModels = [
+  {
+    id: "all-minilm:22m",
+    name: "All-MiniLM 22M"
+  },
+  {
+    id: "all-minilm:33m",
+    name: "All-MiniLM 33M"
+  },
+  {
+    id: "nomic-embed-text:latest",
+    name: "Nomic Embed Text"
+  },
+  {
+    id: "mxbai-embed-large:335m",
+    name: "MXBai Embed Large"
+  },
+  {
+    id: "snowflake-arctic-embed:22m",
+    name: "Snowflake Arctic Embed 22M"
+  },
+  {
+    id: "snowflake-arctic-embed:33m",
+    name: "Snowflake Arctic Embed 33M"
+  },
+  {
+    id: "snowflake-arctic-embed:110m",
+    name: "Snowflake Arctic Embed 110M"
+  },
+  {
+    id: "snowflake-arctic-embed:137m",
+    name: "Snowflake Arctic Embed 137M"
+  },
+  {
+    id: "snowflake-arctic-embed:335m",
+    name: "Snowflake Arctic Embed 335M"
+  },
+  {
+    id: "bge-large:335m",
+    name: "BGE Large 335M"
+  },
+  {
+    id: "bge-m3:567m",
+    name: "BGE M3 567M"
+  },
+  {
+    id: "snowflake-arctic-embed2:568m",
+    name: "Snowflake Arctic Embed 2 568M"
+  },
+  {
+    id: "granite-embedding:30m  ",
+    name: "Granite Embedding 30M"
+  },
+  {
+    id: "granite-embedding:278m",
+    name: "Granite Embedding 278M"
+  }
+].map((model) => ({
+  id: model.id,
+  name: model.name,
+  type: "llama_model",
+  repo_id: model.id
+}));
+
 const CollectionForm = ({ onClose }: CollectionFormProps) => {
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState<CollectionCreate>({
     name: "",
-    embedding_model: "all-MiniLM-L6-v2"
+    embedding_model: ""
   });
 
   const createMutation = useMutation({
@@ -45,7 +102,7 @@ const CollectionForm = ({ onClose }: CollectionFormProps) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["collections"] });
-      setFormData({ name: "", embedding_model: "all-MiniLM-L6-v2" });
+      setFormData({ name: "", embedding_model: "" });
     }
   });
 
@@ -57,6 +114,16 @@ const CollectionForm = ({ onClose }: CollectionFormProps) => {
   const isSubmitDisabled = useMemo(() => {
     return !formData.name.trim() || createMutation.isPending;
   }, [formData.name, createMutation.isPending]);
+
+  const handleEmbeddingModelChange = (model: {
+    type: string;
+    repo_id: string;
+  }) => {
+    setFormData((prev) => ({
+      ...prev,
+      embedding_model: model.repo_id
+    }));
+  };
 
   return (
     <Box
@@ -105,25 +172,22 @@ const CollectionForm = ({ onClose }: CollectionFormProps) => {
         helperText="Choose a unique name for your collection"
       />
 
+      <ModelRecommendationsButton recommendedModels={embeddingModels} />
+
       <FormControl fullWidth>
-        <InputLabel>Embedding Model</InputLabel>
-        <Select
-          value={formData.embedding_model}
-          label="Embedding Model"
-          onChange={(e) =>
-            setFormData((prev) => ({
-              ...prev,
-              embedding_model: e.target.value as EmbeddingModel
-            }))
-          }
-          disabled={createMutation.isPending}
+        <InputLabel
+          sx={{
+            position: "relative",
+            transform: "none",
+            marginBottom: "0.5rem"
+          }}
         >
-          {EMBEDDING_MODELS.map((model) => (
-            <MenuItem key={model} value={model}>
-              {model}
-            </MenuItem>
-          ))}
-        </Select>
+          Embedding Model
+        </InputLabel>
+        <LlamaModelSelect
+          value={formData.embedding_model}
+          onChange={handleEmbeddingModelChange}
+        />
         <p
           style={{
             fontSize: "0.75rem",
