@@ -31,7 +31,7 @@ import "./styles/microtip.css";
 import "./styles/command_menu.css";
 import NodeMenu from "./components/node_menu/NodeMenu";
 import AssetExplorer from "./components/assets/AssetExplorer";
-import WorkflowGrid from "./components/workflows/WorkflowGrid";
+import WorkflowList from "./components/workflows/WorkflowList";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useAssetStore } from "./stores/AssetStore";
 import { useWorkflowStore } from "./stores/WorkflowStore";
