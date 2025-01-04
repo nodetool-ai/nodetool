@@ -18529,6 +18529,144 @@
     "recommended_models": []
   },
   {
+    "title": "Execute Python",
+    "description": "Executes Python code with safety restrictions.\n    python, code, execute\n\n    Use cases:\n    - Run custom data transformations\n    - Prototype node functionality\n    - Debug and testing workflows\n\n    IMPORTANT: Only enabled in non-production environments",
+    "namespace": "nodetool.code",
+    "node_type": "nodetool.code.ExecutePython",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "code",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Code",
+        "description": "Python code to execute. Input variables are available as locals. Assign the desired output to the 'result' variable.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "inputs",
+        "type": {
+          "type": "dict",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "str",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            },
+            {
+              "type": "any",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Inputs",
+        "description": "Input variables available to the code as locals.",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "any",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
+    "title": "Evaluate Expression",
+    "description": "Evaluates a Python expression with safety restrictions.\n    python, expression, evaluate\n\n    Use cases:\n    - Calculate values dynamically\n    - Transform data with simple expressions\n    - Quick data validation\n\n    IMPORTANT: Only enabled in non-production environments",
+    "namespace": "nodetool.code",
+    "node_type": "nodetool.code.EvaluateExpression",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "expression",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Expression",
+        "description": "Python expression to evaluate. Variables are available as locals.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "variables",
+        "type": {
+          "type": "dict",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "str",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            },
+            {
+              "type": "any",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Variables",
+        "description": "Variables available to the expression",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "any",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
     "title": "Constant",
     "description": "",
     "namespace": "nodetool.constant",
@@ -31538,7 +31676,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": null,
+        "default": {},
         "title": "Data",
         "description": "Data to convert to JSON",
         "min": null,
@@ -31553,7 +31691,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": null,
+        "default": 2,
         "title": "Indent",
         "description": "Number of spaces for indentation",
         "min": null,
