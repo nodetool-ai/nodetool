@@ -1,8 +1,8 @@
 {
   "id": "44a8e720ca1811efa79a00000be9010f",
   "access": "public",
-  "created_at": "2025-01-04T00:59:28.334183",
-  "updated_at": "2025-01-04T00:59:28.334193",
+  "created_at": "2025-01-04T01:08:50.812168",
+  "updated_at": "2025-01-04T01:08:50.812221",
   "name": "Simple RAG",
   "description": "",
   "tags": null,
@@ -19,7 +19,7 @@
             "type": "collection",
             "name": "Papers"
           },
-          "n_results": 20
+          "n_results": 4
         },
         "ui_properties": {
           "position": {
@@ -56,7 +56,7 @@
         "data": {
           "model": {
             "type": "llama_model",
-            "repo_id": "gemma2:2b"
+            "repo_id": "qwen2.5:7b"
           },
           "system_prompt": "You answer use questions based on search results.\n\nIgnore sections that look like appendix. \n\nFocus on explanations.",
           "messages": [],
@@ -73,6 +73,7 @@
           "keep_alive": 0
         },
         "ui_properties": {
+          "selected": false,
           "position": {
             "x": 1110,
             "y": 205
@@ -143,6 +144,7 @@
           "a": "=================\n\nFollowing a list of search results retrieved from the database:\n"
         },
         "ui_properties": {
+          "selected": false,
           "position": {
             "x": 702,
             "y": 362
@@ -176,12 +178,13 @@
           "name": "str_output_2025-01-04"
         },
         "ui_properties": {
+          "selected": false,
           "position": {
             "x": 1298,
             "y": 210
           },
           "zIndex": 0,
-          "width": 1151,
+          "width": 186,
           "selectable": true
         }
       }
@@ -208,6 +211,36 @@
         }
       },
       {
+        "id": "12b2d857-ebec-4109-afd0-231d57fb2954",
+        "source": "6",
+        "sourceHandle": "text",
+        "target": "1",
+        "targetHandle": "text",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "896c04aa-c600-461a-ada9-f84fab25bfda",
+        "source": "1",
+        "sourceHandle": "documents",
+        "target": "4",
+        "targetHandle": "strings",
+        "ui_properties": {
+          "className": "list"
+        }
+      },
+      {
+        "id": "8fecd508-6afc-4f54-9e45-b96930f40600",
+        "source": "8",
+        "sourceHandle": "output",
+        "target": "8678b1eb-0a66-4b8c-a8c3-4ac87c711f00",
+        "targetHandle": "b",
+        "ui_properties": {
+          "className": "union"
+        }
+      },
+      {
         "id": "81758",
         "source": "3",
         "sourceHandle": "output",
@@ -228,31 +261,11 @@
         }
       },
       {
-        "id": "12b2d857-ebec-4109-afd0-231d57fb2954",
-        "source": "6",
-        "sourceHandle": "text",
-        "target": "1",
-        "targetHandle": "text",
-        "ui_properties": {
-          "className": "str"
-        }
-      },
-      {
         "id": "1",
         "source": "1",
         "sourceHandle": "documents",
         "target": "2",
         "targetHandle": "value",
-        "ui_properties": {
-          "className": "list"
-        }
-      },
-      {
-        "id": "896c04aa-c600-461a-ada9-f84fab25bfda",
-        "source": "1",
-        "sourceHandle": "documents",
-        "target": "4",
-        "targetHandle": "strings",
         "ui_properties": {
           "className": "list"
         }
@@ -265,16 +278,6 @@
         "targetHandle": "b",
         "ui_properties": {
           "className": "str"
-        }
-      },
-      {
-        "id": "8fecd508-6afc-4f54-9e45-b96930f40600",
-        "source": "8",
-        "sourceHandle": "output",
-        "target": "8678b1eb-0a66-4b8c-a8c3-4ac87c711f00",
-        "targetHandle": "b",
-        "ui_properties": {
-          "className": "union"
         }
       }
     ]
