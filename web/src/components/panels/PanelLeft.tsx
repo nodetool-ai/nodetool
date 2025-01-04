@@ -192,7 +192,14 @@ const PanelLeft: React.FC = () => {
                 onClick={() => handleViewChange("collections")}
                 className={activeView === "collections" ? "active" : ""}
               >
-                <CollectionsIcon />
+                {/* <CollectionsIcon /> */}
+                <IconForType
+                  iconName="database"
+                  showTooltip={false}
+                  containerStyle={{
+                    color: "white"
+                  }}
+                />
               </IconButton>
             </Tooltip>
           </div>

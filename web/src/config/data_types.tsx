@@ -30,6 +30,7 @@ import thread from "../icons/thread.svg?react";
 import thread_message from "../icons/thread_message.svg?react";
 import union from "../icons/union.svg?react";
 import video from "../icons/video.svg?react";
+import database from "../icons/database.svg?react";
 
 // import comfy_taesd from "../icons/comfy.taesd.svg?react";
 // import comfy_clip from "../icons/comfy.clip.svg?react";
@@ -72,7 +73,8 @@ const iconMap: Record<string, React.FC<React.SVGProps<SVGSVGElement>>> = {
   thread,
   thread_message,
   union,
-  video
+  video,
+  database
   // "comfy.taesd": comfy_taesd,
   // "comfy.clip": comfy_clip,
   // "comfy.clip_vision": comfy_clip_vision,
@@ -580,6 +582,17 @@ let DATA_TYPES: DataType[] = [
     slug: "",
     namespace: "",
     icon: "ModelTraining"
+  },
+  {
+    value: "database",
+    label: "Database",
+    description: "Database",
+    color: solarizedColors.base2,
+    textColor: "#fff",
+    name: "",
+    slug: "",
+    namespace: "",
+    icon: "Database"
   }
 ];
 
