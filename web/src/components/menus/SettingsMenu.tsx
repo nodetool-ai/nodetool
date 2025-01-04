@@ -546,16 +546,25 @@ function SettingsMenu() {
 
               {user && user.auth_token && (
                 <>
-                  <Typography variant="h3">API</Typography>
-                  <div className="settings-item">
-                    <Typography className="description">
-                      Workflows can be executed programmatically through the
-                      Nodetool API.
-                      <br />
-                      Local execution of workflows is also possible and only
-                      needs local_token as a parameter.
-                    </Typography>
-                  </div>
+                  <Typography variant="h3">Nodetool API</Typography>
+                  <Typography
+                    className="explanation"
+                    sx={{ margin: "0 0 1em 0" }}
+                  >
+                    Use the Nodetool API to execute workflows programmatically.
+                    <br />
+                    <br />
+                    <a
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      href="https://github.com/nodetool-ai/nodetool#using-the-workflow-api-"
+                    >
+                      API documentation on GitHub <br />
+                    </a>
+                    <span style={{ color: ThemeNodetool.palette.c_gray5 }}>
+                      https://github.com/nodetool-ai/nodetool#using-the-workflow-api-
+                    </span>
+                  </Typography>
                   <div
                     className="settings-item"
                     style={{
@@ -563,33 +572,44 @@ function SettingsMenu() {
                       borderRight: "1px solid" + ThemeNodetool.palette.c_warning
                     }}
                   >
-                    <FormControl>
-                      <InputLabel>Nodetool API Token</InputLabel>
-                    </FormControl>
-                    <div className="description">
+                    {!isProduction && (
                       <Typography>
-                        This token is used to authenticate your account with the
-                        Nodetool API.
+                        Copy the token and use it as a parameter in your
+                        request. <br />
                       </Typography>
-                      <div className="secrets">
-                        <WarningIcon sx={{ color: "#ff9800" }} />
-                        <Typography component="span">
-                          Keep this token secure and do not share it publicly
-                        </Typography>
-                      </div>
-                      <Tooltip title="Copy to clipboard">
-                        <Button
-                          style={{ margin: ".5em 0" }}
-                          size="small"
-                          variant="outlined"
-                          startIcon={<ContentCopyIcon />}
-                          onClick={copyAuthToken}
-                        >
-                          Copy Token
-                        </Button>
-                      </Tooltip>
-                    </div>
+                    )}
+                    {isProduction && (
+                      <>
+                        <FormControl>
+                          <InputLabel>Nodetool API Token</InputLabel>
+                        </FormControl>
+                        <div className="description">
+                          <Typography>
+                            This token is used to authenticate your account with
+                            the Nodetool API.
+                          </Typography>
+                          <div className="secrets">
+                            <WarningIcon sx={{ color: "#ff9800" }} />
+                            <Typography component="span">
+                              Keep this token secure and do not share it
+                              publicly
+                            </Typography>
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </div>
+                  <Tooltip title="Copy to clipboard">
+                    <Button
+                      style={{ margin: ".5em 0" }}
+                      size="small"
+                      variant="outlined"
+                      startIcon={<ContentCopyIcon />}
+                      onClick={copyAuthToken}
+                    >
+                      Copy Token
+                    </Button>
+                  </Tooltip>
                 </>
               )}
             </TabPanel>
