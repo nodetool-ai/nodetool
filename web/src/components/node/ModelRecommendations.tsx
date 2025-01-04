@@ -1,13 +1,8 @@
-import React, { useState, useMemo, useCallback, memo } from "react";
-import { Button, Tooltip } from "@mui/material";
-import ThemeNodetool from "../themes/ThemeNodetool";
-import RecommendedModelsDialog from "../hugging_face/RecommendedModelsDialog";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import React, { useMemo } from "react";
 import { UnifiedModel } from "../../stores/ApiTypes";
-import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { llama_models } from "../../config/models";
 import useMetadataStore from "../../stores/MetadataStore";
-import { isEqual } from "lodash";
+import ModelRecommendationsButton from "./ModelRecommendationsButton";
 
 interface ModelRecommendationsProps {
   nodeType: string;
@@ -16,8 +11,6 @@ interface ModelRecommendationsProps {
 const ModelRecommendations: React.FC<ModelRecommendationsProps> = ({
   nodeType
 }) => {
-  const [openModelDialog, setOpenModelDialog] = useState(false);
-  const { startDownload } = useModelDownloadStore();
   const getMetadata = useMetadataStore((state) => state.getMetadata);
 
   const recommendedModels: UnifiedModel[] = useMemo(() => {
@@ -49,53 +42,7 @@ const ModelRecommendations: React.FC<ModelRecommendationsProps> = ({
     }
   }, [getMetadata, nodeType]);
 
-  const handleOpenModelDialog = useCallback(() => setOpenModelDialog(true), []);
-  const handleCloseModelDialog = useCallback(
-    () => setOpenModelDialog(false),
-    []
-  );
-
-  if (recommendedModels.length === 0) {
-    return null;
-  }
-
-  return (
-    <>
-      <Tooltip
-        enterDelay={TOOLTIP_ENTER_DELAY}
-        title="Find models to download."
-      >
-        <Button
-          variant="outlined"
-          className="model-button"
-          sx={{
-            fontSize: ThemeNodetool.fontSizeSmaller,
-            color: ThemeNodetool.palette.c_gray5,
-            margin: "0",
-            lineHeight: "1.5em",
-            borderRadius: "0",
-            border: "none",
-            "&:hover": {
-              backgroundColor: "rgba(255, 255, 255, 0.08)",
-              border: "none",
-              cursor: "pointer",
-              color: ThemeNodetool.palette.c_white
-            }
-          }}
-          onClick={handleOpenModelDialog}
-        >
-          Recommended models
-        </Button>
-      </Tooltip>
-
-      <RecommendedModelsDialog
-        open={openModelDialog}
-        onClose={handleCloseModelDialog}
-        recommendedModels={recommendedModels}
-        startDownload={startDownload}
-      />
-    </>
-  );
+  return <ModelRecommendationsButton recommendedModels={recommendedModels} />;
 };
 
-export default memo(ModelRecommendations, isEqual);
+export default ModelRecommendations;
