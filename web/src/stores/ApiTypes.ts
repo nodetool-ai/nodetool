@@ -70,7 +70,6 @@ export type RepoPath = components["schemas"]["RepoPath"];
 export type FileInfo = components["schemas"]["FileInfo"];
 export type CollectionResponse = components["schemas"]["CollectionResponse"];
 export type CollectionList = components["schemas"]["CollectionList"];
-export type EmbeddingModel = components["schemas"]["EmbeddingModel"];
 export type CollectionCreate = components["schemas"]["CollectionCreate"];
 export type IndexRequest = components["schemas"]["IndexRequest"];
 export interface UnifiedModel {

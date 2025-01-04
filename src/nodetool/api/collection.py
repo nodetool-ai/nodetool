@@ -17,14 +17,6 @@ from markitdown import MarkItDown
 router = APIRouter(prefix="/api/collections", tags=["collections"])
 
 
-class EmbeddingModel(str, Enum):
-    OPENCLIP = "openclip"
-    ALL_MINI_LM_L6_V2 = "all-MiniLM-L6-v2"
-    ALL_MINI_LM_L12_V2 = "all-MiniLM-L12-v2"
-    ALL_MINI_LM_L12_V3 = "all-MiniLM-L12-v3"
-    ALL_MINI_LM_L12_V3_HFP = "all-MiniLM-L12-v3-HFP"
-
-
 class IndexFile(BaseModel):
     path: str
     mime_type: str
@@ -36,7 +28,7 @@ class IndexRequest(BaseModel):
 
 class CollectionCreate(BaseModel):
     name: str
-    embedding_model: EmbeddingModel = EmbeddingModel.ALL_MINI_LM_L6_V2
+    embedding_model: str
 
 
 class CollectionResponse(BaseModel):
@@ -62,9 +54,7 @@ async def create_collection(
     """Create a new collection"""
     try:
         client = get_chroma_client()
-        metadata = {
-            "embedding_model": req.embedding_model.value,
-        }
+        metadata = {"embedding_model": req.embedding_model}
         collection = client.create_collection(name=req.name, metadata=metadata)
         return CollectionResponse(
             name=collection.name, metadata=collection.metadata, count=0

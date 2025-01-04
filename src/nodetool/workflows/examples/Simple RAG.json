@@ -1,8 +1,8 @@
 {
   "id": "44a8e720ca1811efa79a00000be9010f",
   "access": "public",
-  "created_at": "2025-01-04T01:08:50.812168",
-  "updated_at": "2025-01-04T01:08:50.812221",
+  "created_at": "2025-01-04T12:04:19.422605",
+  "updated_at": "2025-01-04T12:04:19.422619",
   "name": "Simple RAG",
   "description": "",
   "tags": null,
@@ -19,7 +19,7 @@
             "type": "collection",
             "name": "Papers"
           },
-          "n_results": 4
+          "n_results": 10
         },
         "ui_properties": {
           "position": {
@@ -67,13 +67,12 @@
             "data": null
           },
           "context_window": 4096,
-          "temperature": 0.7,
+          "temperature": 0.3,
           "top_k": 50,
           "top_p": 0.95,
-          "keep_alive": 0
+          "keep_alive": 600
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 1110,
             "y": 205
@@ -144,7 +143,6 @@
           "a": "=================\n\nFollowing a list of search results retrieved from the database:\n"
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 702,
             "y": 362
@@ -178,7 +176,6 @@
           "name": "str_output_2025-01-04"
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 1298,
             "y": 210
@@ -196,16 +193,6 @@
         "sourceHandle": "output",
         "target": "8",
         "targetHandle": "b",
-        "ui_properties": {
-          "className": "union"
-        }
-      },
-      {
-        "id": "ea8dfcd0-b417-4a83-b2c2-77600c2fb3cb",
-        "source": "8678b1eb-0a66-4b8c-a8c3-4ac87c711f00",
-        "sourceHandle": "output",
-        "target": "3",
-        "targetHandle": "prompt",
         "ui_properties": {
           "className": "union"
         }
@@ -231,11 +218,41 @@
         }
       },
       {
+        "id": "311ff345-c317-4127-ac05-dae9dec6aa0c",
+        "source": "6",
+        "sourceHandle": "text",
+        "target": "7",
+        "targetHandle": "b",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "ea8dfcd0-b417-4a83-b2c2-77600c2fb3cb",
+        "source": "8678b1eb-0a66-4b8c-a8c3-4ac87c711f00",
+        "sourceHandle": "output",
+        "target": "3",
+        "targetHandle": "prompt",
+        "ui_properties": {
+          "className": "union"
+        }
+      },
+      {
         "id": "8fecd508-6afc-4f54-9e45-b96930f40600",
         "source": "8",
         "sourceHandle": "output",
         "target": "8678b1eb-0a66-4b8c-a8c3-4ac87c711f00",
         "targetHandle": "b",
+        "ui_properties": {
+          "className": "union"
+        }
+      },
+      {
+        "id": "53dbad28-c072-426e-aa48-57ec1f763cb7",
+        "source": "7",
+        "sourceHandle": "output",
+        "target": "8678b1eb-0a66-4b8c-a8c3-4ac87c711f00",
+        "targetHandle": "a",
         "ui_properties": {
           "className": "union"
         }
@@ -251,16 +268,6 @@
         }
       },
       {
-        "id": "53dbad28-c072-426e-aa48-57ec1f763cb7",
-        "source": "7",
-        "sourceHandle": "output",
-        "target": "8678b1eb-0a66-4b8c-a8c3-4ac87c711f00",
-        "targetHandle": "a",
-        "ui_properties": {
-          "className": "union"
-        }
-      },
-      {
         "id": "1",
         "source": "1",
         "sourceHandle": "documents",
@@ -268,16 +275,6 @@
         "targetHandle": "value",
         "ui_properties": {
           "className": "list"
-        }
-      },
-      {
-        "id": "311ff345-c317-4127-ac05-dae9dec6aa0c",
-        "source": "6",
-        "sourceHandle": "text",
-        "target": "7",
-        "targetHandle": "b",
-        "ui_properties": {
-          "className": "str"
         }
       }
     ]

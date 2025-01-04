@@ -849,10 +849,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get Collection
+         * Get
          * @description Get a specific collection by name
          */
-        get: operations["get_collection_api_collections__name__get"];
+        get: operations["get_api_collections__name__get"];
         put?: never;
         post?: never;
         /**
@@ -1032,8 +1032,8 @@ export interface components {
         CollectionCreate: {
             /** Name */
             name: string;
-            /** @default all-MiniLM-L6-v2 */
-            embedding_model: components["schemas"]["EmbeddingModel"];
+            /** Embedding Model */
+            embedding_model: string;
         };
         /** CollectionList */
         CollectionList: {
@@ -1124,11 +1124,6 @@ export interface components {
                 [key: string]: string;
             } | null;
         };
-        /**
-         * EmbeddingModel
-         * @enum {string}
-         */
-        EmbeddingModel: "openclip" | "all-MiniLM-L6-v2" | "all-MiniLM-L12-v2" | "all-MiniLM-L12-v3" | "all-MiniLM-L12-v3-HFP";
         /** FileInfo */
         FileInfo: {
             /** Name */
@@ -5490,7 +5485,7 @@ export interface operations {
             };
         };
     };
-    get_collection_api_collections__name__get: {
+    get_api_collections__name__get: {
         parameters: {
             query?: never;
             header?: {

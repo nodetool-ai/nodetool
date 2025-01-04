@@ -47469,21 +47469,23 @@
         "max": null
       },
       {
-        "name": "scale",
+        "name": "model",
         "type": {
-          "type": "enum",
+          "type": "hf.real_esrgan",
           "optional": false,
-          "values": [
-            "x2",
-            "x4",
-            "x8"
-          ],
+          "values": null,
           "type_args": [],
-          "type_name": "nodetool.nodes.huggingface.image_to_image.RealESRGANScale"
+          "type_name": null
         },
-        "default": "x2",
-        "title": "Scale",
-        "description": "The scale factor for the image super-resolution",
+        "default": {
+          "type": "hf.real_esrgan",
+          "repo_id": "",
+          "path": null,
+          "allow_patterns": null,
+          "ignore_patterns": null
+        },
+        "title": "RealESRGAN Model",
+        "description": "The RealESRGAN model to use for image super-resolution",
         "min": null,
         "max": null
       }
@@ -47521,6 +47523,13 @@
         "type": "hf.real_esrgan",
         "repo_id": "ai-forever/Real-ESRGAN",
         "path": "RealESRGAN_x8.pth",
+        "allow_patterns": null,
+        "ignore_patterns": null
+      },
+      {
+        "type": "hf.real_esrgan",
+        "repo_id": "ximso/RealESRGAN_x4plus_anime_6B",
+        "path": "RealESRGAN_x4plus_anime_6B.pth",
         "allow_patterns": null,
         "ignore_patterns": null
       }

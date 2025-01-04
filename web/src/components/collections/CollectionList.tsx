@@ -17,7 +17,7 @@ import {
 } from "@mui/material";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { memo, useState, useCallback } from "react";
-import { CollectionList, IndexRequest } from "../../stores/ApiTypes";
+import { CollectionList as CollectionListType } from "../../stores/ApiTypes";
 import { client } from "../../stores/ApiClient";
 import CollectionForm from "./CollectionForm";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -31,10 +31,10 @@ type IndexMutation = {
   };
 };
 
-const CollectionGrid = () => {
+const CollectionList = () => {
   const queryClient = useQueryClient();
 
-  const { data, isLoading, error } = useQuery<CollectionList>({
+  const { data, isLoading, error } = useQuery<CollectionListType>({
     queryKey: ["collections"],
     queryFn: async () => {
       const { data, error } = await client.GET("/api/collections/");
@@ -271,7 +271,8 @@ const CollectionGrid = () => {
                             sx={{ ml: 1, verticalAlign: "middle" }}
                           />
                           <Typography variant="caption" sx={{ ml: 1 }}>
-                            {indexProgress.current}/{indexProgress.total}
+                            Indexing {indexProgress.current}/
+                            {indexProgress.total} documents
                           </Typography>
                         </>
                       )}
@@ -317,4 +318,4 @@ const CollectionGrid = () => {
   );
 };
 
-export default memo(CollectionGrid);
+export default memo(CollectionList);
