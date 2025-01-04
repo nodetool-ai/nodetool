@@ -30,6 +30,10 @@ html {
   font-family: Arial, sans-serif;
 }
 
+ul li {
+  list-style-type: square;
+}
+
 #content {
   flex: 1;
   border: none;

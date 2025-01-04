@@ -43,7 +43,7 @@ const NotificationButton: React.FC = React.memo(() => {
     <>
       <Tooltip title="Notifications" enterDelay={TOOLTIP_ENTER_DELAY}>
         <Button
-          className="action-button"
+          className="command-button"
           onClick={handleNotificationClick}
           tabIndex={-1}
           sx={{
@@ -58,7 +58,6 @@ const NotificationButton: React.FC = React.memo(() => {
           <Badge badgeContent={unreadCount} color="error">
             <NotificationsIcon sx={{ fontSize: "1.2rem" }} />
           </Badge>
-          Notifications
         </Button>
       </Tooltip>
       <Popover
