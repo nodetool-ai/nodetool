@@ -1,4 +1,5 @@
 from enum import Enum
+import re
 import numpy as np
 import torch
 from RealESRGAN import RealESRGAN
@@ -117,20 +118,15 @@ class RealESRGANNode(BaseNode):
     - Upscale images for better detail
     """
 
-    class RealESRGANScale(str, Enum):
-        x2 = "x2"
-        x4 = "x4"
-        x8 = "x8"
-
     image: ImageRef = Field(
         default=ImageRef(),
         title="Input Image",
         description="The input image to transform",
     )
-    scale: RealESRGANScale = Field(
-        default=RealESRGANScale.x2,
-        title="Scale",
-        description="The scale factor for the image super-resolution",
+    model: HFRealESRGAN = Field(
+        default=HFRealESRGAN(),
+        title="RealESRGAN Model",
+        description="The RealESRGAN model to use for image super-resolution",
     )
     _model: RealESRGAN | None = None
 
@@ -149,36 +145,28 @@ class RealESRGANNode(BaseNode):
                 repo_id="ai-forever/Real-ESRGAN",
                 path="RealESRGAN_x8.pth",
             ),
+            HFRealESRGAN(
+                repo_id="ximso/RealESRGAN_x4plus_anime_6B",
+                path="RealESRGAN_x4plus_anime_6B.pth",
+            ),
         ]
 
     def required_inputs(self):
         return ["image"]
 
     async def initialize(self, context: ProcessingContext):
-        model_id = "ai-forever/Real-ESRGAN"
+        assert self.model.path is not None, "Model is not set"
 
-        if self.scale == self.RealESRGANScale.x2:
-            model_path = "RealESRGAN_x2.pth"
-        elif self.scale == self.RealESRGANScale.x4:
-            model_path = "RealESRGAN_x4.pth"
-        elif self.scale == self.RealESRGANScale.x8:
-            model_path = "RealESRGAN_x8.pth"
-        else:
-            raise ValueError("Invalid scale factor")
-
-        if self.scale == self.RealESRGANScale.x2:
-            scale = 2
-        elif self.scale == self.RealESRGANScale.x4:
-            scale = 4
-        elif self.scale == self.RealESRGANScale.x8:
-            scale = 8
-        else:
-            raise ValueError("Invalid scale factor")
-
-        model_path = try_to_load_from_cache(model_id, model_path)
+        model_path = try_to_load_from_cache(self.model.repo_id, self.model.path)
 
         if model_path is None:
             raise ValueError("Download the model first from RECOMMENDED_MODELS above")
+
+        # parse scale from model path using regex, e.g. *x2*.pth -> 2
+        match = re.search(r"x(\d+).*\.pth", self.model.path)
+        if match is None:
+            raise ValueError("Invalid model path, should be in the format *x2*.pth")
+        scale = int(match.group(1))
 
         self._model = RealESRGAN("cpu", scale=scale)
         self._model.load_weights(model_path)
