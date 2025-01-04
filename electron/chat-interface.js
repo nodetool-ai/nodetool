@@ -1,3 +1,6 @@
+// @ts-ignore
+const md = new markdownit();
+
 /**
  * @typedef {Object} MessageTextContent
  * @property {'text'} type - Type of message content
@@ -342,7 +345,10 @@ export function appendMessage(messagesList, role, contents) {
           break;
 
         case "text":
-          message.appendChild(document.createTextNode(content.text));
+          const markdownContent = document.createElement("div");
+          markdownContent.className = "markdown-content";
+          markdownContent.innerHTML = md.render(content.text);
+          message.appendChild(markdownContent);
           break;
 
         default:
@@ -350,7 +356,10 @@ export function appendMessage(messagesList, role, contents) {
       }
     }
   } else if (typeof contents === "string") {
-    message.textContent = contents;
+    const markdownContent = document.createElement("div");
+    markdownContent.className = "markdown-content";
+    markdownContent.innerHTML = md.render(contents);
+    message.appendChild(markdownContent);
   }
 
   messagesList.appendChild(message);
