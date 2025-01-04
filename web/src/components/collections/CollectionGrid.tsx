@@ -11,14 +11,24 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Button
+  Button,
+  LinearProgress
 } from "@mui/material";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { memo, useState } from "react";
-import { CollectionList } from "../../stores/ApiTypes";
+import { memo, useState, useCallback } from "react";
+import { CollectionList, IndexRequest } from "../../stores/ApiTypes";
 import { client } from "../../stores/ApiClient";
 import CollectionForm from "./CollectionForm";
 import DeleteIcon from "@mui/icons-material/Delete";
+import AddIcon from "@mui/icons-material/Add";
+
+type IndexMutation = {
+  name: string;
+  file: {
+    path: string;
+    mime_type: string;
+  };
+};
 
 const CollectionGrid = () => {
   const queryClient = useQueryClient();
@@ -45,8 +55,34 @@ const CollectionGrid = () => {
       queryClient.invalidateQueries({ queryKey: ["collections"] });
     }
   });
+  const indexMutation = useMutation({
+    mutationFn: async (req: IndexMutation) => {
+      const { error } = await client.POST("/api/collections/{name}/index", {
+        params: {
+          path: { name: req.name }
+        },
+        body: {
+          files: [req.file]
+        }
+      });
+      if (error) throw error;
+      return "success";
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["collections"] });
+    }
+  });
 
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [dragOverCollection, setDragOverCollection] = useState<string | null>(
+    null
+  );
+  const [showForm, setShowForm] = useState(false);
+  const [indexProgress, setIndexProgress] = useState<{
+    collection: string;
+    current: number;
+    total: number;
+  } | null>(null);
 
   const handleDeleteClick = (collectionName: string) => {
     setDeleteTarget(collectionName);
@@ -63,20 +99,76 @@ const CollectionGrid = () => {
     setDeleteTarget(null);
   };
 
-  if (error) {
-    return (
-      <>
-        <CollectionForm />
-        <Typography color="error" sx={{ marginTop: 2 }}>
-          Error loading collections
-        </Typography>
-      </>
-    );
-  }
+  const handleDrop = useCallback(
+    (collectionName: string) =>
+      async (event: React.DragEvent<HTMLDivElement>) => {
+        event.preventDefault();
+        setDragOverCollection(null);
+        const files = Array.from(event.dataTransfer.files).map((file) => ({
+          // @ts-ignore
+          path: file.path,
+          mime_type: file.type
+        }));
+
+        setIndexProgress({
+          collection: collectionName,
+          current: 0,
+          total: files.length
+        });
+
+        try {
+          for (let i = 0; i < files.length; i++) {
+            await indexMutation.mutateAsync({
+              name: collectionName,
+              file: files[i]
+            });
+            setIndexProgress((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    current: i + 1
+                  }
+                : null
+            );
+          }
+        } catch (error) {
+          console.error("Failed to index file:", error);
+        } finally {
+          setIndexProgress(null);
+        }
+      },
+    [indexMutation]
+  );
+
+  const handleDragOver = useCallback(
+    (event: React.DragEvent, collectionName: string) => {
+      event.preventDefault();
+      setDragOverCollection(collectionName);
+    },
+    []
+  );
+
+  const handleDragLeave = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
+    setDragOverCollection(null);
+  }, []);
 
   return (
     <>
-      <CollectionForm />
+      <Button
+        variant="outlined"
+        startIcon={<AddIcon />}
+        onClick={() => setShowForm(true)}
+        sx={{ mb: 2 }}
+      >
+        Create Collection
+      </Button>
+      {showForm && <CollectionForm onClose={() => setShowForm(false)} />}
+      {error && (
+        <Typography color="error" sx={{ marginTop: 2 }}>
+          Error loading collections
+        </Typography>
+      )}
       {isLoading ? (
         <Typography sx={{ marginTop: 2 }}>Loading collections...</Typography>
       ) : !data?.collections.length ? (
@@ -86,9 +178,29 @@ const CollectionGrid = () => {
           <List>
             {data.collections.map((collection) => (
               <ListItem
+                component="div"
                 key={collection.name}
+                onDrop={(e: React.DragEvent<HTMLDivElement>) =>
+                  handleDrop(collection.name)(e)
+                }
+                onDragOver={(e) => handleDragOver(e, collection.name)}
+                onDragLeave={handleDragLeave}
                 sx={{
-                  borderBottom: "1px solid #666"
+                  borderBottom: "1px solid #666",
+                  cursor: "copy",
+                  "&:hover": {
+                    backgroundColor: "action.hover"
+                  },
+                  ...(dragOverCollection === collection.name && {
+                    backgroundColor: "action.selected",
+                    borderStyle: "dashed",
+                    borderWidth: 2,
+                    borderColor: "primary.main",
+                    "& .MuiTypography-root": {
+                      color: "primary.main"
+                    }
+                  }),
+                  transition: "all 0.2s"
                 }}
                 secondaryAction={
                   <IconButton
@@ -109,13 +221,37 @@ const CollectionGrid = () => {
                 <ListItemText
                   primary={
                     <Typography
-                      variant="h6"
+                      variant="h4"
                       sx={{
                         fontWeight: 600,
                         color: "primary.main"
                       }}
                     >
                       {collection.name}
+                      {indexProgress?.collection === collection.name && (
+                        <>
+                          <LinearProgress
+                            sx={{
+                              ml: 2,
+                              width: 100,
+                              display: "inline-block",
+                              verticalAlign: "middle"
+                            }}
+                            variant="determinate"
+                            value={
+                              (indexProgress.current / indexProgress.total) *
+                              100
+                            }
+                          />
+                          <CircularProgress
+                            size={16}
+                            sx={{ ml: 1, verticalAlign: "middle" }}
+                          />
+                          <Typography variant="caption" sx={{ ml: 1 }}>
+                            {indexProgress.current}/{indexProgress.total}
+                          </Typography>
+                        </>
+                      )}
                     </Typography>
                   }
                   secondary={
@@ -123,12 +259,12 @@ const CollectionGrid = () => {
                       variant="body1"
                       sx={{
                         color: "text.secondary",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 0.5
+                        fontSize: "0.8em"
                       }}
                     >
                       {collection.metadata?.embedding_model}
+                      <br />
+                      {collection.count} items
                     </Typography>
                   }
                 />

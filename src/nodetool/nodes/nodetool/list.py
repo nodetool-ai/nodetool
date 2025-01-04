@@ -1007,3 +1007,26 @@ class MapField(BaseNode):
             raise ValueError("Input must be a list of dictionaries")
 
         return [item.get(self.field, self.default) for item in self.values]
+
+
+class JoinStrings(BaseNode):
+    """
+    Joins a list of strings using a specified delimiter.
+    list, join, concatenate, strings
+
+    Use cases:
+    - Combine strings with a separator
+    - Create CSV-like strings
+    - Format text for display or output
+    """
+
+    values: list[str] = Field(
+        default_factory=list, description="The list of strings to join"
+    )
+    delimiter: str = Field(
+        default="", description="The string to use as a separator between elements"
+    )
+
+    async def process(self, context: ProcessingContext) -> str:
+        values = [str(x) for x in self.values]
+        return self.delimiter.join(values)

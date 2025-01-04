@@ -1399,222 +1399,6 @@
     "recommended_models": []
   },
   {
-    "title": "Sentence Transformer Embedding Function",
-    "description": "",
-    "namespace": "chroma.embedding_functions",
-    "node_type": "chroma.embedding_functions.SentenceTransformerEmbeddingFunction",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "model",
-        "type": {
-          "type": "enum",
-          "optional": false,
-          "values": [
-            "all-MiniLM-L6-v2",
-            "all-MiniLM-L12-v2",
-            "all-MiniLM-L12-v3",
-            "all-MiniLM-L12-v3-HFP"
-          ],
-          "type_args": [],
-          "type_name": "nodetool.nodes.chroma.embedding_functions.SentenceTransformerModel"
-        },
-        "default": "all-MiniLM-L6-v2",
-        "title": "Model",
-        "description": "The embedding model to use",
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "chroma.embedding_function",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": []
-  },
-  {
-    "title": "Open CLIPEmbedding Function",
-    "description": "",
-    "namespace": "chroma.embedding_functions",
-    "node_type": "chroma.embedding_functions.OpenCLIPEmbeddingFunction",
-    "layout": "default",
-    "properties": [],
-    "outputs": [
-      {
-        "type": {
-          "type": "chroma.embedding_function",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": []
-  },
-  {
-    "title": "Ollama Embedding Function",
-    "description": "",
-    "namespace": "chroma.embedding_functions",
-    "node_type": "chroma.embedding_functions.OllamaEmbeddingFunction",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "model",
-        "type": {
-          "type": "llama_model",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": {
-          "type": "llama_model",
-          "name": "",
-          "repo_id": "",
-          "modified_at": "",
-          "size": 0,
-          "digest": "",
-          "details": {}
-        },
-        "title": "Model",
-        "description": null,
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "chroma.embedding_function",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": []
-  },
-  {
-    "title": "Open AIEmbedding Function",
-    "description": "",
-    "namespace": "chroma.embedding_functions",
-    "node_type": "chroma.embedding_functions.OpenAIEmbeddingFunction",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "model",
-        "type": {
-          "type": "enum",
-          "optional": false,
-          "values": [
-            "text-embedding-ada-002",
-            "text-embedding-3-small",
-            "text-embedding-3-large"
-          ],
-          "type_args": [],
-          "type_name": "nodetool.metadata.types.OpenAIEmbeddingModel"
-        },
-        "default": "text-embedding-ada-002",
-        "title": "Model",
-        "description": null,
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "chroma.embedding_function",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": []
-  },
-  {
-    "title": "Collection",
-    "description": "",
-    "namespace": "chroma.collections",
-    "node_type": "chroma.collections.Collection",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "name",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Name",
-        "description": "The name of the collection to get or create.",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "embedding_function",
-        "type": {
-          "type": "chroma.embedding_function",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": {
-          "type": "chroma.embedding_function",
-          "embedding_function": "openclip",
-          "model": null,
-          "repo_id": null
-        },
-        "title": "Embedding Function",
-        "description": null,
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "chroma_collection",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": []
-  },
-  {
     "title": "Count",
     "description": "Count the number of documents in a collection.",
     "namespace": "chroma.collections",
@@ -1624,21 +1408,15 @@
       {
         "name": "collection",
         "type": {
-          "type": "chroma_collection",
+          "type": "collection",
           "optional": false,
           "values": null,
           "type_args": [],
           "type_name": null
         },
         "default": {
-          "type": "chroma_collection",
-          "name": "",
-          "embedding_function": {
-            "type": "chroma.embedding_function",
-            "embedding_function": "openclip",
-            "model": null,
-            "repo_id": null
-          }
+          "type": "collection",
+          "name": ""
         },
         "title": "Collection",
         "description": "The collection to count",
@@ -1672,21 +1450,15 @@
       {
         "name": "collection",
         "type": {
-          "type": "chroma_collection",
+          "type": "collection",
           "optional": false,
           "values": null,
           "type_args": [],
           "type_name": null
         },
         "default": {
-          "type": "chroma_collection",
-          "name": "",
-          "embedding_function": {
-            "type": "chroma.embedding_function",
-            "embedding_function": "openclip",
-            "model": null,
-            "repo_id": null
-          }
+          "type": "collection",
+          "name": ""
         },
         "title": "Collection",
         "description": "The collection to get",
@@ -1781,21 +1553,15 @@
       {
         "name": "collection",
         "type": {
-          "type": "chroma_collection",
+          "type": "collection",
           "optional": false,
           "values": null,
           "type_args": [],
           "type_name": null
         },
         "default": {
-          "type": "chroma_collection",
-          "name": "",
-          "embedding_function": {
-            "type": "chroma.embedding_function",
-            "embedding_function": "openclip",
-            "model": null,
-            "repo_id": null
-          }
+          "type": "collection",
+          "name": ""
         },
         "title": "Collection",
         "description": "The collection to peek",
@@ -1852,21 +1618,15 @@
       {
         "name": "collection",
         "type": {
-          "type": "chroma_collection",
+          "type": "collection",
           "optional": false,
           "values": null,
           "type_args": [],
           "type_name": null
         },
         "default": {
-          "type": "chroma_collection",
-          "name": "",
-          "embedding_function": {
-            "type": "chroma.embedding_function",
-            "embedding_function": "openclip",
-            "model": null,
-            "repo_id": null
-          }
+          "type": "collection",
+          "name": ""
         },
         "title": "Collection",
         "description": "The collection to index",
@@ -1895,6 +1655,21 @@
         "description": "List of image assets to index",
         "min": null,
         "max": null
+      },
+      {
+        "name": "upsert",
+        "type": {
+          "type": "bool",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": false,
+        "title": "Upsert",
+        "description": "Whether to upsert the images",
+        "min": null,
+        "max": null
       }
     ],
     "outputs": [],
@@ -1911,21 +1686,15 @@
       {
         "name": "collection",
         "type": {
-          "type": "chroma_collection",
+          "type": "collection",
           "optional": false,
           "values": null,
           "type_args": [],
           "type_name": null
         },
         "default": {
-          "type": "chroma_collection",
-          "name": "",
-          "embedding_function": {
-            "type": "chroma.embedding_function",
-            "embedding_function": "openclip",
-            "model": null,
-            "repo_id": null
-          }
+          "type": "collection",
+          "name": ""
         },
         "title": "Collection",
         "description": "The collection to index",
@@ -1970,21 +1739,15 @@
       {
         "name": "collection",
         "type": {
-          "type": "chroma_collection",
+          "type": "collection",
           "optional": false,
           "values": null,
           "type_args": [],
           "type_name": null
         },
         "default": {
-          "type": "chroma_collection",
-          "name": "",
-          "embedding_function": {
-            "type": "chroma.embedding_function",
-            "embedding_function": "openclip",
-            "model": null,
-            "repo_id": null
-          }
+          "type": "collection",
+          "name": ""
         },
         "title": "Collection",
         "description": "The collection to index",
@@ -2026,21 +1789,15 @@
       {
         "name": "collection",
         "type": {
-          "type": "chroma_collection",
+          "type": "collection",
           "optional": false,
           "values": null,
           "type_args": [],
           "type_name": null
         },
         "default": {
-          "type": "chroma_collection",
-          "name": "",
-          "embedding_function": {
-            "type": "chroma.embedding_function",
-            "embedding_function": "openclip",
-            "model": null,
-            "repo_id": null
-          }
+          "type": "collection",
+          "name": ""
         },
         "title": "Collection",
         "description": "The collection to index",
@@ -2082,21 +1839,15 @@
       {
         "name": "collection",
         "type": {
-          "type": "chroma_collection",
+          "type": "collection",
           "optional": false,
           "values": null,
           "type_args": [],
           "type_name": null
         },
         "default": {
-          "type": "chroma_collection",
-          "name": "",
-          "embedding_function": {
-            "type": "chroma.embedding_function",
-            "embedding_function": "openclip",
-            "model": null,
-            "repo_id": null
-          }
+          "type": "collection",
+          "name": ""
         },
         "title": "Collection",
         "description": "The collection to index",
@@ -2116,9 +1867,7 @@
           "type": "text_chunk",
           "text": "",
           "source_id": "",
-          "start_idx": 0,
-          "end_idx": 0,
-          "chunk_type": ""
+          "start_index": 0
         },
         "title": "Text Chunk",
         "description": "Text chunk to index",
@@ -2140,21 +1889,15 @@
       {
         "name": "collection",
         "type": {
-          "type": "chroma_collection",
+          "type": "collection",
           "optional": false,
           "values": null,
           "type_args": [],
           "type_name": null
         },
         "default": {
-          "type": "chroma_collection",
-          "name": "",
-          "embedding_function": {
-            "type": "chroma.embedding_function",
-            "embedding_function": "openclip",
-            "model": null,
-            "repo_id": null
-          }
+          "type": "collection",
+          "name": ""
         },
         "title": "Collection",
         "description": "The collection to index",
@@ -2199,21 +1942,15 @@
       {
         "name": "collection",
         "type": {
-          "type": "chroma_collection",
+          "type": "collection",
           "optional": false,
           "values": null,
           "type_args": [],
           "type_name": null
         },
         "default": {
-          "type": "chroma_collection",
-          "name": "",
-          "embedding_function": {
-            "type": "chroma.embedding_function",
-            "embedding_function": "openclip",
-            "model": null,
-            "repo_id": null
-          }
+          "type": "collection",
+          "name": ""
         },
         "title": "Collection",
         "description": "The collection to index",
@@ -2265,21 +2002,15 @@
       {
         "name": "collection",
         "type": {
-          "type": "chroma_collection",
+          "type": "collection",
           "optional": false,
           "values": null,
           "type_args": [],
           "type_name": null
         },
         "default": {
-          "type": "chroma_collection",
-          "name": "",
-          "embedding_function": {
-            "type": "chroma.embedding_function",
-            "embedding_function": "openclip",
-            "model": null,
-            "repo_id": null
-          }
+          "type": "collection",
+          "name": ""
         },
         "title": "Collection",
         "description": "The collection to query",
@@ -2330,7 +2061,7 @@
           "values": null,
           "type_args": [
             {
-              "type": "asset",
+              "type": "str",
               "optional": false,
               "values": null,
               "type_args": [],
@@ -2339,7 +2070,64 @@
           ],
           "type_name": null
         },
-        "name": "output",
+        "name": "ids",
+        "stream": false
+      },
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "str",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "documents",
+        "stream": false
+      },
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "dict",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "metadatas",
+        "stream": false
+      },
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "float",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "distances",
         "stream": false
       }
     ],
@@ -2347,30 +2135,24 @@
     "recommended_models": []
   },
   {
-    "title": "Query Documents",
-    "description": "Query the index for similar documents and return their content.",
+    "title": "Query Text",
+    "description": "Query the index for similar text.",
     "namespace": "chroma.query",
-    "node_type": "chroma.query.QueryDocuments",
+    "node_type": "chroma.query.QueryText",
     "layout": "default",
     "properties": [
       {
         "name": "collection",
         "type": {
-          "type": "chroma_collection",
+          "type": "collection",
           "optional": false,
           "values": null,
           "type_args": [],
           "type_name": null
         },
         "default": {
-          "type": "chroma_collection",
-          "name": "",
-          "embedding_function": {
-            "type": "chroma.embedding_function",
-            "embedding_function": "openclip",
-            "model": null,
-            "repo_id": null
-          }
+          "type": "collection",
+          "name": ""
         },
         "title": "Collection",
         "description": "The collection to query",
@@ -20622,7 +20404,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": 3,
+        "default": 4,
         "title": "Day",
         "description": "Day of the datetime",
         "min": null,
@@ -34895,6 +34677,68 @@
     "recommended_models": []
   },
   {
+    "title": "Join Strings",
+    "description": "Joins a list of strings using a specified delimiter.\n    list, join, concatenate, strings\n\n    Use cases:\n    - Combine strings with a separator\n    - Create CSV-like strings\n    - Format text for display or output",
+    "namespace": "nodetool.list",
+    "node_type": "nodetool.list.JoinStrings",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "values",
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "str",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Values",
+        "description": "The list of strings to join",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "delimiter",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Delimiter",
+        "description": "The string to use as a separator between elements",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
     "title": "Binary Operation",
     "description": "",
     "namespace": "nodetool.math",
@@ -42111,7 +41955,7 @@
   },
   {
     "title": "Sentence Splitter",
-    "description": "Splits text into sentences with source tracking metadata.\n    text, split, sentences\n\n    Use cases:\n    - Breaking down documents into traceable sentence-level chunks\n    - Preparing text for sentence-based analysis with source tracking\n    - Creating manageable units for language model processing",
+    "description": "Splits text into chunks of a minimum length.\n    text, split, sentences\n\n    Use cases:\n    - Splitting text into manageable chunks for processing\n    - Creating traceable units for analysis or storage\n    - Preparing text for language model processing",
     "namespace": "nodetool.text",
     "node_type": "nodetool.text.SentenceSplitter",
     "layout": "default",
@@ -42157,205 +42001,6 @@
         },
         "default": 10,
         "title": "Minimum Length",
-        "description": null,
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "source_id",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Source ID",
-        "description": null,
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "list",
-          "optional": false,
-          "values": null,
-          "type_args": [
-            {
-              "type": "text_chunk",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": []
-  },
-  {
-    "title": "Paragraph Splitter",
-    "description": "Splits text into paragraphs with source tracking metadata.\n    text, split, paragraphs\n\n    Use cases:\n    - Dividing documents into traceable paragraph chunks\n    - Processing text by natural document sections with source tracking\n    - Maintaining context in text analysis",
-    "namespace": "nodetool.text",
-    "node_type": "nodetool.text.ParagraphSplitter",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "text",
-        "type": {
-          "type": "union",
-          "optional": false,
-          "values": null,
-          "type_args": [
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            },
-            {
-              "type": "text",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Text",
-        "description": null,
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "min_length",
-        "type": {
-          "type": "int",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": 50,
-        "title": "Minimum Length",
-        "description": null,
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "source_id",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Source ID",
-        "description": null,
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "list",
-          "optional": false,
-          "values": null,
-          "type_args": [
-            {
-              "type": "text_chunk",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": []
-  },
-  {
-    "title": "Token Splitter",
-    "description": "Splits text into token-based chunks with source tracking metadata.\n    text, split, tokens\n\n    Use cases:\n    - Creating fixed-size chunks for language model input with source tracking\n    - Maintaining context with overlapping text segments\n    - Optimizing text processing for specific token limits",
-    "namespace": "nodetool.text",
-    "node_type": "nodetool.text.TokenSplitter",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "text",
-        "type": {
-          "type": "union",
-          "optional": false,
-          "values": null,
-          "type_args": [
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            },
-            {
-              "type": "text",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Text",
-        "description": null,
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "chunk_size",
-        "type": {
-          "type": "int",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": 500,
-        "title": "Chunk Size",
-        "description": null,
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "overlap",
-        "type": {
-          "type": "int",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": 50,
-        "title": "Overlap Size",
         "description": null,
         "min": null,
         "max": null
@@ -42974,6 +42619,343 @@
             },
             {
               "type": "text",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
+    "title": "Recursive Text Splitter",
+    "description": "Splits text recursively using LangChain's RecursiveCharacterTextSplitter.\n    text, split, chunks\n\n    Use cases:\n    - Splitting documents while preserving semantic relationships\n    - Creating chunks for language model processing\n    - Handling text in languages with/without word boundaries",
+    "namespace": "nodetool.text",
+    "node_type": "nodetool.text.RecursiveTextSplitter",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "text",
+        "type": {
+          "type": "union",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "str",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            },
+            {
+              "type": "text",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Text",
+        "description": null,
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "source_id",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Document ID",
+        "description": null,
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "chunk_size",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 1000,
+        "title": "Chunk Size",
+        "description": "Maximum size of each chunk in characters",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "chunk_overlap",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 200,
+        "title": "Chunk Overlap",
+        "description": "Number of characters to overlap between chunks",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "separators",
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "str",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": [
+          "\n\n",
+          "\n",
+          "."
+        ],
+        "title": "Separators",
+        "description": "List of separators to use for splitting, in order of preference",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "text_chunk",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
+    "title": "Markdown Splitter",
+    "description": "Splits markdown text by headers while preserving header hierarchy in metadata.\n    markdown, split, headers\n\n    Use cases:\n    - Splitting markdown documentation while preserving structure\n    - Processing markdown files for semantic search\n    - Creating context-aware chunks from markdown content",
+    "namespace": "nodetool.text",
+    "node_type": "nodetool.text.MarkdownSplitter",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "text",
+        "type": {
+          "type": "union",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "str",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            },
+            {
+              "type": "text",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Markdown Text",
+        "description": null,
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "source_id",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Document ID",
+        "description": null,
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "headers_to_split_on",
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "tuple",
+              "optional": false,
+              "values": null,
+              "type_args": [
+                {
+                  "type": "str",
+                  "optional": false,
+                  "values": null,
+                  "type_args": [],
+                  "type_name": null
+                },
+                {
+                  "type": "str",
+                  "optional": false,
+                  "values": null,
+                  "type_args": [],
+                  "type_name": null
+                }
+              ],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": [
+          [
+            "#",
+            "Header 1"
+          ],
+          [
+            "##",
+            "Header 2"
+          ],
+          [
+            "###",
+            "Header 3"
+          ]
+        ],
+        "title": "Headers To Split On",
+        "description": "List of tuples containing (header_symbol, header_name)",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "strip_headers",
+        "type": {
+          "type": "bool",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": true,
+        "title": "Strip Headers",
+        "description": "Whether to remove headers from the output content",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "return_each_line",
+        "type": {
+          "type": "bool",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": false,
+        "title": "Return Each Line",
+        "description": "Whether to split into individual lines instead of header sections",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "chunk_size",
+        "type": {
+          "type": "union",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "int",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            },
+            {
+              "type": "none",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Chunk Size",
+        "description": "Optional maximum chunk size for further splitting",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "chunk_overlap",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 30,
+        "title": "Chunk Overlap",
+        "description": "Overlap size when using chunk_size",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "text_chunk",
               "optional": false,
               "values": null,
               "type_args": [],

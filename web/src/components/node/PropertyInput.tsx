@@ -29,6 +29,7 @@ import ModelProperty from "../properties/ModelProperty";
 import { isEqual } from "lodash";
 import ColorProperty from "../properties/ColorProperty";
 import FilePathProperty from "../properties/FilePathProperty";
+import CollectionProperty from "../properties/CollectionProperty";
 
 export type PropertyProps = {
   property: Property;
@@ -92,6 +93,8 @@ function handleAdvancedDataTypes(
       return AudioProperty;
     case "video":
       return VideoProperty;
+    case "collection":
+      return CollectionProperty;
     case "enum":
       return EnumProperty;
     case "thread":
