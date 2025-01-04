@@ -59,8 +59,8 @@ class StringifyJSON(BaseNode):
     - Save data in JSON format
     """
 
-    data: Any = Field(description="Data to convert to JSON")
-    indent: int = Field(default=None, description="Number of spaces for indentation")
+    data: Any = Field(default={}, description="Data to convert to JSON")
+    indent: int = Field(default=2, description="Number of spaces for indentation")
 
     async def process(self, context: ProcessingContext) -> str:
         return json.dumps(self.data, indent=self.indent)

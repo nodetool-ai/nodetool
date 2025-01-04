@@ -20404,7 +20404,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": 4,
+        "default": 5,
         "title": "Day",
         "description": "Day of the datetime",
         "min": null,
@@ -88957,166 +88957,6 @@
     "recommended_models": []
   },
   {
-    "title": "Ollama Chat",
-    "description": "Run Llama models to generate chat responses.\n    llama, text generation, language model, ai assistant\n\n    Use cases:\n    - Chat with an assistant\n    - Workflows with chat nodes",
-    "namespace": "ollama.text",
-    "node_type": "ollama.text.OllamaChat",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "model",
-        "type": {
-          "type": "llama_model",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": {
-          "type": "llama_model",
-          "name": "",
-          "repo_id": "",
-          "modified_at": "",
-          "size": 0,
-          "digest": "",
-          "details": {}
-        },
-        "title": "Model",
-        "description": "The Llama model to use.",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "system_prompt",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "You are an assistant.",
-        "title": "System Prompt",
-        "description": "System prompt to send to the model.",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "context_window",
-        "type": {
-          "type": "int",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": 4096,
-        "title": "Context Window",
-        "description": "The context window size to use for the model.",
-        "min": 1.0,
-        "max": null
-      },
-      {
-        "name": "messages",
-        "type": {
-          "type": "list",
-          "optional": false,
-          "values": null,
-          "type_args": [
-            {
-              "type": "message",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
-          "type_name": null
-        },
-        "default": [],
-        "title": "Messages",
-        "description": "History of messages to send to the model.",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "temperature",
-        "type": {
-          "type": "float",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": 0.7,
-        "title": "Temperature",
-        "description": "The temperature to use for the model.",
-        "min": 0.0,
-        "max": 1.0
-      },
-      {
-        "name": "top_k",
-        "type": {
-          "type": "int",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": 50,
-        "title": "Top K",
-        "description": "The number of highest probability tokens to keep for top-k sampling.",
-        "min": 1.0,
-        "max": 100.0
-      },
-      {
-        "name": "top_p",
-        "type": {
-          "type": "float",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": 0.95,
-        "title": "Top P",
-        "description": "The cumulative probability cutoff for nucleus/top-p sampling.",
-        "min": 0.0,
-        "max": 1.0
-      },
-      {
-        "name": "keep_alive",
-        "type": {
-          "type": "int",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "300",
-        "title": "Keep Alive",
-        "description": "The number of seconds to keep the model alive.",
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": []
-  },
-  {
     "title": "Embedding",
     "description": "Generate vector representations of text for semantic similarity.\n    embeddings, semantic analysis, text similarity, search, clustering\n\n    Use cases:\n    - Power semantic search capabilities\n    - Enable text clustering and categorization\n    - Support recommendation systems\n    - Detect semantic anomalies or outliers\n    - Measure text diversity or similarity\n    - Aid in text classification tasks",
     "namespace": "ollama.text",
@@ -89847,6 +89687,158 @@
       {
         "type": {
           "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
+    "title": "Schema Generator",
+    "description": "LLM Agent to generate structured data based on a provided JSON schema.\n    llm, json schema, data generation, structured data\n\n    Use cases:\n    - Generate sample data matching a specific schema\n    - Create test data with specific structure\n    - Convert natural language to structured data\n    - Populate templates with generated content",
+    "namespace": "ollama.agents",
+    "node_type": "ollama.agents.SchemaGenerator",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "model",
+        "type": {
+          "type": "llama_model",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "llama_model",
+          "name": "",
+          "repo_id": "",
+          "modified_at": "",
+          "size": 0,
+          "digest": "",
+          "details": {}
+        },
+        "title": "Model",
+        "description": "The Llama model to use.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "context_window",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 4096,
+        "title": "Context Window",
+        "description": "The context window size to use for the model.",
+        "min": 1.0,
+        "max": null
+      },
+      {
+        "name": "prompt",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Prompt",
+        "description": "The user prompt for data generation",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "schema",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Schema",
+        "description": "The JSON schema that defines the structure of the output",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "temperature",
+        "type": {
+          "type": "float",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 0.7,
+        "title": "Temperature",
+        "description": "The temperature to use for sampling.",
+        "min": 0.0,
+        "max": 2.0
+      },
+      {
+        "name": "top_k",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 50,
+        "title": "Top K",
+        "description": "The number of highest probability tokens to keep for top-k sampling.",
+        "min": 1.0,
+        "max": 100.0
+      },
+      {
+        "name": "top_p",
+        "type": {
+          "type": "float",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 0.95,
+        "title": "Top P",
+        "description": "The cumulative probability cutoff for nucleus/top-p sampling.",
+        "min": 0.0,
+        "max": 1.0
+      },
+      {
+        "name": "keep_alive",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "300",
+        "title": "Keep Alive",
+        "description": "The number of seconds to keep the model alive.",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "dict",
           "optional": false,
           "values": null,
           "type_args": [],
