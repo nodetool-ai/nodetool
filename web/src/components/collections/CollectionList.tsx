@@ -164,6 +164,31 @@ const CollectionList = () => {
       >
         Create Collection
       </Button>
+      <Box sx={{ mb: 2 }}>
+        <Typography variant="h6" sx={{ mb: 1 }}>
+          File Indexing with MarkItDown
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+          <strong>Drag and drop files</strong> onto a collection to index them
+          using MarkItDown.
+        </Typography>
+        <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
+          Supported Formats:
+        </Typography>
+        <Typography variant="body2" component="div" color="text.secondary">
+          <ul style={{ margin: 0, paddingLeft: "1.5em" }}>
+            <li>PDFs, PowerPoint, Word, Excel</li>
+            <li>Images (with EXIF & OCR support)</li>
+            <li>Audio files (with EXIF & transcription)</li>
+            <li>HTML and text-based files (CSV, JSON, XML)</li>
+            <li>ZIP archives (contents automatically processed)</li>
+          </ul>
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+          All files will be analyzed and added to the collection for semantic
+          search.
+        </Typography>
+      </Box>
       {showForm && <CollectionForm onClose={() => setShowForm(false)} />}
       {error && (
         <Typography color="error" sx={{ marginTop: 2 }}>
