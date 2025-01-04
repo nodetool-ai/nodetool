@@ -17,14 +17,14 @@ export const errorStyles = (theme: any) =>
     maxWidth: "240px",
 
     ".error-text": {
-      maxHeight: "5em",
+      maxHeight: "6em",
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeSmaller,
       color: theme.palette.c_black,
       cursor: "auto",
       userSelect: "text",
-      lineHeight: "1em",
-      padding: "0.25em .2em 0 0",
+      lineHeight: "1.1em",
+      padding: "0.5em .2em 0 0",
       overflowX: "hidden",
       overflowY: "auto",
       "&::selection": {
@@ -33,16 +33,16 @@ export const errorStyles = (theme: any) =>
     },
     button: {
       position: "absolute",
-      left: "-1px",
-      top: "-1px",
+      left: "8px",
+      top: "-2px",
       height: "1em",
-      padding: "4px",
+      padding: "6px 3px",
       borderRadius: "1px",
       fontSize: theme.fontSizeSmall,
-      color: theme.palette.c_black,
-      backgroundColor: theme.palette.c_white,
+      color: theme.palette.c_white,
+      backgroundColor: theme.palette.c_gray1,
       "&:hover": {
-        backgroundColor: theme.palette.c_gray5
+        backgroundColor: theme.palette.c_gray2
       }
     }
   });
