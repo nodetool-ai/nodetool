@@ -12,7 +12,8 @@ import {
   DialogContent,
   DialogActions,
   Button,
-  LinearProgress
+  LinearProgress,
+  Box
 } from "@mui/material";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { memo, useState, useCallback } from "react";
@@ -172,7 +173,29 @@ const CollectionGrid = () => {
       {isLoading ? (
         <Typography sx={{ marginTop: 2 }}>Loading collections...</Typography>
       ) : !data?.collections.length ? (
-        <Typography sx={{ marginTop: 2 }}>No collections found</Typography>
+        <Box sx={{ marginTop: 2 }}>
+          <Typography variant="h2" sx={{ margin: "0 0 1em 0" }}>
+            ChromaDB Collections
+          </Typography>
+          <Typography variant="body1" sx={{ marginBottom: 1 }}>
+            Collections are powerful vector databases that enable semantic
+            search and retrieval of your assets.
+          </Typography>
+          <Typography variant="h4" sx={{ margin: "1em 0" }}>
+            Create a new collection to make use of nodes in the ChromaDB
+            namespace.
+          </Typography>
+          <Typography variant="body1" sx={{ marginBottom: 1 }}>
+            <ul style={{ paddingLeft: "1em" }}>
+              <li>Store embeddings of text, images, and other assets</li>
+              <li>Enable semantic similarity search across content</li>
+              <li>
+                Organize and retrieve assets based on their meaning, not just
+                keywords
+              </li>
+            </ul>
+          </Typography>
+        </Box>
       ) : (
         <Paper sx={{ marginTop: 2 }}>
           <List>

@@ -4,6 +4,10 @@
  * Base styles for the node editor
  */
 
+ ul li {
+   list-style-type: square;
+ }
+
 /* Main container */
 #root .node-editor {
   margin: 0;

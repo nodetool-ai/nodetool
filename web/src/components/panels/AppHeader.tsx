@@ -85,11 +85,16 @@ const styles = (theme: any, buttonAppearance: "text" | "icon" | "both") =>
     },
     "button svg": {
       display:
-        buttonAppearance === "icon" || buttonAppearance === "both"
+        buttonAppearance === "icon" ||
+        buttonAppearance === "both" ||
+        ".command-icon svg"
           ? "block"
           : "none",
       padding: "0.1em",
       marginRight: "0.2em"
+    },
+    ".command-icon svg": {
+      display: "block !important"
     },
     "button.logo:hover": {
       backgroundColor: "transparent"
@@ -200,7 +205,7 @@ const AppHeader: React.FC = React.memo(() => {
                 : ThemeNodetool.palette.c_white
             }}
           >
-            <ExamplesIcon />
+            {buttonAppearance !== "text" && <ExamplesIcon />}
             Examples
           </Button>
         </Tooltip>
@@ -257,7 +262,7 @@ const AppHeader: React.FC = React.memo(() => {
             <OverallDownloadProgress />
             <Tooltip title="Model Manager" enterDelay={TOOLTIP_ENTER_DELAY}>
               <Button
-                className="action-button"
+                className="command-icon"
                 onClick={() => navigate("/models")}
                 tabIndex={-1}
                 style={{
@@ -266,22 +271,19 @@ const AppHeader: React.FC = React.memo(() => {
                     : ThemeNodetool.palette.c_white
                 }}
               >
-                {buttonAppearance !== "text" && (
-                  <IconForType
-                    iconName="model"
-                    showTooltip={false}
-                    svgProps={{
-                      fill: path.startsWith("/models")
-                        ? ThemeNodetool.palette.c_hl1
-                        : "#fff"
-                    }}
-                    bgStyle={{
-                      backgroundColor: "transparent",
-                      width: "28px"
-                    }}
-                  />
-                )}
-                Models
+                <IconForType
+                  iconName="model"
+                  showTooltip={false}
+                  svgProps={{
+                    fill: path.startsWith("/models")
+                      ? ThemeNodetool.palette.c_hl1
+                      : "#fff"
+                  }}
+                  bgStyle={{
+                    backgroundColor: "transparent",
+                    width: "28px"
+                  }}
+                />
               </Button>
             </Tooltip>
           </>
@@ -319,7 +321,6 @@ const AppHeader: React.FC = React.memo(() => {
             tabIndex={-1}
           >
             <QuestionMarkIcon />
-            Help
           </Button>
         </Tooltip>
         <SettingsMenu />

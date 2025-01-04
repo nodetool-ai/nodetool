@@ -32,7 +32,7 @@
 }
 
 .react-flow__node .node-status {
-  max-width: 180px;
+  max-width: 250px;
   padding: 10px;
   color: var(--c_warning);
   font-family: var(--font-family-1);
