@@ -12,6 +12,16 @@ import ThemeNodes from "../themes/ThemeNodes";
 import CircularProgress from "@mui/material/CircularProgress";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { isEqual } from "lodash";
+import Prism from "prismjs";
+import "prismjs/themes/prism-tomorrow.css";
+import Editor from "react-simple-code-editor";
+import "prismjs/components/prism-python";
+import "prismjs/components/prism-json";
+import "prismjs/components/prism-javascript";
+import "prismjs/components/prism-css";
+import "prismjs/components/prism-markdown";
+import "prismjs/components/prism-yaml";
+import "prismjs/components/prism-bash";
 
 interface TextEditorModalProps {
   value: string;
@@ -80,18 +90,14 @@ const modalStyles = (theme: any) =>
       padding: ".5em",
       backgroundColor: theme.palette.c_gray1
     },
-    ".modal-body textarea": {
+    ".modal-body .editor": {
       flex: 1,
       width: "100%",
-      resize: "none",
-      padding: ".5em",
-      border: "none",
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeSmall,
       lineHeight: "1.2",
       color: theme.palette.c_white,
       backgroundColor: theme.palette.c_gray2,
-      paddingBottom: "4em",
       outline: "none"
     },
     ".actions": {
@@ -207,16 +213,23 @@ const TextEditorModal = ({
                 <CircularProgress />
               </div>
             ) : (
-              <TextareaAutosize
-                ref={textareaRef}
+              <Editor
                 value={value}
-                onChange={(e) => onChange && onChange(e.target.value)}
-                autoComplete="off"
-                autoCorrect="off"
-                autoCapitalize="off"
-                spellCheck="false"
-                style={{ flex: 1, width: "100%" }}
+                onValueChange={(code) => onChange && onChange(code)}
+                highlight={(code) =>
+                  Prism.highlight(
+                    code,
+                    Prism.languages.javascript,
+                    "javascript"
+                  )
+                }
+                padding={10}
+                className="editor"
                 readOnly={readOnly}
+                style={{
+                  fontFamily: "monospace",
+                  minHeight: "100%"
+                }}
               />
             )}
           </div>
