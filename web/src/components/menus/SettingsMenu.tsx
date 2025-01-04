@@ -569,16 +569,17 @@ function SettingsMenu() {
                     <FormControl>
                       <InputLabel>Nodetool API Token</InputLabel>
                     </FormControl>
-                    <Typography className="description">
-                      This token is used to authenticate your account with the
-                      Nodetool API. <br />
+                    <div className="description">
+                      <Typography>
+                        This token is used to authenticate your account with the
+                        Nodetool API.
+                      </Typography>
                       <div className="secrets">
                         <WarningIcon sx={{ color: "#ff9800" }} />
-                        <Typography>
+                        <Typography component="span">
                           Keep this token secure and do not share it publicly
                         </Typography>
                       </div>
-                      <br />
                       <Tooltip title="Copy to clipboard">
                         <Button
                           style={{ margin: ".5em 0" }}
@@ -590,7 +591,7 @@ function SettingsMenu() {
                           Copy Token
                         </Button>
                       </Tooltip>
-                    </Typography>
+                    </div>
                   </div>
                 </>
               )}
