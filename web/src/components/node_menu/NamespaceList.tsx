@@ -69,7 +69,7 @@ const namespaceStyles = (theme: any, inPanel: boolean) =>
       overflowY: "auto",
       width: "fit-content",
       height: "fit-content",
-      maxHeight: inPanel ? "85vh" : "800px",
+      maxHeight: inPanel ? "85vh" : "750px",
       paddingRight: inPanel ? ".5em" : "1em",
       paddingBottom: "3em",
       marginRight: ".5em",
@@ -94,7 +94,7 @@ const namespaceStyles = (theme: any, inPanel: boolean) =>
       padding: "0 1em 1em .5em",
       marginRight: ".5em",
       height: "100%",
-      maxHeight: inPanel ? "85vh" : "700px",
+      maxHeight: inPanel ? "85vh" : "750px",
       width: "fit-content",
       paddingRight: "1em",
       minWidth: "220px",
@@ -144,10 +144,10 @@ const namespaceStyles = (theme: any, inPanel: boolean) =>
       alignItems: "center",
       gap: "0.25em",
       fontSize: theme.fontSizeNormal,
-      padding: "0.25em 1em",
+      padding: "0.25em .5em .2em .5em",
       borderRadius: "4px",
       backgroundColor: theme.palette.c_gray2,
-      margin: "0 1em"
+      margin: "0 .5em"
     },
     ".result-info span": {
       color: theme.palette.c_hl1,
@@ -201,9 +201,9 @@ const namespaceStyles = (theme: any, inPanel: boolean) =>
       color: theme.palette.c_gray4,
       fontWeight: "500",
       fontSize: "75%",
-      borderBottom: `1px solid ${theme.palette.c_gray3}`,
-      borderTop: `1px solid ${theme.palette.c_gray3}`,
-      padding: ".5em 0",
+      borderTop: `1px solid ${theme.palette.c_gray2}`,
+      padding: ".5em 0 0 0",
+      margin: "1em 0 .5em 0",
       letterSpacing: "0.5px",
       wordBreak: "break-word"
     },
@@ -232,7 +232,7 @@ const namespaceStyles = (theme: any, inPanel: boolean) =>
     },
     ".namespaces .list-item": {
       cursor: "pointer",
-      padding: ".4em .75em",
+      padding: ".3em .75em",
       backgroundColor: "transparent",
       borderLeft: `3px solid ${theme.palette.c_gray3}`,
       fontFamily: theme.fontFamily1,

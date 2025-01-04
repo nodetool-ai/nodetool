@@ -46,8 +46,6 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
       setDragToCreate: state.setDragToCreate
     }));
 
-  const secrets = useRemoteSettingsStore((state) => state.secrets);
-
   const handleCreateNode = useCreateNode();
   const currentHoveredNodeRef = useRef<NodeMetadata | null>(null);
   const onInfoClick = useCallback(() => {
