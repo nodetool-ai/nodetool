@@ -90755,6 +90755,26 @@
         "max": null
       },
       {
+        "name": "audio",
+        "type": {
+          "type": "audio",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "audio",
+          "uri": "",
+          "asset_id": null,
+          "data": null
+        },
+        "title": "Audio",
+        "description": "Audio to use for generation",
+        "min": null,
+        "max": null
+      },
+      {
         "name": "system_instruction",
         "type": {
           "type": "str",
@@ -90763,9 +90783,24 @@
           "type_args": [],
           "type_name": null
         },
-        "default": "",
+        "default": "You are a helpful assistant.",
         "title": "System Instruction",
-        "description": "Instructions for the model to steer it toward better performance.\n      For example, \"Answer as concisely as possible\" or \"Don't use technical\n      terms in your response\".\n      ",
+        "description": "Instructions for the model to steer it toward better performance.\n        For example, \"Answer as concisely as possible\" or \"Don't use technical\n        terms in your response\".\n        ",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "code_execution",
+        "type": {
+          "type": "bool",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": false,
+        "title": "Code Execution",
+        "description": "Whether to enable code execution tool. \n        You can use this code execution capability to build applications that \n        benefit from code-based reasoning and that produce text output.\n        ",
         "min": null,
         "max": null
       },
@@ -90780,7 +90815,7 @@
         },
         "default": 0.5,
         "title": "Temperature",
-        "description": "Value that controls the degree of randomness in token selection.\n      Lower temperatures are good for prompts that require a less open-ended or\n      creative response, while higher temperatures can lead to more diverse or\n      creative results.\n      ",
+        "description": "Value that controls the degree of randomness in token selection.\n        Lower temperatures are good for prompts that require a less open-ended or\n        creative response, while higher temperatures can lead to more diverse or\n        creative results.\n        ",
         "min": null,
         "max": null
       },
@@ -90795,7 +90830,7 @@
         },
         "default": 0.5,
         "title": "Top P",
-        "description": "Tokens are selected from the most to least probable until the sum\n      of their probabilities equals this value. Use a lower value for less\n      random responses and a higher value for more random responses.\n      ",
+        "description": "Tokens are selected from the most to least probable until the sum\n        of their probabilities equals this value. Use a lower value for less\n        random responses and a higher value for more random responses.\n        ",
         "min": null,
         "max": null
       },
@@ -90810,7 +90845,7 @@
         },
         "default": 40,
         "title": "Top K",
-        "description": "For each token selection step, the ``top_k`` tokens with the\n          highest probabilities are sampled. Then tokens are further filtered based\n          on ``top_p`` with the final token selected using temperature sampling. Use\n          a lower number for less random responses and a higher number for more\n          random responses.\n          ",
+        "description": "For each token selection step, the ``top_k`` tokens with the\n        highest probabilities are sampled. Then tokens are further filtered based\n        on ``top_p`` with the final token selected using temperature sampling. Use\n        a lower number for less random responses and a higher number for more\n        random responses.\n        ",
         "min": 1.0,
         "max": 50.0
       },
@@ -90823,7 +90858,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": 100,
+        "default": 1024,
         "title": "Max Output Tokens",
         "description": "Maximum number of tokens that can be generated in the response.\n      ",
         "min": null,
@@ -90840,7 +90875,7 @@
         },
         "default": 0.0,
         "title": "Presence Penalty",
-        "description": "Positive values penalize tokens that already appear in the\n      generated text, increasing the probability of generating more diverse\n      content.\n      ",
+        "description": "Positive values penalize tokens that already appear in the\n        generated text, increasing the probability of generating more diverse\n        content.\n        ",
         "min": null,
         "max": null
       },
@@ -90855,7 +90890,7 @@
         },
         "default": 0.0,
         "title": "Frequency Penalty",
-        "description": "Positive values penalize tokens that repeatedly appear in the\n      generated text, increasing the probability of generating more diverse\n      content.\n      ",
+        "description": "Positive values penalize tokens that repeatedly appear in the\n        generated text, increasing the probability of generating more diverse\n        content.\n        ",
         "min": null,
         "max": null
       }
@@ -90867,6 +90902,420 @@
           "optional": false,
           "values": null,
           "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
+    "title": "Gemini Agent",
+    "description": "Gemini version of the Agent node for task planning and goal decomposition.",
+    "namespace": "google.agents",
+    "node_type": "google.agents.GeminiAgent",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "goal",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Goal",
+        "description": "The user prompt",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "model",
+        "type": {
+          "type": "enum",
+          "optional": false,
+          "values": [
+            "gemini-1.5-pro",
+            "gemini-1.5-flash",
+            "gemini-2.0-flash-exp"
+          ],
+          "type_args": [],
+          "type_name": "nodetool.nodes.google.gemini.GeminiModel"
+        },
+        "default": "gemini-1.5-pro",
+        "title": "Model",
+        "description": "The Gemini model to use",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "temperature",
+        "type": {
+          "type": "float",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 0.0,
+        "title": "Temperature",
+        "description": "Temperature for sampling",
+        "min": 0.0,
+        "max": 1.0
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "task",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
+    "title": "Chain Of Thought",
+    "description": "Gemini version of chain-of-thought reasoning node.",
+    "namespace": "google.agents",
+    "node_type": "google.agents.ChainOfThought",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "messages",
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "message",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": [],
+        "title": "Messages",
+        "description": "The messages to analyze",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "model",
+        "type": {
+          "type": "enum",
+          "optional": false,
+          "values": [
+            "gemini-1.5-pro",
+            "gemini-1.5-flash",
+            "gemini-2.0-flash-exp"
+          ],
+          "type_args": [],
+          "type_name": "nodetool.nodes.google.gemini.GeminiModel"
+        },
+        "default": "gemini-1.5-pro",
+        "title": "Model",
+        "description": null,
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "temperature",
+        "type": {
+          "type": "float",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 0.0,
+        "title": "Temperature",
+        "description": null,
+        "min": 0.0,
+        "max": 1.0
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "dict",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
+    "title": "Data Generator",
+    "description": "Gemini version of the data generator for creating dataframes based on user prompts.\n    Supports multimodal inputs including images and audio.",
+    "namespace": "google.agents",
+    "node_type": "google.agents.DataGenerator",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "model",
+        "type": {
+          "type": "enum",
+          "optional": false,
+          "values": [
+            "gemini-1.5-pro",
+            "gemini-1.5-flash",
+            "gemini-2.0-flash-exp"
+          ],
+          "type_args": [],
+          "type_name": "nodetool.nodes.google.gemini.GeminiModel"
+        },
+        "default": "gemini-1.5-pro",
+        "title": "Model",
+        "description": "The Gemini model to use",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "prompt",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Prompt",
+        "description": "The user prompt",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "image",
+        "type": {
+          "type": "image",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null
+        },
+        "title": "Image",
+        "description": "Image to use for generation",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "audio",
+        "type": {
+          "type": "audio",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "audio",
+          "uri": "",
+          "asset_id": null,
+          "data": null
+        },
+        "title": "Audio",
+        "description": "Audio to use for generation",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "temperature",
+        "type": {
+          "type": "float",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 0.0,
+        "title": "Temperature",
+        "description": "Temperature for sampling",
+        "min": 0.0,
+        "max": 1.0
+      },
+      {
+        "name": "columns",
+        "type": {
+          "type": "record_type",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "record_type",
+          "columns": []
+        },
+        "title": "Columns",
+        "description": "The columns to use in the dataframe",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "dataframe",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
+    "title": "SVGGenerator",
+    "description": "Gemini version of SVG generator for creating SVG elements based on user prompts.",
+    "namespace": "google.agents",
+    "node_type": "google.agents.SVGGenerator",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "model",
+        "type": {
+          "type": "enum",
+          "optional": false,
+          "values": [
+            "gemini-1.5-pro",
+            "gemini-1.5-flash",
+            "gemini-2.0-flash-exp"
+          ],
+          "type_args": [],
+          "type_name": "nodetool.nodes.google.gemini.GeminiModel"
+        },
+        "default": "gemini-1.5-pro",
+        "title": "Model",
+        "description": "The Gemini model to use",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "prompt",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Prompt",
+        "description": "The user prompt for SVG generation",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "temperature",
+        "type": {
+          "type": "float",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 0.7,
+        "title": "Temperature",
+        "description": "Temperature for sampling",
+        "min": 0.0,
+        "max": 1.0
+      },
+      {
+        "name": "image",
+        "type": {
+          "type": "image",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null
+        },
+        "title": "Image",
+        "description": "Image to use for generation",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "audio",
+        "type": {
+          "type": "audio",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "audio",
+          "uri": "",
+          "asset_id": null,
+          "data": null
+        },
+        "title": "Audio",
+        "description": "Audio to use for generation",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "svg_element",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
           "type_name": null
         },
         "name": "output",
