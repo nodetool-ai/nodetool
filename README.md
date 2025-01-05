@@ -1,19 +1,29 @@
 <h1 style="display: inline;">
   <img src="https://github.com/user-attachments/assets/823b1091-78cd-423f-9b41-14f33b787c7d" alt="NodeTool Logo" height="24" style="vertical-align: -30px;"/>
-  NodeTool - Your Creative AI Playground
+  NodeTool - Build Smarter AI Apps on Your Desktop
 </h1>
 
-NodeTool is a platform designed for AI enthusiasts, developers, and creators. It provides a visual interface to access a variety of AI tools and models. Whether you’re an artist, programmer, data scientist, or just exploring AI, NodeTool offers resources to support your projects and ideas.
+NodeTool is a no-code platform that enables you to create AI-powered tools and assistants tailored to your needs, directly on your local machine. Whether you're building personal productivity tools, learning assistants, or desktop utilities, NodeTool provides the foundation for creating powerful, privacy-focused AI applications.
 
 With NodeTool, you can:
 
-- **Prototype ideas quickly**: Experiment with thousands of models in a friendly, visual interface.
-- **Run models locally**: Utilize your own GPU to run large language models via Ollama and access hundreds of models via Hugging Face Transformers and Diffusers.
-- **Leverage cloud services**: Outsource heavy GPU workloads to services like Replicate, OpenAI, and Anthropic for powerful model access without expensive hardware.
+- **Build Privacy-First**: Keep your data local and secure with no need to send files to external servers
+- **Create Custom Solutions**: Design AI tools that work exactly the way you need them to
+- **Run Locally**: Utilize your own hardware to run open-source models via Ollama and access hundreds of models via Hugging Face
+- **Integrate Seamlessly**: Connect AI workflows to your favorite local apps and desktop utilities
 
 ![NodeTool](nodetool.png)
 
 NodeTool simplifies access to advanced AI technologies, providing a creative space for both newcomers and experienced users to build powerful solutions for content creation, data analysis, automation, and more.
+
+## Use Cases 🎨
+
+- 🎨 **Personal Learning Assistant**: Create chatbots that read and explain your PDFs, e-books, or academic papers
+- 📝 **Note Summarization**: Extract key insights from Obsidian or Apple Notes
+- 🎤 **Voice Memo to Presentation**: Convert recorded ideas into documents
+- 🔧 **Desktop Utilities**: Access NodeTool mini-apps from your system tray
+- 🗣️ **Siri Integration**: Extend Siri's capabilities with custom AI workflows
+- ⚡ **Automation**: Streamline repetitive tasks with AI-powered scripts
 
 ## Features ✨
 
@@ -38,15 +48,13 @@ NodeTool simplifies access to advanced AI technologies, providing a creative spa
 
 Download the latest release from our [Releases Page](https://github.com/nodetool-ai/nodetool/releases).
 
-## Use Cases 🎨
+## Where to Use NodeTool 🖥️
 
-- 🎨 **Image Generation**: Craft custom image pipelines from scratch.
-- 🎶 **Music Generation**: Generate musical pieces based on text descriptions or themes.
-- 🔊 **Sound-to-Visual Art**: Turn audio into visual masterpieces.
-- 📚 **Audio-to-Story Generator**: Create stories inspired by sounds.
-- ✨ **Image Enhancement**: Improve image quality with AI-powered techniques.
-- 🌍 **Multilingual Content Creation**: Create and translate content across multiple languages.
-- 📊 **Data Visualization**: Turn complex data into intuitive visuals.
+NodeTool is designed for your local environment:
+
+- **Home Workstation**: Build AI tools for personal productivity or creative projects
+- **Lab or Office**: Deploy customized solutions for research and internal utilities
+- **On the Go**: Run lightweight workflows on laptops for portable AI assistance
 
 ## Node Overview 🧩
 
