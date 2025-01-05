@@ -28,6 +28,7 @@ const nodeInfoStyles = (theme: any, inPanel: boolean) =>
     paddingRight: "1em",
     paddingLeft: ".5em",
     maxHeight: "55vh",
+    position: "relative",
     ".node-title": {
       fontSize: theme.fontSizeSmall,
       fontWeight: "600",
@@ -40,10 +41,10 @@ const nodeInfoStyles = (theme: any, inPanel: boolean) =>
       display: "flex",
       justifyContent: "space-between",
       alignItems: "flex-start",
-      minHeight: "2em"
+      minHeight: "1em"
     },
     ".status-container": {
-      minHeight: "2em",
+      minHeight: "1em",
       display: "flex",
       alignItems: "center"
     },
