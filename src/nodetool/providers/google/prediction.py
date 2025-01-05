@@ -17,10 +17,14 @@ async def run_gemini(
     system_instruction = prediction.params.get("system_instruction", "")
 
     config = genai.GenerationConfig(
-        temperature=prediction.params["config"]["temperature"],
-        top_p=prediction.params["config"]["top_p"],
-        top_k=prediction.params["config"]["top_k"],
-        max_output_tokens=prediction.params["config"]["max_output_tokens"],
+        temperature=prediction.params["config"].get("temperature", 0.0),
+        top_p=prediction.params["config"].get("top_p", 0.95),
+        top_k=prediction.params["config"].get("top_k", 40),
+        max_output_tokens=prediction.params["config"].get("max_output_tokens", 1024),
+        response_mime_type=prediction.params["config"].get(
+            "response_mime_type", "application/json"
+        ),
+        response_schema=prediction.params["config"].get("response_schema", None),
     )
 
     genai.configure(api_key=env.get("GEMINI_API_KEY"))
