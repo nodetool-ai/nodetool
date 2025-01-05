@@ -35,7 +35,24 @@ const styles = css({
   alignItems: "flex-end",
   li: {
     listStyleType: "none",
-    maxWidth: "35vw"
+    maxWidth: "35vw",
+    transition: "all 0.3s ease-in-out",
+    "&.alert-enter": {
+      opacity: 0,
+      transform: "translateX(100%)"
+    },
+    "&.alert-enter-active": {
+      opacity: 1,
+      transform: "translateX(0)"
+    },
+    "&.alert-exit": {
+      opacity: 1,
+      transform: "translateX(0)"
+    },
+    "&.alert-exit-active": {
+      opacity: 0,
+      transform: "translateX(100%)"
+    }
   }
 });
 
@@ -143,22 +160,24 @@ const Alert: React.FC = () => {
     }, 3000);
   };
   return (
-    <ul css={styles}>
+    <TransitionGroup component="ul" css={styles}>
       {visibleNotifications.map((notification: Notification) => (
-        <li key={notification.id}>
-          <MUIAlert
-            severity={mapTypeToSeverity(notification.type)}
-            onClose={
-              notification.type === "error" || notification.dismissable
-                ? () => handleClose(notification.id)
-                : undefined
-            }
-          >
-            {notification.content}
-          </MUIAlert>
-        </li>
+        <CSSTransition key={notification.id} timeout={300} classNames="alert">
+          <li>
+            <MUIAlert
+              severity={mapTypeToSeverity(notification.type)}
+              onClose={
+                notification.type === "error" || notification.dismissable
+                  ? () => handleClose(notification.id)
+                  : undefined
+              }
+            >
+              {notification.content}
+            </MUIAlert>
+          </li>
+        </CSSTransition>
       ))}
-    </ul>
+    </TransitionGroup>
   );
 };
 export default Alert;
