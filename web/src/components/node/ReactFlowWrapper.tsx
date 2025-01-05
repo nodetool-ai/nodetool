@@ -49,7 +49,6 @@ import useDragHandlers from "../../hooks/handlers/useDragHandlers";
 // constants
 import { MAX_ZOOM, MIN_ZOOM } from "../../config/constants";
 import HuggingFaceDownloadDialog from "../hugging_face/HuggingFaceDownloadDialog";
-import { ErrorBoundary } from "@sentry/react";
 import GroupNode from "../node/GroupNode";
 import { useSurroundWithGroup } from "../../hooks/nodes/useSurroundWithGroup";
 import { isEqual } from "lodash";
