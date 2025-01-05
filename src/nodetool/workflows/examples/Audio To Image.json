@@ -1,8 +1,8 @@
 {
   "id": "audio_to_image",
   "access": "public",
-  "created_at": "2024-12-06T09:48:23.060657",
-  "updated_at": "2024-12-06T09:48:23.060657",
+  "created_at": "2025-01-05T13:15:33.315293",
+  "updated_at": "2025-01-05T13:15:33.315831",
   "name": "Audio To Image",
   "description": "Convert any audio speech into an image",
   "tags": [
@@ -20,31 +20,13 @@
         "type": "nodetool.workflows.base_node.Preview",
         "data": {},
         "ui_properties": {
-          "selected": false,
           "position": {
-            "x": 1200,
-            "y": 118
+            "x": 740,
+            "y": 149
           },
           "zIndex": 0,
-          "width": 519,
-          "height": 551,
-          "selectable": true
-        }
-      },
-      {
-        "id": "10",
-        "parent_id": null,
-        "type": "nodetool.text.Template",
-        "data": {
-          "string": "design an artwork based on this speech, describe in less than 20 words: {0}"
-        },
-        "ui_properties": {
-          "position": {
-            "x": 510,
-            "y": 323
-          },
-          "zIndex": 0,
-          "width": 200,
+          "width": 432,
+          "height": 500,
           "selectable": true
         }
       },
@@ -55,14 +37,6 @@
         "data": {
           "headline": "Audio to Image",
           "comment": [
-            {
-              "type": "paragraph",
-              "children": [
-                {
-                  "text": "* Convert any audio speech into an image"
-                }
-              ]
-            },
             {
               "type": "paragraph",
               "children": [
@@ -90,6 +64,7 @@
           ]
         },
         "ui_properties": {
+          "selected": false,
           "position": {
             "x": 38,
             "y": -141
@@ -97,37 +72,6 @@
           "zIndex": 0,
           "width": 618,
           "height": 127,
-          "selectable": true
-        }
-      },
-      {
-        "id": "12",
-        "parent_id": null,
-        "type": "ollama.text.Ollama",
-        "data": {
-          "model": {
-            "type": "llama_model",
-            "repo_id": "gemma2:2b"
-          },
-          "system_prompt": "You are a painter.",
-          "image": {
-            "type": "image",
-            "uri": "",
-            "asset_id": null,
-            "data": null
-          },
-          "temperature": 0.7,
-          "top_k": 50,
-          "top_p": 0.95,
-          "keep_alive": "300"
-        },
-        "ui_properties": {
-          "position": {
-            "x": 740,
-            "y": 196
-          },
-          "zIndex": 0,
-          "width": 200,
           "selectable": true
         }
       },
@@ -143,9 +87,9 @@
           },
           "negative_prompt": "",
           "seed": -1,
-          "num_inference_steps": 50,
+          "num_inference_steps": 20,
           "guidance_scale": 7.5,
-          "scheduler": "HeunDiscreteScheduler",
+          "scheduler": "EulerDiscreteScheduler",
           "loras": [],
           "lora_scale": 0.5,
           "ip_adapter_model": "",
@@ -166,7 +110,7 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 970,
+            "x": 510,
             "y": 50
           },
           "zIndex": 0,
@@ -184,13 +128,14 @@
             "repo_id": "openai/whisper-small"
           },
           "task": "transcribe",
-          "language": "english",
+          "language": "auto_detect",
           "timestamps": "none"
         },
         "ui_properties": {
+          "selected": false,
           "position": {
             "x": 280,
-            "y": 201
+            "y": 203
           },
           "zIndex": 0,
           "width": 200,
@@ -203,14 +148,15 @@
         "type": "nodetool.constant.Audio",
         "data": {
           "value": {
-            "uri": "https://upload.wikimedia.org/wikipedia/commons/transcoded/4/4f/An_address_by_Opposition_Leader_Anthony_Albanese.ogg/An_address_by_Opposition_Leader_Anthony_Albanese.ogg.mp3?download",
+            "uri": "",
             "type": "audio"
           }
         },
         "ui_properties": {
+          "selected": false,
           "position": {
             "x": 50,
-            "y": 269
+            "y": 283
           },
           "zIndex": 0,
           "width": 200,
@@ -220,46 +166,6 @@
     ],
     "edges": [
       {
-        "id": "909f3c44-2cf8-4c75-959e-8c4b4cc176e6",
-        "source": "15",
-        "sourceHandle": "output",
-        "target": "14",
-        "targetHandle": "audio",
-        "ui_properties": {
-          "className": "audio"
-        }
-      },
-      {
-        "id": "05c9cd53-cd41-4211-b852-e3afe84defea",
-        "source": "12",
-        "sourceHandle": "output",
-        "target": "13",
-        "targetHandle": "prompt",
-        "ui_properties": {
-          "className": "str"
-        }
-      },
-      {
-        "id": "00f1542f-84cf-4bc2-885c-286b87c78bf2",
-        "source": "10",
-        "sourceHandle": "output",
-        "target": "12",
-        "targetHandle": "prompt",
-        "ui_properties": {
-          "className": "union"
-        }
-      },
-      {
-        "id": "672726ea-bdaf-4108-bb6f-ea8b4fd0eec6",
-        "source": "14",
-        "sourceHandle": "text",
-        "target": "10",
-        "targetHandle": "values",
-        "ui_properties": {
-          "className": "str"
-        }
-      },
-      {
         "id": "39781355-f211-4883-bde4-859973f7731d",
         "source": "13",
         "sourceHandle": "output",
@@ -267,6 +173,26 @@
         "targetHandle": "value",
         "ui_properties": {
           "className": "image"
+        }
+      },
+      {
+        "id": "fa76cf2f-55cc-433a-b738-c4ba79e283de",
+        "source": "14",
+        "sourceHandle": "text",
+        "target": "13",
+        "targetHandle": "prompt",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "909f3c44-2cf8-4c75-959e-8c4b4cc176e6",
+        "source": "15",
+        "sourceHandle": "output",
+        "target": "14",
+        "targetHandle": "audio",
+        "ui_properties": {
+          "className": "audio"
         }
       }
     ]
