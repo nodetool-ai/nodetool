@@ -163,6 +163,7 @@ const WorkflowList = () => {
     })
   );
   const createNewWorkflow = useWorkflowStore((state) => state.createNew);
+  const createWorkflow = useWorkflowStore((state) => state.create);
   const copyWorkflow = useWorkflowStore((state) => state.copy);
   const updateWorkflow = useWorkflowStore((state) => state.update);
   const queryClient = useQueryClient();
@@ -289,8 +290,7 @@ const WorkflowList = () => {
   const duplicateWorkflow = useCallback(
     async (event: React.MouseEvent<Element>, workflow: Workflow) => {
       event.stopPropagation();
-      const newWorkflow = await copyWorkflow(workflow);
-      debugger;
+      const workflowRequest = await copyWorkflow(workflow);
       const baseName = workflow.name.replace(/ \(\d+\)$/, "");
       const existingNames = workflows
         .filter((w) => w.name.startsWith(baseName))
@@ -309,10 +309,11 @@ const WorkflowList = () => {
       });
 
       const newName = `${baseName} (${highestNumber + 1})`;
-      newWorkflow.name = newName.substring(0, 50);
+      workflowRequest.name = newName.substring(0, 50);
 
-      await updateWorkflow(newWorkflow);
+      const newWorkflow = await createWorkflow(workflowRequest);
       queryClient.invalidateQueries({ queryKey: ["workflows"] });
+      navigate(`/editor/${newWorkflow.id}`);
     },
     [copyWorkflow, updateWorkflow, queryClient, workflows]
   );
