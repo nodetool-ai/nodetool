@@ -1,10 +1,9 @@
-const { Tray, Menu, app } = require("electron");
+const { Tray, Menu, app, BrowserWindow } = require("electron");
 const path = require("path");
 const { logMessage } = require("./logger");
-const { BrowserWindow } = require("electron");
-const { createWindow } = require("./window");
 const WebSocket = require("ws");
 const { createWorkflowWindow } = require("./workflow-window");
+const { getMainWindow } = require("./state");
 
 /** @type {Electron.Tray|null} */
 let trayInstance = null;
@@ -17,7 +16,11 @@ let wsConnection = null;
  * @returns {Promise<Electron.Tray>} The tray instance
  */
 async function createTray() {
-  if (trayInstance) return trayInstance;
+  // Destroy existing tray if it exists
+  if (trayInstance) {
+    trayInstance.destroy();
+    trayInstance = null;
+  }
 
   const isWindows = process.platform === "win32";
   const iconPath = path.join(
@@ -26,19 +29,18 @@ async function createTray() {
     isWindows ? "tray-icon.ico" : "tray-icon.png"
   );
 
-  // Windows-specific: Set the app user model ID to ensure proper taskbar grouping
+  // Windows-specific: Set the app user model ID
   if (isWindows) {
     app.setAppUserModelId("com.nodetool.desktop");
   }
 
   trayInstance = new Tray(iconPath);
 
-  // Windows-specific: Force the tray icon to be always visible
+  // Windows-specific tray settings
   if (isWindows) {
-    // Set high priority for the tray icon
     trayInstance.setIgnoreDoubleClickEvents(true);
 
-    // Update the tray icon's visibility preference in Windows registry
+    // Update Windows registry for tray icon visibility
     const { execSync } = require("child_process");
     try {
       const iconPreferenceKey =
@@ -55,42 +57,73 @@ async function createTray() {
         "warn"
       );
     }
+
+    // Set up Windows-specific event handlers
+    setupWindowsTrayEvents(trayInstance);
   }
 
-  await connectToWebSocketUpdates();
-  await updateTrayMenu();
+  // Create initial menu
+  const workflows = await fetchWorkflows();
+  await updateTrayMenu(workflows);
 
-  // Windows-specific settings
-  if (isWindows) {
-    // Double click should open/focus the main window
-    trayInstance.on("double-click", () => {
-      const { getMainWindow } = require("./state");
-      const mainWindow = getMainWindow();
-      if (mainWindow) {
-        if (mainWindow.isMinimized()) mainWindow.restore();
-        mainWindow.show();
-        mainWindow.focus();
-      } else {
-        createWindow();
-      }
-    });
-
-    // Single click should show the context menu
-    trayInstance.on("click", () => {
-      const { getMainWindow } = require("./state");
-      const mainWindow = getMainWindow();
-      if (mainWindow) {
-        trayInstance.popUpContextMenu();
-      }
-    });
-
-    // Right click should show the context menu
-    trayInstance.on("right-click", () => {
-      trayInstance.popUpContextMenu();
-    });
-  }
+  // Set up WebSocket connection after delay
+  setTimeout(() => {
+    connectToWebSocketUpdates();
+  }, 30000);
 
   return trayInstance;
+}
+
+function setupWindowsTrayEvents(tray) {
+  tray.on("double-click", () => {
+    const mainWindow = getMainWindow();
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.show();
+      mainWindow.focus();
+    } else {
+      createWindow();
+    }
+  });
+
+  tray.on("click", () => {
+    const { getMainWindow } = require("./state");
+    const mainWindow = getMainWindow();
+    if (mainWindow) {
+      tray.popUpContextMenu();
+    }
+  });
+
+  tray.on("right-click", () => {
+    tray.popUpContextMenu();
+  });
+}
+
+/**
+ * Handles app activation events
+ * @returns {void}
+ */
+function focusNodeTool() {
+  // Get all visible windows (not just existing ones)
+  const visibleWindows = BrowserWindow.getAllWindows().filter(
+    (w) => !w.isDestroyed() && w.isVisible()
+  );
+  const createWindow = require("./window").createWindow;
+
+  if (visibleWindows.length === 0) {
+    createWindow();
+  } else if (process.platform === "darwin") {
+    const mainWindow = getMainWindow();
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) {
+        mainWindow.restore();
+      }
+      mainWindow.show();
+      mainWindow.focus();
+    } else {
+      createWindow();
+    }
+  }
 }
 
 /**
@@ -133,10 +166,14 @@ async function fetchWorkflows() {
  * Updates the tray menu with current workflows
  * @returns {Promise<void>}
  */
-async function updateTrayMenu() {
+async function updateTrayMenu(workflows = null) {
   if (!trayInstance) return;
 
-  const workflows = await fetchWorkflows();
+  // Fetch workflows if not provided
+  if (workflows === null) {
+    workflows = await fetchWorkflows();
+  }
+
   const workflowMenuItems = workflows.map((workflow) => ({
     label: workflow.name,
     click: () => {
@@ -144,31 +181,16 @@ async function updateTrayMenu() {
       const workflowWindow = createWorkflowWindow();
       workflowWindow.loadFile(path.join(__dirname, "run-workflow.html"));
 
-      // Send the workflow data after the window loads
       workflowWindow.webContents.on("did-finish-load", () => {
         workflowWindow.webContents.send("workflow", workflow);
       });
     },
   }));
 
-  const { getMainWindow } = require("./state");
-  const mainWindow = getMainWindow();
-
   const contextMenu = Menu.buildFromTemplate([
     {
-      label:
-        mainWindow && !mainWindow.isVisible()
-          ? "Show NodeTool"
-          : "Focus NodeTool",
-      click: () => {
-        if (mainWindow) {
-          if (mainWindow.isMinimized()) mainWindow.restore();
-          mainWindow.show();
-          mainWindow.focus();
-        } else {
-          createWindow();
-        }
-      },
+      label: "Show NodeTool",
+      click: () => focusNodeTool(),
     },
     { type: "separator" },
     {
