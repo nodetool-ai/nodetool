@@ -1245,7 +1245,7 @@ class SVGElement(BaseType):
     type: Literal["svg_element"] = "svg_element"
     name: str = ""
     attributes: dict[str, str] = {}
-    content: str = ""
+    content: str | None = None
     children: list["SVGElement"] = Field(default_factory=list)
 
     def render_attributes(self) -> str:
@@ -1434,7 +1434,7 @@ class DataSeriesSchema(BaseModel):
     units: Optional[str] = None
     seed: Optional[int] = None
     stat: Optional[SeabornStatistic] = None
-    bins: Optional[Union[int, str]] = None
+    bins: Optional[int] = None
     binwidth: Optional[float] = None
     binrange: Optional[tuple[float, float]] = None
     discrete: Optional[bool] = None
@@ -1445,7 +1445,7 @@ class DataSeriesSchema(BaseModel):
 
 
 class ChartDataSchema(BaseModel):
-    series: list[DataSeriesSchema]
+    series: list[DataSeriesSchema] = []
     row: Optional[str] = None
     col: Optional[str] = None
     col_wrap: Optional[int] = None
@@ -1456,14 +1456,14 @@ class ChartConfigSchema(BaseModel):
     x_label: str
     y_label: str
     legend: bool = True
-    data: ChartDataSchema
+    data: ChartDataSchema = Field(default=ChartDataSchema())
     height: Optional[float] = None
     aspect: Optional[float] = None
     x_lim: Optional[tuple[float, float]] = None
     y_lim: Optional[tuple[float, float]] = None
     x_scale: Optional[Literal["linear", "log"]] = None
     y_scale: Optional[Literal["linear", "log"]] = None
-    legend_position: Literal["auto", "right", "left", "top", "bottom"] = "auto"
+    legend_position: Optional[Literal["auto", "right", "left", "top", "bottom"]] = None
     palette: Optional[str] = None
     hue_order: Optional[list[str]] = None
     hue_norm: Optional[tuple[float, float]] = None
