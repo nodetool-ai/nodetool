@@ -43,7 +43,7 @@ const ModelRecommendationsButton: React.FC<ModelRecommendationsButtonProps> = ({
             sx={{
               width: "90%",
               fontSize: ThemeNodetool.fontSizeSmall,
-              color: ThemeNodetool.palette.c_white,
+              color: ThemeNodetool.palette.c_gray5,
               margin: ".5em 0",
               padding: ".5em .5em",
               border: `1px solid ${ThemeNodetool.palette.c_gray2}`,
@@ -51,8 +51,7 @@ const ModelRecommendationsButton: React.FC<ModelRecommendationsButtonProps> = ({
               borderRadius: ".5em",
               "&:hover": {
                 cursor: "pointer",
-                backgroundColor: ThemeNodetool.palette.c_gray3
-                // color: ThemeNodetool.palette.c_black
+                backgroundColor: ThemeNodetool.palette.c_gray2
               }
             }}
             onClick={handleOpenModelDialog}
