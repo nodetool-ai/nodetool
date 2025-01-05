@@ -22,18 +22,14 @@ import CollectionList from "../collections/CollectionList";
 
 const styles = (theme: any) =>
   css({
+    ".MuiDrawer-paper": {
+      boxShadow: "4px 0 6px -1px rgba(0, 0, 0, 0.2)"
+    },
     ".panel-tabs ": {
       minHeight: "2em"
     },
-    ".panel-tabs button": {
-      display: "flex",
-      alignItems: "flex-start",
-      padding: "0 0 0 .5em",
-      minWidth: "unset",
-      minHeight: "unset",
-      marginRight: "4px",
-      textAlign: "left",
-      fontSize: theme.fontSizeSmaller
+    ".vertical-toolbar button": {
+      marginRight: "10px"
     },
     ".panel-tabs button:hover:not(.Mui-selected)": {
       color: theme.palette.c_gray6
@@ -45,6 +41,8 @@ const styles = (theme: any) =>
       display: "flex",
       flexDirection: "column",
       backgroundColor: theme.palette.background.paper,
+      borderRight: `1px solid ${theme.palette.c_gray2}`,
+      zIndex: 1,
       "& .MuiIconButton-root, .MuiButton-root": {
         padding: "12px",
         borderRadius: "6px",

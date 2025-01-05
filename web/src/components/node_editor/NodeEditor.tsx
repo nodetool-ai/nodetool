@@ -235,12 +235,12 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ isMinZoom }) => {
       <div className="node-editor" css={generateCSS}>
         <Grid
           container
-          spacing={2}
-          margin={2}
+          spacing={0}
+          margin={0}
           sx={{
-            margin: "8px",
-            height: "calc(100vh - 80px)",
-            width: "calc(100vw - 10px)",
+            margin: "0px",
+            height: "calc(100vh - 20px)",
+            width: "100%",
             overflow: "hidden",
             position: "relative"
           }}
