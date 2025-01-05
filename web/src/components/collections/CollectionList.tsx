@@ -197,9 +197,9 @@ const CollectionList = () => {
       )}
       {isLoading ? (
         <Typography sx={{ marginTop: 2 }}>Loading collections...</Typography>
-      ) : !data?.collections.length ? (
+      ) : !data?.collections.length && !showForm ? (
         <Box sx={{ marginTop: 2 }}>
-          <Typography variant="h2" sx={{ margin: "0 0 1em 0" }}>
+          <Typography variant="h2" sx={{ margin: "1em 0 .5em 0" }}>
             ChromaDB Collections
           </Typography>
           <Typography variant="body1" sx={{ marginBottom: 1 }}>
@@ -207,7 +207,7 @@ const CollectionList = () => {
             search and retrieval of your assets.
           </Typography>
           <Typography variant="h4" sx={{ margin: "1em 0" }}>
-            Create a new collection to make use of nodes in the ChromaDB
+            Create a new collection to make use of nodes in the Chroma
             namespace.
           </Typography>
           <Typography variant="body1" sx={{ marginBottom: 1 }}>
@@ -224,7 +224,7 @@ const CollectionList = () => {
       ) : (
         <Paper sx={{ marginTop: 2 }}>
           <List>
-            {data.collections.map((collection) => (
+            {data?.collections.map((collection) => (
               <ListItem
                 component="div"
                 key={collection.name}
