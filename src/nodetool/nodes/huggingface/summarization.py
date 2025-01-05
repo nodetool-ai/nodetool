@@ -7,6 +7,11 @@ from pydantic import Field
 
 
 class Summarize(HuggingFacePipelineNode):
+    """
+    Summarizes text using a Hugging Face model.
+    text, summarization, AI, LLM
+    """
+
     model: HFTextGeneration = Field(
         default=HFTextGeneration(),
         title="Model ID on Huggingface",
