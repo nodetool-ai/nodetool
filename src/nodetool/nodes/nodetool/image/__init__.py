@@ -210,8 +210,7 @@ class Blend(BaseNode):
 class Composite(BaseNode):
     """
     Combine two images using a mask for advanced compositing.
-
-    Keywords: composite, mask, blend, layering
+    composite, mask, blend, layering
 
     Use cases:
     - Create complex image compositions

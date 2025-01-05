@@ -44,7 +44,8 @@ class ConfigureIMAP(BaseNode):
 class ConfigureGmail(BaseNode):
     """
     Configures an IMAP connection for Gmail.
-
+    email, imap, gmail, config, credentials
+    
     GOOGLE_APP_PASSWORD must be confgured in settings.
 
     To get Gmail credentials:
