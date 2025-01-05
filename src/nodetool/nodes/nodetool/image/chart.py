@@ -66,6 +66,7 @@ class SeabornFont(str, Enum):
 class ChartRenderer(BaseNode):
     """
     Node responsible for rendering chart configurations into image format using seaborn.
+    chart, seaborn, plot, visualization, data
     """
 
     chart_config: ChartConfig = Field(

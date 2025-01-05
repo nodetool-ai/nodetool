@@ -43,6 +43,7 @@ async def convert_result(
 class TextID(BaseNode):
     """
     Returns the asset id.
+    index, asset, identifier
     """
 
     text: TextRef = Field(title="Text", default="")

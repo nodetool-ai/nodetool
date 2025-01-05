@@ -1007,6 +1007,7 @@ def get_registered_node_classes() -> list[type[BaseNode]]:
 class GroupNode(BaseNode):
     """
     A special node type that can contain a subgraph of nodes.
+    group, workflow, structure, organize
 
     This node type allows for hierarchical structuring of workflows.
     """

@@ -19,14 +19,20 @@ class ParagraphAlignment(str, Enum):
 
 
 class CreateDocument(BaseNode):
-    """Creates a new Word document"""
+    """
+    Creates a new Word document
+    document, docx, file, create
+    """
 
     async def process(self, context: ProcessingContext) -> DocumentRef:
         return DocumentRef(data=DocxDocument())
 
 
 class LoadWordDocument(BaseNode):
-    """Loads a Word document from disk"""
+    """
+    Loads a Word document from disk
+    document, docx, file, load, input
+    """
 
     path: str = Field(default="", description="Path to the document to load")
 
@@ -40,7 +46,10 @@ class LoadWordDocument(BaseNode):
 
 
 class AddHeading(BaseNode):
-    """Adds a heading to the document"""
+    """
+    Adds a heading to the document
+    document, docx, heading, format
+    """
 
     document: DocumentRef = Field(
         default=DocumentRef(), description="The document to add the heading to"
@@ -55,7 +64,10 @@ class AddHeading(BaseNode):
 
 
 class AddParagraph(BaseNode):
-    """Adds a paragraph of text to the document"""
+    """
+    Adds a paragraph of text to the document
+    document, docx, text, format
+    """
 
     document: DocumentRef = Field(
         default=DocumentRef(), description="The document to add the paragraph to"
@@ -92,7 +104,10 @@ class AddParagraph(BaseNode):
 
 
 class AddTable(BaseNode):
-    """Adds a table to the document"""
+    """
+    Adds a table to the document
+    document, docx, table, format
+    """
 
     document: DocumentRef = Field(
         default=DocumentRef(), description="The document to add the table to"
@@ -114,7 +129,10 @@ class AddTable(BaseNode):
 
 
 class AddImage(BaseNode):
-    """Adds an image to the document"""
+    """
+    Adds an image to the document
+    document, docx, image, format
+    """
 
     document: DocumentRef = Field(
         default=DocumentRef(), description="The document to add the image to"
@@ -134,7 +152,10 @@ class AddImage(BaseNode):
 
 
 class AddPageBreak(BaseNode):
-    """Adds a page break to the document"""
+    """
+    Adds a page break to the document
+    document, docx, format, layout
+    """
 
     document: DocumentRef = Field(
         default=DocumentRef(), description="The document to add the page break to"
@@ -147,7 +168,10 @@ class AddPageBreak(BaseNode):
 
 
 class SetDocumentProperties(BaseNode):
-    """Sets document metadata properties"""
+    """
+    Sets document metadata properties
+    document, docx, metadata, properties
+    """
 
     document: DocumentRef = Field(
         default=DocumentRef(), description="The document to modify"
@@ -174,7 +198,10 @@ class SetDocumentProperties(BaseNode):
 
 
 class SaveDocument(BaseNode):
-    """Writes the document to a file"""
+    """
+    Writes the document to a file
+    document, docx, file, save, output
+    """
 
     document: DocumentRef = Field(
         default=DocumentRef(), description="The document to write"
