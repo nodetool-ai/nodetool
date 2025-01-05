@@ -10,6 +10,7 @@ from nodetool.workflows.processing_context import ProcessingContext
 class Count(ChromaNode):
     """
     Count the number of documents in a collection.
+    chroma, embedding, collection, RAG
     """
 
     collection: Collection = Field(
@@ -24,6 +25,7 @@ class Count(ChromaNode):
 class GetDocuments(ChromaNode):
     """
     Get documents from a chroma collection.
+    chroma, embedding, collection, RAG, retrieve
     """
 
     collection: Collection = Field(
@@ -50,6 +52,7 @@ class GetDocuments(ChromaNode):
 class Peek(ChromaNode):
     """
     Peek at the documents in a collection.
+    chroma, embedding, collection, RAG, preview
     """
 
     collection: Collection = Field(

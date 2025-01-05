@@ -24,6 +24,7 @@ class GeminiModel(str, Enum):
 class Gemini(BaseNode):
     """
     Generate text using Gemini.
+    google, llm, chat, vision, multimodal
     """
 
     model: GeminiModel = Field(default=GeminiModel.Gemini1_5_Pro)

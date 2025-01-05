@@ -120,9 +120,8 @@ class LoRASelector(BaseNode):
 
 class StableDiffusion(BaseNode):
     """
-    Generates images based on an input image and text prompts using Stable Diffusion.
-    Works with 1.5 and XL models. Supports optional high-resolution upscaling.
-    image, image-to-image, generative AI, stable diffusion, high-resolution
+    Generates images based on an input image and text prompts using Stable Diffusion. Works with 1.5 and XL models. Supports optional high-resolution upscaling.
+    image, image-to-image, generative AI, stable diffusion, high-resolution, SD1.5
 
     Use cases:
     - Modifying existing images based on text descriptions
@@ -294,6 +293,16 @@ class StableDiffusion(BaseNode):
 
 
 class StableDiffusionXL(StableDiffusion):
+    """
+    Generates images using Stable Diffusion XL model.
+    image, text-to-image, generative AI, SDXL
+
+    Use cases:
+    - Creating high-quality images with the latest SDXL models
+    - Generating detailed and coherent images from text descriptions
+    - Producing images with improved composition and understanding
+    """
+
     model: HFStableDiffusionXL = Field(
         default=HFStableDiffusionXL(), description="The model to use."
     )
@@ -306,7 +315,7 @@ class StableDiffusionXL(StableDiffusion):
 class StableDiffusion3(StableDiffusion):
     """
     Generates images using Stable Diffusion 3 model.
-    image, text-to-image, generative AI, stable diffusion 3
+    image, text-to-image, generative, SD3
 
     Use cases:
     - Creating high-quality images with the latest SD3 model
@@ -339,9 +348,8 @@ class StableDiffusion3(StableDiffusion):
 
 class ControlNet(StableDiffusion):
     """
-    Generates images using Stable Diffusion with ControlNet for additional image control.
-    Supports optional high-resolution upscaling while maintaining the same ControlNet strength.
-    image, controlnet, generative AI, stable diffusion, high-resolution
+    Generates images using Stable Diffusion with ControlNet for additional image control. Supports optional high-resolution upscaling while maintaining the same ControlNet strength.
+    image, controlnet, generative, stable diffusion, high-resolution
 
     Use cases:
     - Generating images with specific structural guidance

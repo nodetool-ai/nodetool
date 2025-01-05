@@ -7,6 +7,11 @@ from pydantic import Field
 
 
 class TextClassifier(HuggingFacePipelineNode):
+    """
+    Classifies text into predefined categories using a Hugging Face model.
+    text, classification, zero-shot, natural language processing
+    """
+
     model: HFTextClassification = Field(
         default=HFTextClassification(),
         title="Model ID on Huggingface",

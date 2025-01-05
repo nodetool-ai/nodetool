@@ -232,7 +232,7 @@ class Swin2SR(BaseImageToImage):
 class Kandinsky3Img2Img(HuggingFacePipelineNode):
     """
     Transforms existing images using the Kandinsky-3 model based on text prompts.
-    image, generation, AI, image-to-image
+    image, generation, image-to-image
 
     Use cases:
     - Modify existing images based on text descriptions
@@ -324,7 +324,7 @@ class Kandinsky3Img2Img(HuggingFacePipelineNode):
 class StableDiffusionControlNetNode(StableDiffusionBaseNode):
     """
     Generates images using Stable Diffusion with ControlNet guidance.
-    image, generation, AI, text-to-image, controlnet
+    image, generation, text-to-image, controlnet
 
     Use cases:
     - Generate images with precise control over composition and structure
@@ -401,7 +401,7 @@ class StableDiffusionControlNetNode(StableDiffusionBaseNode):
 class StableDiffusionImg2ImgNode(StableDiffusionBaseNode):
     """
     Transforms existing images based on text prompts using Stable Diffusion.
-    image, generation, AI, image-to-image
+    image, generation, image-to-image
 
     Use cases:
     - Modifying existing images to fit a specific style or theme
@@ -457,7 +457,7 @@ class StableDiffusionImg2ImgNode(StableDiffusionBaseNode):
 class StableDiffusionControlNetInpaintNode(StableDiffusionBaseNode):
     """
     Performs inpainting on images using Stable Diffusion with ControlNet guidance.
-    image, inpainting, AI, controlnet
+    image, inpainting, controlnet
 
     Use cases:
     - Remove unwanted objects from images with precise control
@@ -599,7 +599,7 @@ class StableDiffusionInpaintNode(StableDiffusionBaseNode):
 class StableDiffusionControlNetImg2ImgNode(StableDiffusionBaseNode):
     """
     Transforms existing images using Stable Diffusion with ControlNet guidance.
-    image, generation, AI, image-to-image, controlnet
+    image, generation, image-to-image, controlnet
 
     Use cases:
     - Modify existing images with precise control over composition and structure
@@ -687,7 +687,7 @@ class StableDiffusionControlNetImg2ImgNode(StableDiffusionBaseNode):
 class StableDiffusionUpscale(HuggingFacePipelineNode):
     """
     Upscales an image using Stable Diffusion 4x upscaler.
-    image, upscaling, AI, stable-diffusion
+    image, upscaling, stable-diffusion
 
     Use cases:
     - Enhance low-resolution images
@@ -807,7 +807,7 @@ class StableDiffusionUpscale(HuggingFacePipelineNode):
 class StableDiffusionXLImg2Img(StableDiffusionXLBase):
     """
     Transforms existing images based on text prompts using Stable Diffusion XL.
-    image, generation, AI, image-to-image
+    image, generation, image-to-image, SDXL
 
     Use cases:
     - Modifying existing images to fit a specific style or theme
@@ -859,7 +859,7 @@ class StableDiffusionXLImg2Img(StableDiffusionXLBase):
 class StableDiffusionXLInpainting(StableDiffusionXLBase):
     """
     Performs inpainting on images using Stable Diffusion XL.
-    image, inpainting, AI
+    image, inpainting, SDXL
 
     Use cases:
     - Remove unwanted objects from images
@@ -920,7 +920,7 @@ class StableDiffusionXLInpainting(StableDiffusionXLBase):
 class StableDiffusionXLControlNetNode(StableDiffusionXLImg2Img):
     """
     Transforms existing images using Stable Diffusion XL with ControlNet guidance.
-    image, generation, AI, image-to-image, controlnet
+    image, generation, image-to-image, controlnet, SDXL
 
     Use cases:
     - Modify existing images with precise control over composition and structure
@@ -1000,7 +1000,7 @@ class StableDiffusionXLControlNetNode(StableDiffusionXLImg2Img):
 # class Kandinsky2Img2Img(BaseNode):
 #     """
 #     Transforms existing images based on text prompts using the Kandinsky 2.2 model.
-#     image, generation, AI, image-to-image
+#     image, generation, image-to-image
 
 #     Use cases:
 #     - Transform existing images based on text prompts
@@ -1099,7 +1099,7 @@ class StableDiffusionXLControlNetNode(StableDiffusionXLImg2Img):
 # class Kandinsky2ControlNet(BaseNode):
 #     """
 #     Transforms existing images based on text prompts and control images using the Kandinsky 2.2 model with ControlNet.
-#     image, generation, AI, image-to-image, controlnet
+#     image, generation, image-to-image, controlnet
 
 #     Use cases:
 #     - Transform existing images based on text prompts with precise control
