@@ -153,7 +153,10 @@ class GmailSearch(BaseNode):
             if result != "OK":
                 raise ValueError(f"Search failed: {result}")
 
-            message_ids = data[0].decode().split()[: self.max_results]
+            # Reverse the message IDs to get newest first
+            message_ids = data[0].decode().split()
+            message_ids.reverse()
+            message_ids = message_ids[: self.max_results]
             return fetch_emails(imap, message_ids)
         finally:
             imap.logout()
@@ -199,7 +202,10 @@ class GmailLabel(BaseNode):
             if result != "OK":
                 raise ValueError(f"Search failed: {result}")
 
-            message_ids = data[0].decode().split()[: self.max_results]
+            # Reverse the message IDs to get newest first
+            message_ids = data[0].decode().split()
+            message_ids.reverse()
+            message_ids = message_ids[: self.max_results]
             return fetch_emails(imap, message_ids)
         finally:
             imap.logout()
