@@ -171,7 +171,7 @@ const CollectionForm = ({ onClose }: CollectionFormProps) => {
         required
         fullWidth
         disabled={createMutation.isPending}
-        helperText="Choose a unique name for your collection"
+        helperText="Set a unique name for the new collection"
       />
 
       <ModelRecommendationsButton recommendedModels={embeddingModels} />
