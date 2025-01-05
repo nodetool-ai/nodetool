@@ -107,7 +107,7 @@ class Segmentation(HuggingFacePipelineNode):
 class SAM2Segmentation(HuggingFacePipelineNode):
     """
     Performs semantic segmentation on images using SAM2 (Segment Anything Model 2).
-    image, segmentation, object detection, scene parsing
+    image, segmentation, object detection, scene parsing, mask
 
     Use cases:
     - Automatic segmentation of objects in images
@@ -180,6 +180,7 @@ class SAM2Segmentation(HuggingFacePipelineNode):
 class FindSegment(BaseNode):
     """
     Extracts a specific segment from a list of segmentation masks.
+    image, segmentation, object detection, mask
     """
 
     segments: list[ImageSegmentationResult] = Field(
@@ -211,7 +212,7 @@ class FindSegment(BaseNode):
 class VisualizeSegmentation(BaseNode):
     """
     Visualizes segmentation masks on images with labels.
-    image, segmentation, visualization
+    image, segmentation, visualization, mask
 
     Use cases:
     - Visualize results of image segmentation models

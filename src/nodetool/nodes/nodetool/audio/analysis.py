@@ -46,6 +46,7 @@ class AmplitudeToDB(BaseNode):
 class ChromaSTFT(BaseNode):
     """
     This node creates a chromagram from a waveform or power spectrogram to identify different pitch classes in an audio signal.
+    audio, analysis, chromagram, pitch
 
     Applications:
     - Chord recognition in music
@@ -74,7 +75,7 @@ class ChromaSTFT(BaseNode):
 class DBToAmplitude(BaseNode):
     """
     The DBToAmplitude node Converts a dB-scaled spectrogram to an amplitude spectrogram.
-
+    audio, analysis, spectrogram
     Useful for:
     - Reversing dB scaling before audio synthesis
     - Preparing data for models that expect linear amplitude scaling
@@ -202,6 +203,7 @@ class MelSpectrogram(BaseNode):
 class MFCC(BaseNode):
     """
     MFCC Node computes the Mel-frequency cepstral coefficients (MFCCs) from an audio signal.
+    audio, analysis, frequency, MFCC, MEL
     """
 
     audio: AudioRef = Field(
@@ -235,6 +237,7 @@ class MFCC(BaseNode):
 class PlotSpectrogram(BaseNode):
     """
     The PlotSpectrogram node generates a visual representation of the spectrum of frequencies in an audio signal as they vary with time.
+    audio, analysis, frequency, spectrogram
 
     #### Applications
     - Audio Analysis: Allows users to visually see the spectrum of frequencies in their data.
@@ -266,6 +269,7 @@ class PlotSpectrogram(BaseNode):
 class PowertToDB(BaseNode):
     """
     Converts a power spectrogram to decibel (dB) scale.
+    audio, analysis, decibel, spectrogram
     """
 
     tensor: Tensor = Field(
@@ -280,6 +284,7 @@ class PowertToDB(BaseNode):
 class SpectralContrast(BaseNode):
     """
     The spectral contrast measures the difference in amplitude between the most noticeable parts (peaks) and the less noticeable parts (valleys) in a sound spectrum.
+    audio, analysis, decibel, amplitude
 
     #### Applications
     - Music genre classification: distinguishing between different types of music based on the color of sound.
@@ -311,9 +316,8 @@ class SpectralContrast(BaseNode):
 
 class STFT(BaseNode):
     """
-    This node computes the Short-Time Fourier Transform (STFT) matrix for an audio signal.
-    The STFT matrix represents the signal in both time and frequency domains, forming the foundation for many audio processing tasks.
-
+    This node computes the Short-Time Fourier Transform (STFT) matrix for an audio signal. The STFT matrix represents the signal in both time and frequency domains, forming the foundation for many audio processing tasks.
+    audio, analysis, fourier, frequency, time
     #### Applications
     - Audio Analysis: By transforming the audio signal into a visualizable format, it helps in understanding and analyzing the audio signal.
     - Sound Processing: It plays a key foundational role in sound effects, tuning, compression, and more.
