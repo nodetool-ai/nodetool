@@ -6,6 +6,7 @@ import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { UnifiedModel } from "../../stores/ApiTypes";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { isEqual } from "lodash";
+import { IconForType } from "../../config/data_types";
 
 interface ModelRecommendationsButtonProps {
   recommendedModels: UnifiedModel[];
@@ -41,21 +42,36 @@ const ModelRecommendationsButton: React.FC<ModelRecommendationsButtonProps> = ({
             className="model-button"
             sx={{
               width: "90%",
-              fontSize: ThemeNodetool.fontSizeSmaller,
+              fontSize: ThemeNodetool.fontSizeSmall,
               color: ThemeNodetool.palette.c_white,
               margin: ".5em 0",
-              padding: ".5em 1em",
-              border: `1px solid ${ThemeNodetool.palette.c_attention}`,
+              padding: ".5em .5em",
+              border: `1px solid ${ThemeNodetool.palette.c_gray5}`,
               lineHeight: "1.1em",
               borderRadius: ".5em",
               "&:hover": {
                 cursor: "pointer",
-                backgroundColor: ThemeNodetool.palette.c_attention
+                backgroundColor: ThemeNodetool.palette.c_gray3
                 // color: ThemeNodetool.palette.c_black
               }
             }}
             onClick={handleOpenModelDialog}
           >
+            <IconForType
+              iconName={"model"}
+              showTooltip={false}
+              containerStyle={{
+                margin: "-.2em 0 0 0",
+                padding: "0 0.4em 0 0"
+              }}
+              bgStyle={{
+                backgroundColor: "transparent"
+              }}
+              svgProps={{
+                width: "1.3em",
+                height: "1.3em"
+              }}
+            />
             Recommended models
           </Button>
         </div>
