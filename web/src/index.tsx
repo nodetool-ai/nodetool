@@ -31,7 +31,6 @@ import "./styles/microtip.css";
 import "./styles/command_menu.css";
 import NodeMenu from "./components/node_menu/NodeMenu";
 import AssetExplorer from "./components/assets/AssetExplorer";
-import WorkflowList from "./components/workflows/WorkflowList";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useAssetStore } from "./stores/AssetStore";
 import { useWorkflowStore } from "./stores/WorkflowStore";
@@ -40,24 +39,18 @@ import OAuthCallback from "./components/OauthCallback";
 import ExampleGrid from "./components/workflows/ExampleGrid";
 import OpenOrCreateDialog from "./components/dialogs/OpenOrCreateDialog";
 import ProtectedRoute from "./components/ProtectedRoute";
-import { initSentry } from "./utils/sentry";
 import useAuth from "./stores/useAuth";
 import { isProduction, pingWorker, useRemoteAuth } from "./stores/ApiClient";
 import { initKeyListeners } from "./stores/KeyPressedStore";
 import useRemoteSettingsStore from "./stores/RemoteSettingStore";
 import ModelsManager from "./components/hugging_face/ModelsManager";
 import useModelStore from "./stores/ModelStore";
-import NodeDocumentation from "./components/content/Help/NodeDocumentation";
 import { MIN_ZOOM } from "./config/constants";
 import { metadataQuery } from "./serverState/useMetadata";
 import useMetadataStore from "./stores/MetadataStore";
 import { useNodeStore } from "./stores/NodeStore";
 import { getStoredPanelSizes } from "./hooks/handlers/useResizePanel";
 import { usePanelStore } from "./stores/PanelStore";
-
-initSentry();
-
-pingWorker();
 
 if (!isProduction) {
   useRemoteSettingsStore.getState().fetchSettings();
