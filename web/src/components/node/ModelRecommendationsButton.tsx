@@ -46,7 +46,7 @@ const ModelRecommendationsButton: React.FC<ModelRecommendationsButtonProps> = ({
               color: ThemeNodetool.palette.c_white,
               margin: ".5em 0",
               padding: ".5em .5em",
-              border: `1px solid ${ThemeNodetool.palette.c_gray5}`,
+              border: `1px solid ${ThemeNodetool.palette.c_gray2}`,
               lineHeight: "1.1em",
               borderRadius: ".5em",
               "&:hover": {

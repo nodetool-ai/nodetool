@@ -31,8 +31,21 @@ const nodeInfoStyles = (theme: any, inPanel: boolean) =>
     ".node-title": {
       fontSize: theme.fontSizeSmall,
       fontWeight: "600",
-      minHeight: "1.25em",
-      color: theme.palette.c_hl1
+      lineHeight: "1.5em",
+      minHeight: "1.5em",
+      color: theme.palette.c_hl1,
+      marginBottom: "0.25em"
+    },
+    ".title-container": {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "flex-start",
+      minHeight: "2em"
+    },
+    ".status-container": {
+      minHeight: "2em",
+      display: "flex",
+      alignItems: "center"
     },
     h4: {
       fontSize: theme.fontSizeSmall,
@@ -44,10 +57,11 @@ const nodeInfoStyles = (theme: any, inPanel: boolean) =>
       fontWeight: "400",
       width: "fit-content",
       color: theme.palette.c_white,
-      display: "inline-block",
+      display: "inline-flex",
+      alignItems: "center",
       padding: "0.25em 0.5em",
       borderRadius: "0.25em",
-      minHeight: "1.5em"
+      height: "1.5em"
     },
     ".replicate-status.online": {
       backgroundColor: "#10a37f"
@@ -58,6 +72,7 @@ const nodeInfoStyles = (theme: any, inPanel: boolean) =>
     ".node-description": {
       fontSize: theme.fontSizeSmall,
       fontWeight: "400",
+      minHeight: "1.5em",
       color: theme.palette.c_white
     },
     ".node-tags": {
@@ -191,13 +206,7 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
 
   return (
     <div css={nodeInfoStyles(ThemeNodetool, inPanel)}>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center"
-        }}
-      >
+      <div className="title-container">
         <Typography className="node-title">
           {titleizeString(nodeMetadata.title)}
         </Typography>
@@ -216,11 +225,13 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
           </IconButton>
         )}
       </div>
-      {replicateStatus !== "unknown" && (
-        <Typography className={`replicate-status ${replicateStatus}`}>
-          {replicateStatus}
-        </Typography>
-      )}
+      <div className="status-container">
+        {replicateStatus !== "unknown" && (
+          <Typography className={`replicate-status ${replicateStatus}`}>
+            {replicateStatus}
+          </Typography>
+        )}
+      </div>
       <Typography className="node-description">{description.desc}</Typography>
       <Typography className="node-tags">
         {renderTags(description.tags as string)}
