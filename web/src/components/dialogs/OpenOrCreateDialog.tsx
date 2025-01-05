@@ -200,9 +200,6 @@ const OpenOrCreateDialog = () => {
   };
 
   // BROWSE WORKFLOWS
-  const handleNavigateUserWorkflows = () => {
-    navigate("/workflows");
-  };
   const handleNavigateExampleWorkflows = () => {
     navigate("/examples");
   };
@@ -295,9 +292,6 @@ const OpenOrCreateDialog = () => {
         <div className="workflow-buttons">
           <Button variant="outlined" onClick={handleCreateNewWorkflow}>
             Create New
-          </Button>
-          <Button color="primary" onClick={handleNavigateUserWorkflows}>
-            My Workflows
           </Button>
           <Button color="primary" onClick={handleNavigateExampleWorkflows}>
             Examples

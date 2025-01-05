@@ -1,15 +1,15 @@
 {
   "id": "summarize_audio",
   "access": "public",
-  "created_at": "2024-10-19T21:10:25.838095",
-  "updated_at": "2024-10-19T21:10:25.838113",
+  "created_at": "2025-01-05T13:08:58.698928",
+  "updated_at": "2025-01-05T13:08:58.698943",
   "name": "Summarize Audio",
   "description": "Transcribe an audio file and summarize the text.",
   "tags": [
     "audio",
     "start"
   ],
-  "thumbnail": "",
+  "thumbnail": null,
   "thumbnail_url": "/examples/summarize_audio.jpg",
   "graph": {
     "nodes": [
@@ -19,38 +19,18 @@
         "type": "nodetool.constant.Audio",
         "data": {
           "value": {
-            "uri": "https://upload.wikimedia.org/wikipedia/commons/transcoded/4/4f/An_address_by_Opposition_Leader_Anthony_Albanese.ogg/An_address_by_Opposition_Leader_Anthony_Albanese.ogg.mp3?download",
+            "uri": "",
             "type": "audio"
           }
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 50,
-            "y": 170
+            "y": 150
           },
           "zIndex": 0,
           "width": 200,
           "color": "#d33682",
-          "selectable": true
-        }
-      },
-      {
-        "id": "7",
-        "parent_id": null,
-        "type": "nodetool.workflows.base_node.Preview",
-        "data": {
-          "name": "audio_output_2024-08-15"
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 955,
-            "y": 165
-          },
-          "zIndex": 0,
-          "width": 150,
-          "height": 150,
           "selectable": true
         }
       },
@@ -81,14 +61,13 @@
               "type": "paragraph",
               "children": [
                 {
-                  "text": "* Listen to the summary"
+                  "text": "* Read to the summary"
                 }
               ]
             }
           ]
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 43,
             "y": -128
@@ -119,10 +98,9 @@
           "temperature": 0,
           "top_k": 50,
           "top_p": 0.95,
-          "keep_alive": "300"
+          "keep_alive": 0
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 508,
             "y": 50
@@ -142,15 +120,14 @@
             "repo_id": "openai/whisper-small"
           },
           "task": "transcribe",
-          "language": "english",
+          "language": "auto_detect",
           "chunk_length_s": 30,
           "timestamps": "none"
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 280,
-            "y": 51
+            "y": 70
           },
           "zIndex": 0,
           "width": 198,
@@ -160,21 +137,18 @@
       {
         "id": "11",
         "parent_id": null,
-        "type": "huggingface.text_to_speech.TextToSpeech",
+        "type": "nodetool.workflows.base_node.Preview",
         "data": {
-          "model": {
-            "type": "hf.text_to_speech",
-            "repo_id": "facebook/mms-tts-eng"
-          }
+          "name": "str_output_2025-01-05"
         },
         "ui_properties": {
-          "selected": false,
           "position": {
-            "x": 734,
-            "y": 153
+            "x": 725,
+            "y": 156
           },
           "zIndex": 0,
-          "width": 187,
+          "width": 196,
+          "height": 219,
           "selectable": true
         }
       }
@@ -191,6 +165,16 @@
         }
       },
       {
+        "id": "6",
+        "source": "9",
+        "sourceHandle": "output",
+        "target": "11",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
         "id": "5ba168f7-a973-4d1b-96ff-f48ce6239acb",
         "source": "10",
         "sourceHandle": "text",
@@ -198,26 +182,6 @@
         "targetHandle": "prompt",
         "ui_properties": {
           "className": "str"
-        }
-      },
-      {
-        "id": "79441cf3-b819-4a6d-b5b1-3581252d556b",
-        "source": "9",
-        "sourceHandle": "output",
-        "target": "11",
-        "targetHandle": "text",
-        "ui_properties": {
-          "className": "str"
-        }
-      },
-      {
-        "id": "b70b64d8-dbc6-45c9-9f06-0784273e636e",
-        "source": "11",
-        "sourceHandle": "output",
-        "target": "7",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "audio"
         }
       }
     ]

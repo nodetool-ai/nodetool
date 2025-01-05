@@ -174,6 +174,8 @@ class WorkflowRunner:
         log.info(f"Starting workflow execution for job_id: {self.job_id}")
         assert req.graph is not None, "Graph is required"
 
+        Environment.load_settings()
+
         graph = Graph.from_dict(
             {
                 "nodes": [node.model_dump() for node in req.graph.nodes],
