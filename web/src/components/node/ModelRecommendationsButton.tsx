@@ -31,29 +31,34 @@ const ModelRecommendationsButton: React.FC<ModelRecommendationsButtonProps> = ({
     <>
       <Tooltip
         enterDelay={TOOLTIP_ENTER_DELAY}
-        title="Find models to download."
+        title="View and download compatible models"
       >
-        <Button
-          variant="outlined"
-          className="model-button"
-          sx={{
-            fontSize: ThemeNodetool.fontSizeSmaller,
-            color: ThemeNodetool.palette.c_gray5,
-            margin: "0",
-            lineHeight: "1.5em",
-            borderRadius: "0",
-            border: "none",
-            "&:hover": {
-              backgroundColor: "rgba(255, 255, 255, 0.08)",
-              border: "none",
-              cursor: "pointer",
-              color: ThemeNodetool.palette.c_white
-            }
-          }}
-          onClick={handleOpenModelDialog}
+        <div
+          style={{ display: "flex", justifyContent: "center", width: "100%" }}
         >
-          Recommended models
-        </Button>
+          <Button
+            variant="outlined"
+            className="model-button"
+            sx={{
+              width: "90%",
+              fontSize: ThemeNodetool.fontSizeSmaller,
+              color: ThemeNodetool.palette.c_white,
+              margin: ".5em 0",
+              padding: ".5em 1em",
+              border: `1px solid ${ThemeNodetool.palette.c_attention}`,
+              lineHeight: "1.1em",
+              borderRadius: ".5em",
+              "&:hover": {
+                cursor: "pointer",
+                backgroundColor: ThemeNodetool.palette.c_attention
+                // color: ThemeNodetool.palette.c_black
+              }
+            }}
+            onClick={handleOpenModelDialog}
+          >
+            Recommended models
+          </Button>
+        </div>
       </Tooltip>
 
       <RecommendedModelsDialog
