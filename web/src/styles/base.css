@@ -31,6 +31,9 @@
   left: 0;
   top: 0;
 }
+.reactflow-wrapper > div {
+  overflow-y: visible !important;
+}
 
 /* Loading overlay */
 .loading-overlay {
