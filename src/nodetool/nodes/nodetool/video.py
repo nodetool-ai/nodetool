@@ -1693,6 +1693,7 @@ class ChromaKey(BaseNode):
 class ExtractAudio(BaseNode):
     """
     Separate audio from a video file.
+    video, audio, extract, separate
     """
 
     video: VideoRef = Field(
