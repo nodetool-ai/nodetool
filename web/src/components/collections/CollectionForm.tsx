@@ -7,14 +7,14 @@ import {
   FormControl,
   InputLabel,
   CircularProgress,
-  Typography
+  Typography,
+  Tooltip
 } from "@mui/material";
 import { CollectionCreate } from "../../stores/ApiTypes";
 import { client } from "../../stores/ApiClient";
 import CloseIcon from "@mui/icons-material/Close";
 import IconButton from "@mui/material/IconButton";
 import LlamaModelSelect from "../properties/LlamaModelSelect";
-import RecommendedModels from "../hugging_face/RecommendedModels";
 import ModelRecommendationsButton from "../node/ModelRecommendationsButton";
 
 interface CollectionFormProps {
@@ -140,16 +140,18 @@ const CollectionForm = ({ onClose }: CollectionFormProps) => {
         position: "relative"
       }}
     >
-      <IconButton
-        onClick={onClose}
-        sx={{
-          position: "absolute",
-          right: 8,
-          top: 8
-        }}
-      >
-        <CloseIcon />
-      </IconButton>
+      <Tooltip title="Close New Collection form">
+        <IconButton
+          onClick={onClose}
+          sx={{
+            position: "absolute",
+            right: 8,
+            top: 8
+          }}
+        >
+          <CloseIcon />
+        </IconButton>
+      </Tooltip>
 
       <Box sx={{ mb: 2 }}>
         <Typography variant="h6">Create New Collection</Typography>
@@ -195,6 +197,9 @@ const CollectionForm = ({ onClose }: CollectionFormProps) => {
             marginTop: "0.5rem"
           }}
         >
+          Click on RECOMMENDED MODELS to find an embedding models and select it.
+          <br />
+          <br />
           The embedding model converts your documents into vectors for
           similarity search. Different models offer varying trade-offs between
           speed and accuracy.
