@@ -9,6 +9,7 @@ import { useSettingsStore } from "../../stores/SettingsStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import Checkbox from "@mui/material/Checkbox";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import { useNodeStore } from "../../stores/NodeStore";
 
 interface WorkflowListViewProps {
   workflows: Workflow[];
@@ -34,12 +35,11 @@ const listStyles = (theme: any) =>
     },
     ".workflow": {
       position: "relative",
+      padding: "5px 10px",
       display: "flex",
       flexDirection: "row",
-      gap: "1em",
       alignItems: "flex-start",
-      margin: "2px 0",
-      padding: "0",
+      margin: "0",
       width: "100%",
       cursor: "pointer",
       borderBottom: "1px solid black",
@@ -48,6 +48,11 @@ const listStyles = (theme: any) =>
         margin: 0,
         padding: 0
       }
+    },
+    ".workflow.current": {
+      backgroundColor: theme.palette.c_gray0,
+      borderLeft: `2px solid ${theme.palette.c_hl1}`,
+      outline: `0`
     },
     ".workflow:hover": {
       backgroundColor: theme.palette.c_gray1,
@@ -123,6 +128,7 @@ export const WorkflowListView: React.FC<WorkflowListViewProps> = ({
   showCheckboxes
 }) => {
   const settings = useSettingsStore((state) => state.settings);
+  const currentWorkflow = useNodeStore((state) => state.workflow);
 
   const addBreaks = (text: string) => {
     return text.replace(/([-_.])/g, "$1<wbr>");
@@ -140,7 +146,8 @@ export const WorkflowListView: React.FC<WorkflowListViewProps> = ({
           <Box
             className={
               "workflow list" +
-              (selectedWorkflows?.includes(workflow.id) ? " selected" : "")
+              (selectedWorkflows?.includes(workflow.id) ? " selected" : "") +
+              (currentWorkflow?.id === workflow.id ? " current" : "")
             }
             onClick={(e) => {
               if (!e.defaultPrevented) {

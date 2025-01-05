@@ -174,19 +174,23 @@ export const useWorkflowStore = create<WorkflowStore>()((set, get) => ({
     return data;
   },
 
-  copy: async (workflow: Workflow) => {
-    const newWorkflow = {
+  copy: async (originalWorkflow: Workflow) => {
+    const workflow = await get().get(originalWorkflow.id);
+    if (!workflow) {
+      throw new Error("Workflow not found");
+    }
+    return {
       id: uuidv4(),
       name: workflow.name,
       description: workflow.description,
       thumbnail: workflow.thumbnail,
+      thumbnail_url: workflow.thumbnail_url,
+      tags: workflow.tags,
       access: "private",
-      graph: workflow.graph,
+      graph: JSON.parse(JSON.stringify(workflow.graph)),
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
-    get().add(newWorkflow);
-    return newWorkflow;
   },
 
   delete: async (id: string) => {
