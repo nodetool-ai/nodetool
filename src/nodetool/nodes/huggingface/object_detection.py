@@ -126,6 +126,7 @@ class ObjectDetection(HuggingFacePipelineNode):
 class VisualizeObjectDetection(BaseNode):
     """
     Visualizes object detection results on images.
+    image, object detection, bounding boxes, visualization, mask
     """
 
     image: ImageRef = Field(
@@ -203,7 +204,7 @@ class VisualizeObjectDetection(BaseNode):
 class ZeroShotObjectDetection(HuggingFacePipelineNode):
     """
     Detects objects in images without the need for training data.
-    image, object detection, bounding boxes, zero-shot
+    image, object detection, bounding boxes, zero-shot, mask
 
     Use cases:
     - Quickly detect objects in images without training data
