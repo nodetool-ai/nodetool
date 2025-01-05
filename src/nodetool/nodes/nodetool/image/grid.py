@@ -109,7 +109,6 @@ def combine_grid(
 class SliceImageGrid(BaseNode):
     """
     Slice an image into a grid of tiles.
-
     image, grid, slice, tiles
 
     Use cases:
@@ -157,7 +156,6 @@ class SliceImageGrid(BaseNode):
 class CombineImageGrid(BaseNode):
     """
     Combine a grid of image tiles into a single image.
-
     image, grid, combine, tiles
 
     Use cases:

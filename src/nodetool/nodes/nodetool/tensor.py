@@ -61,8 +61,7 @@ class SaveTensor(BaseNode):
 class ConvertToImage(BaseNode):
     """
     Convert tensor data to PIL Image format.
-
-    Keywords: tensor, image, conversion, denormalization
+    tensor, image, conversion, denormalization
 
     Use cases:
     - Visualize tensor data as images
@@ -534,6 +533,7 @@ class Log(BaseNode):
 class NearestNeighbors(BaseNode):
     """
     Stores input embeddings in a database and retrieves the nearest neighbors for a query embedding.
+    tensor, embeddings, nearest neighbors, search, similarity
     """
 
     documents: list[Tensor] = Field(

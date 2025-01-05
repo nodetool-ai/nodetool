@@ -312,8 +312,7 @@ class ConvertToGrayscale(BaseNode):
 class GetChannel(BaseNode):
     """
     Extract a specific color channel from an image.
-
-    #image #color
+    image, color, channel, isolate, extract
 
     - Isolate color information for image analysis
     - Manipulate specific color components in graphic design

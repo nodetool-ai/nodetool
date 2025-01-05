@@ -104,7 +104,10 @@ class BaseGetJSONPath(BaseNode):
 
 
 class GetJSONPathStr(BaseGetJSONPath):
-    """Extract a string value from a JSON path"""
+    """
+    Extract a string value from a JSON path
+    json, path, extract, string
+    """
 
     default: str = Field(default=None)
 
@@ -114,7 +117,10 @@ class GetJSONPathStr(BaseGetJSONPath):
 
 
 class GetJSONPathInt(BaseGetJSONPath):
-    """Extract an integer value from a JSON path"""
+    """
+    Extract an integer value from a JSON path
+    json, path, extract, number
+    """
 
     default: int = Field(default=None)
 
@@ -124,7 +130,10 @@ class GetJSONPathInt(BaseGetJSONPath):
 
 
 class GetJSONPathFloat(BaseGetJSONPath):
-    """Extract a float value from a JSON path"""
+    """
+    Extract a float value from a JSON path
+    json, path, extract, number
+    """
 
     default: float = Field(default=None)
 
@@ -134,7 +143,10 @@ class GetJSONPathFloat(BaseGetJSONPath):
 
 
 class GetJSONPathBool(BaseGetJSONPath):
-    """Extract a boolean value from a JSON path"""
+    """
+    Extract a boolean value from a JSON path
+    json, path, extract, boolean
+    """
 
     default: bool = Field(default=None)
 
@@ -144,7 +156,10 @@ class GetJSONPathBool(BaseGetJSONPath):
 
 
 class GetJSONPathList(BaseGetJSONPath):
-    """Extract a list value from a JSON path"""
+    """
+    Extract a list value from a JSON path
+    json, path, extract, array
+    """
 
     default: list = Field(default_factory=list)
 
@@ -154,7 +169,10 @@ class GetJSONPathList(BaseGetJSONPath):
 
 
 class GetJSONPathDict(BaseGetJSONPath):
-    """Extract a dictionary value from a JSON path"""
+    """
+    Extract a dictionary value from a JSON path
+    json, path, extract, object
+    """
 
     default: dict = Field(default_factory=dict)
 

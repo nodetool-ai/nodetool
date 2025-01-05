@@ -254,7 +254,7 @@ def extract_content(html_content: str) -> str:
 class WebsiteContentExtractor(BaseNode):
     """
     Extract main content from a website, removing navigation, ads, and other non-essential elements.
-    web scraping, content extraction, text analysis
+    scrape, web scraping, content extraction, text analysis
 
     Use cases:
     - Clean web content for further analysis
