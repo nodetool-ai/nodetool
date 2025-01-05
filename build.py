@@ -423,6 +423,7 @@ class Build:
                 "ffmpeg",
                 "cairo",
                 "libopus",
+                "pandoc",
                 "-y",
                 "--channel",
                 "conda-forge",
