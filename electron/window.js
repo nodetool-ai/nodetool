@@ -1,15 +1,23 @@
-const { BrowserWindow, session, dialog } = require("electron");
+const { BrowserWindow, app, session, dialog } = require("electron");
+const { setMainWindow, getMainWindow } = require("./state");
 const path = require("path");
 const { logMessage } = require("./logger");
-const { setMainWindow } = require("./state");
-const { app } = require("electron");
+
+let isAppQuitting = false;
 
 /**
- * Create the main application window.
- * @returns {BrowserWindow} The main window instance
+ * Creates the main application window
+ * @returns {BrowserWindow} The created window instance
  */
 function createWindow() {
-  logMessage("Creating main window");
+  // Check if window already exists and is not destroyed
+  const existingWindow = getMainWindow();
+  if (existingWindow && !existingWindow.isDestroyed()) {
+    existingWindow.focus();
+    return existingWindow;
+  }
+
+  // Create new window
   const window = new BrowserWindow({
     width: 1500,
     height: 1000,
@@ -21,11 +29,11 @@ function createWindow() {
       devTools: true,
       webSecurity: true,
     },
+    show: false,
   });
 
-  window.setBackgroundColor("#111111");
-  window.loadFile("index.html");
-  logMessage("index.html loaded into main window");
+  // Load the index.html
+  window.loadFile(path.join(__dirname, "index.html"));
 
   window.webContents.on("before-input-event", (event, input) => {
     if (
@@ -40,15 +48,22 @@ function createWindow() {
       }
     }
   });
+  // Show window when ready
+  window.once("ready-to-show", () => {
+    window.show();
+  });
 
-  window.on("closed", function () {
-    logMessage("Main window closed");
-    setMainWindow(null);
+  // Handle window close
+  window.on("close", (event) => {
+    if (!isAppQuitting) {
+      event.preventDefault();
+      window.destroy();
+      setMainWindow(null);
+    }
   });
 
   initializePermissionHandlers();
   setMainWindow(window);
-
   return window;
 }
 
@@ -114,7 +129,34 @@ function forceQuit(errorMessage) {
   process.exit(1);
 }
 
+/**
+ * Handles app activation events
+ * @returns {void}
+ */
+function handleActivation() {
+  // Get all visible windows (not just existing ones)
+  const visibleWindows = BrowserWindow.getAllWindows().filter(
+    (w) => !w.isDestroyed() && w.isVisible()
+  );
+
+  if (visibleWindows.length === 0) {
+    createWindow();
+  } else if (process.platform === "darwin") {
+    const mainWindow = getMainWindow();
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) {
+        mainWindow.restore();
+      }
+      mainWindow.show();
+      mainWindow.focus();
+    } else {
+      createWindow();
+    }
+  }
+}
+
 module.exports = {
   createWindow,
   forceQuit,
+  handleActivation,
 };
