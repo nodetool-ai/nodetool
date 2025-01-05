@@ -8,7 +8,7 @@ const {
   Menu,
   BrowserWindow,
 } = require("electron");
-const { createWindow, forceQuit } = require("./window");
+const { createWindow, forceQuit, handleActivation } = require("./window");
 const { setupAutoUpdater } = require("./updater");
 const { logMessage } = require("./logger");
 const {
@@ -24,11 +24,10 @@ const {
 } = require("./python");
 const { LOG_FILE } = require("./logger");
 const { emitBootMessage } = require("./events");
-const { getMainWindow } = require("./state");
 const fs = require("fs");
 const path = require("path");
 const { createTray } = require("./tray");
-const { createWorkflowWindow, isWorkflowWindow } = require("./workflow-window");
+const { isWorkflowWindow } = require("./workflow-window");
 
 /**
  * Global application state flags and objects
@@ -207,14 +206,7 @@ app.on("window-all-closed", function () {
   }
 });
 
-app.on("activate", function () {
-  logMessage("App activated");
-  const mainWindow = getMainWindow();
-  if (mainWindow === null) {
-    logMessage("Creating new window on activate");
-    createWindow();
-  }
-});
+app.on("activate", handleActivation);
 
 // IPC handlers
 /**
