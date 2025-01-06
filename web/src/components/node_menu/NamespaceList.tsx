@@ -99,6 +99,7 @@ const namespaceStyles = (theme: any, inPanel: boolean) =>
       paddingRight: "1em",
       minWidth: "220px",
       flex: "0 1 auto",
+      backgroundColor: "transparent",
       transition: "max-width 1s ease-out, width 1s ease-out",
       overflowX: "hidden",
       overflowY: "auto"
@@ -172,7 +173,8 @@ const namespaceStyles = (theme: any, inPanel: boolean) =>
     },
     ".nodes": {
       display: "flex",
-      flexDirection: "column"
+      flexDirection: "column",
+      backgroundColor: "transparent"
     },
     ".node": {
       display: "flex",
@@ -184,6 +186,7 @@ const namespaceStyles = (theme: any, inPanel: boolean) =>
       ".node-button": {
         padding: ".1em .5em",
         flexGrow: 1,
+        textTransform: "capitalize",
         "& .MuiTypography-root": {
           // fontSize: theme.fontSizeNormal
         }
@@ -354,14 +357,6 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
     (nodes: NodeMetadata[]) => {
       if (!nodes) return [];
 
-      console.log("FilterNodes called with:", {
-        selectedPathString,
-        searchTermLength: searchTerm.length,
-        selectedInputType,
-        selectedOutputType,
-        totalNodes: nodes.length
-      });
-
       const filteredNodes = nodes
         .filter((node) => {
           // If we're searching or filtering by type, use different logic
@@ -380,13 +375,6 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
             node.namespace.split(".").length ===
               selectedPathString.split(".").length + 1;
 
-          console.log("Checking node:", {
-            nodeNamespace: node.namespace,
-            selectedPath: selectedPathString,
-            isExactMatch,
-            isDirectChild
-          });
-
           return isExactMatch || isDirectChild;
         })
         .sort((a, b) => {
@@ -395,11 +383,6 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
             ? namespaceComparison
             : a.title.localeCompare(b.title);
         });
-
-      console.log("Filtered nodes:", {
-        resultCount: filteredNodes.length,
-        results: filteredNodes.map((n) => n.namespace)
-      });
 
       return filteredNodes;
     },
@@ -413,10 +396,6 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
 
   const currentNodes = useMemo(() => {
     const nodes = filterNodes(metadata);
-    console.log("CurrentNodes updated:", {
-      count: nodes.length,
-      selectedPath: selectedPath
-    });
     return nodes;
   }, [metadata, filterNodes]);
 

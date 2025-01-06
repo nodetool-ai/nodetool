@@ -26,10 +26,6 @@ const NamespaceItem: React.FC<NamespaceItemProps> = ({
   const { setSelectedPath } = useNodeMenuStore();
 
   const handleClick = useCallback(() => {
-    console.log("Namespace clicked:", {
-      path,
-      namespace
-    });
     setSelectedPath(path);
   }, [path, setSelectedPath]);
 
