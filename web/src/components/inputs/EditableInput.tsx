@@ -60,7 +60,6 @@ const EditableInput: React.FC<EditableInputProps> = ({
 
   const _onFocus = useCallback(
     (event: React.FocusEvent<HTMLInputElement>) => {
-      event.preventDefault();
       setIsFocused(true);
       onFocusChange?.(true);
       onFocusProp(event);
@@ -68,6 +67,7 @@ const EditableInput: React.FC<EditableInputProps> = ({
       if (inputRef.current) {
         inputRef.current.scrollIntoView = () => {};
       }
+      // event.preventDefault();
     },
     [onFocusProp, onFocusChange]
   );

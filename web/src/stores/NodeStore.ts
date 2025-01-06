@@ -173,6 +173,7 @@ export interface NodeStore {
   edgeUpdateSuccessful: boolean;
   missingModelFiles: RepoPath[];
   generateNodeId: () => string;
+  generateNodeIds: (count: number) => string[];
   generateEdgeId: () => string;
   getInputEdges: (nodeId: string) => Edge[];
   getOutputEdges: (nodeId: string) => Edge[];
@@ -294,6 +295,21 @@ export const useNodeStore = create<NodeStore>()(
           return id > acc ? id : acc;
         }, 0);
         return (highestId + 1).toString();
+      },
+
+      /**
+       * Generate multiple sequential node IDs at once.
+       * If the highest number is N, the new IDs will be N+1, N+2, etc.
+       * Used for duplicating and copying multiple nodes
+       */
+      generateNodeIds: (count: number) => {
+        const highestId = get().nodes.reduce((acc, node) => {
+          const id = parseInt(node.id, 10);
+          return isNaN(id) ? acc : Math.max(id, acc);
+        }, 0);
+        return Array.from({ length: count }, (_, i) =>
+          (highestId + i + 1).toString()
+        );
       },
 
       /**

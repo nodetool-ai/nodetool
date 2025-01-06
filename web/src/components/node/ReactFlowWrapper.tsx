@@ -399,6 +399,9 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
         minZoom={MIN_ZOOM}
         maxZoom={MAX_ZOOM}
         zoomOnDoubleClick={false}
+        autoPanOnNodeDrag={true}
+        autoPanOnConnect={true}
+        autoPanSpeed={50}
         fitView
         fitViewOptions={fitViewOptions}
         nodes={nodes}

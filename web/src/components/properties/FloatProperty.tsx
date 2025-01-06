@@ -5,21 +5,30 @@ import { isEqual } from "lodash";
 
 const FloatProperty = (props: PropertyProps) => {
   const id = `slider-${props.property.name}-${props.propertyIndex}`;
+  const name = props.property.name.replaceAll("_", " ");
+  const description = props.property.description || "No description available";
+
+  const value = typeof props.value === "number" ? props.value : 0;
+
+  const min = typeof props.property.min === "number" ? props.property.min : 0;
+  const max = typeof props.property.max === "number" ? props.property.max : 100;
 
   return (
     <>
       <NumberInput
         id={id}
-        name={props.property.name.replaceAll("_", " ")}
-        description={props.property.description}
-        value={props.value}
-        min={props.property.min ? props.property.min : 0}
-        max={props.property.max ? props.property.max : 100}
+        nodeId={props.nodeId}
+        name={name}
+        description={description}
+        value={value}
+        min={min}
+        max={max}
         size="small"
         color="secondary"
         inputType="float"
+        hideLabel={props.hideLabel}
         tabIndex={props.tabIndex}
-        onChange={(_, value) => props.onChange(value)}
+        onChange={(_, value) => props.onChange(Number(value))}
       />
     </>
   );
