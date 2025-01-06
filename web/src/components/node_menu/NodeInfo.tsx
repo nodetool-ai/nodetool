@@ -74,8 +74,18 @@ const nodeInfoStyles = (theme: any, inPanel: boolean) =>
     ".node-description": {
       fontSize: theme.fontSizeSmall,
       fontWeight: "400",
-      minHeight: "1.5em",
-      color: theme.palette.c_white
+      color: theme.palette.c_white,
+      // wordBreak: "break-word",
+      whiteSpace: "pre-wrap",
+      marginBottom: "0.5em",
+      display: "block",
+      "& span": {
+        display: "inline-block",
+        position: "static",
+        height: "auto",
+        maxHeight: "none",
+        lineHeight: "1.5"
+      }
     },
     ".node-tags": {
       fontSize: theme.fontSizeSmall,
@@ -251,13 +261,13 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
           </Typography>
         )}
       </div>
-      <Typography className="node-description">
+      <div className="node-description">
         <span
           dangerouslySetInnerHTML={{
             __html: descHtml
           }}
         />
-      </Typography>
+      </div>
       <Typography className="node-tags">
         {renderTags(description.tags as string)}
       </Typography>
