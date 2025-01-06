@@ -426,7 +426,7 @@ class SVGToImage(BaseNode):
         return await context.image_from_pil(image)
 
 
-class radient(BaseNode):
+class Gradient(BaseNode):
     """
     Create linear or radial gradients for SVG elements.
     svg, gradient, color
