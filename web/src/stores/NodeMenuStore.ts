@@ -16,8 +16,8 @@ const fuseOptions = {
   ],
   includeMatches: true, // Include details about which fields matched
   ignoreLocation: true, // Search the entire field, don't prefer matches at start
-  threshold: 0.3, // More lenient matching (was 0.23)
-  distance: 10, // Allow matches with characters further apart (was 10)
+  threshold: 0.3, // More lenient matching
+  distance: 2, // Allow matches with characters further apart
   includeScore: true, // Include similarity score in results
   shouldSort: true, // Sort results by best match
   minMatchCharLength: 2, // Minimum characters that must match

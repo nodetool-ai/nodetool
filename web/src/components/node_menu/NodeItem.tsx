@@ -5,7 +5,6 @@ import ThemeNodetool from "../themes/ThemeNodetool";
 import { IconForType } from "../../config/data_types";
 import { Typography } from "@mui/material";
 import { InfoOutlined } from "@mui/icons-material";
-import { isEqual } from "lodash";
 
 interface NodeItemProps {
   node: NodeMetadata;
