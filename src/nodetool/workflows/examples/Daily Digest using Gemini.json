@@ -1,0 +1,260 @@
+{
+  "id": "1a70b9f8cbb011efbb9a00001572a293",
+  "access": "public",
+  "created_at": "2025-01-06T22:00:40.390827",
+  "updated_at": "2025-01-06T22:00:40.390834",
+  "name": "Daily Digest using Gemini",
+  "description": "",
+  "tags": null,
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "20",
+        "parent_id": null,
+        "type": "google.mail.GmailSearch",
+        "data": {
+          "email_address": "matti.georgi@gmail.com",
+          "search_query": "",
+          "max_results": 100
+        },
+        "ui_properties": {
+          "position": {
+            "x": 242,
+            "y": 219
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true
+        }
+      },
+      {
+        "id": "31",
+        "parent_id": null,
+        "type": "google.mail.EmailSearchCriteria",
+        "data": {
+          "from_address": "",
+          "to_address": "",
+          "subject": "",
+          "body": "",
+          "date_filter": "SINCE_ONE_DAY",
+          "flags": null,
+          "keywords": "",
+          "folder": "INBOX",
+          "text": null
+        },
+        "ui_properties": {
+          "position": {
+            "x": 50,
+            "y": 50
+          },
+          "zIndex": 0,
+          "width": 162,
+          "selectable": true
+        }
+      },
+      {
+        "id": "32",
+        "parent_id": null,
+        "type": "nodetool.list.JoinStrings",
+        "data": {
+          "delimiter": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 773.5,
+            "y": 445
+          },
+          "zIndex": 0,
+          "width": 158,
+          "selectable": true
+        }
+      },
+      {
+        "id": "33",
+        "parent_id": null,
+        "type": "nodetool.list.MapField",
+        "data": {
+          "field": "body",
+          "default": null
+        },
+        "ui_properties": {
+          "position": {
+            "x": 502.6666666666667,
+            "y": 404
+          },
+          "zIndex": 0,
+          "width": 159,
+          "selectable": true
+        }
+      },
+      {
+        "id": "34",
+        "parent_id": null,
+        "type": "google.gemini.Gemini",
+        "data": {
+          "model": "gemini-2.0-flash-exp",
+          "messages": [],
+          "image": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null
+          },
+          "audio": {
+            "type": "audio",
+            "uri": "",
+            "asset_id": null,
+            "data": null
+          },
+          "system_instruction": "Generate a daily digest of my emails. Important topics first. Make a seperate section for newsletters.",
+          "code_execution": false,
+          "temperature": 0.5,
+          "top_p": 0.5,
+          "top_k": 40,
+          "max_output_tokens": 1024,
+          "presence_penalty": 0,
+          "frequency_penalty": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1013,
+            "y": 265
+          },
+          "zIndex": 0,
+          "width": 162,
+          "selectable": true
+        }
+      },
+      {
+        "id": "35",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "str_output_2025-01-06"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1205,
+            "y": 282
+          },
+          "zIndex": 0,
+          "width": 613,
+          "height": 807,
+          "selectable": true
+        }
+      },
+      {
+        "id": "36",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "list_output_2025-01-06"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 722,
+            "y": 156
+          },
+          "zIndex": 0,
+          "width": 261,
+          "height": 239,
+          "selectable": true
+        }
+      },
+      {
+        "id": "37",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "list_output_2025-01-06"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 474,
+            "y": 180
+          },
+          "zIndex": 0,
+          "width": 210,
+          "height": 177,
+          "selectable": true
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "084e0bde-b1ae-4f09-959a-8ef9acc68b98",
+        "source": "31",
+        "sourceHandle": "output",
+        "target": "20",
+        "targetHandle": "search_criteria",
+        "ui_properties": {
+          "className": "email_search_criteria"
+        }
+      },
+      {
+        "id": "9615",
+        "source": "34",
+        "sourceHandle": "output",
+        "target": "35",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "9617",
+        "source": "20",
+        "sourceHandle": "output",
+        "target": "37",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "list"
+        }
+      },
+      {
+        "id": "0e772544-7dd2-41c0-a609-b767106e3b81",
+        "source": "32",
+        "sourceHandle": "output",
+        "target": "34",
+        "targetHandle": "prompt",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "9616",
+        "source": "33",
+        "sourceHandle": "output",
+        "target": "36",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "list"
+        }
+      },
+      {
+        "id": "9614a3fb-b8d8-4e0c-a549-67f3d6c3c0c3",
+        "source": "33",
+        "sourceHandle": "output",
+        "target": "32",
+        "targetHandle": "values",
+        "ui_properties": {
+          "className": "list"
+        }
+      },
+      {
+        "id": "3e112ecc-ccec-4c7e-b772-57e6e997bb1f",
+        "source": "20",
+        "sourceHandle": "output",
+        "target": "33",
+        "targetHandle": "values",
+        "ui_properties": {
+          "className": "list"
+        }
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null
+}

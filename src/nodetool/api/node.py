@@ -83,6 +83,7 @@ UnionType = (
     AssetRef
     | AudioRef
     | DataframeRef
+    | Email
     | FilePath
     | FolderRef
     | ImageRef

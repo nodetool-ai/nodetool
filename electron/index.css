@@ -28,7 +28,6 @@ html {
   flex-direction: column;
   background-color: #111;
   font-family: Arial, sans-serif;
-  overflow: hidden;
 }
 
 ul li {

@@ -105,25 +105,6 @@ class Compare(BaseNode):
             raise ValueError(f"Unsupported comparison: {self.comparison}")
 
 
-class If(BaseNode):
-    """
-    Selects between two values based on a condition.
-    conditional, if-else, branch
-
-    Use cases:
-    - Implement conditional logic in workflows
-    - Create dynamic output selection
-    - Handle different cases based on input conditions
-    """
-
-    condition: bool = Field(description="The condition to evaluate")
-    if_true: Any = Field(description="Value to return if the condition is true")
-    if_false: Any = Field(description="Value to return if the condition is false")
-
-    async def process(self, context: ProcessingContext) -> Any:
-        return self.if_true if self.condition else self.if_false
-
-
 class IsNone(BaseNode):
     """
     Checks if a value is None.

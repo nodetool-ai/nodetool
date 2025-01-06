@@ -28,7 +28,7 @@ export const usePanelStore = create<ResizePanelState>()((set) => ({
       size: DEFAULT_LEFT_PANEL_SIZE,
       isDragging: false,
       hasDragged: false,
-      minWidth: 64,
+      minWidth: 60,
       maxWidth: 800,
       defaultWidth: DEFAULT_LEFT_PANEL_SIZE
     },

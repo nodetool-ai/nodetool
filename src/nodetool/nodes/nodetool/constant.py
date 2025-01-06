@@ -1,10 +1,11 @@
+from datetime import datetime
 from typing import Any, Literal
 
 from pydantic import Field
 from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
-from nodetool.metadata.types import AudioRef
-
+from nodetool.metadata.types import AudioRef, Datetime
+from nodetool.metadata.types import Date as DateType
 from nodetool.metadata.types import DataframeRef as DataFrameRef
 from nodetool.metadata.types import ImageRef
 from nodetool.metadata.types import TextRef
@@ -192,3 +193,51 @@ class Video(Constant):
     async def process(self, context: ProcessingContext) -> VideoRef:
         await context.refresh_uri(self.value)
         return self.value
+
+
+class Date(BaseNode):
+    """
+    Make a date object from year, month, day.
+    date, make, create
+    """
+
+    year: int = Field(default=datetime.now().year, description="Year of the date")
+    month: int = Field(default=datetime.now().month, description="Month of the date")
+    day: int = Field(default=datetime.now().day, description="Day of the date")
+
+    async def process(self, context: ProcessingContext) -> DateType:
+        return DateType.from_date(date(self.year, self.month, self.day))  # type: ignore
+
+
+class DateTime(BaseNode):
+    """
+    Make a datetime object from year, month, day, hour, minute, second.
+    datetime, make, create
+    """
+
+    year: int = Field(default=datetime.now().year, description="Year of the datetime")
+    month: int = Field(
+        default=datetime.now().month, description="Month of the datetime"
+    )
+    day: int = Field(default=datetime.now().day, description="Day of the datetime")
+    hour: int = Field(default=0, description="Hour of the datetime")
+    minute: int = Field(default=0, description="Minute of the datetime")
+    second: int = Field(default=0, description="Second of the datetime")
+    microsecond: int = Field(default=0, description="Microsecond of the datetime")
+    tzinfo: str = Field(
+        default=datetime.now().tzname(), description="Timezone of the datetime"
+    )
+    utc_offset: int = Field(default=0, description="UTC offset of the datetime")
+
+    async def process(self, context: ProcessingContext) -> Datetime:
+        return Datetime(
+            year=self.year,
+            month=self.month,
+            day=self.day,
+            hour=self.hour,
+            minute=self.minute,
+            second=self.second,
+            microsecond=self.microsecond,
+            tzinfo=self.tzinfo,
+            utc_offset=self.utc_offset,
+        )
