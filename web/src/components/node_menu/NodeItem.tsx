@@ -5,6 +5,7 @@ import ThemeNodetool from "../themes/ThemeNodetool";
 import { IconForType } from "../../config/data_types";
 import { Typography, Tooltip } from "@mui/material";
 import { InfoOutlined } from "@mui/icons-material";
+import { highlightText as highlightTextUtil } from "../../utils/highlightText";
 
 interface NodeItemProps {
   node: NodeMetadata;
@@ -75,32 +76,8 @@ const NodeItem = memo(
 
       const highlightNodeTitle = useCallback(
         (title: string): string => {
-          if (!searchTerm || !node.searchInfo?.matches) return title;
-
-          // Get all matches for the title field
-          const titleMatches = node.searchInfo.matches.filter(
-            (match) => match.key === "title"
-          );
-
-          if (titleMatches.length === 0) return title;
-
-          // Sort indices in reverse order to maintain string positions when inserting spans
-          const indices = titleMatches
-            .flatMap((match) => match.indices)
-            .sort((a, b) => b[0] - a[0]);
-
-          // Apply highlights from end to start
-          let result = title;
-          indices.forEach(([start, end]) => {
-            result =
-              result.slice(0, start) +
-              `<span class="highlight" style="border-bottom: 1px solid ${ThemeNodetool.palette.c_hl1}">` +
-              result.slice(start, end + 1) + // +1 because Fuse.js indices are inclusive
-              "</span>" +
-              result.slice(end + 1);
-          });
-
-          return result;
+          return highlightTextUtil(title, "title", searchTerm, node.searchInfo)
+            .html;
         },
         [searchTerm, node.searchInfo]
       );
