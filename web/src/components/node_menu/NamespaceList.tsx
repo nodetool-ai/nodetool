@@ -226,7 +226,8 @@ const namespaceStyles = (theme: any, inPanel: boolean) =>
       gap: "0"
     },
     ".namespace-item": {
-      color: theme.palette.c_white
+      color: theme.palette.c_white,
+      textTransform: "capitalize"
     },
     ".disabled .namespace-item": {
       color: theme.palette.c_gray4
@@ -352,21 +353,41 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
   const filterNodes = useCallback(
     (nodes: NodeMetadata[]) => {
       if (!nodes) return [];
-      return nodes
+
+      console.log("FilterNodes called with:", {
+        selectedPathString,
+        searchTermLength: searchTerm.length,
+        selectedInputType,
+        selectedOutputType,
+        totalNodes: nodes.length
+      });
+
+      const filteredNodes = nodes
         .filter((node) => {
-          const startsWithPath = node.namespace.startsWith(
-            selectedPathString + "."
-          );
-          const exactMatch = node.namespace === selectedPathString;
-
-          const willInclude =
-            (selectedPathString === "" && searchTerm.length > 1) ||
+          // If we're searching or filtering by type, use different logic
+          if (
+            searchTerm.length > 1 ||
             selectedInputType ||
-            selectedOutputType ||
-            exactMatch ||
-            startsWithPath;
+            selectedOutputType
+          ) {
+            return true; // Let the search/type filtering handle this
+          }
 
-          return willInclude;
+          // For namespace browsing:
+          const isExactMatch = node.namespace === selectedPathString;
+          const isDirectChild =
+            node.namespace.startsWith(selectedPathString + ".") &&
+            node.namespace.split(".").length ===
+              selectedPathString.split(".").length + 1;
+
+          console.log("Checking node:", {
+            nodeNamespace: node.namespace,
+            selectedPath: selectedPathString,
+            isExactMatch,
+            isDirectChild
+          });
+
+          return isExactMatch || isDirectChild;
         })
         .sort((a, b) => {
           const namespaceComparison = a.namespace.localeCompare(b.namespace);
@@ -374,6 +395,13 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
             ? namespaceComparison
             : a.title.localeCompare(b.title);
         });
+
+      console.log("Filtered nodes:", {
+        resultCount: filteredNodes.length,
+        results: filteredNodes.map((n) => n.namespace)
+      });
+
+      return filteredNodes;
     },
     [
       selectedPathString,
@@ -383,10 +411,14 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
     ]
   );
 
-  const currentNodes = useMemo(
-    () => filterNodes(metadata),
-    [metadata, filterNodes]
-  );
+  const currentNodes = useMemo(() => {
+    const nodes = filterNodes(metadata);
+    console.log("CurrentNodes updated:", {
+      count: nodes.length,
+      selectedPath: selectedPath
+    });
+    return nodes;
+  }, [metadata, filterNodes]);
 
   const renderNamespaces = useMemo(
     () => (

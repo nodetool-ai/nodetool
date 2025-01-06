@@ -22,7 +22,18 @@ export type WorkflowList = components["schemas"]["WorkflowList"];
 export type WorkflowRequest = components["schemas"]["WorkflowRequest"];
 export type Property = components["schemas"]["Property"];
 export type OutputSlot = components["schemas"]["OutputSlot"];
-export type NodeMetadata = components["schemas"]["NodeMetadata"];
+export type BaseNodeMetadata = components["schemas"]["NodeMetadata"];
+
+export interface NodeMetadata extends BaseNodeMetadata {
+  searchInfo?: {
+    score?: number;
+    matches?: Array<{
+      key: string;
+      value: string;
+      indices: number[][];
+    }>;
+  };
+}
 export type TypeMetadata = components["schemas"]["TypeMetadata"];
 export type Message = components["schemas"]["Message-Output"];
 export type Prediction = components["schemas"]["Prediction"];

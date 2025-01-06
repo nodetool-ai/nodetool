@@ -1,3 +1,4 @@
+/** @jsxImportSource @emotion/react */
 import { memo, useCallback, useMemo, useRef, useLayoutEffect } from "react";
 // mui
 // store
@@ -7,11 +8,12 @@ import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { useCreateNode } from "../../hooks/useCreateNode";
 import { useDelayedHover } from "../../hooks/useDelayedHover";
 import NodeItem from "./NodeItem";
-import { Typography } from "@mui/material";
+import { Typography, Tooltip } from "@mui/material";
 import { isEqual } from "lodash";
 import ApiKeyValidation from "../node/ApiKeyValidation";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import ThemeNodes from "../themes/ThemeNodes";
+import { SearchResultGroup } from "../../stores/NodeMenuStore";
 
 interface RenderNodesProps {
   nodes: NodeMetadata[];
@@ -34,17 +36,49 @@ const getServiceFromNamespace = (namespace: string): string => {
   return parts[0];
 };
 
+const renderGroupTitle = (title: string) => {
+  const tooltips: Record<string, string> = {
+    "Best Matches": "Direct matches in node titles",
+    "Related Nodes": "Matches in titles and tags",
+    "Other Results": "Matches in node descriptions"
+  };
+
+  return (
+    <Tooltip title={tooltips[title] || ""} placement="bottom" enterDelay={200}>
+      <Typography
+        variant="h6"
+        component="div"
+        sx={{
+          color: ThemeNodes.palette.c_hl1,
+          fontSize: "0.9em",
+          padding: "0.5em 0 0"
+        }}
+      >
+        {title}
+      </Typography>
+    </Tooltip>
+  );
+};
+
 const RenderNodes: React.FC<RenderNodesProps> = ({
   nodes,
   hoverDelay = 400
 }) => {
-  const { focusedNodeIndex, hoveredNode, setHoveredNode, setDragToCreate } =
-    useNodeMenuStore((state) => ({
-      focusedNodeIndex: state.focusedNodeIndex,
-      hoveredNode: state.hoveredNode,
-      setHoveredNode: state.setHoveredNode,
-      setDragToCreate: state.setDragToCreate
-    }));
+  const {
+    focusedNodeIndex,
+    hoveredNode,
+    setHoveredNode,
+    setDragToCreate,
+    groupedSearchResults,
+    searchTerm
+  } = useNodeMenuStore((state) => ({
+    focusedNodeIndex: state.focusedNodeIndex,
+    hoveredNode: state.hoveredNode,
+    setHoveredNode: state.setHoveredNode,
+    setDragToCreate: state.setDragToCreate,
+    groupedSearchResults: state.groupedSearchResults,
+    searchTerm: state.searchTerm
+  }));
 
   const handleCreateNode = useCreateNode();
   const currentHoveredNodeRef = useRef<NodeMetadata | null>(null);
@@ -123,11 +157,42 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
     }
   }, [focusedNodeIndex]);
 
+  const renderGroup = useCallback(
+    (group: SearchResultGroup) => {
+      const groupedNodes = groupNodes(group.nodes);
+
+      return (
+        <div key={group.title} className="node-group">
+          {renderGroupTitle(group.title)}
+          {Object.entries(groupedNodes).map(([namespace, nodesInNamespace]) => (
+            <div key={namespace}>
+              <Typography
+                variant="h5"
+                component="div"
+                className="namespace-text"
+              >
+                {namespace}
+              </Typography>
+              {nodesInNamespace.map((node, idx) => renderNode(node, idx))}
+            </div>
+          ))}
+        </div>
+      );
+    },
+    [renderNode]
+  );
+
   const elements = useMemo(() => {
+    // If we're searching, use the grouped results
+    if (searchTerm) {
+      return groupedSearchResults.map((group) => renderGroup(group));
+    }
+
+    // Otherwise use the original namespace-based grouping
     let globalIndex = 0;
     const seenServices = new Set<string>();
 
-    return Object.entries(groupedNodes).flatMap(
+    return Object.entries(groupNodes(nodes)).flatMap(
       ([namespace, nodesInNamespace]) => {
         const service = getServiceFromNamespace(namespace);
         const isFirstNamespaceForService = !seenServices.has(service);
@@ -163,12 +228,36 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
         return elements;
       }
     );
-  }, [groupedNodes, renderNode]);
+  }, [nodes, searchTerm, groupedSearchResults, renderNode, renderGroup]);
 
   return (
-    <>
-      <div className="nodes">{elements}</div>
-    </>
+    <div className="nodes">
+      {nodes.length > 0 ? (
+        elements
+      ) : (
+        <div className="no-selection">
+          <div className="explanation">
+            <Typography variant="h5" style={{ marginTop: 0 }}>
+              Browse Nodes
+            </Typography>
+            <ul>
+              <li>Click on the namespaces to the left</li>
+            </ul>
+
+            <Typography variant="h5">Search Nodes</Typography>
+            <ul>
+              <li>Type in the search bar to search for nodes.</li>
+            </ul>
+
+            <Typography variant="h5">Create Nodes</Typography>
+            <ul>
+              <li>Click on a node</li>
+              <li>Drag a node onto the canvas</li>
+            </ul>
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
 
