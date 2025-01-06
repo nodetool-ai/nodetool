@@ -8,13 +8,21 @@
    list-style-type: square;
  }
 
-/* Main container */
+ /* Main container */
+ #root {
+  width: 100%;
+  height: 100%;
+  display: block;
+ }
+ 
 #root .node-editor {
   margin: 0;
   padding: 0;
-  top: 50px;
-  position: absolute;
   width: 100%;
+  height: calc(-50px + 100vh );
+  overflow: hidden;
+  position: relative;
+  display: block;
 }
 
 #root .MuiGrid2-root.MuiGrid2-container {
@@ -31,9 +39,9 @@
   left: 0;
   top: 0;
 }
-.reactflow-wrapper > div {
-  overflow-y: visible !important;
-}
+ .reactflow-wrapper .react-flow {
+  overflow: visible !important;
+} 
 
 /* Loading overlay */
 .loading-overlay {

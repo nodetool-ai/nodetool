@@ -25,11 +25,11 @@ const AxisMarker: React.FC = () => {
     <>
       <div
         ref={horizontalLineRef}
-        style={{ ...lineStyle, width: "10000px", height: "1px" }}
+        style={{ ...lineStyle, width: "500px", height: "1px" }}
       />
       <div
         ref={verticalLineRef}
-        style={{ ...lineStyle, width: "1px", height: "10000px" }}
+        style={{ ...lineStyle, width: "1px", height: "500px" }}
       />
     </>
   );
