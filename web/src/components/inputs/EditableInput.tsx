@@ -19,10 +19,11 @@ const EditableInput: React.FC<EditableInputProps> = ({
   isDefault,
   tabIndex,
   onFocusChange,
-  shouldFocus
+  shouldFocus = false
 }) => {
   const [isFocused, setIsFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const isInitialMount = useRef(true);
 
   useEffect(() => {
     if (!shouldFocus) {
@@ -31,16 +32,28 @@ const EditableInput: React.FC<EditableInputProps> = ({
   }, [shouldFocus]);
 
   useEffect(() => {
-    if (onFocusChange) {
+    // Skip the first render to prevent auto-focus on mount
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+
+    if (onFocusChange && shouldFocus) {
       setIsFocused(true);
       if (inputRef.current) {
         inputRef.current.focus();
       }
     }
-  }, [onFocusChange]);
+  }, [onFocusChange, shouldFocus]);
 
   useEffect(() => {
-    if (shouldFocus && !isFocused && inputRef.current) {
+    // Only focus if explicitly requested and not on initial mount
+    if (
+      !isInitialMount.current &&
+      shouldFocus &&
+      !isFocused &&
+      inputRef.current
+    ) {
       inputRef.current.focus();
     }
   }, [shouldFocus, isFocused]);
@@ -50,6 +63,11 @@ const EditableInput: React.FC<EditableInputProps> = ({
       setIsFocused(true);
       onFocusChange?.(true);
       onFocusProp(event);
+      // Prevent scrolling to the input
+      if (inputRef.current) {
+        inputRef.current.scrollIntoView = () => {};
+      }
+      // event.preventDefault();
     },
     [onFocusProp, onFocusChange]
   );
@@ -67,39 +85,45 @@ const EditableInput: React.FC<EditableInputProps> = ({
   );
 
   useEffect(() => {
-    if (inputRef.current && isFocused) {
+    if (!isInitialMount.current && inputRef.current && isFocused) {
       inputRef.current.focus();
+      // Prevent scrolling to the input
+      inputRef.current.scrollIntoView = () => {};
     }
   }, [isFocused]);
 
   return (
-    <input
-      ref={inputRef}
-      type="text"
-      className={`edit-value nodrag${
-        isDefault ? " default" : ""
-      } edit-value-input`}
-      style={{
-        width: isFocused ? `${Math.max(value.length * 12, 50)}px` : "0px",
-        color: isFocused ? "inherit" : "transparent",
-        backgroundColor: isFocused ? "inherit" : "transparent",
-        opacity: isFocused ? 1 : 0.001,
-        pointerEvents: isFocused ? "auto" : "none"
-      }}
-      value={value}
-      onChange={onChange}
-      onBlur={_onBlur}
-      onFocus={_onFocus}
-      tabIndex={tabIndex}
-      autoFocus
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.code === "NumpadEnter") {
-          e.preventDefault();
-          e.stopPropagation();
-          _onBlur(e as unknown as React.FocusEvent<HTMLInputElement>);
-        }
-      }}
-    />
+    <div className="editable-input-container">
+      <input
+        ref={inputRef}
+        type="text"
+        className={`edit-value nodrag${
+          isDefault ? " default" : ""
+        } edit-value-input`}
+        style={{
+          position: "absolute",
+          width: isFocused ? `${Math.max(value.length * 12, 50)}px` : "0px",
+          color: isFocused ? "inherit" : "transparent",
+          backgroundColor: isFocused ? "inherit" : "transparent",
+          opacity: isFocused ? 1 : 0.001,
+          pointerEvents: isFocused ? "auto" : "none",
+          zIndex: isFocused ? 1 : "auto"
+        }}
+        value={value}
+        onChange={onChange}
+        onBlur={_onBlur}
+        onFocus={_onFocus}
+        tabIndex={tabIndex}
+        autoFocus={false}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.code === "NumpadEnter") {
+            e.preventDefault();
+            e.stopPropagation();
+            _onBlur(e as unknown as React.FocusEvent<HTMLInputElement>);
+          }
+        }}
+      />
+    </div>
   );
 };
 

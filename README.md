@@ -11,6 +11,10 @@ With NodeTool, you can:
 - **Create Custom Solutions**: Design AI tools that work exactly the way you need them to
 - **Run Locally**: Utilize your own hardware to run open-source models via Ollama and access hundreds of models via Hugging Face
 - **Integrate Seamlessly**: Connect AI workflows to your favorite local apps and desktop utilities
+- **Build Privacy-First**: Keep your data local and secure with no need to send files to external servers
+- **Create Custom Solutions**: Design AI tools that work exactly the way you need them to
+- **Run Locally**: Utilize your own hardware to run open-source models via Ollama and access hundreds of models via Hugging Face
+- **Integrate Seamlessly**: Connect AI workflows to your favorite local apps and desktop utilities
 
 ![NodeTool](nodetool.png)
 
@@ -51,6 +55,14 @@ Everything you need to automate your workflow:
 ## Quickstart 🚀
 
 Download the latest release from our [Releases Page](https://github.com/nodetool-ai/nodetool/releases).
+
+## Where to Use NodeTool 🖥️
+
+NodeTool is designed for your local environment:
+
+- **Home Workstation**: Build AI tools for personal productivity or creative projects
+- **Lab or Office**: Deploy customized solutions for research and internal utilities
+- **On the Go**: Run lightweight workflows on laptops for portable AI assistance
 
 ## Where to Use NodeTool 🖥️
 

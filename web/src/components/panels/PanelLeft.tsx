@@ -41,8 +41,6 @@ const styles = (theme: any) =>
       display: "flex",
       flexDirection: "column",
       backgroundColor: theme.palette.background.paper,
-      borderRight: `1px solid ${theme.palette.c_gray2}`,
-      zIndex: 1,
       "& .MuiIconButton-root, .MuiButton-root": {
         padding: "12px",
         borderRadius: "6px",

@@ -354,10 +354,16 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
               }
               return "object";
             };
-            const df = {
+            const df: DataframeRef = {
+              type: "dataframe" as const,
+              uri: "",
               data: value.map((v: any) => Object.values(v)),
               columns: Object.entries(value[0]).map((i) => {
-                return { name: i[0], data_type: columnType(i[1]) };
+                return {
+                  name: i[0],
+                  data_type: columnType(i[1]),
+                  description: ""
+                };
               })
             };
             return <DataTable dataframe={df} editable={false} />;

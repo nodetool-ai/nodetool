@@ -4,12 +4,14 @@ import PropertyLabel from "../node/PropertyLabel";
 import ThemeNodes from "../themes/ThemeNodes";
 import RangeIndicator from "./RangeIndicator";
 import EditableInput from "./EditableInput";
+import { useFocusPan } from "../../hooks/useFocusPan";
 
 const DRAG_THRESHOLD = 5;
 const PIXELS_PER_STEP = 10;
 const SHIFT_PIXELS_PER_STEP = 20;
 
 interface InputProps {
+  nodeId: string;
   name: string;
   description?: string | null;
   min?: number;
@@ -223,6 +225,8 @@ const NumberInput: React.FC<InputProps> = (props) => {
     setInputIsFocused
   );
 
+  const handleFocusPan = useFocusPan(props.nodeId);
+
   useCombo(
     ["Escape"],
     useCallback(() => {
@@ -249,8 +253,9 @@ const NumberInput: React.FC<InputProps> = (props) => {
     (event: React.FocusEvent<HTMLInputElement>) => {
       event.target.select();
       setState((prevState) => ({ ...prevState, isFocused: true }));
+      handleFocusPan(event);
     },
-    []
+    [handleFocusPan, props.nodeId]
   );
 
   const handleBlur = useCallback(

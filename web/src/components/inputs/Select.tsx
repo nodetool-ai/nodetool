@@ -134,7 +134,6 @@ const Select: React.FC<SelectProps> = ({
 
   const handleOptionClick = useCallback(
     (optionValue: string) => {
-      console.log(optionValue);
       onChange(optionValue);
       close();
     },
