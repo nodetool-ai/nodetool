@@ -8,12 +8,19 @@ import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { useCreateNode } from "../../hooks/useCreateNode";
 import { useDelayedHover } from "../../hooks/useDelayedHover";
 import NodeItem from "./NodeItem";
-import { Typography, Tooltip } from "@mui/material";
+import {
+  Typography,
+  Tooltip,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails
+} from "@mui/material";
 import { isEqual } from "lodash";
 import ApiKeyValidation from "../node/ApiKeyValidation";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import ThemeNodes from "../themes/ThemeNodes";
 import { SearchResultGroup } from "../../stores/NodeMenuStore";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 
 interface RenderNodesProps {
   nodes: NodeMetadata[];
@@ -38,9 +45,9 @@ const getServiceFromNamespace = (namespace: string): string => {
 
 const renderGroupTitle = (title: string) => {
   const tooltips: Record<string, string> = {
-    "Best Matches": "Direct matches in node titles",
-    "Related Nodes": "Matches in titles and tags",
-    "Other Results": "Matches in node descriptions"
+    Name: "Exact matches in node names",
+    Namespace: "Matches in node namespaces and tags",
+    Description: "Matches found in node descriptions"
   };
 
   return (
@@ -162,21 +169,65 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
       const groupedNodes = groupNodes(group.nodes);
 
       return (
-        <div key={group.title} className="node-group">
-          {renderGroupTitle(group.title)}
-          {Object.entries(groupedNodes).map(([namespace, nodesInNamespace]) => (
-            <div key={namespace}>
-              <Typography
-                variant="h5"
-                component="div"
-                className="namespace-text"
-              >
-                {namespace}
-              </Typography>
-              {nodesInNamespace.map((node, idx) => renderNode(node, idx))}
-            </div>
-          ))}
-        </div>
+        <Accordion
+          key={group.title}
+          defaultExpanded={true}
+          disableGutters
+          sx={{
+            "&.MuiPaper-root.MuiAccordion-root": {
+              backgroundColor: "transparent !important",
+              boxShadow: "none !important",
+              "--Paper-overlay": "0 !important",
+              "&:before": {
+                display: "none"
+              },
+              "& .MuiAccordionDetails-root": {
+                backgroundColor: "transparent !important",
+                padding: "0 0 1em 0"
+              },
+              "&.MuiPaper-elevation, &.MuiPaper-elevation1": {
+                backgroundColor: "transparent !important"
+              },
+              "&.Mui-expanded": {
+                backgroundColor: "transparent !important"
+              },
+              "&.MuiAccordion-rounded": {
+                backgroundColor: "transparent !important"
+              }
+            }
+          }}
+        >
+          <AccordionSummary
+            expandIcon={
+              <ExpandMoreIcon sx={{ color: ThemeNodes.palette.c_gray3 }} />
+            }
+            sx={{
+              padding: 0,
+              minHeight: "unset",
+              "& .MuiAccordionSummary-content": {
+                margin: 0
+              }
+            }}
+          >
+            {renderGroupTitle(group.title)}
+          </AccordionSummary>
+          <AccordionDetails sx={{ padding: "0 0 1em 0" }}>
+            {Object.entries(groupedNodes).map(
+              ([namespace, nodesInNamespace]) => (
+                <div key={namespace}>
+                  <Typography
+                    variant="h5"
+                    component="div"
+                    className="namespace-text"
+                  >
+                    {namespace}
+                  </Typography>
+                  {nodesInNamespace.map((node, idx) => renderNode(node, idx))}
+                </div>
+              )
+            )}
+          </AccordionDetails>
+        </Accordion>
       );
     },
     [renderNode]

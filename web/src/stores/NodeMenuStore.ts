@@ -136,7 +136,7 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
     // Title matches (strict)
     const titleFuse = new Fuse(entries, {
       ...fuseOptions,
-      threshold: 0,
+      threshold: 0.2,
       distance: 3,
       minMatchCharLength: 2,
       keys: [{ name: "title", weight: 1.0 }]
@@ -145,7 +145,7 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
     // Title + tags matches (medium fuzzy)
     const titleTagsFuse = new Fuse(entries, {
       ...fuseOptions,
-      threshold: 0.1,
+      threshold: 0.2,
       distance: 1,
       minMatchCharLength: 2,
 
@@ -158,8 +158,8 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
     // Description matches (more fuzzy)
     const descriptionFuse = new Fuse(entries, {
       ...fuseOptions,
-      threshold: 0.1,
-      distance: 1,
+      threshold: 0.15,
+      distance: 2,
       minMatchCharLength: 4,
       keys: [{ name: "description", weight: 0.8 }]
     });
@@ -209,15 +209,15 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
 
     return [
       {
-        title: "Best Matches",
+        title: "Name",
         nodes: titleResults
       },
       {
-        title: "Related Nodes",
+        title: "Namespace + Tags",
         nodes: titleTagsResults
       },
       {
-        title: "Other Results",
+        title: "Description",
         nodes: descriptionResults
       }
     ].filter((group) => group.nodes.length > 0);
@@ -266,7 +266,6 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
     },
     selectedPath: [],
     setSelectedPath: (path: string[]) => {
-      console.log("Setting selected path:", path);
       set({
         selectedPath: path,
         searchTerm: "" // Clear search when selecting a path
@@ -365,11 +364,9 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
       // If no search term is provided, show nodes based on selected path
       if (!term.trim()) {
         const selectedPathString = get().selectedPath.join(".");
-        console.log("Selected path:", selectedPathString); // Debug log
 
         // If no path is selected and no search term, return empty results
         if (!selectedPathString) {
-          console.log("No path selected, showing explanation"); // Debug log
           set({
             searchResults: [],
             groupedSearchResults: []
@@ -387,8 +384,6 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
                 selectedPathString.split(".").length + 1);
           return matches;
         });
-
-        console.log("Nodes in path:", nodesInPath.length); // Debug log
 
         const allResults = [
           {
