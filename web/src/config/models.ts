@@ -37,8 +37,13 @@ export const llama_models: UnifiedModel[] = [
     type: "llama_model"
   },
   {
-    id: "moondream",
-    name: "MoonDream",
+    id: "granite3.1-moe:1b",
+    name: "Granite 3.1 MOE - 1B",
+    type: "llama_model"
+  },
+  {
+    id: "granite3.1-moe:3b",
+    name: "Granite 3.1 MOE - 3B",
     type: "llama_model"
   },
   {
@@ -49,6 +54,16 @@ export const llama_models: UnifiedModel[] = [
   {
     id: "gemma2:2b",
     name: "Gemma2 - 2B",
+    type: "llama_model"
+  },
+  {
+    id: "codegemma:latest",
+    name: "Coddegemma",
+    type: "llama_model"
+  },
+  {
+    id: "codegemma:2b",
+    name: "Codegemma - 2B",
     type: "llama_model"
   },
   {
@@ -124,16 +139,6 @@ export const llama_models: UnifiedModel[] = [
   {
     id: "mistral:latest",
     name: "Mistral",
-    type: "llama_model"
-  },
-  {
-    id: "codegemma:latest",
-    name: "Coddegemma",
-    type: "llama_model"
-  },
-  {
-    id: "codegemma:2b",
-    name: "Codegemma - 2B",
     type: "llama_model"
   },
   {

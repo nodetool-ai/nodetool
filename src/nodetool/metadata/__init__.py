@@ -26,6 +26,10 @@ def is_assignable(type_meta: TypeMetadata, value: Any) -> bool:
     if type_meta.type == "any":
         return True
 
+    if type_meta.type == "object":
+        primitive_types = (int, float, str, bool, type(None), Enum, list, dict, tuple)
+        return not isinstance(value, primitive_types)
+
     # TODO: implement type checking for comfy types
     if type_meta.is_comfy_type():
         return True

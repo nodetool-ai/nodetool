@@ -2,7 +2,7 @@ from enum import Enum
 from functools import reduce
 from io import BytesIO
 import random
-from pydantic import Field
+from pydantic import BaseModel, Field
 from nodetool.metadata.types import TextRef
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.workflows.base_node import BaseNode
@@ -242,13 +242,49 @@ class FilterDicts(BaseNode):
     Filter a list of dictionaries based on a condition.
     list, filter, query, condition
 
-    Example conditions:
+    Basic Operators:
+    - Comparison: >, <, >=, <=, ==, !=
+    - Logical: and, or, not
+    - Membership: in, not in
+
+    Example Conditions:
+    # Basic comparisons
     age > 30
+    price <= 100
+    status == 'active'
+
+    # Multiple conditions
     age > 30 and salary < 50000
-    name == 'John Doe'
-    100 <= price <= 200
-    status in ['Active', 'Pending']
-    not (age < 18)
+    (price >= 100) and (price <= 200)
+    department in ['Sales', 'Marketing']
+
+    # String operations
+    name.str.startswith('J')
+    email.str.contains('@company.com')
+
+    # Datetime conditions
+    date > '2024-01-01'
+    date.dt.year == 2024
+    date.dt.month >= 6
+    date.dt.day_name() == 'Monday'
+
+    # Date ranges
+    date.between('2024-01-01', '2024-12-31')
+    date >= '2024-01-01' and date < '2025-01-01'
+
+    # Complex datetime
+    date.dt.hour < 12
+    date.dt.dayofweek <= 4  # Weekdays only
+
+    # Numeric operations
+    price.between(100, 200)
+    quantity % 2 == 0  # Even numbers
+
+    # Special values
+    value.isna()  # Check for NULL/NaN
+    value.notna()  # Check for non-NULL/non-NaN
+
+    Note: Dates should be in ISO format (YYYY-MM-DD) or include time (YYYY-MM-DD HH:MM:SS)
 
     Use cases:
     - Filter list of dictionary objects based on criteria
@@ -261,7 +297,22 @@ class FilterDicts(BaseNode):
     )
     condition: str = Field(
         default="",
-        description="The filtering condition to be applied, e.g. 'age > 30'.",
+        description="""
+        The filtering condition using pandas query syntax.
+
+        Basic Operators:
+        - Comparison: >, <, >=, <=, ==, !=
+        - Logical: and, or, not
+        - Membership: in, not in
+        
+        Example Conditions:
+        # Basic comparisons
+        age > 30
+        price <= 100
+        status == 'active'
+        
+        See node documentation for more examples.
+        """,
     )
 
     async def process(self, context: ProcessingContext) -> list[dict]:
@@ -981,7 +1032,7 @@ class Product(BaseNode):
 
 class MapField(BaseNode):
     """
-    Extracts a specific field from a list of dictionaries.
+    Extracts a specific field from a list of dictionaries or objects.
     list, map, field, extract, pluck
 
     Use cases:
@@ -990,10 +1041,13 @@ class MapField(BaseNode):
     - Collect values for a particular key across multiple dictionaries
     """
 
-    values: list[dict] = Field(
-        default_factory=list, description="The list of dictionaries to extract from"
+    values: list[dict | object] = Field(
+        default_factory=list,
+        description="The list of dictionaries or objects to extract from",
     )
-    field: str = Field(default="", description="The dictionary key to extract")
+    field: str = Field(
+        default="", description="The dictionary key or object field to extract"
+    )
     default: Any = Field(
         default=None,
         description="Default value if field is missing (None if not specified)",
@@ -1001,11 +1055,18 @@ class MapField(BaseNode):
 
     async def process(self, context: ProcessingContext) -> list[Any]:
         if not isinstance(self.values, list) or not all(
-            isinstance(item, dict) for item in self.values
+            isinstance(item, (dict, object)) for item in self.values
         ):
-            raise ValueError("Input must be a list of dictionaries")
+            raise ValueError("Input must be a list of dictionaries or objects")
 
-        return [item.get(self.field, self.default) for item in self.values]
+        def get_value(item: dict | object) -> Any:
+            if isinstance(item, dict):
+                return item.get(self.field, self.default)
+            elif isinstance(item, object):
+                return getattr(item, self.field, self.default)
+            return self.default
+
+        return [get_value(item) for item in self.values]
 
 
 class JoinStrings(BaseNode):
@@ -1029,3 +1090,62 @@ class JoinStrings(BaseNode):
     async def process(self, context: ProcessingContext) -> str:
         values = [str(x) for x in self.values]
         return self.delimiter.join(values)
+
+
+class MapTemplate(BaseNode):
+    """
+    Maps a template string over a list of dictionaries or objects.
+    list, template, map, formatting
+
+    Use cases:
+    - Formatting multiple records into strings
+    - Generating text from structured data
+    - Creating text representations of data collections
+
+    Examples:
+    - template: "Name: {name}, Age: {age}"
+      values: [{"name": "Alice", "age": 30}, {"name": "Bob", "age": 25}]
+      -> ["Name: Alice, Age: 30", "Name: Bob, Age: 25"]
+
+    - template: "Hello, {0} {1}!"
+      values: [["Alice", "Smith"], ["Bob", "Jones"]]
+      -> ["Hello, Alice Smith!", "Hello, Bob Jones!"]
+    """
+
+    template: str = Field(
+        default="",
+        description="""
+        Template string with placeholders for formatting
+        - Placeholders can be indexed (e.g., {0}, {1}, etc.) for lists
+        - Placeholders can be named (e.g., {name}, {age}, etc.) for dictionaries
+        - Placeholders can be named (e.g., {name}, {age}, etc.) for objects
+        """,
+    )
+    values: list[dict[str, Any] | list | object] = Field(
+        default_factory=list, description="List of values to format the template with"
+    )
+
+    async def process(self, context: ProcessingContext) -> list[str]:
+        if not self.values:
+            return []
+
+        results = []
+        for item in self.values:
+            try:
+                if isinstance(item, dict):
+                    results.append(self.template.format(**item))
+                elif isinstance(item, list):
+                    results.append(self.template.format(*item))
+                elif isinstance(item, object):
+                    # Convert object attributes to dict
+                    item_dict = {
+                        attr: getattr(item, attr)
+                        for attr in dir(item)
+                        if not attr.startswith("_")
+                    }
+                    results.append(self.template.format(**item_dict))
+            except (KeyError, IndexError, AttributeError) as e:
+                # Skip items that don't match the template
+                continue
+
+        return results
