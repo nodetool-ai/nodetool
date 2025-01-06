@@ -124,7 +124,6 @@ export const NodeFooter: React.FC<NodeFooterProps> = ({
 
   const handleOpenDocumentation = useCallback(
     (event: React.MouseEvent) => {
-      console.log("openDocumentation", nodeType);
       openDocumentation(nodeType, {
         x: event.clientX,
         y: event.clientY
@@ -147,7 +146,7 @@ export const NodeFooter: React.FC<NodeFooterProps> = ({
       <Tooltip title="Click to show documentation" placement="bottom-start">
         <Button
           className="help-button"
-          tabIndex={2}
+          tabIndex={-1}
           onClick={handleOpenDocumentation}
         >
           <HelpOutlineIcon />

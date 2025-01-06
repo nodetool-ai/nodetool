@@ -8,6 +8,7 @@ import { useCallback } from "react";
 
 export const useCopyPaste = () => {
   const reactFlow = useReactFlow();
+  const generateNodeIds = useNodeStore((state) => state.generateNodeIds);
 
   const handleCopy = useCallback(async (nodeId?: string) => {
     const nodes = useNodeStore.getState().nodes;
@@ -112,9 +113,10 @@ export const useCopyPaste = () => {
       const newNodes: Node<NodeData>[] = [];
       const newEdges: Edge[] = [];
 
-      // create new IDs for all nodes
-      copiedNodes.forEach((node: Node<NodeData>) => {
-        oldToNewIds.set(node.id, uuidv4());
+      // Generate new sequential IDs for all copied nodes
+      const newIds = generateNodeIds(copiedNodes.length);
+      copiedNodes.forEach((node: Node<NodeData>, index: number) => {
+        oldToNewIds.set(node.id, newIds[index]);
       });
 
       // calculate offset for pasting
@@ -173,7 +175,7 @@ export const useCopyPaste = () => {
         if (newSource && newTarget) {
           newEdges.push({
             ...edge,
-            id: uuidv4(),
+            id: uuidv4(), // Edge IDs can still be UUIDs
             source: newSource,
             target: newTarget
           });
@@ -184,7 +186,7 @@ export const useCopyPaste = () => {
       setNodes([...nodes, ...newNodes]);
       setEdges([...edges, ...newEdges]);
     }
-  }, [reactFlow]);
+  }, [generateNodeIds, reactFlow]);
 
-  return { handleCopy, handlePaste, handleCut };
+  return { handleCopy, handleCut, handlePaste };
 };

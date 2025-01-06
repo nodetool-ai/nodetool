@@ -104,6 +104,7 @@ const namespaceStyles = (theme: any, inPanel: boolean) =>
       overflowY: "auto"
     },
     ".no-selection": {
+      maxWidth: "400px",
       display: "flex",
       flexDirection: "column",
       color: theme.palette.c_white,
@@ -351,12 +352,6 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
   const filterNodes = useCallback(
     (nodes: NodeMetadata[]) => {
       if (!nodes) return [];
-
-      console.log("Filtering nodes:", {
-        selectedPathString,
-        nodeCount: nodes.length
-      });
-
       return nodes
         .filter((node) => {
           const startsWithPath = node.namespace.startsWith(

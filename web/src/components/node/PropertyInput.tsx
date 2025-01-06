@@ -35,6 +35,7 @@ export type PropertyProps = {
   property: Property;
   value: any;
   nodeType: string;
+  nodeId: string;
   hideLabel?: boolean;
   propertyIndex: string;
   isInspector?: boolean;
@@ -51,6 +52,11 @@ function InputProperty(props: PropertyProps) {
         name={props.property.name}
         description={props.property.description}
         id={id}
+      />
+      <input
+        type="text"
+        value={props.value}
+        onChange={(e) => props.onChange(e.target.value)}
       />
     </>
   );
@@ -225,6 +231,7 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
     value: value,
     propertyIndex: propertyIndex || "",
     nodeType: nodeType,
+    nodeId: id,
     onChange: onChange,
     tabIndex: tabIndex
   };

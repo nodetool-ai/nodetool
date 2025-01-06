@@ -233,18 +233,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ isMinZoom }) => {
         />
       )}
       <div className="node-editor" css={generateCSS}>
-        <Grid
-          container
-          spacing={0}
-          margin={0}
-          sx={{
-            margin: "0px",
-            height: "calc(100vh - 20px)",
-            width: "100%",
-            overflow: "hidden",
-            position: "relative"
-          }}
-        >
+        <>
           {isUploading && (
             <div className="loading-overlay">
               <CircularProgress />
@@ -256,7 +245,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ isMinZoom }) => {
           />
 
           <WorkflowChat workflow_id="default" />
-        </Grid>
+        </>
       </div>
     </>
   );
