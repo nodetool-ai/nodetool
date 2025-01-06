@@ -16,6 +16,7 @@ import ThemeNodetool from "../themes/ThemeNodetool";
 import { useQuery } from "@tanstack/react-query";
 import { ErrorOutlineRounded } from "@mui/icons-material";
 import { css } from "@emotion/react";
+import { uuidv4 } from "../../stores/uuidv4";
 
 const styles = (theme: any) =>
   css({
@@ -110,6 +111,7 @@ const ExampleGrid = () => {
   const navigate = useNavigate();
   const copyWorkflow = useWorkflowStore((state) => state.copy);
   const loadWorkflows = useWorkflowStore((state) => state.loadExamples);
+  const createWorkflow = useWorkflowStore((state) => state.create);
   const [selectedTag, setSelectedTag] = useState<string | null>("start");
 
   const { data, isLoading, isError, error } = useQuery<WorkflowList, Error>({
@@ -117,13 +119,30 @@ const ExampleGrid = () => {
     queryFn: loadWorkflows
   });
 
-  const onClickWorkflow = useCallback(
-    (workflow: Workflow) => {
-      copyWorkflow(workflow).then((workflow) => {
-        navigate("/editor/" + workflow.id);
-      });
+  const copyExampleWorkflow = useCallback(
+    async (workflow: Workflow) => {
+      const req = {
+        name: workflow.name,
+        description: workflow.description,
+        thumbnail: workflow.thumbnail,
+        thumbnail_url: workflow.thumbnail_url,
+        tags: workflow.tags,
+        access: "private",
+        graph: JSON.parse(JSON.stringify(workflow.graph)),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      return await createWorkflow(req);
     },
-    [copyWorkflow, navigate]
+    [createWorkflow]
+  );
+
+  const onClickWorkflow = useCallback(
+    async (workflow: Workflow) => {
+      const newWorkflow = await copyExampleWorkflow(workflow);
+      navigate("/editor/" + newWorkflow.id);
+    },
+    [copyExampleWorkflow, navigate, createWorkflow]
   );
 
   const groupedWorkflows = useMemo(() => {

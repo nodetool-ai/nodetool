@@ -157,35 +157,27 @@ const styles = (theme: any) =>
     p: {
       margin: "0",
       padding: ".25em",
-      fontFamily: theme.fontFamily1,
-      fontSize: theme.fontSizeSmaller,
       wordWrap: "break-word",
       overflowWrap: "break-word"
     },
     ul: {
       margin: "0",
       padding: ".1em 1.75em",
-      listStyleType: "square",
-      fontFamily: theme.fontFamily1,
-      fontSize: theme.fontSizeSmaller
+      listStyleType: "square"
     },
     li: {
       margin: "0",
-      padding: ".1em .25em",
-      fontFamily: theme.fontFamily1,
-      fontSize: theme.fontSizeSmaller
+      padding: ".1em .25em"
     },
     pre: {
       margin: "0",
       padding: ".25em",
-      fontSize: theme.fontSizeSmaller,
       backgroundColor: theme.palette.c_gray0,
       width: "100%",
       overflowX: "scroll"
     },
     code: {
-      fontFamily: theme.fontFamily2,
-      fontSize: theme.fontSizeSmaller
+      fontFamily: theme.fontFamily2
     },
     ".actions": {
       position: "absolute",
@@ -268,6 +260,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
   }, [type, value]);
 
   const renderContent = useMemo(() => {
+    console.log(value);
     if (value === null || value === undefined) {
       return null;
     }
@@ -321,6 +314,9 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
         return <DictTable data={value} editable={false} data_type="string" />;
       case "array":
         if (value.length > 0) {
+          if (value[0] === undefined || value[0] === null) {
+            return <div>Array is empty</div>;
+          }
           if (typeof value[0] === "string") {
             return (
               <ListTable data={value} data_type="string" editable={false} />
@@ -344,7 +340,9 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
             if (["image", "audio", "video"].includes(value[0].type)) {
               return generateAssetGridContent(value, onDoubleClickAsset);
             }
-            const columnType = (v: any): "string" | "float" | "object" => {
+            const columnType = (
+              v: any
+            ): "string" | "float" | "int" | "datetime" | "object" => {
               if (typeof v === "string") {
                 return "string";
               }
@@ -357,13 +355,11 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
               type: "dataframe" as const,
               uri: "",
               data: value.map((v: any) => Object.values(v)),
-              columns: Object.entries(value[0]).map((i) => {
-                return {
-                  name: i[0],
-                  data_type: columnType(i[1]),
-                  description: ""
-                };
-              })
+              columns: Object.entries(value[0]).map((i) => ({
+                name: i[0],
+                data_type: columnType(i[1]),
+                description: ""
+              }))
             };
             return <DataTable dataframe={df} editable={false} />;
           }

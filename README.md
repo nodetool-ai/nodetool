@@ -1,12 +1,16 @@
 <h1 style="display: inline;">
   <img src="https://github.com/user-attachments/assets/823b1091-78cd-423f-9b41-14f33b787c7d" alt="NodeTool Logo" height="24" style="vertical-align: -30px;"/>
-  NodeTool - Build Smarter AI Apps on Your Desktop
+  NodeTool - Your Personal Automation Platform
 </h1>
 
-NodeTool is a no-code platform that enables you to create AI-powered tools and assistants tailored to your needs, directly on your local machine. Whether you're building personal productivity tools, learning assistants, or desktop utilities, NodeTool provides the foundation for creating powerful, privacy-focused AI applications.
+NodeTool enables you to create custom automation workflows powered by AI, right on your desktop. Perfect for professionals who want to streamline their daily tasks and workflows. Whether you're building personal productivity tools, learning assistants, or desktop utilities, NodeTool provides the foundation for creating powerful, privacy-focused automation solutions.
 
 With NodeTool, you can:
 
+- **Build Privacy-First**: Keep your data local and secure with no need to send files to external servers
+- **Create Custom Solutions**: Design AI tools that work exactly the way you need them to
+- **Run Locally**: Utilize your own hardware to run open-source models via Ollama and access hundreds of models via Hugging Face
+- **Integrate Seamlessly**: Connect AI workflows to your favorite local apps and desktop utilities
 - **Build Privacy-First**: Keep your data local and secure with no need to send files to external servers
 - **Create Custom Solutions**: Design AI tools that work exactly the way you need them to
 - **Run Locally**: Utilize your own hardware to run open-source models via Ollama and access hundreds of models via Hugging Face
@@ -18,6 +22,8 @@ NodeTool simplifies access to advanced AI technologies, providing a creative spa
 
 ## Use Cases 🎨
 
+Automate anything you can imagine! Share your automation success stories with us.
+
 - 🎨 **Personal Learning Assistant**: Create chatbots that read and explain your PDFs, e-books, or academic papers
 - 📝 **Note Summarization**: Extract key insights from Obsidian or Apple Notes
 - 🎤 **Voice Memo to Presentation**: Convert recorded ideas into documents
@@ -26,6 +32,8 @@ NodeTool simplifies access to advanced AI technologies, providing a creative spa
 - ⚡ **Automation**: Streamline repetitive tasks with AI-powered scripts
 
 ## Features ✨
+
+Everything you need to automate your workflow:
 
 - **Visual Editor | No-Code Development**: Create complex AI workflows visually—no coding needed! Dive into an intuitive, node-based design and let your creativity flow.
 - **Seamless Integration with Leading AI Platforms**: Mix and match models from OpenAI, Hugging Face, Anthropic, Ollama, and ComfyUI for endless possibilities.
@@ -47,6 +55,14 @@ NodeTool simplifies access to advanced AI technologies, providing a creative spa
 ## Quickstart 🚀
 
 Download the latest release from our [Releases Page](https://github.com/nodetool-ai/nodetool/releases).
+
+## Where to Use NodeTool 🖥️
+
+NodeTool is designed for your local environment:
+
+- **Home Workstation**: Build AI tools for personal productivity or creative projects
+- **Lab or Office**: Deploy customized solutions for research and internal utilities
+- **On the Go**: Run lightweight workflows on laptops for portable AI assistance
 
 ## Where to Use NodeTool 🖥️
 

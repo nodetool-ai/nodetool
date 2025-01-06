@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import date, datetime, timedelta, timezone
 from enum import Enum
 import enum
 from pathlib import Path
@@ -8,6 +8,9 @@ from pydantic import BaseModel, Field
 from typing import Any, Literal, Optional, Type, Union
 from typing import Literal
 import base64
+from datetime import datetime
+from typing import Optional, List, Union
+from pydantic import BaseModel, Field
 
 from nodetool.metadata.type_metadata import TypeMetadata
 from nodetool.models.asset import Asset
@@ -43,6 +46,8 @@ add_type_names(
         NoneType: "none",
         list: "list",
         dict: "dict",
+        object: "object",
+        tuple: "tuple",
         int: "int",
         float: "float",
         bool: "bool",
@@ -50,8 +55,6 @@ add_type_names(
         bytes: "bytes",
         Enum: "enum",
         Union: "union",
-        datetime: "datetime",
-        date: "date",
     }
 )
 
@@ -93,6 +96,61 @@ class BaseType(BaseModel):
         if type_name not in NameToType:
             raise ValueError(f"Unknown type name: {type_name}")
         return NameToType[type_name](**data)
+
+
+class Date(BaseType):
+    type: Literal["date"] = "date"
+    year: int = 0
+    month: int = 0
+    day: int = 0
+
+    @classmethod
+    def from_date(cls, data: date):
+        return cls(year=data.year, month=data.month, day=data.day)
+
+
+class Datetime(BaseType):
+    type: Literal["datetime"] = "datetime"
+    year: int = 0
+    month: int = 0
+    day: int = 0
+    hour: int = 0
+    minute: int = 0
+    second: int = 0
+    microsecond: int = 0
+    tzinfo: str = "UTC"
+    utc_offset: float = 0
+
+    def to_datetime(self):
+        return datetime(
+            year=self.year,
+            month=self.month,
+            day=self.day,
+            hour=self.hour,
+            minute=self.minute,
+            second=self.second,
+            microsecond=self.microsecond,
+            tzinfo=(
+                timezone(timedelta(seconds=self.utc_offset), self.tzinfo)
+                if self.utc_offset
+                else timezone.utc
+            ),
+        )
+
+    @staticmethod
+    def from_datetime(dt: datetime):
+        utc_offset = dt.utcoffset()
+        return Datetime(
+            year=dt.year,
+            month=dt.month,
+            day=dt.day,
+            hour=dt.hour,
+            minute=dt.minute,
+            second=dt.second,
+            microsecond=dt.microsecond,
+            tzinfo=dt.tzinfo.tzname(dt) or "UTC" if dt.tzinfo else "UTC",
+            utc_offset=utc_offset.total_seconds() if utc_offset else 0,
+        )
 
 
 asset_types = set()
@@ -200,10 +258,62 @@ class NodeRef(BaseType):
 
 class Email(BaseType):
     type: Literal["email"] = "email"
+    id: str = Field(default="", description="Message ID")
     sender: str = Field(default="", description="Sender email address")
-    to: str = Field(default="", description="Recipient email address")
     subject: str = Field(default="", description="Email subject line")
+    date: Datetime = Field(
+        default=Datetime.from_datetime(datetime.now()), description="Email date"
+    )
     body: str | TextRef = Field(default="", description="Email body content")
+
+
+class EmailFlag(Enum):
+    SEEN = "SEEN"
+    UNSEEN = "UNSEEN"
+    ANSWERED = "ANSWERED"
+    UNANSWERED = "UNANSWERED"
+    FLAGGED = "FLAGGED"
+    UNFLAGGED = "UNFLAGGED"
+
+
+class LogicalOperator(Enum):
+    AND = "AND"
+    OR = "OR"
+    NOT = "NOT"
+
+
+class DateCriteria(Enum):
+    BEFORE = "BEFORE"
+    SINCE = "SINCE"
+    ON = "ON"
+
+
+class SearchCondition(BaseType):
+    type: Literal["search_condition"] = "search_condition"
+    field: str
+    value: str
+    operator: Optional[LogicalOperator] = LogicalOperator.AND
+
+
+class DateSearchCondition(BaseType):
+    type: Literal["date_search_condition"] = "date_search_condition"
+    criteria: DateCriteria
+    date: Datetime
+
+
+class EmailSearchCriteria(BaseType):
+    type: Literal["email_search_criteria"] = "email_search_criteria"
+    from_address: Optional[str] = None
+    to_address: Optional[str] = None
+    subject: Optional[str] = None
+    body: Optional[str] = None
+    cc: Optional[str] = None
+    bcc: Optional[str] = None
+    date_condition: Optional[DateSearchCondition] = None
+    flags: List[EmailFlag] = []
+    keywords: List[str] = []
+    folder: Optional[str] = None
+    text: Optional[str] = None
 
 
 class Provider(str, enum.Enum):

@@ -136,7 +136,7 @@ export const NodeFooter: React.FC<NodeFooterProps> = ({
     <div className="node-footer" css={footerStyles} style={{ backgroundColor }}>
       <Tooltip title="Click to show in NodeMenu" placement="bottom-start">
         <Button
-          tabIndex={-1}
+          tabIndex={1}
           className="namespace-button"
           onClick={handleOpenNodeMenu}
         >

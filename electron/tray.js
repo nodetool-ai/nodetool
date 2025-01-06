@@ -1,9 +1,28 @@
-const { Tray, Menu, app, BrowserWindow } = require("electron");
+const { Tray, Menu, app, BrowserWindow, dialog, shell } = require("electron");
 const path = require("path");
 const { logMessage } = require("./logger");
 const WebSocket = require("ws");
 const { createWorkflowWindow } = require("./workflow-window");
 const { getMainWindow } = require("./state");
+const { createWindow } = require("./window");
+const {
+  createLaunchAgent,
+  removeLaunchAgent,
+  getLaunchAgentLogPath,
+} = require("./scheduler");
+const fs = require("fs/promises");
+
+/**
+ * @typedef {Object} Workflow
+ * @property {string} id - Unique identifier of the workflow
+ * @property {string} name - Display name of the workflow
+ * @property {string} description - Description of the workflow
+ * @property {string} created_at - Date and time the workflow was created
+ * @property {string} updated_at - Date and time the workflow was last updated
+ * @property {string} tags - Tags of the workflow
+ * @property {string} thumbnail - thumbnail ID
+ * @property {string} thumbnail_url - URL of the workflow thumbnail
+ */
 
 /** @type {Electron.Tray|null} */
 let trayInstance = null;
@@ -127,18 +146,6 @@ function focusNodeTool() {
 }
 
 /**
- * @typedef {Object} Workflow
- * @property {string} id - Unique identifier of the workflow
- * @property {string} name - Display name of the workflow
- * @property {string} description - Description of the workflow
- * @property {string} created_at - Date and time the workflow was created
- * @property {string} updated_at - Date and time the workflow was last updated
- * @property {string} tags - Tags of the workflow
- * @property {string} thumbnail - thumbnail ID
- * @property {string} thumbnail_url - URL of the workflow thumbnail
- */
-
-/**
  * Fetches workflows from the local API
  * @returns {Promise<Workflow[]>} Array of workflow objects
  * @throws {Error} When the API request fails
@@ -163,29 +170,119 @@ async function fetchWorkflows() {
 }
 
 /**
+ * Shows the schedule dialog for a workflow
+ * @param {string} workflowId - The workflow ID to schedule
+ */
+async function showScheduleDialog(workflowId) {
+  const intervals = [
+    { label: "Every 5 minutes", value: 5 },
+    { label: "Every 15 minutes", value: 15 },
+    { label: "Every 30 minutes", value: 30 },
+    { label: "Every hour", value: 60 },
+  ];
+
+  if (process.platform !== "darwin") {
+    dialog.showMessageBox({
+      type: "error",
+      message: "Scheduling is not supported on this platform",
+      buttons: ["OK"],
+    });
+    return;
+  }
+
+  const result = await dialog.showMessageBox({
+    type: "question",
+    title: "Schedule Workflow",
+    message: "Select interval for workflow execution:",
+    buttons: [...intervals.map((i) => i.label), "Cancel"],
+    cancelId: intervals.length,
+  });
+
+  if (result.response < intervals.length) {
+    try {
+      await createLaunchAgent(workflowId, intervals[result.response].value);
+      dialog.showMessageBox({
+        type: "info",
+        message: "Workflow scheduled successfully",
+        buttons: ["OK"],
+      });
+    } catch (error) {
+      dialog.showMessageBox({
+        type: "error",
+        message: "Failed to schedule workflow",
+        detail: error.message,
+        buttons: ["OK"],
+      });
+    }
+  }
+}
+
+/**
+ * Creates menu items for a workflow
+ * @param {Object} workflow - The workflow object
+ * @returns {Electron.MenuItemConstructorOptions[]}
+ */
+function createWorkflowMenuItems(workflow) {
+  return [
+    {
+      label: "Open as App",
+      click: () => createWorkflowWindow(workflow),
+    },
+    {
+      label: "Set Schedule",
+      click: () => showScheduleDialog(workflow.id),
+    },
+    {
+      label: "Remove Schedule",
+      click: async () => {
+        try {
+          await removeLaunchAgent(workflow.id);
+          dialog.showMessageBox({
+            type: "info",
+            message: "Schedule removed successfully",
+            buttons: ["OK"],
+          });
+        } catch (error) {
+          dialog.showMessageBox({
+            type: "error",
+            message: "Failed to remove schedule",
+            detail: error.message,
+            buttons: ["OK"],
+          });
+        }
+      },
+    },
+    {
+      label: "View Schedule Logs",
+      click: async () => {
+        const logPath = getLaunchAgentLogPath(workflow.id);
+        try {
+          await fs.access(logPath);
+          shell.showItemInFolder(logPath);
+        } catch (error) {
+          dialog.showMessageBox({
+            type: "info",
+            message: "No logs available",
+            detail:
+              "This workflow hasn't been scheduled yet or hasn't generated any logs.",
+            buttons: ["OK"],
+          });
+        }
+      },
+    },
+  ];
+}
+
+/**
  * Updates the tray menu with current workflows
  * @returns {Promise<void>}
  */
 async function updateTrayMenu(workflows = null) {
   if (!trayInstance) return;
 
-  // Fetch workflows if not provided
   if (workflows === null) {
     workflows = await fetchWorkflows();
   }
-
-  const workflowMenuItems = workflows.map((workflow) => ({
-    label: workflow.name,
-    click: () => {
-      logMessage(`Executing workflow: ${workflow.name}`);
-      const workflowWindow = createWorkflowWindow();
-      workflowWindow.loadFile(path.join(__dirname, "run-workflow.html"));
-
-      workflowWindow.webContents.on("did-finish-load", () => {
-        workflowWindow.webContents.send("workflow", workflow);
-      });
-    },
-  }));
 
   const contextMenu = Menu.buildFromTemplate([
     {
@@ -196,8 +293,11 @@ async function updateTrayMenu(workflows = null) {
     {
       label: "Workflows",
       submenu:
-        workflowMenuItems.length > 0
-          ? workflowMenuItems
+        workflows.length > 0
+          ? workflows.map((workflow) => ({
+              label: workflow.name,
+              submenu: createWorkflowMenuItems(workflow),
+            }))
           : [{ label: "No workflows available", enabled: false }],
     },
     { type: "separator" },

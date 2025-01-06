@@ -4,22 +4,22 @@
  * Base styles for the node editor
  */
 
- ul li {
-   list-style-type: square;
- }
+ul li {
+  list-style-type: square;
+}
 
- /* Main container */
- #root {
+/* Main container */
+#root {
   width: 100%;
   height: 100%;
   display: block;
- }
- 
+}
+
 #root .node-editor {
   margin: 0;
   padding: 0;
   width: 100%;
-  height: calc(-50px + 100vh );
+  height: calc(-50px + 100vh);
   overflow: hidden;
   position: relative;
   display: block;
@@ -39,9 +39,9 @@
   left: 65px;
   top: 0;
 }
- .reactflow-wrapper .react-flow {
+.reactflow-wrapper .react-flow {
   overflow: visible !important;
-} 
+}
 
 /* Loading overlay */
 .loading-overlay {

@@ -45,7 +45,8 @@ class Ollama(BaseNode):
     )
     context_window: int = Field(
         default=4096,
-        ge=1,
+        ge=64,
+        le=4096 * 16,
         description="The context window size to use for the model.",
     )
     temperature: float = Field(

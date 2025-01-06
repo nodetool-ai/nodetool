@@ -10,6 +10,7 @@ import torch
 
 from nodetool.metadata.types import DataframeRef
 from nodetool.model_manager import ModelManager
+from nodetool.nodes.nodetool.control import If
 from nodetool.nodes.nodetool.output import GroupOutput
 from nodetool.types.job import JobUpdate
 from nodetool.nodes.nodetool.input import ChatInput, GroupInput
@@ -348,9 +349,53 @@ class WorkflowRunner:
         for level in sorted_nodes:
             log.debug(f"Processing level: {level}")
             nodes = [graph.find_node(i) for i in level if i]
+
+            # Filter out nodes in inactive branches of If nodes
+            active_nodes = [
+                node
+                for node in nodes
+                if node and not self._is_in_inactive_branch(node, graph)
+            ]
+
             await asyncio.gather(
-                *[self.process_node(context, node) for node in nodes if node]
+                *[self.process_node(context, node) for node in active_nodes]
             )
+
+    def _is_in_inactive_branch(self, node: BaseNode, graph: Graph) -> bool:
+        """
+        Recursively checks if a node is in an inactive branch of any parent If nodes.
+
+        Args:
+            node (BaseNode): The node to check
+            graph (Graph): The workflow graph
+
+        Returns:
+            bool: True if node is in an inactive branch, False otherwise
+        """
+
+        def check_branch(current_node: BaseNode) -> bool:
+            incoming_edges = [e for e in graph.edges if e.target == current_node.id]
+
+            for edge in incoming_edges:
+                source_node = graph.find_node(edge.source)
+                if not source_node:
+                    continue
+
+                # Check if current source is an If node
+                if isinstance(source_node, If):
+                    condition = source_node.condition
+                    if (edge.sourceHandle == "if_true" and not condition) or (
+                        edge.sourceHandle == "if_false" and condition
+                    ):
+                        return True
+
+                # Recursively check the source node's branch
+                if check_branch(source_node):
+                    return True
+
+            return False
+
+        return check_branch(node)
 
     async def process_node(self, context: ProcessingContext, node: BaseNode):
         """
