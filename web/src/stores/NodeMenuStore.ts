@@ -5,17 +5,19 @@ import Fuse from "fuse.js";
 import { filterDataByType } from "../components/node_menu/typeFilterUtils";
 import useMetadataStore from "./MetadataStore";
 import useRemoteSettingsStore from "./RemoteSettingStore";
+import { devLog } from "../utils/DevLog";
 const fuseOptions = {
   keys: [
     // Relative importance
-    { name: "title", weight: 0.5 },
-    { name: "namespace", weight: 0.3 },
-    { name: "tags", weight: 0.2 }
+    { name: "title", weight: 0.8 },
+    { name: "namespace", weight: 0.4 },
+    { name: "tags", weight: 0.4 },
+    { name: "description", weight: 0.3 }
   ],
   includeMatches: true, // Include details about which fields matched
   ignoreLocation: true, // Search the entire field, don't prefer matches at start
-  threshold: 0.23, // How close match needs to be (0 = exact, 1 = match anything)
-  distance: 10, // How far to look for matching characters (lower = tighter matches)
+  threshold: 0.3, // More lenient matching (was 0.23)
+  distance: 10, // Allow matches with characters further apart (was 10)
   includeScore: true, // Include similarity score in results
   shouldSort: true, // Sort results by best match
   minMatchCharLength: 2, // Minimum characters that must match
@@ -276,15 +278,28 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
               .filter(Boolean)
           : [];
 
-        return {
+        // Use full description instead of just first line
+        const description = node.description || "";
+
+        const entry = {
           title: node.title,
           node_type: node.node_type,
           namespace: node.namespace,
+          description,
           tags,
           // Include all searchable fields in the combined text
-          searchableText: `${node.namespace} ${node.title} ${tags.join(" ")}`,
+          searchableText: `${node.namespace} ${node.title} ${tags.join(
+            " "
+          )} ${description}`,
           metadata: node
         };
+
+        // Debug log for entries containing "illustration"
+        if (description.toLowerCase().includes("illustration")) {
+          devLog("Found node with illustration:", entry);
+        }
+
+        return entry;
       });
 
       const fuse = new Fuse(entries, {
@@ -297,15 +312,15 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
 
       const searchResults = fuse.search(term);
 
-      // devLog("Search results:", {
-      //   term,
-      //   total: searchResults.length,
-      //   results: searchResults.map((r) => ({
-      //     title: r.item.title,
-      //     score: r.score,
-      //     matches: r.matches
-      //   }))
-      // });
+      devLog("Search results:", {
+        term,
+        total: searchResults.length,
+        results: searchResults.map((r) => ({
+          title: r.item.title,
+          score: r.score,
+          matches: r.matches
+        }))
+      });
 
       set({
         searchResults: searchResults.map((result) => result.item.metadata)
