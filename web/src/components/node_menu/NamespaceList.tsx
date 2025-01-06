@@ -186,7 +186,6 @@ const namespaceStyles = (theme: any, inPanel: boolean) =>
       ".node-button": {
         padding: ".1em .5em",
         flexGrow: 1,
-        textTransform: "capitalize",
         "& .MuiTypography-root": {
           // fontSize: theme.fontSizeNormal
         }
