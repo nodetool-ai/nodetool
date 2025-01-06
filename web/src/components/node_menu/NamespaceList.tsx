@@ -104,6 +104,7 @@ const namespaceStyles = (theme: any, inPanel: boolean) =>
       overflowY: "auto"
     },
     ".no-selection": {
+      maxWidth: "400px",
       display: "flex",
       flexDirection: "column",
       color: theme.palette.c_white,
