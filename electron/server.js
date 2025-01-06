@@ -126,7 +126,7 @@ async function killExistingServer() {
 }
 
 /**
- * Start the NodeTool backend server process.
+ * Start the NodeTool server process.
  */
 async function startNodeToolBackendProcess() {
   emitBootMessage("Configuring server environment...");
@@ -159,8 +159,8 @@ async function startNodeToolBackendProcess() {
   }
 
   nodeToolBackendProcess.on("spawn", () => {
-    logMessage("NodeTool backend starting...");
-    emitBootMessage("NodeTool backend starting...");
+    logMessage("NodeTool server starting...");
+    emitBootMessage("NodeTool server starting...");
     writePidFile(nodeToolBackendProcess.pid);
   });
 
@@ -280,9 +280,7 @@ async function initializeBackendServer() {
       return;
     }
 
-    logMessage(
-      "Port 8000 is available, attempting to start NodeTool backend server"
-    );
+    logMessage("Port 8000 is available, attempting to start NodeTool server");
 
     await ensureOllamaIsRunning();
     startNodeToolBackendProcess();
@@ -301,7 +299,7 @@ async function gracefulShutdown() {
 
   try {
     if (nodeToolBackendProcess) {
-      logMessage("Stopping NodeTool backend process");
+      logMessage("Stopping server process");
       nodeToolBackendProcess.kill("SIGTERM");
 
       await new Promise((resolve, reject) => {
