@@ -75,26 +75,34 @@ const NodeItem = memo(
 
       const highlightNodeTitle = useCallback(
         (title: string): string => {
-          if (!searchTerm) return title;
+          if (!searchTerm || !node.searchInfo?.matches) return title;
 
-          const terms = searchTerm
-            .split(/\s+/)
-            .filter(Boolean)
-            .map((term) => term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+          // Get all matches for the title field
+          const titleMatches = node.searchInfo.matches.filter(
+            (match) => match.key === "title"
+          );
 
-          let highlightedTitle = title;
+          if (titleMatches.length === 0) return title;
 
-          terms.forEach((term) => {
-            const regex = new RegExp(`(${term})`, "gi");
-            highlightedTitle = highlightedTitle.replace(
-              regex,
-              `<span class="highlight" style="border-bottom: 1px solid ${ThemeNodetool.palette.c_hl1}">$1</span>`
-            );
+          // Sort indices in reverse order to maintain string positions when inserting spans
+          const indices = titleMatches
+            .flatMap((match) => match.indices)
+            .sort((a, b) => b[0] - a[0]);
+
+          // Apply highlights from end to start
+          let result = title;
+          indices.forEach(([start, end]) => {
+            result =
+              result.slice(0, start) +
+              `<span class="highlight" style="border-bottom: 1px solid ${ThemeNodetool.palette.c_hl1}">` +
+              result.slice(start, end + 1) + // +1 because Fuse.js indices are inclusive
+              "</span>" +
+              result.slice(end + 1);
           });
 
-          return highlightedTitle;
+          return result;
         },
-        [searchTerm]
+        [searchTerm, node.searchInfo]
       );
 
       const infoStyle = useMemo(

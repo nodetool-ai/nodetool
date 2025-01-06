@@ -14,16 +14,17 @@ const fuseOptions = {
     { name: "tags", weight: 0.4 },
     { name: "description", weight: 0.3 }
   ],
-  includeMatches: true, // Include details about which fields matched
-  ignoreLocation: true, // Search the entire field, don't prefer matches at start
-  threshold: 0.3, // More lenient matching
-  distance: 2, // Allow matches with characters further apart
-  includeScore: true, // Include similarity score in results
-  shouldSort: true, // Sort results by best match
-  minMatchCharLength: 2, // Minimum characters that must match
-  useExtendedSearch: true, // Enable extended search operators like ! ^ *
-  tokenize: true, // Split strings into tokens for matching
-  matchAllTokens: false // Match any token instead of requiring all tokens to match
+  includeMatches: true,
+  ignoreLocation: true,
+  threshold: 0.3,
+  distance: 100,
+  includeScore: true,
+  shouldSort: true,
+  minMatchCharLength: 3,
+  useExtendedSearch: true,
+  tokenize: true,
+  matchAllTokens: false,
+  findAllMatches: true
 };
 
 export type SearchResultGroup = {
@@ -137,8 +138,8 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
     const titleFuse = new Fuse(entries, {
       ...fuseOptions,
       threshold: 0.2,
-      distance: 3,
-      minMatchCharLength: 2,
+      distance: 100,
+      minMatchCharLength: 3,
       keys: [{ name: "title", weight: 1.0 }]
     });
 
