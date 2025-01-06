@@ -1,14 +1,17 @@
 const { BrowserWindow } = require("electron");
 const path = require("path");
 
+/** @typedef {import("./tray").Workflow} Workflow */
+
 // Map to store workflow windows
 const workflowWindows = new Map();
 
 /**
  * Creates a new frameless workflow window
+ * @param {Workflow} workflow - The workflow to create a window for
  * @returns {Electron.BrowserWindow} The created window
  */
-function createWorkflowWindow() {
+function createWorkflowWindow(workflow) {
   const workflowWindow = new BrowserWindow({
     frame: false,
     titleBarStyle: "hidden",
@@ -25,7 +28,11 @@ function createWorkflowWindow() {
   workflowWindow.on("closed", () => {
     workflowWindows.delete(windowId);
   });
+  workflowWindow.loadFile(path.join(__dirname, "run-workflow.html"));
 
+  workflowWindow.webContents.on("did-finish-load", () => {
+    workflowWindow.webContents.send("workflow", workflow);
+  });
   return workflowWindow;
 }
 
