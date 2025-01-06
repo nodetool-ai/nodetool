@@ -422,7 +422,6 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
         onSelectionDrag={onSelectionDrag}
         onSelectionDragStop={onSelectionDragStop}
         onSelectionStart={onSelectionStart}
-        // onSelectionChange={onSelectionChange}
         onSelectionContextMenu={handleSelectionContextMenu}
         selectionMode={settings.selectionMode as SelectionMode}
         onEdgesChange={onEdgesChange}
@@ -447,6 +446,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
         onDoubleClick={handleDoubleClick}
         proOptions={proOptions}
         onInit={handleOnInit}
+        // onSelectionChange={onSelectionChange}
         // edgeTypes={edgeTypes}
         // onNodeClick={onNodeClick}
         deleteKeyCode={["Delete", "Backspace"]}
@@ -463,7 +463,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
           }}
           variant={BackgroundVariant.Cross}
         />
-        {reactFlowInstance && <AxisMarker />}
+        {/* {reactFlowInstance && <AxisMarker />} */}
         {editNodeTitle && anchorEl && (
           <NodeTitleEditor
             nodeId={editNodeTitle}
