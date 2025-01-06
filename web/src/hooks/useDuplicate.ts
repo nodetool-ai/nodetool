@@ -11,6 +11,7 @@ export const useDuplicateNodes = (vertical: boolean = false) => {
   const setNodes = useNodeStore((state) => state.setNodes);
   const setEdges = useNodeStore((state) => state.setEdges);
   const getSelectedNodes = useNodeStore((state) => state.getSelectedNodes);
+  const generateNodeIds = useNodeStore((state) => state.generateNodeIds);
   const reactFlow = useReactFlow();
   const getNodesBounds = reactFlow.getNodesBounds;
   return useCallback(() => {
@@ -23,9 +24,12 @@ export const useDuplicateNodes = (vertical: boolean = false) => {
     const nodeBounds = getNodesBounds(selectedNodes);
     const offsetX = vertical ? 0 : nodeBounds.width + DUPLICATE_SPACING;
     const offsetY = vertical ? nodeBounds.height + DUPLICATE_SPACING : 0;
+
+    // Generate new sequential IDs for all selected nodes
+    const newIds = generateNodeIds(selectedNodes.length);
     const oldToNewIds = new Map<string, string>();
-    selectedNodes.forEach((node) => {
-      oldToNewIds.set(node.id, uuidv4());
+    selectedNodes.forEach((node, index) => {
+      oldToNewIds.set(node.id, newIds[index]);
     });
 
     const newNodes: Node<NodeData>[] = [];
@@ -89,7 +93,7 @@ export const useDuplicateNodes = (vertical: boolean = false) => {
       ) {
         newEdges.push({
           ...edge,
-          id: uuidv4(),
+          id: uuidv4(), // Edge IDs can still be UUIDs
           source: newSource,
           target: newTarget
         });
@@ -111,6 +115,7 @@ export const useDuplicateNodes = (vertical: boolean = false) => {
     edges,
     nodes,
     setNodes,
-    setEdges
+    setEdges,
+    generateNodeIds
   ]);
 };
