@@ -53,11 +53,6 @@ function InputProperty(props: PropertyProps) {
         description={props.property.description}
         id={id}
       />
-      <input
-        type="text"
-        value={props.value}
-        onChange={(e) => props.onChange(e.target.value)}
-      />
     </>
   );
 }
