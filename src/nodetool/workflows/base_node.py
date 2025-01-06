@@ -727,10 +727,13 @@ class BaseNode(BaseModel):
 
         types = cls.field_types()
         fields = cls.inherited_fields()
-        return [
-            Property.from_field(name, type_metadata(types[name]), field)
-            for name, field in fields.items()
-        ]
+        try:
+            return [
+                Property.from_field(name, type_metadata(types[name]), field)
+                for name, field in fields.items()
+            ]
+        except Exception as e:
+            raise ValueError(f"Error getting properties for {cls.__name__}: {e}")
 
     @memoized_class_method
     def properties_dict(cls) -> dict[str, Any]:

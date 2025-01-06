@@ -112,7 +112,16 @@ class Template(BaseNode):
     """
 
     string: str | TextRef = Field(title="String", default="")
-    values: str | list | dict[str, Any] = Field(title="Values", default={})
+    values: str | list | dict[str, Any] = Field(
+        title="Values",
+        default={},
+        description="""
+        The values to replace in the string.
+        - If a string, it will be used as the format string.
+        - If a list, it will be used as the format arguments.
+        - If a dictionary, it will be used as the format keyword arguments.
+        """,
+    )
 
     async def process(self, context: ProcessingContext) -> str | TextRef:
         string = await to_string(context, self.string)
@@ -512,6 +521,43 @@ class RegexExtract(BaseNode):
         return {}
 
 
+def convert_html_to_text(html: str, preserve_linebreaks: bool = True) -> str:
+    """
+    Converts HTML to plain text while preserving structure and handling whitespace.
+
+    Args:
+        html: HTML string to convert
+        preserve_linebreaks: Whether to preserve line breaks from block elements
+
+    Returns:
+        Cleaned plain text string
+    """
+    # Parse HTML with BeautifulSoup
+    soup = BeautifulSoup(html, "html.parser")
+
+    # Handle line breaks if preserve_linebreaks is True
+    if preserve_linebreaks:
+        # Replace <br> tags with newlines
+        for br in soup.find_all("br"):
+            br.replace_with("\n")
+
+        # Add newlines after block-level elements
+        for tag in soup.find_all(
+            ["p", "div", "h1", "h2", "h3", "h4", "h5", "h6", "li"]
+        ):
+            tag.append("\n")
+
+    # Get text content
+    text = soup.get_text()
+
+    # Clean up whitespace
+    text = re.sub(
+        r"\n\s*\n", "\n\n", text
+    )  # Convert multiple blank lines to double line breaks
+    text = re.sub(r" +", " ", text)  # Remove multiple spaces
+    return text.strip()
+
+
 class HTMLToText(BaseNode):
     """
     Converts HTML to plain text by removing tags and decoding entities using BeautifulSoup.
@@ -532,32 +578,7 @@ class HTMLToText(BaseNode):
 
     async def process(self, context: ProcessingContext) -> str | TextRef:
         html = await to_string(context, self.text)
-
-        # Parse HTML with BeautifulSoup
-        soup = BeautifulSoup(html, "html.parser")
-
-        # Handle line breaks if preserve_linebreaks is True
-        if self.preserve_linebreaks:
-            # Replace <br> tags with newlines
-            for br in soup.find_all("br"):
-                br.replace_with("\n")
-
-            # Add newlines after block-level elements
-            for tag in soup.find_all(
-                ["p", "div", "h1", "h2", "h3", "h4", "h5", "h6", "li"]
-            ):
-                tag.append("\n")
-
-        # Get text content
-        text = soup.get_text()
-
-        # Clean up whitespace
-        text = re.sub(
-            r"\n\s*\n", "\n\n", text
-        )  # Convert multiple blank lines to double line breaks
-        text = re.sub(r" +", " ", text)  # Remove multiple spaces
-        text = text.strip()
-
+        text = convert_html_to_text(html, self.preserve_linebreaks)
         return await convert_result(context, [self.text], text)
 
 

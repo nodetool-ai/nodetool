@@ -8,6 +8,7 @@ from pydantic import Field
 from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.metadata.types import (
+    Datetime,
     DocumentRef,
     FilePath,
     ImageRef,
@@ -139,33 +140,125 @@ class CreateDirectory(BaseNode):
         os.makedirs(expanded_path, exist_ok=self.exist_ok)
 
 
-class GetFileInfo(BaseNode):
+class GetFileSize(BaseNode):
     """
-    Get information about a file like size, modification time, etc.
-    files, metadata, info
-
-    Use cases:
-    - Filter files based on attributes
-    - Monitor file changes
-    - Generate file reports
+    Get file size in bytes.
+    files, metadata, size
     """
 
     path: FilePath = Field(default=FilePath(), description="Path to file")
 
-    async def process(self, context: ProcessingContext) -> dict:
+    async def process(self, context: ProcessingContext) -> int:
         expanded_path = os.path.expanduser(self.path.path)
         stats = os.stat(expanded_path)
-        return {
-            "size": stats.st_size,
-            "created": datetime.fromtimestamp(stats.st_ctime),
-            "modified": datetime.fromtimestamp(stats.st_mtime),
-            "accessed": datetime.fromtimestamp(stats.st_atime),
-            "is_file": os.path.isfile(expanded_path),
-            "is_dir": os.path.isdir(expanded_path),
-            "extension": os.path.splitext(expanded_path)[1],
-            "filename": os.path.basename(expanded_path),
-            "directory": os.path.dirname(expanded_path),
-        }
+        return stats.st_size
+
+
+class CreatedTime(BaseNode):
+    """
+    Get file creation timestamp.
+    files, metadata, created, time
+    """
+
+    path: FilePath = Field(default=FilePath(), description="Path to file")
+
+    async def process(self, context: ProcessingContext) -> Datetime:
+        expanded_path = os.path.expanduser(self.path.path)
+        stats = os.stat(expanded_path)
+        return Datetime.from_datetime(datetime.fromtimestamp(stats.st_ctime))
+
+
+class ModifiedTime(BaseNode):
+    """
+    Get file last modified timestamp.
+    files, metadata, modified, time
+    """
+
+    path: FilePath = Field(default=FilePath(), description="Path to file")
+
+    async def process(self, context: ProcessingContext) -> Datetime:
+        expanded_path = os.path.expanduser(self.path.path)
+        stats = os.stat(expanded_path)
+        return Datetime.from_datetime(datetime.fromtimestamp(stats.st_mtime))
+
+
+class AccessedTime(BaseNode):
+    """
+    Get file last accessed timestamp.
+    files, metadata, accessed, time
+    """
+
+    path: FilePath = Field(default=FilePath(), description="Path to file")
+
+    async def process(self, context: ProcessingContext) -> Datetime:
+        expanded_path = os.path.expanduser(self.path.path)
+        stats = os.stat(expanded_path)
+        return Datetime.from_datetime(datetime.fromtimestamp(stats.st_atime))
+
+
+class IsFile(BaseNode):
+    """
+    Check if path is a file.
+    files, metadata, type
+    """
+
+    path: FilePath = Field(default=FilePath(), description="Path to check")
+
+    async def process(self, context: ProcessingContext) -> bool:
+        expanded_path = os.path.expanduser(self.path.path)
+        return os.path.isfile(expanded_path)
+
+
+class IsDirectory(BaseNode):
+    """
+    Check if path is a directory.
+    files, metadata, type
+    """
+
+    path: FilePath = Field(default=FilePath(), description="Path to check")
+
+    async def process(self, context: ProcessingContext) -> bool:
+        expanded_path = os.path.expanduser(self.path.path)
+        return os.path.isdir(expanded_path)
+
+
+class FileExtension(BaseNode):
+    """
+    Get file extension.
+    files, metadata, extension
+    """
+
+    path: FilePath = Field(default=FilePath(), description="Path to file")
+
+    async def process(self, context: ProcessingContext) -> str:
+        expanded_path = os.path.expanduser(self.path.path)
+        return os.path.splitext(expanded_path)[1]
+
+
+class FileName(BaseNode):
+    """
+    Get file name without path.
+    files, metadata, name
+    """
+
+    path: FilePath = Field(default=FilePath(), description="Path to file")
+
+    async def process(self, context: ProcessingContext) -> str:
+        expanded_path = os.path.expanduser(self.path.path)
+        return os.path.basename(expanded_path)
+
+
+class GetDirectory(BaseNode):
+    """
+    Get directory containing the file.
+    files, metadata, directory
+    """
+
+    path: FilePath = Field(default=FilePath(), description="Path to file")
+
+    async def process(self, context: ProcessingContext) -> str:
+        expanded_path = os.path.expanduser(self.path.path)
+        return os.path.dirname(expanded_path)
 
 
 class LoadDocument(BaseNode):

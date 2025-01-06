@@ -89,6 +89,18 @@ const isEnumConnectable = (a: TypeMetadata, b: TypeMetadata): boolean => {
   return false;
 };
 
+const nonObjectTypes = [
+  "string",
+  "number",
+  "boolean",
+  "null",
+  "enum",
+  "list",
+  "dict",
+  "union",
+  "tuple"
+];
+
 export const isConnectable = (
   source: TypeMetadata,
   target: TypeMetadata
@@ -109,6 +121,14 @@ export const isConnectable = (
     return target.type_args
       ? target.type_args.some((t) => isConnectable(source, t))
       : false;
+  }
+
+  if (target.type === "object") {
+    if (source.type === "union" && source.type_args) {
+      // For unions, some types in the union must be compatible with object
+      return source.type_args.some((t) => !nonObjectTypes.includes(t.type));
+    }
+    return !nonObjectTypes.includes(source.type);
   }
 
   switch (source.type) {

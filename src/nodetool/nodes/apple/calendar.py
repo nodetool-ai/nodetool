@@ -1,6 +1,7 @@
 import subprocess
 from datetime import datetime
 from pydantic import Field
+from nodetool.metadata.types import Datetime
 from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.nodes.apple.notes import escape_for_applescript
@@ -18,11 +19,14 @@ class CreateCalendarEvent(BaseNode):
     """
 
     title: str = Field(default="New Event", description="Title of the calendar event")
-    start_date: datetime = Field(
-        default_factory=datetime.now, description="Start date and time of the event"
+    start_date: Datetime = Field(
+        default=Datetime.from_datetime(datetime.now()),
+        description="Start date and time of the event",
     )
-    end_date: datetime = Field(
-        default_factory=lambda: datetime.now().replace(hour=datetime.now().hour + 1),
+    end_date: Datetime = Field(
+        default=Datetime.from_datetime(
+            datetime.now().replace(hour=datetime.now().hour + 1)
+        ),
         description="End date and time of the event",
     )
     calendar_name: str = Field(default="Calendar", description="Name of the calendar")
@@ -39,8 +43,8 @@ class CreateCalendarEvent(BaseNode):
         description = escape_for_applescript(self.description)
 
         # Update date format to match "Thursday, 28 December 2024 10:00:00"
-        start_date = self.start_date.strftime("%A, %d %B %Y %H:%M:%S")
-        end_date = self.end_date.strftime("%A, %d %B %Y %H:%M:%S")
+        start_date = self.start_date.to_datetime().strftime("%A, %d %B %Y %H:%M:%S")
+        end_date = self.end_date.to_datetime().strftime("%A, %d %B %Y %H:%M:%S")
 
         script = f"""
         tell application "Calendar"

@@ -1,4 +1,5 @@
 import threading
+import traceback
 import click
 from nodetool.api.server import create_app, run_uvicorn_server
 from nodetool.chat.help import index_documentation, index_examples
@@ -12,6 +13,9 @@ import sys
 
 # silence warnings on the command line
 import warnings
+
+from nodetool.workflows.run_job_request import RunJobRequest
+from nodetool.workflows.run_workflow import run_workflow
 
 warnings.filterwarnings("ignore")
 log = Environment.get_logger()
@@ -172,77 +176,24 @@ def serve(
 
 
 @click.command()
-@click.argument("workflow_file", type=click.Path(exists=True))
-async def run(workflow_file: str):
+@click.argument("workflow_id", type=str)
+async def run(workflow_id: str):
     """Run a workflow from a file."""
-
-    # TODO: only import modules referenced in worflow
-    import nodetool.nodes.anthropic
-    import nodetool.nodes.chroma
-    import nodetool.nodes.comfy
-    import nodetool.nodes.huggingface
-    import nodetool.nodes.nodetool
-    import nodetool.nodes.openai
-    import nodetool.nodes.replicate
-    import nodetool.nodes.ollama
-    import nodetool.nodes.luma
-    import nodetool.nodes.kling
-
-    from nodetool.workflows.run_workflow import run_workflow
-    from nodetool.workflows.run_job_request import RunJobRequest
-    from nodetool.workflows.read_graph import read_graph
-    from nodetool.types.graph import Graph
-    import json
-
-    click.echo(f"Running workflow from {workflow_file}.")
-
-    with open(workflow_file, "r") as f:
-        workflow = json.load(f)
-        edges, nodes = read_graph(workflow["graph"])
-
-        req = RunJobRequest(
-            user_id="1",
-            auth_token="token",
-            graph=Graph(
-                edges=edges,
-                nodes=nodes,
-            ),
-        )
-        async for msg in run_workflow(req):
-            print(msg, end="")
-
-
-@click.command()
-def chat():
-    """Chat with your workflow."""
-    import argparse
-    import uuid
-    import asyncio
-    from nodetool.chat.chat import process_messages
-    from nodetool.models.thread import Thread
-    from nodetool.workflows.processing_context import ProcessingContext
-    import argparse
-
-    parser = argparse.ArgumentParser()
-    args = parser.parse_args()
-
-    thread = Thread.create(
-        user_id="test",
+    request = RunJobRequest(
+        workflow_id=workflow_id, user_id="1", auth_token="local_token"
     )
 
-    context = ProcessingContext(
-        user_id="test",
-        auth_token="",
-    )
-
-    while True:
-        try:
-            user_input = input("> ")
-            # reply = asyncio.run(process_messages(context, thread, user_input))
-            # print(reply.content)
-        except KeyboardInterrupt:
-            print("\nExiting...")
-            break
+    try:
+        async for message in run_workflow(request):
+            # Print message type and content
+            if hasattr(message, "type"):
+                print(f"{message.type}: {message.model_dump_json()}")
+            else:
+                print(message)
+    except Exception as e:
+        print(f"Error running workflow: {e}")
+        traceback.print_exc()
+        exit(1)
 
 
 cli.add_command(worker)

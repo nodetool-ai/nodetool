@@ -22,7 +22,7 @@ async def run_gemini(
         top_k=prediction.params["config"].get("top_k", 40),
         max_output_tokens=prediction.params["config"].get("max_output_tokens", 1024),
         response_mime_type=prediction.params["config"].get(
-            "response_mime_type", "application/json"
+            "response_mime_type", "text/plain"
         ),
         response_schema=prediction.params["config"].get("response_schema", None),
     )
