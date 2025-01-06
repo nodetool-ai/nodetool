@@ -1,12 +1,21 @@
 import { create } from "zustand";
 import { NodeMetadata, TypeName } from "./ApiTypes";
 import { ConnectDirection } from "./ConnectionStore";
-import Fuse from "fuse.js";
+import Fuse, { IFuseOptions } from "fuse.js";
 import { filterDataByType } from "../components/node_menu/typeFilterUtils";
 import useMetadataStore from "./MetadataStore";
 import useRemoteSettingsStore from "./RemoteSettingStore";
 import { devLog } from "../utils/DevLog";
-const fuseOptions = {
+
+// Extend Fuse options type
+interface ExtendedFuseOptions<T> extends Omit<IFuseOptions<T>, "keys"> {
+  keys?: Array<{ name: string; weight: number }>;
+  tokenize?: boolean;
+  matchAllTokens?: boolean;
+  findAllMatches?: boolean;
+}
+
+const fuseOptions: ExtendedFuseOptions<any> = {
   keys: [
     // Relative importance
     { name: "title", weight: 0.8 },
@@ -17,12 +26,12 @@ const fuseOptions = {
   includeMatches: true,
   ignoreLocation: true,
   threshold: 0.3,
-  distance: 100,
+  distance: 2,
   includeScore: true,
   shouldSort: true,
   minMatchCharLength: 3,
   useExtendedSearch: true,
-  tokenize: true,
+  tokenize: false,
   matchAllTokens: false,
   findAllMatches: true
 };
@@ -134,36 +143,43 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
   };
 
   const performGroupedSearch = (entries: any[], term: string) => {
-    // Title matches (strict)
+    // Title matches
     const titleFuse = new Fuse(entries, {
       ...fuseOptions,
       threshold: 0.2,
-      distance: 100,
+      distance: 2,
       minMatchCharLength: 3,
       keys: [{ name: "title", weight: 1.0 }]
     });
 
-    // Title + tags matches (medium fuzzy)
+    // Title + tags matches
     const titleTagsFuse = new Fuse(entries, {
       ...fuseOptions,
       threshold: 0.2,
-      distance: 1,
+      distance: 2,
       minMatchCharLength: 2,
-
       keys: [
         { name: "namespace", weight: 0.8 },
         { name: "tags", weight: 0.6 }
       ]
     });
 
-    // Description matches (more fuzzy)
+    // Description matches
     const descriptionFuse = new Fuse(entries, {
       ...fuseOptions,
-      threshold: 0.15,
-      distance: 2,
+      threshold: 0.1,
+      distance: 20,
       minMatchCharLength: 4,
-      keys: [{ name: "description", weight: 0.8 }]
-    });
+      keys: [
+        { name: "description", weight: 0.9 },
+        { name: "use_cases", weight: 0.9 }
+      ],
+      tokenize: true,
+      tokenSeparator: /[\s\.,\-]+/,
+      findAllMatches: false,
+      ignoreLocation: true,
+      includeMatches: true
+    } as ExtendedFuseOptions<any>);
 
     const titleResults = titleFuse.search(term).map((result) => ({
       ...result.item.metadata,
@@ -402,38 +418,44 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
 
       // Prepare search entries
       const entries = typeFilteredMetadata.map((node: NodeMetadata) => {
-        // Get tags from second line, guaranteed to be tags
         const lines = node.description.split("\n");
+        const firstLine = lines[0] || "";
         const tags = lines[1]
           ? lines[1]
               .split(",")
               .map((t) => t.trim())
               .filter(Boolean)
           : [];
+        const useCases = lines.slice(2).join(" ");
 
-        // Use full description instead of just first line
-        const description = node.description || "";
-
-        const entry = {
+        // Create separate entries for description and use cases
+        return {
           title: node.title,
           node_type: node.node_type,
           namespace: node.namespace,
-          description,
+          description: firstLine, // Keep first line separate
+          use_cases: useCases, // Keep use cases separate
           tags,
-          // Include all searchable fields in the combined text
-          searchableText: `${node.namespace} ${node.title} ${tags.join(
-            " "
-          )} ${description}`,
           metadata: node
         };
-
-        // Debug log for entries containing "illustration"
-        if (description.toLowerCase().includes("illustration")) {
-          devLog("Found node with illustration:", entry);
-        }
-
-        return entry;
       });
+
+      // Description matches
+      const descriptionFuse = new Fuse(entries, {
+        ...fuseOptions,
+        threshold: 0.1,
+        distance: 20,
+        minMatchCharLength: 4,
+        keys: [
+          { name: "description", weight: 0.9 },
+          { name: "use_cases", weight: 0.9 }
+        ],
+        tokenize: true,
+        tokenSeparator: /[\s\.,\-]+/,
+        findAllMatches: false,
+        ignoreLocation: true,
+        includeMatches: true
+      } as ExtendedFuseOptions<any>);
 
       const groupedResults = performGroupedSearch(entries, term);
       const allResults = groupedResults.flatMap((group) => group.nodes);

@@ -11,6 +11,7 @@ import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { titleizeString } from "../../utils/titleizeString";
 import CloseIcon from "@mui/icons-material/Close";
 import ThemeNodetool from "../themes/ThemeNodetool";
+import { highlightText as highlightTextUtil } from "../../utils/highlightText";
 
 interface NodeInfoProps {
   nodeMetadata: NodeMetadata;
@@ -149,7 +150,7 @@ const parseDescription = (description: string) => {
   return {
     desc: lines[0],
     tags: lines.length > 0 ? lines[1] : [],
-    useCases: lines.length > 1 ? lines.slice(2) : []
+    useCases: lines.length > 1 ? lines.slice(2).join(" ") : ""
   };
 };
 
@@ -158,11 +159,13 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
   onClose,
   inPanel = false
 }) => {
+  const searchTerm = useNodeMenuStore((state) => state.searchTerm);
+  const setSearchTerm = useNodeMenuStore((state) => state.setSearchTerm);
+
   const description = useMemo(
     () => parseDescription(nodeMetadata?.description || ""),
     [nodeMetadata]
   );
-  const setSearchTerm = useNodeMenuStore((state) => state.setSearchTerm);
   const fetchReplicateStatus = useCallback(async () => {
     if (nodeMetadata.node_type.startsWith("replicate.")) {
       const { data, error } = await client.GET("/api/nodes/replicate_status", {
@@ -205,6 +208,21 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
     ));
   };
 
+  const { html: descHtml, highlightedWords: descWords } = highlightTextUtil(
+    description.desc,
+    "description",
+    searchTerm,
+    nodeMetadata.searchInfo
+  );
+
+  const { html: useCasesHtml, highlightedWords: useCaseWords } =
+    highlightTextUtil(
+      description.useCases,
+      "description",
+      searchTerm,
+      nodeMetadata.searchInfo
+    );
+
   return (
     <div css={nodeInfoStyles(ThemeNodetool, inPanel)}>
       <div className="title-container">
@@ -233,14 +251,24 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
           </Typography>
         )}
       </div>
-      <Typography className="node-description">{description.desc}</Typography>
+      <Typography className="node-description">
+        <span
+          dangerouslySetInnerHTML={{
+            __html: descHtml
+          }}
+        />
+      </Typography>
       <Typography className="node-tags">
         {renderTags(description.tags as string)}
       </Typography>
       <Typography component="div" className="node-usecases">
-        {description.useCases.map((useCase, i) => (
-          <div key={i}>{useCase}</div>
-        ))}
+        {description.useCases && (
+          <div
+            dangerouslySetInnerHTML={{
+              __html: useCasesHtml
+            }}
+          />
+        )}
       </Typography>
       {nodeMetadata.the_model_info.cover_image_url ? (
         isLoading ? (
