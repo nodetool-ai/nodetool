@@ -314,8 +314,8 @@ class StableDiffusionXL(StableDiffusion):
 
 class StableDiffusion3(StableDiffusion):
     """
-    Generates images using Stable Diffusion 3 model.
-    image, text-to-image, generative, SD3
+    Generates images using Stable Diffusion 3.5 model.
+    image, text-to-image, generative, SD3.5
 
     Use cases:
     - Creating high-quality images with the latest SD3 model

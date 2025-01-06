@@ -106,9 +106,13 @@ class SDTurboScheduler(ComfyNode):
 
 class VPScheduler(ComfyNode):
     """
-    The VP (Variance Preserving) Scheduler node implements a variance preserving stochastic
-    differential equation (SDE) based scheduler, which can provide high-quality results
-    for certain types of models and generation tasks.
+    The VP (Variance Preserving) Scheduler node implements a variance preserving stochastic differential equation (SDE) based scheduler, which can provide high-quality results for certain types of models and generation tasks.
+    sampling, custom, scheduler
+
+    Use cases:
+    - Generate custom sigma schedules for sampling
+    - Fine-tune sampling parameters for specific models
+    - Experiment with variance preserving noise schedules
     """
 
     _comfy_class = comfy_extras.nodes_custom_sampler.VPScheduler
