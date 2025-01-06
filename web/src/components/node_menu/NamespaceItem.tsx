@@ -1,18 +1,9 @@
-import React, { memo, useCallback, useMemo } from "react";
-import { Box } from "@mui/material";
-import { NamespaceTree } from "../../hooks/useNamespaceTree";
-import RenderNamespaces from "./RenderNamespaces";
-import { isEqual } from "lodash";
+import React, { useCallback } from "react";
+import { ListItem } from "@mui/material";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
+import RenderNamespaces from "./RenderNamespaces";
+import { NamespaceTree } from "../../hooks/useNamespaceTree";
 
-function toPascalCase(input: string): string {
-  return input.split("_").reduce((result, word, index) => {
-    const add = word.toLowerCase();
-    return (
-      result + (index === 0 ? "" : " ") + add[0].toUpperCase() + add.slice(1)
-    );
-  }, "");
-}
 interface NamespaceItemProps {
   namespace: string;
   path: string[];
@@ -27,51 +18,31 @@ const NamespaceItem: React.FC<NamespaceItemProps> = ({
   namespace,
   path,
   isExpanded,
-  hasChildren,
-  tree,
   isSelected,
-  isHighlighted
+  isHighlighted,
+  hasChildren,
+  tree
 }) => {
-  const { setHoveredNode, selectedPath, setSelectedPath } = useNodeMenuStore(
-    (state) => ({
-      setHoveredNode: state.setHoveredNode,
-      selectedPath: state.selectedPath,
-      setSelectedPath: state.setSelectedPath
-    })
-  );
+  const { setSelectedPath } = useNodeMenuStore();
 
-  const handleNamespaceClick = useCallback(() => {
-    setHoveredNode(null);
-    if (isSelected) {
-      setSelectedPath(path.slice(0, -1));
-    } else {
-      setSelectedPath(path);
-    }
-  }, [
-    setHoveredNode,
-    setSelectedPath,
-    path,
-    isSelected,
-    namespace,
-    tree,
-    selectedPath
-  ]);
-
-  const isDisabled = tree[namespace]?.disabled;
-  const isFirstDisabled = tree[namespace]?.firstDisabled;
+  const handleClick = useCallback(() => {
+    console.log("Namespace clicked:", {
+      path,
+      namespace
+    });
+    setSelectedPath(path);
+  }, [path, setSelectedPath]);
 
   return (
-    <div>
-      <div
+    <>
+      <ListItem
         className={`list-item ${isExpanded ? "expanded" : "collapsed"} ${
           isSelected ? "selected" : ""
-        } ${isHighlighted ? "highlighted" : ""} ${
-          isDisabled ? "disabled" : ""
-        } ${isFirstDisabled ? "firstDisabled" : ""}`}
-        onClick={handleNamespaceClick}
+        } ${isHighlighted ? "highlighted" : ""}`}
+        onClick={handleClick}
       >
-        <div className="namespace-item">{toPascalCase(namespace)}</div>
-      </div>
+        <div className="namespace-item">{namespace}</div>
+      </ListItem>
       {hasChildren && isExpanded && (
         <div className="sublist">
           <RenderNamespaces
@@ -80,8 +51,8 @@ const NamespaceItem: React.FC<NamespaceItemProps> = ({
           />
         </div>
       )}
-    </div>
+    </>
   );
 };
 
-export default memo(NamespaceItem, isEqual);
+export default React.memo(NamespaceItem);

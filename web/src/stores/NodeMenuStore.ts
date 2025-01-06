@@ -26,6 +26,11 @@ const fuseOptions = {
   matchAllTokens: false // Match any token instead of requiring all tokens to match
 };
 
+export type SearchResultGroup = {
+  title: string;
+  nodes: NodeMetadata[];
+};
+
 type NodeMenuStore = {
   isMenuOpen: boolean;
   dragToCreate: boolean;
@@ -82,6 +87,8 @@ type NodeMenuStore = {
   setFocusedNodeIndex: (index: number) => void;
 
   clickPosition: { x: number; y: number };
+
+  groupedSearchResults: SearchResultGroup[];
 };
 
 const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
@@ -123,6 +130,97 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
       default:
         return false;
     }
+  };
+
+  const performGroupedSearch = (entries: any[], term: string) => {
+    // Title matches (strict)
+    const titleFuse = new Fuse(entries, {
+      ...fuseOptions,
+      threshold: 0,
+      distance: 3,
+      minMatchCharLength: 2,
+      keys: [{ name: "title", weight: 1.0 }]
+    });
+
+    // Title + tags matches (medium fuzzy)
+    const titleTagsFuse = new Fuse(entries, {
+      ...fuseOptions,
+      threshold: 0.1,
+      distance: 1,
+      minMatchCharLength: 2,
+
+      keys: [
+        { name: "namespace", weight: 0.8 },
+        { name: "tags", weight: 0.6 }
+      ]
+    });
+
+    // Description matches (more fuzzy)
+    const descriptionFuse = new Fuse(entries, {
+      ...fuseOptions,
+      threshold: 0.1,
+      distance: 1,
+      minMatchCharLength: 4,
+      keys: [{ name: "description", weight: 0.8 }]
+    });
+
+    const titleResults = titleFuse.search(term).map((result) => ({
+      ...result.item.metadata,
+      searchInfo: {
+        score: result.score,
+        matches: result.matches
+      }
+    }));
+
+    const titleTagsResults = titleTagsFuse
+      .search(term)
+      .filter(
+        (result) =>
+          !titleResults.some(
+            (r) => r.node_type === result.item.metadata.node_type
+          )
+      )
+      .map((result) => ({
+        ...result.item.metadata,
+        searchInfo: {
+          score: result.score,
+          matches: result.matches
+        }
+      }));
+
+    const descriptionResults = descriptionFuse
+      .search(term)
+      .filter(
+        (result) =>
+          !titleResults.some(
+            (r) => r.node_type === result.item.metadata.node_type
+          ) &&
+          !titleTagsResults.some(
+            (r) => r.node_type === result.item.metadata.node_type
+          )
+      )
+      .map((result) => ({
+        ...result.item.metadata,
+        searchInfo: {
+          score: result.score,
+          matches: result.matches
+        }
+      }));
+
+    return [
+      {
+        title: "Best Matches",
+        nodes: titleResults
+      },
+      {
+        title: "Related Nodes",
+        nodes: titleTagsResults
+      },
+      {
+        title: "Other Results",
+        nodes: descriptionResults
+      }
+    ].filter((group) => group.nodes.length > 0);
   };
 
   return {
@@ -167,10 +265,14 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
       get().performSearch(term);
     },
     selectedPath: [],
-    setSelectedPath: (path) => {
+    setSelectedPath: (path: string[]) => {
+      console.log("Setting selected path:", path);
       set({
-        selectedPath: path
+        selectedPath: path,
+        searchTerm: "" // Clear search when selecting a path
       });
+      // Trigger a new search with empty term to show namespace nodes
+      get().performSearch("");
     },
     clickPosition: { x: 0, y: 0 },
     openNodeMenu: (
@@ -260,14 +362,49 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
         get().selectedOutputType as TypeName
       );
 
-      // If no search term is provided, return filtered metadata
+      // If no search term is provided, show nodes based on selected path
       if (!term.trim()) {
-        set({ searchResults: typeFilteredMetadata });
-        get().updateHighlightedNamespaces(typeFilteredMetadata);
+        const selectedPathString = get().selectedPath.join(".");
+        console.log("Selected path:", selectedPathString); // Debug log
+
+        // If no path is selected and no search term, return empty results
+        if (!selectedPathString) {
+          console.log("No path selected, showing explanation"); // Debug log
+          set({
+            searchResults: [],
+            groupedSearchResults: []
+          });
+          get().updateHighlightedNamespaces([]);
+          return;
+        }
+
+        // Show nodes for selected path
+        const nodesInPath = typeFilteredMetadata.filter((node) => {
+          const matches =
+            node.namespace === selectedPathString ||
+            (node.namespace.startsWith(selectedPathString + ".") &&
+              node.namespace.split(".").length ===
+                selectedPathString.split(".").length + 1);
+          return matches;
+        });
+
+        console.log("Nodes in path:", nodesInPath.length); // Debug log
+
+        const allResults = [
+          {
+            title: selectedPathString,
+            nodes: nodesInPath
+          }
+        ];
+        set({
+          searchResults: nodesInPath,
+          groupedSearchResults: allResults
+        });
+        get().updateHighlightedNamespaces(nodesInPath);
         return;
       }
 
-      // Prepare search entries with combined searchable text
+      // Prepare search entries
       const entries = typeFilteredMetadata.map((node: NodeMetadata) => {
         // Get tags from second line, guaranteed to be tags
         const lines = node.description.split("\n");
@@ -302,32 +439,15 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
         return entry;
       });
 
-      const fuse = new Fuse(entries, {
-        ...fuseOptions,
-        keys: [
-          ...fuseOptions.keys,
-          { name: "searchableText", weight: 1.0 } // Combined text field has highest weight
-        ]
-      });
-
-      const searchResults = fuse.search(term);
-
-      devLog("Search results:", {
-        term,
-        total: searchResults.length,
-        results: searchResults.map((r) => ({
-          title: r.item.title,
-          score: r.score,
-          matches: r.matches
-        }))
-      });
+      const groupedResults = performGroupedSearch(entries, term);
+      const allResults = groupedResults.flatMap((group) => group.nodes);
 
       set({
-        searchResults: searchResults.map((result) => result.item.metadata)
+        searchResults: allResults,
+        groupedSearchResults: groupedResults
       });
-      get().updateHighlightedNamespaces(
-        searchResults.map((result) => result.item.metadata)
-      );
+
+      get().updateHighlightedNamespaces(allResults);
     },
 
     updateHighlightedNamespaces: (results: NodeMetadata[]) => {
@@ -371,7 +491,9 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
       }),
 
     focusedNodeIndex: -1,
-    setFocusedNodeIndex: (index) => set({ focusedNodeIndex: index })
+    setFocusedNodeIndex: (index) => set({ focusedNodeIndex: index }),
+
+    groupedSearchResults: []
   };
 });
 
