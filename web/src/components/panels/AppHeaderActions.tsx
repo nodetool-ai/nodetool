@@ -219,41 +219,14 @@ const AppHeaderActions: React.FC = () => {
               </Button>
             </Tooltip>
 
-            <Tooltip
-              title={
-                <>
-                  <span
-                    style={{
-                      fontSize: "1.2em",
-                      color: "white",
-                      textAlign: "center",
-                      display: "block"
-                    }}
-                  >
-                    Open NodeMenu
-                  </span>
-                  <span
-                    style={{
-                      fontSize: "1em",
-                      color: "white",
-                      textAlign: "center",
-                      display: "block"
-                    }}
-                  >
-                    Ctrl+Space
-                    <br /> Double Click on Canvas
-                  </span>
-                </>
-              }
-              enterDelay={TOOLTIP_ENTER_DELAY}
-            >
+            <Tooltip title="Save workflow" enterDelay={TOOLTIP_ENTER_DELAY}>
               <Button
                 className="action-button"
-                onClick={() => openNodeMenu(400, 200)}
+                onClick={() => saveWorkflow().then(onWorkflowSaved)}
                 tabIndex={-1}
               >
-                <NodesIcon />
-                Nodes
+                <SaveIcon />
+                Save
               </Button>
             </Tooltip>
 
@@ -268,17 +241,6 @@ const AppHeaderActions: React.FC = () => {
               >
                 <LayoutIcon />
                 Layout
-              </Button>
-            </Tooltip>
-
-            <Tooltip title="Save workflow" enterDelay={TOOLTIP_ENTER_DELAY}>
-              <Button
-                className="action-button"
-                onClick={() => saveWorkflow().then(onWorkflowSaved)}
-                tabIndex={-1}
-              >
-                <SaveIcon />
-                Save
               </Button>
             </Tooltip>
 
