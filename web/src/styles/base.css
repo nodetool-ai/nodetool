@@ -34,9 +34,9 @@
 /* ReactFlow wrapper */
 .reactflow-wrapper {
   position: absolute;
-  width: 100%;
+  width: calc(100% - 65px);
   height: 100%;
-  left: 0;
+  left: 65px;
   top: 0;
 }
  .reactflow-wrapper .react-flow {

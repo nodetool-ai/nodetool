@@ -1,22 +1,22 @@
-/** @jsxImportSource @emotion/react */
-import { css } from "@emotion/react";
-import { useState, useCallback, memo } from "react";
+import { useState, useCallback, memo, useRef } from "react";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import TextEditorModal from "./TextEditorModal";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
-import { Tooltip } from "@mui/material";
 import { isEqual } from "lodash";
+import { useFocusPan } from "../../hooks/useFocusPan";
 
 const StringProperty = ({
   property,
   propertyIndex,
   value,
   onChange,
-  tabIndex
+  tabIndex,
+  nodeId
 }: PropertyProps) => {
   const id = `textfield-${property.name}-${propertyIndex}`;
   const [isExpanded, setIsExpanded] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const handleFocus = useFocusPan(nodeId);
 
   const toggleExpand = useCallback(() => {
     setIsExpanded((prev) => !prev);
@@ -38,12 +38,14 @@ const StringProperty = ({
       />
       <div className="container">
         <input
+          ref={inputRef}
           type="text"
           id={id}
           name={property.name}
           className="nodrag"
           value={value || ""}
           onChange={handleChange}
+          onFocus={handleFocus}
           autoComplete="off"
           autoCorrect="off"
           autoCapitalize="off"

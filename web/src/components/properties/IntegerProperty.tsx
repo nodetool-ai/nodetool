@@ -18,6 +18,7 @@ const IntegerProperty = (props: PropertyProps) => {
     <>
       <NumberInput
         id={id}
+        nodeId={props.nodeId}
         name={name}
         description={description}
         value={value}

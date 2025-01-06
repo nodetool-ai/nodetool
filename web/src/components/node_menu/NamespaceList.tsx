@@ -351,12 +351,6 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
   const filterNodes = useCallback(
     (nodes: NodeMetadata[]) => {
       if (!nodes) return [];
-
-      console.log("Filtering nodes:", {
-        selectedPathString,
-        nodeCount: nodes.length
-      });
-
       return nodes
         .filter((node) => {
           const startsWithPath = node.namespace.startsWith(

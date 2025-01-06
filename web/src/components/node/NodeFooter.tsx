@@ -124,7 +124,6 @@ export const NodeFooter: React.FC<NodeFooterProps> = ({
 
   const handleOpenDocumentation = useCallback(
     (event: React.MouseEvent) => {
-      console.log("openDocumentation", nodeType);
       openDocumentation(nodeType, {
         x: event.clientX,
         y: event.clientY
