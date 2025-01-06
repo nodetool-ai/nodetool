@@ -463,7 +463,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
           }}
           variant={BackgroundVariant.Cross}
         />
-        {/* {reactFlowInstance && <AxisMarker />} */}
+        {reactFlowInstance && <AxisMarker />}
         {editNodeTitle && anchorEl && (
           <NodeTitleEditor
             nodeId={editNodeTitle}
