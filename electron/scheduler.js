@@ -1,8 +1,11 @@
 const { app } = require("electron");
 const path = require("path");
 const fs = require("fs").promises;
+const fsSync = require("fs");
 const { logMessage } = require("./logger");
 const { shell } = require("electron");
+const { promises: fsPromises } = require("fs");
+const { chmod, stat } = fsPromises;
 
 const LAUNCH_AGENT_DIR = path.join(app.getPath("home"), "Library/LaunchAgents");
 const AGENT_LABEL = "ai.nodetool.workflow";
@@ -10,10 +13,21 @@ const AGENT_LABEL = "ai.nodetool.workflow";
 /**
  * Gets the log file path for a workflow's launch agent
  * @param {string} workflowId - The workflow ID
- * @returns {string} The path to the log file
+ * @returns {Promise<string>} The path to the log file
  */
-function getLaunchAgentLogPath(workflowId) {
-  return path.join(app.getPath("home"), "Library/Logs/nodetool", workflowId);
+async function getLaunchAgentLogPath(workflowId) {
+  const logDir = path.join(app.getPath("home"), "Library/Logs/nodetool");
+
+  try {
+    await fsPromises.mkdir(logDir, { recursive: true, mode: 0o755 });
+    await ensureDirectoryPermissions(logDir);
+
+    const workflowLogPath = path.join(logDir, workflowId);
+    return workflowLogPath;
+  } catch (err) {
+    logMessage(`Failed to setup log directory: ${err.message}`, "error");
+    throw err;
+  }
 }
 
 /**
@@ -25,6 +39,7 @@ function getLaunchAgentLogPath(workflowId) {
 async function createLaunchAgent(workflowId, intervalMinutes) {
   const { getPythonPath, srcPath } = require("./config");
   const pythonPath = getPythonPath();
+  const logPath = await getLaunchAgentLogPath(workflowId);
 
   const plistContent = `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -50,9 +65,9 @@ async function createLaunchAgent(workflowId, intervalMinutes) {
     <key>RunAtLoad</key>
     <true/>
     <key>StandardOutPath</key>
-    <string>${getLaunchAgentLogPath(workflowId)}.out</string>
+    <string>${logPath}.out</string>
     <key>StandardErrorPath</key>
-    <string>${getLaunchAgentLogPath(workflowId)}.err</string>
+    <string>${logPath}.err</string>
 </dict>
 </plist>`;
 
@@ -62,8 +77,8 @@ async function createLaunchAgent(workflowId, intervalMinutes) {
   );
 
   try {
-    await fs.mkdir(LAUNCH_AGENT_DIR, { recursive: true });
-    await fs.writeFile(plistPath, plistContent);
+    await fsPromises.mkdir(LAUNCH_AGENT_DIR, { recursive: true });
+    await fsPromises.writeFile(plistPath, plistContent);
     logMessage(`Created launch agent at ${plistPath}`);
 
     // Load the launch agent
@@ -100,7 +115,7 @@ async function removeLaunchAgent(workflowId) {
         logMessage(`Error unloading launch agent: ${error.message}`, "error");
       } else {
         try {
-          await fs.unlink(plistPath);
+          await fsPromises.unlink(plistPath);
           logMessage(`Removed launch agent at ${plistPath}`);
         } catch (unlinkError) {
           logMessage(
@@ -113,6 +128,30 @@ async function removeLaunchAgent(workflowId) {
   } catch (error) {
     logMessage(`Error removing launch agent: ${error.message}`, "error");
     throw error;
+  }
+}
+
+async function ensureDirectoryPermissions(dirPath) {
+  try {
+    // Check current permissions
+    const stats = await stat(dirPath);
+    const currentMode = stats.mode & 0o777; // Get only permission bits
+
+    // We want 755 (rwxr-xr-x) for directories
+    const desiredMode = 0o755;
+
+    if (currentMode !== desiredMode) {
+      await chmod(dirPath, desiredMode);
+      logMessage(`Updated permissions for ${dirPath} to 755`, "info");
+    }
+
+    // Verify owner is current user
+    if (stats.uid !== process.getuid()) {
+      logMessage(`Warning: ${dirPath} is not owned by current user`, "warn");
+    }
+  } catch (err) {
+    logMessage(`Error checking/setting permissions: ${err.message}`, "error");
+    throw err;
   }
 }
 
