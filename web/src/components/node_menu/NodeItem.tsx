@@ -39,11 +39,26 @@ const NodeItem = memo(
       const highlightNodeTitle = useCallback(
         (title: string): string => {
           if (!searchTerm) return title;
-          const regex = new RegExp(`(${searchTerm})`, "gi");
-          return title.replace(
-            regex,
-            `<span class="highlight" style="border-bottom: 1px solid ${ThemeNodetool.palette.c_hl1}">$1</span>`
-          );
+
+          // Split search terms by spaces and clean them
+          const terms = searchTerm
+            .split(/\s+/) // Split by one or more whitespace characters
+            .filter(Boolean) // Remove empty terms
+            .map((term) => term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")); // Escape regex special chars
+
+          // Start with the original title
+          let highlightedTitle = title;
+
+          // Apply highlighting for each term
+          terms.forEach((term) => {
+            const regex = new RegExp(`(${term})`, "gi");
+            highlightedTitle = highlightedTitle.replace(
+              regex,
+              `<span class="highlight" style="border-bottom: 1px solid ${ThemeNodetool.palette.c_hl1}">$1</span>`
+            );
+          });
+
+          return highlightedTitle;
         },
         [searchTerm]
       );
