@@ -7,20 +7,21 @@ import useMetadataStore from "./MetadataStore";
 import useRemoteSettingsStore from "./RemoteSettingStore";
 const fuseOptions = {
   keys: [
-    { name: "title", weight: 0.4 },
-    { name: "namespace", weight: 0.4 },
+    // Relative importance
+    { name: "title", weight: 0.5 },
+    { name: "namespace", weight: 0.3 },
     { name: "tags", weight: 0.2 }
   ],
-  includeMatches: true,
-  ignoreLocation: true,
-  threshold: 0.3,
-  distance: 100,
-  includeScore: true,
-  shouldSort: true,
-  minMatchCharLength: 2,
-  useExtendedSearch: true,
-  tokenize: true,
-  matchAllTokens: false
+  includeMatches: true, // Include details about which fields matched
+  ignoreLocation: true, // Search the entire field, don't prefer matches at start
+  threshold: 0.23, // How close match needs to be (0 = exact, 1 = match anything)
+  distance: 10, // How far to look for matching characters (lower = tighter matches)
+  includeScore: true, // Include similarity score in results
+  shouldSort: true, // Sort results by best match
+  minMatchCharLength: 2, // Minimum characters that must match
+  useExtendedSearch: true, // Enable extended search operators like ! ^ *
+  tokenize: true, // Split strings into tokens for matching
+  matchAllTokens: false // Match any token instead of requiring all tokens to match
 };
 
 type NodeMenuStore = {
@@ -265,29 +266,53 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
       }
 
       // Prepare search entries with combined searchable text
-      const entries = typeFilteredMetadata.map((node: NodeMetadata) => ({
-        title: node.title,
-        node_type: node.node_type,
-        namespace: node.namespace,
-        tags: node.description.split("\n")[1]?.split(",") || [],
-        searchableText: `${node.namespace} ${node.title}`, // Combined text for searching
-        metadata: node
-      }));
+      const entries = typeFilteredMetadata.map((node: NodeMetadata) => {
+        // Get tags from second line, guaranteed to be tags
+        const lines = node.description.split("\n");
+        const tags = lines[1]
+          ? lines[1]
+              .split(",")
+              .map((t) => t.trim())
+              .filter(Boolean)
+          : [];
+
+        return {
+          title: node.title,
+          node_type: node.node_type,
+          namespace: node.namespace,
+          tags,
+          // Include all searchable fields in the combined text
+          searchableText: `${node.namespace} ${node.title} ${tags.join(" ")}`,
+          metadata: node
+        };
+      });
 
       const fuse = new Fuse(entries, {
         ...fuseOptions,
         keys: [
           ...fuseOptions.keys,
-          { name: "searchableText", weight: 1.0 } // Add combined text field
+          { name: "searchableText", weight: 1.0 } // Combined text field has highest weight
         ]
       });
 
-      const searchResults = fuse
-        .search(term)
-        .map((result) => result.item.metadata);
+      const searchResults = fuse.search(term);
 
-      set({ searchResults });
-      get().updateHighlightedNamespaces(searchResults);
+      // devLog("Search results:", {
+      //   term,
+      //   total: searchResults.length,
+      //   results: searchResults.map((r) => ({
+      //     title: r.item.title,
+      //     score: r.score,
+      //     matches: r.matches
+      //   }))
+      // });
+
+      set({
+        searchResults: searchResults.map((result) => result.item.metadata)
+      });
+      get().updateHighlightedNamespaces(
+        searchResults.map((result) => result.item.metadata)
+      );
     },
 
     updateHighlightedNamespaces: (results: NodeMetadata[]) => {
