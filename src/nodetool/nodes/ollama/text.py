@@ -18,7 +18,7 @@ from nodetool.workflows.processing_context import ProcessingContext
 class Ollama(BaseNode):
     """
     Run Llama models to generate text responses.
-    llama, text generation, language model, ai assistant
+    LLM, llama, text generation, language model, ai assistant
 
     Use cases:
     - Generate creative writing or stories
