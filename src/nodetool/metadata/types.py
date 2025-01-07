@@ -267,7 +267,7 @@ class Email(BaseType):
     body: str | TextRef = Field(default="", description="Email body content")
 
 
-class EmailFlag(Enum):
+class EmailFlag(str, Enum):
     SEEN = "SEEN"
     UNSEEN = "UNSEEN"
     ANSWERED = "ANSWERED"
@@ -276,13 +276,13 @@ class EmailFlag(Enum):
     UNFLAGGED = "UNFLAGGED"
 
 
-class LogicalOperator(Enum):
+class LogicalOperator(str, Enum):
     AND = "AND"
     OR = "OR"
     NOT = "NOT"
 
 
-class DateCriteria(Enum):
+class DateCriteria(str, Enum):
     BEFORE = "BEFORE"
     SINCE = "SINCE"
     ON = "ON"
