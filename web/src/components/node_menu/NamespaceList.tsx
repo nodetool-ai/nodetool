@@ -120,6 +120,7 @@ const namespaceStyles = (theme: any, inPanel: boolean) =>
       overflowY: "scroll",
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeNormal,
+      color: theme.palette.c_gray4,
       fontWeight: "300",
       margin: "0",
       padding: "0 2em 2em 0"
@@ -483,22 +484,19 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
         ) : (
           <div className="no-selection">
             <div className="explanation">
-              <Typography variant="h5" style={{ marginTop: 0 }}>
-                Browse Nodes
-              </Typography>
+              <h5>Getting Started</h5>
               <ul>
-                <li>Click on the namespaces to the left</li>
-              </ul>
-
-              <Typography variant="h5">Search Nodes</Typography>
-              <ul>
-                <li>Type in the search bar to search for nodes.</li>
-              </ul>
-
-              <Typography variant="h5">Create Nodes</Typography>
-              <ul>
-                <li>Click on a node</li>
-                <li>Drag a node onto the canvas</li>
+                <li>
+                  Browse through available nodes by selecting namespaces from
+                  the menu on the left
+                </li>
+                <li>
+                  Add nodes to your workflow by:
+                  <ul>
+                    <li>Clicking on the desired node</li>
+                    <li>Or dragging it directly onto the canvas</li>
+                  </ul>
+                </li>
               </ul>
             </div>
           </div>
