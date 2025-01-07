@@ -112,7 +112,7 @@ class Template(BaseNode):
     """
 
     string: str | TextRef = Field(title="String", default="")
-    values: str | list | dict[str, Any] = Field(
+    values: str | list | dict[str, Any] | object = Field(
         title="Values",
         default={},
         description="""
@@ -120,6 +120,7 @@ class Template(BaseNode):
         - If a string, it will be used as the format string.
         - If a list, it will be used as the format arguments.
         - If a dictionary, it will be used as the format keyword arguments.
+        - If an object, it will be converted to a dictionary using the object's __dict__ method.
         """,
     )
 
@@ -131,6 +132,8 @@ class Template(BaseNode):
             res = string.format(*self.values)
         elif isinstance(self.values, dict):
             res = string.format(**self.values)
+        elif isinstance(self.values, object):
+            res = string.format(**self.values.__dict__)
         else:
             raise ValueError("Invalid values type")
         return await convert_result(context, [self.string], res)
