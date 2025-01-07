@@ -28,14 +28,14 @@ const listStyles = (theme: any) =>
     "&": {
       display: "flex",
       flexDirection: "column",
+      rowGap: "0px",
       alignItems: "flex-start",
       margin: ".5em .5em 0 0",
       maxHeight: "calc(100vh - 280px)",
       overflow: "hidden auto"
     },
     ".workflow": {
-      position: "relative",
-      padding: "5px 10px",
+      padding: "1em 1em 0.5em 1em",
       display: "flex",
       flexDirection: "row",
       alignItems: "flex-start",
@@ -45,7 +45,7 @@ const listStyles = (theme: any) =>
       borderBottom: "1px solid black",
       transition: "background 0.2s",
       "& .MuiCheckbox-root": {
-        margin: 0,
+        margin: "0 1em 0.5em 0",
         padding: 0
       }
     },
@@ -59,42 +59,27 @@ const listStyles = (theme: any) =>
       outline: `0`
     },
     ".workflow.selected": {
-      backgroundColor: theme.palette.c_gray0,
+      backgroundColor: theme.palette.c_gray2,
       borderRight: `2px solid ${theme.palette.c_hl1}`,
       outline: `0`
     },
-    ".name-and-description": {
-      display: "flex",
-      flexDirection: "column"
-      // gap: "0.1em"
-    },
     ".name": {
-      fontSize: theme.fontSizeNormal,
+      fontSize: theme.fontSizeSmall,
       margin: "0",
-      lineHeight: "1em",
+      lineHeight: "1.4em",
       color: theme.palette.c_hl1,
       userSelect: "none"
     },
-    ".description": {
-      margin: "0.1em 0 .1em",
-      userSelect: "none"
-    },
     ".date": {
-      paddingRight: "1em",
+      paddingRight: "0.5em",
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeTiny,
       right: "0",
-      height: "1em",
+      height: "2em",
+      lineHeight: "2em",
       minWidth: "80px",
       userSelect: "none",
       textAlign: "right"
-    },
-    ".image-wrapper": {
-      flexShrink: 0,
-      width: "40px",
-      height: "40px",
-      overflow: "hidden",
-      position: "relative"
     },
     ".duplicate-button": {
       padding: "0"
@@ -162,6 +147,7 @@ export const WorkflowListView: React.FC<WorkflowListViewProps> = ({
                 enterDelay={TOOLTIP_ENTER_DELAY}
               >
                 <Checkbox
+                  className="checkbox"
                   size="small"
                   checked={selectedWorkflows?.includes(workflow.id) || false}
                   onClick={(e) => {
@@ -176,12 +162,10 @@ export const WorkflowListView: React.FC<WorkflowListViewProps> = ({
               placement="top"
               enterDelay={TOOLTIP_ENTER_DELAY}
             >
-              <Box className="name-and-description">
-                <div
-                  className="name"
-                  dangerouslySetInnerHTML={{ __html: addBreaks(workflow.name) }}
-                ></div>
-              </Box>
+              <div
+                className="name"
+                dangerouslySetInnerHTML={{ __html: addBreaks(workflow.name) }}
+              ></div>
             </Tooltip>
             <div className="actions">
               <Tooltip
@@ -194,26 +178,22 @@ export const WorkflowListView: React.FC<WorkflowListViewProps> = ({
                 </Typography>
               </Tooltip>
 
-              {workflowCategory === "user" && (
-                <>
-                  <Tooltip
-                    title="Make a copy of this workflow"
-                    placement="bottom"
-                    enterDelay={TOOLTIP_ENTER_DELAY}
-                  >
-                    <Button
-                      size="small"
-                      className="duplicate-button"
-                      onClick={(event) => {
-                        event.preventDefault();
-                        onDuplicateWorkflow(event, workflow);
-                      }}
-                    >
-                      <ContentCopyIcon />
-                    </Button>
-                  </Tooltip>
-                </>
-              )}
+              <Tooltip
+                title="Make a copy of this workflow"
+                placement="bottom"
+                enterDelay={TOOLTIP_ENTER_DELAY}
+              >
+                <Button
+                  size="small"
+                  className="duplicate-button"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    onDuplicateWorkflow(event, workflow);
+                  }}
+                >
+                  <ContentCopyIcon />
+                </Button>
+              </Tooltip>
             </div>
           </Box>
         </Tooltip>
