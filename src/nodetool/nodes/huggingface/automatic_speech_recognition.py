@@ -152,7 +152,7 @@ class Whisper(HuggingFacePipelineNode):
 
     @classmethod
     def get_basic_fields(cls):
-        return ["audio", "task", "language", "timestamps"]
+        return ["audio", "task"]
 
     @classmethod
     def get_recommended_models(cls) -> list[HuggingFaceModel]:
