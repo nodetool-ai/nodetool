@@ -34,6 +34,10 @@ class Summarize(HuggingFacePipelineNode):
     )
 
     @classmethod
+    def get_basic_fields(cls) -> list[str]:
+        return ["model", "inputs"]
+
+    @classmethod
     def get_recommended_models(cls):
         return [
             HFTextGeneration(

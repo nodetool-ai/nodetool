@@ -66,6 +66,10 @@ class AnimateDiffNode(HuggingFacePipelineNode):
     _pipeline: AnimateDiffPipeline | None = None
 
     @classmethod
+    def get_basic_fields(cls) -> list[str]:
+        return ["model", "prompt"]
+
+    @classmethod
     def get_recommended_models(cls) -> list[HuggingFaceModel]:
         return [
             HFTextToVideo(

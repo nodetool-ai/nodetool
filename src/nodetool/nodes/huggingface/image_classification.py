@@ -86,8 +86,11 @@ class ImageClassifier(HuggingFacePipelineNode):
 
     async def initialize(self, context: ProcessingContext):
         self._pipeline = await self.load_pipeline(
-            context, "image-classification", self.get_model_id(), device=context.device
-        )
+            context=context,
+            pipeline_task="image-classification",
+            model_id=self.get_model_id(),
+            device=context.device,
+        ) # type: ignore
 
     async def process(self, context: ProcessingContext) -> dict[str, float]:
         image = await context.image_to_pil(self.image)

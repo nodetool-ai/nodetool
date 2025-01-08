@@ -52,13 +52,17 @@ class MusicGen(HuggingFacePipelineNode):
         description="The input text to the model",
     )
     max_new_tokens: int = Field(
-        default=256,
+        default=1024,
         title="Max New Tokens",
         description="The maximum number of tokens to generate",
     )
 
     _processor: AutoProcessor | None = None
     _model: MusicgenForConditionalGeneration | None = None
+
+    @classmethod
+    def get_basic_fields(cls) -> list[str]:
+        return ["model", "prompt"]
 
     @classmethod
     def get_recommended_models(cls) -> list[HuggingFaceModel]:
@@ -167,6 +171,10 @@ class MusicLDM(HuggingFacePipelineNode):
     _pipeline: MusicLDMPipeline | None = None
 
     @classmethod
+    def get_basic_fields(cls) -> list[str]:
+        return ["model", "prompt"]
+
+    @classmethod
     def get_recommended_models(cls) -> list[HuggingFaceModel]:
         return [
             HFTextToAudio(
@@ -232,6 +240,10 @@ class AudioLDM(HuggingFacePipelineNode):
     )
 
     _pipeline: AudioLDMPipeline | None = None
+
+    @classmethod
+    def get_basic_fields(cls) -> list[str]:
+        return ["model", "prompt"]
 
     @classmethod
     def get_recommended_models(cls) -> list[HuggingFaceModel]:
@@ -327,6 +339,10 @@ class AudioLDM2(HuggingFacePipelineNode):
     _pipeline: AudioLDM2Pipeline | None = None
 
     @classmethod
+    def get_basic_fields(cls) -> list[str]:
+        return ["model", "prompt"]
+
+    @classmethod
     def get_recommended_models(cls) -> list[HuggingFaceModel]:
         return [
             HFTextToAudio(
@@ -408,6 +424,10 @@ class DanceDiffusion(HuggingFacePipelineNode):
     _pipeline: DiffusionPipeline | None = None
 
     @classmethod
+    def get_basic_fields(cls) -> list[str]:
+        return ["model", "prompt"]
+
+    @classmethod
     def get_recommended_models(cls) -> list[HuggingFaceModel]:
         return [
             HFTextToAudio(
@@ -478,6 +498,10 @@ class StableAudioNode(HuggingFacePipelineNode):
     )
 
     _pipeline: StableAudioPipeline | None = None
+
+    @classmethod
+    def get_basic_fields(cls) -> list[str]:
+        return ["model", "prompt"]
 
     @classmethod
     def get_recommended_models(cls) -> list[HuggingFaceModel]:
