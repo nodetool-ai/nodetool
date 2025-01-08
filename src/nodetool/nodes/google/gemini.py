@@ -1,3 +1,4 @@
+import asyncio
 from enum import Enum
 from typing import Any
 from pydantic import Field
@@ -144,13 +145,13 @@ class Gemini(BaseNode):
             history = [
                 {
                     "role": m.role,
-                    "parts": [
-                        await get_content(c)
+                    "parts": await asyncio.gather(*[
+                        get_content(c)
                         for c in (
                             m.content if isinstance(m.content, list) else [m.content]
                         )
                         if c is not None
-                    ],
+                    ]) ,
                 }
                 for m in messages
             ]
