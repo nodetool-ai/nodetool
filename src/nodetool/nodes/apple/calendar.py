@@ -20,13 +20,11 @@ class CreateCalendarEvent(BaseNode):
 
     title: str = Field(default="New Event", description="Title of the calendar event")
     start_date: Datetime = Field(
-        default=Datetime.from_datetime(datetime.now()),
+        default=Datetime(),
         description="Start date and time of the event",
     )
     end_date: Datetime = Field(
-        default=Datetime.from_datetime(
-            datetime.now().replace(hour=datetime.now().hour + 1)
-        ),
+        default=Datetime(),
         description="End date and time of the event",
     )
     calendar_name: str = Field(default="Calendar", description="Name of the calendar")

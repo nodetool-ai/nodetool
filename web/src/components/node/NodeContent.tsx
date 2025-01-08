@@ -15,6 +15,8 @@ interface NodeContentProps {
   isConstantNode: boolean;
   isOutputNode: boolean;
   data: NodeData;
+  basicFields: string[];
+  showAdvancedFields: boolean;
   status: string;
   workflowId: string;
   renderedResult: React.ReactNode;
@@ -27,6 +29,8 @@ const NodeContent: React.FC<NodeContentProps> = ({
   isConstantNode,
   isOutputNode,
   data,
+  basicFields,
+  showAdvancedFields,
   status,
   workflowId,
   renderedResult
@@ -41,6 +45,8 @@ const NodeContent: React.FC<NodeContentProps> = ({
         data={data}
         onlyFields={isConstantNode}
         onlyHandles={false}
+        showAdvancedFields={showAdvancedFields}
+        basicFields={basicFields}
       />
       {!isOutputNode && <NodeOutputs id={id} outputs={nodeMetadata.outputs} />}
       {renderedResult}
