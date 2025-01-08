@@ -267,6 +267,11 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     // );
   }, [metadata]);
 
+  const hasAdvancedFields = useMemo(() => {
+    if (!metadata?.properties || !metadata?.basic_fields) return false;
+    return metadata.properties.length > metadata.basic_fields.length;
+  }, [metadata]);
+
   if (!metadata) {
     return (
       <Container className={className}>
@@ -322,21 +327,23 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         renderedResult={renderedResult}
       />
       {props.selected && resizer}
-      <div
-        css={css({
-          display: "flex",
-          justifyContent: "center",
-          padding: "4px 0",
-          borderTop: `1px solid ${ThemeNodes.palette.c_gray2}`,
-          cursor: "pointer",
-          "&:hover": {
-            backgroundColor: ThemeNodes.palette.c_gray1
-          }
-        })}
-        onClick={() => setShowAdvancedFields(!showAdvancedFields)}
-      >
-        {showAdvancedFields ? "Hide Advanced Fields" : "Show Advanced Fields"}
-      </div>
+      {hasAdvancedFields && (
+        <div
+          css={css({
+            display: "flex",
+            justifyContent: "center",
+            padding: "4px 0",
+            borderTop: `1px solid ${ThemeNodes.palette.c_gray2}`,
+            cursor: "pointer",
+            "&:hover": {
+              backgroundColor: ThemeNodes.palette.c_gray1
+            }
+          })}
+          onClick={() => setShowAdvancedFields(!showAdvancedFields)}
+        >
+          {showAdvancedFields ? "Hide Advanced Fields" : "Show Advanced Fields"}
+        </div>
+      )}
       <NodeFooter
         nodeNamespace={metadata.namespace}
         metadata={metadata}
