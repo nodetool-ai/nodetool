@@ -210,6 +210,9 @@ const typeFor = (value: any): string => {
   if (Array.isArray(value)) {
     return "array";
   }
+  if (typeof value === "boolean") {
+    return "boolean";
+  }
   if (typeof value === "object" && "type" in value) {
     return value.type;
   }
@@ -260,11 +263,6 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
   }, [type, value]);
 
   const renderContent = useMemo(() => {
-    console.log(value);
-    if (value === null || value === undefined) {
-      return null;
-    }
-
     function renderTensorPreview(tensor: Tensor): React.ReactNode {
       return <TensorView tensor={tensor} />;
     }
@@ -388,6 +386,26 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
         );
       case "svg_element":
         return renderSVGDocument([value]);
+      case "boolean":
+        const boolStr = String(value).toUpperCase();
+        return (
+          <div className="output value nodrag nowheel" css={styles}>
+            <ButtonGroup className="actions">
+              <Tooltip
+                title="Copy to Clipboard"
+                enterDelay={TOOLTIP_ENTER_DELAY}
+              >
+                <Button
+                  size="small"
+                  onClick={() => handleCopyToClipboard(boolStr)}
+                >
+                  Copy
+                </Button>
+              </Tooltip>
+            </ButtonGroup>
+            <p style={{ padding: "1em", color: "inherit" }}>{boolStr}</p>
+          </div>
+        );
       case "email":
         return (
           <div css={styles}>

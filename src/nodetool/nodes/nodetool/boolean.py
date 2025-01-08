@@ -133,8 +133,8 @@ class IsIn(BaseNode):
     - Filter data based on inclusion criteria
     """
 
-    value: Any = Field(description="The value to check for membership")
-    options: list[Any] = Field(description="The list of options to check against")
+    value: Any = Field(default=None, description="The value to check for membership")
+    options: list[Any] = Field(default_factory=list, description="The list of options to check against")
 
     async def process(self, context: ProcessingContext) -> bool:
         return self.value in self.options
