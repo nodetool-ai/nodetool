@@ -751,7 +751,7 @@ class MarkdownSplitter(BaseNode):
 class StartsWith(BaseNode):
     """
     Checks if text starts with a specified prefix.
-    text, check, prefix
+    text, check, prefix, compare, validate, substring, string
 
     Use cases:
     - Validating string prefixes
@@ -770,7 +770,7 @@ class StartsWith(BaseNode):
 class EndsWith(BaseNode):
     """
     Checks if text ends with a specified suffix.
-    text, check, suffix
+    text, check, suffix, compare, validate, substring, string
 
     Use cases:
     - Validating file extensions
@@ -789,7 +789,7 @@ class EndsWith(BaseNode):
 class Contains(BaseNode):
     """
     Checks if text contains a specified substring.
-    text, check, contains
+    text, check, contains, compare, validate, substring, string
 
     Use cases:
     - Searching for keywords in text
@@ -814,7 +814,7 @@ class Contains(BaseNode):
 class IsEmpty(BaseNode):
     """
     Checks if text is empty or contains only whitespace.
-    text, check, empty
+    text, check, empty, compare, validate, whitespace, string
 
     Use cases:
     - Validating required text fields
@@ -835,7 +835,7 @@ class IsEmpty(BaseNode):
 class HasLength(BaseNode):
     """
     Checks if text length meets specified conditions.
-    text, check, length
+    text, check, length, compare, validate, whitespace, string
 
     Use cases:
     - Validating input length requirements
