@@ -21,7 +21,7 @@ class NodeMetadata(BaseModel):
     outputs: list[OutputSlot]
     the_model_info: dict[str, Any]
     recommended_models: list[HuggingFaceModel]
-
+    basic_fields: list[str]
 
 @lru_cache(maxsize=1)
 def load_node_metadata() -> list[NodeMetadata]:

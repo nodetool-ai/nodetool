@@ -197,8 +197,6 @@ export type PropertyInputProps = {
   propertyIndex?: string;
   controlKeyPressed?: boolean;
   isInspector?: boolean;
-  hideInput: boolean;
-  hideLabel: boolean;
   tabIndex?: number;
 };
 
@@ -209,8 +207,6 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
   property,
   propertyIndex,
   controlKeyPressed,
-  hideInput,
-  hideLabel,
   tabIndex
 }: PropertyInputProps) => {
   const onChange = useCallback(
@@ -263,16 +259,6 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
     },
     [controlKeyPressed, onChange, property, handlePropertyContextMenu]
   );
-
-  if (hideInput) {
-    return (
-      <PropertyLabel
-        name={property.name}
-        description={property.description}
-        id={id}
-      />
-    );
-  }
 
   const className =
     value === property.default ? "value-default" : "value-changed";

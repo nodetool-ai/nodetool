@@ -3,7 +3,7 @@ import { css, keyframes } from "@emotion/react";
 import { colorForType } from "../../config/data_types";
 
 import ThemeNodes from "../themes/ThemeNodes";
-import { memo, useMemo } from "react";
+import { memo, useMemo, useState } from "react";
 import {
   Node,
   NodeProps,
@@ -128,6 +128,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const parentId = props.parentId;
   const hasParent = Boolean(parentId);
   const { activeSelect } = useSelect();
+  const [showAdvancedFields, setShowAdvancedFields] = useState(false);
 
   // Workflow and status
   const workflowId = props.data.workflow_id;
@@ -187,7 +188,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 
   // Node metadata and properties
   const node_namespace = metadata?.namespace || "";
-
+  const node_basic_fields = metadata?.basic_fields || [];
   const nodeColors = useMemo(() => {
     const outputColors = [
       ...new Set(
@@ -314,11 +315,28 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         isConstantNode={isConstantNode}
         isOutputNode={isOutputNode}
         data={props.data}
+        showAdvancedFields={showAdvancedFields}
+        basicFields={node_basic_fields}
         status={status}
         workflowId={workflowId}
         renderedResult={renderedResult}
       />
       {props.selected && resizer}
+      <div
+        css={css({
+          display: "flex",
+          justifyContent: "center",
+          padding: "4px 0",
+          borderTop: `1px solid ${ThemeNodes.palette.c_gray2}`,
+          cursor: "pointer",
+          "&:hover": {
+            backgroundColor: ThemeNodes.palette.c_gray1
+          }
+        })}
+        onClick={() => setShowAdvancedFields(!showAdvancedFields)}
+      >
+        {showAdvancedFields ? "Hide Advanced Fields" : "Show Advanced Fields"}
+      </div>
       <NodeFooter
         nodeNamespace={metadata.namespace}
         metadata={metadata}
