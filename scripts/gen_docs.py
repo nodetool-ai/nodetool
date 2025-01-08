@@ -322,8 +322,6 @@ if __name__ == "__main__":
     import nodetool.nodes.chroma
     import nodetool.nodes.google
     import nodetool.nodes.huggingface
-    import nodetool.nodes.kling
-    import nodetool.nodes.luma
     import nodetool.nodes.nodetool
     import nodetool.nodes.ollama
     import nodetool.nodes.openai

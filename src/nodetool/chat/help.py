@@ -215,8 +215,6 @@ def index_documentation(collection: chromadb.Collection):
     import nodetool.nodes.nodetool
     import nodetool.nodes.openai
     import nodetool.nodes.replicate
-    import nodetool.nodes.kling
-    import nodetool.nodes.luma
     import nodetool.nodes.ollama
 
     print("Indexing documentation")
@@ -373,7 +371,6 @@ Remote Models:
 - Remote API Providers require an account and API keys
 - Replicate gives access to a wide range of models
 - OpenAI and Anthropic models give access to worlds' most powerful language models
-- Luma AI and Kling are specialized providers for video models
 
 General Interface:
 - Connect nodes to create data flows

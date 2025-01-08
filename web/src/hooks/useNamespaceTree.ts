@@ -32,8 +32,6 @@ const useNamespaceTree = (): NamespaceTree => {
       openai: "OpenAI API Key",
       aime: "Aime API Key",
       anthropic: "Anthropic API Key",
-      kling: "Kling API Keys",
-      luma: "Luma AI API Key",
       replicate: "Replicate API Token"
     };
 
@@ -50,9 +48,6 @@ const useNamespaceTree = (): NamespaceTree => {
         openai: () => !isApiKeySet("OPENAI_API_KEY"),
         aime: () => !isApiKeySet("AIME_API_KEY"),
         anthropic: () => !isApiKeySet("ANTHROPIC_API_KEY"),
-        kling: () =>
-          !(isApiKeySet("KLING_ACCESS_KEY") && isApiKeySet("KLING_SECRET_KEY")),
-        luma: () => !isApiKeySet("LUMAAI_API_KEY"),
         replicate: () => !isApiKeySet("REPLICATE_API_TOKEN")
       };
 

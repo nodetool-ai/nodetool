@@ -27,13 +27,6 @@ class SecretsModel(BaseModel):
     REPLICATE_API_TOKEN: str | None = Field(
         default=None, description="Replicate API Token"
     )
-    KLING_ACCESS_KEY: str | None = Field(
-        default=None, description="Kling AI access key"
-    )
-    KLING_SECRET_KEY: str | None = Field(
-        default=None, description="Kling AI secret key"
-    )
-    LUMAAI_API_KEY: str | None = Field(default=None, description="Luma AI API key")
     AIME_USER: str | None = Field(default=None, description="Aime user")
     AIME_API_KEY: str | None = Field(default=None, description="Aime API key")
     GOOGLE_APP_PASSWORD: str | None = Field(

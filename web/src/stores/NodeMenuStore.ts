@@ -128,15 +128,6 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
           !secrets.AIME_USER ||
           secrets.AIME_USER.trim() === ""
         );
-      case "kling":
-        return (
-          !secrets.KLING_ACCESS_KEY ||
-          secrets.KLING_ACCESS_KEY.trim() === "" ||
-          !secrets.KLING_SECRET_KEY ||
-          secrets.KLING_SECRET_KEY.trim() === ""
-        );
-      case "luma":
-        return !secrets.LUMAAI_API_KEY || secrets.LUMAAI_API_KEY.trim() === "";
       default:
         return false;
     }

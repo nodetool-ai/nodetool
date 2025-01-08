@@ -81,9 +81,6 @@ const RemoteSettings = () => {
     ANTHROPIC_API_KEY: "",
     HF_TOKEN: "",
     REPLICATE_API_TOKEN: "",
-    KLING_ACCESS_KEY: "",
-    KLING_SECRET_KEY: "",
-    LUMAAI_API_KEY: "",
     AIME_USER: "",
     AIME_API_KEY: "",
     GOOGLE_APP_PASSWORD: "",
@@ -107,9 +104,6 @@ const RemoteSettings = () => {
         ANTHROPIC_API_KEY: data.secrets.ANTHROPIC_API_KEY || "",
         HF_TOKEN: data.secrets.HF_TOKEN || "",
         REPLICATE_API_TOKEN: data.secrets.REPLICATE_API_TOKEN || "",
-        KLING_ACCESS_KEY: data.secrets.KLING_ACCESS_KEY || "",
-        KLING_SECRET_KEY: data.secrets.KLING_SECRET_KEY || "",
-        LUMAAI_API_KEY: data.secrets.LUMAAI_API_KEY || "",
         AIME_USER: data.secrets.AIME_USER || "",
         AIME_API_KEY: data.secrets.AIME_API_KEY || "",
         GOOGLE_APP_PASSWORD: data.secrets.GOOGLE_APP_PASSWORD || "",
@@ -287,62 +281,6 @@ const RemoteSettings = () => {
                 </a>
               </Typography>
             </div>
-          </div>
-
-          <Typography variant="h2">Kling AI</Typography>
-          <div className="settings-item">
-            <TextField
-              autoComplete="off"
-              id="kling-access-key-input"
-              label="Kling AI Access Key"
-              value={settings.KLING_ACCESS_KEY}
-              onChange={(e) => handleChange("KLING_ACCESS_KEY", e.target.value)}
-              variant="standard"
-            />
-            <TextField
-              autoComplete="off"
-              id="kling-secret-key-input"
-              label="Kling AI Secret Key"
-              value={settings.KLING_SECRET_KEY}
-              onChange={(e) => handleChange("KLING_SECRET_KEY", e.target.value)}
-              variant="standard"
-              sx={{ marginTop: "1em" }}
-            />
-            <Typography className="description">
-              Enter your Kling AI credentials to access state-of-the-art video
-              generation models. <br />
-              <a
-                href="https://klingai.com/dev-center"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                &rarr; Kling AI Dev Center
-              </a>{" "}
-            </Typography>
-          </div>
-
-          <Typography variant="h2">Luma AI</Typography>
-          <div className="settings-item">
-            <TextField
-              autoComplete="off"
-              id="lumaai-api-key-input"
-              label="Luma AI API Key"
-              value={settings.LUMAAI_API_KEY}
-              onChange={(e) => handleChange("LUMAAI_API_KEY", e.target.value)}
-              variant="standard"
-            />
-            <Typography className="description">
-              Enter your Luma AI API key to access state-of-the-art video
-              generation models.
-              <br />
-              <a
-                href="https://lumalabs.ai/dream-machine/api"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                &rarr; Luma AI Settings
-              </a>
-            </Typography>
           </div>
 
           <Typography variant="h2">AIME</Typography>
