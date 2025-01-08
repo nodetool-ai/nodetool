@@ -42,21 +42,6 @@ const ApiKeyValidation: React.FC<ApiKeyValidationProps> = React.memo(
       ) {
         return "Aime API Key and User";
       }
-      if (
-        nodeNamespace.startsWith("kling.") &&
-        (!secrets.KLING_ACCESS_KEY ||
-          secrets.KLING_ACCESS_KEY.trim() === "" ||
-          !secrets.KLING_SECRET_KEY ||
-          secrets.KLING_SECRET_KEY.trim() === "")
-      ) {
-        return "Kling Access and Secret Keys";
-      }
-      if (
-        nodeNamespace.startsWith("lumaai.") &&
-        (!secrets.LUMAAI_API_KEY || secrets.LUMAAI_API_KEY.trim() === "")
-      ) {
-        return "Luma AI API Key";
-      }
       return null;
     }, [nodeNamespace, secrets]);
 

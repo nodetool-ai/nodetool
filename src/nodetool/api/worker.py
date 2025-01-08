@@ -32,8 +32,6 @@ import nodetool.nodes.nodetool
 import nodetool.nodes.openai
 import nodetool.nodes.replicate
 import nodetool.nodes.ollama
-import nodetool.nodes.luma
-import nodetool.nodes.kling
 from nodetool.workflows.base_node import get_registered_node_classes
 from nodes import init_extra_nodes
 import comfy.cli_args

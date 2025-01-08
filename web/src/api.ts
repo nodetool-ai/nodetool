@@ -1093,19 +1093,40 @@ export interface components {
              * @enum {string}
              */
             type: "datetime";
-            /** Year */
+            /**
+             * Year
+             * @default 0
+             */
             year: number;
-            /** Month */
+            /**
+             * Month
+             * @default 0
+             */
             month: number;
-            /** Day */
+            /**
+             * Day
+             * @default 0
+             */
             day: number;
-            /** Hour */
+            /**
+             * Hour
+             * @default 0
+             */
             hour: number;
-            /** Minute */
+            /**
+             * Minute
+             * @default 0
+             */
             minute: number;
-            /** Second */
+            /**
+             * Second
+             * @default 0
+             */
             second: number;
-            /** Microsecond */
+            /**
+             * Microsecond
+             * @default 0
+             */
             microsecond: number;
             /**
              * Tzinfo
@@ -1191,11 +1212,11 @@ export interface components {
              *       "type": "datetime",
              *       "year": 2025,
              *       "month": 1,
-             *       "day": 6,
-             *       "hour": 1,
-             *       "minute": 32,
-             *       "second": 20,
-             *       "microsecond": 429098,
+             *       "day": 8,
+             *       "hour": 23,
+             *       "minute": 14,
+             *       "second": 0,
+             *       "microsecond": 408812,
              *       "tzinfo": "UTC",
              *       "utc_offset": 0
              *     }
@@ -2969,21 +2990,6 @@ export interface components {
              * @description Replicate API Token
              */
             REPLICATE_API_TOKEN?: string | null;
-            /**
-             * Kling Access Key
-             * @description Kling AI access key
-             */
-            KLING_ACCESS_KEY?: string | null;
-            /**
-             * Kling Secret Key
-             * @description Kling AI secret key
-             */
-            KLING_SECRET_KEY?: string | null;
-            /**
-             * Lumaai Api Key
-             * @description Luma AI API key
-             */
-            LUMAAI_API_KEY?: string | null;
             /**
              * Aime User
              * @description Aime user

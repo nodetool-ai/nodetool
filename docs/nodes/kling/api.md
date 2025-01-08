@@ -3,21 +3,22 @@
 ## BaseRequest
 
 **Fields:**
+
 - **model** (typing.Optional[str])
 - **callback_url** (typing.Optional[str])
-
 
 ## BaseResponse
 
 **Fields:**
+
 - **code** (int)
 - **message** (str)
 - **request_id** (str)
 
-
 ## ImageGenerationRequest
 
 **Fields:**
+
 - **model** (typing.Optional[str])
 - **callback_url** (typing.Optional[str])
 - **prompt** (str)
@@ -27,17 +28,17 @@
 - **n** (typing.Optional[int])
 - **aspect_ratio** (typing.Optional[str])
 
-
 ## ImageResult
 
 **Fields:**
+
 - **index** (int)
 - **url** (str)
-
 
 ## ImageToVideoRequest
 
 **Fields:**
+
 - **model** (typing.Optional[str])
 - **callback_url** (typing.Optional[str])
 - **image** (str)
@@ -48,12 +49,10 @@
 - **mode** (typing.Optional[str])
 - **duration** (typing.Optional[str])
 
-
-## KlingAIAPI
-
 ## TaskData
 
 **Fields:**
+
 - **task_id** (str)
 - **task_status** (TaskStatus)
 - **task_status_msg** (typing.Optional[str])
@@ -61,28 +60,28 @@
 - **updated_at** (int)
 - **task_result** (typing.Optional[nodetool.nodes.kling.api.TaskResult])
 
-
 ## TaskResponse
 
 **Fields:**
+
 - **code** (int)
 - **message** (str)
 - **request_id** (str)
 - **data** (TaskData)
 
-
 ## TaskResult
 
 **Fields:**
+
 - **images** (typing.Optional[typing.List[nodetool.nodes.kling.api.ImageResult]])
 - **videos** (typing.Optional[typing.List[nodetool.nodes.kling.api.VideoResult]])
-
 
 ## TaskStatus
 
 ## VideoGenerationRequest
 
 **Fields:**
+
 - **model** (typing.Optional[str])
 - **callback_url** (typing.Optional[str])
 - **prompt** (str)
@@ -93,21 +92,19 @@
 - **aspect_ratio** (typing.Optional[str])
 - **duration** (typing.Optional[str])
 
-
 ## VideoResult
 
 **Fields:**
+
 - **id** (str)
 - **url** (str)
 - **duration** (str)
 
-
 ## VirtualTryOnRequest
 
 **Fields:**
+
 - **model** (typing.Optional[str])
 - **callback_url** (typing.Optional[str])
 - **human_image** (str)
 - **cloth_image** (typing.Optional[str])
-
-
