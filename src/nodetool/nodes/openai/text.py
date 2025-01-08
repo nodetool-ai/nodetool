@@ -135,3 +135,7 @@ class GPT(BaseNode):
         assert len(res.choices) > 0
         assert res.choices[0].message.content is not None
         return res.choices[0].message.content
+
+    @classmethod
+    def get_basic_fields(cls) -> list[str]:
+        return ["prompt", "model", "temperature"]

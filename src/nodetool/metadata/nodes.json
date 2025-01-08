@@ -1221,9 +1221,7 @@
       "title",
       "start_date",
       "end_date",
-      "calendar_name",
-      "location",
-      "description"
+      "calendar_name"
     ]
   },
   {
@@ -1501,11 +1499,7 @@
       "model",
       "system",
       "prompt",
-      "image",
-      "max_tokens",
-      "temperature",
-      "top_k",
-      "top_p"
+      "image"
     ]
   },
   {
@@ -15393,10 +15387,7 @@
     "recommended_models": [],
     "basic_fields": [
       "audio",
-      "n_fft",
-      "hop_length",
       "n_mels",
-      "fmin",
       "fmax"
     ]
   },
@@ -15521,10 +15512,7 @@
     "basic_fields": [
       "audio",
       "n_mfcc",
-      "n_fft",
-      "hop_length",
-      "fmin",
-      "fmax"
+      "n_fft"
     ]
   },
   {
@@ -15835,10 +15823,7 @@
     "basic_fields": [
       "audio",
       "n_fft",
-      "hop_length",
-      "win_length",
-      "window",
-      "center"
+      "hop_length"
     ]
   },
   {
@@ -20433,7 +20418,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": 8,
+        "default": 9,
         "title": "Day",
         "description": "Day of the date",
         "min": null,
@@ -20507,7 +20492,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": 8,
+        "default": 9,
         "title": "Day",
         "description": "Day of the datetime",
         "min": null,
@@ -22266,11 +22251,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 8,
-          "hour": 23,
-          "minute": 20,
-          "second": 38,
-          "microsecond": 615405,
+          "day": 9,
+          "hour": 0,
+          "minute": 8,
+          "second": 22,
+          "microsecond": 19772,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23308,11 +23293,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 8,
-          "hour": 23,
-          "minute": 20,
-          "second": 38,
-          "microsecond": 619120,
+          "day": 9,
+          "hour": 0,
+          "minute": 8,
+          "second": 22,
+          "microsecond": 23474,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23361,11 +23346,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 8,
-          "hour": 23,
-          "minute": 20,
-          "second": 38,
-          "microsecond": 619317,
+          "day": 9,
+          "hour": 0,
+          "minute": 8,
+          "second": 22,
+          "microsecond": 23667,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23414,11 +23399,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 8,
-          "hour": 23,
-          "minute": 20,
-          "second": 38,
-          "microsecond": 619541,
+          "day": 9,
+          "hour": 0,
+          "minute": 8,
+          "second": 22,
+          "microsecond": 23883,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23467,11 +23452,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 8,
-          "hour": 23,
-          "minute": 20,
-          "second": 38,
-          "microsecond": 619734,
+          "day": 9,
+          "hour": 0,
+          "minute": 8,
+          "second": 22,
+          "microsecond": 24088,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23520,11 +23505,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 8,
-          "hour": 23,
-          "minute": 20,
-          "second": 38,
-          "microsecond": 619923,
+          "day": 9,
+          "hour": 0,
+          "minute": 8,
+          "second": 22,
+          "microsecond": 24280,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23573,11 +23558,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 8,
-          "hour": 23,
-          "minute": 20,
-          "second": 38,
-          "microsecond": 620106,
+          "day": 9,
+          "hour": 0,
+          "minute": 8,
+          "second": 22,
+          "microsecond": 24465,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23626,11 +23611,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 8,
-          "hour": 23,
-          "minute": 20,
-          "second": 38,
-          "microsecond": 620343,
+          "day": 9,
+          "hour": 0,
+          "minute": 8,
+          "second": 22,
+          "microsecond": 24694,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23695,11 +23680,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 8,
-          "hour": 23,
-          "minute": 20,
-          "second": 38,
-          "microsecond": 620567,
+          "day": 9,
+          "hour": 0,
+          "minute": 8,
+          "second": 22,
+          "microsecond": 24908,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -51455,11 +51440,8 @@
       }
     ],
     "basic_fields": [
-      "model",
       "audio",
-      "task",
-      "language",
-      "timestamps"
+      "task"
     ]
   },
   {
@@ -52874,7 +52856,11 @@
       "num_inference_steps",
       "strength",
       "image",
-      "seed"
+      "seed",
+      "image",
+      "prompt",
+      "num_inference_steps",
+      "strength"
     ]
   },
   {
@@ -53433,7 +53419,10 @@
     "basic_fields": [
       "prompt",
       "negative_prompt",
-      "seed"
+      "seed",
+      "controlnet",
+      "control_image",
+      "controlnet_conditioning_scale"
     ]
   },
   {
@@ -53873,7 +53862,9 @@
     "basic_fields": [
       "prompt",
       "negative_prompt",
-      "seed"
+      "seed",
+      "init_image",
+      "strength"
     ]
   },
   {
@@ -54370,7 +54361,11 @@
     "basic_fields": [
       "prompt",
       "negative_prompt",
-      "seed"
+      "seed",
+      "init_image",
+      "mask_image",
+      "control_image",
+      "controlnet_conditioning_scale"
     ]
   },
   {
@@ -54830,7 +54825,10 @@
     "basic_fields": [
       "prompt",
       "negative_prompt",
-      "seed"
+      "seed",
+      "init_image",
+      "mask_image",
+      "strength"
     ]
   },
   {
@@ -55409,7 +55407,10 @@
     "basic_fields": [
       "prompt",
       "negative_prompt",
-      "seed"
+      "seed",
+      "image",
+      "controlnet",
+      "control_image"
     ]
   },
   {
@@ -55592,12 +55593,7 @@
     "basic_fields": [
       "prompt",
       "negative_prompt",
-      "num_inference_steps",
-      "guidance_scale",
-      "image",
-      "scheduler",
-      "seed",
-      "enable_tiling"
+      "image"
     ]
   },
   {
@@ -56028,7 +56024,9 @@
       "negative_prompt",
       "seed",
       "width",
-      "height"
+      "height",
+      "init_image",
+      "strength"
     ]
   },
   {
@@ -56479,7 +56477,10 @@
       "negative_prompt",
       "seed",
       "width",
-      "height"
+      "height",
+      "image",
+      "mask_image",
+      "strength"
     ]
   },
   {
@@ -56966,7 +56967,12 @@
       "negative_prompt",
       "seed",
       "width",
-      "height"
+      "height",
+      "init_image",
+      "strength",
+      "controlnet",
+      "control_image",
+      "controlnet_conditioning_scale"
     ]
   },
   {
@@ -58188,10 +58194,7 @@
     ],
     "basic_fields": [
       "model",
-      "image",
-      "ocr_type",
-      "ocr_box",
-      "ocr_color"
+      "image"
     ]
   },
   {
@@ -58383,9 +58386,7 @@
     ],
     "basic_fields": [
       "model",
-      "image",
-      "threshold",
-      "top_k"
+      "image"
     ]
   },
   {
@@ -59034,9 +59035,7 @@
     ],
     "basic_fields": [
       "model",
-      "inputs",
-      "max_length",
-      "do_sample"
+      "inputs"
     ]
   },
   {
@@ -59091,7 +59090,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": 256,
+        "default": 1024,
         "title": "Max New Tokens",
         "description": "The maximum number of tokens to generate",
         "min": null,
@@ -59182,8 +59181,7 @@
     ],
     "basic_fields": [
       "model",
-      "prompt",
-      "max_new_tokens"
+      "prompt"
     ]
   },
   {
@@ -59289,9 +59287,7 @@
     ],
     "basic_fields": [
       "model",
-      "prompt",
-      "num_inference_steps",
-      "audio_length_in_s"
+      "prompt"
     ]
   },
   {
@@ -59390,10 +59386,8 @@
       }
     ],
     "basic_fields": [
-      "prompt",
-      "num_inference_steps",
-      "audio_length_in_s",
-      "seed"
+      "model",
+      "prompt"
     ]
   },
   {
@@ -59522,12 +59516,8 @@
       }
     ],
     "basic_fields": [
-      "prompt",
-      "negative_prompt",
-      "num_inference_steps",
-      "audio_length_in_s",
-      "num_waveforms_per_prompt",
-      "seed"
+      "model",
+      "prompt"
     ]
   },
   {
@@ -59611,9 +59601,8 @@
       }
     ],
     "basic_fields": [
-      "audio_length_in_s",
-      "num_inference_steps",
-      "seed"
+      "model",
+      "prompt"
     ]
   },
   {
@@ -59727,11 +59716,8 @@
       }
     ],
     "basic_fields": [
-      "prompt",
-      "negative_prompt",
-      "duration",
-      "num_inference_steps",
-      "seed"
+      "model",
+      "prompt"
     ]
   },
   {
@@ -61022,11 +61008,7 @@
     ],
     "basic_fields": [
       "model",
-      "prompt",
-      "max_new_tokens",
-      "temperature",
-      "top_p",
-      "do_sample"
+      "prompt"
     ]
   },
   {
@@ -61346,8 +61328,7 @@
     ],
     "basic_fields": [
       "model",
-      "text",
-      "max_length"
+      "text"
     ]
   },
   {
@@ -61859,12 +61840,7 @@
     ],
     "basic_fields": [
       "model",
-      "prompt",
-      "negative_prompt",
-      "num_frames",
-      "guidance_scale",
-      "num_inference_steps",
-      "seed"
+      "prompt"
     ]
   },
   {
@@ -74164,10 +74140,9 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "model",
-      "voice",
       "input",
-      "speed"
+      "model",
+      "voice"
     ]
   },
   {
@@ -74395,9 +74370,8 @@
     "recommended_models": [],
     "basic_fields": [
       "goal",
-      "max_tokens",
-      "temperature",
-      "model"
+      "model",
+      "temperature"
     ]
   },
   {
@@ -74530,10 +74504,8 @@
     "recommended_models": [],
     "basic_fields": [
       "tasks",
-      "image_nodes",
-      "max_tokens",
-      "temperature",
-      "model"
+      "model",
+      "temperature"
     ]
   },
   {
@@ -74680,12 +74652,8 @@
     "recommended_models": [],
     "basic_fields": [
       "prompt",
-      "input_text",
-      "image",
-      "max_tokens",
-      "temperature",
-      "columns",
-      "model"
+      "model",
+      "temperature"
     ]
   },
   {
@@ -74806,9 +74774,8 @@
     "recommended_models": [],
     "basic_fields": [
       "messages",
-      "max_tokens",
-      "temperature",
-      "model"
+      "model",
+      "temperature"
     ]
   },
   {
@@ -74919,9 +74886,8 @@
     "recommended_models": [],
     "basic_fields": [
       "current_step",
-      "max_tokens",
-      "temperature",
-      "model"
+      "model",
+      "temperature"
     ]
   },
   {
@@ -75053,12 +75019,9 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "model",
       "prompt",
       "data",
-      "max_tokens",
-      "temperature",
-      "columns"
+      "model"
     ]
   },
   {
@@ -75174,8 +75137,6 @@
     "basic_fields": [
       "prompt",
       "data",
-      "max_tokens",
-      "temperature",
       "model"
     ]
   },
@@ -75285,8 +75246,6 @@
     "recommended_models": [],
     "basic_fields": [
       "prompt",
-      "max_tokens",
-      "temperature",
       "duration",
       "model"
     ]
@@ -75463,8 +75422,6 @@
     "basic_fields": [
       "steps",
       "messages",
-      "max_tokens",
-      "temperature",
       "model"
     ]
   },
@@ -75830,15 +75787,9 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "model",
-      "system",
       "prompt",
-      "image",
-      "presence_penalty",
-      "frequency_penalty",
-      "temperature",
-      "max_tokens",
-      "top_p"
+      "model",
+      "temperature"
     ]
   },
   {
@@ -95903,6 +95854,26 @@
         "max": null
       },
       {
+        "name": "image",
+        "type": {
+          "type": "image",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null
+        },
+        "title": "Image",
+        "description": "The image to analyze",
+        "min": null,
+        "max": null
+      },
+      {
         "name": "messages",
         "type": {
           "type": "list",
@@ -95922,26 +95893,6 @@
         "default": [],
         "title": "Messages",
         "description": "History of messages to send to the model.",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "image",
-        "type": {
-          "type": "image",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": {
-          "type": "image",
-          "uri": "",
-          "asset_id": null,
-          "data": null
-        },
-        "title": "Image",
-        "description": "The image to analyze",
         "min": null,
         "max": null
       },
@@ -96150,6 +96101,7 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
+      "model",
       "input"
     ]
   },
@@ -96309,12 +96261,7 @@
     "recommended_models": [],
     "basic_fields": [
       "model",
-      "context_window",
       "prompt",
-      "temperature",
-      "top_k",
-      "top_p",
-      "keep_alive",
       "columns"
     ]
   },
@@ -96464,12 +96411,7 @@
     "recommended_models": [],
     "basic_fields": [
       "model",
-      "context_window",
-      "prompt",
-      "temperature",
-      "top_k",
-      "top_p",
-      "keep_alive"
+      "prompt"
     ]
   },
   {
@@ -96649,14 +96591,8 @@
     "recommended_models": [],
     "basic_fields": [
       "model",
-      "context_window",
       "prompt",
-      "data",
-      "temperature",
-      "top_k",
-      "top_p",
-      "keep_alive",
-      "columns"
+      "data"
     ]
   },
   {
@@ -96820,13 +96756,7 @@
     "recommended_models": [],
     "basic_fields": [
       "model",
-      "context_window",
-      "question",
-      "context",
-      "temperature",
-      "top_k",
-      "top_p",
-      "keep_alive"
+      "prompt"
     ]
   },
   {
@@ -96982,483 +96912,8 @@
     "recommended_models": [],
     "basic_fields": [
       "model",
-      "context_window",
       "prompt",
-      "schema",
-      "temperature",
-      "top_k",
-      "top_p",
-      "keep_alive"
-    ]
-  },
-  {
-    "title": "Text To Video",
-    "description": "Generate a video from a text prompt using Luma AI.\n    AI, video generation, text-to-video\n\n    Use cases:\n    1. Create animated content from textual descriptions\n    2. Generate video assets for creative projects\n    3. Visualize concepts or ideas in video form",
-    "namespace": "luma.video",
-    "node_type": "luma.video.TextToVideo",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "prompt",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Prompt",
-        "description": "The text prompt for video generation.",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "loop",
-        "type": {
-          "type": "bool",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": false,
-        "title": "Loop",
-        "description": "Whether the video should loop.",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "aspect_ratio",
-        "type": {
-          "type": "enum",
-          "optional": false,
-          "values": [
-            "1:1",
-            "16:9",
-            "9:16",
-            "4:3",
-            "3:4",
-            "21:9",
-            "9:21"
-          ],
-          "type_args": [],
-          "type_name": "nodetool.nodes.luma.video.LumaAspectRatio"
-        },
-        "default": "16:9",
-        "title": "Aspect Ratio",
-        "description": "Aspect ratio of the generated video.",
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "video",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [
-      "prompt",
-      "loop",
-      "aspect_ratio"
-    ]
-  },
-  {
-    "title": "Image To Video",
-    "description": "Generate a video from an image using Luma AI.\n    AI, video generation, image-to-video\n\n    Use cases:\n    1. Animate still images\n    2. Create dynamic content from static visuals\n    3. Extend single frame concepts into full motion videos",
-    "namespace": "luma.video",
-    "node_type": "luma.video.ImageToVideo",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "prompt",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Prompt",
-        "description": "The text prompt for video generation.",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "image",
-        "type": {
-          "type": "image",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": {
-          "type": "image",
-          "uri": "",
-          "asset_id": null,
-          "data": null
-        },
-        "title": "Image",
-        "description": "The input image for video generation.",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "loop",
-        "type": {
-          "type": "bool",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": false,
-        "title": "Loop",
-        "description": "Whether the video should loop.",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "aspect_ratio",
-        "type": {
-          "type": "enum",
-          "optional": false,
-          "values": [
-            "1:1",
-            "16:9",
-            "9:16",
-            "4:3",
-            "3:4",
-            "21:9",
-            "9:21"
-          ],
-          "type_args": [],
-          "type_name": "nodetool.nodes.luma.video.LumaAspectRatio"
-        },
-        "default": "16:9",
-        "title": "Aspect Ratio",
-        "description": "Aspect ratio of the generated video.",
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "video",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [
-      "prompt",
-      "image",
-      "loop",
-      "aspect_ratio"
-    ]
-  },
-  {
-    "title": "Kling Text To Video",
-    "description": "Generate a video from a text prompt using Kling AI.\n    AI, video generation, text-to-video\n\n    Use cases:\n    1. Create animated content from textual descriptions\n    2. Generate video assets for creative projects\n    3. Visualize concepts or ideas in video form",
-    "namespace": "kling.video",
-    "node_type": "kling.video.KlingTextToVideo",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "prompt",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Prompt",
-        "description": "The text prompt for video generation.",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "negative_prompt",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Negative Prompt",
-        "description": "The negative prompt for video generation.",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "cfg_scale",
-        "type": {
-          "type": "float",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": 0.5,
-        "title": "Cfg Scale",
-        "description": "The cfg scale for video generation.",
-        "min": 0.0,
-        "max": 1.0
-      },
-      {
-        "name": "mode",
-        "type": {
-          "type": "enum",
-          "optional": false,
-          "values": [
-            "std",
-            "pro"
-          ],
-          "type_args": [],
-          "type_name": "nodetool.nodes.kling.video.KlingVideoMode"
-        },
-        "default": "std",
-        "title": "Mode",
-        "description": "The mode for video generation.",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "aspect_ratio",
-        "type": {
-          "type": "enum",
-          "optional": false,
-          "values": [
-            "1:1",
-            "16:9",
-            "9:16",
-            "4:3",
-            "3:4",
-            "21:9",
-            "9:21"
-          ],
-          "type_args": [],
-          "type_name": "nodetool.nodes.kling.video.KlingAspectRatio"
-        },
-        "default": "16:9",
-        "title": "Aspect Ratio",
-        "description": "Aspect ratio of the generated video.",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "duration",
-        "type": {
-          "type": "enum",
-          "optional": false,
-          "values": [
-            "5",
-            "10"
-          ],
-          "type_args": [],
-          "type_name": "nodetool.nodes.kling.video.KlingVideoDuration"
-        },
-        "default": "5",
-        "title": "Duration",
-        "description": "Duration of the generated video.",
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "video",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [
-      "prompt",
-      "negative_prompt",
-      "cfg_scale",
-      "mode",
-      "aspect_ratio",
-      "duration"
-    ]
-  },
-  {
-    "title": "Kling Image To Video",
-    "description": "Generate a video from an image using Kling AI.\n    AI, video generation, image-to-video\n\n    Use cases:\n    1. Animate still images\n    2. Create dynamic content from static visuals\n    3. Extend single frame concepts into full motion videos",
-    "namespace": "kling.video",
-    "node_type": "kling.video.KlingImageToVideo",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "image",
-        "type": {
-          "type": "image",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": {
-          "type": "image",
-          "uri": "",
-          "asset_id": null,
-          "data": null
-        },
-        "title": "Image",
-        "description": "The input image for video generation.",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "image_tail",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Image Tail",
-        "description": "The image tail for video generation.",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "prompt",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Prompt",
-        "description": "The text prompt for video generation.",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "negative_prompt",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Negative Prompt",
-        "description": "The negative prompt for video generation.",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "cfg_scale",
-        "type": {
-          "type": "float",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": 0.5,
-        "title": "Cfg Scale",
-        "description": "The cfg scale for video generation.",
-        "min": 0.0,
-        "max": 1.0
-      },
-      {
-        "name": "mode",
-        "type": {
-          "type": "enum",
-          "optional": false,
-          "values": [
-            "std",
-            "pro"
-          ],
-          "type_args": [],
-          "type_name": "nodetool.nodes.kling.video.KlingVideoMode"
-        },
-        "default": "std",
-        "title": "Mode",
-        "description": "The mode for video generation.",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "duration",
-        "type": {
-          "type": "enum",
-          "optional": false,
-          "values": [
-            "5",
-            "10"
-          ],
-          "type_args": [],
-          "type_name": "nodetool.nodes.kling.video.KlingVideoDuration"
-        },
-        "default": "5",
-        "title": "Duration",
-        "description": "Duration of the generated video.",
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "video",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [
-      "image",
-      "image_tail",
-      "prompt",
-      "negative_prompt",
-      "cfg_scale",
-      "mode",
-      "duration"
+      "schema"
     ]
   },
   {
@@ -98110,7 +97565,7 @@
           "type_args": [],
           "type_name": "nodetool.nodes.google.gemini.GeminiModel"
         },
-        "default": "gemini-1.5-pro",
+        "default": "gemini-2.0-flash-exp",
         "title": "Model",
         "description": "The Gemini model to use",
         "min": null,
@@ -98204,7 +97659,7 @@
           "type_args": [],
           "type_name": "nodetool.nodes.google.gemini.GeminiModel"
         },
-        "default": "gemini-1.5-pro",
+        "default": "gemini-2.0-flash-exp",
         "title": "Model",
         "description": null,
         "min": null,
@@ -98242,9 +97697,7 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "messages",
-      "model",
-      "temperature"
+      "messages"
     ]
   },
   {
@@ -98267,7 +97720,7 @@
           "type_args": [],
           "type_name": "nodetool.nodes.google.gemini.GeminiModel"
         },
-        "default": "gemini-1.5-pro",
+        "default": "gemini-2.0-flash-exp",
         "title": "Model",
         "description": "The Gemini model to use",
         "min": null,
@@ -98329,21 +97782,6 @@
         "max": null
       },
       {
-        "name": "temperature",
-        "type": {
-          "type": "float",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": 0.0,
-        "title": "Temperature",
-        "description": "Temperature for sampling",
-        "min": 0.0,
-        "max": 1.0
-      },
-      {
         "name": "columns",
         "type": {
           "type": "record_type",
@@ -98360,6 +97798,21 @@
         "description": "The columns to use in the dataframe",
         "min": null,
         "max": null
+      },
+      {
+        "name": "temperature",
+        "type": {
+          "type": "float",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 0.0,
+        "title": "Temperature",
+        "description": "Temperature for sampling",
+        "min": 0.0,
+        "max": 1.0
       }
     ],
     "outputs": [
@@ -98378,11 +97831,9 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "model",
       "prompt",
       "image",
       "audio",
-      "temperature",
       "columns"
     ]
   },
@@ -98406,7 +97857,7 @@
           "type_args": [],
           "type_name": "nodetool.nodes.google.gemini.GeminiModel"
         },
-        "default": "gemini-1.5-pro",
+        "default": "gemini-2.0-flash-exp",
         "title": "Model",
         "description": "The Gemini model to use",
         "min": null,
@@ -98426,21 +97877,6 @@
         "description": "The user prompt for SVG generation",
         "min": null,
         "max": null
-      },
-      {
-        "name": "temperature",
-        "type": {
-          "type": "float",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": 0.7,
-        "title": "Temperature",
-        "description": "Temperature for sampling",
-        "min": 0.0,
-        "max": 1.0
       },
       {
         "name": "image",
@@ -98481,6 +97917,21 @@
         "description": "Audio to use for generation",
         "min": null,
         "max": null
+      },
+      {
+        "name": "temperature",
+        "type": {
+          "type": "float",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 0.0,
+        "title": "Temperature",
+        "description": "Temperature for sampling",
+        "min": 0.0,
+        "max": 1.0
       }
     ],
     "outputs": [
@@ -98507,9 +97958,7 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "model",
       "prompt",
-      "temperature",
       "image",
       "audio"
     ]

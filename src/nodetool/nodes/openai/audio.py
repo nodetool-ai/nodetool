@@ -55,6 +55,10 @@ class TextToSpeech(BaseNode):
         audio = await context.audio_from_segment(segment)  # type: ignore
         return audio
 
+    @classmethod
+    def get_basic_fields(cls) -> list[str]:
+        return ["input", "model", "voice"]
+
 
 class Transcribe(BaseNode):
     """

@@ -199,6 +199,10 @@ class MelSpectrogram(BaseNode):
         )
         return Tensor.from_numpy(melspectrogram)
 
+    @classmethod
+    def get_basic_fields(cls) -> list[str]:
+        return ["audio", "n_mels", "fmax"]
+
 
 class MFCC(BaseNode):
     """
@@ -232,6 +236,10 @@ class MFCC(BaseNode):
             fmax=self.fmax,
         )
         return Tensor.from_numpy(mfccs)
+
+    @classmethod
+    def get_basic_fields(cls) -> list[str]:
+        return ["audio", "n_mfcc", "n_fft"]
 
 
 class PlotSpectrogram(BaseNode):
@@ -356,6 +364,10 @@ class STFT(BaseNode):
             center=self.center,
         )
         return Tensor.from_numpy(np.abs(stft_matrix))
+
+    @classmethod
+    def get_basic_fields(cls) -> list[str]:
+        return ["audio", "n_fft", "hop_length"]
 
 
 class SpectralCentroid(BaseNode):

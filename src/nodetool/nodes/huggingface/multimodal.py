@@ -296,6 +296,10 @@ class GOTOCR(HuggingFacePipelineNode):
     _tokenizer: AutoTokenizer | None = None
 
     @classmethod
+    def get_basic_fields(cls) -> list[str]:
+        return ["model", "image"]
+
+    @classmethod
     def get_recommended_models(cls):
         return [
             HFGOTOCR(
