@@ -1212,19 +1212,11 @@ export interface components {
              *       "type": "datetime",
              *       "year": 2025,
              *       "month": 1,
-<<<<<<< HEAD
              *       "day": 8,
              *       "hour": 23,
-             *       "minute": 14,
-             *       "second": 0,
-             *       "microsecond": 408812,
-=======
-             *       "day": 7,
-             *       "hour": 22,
-             *       "minute": 40,
-             *       "second": 17,
-             *       "microsecond": 295549,
->>>>>>> fc603b43592a05011898ace6660b293e2a987ee3
+             *       "minute": 29,
+             *       "second": 53,
+             *       "microsecond": 852976,
              *       "tzinfo": "UTC",
              *       "utc_offset": 0
              *     }
