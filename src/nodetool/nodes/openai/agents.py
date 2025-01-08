@@ -221,6 +221,10 @@ class Agent(BaseNode):
 
         return created_tasks
 
+    @classmethod
+    def get_basic_fields(cls) -> list[str]:
+        return ["goal", "model", "temperature"]
+
 
 class RunTasks(BaseNode):
     """
@@ -349,6 +353,10 @@ class RunTasks(BaseNode):
             )
         return tasks
 
+    @classmethod
+    def get_basic_fields(cls) -> list[str]:
+        return ["tasks", "model", "temperature"]
+
 
 class DataGenerator(BaseNode):
     """
@@ -436,6 +444,10 @@ class DataGenerator(BaseNode):
             for row in json.loads(str(assistant_message.content)).get("data", [])
         ]
         return DataframeRef(columns=self.columns.columns, data=data)
+
+    @classmethod
+    def get_basic_fields(cls) -> list[str]:
+        return ["prompt", "model", "temperature"]
 
 
 class ThoughtStep(BaseType):
@@ -560,6 +572,10 @@ class ChainOfThought(BaseNode):
             "steps": [ThoughtStep(**step) for step in result["steps"]],
         }
 
+    @classmethod
+    def get_basic_fields(cls) -> list[str]:
+        return ["messages", "model", "temperature"]
+
 
 class ProcessThought(BaseNode):
     """
@@ -674,6 +690,10 @@ class ProcessThought(BaseNode):
             "reasoning": str,
             "result": str,
         }
+
+    @classmethod
+    def get_basic_fields(cls) -> list[str]:
+        return ["current_step", "model", "temperature"]
 
 
 class ChartGenerator(BaseNode):
@@ -1022,7 +1042,7 @@ class ChartGenerator(BaseNode):
             x_label=validated_config.x_label,
             y_label=validated_config.y_label,
             legend=validated_config.legend,
-            legend_position=validated_config.legend_position,
+            legend_position=validated_config.legend_position or "auto",
             height=validated_config.height,
             aspect=validated_config.aspect,
             x_scale=validated_config.x_scale,
@@ -1048,6 +1068,10 @@ class ChartGenerator(BaseNode):
             square=validated_config.square,
             data=chart_data,
         )
+
+    @classmethod
+    def get_basic_fields(cls) -> list[str]:
+        return ["prompt", "data", "model"]
 
 
 class RegressionAnalyst(BaseNode):
@@ -1229,6 +1253,10 @@ User's original question: {self.prompt}
         )
 
         return str(interpretation_message.content)
+
+    @classmethod
+    def get_basic_fields(cls) -> list[str]:
+        return ["prompt", "data", "model"]
 
 
 class SynthesizerAgent(BaseNode):
@@ -1472,6 +1500,10 @@ class SynthesizerAgent(BaseNode):
 
         return await envelope.process(context)
 
+    @classmethod
+    def get_basic_fields(cls) -> list[str]:
+        return ["prompt", "duration", "model"]
+
 
 class ChainOfThoughtSummarizer(BaseNode):
     """
@@ -1592,3 +1624,7 @@ Extract the key insights and result from each step and synthesize them into a fi
             "final_answer": str,
             "assumptions": list[str],
         }
+
+    @classmethod
+    def get_basic_fields(cls) -> list[str]:
+        return ["steps", "messages", "model"]

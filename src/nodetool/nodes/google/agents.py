@@ -92,7 +92,7 @@ class GeminiAgent(BaseNode):
 
     goal: str = Field(default="", description="The user prompt")
     model: GeminiModel = Field(
-        default=GeminiModel.Gemini1_5_Pro, description="The Gemini model to use"
+        default=GeminiModel.Gemini2_0_Flash_Exp, description="The Gemini model to use"
     )
     temperature: float = Field(
         default=0.0, ge=0.0, le=1.0, description="Temperature for sampling"
@@ -149,8 +149,12 @@ class ChainOfThought(BaseNode):
     """
 
     messages: list[Message] = Field(default=[], description="The messages to analyze")
-    model: GeminiModel = Field(default=GeminiModel.Gemini1_5_Pro)
+    model: GeminiModel = Field(default=GeminiModel.Gemini2_0_Flash_Exp)
     temperature: float = Field(default=0.0, ge=0.0, le=1.0)
+
+    @classmethod
+    def get_basic_fields(cls) -> list[str]:
+        return ["messages"]
 
     async def process(self, context: ProcessingContext) -> dict:
         system_prompt = """
@@ -196,7 +200,7 @@ class DataGenerator(BaseNode):
     """
 
     model: GeminiModel = Field(
-        default=GeminiModel.Gemini1_5_Pro, description="The Gemini model to use"
+        default=GeminiModel.Gemini2_0_Flash_Exp, description="The Gemini model to use"
     )
     prompt: str = Field(default="", description="The user prompt")
     image: ImageRef = Field(
@@ -205,12 +209,16 @@ class DataGenerator(BaseNode):
     audio: AudioRef = Field(
         default=AudioRef(), description="Audio to use for generation"
     )
-    temperature: float = Field(
-        default=0.0, ge=0.0, le=1.0, description="Temperature for sampling"
-    )
     columns: RecordType = Field(
         default=RecordType(), description="The columns to use in the dataframe"
     )
+    temperature: float = Field(
+        default=0.0, ge=0.0, le=1.0, description="Temperature for sampling"
+    )
+
+    @classmethod
+    def get_basic_fields(cls) -> list[str]:
+        return ["prompt", "image", "audio", "columns"]
 
     async def process(self, context: ProcessingContext) -> DataframeRef:
         columns_str = ", ".join(
@@ -359,18 +367,22 @@ class SVGGenerator(BaseNode):
     """
 
     model: GeminiModel = Field(
-        default=GeminiModel.Gemini1_5_Pro, description="The Gemini model to use"
+        default=GeminiModel.Gemini2_0_Flash_Exp, description="The Gemini model to use"
     )
     prompt: str = Field(default="", description="The user prompt for SVG generation")
-    temperature: float = Field(
-        default=0.7, ge=0.0, le=1.0, description="Temperature for sampling"
-    )
     image: ImageRef = Field(
         default=ImageRef(), description="Image to use for generation"
     )
     audio: AudioRef = Field(
         default=AudioRef(), description="Audio to use for generation"
     )
+    temperature: float = Field(
+        default=0.0, ge=0.0, le=1.0, description="Temperature for sampling"
+    )
+
+    @classmethod
+    def get_basic_fields(cls) -> list[str]:
+        return ["prompt", "image", "audio"]
 
     async def process(self, context: ProcessingContext) -> list[SVGElement]:
         system_prompt = f"""

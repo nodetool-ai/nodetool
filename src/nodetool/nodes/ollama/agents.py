@@ -75,6 +75,10 @@ class DataGenerator(BaseNode):
         description="The columns to use in the dataframe.",
     )
 
+    @classmethod
+    def get_basic_fields(cls) -> list[str]:
+        return ["model", "prompt", "columns"]
+
     def requires_gpu(self) -> bool:
         return True
 
@@ -265,6 +269,10 @@ class SVGGenerator(BaseNode):
         description="The number of seconds to keep the model alive.",
     )
 
+    @classmethod
+    def get_basic_fields(cls) -> list[str]:
+        return ["model", "prompt"]
+
     def requires_gpu(self) -> bool:
         return True
 
@@ -397,6 +405,10 @@ class ChartGenerator(BaseNode):
         description="The columns available in the data.",
     )
 
+    @classmethod
+    def get_basic_fields(cls) -> list[str]:
+        return ["model", "prompt", "data"]
+
     def requires_gpu(self) -> bool:
         return True
 
@@ -495,7 +507,7 @@ class ChartGenerator(BaseNode):
             x_label=validated_config.x_label,
             y_label=validated_config.y_label,
             legend=validated_config.legend,
-            legend_position=validated_config.legend_position,
+            legend_position=validated_config.legend_position or "auto",
             height=validated_config.height,
             aspect=validated_config.aspect,
             x_scale=validated_config.x_scale,
@@ -573,6 +585,10 @@ class QuestionAnswerAgent(BaseNode):
         default="300",
         description="The number of seconds to keep the model alive.",
     )
+
+    @classmethod
+    def get_basic_fields(cls) -> list[str]:
+        return ["model", "prompt"]
 
     def requires_gpu(self) -> bool:
         return True
@@ -668,6 +684,10 @@ class SchemaGenerator(BaseNode):
         default="300",
         description="The number of seconds to keep the model alive.",
     )
+
+    @classmethod
+    def get_basic_fields(cls) -> list[str]:
+        return ["model", "prompt", "schema"]
 
     def requires_gpu(self) -> bool:
         return True

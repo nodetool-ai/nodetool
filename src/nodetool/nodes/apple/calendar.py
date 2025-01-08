@@ -32,6 +32,10 @@ class CreateCalendarEvent(BaseNode):
     description: str = Field(default="", description="Description/notes for the event")
 
     @classmethod
+    def get_basic_fields(cls) -> list[str]:
+        return ["title", "start_date", "end_date", "calendar_name"]
+
+    @classmethod
     def is_cacheable(cls) -> bool:
         return False
 
