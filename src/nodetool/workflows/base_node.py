@@ -340,6 +340,13 @@ class BaseNode(BaseModel):
         return []
 
     @classmethod
+    def get_basic_fields(cls) -> list[str]:
+        return [
+            p.name
+            for p in cls.properties()
+        ]
+
+    @classmethod
     def metadata(cls: Type["BaseNode"]):
         """
         Generate comprehensive metadata for the node class.
@@ -361,6 +368,7 @@ class BaseNode(BaseModel):
             the_model_info=cls.get_model_info(),
             layout=cls.layout(),
             recommended_models=cls.get_recommended_models(),
+            basic_fields=cls.get_basic_fields(),
         )
 
     @classmethod
@@ -877,10 +885,11 @@ class OutputNode(BaseNode):
         description (str): A detailed description of the output.
     """
 
+    name: str = Field("", description="The parameter name for the workflow.")
     label: str = Field(
         default="Output Label", description="The label for this output node."
     )
-    name: str = Field("", description="The parameter name for the workflow.")
+    _basic_fields: list[str] = ["name"]
 
     @classmethod
     def is_visible(cls):

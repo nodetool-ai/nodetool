@@ -124,10 +124,10 @@ class DateDifference(BaseNode):
     """
 
     start_date: Datetime = Field(
-        default=Datetime.from_datetime(datetime.now()), description="Start datetime"
+        default=Datetime(), description="Start datetime"
     )
     end_date: Datetime = Field(
-        default=Datetime.from_datetime(datetime.now()), description="End datetime"
+        default=Datetime(), description="End datetime"
     )
 
     @classmethod
@@ -162,7 +162,7 @@ class FormatDateTime(BaseNode):
     """
 
     input_datetime: Datetime = Field(
-        default=Datetime.from_datetime(datetime.now()),
+        default=Datetime(),
         description="Datetime object to format",
     )
     output_format: DateFormat = Field(
@@ -184,7 +184,7 @@ class GetWeekday(BaseNode):
     """
 
     input_datetime: Datetime = Field(
-        default=Datetime.from_datetime(datetime.now()), description="Input datetime"
+        default=Datetime(), description="Input datetime"
     )
     as_name: bool = Field(
         default=True, description="Return weekday name instead of number (0-6)"
@@ -207,11 +207,11 @@ class DateRange(BaseNode):
     """
 
     start_date: Datetime = Field(
-        default=Datetime.from_datetime(datetime.now()),
+        default=Datetime(),
         description="Start date of the range",
     )
     end_date: Datetime = Field(
-        default=Datetime.from_datetime(datetime.now() + timedelta(days=7)),
+        default=Datetime(),
         description="End date of the range",
     )
     step_days: int = Field(default=1, description="Number of days between each date")
@@ -238,14 +238,14 @@ class IsDateInRange(BaseNode):
     """
 
     check_date: Datetime = Field(
-        default=Datetime.from_datetime(datetime.now()), description="Date to check"
+        default=Datetime(), description="Date to check"
     )
     start_date: Datetime = Field(
-        default=Datetime.from_datetime(datetime.now()),
+        default=Datetime(),
         description="Start of date range",
     )
     end_date: Datetime = Field(
-        default=Datetime.from_datetime(datetime.now() + timedelta(days=1)),
+        default=Datetime(),
         description="End of date range",
     )
     inclusive: bool = Field(
@@ -277,7 +277,7 @@ class GetQuarter(BaseNode):
     """
 
     input_datetime: Datetime = Field(
-        default=Datetime.from_datetime(datetime.now()), description="Input datetime"
+        default=Datetime(), description="Input datetime"
     )
 
     @classmethod
@@ -316,7 +316,7 @@ class DateToDatetime(BaseNode):
     """
 
     input_date: Date = Field(
-        default=Date.from_date(date.today()), description="Date to convert"
+        default=Date(), description="Date to convert"
     )
 
     async def process(self, context: ProcessingContext) -> Datetime:
@@ -332,7 +332,7 @@ class DatetimeToDate(BaseNode):
     """
 
     input_datetime: Datetime = Field(
-        default=Datetime.from_datetime(datetime.now()),
+        default=Datetime(),
         description="Datetime to convert",
     )
 
