@@ -746,3 +746,119 @@ class MarkdownSplitter(BaseNode):
             )
             for doc in splits
         ]
+
+
+class StartsWith(BaseNode):
+    """
+    Checks if text starts with a specified prefix.
+    text, check, prefix
+
+    Use cases:
+    - Validating string prefixes
+    - Filtering text based on starting content
+    - Checking file name patterns
+    """
+
+    text: str | TextRef = Field(title="Text", default="")
+    prefix: str = Field(title="Prefix", default="")
+
+    async def process(self, context: ProcessingContext) -> bool:
+        text = await to_string(context, self.text)
+        return text.startswith(self.prefix)
+
+
+class EndsWith(BaseNode):
+    """
+    Checks if text ends with a specified suffix.
+    text, check, suffix
+
+    Use cases:
+    - Validating file extensions
+    - Checking string endings
+    - Filtering text based on ending content
+    """
+
+    text: str | TextRef = Field(title="Text", default="")
+    suffix: str = Field(title="Suffix", default="")
+
+    async def process(self, context: ProcessingContext) -> bool:
+        text = await to_string(context, self.text)
+        return text.endswith(self.suffix)
+
+
+class Contains(BaseNode):
+    """
+    Checks if text contains a specified substring.
+    text, check, contains
+
+    Use cases:
+    - Searching for keywords in text
+    - Filtering content based on presence of terms
+    - Validating text content
+    """
+
+    text: str | TextRef = Field(title="Text", default="")
+    substring: str = Field(title="Substring", default="")
+    case_sensitive: bool = Field(title="Case Sensitive", default=True)
+
+    async def process(self, context: ProcessingContext) -> bool:
+        text = await to_string(context, self.text)
+        if not self.case_sensitive:
+            text = text.lower()
+            substring = self.substring.lower()
+        else:
+            substring = self.substring
+        return substring in text
+
+
+class IsEmpty(BaseNode):
+    """
+    Checks if text is empty or contains only whitespace.
+    text, check, empty
+
+    Use cases:
+    - Validating required text fields
+    - Filtering out empty content
+    - Checking for meaningful input
+    """
+
+    text: str | TextRef = Field(title="Text", default="")
+    trim_whitespace: bool = Field(title="Trim Whitespace", default=True)
+
+    async def process(self, context: ProcessingContext) -> bool:
+        text = await to_string(context, self.text)
+        if self.trim_whitespace:
+            text = text.strip()
+        return len(text) == 0
+
+
+class HasLength(BaseNode):
+    """
+    Checks if text length meets specified conditions.
+    text, check, length
+
+    Use cases:
+    - Validating input length requirements
+    - Filtering text by length
+    - Checking content size constraints
+    """
+
+    text: str | TextRef = Field(title="Text", default="")
+    min_length: int | None = Field(title="Minimum Length", default=None)
+    max_length: int | None = Field(title="Maximum Length", default=None)
+    exact_length: int | None = Field(title="Exact Length", default=None)
+
+    async def process(self, context: ProcessingContext) -> bool:
+        text = await to_string(context, self.text)
+        length = len(text)
+        
+        if self.exact_length is not None:
+            return length == self.exact_length
+        
+        if self.min_length is not None and length < self.min_length:
+            return False
+        
+        if self.max_length is not None and length > self.max_length:
+            return False
+            
+        return True
