@@ -108,6 +108,9 @@ class Date(BaseType):
     def from_date(cls, data: date):
         return cls(year=data.year, month=data.month, day=data.day)
 
+    def to_date(self):
+        return date(self.year, self.month, self.day)
+
 
 class Datetime(BaseType):
     type: Literal["datetime"] = "datetime"

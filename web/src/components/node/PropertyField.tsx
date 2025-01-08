@@ -16,6 +16,7 @@ import { colorForType, textColorForType } from "../../config/data_types";
 import ThemeNodetool from "../themes/ThemeNodetool";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { isEqual } from "lodash";
+import { useNodeStore } from "../../stores/NodeStore";
 
 export type PropertyFieldProps = {
   id: string;
@@ -28,6 +29,8 @@ export type PropertyFieldProps = {
   onlyHandle?: boolean;
   isInspector?: boolean;
   tabIndex?: number;
+  isBasicField?: boolean;
+  showAdvancedFields?: boolean;
 };
 
 /**
@@ -42,8 +45,11 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
   onlyInput,
   onlyHandle,
   isInspector,
-  tabIndex
+  tabIndex,
+  showAdvancedFields,
+  isBasicField
 }) => {
+  const edges = useNodeStore((state) => state.edges);
   const controlKeyPressed = useKeyPressedStore((state) =>
     state.isKeyPressed("Control")
   );
@@ -51,7 +57,14 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
     state.isKeyPressed("Meta")
   );
   const { connectType, connectDirection, connectNodeId } = useConnectionStore();
+  const isConnected = useMemo(() => {
+    return edges.some(
+      (edge) => edge.target === id && edge.targetHandle === property.name
+    );
+  }, [id, property.name, edges]);
+
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
+  const hideField = !isConnected && !isBasicField && !showAdvancedFields;
   const showHandle = onlyHandle || !onlyInput;
   const showInput = onlyInput || !onlyHandle;
 
@@ -115,6 +128,9 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
     }),
     [tooltipTitle, classConnectable, property.type.type]
   );
+  if (hideField) {
+    return null;
+  }
 
   return (
     <div className={`node-property ${Slugify(property.type.type)}`}>
@@ -142,8 +158,6 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
           property={property}
           controlKeyPressed={controlKeyPressed || metaKeyPressed}
           isInspector={isInspector}
-          hideInput={false}
-          hideLabel={false}
           tabIndex={tabIndex}
         />
       ) : (

@@ -693,6 +693,10 @@ class StableDiffusionBaseNode(HuggingFacePipelineNode):
     _upscaler: StableDiffusionLatentUpscalePipeline | None = None
 
     @classmethod
+    def get_basic_fields(cls):
+        return ["prompt", "negative_prompt", "seed"]
+
+    @classmethod
     def get_recommended_models(cls):
         return (
             HF_IP_ADAPTER_MODELS
@@ -1032,9 +1036,12 @@ class StableDiffusionXLBase(HuggingFacePipelineNode):
         default=False,
         description="Enable CPU offload for the pipeline. This can reduce VRAM usage.",
     )
-
     _loaded_adapters: set[str] = set()
     _pipeline: Any = None
+
+    @classmethod
+    def get_basic_fields(cls):
+        return ["prompt", "negative_prompt", "seed", "width", "height"]
 
     @classmethod
     def get_recommended_models(cls):

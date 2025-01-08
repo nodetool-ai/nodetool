@@ -13,6 +13,8 @@ export interface NodeInputsProps {
   data: NodeData;
   onlyFields?: boolean;
   onlyHandles?: boolean;
+  showAdvancedFields?: boolean;
+  basicFields?: string[];
 }
 
 export const NodeInputs: React.FC<NodeInputsProps> = ({
@@ -22,7 +24,9 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
   nodeType,
   onlyHandles,
   onlyFields,
-  layout
+  layout,
+  showAdvancedFields,
+  basicFields
 }) => {
   // use node id for tab index
   const nodeOffset = parseInt(id) * 100;
@@ -52,6 +56,8 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
             onlyInput={onlyFields}
             onlyHandle={onlyHandles}
             tabIndex={finalTabIndex}
+            isBasicField={basicFields?.includes(property.name)}
+            showAdvancedFields={showAdvancedFields}
           />
         );
       })}

@@ -1093,19 +1093,40 @@ export interface components {
              * @enum {string}
              */
             type: "datetime";
-            /** Year */
+            /**
+             * Year
+             * @default 0
+             */
             year: number;
-            /** Month */
+            /**
+             * Month
+             * @default 0
+             */
             month: number;
-            /** Day */
+            /**
+             * Day
+             * @default 0
+             */
             day: number;
-            /** Hour */
+            /**
+             * Hour
+             * @default 0
+             */
             hour: number;
-            /** Minute */
+            /**
+             * Minute
+             * @default 0
+             */
             minute: number;
-            /** Second */
+            /**
+             * Second
+             * @default 0
+             */
             second: number;
-            /** Microsecond */
+            /**
+             * Microsecond
+             * @default 0
+             */
             microsecond: number;
             /**
              * Tzinfo
@@ -1191,11 +1212,11 @@ export interface components {
              *       "type": "datetime",
              *       "year": 2025,
              *       "month": 1,
-             *       "day": 6,
-             *       "hour": 1,
-             *       "minute": 32,
-             *       "second": 20,
-             *       "microsecond": 429098,
+             *       "day": 7,
+             *       "hour": 22,
+             *       "minute": 40,
+             *       "second": 17,
+             *       "microsecond": 295549,
              *       "tzinfo": "UTC",
              *       "utc_offset": 0
              *     }
@@ -2661,6 +2682,8 @@ export interface components {
             the_model_info: Record<string, never>;
             /** Recommended Models */
             recommended_models: components["schemas"]["HuggingFaceModel"][];
+            /** Basic Fields */
+            basic_fields: string[];
         };
         /** NodeProgress */
         NodeProgress: {

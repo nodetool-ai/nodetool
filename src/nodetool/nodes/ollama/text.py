@@ -72,6 +72,10 @@ class Ollama(BaseNode):
         description="The number of seconds to keep the model alive.",
     )
 
+    @classmethod
+    def get_basic_fields(cls):
+        return ["system_prompt", "prompt", "messages", "image"]
+
     async def create_message(
         self, message: Message, context: ProcessingContext
     ) -> Mapping[str, str | list[str]]:
@@ -159,6 +163,11 @@ class Embedding(BaseNode):
     - Aid in text classification tasks
     """
 
+    @classmethod
+    def get_basic_fields(cls):
+        return ["input"]
+
+    input: str | TextRef = Field(title="Input", default="")
     input: str | TextRef = Field(title="Input", default="")
     model: LlamaModel = Field(title="Model", default=LlamaModel())
     context_window: int = Field(
