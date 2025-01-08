@@ -268,6 +268,10 @@ class Kandinsky3Img2Img(HuggingFacePipelineNode):
     _pipeline: AutoPipelineForImage2Image | None = None
 
     @classmethod
+    def get_basic_fields(cls):
+        return super().get_basic_fields() + ["image", "prompt", "num_inference_steps", "strength"]
+
+    @classmethod
     def get_recommended_models(cls) -> list[HuggingFaceModel]:
         return [
             HuggingFaceModel(
@@ -350,6 +354,10 @@ class StableDiffusionControlNetNode(StableDiffusionBaseNode):
     _pipeline: StableDiffusionControlNetPipeline | None = None
 
     @classmethod
+    def get_basic_fields(cls):
+        return super().get_basic_fields() + ["controlnet", "control_image", "controlnet_conditioning_scale"]
+
+    @classmethod
     def get_recommended_models(cls):
         return HF_CONTROLNET_MODELS + super().get_recommended_models()
 
@@ -422,6 +430,10 @@ class StableDiffusionImg2ImgNode(StableDiffusionBaseNode):
     )
     _pipeline: StableDiffusionImg2ImgPipeline | None = None
 
+    @classmethod
+    def get_basic_fields(cls):
+        return super().get_basic_fields() + ["init_image", "strength"]
+
     def required_inputs(self):
         return ["init_image"]
 
@@ -493,6 +505,10 @@ class StableDiffusionControlNetInpaintNode(StableDiffusionBaseNode):
 
     _pipeline: StableDiffusionControlNetInpaintPipeline | None = None
 
+    @classmethod
+    def get_basic_fields(cls):
+        return super().get_basic_fields() + ["init_image", "mask_image", "control_image", "controlnet_conditioning_scale"]
+
     def required_inputs(self):
         return ["init_image", "mask_image", "control_image"]
 
@@ -561,6 +577,10 @@ class StableDiffusionInpaintNode(StableDiffusionBaseNode):
     )
     _pipeline: StableDiffusionInpaintPipeline | None = None
 
+    @classmethod
+    def get_basic_fields(cls):
+        return super().get_basic_fields() + ["init_image", "mask_image", "strength"]
+
     def required_inputs(self):
         return ["init_image", "mask_image"]
 
@@ -628,6 +648,10 @@ class StableDiffusionControlNetImg2ImgNode(StableDiffusionBaseNode):
     )
 
     _pipeline: StableDiffusionControlNetImg2ImgPipeline | None = None
+
+    @classmethod
+    def get_basic_fields(cls):
+        return super().get_basic_fields() + ["image", "controlnet", "control_image"]
 
     def required_inputs(self):
         return ["image", "control_image"]
@@ -734,6 +758,10 @@ class StableDiffusionUpscale(HuggingFacePipelineNode):
         description="Enable tiling to save VRAM",
     )
 
+    @classmethod
+    def get_basic_fields(cls):
+        return ["prompt", "negative_prompt", "image"]
+
     def required_inputs(self):
         return ["image"]
 
@@ -828,6 +856,10 @@ class StableDiffusionXLImg2Img(StableDiffusionXLBase):
     )
     _pipeline: StableDiffusionXLImg2ImgPipeline | None = None
 
+    @classmethod
+    def get_basic_fields(cls):
+        return super().get_basic_fields() + ["init_image", "strength"]
+
     def required_inputs(self):
         return ["init_image"]
 
@@ -882,6 +914,10 @@ class StableDiffusionXLInpainting(StableDiffusionXLBase):
         description="Strength for inpainting. Higher values allow for more deviation from the original image.",
     )
     _pipeline: StableDiffusionXLInpaintPipeline | None = None
+
+    @classmethod
+    def get_basic_fields(cls):
+        return super().get_basic_fields() + ["image", "mask_image", "strength"]
 
     def required_inputs(self):
         return ["image", "mask_image"]
@@ -945,6 +981,10 @@ class StableDiffusionXLControlNetNode(StableDiffusionXLImg2Img):
     )
 
     _pipeline: StableDiffusionXLControlNetPipeline | None = None
+
+    @classmethod
+    def get_basic_fields(cls):
+        return super().get_basic_fields() + ["controlnet", "control_image", "controlnet_conditioning_scale"]
 
     def required_inputs(self):
         return ["control_image"]

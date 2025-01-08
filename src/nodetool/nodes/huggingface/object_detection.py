@@ -50,6 +50,10 @@ class ObjectDetection(HuggingFacePipelineNode):
     )
 
     @classmethod
+    def get_basic_fields(cls) -> list[str]:
+        return ["model", "image"]
+
+    @classmethod
     def get_recommended_models(cls) -> list[HFObjectDetection]:
         return [
             HFObjectDetection(

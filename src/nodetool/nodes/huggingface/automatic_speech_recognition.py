@@ -151,6 +151,10 @@ class Whisper(HuggingFacePipelineNode):
     _pipeline: AutomaticSpeechRecognitionPipeline | None = None
 
     @classmethod
+    def get_basic_fields(cls):
+        return ["audio", "task", "language", "timestamps"]
+
+    @classmethod
     def get_recommended_models(cls) -> list[HuggingFaceModel]:
         return [
             HFAutomaticSpeechRecognition(

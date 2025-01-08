@@ -54,6 +54,10 @@ class TextGeneration(HuggingFacePipelineNode):
     )
 
     @classmethod
+    def get_basic_fields(cls) -> list[str]:
+        return ["model", "prompt"]
+
+    @classmethod
     def get_recommended_models(cls):
         return [
             HFTextGeneration(

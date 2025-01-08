@@ -32,6 +32,10 @@ class Claude(BaseNode):
     temperature: float = Field(title="Temperature", default=1.0, ge=0.0, le=1.0)
     top_k: int = Field(title="Top K", default=40, ge=1, le=2048)
     top_p: float = Field(title="Top P", default=1.0, ge=0.0, le=1.0)
+    
+    @classmethod
+    def get_basic_fields(cls) -> list[str]:
+        return ["model", "system", "prompt", "image"]
 
     async def process(self, context: ProcessingContext) -> str:
         messages = []

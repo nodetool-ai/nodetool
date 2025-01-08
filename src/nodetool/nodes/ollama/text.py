@@ -35,13 +35,13 @@ class Ollama(BaseNode):
         description="System prompt to send to the model.",
     )
     prompt: str = Field(default="", description="Prompt to send to the model.")
-    messages: list[Message] = Field(
-        default=[], description="History of messages to send to the model."
-    )
     image: ImageRef = Field(
         default=ImageRef(),
         title="Image",
         description="The image to analyze",
+    )
+    messages: list[Message] = Field(
+        default=[], description="History of messages to send to the model."
     )
     context_window: int = Field(
         default=4096,
@@ -163,10 +163,6 @@ class Embedding(BaseNode):
     - Aid in text classification tasks
     """
 
-    @classmethod
-    def get_basic_fields(cls):
-        return ["input"]
-
     input: str | TextRef = Field(title="Input", default="")
     input: str | TextRef = Field(title="Input", default="")
     model: LlamaModel = Field(title="Model", default=LlamaModel())
@@ -181,6 +177,10 @@ class Embedding(BaseNode):
         ge=64,
         description="The size of the chunks to split the input into",
     )
+
+    @classmethod
+    def get_basic_fields(cls) -> list[str]:
+        return ["model", "input"]
 
     def requires_gpu(self) -> bool:
         return True
