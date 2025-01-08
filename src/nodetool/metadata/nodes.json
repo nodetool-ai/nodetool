@@ -1067,11 +1067,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 6,
-          "hour": 18,
-          "minute": 51,
-          "second": 8,
-          "microsecond": 172908,
+          "day": 8,
+          "hour": 22,
+          "minute": 53,
+          "second": 36,
+          "microsecond": 302650,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -1093,11 +1093,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 6,
-          "hour": 19,
-          "minute": 51,
-          "second": 8,
-          "microsecond": 172939,
+          "day": 8,
+          "hour": 23,
+          "minute": 53,
+          "second": 36,
+          "microsecond": 302671,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -19191,7 +19191,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": 6,
+        "default": 8,
         "title": "Day",
         "description": "Day of the date",
         "min": null,
@@ -19260,7 +19260,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": 6,
+        "default": 8,
         "title": "Day",
         "description": "Day of the datetime",
         "min": null,
@@ -20913,11 +20913,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 6,
-          "hour": 18,
-          "minute": 51,
-          "second": 12,
-          "microsecond": 744229,
+          "day": 8,
+          "hour": 22,
+          "minute": 53,
+          "second": 37,
+          "microsecond": 868672,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -21008,11 +21008,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 6,
-          "hour": 18,
-          "minute": 51,
-          "second": 12,
-          "microsecond": 744939,
+          "day": 8,
+          "hour": 22,
+          "minute": 53,
+          "second": 37,
+          "microsecond": 869082,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -21034,11 +21034,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 6,
-          "hour": 18,
-          "minute": 51,
-          "second": 12,
-          "microsecond": 744961,
+          "day": 8,
+          "hour": 22,
+          "minute": 53,
+          "second": 37,
+          "microsecond": 869095,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -21128,11 +21128,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 6,
-          "hour": 18,
-          "minute": 51,
-          "second": 12,
-          "microsecond": 745402,
+          "day": 8,
+          "hour": 22,
+          "minute": 53,
+          "second": 37,
+          "microsecond": 869350,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -21203,11 +21203,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 6,
-          "hour": 18,
-          "minute": 51,
-          "second": 12,
-          "microsecond": 745817,
+          "day": 8,
+          "hour": 22,
+          "minute": 53,
+          "second": 37,
+          "microsecond": 869591,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -21283,11 +21283,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 6,
-          "hour": 18,
-          "minute": 51,
-          "second": 12,
-          "microsecond": 746710,
+          "day": 8,
+          "hour": 22,
+          "minute": 53,
+          "second": 37,
+          "microsecond": 870045,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -21309,11 +21309,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 13,
-          "hour": 18,
-          "minute": 51,
-          "second": 12,
-          "microsecond": 746732,
+          "day": 15,
+          "hour": 22,
+          "minute": 53,
+          "second": 37,
+          "microsecond": 870055,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -21382,11 +21382,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 6,
-          "hour": 18,
-          "minute": 51,
-          "second": 12,
-          "microsecond": 747175,
+          "day": 8,
+          "hour": 22,
+          "minute": 53,
+          "second": 37,
+          "microsecond": 870305,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -21408,11 +21408,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 6,
-          "hour": 18,
-          "minute": 51,
-          "second": 12,
-          "microsecond": 747193,
+          "day": 8,
+          "hour": 22,
+          "minute": 53,
+          "second": 37,
+          "microsecond": 870315,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -21434,11 +21434,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 7,
-          "hour": 18,
-          "minute": 51,
-          "second": 12,
-          "microsecond": 747208,
+          "day": 9,
+          "hour": 22,
+          "minute": 53,
+          "second": 37,
+          "microsecond": 870323,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -21499,11 +21499,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 6,
-          "hour": 18,
-          "minute": 51,
-          "second": 12,
-          "microsecond": 748125,
+          "day": 8,
+          "hour": 22,
+          "minute": 53,
+          "second": 37,
+          "microsecond": 870831,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -21571,7 +21571,7 @@
           "type": "date",
           "year": 2025,
           "month": 1,
-          "day": 6
+          "day": 8
         },
         "title": "Input Date",
         "description": "Date to convert",
@@ -21615,11 +21615,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 6,
-          "hour": 18,
-          "minute": 51,
-          "second": 12,
-          "microsecond": 748734,
+          "day": 8,
+          "hour": 22,
+          "minute": 53,
+          "second": 37,
+          "microsecond": 871188,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -21899,11 +21899,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 6,
-          "hour": 18,
-          "minute": 51,
-          "second": 12,
-          "microsecond": 750577,
+          "day": 8,
+          "hour": 22,
+          "minute": 53,
+          "second": 37,
+          "microsecond": 872358,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -21949,11 +21949,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 6,
-          "hour": 18,
-          "minute": 51,
-          "second": 12,
-          "microsecond": 750893,
+          "day": 8,
+          "hour": 22,
+          "minute": 53,
+          "second": 37,
+          "microsecond": 872583,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -21999,11 +21999,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 6,
-          "hour": 18,
-          "minute": 51,
-          "second": 12,
-          "microsecond": 751272,
+          "day": 8,
+          "hour": 22,
+          "minute": 53,
+          "second": 37,
+          "microsecond": 872801,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -22049,11 +22049,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 6,
-          "hour": 18,
-          "minute": 51,
-          "second": 12,
-          "microsecond": 751732,
+          "day": 8,
+          "hour": 22,
+          "minute": 53,
+          "second": 37,
+          "microsecond": 872987,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -22099,11 +22099,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 6,
-          "hour": 18,
-          "minute": 51,
-          "second": 12,
-          "microsecond": 752187,
+          "day": 8,
+          "hour": 22,
+          "minute": 53,
+          "second": 37,
+          "microsecond": 873172,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -22149,11 +22149,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 6,
-          "hour": 18,
-          "minute": 51,
-          "second": 12,
-          "microsecond": 752661,
+          "day": 8,
+          "hour": 22,
+          "minute": 53,
+          "second": 37,
+          "microsecond": 873352,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -22199,11 +22199,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 6,
-          "hour": 18,
-          "minute": 51,
-          "second": 12,
-          "microsecond": 753227,
+          "day": 8,
+          "hour": 22,
+          "minute": 53,
+          "second": 37,
+          "microsecond": 873562,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -22264,11 +22264,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 6,
-          "hour": 18,
-          "minute": 51,
-          "second": 12,
-          "microsecond": 753642,
+          "day": 8,
+          "hour": 22,
+          "minute": 53,
+          "second": 37,
+          "microsecond": 873775,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -30745,10 +30745,10 @@
     "recommended_models": []
   },
   {
-    "title": "radient",
+    "title": "Gradient",
     "description": "Create linear or radial gradients for SVG elements.\n    svg, gradient, color\n\n    Use cases:\n    - Add smooth color transitions\n    - Create complex color effects\n    - Define reusable gradient definitions",
     "namespace": "nodetool.image.svg",
-    "node_type": "nodetool.image.svg.radient",
+    "node_type": "nodetool.image.svg.Gradient",
     "layout": "default",
     "properties": [
       {
@@ -39463,13 +39463,20 @@
                 }
               ],
               "type_name": null
+            },
+            {
+              "type": "object",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
             }
           ],
           "type_name": null
         },
         "default": {},
         "title": "Values",
-        "description": "\n        The values to replace in the string.\n        - If a string, it will be used as the format string.\n        - If a list, it will be used as the format arguments.\n        - If a dictionary, it will be used as the format keyword arguments.\n        ",
+        "description": "\n        The values to replace in the string.\n        - If a string, it will be used as the format string.\n        - If a list, it will be used as the format arguments.\n        - If a dictionary, it will be used as the format keyword arguments.\n        - If an object, it will be converted to a dictionary using the object's __dict__ method.\n        ",
         "min": null,
         "max": null
       }
@@ -41436,6 +41443,441 @@
               "type_name": null
             }
           ],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
+    "title": "Starts With",
+    "description": "Checks if text starts with a specified prefix.\n    text, check, prefix\n\n    Use cases:\n    - Validating string prefixes\n    - Filtering text based on starting content\n    - Checking file name patterns",
+    "namespace": "nodetool.text",
+    "node_type": "nodetool.text.StartsWith",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "text",
+        "type": {
+          "type": "union",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "str",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            },
+            {
+              "type": "text",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Text",
+        "description": null,
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "prefix",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Prefix",
+        "description": null,
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "bool",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
+    "title": "Ends With",
+    "description": "Checks if text ends with a specified suffix.\n    text, check, suffix\n\n    Use cases:\n    - Validating file extensions\n    - Checking string endings\n    - Filtering text based on ending content",
+    "namespace": "nodetool.text",
+    "node_type": "nodetool.text.EndsWith",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "text",
+        "type": {
+          "type": "union",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "str",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            },
+            {
+              "type": "text",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Text",
+        "description": null,
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "suffix",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Suffix",
+        "description": null,
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "bool",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
+    "title": "Contains",
+    "description": "Checks if text contains a specified substring.\n    text, check, contains\n\n    Use cases:\n    - Searching for keywords in text\n    - Filtering content based on presence of terms\n    - Validating text content",
+    "namespace": "nodetool.text",
+    "node_type": "nodetool.text.Contains",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "text",
+        "type": {
+          "type": "union",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "str",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            },
+            {
+              "type": "text",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Text",
+        "description": null,
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "substring",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Substring",
+        "description": null,
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "case_sensitive",
+        "type": {
+          "type": "bool",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": true,
+        "title": "Case Sensitive",
+        "description": null,
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "bool",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
+    "title": "Is Empty",
+    "description": "Checks if text is empty or contains only whitespace.\n    text, check, empty\n\n    Use cases:\n    - Validating required text fields\n    - Filtering out empty content\n    - Checking for meaningful input",
+    "namespace": "nodetool.text",
+    "node_type": "nodetool.text.IsEmpty",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "text",
+        "type": {
+          "type": "union",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "str",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            },
+            {
+              "type": "text",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Text",
+        "description": null,
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "trim_whitespace",
+        "type": {
+          "type": "bool",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": true,
+        "title": "Trim Whitespace",
+        "description": null,
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "bool",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": []
+  },
+  {
+    "title": "Has Length",
+    "description": "Checks if text length meets specified conditions.\n    text, check, length\n\n    Use cases:\n    - Validating input length requirements\n    - Filtering text by length\n    - Checking content size constraints",
+    "namespace": "nodetool.text",
+    "node_type": "nodetool.text.HasLength",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "text",
+        "type": {
+          "type": "union",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "str",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            },
+            {
+              "type": "text",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Text",
+        "description": null,
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "min_length",
+        "type": {
+          "type": "union",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "int",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            },
+            {
+              "type": "none",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Minimum Length",
+        "description": null,
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "max_length",
+        "type": {
+          "type": "union",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "int",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            },
+            {
+              "type": "none",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Maximum Length",
+        "description": null,
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "exact_length",
+        "type": {
+          "type": "union",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "int",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            },
+            {
+              "type": "none",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Exact Length",
+        "description": null,
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "bool",
+          "optional": false,
+          "values": null,
+          "type_args": [],
           "type_name": null
         },
         "name": "output",
@@ -90392,7 +90834,7 @@
   },
   {
     "title": "Ollama",
-    "description": "Run Llama models to generate text responses.\n    llama, text generation, language model, ai assistant\n\n    Use cases:\n    - Generate creative writing or stories\n    - Answer questions or provide explanations\n    - Assist with tasks like coding, analysis, or problem-solving\n    - Engage in open-ended dialogue on various topics",
+    "description": "Run Llama models to generate text responses.\n    LLM, llama, text generation, language model, ai assistant\n\n    Use cases:\n    - Generate creative writing or stories\n    - Answer questions or provide explanations\n    - Assist with tasks like coding, analysis, or problem-solving\n    - Engage in open-ended dialogue on various topics",
     "namespace": "ollama.text",
     "node_type": "ollama.text.Ollama",
     "layout": "default",
