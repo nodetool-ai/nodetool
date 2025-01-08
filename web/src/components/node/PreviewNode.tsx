@@ -151,7 +151,9 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
   );
 
   const memoizedOutputRenderer = useMemo(() => {
-    return result?.output ? <OutputRenderer value={result.output} /> : null;
+    return result?.output !== undefined ? (
+      <OutputRenderer value={result.output} />
+    ) : null;
   }, [result?.output]);
 
   // const [parentIsCollapsed, setParentIsCollapsed] = useState(false);
