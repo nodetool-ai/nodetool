@@ -220,6 +220,7 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
       auth_token: user.auth_token || "",
       job_type: "workflow",
       params: params || {},
+      explicit_types: false,
       graph: {
         nodes: nodes.map(reactFlowNodeToGraphNode),
         edges: edges.map(reactFlowEdgeToGraphEdge)

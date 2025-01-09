@@ -52,7 +52,8 @@ export const useAuth = create<LoginStore>((set, get) => ({
         user: {
           id: "1",
           email: "",
-          auth_token: "local_token"
+          auth_token: "local_token",
+          passcode: "local_passcode"
         },
         state: "logged_in"
       });

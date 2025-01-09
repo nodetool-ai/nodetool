@@ -19,6 +19,7 @@ import ThemeNodetool from "../themes/ThemeNodetool";
 import { useCallback } from "react";
 import { useCreateLoopNode } from "../../hooks/nodes/useCreateLoopNode";
 import useMetadataStore from "../../stores/MetadataStore";
+import { NodeMetadata } from "../../stores/ApiTypes";
 
 interface PaneContextMenuProps {
   top?: number;
@@ -81,7 +82,7 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
 
   const addGroupNode = useCallback(
     (event: React.MouseEvent) => {
-      const metadata = {
+      const metadata: NodeMetadata = {
         namespace: "default",
         node_type: "nodetool.workflows.base_node.Group",
         properties: [],

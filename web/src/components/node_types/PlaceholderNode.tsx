@@ -13,6 +13,7 @@ import { NodeInputs } from "../node/NodeInputs";
 import { NodeOutputs } from "../node/NodeOutputs";
 import { NodeFooter } from "../node/NodeFooter";
 import { Typography } from "@mui/material";
+import { NodeMetadata } from "../../stores/ApiTypes";
 
 interface PlaceholderNodeData extends Node<NodeData> {
   data: NodeData & {
@@ -85,14 +86,14 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
   const mockProperties = useMemo(() => {
     return relevantEdges.map((edge) => ({
       name: edge.targetHandle || "",
-      type: { type: "any" },
+      type: { type: "any", optional: true, type_args: [] },
       description: `Input for ${edge.targetHandle}`,
       default: null,
       optional: true
     }));
   }, [relevantEdges]);
 
-  const mockMetadata = useMemo(
+  const mockMetadata: NodeMetadata = useMemo(
     () => ({
       title: nodeTitle || "Missing Node",
       description: "This node is missing",
@@ -100,11 +101,13 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
       node_type: nodeType || "unknown",
       layout: "default",
       properties: mockProperties,
+      basic_fields: [],
       outputs: [
         {
           name: "output",
-          type: { type: "any" },
-          description: "Default output"
+          type: { type: "any", optional: true, type_args: [] },
+          description: "Default output",
+          stream: false
         }
       ],
       input_schema: {},
@@ -149,7 +152,11 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
         />
       )}
       <NodeOutputs id={props.id} outputs={mockMetadata.outputs} />
-      <NodeFooter nodeNamespace={nodeNamespace || ""} metadata={mockMetadata} />
+      <NodeFooter
+        nodeNamespace={nodeNamespace || ""}
+        metadata={mockMetadata}
+        nodeType={nodeType || ""}
+      />
     </Container>
   );
 };
