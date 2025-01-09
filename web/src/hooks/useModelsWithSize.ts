@@ -9,7 +9,8 @@ export function useModelsWithSize(recommendedModels: UnifiedModel[]) {
   const singleFileModels = recommendedModels.filter((model) => model.path);
   const filePaths = singleFileModels?.map((model) => ({
     repo_id: model.repo_id || "",
-    path: model.path || ""
+    path: model.path || "",
+    downloaded: false
   }));
 
   const { data: hfModels } = useQuery({

@@ -19,6 +19,7 @@ import ThemeNodetool from "../themes/ThemeNodetool";
 import { useCallback } from "react";
 import { useCreateLoopNode } from "../../hooks/nodes/useCreateLoopNode";
 import useMetadataStore from "../../stores/MetadataStore";
+import { NodeMetadata } from "../../stores/ApiTypes";
 
 interface PaneContextMenuProps {
   top?: number;
@@ -63,7 +64,8 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
       outputs: [],
       the_model_info: {},
       layout: "default",
-      recommended_models: []
+      recommended_models: [],
+      basic_fields: []
     };
     const newNode = createNode(
       metadata,
@@ -80,7 +82,7 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
 
   const addGroupNode = useCallback(
     (event: React.MouseEvent) => {
-      const metadata = {
+      const metadata: NodeMetadata = {
         namespace: "default",
         node_type: "nodetool.workflows.base_node.Group",
         properties: [],
@@ -89,7 +91,8 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
         outputs: [],
         the_model_info: {},
         layout: "default",
-        recommended_models: []
+        recommended_models: [],
+        basic_fields: []
       };
       const position = reactFlowInstance.screenToFlowPosition({
         x: menuPosition?.x || event.clientX,
