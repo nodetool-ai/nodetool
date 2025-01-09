@@ -386,6 +386,14 @@ class Environment(object):
                 client=AsyncClient(timeout=30, verify=False),
             )
 
+
+    @classmethod
+    def get_replicate_api_token(cls) -> str:
+        token = os.getenv("REPLICATE_API_TOKEN")
+        if not token:
+            raise ValueError("REPLICATE_API_TOKEN environment variable is not set")
+        return token
+    
     @classmethod
     def get_chroma_token(cls):
         """
