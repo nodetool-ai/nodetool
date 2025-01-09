@@ -1,8 +1,8 @@
 {
   "id": "image-chat",
   "access": "public",
-  "created_at": "2025-01-03T16:05:52.708188",
-  "updated_at": "2025-01-03T16:05:52.708208",
+  "created_at": "2025-01-09T18:10:47.292903",
+  "updated_at": "2025-01-09T18:10:47.292923",
   "name": "Image Chat",
   "description": "Chat bot that generates images. Use the workflow chat to send messages to the bot.",
   "tags": [
@@ -41,7 +41,7 @@
         "ui_properties": {
           "position": {
             "x": 50,
-            "y": 209
+            "y": 50
           },
           "zIndex": 0,
           "width": 187,
@@ -74,13 +74,14 @@
           "ip_adapter_scale": 0.5,
           "detail_level": 0.5,
           "width": 512,
-          "height": 512
+          "height": 512,
+          "upscaler": "None"
         },
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 482,
-            "y": 50
+            "x": 486,
+            "y": 76
           },
           "zIndex": 0,
           "width": 250,
@@ -98,8 +99,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 762,
-            "y": 209
+            "x": 766,
+            "y": 129
           },
           "zIndex": 0,
           "width": 187,
@@ -158,8 +159,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 289,
-            "y": 136
+            "x": 297,
+            "y": 88
           },
           "zIndex": 0,
           "width": 159,

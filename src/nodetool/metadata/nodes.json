@@ -22252,10 +22252,10 @@
           "year": 2025,
           "month": 1,
           "day": 9,
-          "hour": 0,
-          "minute": 8,
-          "second": 22,
-          "microsecond": 19772,
+          "hour": 18,
+          "minute": 24,
+          "second": 4,
+          "microsecond": 174360,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23294,10 +23294,10 @@
           "year": 2025,
           "month": 1,
           "day": 9,
-          "hour": 0,
-          "minute": 8,
-          "second": 22,
-          "microsecond": 23474,
+          "hour": 18,
+          "minute": 24,
+          "second": 4,
+          "microsecond": 178743,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23347,10 +23347,10 @@
           "year": 2025,
           "month": 1,
           "day": 9,
-          "hour": 0,
-          "minute": 8,
-          "second": 22,
-          "microsecond": 23667,
+          "hour": 18,
+          "minute": 24,
+          "second": 4,
+          "microsecond": 178972,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23400,10 +23400,10 @@
           "year": 2025,
           "month": 1,
           "day": 9,
-          "hour": 0,
-          "minute": 8,
-          "second": 22,
-          "microsecond": 23883,
+          "hour": 18,
+          "minute": 24,
+          "second": 4,
+          "microsecond": 179231,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23453,10 +23453,10 @@
           "year": 2025,
           "month": 1,
           "day": 9,
-          "hour": 0,
-          "minute": 8,
-          "second": 22,
-          "microsecond": 24088,
+          "hour": 18,
+          "minute": 24,
+          "second": 4,
+          "microsecond": 179465,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23506,10 +23506,10 @@
           "year": 2025,
           "month": 1,
           "day": 9,
-          "hour": 0,
-          "minute": 8,
-          "second": 22,
-          "microsecond": 24280,
+          "hour": 18,
+          "minute": 24,
+          "second": 4,
+          "microsecond": 179691,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23559,10 +23559,10 @@
           "year": 2025,
           "month": 1,
           "day": 9,
-          "hour": 0,
-          "minute": 8,
-          "second": 22,
-          "microsecond": 24465,
+          "hour": 18,
+          "minute": 24,
+          "second": 4,
+          "microsecond": 179915,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23612,10 +23612,10 @@
           "year": 2025,
           "month": 1,
           "day": 9,
-          "hour": 0,
-          "minute": 8,
-          "second": 22,
-          "microsecond": 24694,
+          "hour": 18,
+          "minute": 24,
+          "second": 4,
+          "microsecond": 180169,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23681,10 +23681,10 @@
           "year": 2025,
           "month": 1,
           "day": 9,
-          "hour": 0,
-          "minute": 8,
-          "second": 22,
-          "microsecond": 24908,
+          "hour": 18,
+          "minute": 24,
+          "second": 4,
+          "microsecond": 180434,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -25387,20 +25387,35 @@
         "max": null
       },
       {
-        "name": "path",
+        "name": "folder",
         "type": {
-          "type": "file_path",
+          "type": "folder_path",
           "optional": false,
           "values": null,
           "type_args": [],
           "type_name": null
         },
         "default": {
-          "type": "file_path",
+          "type": "folder_path",
           "path": ""
         },
-        "title": "Path",
-        "description": "Path to the document to write",
+        "title": "Folder",
+        "description": "Folder where the file will be saved",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "filename",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Filename",
+        "description": "Name of the file to save",
         "min": null,
         "max": null
       }
@@ -25410,7 +25425,8 @@
     "recommended_models": [],
     "basic_fields": [
       "document",
-      "path"
+      "folder",
+      "filename"
     ]
   },
   {
@@ -25497,20 +25513,35 @@
         "max": null
       },
       {
-        "name": "path",
+        "name": "folder",
         "type": {
-          "type": "file_path",
+          "type": "folder_path",
           "optional": false,
           "values": null,
           "type_args": [],
           "type_name": null
         },
         "default": {
-          "type": "file_path",
+          "type": "folder_path",
           "path": ""
         },
-        "title": "Path",
-        "description": "Path to the CSV file to write",
+        "title": "Folder",
+        "description": "Folder where the file will be saved",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "filename",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Filename",
+        "description": "Name of the CSV file to save",
         "min": null,
         "max": null
       }
@@ -25520,7 +25551,8 @@
     "recommended_models": [],
     "basic_fields": [
       "data",
-      "path"
+      "folder",
+      "filename"
     ]
   },
   {
@@ -25546,20 +25578,35 @@
         "max": null
       },
       {
-        "name": "path",
+        "name": "folder",
         "type": {
-          "type": "file_path",
+          "type": "folder_path",
           "optional": false,
           "values": null,
           "type_args": [],
           "type_name": null
         },
         "default": {
-          "type": "file_path",
+          "type": "folder_path",
           "path": ""
         },
-        "title": "Path",
-        "description": "Path to the CSV file to write",
+        "title": "Folder",
+        "description": "Folder where the file will be saved",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "filename",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Filename",
+        "description": "Name of the CSV file to save",
         "min": null,
         "max": null
       }
@@ -25569,7 +25616,8 @@
     "recommended_models": [],
     "basic_fields": [
       "dataframe",
-      "path"
+      "folder",
+      "filename"
     ]
   },
   {
@@ -25640,20 +25688,35 @@
         "max": null
       },
       {
-        "name": "path",
+        "name": "folder",
         "type": {
-          "type": "file_path",
+          "type": "folder_path",
           "optional": false,
           "values": null,
           "type_args": [],
           "type_name": null
         },
         "default": {
-          "type": "file_path",
-          "path": "/tmp/output.bin"
+          "type": "folder_path",
+          "path": ""
         },
-        "title": "Path",
-        "description": "Output file path",
+        "title": "Folder",
+        "description": "Folder where the file will be saved",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "filename",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Filename",
+        "description": "Name of the file to save",
         "min": null,
         "max": null
       }
@@ -25663,7 +25726,8 @@
     "recommended_models": [],
     "basic_fields": [
       "data",
-      "path"
+      "folder",
+      "filename"
     ]
   },
   {
@@ -25739,20 +25803,35 @@
         "max": null
       },
       {
-        "name": "path",
+        "name": "folder",
         "type": {
-          "type": "file_path",
+          "type": "folder_path",
           "optional": false,
           "values": null,
           "type_args": [],
           "type_name": null
         },
         "default": {
-          "type": "file_path",
+          "type": "folder_path",
           "path": ""
         },
-        "title": "Path",
-        "description": "Output file path",
+        "title": "Folder",
+        "description": "Folder where the file will be saved",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "filename",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Filename",
+        "description": "Name of the file to save",
         "min": null,
         "max": null
       }
@@ -25774,7 +25853,8 @@
     "recommended_models": [],
     "basic_fields": [
       "image",
-      "path"
+      "folder",
+      "filename"
     ]
   },
   {
@@ -25850,20 +25930,35 @@
         "max": null
       },
       {
-        "name": "path",
+        "name": "folder",
         "type": {
-          "type": "file_path",
+          "type": "folder_path",
           "optional": false,
           "values": null,
           "type_args": [],
           "type_name": null
         },
         "default": {
-          "type": "file_path",
+          "type": "folder_path",
           "path": ""
         },
-        "title": "Path",
-        "description": "Output file path",
+        "title": "Folder",
+        "description": "Folder where the file will be saved",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "filename",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Filename",
+        "description": "Name of the file to save",
         "min": null,
         "max": null
       }
@@ -25885,7 +25980,8 @@
     "recommended_models": [],
     "basic_fields": [
       "audio",
-      "path"
+      "folder",
+      "filename"
     ]
   },
   {
@@ -25960,20 +26056,35 @@
         "max": null
       },
       {
-        "name": "path",
+        "name": "folder",
         "type": {
-          "type": "file_path",
+          "type": "folder_path",
           "optional": false,
           "values": null,
           "type_args": [],
           "type_name": null
         },
         "default": {
-          "type": "file_path",
+          "type": "folder_path",
           "path": ""
         },
-        "title": "Path",
-        "description": "Output file path. Defaults to output.mp4 in current directory",
+        "title": "Folder",
+        "description": "Folder where the file will be saved",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "filename",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Filename",
+        "description": "Name of the file to save",
         "min": null,
         "max": null
       }
@@ -25995,7 +26106,8 @@
     "recommended_models": [],
     "basic_fields": [
       "video",
-      "path"
+      "folder",
+      "filename"
     ]
   },
   {
@@ -43996,7 +44108,7 @@
   },
   {
     "title": "Starts With",
-    "description": "Checks if text starts with a specified prefix.\n    text, check, prefix\n\n    Use cases:\n    - Validating string prefixes\n    - Filtering text based on starting content\n    - Checking file name patterns",
+    "description": "Checks if text starts with a specified prefix.\n    text, check, prefix, compare, validate, substring, string\n\n    Use cases:\n    - Validating string prefixes\n    - Filtering text based on starting content\n    - Checking file name patterns",
     "namespace": "nodetool.text",
     "node_type": "nodetool.text.StartsWith",
     "layout": "default",
@@ -44069,7 +44181,7 @@
   },
   {
     "title": "Ends With",
-    "description": "Checks if text ends with a specified suffix.\n    text, check, suffix\n\n    Use cases:\n    - Validating file extensions\n    - Checking string endings\n    - Filtering text based on ending content",
+    "description": "Checks if text ends with a specified suffix.\n    text, check, suffix, compare, validate, substring, string\n\n    Use cases:\n    - Validating file extensions\n    - Checking string endings\n    - Filtering text based on ending content",
     "namespace": "nodetool.text",
     "node_type": "nodetool.text.EndsWith",
     "layout": "default",
@@ -44142,7 +44254,7 @@
   },
   {
     "title": "Contains",
-    "description": "Checks if text contains a specified substring.\n    text, check, contains\n\n    Use cases:\n    - Searching for keywords in text\n    - Filtering content based on presence of terms\n    - Validating text content",
+    "description": "Checks if text contains a specified substring.\n    text, check, contains, compare, validate, substring, string\n\n    Use cases:\n    - Searching for keywords in text\n    - Filtering content based on presence of terms\n    - Validating text content",
     "namespace": "nodetool.text",
     "node_type": "nodetool.text.Contains",
     "layout": "default",
@@ -44231,7 +44343,7 @@
   },
   {
     "title": "Is Empty",
-    "description": "Checks if text is empty or contains only whitespace.\n    text, check, empty\n\n    Use cases:\n    - Validating required text fields\n    - Filtering out empty content\n    - Checking for meaningful input",
+    "description": "Checks if text is empty or contains only whitespace.\n    text, check, empty, compare, validate, whitespace, string\n\n    Use cases:\n    - Validating required text fields\n    - Filtering out empty content\n    - Checking for meaningful input",
     "namespace": "nodetool.text",
     "node_type": "nodetool.text.IsEmpty",
     "layout": "default",
@@ -44304,7 +44416,7 @@
   },
   {
     "title": "Has Length",
-    "description": "Checks if text length meets specified conditions.\n    text, check, length\n\n    Use cases:\n    - Validating input length requirements\n    - Filtering text by length\n    - Checking content size constraints",
+    "description": "Checks if text length meets specified conditions.\n    text, check, length, compare, validate, whitespace, string\n\n    Use cases:\n    - Validating input length requirements\n    - Filtering text by length\n    - Checking content size constraints",
     "namespace": "nodetool.text",
     "node_type": "nodetool.text.HasLength",
     "layout": "default",
@@ -49331,24 +49443,6 @@
         "description": "The font color.",
         "min": null,
         "max": null
-      },
-      {
-        "name": "outline_color",
-        "type": {
-          "type": "color",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": {
-          "type": "color",
-          "value": "#000000"
-        },
-        "title": "Outline Color",
-        "description": "The outline color for better text visibility.",
-        "min": null,
-        "max": null
       }
     ],
     "outputs": [
@@ -49372,8 +49466,7 @@
       "font",
       "align",
       "font_size",
-      "font_color",
-      "outline_color"
+      "font_color"
     ]
   },
   {
@@ -52990,7 +53083,7 @@
           "type_args": [],
           "type_name": "nodetool.nodes.huggingface.stable_diffusion_base.StableDiffusionScheduler"
         },
-        "default": "HeunDiscreteScheduler",
+        "default": "EulerDiscreteScheduler",
         "title": "Scheduler",
         "description": "The scheduler to use for the diffusion process.",
         "min": null,
@@ -53117,6 +53210,25 @@
         "default": false,
         "title": "Enable Cpu Offload",
         "description": "Enable CPU offload for the pipeline. This can reduce VRAM usage.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "upscaler",
+        "type": {
+          "type": "enum",
+          "optional": false,
+          "values": [
+            "None",
+            "Latent",
+            "Bicubic"
+          ],
+          "type_args": [],
+          "type_name": "nodetool.nodes.huggingface.stable_diffusion_base.StableDiffusionUpscaler"
+        },
+        "default": "None",
+        "title": "Upscaler",
+        "description": "The upscaler to use for 2-pass generation.",
         "min": null,
         "max": null
       },
@@ -53417,9 +53529,8 @@
       }
     ],
     "basic_fields": [
+      "model",
       "prompt",
-      "negative_prompt",
-      "seed",
       "controlnet",
       "control_image",
       "controlnet_conditioning_scale"
@@ -53552,7 +53663,7 @@
           "type_args": [],
           "type_name": "nodetool.nodes.huggingface.stable_diffusion_base.StableDiffusionScheduler"
         },
-        "default": "HeunDiscreteScheduler",
+        "default": "EulerDiscreteScheduler",
         "title": "Scheduler",
         "description": "The scheduler to use for the diffusion process.",
         "min": null,
@@ -53679,6 +53790,25 @@
         "default": false,
         "title": "Enable Cpu Offload",
         "description": "Enable CPU offload for the pipeline. This can reduce VRAM usage.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "upscaler",
+        "type": {
+          "type": "enum",
+          "optional": false,
+          "values": [
+            "None",
+            "Latent",
+            "Bicubic"
+          ],
+          "type_args": [],
+          "type_name": "nodetool.nodes.huggingface.stable_diffusion_base.StableDiffusionUpscaler"
+        },
+        "default": "None",
+        "title": "Upscaler",
+        "description": "The upscaler to use for 2-pass generation.",
         "min": null,
         "max": null
       },
@@ -53860,9 +53990,8 @@
       }
     ],
     "basic_fields": [
+      "model",
       "prompt",
-      "negative_prompt",
-      "seed",
       "init_image",
       "strength"
     ]
@@ -53994,7 +54123,7 @@
           "type_args": [],
           "type_name": "nodetool.nodes.huggingface.stable_diffusion_base.StableDiffusionScheduler"
         },
-        "default": "HeunDiscreteScheduler",
+        "default": "EulerDiscreteScheduler",
         "title": "Scheduler",
         "description": "The scheduler to use for the diffusion process.",
         "min": null,
@@ -54121,6 +54250,25 @@
         "default": false,
         "title": "Enable Cpu Offload",
         "description": "Enable CPU offload for the pipeline. This can reduce VRAM usage.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "upscaler",
+        "type": {
+          "type": "enum",
+          "optional": false,
+          "values": [
+            "None",
+            "Latent",
+            "Bicubic"
+          ],
+          "type_args": [],
+          "type_name": "nodetool.nodes.huggingface.stable_diffusion_base.StableDiffusionUpscaler"
+        },
+        "default": "None",
+        "title": "Upscaler",
+        "description": "The upscaler to use for 2-pass generation.",
         "min": null,
         "max": null
       },
@@ -54359,9 +54507,8 @@
       }
     ],
     "basic_fields": [
+      "model",
       "prompt",
-      "negative_prompt",
-      "seed",
       "init_image",
       "mask_image",
       "control_image",
@@ -54495,7 +54642,7 @@
           "type_args": [],
           "type_name": "nodetool.nodes.huggingface.stable_diffusion_base.StableDiffusionScheduler"
         },
-        "default": "HeunDiscreteScheduler",
+        "default": "EulerDiscreteScheduler",
         "title": "Scheduler",
         "description": "The scheduler to use for the diffusion process.",
         "min": null,
@@ -54622,6 +54769,25 @@
         "default": false,
         "title": "Enable Cpu Offload",
         "description": "Enable CPU offload for the pipeline. This can reduce VRAM usage.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "upscaler",
+        "type": {
+          "type": "enum",
+          "optional": false,
+          "values": [
+            "None",
+            "Latent",
+            "Bicubic"
+          ],
+          "type_args": [],
+          "type_name": "nodetool.nodes.huggingface.stable_diffusion_base.StableDiffusionUpscaler"
+        },
+        "default": "None",
+        "title": "Upscaler",
+        "description": "The upscaler to use for 2-pass generation.",
         "min": null,
         "max": null
       },
@@ -54823,9 +54989,8 @@
       }
     ],
     "basic_fields": [
+      "model",
       "prompt",
-      "negative_prompt",
-      "seed",
       "init_image",
       "mask_image",
       "strength"
@@ -54958,7 +55123,7 @@
           "type_args": [],
           "type_name": "nodetool.nodes.huggingface.stable_diffusion_base.StableDiffusionScheduler"
         },
-        "default": "HeunDiscreteScheduler",
+        "default": "EulerDiscreteScheduler",
         "title": "Scheduler",
         "description": "The scheduler to use for the diffusion process.",
         "min": null,
@@ -55085,6 +55250,25 @@
         "default": false,
         "title": "Enable Cpu Offload",
         "description": "Enable CPU offload for the pipeline. This can reduce VRAM usage.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "upscaler",
+        "type": {
+          "type": "enum",
+          "optional": false,
+          "values": [
+            "None",
+            "Latent",
+            "Bicubic"
+          ],
+          "type_args": [],
+          "type_name": "nodetool.nodes.huggingface.stable_diffusion_base.StableDiffusionUpscaler"
+        },
+        "default": "None",
+        "title": "Upscaler",
+        "description": "The upscaler to use for 2-pass generation.",
         "min": null,
         "max": null
       },
@@ -55405,9 +55589,8 @@
       }
     ],
     "basic_fields": [
+      "model",
       "prompt",
-      "negative_prompt",
-      "seed",
       "image",
       "controlnet",
       "control_image"
@@ -55753,7 +55936,7 @@
           "type_args": [],
           "type_name": "nodetool.nodes.huggingface.stable_diffusion_base.StableDiffusionScheduler"
         },
-        "default": "DDIMScheduler",
+        "default": "EulerDiscreteScheduler",
         "title": "Scheduler",
         "description": "The scheduler to use for the diffusion process.",
         "min": null,
@@ -56020,9 +56203,8 @@
       }
     ],
     "basic_fields": [
+      "model",
       "prompt",
-      "negative_prompt",
-      "seed",
       "width",
       "height",
       "init_image",
@@ -56186,7 +56368,7 @@
           "type_args": [],
           "type_name": "nodetool.nodes.huggingface.stable_diffusion_base.StableDiffusionScheduler"
         },
-        "default": "DDIMScheduler",
+        "default": "EulerDiscreteScheduler",
         "title": "Scheduler",
         "description": "The scheduler to use for the diffusion process.",
         "min": null,
@@ -56473,9 +56655,8 @@
       }
     ],
     "basic_fields": [
+      "model",
       "prompt",
-      "negative_prompt",
-      "seed",
       "width",
       "height",
       "image",
@@ -56640,7 +56821,7 @@
           "type_args": [],
           "type_name": "nodetool.nodes.huggingface.stable_diffusion_base.StableDiffusionScheduler"
         },
-        "default": "DDIMScheduler",
+        "default": "EulerDiscreteScheduler",
         "title": "Scheduler",
         "description": "The scheduler to use for the diffusion process.",
         "min": null,
@@ -56963,9 +57144,8 @@
       }
     ],
     "basic_fields": [
+      "model",
       "prompt",
-      "negative_prompt",
-      "seed",
       "width",
       "height",
       "init_image",
@@ -60138,7 +60318,7 @@
           "type_args": [],
           "type_name": "nodetool.nodes.huggingface.stable_diffusion_base.StableDiffusionScheduler"
         },
-        "default": "HeunDiscreteScheduler",
+        "default": "EulerDiscreteScheduler",
         "title": "Scheduler",
         "description": "The scheduler to use for the diffusion process.",
         "min": null,
@@ -60265,6 +60445,25 @@
         "default": false,
         "title": "Enable Cpu Offload",
         "description": "Enable CPU offload for the pipeline. This can reduce VRAM usage.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "upscaler",
+        "type": {
+          "type": "enum",
+          "optional": false,
+          "values": [
+            "None",
+            "Latent",
+            "Bicubic"
+          ],
+          "type_args": [],
+          "type_name": "nodetool.nodes.huggingface.stable_diffusion_base.StableDiffusionUpscaler"
+        },
+        "default": "None",
+        "title": "Upscaler",
+        "description": "The upscaler to use for 2-pass generation.",
         "min": null,
         "max": null
       },
@@ -60441,9 +60640,10 @@
       }
     ],
     "basic_fields": [
+      "model",
       "prompt",
-      "negative_prompt",
-      "seed"
+      "width",
+      "height"
     ]
   },
   {
@@ -60603,7 +60803,7 @@
           "type_args": [],
           "type_name": "nodetool.nodes.huggingface.stable_diffusion_base.StableDiffusionScheduler"
         },
-        "default": "DDIMScheduler",
+        "default": "EulerDiscreteScheduler",
         "title": "Scheduler",
         "description": "The scheduler to use for the diffusion process.",
         "min": null,
@@ -60835,9 +61035,10 @@
       }
     ],
     "basic_fields": [
+      "model",
       "prompt",
-      "negative_prompt",
-      "seed",
+      "width",
+      "height",
       "width",
       "height"
     ]
@@ -95824,21 +96025,6 @@
         "max": null
       },
       {
-        "name": "system_prompt",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "You are an assistant.",
-        "title": "System Prompt",
-        "description": "System prompt to send to the model.",
-        "min": null,
-        "max": null
-      },
-      {
         "name": "prompt",
         "type": {
           "type": "str",
@@ -95870,6 +96056,21 @@
         },
         "title": "Image",
         "description": "The image to analyze",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "system_prompt",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "You are an assistant.",
+        "title": "System Prompt",
+        "description": "System prompt to send to the model.",
         "min": null,
         "max": null
       },
@@ -95988,9 +96189,8 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "system_prompt",
+      "model",
       "prompt",
-      "messages",
       "image"
     ]
   },

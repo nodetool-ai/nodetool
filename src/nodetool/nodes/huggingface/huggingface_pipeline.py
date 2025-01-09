@@ -100,8 +100,6 @@ class HuggingFacePipelineNode(HuggingfaceNode):
                 **kwargs,
             )
         else:
-            # if not await context.is_huggingface_model_cached(model_id):
-            #     raise ValueError(f"Model {model_id} must be downloaded first")
             log.info(f"Loading model {model_id} from HuggingFace")
             context.post_message(
                 JobUpdate(

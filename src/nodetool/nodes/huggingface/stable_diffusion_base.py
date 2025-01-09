@@ -630,6 +630,45 @@ def quantize_to_multiple_of_64(value):
     return round(value / 64) * 64
 
 
+def upscale_latents(latents: torch.Tensor, scale_factor: int = 2) -> torch.Tensor:
+    """Upscale latents using torch interpolation.
+    
+    Args:
+        latents: Input latents tensor of shape (B, C, H, W)
+        scale_factor: Factor to scale dimensions by
+        
+    Returns:
+        Upscaled latents tensor
+    """
+    # Ensure input is on correct device
+    if not isinstance(latents, torch.Tensor):
+        raise ValueError("Input must be a torch tensor")
+        
+    # Get current dimensions
+    batch_size, channels, height, width = latents.shape
+    
+    # Calculate new dimensions
+    new_height = height * scale_factor
+    new_width = width * scale_factor
+
+    # Use interpolate for upscaling
+    upscaled = torch.nn.functional.interpolate(
+        latents,
+        size=(new_height, new_width),
+        mode='bicubic',
+        align_corners=False
+    )
+
+    return upscaled
+
+
+
+class StableDiffusionUpscaler(str, Enum):
+    NONE = "None"
+    LATENT = "Latent"
+    BICUBIC = "Bicubic"
+
+
 class StableDiffusionBaseNode(HuggingFacePipelineNode):
     model: HFStableDiffusion = Field(
         default=HFStableDiffusion(),
@@ -653,7 +692,7 @@ class StableDiffusionBaseNode(HuggingFacePipelineNode):
         default=7.5, ge=1.0, le=20.0, description="Guidance scale for generation."
     )
     scheduler: StableDiffusionScheduler = Field(
-        default=StableDiffusionScheduler.HeunDiscreteScheduler,
+        default=StableDiffusionScheduler.EulerDiscreteScheduler,
         description="The scheduler to use for the diffusion process.",
     )
     loras: list[HFLoraSDConfig] = Field(
@@ -688,13 +727,17 @@ class StableDiffusionBaseNode(HuggingFacePipelineNode):
         default=False,
         description="Enable CPU offload for the pipeline. This can reduce VRAM usage.",
     )
+    upscaler: StableDiffusionUpscaler = Field(
+        default=StableDiffusionUpscaler.NONE,
+        description="The upscaler to use for 2-pass generation.",
+    )
     _loaded_adapters: set[str] = set()
     _pipeline: Any = None
     _upscaler: StableDiffusionLatentUpscalePipeline | None = None
 
     @classmethod
     def get_basic_fields(cls):
-        return ["prompt", "negative_prompt", "seed"]
+        return ["model", "prompt"]
 
     @classmethod
     def get_recommended_models(cls):
@@ -829,20 +872,9 @@ class StableDiffusionBaseNode(HuggingFacePipelineNode):
             height = quantize_to_multiple_of_64(height)
             kwargs["height"] = height
 
-        hires = (
-            width is not None
-            and height is not None
-            and (width >= 1024 or height >= 1024)
-        )
+        hires = self.upscaler != StableDiffusionUpscaler.NONE
 
         if hires:
-            self._upscaler = await self.load_model(
-                context=context,
-                model_class=StableDiffusionLatentUpscalePipeline,
-                model_id="stabilityai/sd-x2-latent-upscaler",
-                variant=None,
-            )
-            self._upscaler.to(context.device)
             # Calculate ratio on a continuous scale
             if self.num_inference_steps <= 50:
                 low_res_ratio = 1 / 3 + (self.num_inference_steps - 25) / 75
@@ -894,22 +926,35 @@ class StableDiffusionBaseNode(HuggingFacePipelineNode):
             )
             low_res_latents = low_res_result.images
 
-            assert self._upscaler is not None
+            if self.upscaler == StableDiffusionUpscaler.LATENT:
+                if not await context.is_huggingface_model_cached("stabilityai/sd-x2-latent-upscaler"):
+                    raise ValueError("Latent upscaler stabilityai/sd-x2-latent-upscaler is required. Please install it from RECOMMENDED_MODELS")
 
-            # Upscale latents
-            upscaled_latents = self._upscaler(
-                prompt=self.prompt,
-                negative_prompt=self.negative_prompt,
-                image=low_res_latents,
-                num_inference_steps=upscale_steps,
-                guidance_scale=upscale_guidance_scale,
-                generator=generator,
-                output_type="latent",
-                callback=self.progress_callback(context, low_res_steps, total),
-                callback_steps=1,
-            ).images[  # type: ignore
-                0
-            ]
+                self._upscaler = await self.load_model(
+                    context=context,
+                    model_class=StableDiffusionLatentUpscalePipeline,
+                    model_id="stabilityai/sd-x2-latent-upscaler",
+                    variant=None,
+                )
+                self._upscaler.to(context.device)
+
+                upscaled_latents = self._upscaler(
+                    prompt=self.prompt,
+                    negative_prompt=self.negative_prompt,
+                    image=low_res_latents,
+                    num_inference_steps=upscale_steps,
+                    guidance_scale=upscale_guidance_scale,
+                    generator=generator,
+                    output_type="latent",
+                    callback=self.progress_callback(context, low_res_steps, total),
+                    callback_steps=1,
+                ).images # type: ignore
+            elif self.upscaler == StableDiffusionUpscaler.BICUBIC:
+                log.info("Using torch interpolation upscaling")
+                # Fallback to torch interpolation upscaling
+                upscaled_latents = upscale_latents(low_res_latents.cpu())
+            else:
+                raise ValueError("Invalid upscaler")
 
             # Prepare img2img pipeline for hi-res pass
             if "image" in kwargs:
@@ -938,7 +983,7 @@ class StableDiffusionBaseNode(HuggingFacePipelineNode):
 
             img2img_pipe.vae.enable_tiling()
             image = img2img_pipe(
-                image=upscaled_latents.unsqueeze(0),  # type: ignore
+                image=upscaled_latents,
                 prompt=self.prompt + ", hires",
                 negative_prompt=self.negative_prompt,
                 num_inference_steps=hi_res_steps,
@@ -949,7 +994,7 @@ class StableDiffusionBaseNode(HuggingFacePipelineNode):
                 callback=self.progress_callback(context, low_res_steps + 20, total),
                 callback_steps=1,
                 **hires_kwargs,
-            ).images[  # type: ignore
+            ).images[ # type: ignore
                 0
             ]
         else:
@@ -1001,7 +1046,7 @@ class StableDiffusionXLBase(HuggingFacePipelineNode):
         default=1024, ge=64, le=2048, description="Height of the generated image"
     )
     scheduler: StableDiffusionScheduler = Field(
-        default=StableDiffusionScheduler.DDIMScheduler,
+        default=StableDiffusionScheduler.EulerDiscreteScheduler,
         description="The scheduler to use for the diffusion process.",
     )
     loras: list[HFLoraSDXLConfig] = Field(
@@ -1041,7 +1086,7 @@ class StableDiffusionXLBase(HuggingFacePipelineNode):
 
     @classmethod
     def get_basic_fields(cls):
-        return ["prompt", "negative_prompt", "seed", "width", "height"]
+        return ["model", "prompt", "width", "height"]
 
     @classmethod
     def get_recommended_models(cls):

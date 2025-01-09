@@ -15,6 +15,7 @@ from nodetool.metadata.types import (
     AudioRef,
     VideoRef,
     DataframeRef,
+    FolderPath,
 )
 
 
@@ -287,15 +288,25 @@ class SaveDocument(BaseNode):
     document: DocumentRef = Field(
         default=DocumentRef(), description="The document to save"
     )
-    path: FilePath = Field(
-        default=FilePath(), description="Path to the document to write"
+    folder: FolderPath = Field(
+        default=FolderPath(), description="Folder where the file will be saved"
+    )
+    filename: str = Field(
+        default="", description="Name of the file to save"
     )
 
     async def process(self, context: ProcessingContext):
-        if not self.path.path:
-            raise ValueError("path cannot be empty")
+        if not self.folder.path:
+            raise ValueError("folder cannot be empty")
+        if not self.filename:
+            raise ValueError("filename cannot be empty")
+            
+        expanded_folder = os.path.expanduser(self.folder.path)
+        if not os.path.exists(expanded_folder):
+            raise ValueError(f"Folder does not exist: {expanded_folder}")
+            
+        expanded_path = os.path.join(expanded_folder, self.filename)
         data = await context.asset_to_bytes(self.document)
-        expanded_path = os.path.expanduser(self.path.path)
         with open(expanded_path, "wb") as f:
             f.write(data)
 
@@ -328,16 +339,26 @@ class SaveCSV(BaseNode):
     data: list[dict] = Field(
         default_factory=list, description="list of dictionaries to write to CSV"
     )
-    path: FilePath = Field(
-        default=FilePath(), description="Path to the CSV file to write"
+    folder: FolderPath = Field(
+        default=FolderPath(), description="Folder where the file will be saved"
+    )
+    filename: str = Field(
+        default="", description="Name of the CSV file to save"
     )
 
     async def process(self, context: ProcessingContext):
         if not self.data:
             raise ValueError("'data' field cannot be empty")
-        if not self.path.path:
-            raise ValueError("'path' field cannot be empty")
-        expanded_path = os.path.expanduser(self.path.path)
+        if not self.folder.path:
+            raise ValueError("folder cannot be empty")
+        if not self.filename:
+            raise ValueError("filename cannot be empty")
+            
+        expanded_folder = os.path.expanduser(self.folder.path)
+        if not os.path.exists(expanded_folder):
+            raise ValueError(f"Folder does not exist: {expanded_folder}")
+            
+        expanded_path = os.path.join(expanded_folder, self.filename)
         with open(expanded_path, "w") as f:
             writer = csv.DictWriter(f, fieldnames=self.data[0].keys())
             writer.writeheader()
@@ -354,15 +375,26 @@ class SaveCSVDataframe(BaseNode):
     dataframe: DataframeRef = Field(
         default_factory=DataframeRef, description="DataFrame to write to CSV"
     )
-    path: FilePath = Field(
-        default=FilePath(), description="Path to the CSV file to write"
+    folder: FolderPath = Field(
+        default=FolderPath(), description="Folder where the file will be saved"
+    )
+    filename: str = Field(
+        default="", description="Name of the CSV file to save"
     )
 
     async def process(self, context: ProcessingContext):
-        if not self.path.path:
-            raise ValueError("path cannot be empty")
+        if not self.folder.path:
+            raise ValueError("folder cannot be empty")
+        if not self.filename:
+            raise ValueError("filename cannot be empty")
+            
+        expanded_folder = os.path.expanduser(self.folder.path)
+        if not os.path.exists(expanded_folder):
+            raise ValueError(f"Folder does not exist: {expanded_folder}")
+            
+        expanded_path = os.path.join(expanded_folder, self.filename)
         df = pd.DataFrame(self.dataframe.data, columns=self.dataframe.columns)
-        df.to_csv(self.path.path, index=False)
+        df.to_csv(expanded_path, index=False)
 
 
 class LoadBytes(BaseNode):
@@ -392,16 +424,26 @@ class SaveBytes(BaseNode):
     """
 
     data: bytes = Field(default=None, description="The bytes to write to file")
-    path: FilePath = Field(
-        default=FilePath(path="/tmp/output.bin"), description="Output file path"
+    folder: FolderPath = Field(
+        default=FolderPath(), description="Folder where the file will be saved"
+    )
+    filename: str = Field(
+        default="", description="Name of the file to save"
     )
 
     async def process(self, context: ProcessingContext):
         if not self.data:
             raise ValueError("data cannot be empty")
-        if not self.path.path:
-            raise ValueError("path cannot be empty")
-        expanded_path = os.path.expanduser(self.path.path)
+        if not self.folder.path:
+            raise ValueError("folder cannot be empty")
+        if not self.filename:
+            raise ValueError("filename cannot be empty")
+            
+        expanded_folder = os.path.expanduser(self.folder.path)
+        if not os.path.exists(expanded_folder):
+            raise ValueError(f"Folder does not exist: {expanded_folder}")
+            
+        expanded_path = os.path.join(expanded_folder, self.filename)
         os.makedirs(os.path.dirname(expanded_path), exist_ok=True)
         with open(expanded_path, "wb") as f:
             f.write(self.data)
@@ -450,12 +492,24 @@ class SaveImage(BaseNode):
     """
 
     image: ImageRef = Field(default=ImageRef(), description="The image to save")
-    path: FilePath = Field(default=FilePath(), description="Output file path")
+    folder: FolderPath = Field(
+        default=FolderPath(), description="Folder where the file will be saved"
+    )
+    filename: str = Field(
+        default="", description="Name of the file to save"
+    )
 
     async def process(self, context: ProcessingContext) -> ImageRef:
-        if not self.path.path:
-            raise ValueError("path cannot be empty")
-        expanded_path = os.path.expanduser(self.path.path)
+        if not self.folder.path:
+            raise ValueError("folder cannot be empty")
+        if not self.filename:
+            raise ValueError("filename cannot be empty")
+            
+        expanded_folder = os.path.expanduser(self.folder.path)
+        if not os.path.exists(expanded_folder):
+            raise ValueError(f"Folder does not exist: {expanded_folder}")
+            
+        expanded_path = os.path.join(expanded_folder, self.filename)
         os.makedirs(os.path.dirname(expanded_path), exist_ok=True)
 
         image = await context.image_to_pil(self.image)
@@ -505,15 +559,24 @@ class SaveAudio(BaseNode):
     """
 
     audio: AudioRef = Field(default=AudioRef(), description="The audio to save")
-    path: FilePath = Field(
-        default=FilePath(),
-        description="Output file path",
+    folder: FolderPath = Field(
+        default=FolderPath(), description="Folder where the file will be saved"
+    )
+    filename: str = Field(
+        default="", description="Name of the file to save"
     )
 
     async def process(self, context: ProcessingContext) -> AudioRef:
-        if not self.path.path:
-            raise ValueError("path cannot be empty")
-        expanded_path = os.path.expanduser(self.path.path)
+        if not self.folder.path:
+            raise ValueError("folder cannot be empty")
+        if not self.filename:
+            raise ValueError("filename cannot be empty")
+            
+        expanded_folder = os.path.expanduser(self.folder.path)
+        if not os.path.exists(expanded_folder):
+            raise ValueError(f"Folder does not exist: {expanded_folder}")
+            
+        expanded_path = os.path.join(expanded_folder, self.filename)
         os.makedirs(os.path.dirname(expanded_path), exist_ok=True)
 
         audio_io = await context.asset_to_io(self.audio)
@@ -560,15 +623,24 @@ class SaveVideo(BaseNode):
     """
 
     video: VideoRef = Field(default=VideoRef(), description="The video to save")
-    path: FilePath = Field(
-        default=FilePath(),
-        description="Output file path. Defaults to output.mp4 in current directory",
+    folder: FolderPath = Field(
+        default=FolderPath(), description="Folder where the file will be saved"
+    )
+    filename: str = Field(
+        default="", description="Name of the file to save"
     )
 
     async def process(self, context: ProcessingContext) -> VideoRef:
-        if not self.path.path:
-            raise ValueError("path cannot be empty")
-        expanded_path = os.path.expanduser(self.path.path)
+        if not self.folder.path:
+            raise ValueError("folder cannot be empty")
+        if not self.filename:
+            raise ValueError("filename cannot be empty")
+            
+        expanded_folder = os.path.expanduser(self.folder.path)
+        if not os.path.exists(expanded_folder):
+            raise ValueError(f"Folder does not exist: {expanded_folder}")
+            
+        expanded_path = os.path.join(expanded_folder, self.filename)
         os.makedirs(os.path.dirname(expanded_path), exist_ok=True)
 
         video_io = await context.asset_to_io(self.video)
