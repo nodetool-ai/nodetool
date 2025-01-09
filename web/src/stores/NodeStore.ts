@@ -347,12 +347,22 @@ export const useNodeStore = create<NodeStore>()(
           selectedNodes = allNodes;
         }
         const layoutedNodes = await autoLayout(edges, selectedNodes);
+
+        // Update nodes with new positions while preserving other properties
         const updatedNodes = allNodes.map((node) => {
           const layoutedNode = layoutedNodes.find((n) => n.id === node.id);
-          return layoutedNode ? layoutedNode : node;
+          if (layoutedNode) {
+            return {
+              ...node,
+              position: layoutedNode.position
+            };
+          }
+          return node;
         });
 
-        set({ nodes: updatedNodes, shouldFitToScreen: true });
+        // Use setNodes which is integrated with the temporal state system
+        get().setNodes(updatedNodes);
+        set({ shouldFitToScreen: true });
       },
 
       /**

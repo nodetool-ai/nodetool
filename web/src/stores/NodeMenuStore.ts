@@ -274,12 +274,14 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
     },
     selectedPath: [],
     setSelectedPath: (path: string[]) => {
+      const currentPath = get().selectedPath;
+      const newPath = currentPath.join(".") === path.join(".") ? [] : path;
+
       set({
-        selectedPath: path,
-        searchTerm: "" // Clear search when selecting a path
+        selectedPath: newPath
       });
-      // Trigger a new search with empty term to show namespace nodes
-      get().performSearch("");
+      // Trigger a new search with current term to show namespace nodes
+      get().performSearch(get().searchTerm);
     },
     clickPosition: { x: 0, y: 0 },
     openNodeMenu: (
@@ -369,46 +371,37 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
         get().selectedOutputType as TypeName
       );
 
-      // If no search term is provided, show nodes based on selected path
+      // Filter by selected path if one exists
+      const selectedPathString = get().selectedPath.join(".");
+      const pathFilteredMetadata = selectedPathString
+        ? typeFilteredMetadata.filter((node) => {
+            const matches =
+              node.namespace === selectedPathString ||
+              (node.namespace.startsWith(selectedPathString + ".") &&
+                node.namespace.split(".").length ===
+                  selectedPathString.split(".").length + 1);
+            return matches;
+          })
+        : typeFilteredMetadata;
+
+      // If no search term is provided, show all nodes in the current path
       if (!term.trim()) {
-        const selectedPathString = get().selectedPath.join(".");
-
-        // If no path is selected and no search term, return empty results
-        if (!selectedPathString) {
-          set({
-            searchResults: [],
-            groupedSearchResults: []
-          });
-          get().updateHighlightedNamespaces([]);
-          return;
-        }
-
-        // Show nodes for selected path
-        const nodesInPath = typeFilteredMetadata.filter((node) => {
-          const matches =
-            node.namespace === selectedPathString ||
-            (node.namespace.startsWith(selectedPathString + ".") &&
-              node.namespace.split(".").length ===
-                selectedPathString.split(".").length + 1);
-          return matches;
-        });
-
         const allResults = [
           {
-            title: selectedPathString,
-            nodes: nodesInPath
+            title: selectedPathString || "All",
+            nodes: pathFilteredMetadata
           }
         ];
         set({
-          searchResults: nodesInPath,
+          searchResults: pathFilteredMetadata,
           groupedSearchResults: allResults
         });
-        get().updateHighlightedNamespaces(nodesInPath);
+        get().updateHighlightedNamespaces(pathFilteredMetadata);
         return;
       }
 
       // Prepare search entries
-      const entries = typeFilteredMetadata.map((node: NodeMetadata) => {
+      const entries = pathFilteredMetadata.map((node: NodeMetadata) => {
         const lines = node.description.split("\n");
         const firstLine = lines[0] || "";
         const tags = lines[1]
