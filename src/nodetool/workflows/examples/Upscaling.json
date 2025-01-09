@@ -1,15 +1,15 @@
 {
   "id": "upscaling",
   "access": "public",
-  "created_at": "2024-10-19T19:06:13.029167",
-  "updated_at": "2024-10-19T19:06:13.029171",
+  "created_at": "2025-01-09T21:24:57.217155",
+  "updated_at": "2025-01-09T21:24:57.217189",
   "name": "Upscaling",
   "description": "Upscale an image to a higher resolution using a RealESRGAN model.",
   "tags": [
     "image",
     "start"
   ],
-  "thumbnail": "",
+  "thumbnail": null,
   "thumbnail_url": "/examples/upscale.jpg",
   "graph": {
     "nodes": [
@@ -81,12 +81,12 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 96,
-            "y": -303
+            "x": 190,
+            "y": -148
           },
           "zIndex": 0,
-          "width": 560,
-          "height": 239,
+          "width": 479,
+          "height": 184,
           "selectable": true
         }
       },
@@ -104,7 +104,7 @@
           "selected": false,
           "position": {
             "x": 50,
-            "y": 128
+            "y": 155
           },
           "zIndex": 0,
           "width": 200,
@@ -125,14 +125,14 @@
           "prompt": "woman, red hair, blue eyes, detailed skin, photorealistic",
           "negative_prompt": "",
           "seed": -1,
-          "num_inference_steps": 80,
+          "num_inference_steps": 25,
           "guidance_scale": 6,
-          "scheduler": "DPMSolverMultistepScheduler",
+          "scheduler": "EulerDiscreteScheduler",
           "loras": [],
           "ip_adapter_model": "ip-adapter_sd15.bin",
           "ip_adapter_scale": 1,
-          "detail_level": 0.89,
-          "strength": 0.2,
+          "detail_level": 1,
+          "strength": 0.5,
           "controlnet": {
             "type": "hf.controlnet",
             "repo_id": "lllyasviel/control_v11p_sd15_canny",
@@ -142,7 +142,7 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 808,
+            "x": 727,
             "y": 50
           },
           "zIndex": 0,
@@ -161,8 +161,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 585.5,
-            "y": 379
+            "x": 540,
+            "y": 109
           },
           "zIndex": 0,
           "width": 157,
@@ -179,12 +179,12 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 1118,
-            "y": 174
+            "x": 1007,
+            "y": 74
           },
           "zIndex": 0,
-          "width": 178,
-          "height": 175,
+          "width": 371,
+          "height": 348,
           "selectable": true
         }
       },
@@ -193,73 +193,21 @@
         "parent_id": null,
         "type": "huggingface.image_to_image.RealESRGAN",
         "data": {
-          "scale": "x2"
+          "scale": "x2",
+          "model": {
+            "type": "hf.real_esrgan",
+            "repo_id": "ai-forever/Real-ESRGAN",
+            "path": "RealESRGAN_x2.pth"
+          }
         },
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 310,
-            "y": 386
+            "x": 280,
+            "y": 184
           },
           "zIndex": 0,
           "width": 200,
-          "selectable": true
-        }
-      },
-      {
-        "id": "a0ac63d5-84bc-4e24-a00e-8db3abb724d0",
-        "parent_id": null,
-        "type": "nodetool.workflows.base_node.Preview",
-        "data": {
-          "name": "image_output_2024-10-19"
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 580,
-            "y": 567
-          },
-          "zIndex": 0,
-          "width": 168,
-          "height": 189,
-          "selectable": true
-        }
-      },
-      {
-        "id": "2034477",
-        "parent_id": null,
-        "type": "nodetool.image.Blend",
-        "data": {
-          "alpha": 0.2
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 1149.6666666666667,
-            "y": 674
-          },
-          "zIndex": 0,
-          "width": 83,
-          "color": "#cb4b16",
-          "selectable": true
-        }
-      },
-      {
-        "id": "2034478",
-        "parent_id": null,
-        "type": "nodetool.workflows.base_node.Preview",
-        "data": {
-          "name": "image_output_2024-10-19"
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 1326,
-            "y": 557
-          },
-          "zIndex": 0,
-          "width": 354,
-          "height": 372,
           "selectable": true
         }
       }
@@ -276,21 +224,21 @@
         }
       },
       {
-        "id": "dd740e68-4674-4bbb-8fb2-d26125da975c",
+        "id": "82dd9a9b-2a54-4c9a-9872-7705015064a9",
         "source": "833c6933-0566-434b-847c-896a513a606f",
         "sourceHandle": "output",
-        "target": "a5a8b875-416a-489a-929c-8594539b49df",
+        "target": "7487d44c-3afe-464d-a71e-405a493609f1",
         "targetHandle": "image",
         "ui_properties": {
           "className": "image"
         }
       },
       {
-        "id": "688f2355-2d16-484f-8e1d-973b8501852d",
-        "source": "a5a8b875-416a-489a-929c-8594539b49df",
+        "id": "dd740e68-4674-4bbb-8fb2-d26125da975c",
+        "source": "833c6933-0566-434b-847c-896a513a606f",
         "sourceHandle": "output",
-        "target": "7487d44c-3afe-464d-a71e-405a493609f1",
-        "targetHandle": "control_image",
+        "target": "a5a8b875-416a-489a-929c-8594539b49df",
+        "targetHandle": "image",
         "ui_properties": {
           "className": "image"
         }
@@ -306,61 +254,11 @@
         }
       },
       {
-        "id": "82dd9a9b-2a54-4c9a-9872-7705015064a9",
-        "source": "833c6933-0566-434b-847c-896a513a606f",
+        "id": "688f2355-2d16-484f-8e1d-973b8501852d",
+        "source": "a5a8b875-416a-489a-929c-8594539b49df",
         "sourceHandle": "output",
         "target": "7487d44c-3afe-464d-a71e-405a493609f1",
-        "targetHandle": "image",
-        "ui_properties": {
-          "className": "image"
-        }
-      },
-      {
-        "id": "996791",
-        "source": "2034477",
-        "sourceHandle": "output",
-        "target": "2034478",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "image"
-        }
-      },
-      {
-        "id": "459a2a5a-c739-4cd6-b381-67ac5060f8df",
-        "source": "833c6933-0566-434b-847c-896a513a606f",
-        "sourceHandle": "output",
-        "target": "a0ac63d5-84bc-4e24-a00e-8db3abb724d0",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "image"
-        }
-      },
-      {
-        "id": "3065f74a-9e68-4c30-acb9-ccd729ac6886",
-        "source": "7487d44c-3afe-464d-a71e-405a493609f1",
-        "sourceHandle": "output",
-        "target": "2034477",
-        "targetHandle": "image1",
-        "ui_properties": {
-          "className": "image"
-        }
-      },
-      {
-        "id": "faef8b32-dd82-4eb9-95f0-c32c8c43881b",
-        "source": "fdf72faf-1770-46f1-9f26-53d1cd07d785",
-        "sourceHandle": "output",
-        "target": "7487d44c-3afe-464d-a71e-405a493609f1",
-        "targetHandle": "ip_adapter_image",
-        "ui_properties": {
-          "className": "image"
-        }
-      },
-      {
-        "id": "711a1976-6927-41cc-ba51-ba501aa70716",
-        "source": "833c6933-0566-434b-847c-896a513a606f",
-        "sourceHandle": "output",
-        "target": "2034477",
-        "targetHandle": "image2",
+        "targetHandle": "control_image",
         "ui_properties": {
           "className": "image"
         }
