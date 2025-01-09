@@ -47,7 +47,20 @@ const styles = (theme: any) =>
         border: `1px solid ${theme.palette.c_gray2}`,
         borderRadius: "4px",
         padding: "8px",
-        marginTop: "0.5em"
+        marginTop: "0.5em",
+
+        ".MuiTreeItem-content.Mui-selected": {
+          backgroundColor: `${theme.palette.c_hl1} !important`
+        },
+        ".MuiTreeItem-content:hover": {
+          backgroundColor: `${theme.palette.c_gray3} !important`
+        },
+        ".MuiTreeItem-content.Mui-selected:hover": {
+          backgroundColor: `${theme.palette.c_hl1} !important`
+        },
+        ".MuiTreeItem-label": {
+          backgroundColor: "transparent !important"
+        }
       },
 
       ".file-picker__browse-button": {
@@ -301,6 +314,23 @@ const FilePathProperty = (props: PropertyProps) => {
               items={files ?? []}
               aria-label="file browser"
               selectedItems={selectedPath}
+              sx={{
+                ".MuiTreeItem-content.Mui-selected": {
+                  backgroundColor: (theme) =>
+                    `${theme.palette.c_hl1} !important`
+                },
+                ".MuiTreeItem-content:hover": {
+                  backgroundColor: (theme) =>
+                    `${theme.palette.c_gray3} !important`
+                },
+                ".MuiTreeItem-content.Mui-selected:hover": {
+                  backgroundColor: (theme) =>
+                    `${theme.palette.c_hl1} !important`
+                },
+                ".MuiTreeItem-label": {
+                  backgroundColor: "transparent !important"
+                }
+              }}
             />
           )}
         </DialogContent>
