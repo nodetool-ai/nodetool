@@ -88,7 +88,10 @@ const namespaceStyles = (theme: any, inPanel: boolean) =>
       overflowY: "visible",
       borderTop: `1px solid ${theme.palette.c_gray0}`,
       marginTop: "0.5em",
-      paddingTop: "0.5em"
+      paddingTop: "0.5em",
+      ".namespace-item": {
+        color: theme.palette.c_gray5
+      }
     },
     ".node-list": {
       padding: "0 1em 1em .5em",
