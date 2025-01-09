@@ -412,8 +412,7 @@ class Build:
             ]
         )
 
-        # Install ffmpeg from conda forge
-        # Install codecs for audio and video
+        # Install ffmpeg and related codecs from conda forge
         self.run_command(
             [
                 "conda",
@@ -422,7 +421,14 @@ class Build:
                 str(self.ENV_DIR),
                 "ffmpeg",
                 "cairo",
+                "x264",
+                "x265", 
+                "libvpx",
+                "aom",  
                 "libopus",
+                "libvorbis", 
+                "lame",
+                "libfdk-aac", 
                 "pandoc",
                 "-y",
                 "--channel",

@@ -547,12 +547,42 @@ class SetSpeed(BaseNode):
 
                 input_stream = ffmpeg.input(temp.name)
 
-                # Apply speed adjustment
-                adjusted = input_stream.filter("setpts", f"{1/self.speed_factor}*PTS")
-
-                ffmpeg.output(adjusted, output_temp.name).overwrite_output().run(
-                    quiet=False
+                # Check if video has audio
+                probe = ffmpeg.probe(temp.name)
+                has_audio = any(
+                    stream["codec_type"] == "audio" for stream in probe["streams"]
                 )
+
+                # Apply speed adjustment to video
+                adjusted_video = input_stream.filter("setpts", f"{1/self.speed_factor}*PTS")
+
+                if has_audio:
+                    # Apply speed adjustment to audio
+                    # Note: atempo filter is limited to 0.5-2.0 range, so we chain filters for larger adjustments
+                    adjusted_audio = input_stream.audio
+                    remaining_tempo = self.speed_factor
+
+                    while remaining_tempo > 2.0:
+                        adjusted_audio = adjusted_audio.filter("atempo", 2.0)
+                        remaining_tempo /= 2.0
+                    while remaining_tempo < 0.5:
+                        adjusted_audio = adjusted_audio.filter("atempo", 0.5)
+                        remaining_tempo *= 2.0
+                    if remaining_tempo != 1.0:
+                        adjusted_audio = adjusted_audio.filter("atempo", remaining_tempo)
+
+                    # Output with adjusted audio
+                    ffmpeg.output(
+                        adjusted_video, 
+                        adjusted_audio, 
+                        output_temp.name
+                    ).overwrite_output().run(quiet=False)
+                else:
+                    # Output video only
+                    ffmpeg.output(
+                        adjusted_video, 
+                        output_temp.name
+                    ).overwrite_output().run(quiet=False)
 
                 # Read the speed-adjusted video and create a VideoRef
                 with open(output_temp.name, "rb") as f:
@@ -723,21 +753,42 @@ class ColorBalance(BaseNode):
             temp_output.close()
 
             try:
-                # Apply color balance adjustment
+                # Get input stream
                 input_stream = ffmpeg.input(temp_input.name)
-                adjusted = input_stream.filter(
+
+                # Check if video has audio
+                probe = ffmpeg.probe(temp_input.name)
+                has_audio = any(
+                    stream["codec_type"] == "audio" for stream in probe["streams"]
+                )
+
+                # Apply color balance adjustment to video stream only
+                adjusted_video = input_stream.video.filter(
                     "colorbalance",
                     rs=self.red_adjust - 1,
                     gs=self.green_adjust - 1,
                     bs=self.blue_adjust - 1,
                 )
 
-                output = ffmpeg.output(adjusted, temp_output.name, format="mp4")
+                if has_audio:
+                    # If there's audio, include it in the output
+                    output = ffmpeg.output(
+                        adjusted_video,
+                        input_stream.audio,
+                        temp_output.name,
+                        vcodec="libx264",
+                        acodec="copy"
+                    )
+                else:
+                    # Video only output
+                    output = ffmpeg.output(
+                        adjusted_video,
+                        temp_output.name,
+                        vcodec="libx264",
+                    )
 
                 # Run ffmpeg process
-                ffmpeg.run(output, quiet=True, overwrite_output=True)
-
-                temp_output.close()
+                output.overwrite_output().run(quiet=True)
 
                 # Read the processed video and create a VideoRef
                 with open(temp_output.name, "rb") as f:
@@ -795,11 +846,24 @@ class Denoise(BaseNode):
             temp_output.close()
 
             try:
-                # Apply denoising filter
+                # Get input stream and check for audio
                 input_stream = ffmpeg.input(temp_input.name)
-                denoised = input_stream.filter("nlmeans", s=self.strength)
+                probe = ffmpeg.probe(temp_input.name)
+                has_audio = any(stream["codec_type"] == "audio" for stream in probe["streams"])
 
-                output = ffmpeg.output(denoised, temp_output.name, format="mp4")
+                # Apply denoising filter to video stream only
+                denoised = input_stream.video.filter("nlmeans", s=self.strength)
+
+                if has_audio:
+                    # Combine denoised video with original audio
+                    output = ffmpeg.output(
+                        denoised,
+                        input_stream.audio,
+                        temp_output.name,
+                        acodec="copy"  # Copy audio without re-encoding
+                    )
+                else:
+                    output = ffmpeg.output(denoised, temp_output.name)
 
                 # Run ffmpeg process
                 ffmpeg.run(output, quiet=True, overwrite_output=True)
@@ -864,15 +928,26 @@ class Stabilize(BaseNode):
             temp_output.close()
 
             try:
-                # Apply video stabilization
+                # Get input stream and check for audio
                 input_stream = ffmpeg.input(temp_input.name)
-                stabilized = input_stream.filter("deshake", smooth=self.smoothing)
+                probe = ffmpeg.probe(temp_input.name)
+                has_audio = any(stream["codec_type"] == "audio" for stream in probe["streams"])
 
-                # Optionally crop black borders
+                # Apply stabilization to video stream only
+                stabilized = input_stream.video.filter("deshake", smooth=self.smoothing)
                 if self.crop_black:
                     stabilized = stabilized.filter("cropdetect").filter("crop")
 
-                output = ffmpeg.output(stabilized, temp_output.name, format="mp4")
+                if has_audio:
+                    # Combine stabilized video with original audio
+                    output = ffmpeg.output(
+                        stabilized,
+                        input_stream.audio,
+                        temp_output.name,
+                        acodec="copy"
+                    )
+                else:
+                    output = ffmpeg.output(stabilized, temp_output.name)
 
                 # Run ffmpeg process
                 ffmpeg.run(output, quiet=True, overwrite_output=True)
@@ -939,19 +1014,32 @@ class Sharpness(BaseNode):
             temp_output.close()
 
             try:
-                # Apply unsharp mask filter for sharpening
+                # Get input stream and check for audio
                 input_stream = ffmpeg.input(temp_input.name)
-                sharpened = input_stream.filter(
+                probe = ffmpeg.probe(temp_input.name)
+                has_audio = any(stream["codec_type"] == "audio" for stream in probe["streams"])
+
+                # Apply sharpening to video stream only
+                sharpened = input_stream.video.filter(
                     "unsharp",
-                    luma_msize_x=5,  # 5x5 matrix for luma
+                    luma_msize_x=5,
                     luma_msize_y=5,
                     luma_amount=self.luma_amount,
-                    chroma_msize_x=5,  # 5x5 matrix for chroma
+                    chroma_msize_x=5,
                     chroma_msize_y=5,
                     chroma_amount=self.chroma_amount,
                 )
 
-                output = ffmpeg.output(sharpened, temp_output.name, format="mp4")
+                if has_audio:
+                    # Combine sharpened video with original audio
+                    output = ffmpeg.output(
+                        sharpened,
+                        input_stream.audio,
+                        temp_output.name,
+                        acodec="copy"
+                    )
+                else:
+                    output = ffmpeg.output(sharpened, temp_output.name)
 
                 # Run ffmpeg process
                 ffmpeg.run(output, quiet=True, overwrite_output=True)
@@ -1012,11 +1100,24 @@ class Blur(BaseNode):
             temp_output.close()
 
             try:
-                # Apply boxblur filter
+                # Get input stream and check for audio
                 input_stream = ffmpeg.input(temp_input.name)
-                blurred = input_stream.filter("boxblur", luma_radius=self.strength)
+                probe = ffmpeg.probe(temp_input.name)
+                has_audio = any(stream["codec_type"] == "audio" for stream in probe["streams"])
 
-                output = ffmpeg.output(blurred, temp_output.name, format="mp4")
+                # Apply blur to video stream only
+                blurred = input_stream.video.filter("boxblur", luma_radius=self.strength)
+
+                if has_audio:
+                    # Combine blurred video with original audio
+                    output = ffmpeg.output(
+                        blurred,
+                        input_stream.audio,
+                        temp_output.name,
+                        acodec="copy"
+                    )
+                else:
+                    output = ffmpeg.output(blurred, temp_output.name)
 
                 # Run ffmpeg process
                 ffmpeg.run(output, quiet=True, overwrite_output=True)
@@ -1077,11 +1178,24 @@ class Saturation(BaseNode):
             temp_output.close()
 
             try:
-                # Apply saturation adjustment
+                # Get input stream and check for audio
                 input_stream = ffmpeg.input(temp_input.name)
-                saturated = input_stream.filter("eq", saturation=self.saturation)
+                probe = ffmpeg.probe(temp_input.name)
+                has_audio = any(stream["codec_type"] == "audio" for stream in probe["streams"])
 
-                output = ffmpeg.output(saturated, temp_output.name, format="mp4")
+                # Apply saturation adjustment to video stream only
+                saturated = input_stream.video.filter("eq", saturation=self.saturation)
+
+                if has_audio:
+                    # Combine saturated video with original audio
+                    output = ffmpeg.output(
+                        saturated,
+                        input_stream.audio,
+                        temp_output.name,
+                        acodec="copy"
+                    )
+                else:
+                    output = ffmpeg.output(saturated, temp_output.name)
 
                 # Run ffmpeg process
                 ffmpeg.run(output, quiet=True, overwrite_output=True)
@@ -1137,11 +1251,7 @@ class AddSubtitles(BaseNode):
     font_color: ColorRef = Field(
         default=ColorRef(value="#FFFFFF"), description="The font color."
     )
-    outline_color: ColorRef = Field(
-        default=ColorRef(value="#000000"),
-        description="The outline color for better text visibility.",
-    )
-
+    
     async def process(self, context: ProcessingContext) -> VideoRef:
         if self.video.is_empty():
             raise ValueError("Input video must be connected.")
@@ -1230,12 +1340,13 @@ class AddSubtitles(BaseNode):
                         total_height = len(lines) * line_spacing
 
                         # Calculate starting y position based on alignment
+                        padding = 20  # Padding from edges
                         if self.align == self.SubtitleTextAlignment.TOP:
-                            y = 10
+                            y = padding
                         elif self.align == self.SubtitleTextAlignment.CENTER:
                             y = (height - total_height) // 2
                         else:  # BOTTOM
-                            y = height - total_height - 10
+                            y = height - total_height - padding
 
                         # Draw each line
                         for line in lines:
@@ -1243,17 +1354,6 @@ class AddSubtitles(BaseNode):
                             line_width = draw.textlength(line, font=font)
                             x = (width - line_width) // 2
 
-                            # Draw text outline
-                            outline_width = 2
-                            for dx, dy in [(-1, -1), (-1, 1), (1, -1), (1, 1)]:
-                                draw.text(
-                                    (x + dx * outline_width, y + dy * outline_width),
-                                    line,
-                                    font=font,
-                                    fill=self.outline_color.value,
-                                )
-
-                            # Draw main text
                             draw.text(
                                 (x, y),
                                 line,

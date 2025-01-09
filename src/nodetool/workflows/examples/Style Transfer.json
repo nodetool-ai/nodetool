@@ -1,16 +1,16 @@
 {
   "id": "style_transfer",
   "access": "public",
-  "created_at": "2024-10-19T15:47:12.158843",
-  "updated_at": "2024-10-19T15:47:12.158865",
+  "created_at": "2025-01-09T18:30:25.197545",
+  "updated_at": "2025-01-09T18:30:25.197563",
   "name": "Style Transfer",
+  "description": "Apply the style of an image to another image",
   "tags": [
     "huggingface",
     "image",
     "start"
   ],
-  "description": "Apply the style of an image to another image",
-  "thumbnail": "",
+  "thumbnail": null,
   "thumbnail_url": "/examples/style_transfer.jpg",
   "graph": {
     "nodes": [
@@ -28,7 +28,7 @@
           "selected": false,
           "position": {
             "x": 50,
-            "y": 552
+            "y": 356
           },
           "zIndex": 0,
           "width": 200,
@@ -50,8 +50,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 310,
-            "y": 456
+            "x": 500,
+            "y": 527
           },
           "zIndex": 0,
           "width": 200,
@@ -70,12 +70,12 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 800,
-            "y": 408
+            "x": 1000,
+            "y": 308
           },
           "zIndex": 0,
-          "width": 271,
-          "height": 340,
+          "width": 300,
+          "height": 338,
           "selectable": true
         }
       },
@@ -90,7 +90,7 @@
               "type": "paragraph",
               "children": [
                 {
-                  "text": "* IP Adapter apply the style of an image to the generated image"
+                  "text": "* IP Adapter applies the style of an image to the generated image"
                 }
               ]
             },
@@ -155,12 +155,12 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 43,
-            "y": -200
+            "x": 52,
+            "y": 91
           },
           "zIndex": 0,
-          "width": 509,
-          "height": 174,
+          "width": 450,
+          "height": 184,
           "selectable": true
         }
       },
@@ -174,8 +174,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 570,
-            "y": 50
+            "x": 770,
+            "y": 71
           },
           "zIndex": 0,
           "width": 160,
@@ -194,8 +194,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 310,
-            "y": 268
+            "x": 500,
+            "y": 368
           },
           "zIndex": 0,
           "width": 200,
@@ -212,7 +212,6 @@
             "repo_id": "SG161222/Realistic_Vision_V5.1_noVAE",
             "path": "Realistic_Vision_V5.1_fp16-no-ema.safetensors"
           },
-          "prompt": "cyborg lady",
           "negative_prompt": "",
           "seed": -1,
           "num_inference_steps": 25,
@@ -220,7 +219,11 @@
           "scheduler": "HeunDiscreteScheduler",
           "loras": [],
           "lora_scale": 0.5,
-          "ip_adapter_model": "ip-adapter_sd15.bin",
+          "ip_adapter_model": {
+            "type": "hf.ip_adapter",
+            "repo_id": "h94/IP-Adapter",
+            "path": "models/ip-adapter_sd15.bin"
+          },
           "ip_adapter_scale": 0.5,
           "hires": false,
           "enable_tiling": true,
@@ -230,21 +233,85 @@
             "path": "diffusion_pytorch_model.fp16.safetensors"
           },
           "detail_level": 0.8,
-          "strength": 0.7
+          "strength": 0.7,
+          "upscaler": "None"
         },
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 570,
-            "y": 260
+            "x": 770,
+            "y": 281
           },
           "zIndex": 0,
           "width": 200,
           "selectable": true
         }
+      },
+      {
+        "id": "15",
+        "parent_id": null,
+        "type": "nodetool.image.transform.Scale",
+        "data": {
+          "scale": 0.5
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 280,
+            "y": 442
+          },
+          "zIndex": 0,
+          "width": 160,
+          "selectable": true
+        }
+      },
+      {
+        "id": "16",
+        "parent_id": null,
+        "type": "ollama.text.Ollama",
+        "data": {
+          "model": {
+            "type": "llama_model",
+            "repo_id": "gemma:2b"
+          },
+          "system_prompt": "You are an artist.",
+          "prompt": "Write an visual description of a cyborg lady from a sci-fi movie. Only one paragraph. Realistic eyes, very detailed eyes are important.",
+          "image": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null
+          },
+          "messages": [],
+          "context_window": 4096,
+          "temperature": 0.7,
+          "top_k": 50,
+          "top_p": 0.95,
+          "keep_alive": "300"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 541,
+            "y": 50
+          },
+          "zIndex": 0,
+          "width": 159,
+          "selectable": true
+        }
       }
     ],
     "edges": [
+      {
+        "id": "77a73236-ca6e-444d-b4d0-9b603ebaae84",
+        "source": "2",
+        "sourceHandle": "output",
+        "target": "15",
+        "targetHandle": "image",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
       {
         "id": "3219b7c0-2743-4f05-8cab-ca1c4dec2ccc",
         "source": "14",
@@ -256,11 +323,21 @@
         }
       },
       {
-        "id": "c71c3532-031f-4a37-b77b-ffdaaaf89e6b",
-        "source": "13",
+        "id": "c3b8fac5-e91b-42be-b095-aa532f3590df",
+        "source": "15",
         "sourceHandle": "output",
-        "target": "12",
-        "targetHandle": "value",
+        "target": "13",
+        "targetHandle": "image",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "f940ad26-09d1-4558-87d5-2c2979576804",
+        "source": "15",
+        "sourceHandle": "output",
+        "target": "14",
+        "targetHandle": "image",
         "ui_properties": {
           "className": "image"
         }
@@ -276,26 +353,6 @@
         }
       },
       {
-        "id": "499f203b-b410-441d-8123-07b114b235c3",
-        "source": "2",
-        "sourceHandle": "output",
-        "target": "14",
-        "targetHandle": "image",
-        "ui_properties": {
-          "className": "image"
-        }
-      },
-      {
-        "id": "3007fa12-05c1-4fef-b591-239b2bcc2a45",
-        "source": "2",
-        "sourceHandle": "output",
-        "target": "13",
-        "targetHandle": "image",
-        "ui_properties": {
-          "className": "image"
-        }
-      },
-      {
         "id": "852829a8-6978-496b-bf56-21112fb510b2",
         "source": "13",
         "sourceHandle": "output",
@@ -303,6 +360,26 @@
         "targetHandle": "control_image",
         "ui_properties": {
           "className": "image"
+        }
+      },
+      {
+        "id": "c71c3532-031f-4a37-b77b-ffdaaaf89e6b",
+        "source": "13",
+        "sourceHandle": "output",
+        "target": "12",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "913a7aee-71de-40f3-920e-e01ef9d20240",
+        "source": "16",
+        "sourceHandle": "output",
+        "target": "14",
+        "targetHandle": "prompt",
+        "ui_properties": {
+          "className": "str"
         }
       }
     ]

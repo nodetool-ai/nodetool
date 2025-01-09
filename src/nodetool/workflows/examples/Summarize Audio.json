@@ -1,8 +1,8 @@
 {
   "id": "summarize_audio",
   "access": "public",
-  "created_at": "2025-01-05T13:08:58.698928",
-  "updated_at": "2025-01-05T13:08:58.698943",
+  "created_at": "2025-01-09T21:17:35.583788",
+  "updated_at": "2025-01-09T21:17:35.583808",
   "name": "Summarize Audio",
   "description": "Transcribe an audio file and summarize the text.",
   "tags": [
@@ -24,9 +24,10 @@
           }
         },
         "ui_properties": {
+          "selected": false,
           "position": {
             "x": 50,
-            "y": 150
+            "y": 109
           },
           "zIndex": 0,
           "width": 200,
@@ -68,9 +69,10 @@
           ]
         },
         "ui_properties": {
+          "selected": false,
           "position": {
-            "x": 43,
-            "y": -128
+            "x": 350,
+            "y": -97
           },
           "zIndex": 0,
           "width": 307,
@@ -101,9 +103,10 @@
           "keep_alive": 0
         },
         "ui_properties": {
+          "selected": false,
           "position": {
             "x": 508,
-            "y": 50
+            "y": 57
           },
           "zIndex": 0,
           "width": 187,
@@ -125,9 +128,10 @@
           "timestamps": "none"
         },
         "ui_properties": {
+          "selected": false,
           "position": {
             "x": 280,
-            "y": 70
+            "y": 50
           },
           "zIndex": 0,
           "width": 198,
@@ -142,9 +146,10 @@
           "name": "str_output_2025-01-05"
         },
         "ui_properties": {
+          "selected": false,
           "position": {
             "x": 725,
-            "y": 156
+            "y": 66
           },
           "zIndex": 0,
           "width": 196,

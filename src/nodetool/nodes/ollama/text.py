@@ -30,15 +30,15 @@ class Ollama(BaseNode):
     model: LlamaModel = Field(
         default=LlamaModel(), description="The Llama model to use."
     )
-    system_prompt: str = Field(
-        default="You are an assistant.",
-        description="System prompt to send to the model.",
-    )
     prompt: str = Field(default="", description="Prompt to send to the model.")
     image: ImageRef = Field(
         default=ImageRef(),
         title="Image",
         description="The image to analyze",
+    )
+    system_prompt: str = Field(
+        default="You are an assistant.",
+        description="System prompt to send to the model.",
     )
     messages: list[Message] = Field(
         default=[], description="History of messages to send to the model."
@@ -74,7 +74,7 @@ class Ollama(BaseNode):
 
     @classmethod
     def get_basic_fields(cls):
-        return ["system_prompt", "prompt", "messages", "image"]
+        return ["model", "prompt", "image"]
 
     async def create_message(
         self, message: Message, context: ProcessingContext

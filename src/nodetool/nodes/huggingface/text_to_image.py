@@ -497,6 +497,10 @@ class StableDiffusion(StableDiffusionBaseNode):
         default=512, ge=256, le=1024, description="Height of the generated image"
     )
     _pipeline: StableDiffusionPipeline | None = None
+    
+    @classmethod
+    def get_basic_fields(cls):
+        return super().get_basic_fields() + ["width", "height"]
 
     @classmethod
     def get_title(cls):
@@ -532,6 +536,10 @@ class StableDiffusionXL(StableDiffusionXLBase):
     """
 
     _pipeline: StableDiffusionXLPipeline | None = None
+
+    @classmethod
+    def get_basic_fields(cls):
+        return super().get_basic_fields() + ["width", "height"]
 
     @classmethod
     def get_title(cls):

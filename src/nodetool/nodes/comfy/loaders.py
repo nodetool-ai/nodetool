@@ -147,6 +147,9 @@ class HuggingFaceCheckpointLoader(ComfyNode):
         assert self.model.path is not None, "Model path must be set."
 
         ckpt_path = try_to_load_from_cache(self.model.repo_id, self.model.path)
+        
+        if ckpt_path is None:
+            raise ValueError(f"Checkpoint must be downloaded from Huggingface. {self.model.repo_id} {self.model.path}")
 
         unet, clip, vae, _ = comfy.sd.load_checkpoint_guess_config(
             ckpt_path,
@@ -251,6 +254,9 @@ class HuggingFaceCLIPVisionLoader(ComfyNode):
         assert self.model.path is not None, "Model must be single file"
 
         clip_vision_path = try_to_load_from_cache(self.model.repo_id, self.model.path)
+
+        if clip_vision_path is None:
+            raise ValueError(f"CLIP vision model must be downloaded from Huggingface. {self.model.repo_id} {self.model.path}")
 
         clip_vision = comfy.clip_vision.load(clip_vision_path)
 
@@ -490,6 +496,9 @@ class HuggingFaceLoraLoader(ComfyNode):
 
         assert self.model.model is not None, "Model must be connected."
         assert self.clip.model is not None, "CLIP must be connected."
+        
+        if lora_path is None:
+            raise ValueError(f"LoRA model must be downloaded from Huggingface. {self.lora.repo_id} {self.lora.path}")
 
         lora = comfy.utils.load_torch_file(lora_path, safe_load=True)
 
@@ -607,7 +616,7 @@ class HuggingFaceVAELoader(ComfyNode):
         vae_path = try_to_load_from_cache(self.model.repo_id, self.model.path)
 
         if vae_path is None:
-            raise Exception("VAE path not found in cache.")
+            raise ValueError(f"VAE model must be downloaded from Huggingface. {self.model.repo_id} {self.model.path}")
 
         (vae,) = await self.call_comfy_node(context, nodes.VAELoader, vae_name=vae_path)
 
@@ -1003,7 +1012,7 @@ class HuggingFaceIPAdapterLoader(ComfyNode):
 
         ckpt_path = try_to_load_from_cache(self.ipadapter.repo_id, self.ipadapter.path)
 
-        assert ckpt_path is not None, "IPAdapter path not found."
+        assert ckpt_path is not None, "IPAdapter model must be downloaded from Huggingface."
 
         model = comfy.utils.load_torch_file(ckpt_path, safe_load=True)
 
