@@ -1,5 +1,6 @@
 import React from "react";
 import { Viewport, useOnViewportChange } from "@xyflow/react";
+import ThemeNodes from "../themes/ThemeNodes";
 
 const AxisMarker: React.FC = () => {
   let horizontalLineRef = React.useRef<HTMLDivElement>(null);
@@ -18,18 +19,26 @@ const AxisMarker: React.FC = () => {
 
   const lineStyle: React.CSSProperties = {
     position: "absolute",
-    backgroundColor: "#333"
+    backgroundColor: ThemeNodes.palette.c_editor_axis_color
   };
 
   return (
     <>
       <div
         ref={horizontalLineRef}
-        style={{ ...lineStyle, width: "500px", height: "1px" }}
+        style={{
+          ...lineStyle,
+          width: "5000px",
+          height: "1px"
+        }}
       />
       <div
         ref={verticalLineRef}
-        style={{ ...lineStyle, width: "1px", height: "500px" }}
+        style={{
+          ...lineStyle,
+          width: "1px",
+          height: "5000px"
+        }}
       />
     </>
   );

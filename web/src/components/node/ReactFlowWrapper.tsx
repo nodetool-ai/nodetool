@@ -451,7 +451,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
         <Background
           id="1"
           gap={100}
-          offset={0.15}
+          offset={4}
           size={8}
           color={ThemeNodes.palette.c_editor_grid_color}
           lineWidth={1}
@@ -467,6 +467,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
             anchorEl={anchorEl}
           />
         )}
+        <AxisMarker />
         {openMenuType === "node-context-menu" && <NodeContextMenu />}
         {openMenuType === "pane-context-menu" && <PaneContextMenu />}
         {openMenuType === "property-context-menu" && <PropertyContextMenu />}
