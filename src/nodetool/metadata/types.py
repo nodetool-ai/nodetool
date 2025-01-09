@@ -204,6 +204,11 @@ class AssetRef(BaseType):
 class FilePath(BaseType):
     type: Literal["file_path"] = "file_path"
     path: str = ""
+    
+
+class FolderPath(BaseType):
+    type: Literal["folder_path"] = "folder_path"
+    path: str = ""
 
 
 class FolderRef(AssetRef):

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from fastapi.responses import StreamingResponse
+from nodetool.common.huggingface_cache import has_cached_files
 from nodetool.common.huggingface_file import (
     HFFileInfo,
     HFFileRequest,
@@ -43,6 +44,10 @@ _cached_huggingface_models = None
 class RepoPath(BaseModel):
     repo_id: str
     path: str
+    downloaded: bool = False
+
+class CachedRepo(BaseModel):
+    repo_id: str
     downloaded: bool = False
 
 
@@ -102,6 +107,21 @@ async def try_cache_files(
         RepoPath(repo_id=path.repo_id, path=path.path, downloaded=check_path(path))
         for path in paths
     ]
+    
+
+@router.post("/huggingface/try_cache_repos")
+async def try_cache_repos(
+    repos: list[str],
+    user: User = Depends(current_user),
+) -> list[CachedRepo]:
+    def check_repo(repo_id: str) -> bool:
+        return has_cached_files(repo_id)
+
+    return [
+        CachedRepo(repo_id=repo_id, downloaded=check_repo(repo_id))
+        for repo_id in repos
+    ]
+
 
 
 if not Environment.is_production():

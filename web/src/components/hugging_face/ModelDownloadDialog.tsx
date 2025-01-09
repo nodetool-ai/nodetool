@@ -40,12 +40,14 @@ interface ModelDownloadDialogProps {
   open: boolean;
   onClose: () => void;
   repoPaths: RepoPath[];
+  repos: string[];
 }
 
 const ModelDownloadDialog: React.FC<ModelDownloadDialogProps> = ({
   open,
   onClose,
-  repoPaths
+  repoPaths,
+  repos
 }) => {
   const { startDownload, openDialog, downloads } = useModelDownloadStore(
     (state) => ({
@@ -114,6 +116,35 @@ const ModelDownloadDialog: React.FC<ModelDownloadDialogProps> = ({
         </Box>
 
         <Grid container spacing={2} className="model-grid models-grid">
+          {repos.map((repo, index) => {
+            return (
+              <Grid
+                item
+                xs={12}
+                sm={6}
+                md={4}
+                key={index}
+                className="model-item"
+              >
+                <Box className="model-container">
+                  {!downloads[repo] && (
+                    <ModelCard
+                      model={{
+                        id: repo,
+                        name: repo,
+                        repo_id: repo,
+                        type: "hf."
+                      }}
+                      onDownload={() => {
+                        startDownload(repo, "hf.model");
+                      }}
+                    />
+                  )}
+                  {downloads[repo] && <DownloadProgress name={repo} />}
+                </Box>
+              </Grid>
+            );
+          })}
           {repoPaths.map((repoPath, index) => {
             const modelId = `${repoPath.repo_id}/${repoPath.path}`;
             return (

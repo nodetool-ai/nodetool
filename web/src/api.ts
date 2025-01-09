@@ -364,6 +364,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/models/huggingface/try_cache_repos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Try Cache Repos */
+        post: operations["try_cache_repos_api_models_huggingface_try_cache_repos_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/models/pull_ollama_model": {
         parameters: {
             query?: never;
@@ -1028,6 +1045,16 @@ export interface components {
             /** Readme */
             readme?: string | null;
         };
+        /** CachedRepo */
+        CachedRepo: {
+            /** Repo Id */
+            repo_id: string;
+            /**
+             * Downloaded
+             * @default false
+             */
+            downloaded: boolean;
+        };
         /** CollectionCreate */
         CollectionCreate: {
             /** Name */
@@ -1212,11 +1239,11 @@ export interface components {
              *       "type": "datetime",
              *       "year": 2025,
              *       "month": 1,
-             *       "day": 8,
-             *       "hour": 23,
-             *       "minute": 29,
-             *       "second": 53,
-             *       "microsecond": 852976,
+             *       "day": 9,
+             *       "hour": 20,
+             *       "minute": 52,
+             *       "second": 41,
+             *       "microsecond": 119025,
              *       "tzinfo": "UTC",
              *       "utc_offset": 0
              *     }
@@ -4332,6 +4359,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RepoPath"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    try_cache_repos_api_models_huggingface_try_cache_repos_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: {
+                auth_cookie?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": string[];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CachedRepo"][];
                 };
             };
             /** @description Validation Error */

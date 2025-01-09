@@ -13,14 +13,9 @@ import {
 } from "@xyflow/react";
 
 // store
-import {
-  NodeStore,
-  useNodeStore,
-  useTemporalStore
-} from "../../stores/NodeStore";
+import { useNodeStore, useTemporalStore } from "../../stores/NodeStore";
 import { HistoryManager } from "../../HistoryManager";
 // store
-import { useWorkflowStore } from "../../stores/WorkflowStore";
 import useConnectionStore from "../../stores/ConnectionStore";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
@@ -124,9 +119,12 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   /* USE STORE */
   const nodeTypes = useNodeTypes();
   const nodeHistory: HistoryManager = useTemporalStore((state) => state);
-  const { shouldFitToScreen, setShouldFitToScreen } = useWorkflowStore(
-    (state: any) => state
-  );
+  const { shouldFitToScreen, setShouldFitToScreen, setExplicitSave } =
+    useNodeStore((state) => ({
+      shouldFitToScreen: state.shouldFitToScreen,
+      setShouldFitToScreen: state.setShouldFitToScreen,
+      setExplicitSave: state.setExplicitSave
+    }));
   const { close: closeSelect } = useSelect();
 
   /* DEFINE NODE TYPES */
@@ -264,10 +262,6 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   // const { spaceKeyPressed } = useKeyPressedStore((state) => ({
   //   spaceKeyPressed: state.isKeyPressed(" ")
   // }));
-
-  const setExplicitSave = useNodeStore(
-    (state: NodeStore) => state.setExplicitSave
-  );
 
   // RESUME HISTORY
   const resumeHistoryAndSave = useCallback(() => {
@@ -466,7 +460,6 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
           }}
           variant={BackgroundVariant.Cross}
         />
-        {reactFlowInstance && <AxisMarker />}
         {editNodeTitle && anchorEl && (
           <NodeTitleEditor
             nodeId={editNodeTitle}

@@ -13,6 +13,40 @@ from queue import Empty, Queue
 from concurrent.futures import ProcessPoolExecutor
 import threading
 import os
+from huggingface_hub import constants
+
+
+def has_cached_files(
+    repo_id: str,
+) -> bool:
+    """Check if any files from the specified repo exist in the local HF cache.
+
+    Args:
+        repo_id (`str`):
+            A namespace (user or an organization) name and a repo name separated
+            by a `/`.
+
+    Returns:
+        `bool`: `True` if any files from the repo exist in cache, `False` otherwise.
+    ```
+    """
+    cache_dir = constants.HF_HUB_CACHE
+
+    object_id = repo_id.replace("/", "--")
+    repo_cache = os.path.join(cache_dir, f"models--{object_id}")
+
+    # Check if repo folder exists and contains any snapshots
+    snapshots_dir = os.path.join(repo_cache, "snapshots")
+    if not os.path.isdir(snapshots_dir):
+        return False
+
+    # Check if any snapshot contains files
+    for revision in os.listdir(snapshots_dir):
+        revision_path = os.path.join(snapshots_dir, revision)
+        if os.path.isdir(revision_path) and any(os.scandir(revision_path)):
+            return True
+
+    return False
 
 
 @dataclass

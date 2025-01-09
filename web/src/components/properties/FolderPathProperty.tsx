@@ -33,7 +33,7 @@ const styles = (theme: any) =>
       flexDirection: "column",
       gap: "0.5em",
 
-      ".file-picker__inputs": {
+      ".folder-picker__inputs": {
         display: "flex",
         alignItems: "center",
         gap: "8px",
@@ -50,7 +50,7 @@ const styles = (theme: any) =>
         marginTop: "0.5em"
       },
 
-      ".file-picker__browse-button": {
+      ".folder-picker__browse-button": {
         backgroundColor: theme.palette.c_gray2,
         border: `1px solid ${theme.palette.c_gray3}`,
         borderRadius: "4px",
@@ -64,7 +64,7 @@ const styles = (theme: any) =>
         }
       },
 
-      ".file-picker__preview": {
+      ".folder-picker__preview": {
         color: theme.palette.c_gray4,
         display: "flex",
         alignItems: "center",
@@ -74,7 +74,7 @@ const styles = (theme: any) =>
         minHeight: "20px"
       },
 
-      ".file-picker__reset-button": {
+      ".folder-picker__reset-button": {
         backgroundColor: "transparent",
         border: "none",
         borderRadius: "50%",
@@ -100,7 +100,6 @@ const styles = (theme: any) =>
       },
 
       ".MuiDialog-paper": {
-        backgroundColor: theme.palette.c_gray2,
         borderRadius: "8px",
         boxShadow: "0 8px 32px rgba(0, 0, 0, 0.24)"
       },
@@ -123,13 +122,14 @@ const styles = (theme: any) =>
     }
   ]);
 
-const fileToTreeItem = (file: FileInfo): TreeViewItem => ({
-  id: file.path,
-  label: file.name,
-  children: file.is_dir
-    ? [{ id: file.path + "/", label: "loading...", children: [] }]
-    : undefined
-});
+const fileToTreeItem = (file: FileInfo): TreeViewItem | null => {
+  if (!file.is_dir) return null;
+  return {
+    id: file.path,
+    label: file.name,
+    children: [{ id: file.path + "/", label: "loading...", children: [] }]
+  };
+};
 
 const fetchFiles = async (path: string): Promise<TreeViewItem[]> => {
   const { data, error } = await client.GET("/api/files/list", {
@@ -137,10 +137,12 @@ const fetchFiles = async (path: string): Promise<TreeViewItem[]> => {
   });
 
   if (error) {
-    throw createErrorMessage(error, "Failed to list files");
+    throw createErrorMessage(error, "Failed to list folders");
   }
 
-  return data.map(fileToTreeItem);
+  return data
+    .map(fileToTreeItem)
+    .filter((item): item is TreeViewItem => item !== null);
 };
 
 // Helper function to find item in tree
@@ -188,8 +190,8 @@ const shouldLoadChildren = (item: TreeViewItem | undefined): boolean => {
   );
 };
 
-const FilePathProperty = (props: PropertyProps) => {
-  const id = `file-path-${props.property.name}-${props.propertyIndex}`;
+const FolderPathProperty = (props: PropertyProps) => {
+  const id = `folder-path-${props.property.name}-${props.propertyIndex}`;
   const [isFileBrowserOpen, setIsFileBrowserOpen] = useState(false);
   // Change to use state for files instead of just query
   const { data: initialFiles, isLoading: isInitialLoading } = useQuery({
@@ -235,11 +237,11 @@ const FilePathProperty = (props: PropertyProps) => {
   }, []);
 
   const handleClear = useCallback(() => {
-    props.onChange({ type: "file_path", path: "" });
+    props.onChange({ type: "folder_path", path: "" });
   }, [props.onChange]);
 
   const handleConfirm = useCallback(() => {
-    props.onChange({ type: "file_path", path: selectedPath });
+    props.onChange({ type: "folder_path", path: selectedPath });
     setIsFileBrowserOpen(false);
   }, [props.onChange, selectedPath]);
 
@@ -249,26 +251,26 @@ const FilePathProperty = (props: PropertyProps) => {
   }, [props.value?.path]);
 
   return (
-    <div css={styles} className="file-picker">
+    <div css={styles} className="folder-picker">
       <PropertyLabel
         name={props.property.name}
         description={props.property.description}
         id={id}
       />
 
-      <div className="file-picker__inputs">
+      <div className="folder-picker__inputs">
         <button
           onClick={handleBrowseClick}
-          className="file-picker__browse-button"
+          className="folder-picker__browse-button"
         >
           Browse
         </button>
-        <div className="file-picker__preview">
+        <div className="folder-picker__preview">
           <Typography>{props.value?.path}</Typography>
           {props.value?.path && (
             <button
               onClick={handleClear}
-              className="file-picker__reset-button"
+              className="folder-picker__reset-button"
               aria-label="Clear file selection"
             >
               ×
@@ -290,7 +292,7 @@ const FilePathProperty = (props: PropertyProps) => {
           }
         }}
       >
-        <DialogTitle>Select File</DialogTitle>
+        <DialogTitle>Select Folder</DialogTitle>
         <DialogContent>
           {isInitialLoading ? (
             <Typography>Loading files...</Typography>
@@ -315,4 +317,4 @@ const FilePathProperty = (props: PropertyProps) => {
   );
 };
 
-export default memo(FilePathProperty, isEqual);
+export default memo(FolderPathProperty, isEqual);
