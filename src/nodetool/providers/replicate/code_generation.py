@@ -66,7 +66,7 @@ def get_model_api(
         raise ValueError("REPLICATE_API_TOKEN environment variable is not set")
 
     headers = {
-        "Authorization": "Token " + Environment.get_replicate_api_token(),
+        "Authorization": "Token " + Environment.get("REPLICATE_API_TOKEN"),
     }
 
     model_info = retry_http_request(
