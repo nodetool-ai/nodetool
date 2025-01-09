@@ -60,7 +60,7 @@ class AudioClassifier(HuggingFacePipelineNode):
                 repo_id="ehcalabres/wav2vec2-lg-xlsr-en-speech-emotion-recognition",
                 allow_patterns=["pytorch_model.bin", "*.json"],
             ),
-        ]
+    ]
 
     def required_inputs(self):
         return ["audio"]
