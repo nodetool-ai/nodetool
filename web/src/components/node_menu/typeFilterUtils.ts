@@ -13,7 +13,10 @@ export const isConnectableLogic = (
   if (!matrix[inputType] || !matrix[inputType][outputType]) {
     return false;
   }
-  return isConnectable({ type: inputType }, { type: outputType });
+  return isConnectable(
+    { type: inputType, optional: true, type_args: [] },
+    { type: outputType, optional: true, type_args: [] }
+  );
 };
 
 export const connectabilityMatrix: ConnectabilityMatrix =
@@ -35,8 +38,8 @@ function createConnectabilityMatrix(): ConnectabilityMatrix {
   typeEnumValues.forEach((inputType) => {
     typeEnumValues.forEach((outputType) => {
       matrix[inputType][outputType] = isConnectable(
-        { type: inputType },
-        { type: outputType }
+        { type: inputType, optional: true, type_args: [] },
+        { type: outputType, optional: true, type_args: [] }
       );
     });
   });

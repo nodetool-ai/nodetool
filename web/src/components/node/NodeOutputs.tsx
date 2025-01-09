@@ -34,13 +34,28 @@ export const NodeOutputs: React.FC<NodeOutputsProps> = ({ id, outputs }) => {
           {outputs.map((output) => (
             <li key={output.name}>
               <Typography>{output.name}</Typography>
-              <NodeOutput id={id} output={output} />
+              <NodeOutput
+                id={id}
+                output={{
+                  type: output.type,
+                  name: output.name,
+                  stream: false
+                }}
+              />
             </li>
           ))}
         </ul>
       ) : (
         outputs.map((output) => (
-          <NodeOutput id={id} key={output.name} output={output} />
+          <NodeOutput
+            id={id}
+            key={output.name}
+            output={{
+              type: output.type,
+              name: output.name,
+              stream: false
+            }}
+          />
         ))
       )}
     </>
