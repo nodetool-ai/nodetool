@@ -74,6 +74,7 @@ declare module "@mui/material/styles" {
     c_bg_comment?: string;
     c_editor_bg_color?: string;
     c_editor_grid_color?: string;
+    c_editor_axis_color?: string;
   }
 }
 
@@ -123,6 +124,7 @@ const ThemeNodes: Theme = createTheme({
     c_bg_comment: "#fff",
     c_editor_bg_color: "rgb(100, 100, 95)",
     c_editor_grid_color: "#333",
+    c_editor_axis_color: "#5e5e5e",
 
     mode: "dark",
     primary: {
