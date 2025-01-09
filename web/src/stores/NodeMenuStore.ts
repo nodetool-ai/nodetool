@@ -348,9 +348,14 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
       // Get nodes in the selected path
       const selectedPathString = get().selectedPath.join(".");
 
-      // Filter visible nodes by exact path level
+      // Filter visible nodes by path level
       const visibleNodes = selectedPathString
         ? typeFilteredMetadata.filter((node) => {
+            // For root namespaces (no dots), show all descendants
+            if (!selectedPathString.includes(".")) {
+              return node.namespace.startsWith(selectedPathString);
+            }
+            // For deeper paths, keep existing behavior
             const matches =
               node.namespace === selectedPathString ||
               (node.namespace.startsWith(selectedPathString + ".") &&

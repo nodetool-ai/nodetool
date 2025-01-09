@@ -363,25 +363,52 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
     (nodes: NodeMetadata[]) => {
       if (!nodes) return [];
 
+      console.log("Selected Path:", selectedPathString);
+      console.log(
+        "All Nodes:",
+        nodes.map((n) => ({ namespace: n.namespace, title: n.title }))
+      );
+
       const filteredNodes = nodes
         .filter((node) => {
-          // If we're searching or filtering by type, use different logic
-          if (
-            searchTerm.length > 1 ||
-            selectedInputType ||
-            selectedOutputType
-          ) {
-            return true; // Let the search/type filtering handle this
-          }
-
-          // For namespace browsing:
           const isExactMatch = node.namespace === selectedPathString;
           const isDirectChild =
             node.namespace.startsWith(selectedPathString + ".") &&
             node.namespace.split(".").length ===
               selectedPathString.split(".").length + 1;
+          const isRootNamespace = !selectedPathString.includes(".");
+          const isDescendant = node.namespace.startsWith(
+            selectedPathString + "."
+          );
 
-          return isExactMatch || isDirectChild;
+          // Debug log for replicate namespace
+          if (
+            selectedPathString === "replicate" ||
+            node.namespace.startsWith("replicate")
+          ) {
+            console.log("Node:", node.namespace, {
+              isExactMatch,
+              isDirectChild,
+              isRootNamespace,
+              isDescendant,
+              willShow:
+                isExactMatch ||
+                isDirectChild ||
+                (isRootNamespace && isDescendant)
+            });
+          }
+
+          if (
+            searchTerm.length > 1 ||
+            selectedInputType ||
+            selectedOutputType
+          ) {
+            return true;
+          }
+
+          return (
+            isExactMatch || isDirectChild || (isRootNamespace && isDescendant)
+          );
         })
         .sort((a, b) => {
           const namespaceComparison = a.namespace.localeCompare(b.namespace);
@@ -390,6 +417,10 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
             : a.title.localeCompare(b.title);
         });
 
+      console.log(
+        "Filtered Nodes:",
+        filteredNodes.map((n) => ({ namespace: n.namespace, title: n.title }))
+      );
       return filteredNodes;
     },
     [
