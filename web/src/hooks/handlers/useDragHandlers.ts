@@ -41,8 +41,7 @@ export default function useDragHandlers(resumeHistoryAndSave: () => void) {
           color: "",
           outputs: [],
           the_model_info: {},
-          primary_field: "",
-          secondary_field: "",
+          basic_fields: [],
           layout: "comment",
           recommended_models: []
         };
