@@ -180,6 +180,7 @@ def build_imap_query(criteria: EmailSearchCriteria) -> str:
     Returns:
         IMAP search query string
     """
+
     query_parts = []
 
     if criteria.from_address:
@@ -206,6 +207,9 @@ def build_imap_query(criteria: EmailSearchCriteria) -> str:
 
     if criteria.text:
         query_parts.append(f'TEXT "{criteria.text}"')
+
+    if not query_parts:
+        query_parts.append("ALL")
 
     return " ".join(query_parts)
 
