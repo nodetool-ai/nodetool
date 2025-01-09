@@ -5,7 +5,7 @@ import React, {
   useRef,
   useState,
   useMemo,
-  useCallback,
+  useCallback
 } from "react";
 import {
   TabulatorFull as Tabulator,
@@ -13,7 +13,7 @@ import {
   CellComponent,
   ColumnDefinitionAlign,
   Formatter,
-  StandardValidatorType,
+  StandardValidatorType
 } from "tabulator-tables";
 import "tabulator-tables/dist/css/tabulator.min.css";
 import "tabulator-tables/dist/css/tabulator_midnight.css";
@@ -72,7 +72,7 @@ interface DataTableProps {
 const DataTable: React.FC<DataTableProps> = ({
   dataframe,
   onChange,
-  editable,
+  editable
 }) => {
   const tableRef = useRef<HTMLDivElement>(null);
   const [tabulator, setTabulator] = useState<Tabulator>();
@@ -94,7 +94,7 @@ const DataTable: React.FC<DataTableProps> = ({
           ...dataframe,
           data: newData.map(
             (row) => dataframe.columns?.map((col) => row[col.name]) || []
-          ),
+          )
         });
       }
     },
@@ -121,8 +121,8 @@ const DataTable: React.FC<DataTableProps> = ({
                 cell.getRow().toggleSelect();
               },
               editable: false,
-              cssClass: "row-select",
-            },
+              cssClass: "row-select"
+            }
           ]
         : []),
       ...(showRowNumbers
@@ -137,8 +137,8 @@ const DataTable: React.FC<DataTableProps> = ({
               frozen: true,
               rowHandle: true,
               editable: false,
-              cssClass: "row-numbers",
-            },
+              cssClass: "row-numbers"
+            }
           ]
         : []),
       ...dataframe.columns.map((col) => ({
@@ -164,8 +164,8 @@ const DataTable: React.FC<DataTableProps> = ({
             ? (["required", "numeric"] as StandardValidatorType[])
             : col.data_type === "datetime"
             ? (["required", "date"] as StandardValidatorType[])
-            : undefined,
-      })),
+            : undefined
+      }))
     ];
     return cols;
   }, [dataframe.columns, editable, showRowNumbers, showSelect]);
@@ -204,10 +204,10 @@ const DataTable: React.FC<DataTableProps> = ({
         editor: "input",
         resizable: true,
         editorParams: {
-          elementAttributes: { spellcheck: "false" },
-        },
+          elementAttributes: { spellcheck: "false" }
+        }
       },
-      movableRows: true,
+      movableRows: true
     });
 
     tabulatorInstance.on("cellEdited", onCellEdited);

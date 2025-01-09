@@ -71,7 +71,9 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ isMinZoom }) => {
   const surroundWithGroup = useSurroundWithGroup();
   const nodes = useNodeStore((state) => state.nodes);
   const missingModelFiles = useNodeStore((state) => state.missingModelFiles);
+  const missingModelRepos = useNodeStore((state) => state.missingModelRepos);
   const clearMissingModels = useNodeStore((state) => state.clearMissingModels);
+  const clearMissingRepos = useNodeStore((state) => state.clearMissingRepos);
 
   // OPEN NODE MENU
   const {
@@ -211,9 +213,10 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ isMinZoom }) => {
 
   return (
     <>
-      {missingModelFiles.length > 0 && (
+      {missingModelRepos.length > 0 && (
         <ModelDownloadDialog
-          open={missingModelFiles.length > 0}
+          open={missingModelRepos.length > 0}
+          repos={missingModelRepos}
           repoPaths={missingModelFiles}
           onClose={clearMissingModels}
         />

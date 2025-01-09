@@ -30,7 +30,6 @@ import { customEquality } from "./customEquality";
 
 import { Node as GraphNode, Edge as GraphEdge } from "./ApiTypes";
 import { useWorkflowStore } from "./WorkflowStore";
-import { useNotificationStore } from "./NotificationStore";
 import { uuidv4 } from "./uuidv4";
 import { devLog, devWarn } from "../utils/DevLog";
 import { autoLayout } from "../core/graph";
@@ -39,7 +38,7 @@ import { WorkflowAttributes } from "./ApiTypes";
 import useMetadataStore from "./MetadataStore";
 import useErrorStore from "./ErrorStore";
 import useResultsStore from "./ResultsStore";
-import { tryCacheFiles } from "../serverState/tryCacheFiles";
+import { tryCacheFiles, tryCacheRepos } from "../serverState/tryCacheFiles";
 
 type NodeUIProperties = {
   selected?: boolean;
@@ -172,6 +171,7 @@ export interface NodeStore {
   edges: Edge[];
   edgeUpdateSuccessful: boolean;
   missingModelFiles: RepoPath[];
+  missingModelRepos: string[];
   generateNodeId: () => string;
   generateNodeIds: (count: number) => string[];
   generateEdgeId: () => string;
@@ -228,10 +228,13 @@ export interface NodeStore {
   ) => Node<NodeData>;
   autoLayout: () => Promise<void>;
   clearMissingModels: () => void;
+  clearMissingRepos: () => void;
   workflowIsDirty: boolean;
   autoSaveInterval: NodeJS.Timeout | null;
   startAutoSave: () => void;
   stopAutoSave: () => void;
+  shouldFitToScreen: boolean;
+  setShouldFitToScreen: (value: boolean) => void;
 }
 
 export const useTemporalStore = <T>(
@@ -245,6 +248,7 @@ export const useNodeStore = create<NodeStore>()(
       explicitSave: false as boolean,
       shouldAutoLayout: false as boolean,
       missingModelFiles: [],
+      missingModelRepos: [],
       workflow: {
         id: "",
         name: "",
@@ -261,6 +265,7 @@ export const useNodeStore = create<NodeStore>()(
       edgeUpdateSuccessful: false as boolean,
       hoveredNodes: [],
       autoSaveInterval: null,
+      shouldFitToScreen: false,
 
       /**
        * Get all models referenced by the workflow.
@@ -347,7 +352,7 @@ export const useNodeStore = create<NodeStore>()(
           return layoutedNode ? layoutedNode : node;
         });
 
-        set({ nodes: updatedNodes });
+        set({ nodes: updatedNodes, shouldFitToScreen: true });
       },
 
       /**
@@ -459,6 +464,15 @@ export const useNodeStore = create<NodeStore>()(
         tryCacheFiles(modelFiles).then((paths) => {
           set({
             missingModelFiles: paths.filter((m) => !m.downloaded)
+          });
+        });
+
+        const modelRepos = extractModelRepos(workflow.graph.nodes);
+        tryCacheRepos(modelRepos).then((repos) => {
+          set({
+            missingModelRepos: repos
+              .filter((r) => !r.downloaded)
+              .map((r) => r.repo_id)
           });
         });
 
@@ -1058,6 +1072,10 @@ export const useNodeStore = create<NodeStore>()(
         set({ missingModelFiles: [] });
       },
 
+      clearMissingRepos: () => {
+        set({ missingModelRepos: [] });
+      },
+
       /**
        * Start auto-saving the workflow periodically
        */
@@ -1084,6 +1102,10 @@ export const useNodeStore = create<NodeStore>()(
           clearInterval(currentInterval);
           set({ autoSaveInterval: null });
         }
+      },
+
+      setShouldFitToScreen: (value: boolean) => {
+        set({ shouldFitToScreen: value });
       }
     }),
     {
@@ -1092,6 +1114,21 @@ export const useNodeStore = create<NodeStore>()(
     }
   )
 );
+
+const extractModelRepos = (nodes: GraphNode[]): string[] => {
+  return nodes.reduce<string[]>((acc, node) => {
+    const data = node.data as Record<string, any>;
+    for (const name of Object.keys(data)) {
+      const value = data[name];
+      if (value && value.type?.startsWith("hf.")) {
+        if (value.repo_id && !value.path) {
+          acc.push(value.repo_id);
+        }
+      }
+    }
+    return acc;
+  }, []);
+};
 
 /**
  * Extract model files from workflow nodes that need to be cached

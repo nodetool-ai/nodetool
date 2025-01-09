@@ -30,6 +30,7 @@ import { isEqual } from "lodash";
 import ColorProperty from "../properties/ColorProperty";
 import FilePathProperty from "../properties/FilePathProperty";
 import CollectionProperty from "../properties/CollectionProperty";
+import FolderPathProperty from "../properties/FolderPathProperty";
 
 export type PropertyProps = {
   property: Property;
@@ -106,6 +107,8 @@ function handleAdvancedDataTypes(
       return FileProperty;
     case "file_path":
       return FilePathProperty;
+    case "folder_path":
+      return FolderPathProperty;
     case "folder":
       return FolderProperty;
     case "asset":
