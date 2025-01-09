@@ -4,7 +4,7 @@ import { css } from "@emotion/react";
 import { useEffect, useMemo, useRef } from "react";
 
 // mui
-import { IconButton, Box } from "@mui/material";
+import { IconButton, Box, Typography } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 
 // components
@@ -68,7 +68,7 @@ const treeStyles = (theme: any) =>
       overflow: "hidden",
       width: "100%",
       margin: 0,
-      padding: ".5em 1em 0",
+      padding: ".5em 1em 0 .7em",
       ".search-input-container": {
         minWidth: "240px"
       }
@@ -182,6 +182,17 @@ export default function NodeMenu({ focusSearchInput = false }: NodeMenuProps) {
         ref={nodeRef}
       >
         <div className="draggable-header">
+          <Typography
+            className="title"
+            variant="h4"
+            sx={{
+              padding: "0 0 0 1.25em",
+              fontSize: ThemeNodetool.fontSizeNormal,
+              color: ThemeNodetool.palette.c_gray6
+            }}
+          >
+            Node Menu
+          </Typography>
           <IconButton
             className="close-button"
             edge="end"

@@ -120,14 +120,17 @@ const namespaceStyles = (theme: any, inPanel: boolean) =>
       overflowY: "scroll",
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeNormal,
-      color: theme.palette.c_gray4,
+      color: theme.palette.c_gray5,
       fontWeight: "300",
       margin: "0",
       padding: "0 2em 2em 0"
     },
     ".explanation h5": {
       color: theme.palette.c_hl1,
-      marginBottom: "0.3em"
+      margin: " 0 0 0.3em",
+      padding: "0",
+      fontSize: theme.fontSizeNormal,
+      fontWeight: "300"
     },
     ".explanation ul": {
       listStyleType: "square",
@@ -484,7 +487,7 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
         ) : (
           <div className="no-selection">
             <div className="explanation">
-              <h5>Getting Started</h5>
+              <h5>Browse & Add Nodes</h5>
               <ul>
                 <li>
                   Browse through available nodes by selecting namespaces from

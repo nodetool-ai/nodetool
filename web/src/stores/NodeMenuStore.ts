@@ -75,6 +75,7 @@ type NodeMenuStore = {
   closeNodeMenu: () => void;
 
   searchResults: NodeMetadata[];
+  allSearchMatches: NodeMetadata[];
   setSearchResults: (results: NodeMetadata[]) => void;
   highlightedNamespaces: string[];
   setHighlightedNamespaces: (namespaces: string[]) => void;
@@ -280,10 +281,208 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
       set({
         selectedPath: newPath
       });
-      // Trigger a new search with current term to show namespace nodes
       get().performSearch(get().searchTerm);
     },
+
+    performSearch: (term: string) => {
+      const metadata = useMetadataStore.getState().getAllMetadata();
+      const secrets = useRemoteSettingsStore.getState().secrets;
+
+      if (metadata.length === 0) {
+        set({ searchResults: metadata, highlightedNamespaces: [] });
+        return;
+      }
+
+      // Filter out nodes in the "default" namespace
+      const filteredMetadata = metadata.filter((node) => {
+        if (node.namespace === "default") return false;
+
+        // Only filter by API keys during search or type filtering
+        if (shouldFilterByApiKey(term, get())) {
+          if (isNodeApiKeyMissing(node, secrets)) {
+            return false;
+          }
+        }
+
+        return true;
+      });
+
+      // Filter by type
+      const typeFilteredMetadata = filterDataByType(
+        filteredMetadata,
+        get().selectedInputType as TypeName,
+        get().selectedOutputType as TypeName
+      );
+
+      // Get nodes that match the search term
+      let searchMatchedNodes = typeFilteredMetadata;
+      if (term.trim()) {
+        const allEntries = typeFilteredMetadata.map((node: NodeMetadata) => {
+          const lines = node.description.split("\n");
+          const firstLine = lines[0] || "";
+          const tags = lines[1]
+            ? lines[1]
+                .split(",")
+                .map((t) => t.trim())
+                .filter(Boolean)
+            : [];
+          const useCases = lines.slice(2).join(" ");
+
+          return {
+            title: node.title,
+            node_type: node.node_type,
+            namespace: node.namespace,
+            description: firstLine,
+            use_cases: useCases,
+            tags,
+            metadata: node
+          };
+        });
+        const groupedResults = performGroupedSearch(allEntries, term);
+        searchMatchedNodes = groupedResults.flatMap((group) => group.nodes);
+      }
+
+      // Store all search matches
+      set({ allSearchMatches: searchMatchedNodes });
+
+      // Get nodes in the selected path
+      const selectedPathString = get().selectedPath.join(".");
+
+      // Filter visible nodes by exact path level
+      const visibleNodes = selectedPathString
+        ? typeFilteredMetadata.filter((node) => {
+            const matches =
+              node.namespace === selectedPathString ||
+              (node.namespace.startsWith(selectedPathString + ".") &&
+                node.namespace.split(".").length ===
+                  selectedPathString.split(".").length + 1);
+            return matches;
+          })
+        : typeFilteredMetadata;
+
+      // Calculate highlighted namespaces
+      const highlightedNamespaces = new Set<string>();
+
+      // Always add search matches and their parents, even if no search term
+      searchMatchedNodes.forEach((node) => {
+        const parts = node.namespace.split(".");
+        let path = "";
+        parts.forEach((part) => {
+          path = path ? `${path}.${part}` : part;
+          highlightedNamespaces.add(path);
+        });
+      });
+
+      // If we have a selected path, add it and its parents
+      if (selectedPathString) {
+        const selectedParts = selectedPathString.split(".");
+        let path = "";
+        selectedParts.forEach((part) => {
+          path = path ? `${path}.${part}` : part;
+          highlightedNamespaces.add(path);
+        });
+
+        // Add all nodes that are direct children of the selected path
+        typeFilteredMetadata.forEach((node) => {
+          if (
+            node.namespace.startsWith(selectedPathString + ".") &&
+            node.namespace.split(".").length ===
+              selectedPathString.split(".").length + 1
+          ) {
+            highlightedNamespaces.add(node.namespace);
+
+            // Also add parent namespaces of these children
+            const childParts = node.namespace.split(".");
+            let childPath = "";
+            childParts.forEach((part) => {
+              childPath = childPath ? `${childPath}.${part}` : part;
+              highlightedNamespaces.add(childPath);
+            });
+          }
+        });
+      }
+
+      set({ highlightedNamespaces: [...highlightedNamespaces] });
+
+      // Set visible results
+      if (!term.trim()) {
+        const allResults = [
+          {
+            title: selectedPathString || "All",
+            nodes: visibleNodes
+          }
+        ];
+        set({
+          searchResults: visibleNodes,
+          groupedSearchResults: allResults
+        });
+        return;
+      }
+
+      // Filter search results by selected path if one exists
+      const filteredSearchResults = selectedPathString
+        ? searchMatchedNodes.filter((node) => {
+            const matches =
+              node.namespace === selectedPathString ||
+              (node.namespace.startsWith(selectedPathString + ".") &&
+                node.namespace.split(".").length ===
+                  selectedPathString.split(".").length + 1);
+            return matches;
+          })
+        : searchMatchedNodes;
+
+      const groupedResults = [
+        {
+          title: selectedPathString || "Search Results",
+          nodes: filteredSearchResults
+        }
+      ];
+
+      set({
+        searchResults: filteredSearchResults,
+        groupedSearchResults: groupedResults
+      });
+    },
+
+    searchResults: [],
+    allSearchMatches: [],
+    setSearchResults: (results: NodeMetadata[]) =>
+      set({ searchResults: results }),
+    highlightedNamespaces: [],
+    setHighlightedNamespaces: (namespaces: string[]) =>
+      set({ highlightedNamespaces: namespaces }),
+    hoveredNode: null,
+    setHoveredNode: (node) => {
+      set({ hoveredNode: node });
+    },
+
+    // DraggableNodeDocumentation
+    selectedNodeType: null,
+    setSelectedNodeType: (nodeType) => set({ selectedNodeType: nodeType }),
+    documentationPosition: { x: 0, y: 0 },
+    setDocumentationPosition: (position) =>
+      set({ documentationPosition: position }),
+    showDocumentation: false,
+    openDocumentation: (nodeType, position) =>
+      set({
+        selectedNodeType: nodeType,
+        documentationPosition: position,
+        showDocumentation: true
+      }),
+    closeDocumentation: () =>
+      set({
+        selectedNodeType: null,
+        showDocumentation: false
+      }),
+
+    focusedNodeIndex: -1,
+    setFocusedNodeIndex: (index) => set({ focusedNodeIndex: index }),
+
+    groupedSearchResults: [],
+
+    // Add back missing required properties
     clickPosition: { x: 0, y: 0 },
+
     openNodeMenu: (
       x,
       y,
@@ -341,161 +540,32 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
       });
     },
 
-    performSearch: (term: string) => {
-      const metadata = useMetadataStore.getState().getAllMetadata();
-      const secrets = useRemoteSettingsStore.getState().secrets;
-
-      if (metadata.length === 0) {
-        set({ searchResults: metadata, highlightedNamespaces: [] });
-        return;
-      }
-
-      // Filter out nodes in the "default" namespace
-      const filteredMetadata = metadata.filter((node) => {
-        if (node.namespace === "default") return false;
-
-        // Only filter by API keys during search or type filtering
-        if (shouldFilterByApiKey(term, get())) {
-          if (isNodeApiKeyMissing(node, secrets)) {
-            return false;
-          }
-        }
-
-        return true;
-      });
-
-      // Filter by type
-      const typeFilteredMetadata = filterDataByType(
-        filteredMetadata,
-        get().selectedInputType as TypeName,
-        get().selectedOutputType as TypeName
-      );
-
-      // Filter by selected path if one exists
-      const selectedPathString = get().selectedPath.join(".");
-      const pathFilteredMetadata = selectedPathString
-        ? typeFilteredMetadata.filter((node) => {
-            const matches =
-              node.namespace === selectedPathString ||
-              (node.namespace.startsWith(selectedPathString + ".") &&
-                node.namespace.split(".").length ===
-                  selectedPathString.split(".").length + 1);
-            return matches;
-          })
-        : typeFilteredMetadata;
-
-      // If no search term is provided, show all nodes in the current path
-      if (!term.trim()) {
-        const allResults = [
-          {
-            title: selectedPathString || "All",
-            nodes: pathFilteredMetadata
-          }
-        ];
-        set({
-          searchResults: pathFilteredMetadata,
-          groupedSearchResults: allResults
-        });
-        get().updateHighlightedNamespaces(pathFilteredMetadata);
-        return;
-      }
-
-      // Prepare search entries
-      const entries = pathFilteredMetadata.map((node: NodeMetadata) => {
-        const lines = node.description.split("\n");
-        const firstLine = lines[0] || "";
-        const tags = lines[1]
-          ? lines[1]
-              .split(",")
-              .map((t) => t.trim())
-              .filter(Boolean)
-          : [];
-        const useCases = lines.slice(2).join(" ");
-
-        // Create separate entries for description and use cases
-        return {
-          title: node.title,
-          node_type: node.node_type,
-          namespace: node.namespace,
-          description: firstLine, // Keep first line separate
-          use_cases: useCases, // Keep use cases separate
-          tags,
-          metadata: node
-        };
-      });
-
-      // Description matches
-      const descriptionFuse = new Fuse(entries, {
-        ...fuseOptions,
-        threshold: 0.1,
-        distance: 20,
-        minMatchCharLength: 4,
-        keys: [
-          { name: "description", weight: 0.9 },
-          { name: "use_cases", weight: 0.9 }
-        ],
-        tokenize: true,
-        tokenSeparator: /[\s\.,\-]+/,
-        findAllMatches: false,
-        ignoreLocation: true,
-        includeMatches: true
-      } as ExtendedFuseOptions<any>);
-
-      const groupedResults = performGroupedSearch(entries, term);
-      const allResults = groupedResults.flatMap((group) => group.nodes);
-
-      set({
-        searchResults: allResults,
-        groupedSearchResults: groupedResults
-      });
-
-      get().updateHighlightedNamespaces(allResults);
-    },
-
     updateHighlightedNamespaces: (results: NodeMetadata[]) => {
-      const newHighlightedNamespaces = new Set(
-        results.flatMap((result) => {
-          const parts = result.namespace.split(".");
-          return parts.map((_, index) => parts.slice(0, index + 1).join("."));
-        })
-      );
+      const newHighlightedNamespaces = new Set<string>();
+      const selectedPathString = get().selectedPath.join(".");
+
+      // Add all search result namespaces and their parents
+      results.forEach((result) => {
+        const parts = result.namespace.split(".");
+        let path = "";
+        parts.forEach((part) => {
+          path = path ? `${path}.${part}` : part;
+          newHighlightedNamespaces.add(path);
+        });
+      });
+
+      // Add selected path and its parents if it exists
+      if (selectedPathString) {
+        const selectedParts = selectedPathString.split(".");
+        let path = "";
+        selectedParts.forEach((part) => {
+          path = path ? `${path}.${part}` : part;
+          newHighlightedNamespaces.add(path);
+        });
+      }
+
       set({ highlightedNamespaces: [...newHighlightedNamespaces] });
-    },
-
-    searchResults: [],
-    setSearchResults: (results: NodeMetadata[]) =>
-      set({ searchResults: results }),
-    highlightedNamespaces: [],
-    setHighlightedNamespaces: (namespaces: string[]) =>
-      set({ highlightedNamespaces: namespaces }),
-    hoveredNode: null,
-    setHoveredNode: (node) => {
-      set({ hoveredNode: node });
-    },
-
-    // DraggableNodeDocumentation
-    selectedNodeType: null,
-    setSelectedNodeType: (nodeType) => set({ selectedNodeType: nodeType }),
-    documentationPosition: { x: 0, y: 0 },
-    setDocumentationPosition: (position) =>
-      set({ documentationPosition: position }),
-    showDocumentation: false,
-    openDocumentation: (nodeType, position) =>
-      set({
-        selectedNodeType: nodeType,
-        documentationPosition: position,
-        showDocumentation: true
-      }),
-    closeDocumentation: () =>
-      set({
-        selectedNodeType: null,
-        showDocumentation: false
-      }),
-
-    focusedNodeIndex: -1,
-    setFocusedNodeIndex: (index) => set({ focusedNodeIndex: index }),
-
-    groupedSearchResults: []
+    }
   };
 });
 

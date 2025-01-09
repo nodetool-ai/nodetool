@@ -12,13 +12,17 @@ const RenderNamespaces: React.FC<RenderNamespacesProps> = ({
   tree,
   currentPath = []
 }) => {
-  const { highlightedNamespaces, selectedPath, searchResults } =
-    useNodeMenuStore((state) => ({
-      highlightedNamespaces: state.highlightedNamespaces,
-      selectedPath: state.selectedPath,
-      searchResults: state.searchResults,
-      searchTerm: state.searchTerm
-    }));
+  const {
+    highlightedNamespaces,
+    selectedPath,
+    searchResults,
+    allSearchMatches
+  } = useNodeMenuStore((state) => ({
+    highlightedNamespaces: state.highlightedNamespaces,
+    selectedPath: state.selectedPath,
+    searchResults: state.searchResults,
+    allSearchMatches: state.allSearchMatches
+  }));
 
   const memoizedTree = useMemo(
     () =>
@@ -33,8 +37,8 @@ const RenderNamespaces: React.FC<RenderNamespacesProps> = ({
         const path = [...currentPath, namespace];
         const hasChildren = Object.keys(tree[namespace].children).length > 0;
 
-        // Count search results for this namespace and its children
-        const searchResultCount = searchResults.filter((result) =>
+        // Count search results for this namespace and its children using allSearchMatches
+        const searchResultCount = allSearchMatches.filter((result) =>
           result.namespace.startsWith(currentFullPath)
         ).length;
 
@@ -49,7 +53,14 @@ const RenderNamespaces: React.FC<RenderNamespacesProps> = ({
           searchResultCount
         };
       }),
-    [tree, currentPath, highlightedNamespaces, selectedPath, searchResults]
+    [
+      tree,
+      currentPath,
+      highlightedNamespaces,
+      selectedPath,
+      searchResults,
+      allSearchMatches
+    ]
   );
 
   return (
