@@ -32,24 +32,24 @@ import union from "../icons/union.svg?react";
 import video from "../icons/video.svg?react";
 import database from "../icons/database.svg?react";
 
-// import comfy_taesd from "../icons/comfy.taesd.svg?react";
-// import comfy_clip from "../icons/comfy.clip.svg?react";
-// import comfy_clip_vision from "../icons/comfy.clip_vision.svg?react";
-// import comfy_clip_vision_output from "../icons/comfy.clip_vision_output.svg?react";
-// import comfy_conditioning from "../icons/comfy.conditioning.svg?react";
-// import comfy_control_net from "../icons/comfy.control_net.svg?react";
-// import comfy_embeds from "../icons/comfy.embeds.svg?react";
-// import comfy_gligen from "../icons/comfy.gligen.svg?react";
-// import comfy_image_tensor from "../icons/comfy.image_tensor.svg?react";
-// import comfy_insight_face from "../icons/comfy.insight_face.svg?react";
-// import comfy_ip_adapter from "../icons/comfy.ip_adapter.svg?react";
-// import comfy_latent from "../icons/comfy.latent.svg?react";
-// import comfy_mask from "../icons/comfy.mask.svg?react";
-// import comfy_sampler from "../icons/comfy.sampler.svg?react";
-// import comfy_sigmas from "../icons/comfy.sigmas.svg?react";
-// import comfy_style_model from "../icons/comfy.style_model.svg?react";
-// import comfy_unet from "../icons/comfy.unet.svg?react";
-// import comfy_vae from "../icons/comfy.vae.svg?react";
+import comfy_taesd from "../icons/comfy_taesd.svg?react";
+import comfy_clip from "../icons/comfy_clip.svg?react";
+import comfy_clip_vision from "../icons/comfy_clip_vision.svg?react";
+import comfy_clip_vision_output from "../icons/comfy_clip_vision_output.svg?react";
+import comfy_conditioning from "../icons/comfy_conditioning.svg?react";
+import comfy_control_net from "../icons/comfy_control_net.svg?react";
+import comfy_embeds from "../icons/comfy_embeds.svg?react";
+import comfy_gligen from "../icons/comfy_gligen.svg?react";
+import comfy_image_tensor from "../icons/comfy_image_tensor.svg?react";
+import comfy_insight_face from "../icons/comfy_insight_face.svg?react";
+import comfy_ip_adapter from "../icons/comfy_ip_adapter.svg?react";
+import comfy_latent from "../icons/comfy_latent.svg?react";
+import comfy_mask from "../icons/comfy_mask.svg?react";
+import comfy_sampler from "../icons/comfy_sampler.svg?react";
+import comfy_sigmas from "../icons/comfy_sigmas.svg?react";
+import comfy_style_model from "../icons/comfy_style_model.svg?react";
+import comfy_unet from "../icons/comfy_unet.svg?react";
+import comfy_vae from "../icons/comfy_vae.svg?react";
 
 // Mapping of icon names to their respective imports
 const iconMap: Record<string, React.FC<React.SVGProps<SVGSVGElement>>> = {
@@ -74,25 +74,25 @@ const iconMap: Record<string, React.FC<React.SVGProps<SVGSVGElement>>> = {
   thread_message,
   union,
   video,
-  database
-  // "comfy.taesd": comfy_taesd,
-  // "comfy.clip": comfy_clip,
-  // "comfy.clip_vision": comfy_clip_vision,
-  // "comfy.clip_vision_output": comfy_clip_vision_output,
-  // "comfy.conditioning": comfy_conditioning,
-  // "comfy.control_net": comfy_control_net,
-  // "comfy.embeds": comfy_embeds,
-  // "comfy.gligen": comfy_gligen,
-  // "comfy.image_tensor": comfy_image_tensor,
-  // "comfy.insight_face": comfy_insight_face,
-  // "comfy.ip_adapter": comfy_ip_adapter,
-  // "comfy.latent": comfy_latent,
-  // "comfy.mask": comfy_mask,
-  // "comfy.sampler": comfy_sampler,
-  // "comfy.sigmas": comfy_sigmas,
-  // "comfy.style_model": comfy_style_model,
-  // "comfy.unet": comfy_unet,
-  // "comfy.vae": comfy_vae
+  database,
+  "comfy.taesd": comfy_taesd,
+  "comfy.clip": comfy_clip,
+  "comfy.clip_vision": comfy_clip_vision,
+  "comfy.clip_vision_output": comfy_clip_vision_output,
+  "comfy.conditioning": comfy_conditioning,
+  "comfy.control_net": comfy_control_net,
+  "comfy.embeds": comfy_embeds,
+  "comfy.gligen": comfy_gligen,
+  "comfy.image_tensor": comfy_image_tensor,
+  "comfy.insight_face": comfy_insight_face,
+  "comfy.ip_adapter": comfy_ip_adapter,
+  "comfy.latent": comfy_latent,
+  "comfy.mask": comfy_mask,
+  "comfy.sampler": comfy_sampler,
+  "comfy.sigmas": comfy_sigmas,
+  "comfy.style_model": comfy_style_model,
+  "comfy.unet": comfy_unet,
+  "comfy.vae": comfy_vae
 };
 
 export { iconMap };
@@ -450,7 +450,7 @@ let DATA_TYPES: DataType[] = [
     label: "comfy.Conditioning",
     description: "Diffusion model conditioning",
     color: solarizedColors.orange,
-    textColor: "#fff",
+    textColor: "dark",
     name: "",
     slug: "",
     namespace: "",
