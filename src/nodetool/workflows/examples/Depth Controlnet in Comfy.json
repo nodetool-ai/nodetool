@@ -4,10 +4,8 @@
   "created_at": "2024-10-19T20:22:29.718089",
   "updated_at": "2024-10-19T20:22:29.718093",
   "name": "Depth Controlnet in Comfy",
-  "description": "",
-  "tags": [
-    "comfy"
-  ],
+  "description": "Control image generation using depth maps to guide the composition and perspective",
+  "tags": ["comfy"],
   "thumbnail": "",
   "thumbnail_url": "/examples/depth_controlnet.jpg",
   "graph": {
