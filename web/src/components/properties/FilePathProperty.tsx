@@ -19,6 +19,7 @@ import { useQuery } from "@tanstack/react-query";
 import { client } from "../../stores/ApiClient";
 import { createErrorMessage } from "../../utils/errorHandling";
 import { FileInfo } from "../../stores/ApiTypes";
+import { devError } from "../../utils/DevLog";
 
 interface TreeViewItem {
   id: string;
@@ -26,6 +27,8 @@ interface TreeViewItem {
   className?: string;
   children?: TreeViewItem[];
   itemProps?: Record<string, any>;
+  treeItemProps?: Record<string, any>;
+  style?: Record<string, string>;
 }
 
 const styles = (theme: any) =>
@@ -49,7 +52,11 @@ const styles = (theme: any) =>
         border: `1px solid ${theme.palette.c_gray2}`,
         borderRadius: "2px",
         padding: "8px",
-        marginTop: "0.5em"
+        marginTop: "0.5em",
+
+        ".error-item > .MuiTreeItem-content": {
+          backgroundColor: `${theme.palette.c_warning} !important`
+        }
       },
 
       ".file-picker__browse-button": {
@@ -125,16 +132,27 @@ const styles = (theme: any) =>
     }
   ]);
 
-const fileToTreeItem = (file: FileInfo): TreeViewItem => ({
-  id: file.path,
-  label: file.name,
-  itemProps: {
-    "data-is-folder": file.is_dir
-  },
-  children: file.is_dir
-    ? [{ id: file.path + "/", label: "loading...", children: [] }]
-    : undefined
-});
+const fileToTreeItem = (file: FileInfo): TreeViewItem => {
+  const item = {
+    id: file.path,
+    label: file.name,
+    treeItemProps: {
+      className: file.is_dir ? "folder-item" : "file-item"
+    },
+    children: file.is_dir
+      ? [
+          {
+            id: file.path + "/",
+            label: "loading...",
+            className: "loading-item",
+            children: []
+          }
+        ]
+      : undefined
+  };
+  console.log("Created tree item:", { file, item, isDir: file.is_dir });
+  return item;
+};
 
 const fetchFiles = async (path: string): Promise<TreeViewItem[]> => {
   const { data, error } = await client.GET("/api/files/list", {
@@ -145,6 +163,7 @@ const fetchFiles = async (path: string): Promise<TreeViewItem[]> => {
     throw createErrorMessage(error, "Failed to list files");
   }
 
+  console.log("Files from backend:", data);
   return data.map(fileToTreeItem);
 };
 
@@ -209,6 +228,7 @@ const FilePathProperty = (props: PropertyProps) => {
   // Update files when initial load completes
   useEffect(() => {
     if (initialFiles) {
+      console.log("Setting initial files:", initialFiles);
       setFiles(initialFiles);
     }
   }, [initialFiles]);
@@ -229,12 +249,12 @@ const FilePathProperty = (props: PropertyProps) => {
           );
         }
       } catch (error) {
-        console.error("Failed to load children:", error);
-        // Update the tree to show the error message
+        devError("FilePathProperty: Failed to load children:", error);
         const errorItem = {
           id: `${itemId}/error`,
           label: "⚠️ Access denied",
-          children: undefined
+          children: undefined,
+          className: "error-item"
         };
         setFiles((currentFiles) =>
           updateTreeWithChildren(currentFiles, itemId, [errorItem])
@@ -323,6 +343,11 @@ const FilePathProperty = (props: PropertyProps) => {
               aria-label="file browser"
               selectedItems={selectedPath}
               sx={{
+                ".MuiTreeItem-content": {
+                  borderRadius: "2px",
+                  padding: "2px 4px 2px 0",
+                  userSelect: "none"
+                },
                 ".MuiTreeItem-content.Mui-selected": {
                   backgroundColor: (theme) =>
                     `${theme.palette.c_hl1} !important`,
@@ -337,20 +362,20 @@ const FilePathProperty = (props: PropertyProps) => {
                   backgroundColor: (theme) =>
                     `${theme.palette.c_hl1} !important`
                 },
-                // Default style for all items (files)
                 ".MuiTreeItem-label": {
                   backgroundColor: "transparent !important",
                   fontWeight: 300
                 },
-                // Style for folders (items with non-empty iconContainer)
-                ".MuiTreeItem-iconContainer:not(:empty) + .MuiTreeItem-label": {
-                  fontWeight: 600
-                },
-                // Keep folder weight when selected
-                ".Mui-selected .MuiTreeItem-iconContainer:not(:empty) + .MuiTreeItem-label":
+                ".MuiTreeItem-content:has(.MuiTreeItem-iconContainer svg) .MuiTreeItem-label":
                   {
-                    fontWeight: 600
-                  }
+                    fontWeight: 700
+                  },
+                "[id$='/error'] .MuiTreeItem-content": {
+                  color: (theme) => theme.palette.c_warning
+                },
+                ".loading-item .MuiTreeItem-label": {
+                  color: (theme) => theme.palette.c_gray3
+                }
               }}
             />
           )}
