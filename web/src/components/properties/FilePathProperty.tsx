@@ -45,28 +45,15 @@ const styles = (theme: any) =>
         maxHeight: "300px",
         overflowY: "auto",
         border: `1px solid ${theme.palette.c_gray2}`,
-        borderRadius: "4px",
+        borderRadius: "2px",
         padding: "8px",
-        marginTop: "0.5em",
-
-        ".MuiTreeItem-content.Mui-selected": {
-          backgroundColor: `${theme.palette.c_hl1} !important`
-        },
-        ".MuiTreeItem-content:hover": {
-          backgroundColor: `${theme.palette.c_gray3} !important`
-        },
-        ".MuiTreeItem-content.Mui-selected:hover": {
-          backgroundColor: `${theme.palette.c_hl1} !important`
-        },
-        ".MuiTreeItem-label": {
-          backgroundColor: "transparent !important"
-        }
+        marginTop: "0.5em"
       },
 
       ".file-picker__browse-button": {
         backgroundColor: theme.palette.c_gray2,
         border: `1px solid ${theme.palette.c_gray3}`,
-        borderRadius: "4px",
+        borderRadius: "2px",
         color: theme.palette.common.white,
         cursor: "pointer",
         padding: "2px 4px",
@@ -238,6 +225,15 @@ const FilePathProperty = (props: PropertyProps) => {
         }
       } catch (error) {
         console.error("Failed to load children:", error);
+        // Update the tree to show the error message
+        const errorItem = {
+          id: `${itemId}/error`,
+          label: "⚠️ Access denied",
+          children: undefined
+        };
+        setFiles((currentFiles) =>
+          updateTreeWithChildren(currentFiles, itemId, [errorItem])
+        );
       }
     },
     [files]
@@ -317,13 +313,15 @@ const FilePathProperty = (props: PropertyProps) => {
               sx={{
                 ".MuiTreeItem-content.Mui-selected": {
                   backgroundColor: (theme) =>
-                    `${theme.palette.c_hl1} !important`
+                    `${theme.palette.c_hl1} !important`,
+                  color: (theme) => theme.palette.c_black
                 },
                 ".MuiTreeItem-content:hover": {
                   backgroundColor: (theme) =>
                     `${theme.palette.c_gray3} !important`
                 },
                 ".MuiTreeItem-content.Mui-selected:hover": {
+                  opacity: 0.8,
                   backgroundColor: (theme) =>
                     `${theme.palette.c_hl1} !important`
                 },
