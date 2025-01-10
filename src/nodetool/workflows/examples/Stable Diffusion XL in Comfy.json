@@ -1,14 +1,12 @@
 {
   "id": "stable_diffusion_xl",
   "access": "public",
-  "created_at": "2024-12-23T11:27:22.508990",
-  "updated_at": "2024-12-23T11:27:22.509007",
+  "created_at": "2024-12-01T15:33:59.438347",
+  "updated_at": "2024-12-01T15:33:59.438367",
   "name": "Stable Diffusion XL in Comfy",
-  "description": "",
-  "tags": [
-    "comfy"
-  ],
-  "thumbnail": null,
+  "description": "Generate high-quality images using Stable Diffusion XL with advanced settings and refinement",
+  "tags": ["comfy", "image"],
+  "thumbnail": "",
   "thumbnail_url": "/examples/stable_diffusion_xl.jpg",
   "graph": {
     "nodes": [

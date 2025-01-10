@@ -4,11 +4,8 @@
   "created_at": "2024-11-16T23:33:16.847681",
   "updated_at": "2024-11-16T23:33:16.847700",
   "name": "Chain of Thought",
-  "description": "",
-  "tags": [
-    "chat",
-    "agents"
-  ],
+  "description": "Use GPT-4 to break down complex tasks into smaller steps and solve them systematically",
+  "tags": ["chat", "agents"],
   "thumbnail": "",
   "thumbnail_url": "/examples/chain_of_thought.jpg",
   "graph": {

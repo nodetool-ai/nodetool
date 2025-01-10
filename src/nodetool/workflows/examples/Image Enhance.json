@@ -4,11 +4,8 @@
   "created_at": "2024-10-19T19:08:03.772840",
   "updated_at": "2024-10-19T19:08:03.772863",
   "name": "Image Enhance",
-  "description": "",
-  "tags": [
-    "image",
-    "start"
-  ],
+  "description": "Improve image quality with basic enhancement tools like sharpening, contrast and color adjustment",
+  "tags": ["image", "start"],
   "thumbnail": "",
   "thumbnail_url": "/examples/image_enhance.jpg",
   "graph": {
