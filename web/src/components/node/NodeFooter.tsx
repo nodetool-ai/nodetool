@@ -7,6 +7,7 @@ import { memo, useCallback } from "react";
 import ThemeNodes from "../themes/ThemeNodes";
 import { isEqual } from "lodash";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
+import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
 const PrettyNamespace = memo<{ namespace: string }>(({ namespace }) => {
   const parts = namespace.split(".");
@@ -136,7 +137,11 @@ export const NodeFooter: React.FC<NodeFooterProps> = ({
 
   return (
     <div className="node-footer" css={footerStyles} style={{ backgroundColor }}>
-      <Tooltip title="Click to show in NodeMenu" placement="bottom-start">
+      <Tooltip
+        title="Click to show in NodeMenu"
+        placement="bottom-start"
+        enterDelay={TOOLTIP_ENTER_DELAY}
+      >
         <Button
           tabIndex={1}
           className="namespace-button"
@@ -145,7 +150,11 @@ export const NodeFooter: React.FC<NodeFooterProps> = ({
           <PrettyNamespace namespace={nodeNamespace} />
         </Button>
       </Tooltip>
-      <Tooltip title="Click to show documentation" placement="bottom-start">
+      <Tooltip
+        title="Click to show documentation"
+        placement="bottom-start"
+        enterDelay={TOOLTIP_ENTER_DELAY}
+      >
         <Button
           className="help-button"
           tabIndex={-1}
