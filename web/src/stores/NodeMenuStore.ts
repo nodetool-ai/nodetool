@@ -362,6 +362,11 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
 
         // Show nodes for selected path
         const nodesInPath = typeFilteredMetadata.filter((node) => {
+          // For root namespaces (no dots), show all descendants
+          if (!selectedPathString.includes(".")) {
+            return node.namespace.startsWith(selectedPathString);
+          }
+          // For deeper paths, keep existing behavior
           const matches =
             node.namespace === selectedPathString ||
             (node.namespace.startsWith(selectedPathString + ".") &&
@@ -413,6 +418,11 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
       // Filter search results by selected path if one exists
       const filteredSearchResults = selectedPathString
         ? allResults.filter((node) => {
+            // For root namespaces (no dots), show all descendants
+            if (!selectedPathString.includes(".")) {
+              return node.namespace.startsWith(selectedPathString);
+            }
+            // For deeper paths, keep existing behavior
             const matches =
               node.namespace === selectedPathString ||
               (node.namespace.startsWith(selectedPathString + ".") &&
