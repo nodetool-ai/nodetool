@@ -50,6 +50,20 @@ const styles = (theme: any) =>
       flexDirection: "column",
       alignItems: "flex-start"
     },
+    ".workflow h4": {
+      marginTop: "8px",
+      marginBottom: "4px"
+    },
+    ".workflow .description": {
+      fontSize: "0.875rem",
+      color: theme.palette.text.secondary,
+      lineHeight: "1.2",
+      display: "-webkit-box",
+      WebkitBoxOrient: "vertical",
+      WebkitLineClamp: 3,
+      overflow: "hidden",
+      width: "100%"
+    },
     ".loading-indicator": {
       display: "flex",
       justifyContent: "center",
@@ -89,7 +103,10 @@ const styles = (theme: any) =>
       objectFit: "cover"
     },
     ".tag-menu": {
-      margin: "20px"
+      margin: "20px",
+      "& .MuiButtonGroup-root": {
+        minHeight: "2.5em"
+      }
     },
     ".tag-menu button": {
       transition: "all 0.3s ease",
@@ -227,26 +244,27 @@ const ExampleGrid = () => {
           </ErrorOutlineRounded>
         )}
         {filteredWorkflows.map((workflow) => (
-          <Tooltip
+          <Box
             key={workflow.id}
-            title={workflow.description}
-            placement="bottom"
+            className="workflow"
+            onClick={() => onClickWorkflow(workflow)}
           >
-            <Box className="workflow" onClick={() => onClickWorkflow(workflow)}>
-              <Box className="image-wrapper">
-                {workflow.thumbnail_url && (
-                  <img
-                    width="200px"
-                    src={workflow.thumbnail_url}
-                    alt={workflow.name}
-                  />
-                )}
-              </Box>
-              <Typography variant="h4" component={"h4"}>
-                {workflow.name}
-              </Typography>
+            <Box className="image-wrapper">
+              {workflow.thumbnail_url && (
+                <img
+                  width="200px"
+                  src={workflow.thumbnail_url}
+                  alt={workflow.name}
+                />
+              )}
             </Box>
-          </Tooltip>
+            <Typography variant="h4" component={"h4"}>
+              {workflow.name}
+            </Typography>
+            <Typography className="description">
+              {workflow.description}
+            </Typography>
+          </Box>
         ))}
       </Box>
     </div>
