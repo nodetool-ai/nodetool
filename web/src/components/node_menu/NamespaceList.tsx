@@ -522,6 +522,7 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
                 namespaces to find results.
               </li>
               <li>just start typing to enter a new search term</li>
+              <li>clear search by clicking the clear button</li>
             </ul>
           </div>
         ) : (
