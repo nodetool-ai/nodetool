@@ -290,9 +290,11 @@ const namespaceStyles = (theme: any, inPanel: boolean) =>
     },
     ".namespaces .list-item.selected": {
       backgroundColor: theme.palette.c_hl1,
-      color: theme.palette.c_black,
       borderLeft: `3px solid ${theme.palette.c_hl1}`,
       fontWeight: "500"
+    },
+    ".namespaces .list-item.selected .namespace-item": {
+      color: theme.palette.c_black
     },
     ".namespaces .list-item.disabled.selected": {
       backgroundColor: theme.palette.c_gray2,
@@ -377,6 +379,20 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
 
       const filteredNodes = nodes
         .filter((node) => {
+          // When searching or filtering by types, show all matching nodes
+          if (
+            searchTerm.length > 1 ||
+            selectedInputType ||
+            selectedOutputType
+          ) {
+            return searchResults.some(
+              (result) =>
+                result.title === node.title &&
+                result.namespace === node.namespace
+            );
+          }
+
+          // Otherwise filter by namespace selection
           const isExactMatch = node.namespace === selectedPathString;
           const isDirectChild =
             node.namespace.startsWith(selectedPathString + ".") &&
@@ -386,31 +402,6 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
           const isDescendant = node.namespace.startsWith(
             selectedPathString + "."
           );
-
-          // Debug log for replicate namespace
-          if (
-            selectedPathString === "replicate" ||
-            node.namespace.startsWith("replicate")
-          ) {
-            console.log("Node:", node.namespace, {
-              isExactMatch,
-              isDirectChild,
-              isRootNamespace,
-              isDescendant,
-              willShow:
-                isExactMatch ||
-                isDirectChild ||
-                (isRootNamespace && isDescendant)
-            });
-          }
-
-          if (
-            searchTerm.length > 1 ||
-            selectedInputType ||
-            selectedOutputType
-          ) {
-            return true;
-          }
 
           return (
             isExactMatch || isDirectChild || (isRootNamespace && isDescendant)
@@ -433,7 +424,8 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
       selectedPathString,
       searchTerm.length,
       selectedInputType,
-      selectedOutputType
+      selectedOutputType,
+      searchResults
     ]
   );
 
@@ -507,22 +499,79 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
             <List className="node-list">{renderNodes}</List>
             {renderNodeInfo}
           </>
-        ) : searchTerm.length > 0 && highlightedNamespaces.length > 0 ? (
+        ) : searchTerm.length > 0 ? (
           <div className="no-selection">
             <p>
-              Nothing found in this namespace for
-              <strong className="highlighted-text">
-                {" "}
-                &quot;{searchTerm}&quot;
-              </strong>
+              {selectedPathString ? (
+                <>
+                  Nothing found in this namespace for
+                  <strong className="highlighted-text">
+                    {" "}
+                    &quot;{searchTerm}&quot;
+                  </strong>
+                </>
+              ) : (
+                <>
+                  Nothing found for
+                  <strong className="highlighted-text">
+                    {" "}
+                    &quot;{searchTerm}&quot;
+                  </strong>
+                </>
+              )}
+            </p>
+            <ul className="no-results">
+              {selectedPathString && (
+                <li>
+                  click on <span className="highlighted">highlighted </span>
+                  namespaces to find results.
+                </li>
+              )}
+              <li>just start typing to enter a new search term</li>
+              <li>clear search by clicking the clear button</li>
+            </ul>
+            <Typography variant="h4" sx={{ margin: "1em 0 0 0" }}>
+              Let us know what's missing
+            </Typography>
+            <p>
+              We're always looking to improve Nodetool and welcome any
+              suggestions!
             </p>
             <ul className="no-results">
               <li>
-                click on <span className="highlighted">highlighted </span>
-                namespaces to find results.
+                Join our{" "}
+                <a
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    window.open(
+                      "https://discord.gg/WmQTWZRcYE",
+                      "_blank",
+                      "noopener,noreferrer"
+                    );
+                  }}
+                  style={{ color: "#61dafb" }}
+                >
+                  Discord
+                </a>
               </li>
-              <li>just start typing to enter a new search term</li>
-              <li>clear search by clicking the clear button</li>
+              <li>
+                Join the{" "}
+                <a
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    window.open(
+                      "https://forum.nodetool.ai",
+                      "_blank",
+                      "noopener,noreferrer"
+                    );
+                  }}
+                  style={{ color: "#61dafb" }}
+                >
+                  Nodetool Forum
+                </a>
+              </li>
             </ul>
           </div>
         ) : (
