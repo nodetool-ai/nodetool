@@ -189,7 +189,7 @@ class AnimateDiffNode(HuggingFacePipelineNode):
 class StableVideoDiffusion(HuggingFacePipelineNode):
     """
     Generates a video from a single image using the Stable Video Diffusion model.
-    video, generation, AI, image-to-video, stable-diffusion
+    video, generation, AI, image-to-video, stable-diffusion, SD
 
     Use cases:
     - Create short animations from static images

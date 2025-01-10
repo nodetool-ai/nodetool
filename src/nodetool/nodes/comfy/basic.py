@@ -361,10 +361,8 @@ class StableDiffusion3(StableDiffusion):
 class ControlNet(StableDiffusion):
     """
     Generates images using Stable Diffusion with ControlNet for additional image control. Supports optional high-resolution upscaling while maintaining the same ControlNet strength.
-    image, controlnet, generative, stable diffusion, high-resolution
-    Generates images using Stable Diffusion with ControlNet for additional image control. Supports optional high-resolution upscaling while maintaining the same ControlNet strength.
-    image, controlnet, generative, stable diffusion, high-resolution
-
+    image, controlnet, generative, stable diffusion, high-resolution, SD
+    
     Use cases:
     - Generating images with specific structural guidance
     - Creating images that follow edge maps or depth information
