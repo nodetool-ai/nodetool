@@ -194,8 +194,14 @@ const namespaceStyles = (theme: any, inPanel: boolean) =>
         padding: ".1em .5em",
         flexGrow: 1,
         "& .MuiTypography-root": {
-          // fontSize: theme.fontSizeNormal
+          fontSize: theme.fontSizeSmall
         }
+      },
+      ".icon-bg": {
+        backgroundColor: "transparent !important"
+      },
+      ".icon-bg svg": {
+        color: theme.palette.c_gray4
       }
     },
     ".node:hover": {
