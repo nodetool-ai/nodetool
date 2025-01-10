@@ -159,8 +159,16 @@ const parseDescription = (description: string) => {
   const lines = description.split("\n");
   return {
     desc: lines[0],
-    tags: lines.length > 0 ? lines[1] : [],
-    useCases: lines.length > 1 ? lines.slice(2).join(" ") : ""
+    tags: lines.length > 0 ? lines[1] || "" : "",
+    useCases:
+      lines.length > 1
+        ? lines
+            .slice(2)
+            .join(" ")
+            .split("-")
+            .filter((part) => part.trim())
+            .map((part) => part.trim())
+        : []
   };
 };
 
@@ -204,7 +212,7 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
     },
     [setSearchTerm]
   );
-  const renderTags = (tags: string) => {
+  const renderTags = (tags: string = "") => {
     return tags?.split(",").map((tag, index) => (
       <span
         onClick={() => {
@@ -218,20 +226,12 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
     ));
   };
 
-  const { html: descHtml, highlightedWords: descWords } = highlightTextUtil(
+  const { html: descHtml } = highlightTextUtil(
     description.desc,
     "description",
     searchTerm,
     nodeMetadata.searchInfo
   );
-
-  const { html: useCasesHtml, highlightedWords: useCaseWords } =
-    highlightTextUtil(
-      description.useCases,
-      "description",
-      searchTerm,
-      nodeMetadata.searchInfo
-    );
 
   return (
     <div css={nodeInfoStyles(ThemeNodetool, inPanel)}>
@@ -269,15 +269,32 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
         />
       </div>
       <Typography className="node-tags">
-        {renderTags(description.tags as string)}
+        {renderTags(description.tags)}
       </Typography>
       <Typography component="div" className="node-usecases">
-        {description.useCases && (
-          <div
-            dangerouslySetInnerHTML={{
-              __html: useCasesHtml
-            }}
-          />
+        {description.useCases.length > 0 && (
+          <div>
+            {description.useCases.map((useCase, index) => {
+              const { html } = highlightTextUtil(
+                useCase,
+                "description",
+                searchTerm,
+                nodeMetadata.searchInfo
+              );
+              return (
+                <React.Fragment key={index}>
+                  {index === 0 ? (
+                    <span dangerouslySetInnerHTML={{ __html: html }} />
+                  ) : (
+                    <>
+                      <br />-{" "}
+                      <span dangerouslySetInnerHTML={{ __html: html }} />
+                    </>
+                  )}
+                </React.Fragment>
+              );
+            })}
+          </div>
         )}
       </Typography>
       {nodeMetadata.the_model_info.cover_image_url ? (
