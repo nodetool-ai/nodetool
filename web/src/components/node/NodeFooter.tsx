@@ -43,7 +43,7 @@ export interface NodeFooterProps {
 export const footerStyles = (theme: any) =>
   css({
     display: "flex",
-    height: "24px",
+    height: "18px",
     alignItems: "flex-start",
     background: theme.palette.c_node_header_bg,
     borderRadius: "0 0 0.3em 0.3em",
@@ -51,7 +51,7 @@ export const footerStyles = (theme: any) =>
     ".namespace-button": {
       display: "block",
       margin: "0 0 0 0",
-      padding: "4px 10px",
+      padding: "2px 10px",
       borderRadius: 0,
       backgroundColor: "transparent",
       color: theme.palette.c_gray5,
@@ -67,13 +67,15 @@ export const footerStyles = (theme: any) =>
       color: theme.palette.c_hl1
     },
     ".namespace-button:hover .pretty-namespace span": {
-      color: theme.palette.c_hl1
+      color: theme.palette.c_hl1 + " !important"
     },
     ".help-button": {
-      height: "24px",
+      height: "18px",
       display: "block",
       padding: "0",
       margin: "0",
+      top: "-4px",
+      right: "-7px",
       color: theme.palette.c_gray6,
       backgroundColor: "transparent",
       border: "none",
