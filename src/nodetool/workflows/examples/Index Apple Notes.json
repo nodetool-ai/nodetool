@@ -4,7 +4,7 @@
   "created_at": "2024-12-30T23:20:40.298365",
   "updated_at": "2024-12-30T23:20:40.298382",
   "name": "Index Apple Notes",
-  "description": "",
+  "description": "Create searchable vector database from Apple Notes",
   "tags": null,
   "thumbnail": null,
   "thumbnail_url": null,

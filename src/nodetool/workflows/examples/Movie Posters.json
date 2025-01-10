@@ -4,11 +4,8 @@
   "created_at": "2025-01-09T00:38:44.684178",
   "updated_at": "2025-01-09T00:38:44.684188",
   "name": "Movie Posters",
-  "description": "Generate movie posters from a list of movie titles",
-  "tags": [
-    "start",
-    "image"
-  ],
+  "description": "Create cinematic movie posters using AI image generation",
+  "tags": ["start", "image"],
   "thumbnail": null,
   "thumbnail_url": "/examples/movie_posters.jpg",
   "graph": {

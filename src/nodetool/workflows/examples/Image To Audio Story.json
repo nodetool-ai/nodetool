@@ -4,11 +4,8 @@
   "created_at": "2025-01-03T16:11:32.724826",
   "updated_at": "2025-01-03T16:11:32.724853",
   "name": "Image To Audio Story",
-  "description": "Tell a story about an image",
-  "tags": [
-    "start",
-    "multimodal"
-  ],
+  "description": "Generate and narrate creative stories from images using AI",
+  "tags": ["start", "multimodal"],
   "thumbnail": null,
   "thumbnail_url": "https://app.nodetool.ai/examples/porcelain_sculpture.jpg",
   "graph": {

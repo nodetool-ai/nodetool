@@ -4,11 +4,8 @@
   "created_at": "2025-01-09T21:17:13.525131",
   "updated_at": "2025-01-09T21:17:13.525166",
   "name": "Phantasy Animals",
-  "description": "",
-  "tags": [
-    "image",
-    "start"
-  ],
+  "description": "Generate imaginative animal hybrids using Stable Diffusion",
+  "tags": ["image", "start"],
   "thumbnail": null,
   "thumbnail_url": "/examples/phantasy_animals.jpg",
   "graph": {

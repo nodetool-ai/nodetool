@@ -4,7 +4,7 @@
   "created_at": "2024-12-25T17:44:30.981691",
   "updated_at": "2024-12-25T17:44:30.981695",
   "name": "Music Generator",
-  "description": "",
+  "description": "Generate multi-instrument music using MusicGen model",
   "tags": null,
   "thumbnail": null,
   "thumbnail_url": null,

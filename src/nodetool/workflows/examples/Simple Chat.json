@@ -4,11 +4,8 @@
   "created_at": "2025-01-03T16:07:13.129098",
   "updated_at": "2025-01-03T16:07:13.129116",
   "name": "Simple Chat",
-  "description": "",
-  "tags": [
-    "chat",
-    "start"
-  ],
+  "description": "Basic chat interface using Gemma 2B model",
+  "tags": ["chat", "start"],
   "thumbnail": null,
   "thumbnail_url": "/examples/android.png",
   "graph": {

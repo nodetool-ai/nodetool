@@ -4,10 +4,8 @@
   "created_at": "2024-12-13T23:54:51.675527",
   "updated_at": "2024-12-13T23:54:51.675527",
   "name": "Stable Diffusion",
-  "description": "Stable Diffusion Image Generation",
-  "tags": [
-    "image"
-  ],
+  "description": "Generate images using Stable Diffusion with Realistic Vision model",
+  "tags": ["image"],
   "thumbnail": null,
   "thumbnail_url": "/examples/stable_diffusion.jpg",
   "graph": {

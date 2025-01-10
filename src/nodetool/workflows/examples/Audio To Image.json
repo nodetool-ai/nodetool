@@ -4,12 +4,8 @@
   "created_at": "2025-01-09T09:19:22.110513",
   "updated_at": "2025-01-09T09:19:22.110537",
   "name": "Audio To Image",
-  "description": "Convert any audio speech into an image",
-  "tags": [
-    "huggingface",
-    "multimodal",
-    "start"
-  ],
+  "description": "Generate images from spoken descriptions using speech recognition",
+  "tags": ["huggingface", "multimodal", "start"],
   "thumbnail": null,
   "thumbnail_url": "/examples/audio_to_image.jpg",
   "graph": {
