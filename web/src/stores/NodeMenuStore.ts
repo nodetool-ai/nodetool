@@ -348,85 +348,71 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
       // Get nodes in the selected path
       const selectedPathString = get().selectedPath.join(".");
 
-      // Filter visible nodes by path level
-      const visibleNodes = selectedPathString
-        ? typeFilteredMetadata.filter((node) => {
-            // For root namespaces (no dots), show all descendants
-            if (!selectedPathString.includes(".")) {
-              return node.namespace.startsWith(selectedPathString);
-            }
-            // For deeper paths, keep existing behavior
-            const matches =
-              node.namespace === selectedPathString ||
-              (node.namespace.startsWith(selectedPathString + ".") &&
-                node.namespace.split(".").length ===
-                  selectedPathString.split(".").length + 1);
-            return matches;
-          })
-        : typeFilteredMetadata;
-
-      // Calculate highlighted namespaces
-      const highlightedNamespaces = new Set<string>();
-
-      // Always add search matches and their parents, even if no search term
-      searchMatchedNodes.forEach((node) => {
-        const parts = node.namespace.split(".");
-        let path = "";
-        parts.forEach((part) => {
-          path = path ? `${path}.${part}` : part;
-          highlightedNamespaces.add(path);
-        });
-      });
-
-      // If we have a selected path, add it and its parents
-      if (selectedPathString) {
-        const selectedParts = selectedPathString.split(".");
-        let path = "";
-        selectedParts.forEach((part) => {
-          path = path ? `${path}.${part}` : part;
-          highlightedNamespaces.add(path);
-        });
-
-        // Add all nodes that are direct children of the selected path
-        typeFilteredMetadata.forEach((node) => {
-          if (
-            node.namespace.startsWith(selectedPathString + ".") &&
-            node.namespace.split(".").length ===
-              selectedPathString.split(".").length + 1
-          ) {
-            highlightedNamespaces.add(node.namespace);
-
-            // Also add parent namespaces of these children
-            const childParts = node.namespace.split(".");
-            let childPath = "";
-            childParts.forEach((part) => {
-              childPath = childPath ? `${childPath}.${part}` : part;
-              highlightedNamespaces.add(childPath);
-            });
-          }
-        });
-      }
-
-      set({ highlightedNamespaces: [...highlightedNamespaces] });
-
-      // Set visible results
+      // If no search term is provided, show nodes based on selected path
       if (!term.trim()) {
+        // If no path is selected and no search term, return empty results
+        if (!selectedPathString) {
+          set({
+            searchResults: [],
+            groupedSearchResults: []
+          });
+          get().updateHighlightedNamespaces([]);
+          return;
+        }
+
+        // Show nodes for selected path
+        const nodesInPath = typeFilteredMetadata.filter((node) => {
+          const matches =
+            node.namespace === selectedPathString ||
+            (node.namespace.startsWith(selectedPathString + ".") &&
+              node.namespace.split(".").length ===
+                selectedPathString.split(".").length + 1);
+          return matches;
+        });
+
         const allResults = [
           {
-            title: selectedPathString || "All",
-            nodes: visibleNodes
+            title: selectedPathString,
+            nodes: nodesInPath
           }
         ];
         set({
-          searchResults: visibleNodes,
+          searchResults: nodesInPath,
           groupedSearchResults: allResults
         });
+        get().updateHighlightedNamespaces(nodesInPath);
         return;
       }
 
+      // Prepare search entries
+      const entries = typeFilteredMetadata.map((node: NodeMetadata) => {
+        const lines = node.description.split("\n");
+        const firstLine = lines[0] || "";
+        const tags = lines[1]
+          ? lines[1]
+              .split(",")
+              .map((t) => t.trim())
+              .filter(Boolean)
+          : [];
+        const useCases = lines.slice(2).join(" ");
+
+        return {
+          title: node.title,
+          node_type: node.node_type,
+          namespace: node.namespace,
+          description: firstLine,
+          use_cases: useCases,
+          tags,
+          metadata: node
+        };
+      });
+
+      const groupedResults = performGroupedSearch(entries, term);
+      const allResults = groupedResults.flatMap((group) => group.nodes);
+
       // Filter search results by selected path if one exists
       const filteredSearchResults = selectedPathString
-        ? searchMatchedNodes.filter((node) => {
+        ? allResults.filter((node) => {
             const matches =
               node.namespace === selectedPathString ||
               (node.namespace.startsWith(selectedPathString + ".") &&
@@ -434,19 +420,23 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
                   selectedPathString.split(".").length + 1);
             return matches;
           })
-        : searchMatchedNodes;
+        : allResults;
 
-      const groupedResults = [
-        {
-          title: selectedPathString || "Search Results",
-          nodes: filteredSearchResults
-        }
-      ];
+      const finalGroupedResults = selectedPathString
+        ? [
+            {
+              title: selectedPathString,
+              nodes: filteredSearchResults
+            }
+          ]
+        : groupedResults;
 
       set({
         searchResults: filteredSearchResults,
-        groupedSearchResults: groupedResults
+        groupedSearchResults: finalGroupedResults
       });
+
+      get().updateHighlightedNamespaces(allResults);
     },
 
     searchResults: [],
