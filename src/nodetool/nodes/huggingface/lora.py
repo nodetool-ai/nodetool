@@ -95,7 +95,7 @@ HF_LORA_SDXL_MODELS = [
 class LoRASelector(BaseNode):
     """
     Selects up to 5 LoRA models to apply to a Stable Diffusion model.
-    lora, model customization, fine-tuning
+    lora, model customization, fine-tuning, SD
 
     Use cases:
     - Combining multiple LoRA models for unique image styles
@@ -149,7 +149,7 @@ class LoRASelector(BaseNode):
 class LoRASelectorXL(LoRASelector):
     """
     Selects up to 5 LoRA models to apply to a Stable Diffusion XL model.
-    lora, model customization, fine-tuning
+    lora, model customization, fine-tuning, SDXL
 
     Use cases:
     - Combining multiple LoRA models for unique image styles

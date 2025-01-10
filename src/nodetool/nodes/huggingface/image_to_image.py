@@ -328,7 +328,7 @@ class Kandinsky3Img2Img(HuggingFacePipelineNode):
 class StableDiffusionControlNetNode(StableDiffusionBaseNode):
     """
     Generates images using Stable Diffusion with ControlNet guidance.
-    image, generation, text-to-image, controlnet
+    image, generation, text-to-image, controlnet, SD
 
     Use cases:
     - Generate images with precise control over composition and structure
@@ -409,7 +409,7 @@ class StableDiffusionControlNetNode(StableDiffusionBaseNode):
 class StableDiffusionImg2ImgNode(StableDiffusionBaseNode):
     """
     Transforms existing images based on text prompts using Stable Diffusion.
-    image, generation, image-to-image
+    image, generation, image-to-image, SD, img2img
 
     Use cases:
     - Modifying existing images to fit a specific style or theme
@@ -469,7 +469,7 @@ class StableDiffusionImg2ImgNode(StableDiffusionBaseNode):
 class StableDiffusionControlNetInpaintNode(StableDiffusionBaseNode):
     """
     Performs inpainting on images using Stable Diffusion with ControlNet guidance.
-    image, inpainting, controlnet
+    image, inpainting, controlnet, SD
 
     Use cases:
     - Remove unwanted objects from images with precise control
@@ -553,7 +553,7 @@ class StableDiffusionControlNetInpaintNode(StableDiffusionBaseNode):
 class StableDiffusionInpaintNode(StableDiffusionBaseNode):
     """
     Performs inpainting on images using Stable Diffusion.
-    image, inpainting, AI
+    image, inpainting, AI, SD
 
     Use cases:
     - Remove unwanted objects from images
@@ -619,7 +619,7 @@ class StableDiffusionInpaintNode(StableDiffusionBaseNode):
 class StableDiffusionControlNetImg2ImgNode(StableDiffusionBaseNode):
     """
     Transforms existing images using Stable Diffusion with ControlNet guidance.
-    image, generation, image-to-image, controlnet
+    image, generation, image-to-image, controlnet, SD
 
     Use cases:
     - Modify existing images with precise control over composition and structure
@@ -711,7 +711,7 @@ class StableDiffusionControlNetImg2ImgNode(StableDiffusionBaseNode):
 class StableDiffusionUpscale(HuggingFacePipelineNode):
     """
     Upscales an image using Stable Diffusion 4x upscaler.
-    image, upscaling, stable-diffusion
+    image, upscaling, stable-diffusion, SD
 
     Use cases:
     - Enhance low-resolution images

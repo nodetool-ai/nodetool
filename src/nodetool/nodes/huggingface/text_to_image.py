@@ -481,7 +481,7 @@ from pydantic import Field
 class StableDiffusion(StableDiffusionBaseNode):
     """
     Generates images from text prompts using Stable Diffusion.
-    image, generation, AI, text-to-image
+    image, generation, AI, text-to-image, SD
 
     Use cases:
     - Creating custom illustrations for various projects
@@ -526,7 +526,7 @@ class StableDiffusion(StableDiffusionBaseNode):
 class StableDiffusionXL(StableDiffusionXLBase):
     """
     Generates images from text prompts using Stable Diffusion XL.
-    image, generation, AI, text-to-image
+    image, generation, AI, text-to-image, SDXL
 
     Use cases:
     - Creating custom illustrations for marketing materials
