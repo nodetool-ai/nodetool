@@ -16,19 +16,30 @@ import ThemeNodetool from "../themes/ThemeNodetool";
 import { useQuery } from "@tanstack/react-query";
 import { ErrorOutlineRounded } from "@mui/icons-material";
 import { css } from "@emotion/react";
-import { uuidv4 } from "../../stores/uuidv4";
 
 const styles = (theme: any) =>
   css({
+    ".workflow-grid": {
+      height: "100%",
+      width: "100%",
+      position: "relative"
+    },
     "&": {
       position: "relative",
-      width: "100%",
-      left: "60px"
+      width: "calc(100% - 70px)",
+      left: "60px",
+      height: "calc(100vh - 64px)",
+      overflow: "hidden",
+      display: "flex",
+      flexDirection: "column"
     },
     ".container": {
       display: "flex",
       flexWrap: "wrap",
-      alignItems: "flex-start"
+      alignItems: "flex-start",
+      overflowY: "auto",
+      flex: 1,
+      padding: "0 20px"
     },
     ".workflow": {
       flex: "1 0 200px",
@@ -109,7 +120,6 @@ const styles = (theme: any) =>
 
 const ExampleGrid = () => {
   const navigate = useNavigate();
-  const copyWorkflow = useWorkflowStore((state) => state.copy);
   const loadWorkflows = useWorkflowStore((state) => state.loadExamples);
   const createWorkflow = useWorkflowStore((state) => state.create);
   const [selectedTag, setSelectedTag] = useState<string | null>("start");
