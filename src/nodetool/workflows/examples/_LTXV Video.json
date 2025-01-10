@@ -4,12 +4,8 @@
   "created_at": "2024-12-25T01:46:26.492473",
   "updated_at": "2024-12-25T01:46:26.492478",
   "name": "LTXV Video",
-  "description": "fast video generation with LTXV",
-  "tags": [
-    "comfy",
-    "video",
-    "start"
-  ],
+  "description": "Generate high-quality videos using LTX-Video model",
+  "tags": ["comfy", "video", "start"],
   "thumbnail": null,
   "thumbnail_url": "https://media.githubusercontent.com/media/Lightricks/LTX-Video/main/docs/_static/ltx-video_example_00001.gif",
   "graph": {

@@ -4,10 +4,8 @@
   "created_at": "2024-12-01T16:30:19.345142",
   "updated_at": "2024-12-01T16:30:19.345163",
   "name": "Chart Generator",
-  "description": "",
-  "tags": [
-    "agents"
-  ],
+  "description": "Create data visualizations from natural language descriptions",
+  "tags": ["agents"],
   "thumbnail": "",
   "thumbnail_url": "/examples/chart_generator.jpg",
   "graph": {
@@ -203,5 +201,5 @@
         }
       }
     ]
-  },
+  }
 }

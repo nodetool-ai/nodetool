@@ -4,10 +4,8 @@
   "created_at": "2025-01-03T16:08:09.251098",
   "updated_at": "2025-01-03T16:08:09.251114",
   "name": "Data Generator",
-  "description": "",
-  "tags": [
-    "agents"
-  ],
+  "description": "Generate structured data using AI agents",
+  "tags": ["agents"],
   "thumbnail": null,
   "thumbnail_url": "/examples/data_generator.png",
   "graph": {

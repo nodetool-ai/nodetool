@@ -4,7 +4,7 @@
   "created_at": "2024-12-25T17:46:12.860872",
   "updated_at": "2024-12-25T17:46:12.860877",
   "name": "Piano track",
-  "description": "",
+  "description": "Generate piano music using AI composition models",
   "tags": null,
   "thumbnail": null,
   "thumbnail_url": null,

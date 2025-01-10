@@ -4,11 +4,8 @@
   "created_at": "2024-12-02T16:26:26.850928",
   "updated_at": "2024-12-02T16:26:26.850932",
   "name": "Mochi Video",
-  "description": "A simple video workflow using Mochi models",
-  "tags": [
-    "video",
-    "start"
-  ],
+  "description": "Generate animated videos using Mochi diffusion model",
+  "tags": ["video", "start"],
   "thumbnail": "",
   "thumbnail_url": "/examples/mochi.png",
   "graph": {

@@ -4,10 +4,8 @@
   "created_at": "2024-10-19T19:12:02.311901",
   "updated_at": "2024-10-19T19:12:02.311922",
   "name": "Generate Music",
-  "description": "Generate 3 musical ideas and generate audio for each idea.",
-  "tags": [
-    "audio"
-  ],
+  "description": "Create musical compositions using AI-generated ideas and MusicGen",
+  "tags": ["audio"],
   "thumbnail": "",
   "thumbnail_url": "/examples/generate_music.jpg",
   "graph": {
