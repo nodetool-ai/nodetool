@@ -108,11 +108,11 @@ export const NodeFooter: React.FC<NodeFooterProps> = ({
   }));
 
   const handleOpenNodeMenu = useCallback(() => {
-    openNodeMenu(500, 200, false, metadata.namespace);
+    setSelectedPath(metadata.namespace.split("."));
+    setHoveredNode(metadata);
+    setHighlightedNamespaces(metadata.namespace.split("."));
     requestAnimationFrame(() => {
-      setSelectedPath(metadata.namespace.split("."));
-      setHoveredNode(metadata);
-      setHighlightedNamespaces(metadata.namespace.split("."));
+      openNodeMenu(500, 200, false, metadata.namespace);
     });
   }, [
     metadata,
