@@ -6,7 +6,8 @@ import {
   CircularProgress,
   Button,
   ButtonGroup,
-  Tooltip
+  Tooltip,
+  TextField
 } from "@mui/material";
 import { useWorkflowStore } from "../../stores/WorkflowStore";
 import { useCallback, useMemo, useState } from "react";
@@ -104,9 +105,24 @@ const styles = (theme: any) =>
     },
     ".tag-menu": {
       margin: "20px",
+      display: "flex",
+      flexDirection: "column",
+      gap: "10px",
       "& .MuiButtonGroup-root": {
-        minHeight: "2.5em"
+        flexWrap: "wrap",
+        gap: "4px",
+        "& .MuiButton-root": {
+          marginLeft: "0 !important",
+          borderRadius: "4px !important",
+          minWidth: "80px",
+          margin: "2px"
+        }
       }
+    },
+    ".tag-menu .button-row": {
+      display: "flex",
+      flexWrap: "wrap",
+      gap: "4px"
     },
     ".tag-menu button": {
       transition: "all 0.3s ease",
@@ -119,6 +135,12 @@ const styles = (theme: any) =>
         transform: "translateY(-2px)",
         boxShadow: `0 4px 8px rgba(0, 0, 0, 0.2)`,
         color: theme.palette.common.white
+      },
+      fontSize: "0.8rem",
+      padding: "6px 12px",
+      "@media (max-width: 600px)": {
+        fontSize: "0.75rem",
+        padding: "4px 8px"
       }
     },
     ".tag-menu .selected": {
@@ -132,6 +154,22 @@ const styles = (theme: any) =>
         transform: "none",
         boxShadow: `0 2px 4px rgba(0, 0, 0, 0.3)`
       }
+    },
+    ".search-container": {
+      padding: "0 20px",
+      marginBottom: "10px"
+    },
+    ".search-field": {
+      width: "100%",
+      maxWidth: "400px",
+      "& .MuiOutlinedInput-root": {
+        "&:hover fieldset": {
+          borderColor: theme.palette.c_hl1
+        },
+        "&.Mui-focused fieldset": {
+          borderColor: theme.palette.c_hl1
+        }
+      }
     }
   });
 
@@ -140,6 +178,7 @@ const ExampleGrid = () => {
   const loadWorkflows = useWorkflowStore((state) => state.loadExamples);
   const createWorkflow = useWorkflowStore((state) => state.create);
   const [selectedTag, setSelectedTag] = useState<string | null>("start");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const { data, isLoading, isError, error } = useQuery<WorkflowList, Error>({
     queryKey: ["examples"],
@@ -184,24 +223,33 @@ const ExampleGrid = () => {
   }, [data]);
 
   const filteredWorkflows = useMemo(() => {
-    const workflows =
+    let workflows =
       !selectedTag || !groupedWorkflows[selectedTag]
         ? data?.workflows || []
         : groupedWorkflows[selectedTag];
 
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      workflows = workflows.filter(
+        (workflow) =>
+          workflow.name.toLowerCase().includes(query) ||
+          (workflow.description || "").toLowerCase().includes(query)
+      );
+    }
+
     return [...workflows].sort((a, b) =>
       a.name.toLowerCase().localeCompare(b.name.toLowerCase())
     );
-  }, [selectedTag, groupedWorkflows, data]);
+  }, [selectedTag, groupedWorkflows, data, searchQuery]);
 
   return (
     <div className="workflow-grid" css={styles}>
       <Box className="tag-menu">
-        <ButtonGroup variant="outlined">
+        <div className="button-row">
           <Tooltip title="Show all example workflows">
             <Button
               onClick={() => setSelectedTag(null)}
-              variant={selectedTag === null ? "contained" : "outlined"}
+              variant="outlined"
               className={selectedTag === null ? "selected" : ""}
             >
               All
@@ -210,7 +258,7 @@ const ExampleGrid = () => {
           <Tooltip title="Basic examples to get started">
             <Button
               onClick={() => setSelectedTag("start")}
-              variant={selectedTag === "start" ? "contained" : "outlined"}
+              variant="outlined"
               className={selectedTag === "start" ? "selected" : ""}
             >
               Start
@@ -222,14 +270,24 @@ const ExampleGrid = () => {
               <Tooltip key={tag} title={`Show ${tag} examples`}>
                 <Button
                   onClick={() => setSelectedTag(tag)}
-                  variant={selectedTag === tag ? "contained" : "outlined"}
+                  variant="outlined"
                   className={selectedTag === tag ? "selected" : ""}
                 >
                   {tag}
                 </Button>
               </Tooltip>
             ))}
-        </ButtonGroup>
+        </div>
+      </Box>
+      <Box className="search-container">
+        <TextField
+          className="search-field"
+          placeholder="Search examples..."
+          variant="outlined"
+          size="small"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
       </Box>
       <Box className="container">
         {isLoading && (
