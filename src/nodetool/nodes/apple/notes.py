@@ -71,7 +71,15 @@ class CreateNote(BaseNode):
 
 
 class ReadNotes(BaseNode):
-    """Read notes from Apple Notes via AppleScript using temporary files"""
+    """
+    Read notes from Apple Notes via AppleScript using temporary files
+    notes, automation, macos, productivity
+
+    Use cases:
+    - Access your Apple Notes content programmatically
+    - Search through notes using keywords
+    - Get notes content for further processing
+    """
 
     search_term: str = Field(
         default="", description="Optional search term to filter notes"
