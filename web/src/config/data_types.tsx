@@ -10,6 +10,7 @@ import { isEqual } from "lodash";
 // icons
 import stc from "string-to-color";
 import any from "../icons/any.svg?react";
+import notype from "../icons/notype.svg?react";
 import asset from "../icons/asset.svg?react";
 import audio from "../icons/audio.svg?react";
 import bool from "../icons/bool.svg?react";
@@ -54,6 +55,7 @@ import comfy_vae from "../icons/comfy_vae.svg?react";
 // Mapping of icon names to their respective imports
 const iconMap: Record<string, React.FC<React.SVGProps<SVGSVGElement>>> = {
   any,
+  notype,
   asset,
   audio,
   bool,
@@ -157,6 +159,17 @@ let DATA_TYPES: DataType[] = [
     slug: "",
     namespace: "",
     icon: "QuestionMark"
+  },
+  {
+    value: "notype",
+    label: "No Type",
+    description: "No output type",
+    color: monokaiColors.white,
+    textColor: "dark",
+    name: "",
+    slug: "",
+    namespace: "",
+    icon: "NotType"
   },
   {
     value: "asset",
@@ -617,9 +630,11 @@ const iconStyles = (theme: any) => ({
   }
 });
 
-export function datatypeByName(name: string) {
+export function datatypeByName(name: string): DataType | null {
   const foundItem = DATA_TYPES.find((item) => item.value === name);
-  return foundItem || null;
+  return (
+    foundItem || DATA_TYPES.find((item) => item.value === "notype") || null
+  );
 }
 
 interface IconForTypeProps extends IconProps {
@@ -638,9 +653,12 @@ export const IconForType = memo(function IconForType({
   svgProps,
   showTooltip = true
 }: IconForTypeProps) {
-  const name = iconName.replace("nodetool.", "");
-  const description = datatypeByName(name)?.description || "";
-  const IconComponent = iconMap[name] || iconMap["any"];
+  const name = iconName?.replace("nodetool.", "") || "notype";
+  const dataType = datatypeByName(name);
+  const description = dataType?.description || "";
+  const IconComponent = name
+    ? iconMap[name] || iconMap["any"]
+    : iconMap["notype"];
 
   return (
     <div css={iconStyles} style={containerStyle} className="icon-container">
