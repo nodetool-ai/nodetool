@@ -23,7 +23,9 @@ import { FileInfo } from "../../stores/ApiTypes";
 interface TreeViewItem {
   id: string;
   label: string;
+  className?: string;
   children?: TreeViewItem[];
+  itemProps?: Record<string, any>;
 }
 
 const styles = (theme: any) =>
@@ -100,7 +102,7 @@ const styles = (theme: any) =>
       },
 
       ".MuiDialog-paper": {
-        backgroundColor: theme.palette.c_gray2,
+        backgroundColor: theme.palette.c_gray1,
         borderRadius: "8px",
         boxShadow: "0 8px 32px rgba(0, 0, 0, 0.24)"
       },
@@ -126,6 +128,9 @@ const styles = (theme: any) =>
 const fileToTreeItem = (file: FileInfo): TreeViewItem => ({
   id: file.path,
   label: file.name,
+  itemProps: {
+    "data-is-folder": file.is_dir
+  },
   children: file.is_dir
     ? [{ id: file.path + "/", label: "loading...", children: [] }]
     : undefined
@@ -298,6 +303,13 @@ const FilePathProperty = (props: PropertyProps) => {
             backdropFilter: "blur(4px)"
           }
         }}
+        PaperProps={{
+          sx: {
+            backgroundColor: (theme) => theme.palette.c_gray0,
+            borderRadius: "8px",
+            boxShadow: "0 8px 32px rgba(0, 0, 0, 0.24)"
+          }
+        }}
       >
         <DialogTitle>Select File</DialogTitle>
         <DialogContent>
@@ -325,9 +337,20 @@ const FilePathProperty = (props: PropertyProps) => {
                   backgroundColor: (theme) =>
                     `${theme.palette.c_hl1} !important`
                 },
+                // Default style for all items (files)
                 ".MuiTreeItem-label": {
-                  backgroundColor: "transparent !important"
-                }
+                  backgroundColor: "transparent !important",
+                  fontWeight: 300
+                },
+                // Style for folders (items with non-empty iconContainer)
+                ".MuiTreeItem-iconContainer:not(:empty) + .MuiTreeItem-label": {
+                  fontWeight: 600
+                },
+                // Keep folder weight when selected
+                ".Mui-selected .MuiTreeItem-iconContainer:not(:empty) + .MuiTreeItem-label":
+                  {
+                    fontWeight: 600
+                  }
               }}
             />
           )}
