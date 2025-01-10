@@ -116,18 +116,20 @@ class ZeroShotTextClassifier(HuggingFacePipelineNode):
     )
 
     async def initialize(self, context: ProcessingContext):
+        # load model directly onto device
         self._pipeline = await self.load_pipeline(
-            context, "zero-shot-classification", self.model.repo_id
+            context=context,
+            model_id=self.model.repo_id,
+            pipeline_task="zero-shot-classification",
+            device=context.device,
         )
 
-    async def move_to_device(self, device: str):
-        self._pipeline.model.to(device)  # type: ignore
-
     async def process(self, context: ProcessingContext) -> dict[str, float]:
-        assert self._pipeline is not None
+        assert self._pipeline, "Pipeline not initialized"
+        labels = self.candidate_labels.split(",")
         result = self._pipeline(
             self.inputs,
-            candidate_labels=self.candidate_labels.split(","),
+            candidate_labels=labels,
             multi_label=self.multi_label,
         )
         return dict(zip(result["labels"], result["scores"]))  # type: ignore
