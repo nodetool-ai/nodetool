@@ -2,7 +2,7 @@
 import { css, useTheme } from "@emotion/react";
 
 import ReactDOM from "react-dom";
-import { memo, useEffect, useRef } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import TextareaAutosize from "react-textarea-autosize";
 import { useClipboard } from "../../hooks/browser/useClipboard";
 import CloseIcon from "@mui/icons-material/Close";
@@ -23,6 +23,81 @@ import "prismjs/components/prism-markdown";
 import "prismjs/components/prism-yaml";
 import "prismjs/components/prism-bash";
 
+const autodetectLanguage = (value: string) => {
+  // Check for common language patterns
+  if (!value) return "text";
+
+  const lowerValue = value.toLowerCase();
+
+  // Python indicators
+  if (
+    lowerValue.includes("def ") ||
+    lowerValue.includes("import ") ||
+    lowerValue.includes("class ") ||
+    lowerValue.includes("print(") ||
+    lowerValue.includes("self.") ||
+    lowerValue.includes("__init__")
+  ) {
+    return "python";
+  }
+
+  // JSON indicators
+  if (
+    (value.startsWith("{") && value.endsWith("}")) ||
+    (value.startsWith("[") && value.endsWith("]"))
+  ) {
+    try {
+      JSON.parse(value);
+      return "json";
+    } catch (e) {
+      // Not valid JSON, continue checking other formats
+    }
+  }
+
+  // YAML indicators
+  if (
+    lowerValue.includes(": ") &&
+    (lowerValue.includes("- ") || lowerValue.includes("---"))
+  ) {
+    return "yaml";
+  }
+
+  // Markdown indicators
+  if (
+    lowerValue.includes("# ") ||
+    lowerValue.includes("## ") ||
+    lowerValue.includes("**") ||
+    lowerValue.includes("```")
+  ) {
+    return "markdown";
+  }
+
+  // CSS indicators
+  if (
+    lowerValue.includes("{") &&
+    lowerValue.includes("}") &&
+    (lowerValue.includes("px") ||
+      lowerValue.includes("em") ||
+      lowerValue.includes("rgb") ||
+      lowerValue.includes("#"))
+  ) {
+    return "css";
+  }
+
+  // Bash/Shell indicators
+  if (
+    lowerValue.includes("#!/") ||
+    lowerValue.includes("sudo ") ||
+    lowerValue.includes("apt ") ||
+    lowerValue.includes("chmod ")
+  ) {
+    return "bash";
+  }
+
+  // Default to JavaScript
+  return "javascript";
+};
+
 interface TextEditorModalProps {
   value: string;
   onChange?: (value: string) => void;
@@ -33,7 +108,11 @@ interface TextEditorModalProps {
   isLoading?: boolean;
 }
 
-const modalStyles = (theme: any) =>
+const modalStyles = (
+  theme: any,
+  textareaHeight: number,
+  textareaWidth: number
+) =>
   css({
     ".modal-overlay": {
       position: "fixed",
@@ -88,7 +167,9 @@ const modalStyles = (theme: any) =>
       display: "flex",
       flexDirection: "column",
       padding: ".5em",
-      backgroundColor: theme.palette.c_gray1
+      backgroundColor: theme.palette.c_gray1,
+      height: "100%",
+      overflow: "hidden"
     },
     ".modal-body .editor": {
       flex: 1,
@@ -98,7 +179,21 @@ const modalStyles = (theme: any) =>
       lineHeight: "1.2",
       color: theme.palette.c_white,
       backgroundColor: theme.palette.c_gray2,
-      outline: "none"
+      outline: "none",
+      overflow: "auto !important",
+      whiteSpace: "pre",
+      height: "100vh",
+      "& pre": {
+        height: "100vh",
+        whiteSpace: "pre !important",
+        wordWrap: "normal !important"
+      },
+      "& textarea": {
+        whiteSpace: "pre !important",
+        wordWrap: "normal !important",
+        height: `${textareaHeight}px !important`,
+        width: `${textareaWidth}px !important`
+      }
     },
     ".actions": {
       display: "flex",
@@ -142,11 +237,24 @@ const TextEditorModal = ({
   const modalOverlayRef = useRef<HTMLDivElement>(null);
   const { writeClipboard } = useClipboard();
 
+  const [textareaHeight, setTextareaHeight] = useState(window.innerHeight);
+  const [textareaWidth, setTextareaWidth] = useState(window.innerWidth * 0.4);
+
   useEffect(() => {
     if (textareaRef.current && !isLoading) {
       textareaRef.current.focus();
     }
   }, [isLoading]);
+
+  useEffect(() => {
+    const editor = document.querySelector(".simple-editor");
+    if (editor) {
+      const editorHeight = editor.scrollHeight;
+      const editorWidth = editor.scrollWidth;
+      setTextareaHeight(editorHeight);
+      setTextareaWidth(editorWidth);
+    }
+  }, [value]);
 
   const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === modalOverlayRef.current) {
@@ -157,7 +265,10 @@ const TextEditorModal = ({
   useCombo(["escape"], onClose);
 
   const content = (
-    <div css={modalStyles(theme)} className={readOnly ? "read-only" : ""}>
+    <div
+      css={modalStyles(theme, textareaHeight, textareaWidth)}
+      className={readOnly ? "read-only" : ""}
+    >
       <div
         className="modal-overlay"
         role="presentation"
@@ -216,15 +327,20 @@ const TextEditorModal = ({
               <Editor
                 value={value}
                 onValueChange={(code) => onChange && onChange(code)}
-                highlight={(code) =>
-                  Prism.highlight(
+                highlight={(code) => {
+                  const language = autodetectLanguage(code);
+                  if (language === "text") {
+                    return code;
+                  }
+                  return Prism.highlight(
                     code,
-                    Prism.languages.javascript,
-                    "javascript"
-                  )
-                }
+                    Prism.languages[language],
+                    language
+                  );
+                }}
+                textareaClassName="textarea"
                 padding={10}
-                className="editor"
+                className="editor simple-editor"
                 readOnly={readOnly}
                 style={{
                   fontFamily: "monospace",
