@@ -8,7 +8,7 @@ interface ContextMenuItemProps {
   onClick?: (event?: React.MouseEvent<HTMLElement>) => void;
   label?: string;
   IconComponent?: ReactElement;
-  tooltip: ReactNode;
+  tooltip?: ReactNode;
   addButtonClassName?: string;
   controlElement?: ReactElement;
 }
@@ -85,12 +85,26 @@ const ContextMenuItem: React.FC<ContextMenuItemProps> = ({
 }) => {
   return (
     <div className="context-menu-item" css={styles}>
-      <Tooltip
-        css={styles}
-        title={tooltip}
-        enterDelay={TOOLTIP_ENTER_DELAY}
-        placement={"right"}
-      >
+      {tooltip && (
+        <Tooltip
+          css={styles}
+          title={tooltip}
+          enterDelay={TOOLTIP_ENTER_DELAY}
+          placement={"right"}
+        >
+          <MenuItem onClick={onClick}>
+            {controlElement ? (
+              controlElement
+            ) : (
+              <Button className={`action ${addButtonClassName || ""}`}>
+                {IconComponent}
+                {label}
+              </Button>
+            )}
+          </MenuItem>
+        </Tooltip>
+      )}
+      {!tooltip && (
         <MenuItem onClick={onClick}>
           {controlElement ? (
             controlElement
@@ -101,7 +115,7 @@ const ContextMenuItem: React.FC<ContextMenuItemProps> = ({
             </Button>
           )}
         </MenuItem>
-      </Tooltip>
+      )}
     </div>
   );
 };

@@ -21,13 +21,13 @@ export interface SplitNodeDescription {
   };
 }
 
-export const formatNodeDescription = (
-  description: string,
+export const formatNodeDocumentation = (
+  fullDocumentation: string,
   searchTerm?: string,
   searchInfo?: any
 ): SplitNodeDescription => {
-  const lines = description.split("\n").map((line) => line.trim());
-  const mainDescription = lines[0] || "";
+  const lines = fullDocumentation.split("\n").map((line) => line.trim());
+  const description = lines[0] || "";
   const tags =
     lines[1]
       ?.split(",")
@@ -64,7 +64,7 @@ export const formatNodeDescription = (
           if (searchTerm && searchInfo) {
             const highlighted = highlightTextUtil(
               content,
-              "description",
+              "use_cases",
               searchTerm,
               searchInfo
             );
@@ -81,7 +81,7 @@ export const formatNodeDescription = (
       if (searchTerm && searchInfo) {
         const highlighted = highlightTextUtil(
           useCasesRaw,
-          "description",
+          "use_cases",
           searchTerm,
           searchInfo
         );
@@ -127,7 +127,7 @@ export const formatNodeDescription = (
   }
 
   return {
-    description: mainDescription,
+    description,
     tags,
     useCases: {
       raw: useCasesRaw,
@@ -451,7 +451,7 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
       let searchMatchedNodes = typeFilteredMetadata;
       if (term.trim()) {
         const allEntries = typeFilteredMetadata.map((node: NodeMetadata) => {
-          const { description, tags, useCases } = formatNodeDescription(
+          const { description, tags, useCases } = formatNodeDocumentation(
             node.description
           );
 
@@ -459,8 +459,8 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
             title: node.title,
             node_type: node.node_type,
             namespace: node.namespace,
-            description,
-            use_cases: useCases,
+            description: node.description,
+            use_cases: useCases.raw,
             tags,
             metadata: node
           };
@@ -518,7 +518,7 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
 
       // Prepare search entries
       const entries = typeFilteredMetadata.map((node: NodeMetadata) => {
-        const { description, tags, useCases } = formatNodeDescription(
+        const { description, tags, useCases } = formatNodeDocumentation(
           node.description
         );
 
@@ -526,7 +526,7 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
           title: node.title,
           node_type: node.node_type,
           namespace: node.namespace,
-          description: node.description, // Use the full original description for search
+          description: node.description,
           use_cases: useCases.raw,
           tags,
           metadata: node

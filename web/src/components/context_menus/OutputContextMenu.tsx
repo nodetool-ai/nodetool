@@ -307,7 +307,6 @@ const OutputContextMenu: React.FC = () => {
           label="Create Preview Node"
           addButtonClassName="create-preview-node"
           IconComponent={<LogoutIcon />}
-          tooltip={"..."}
         />
         {outputNodeMetadata && (
           <ContextMenuItem
@@ -315,7 +314,6 @@ const OutputContextMenu: React.FC = () => {
             label="Create Output Node"
             addButtonClassName="create-output-node"
             IconComponent={<LogoutIcon />}
-            tooltip={"..."}
           />
         )}
         {saveNodeMetadata && (
@@ -331,7 +329,6 @@ const OutputContextMenu: React.FC = () => {
             } Node`}
             addButtonClassName="create-save-node"
             IconComponent={<SaveAltIcon />}
-            tooltip={"..."}
           />
         )}
         <Divider />
@@ -340,14 +337,12 @@ const OutputContextMenu: React.FC = () => {
           label="Show Connectable Nodes"
           addButtonClassName="show-connectable-nodes"
           IconComponent={<ViewWeekIcon />}
-          tooltip={"Show nodes that can be connected to this output"}
         />
         <ContextMenuItem
           onClick={handleOpenNodeMenu}
           label="Open filtered NodeMenu"
           addButtonClassName="open-node-menu"
           IconComponent={<ViewWeekIcon />}
-          tooltip={"..."}
         />
       </Menu>
     </>

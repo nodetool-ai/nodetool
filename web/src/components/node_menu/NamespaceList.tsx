@@ -371,12 +371,6 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
     (nodes: NodeMetadata[]) => {
       if (!nodes) return [];
 
-      console.log("Selected Path:", selectedPathString);
-      console.log(
-        "All Nodes:",
-        nodes.map((n) => ({ namespace: n.namespace, title: n.title }))
-      );
-
       const filteredNodes = nodes
         .filter((node) => {
           // When searching or filtering by types, show all matching nodes
@@ -414,10 +408,6 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
             : a.title.localeCompare(b.title);
         });
 
-      console.log(
-        "Filtered Nodes:",
-        filteredNodes.map((n) => ({ namespace: n.namespace, title: n.title }))
-      );
       return filteredNodes;
     },
     [
