@@ -258,8 +258,24 @@ function SettingsMenu() {
     setButtonAppearance,
     setSelectNodesOnDrag,
     setShowWelcomeOnStartup,
+    setEnableComfy,
     settings
-  } = useSettingsStore();
+  } = useSettingsStore((state) => ({
+    isMenuOpen: state.isMenuOpen,
+    setEnableComfy: state.setEnableComfy,
+    settings: state.settings,
+    setMenuOpen: state.setMenuOpen,
+    settingsTab: state.settingsTab,
+    setGridSnap: state.setGridSnap,
+    setConnectionSnap: state.setConnectionSnap,
+    setPanControls: state.setPanControls,
+    setSelectionMode: state.setSelectionMode,
+    setWorkflowLayout: state.setWorkflowLayout,
+    setTimeFormat: state.setTimeFormat,
+    setButtonAppearance: state.setButtonAppearance,
+    setSelectNodesOnDrag: state.setSelectNodesOnDrag,
+    setShowWelcomeOnStartup: state.setShowWelcomeOnStartup
+  }));
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setMenuOpen(true, newValue);
@@ -354,6 +370,20 @@ function SettingsMenu() {
                 </FormControl>
                 <Typography className="description">
                   Show the welcome screen when starting the application.
+                </Typography>
+              </div>
+
+              <div className="settings-item">
+                <FormControl>
+                  <InputLabel htmlFor={id}>Enable Comfy</InputLabel>
+                  <Switch
+                    checked={!!settings.enableComfy}
+                    onChange={(e) => setEnableComfy(e.target.checked)}
+                    inputProps={{ "aria-label": id }}
+                  />
+                </FormControl>
+                <Typography className="description">
+                  Enable Comfy integration.
                 </Typography>
               </div>
 

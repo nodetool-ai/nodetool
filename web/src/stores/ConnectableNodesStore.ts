@@ -44,7 +44,7 @@ const useConnectableNodesStore = create<ConnectableNodesState>((set, get) => ({
 
   getConnectableNodes: () => {
     const { filterType, typeMetadata } = get();
-    const metadata = Object.values(useMetadataStore.getState().metadata);
+    const metadata = useMetadataStore.getState().getAllMetadata();
 
     if (!typeMetadata || !filterType) {
       return [];
