@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { memo, useCallback, useState } from "react";
+import React, { memo, useCallback, useState, useRef } from "react";
 import {
   Menu,
   MenuItem,
@@ -7,10 +7,10 @@ import {
   Box,
   TextField,
   IconButton,
-  InputAdornment
+  InputAdornment,
+  Tooltip
 } from "@mui/material";
 import { css } from "@emotion/react";
-import ContextMenuItem from "./ContextMenuItem";
 import useConnectableNodesStore from "../../stores/ConnectableNodesStore";
 import { useNodeStore } from "../../stores/NodeStore";
 import { useReactFlow } from "@xyflow/react";
@@ -20,6 +20,7 @@ import { isEqual } from "lodash";
 import ClearIcon from "@mui/icons-material/Clear";
 import ThemeNodetool from "../themes/ThemeNodetool";
 import NodeInfo from "../node_menu/NodeInfo";
+import NodeItem from "../node_menu/NodeItem";
 
 interface GroupedNodes {
   [namespace: string]: NodeMetadata[];
@@ -46,14 +47,46 @@ const menuStyles = (theme: any) =>
     }
   });
 
-const scrollableContentStyles = css({
-  overflowY: "auto",
-  flex: 1,
-  "&.connectable-nodes-content": {
-    minHeight: 0,
-    maxHeight: "calc(70vh - 130px)"
-  }
-});
+const scrollableContentStyles = (theme: any) =>
+  css({
+    overflowY: "auto",
+    flex: 1,
+    "&.connectable-nodes-content": {
+      minHeight: 0,
+      maxHeight: "calc(70vh - 130px)",
+      padding: "0 0 1em .5em"
+    },
+    ".node": {
+      display: "flex",
+      alignItems: "center",
+      margin: "0",
+      padding: "0.025em",
+      borderRadius: "3px",
+      cursor: "pointer",
+      ".node-button": {
+        padding: ".1em .5em",
+        flexGrow: 1,
+        "& .MuiTypography-root": {
+          fontSize: theme.fontSizeSmall
+        }
+      },
+      ".icon-bg": {
+        backgroundColor: "transparent !important"
+      },
+      ".icon-bg svg": {
+        color: theme.palette.c_gray4
+      }
+    },
+    ".node:hover": {
+      backgroundColor: theme.palette.c_gray2
+    },
+    ".node.focused": {
+      color: theme.palette.c_hl1,
+      backgroundColor: theme.palette.c_gray2,
+      borderRadius: "3px",
+      boxShadow: "inset 1px 1px 2px #00000044"
+    }
+  });
 
 const fixedHeaderStyles = (theme: any) =>
   css({
@@ -80,7 +113,15 @@ const searchNodesHelper = (
   );
 };
 
-const ConnectableNodes: React.FC = () => {
+interface ConnectableNodesProps {
+  handleMouseEnter?: () => void;
+  handleMouseLeave?: () => void;
+}
+
+const ConnectableNodes: React.FC<ConnectableNodesProps> = ({
+  handleMouseEnter = () => {},
+  handleMouseLeave = () => {}
+}) => {
   const [searchTerm, setSearchTerm] = useState("");
   const { createNode, addNode, addEdge, generateEdgeId } = useNodeStore(
     (state) => ({
@@ -113,6 +154,10 @@ const ConnectableNodes: React.FC = () => {
     nodeId: state.nodeId
   }));
 
+  const [isFocused, setIsFocused] = useState(false);
+  const focusedNodeRef = useRef<HTMLDivElement>(null);
+  const currentHoveredNodeRef = useRef<NodeMetadata | null>(null);
+
   const filteredNodes = searchTerm
     ? searchNodesHelper(connectableNodes, searchTerm)
     : connectableNodes;
@@ -120,7 +165,7 @@ const ConnectableNodes: React.FC = () => {
   const groupedNodes = groupNodesByNamespace(filteredNodes);
 
   const createConnectableNode = useCallback(
-    (event: React.MouseEvent, metadata: NodeMetadata) => {
+    (metadata: NodeMetadata) => {
       if (!metadata) return;
 
       const newNode = createNode(
@@ -193,7 +238,14 @@ const ConnectableNodes: React.FC = () => {
 
   return (
     <Menu
-      className="context-menu connectable-nodes-menu"
+      slotProps={{
+        paper: {
+          sx: {
+            backgroundColor: ThemeNodetool.palette.c_editor_bg_color,
+            backgroundImage: "none"
+          }
+        }
+      }}
       css={menuStyles}
       open={isVisible}
       onContextMenu={(event) => event.preventDefault()}
@@ -217,19 +269,28 @@ const ConnectableNodes: React.FC = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
             onClick={(e) => e.stopPropagation()}
             autoFocus
-            InputProps={{
-              endAdornment: searchTerm ? (
-                <InputAdornment position="end">
-                  <IconButton
-                    aria-label="clear search"
-                    onClick={() => setSearchTerm("")}
-                    edge="end"
-                    size="small"
-                  >
-                    <ClearIcon />
-                  </IconButton>
-                </InputAdornment>
-              ) : null
+            onKeyDown={(e) => {
+              if (e.key === "Escape") {
+                hideMenu();
+              } else {
+                e.stopPropagation();
+              }
+            }}
+            slotProps={{
+              input: {
+                endAdornment: searchTerm ? (
+                  <InputAdornment position="end">
+                    <IconButton
+                      aria-label="clear search"
+                      onClick={() => setSearchTerm("")}
+                      edge="end"
+                      size="small"
+                    >
+                      <ClearIcon />
+                    </IconButton>
+                  </InputAdornment>
+                ) : null
+              }
             }}
           />
         </MenuItem>
@@ -250,24 +311,69 @@ const ConnectableNodes: React.FC = () => {
               </Typography>
             </MenuItem>
             {nodes.map((nodeMetadata: NodeMetadata) => (
-              <ContextMenuItem
-                key={nodeMetadata.node_type}
-                onClick={(e) => {
-                  if (e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    createConnectableNode(e, nodeMetadata);
+              <Tooltip
+                slotProps={{
+                  tooltip: {
+                    className: "connectable-node-info",
+                    sx: {
+                      backgroundColor: "black",
+                      color: "white",
+                      fontSize: "1rem"
+                    }
                   }
-                  hideMenu();
                 }}
-                label={nodeMetadata.title}
-                tooltip={
-                  <NodeInfo
-                    nodeMetadata={nodeMetadata}
-                    showConnections={false}
-                  />
-                }
-              />
+                placement="left"
+                // leaveDelay={80000}
+                title="test"
+                // title={
+                //   <NodeInfo
+                //     nodeMetadata={nodeMetadata}
+                //     showConnections={false}
+                //   />
+                // }
+              >
+                <NodeItem
+                  key={nodeMetadata.node_type}
+                  ref={isFocused ? focusedNodeRef : undefined}
+                  node={nodeMetadata}
+                  isHovered={false}
+                  isFocused={false}
+                  onDragStart={() => {}}
+                  onInfoClick={() => {}}
+                  onMouseEnter={() => {
+                    currentHoveredNodeRef.current = nodeMetadata;
+                    handleMouseEnter();
+                  }}
+                  onMouseLeave={() => {
+                    currentHoveredNodeRef.current = null;
+                    handleMouseLeave();
+                  }}
+                  onClick={() => {
+                    createConnectableNode(nodeMetadata);
+                    hideMenu();
+                  }}
+                  showInfo={false}
+                />
+                {/* <Button 
+                  sx={{ width: "100%", color: "white" }}
+                  onClick={(e) => createConnectableNode(e, nodeMetadata)}
+                >
+                  {nodeMetadata.title}
+                </Button> */}
+              </Tooltip>
+
+              //       createConnectableNode(e, nodeMetadata);
+              //     }
+              //     hideMenu();
+              //   }}
+              //   label={nodeMetadata.title}
+              //   tooltip={
+              //     <NodeInfo
+              //       nodeMetadata={nodeMetadata}
+              //       showConnections={false}
+              //     />
+              //   }
+              // />
             ))}
           </React.Fragment>
         ))}

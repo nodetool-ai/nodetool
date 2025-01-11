@@ -84,8 +84,10 @@ const NodeOutput: React.FC<NodeOutputProps> = ({ id, output }) => {
 
   return (
     <Tooltip
-      componentsProps={{
+      slotProps={{
+        transition: Zoom,
         tooltip: {
+          className: "tooltip-handle",
           sx: {
             backgroundColor: "transparent !important"
           }
@@ -96,7 +98,6 @@ const NodeOutput: React.FC<NodeOutputProps> = ({ id, output }) => {
       leaveDelay={TOOLTIP_LEAVE_DELAY}
       enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
       placement="right"
-      TransitionComponent={Zoom}
       className={`${classConnectable} ${Slugify(output.type.type)}`}
       css={tooltipStyles}
     >

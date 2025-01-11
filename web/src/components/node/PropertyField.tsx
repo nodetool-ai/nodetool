@@ -112,11 +112,10 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
 
   const tooltipProps = useMemo(
     () => ({
-      componentsProps: {
+      slotProps: {
+        transition: Zoom,
         tooltip: {
-          sx: {
-            backgroundColor: "transparent !important"
-          }
+          className: "tooltip-handle"
         }
       },
       title: tooltipTitle,
@@ -124,7 +123,6 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
       leaveDelay: TOOLTIP_LEAVE_DELAY,
       enterNextDelay: TOOLTIP_ENTER_NEXT_DELAY,
       placement: "left" as const,
-      TransitionComponent: Zoom,
       className: `${classConnectable} ${Slugify(property.type.type)}`
     }),
     [tooltipTitle, classConnectable, property.type.type]
