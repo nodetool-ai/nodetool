@@ -194,7 +194,6 @@ class WorkflowRunner:
         context.post_message(JobUpdate(job_id=self.job_id, status="running"))
 
         if req.params:
-            print(req.params)
             for key, value in req.params.items():
                 if key not in input_nodes:
                     raise ValueError(f"No input node found for param: {key}")
@@ -513,7 +512,10 @@ class WorkflowRunner:
                 try:
                     node.assign_property(name, value)
                 except Exception as e:
-                    log.warn(f"Error assigning property {name} to node {node.id}")
+                    log.error(f"Error assigning property {name} to node {node.id}")
+                    raise ValueError(
+                        f"Error assigning property {name}: {str(e)}"
+                    )
 
             # Preprocess the node
             log.debug(f"Pre-processing node: {node.get_title()} ({node._id})")

@@ -248,3 +248,27 @@ class MakeDictionary(BaseNode):
         if self.key3:
             result[self.key3] = self.value3
         return result
+
+
+class ArgMax(BaseNode):
+    """
+    Returns the label associated with the highest value in a dictionary.
+    dictionary, maximum, label, argmax
+
+    Use cases:
+    - Get the most likely class from classification probabilities
+    - Find the category with highest score
+    - Identify the winner in a voting/ranking system
+    """
+
+    _layout = "small"
+
+    scores: dict[str, float] = Field(
+        default={},
+        description="Dictionary mapping labels to their corresponding scores/values"
+    )
+
+    async def process(self, context: ProcessingContext) -> str:
+        if not self.scores:
+            raise ValueError("Input dictionary cannot be empty")
+        return max(self.scores.items(), key=lambda x: x[1])[0]

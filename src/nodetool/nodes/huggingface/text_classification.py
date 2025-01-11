@@ -124,8 +124,16 @@ class ZeroShotTextClassifier(HuggingFacePipelineNode):
             device=context.device,
         )
 
+    async def move_to_device(self, device: str):
+        pass
+
     async def process(self, context: ProcessingContext) -> dict[str, float]:
         assert self._pipeline, "Pipeline not initialized"
+        if self.candidate_labels == "":
+            raise ValueError("Please provide candidate labels")
+        if self.inputs.strip() == "":
+            raise ValueError("Please provide input text")
+        
         labels = self.candidate_labels.split(",")
         result = self._pipeline(
             self.inputs,
