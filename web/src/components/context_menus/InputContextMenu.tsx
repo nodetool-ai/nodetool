@@ -47,16 +47,16 @@ const InputContextMenu: React.FC = () => {
   const [showConnectableNodes, setShowConnectableNodes] = useState(false);
   const {
     showMenu,
-    setHandleId,
     setNodeId,
     setFilterType,
-    setConnectableType
+    setConnectableType,
+    setTargetHandle
   } = useConnectableNodesStore((state) => ({
     showMenu: state.showMenu,
-    setHandleId: state.setHandleId,
     setNodeId: state.setNodeId,
     setFilterType: state.setFilterType,
-    setConnectableType: state.setTypeMetadata
+    setConnectableType: state.setTypeMetadata,
+    setTargetHandle: state.setTargetHandle
   }));
 
   const handleOpenNodeMenu = (event?: React.MouseEvent<HTMLElement>) => {
@@ -189,7 +189,7 @@ const InputContextMenu: React.FC = () => {
       event.stopPropagation();
     }
     if (menuPosition) {
-      setHandleId(handleId);
+      setTargetHandle(handleId);
       setNodeId(nodeId);
       setFilterType("input");
       setConnectableType(type);
