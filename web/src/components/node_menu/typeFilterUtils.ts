@@ -34,7 +34,6 @@ export function createConnectabilityMatrix(metadata: NodeMetadata[]) {
   });
 
   connectabilityMatrix = matrix;
-  console.log(matrix);
 }
 
 export function isConnectableCached(

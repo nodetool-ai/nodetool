@@ -6,17 +6,26 @@ import { filterDataByType } from "../components/node_menu/typeFilterUtils";
 import useMetadataStore from "./MetadataStore";
 import useRemoteSettingsStore from "./RemoteSettingStore";
 import { devLog } from "../utils/DevLog";
+import { highlightText as highlightTextUtil } from "../utils/highlightText";
 
-interface SplitNodeDescription {
+export interface SplitNodeDescription {
   description: string;
   tags: string[];
-  useCases: string;
-  recommendedModels: string;
+  useCases: {
+    raw: string;
+    html: string;
+  };
+  recommendedModels: {
+    raw: string;
+    html: string;
+  };
 }
 
-export const splitNodeDescription = (
+export const formatNodeDescription = (
   description: string,
-  rawText: boolean = false
+  rawText: boolean = false,
+  searchTerm?: string,
+  searchInfo?: any
 ): SplitNodeDescription => {
   const lines = description.split("\n").map((line) => line.trim());
   const mainDescription = lines[0] || "";
@@ -35,7 +44,8 @@ export const splitNodeDescription = (
   );
 
   // Extract use cases if present
-  let useCases = "";
+  let useCasesRaw = "";
+  let useCasesHtml = "";
   if (useCasesIndex !== -1) {
     const endIndex =
       recommendedModelsIndex !== -1 ? recommendedModelsIndex : lines.length;
@@ -43,49 +53,91 @@ export const splitNodeDescription = (
       .slice(useCasesIndex + 1, endIndex)
       .filter((line) => line.trim());
 
-    if (rawText) {
-      // Format as HTML list if there are bullet points
-      if (useCaseLines.some((line) => line.trim().startsWith("-"))) {
-        const cleanedLines = useCaseLines
-          .filter((line) => line.trim().startsWith("-"))
-          .map((line) => line.replace(/^-\s*/, "").trim());
-        useCases = cleanedLines
-          .filter((line) => line.length > 0)
-          .map((line) => `<li>${line}</li>`)
-          .join("\n");
-        useCases = `<ul>${useCases}</ul>`;
-      } else {
-        useCases = useCaseLines.join(" ");
-      }
+    // Store raw text version
+    useCasesRaw = useCaseLines.join(" ");
+
+    // Format HTML version with optional highlighting
+    if (useCaseLines.some((line) => line.trim().startsWith("-"))) {
+      const cleanedLines = useCaseLines
+        .filter((line) => line.trim().startsWith("-"))
+        .map((line) => {
+          const content = line.replace(/^-\s*/, "").trim();
+          if (searchTerm && searchInfo) {
+            const highlighted = highlightTextUtil(
+              content,
+              "description",
+              searchTerm,
+              searchInfo
+            );
+            return highlighted.html;
+          }
+          return content;
+        });
+      useCasesHtml = cleanedLines
+        .filter((line) => line.length > 0)
+        .map((line) => `<li>${line}</li>`)
+        .join("\n");
+      useCasesHtml = `<ul>${useCasesHtml}</ul>`;
     } else {
-      useCases = useCaseLines.join(" ");
+      if (searchTerm && searchInfo) {
+        const highlighted = highlightTextUtil(
+          useCasesRaw,
+          "description",
+          searchTerm,
+          searchInfo
+        );
+        useCasesHtml = highlighted.html;
+      } else {
+        useCasesHtml = useCasesRaw;
+      }
     }
   }
 
   // Extract recommended models if present
-  let recommendedModels = "";
+  let recommendedModelsRaw = "";
+  let recommendedModelsHtml = "";
   if (recommendedModelsIndex !== -1) {
     const modelLines = lines
       .slice(recommendedModelsIndex + 1)
       .filter((line) => line.trim().startsWith("-"))
-      .map((line) => line.replace(/^-\s*/, "").trim())
+      .map((line) => {
+        const content = line.replace(/^-\s*/, "").trim();
+        if (searchTerm && searchInfo) {
+          const highlighted = highlightTextUtil(
+            content,
+            "description",
+            searchTerm,
+            searchInfo
+          );
+          return highlighted.html;
+        }
+        return content;
+      })
       .filter((line) => line.length > 0);
 
-    if (rawText && modelLines.length > 0) {
-      recommendedModels = modelLines
+    // Store raw text version
+    recommendedModelsRaw = modelLines.join("\n");
+
+    // Format HTML version
+    if (modelLines.length > 0) {
+      recommendedModelsHtml = modelLines
         .map((line) => `<li>${line}</li>`)
         .join("\n");
-      recommendedModels = `<ul>${recommendedModels}</ul>`;
-    } else {
-      recommendedModels = modelLines.join("\n");
+      recommendedModelsHtml = `<ul>${recommendedModelsHtml}</ul>`;
     }
   }
 
   return {
     description: mainDescription,
     tags,
-    useCases,
-    recommendedModels
+    useCases: {
+      raw: useCasesRaw,
+      html: useCasesHtml
+    },
+    recommendedModels: {
+      raw: recommendedModelsRaw,
+      html: recommendedModelsHtml
+    }
   };
 };
 
@@ -400,7 +452,7 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
       let searchMatchedNodes = typeFilteredMetadata;
       if (term.trim()) {
         const allEntries = typeFilteredMetadata.map((node: NodeMetadata) => {
-          const { description, tags, useCases } = splitNodeDescription(
+          const { description, tags, useCases } = formatNodeDescription(
             node.description
           );
 
@@ -467,7 +519,7 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
 
       // Prepare search entries
       const entries = typeFilteredMetadata.map((node: NodeMetadata) => {
-        const { description, tags, useCases } = splitNodeDescription(
+        const { description, tags, useCases } = formatNodeDescription(
           node.description
         );
 
