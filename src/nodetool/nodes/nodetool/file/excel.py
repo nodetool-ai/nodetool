@@ -1,3 +1,4 @@
+from datetime import datetime
 import os
 from turtle import pd
 from typing import Any, List, Optional, Union
@@ -180,7 +181,17 @@ class SaveWorkbook(BaseNode):
         default=ExcelRef(), description="The Excel workbook to save"
     )
     filepath: FilePath = Field(
-        default=FilePath(), description="Path where to save the file"
+        default=FilePath(),
+        description="""
+        Path where to save the file.
+        You can use time and date variables to create unique names:
+        %Y - Year
+        %m - Month
+        %d - Day
+        %H - Hour
+        %M - Minute
+        %S - Second
+        """,
     )
 
     async def process(self, context: ProcessingContext):
@@ -189,7 +200,8 @@ class SaveWorkbook(BaseNode):
             workbook, openpyxl.Workbook
         ), "Workbook is not an instance of openpyxl.Workbook"
         assert self.filepath.path, "Path is not set"
-        expanded_path = os.path.expanduser(self.filepath.path)
+        filename = datetime.now().strftime(self.filepath.path)
+        expanded_path = os.path.expanduser(filename)
         workbook.save(expanded_path)
 
 

@@ -1,3 +1,4 @@
+from datetime import datetime
 import io
 from enum import Enum
 from matplotlib import pyplot as plt
@@ -31,7 +32,19 @@ class SaveDataframe(BaseNode):
     folder: FolderRef = Field(
         default=FolderRef(), description="Name of the output folder."
     )
-    name: str = Field(default="output.csv", description="Name of the output file.")
+    name: str = Field(
+        default="output.csv",
+        description="""
+        Name of the output file.
+        You can use time and date variables to create unique names:
+        %Y - Year
+        %m - Month
+        %d - Day
+        %H - Hour
+        %M - Minute
+        %S - Second
+        """,
+    )
 
     def required_inputs(self):
         return ["df"]
@@ -39,7 +52,8 @@ class SaveDataframe(BaseNode):
     async def process(self, context: ProcessingContext) -> DataframeRef:
         df = await context.dataframe_to_pandas(self.df)
         parent_id = self.folder.asset_id if self.folder.is_set() else None
-        return await context.dataframe_from_pandas(df, self.name, parent_id)
+        filename = datetime.now().strftime(self.name)
+        return await context.dataframe_from_pandas(df, filename, parent_id)
 
 
 class SelectColumn(BaseNode):

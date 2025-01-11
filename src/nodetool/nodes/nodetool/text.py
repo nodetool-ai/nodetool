@@ -1,4 +1,5 @@
 import asyncio
+from datetime import datetime
 from io import BytesIO
 import json
 
@@ -195,16 +196,30 @@ class SaveText(BaseNode):
     folder: FolderRef = Field(
         default=FolderRef(), description="Name of the output folder."
     )
-    name: str = Field(title="Name", default="text.txt")
+    name: str = Field(
+        title="Name",
+        default="%Y-%m-%d-%H-%M-%S.txt",
+        description="""
+        Name of the output file.
+        You can use time and date variables to create unique names:
+        %Y - Year
+        %m - Month
+        %d - Day
+        %H - Hour
+        %M - Minute
+        %S - Second
+        """,
+    )
 
     def required_inputs(self):
         return ["text"]
 
     async def process(self, context: ProcessingContext) -> TextRef:
         string = await to_string(context, self.text)
+        filename = datetime.now().strftime(self.name)
         file = BytesIO(string.encode("utf-8"))
         parent_id = self.folder.asset_id if self.folder.is_set() else None
-        asset = await context.create_asset(self.name, "text/plain", file, parent_id)
+        asset = await context.create_asset(filename, "text/plain", file, parent_id)
         return TextRef(uri=asset.get_url or "", asset_id=asset.id)
 
 

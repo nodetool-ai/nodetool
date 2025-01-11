@@ -283,6 +283,10 @@ class SaveDocument(BaseNode):
     """
     Write a document to disk.
     files, document, write, output, save, file
+
+    The filename can include time and date variables:
+    %Y - Year, %m - Month, %d - Day
+    %H - Hour, %M - Minute, %S - Second
     """
 
     document: DocumentRef = Field(
@@ -292,7 +296,7 @@ class SaveDocument(BaseNode):
         default=FolderPath(), description="Folder where the file will be saved"
     )
     filename: str = Field(
-        default="", description="Name of the file to save"
+        default="", description="Name of the file to save. Supports strftime format codes."
     )
 
     async def process(self, context: ProcessingContext):
@@ -305,7 +309,8 @@ class SaveDocument(BaseNode):
         if not os.path.exists(expanded_folder):
             raise ValueError(f"Folder does not exist: {expanded_folder}")
             
-        expanded_path = os.path.join(expanded_folder, self.filename)
+        filename = datetime.now().strftime(self.filename)
+        expanded_path = os.path.join(expanded_folder, filename)
         data = await context.asset_to_bytes(self.document)
         with open(expanded_path, "wb") as f:
             f.write(data)
@@ -334,6 +339,10 @@ class SaveCSV(BaseNode):
     """
     Write a list of dictionaries to a CSV file.
     files, csv, write, output, save, file
+
+    The filename can include time and date variables:
+    %Y - Year, %m - Month, %d - Day
+    %H - Hour, %M - Minute, %S - Second
     """
 
     data: list[dict] = Field(
@@ -343,7 +352,7 @@ class SaveCSV(BaseNode):
         default=FolderPath(), description="Folder where the file will be saved"
     )
     filename: str = Field(
-        default="", description="Name of the CSV file to save"
+        default="", description="Name of the CSV file to save. Supports strftime format codes."
     )
 
     async def process(self, context: ProcessingContext):
@@ -358,7 +367,8 @@ class SaveCSV(BaseNode):
         if not os.path.exists(expanded_folder):
             raise ValueError(f"Folder does not exist: {expanded_folder}")
             
-        expanded_path = os.path.join(expanded_folder, self.filename)
+        filename = datetime.now().strftime(self.filename)
+        expanded_path = os.path.join(expanded_folder, filename)
         with open(expanded_path, "w") as f:
             writer = csv.DictWriter(f, fieldnames=self.data[0].keys())
             writer.writeheader()
@@ -370,6 +380,10 @@ class SaveCSVDataframe(BaseNode):
     """
     Write a pandas DataFrame to a CSV file.
     files, csv, write, output, save, file
+
+    The filename can include time and date variables:
+    %Y - Year, %m - Month, %d - Day
+    %H - Hour, %M - Minute, %S - Second
     """
 
     dataframe: DataframeRef = Field(
@@ -379,7 +393,7 @@ class SaveCSVDataframe(BaseNode):
         default=FolderPath(), description="Folder where the file will be saved"
     )
     filename: str = Field(
-        default="", description="Name of the CSV file to save"
+        default="", description="Name of the CSV file to save. Supports strftime format codes."
     )
 
     async def process(self, context: ProcessingContext):
@@ -392,7 +406,8 @@ class SaveCSVDataframe(BaseNode):
         if not os.path.exists(expanded_folder):
             raise ValueError(f"Folder does not exist: {expanded_folder}")
             
-        expanded_path = os.path.join(expanded_folder, self.filename)
+        filename = datetime.now().strftime(self.filename)
+        expanded_path = os.path.join(expanded_folder, filename)
         df = pd.DataFrame(self.dataframe.data, columns=self.dataframe.columns)
         df.to_csv(expanded_path, index=False)
 
@@ -421,6 +436,10 @@ class SaveBytes(BaseNode):
     """
     Write raw bytes to a file on disk.
     files, bytes, save, output
+
+    The filename can include time and date variables:
+    %Y - Year, %m - Month, %d - Day
+    %H - Hour, %M - Minute, %S - Second
     """
 
     data: bytes = Field(default=None, description="The bytes to write to file")
@@ -428,7 +447,7 @@ class SaveBytes(BaseNode):
         default=FolderPath(), description="Folder where the file will be saved"
     )
     filename: str = Field(
-        default="", description="Name of the file to save"
+        default="", description="Name of the file to save. Supports strftime format codes."
     )
 
     async def process(self, context: ProcessingContext):
@@ -443,7 +462,8 @@ class SaveBytes(BaseNode):
         if not os.path.exists(expanded_folder):
             raise ValueError(f"Folder does not exist: {expanded_folder}")
             
-        expanded_path = os.path.join(expanded_folder, self.filename)
+        filename = datetime.now().strftime(self.filename)
+        expanded_path = os.path.join(expanded_folder, filename)
         os.makedirs(os.path.dirname(expanded_path), exist_ok=True)
         with open(expanded_path, "wb") as f:
             f.write(self.data)
@@ -496,7 +516,16 @@ class SaveImage(BaseNode):
         default=FolderPath(), description="Folder where the file will be saved"
     )
     filename: str = Field(
-        default="", description="Name of the file to save"
+        default="", description="""
+        The name of the image file.
+        You can use time and date variables to create unique names:
+        %Y - Year
+        %m - Month
+        %d - Day
+        %H - Hour
+        %M - Minute
+        %S - Second
+        """
     )
 
     async def process(self, context: ProcessingContext) -> ImageRef:
@@ -508,8 +537,10 @@ class SaveImage(BaseNode):
         expanded_folder = os.path.expanduser(self.folder.path)
         if not os.path.exists(expanded_folder):
             raise ValueError(f"Folder does not exist: {expanded_folder}")
+        
+        filename = datetime.now().strftime(self.filename)
             
-        expanded_path = os.path.join(expanded_folder, self.filename)
+        expanded_path = os.path.join(expanded_folder, filename)
         os.makedirs(os.path.dirname(expanded_path), exist_ok=True)
 
         image = await context.image_to_pil(self.image)
@@ -552,10 +583,9 @@ class SaveAudio(BaseNode):
     Write an audio file to disk.
     audio, output, save, file
 
-    Use cases:
-    - Save processed audio
-    - Export edited sound files
-    - Archive audio results
+    The filename can include time and date variables:
+    %Y - Year, %m - Month, %d - Day
+    %H - Hour, %M - Minute, %S - Second
     """
 
     audio: AudioRef = Field(default=AudioRef(), description="The audio to save")
@@ -563,7 +593,16 @@ class SaveAudio(BaseNode):
         default=FolderPath(), description="Folder where the file will be saved"
     )
     filename: str = Field(
-        default="", description="Name of the file to save"
+        default="", description="""
+        Name of the file to save.
+        You can use time and date variables to create unique names:
+        %Y - Year
+        %m - Month
+        %d - Day
+        %H - Hour
+        %M - Minute
+        %S - Second
+        """
     )
 
     async def process(self, context: ProcessingContext) -> AudioRef:
@@ -576,7 +615,8 @@ class SaveAudio(BaseNode):
         if not os.path.exists(expanded_folder):
             raise ValueError(f"Folder does not exist: {expanded_folder}")
             
-        expanded_path = os.path.join(expanded_folder, self.filename)
+        filename = datetime.now().strftime(self.filename)
+        expanded_path = os.path.join(expanded_folder, filename)
         os.makedirs(os.path.dirname(expanded_path), exist_ok=True)
 
         audio_io = await context.asset_to_io(self.audio)
@@ -616,10 +656,9 @@ class SaveVideo(BaseNode):
     Write a video file to disk.
     video, output, save, file
 
-    Use cases:
-    - Save processed videos
-    - Export edited video files
-    - Archive video results
+    The filename can include time and date variables:
+    %Y - Year, %m - Month, %d - Day
+    %H - Hour, %M - Minute, %S - Second
     """
 
     video: VideoRef = Field(default=VideoRef(), description="The video to save")
@@ -627,7 +666,16 @@ class SaveVideo(BaseNode):
         default=FolderPath(), description="Folder where the file will be saved"
     )
     filename: str = Field(
-        default="", description="Name of the file to save"
+        default="", description="""
+        Name of the file to save.
+        You can use time and date variables to create unique names:
+        %Y - Year
+        %m - Month
+        %d - Day
+        %H - Hour
+        %M - Minute
+        %S - Second
+        """
     )
 
     async def process(self, context: ProcessingContext) -> VideoRef:
@@ -640,7 +688,8 @@ class SaveVideo(BaseNode):
         if not os.path.exists(expanded_folder):
             raise ValueError(f"Folder does not exist: {expanded_folder}")
             
-        expanded_path = os.path.join(expanded_folder, self.filename)
+        filename = datetime.now().strftime(self.filename)
+        expanded_path = os.path.join(expanded_folder, filename)
         os.makedirs(os.path.dirname(expanded_path), exist_ok=True)
 
         video_io = await context.asset_to_io(self.video)

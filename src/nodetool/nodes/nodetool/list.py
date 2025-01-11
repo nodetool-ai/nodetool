@@ -1,3 +1,4 @@
+from datetime import datetime
 from enum import Enum
 from functools import reduce
 from io import BytesIO
@@ -183,15 +184,29 @@ class SaveList(BaseNode):
     """
 
     values: list[Any] = Field(default_factory=list, description="The list to save.")
-    name: str = Field(title="Name", default="text.txt")
+    name: str = Field(
+        title="Name",
+        default="text.txt",
+        description="""
+        Name of the output file.
+        You can use time and date variables to create unique names:
+        %Y - Year
+        %m - Month
+        %d - Day
+        %H - Hour
+        %M - Minute
+        %S - Second
+        """,
+    )
 
     def required_inputs(self):
         return ["values"]
 
     async def process(self, context: ProcessingContext) -> TextRef:
         values = "\n".join([str(value) for value in self.values])
+        filename = datetime.now().strftime(self.name)
         asset = await context.create_asset(
-            name=self.name, content_type="text/plain", content=BytesIO(values.encode())
+            name=filename, content_type="text/plain", content=BytesIO(values.encode())
         )
         return TextRef(uri=asset.get_url or "", asset_id=asset.id)
 
