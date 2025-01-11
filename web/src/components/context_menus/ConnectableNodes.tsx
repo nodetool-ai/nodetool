@@ -64,16 +64,13 @@ const ConnectableNodes: React.FC = () => {
       const newNode = createNode(
         metadata,
         reactFlowInstance.screenToFlowPosition({
-          x: menuPosition?.x || 0,
+          x:
+            filterType === "input"
+              ? (menuPosition?.x || 500) - 50
+              : menuPosition?.x || 0,
           y: menuPosition?.y || 0
         })
       );
-
-      // Set default size
-      //   newNode.data.size = {
-      //     width: 200,
-      //     height: 200
-      //   };
 
       addNode(newNode);
 
