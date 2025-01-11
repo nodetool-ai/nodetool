@@ -189,7 +189,6 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
     () =>
       formatNodeDescription(
         nodeMetadata?.description || "",
-        true,
         searchTerm,
         nodeMetadata.searchInfo
       ),
