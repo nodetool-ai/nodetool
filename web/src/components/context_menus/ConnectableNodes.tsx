@@ -1,25 +1,27 @@
+/** @jsxImportSource @emotion/react */
 import React, { memo, useCallback, useState } from "react";
 import {
   Menu,
   MenuItem,
   Typography,
-  Divider,
   Box,
   TextField,
   IconButton,
   InputAdornment
 } from "@mui/material";
+import { css } from "@emotion/react";
 import ContextMenuItem from "./ContextMenuItem";
 import useConnectableNodesStore from "../../stores/ConnectableNodesStore";
 import { useNodeStore } from "../../stores/NodeStore";
 import { useReactFlow } from "@xyflow/react";
 import { isConnectable, Slugify } from "../../utils/TypeHandler";
-import { getTimestampForFilename } from "../../utils/formatDateAndTime";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import { isEqual } from "lodash";
-import MarkdownRenderer from "../../utils/MarkdownRenderer";
-import { styled } from "@mui/material/styles";
 import ClearIcon from "@mui/icons-material/Clear";
+import ThemeNodetool from "../themes/ThemeNodetool";
+import NodeInfo from "../node_menu/NodeInfo";
+import MarkdownRenderer from "../../utils/MarkdownRenderer";
+import NodeInfoCompact from "../node_menu/NodeInfoCompact";
 
 interface GroupedNodes {
   [namespace: string]: NodeMetadata[];
@@ -36,35 +38,36 @@ const groupNodesByNamespace = (nodes: NodeMetadata[]): GroupedNodes => {
   }, {});
 };
 
-const StyledMenu = styled(Menu)({
-  "& .MuiPaper-root": {
-    height: "50vh",
-    display: "flex",
-    flexDirection: "column",
-    width: "300px"
-  }
-});
+const menuStyles = (theme: any) =>
+  css({
+    "& .MuiPaper-root": {
+      height: "70vh",
+      display: "flex",
+      flexDirection: "column",
+      width: "300px"
+    }
+  });
 
-const ScrollableContent = styled(Box)({
+const scrollableContentStyles = css({
   overflowY: "auto",
   flex: 1,
   "&.connectable-nodes-content": {
     minHeight: 0,
-    maxHeight: "calc(50vh - 120px)"
+    maxHeight: "calc(70vh - 130px)"
   }
 });
 
-const FixedHeader = styled(Box)(({ theme }) => ({
-  position: "sticky",
-  top: 0,
-  backgroundColor: theme.palette.background.paper,
-  zIndex: theme.zIndex.modal + 1,
-  borderBottom: "1px solid rgba(0, 0, 0, 0.12)",
-  "&.connectable-nodes-header": {
-    padding: "8px 0",
-    backgroundColor: theme.palette.background.paper
-  }
-}));
+const fixedHeaderStyles = (theme: any) =>
+  css({
+    position: "sticky",
+    top: 0,
+    backgroundColor: theme.palette.background.paper,
+    zIndex: theme.zIndex.modal + 1,
+    "&.connectable-nodes-header": {
+      padding: ".5em 0",
+      backgroundColor: theme.palette.background.paper
+    }
+  });
 
 const searchNodesHelper = (
   nodes: NodeMetadata[],
@@ -191,8 +194,9 @@ const ConnectableNodes: React.FC = () => {
   if (!menuPosition || !isVisible) return null;
 
   return (
-    <StyledMenu
+    <Menu
       className="context-menu connectable-nodes-menu"
+      css={menuStyles}
       open={isVisible}
       onContextMenu={(event) => event.preventDefault()}
       anchorReference="anchorPosition"
@@ -201,7 +205,7 @@ const ConnectableNodes: React.FC = () => {
       }
       onClose={hideMenu}
     >
-      <FixedHeader className="connectable-nodes-header">
+      <Box css={fixedHeaderStyles} className="connectable-nodes-header">
         <MenuItem disabled>
           <Typography variant="body1">Connectable Nodes</Typography>
         </MenuItem>
@@ -231,14 +235,19 @@ const ConnectableNodes: React.FC = () => {
             }}
           />
         </MenuItem>
-        <Divider />
-      </FixedHeader>
+      </Box>
 
-      <ScrollableContent className="connectable-nodes-content">
+      <Box css={scrollableContentStyles} className="connectable-nodes-content">
         {Object.entries(groupedNodes).map(([namespace, nodes]) => (
           <React.Fragment key={namespace}>
             <MenuItem disabled>
-              <Typography variant="subtitle2" color="textSecondary">
+              <Typography
+                variant="h4"
+                color="textSecondary"
+                fontSize={ThemeNodetool.fontSizeSmaller}
+                padding={0}
+                margin={0}
+              >
                 {namespace}
               </Typography>
             </MenuItem>
@@ -255,17 +264,17 @@ const ConnectableNodes: React.FC = () => {
                 }}
                 label={nodeMetadata.title}
                 tooltip={
-                  <MarkdownRenderer
-                    content={nodeMetadata.description || "..."}
+                  <NodeInfo
+                    nodeMetadata={nodeMetadata}
+                    showConnections={false}
                   />
                 }
               />
             ))}
-            <Divider />
           </React.Fragment>
         ))}
-      </ScrollableContent>
-    </StyledMenu>
+      </Box>
+    </Menu>
   );
 };
 

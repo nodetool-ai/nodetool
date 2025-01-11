@@ -7,6 +7,88 @@ import useMetadataStore from "./MetadataStore";
 import useRemoteSettingsStore from "./RemoteSettingStore";
 import { devLog } from "../utils/DevLog";
 
+interface SplitNodeDescription {
+  description: string;
+  tags: string[];
+  useCases: string;
+  recommendedModels: string;
+}
+
+export const splitNodeDescription = (
+  description: string,
+  rawText: boolean = false
+): SplitNodeDescription => {
+  const lines = description.split("\n").map((line) => line.trim());
+  const mainDescription = lines[0] || "";
+  const tags =
+    lines[1]
+      ?.split(",")
+      .map((t) => t.trim())
+      .filter(Boolean) || [];
+
+  // Find section indices
+  const useCasesIndex = lines.findIndex((line) =>
+    line.startsWith("Use cases:")
+  );
+  const recommendedModelsIndex = lines.findIndex((line) =>
+    line.startsWith("Recommended models:")
+  );
+
+  // Extract use cases if present
+  let useCases = "";
+  if (useCasesIndex !== -1) {
+    const endIndex =
+      recommendedModelsIndex !== -1 ? recommendedModelsIndex : lines.length;
+    const useCaseLines = lines
+      .slice(useCasesIndex + 1, endIndex)
+      .filter((line) => line.trim());
+
+    if (rawText) {
+      // Format as HTML list if there are bullet points
+      if (useCaseLines.some((line) => line.trim().startsWith("-"))) {
+        const cleanedLines = useCaseLines
+          .filter((line) => line.trim().startsWith("-"))
+          .map((line) => line.replace(/^-\s*/, "").trim());
+        useCases = cleanedLines
+          .filter((line) => line.length > 0)
+          .map((line) => `<li>${line}</li>`)
+          .join("\n");
+        useCases = `<ul>${useCases}</ul>`;
+      } else {
+        useCases = useCaseLines.join(" ");
+      }
+    } else {
+      useCases = useCaseLines.join(" ");
+    }
+  }
+
+  // Extract recommended models if present
+  let recommendedModels = "";
+  if (recommendedModelsIndex !== -1) {
+    const modelLines = lines
+      .slice(recommendedModelsIndex + 1)
+      .filter((line) => line.trim().startsWith("-"))
+      .map((line) => line.replace(/^-\s*/, "").trim())
+      .filter((line) => line.length > 0);
+
+    if (rawText && modelLines.length > 0) {
+      recommendedModels = modelLines
+        .map((line) => `<li>${line}</li>`)
+        .join("\n");
+      recommendedModels = `<ul>${recommendedModels}</ul>`;
+    } else {
+      recommendedModels = modelLines.join("\n");
+    }
+  }
+
+  return {
+    description: mainDescription,
+    tags,
+    useCases,
+    recommendedModels
+  };
+};
+
 // Extend Fuse options type
 interface ExtendedFuseOptions<T> extends Omit<IFuseOptions<T>, "keys"> {
   keys?: Array<{ name: string; weight: number }>;
@@ -318,21 +400,15 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
       let searchMatchedNodes = typeFilteredMetadata;
       if (term.trim()) {
         const allEntries = typeFilteredMetadata.map((node: NodeMetadata) => {
-          const lines = node.description.split("\n");
-          const firstLine = lines[0] || "";
-          const tags = lines[1]
-            ? lines[1]
-                .split(",")
-                .map((t) => t.trim())
-                .filter(Boolean)
-            : [];
-          const useCases = lines.slice(2).join(" ");
+          const { description, tags, useCases } = splitNodeDescription(
+            node.description
+          );
 
           return {
             title: node.title,
             node_type: node.node_type,
             namespace: node.namespace,
-            description: firstLine,
+            description,
             use_cases: useCases,
             tags,
             metadata: node
@@ -391,21 +467,15 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
 
       // Prepare search entries
       const entries = typeFilteredMetadata.map((node: NodeMetadata) => {
-        const lines = node.description.split("\n");
-        const firstLine = lines[0] || "";
-        const tags = lines[1]
-          ? lines[1]
-              .split(",")
-              .map((t) => t.trim())
-              .filter(Boolean)
-          : [];
-        const useCases = lines.slice(2).join(" ");
+        const { description, tags, useCases } = splitNodeDescription(
+          node.description
+        );
 
         return {
           title: node.title,
           node_type: node.node_type,
           namespace: node.namespace,
-          description: firstLine,
+          description,
           use_cases: useCases,
           tags,
           metadata: node
