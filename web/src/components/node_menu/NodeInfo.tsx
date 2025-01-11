@@ -12,7 +12,7 @@ import { titleizeString } from "../../utils/titleizeString";
 import CloseIcon from "@mui/icons-material/Close";
 import ThemeNodetool from "../themes/ThemeNodetool";
 import { highlightText as highlightTextUtil } from "../../utils/highlightText";
-import { splitNodeDescription } from "../../stores/NodeMenuStore";
+import { formatNodeDescription } from "../../stores/NodeMenuStore";
 
 interface NodeInfoProps {
   nodeMetadata: NodeMetadata;
@@ -52,9 +52,12 @@ const nodeInfoStyles = (theme: any, inPanel: boolean) =>
       alignItems: "center"
     },
     h4: {
-      fontSize: theme.fontSizeSmall,
-      fontWeight: "600",
-      color: theme.palette.c_hl1
+      fontSize: theme.fontSizeSmaller,
+      fontFamily: theme.fontFamily2,
+      textTransform: "uppercase",
+      padding: "0",
+      margin: ".5em 0 0",
+      color: theme.palette.c_gray6
     },
     ".replicate-status": {
       fontSize: theme.fontSizeSmall,
@@ -183,8 +186,14 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
   const setSearchTerm = useNodeMenuStore((state) => state.setSearchTerm);
 
   const description = useMemo(
-    () => splitNodeDescription(nodeMetadata?.description || "", true),
-    [nodeMetadata]
+    () =>
+      formatNodeDescription(
+        nodeMetadata?.description || "",
+        true,
+        searchTerm,
+        nodeMetadata.searchInfo
+      ),
+    [nodeMetadata, searchTerm]
   );
   const fetchReplicateStatus = useCallback(async () => {
     if (nodeMetadata.node_type.startsWith("replicate.")) {
@@ -228,12 +237,12 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
     ));
   };
 
-  const { html: descHtml } = highlightTextUtil(
+  const descHtml = highlightTextUtil(
     description.description,
     "description",
     searchTerm,
     nodeMetadata.searchInfo
-  );
+  ).html;
 
   return (
     <div css={nodeInfoStyles(ThemeNodetool, inPanel)}>
@@ -274,41 +283,23 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
         {renderTags(description.tags.join(", "))}
       </Typography>
       <Typography component="div" className="node-usecases">
-        {description.useCases && (
-          <div>
-            <h4>Use cases:</h4>
+        {description.useCases.raw && (
+          <>
+            <h4>Use cases</h4>
             <div
               dangerouslySetInnerHTML={{
-                __html: description.useCases.includes("<ul>")
-                  ? description.useCases.replace(
-                      /<li>(.+?)<\/li>/g,
-                      (_, content) =>
-                        `<li>${
-                          highlightTextUtil(
-                            content,
-                            "description",
-                            searchTerm,
-                            nodeMetadata.searchInfo
-                          ).html
-                        }</li>`
-                    )
-                  : highlightTextUtil(
-                      description.useCases,
-                      "description",
-                      searchTerm,
-                      nodeMetadata.searchInfo
-                    ).html
+                __html: description.useCases.html
               }}
             />
-          </div>
+          </>
         )}
       </Typography>
-      {description.recommendedModels && (
+      {description.recommendedModels.html && (
         <Typography component="div" className="recommended-models">
-          <h4>Recommended models:</h4>
+          <h4>Recommended models</h4>
           <div
             dangerouslySetInnerHTML={{
-              __html: description.recommendedModels
+              __html: description.recommendedModels.html
             }}
           />
         </Typography>

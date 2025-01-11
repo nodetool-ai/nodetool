@@ -150,7 +150,6 @@ const fileToTreeItem = (file: FileInfo): TreeViewItem => {
         ]
       : undefined
   };
-  console.log("Created tree item:", { file, item, isDir: file.is_dir });
   return item;
 };
 
@@ -163,7 +162,6 @@ const fetchFiles = async (path: string): Promise<TreeViewItem[]> => {
     throw createErrorMessage(error, "Failed to list files");
   }
 
-  console.log("Files from backend:", data);
   return data.map(fileToTreeItem);
 };
 
@@ -228,7 +226,6 @@ const FilePathProperty = (props: PropertyProps) => {
   // Update files when initial load completes
   useEffect(() => {
     if (initialFiles) {
-      console.log("Setting initial files:", initialFiles);
       setFiles(initialFiles);
     }
   }, [initialFiles]);

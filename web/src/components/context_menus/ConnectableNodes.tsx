@@ -20,8 +20,6 @@ import { isEqual } from "lodash";
 import ClearIcon from "@mui/icons-material/Clear";
 import ThemeNodetool from "../themes/ThemeNodetool";
 import NodeInfo from "../node_menu/NodeInfo";
-import MarkdownRenderer from "../../utils/MarkdownRenderer";
-import NodeInfoCompact from "../node_menu/NodeInfoCompact";
 
 interface GroupedNodes {
   [namespace: string]: NodeMetadata[];
