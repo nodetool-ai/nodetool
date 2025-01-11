@@ -526,8 +526,8 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
           title: node.title,
           node_type: node.node_type,
           namespace: node.namespace,
-          description,
-          use_cases: useCases,
+          description: node.description, // Use the full original description for search
+          use_cases: useCases.raw,
           tags,
           metadata: node
         };
