@@ -12,11 +12,13 @@ import { titleizeString } from "../../utils/titleizeString";
 import CloseIcon from "@mui/icons-material/Close";
 import ThemeNodetool from "../themes/ThemeNodetool";
 import { highlightText as highlightTextUtil } from "../../utils/highlightText";
+import { splitNodeDescription } from "../../stores/NodeMenuStore";
 
 interface NodeInfoProps {
   nodeMetadata: NodeMetadata;
   onClose?: () => void;
   inPanel?: boolean;
+  showConnections?: boolean;
 }
 
 const nodeInfoStyles = (theme: any, inPanel: boolean) =>
@@ -106,11 +108,27 @@ const nodeInfoStyles = (theme: any, inPanel: boolean) =>
       display: "inline-block",
       cursor: "pointer"
     },
-    ".node-usecases div": {
+    ".node-usecases div, .recommended-models div": {
       fontSize: theme.fontSizeSmall,
       fontWeight: "300",
       color: theme.palette.c_gray6,
-      lineHeight: "1.3em"
+      lineHeight: "1.3em",
+      ul: {
+        margin: "0.5em 0",
+        paddingLeft: "0",
+        listStyleType: "none"
+      },
+      li: {
+        position: "relative",
+        marginBottom: "0.25em",
+        paddingLeft: "1.5em",
+        "&::before": {
+          content: '"•"',
+          position: "absolute",
+          left: "0.5em",
+          color: theme.palette.c_gray6
+        }
+      }
     },
     ".inputs-outputs": {
       paddingBottom: "1em"
@@ -155,33 +173,17 @@ const nodeInfoStyles = (theme: any, inPanel: boolean) =>
     }
   });
 
-const parseDescription = (description: string) => {
-  const lines = description.split("\n");
-  return {
-    desc: lines[0],
-    tags: lines.length > 0 ? lines[1] || "" : "",
-    useCases:
-      lines.length > 1
-        ? lines
-            .slice(2)
-            .join(" ")
-            .split("-")
-            .filter((part) => part.trim())
-            .map((part) => part.trim())
-        : []
-  };
-};
-
 const NodeInfo: React.FC<NodeInfoProps> = ({
   nodeMetadata,
   onClose,
-  inPanel = false
+  inPanel = false,
+  showConnections = true
 }) => {
   const searchTerm = useNodeMenuStore((state) => state.searchTerm);
   const setSearchTerm = useNodeMenuStore((state) => state.setSearchTerm);
 
   const description = useMemo(
-    () => parseDescription(nodeMetadata?.description || ""),
+    () => splitNodeDescription(nodeMetadata?.description || "", true),
     [nodeMetadata]
   );
   const fetchReplicateStatus = useCallback(async () => {
@@ -227,7 +229,7 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
   };
 
   const { html: descHtml } = highlightTextUtil(
-    description.desc,
+    description.description,
     "description",
     searchTerm,
     nodeMetadata.searchInfo
@@ -269,34 +271,48 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
         />
       </div>
       <Typography className="node-tags">
-        {renderTags(description.tags)}
+        {renderTags(description.tags.join(", "))}
       </Typography>
       <Typography component="div" className="node-usecases">
-        {description.useCases.length > 0 && (
+        {description.useCases && (
           <div>
-            {description.useCases.map((useCase, index) => {
-              const { html } = highlightTextUtil(
-                useCase,
-                "description",
-                searchTerm,
-                nodeMetadata.searchInfo
-              );
-              return (
-                <React.Fragment key={index}>
-                  {index === 0 ? (
-                    <span dangerouslySetInnerHTML={{ __html: html }} />
-                  ) : (
-                    <>
-                      <br />-{" "}
-                      <span dangerouslySetInnerHTML={{ __html: html }} />
-                    </>
-                  )}
-                </React.Fragment>
-              );
-            })}
+            <h4>Use cases:</h4>
+            <div
+              dangerouslySetInnerHTML={{
+                __html: description.useCases.includes("<ul>")
+                  ? description.useCases.replace(
+                      /<li>(.+?)<\/li>/g,
+                      (_, content) =>
+                        `<li>${
+                          highlightTextUtil(
+                            content,
+                            "description",
+                            searchTerm,
+                            nodeMetadata.searchInfo
+                          ).html
+                        }</li>`
+                    )
+                  : highlightTextUtil(
+                      description.useCases,
+                      "description",
+                      searchTerm,
+                      nodeMetadata.searchInfo
+                    ).html
+              }}
+            />
           </div>
         )}
       </Typography>
+      {description.recommendedModels && (
+        <Typography component="div" className="recommended-models">
+          <h4>Recommended models:</h4>
+          <div
+            dangerouslySetInnerHTML={{
+              __html: description.recommendedModels
+            }}
+          />
+        </Typography>
+      )}
       {nodeMetadata.the_model_info.cover_image_url ? (
         isLoading ? (
           <div className="preview-image loading"></div>
@@ -311,64 +327,66 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
 
       <Divider />
 
-      <div className="inputs-outputs">
-        <div className="inputs">
-          <Typography variant="h4">Inputs</Typography>
-          {nodeMetadata.properties.map((property) => (
-            <div key={property.name} className="item">
-              <Tooltip
-                enterDelay={TOOLTIP_ENTER_DELAY}
-                placement="top-start"
-                title={property.description}
-              >
-                <Typography
-                  className={
-                    property.description ? "property description" : "property"
-                  }
+      {showConnections && (
+        <div className="inputs-outputs">
+          <div className="inputs">
+            <Typography variant="h4">Inputs</Typography>
+            {nodeMetadata.properties.map((property) => (
+              <div key={property.name} className="item">
+                <Tooltip
+                  enterDelay={TOOLTIP_ENTER_DELAY}
+                  placement="top-start"
+                  title={property.description}
                 >
-                  {property.name}
-                </Typography>
-              </Tooltip>
-              <Tooltip
-                enterDelay={TOOLTIP_ENTER_DELAY}
-                placement="top-end"
-                title={descriptionForType(property.type.type || "")}
-              >
-                <Typography
-                  className="type"
-                  style={{
-                    borderColor: colorForType(property.type.type)
-                  }}
+                  <Typography
+                    className={
+                      property.description ? "property description" : "property"
+                    }
+                  >
+                    {property.name}
+                  </Typography>
+                </Tooltip>
+                <Tooltip
+                  enterDelay={TOOLTIP_ENTER_DELAY}
+                  placement="top-end"
+                  title={descriptionForType(property.type.type || "")}
                 >
-                  {property.type.type}
-                </Typography>
-              </Tooltip>
-            </div>
-          ))}
+                  <Typography
+                    className="type"
+                    style={{
+                      borderColor: colorForType(property.type.type)
+                    }}
+                  >
+                    {property.type.type}
+                  </Typography>
+                </Tooltip>
+              </div>
+            ))}
+          </div>
+          <div className="outputs">
+            <Typography variant="h4">Outputs</Typography>
+            {nodeMetadata.outputs.map((property) => (
+              <div key={property.name} className="item">
+                <Typography className="property">{property.name}</Typography>
+                <Tooltip
+                  enterDelay={TOOLTIP_ENTER_DELAY}
+                  placement="top-end"
+                  title={descriptionForType(property.type.type || "")}
+                >
+                  <Typography
+                    className="type"
+                    style={{
+                      borderColor: colorForType(property.type.type)
+                    }}
+                  >
+                    {property.type.type}
+                  </Typography>
+                </Tooltip>
+              </div>
+            ))}
+          </div>
         </div>
-        <div className="outputs">
-          <Typography variant="h4">Outputs</Typography>
-          {nodeMetadata.outputs.map((property) => (
-            <div key={property.name} className="item">
-              <Typography className="property">{property.name}</Typography>
-              <Tooltip
-                enterDelay={TOOLTIP_ENTER_DELAY}
-                placement="top-end"
-                title={descriptionForType(property.type.type || "")}
-              >
-                <Typography
-                  className="type"
-                  style={{
-                    borderColor: colorForType(property.type.type)
-                  }}
-                >
-                  {property.type.type}
-                </Typography>
-              </Tooltip>
-            </div>
-          ))}
-        </div>
-      </div>
+      )}
     </div>
   );
 };
