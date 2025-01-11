@@ -1,3 +1,4 @@
+from datetime import datetime
 from enum import Enum
 from io import BytesIO
 import PIL.Image
@@ -35,18 +36,31 @@ class SaveTensor(BaseNode):
         FolderRef(),
         description="The folder to save the tensor in.",
     )
-    name: str = Field("tensor.npy", description="The name of the asset to save.")
+    name: str = Field(
+        default="%Y-%m-%d_%H-%M-%S.npy",
+        description="""
+        The name of the asset to save.
+        You can use time and date variables to create unique names:
+        %Y - Year
+        %m - Month
+        %d - Day
+        %H - Hour
+        %M - Minute
+        %S - Second
+        """,
+    )
 
     def required_inputs(self):
         return ["tensor"]
 
     async def process(self, context: ProcessingContext) -> Tensor:
+        filename = datetime.now().strftime(self.name)
         tensor = self.tensor.to_numpy()
         buffer = BytesIO()
         np.save(buffer, tensor)
         buffer.seek(0)
         asset = await context.create_asset(
-            name=self.name,
+            name=filename,
             content_type="application/tensor",
             content=buffer,
             parent_id=self.folder.asset_id if self.folder.is_set() else None,

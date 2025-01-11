@@ -1,3 +1,4 @@
+from datetime import datetime
 import os
 from docx import Document as DocxDocument
 from docx.document import Document
@@ -207,11 +208,22 @@ class SaveDocument(BaseNode):
         default=DocumentRef(), description="The document to write"
     )
     path: FilePath = Field(
-        default=FilePath(), description="The path to write the document to"
+        default=FilePath(),
+        description="""
+        The path to write the document to.
+        You can use time and date variables to create unique names:
+        %Y - Year
+        %m - Month
+        %d - Day
+        %H - Hour
+        %M - Minute
+        %S - Second
+        """,
     )
 
     async def process(self, context: ProcessingContext):
         assert isinstance(self.document.data, Document), "Document is not connected"
         assert self.path.path, "Path is not set"
-        expanded_path = os.path.expanduser(self.path.path)
+        filename = datetime.now().strftime(self.path.path)
+        expanded_path = os.path.expanduser(filename)
         self.document.data.save(expanded_path)

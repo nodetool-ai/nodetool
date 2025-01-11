@@ -1,3 +1,4 @@
+from datetime import datetime
 import enum
 import os
 import tempfile
@@ -45,16 +46,29 @@ class SaveVideo(BaseNode):
     folder: FolderRef = Field(
         default=FolderRef(), description="Name of the output folder."
     )
-    name: str = Field(default="video", description="Name of the output video.")
+    name: str = Field(
+        default="%Y-%m-%d-%H-%M-%S.mp4",
+        description="""
+        Name of the output video.
+        You can use time and date variables to create unique names:
+        %Y - Year
+        %m - Month
+        %d - Day
+        %H - Hour
+        %M - Minute
+        %S - Second
+        """,
+    )
 
     def required_inputs(self):
         return ["video"]
 
     async def process(self, context: ProcessingContext) -> VideoRef:
         video = await context.asset_to_io(self.video)
+        filename = datetime.now().strftime(self.name)
         return await context.video_from_io(
             buffer=video,
-            name=self.name,
+            name=filename,
             parent_id=self.folder.asset_id if self.folder.is_set() else None,
         )
 

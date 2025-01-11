@@ -1,3 +1,4 @@
+from datetime import datetime
 import io
 from typing import Literal
 from pydantic import Field
@@ -22,7 +23,19 @@ class SaveAudio(BaseNode):
     folder: FolderRef = Field(
         FolderRef(), description="The folder to save the audio file to. "
     )
-    name: str = Field(default="audio", description="The name of the audio file.")
+    name: str = Field(
+        default="%Y-%m-%d-%H-%M-%S.opus",
+        description="""
+        The name of the audio file.
+        You can use time and date variables to create unique names:
+        %Y - Year
+        %m - Month
+        %d - Day
+        %H - Hour
+        %M - Minute
+        %S - Second
+        """,
+    )
 
     def required_inputs(self):
         return ["audio"]
@@ -33,4 +46,5 @@ class SaveAudio(BaseNode):
         audio.export(file)
         file.seek(0)
         parent_id = self.folder.asset_id if self.folder.is_set() else None
-        return await context.audio_from_segment(audio, self.name, parent_id=parent_id)
+        name = datetime.now().strftime(self.name)
+        return await context.audio_from_segment(audio, name, parent_id=parent_id)

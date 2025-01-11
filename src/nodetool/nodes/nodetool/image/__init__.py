@@ -29,7 +29,19 @@ class SaveImage(BaseNode):
     folder: FolderRef = Field(
         default=FolderRef(), description="The folder to save the image in."
     )
-    name: str = Field(default="%Y-%m-%d_%H-%M-%S.png")
+    name: str = Field(
+        default="%Y-%m-%d_%H-%M-%S.png",
+        description="""
+        Name of the output file.
+        You can use time and date variables to create unique names:
+        %Y - Year
+        %m - Month
+        %d - Day
+        %H - Hour
+        %M - Minute
+        %S - Second
+        """,
+    )
 
     def required_inputs(self):
         return ["image"]
@@ -39,11 +51,12 @@ class SaveImage(BaseNode):
             raise ValueError("The input image is not connected.")
 
         image = await context.image_to_pil(self.image)
-
-        name = datetime.now().strftime(self.name)
+        filename = datetime.now().strftime(self.name)
         parent_id = self.folder.asset_id if self.folder.is_set() else None
 
-        return await context.image_from_pil(image=image, name=name, parent_id=parent_id)
+        return await context.image_from_pil(
+            image=image, name=filename, parent_id=parent_id
+        )
 
     def result_for_client(self, result: dict[str, Any]) -> dict[str, Any]:
         return self.result_for_all_outputs(result)

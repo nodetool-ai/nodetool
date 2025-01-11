@@ -129,7 +129,9 @@ const OutputContextMenu: React.FC = () => {
       };
 
       newNode.data.properties.name =
-        `${sourceType}_${sourceHandle}_${getTimestampForFilename(false)}` || "";
+        `${sourceType?.type}_${sourceHandle}_${getTimestampForFilename(
+          false
+        )}` || "";
 
       addNode(newNode);
       const targetHandle = getTargetHandle(sourceType?.type || "", nodeType);
@@ -163,8 +165,8 @@ const OutputContextMenu: React.FC = () => {
         return;
       }
       const position = {
-        x: event.clientX - 150,
-        y: event.clientY - 150
+        x: event.clientX - 200,
+        y: event.clientY - 100
       };
       createNodeWithEdge(
         {
@@ -189,8 +191,8 @@ const OutputContextMenu: React.FC = () => {
       createNodeWithEdge(
         outputNodeMetadata,
         {
-          x: event.clientX - 20,
-          y: event.clientY - 220
+          x: event.clientX - 230,
+          y: event.clientY - 170
         },
         "output"
       );
@@ -206,8 +208,8 @@ const OutputContextMenu: React.FC = () => {
       createNodeWithEdge(
         saveNodeMetadata,
         {
-          x: event.clientX - 250,
-          y: event.clientY - 200
+          x: event.clientX - 230,
+          y: event.clientY - 220
         },
         "save"
       );
