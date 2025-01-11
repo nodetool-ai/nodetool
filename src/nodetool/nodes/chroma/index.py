@@ -80,6 +80,7 @@ from pydantic import Field
 class IndexImages(ChromaNode):
     """
     Index a list of image assets or files.
+    chroma, embedding, collection, RAG, index, image, batch
     """
 
     collection: Collection = Field(
@@ -129,6 +130,7 @@ class IndexImages(ChromaNode):
 class IndexTexts(ChromaNode):
     """
     Index a list of text assets or files.
+    chroma, embedding, collection, RAG, index, text, batch
     """
 
     collection: Collection = Field(
@@ -165,6 +167,7 @@ class IndexTexts(ChromaNode):
 class IndexImage(ChromaNode):
     """
     Index a single image asset.
+    chroma, embedding, collection, RAG, index, image
     """
 
     collection: Collection = Field(
@@ -192,6 +195,7 @@ class IndexImage(ChromaNode):
 class IndexText(ChromaNode):
     """
     Index a single text asset.
+    chroma, embedding, collection, RAG, index, text
     """
 
     collection: Collection = Field(
@@ -219,6 +223,7 @@ class IndexText(ChromaNode):
 class IndexTextChunk(ChromaNode):
     """
     Index a single text chunk.
+    chroma, embedding, collection, RAG, index, text, chunk
     """
 
     collection: Collection = Field(
@@ -245,6 +250,7 @@ class IndexTextChunk(ChromaNode):
 class IndexTextChunks(ChromaNode):
     """
     Index multiple text chunks at once.
+    chroma, embedding, collection, RAG, index, text, chunk, batch
     """
 
     collection: Collection = Field(
@@ -278,7 +284,7 @@ class IndexTextChunks(ChromaNode):
 class IndexString(ChromaNode):
     """
     Index a string with a Document ID to a collection.
-    text, document_id, collection, index, save
+    chroma, embedding, collection, RAG, index, text, string
 
     Use cases:
     - Index documents for a vector search
