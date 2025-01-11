@@ -283,6 +283,10 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   // if (parentIsCollapsed) {
   //   return null;
   // }
+  //
+
+  // first line of description
+  const description = metadata.description?.split("\n")[0];
 
   return (
     <Container
@@ -307,6 +311,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         data={props.data}
         backgroundColor={headerColor}
         metadataTitle={metadata.title}
+        description={description}
         hasParent={hasParent}
       />
       <NodeErrors id={props.id} workflow_id={workflowId} />
