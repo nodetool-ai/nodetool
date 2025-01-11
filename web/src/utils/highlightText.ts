@@ -27,16 +27,17 @@ export const highlightText = (
 
   // Get all valid matches first
   const allMatches = searchInfo.matches
-    .filter((match) => match.key === key || match.key === "use_cases")
+    .filter((match) => match.key === key) // Only use matches from the specified key
     .flatMap((match) => {
       return match.indices
         .map(([start, end]) => {
           const matchText = text.slice(start, end + 1);
 
-          // Basic validation
+          // More strict validation
           if (start >= text.length) return null;
           if (matchText.length < minMatchLength) return null;
-          if (/^(ing|ed|es|s)$/i.test(matchText)) return null;
+          // Check if match contains spaces (spans multiple words)
+          if (matchText.includes(" ")) return null;
 
           return {
             indices: [start, end] as [number, number],
