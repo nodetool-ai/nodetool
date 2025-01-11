@@ -1,8 +1,8 @@
 {
   "id": "66a76fbad01511ef97f9000025dd7c17",
   "access": "public",
-  "created_at": "2025-01-11T13:26:12.298503",
-  "updated_at": "2025-01-11T13:26:12.298521",
+  "created_at": "2025-01-11T13:27:42.067357",
+  "updated_at": "2025-01-11T13:27:42.067373",
   "name": "Summarize Newsletters",
   "description": "",
   "tags": null,
@@ -18,32 +18,13 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 307,
+            "x": 277,
             "y": 50
           },
           "zIndex": -10,
           "width": 1393,
           "height": 581,
           "selectable": false
-        }
-      },
-      {
-        "id": "11",
-        "parent_id": null,
-        "type": "nodetool.workflows.base_node.Preview",
-        "data": {
-          "name": "list_output_2024-12-29"
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 307,
-            "y": 681
-          },
-          "zIndex": 0,
-          "width": 346,
-          "height": 231,
-          "selectable": true
         }
       },
       {
@@ -88,12 +69,12 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 1760,
-            "y": 130
+            "x": 1730,
+            "y": 158
           },
           "zIndex": 0,
-          "width": 305,
-          "height": 228,
+          "width": 152,
+          "height": 172,
           "selectable": true
         }
       },
@@ -129,7 +110,7 @@
           "selected": false,
           "position": {
             "x": 50,
-            "y": 288
+            "y": 261
           },
           "zIndex": 0,
           "width": 197,
@@ -247,8 +228,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 1857.3333333333333,
-            "y": 408
+            "x": 1730,
+            "y": 380
           },
           "zIndex": 0,
           "width": 159,
@@ -265,12 +246,12 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 2125,
-            "y": 215
+            "x": 1949,
+            "y": 222
           },
           "zIndex": 0,
-          "width": 401,
-          "height": 218,
+          "width": 150,
+          "height": 183,
           "selectable": true
         }
       },
@@ -285,8 +266,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 2246,
-            "y": 483
+            "x": 1949,
+            "y": 455
           },
           "zIndex": 0,
           "width": 159,
@@ -303,8 +284,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 2556,
-            "y": 496
+            "x": 2138,
+            "y": 468
           },
           "zIndex": 0,
           "width": 159,
@@ -337,8 +318,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 2934,
-            "y": 443
+            "x": 2516,
+            "y": 415
           },
           "zIndex": 0,
           "width": 159,
@@ -355,8 +336,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 2745,
-            "y": 486
+            "x": 2327,
+            "y": 458
           },
           "zIndex": 0,
           "width": 159,
@@ -372,8 +353,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 3123,
-            "y": 268
+            "x": 2705,
+            "y": 240
           },
           "zIndex": 0,
           "width": 482,
@@ -383,16 +364,6 @@
       }
     ],
     "edges": [
-      {
-        "id": "7f2e2d52-0247-481d-9ae1-1be572d446b0",
-        "source": "20",
-        "sourceHandle": "output",
-        "target": "11",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "list"
-        }
-      },
       {
         "id": "019f70a8-ba9a-4da2-a433-1cb26f370c40",
         "source": "13",
@@ -524,16 +495,6 @@
         }
       },
       {
-        "id": "58336",
-        "source": "28",
-        "sourceHandle": "output",
-        "target": "29",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "list"
-        }
-      },
-      {
         "id": "271e790e-eb6d-4a2f-a9a8-ca642c60c059",
         "source": "28",
         "sourceHandle": "output",
@@ -581,6 +542,16 @@
         "targetHandle": "value",
         "ui_properties": {
           "className": "str"
+        }
+      },
+      {
+        "id": "58336",
+        "source": "28",
+        "sourceHandle": "output",
+        "target": "29",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "list"
         }
       }
     ]
