@@ -16,12 +16,6 @@
   max-width: 450px;
 }
 
-.MuiTooltip-popper span {
-  font-size: var(--font-size-small);
-  padding: 2px 5px;
-  color: var(--c_black);
-}
-
 .MuiTooltip-tooltipPlacementLeft {
   margin-right: 4px !important;
 }
@@ -47,6 +41,16 @@
   border-radius: 0 4px 4px 0;
   padding-left: 8px;
 }
+
+/* HANDLE TOOLTIP */
+/* input and output handles */
+ .tooltip-handle {
+   background-color: transparent !important;
+ }
+ .tooltip-handle span {
+   padding: .1em .5em;
+   color: var(--c_black);
+ }
 
 /* CONNECTABLE  */
 .react-flow.is-connecting .react-flow__node .react-flow__handle {
