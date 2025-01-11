@@ -12,7 +12,7 @@ import { titleizeString } from "../../utils/titleizeString";
 import CloseIcon from "@mui/icons-material/Close";
 import ThemeNodetool from "../themes/ThemeNodetool";
 import { highlightText as highlightTextUtil } from "../../utils/highlightText";
-import { formatNodeDescription } from "../../stores/NodeMenuStore";
+import { formatNodeDocumentation } from "../../stores/NodeMenuStore";
 
 interface NodeInfoProps {
   nodeMetadata: NodeMetadata;
@@ -187,7 +187,7 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
 
   const description = useMemo(
     () =>
-      formatNodeDescription(
+      formatNodeDocumentation(
         nodeMetadata?.description || "",
         searchTerm,
         nodeMetadata.searchInfo

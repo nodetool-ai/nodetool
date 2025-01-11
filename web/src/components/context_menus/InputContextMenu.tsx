@@ -227,7 +227,6 @@ const InputContextMenu: React.FC = () => {
             label="Create Constant Node"
             addButtonClassName="create-constant-node"
             IconComponent={<LoginIcon />}
-            tooltip={"..."}
           />
         )}
         {inputNodeMetadata && (
@@ -236,7 +235,6 @@ const InputContextMenu: React.FC = () => {
             label="Create Input Node"
             addButtonClassName="create-input-node"
             IconComponent={<LoginIcon />}
-            tooltip={"..."}
           />
         )}
         <Divider />
@@ -252,7 +250,6 @@ const InputContextMenu: React.FC = () => {
           label="Open filtered NodeMenu"
           addButtonClassName="open-node-menu"
           IconComponent={<ViewWeekIcon />}
-          tooltip={"..."}
         />
       </Menu>
     </>
