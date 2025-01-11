@@ -17,6 +17,7 @@ import ThemeNodetool from "../themes/ThemeNodetool";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { isEqual } from "lodash";
 import { useNodeStore } from "../../stores/NodeStore";
+import { isConnectableCached } from "../node_menu/typeFilterUtils";
 
 export type PropertyFieldProps = {
   id: string;
@@ -70,7 +71,7 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
 
   const classConnectable = useMemo(() => {
     return connectType !== null &&
-      isConnectable(connectType, property.type) &&
+      isConnectableCached(connectType, property.type) &&
       connectNodeId !== id &&
       connectDirection === "source"
       ? "is-connectable"
@@ -86,7 +87,7 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
         event.clientX - 260,
         event.clientY - 50,
         "react-flow__pane",
-        property.type.type,
+        property.type,
         property.name
       );
     },

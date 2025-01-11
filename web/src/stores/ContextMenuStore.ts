@@ -1,10 +1,11 @@
 import { create } from "zustand";
+import { TypeMetadata } from "./ApiTypes";
 type MenuPosition = { x: number; y: number };
 interface ContextMenuState {
   openMenuType: string | null;
   nodeId: string | null;
   menuPosition: MenuPosition | null;
-  type: string | null;
+  type: TypeMetadata | null;
   handleId: string | null;
   description?: string;
 
@@ -14,7 +15,7 @@ interface ContextMenuState {
     x: number,
     y: number,
     outsideClickIgnoreClass?: string,
-    type?: string,
+    type?: TypeMetadata,
     handleId?: string,
     description?: string
   ) => void;
@@ -48,7 +49,7 @@ const useContextMenuStore = create<ContextMenuState>((set) => {
     x: number,
     y: number,
     outsideClickIgnoreClass?: string,
-    type?: string,
+    type?: TypeMetadata,
     handleId?: string,
     description?: string
   ) => {

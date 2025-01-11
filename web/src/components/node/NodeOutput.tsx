@@ -17,6 +17,7 @@ import { colorForType, textColorForType } from "../../config/data_types";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import ThemeNodetool from "../themes/ThemeNodetool";
 import { isEqual } from "lodash";
+import { isConnectableCached } from "../node_menu/typeFilterUtils";
 
 export type NodeOutputProps = {
   id: string;
@@ -48,7 +49,7 @@ const NodeOutput: React.FC<NodeOutputProps> = ({ id, output }) => {
           event.clientX + 25,
           event.clientY - 50,
           "react-flow__pane",
-          output.type.type,
+          output.type,
           output.name
         );
       }, 0);
@@ -58,7 +59,7 @@ const NodeOutput: React.FC<NodeOutputProps> = ({ id, output }) => {
 
   const classConnectable = useMemo(() => {
     return connectType !== null &&
-      isConnectable(connectType, output.type) &&
+      isConnectableCached(connectType, output.type) &&
       connectNodeId !== id &&
       connectDirection === "target"
       ? "is-connectable"

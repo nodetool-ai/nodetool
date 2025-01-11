@@ -53,6 +53,7 @@ import AxisMarker from "../node_editor/AxisMarker";
 import ConnectionLine from "../node_editor/ConnectionLine";
 import NodeTitleEditor from "./NodeTitleEditor";
 import useSelect from "../../hooks/nodes/useSelect";
+import ConnectableNodes from "../context_menus/ConnectableNodes";
 
 declare global {
   interface Window {
@@ -467,13 +468,14 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
             anchorEl={anchorEl}
           />
         )}
-        <AxisMarker />
+        {/* <AxisMarker /> */}
         {openMenuType === "node-context-menu" && <NodeContextMenu />}
         {openMenuType === "pane-context-menu" && <PaneContextMenu />}
         {openMenuType === "property-context-menu" && <PropertyContextMenu />}
         {openMenuType === "selection-context-menu" && <SelectionContextMenu />}
         {openMenuType === "output-context-menu" && <OutputContextMenu />}
         {openMenuType === "input-context-menu" && <InputContextMenu />}
+        <ConnectableNodes />
         <HuggingFaceDownloadDialog />
       </ReactFlow>
     </div>

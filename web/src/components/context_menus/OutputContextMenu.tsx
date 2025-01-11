@@ -17,6 +17,7 @@ import useMetadataStore from "../../stores/MetadataStore";
 import { labelForType } from "../../config/data_types";
 import { Slugify } from "../../utils/TypeHandler";
 import { getTimestampForFilename } from "../../utils/formatDateAndTime";
+import useConnectableNodesStore from "../../stores/ConnectableNodesStore";
 
 const OutputContextMenu: React.FC = () => {
   const {
@@ -35,9 +36,26 @@ const OutputContextMenu: React.FC = () => {
   const { openNodeMenu } = useNodeMenuStore();
   const { createNode, addNode, addEdge, generateEdgeId } = useNodeStore();
   const reactFlowInstance = useReactFlow();
-  const getMetadata = useMetadataStore((state) => state.getMetadata);
+  const { getMetadata } = useMetadataStore((state) => ({
+    getMetadata: state.getMetadata
+  }));
   const [outputNodeMetadata, setOutputNodeMetadata] = useState<any>();
   const [saveNodeMetadata, setSaveNodeMetadata] = useState<any>();
+  const {
+    showMenu,
+    setSourceHandle,
+    setTargetHandle,
+    setNodeId,
+    setFilterType,
+    setConnectableType
+  } = useConnectableNodesStore((state) => ({
+    showMenu: state.showMenu,
+    setSourceHandle: state.setSourceHandle,
+    setTargetHandle: state.setTargetHandle,
+    setNodeId: state.setNodeId,
+    setFilterType: state.setFilterType,
+    setConnectableType: state.setTypeMetadata
+  }));
 
   type HandleType = "value" | "image" | "df" | "values";
   const getTargetHandle = useCallback(
@@ -57,6 +75,7 @@ const OutputContextMenu: React.FC = () => {
     },
     []
   );
+
   const fetchMetadata = useCallback(
     (nodeType: string) => {
       devLog(`Fetching metadata for node type: ${nodeType}`);
@@ -74,8 +93,8 @@ const OutputContextMenu: React.FC = () => {
   );
 
   useEffect(() => {
-    if (sourceType && sourceType !== "") {
-      fetchMetadata(sourceType);
+    if (sourceType && sourceType.type !== "") {
+      fetchMetadata(sourceType.type);
     }
   }, [sourceType, fetchMetadata]);
 
@@ -98,7 +117,6 @@ const OutputContextMenu: React.FC = () => {
         newNode.style = metadata.style;
       }
 
-      // Assign a default size if specific dimensions were not provided
       newNode.data.size = {
         width:
           typeof newNode.style?.width === "number"
@@ -110,12 +128,11 @@ const OutputContextMenu: React.FC = () => {
             : parseInt(newNode.style?.height as string, 10) || 200
       };
 
-      // Assign a unique name to the node
       newNode.data.properties.name =
         `${sourceType}_${sourceHandle}_${getTimestampForFilename(false)}` || "";
 
       addNode(newNode);
-      const targetHandle = getTargetHandle(sourceType || "", nodeType);
+      const targetHandle = getTargetHandle(sourceType?.type || "", nodeType);
       addEdge({
         id: generateEdgeId(),
         source: nodeId || "",
@@ -123,7 +140,7 @@ const OutputContextMenu: React.FC = () => {
         sourceHandle: sourceHandle,
         targetHandle: targetHandle,
         type: "default",
-        className: Slugify(sourceType || "")
+        className: Slugify(sourceType?.type || "")
       });
     },
     [
@@ -207,7 +224,7 @@ const OutputContextMenu: React.FC = () => {
       getMousePosition().x,
       getMousePosition().y,
       true,
-      sourceType || "",
+      sourceType?.type || "",
       "source"
     );
     closeContextMenu();
@@ -240,68 +257,98 @@ const OutputContextMenu: React.FC = () => {
     closeContextMenu();
   };
 
+  const handleShowConnectableNodes = (
+    event?: React.MouseEvent<HTMLElement>
+  ) => {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    if (menuPosition) {
+      setSourceHandle(sourceHandle);
+      setNodeId(nodeId);
+      setFilterType("output");
+      setConnectableType(sourceType);
+      showMenu({ x: menuPosition.x, y: menuPosition.y });
+    }
+    closeContextMenu();
+  };
+
   if (!menuPosition) return null;
   return (
-    <Menu
-      className="context-menu output-context-menu"
-      open={menuPosition !== null}
-      onContextMenu={(event) => event.preventDefault()}
-      anchorReference="anchorPosition"
-      anchorPosition={
-        menuPosition ? { top: menuPosition.y, left: menuPosition.x } : undefined
-      }
-    >
-      <MenuItem disabled>
-        <Typography
-          style={{
-            margin: ".1em 0",
-            padding: "0"
-          }}
-          variant="body1"
-        >
-          Output
-        </Typography>
-      </MenuItem>
-      <Divider />
-      <ContextMenuItem
-        onClick={handleCreatePreviewNode}
-        label="Create Preview Node"
-        addButtonClassName="create-preview-node"
-        IconComponent={<LogoutIcon />}
-        tooltip={"..."}
-      />
-      {outputNodeMetadata && (
+    <>
+      <Menu
+        className="context-menu output-context-menu"
+        open={menuPosition !== null}
+        onContextMenu={(event) => event.preventDefault()}
+        anchorReference="anchorPosition"
+        anchorPosition={
+          menuPosition
+            ? { top: menuPosition.y, left: menuPosition.x }
+            : undefined
+        }
+      >
+        <MenuItem disabled>
+          <Typography
+            style={{
+              margin: ".1em 0",
+              padding: "0"
+            }}
+            variant="body1"
+          >
+            Output
+          </Typography>
+        </MenuItem>
+        <Divider />
         <ContextMenuItem
-          onClick={handleCreateOutputNode}
-          label="Create Output Node"
-          addButtonClassName="create-output-node"
+          onClick={handleCreatePreviewNode}
+          label="Create Preview Node"
+          addButtonClassName="create-preview-node"
           IconComponent={<LogoutIcon />}
           tooltip={"..."}
         />
-      )}
-      {saveNodeMetadata && (
+        {outputNodeMetadata && (
+          <ContextMenuItem
+            onClick={handleCreateOutputNode}
+            label="Create Output Node"
+            addButtonClassName="create-output-node"
+            IconComponent={<LogoutIcon />}
+            tooltip={"..."}
+          />
+        )}
+        {saveNodeMetadata && (
+          <ContextMenuItem
+            onClick={handleCreateSaveNode}
+            label={`Create Save${
+              sourceType?.type === "string"
+                ? "Text"
+                : sourceType?.type_name
+                ? sourceType.type_name?.charAt(0).toUpperCase() +
+                  sourceType.type_name?.slice(1)
+                : ""
+            } Node`}
+            addButtonClassName="create-save-node"
+            IconComponent={<SaveAltIcon />}
+            tooltip={"..."}
+          />
+        )}
+        <Divider />
         <ContextMenuItem
-          onClick={handleCreateSaveNode}
-          label={`Create Save${
-            sourceType === "string"
-              ? "Text"
-              : sourceType
-              ? sourceType.charAt(0).toUpperCase() + sourceType.slice(1)
-              : ""
-          } Node`}
-          addButtonClassName="create-save-node"
-          IconComponent={<SaveAltIcon />}
+          onClick={handleShowConnectableNodes}
+          label="Show Connectable Nodes"
+          addButtonClassName="show-connectable-nodes"
+          IconComponent={<ViewWeekIcon />}
+          tooltip={"Show nodes that can be connected to this output"}
+        />
+        <ContextMenuItem
+          onClick={handleOpenNodeMenu}
+          label="Open filtered NodeMenu"
+          addButtonClassName="open-node-menu"
+          IconComponent={<ViewWeekIcon />}
           tooltip={"..."}
         />
-      )}
-      <ContextMenuItem
-        onClick={handleOpenNodeMenu}
-        label="Open filtered NodeMenu"
-        addButtonClassName="open-node-menu"
-        IconComponent={<ViewWeekIcon />}
-        tooltip={"..."}
-      />
-    </Menu>
+      </Menu>
+    </>
   );
 };
 

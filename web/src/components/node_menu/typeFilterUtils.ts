@@ -1,100 +1,113 @@
-import { NodeMetadata, TypeName } from "../../stores/ApiTypes";
-import { devWarn } from "../../utils/DevLog";
+import { NodeMetadata, TypeMetadata, TypeName } from "../../stores/ApiTypes";
 import { isConnectable } from "../../utils/TypeHandler";
 import { DATA_TYPES } from "../../config/data_types";
 
 export type ConnectabilityMatrix = Record<TypeName, Record<TypeName, boolean>>;
 
-export const isConnectableLogic = (
-  inputType: TypeName,
-  outputType: TypeName,
-  matrix: ConnectabilityMatrix
-): boolean => {
-  if (!matrix[inputType] || !matrix[inputType][outputType]) {
-    return false;
-  }
-  return isConnectable(
-    { type: inputType, optional: true, type_args: [] },
-    { type: outputType, optional: true, type_args: [] }
-  );
+const hashType = (type: TypeMetadata) => {
+  return `${type.type}_${type.type_args.join("_")}`;
 };
 
-export const connectabilityMatrix: ConnectabilityMatrix =
-  createConnectabilityMatrix();
+let connectabilityMatrix: ConnectabilityMatrix | null = null;
 
-function createConnectabilityMatrix(): ConnectabilityMatrix {
-  const typeEnumValues: TypeName[] = DATA_TYPES.map(
-    (type) => type.value as TypeName
+export function createConnectabilityMatrix(metadata: NodeMetadata[]) {
+  const allTypes = metadata.flatMap((node) =>
+    node.properties.map((prop) => prop.type)
   );
 
   const matrix: ConnectabilityMatrix = {};
-  typeEnumValues.forEach((inputType) => {
-    matrix[inputType] = {};
-    typeEnumValues.forEach((outputType) => {
-      matrix[inputType][outputType] = false;
-    });
+
+  // Initialize the matrix with nested objects first
+  allTypes.forEach((inputType) => {
+    matrix[hashType(inputType)] = {};
   });
 
-  typeEnumValues.forEach((inputType) => {
-    typeEnumValues.forEach((outputType) => {
-      matrix[inputType][outputType] = isConnectable(
-        { type: inputType, optional: true, type_args: [] },
-        { type: outputType, optional: true, type_args: [] }
+  // Now set the connectability values
+  allTypes.forEach((inputType) => {
+    allTypes.forEach((outputType) => {
+      matrix[hashType(inputType)][hashType(outputType)] = isConnectable(
+        inputType,
+        outputType,
+        false
       );
     });
   });
 
-  return matrix;
+  connectabilityMatrix = matrix;
+  console.log(matrix);
 }
 
-function logMissingConnectabilityTypes() {
-  const allTypes: TypeName[] = Object.keys(connectabilityMatrix) as TypeName[];
+export function isConnectableCached(
+  inputType: TypeMetadata,
+  outputType: TypeMetadata
+) {
+  return (
+    connectabilityMatrix?.[hashType(inputType)]?.[hashType(outputType)] ?? false
+  );
+}
 
-  allTypes.forEach((inputType: TypeName) => {
-    const outputTypes = connectabilityMatrix[inputType];
-    allTypes.forEach((outputType: TypeName) => {
-      if (outputTypes[outputType] === undefined) {
-        devWarn(
-          `Connectability missing or undefined for: ${inputType} -> ${outputType}`
-        );
-      }
+/**
+ * Filter node that can be connected to the input type.
+ * @param metadata - The metadata to filter.
+ * @param inputType - The selected input type.
+ * @returns The filtered metadata.
+ */
+export const filterTypesByInputType = (
+  metadata: NodeMetadata[],
+  inputType: TypeMetadata
+): NodeMetadata[] => {
+  return metadata.filter((node) => {
+    return node.properties.some((prop) => {
+      return isConnectableCached(inputType, prop.type);
     });
   });
-}
+};
 
-logMissingConnectabilityTypes();
-
-export const filterDataByType = (
+/**
+ * Filter node that can be connected to the output type.
+ * @param metadata - The metadata to filter.
+ * @param outputType - The selected output type.
+ * @returns The filtered metadata.
+ */
+export const filterTypesByOutputType = (
   metadata: NodeMetadata[],
-  selectedInputType: TypeName | undefined,
-  selectedOutputType: TypeName | undefined
+  outputType: TypeMetadata
 ): NodeMetadata[] => {
-  if (!selectedInputType && !selectedOutputType) {
-    return metadata;
-  }
-  const intermediateFilteredData = selectedInputType
+  return outputType
     ? metadata.filter((node) => {
-        return node.properties.some((prop) => {
-          const isInputTypeConnectable =
-            connectabilityMatrix[prop.type.type as TypeName]?.[
-              selectedInputType
-            ];
-          return isInputTypeConnectable;
+        return node.outputs.some((output) => {
+          return isConnectableCached(output.type, outputType);
         });
       })
     : metadata;
+};
 
-  const finalFilteredData = selectedOutputType
-    ? intermediateFilteredData.filter((node) => {
-        return node.outputs.some((output) => {
-          const isOutputTypeConnectable =
-            connectabilityMatrix[selectedOutputType]?.[
-              output.type.type as TypeName
-            ];
-          return isOutputTypeConnectable;
-        });
+/**
+ * Filters the metadata by the selected input and output types.
+ * @param metadata - The metadata to filter.
+ * @param inputType - The selected input type.
+ * @param outputType - The selected output type.
+ * @returns The filtered metadata.
+ */
+export const filterDataByType = (
+  metadata: NodeMetadata[],
+  inputType: TypeName | undefined,
+  outputType: TypeName | undefined
+): NodeMetadata[] => {
+  const intermediateFilteredData = inputType
+    ? filterTypesByInputType(metadata, {
+        type: inputType,
+        optional: true,
+        type_args: [],
+        type_name: inputType
+      })
+    : metadata;
+  return outputType
+    ? filterTypesByOutputType(intermediateFilteredData, {
+        type: outputType,
+        optional: true,
+        type_args: [],
+        type_name: outputType
       })
     : intermediateFilteredData;
-
-  return finalFilteredData.length > 0 ? finalFilteredData : metadata;
 };

@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 //mui
 import { Divider, Menu, MenuItem, Typography } from "@mui/material";
 import ContextMenuItem from "./ContextMenuItem";
@@ -15,6 +15,9 @@ import useMetadataStore from "../../stores/MetadataStore";
 import { useNodeStore } from "../../stores/NodeStore";
 import { Edge, useReactFlow } from "@xyflow/react";
 import { Slugify } from "../../utils/TypeHandler";
+import { getTimestampForFilename } from "../../utils/formatDateAndTime";
+import useConnectableNodesStore from "../../stores/ConnectableNodesStore";
+import ConnectableNodes from "./ConnectableNodes";
 
 const InputContextMenu: React.FC = () => {
   const getMetadata = useMetadataStore((state) => state.getMetadata);
@@ -23,23 +26,38 @@ const InputContextMenu: React.FC = () => {
   const [edges, setEdges] = useNodeStore((state) => [
     state.edges,
     state.setEdges
-  ]);
+  ]) as [Edge[], (edges: Edge[]) => void];
   const generateEdgeId = useNodeStore((state) => state.generateEdgeId);
   const reactFlowInstance = useReactFlow();
 
-  const menuPosition = useContextMenuStore((state) => state.menuPosition);
-  const closeContextMenu = useContextMenuStore(
-    (state) => state.closeContextMenu
-  );
-  const type = useContextMenuStore((state) => state.type);
-  const nodeId = useContextMenuStore((state) => state.nodeId);
-  const handleId = useContextMenuStore((state) => state.handleId);
+  const { type, nodeId, handleId, menuPosition, closeContextMenu } =
+    useContextMenuStore((state) => ({
+      type: state.type,
+      nodeId: state.nodeId,
+      handleId: state.handleId,
+      menuPosition: state.menuPosition,
+      closeContextMenu: state.closeContextMenu
+    }));
   const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
-  const datatypeLabel = labelForType(type || "").replaceAll(" ", "");
+  const datatypeLabel = labelForType(type?.type || "").replaceAll(" ", "");
   const inputNodePath = `nodetool.input.${datatypeLabel}Input`;
   const inputNodeMetadata = getMetadata(inputNodePath);
   const constantNodePath = `nodetool.constant.${datatypeLabel}`;
   const constantNodeMetadata = getMetadata(constantNodePath);
+  const [showConnectableNodes, setShowConnectableNodes] = useState(false);
+  const {
+    showMenu,
+    setHandleId,
+    setNodeId,
+    setFilterType,
+    setConnectableType
+  } = useConnectableNodesStore((state) => ({
+    showMenu: state.showMenu,
+    setHandleId: state.setHandleId,
+    setNodeId: state.setNodeId,
+    setFilterType: state.setFilterType,
+    setConnectableType: state.setTypeMetadata
+  }));
 
   const handleOpenNodeMenu = (event?: React.MouseEvent<HTMLElement>) => {
     if (event) {
@@ -50,7 +68,7 @@ const InputContextMenu: React.FC = () => {
       getMousePosition().x,
       getMousePosition().y,
       true,
-      type || "",
+      type?.type || "",
       "target"
     );
     closeContextMenu();
@@ -92,7 +110,7 @@ const InputContextMenu: React.FC = () => {
         sourceHandle: "output",
         targetHandle: handleId,
         type: "default",
-        className: Slugify(type || "")
+        className: Slugify(type?.type || "")
       };
       setEdges([...validEdges, newEdge]);
     },
@@ -136,7 +154,7 @@ const InputContextMenu: React.FC = () => {
         sourceHandle: "output",
         targetHandle: handleId,
         type: "default",
-        className: Slugify(type || "")
+        className: Slugify(type?.type || "")
       };
       setEdges([...validEdges, newEdge]);
     },
@@ -163,55 +181,84 @@ const InputContextMenu: React.FC = () => {
     closeContextMenu();
   };
 
+  const handleShowConnectableNodes = (
+    event?: React.MouseEvent<HTMLElement>
+  ) => {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    if (menuPosition) {
+      setHandleId(handleId);
+      setNodeId(nodeId);
+      setFilterType("input");
+      setConnectableType(type);
+      showMenu({ x: menuPosition.x, y: menuPosition.y });
+    }
+    closeContextMenu();
+  };
+
   if (!menuPosition) return null;
   return (
-    <Menu
-      className="context-menu input-context-menu"
-      open={menuPosition !== null}
-      onContextMenu={(event) => event.preventDefault()}
-      anchorReference="anchorPosition"
-      anchorPosition={
-        menuPosition ? { top: menuPosition.y, left: menuPosition.x } : undefined
-      }
-    >
-      <MenuItem disabled>
-        <Typography
-          style={{
-            margin: ".1em 0",
-            padding: "0"
-          }}
-          variant="body1"
-        >
-          Input
-        </Typography>
-      </MenuItem>
-      <Divider />
-      {constantNodeMetadata && (
+    <>
+      <Menu
+        className="context-menu input-context-menu"
+        open={menuPosition !== null}
+        onContextMenu={(event) => event.preventDefault()}
+        anchorReference="anchorPosition"
+        anchorPosition={
+          menuPosition
+            ? { top: menuPosition.y, left: menuPosition.x }
+            : undefined
+        }
+      >
+        <MenuItem disabled>
+          <Typography
+            style={{
+              margin: ".1em 0",
+              padding: "0"
+            }}
+            variant="body1"
+          >
+            Input
+          </Typography>
+        </MenuItem>
+        <Divider />
+        {constantNodeMetadata && (
+          <ContextMenuItem
+            onClick={handleCreateConstantNode}
+            label="Create Constant Node"
+            addButtonClassName="create-constant-node"
+            IconComponent={<LoginIcon />}
+            tooltip={"..."}
+          />
+        )}
+        {inputNodeMetadata && (
+          <ContextMenuItem
+            onClick={handleCreateInputNode}
+            label="Create Input Node"
+            addButtonClassName="create-input-node"
+            IconComponent={<LoginIcon />}
+            tooltip={"..."}
+          />
+        )}
+        <Divider />
         <ContextMenuItem
-          onClick={handleCreateConstantNode}
-          label="Create Constant Node"
-          addButtonClassName="create-constant-node"
-          IconComponent={<LoginIcon />}
+          onClick={handleShowConnectableNodes}
+          label="Show Connectable Nodes"
+          addButtonClassName="show-connectable-nodes"
+          IconComponent={<ViewWeekIcon />}
+          tooltip={"Show nodes that can be connected to this input"}
+        />
+        <ContextMenuItem
+          onClick={handleOpenNodeMenu}
+          label="Open filtered NodeMenu"
+          addButtonClassName="open-node-menu"
+          IconComponent={<ViewWeekIcon />}
           tooltip={"..."}
         />
-      )}
-      {inputNodeMetadata && (
-        <ContextMenuItem
-          onClick={handleCreateInputNode}
-          label="Create Input Node"
-          addButtonClassName="create-input-node"
-          IconComponent={<LoginIcon />}
-          tooltip={"..."}
-        />
-      )}
-      <ContextMenuItem
-        onClick={handleOpenNodeMenu}
-        label="Open filtered NodeMenu"
-        addButtonClassName="open-node-menu"
-        IconComponent={<ViewWeekIcon />}
-        tooltip={"..."}
-      />
-    </Menu>
+      </Menu>
+    </>
   );
 };
 
