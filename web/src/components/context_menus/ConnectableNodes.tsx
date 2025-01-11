@@ -318,42 +318,43 @@ const ConnectableNodes: React.FC<ConnectableNodesProps> = ({
                     sx: {
                       backgroundColor: "black",
                       color: "white",
-                      fontSize: "1rem"
+                      fontSize: "1rem",
+                      maxWidth: "none"
                     }
                   }
                 }}
                 placement="left"
-                // leaveDelay={80000}
-                title="test"
-                // title={
-                //   <NodeInfo
-                //     nodeMetadata={nodeMetadata}
-                //     showConnections={false}
-                //   />
-                // }
+                title={
+                  <NodeInfo
+                    nodeMetadata={nodeMetadata}
+                    showConnections={false}
+                  />
+                }
               >
-                <NodeItem
-                  key={nodeMetadata.node_type}
-                  ref={isFocused ? focusedNodeRef : undefined}
-                  node={nodeMetadata}
-                  isHovered={false}
-                  isFocused={false}
-                  onDragStart={() => {}}
-                  onInfoClick={() => {}}
-                  onMouseEnter={() => {
-                    currentHoveredNodeRef.current = nodeMetadata;
-                    handleMouseEnter();
-                  }}
-                  onMouseLeave={() => {
-                    currentHoveredNodeRef.current = null;
-                    handleMouseLeave();
-                  }}
-                  onClick={() => {
-                    createConnectableNode(nodeMetadata);
-                    hideMenu();
-                  }}
-                  showInfo={false}
-                />
+                <div className="node-item-container">
+                  <NodeItem
+                    key={nodeMetadata.node_type}
+                    ref={isFocused ? focusedNodeRef : undefined}
+                    node={nodeMetadata}
+                    isHovered={false}
+                    isFocused={false}
+                    onDragStart={() => {}}
+                    onInfoClick={() => {}}
+                    onMouseEnter={() => {
+                      currentHoveredNodeRef.current = nodeMetadata;
+                      handleMouseEnter();
+                    }}
+                    onMouseLeave={() => {
+                      currentHoveredNodeRef.current = null;
+                      handleMouseLeave();
+                    }}
+                    onClick={() => {
+                      createConnectableNode(nodeMetadata);
+                      hideMenu();
+                    }}
+                    showInfo={false}
+                  />
+                </div>
                 {/* <Button 
                   sx={{ width: "100%", color: "white" }}
                   onClick={(e) => createConnectableNode(e, nodeMetadata)}
