@@ -570,3 +570,60 @@ class SVGGenerator(BaseNode):
 #             square=validated_config.square,
 #             data=chart_data,
 #         )
+
+
+class Summarizer(BaseNode):
+    """
+    Gemini version of the summarizer for creating concise summaries of text content.
+    """
+
+    model: GeminiModel = Field(
+        default=GeminiModel.Gemini2_0_Flash_Exp, description="The Gemini model to use"
+    )
+    text: str = Field(default="", description="The text to summarize")
+    max_words: int = Field(
+        default=150, 
+        description="Target maximum number of words for the summary",
+        ge=50,
+        le=500
+    )
+    temperature: float = Field(
+        default=0.0, ge=0.0, le=1.0, description="Temperature for sampling"
+    )
+
+    @classmethod
+    def get_basic_fields(cls) -> list[str]:
+        return ["text", "max_words"]
+
+    async def process(self, context: ProcessingContext) -> str:
+        system_prompt = f"""
+        You are an expert summarizer. Your task is to create clear, accurate, and concise summaries.
+        Follow these guidelines:
+        1. Identify and include only the most important information
+        2. Maintain factual accuracy - do not add or modify information
+        3. Use clear, direct language
+        4. Aim for approximately {self.max_words} words
+        5. Preserve the original meaning and tone
+        6. Include key details, dates, and figures when relevant
+        7. Focus on the main points and conclusions
+        8. Avoid redundancy and unnecessary elaboration
+
+        RESPOND ONLY WITH THE SUMMARY TEXT. NO ADDITIONAL COMMENTARY.
+        """
+
+        result = await context.run_prediction(
+            node_id=self.id,
+            provider=Provider.Gemini,
+            model=self.model.value,
+            params={
+                "contents": [self.text],
+                "system_instruction": system_prompt,
+                "config": {
+                    "temperature": self.temperature,
+                    "max_output_tokens": 8192,
+                    "response_mime_type": "text/plain",
+                },
+            },
+        )
+
+        return result["candidates"][0]["content"]["parts"][0]["text"].strip()

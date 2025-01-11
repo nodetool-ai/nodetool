@@ -24,6 +24,44 @@ from nodetool.metadata.types import LlamaModel
 from nodetool.workflows.base_node import BaseNode
 from pydantic import Field
 
+import tiktoken
+from typing import List
+
+def split_text_into_chunks(text: str, chunk_size: int, overlap: int, encoding_name: str = "cl100k_base") -> List[str]:
+    """
+    Split text into chunks with overlap.
+
+    Use cases:
+    - Summarizing long texts
+    - Splitting text for processing in chunks
+    - Creating training data for models
+
+    Args:
+        text: The text to split into chunks.
+        chunk_size: The size of each chunk.
+        overlap: The number of tokens to overlap between chunks.
+        encoding_name: The name of the encoding to use.
+
+    Returns:
+        A list of chunks of text.
+    """
+    # Initialize the tokenizer with the specified encoding
+    encoding = tiktoken.get_encoding(encoding_name)
+    
+    # Encode the text into tokens
+    tokens = encoding.encode(text)
+    
+    # Calculate the step size by subtracting the overlap from the chunk size
+    step_size = chunk_size - overlap
+    
+    # Split tokens into chunks with the specified overlap
+    token_chunks = [tokens[i:i + chunk_size] for i in range(0, len(tokens), step_size)]
+    
+    # Decode each chunk back into text
+    text_chunks = [encoding.decode(chunk) for chunk in token_chunks]
+    
+    return text_chunks
+
 
 class DataGenerator(BaseNode):
     """
@@ -42,6 +80,7 @@ class DataGenerator(BaseNode):
     context_window: int = Field(
         default=4096,
         ge=1,
+        le=4096 * 2,
         description="The context window size to use for the model.",
     )
     prompt: str = Field(
@@ -240,6 +279,7 @@ class SVGGenerator(BaseNode):
     context_window: int = Field(
         default=4096,
         ge=1,
+        le=4096 * 2,
         description="The context window size to use for the model.",
     )
     prompt: str = Field(
@@ -368,6 +408,7 @@ class ChartGenerator(BaseNode):
     context_window: int = Field(
         default=4096,
         ge=1,
+        le=4096 * 2,
         description="The context window size to use for the model.",
     )
     prompt: str = Field(
@@ -553,6 +594,7 @@ class QuestionAnswerAgent(BaseNode):
     context_window: int = Field(
         default=4096,
         ge=1,
+        le=4096 * 2,
         description="The context window size to use for the model.",
     )
     question: str = Field(
@@ -652,6 +694,7 @@ class SchemaGenerator(BaseNode):
     context_window: int = Field(
         default=4096,
         ge=1,
+        le=4096 * 2,
         description="The context window size to use for the model.",
     )
     prompt: str = Field(
@@ -766,6 +809,7 @@ class Classifier(BaseNode):
     context_window: int = Field(
         default=4096,
         ge=1,
+        le=4096 * 2,
         description="The context window size to use for the model.",
     )
     input_text: str = Field(
@@ -843,3 +887,154 @@ Rules:
         )
 
         return str(res["message"]["content"]).strip()
+
+
+class Summarizer(BaseNode):
+    """
+    LLM Agent to generate concise summaries of text content.
+    llm, summarization, text processing
+
+    Use cases:
+    - Document summarization
+    - Article abstraction
+    - Content briefing
+    - Key points extraction
+    """
+
+    model: LlamaModel = Field(
+        default=LlamaModel(),
+        description="The Llama model to use for summarization.",
+    )
+    context_window: int = Field(
+        default=4096,
+        ge=1,
+        le=4096*2,
+        description="The context window size to use for the model.",
+    )
+    text: str = Field(
+        default="",
+        description="The text to summarize",
+    )
+    max_length: int = Field(
+        default=200,
+        ge=1,
+        description="Target maximum length of the summary in words",
+    )
+    chunk_overlap: int = Field(
+        default=100,
+        ge=0,
+        description="Number of tokens to overlap between chunks",
+    )
+    temperature: float = Field(
+        default=0.7,
+        ge=0.0,
+        le=2.0,
+        description="The temperature to use for sampling.",
+    )
+    top_k: int = Field(
+        default=50,
+        ge=1,
+        le=100,
+        description="The number of highest probability tokens to keep for top-k sampling.",
+    )
+    top_p: float = Field(
+        default=0.95,
+        ge=0.0,
+        le=1.0,
+        description="The cumulative probability cutoff for nucleus/top-p sampling.",
+    )
+    keep_alive: int = Field(
+        default=300,
+        description="The number of seconds to keep the model alive.",
+    )
+    system_prompt: str = Field(
+        default="""You are an expert text summarizer. Follow these guidelines:
+
+1. Content Focus:
+   - Extract main arguments, findings, and conclusions
+   - Preserve critical evidence and methodologies
+   - Maintain factual accuracy and context
+   - Include key statistics when relevant
+
+2. Structure and Style:
+   - Present information in logical flow
+   - Use clear, precise language
+   - Balance brevity with completeness
+   - Adapt style to match source material
+
+3. Quality Standards:
+   - Include only information from the source
+   - Avoid personal interpretation
+   - Maintain technical accuracy
+   - Preserve nuance in complex topics
+
+Your goal is to create an accurate, useful, and efficient representation of the original text while maintaining its core meaning and significance.""",
+        description="System prompt for the summarization task. Defines the behavior and guidelines for the summarization.",
+    )
+
+    @classmethod
+    def get_basic_fields(cls) -> list[str]:
+        return ["model", "text", "max_length", "system_prompt"]
+
+    async def _summarize_chunk(
+        self, context: ProcessingContext, text: str, is_final_summary: bool = False
+    ) -> str:
+        """Helper method to summarize a single chunk of text"""
+        
+        user_prompt = "Create a final summary:" if is_final_summary else "Summarize this section of text:"
+        
+        res = await context.run_prediction(
+            node_id=self._id,
+            provider=Provider.Ollama,
+            model=self.model.repo_id,
+            params={
+                "messages": [
+                    {"role": "system", "content": self.system_prompt},
+                    {"role": "user", "content": f"{user_prompt}\n\n{text}"},
+                ],
+                "options": {
+                    "temperature": self.temperature,
+                    "top_k": self.top_k,
+                    "top_p": self.top_p,
+                    "keep_alive": self.keep_alive,
+                    "stream": False,
+                    "num_ctx": self.context_window,
+                },
+            },
+        )
+        return str(res["message"]["content"]).strip()
+
+    async def process(self, context: ProcessingContext) -> str:
+        # Calculate effective context size (leaving room for prompts and completion)
+        effective_context_size = int(self.context_window * 0.75)
+        
+        # Check if text needs chunking
+        encoding = tiktoken.get_encoding("cl100k_base")
+        total_tokens = len(encoding.encode(self.text))
+        
+        if total_tokens <= effective_context_size:
+            # If text fits in context window, summarize directly
+            return await self._summarize_chunk(context, self.text, True)
+        
+        # Split text into chunks
+        chunks = split_text_into_chunks(
+            self.text,
+            chunk_size=effective_context_size,
+            overlap=self.chunk_overlap
+        )
+        
+        # Summarize each chunk
+        chunk_summaries = []
+        for chunk in chunks:
+            summary = await self._summarize_chunk(context, chunk)
+            chunk_summaries.append(summary)
+        
+        # Combine chunk summaries into final summary
+        combined_summaries = "\n\n".join(chunk_summaries)
+        
+        # If combined summaries are still too long, recursively summarize
+        if len(encoding.encode(combined_summaries)) > effective_context_size:
+            return await self.process(context)  # Recursive call with combined summaries
+        
+        # Generate final summary
+        return await self._summarize_chunk(context, combined_summaries, True)
