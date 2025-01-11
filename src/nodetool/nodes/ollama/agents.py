@@ -745,3 +745,101 @@ class SchemaGenerator(BaseNode):
 
         content = content[start : end + 1]
         return json.loads(content)
+
+
+class Classifier(BaseNode):
+    """
+    LLM Agent to classify text into predefined categories.
+    llm, classification, text analysis
+
+    Use cases:
+    - Text categorization
+    - Sentiment analysis
+    - Topic classification
+    - Intent detection
+    """
+
+    model: LlamaModel = Field(
+        default=LlamaModel(),
+        description="The Llama model to use for classification.",
+    )
+    context_window: int = Field(
+        default=4096,
+        ge=1,
+        description="The context window size to use for the model.",
+    )
+    input_text: str = Field(
+        default="",
+        description="The text to classify",
+    )
+    labels: str = Field(
+        default="",
+        description="Comma-separated list of possible classification labels",
+    )
+    temperature: float = Field(
+        default=0.0,
+        ge=0.0,
+        le=2.0,
+        description="The temperature to use for sampling.",
+    )
+    top_k: int = Field(
+        default=1,
+        ge=1,
+        le=100,
+        description="The number of highest probability tokens to keep for top-k sampling.",
+    )
+    top_p: float = Field(
+        default=0.95,
+        ge=0.0,
+        le=1.0,
+        description="The cumulative probability cutoff for nucleus/top-p sampling.",
+    )
+    keep_alive: int = Field(
+        default=300,
+        description="The number of seconds to keep the model alive.",
+    )
+
+    @classmethod
+    def get_basic_fields(cls) -> list[str]:
+        return ["model", "input_text", "labels"]
+
+    def requires_gpu(self) -> bool:
+        return True
+
+    async def process(self, context: ProcessingContext) -> str:
+        labels_list = [label.strip() for label in self.labels.split(",")]
+        
+        res = await context.run_prediction(
+            node_id=self._id,
+            provider=Provider.Ollama,
+            model=self.model.repo_id,
+            params={
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": f"""You are a text classifier. Your task is to classify the given text into exactly one of the following categories: {self.labels}
+
+Rules:
+1. Choose exactly one label from the provided options
+2. Respond ONLY with the chosen label, no explanation or additional text
+3. If unsure, choose the most likely label based on the available options
+4. The classification should be case-sensitive and match exactly one of the provided labels
+5. Do not create new labels or combine existing ones""",
+                    },
+                    {
+                        "role": "user",
+                        "content": f"Text to classify: {self.input_text}. ONLY RESPOND WITH THE LABEL, NO EXPLANATION OR ADDITIONAL TEXT",
+                    },
+                ],
+                "options": {
+                    "temperature": self.temperature,
+                    "top_k": self.top_k,
+                    "top_p": self.top_p,
+                    "keep_alive": self.keep_alive,
+                    "stream": False,
+                    "num_ctx": self.context_window,
+                },
+            },
+        )
+
+        return str(res["message"]["content"]).strip()

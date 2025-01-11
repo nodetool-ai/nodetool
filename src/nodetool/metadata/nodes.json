@@ -1014,7 +1014,7 @@
   },
   {
     "title": "Read Notes",
-    "description": "Read notes from Apple Notes via AppleScript using temporary files",
+    "description": "Read notes from Apple Notes via AppleScript using temporary files\n    notes, automation, macos, productivity\n\n    Use cases:\n    - Access your Apple Notes content programmatically\n    - Search through notes using keywords\n    - Get notes content for further processing",
     "namespace": "apple.notes",
     "node_type": "apple.notes.ReadNotes",
     "layout": "default",
@@ -14880,9 +14880,9 @@
           "type_args": [],
           "type_name": null
         },
-        "default": "audio",
+        "default": "%Y-%m-%d-%H-%M-%S.opus",
         "title": "Name",
-        "description": "The name of the audio file.",
+        "description": "\n        The name of the audio file.\n        You can use time and date variables to create unique names:\n        %Y - Year\n        %m - Month\n        %d - Day\n        %H - Hour\n        %M - Minute\n        %S - Second\n        ",
         "min": null,
         "max": null
       }
@@ -20418,7 +20418,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": 9,
+        "default": 11,
         "title": "Day",
         "description": "Day of the date",
         "min": null,
@@ -20492,7 +20492,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": 9,
+        "default": 11,
         "title": "Day",
         "description": "Day of the datetime",
         "min": null,
@@ -20744,7 +20744,7 @@
         },
         "default": "output.csv",
         "title": "Name",
-        "description": "Name of the output file.",
+        "description": "\n        Name of the output file.\n        You can use time and date variables to create unique names:\n        %Y - Year\n        %m - Month\n        %d - Day\n        %H - Hour\n        %M - Minute\n        %S - Second\n        ",
         "min": null,
         "max": null
       }
@@ -22251,11 +22251,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 9,
-          "hour": 18,
-          "minute": 24,
-          "second": 4,
-          "microsecond": 174360,
+          "day": 11,
+          "hour": 13,
+          "minute": 11,
+          "second": 21,
+          "microsecond": 267020,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23293,11 +23293,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 9,
-          "hour": 18,
-          "minute": 24,
-          "second": 4,
-          "microsecond": 178743,
+          "day": 11,
+          "hour": 13,
+          "minute": 11,
+          "second": 21,
+          "microsecond": 271035,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23346,11 +23346,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 9,
-          "hour": 18,
-          "minute": 24,
-          "second": 4,
-          "microsecond": 178972,
+          "day": 11,
+          "hour": 13,
+          "minute": 11,
+          "second": 21,
+          "microsecond": 271278,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23399,11 +23399,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 9,
-          "hour": 18,
-          "minute": 24,
-          "second": 4,
-          "microsecond": 179231,
+          "day": 11,
+          "hour": 13,
+          "minute": 11,
+          "second": 21,
+          "microsecond": 271525,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23452,11 +23452,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 9,
-          "hour": 18,
-          "minute": 24,
-          "second": 4,
-          "microsecond": 179465,
+          "day": 11,
+          "hour": 13,
+          "minute": 11,
+          "second": 21,
+          "microsecond": 271758,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23505,11 +23505,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 9,
-          "hour": 18,
-          "minute": 24,
-          "second": 4,
-          "microsecond": 179691,
+          "day": 11,
+          "hour": 13,
+          "minute": 11,
+          "second": 21,
+          "microsecond": 271975,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23558,11 +23558,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 9,
-          "hour": 18,
-          "minute": 24,
-          "second": 4,
-          "microsecond": 179915,
+          "day": 11,
+          "hour": 13,
+          "minute": 11,
+          "second": 21,
+          "microsecond": 272196,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23611,11 +23611,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 9,
-          "hour": 18,
-          "minute": 24,
-          "second": 4,
-          "microsecond": 180169,
+          "day": 11,
+          "hour": 13,
+          "minute": 11,
+          "second": 21,
+          "microsecond": 272448,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23680,11 +23680,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 9,
-          "hour": 18,
-          "minute": 24,
-          "second": 4,
-          "microsecond": 180434,
+          "day": 11,
+          "hour": 13,
+          "minute": 11,
+          "second": 21,
+          "microsecond": 272714,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -24639,6 +24639,63 @@
     ]
   },
   {
+    "title": "Arg Max",
+    "description": "Returns the label associated with the highest value in a dictionary.\n    dictionary, maximum, label, argmax\n\n    Use cases:\n    - Get the most likely class from classification probabilities\n    - Find the category with highest score\n    - Identify the winner in a voting/ranking system",
+    "namespace": "nodetool.dictionary",
+    "node_type": "nodetool.dictionary.ArgMax",
+    "layout": "small",
+    "properties": [
+      {
+        "name": "scores",
+        "type": {
+          "type": "dict",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "str",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            },
+            {
+              "type": "float",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": {},
+        "title": "Scores",
+        "description": "Dictionary mapping labels to their corresponding scores/values",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "scores"
+    ]
+  },
+  {
     "title": "File Exists",
     "description": "Check if a file or directory exists at the specified path.\n    files, check, exists\n\n    Use cases:\n    - Validate file presence before processing\n    - Implement conditional logic based on file existence",
     "namespace": "nodetool.file",
@@ -25361,7 +25418,7 @@
   },
   {
     "title": "Save Document",
-    "description": "Write a document to disk.\n    files, document, write, output, save, file",
+    "description": "Write a document to disk.\n    files, document, write, output, save, file\n\n    The filename can include time and date variables:\n    %Y - Year, %m - Month, %d - Day\n    %H - Hour, %M - Minute, %S - Second",
     "namespace": "nodetool.file",
     "node_type": "nodetool.file.SaveDocument",
     "layout": "default",
@@ -25415,7 +25472,7 @@
         },
         "default": "",
         "title": "Filename",
-        "description": "Name of the file to save",
+        "description": "Name of the file to save. Supports strftime format codes.",
         "min": null,
         "max": null
       }
@@ -25484,7 +25541,7 @@
   },
   {
     "title": "Save CSV",
-    "description": "Write a list of dictionaries to a CSV file.\n    files, csv, write, output, save, file",
+    "description": "Write a list of dictionaries to a CSV file.\n    files, csv, write, output, save, file\n\n    The filename can include time and date variables:\n    %Y - Year, %m - Month, %d - Day\n    %H - Hour, %M - Minute, %S - Second",
     "namespace": "nodetool.file",
     "node_type": "nodetool.file.SaveCSV",
     "layout": "default",
@@ -25541,7 +25598,7 @@
         },
         "default": "",
         "title": "Filename",
-        "description": "Name of the CSV file to save",
+        "description": "Name of the CSV file to save. Supports strftime format codes.",
         "min": null,
         "max": null
       }
@@ -25557,7 +25614,7 @@
   },
   {
     "title": "Save CSVDataframe",
-    "description": "Write a pandas DataFrame to a CSV file.\n    files, csv, write, output, save, file",
+    "description": "Write a pandas DataFrame to a CSV file.\n    files, csv, write, output, save, file\n\n    The filename can include time and date variables:\n    %Y - Year, %m - Month, %d - Day\n    %H - Hour, %M - Minute, %S - Second",
     "namespace": "nodetool.file",
     "node_type": "nodetool.file.SaveCSVDataframe",
     "layout": "default",
@@ -25606,7 +25663,7 @@
         },
         "default": "",
         "title": "Filename",
-        "description": "Name of the CSV file to save",
+        "description": "Name of the CSV file to save. Supports strftime format codes.",
         "min": null,
         "max": null
       }
@@ -25667,7 +25724,7 @@
   },
   {
     "title": "Save Bytes",
-    "description": "Write raw bytes to a file on disk.\n    files, bytes, save, output",
+    "description": "Write raw bytes to a file on disk.\n    files, bytes, save, output\n\n    The filename can include time and date variables:\n    %Y - Year, %m - Month, %d - Day\n    %H - Hour, %M - Minute, %S - Second",
     "namespace": "nodetool.file",
     "node_type": "nodetool.file.SaveBytes",
     "layout": "default",
@@ -25716,7 +25773,7 @@
         },
         "default": "",
         "title": "Filename",
-        "description": "Name of the file to save",
+        "description": "Name of the file to save. Supports strftime format codes.",
         "min": null,
         "max": null
       }
@@ -25831,7 +25888,7 @@
         },
         "default": "",
         "title": "Filename",
-        "description": "Name of the file to save",
+        "description": "\n        The name of the image file.\n        You can use time and date variables to create unique names:\n        %Y - Year\n        %m - Month\n        %d - Day\n        %H - Hour\n        %M - Minute\n        %S - Second\n        ",
         "min": null,
         "max": null
       }
@@ -25904,7 +25961,7 @@
   },
   {
     "title": "Save Audio",
-    "description": "Write an audio file to disk.\n    audio, output, save, file\n\n    Use cases:\n    - Save processed audio\n    - Export edited sound files\n    - Archive audio results",
+    "description": "Write an audio file to disk.\n    audio, output, save, file\n\n    The filename can include time and date variables:\n    %Y - Year, %m - Month, %d - Day\n    %H - Hour, %M - Minute, %S - Second",
     "namespace": "nodetool.file",
     "node_type": "nodetool.file.SaveAudio",
     "layout": "default",
@@ -25958,7 +26015,7 @@
         },
         "default": "",
         "title": "Filename",
-        "description": "Name of the file to save",
+        "description": "\n        Name of the file to save.\n        You can use time and date variables to create unique names:\n        %Y - Year\n        %m - Month\n        %d - Day\n        %H - Hour\n        %M - Minute\n        %S - Second\n        ",
         "min": null,
         "max": null
       }
@@ -26028,7 +26085,7 @@
   },
   {
     "title": "Save Video",
-    "description": "Write a video file to disk.\n    video, output, save, file\n\n    Use cases:\n    - Save processed videos\n    - Export edited video files\n    - Archive video results",
+    "description": "Write a video file to disk.\n    video, output, save, file\n\n    The filename can include time and date variables:\n    %Y - Year, %m - Month, %d - Day\n    %H - Hour, %M - Minute, %S - Second",
     "namespace": "nodetool.file",
     "node_type": "nodetool.file.SaveVideo",
     "layout": "default",
@@ -26084,7 +26141,7 @@
         },
         "default": "",
         "title": "Filename",
-        "description": "Name of the file to save",
+        "description": "\n        Name of the file to save.\n        You can use time and date variables to create unique names:\n        %Y - Year\n        %m - Month\n        %d - Day\n        %H - Hour\n        %M - Minute\n        %S - Second\n        ",
         "min": null,
         "max": null
       }
@@ -27424,7 +27481,7 @@
           "path": ""
         },
         "title": "Path",
-        "description": "The path to write the document to",
+        "description": "\n        The path to write the document to.\n        You can use time and date variables to create unique names:\n        %Y - Year\n        %m - Month\n        %d - Day\n        %H - Hour\n        %M - Minute\n        %S - Second\n        ",
         "min": null,
         "max": null
       }
@@ -27843,7 +27900,7 @@
           "path": ""
         },
         "title": "Filepath",
-        "description": "Path where to save the file",
+        "description": "\n        Path where to save the file.\n        You can use time and date variables to create unique names:\n        %Y - Year\n        %m - Month\n        %d - Day\n        %H - Hour\n        %M - Minute\n        %S - Second\n        ",
         "min": null,
         "max": null
       }
@@ -29410,7 +29467,7 @@
         },
         "default": "%Y-%m-%d_%H-%M-%S.png",
         "title": "Name",
-        "description": null,
+        "description": "\n        Name of the output file.\n        You can use time and date variables to create unique names:\n        %Y - Year\n        %m - Month\n        %d - Day\n        %H - Hour\n        %M - Minute\n        %S - Second\n        ",
         "min": null,
         "max": null
       }
@@ -36674,7 +36731,7 @@
         },
         "default": "text.txt",
         "title": "Name",
-        "description": null,
+        "description": "\n        Name of the output file.\n        You can use time and date variables to create unique names:\n        %Y - Year\n        %m - Month\n        %d - Day\n        %H - Hour\n        %M - Minute\n        %S - Second\n        ",
         "min": null,
         "max": null
       }
@@ -42288,9 +42345,9 @@
           "type_args": [],
           "type_name": null
         },
-        "default": "text.txt",
+        "default": "%Y-%m-%d-%H-%M-%S.txt",
         "title": "Name",
-        "description": null,
+        "description": "\n        Name of the output file.\n        You can use time and date variables to create unique names:\n        %Y - Year\n        %m - Month\n        %d - Day\n        %H - Hour\n        %M - Minute\n        %S - Second\n        ",
         "min": null,
         "max": null
       }
@@ -46310,9 +46367,9 @@
           "type_args": [],
           "type_name": null
         },
-        "default": "tensor.npy",
+        "default": "%Y-%m-%d_%H-%M-%S.npy",
         "title": "Name",
-        "description": "The name of the asset to save.",
+        "description": "\n        The name of the asset to save.\n        You can use time and date variables to create unique names:\n        %Y - Year\n        %m - Month\n        %d - Day\n        %H - Hour\n        %M - Minute\n        %S - Second\n        ",
         "min": null,
         "max": null
       }
@@ -48135,9 +48192,9 @@
           "type_args": [],
           "type_name": null
         },
-        "default": "video",
+        "default": "%Y-%m-%d-%H-%M-%S.mp4",
         "title": "Name",
-        "description": "Name of the output video.",
+        "description": "\n        Name of the output video.\n        You can use time and date variables to create unique names:\n        %Y - Year\n        %m - Month\n        %d - Day\n        %H - Hour\n        %M - Minute\n        %S - Second\n        ",
         "min": null,
         "max": null
       }
@@ -52958,7 +53015,7 @@
   },
   {
     "title": "Stable Diffusion ControlNet",
-    "description": "Generates images using Stable Diffusion with ControlNet guidance.\n    image, generation, text-to-image, controlnet\n\n    Use cases:\n    - Generate images with precise control over composition and structure\n    - Create variations of existing images while maintaining specific features\n    - Artistic image generation with guided outputs",
+    "description": "Generates images using Stable Diffusion with ControlNet guidance.\n    image, generation, text-to-image, controlnet, SD\n\n    Use cases:\n    - Generate images with precise control over composition and structure\n    - Create variations of existing images while maintaining specific features\n    - Artistic image generation with guided outputs",
     "namespace": "huggingface.image_to_image",
     "node_type": "huggingface.image_to_image.StableDiffusionControlNet",
     "layout": "default",
@@ -53538,7 +53595,7 @@
   },
   {
     "title": "Stable Diffusion (Img2Img)",
-    "description": "Transforms existing images based on text prompts using Stable Diffusion.\n    image, generation, image-to-image\n\n    Use cases:\n    - Modifying existing images to fit a specific style or theme\n    - Enhancing or altering photographs\n    - Creating variations of existing artwork\n    - Applying text-guided edits to images",
+    "description": "Transforms existing images based on text prompts using Stable Diffusion.\n    image, generation, image-to-image, SD, img2img\n\n    Use cases:\n    - Modifying existing images to fit a specific style or theme\n    - Enhancing or altering photographs\n    - Creating variations of existing artwork\n    - Applying text-guided edits to images",
     "namespace": "huggingface.image_to_image",
     "node_type": "huggingface.image_to_image.StableDiffusionImg2Img",
     "layout": "default",
@@ -53998,7 +54055,7 @@
   },
   {
     "title": "Stable Diffusion ControlNet Inpaint",
-    "description": "Performs inpainting on images using Stable Diffusion with ControlNet guidance.\n    image, inpainting, controlnet\n\n    Use cases:\n    - Remove unwanted objects from images with precise control\n    - Fill in missing parts of images guided by control images\n    - Modify specific areas of images while preserving the rest and maintaining structure",
+    "description": "Performs inpainting on images using Stable Diffusion with ControlNet guidance.\n    image, inpainting, controlnet, SD\n\n    Use cases:\n    - Remove unwanted objects from images with precise control\n    - Fill in missing parts of images guided by control images\n    - Modify specific areas of images while preserving the rest and maintaining structure",
     "namespace": "huggingface.image_to_image",
     "node_type": "huggingface.image_to_image.StableDiffusionControlNetInpaint",
     "layout": "default",
@@ -54517,7 +54574,7 @@
   },
   {
     "title": "Stable Diffusion (Inpaint)",
-    "description": "Performs inpainting on images using Stable Diffusion.\n    image, inpainting, AI\n\n    Use cases:\n    - Remove unwanted objects from images\n    - Fill in missing parts of images\n    - Modify specific areas of images while preserving the rest",
+    "description": "Performs inpainting on images using Stable Diffusion.\n    image, inpainting, AI, SD\n\n    Use cases:\n    - Remove unwanted objects from images\n    - Fill in missing parts of images\n    - Modify specific areas of images while preserving the rest",
     "namespace": "huggingface.image_to_image",
     "node_type": "huggingface.image_to_image.StableDiffusionInpaint",
     "layout": "default",
@@ -54998,7 +55055,7 @@
   },
   {
     "title": "Stable Diffusion ControlNet (Img2Img)",
-    "description": "Transforms existing images using Stable Diffusion with ControlNet guidance.\n    image, generation, image-to-image, controlnet\n\n    Use cases:\n    - Modify existing images with precise control over composition and structure\n    - Apply specific styles or concepts to photographs or artwork with guided transformations\n    - Create variations of existing visual content while maintaining certain features\n    - Enhance image editing capabilities with AI-guided transformations",
+    "description": "Transforms existing images using Stable Diffusion with ControlNet guidance.\n    image, generation, image-to-image, controlnet, SD\n\n    Use cases:\n    - Modify existing images with precise control over composition and structure\n    - Apply specific styles or concepts to photographs or artwork with guided transformations\n    - Create variations of existing visual content while maintaining certain features\n    - Enhance image editing capabilities with AI-guided transformations",
     "namespace": "huggingface.image_to_image",
     "node_type": "huggingface.image_to_image.StableDiffusionControlNetImg2Img",
     "layout": "default",
@@ -55598,7 +55655,7 @@
   },
   {
     "title": "Stable Diffusion 4x Upscale",
-    "description": "Upscales an image using Stable Diffusion 4x upscaler.\n    image, upscaling, stable-diffusion\n\n    Use cases:\n    - Enhance low-resolution images\n    - Improve image quality for printing or display\n    - Create high-resolution versions of small images",
+    "description": "Upscales an image using Stable Diffusion 4x upscaler.\n    image, upscaling, stable-diffusion, SD\n\n    Use cases:\n    - Enhance low-resolution images\n    - Improve image quality for printing or display\n    - Create high-resolution versions of small images",
     "namespace": "huggingface.image_to_image",
     "node_type": "huggingface.image_to_image.StableDiffusionUpscale",
     "layout": "default",
@@ -57157,7 +57214,7 @@
   },
   {
     "title": "LoRA Selector",
-    "description": "Selects up to 5 LoRA models to apply to a Stable Diffusion model.\n    lora, model customization, fine-tuning\n\n    Use cases:\n    - Combining multiple LoRA models for unique image styles\n    - Fine-tuning Stable Diffusion models with specific attributes\n    - Experimenting with different LoRA combinations",
+    "description": "Selects up to 5 LoRA models to apply to a Stable Diffusion model.\n    lora, model customization, fine-tuning, SD\n\n    Use cases:\n    - Combining multiple LoRA models for unique image styles\n    - Fine-tuning Stable Diffusion models with specific attributes\n    - Experimenting with different LoRA combinations",
     "namespace": "huggingface.lora",
     "node_type": "huggingface.lora.LoRASelector",
     "layout": "default",
@@ -57753,7 +57810,7 @@
   },
   {
     "title": "LoRA XL Selector",
-    "description": "Selects up to 5 LoRA models to apply to a Stable Diffusion XL model.\n    lora, model customization, fine-tuning\n\n    Use cases:\n    - Combining multiple LoRA models for unique image styles\n    - Fine-tuning Stable Diffusion XL models with specific attributes\n    - Experimenting with different LoRA combinations",
+    "description": "Selects up to 5 LoRA models to apply to a Stable Diffusion XL model.\n    lora, model customization, fine-tuning, SDXL\n\n    Use cases:\n    - Combining multiple LoRA models for unique image styles\n    - Fine-tuning Stable Diffusion XL models with specific attributes\n    - Experimenting with different LoRA combinations",
     "namespace": "huggingface.lora",
     "node_type": "huggingface.lora.LoRASelectorXL",
     "layout": "default",
@@ -60193,7 +60250,7 @@
   },
   {
     "title": "Stable Diffusion",
-    "description": "Generates images from text prompts using Stable Diffusion.\n    image, generation, AI, text-to-image\n\n    Use cases:\n    - Creating custom illustrations for various projects\n    - Generating concept art for creative endeavors\n    - Producing unique visual content for marketing materials\n    - Exploring AI-generated art for personal or professional use",
+    "description": "Generates images from text prompts using Stable Diffusion.\n    image, generation, AI, text-to-image, SD\n\n    Use cases:\n    - Creating custom illustrations for various projects\n    - Generating concept art for creative endeavors\n    - Producing unique visual content for marketing materials\n    - Exploring AI-generated art for personal or professional use",
     "namespace": "huggingface.text_to_image",
     "node_type": "huggingface.text_to_image.StableDiffusion",
     "layout": "default",
@@ -60648,7 +60705,7 @@
   },
   {
     "title": "Stable Diffusion XL",
-    "description": "Generates images from text prompts using Stable Diffusion XL.\n    image, generation, AI, text-to-image\n\n    Use cases:\n    - Creating custom illustrations for marketing materials\n    - Generating concept art for game and film development\n    - Producing unique stock imagery for websites and publications\n    - Visualizing interior design concepts for clients",
+    "description": "Generates images from text prompts using Stable Diffusion XL.\n    image, generation, AI, text-to-image, SDXL\n\n    Use cases:\n    - Creating custom illustrations for marketing materials\n    - Generating concept art for game and film development\n    - Producing unique stock imagery for websites and publications\n    - Visualizing interior design concepts for clients",
     "namespace": "huggingface.text_to_image",
     "node_type": "huggingface.text_to_image.StableDiffusionXL",
     "layout": "default",
@@ -62046,7 +62103,7 @@
   },
   {
     "title": "Stable Video Diffusion",
-    "description": "Generates a video from a single image using the Stable Video Diffusion model.\n    video, generation, AI, image-to-video, stable-diffusion\n\n    Use cases:\n    - Create short animations from static images\n    - Generate dynamic content for presentations or social media\n    - Prototype video ideas from still concept art",
+    "description": "Generates a video from a single image using the Stable Video Diffusion model.\n    video, generation, AI, image-to-video, stable-diffusion, SD\n\n    Use cases:\n    - Create short animations from static images\n    - Generate dynamic content for presentations or social media\n    - Prototype video ideas from still concept art",
     "namespace": "huggingface.video",
     "node_type": "huggingface.video.StableVideoDiffusion",
     "layout": "default",
@@ -73158,7 +73215,7 @@
   },
   {
     "title": "Control Net",
-    "description": "Generates images using Stable Diffusion with ControlNet for additional image control. Supports optional high-resolution upscaling while maintaining the same ControlNet strength.\n    image, controlnet, generative, stable diffusion, high-resolution\n    Generates images using Stable Diffusion with ControlNet for additional image control. Supports optional high-resolution upscaling while maintaining the same ControlNet strength.\n    image, controlnet, generative, stable diffusion, high-resolution\n\n    Use cases:\n    - Generating images with specific structural guidance\n    - Creating images that follow edge maps or depth information\n    - Producing variations of images while maintaining certain features\n    - Enhancing image generation with additional control signals\n    - Creating high-resolution images with consistent controlled features",
+    "description": "Generates images using Stable Diffusion with ControlNet for additional image control. Supports optional high-resolution upscaling while maintaining the same ControlNet strength.\n    image, controlnet, generative, stable diffusion, high-resolution, SD\n    \n    Use cases:\n    - Generating images with specific structural guidance\n    - Creating images that follow edge maps or depth information\n    - Producing variations of images while maintaining certain features\n    - Enhancing image generation with additional control signals\n    - Creating high-resolution images with consistent controlled features",
     "namespace": "comfy.basic",
     "node_type": "comfy.basic.ControlNet",
     "layout": "default",
@@ -97114,6 +97171,163 @@
       "model",
       "prompt",
       "schema"
+    ]
+  },
+  {
+    "title": "Classifier",
+    "description": "LLM Agent to classify text into predefined categories.\n    llm, classification, text analysis\n\n    Use cases:\n    - Text categorization\n    - Sentiment analysis\n    - Topic classification\n    - Intent detection",
+    "namespace": "ollama.agents",
+    "node_type": "ollama.agents.Classifier",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "model",
+        "type": {
+          "type": "llama_model",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "llama_model",
+          "name": "",
+          "repo_id": "",
+          "modified_at": "",
+          "size": 0,
+          "digest": "",
+          "details": {}
+        },
+        "title": "Model",
+        "description": "The Llama model to use for classification.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "context_window",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 4096,
+        "title": "Context Window",
+        "description": "The context window size to use for the model.",
+        "min": 1.0,
+        "max": null
+      },
+      {
+        "name": "input_text",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Input Text",
+        "description": "The text to classify",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "labels",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Labels",
+        "description": "Comma-separated list of possible classification labels",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "temperature",
+        "type": {
+          "type": "float",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 0.2,
+        "title": "Temperature",
+        "description": "The temperature to use for sampling.",
+        "min": 0.0,
+        "max": 2.0
+      },
+      {
+        "name": "top_k",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 5,
+        "title": "Top K",
+        "description": "The number of highest probability tokens to keep for top-k sampling.",
+        "min": 1.0,
+        "max": 100.0
+      },
+      {
+        "name": "top_p",
+        "type": {
+          "type": "float",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 0.5,
+        "title": "Top P",
+        "description": "The cumulative probability cutoff for nucleus/top-p sampling.",
+        "min": 0.0,
+        "max": 1.0
+      },
+      {
+        "name": "keep_alive",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 300,
+        "title": "Keep Alive",
+        "description": "The number of seconds to keep the model alive.",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "model",
+      "input_text",
+      "labels"
     ]
   },
   {
