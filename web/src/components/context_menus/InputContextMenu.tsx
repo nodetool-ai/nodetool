@@ -15,9 +15,7 @@ import useMetadataStore from "../../stores/MetadataStore";
 import { useNodeStore } from "../../stores/NodeStore";
 import { Edge, useReactFlow } from "@xyflow/react";
 import { Slugify } from "../../utils/TypeHandler";
-import { getTimestampForFilename } from "../../utils/formatDateAndTime";
 import useConnectableNodesStore from "../../stores/ConnectableNodesStore";
-import ConnectableNodes from "./ConnectableNodes";
 
 const InputContextMenu: React.FC = () => {
   const getMetadata = useMetadataStore((state) => state.getMetadata);
@@ -44,19 +42,18 @@ const InputContextMenu: React.FC = () => {
   const inputNodeMetadata = getMetadata(inputNodePath);
   const constantNodePath = `nodetool.constant.${datatypeLabel}`;
   const constantNodeMetadata = getMetadata(constantNodePath);
-  const [showConnectableNodes, setShowConnectableNodes] = useState(false);
   const {
     showMenu,
     setNodeId,
     setFilterType,
     setConnectableType,
-    setTargetHandle
+    setSourceHandle
   } = useConnectableNodesStore((state) => ({
     showMenu: state.showMenu,
     setNodeId: state.setNodeId,
     setFilterType: state.setFilterType,
     setConnectableType: state.setTypeMetadata,
-    setTargetHandle: state.setTargetHandle
+    setSourceHandle: state.setSourceHandle
   }));
 
   const handleOpenNodeMenu = (event?: React.MouseEvent<HTMLElement>) => {
@@ -189,9 +186,9 @@ const InputContextMenu: React.FC = () => {
       event.stopPropagation();
     }
     if (menuPosition) {
-      setTargetHandle(handleId);
+      setSourceHandle(handleId);
       setNodeId(nodeId);
-      setFilterType("input");
+      setFilterType("output");
       setConnectableType(type);
       showMenu({ x: menuPosition.x, y: menuPosition.y });
     }

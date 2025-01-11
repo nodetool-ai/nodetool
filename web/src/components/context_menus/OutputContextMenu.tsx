@@ -269,7 +269,7 @@ const OutputContextMenu: React.FC = () => {
     if (menuPosition) {
       setSourceHandle(sourceHandle);
       setNodeId(nodeId);
-      setFilterType("output");
+      setFilterType("input");
       setConnectableType(sourceType);
       showMenu({ x: menuPosition.x, y: menuPosition.y });
     }
