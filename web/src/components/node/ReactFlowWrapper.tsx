@@ -468,7 +468,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
             anchorEl={anchorEl}
           />
         )}
-        {/* <AxisMarker /> */}
+        {<AxisMarker />}
         {openMenuType === "node-context-menu" && <NodeContextMenu />}
         {openMenuType === "pane-context-menu" && <PaneContextMenu />}
         {openMenuType === "property-context-menu" && <PropertyContextMenu />}
