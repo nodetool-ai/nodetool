@@ -23,7 +23,6 @@ export interface SplitNodeDescription {
 
 export const formatNodeDescription = (
   description: string,
-  rawText: boolean = false,
   searchTerm?: string,
   searchInfo?: any
 ): SplitNodeDescription => {
