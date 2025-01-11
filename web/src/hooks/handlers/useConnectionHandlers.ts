@@ -8,6 +8,7 @@ import { devLog } from "../../utils/DevLog";
 import { isConnectable } from "../../utils/TypeHandler";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import useMetadataStore from "../../stores/MetadataStore";
+import { isConnectableCached } from "../../components/node_menu/typeFilterUtils";
 
 export default function useConnectionHandlers() {
   // useRef is needed to track current connection state
@@ -101,7 +102,7 @@ export default function useConnectionHandlers() {
         }
         if (connectDirection === "source") {
           const possibleInputs = nodeMetadata.properties.filter((prop) =>
-            isConnectable(
+            isConnectableCached(
               {
                 type: connectType?.type || "any",
                 optional: false,
@@ -191,7 +192,7 @@ export default function useConnectionHandlers() {
             event.clientX + 25,
             event.clientY - 50,
             "react-flow__pane",
-            connectType ? connectType.type : "",
+            connectType ?? undefined,
             connectHandleId || ""
           );
         }
@@ -202,7 +203,7 @@ export default function useConnectionHandlers() {
             event.clientX + 25,
             event.clientY - 50,
             "react-flow__pane",
-            connectType ? connectType.type : "",
+            connectType ?? undefined,
             connectHandleId || ""
           );
         }

@@ -51,6 +51,7 @@ import useMetadataStore from "./stores/MetadataStore";
 import { useNodeStore } from "./stores/NodeStore";
 import { getStoredPanelSizes } from "./hooks/handlers/useResizePanel";
 import { usePanelStore } from "./stores/PanelStore";
+import { createConnectabilityMatrix } from "./components/node_menu/typeFilterUtils";
 
 if (!isProduction) {
   useRemoteSettingsStore.getState().fetchSettings();
@@ -67,6 +68,7 @@ metadataQuery()
   .then((metadata) => {
     queryClient.setQueryData(["metadata"], metadata);
     useMetadataStore.getState().setMetadata(metadata.metadataByType);
+    createConnectabilityMatrix(Object.values(metadata.metadataByType));
     useNodeStore.getState().startAutoSave();
   })
   .catch((error) => {

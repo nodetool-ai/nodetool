@@ -3,17 +3,12 @@ import typing_extensions as typing
 import google.generativeai as genai
 from pydantic import BaseModel, Field
 from nodetool.metadata.types import (
-    ChartConfig,
-    ChartConfigSchema,
-    ChartData,
     ColumnType,
-    DataSeries,
     Message,
     Provider,
     ImageRef,
     AudioRef,
     DataframeRef,
-    NodeRef,
     RecordType,
     SVGElement,
     Task,

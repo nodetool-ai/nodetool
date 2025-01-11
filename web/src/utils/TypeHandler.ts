@@ -103,28 +103,29 @@ const nonObjectTypes = [
 
 export const isConnectable = (
   source: TypeMetadata,
-  target: TypeMetadata
+  target: TypeMetadata,
+  allowAny: boolean = true
 ): boolean => {
-  if (source.type === "any" || target.type === "any") {
+  if (allowAny && (source.type === "any" || target.type === "any")) {
     return true;
   }
 
   if (source.type === "union") {
     // this is not 100% safe but we want to be able to connect
     // if the union is a subset of the target
-    return source.type_args
+    return source.type_args.length > 0
       ? source.type_args.some((t) => isConnectable(t, target))
       : false;
   }
 
   if (target.type === "union") {
-    return target.type_args
+    return target.type_args.length > 0
       ? target.type_args.some((t) => isConnectable(source, t))
       : false;
   }
 
   if (target.type === "object") {
-    if (source.type === "union" && source.type_args) {
+    if (source.type === "union" && source.type_args.length > 0) {
       // For unions, some types in the union must be compatible with object
       return source.type_args.some((t) => !nonObjectTypes.includes(t.type));
     }
@@ -137,9 +138,6 @@ export const isConnectable = (
       return target.type === "enum" && isEnumConnectable(source, target);
     case "list":
       if (target.type === "list") {
-        if (source.type_args === undefined || target.type_args === undefined) {
-          return true;
-        }
         if (source.type_args.length === 0 || target.type_args.length === 0) {
           return true;
         }
@@ -158,9 +156,6 @@ export const isConnectable = (
       }
     case "dict":
       if (target.type === "dict") {
-        if (source.type_args === undefined || target.type_args === undefined) {
-          return true;
-        }
         if (source.type_args.length < 2 || target.type_args.length < 2) {
           return true;
         }
@@ -174,6 +169,7 @@ export const isConnectable = (
         return false;
       }
     default:
-      return equalType(source, target);
+      // console.log(source.type, target.type, source.type === target.type);
+      return source.type === target.type;
   }
 };
