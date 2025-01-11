@@ -1,5 +1,14 @@
-import React, { memo, useCallback } from "react";
-import { Menu, MenuItem, Typography, Divider } from "@mui/material";
+import React, { memo, useCallback, useState } from "react";
+import {
+  Menu,
+  MenuItem,
+  Typography,
+  Divider,
+  Box,
+  TextField,
+  IconButton,
+  InputAdornment
+} from "@mui/material";
 import ContextMenuItem from "./ContextMenuItem";
 import useConnectableNodesStore from "../../stores/ConnectableNodesStore";
 import { useNodeStore } from "../../stores/NodeStore";
@@ -9,6 +18,8 @@ import { getTimestampForFilename } from "../../utils/formatDateAndTime";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import { isEqual } from "lodash";
 import MarkdownRenderer from "../../utils/MarkdownRenderer";
+import { styled } from "@mui/material/styles";
+import ClearIcon from "@mui/icons-material/Clear";
 
 interface GroupedNodes {
   [namespace: string]: NodeMetadata[];
@@ -25,7 +36,51 @@ const groupNodesByNamespace = (nodes: NodeMetadata[]): GroupedNodes => {
   }, {});
 };
 
+const StyledMenu = styled(Menu)({
+  "& .MuiPaper-root": {
+    height: "50vh",
+    display: "flex",
+    flexDirection: "column",
+    width: "300px"
+  }
+});
+
+const ScrollableContent = styled(Box)({
+  overflowY: "auto",
+  flex: 1,
+  "&.connectable-nodes-content": {
+    minHeight: 0,
+    maxHeight: "calc(50vh - 120px)"
+  }
+});
+
+const FixedHeader = styled(Box)(({ theme }) => ({
+  position: "sticky",
+  top: 0,
+  backgroundColor: theme.palette.background.paper,
+  zIndex: theme.zIndex.modal + 1,
+  borderBottom: "1px solid rgba(0, 0, 0, 0.12)",
+  "&.connectable-nodes-header": {
+    padding: "8px 0",
+    backgroundColor: theme.palette.background.paper
+  }
+}));
+
+const searchNodesHelper = (
+  nodes: NodeMetadata[],
+  searchTerm: string
+): NodeMetadata[] => {
+  const term = searchTerm.toLowerCase();
+  return nodes.filter(
+    (node) =>
+      node.title.toLowerCase().includes(term) ||
+      node.description?.toLowerCase().includes(term) ||
+      node.node_type.toLowerCase().includes(term)
+  );
+};
+
 const ConnectableNodes: React.FC = () => {
+  const [searchTerm, setSearchTerm] = useState("");
   const { createNode, addNode, addEdge, generateEdgeId } = useNodeStore(
     (state) => ({
       createNode: state.createNode,
@@ -56,6 +111,12 @@ const ConnectableNodes: React.FC = () => {
     targetHandle: state.targetHandle,
     nodeId: state.nodeId
   }));
+
+  const filteredNodes = searchTerm
+    ? searchNodesHelper(connectableNodes, searchTerm)
+    : connectableNodes;
+
+  const groupedNodes = groupNodesByNamespace(filteredNodes);
 
   const createConnectableNode = useCallback(
     (event: React.MouseEvent, metadata: NodeMetadata) => {
@@ -129,10 +190,8 @@ const ConnectableNodes: React.FC = () => {
 
   if (!menuPosition || !isVisible) return null;
 
-  const groupedNodes = groupNodesByNamespace(connectableNodes);
-
   return (
-    <Menu
+    <StyledMenu
       className="context-menu connectable-nodes-menu"
       open={isVisible}
       onContextMenu={(event) => event.preventDefault()}
@@ -142,46 +201,71 @@ const ConnectableNodes: React.FC = () => {
       }
       onClose={hideMenu}
     >
-      <MenuItem disabled>
-        <Typography
-          style={{
-            margin: ".1em 0",
-            padding: "0"
-          }}
-          variant="body1"
-        >
-          Connectable Nodes
-        </Typography>
-      </MenuItem>
-      <Divider />
-      {Object.entries(groupedNodes).map(([namespace, nodes]) => (
-        <React.Fragment key={namespace}>
-          <MenuItem disabled>
-            <Typography variant="subtitle2" color="textSecondary">
-              {namespace}
-            </Typography>
-          </MenuItem>
-          {nodes.map((nodeMetadata: NodeMetadata) => (
-            <ContextMenuItem
-              key={nodeMetadata.node_type}
-              onClick={(e) => {
-                if (e) {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  createConnectableNode(e, nodeMetadata);
+      <FixedHeader className="connectable-nodes-header">
+        <MenuItem disabled>
+          <Typography variant="body1">Connectable Nodes</Typography>
+        </MenuItem>
+        <MenuItem>
+          <TextField
+            className="connectable-nodes-search"
+            size="small"
+            fullWidth
+            placeholder="Search nodes..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            onClick={(e) => e.stopPropagation()}
+            autoFocus
+            InputProps={{
+              endAdornment: searchTerm ? (
+                <InputAdornment position="end">
+                  <IconButton
+                    aria-label="clear search"
+                    onClick={() => setSearchTerm("")}
+                    edge="end"
+                    size="small"
+                  >
+                    <ClearIcon />
+                  </IconButton>
+                </InputAdornment>
+              ) : null
+            }}
+          />
+        </MenuItem>
+        <Divider />
+      </FixedHeader>
+
+      <ScrollableContent className="connectable-nodes-content">
+        {Object.entries(groupedNodes).map(([namespace, nodes]) => (
+          <React.Fragment key={namespace}>
+            <MenuItem disabled>
+              <Typography variant="subtitle2" color="textSecondary">
+                {namespace}
+              </Typography>
+            </MenuItem>
+            {nodes.map((nodeMetadata: NodeMetadata) => (
+              <ContextMenuItem
+                key={nodeMetadata.node_type}
+                onClick={(e) => {
+                  if (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    createConnectableNode(e, nodeMetadata);
+                  }
+                  hideMenu();
+                }}
+                label={nodeMetadata.title}
+                tooltip={
+                  <MarkdownRenderer
+                    content={nodeMetadata.description || "..."}
+                  />
                 }
-                hideMenu();
-              }}
-              label={nodeMetadata.title}
-              tooltip={
-                <MarkdownRenderer content={nodeMetadata.description || "..."} />
-              }
-            />
-          ))}
-          <Divider />
-        </React.Fragment>
-      ))}
-    </Menu>
+              />
+            ))}
+            <Divider />
+          </React.Fragment>
+        ))}
+      </ScrollableContent>
+    </StyledMenu>
   );
 };
 
