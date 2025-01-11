@@ -1,8 +1,8 @@
 {
   "id": "66a76fbad01511ef97f9000025dd7c17",
   "access": "public",
-  "created_at": "2025-01-11T18:20:56.686661",
-  "updated_at": "2025-01-11T18:20:56.686672",
+  "created_at": "2025-01-11T18:22:24.889412",
+  "updated_at": "2025-01-11T18:22:24.889436",
   "name": "Summarize Newsletters",
   "description": "",
   "tags": null,
@@ -16,13 +16,14 @@
         "type": "nodetool.group.Loop",
         "data": {},
         "ui_properties": {
+          "selected": false,
           "position": {
             "x": 472,
-            "y": 50
+            "y": 67
           },
           "zIndex": -10,
-          "width": 1778,
-          "height": 598,
+          "width": 930,
+          "height": 455,
           "selectable": false
         }
       },
@@ -32,12 +33,13 @@
         "type": "nodetool.input.GroupInput",
         "data": {},
         "ui_properties": {
+          "selected": false,
           "position": {
             "x": 50,
-            "y": 390
+            "y": 178
           },
           "zIndex": 0,
-          "width": 200,
+          "width": 122,
           "selectable": true
         }
       },
@@ -47,9 +49,10 @@
         "type": "nodetool.output.GroupOutput",
         "data": {},
         "ui_properties": {
+          "selected": false,
           "position": {
-            "x": 1528,
-            "y": 375
+            "x": 651,
+            "y": 131
           },
           "zIndex": 0,
           "width": 200,
@@ -64,31 +67,14 @@
           "name": "any_output_2024-12-29"
         },
         "ui_properties": {
+          "selected": false,
           "position": {
-            "x": 2310,
-            "y": 174
+            "x": 1462,
+            "y": 95
           },
           "zIndex": 0,
-          "width": 171,
-          "height": 150,
-          "selectable": true
-        }
-      },
-      {
-        "id": "18",
-        "parent_id": "12",
-        "type": "nodetool.workflows.base_node.Preview",
-        "data": {
-          "name": "str_output_2024-12-29"
-        },
-        "ui_properties": {
-          "position": {
-            "x": 1298,
-            "y": 50
-          },
-          "zIndex": 0,
-          "width": 200,
-          "height": 150,
+          "width": 201,
+          "height": 162,
           "selectable": true
         }
       },
@@ -99,12 +85,13 @@
         "data": {
           "email_address": "matti.georgi@gmail.com",
           "search_query": "",
-          "max_results": 20
+          "max_results": 10
         },
         "ui_properties": {
+          "selected": false,
           "position": {
             "x": 242,
-            "y": 269
+            "y": 219
           },
           "zIndex": 0,
           "width": 200,
@@ -117,124 +104,10 @@
         "type": "nodetool.network.imap.EmailFields",
         "data": {},
         "ui_properties": {
+          "selected": false,
           "position": {
-            "x": 280,
-            "y": 299
-          },
-          "zIndex": 0,
-          "width": 200,
-          "selectable": true
-        }
-      },
-      {
-        "id": "23",
-        "parent_id": "12",
-        "type": "nodetool.dictionary.MakeDictionary",
-        "data": {
-          "key2": "subject",
-          "key1": "category",
-          "key3": "body"
-        },
-        "ui_properties": {
-          "position": {
-            "x": 1298,
-            "y": 250
-          },
-          "zIndex": 0,
-          "width": 200,
-          "selectable": true
-        }
-      },
-      {
-        "id": "25",
-        "parent_id": "12",
-        "type": "nodetool.text.Concat",
-        "data": {},
-        "ui_properties": {
-          "position": {
-            "x": 765.3333333333334,
-            "y": 199
-          },
-          "zIndex": 0,
-          "width": 200,
-          "selectable": true
-        }
-      },
-      {
-        "id": "26",
-        "parent_id": "12",
-        "type": "ollama.agents.Classifier",
-        "data": {
-          "model": {
-            "type": "llama_model",
-            "repo_id": "gemma2:2b"
-          },
-          "context_window": 4096,
-          "labels": "newsletter,notification,marketing,other",
-          "temperature": 0.2,
-          "top_k": 5,
-          "top_p": 0.5,
-          "keep_alive": 300
-        },
-        "ui_properties": {
-          "position": {
-            "x": 1038,
-            "y": 125
-          },
-          "zIndex": 0,
-          "width": 200,
-          "selectable": true
-        }
-      },
-      {
-        "id": "28",
-        "parent_id": null,
-        "type": "nodetool.list.FilterDictsByValue",
-        "data": {
-          "key": "category",
-          "filter_type": "contains",
-          "criteria": "newsletter"
-        },
-        "ui_properties": {
-          "position": {
-            "x": 2310,
-            "y": 374
-          },
-          "zIndex": 0,
-          "width": 200,
-          "selectable": true
-        }
-      },
-      {
-        "id": "29",
-        "parent_id": null,
-        "type": "nodetool.workflows.base_node.Preview",
-        "data": {
-          "name": "list_output_2025-01-11"
-        },
-        "ui_properties": {
-          "position": {
-            "x": 2570,
-            "y": 575
-          },
-          "zIndex": 0,
-          "width": 200,
-          "height": 150,
-          "selectable": true
-        }
-      },
-      {
-        "id": "30",
-        "parent_id": null,
-        "type": "nodetool.list.MapField",
-        "data": {
-          "field": "body",
-          "default": null
-        },
-        "ui_properties": {
-          "position": {
-            "x": 2570,
-            "y": 373
+            "x": 202,
+            "y": 91
           },
           "zIndex": 0,
           "width": 200,
@@ -246,12 +119,13 @@
         "parent_id": null,
         "type": "nodetool.list.JoinStrings",
         "data": {
-          "delimiter": "==============================="
+          "delimiter": "=== END OF MAIL ===\n\n\n"
         },
         "ui_properties": {
+          "selected": false,
           "position": {
-            "x": 2800,
-            "y": 386
+            "x": 1462.5,
+            "y": 307
           },
           "zIndex": 0,
           "width": 200,
@@ -266,13 +140,14 @@
           "name": "str_output_2025-01-11"
         },
         "ui_properties": {
+          "selected": false,
           "position": {
-            "x": 3260,
-            "y": 374
+            "x": 1923,
+            "y": 191
           },
           "zIndex": 0,
-          "width": 200,
-          "height": 150,
+          "width": 451,
+          "height": 358,
           "selectable": true
         }
       },
@@ -283,7 +158,7 @@
         "data": {
           "model": {
             "type": "llama_model",
-            "repo_id": "gemma2:2b"
+            "repo_id": "gemma2:9b"
           },
           "context_window": 4096,
           "max_length": 1000,
@@ -291,13 +166,17 @@
           "top_k": 50,
           "top_p": 0.95,
           "keep_alive": 300,
+          "focus_aspects": "key insights",
+          "style": "executive summary",
+          "audience": "AI researchers",
+          "key_points_count": 10,
           "system_prompt": "You are an expert text summarizer. Follow these guidelines:\n\n1. Content Focus:\n   - Extract main arguments, findings, and conclusions\n   - Preserve critical evidence and methodologies\n   - Maintain factual accuracy and context\n   - Include key statistics when relevant\n\n2. Structure and Style:\n   - Present information in logical flow\n   - Use clear, precise language\n   - Balance brevity with completeness\n   - Adapt style to match source material\n\n3. Quality Standards:\n   - Include only information from the source\n   - Avoid personal interpretation\n   - Maintain technical accuracy\n   - Preserve nuance in complex topics\n\nYour goal is to create an accurate, useful, and efficient representation of the original text while maintaining its core meaning and significance."
         },
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 3030,
-            "y": 309
+            "x": 1693,
+            "y": 230
           },
           "zIndex": 0,
           "width": 200,
@@ -314,21 +193,22 @@
             "repo_id": "gemma2:2b"
           },
           "context_window": 8192,
-          "max_length": 500,
+          "max_length": 200,
           "temperature": 0.7,
           "top_k": 50,
           "top_p": 0.95,
           "keep_alive": 300,
-          "style": "technical",
-          "audience": "nerds",
-          "focus_aspects": "innovation,insights",
+          "style": "concise bullet points",
+          "audience": "LLM",
+          "focus_aspects": "technical details",
+          "key_points_count": 3,
           "system_prompt": "You are an expert text summarizer. Follow these guidelines:\n\n1. Content Focus:\n   - Extract main arguments, findings, and conclusions\n   - Preserve critical evidence and methodologies\n   - Maintain factual accuracy and context\n   - Include key statistics when relevant\n\n2. Structure and Style:\n   - Present information in logical flow\n   - Use clear, precise language\n   - Balance brevity with completeness\n   - Adapt style to match source material\n\n3. Quality Standards:\n   - Include only information from the source\n   - Avoid personal interpretation\n   - Maintain technical accuracy\n   - Preserve nuance in complex topics\n\nYour goal is to create an accurate, useful, and efficient representation of the original text while maintaining its core meaning and significance."
         },
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 540,
-            "y": 258
+            "x": 432,
+            "y": 50
           },
           "zIndex": 0,
           "width": 159,
@@ -343,13 +223,14 @@
           "name": "str_output_2025-01-11"
         },
         "ui_properties": {
+          "selected": false,
           "position": {
-            "x": 759,
-            "y": 398
+            "x": 651,
+            "y": 205
           },
           "zIndex": 0,
-          "width": 219,
-          "height": 150,
+          "width": 229,
+          "height": 200,
           "selectable": true
         }
       },
@@ -369,9 +250,10 @@
           "text": null
         },
         "ui_properties": {
+          "selected": false,
           "position": {
             "x": 50,
-            "y": 104
+            "y": 50
           },
           "zIndex": 0,
           "width": 162,
@@ -388,47 +270,7 @@
               "type": "paragraph",
               "children": [
                 {
-                  "text": "This workflow summarizes newsletters from your inbox."
-                }
-              ]
-            },
-            {
-              "type": "paragraph",
-              "children": [
-                {
-                  "text": ""
-                }
-              ]
-            },
-            {
-              "type": "paragraph",
-              "children": [
-                {
-                  "text": "Edit the subject to filter the right emails."
-                }
-              ]
-            },
-            {
-              "type": "paragraph",
-              "children": [
-                {
-                  "text": ""
-                }
-              ]
-            },
-            {
-              "type": "paragraph",
-              "children": [
-                {
-                  "text": "Adjust the system prompts"
-                }
-              ]
-            },
-            {
-              "type": "paragraph",
-              "children": [
-                {
-                  "text": ""
+                  "text": "EDIT SUBJECT"
                 }
               ]
             }
@@ -437,132 +279,22 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": -319,
-            "y": 193
+            "x": -127,
+            "y": 160
           },
           "zIndex": 0,
-          "width": 356,
-          "height": 173,
+          "width": 150,
+          "height": 100,
           "selectable": true
         }
       }
     ],
     "edges": [
       {
-        "id": "019f70a8-ba9a-4da2-a433-1cb26f370c40",
-        "source": "13",
-        "sourceHandle": "output",
-        "target": "22",
-        "targetHandle": "email",
-        "ui_properties": {
-          "className": "any"
-        }
-      },
-      {
-        "id": "7e544523-6f3a-4407-8ed9-785c9389988e",
-        "source": "26",
-        "sourceHandle": "output",
-        "target": "18",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "str"
-        }
-      },
-      {
-        "id": "724a00c8-dfc2-4f3d-bb42-0b4e573e08bd",
-        "source": "23",
-        "sourceHandle": "output",
-        "target": "14",
-        "targetHandle": "input",
-        "ui_properties": {
-          "className": "dict"
-        }
-      },
-      {
-        "id": "58335",
-        "source": "12",
-        "sourceHandle": "output",
-        "target": "17",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "any"
-        }
-      },
-      {
-        "id": "15c65be9-4ede-4e6e-ab4e-f62f0f4c7296",
-        "source": "12",
-        "sourceHandle": "output",
-        "target": "28",
-        "targetHandle": "values",
-        "ui_properties": {
-          "className": "any"
-        }
-      },
-      {
-        "id": "a270ae57-f9f7-42f4-98f1-81891f2618a6",
-        "source": "31",
-        "sourceHandle": "output",
-        "target": "35",
-        "targetHandle": "text",
-        "ui_properties": {
-          "className": "str"
-        }
-      },
-      {
-        "id": "76e2e828-cc3b-4255-b19c-4ae5b5cbbd9a",
-        "source": "30",
-        "sourceHandle": "output",
-        "target": "31",
-        "targetHandle": "values",
-        "ui_properties": {
-          "className": "list"
-        }
-      },
-      {
-        "id": "08465db1-1dfd-4199-bf47-14c0a6b3610c",
-        "source": "20",
-        "sourceHandle": "output",
-        "target": "12",
-        "targetHandle": "input",
-        "ui_properties": {
-          "className": "list"
-        }
-      },
-      {
         "id": "a563f4cf-b41c-4ff1-a5ba-0eca90be0221",
         "source": "35",
         "sourceHandle": "output",
         "target": "34",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "str"
-        }
-      },
-      {
-        "id": "79986c7a-a2cf-4904-89fa-4effbe58d784",
-        "source": "22",
-        "sourceHandle": "body",
-        "target": "36",
-        "targetHandle": "text",
-        "ui_properties": {
-          "className": "str"
-        }
-      },
-      {
-        "id": "271e790e-eb6d-4a2f-a9a8-ca642c60c059",
-        "source": "28",
-        "sourceHandle": "output",
-        "target": "30",
-        "targetHandle": "values",
-        "ui_properties": {
-          "className": "list"
-        }
-      },
-      {
-        "id": "79987",
-        "source": "36",
-        "sourceHandle": "output",
-        "target": "37",
         "targetHandle": "value",
         "ui_properties": {
           "className": "str"
@@ -579,73 +311,83 @@
         }
       },
       {
-        "id": "1e6e8896-9b28-4179-80a4-06aa8be63228",
-        "source": "26",
+        "id": "58335",
+        "source": "12",
         "sourceHandle": "output",
-        "target": "23",
-        "targetHandle": "value1",
-        "ui_properties": {
-          "className": "str"
-        }
-      },
-      {
-        "id": "d1413e9c-307a-411c-b1cf-8a31be4ce037",
-        "source": "22",
-        "sourceHandle": "subject",
-        "target": "23",
-        "targetHandle": "value2",
-        "ui_properties": {
-          "className": "str"
-        }
-      },
-      {
-        "id": "58336",
-        "source": "28",
-        "sourceHandle": "output",
-        "target": "29",
+        "target": "17",
         "targetHandle": "value",
         "ui_properties": {
-          "className": "list"
+          "className": "any"
         }
       },
       {
-        "id": "88b03d54-3138-4422-b77d-fd9c6924aa14",
-        "source": "25",
+        "id": "a270ae57-f9f7-42f4-98f1-81891f2618a6",
+        "source": "31",
         "sourceHandle": "output",
-        "target": "26",
-        "targetHandle": "input_text",
+        "target": "35",
+        "targetHandle": "text",
         "ui_properties": {
-          "className": "union"
+          "className": "str"
         }
       },
       {
-        "id": "1fede168-8736-4315-8e0c-6589dbcd48e8",
+        "id": "79986c7a-a2cf-4904-89fa-4effbe58d784",
         "source": "22",
-        "sourceHandle": "subject",
-        "target": "25",
-        "targetHandle": "a",
+        "sourceHandle": "body",
+        "target": "36",
+        "targetHandle": "text",
         "ui_properties": {
           "className": "str"
         }
       },
       {
-        "id": "e3d0a968-cce8-46c1-a886-d1d34f729090",
+        "id": "019f70a8-ba9a-4da2-a433-1cb26f370c40",
+        "source": "13",
+        "sourceHandle": "output",
+        "target": "22",
+        "targetHandle": "email",
+        "ui_properties": {
+          "className": "any"
+        }
+      },
+      {
+        "id": "f4cd7afd-ba08-4850-b47f-417ee7a9cd77",
         "source": "36",
         "sourceHandle": "output",
-        "target": "25",
-        "targetHandle": "b",
+        "target": "14",
+        "targetHandle": "input",
         "ui_properties": {
           "className": "str"
         }
       },
       {
-        "id": "a967d5a3-7fba-4e8e-88f3-64f2f9efd69e",
+        "id": "79987",
         "source": "36",
         "sourceHandle": "output",
-        "target": "23",
-        "targetHandle": "value3",
+        "target": "37",
+        "targetHandle": "value",
         "ui_properties": {
           "className": "str"
+        }
+      },
+      {
+        "id": "062d3357-44b5-4e0d-bfcc-39e3f36d4d1c",
+        "source": "12",
+        "sourceHandle": "output",
+        "target": "31",
+        "targetHandle": "values",
+        "ui_properties": {
+          "className": "any"
+        }
+      },
+      {
+        "id": "08465db1-1dfd-4199-bf47-14c0a6b3610c",
+        "source": "20",
+        "sourceHandle": "output",
+        "target": "12",
+        "targetHandle": "input",
+        "ui_properties": {
+          "className": "list"
         }
       }
     ]
