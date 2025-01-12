@@ -22381,9 +22381,9 @@
           "month": 1,
           "day": 12,
           "hour": 17,
-          "minute": 36,
-          "second": 56,
-          "microsecond": 683193,
+          "minute": 44,
+          "second": 21,
+          "microsecond": 594860,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23423,9 +23423,9 @@
           "month": 1,
           "day": 12,
           "hour": 17,
-          "minute": 36,
-          "second": 56,
-          "microsecond": 687191,
+          "minute": 44,
+          "second": 21,
+          "microsecond": 598829,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23476,9 +23476,9 @@
           "month": 1,
           "day": 12,
           "hour": 17,
-          "minute": 36,
-          "second": 56,
-          "microsecond": 687431,
+          "minute": 44,
+          "second": 21,
+          "microsecond": 599201,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23529,9 +23529,9 @@
           "month": 1,
           "day": 12,
           "hour": 17,
-          "minute": 36,
-          "second": 56,
-          "microsecond": 687655,
+          "minute": 44,
+          "second": 21,
+          "microsecond": 599500,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23582,9 +23582,9 @@
           "month": 1,
           "day": 12,
           "hour": 17,
-          "minute": 36,
-          "second": 56,
-          "microsecond": 687866,
+          "minute": 44,
+          "second": 21,
+          "microsecond": 599751,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23635,9 +23635,9 @@
           "month": 1,
           "day": 12,
           "hour": 17,
-          "minute": 36,
-          "second": 56,
-          "microsecond": 688080,
+          "minute": 44,
+          "second": 21,
+          "microsecond": 599977,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23688,9 +23688,9 @@
           "month": 1,
           "day": 12,
           "hour": 17,
-          "minute": 36,
-          "second": 56,
-          "microsecond": 688334,
+          "minute": 44,
+          "second": 21,
+          "microsecond": 600238,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23741,9 +23741,9 @@
           "month": 1,
           "day": 12,
           "hour": 17,
-          "minute": 36,
-          "second": 56,
-          "microsecond": 688547,
+          "minute": 44,
+          "second": 21,
+          "microsecond": 600454,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23810,9 +23810,9 @@
           "month": 1,
           "day": 12,
           "hour": 17,
-          "minute": 36,
-          "second": 56,
-          "microsecond": 688802,
+          "minute": 44,
+          "second": 21,
+          "microsecond": 600708,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -83102,56 +83102,92 @@
         "max": null
       },
       {
-        "name": "canvas_size",
+        "name": "canvas_width",
         "type": {
-          "type": "list",
+          "type": "int",
           "optional": false,
           "values": null,
           "type_args": [],
           "type_name": null
         },
-        "default": [
-          1200,
-          674
-        ],
-        "title": "Canvas Size",
-        "description": "The desired size of the final image, after the expansion",
+        "default": 1200,
+        "title": "Canvas Width",
+        "description": "The desired width of the final image, after the expansion",
         "min": null,
         "max": null
       },
       {
-        "name": "original_image_size",
+        "name": "canvas_height",
         "type": {
-          "type": "list",
+          "type": "int",
           "optional": false,
           "values": null,
           "type_args": [],
           "type_name": null
         },
-        "default": [
-          610,
-          855
-        ],
-        "title": "Original Image Size",
-        "description": "The desired size of the original image, inside the full canvas",
+        "default": 674,
+        "title": "Canvas Height",
+        "description": "The desired height of the final image, after the expansion",
         "min": null,
         "max": null
       },
       {
-        "name": "original_image_location",
+        "name": "original_image_width",
         "type": {
-          "type": "list",
+          "type": "int",
           "optional": false,
           "values": null,
           "type_args": [],
           "type_name": null
         },
-        "default": [
-          301,
-          -66
-        ],
-        "title": "Original Image Location",
-        "description": "The desired location of the original image, inside the full canvas",
+        "default": 610,
+        "title": "Original Image Width",
+        "description": "The desired width of the original image, inside the full canvas",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "original_image_height",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 855,
+        "title": "Original Image Height",
+        "description": "The desired height of the original image, inside the full canvas",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "original_image_x",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 301,
+        "title": "Original Image X",
+        "description": "The desired x-coordinate of the original image, inside the full canvas",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "original_image_y",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": -66,
+        "title": "Original Image Y",
+        "description": "The desired y-coordinate of the original image, inside the full canvas",
         "min": null,
         "max": null
       },
@@ -83233,7 +83269,8 @@
     "recommended_models": [],
     "basic_fields": [
       "image",
-      "canvas_size",
+      "canvas_width",
+      "canvas_height",
       "prompt"
     ]
   },
