@@ -916,17 +916,29 @@ class BriaExpand(FALNode):
         default=ImageRef(),
         description="The input image to expand"
     )
-    canvas_size: list = Field(
-        default=[1200, 674],
-        description="The desired size of the final image, after the expansion"
+    canvas_width: int = Field(
+        default=1200,
+        description="The desired width of the final image, after the expansion"
     )
-    original_image_size: list = Field(
-        default=[610, 855],
-        description="The desired size of the original image, inside the full canvas"
+    canvas_height: int = Field(
+        default=674,
+        description="The desired height of the final image, after the expansion"
     )
-    original_image_location: list = Field(
-        default=[301, -66],
-        description="The desired location of the original image, inside the full canvas"
+    original_image_width: int = Field(
+        default=610,
+        description="The desired width of the original image, inside the full canvas"
+    )
+    original_image_height: int = Field(
+        default=855,
+        description="The desired height of the original image, inside the full canvas"
+    )
+    original_image_x: int = Field(
+        default=301,
+        description="The desired x-coordinate of the original image, inside the full canvas"
+    )
+    original_image_y: int = Field(
+        default=-66,
+        description="The desired y-coordinate of the original image, inside the full canvas"
     )
     prompt: str = Field(
         default="",
@@ -950,9 +962,9 @@ class BriaExpand(FALNode):
         
         arguments = {
             "image_url": f"data:image/png;base64,{image_base64}",
-            "canvas_size": self.canvas_size,
-            "original_image_size": self.original_image_size,
-            "original_image_location": self.original_image_location,
+            "canvas_size": [self.canvas_width, self.canvas_height],
+            "original_image_size": [self.original_image_width, self.original_image_height],
+            "original_image_location": [self.original_image_x, self.original_image_y],
             "prompt": self.prompt,
             "negative_prompt": self.negative_prompt,
             "num_images": self.num_images
@@ -970,7 +982,7 @@ class BriaExpand(FALNode):
 
     @classmethod
     def get_basic_fields(cls):
-        return ["image", "canvas_size", "prompt"]
+        return ["image", "canvas_width", "canvas_height", "prompt"]
 
 class BriaBackgroundRemove(FALNode):
     """
