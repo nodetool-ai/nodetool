@@ -261,8 +261,8 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
     const titleFuse = new Fuse(entries, {
       ...fuseOptions,
       threshold: 0.2,
-      distance: 2,
-      minMatchCharLength: 3,
+      distance: 3,
+      minMatchCharLength: 2,
       keys: [{ name: "title", weight: 1.0 }]
     });
 
