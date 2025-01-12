@@ -22,12 +22,7 @@ export const highlightText = (
 ): HighlightResult => {
   const highlightedWords: string[] = [];
 
-  devLog("\n=== HIGHLIGHT DEBUG ===");
-  devLog("Input:", { text, key, searchTerm });
-  devLog("Search info:", searchInfo);
-
   if (!searchTerm || !searchInfo?.matches) {
-    devLog("No search term or matches, returning plain text");
     return { html: escapeHtml(text), highlightedWords };
   }
 
@@ -35,19 +30,15 @@ export const highlightText = (
   const allMatches = searchInfo.matches
     .filter((match) => match.key === key) // Only use matches from the specified key
     .flatMap((match) => {
-      devLog(`Found matches for key "${key}":`, match);
       return match.indices
         .map(([start, end]) => {
           const matchText = text.slice(start, end + 1);
-          devLog("Potential match:", { start, end, matchText });
 
           // Basic validation
           if (start >= text.length) {
-            devLog("Invalid: start index beyond text length");
             return null;
           }
           if (matchText.length < minMatchLength) {
-            devLog("Invalid: match too short");
             return null;
           }
 
@@ -56,11 +47,9 @@ export const highlightText = (
           const matchTextLower = matchText.toLowerCase();
           const searchParts = searchTermLower.split(/\s+/);
           if (!searchParts.some((part) => matchTextLower.includes(part))) {
-            devLog("Invalid: match does not contain any part of search term");
             return null;
           }
 
-          devLog("Valid match");
           return {
             indices: [start, end] as [number, number],
             text: matchText,
@@ -69,8 +58,6 @@ export const highlightText = (
         })
         .filter((m): m is NonNullable<typeof m> => m !== null);
     });
-
-  devLog("Valid matches:", allMatches);
 
   // Find the longest match
   const longestMatch = allMatches.reduce((longest, current) => {
@@ -87,7 +74,6 @@ export const highlightText = (
   // Create highlighted HTML with just the longest match
   const parts: string[] = [];
   const [start, end] = longestMatch.indices;
-
   // Add text before match
   if (start > 0) {
     parts.push(escapeHtml(text.slice(0, start)));
