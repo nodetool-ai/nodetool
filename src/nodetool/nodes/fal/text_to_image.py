@@ -282,8 +282,8 @@ class FluxV1ProUltra(FALNode):
 
 class RecraftV3(FALNode):
     """
-    REDUX3 is a cutting-edge image generation model that combines advanced AI technology with 
-    advanced image processing techniques to deliver stunning visual results.
+    Recraft V3 is a text-to-image model with the ability to generate long texts, vector art, images in brand style, and much more. 
+    image, text
     """
 
     prompt: str = Field(default="", description="The prompt to generate an image from")
