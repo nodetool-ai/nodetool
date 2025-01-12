@@ -1,4 +1,5 @@
 import json
+from ollama import ChatResponse
 import pandas as pd
 import statsmodels.api as sm
 
@@ -26,6 +27,8 @@ from pydantic import Field
 
 import tiktoken
 from typing import List
+
+from nodetool.workflows.types import NodeProgress
 
 def split_text_into_chunks(text: str, chunk_size: int, overlap: int, encoding_name: str = "cl100k_base") -> List[str]:
     """
@@ -117,9 +120,6 @@ class DataGenerator(BaseNode):
     @classmethod
     def get_basic_fields(cls) -> list[str]:
         return ["model", "prompt", "columns"]
-
-    def requires_gpu(self) -> bool:
-        return True
 
     async def process(self, context: ProcessingContext) -> DataframeRef:
         columns_str = ", ".join(
@@ -313,9 +313,6 @@ class SVGGenerator(BaseNode):
     def get_basic_fields(cls) -> list[str]:
         return ["model", "prompt"]
 
-    def requires_gpu(self) -> bool:
-        return True
-
     async def process(self, context: ProcessingContext) -> list[SVGElement]:
         example_svg = {
             "elements": [
@@ -449,9 +446,6 @@ class ChartGenerator(BaseNode):
     @classmethod
     def get_basic_fields(cls) -> list[str]:
         return ["model", "prompt", "data"]
-
-    def requires_gpu(self) -> bool:
-        return True
 
     async def process(self, context: ProcessingContext) -> ChartConfig:
         if self.data.columns is None:
@@ -632,9 +626,6 @@ class QuestionAnswerAgent(BaseNode):
     def get_basic_fields(cls) -> list[str]:
         return ["model", "prompt"]
 
-    def requires_gpu(self) -> bool:
-        return True
-
     async def process(self, context: ProcessingContext) -> str:
         # Join context passages with separators
         context_text = "\n\n---\n\n".join(self.context)
@@ -731,9 +722,6 @@ class SchemaGenerator(BaseNode):
     @classmethod
     def get_basic_fields(cls) -> list[str]:
         return ["model", "prompt", "schema"]
-
-    def requires_gpu(self) -> bool:
-        return True
 
     async def process(self, context: ProcessingContext) -> dict:
         if not self.schema:
@@ -847,9 +835,6 @@ class Classifier(BaseNode):
     def get_basic_fields(cls) -> list[str]:
         return ["model", "input_text", "labels"]
 
-    def requires_gpu(self) -> bool:
-        return True
-
     async def process(self, context: ProcessingContext) -> str:
         labels_list = [label.strip() for label in self.labels.split(",")]
         
@@ -889,36 +874,50 @@ Rules:
         return str(res["message"]["content"]).strip()
 
 
-class Summarizer(BaseNode):
+class SummarizeChunks(BaseNode):
     """
-    LLM Agent to generate concise summaries of text content.
+    LLM Agent to break down and summarize long text into manageable chunks.
     llm, summarization, text processing
 
     Use cases:
-    - Document summarization
-    - Article abstraction
-    - Content briefing
-    - Key points extraction
+    - Breaking down long documents
+    - Initial summarization of large texts
+    - Preparing content for final summarization
     """
 
     model: LlamaModel = Field(
         default=LlamaModel(),
         description="The Llama model to use for summarization.",
     )
-    context_window: int = Field(
-        default=4096,
-        ge=1,
-        le=4096*2,
-        description="The context window size to use for the model.",
+    prompt: str = Field(
+        default="""
+        Create a summary following these rules:
+        • Focus ONLY on the key information from the source text
+        • Maintain a neutral, objective tone throughout
+        • Present information in a logical flow
+        • Remove any redundant points
+        • Keep only the most important ideas and relationships
+        * NO CONCLUSION
+        * NO INTRODUCTION
+        * NO EXPLANATION OR ADDITIONAL TEXT
+        * ONLY RESPOND WITH THE SUMMARY""",
+        description="Instruction for summarizing individual chunks of text",
     )
     text: str = Field(
         default="",
         description="The text to summarize",
     )
-    max_length: int = Field(
-        default=200,
+    context_window: int = Field(
+        default=4096,
         ge=1,
-        description="Target maximum length of the summary in words",
+        le=4096*4,
+        description="The context window size to use for the model.",
+    )
+    num_predict: int = Field(
+        default=256,
+        ge=0,
+        le=4096*4,
+        description="Number of tokens to predict for each chunk",
     )
     chunk_overlap: int = Field(
         default=100,
@@ -926,7 +925,7 @@ class Summarizer(BaseNode):
         description="Number of tokens to overlap between chunks",
     )
     temperature: float = Field(
-        default=0.7,
+        default=0.0,
         ge=0.0,
         le=2.0,
         description="The temperature to use for sampling.",
@@ -947,94 +946,188 @@ class Summarizer(BaseNode):
         default=300,
         description="The number of seconds to keep the model alive.",
     )
-    system_prompt: str = Field(
-        default="""You are an expert text summarizer. Follow these guidelines:
-
-1. Content Focus:
-   - Extract main arguments, findings, and conclusions
-   - Preserve critical evidence and methodologies
-   - Maintain factual accuracy and context
-   - Include key statistics when relevant
-
-2. Structure and Style:
-   - Present information in logical flow
-   - Use clear, precise language
-   - Balance brevity with completeness
-   - Adapt style to match source material
-
-3. Quality Standards:
-   - Include only information from the source
-   - Avoid personal interpretation
-   - Maintain technical accuracy
-   - Preserve nuance in complex topics
-
-Your goal is to create an accurate, useful, and efficient representation of the original text while maintaining its core meaning and significance.""",
-        description="System prompt for the summarization task. Defines the behavior and guidelines for the summarization.",
-    )
 
     @classmethod
     def get_basic_fields(cls) -> list[str]:
-        return ["model", "text", "max_length", "system_prompt"]
+        return ["model", "text", "prompt"]
 
     async def _summarize_chunk(
-        self, context: ProcessingContext, text: str, is_final_summary: bool = False
+        self, context: ProcessingContext, text: str, total_output_tokens: int = 0, token_progress: int = 0, 
     ) -> str:
-        """Helper method to summarize a single chunk of text"""
-        
-        user_prompt = "Create a final summary:" if is_final_summary else "Summarize this section of text:"
-        
-        res = await context.run_prediction(
+        parts = []
+        async for response in context.stream_prediction(
             node_id=self._id,
             provider=Provider.Ollama,
             model=self.model.repo_id,
             params={
+                "stream": True,
                 "messages": [
-                    {"role": "system", "content": self.system_prompt},
-                    {"role": "user", "content": f"{user_prompt}\n\n{text}"},
+                    {"role": "system", "content": self.prompt},
+                    {"role": "user", "content": text},
                 ],
                 "options": {
                     "temperature": self.temperature,
                     "top_k": self.top_k,
                     "top_p": self.top_p,
                     "keep_alive": self.keep_alive,
-                    "stream": False,
                     "num_ctx": self.context_window,
+                    "num_predict": self.num_predict,
                 },
             },
-        )
-        return str(res["message"]["content"]).strip()
+        ):
+            assert isinstance(response, ChatResponse)
+            msg = response.message.content
+            if msg:
+                count_tokens = len(tiktoken.get_encoding("cl100k_base").encode(msg))
+                parts.append(msg)
+                token_progress += count_tokens
+                context.post_message(NodeProgress(
+                    node_id=self._id,
+                    progress=token_progress,
+                    total=total_output_tokens,
+                    chunk=msg,
+                ))
+        return "".join(parts)
 
-    async def process(self, context: ProcessingContext) -> str:
-        # Calculate effective context size (leaving room for prompts and completion)
-        effective_context_size = int(self.context_window * 0.75)
-        
-        # Check if text needs chunking
+    async def process(self, context: ProcessingContext) -> list[str]:
+        effective_context_size = self.context_window - 32
         encoding = tiktoken.get_encoding("cl100k_base")
         total_tokens = len(encoding.encode(self.text))
         
-        if total_tokens <= effective_context_size:
-            # If text fits in context window, summarize directly
-            return await self._summarize_chunk(context, self.text, True)
+        # Calculate expected output tokens
+        chunks_needed = max(1, total_tokens // effective_context_size)
+        total_output_tokens = int(self.num_predict * chunks_needed)
+        token_progress = 0
         
-        # Split text into chunks
+        if total_tokens <= effective_context_size:
+            summary = await self._summarize_chunk(context, self.text, total_output_tokens, 0)
+            return [summary]
+
         chunks = split_text_into_chunks(
             self.text,
             chunk_size=effective_context_size,
             overlap=self.chunk_overlap
         )
         
-        # Summarize each chunk
-        chunk_summaries = []
+        summaries = []
         for chunk in chunks:
-            summary = await self._summarize_chunk(context, chunk)
-            chunk_summaries.append(summary)
+            summary = await self._summarize_chunk(
+                context, chunk, total_output_tokens, token_progress
+            )
+            summaries.append(summary)
+            token_progress += self.num_predict
+            
+        return summaries
+
+
+class Summarizer(BaseNode):
+    """
+    LLM Agent to summarize text
+    llm, summarization, text processing
+
+    Use cases:
+    - Creating final summaries from multiple sources
+    - Combining chapter summaries
+    - Generating executive summaries
+    """
+
+    model: LlamaModel = Field(
+        default=LlamaModel(),
+        description="The Llama model to use for summarization.",
+    )
+    prompt: str = Field(
+        default="""Create a summary following these rules:
+• Focus ONLY on the key information from the source text
+• Maintain a neutral, objective tone throughout
+• Present information in a logical flow
+• Remove any redundant points
+• Keep only the most important ideas and relationships
+* NO CONCLUSION
+* NO INTRODUCTION
+* NO EXPLANATION OR ADDITIONAL TEXT
+* ONLY RESPOND WITH THE SUMMARY""",
+        description="Instruction for creating the final summary",
+    )
+    text: str = Field(
+        default="",
+        description="The text to summarize",
+    )
+    num_predict: int = Field(
+        default=256,
+        ge=0,
+        le=4096*4,
+        description="Number of tokens to predict",
+    )
+    context_window: int = Field(
+        default=4096,
+        ge=1,
+        le=4096*4,
+        description="The context window size to use for the model.",
+    )
+    temperature: float = Field(
+        default=0.0,
+        ge=0.0,
+        le=2.0,
+        description="The temperature to use for sampling.",
+    )
+    top_k: int = Field(
+        default=50,
+        ge=1,
+        le=100,
+        description="The number of highest probability tokens to keep for top-k sampling.",
+    )
+    top_p: float = Field(
+        default=0.95,
+        ge=0.0,
+        le=1.0,
+        description="The cumulative probability cutoff for nucleus/top-p sampling.",
+    )
+    keep_alive: int = Field(
+        default=300,
+        description="The number of seconds to keep the model alive.",
+    )
+
+    @classmethod
+    def get_basic_fields(cls) -> list[str]:
+        return ["model", "text", "prompt"]
+
+    async def process(self, context: ProcessingContext) -> str:
+        encoding = tiktoken.get_encoding("cl100k_base")
         
-        # Combine chunk summaries into final summary
-        combined_summaries = "\n\n".join(chunk_summaries)
+        parts = []
+        token_progress = 0
         
-        # If combined summaries are still too long, recursively summarize
-        if len(encoding.encode(combined_summaries)) > effective_context_size:
-            return await self.process(context)  # Recursive call with combined summaries
-        
-        # Generate final summary
-        return await self._summarize_chunk(context, combined_summaries, True)
+        async for response in context.stream_prediction(
+            node_id=self._id,
+            provider=Provider.Ollama,
+            model=self.model.repo_id,
+            params={
+                "stream": True,
+                "messages": [
+                    {"role": "system", "content": self.prompt},
+                    {"role": "user", "content": self.text},
+                ],
+                "options": {
+                    "temperature": self.temperature,
+                    "top_k": self.top_k,
+                    "top_p": self.top_p,
+                    "keep_alive": self.keep_alive,
+                    "num_ctx": self.context_window,
+                    "num_predict": self.num_predict,
+                },
+            },
+        ):
+            assert isinstance(response, ChatResponse)
+            msg = response.message.content
+            if msg:
+                count_tokens = len(encoding.encode(msg))
+                parts.append(msg)
+                token_progress += count_tokens
+                context.post_message(NodeProgress(
+                    node_id=self._id,
+                    progress=token_progress,
+                    total=self.num_predict,
+                    chunk=msg,
+                ))
+                
+        return "".join(parts)

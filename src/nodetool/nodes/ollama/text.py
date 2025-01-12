@@ -182,9 +182,6 @@ class Embedding(BaseNode):
     def get_basic_fields(cls) -> list[str]:
         return ["model", "input"]
 
-    def requires_gpu(self) -> bool:
-        return True
-
     async def process(self, context: ProcessingContext) -> Tensor:
         import numpy as np
 

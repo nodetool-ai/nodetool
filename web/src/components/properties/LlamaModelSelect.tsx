@@ -27,10 +27,12 @@ const LlamaModelSelect = ({ onChange, value }: LlamaModelSelectProps) => {
     if (!models || isLoading || isError) return [];
     return [
       { value: "", label: "Select a model" },
-      ...(models as LlamaModel[]).map((model) => ({
-        value: model.repo_id || "",
-        label: model.name || ""
-      }))
+      ...(models as LlamaModel[])
+        .map((model) => ({
+          value: model.repo_id || "",
+          label: model.name || ""
+        }))
+        .sort((a, b) => a.label.localeCompare(b.label))
     ];
   }, [models, isLoading, isError]);
 

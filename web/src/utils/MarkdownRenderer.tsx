@@ -7,6 +7,8 @@ import DraggableNodeDocumentation from "../components/content/Help/DraggableNode
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import { usePanelStore } from "../stores/PanelStore";
+import ThemeNodes from "../components/themes/ThemeNodes";
+
 interface MarkdownRendererProps {
   content: string;
   isReadme?: boolean;
@@ -17,7 +19,6 @@ const styles = (theme: any) =>
     "&": {
       width: "100%",
       height: "100%",
-      overflowY: "auto",
       padding: "1em 1em 2em 1em"
     },
     p: {

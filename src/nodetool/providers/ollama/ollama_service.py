@@ -9,7 +9,7 @@ from ollama import AsyncClient
 _cached_ollama_models = None
 
 
-def get_ollama_client():
+def get_ollama_client() -> AsyncClient:
     api_url = Environment.get("OLLAMA_API_URL")
     assert api_url, "OLLAMA_API_URL not set"
 
