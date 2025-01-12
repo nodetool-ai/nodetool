@@ -5,25 +5,26 @@ import {
   Box,
   CircularProgress,
   Button,
-  ButtonGroup,
   Tooltip,
   TextField,
   Switch,
-  FormControlLabel
+  FormControlLabel,
+  IconButton,
+  InputAdornment
 } from "@mui/material";
 import { useWorkflowStore } from "../../stores/WorkflowStore";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState, useEffect } from "react";
 import { Workflow, WorkflowList } from "../../stores/ApiTypes";
-import { useNavigate } from "react-router-dom";
-import ThemeNodetool from "../themes/ThemeNodetool";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { ErrorOutlineRounded } from "@mui/icons-material";
 import { css } from "@emotion/react";
+import { searchWorkflows, SearchResult } from "../../utils/workflowSearch";
+import { Clear as ClearIcon } from "@mui/icons-material";
 import {
-  searchWorkflows,
-  SearchResult,
-  prepareWorkflowData
-} from "../../utils/workflowSearch";
+  TOOLTIP_ENTER_DELAY,
+  TOOLTIP_LEAVE_DELAY
+} from "../../config/constants";
 
 const styles = (theme: any) =>
   css({
@@ -84,7 +85,9 @@ const styles = (theme: any) =>
       width: "200px",
       height: "200px",
       overflow: "hidden",
-      position: "relative"
+      position: "relative",
+      background: `linear-gradient(0deg, ${theme.palette.c_hl1}20, ${theme.palette.c_gray1}22)`
+      // border: `1px solid ${theme.palette.divider}`
     },
     ".image-wrapper:hover": {
       animation: "sciFiPulse 2s infinite",
@@ -163,14 +166,15 @@ const styles = (theme: any) =>
       }
     },
     ".search-container": {
-      padding: "0 20px",
-      marginBottom: "10px",
       display: "flex",
       alignItems: "center",
-      gap: "16px"
+      justifyContent: "flex-start",
+      padding: "0 1.25em",
+      gap: "2em"
     },
     ".search-field": {
       width: "100%",
+      marginBottom: "0",
       maxWidth: "400px",
       "& .MuiOutlinedInput-root": {
         "&:hover fieldset": {
@@ -180,6 +184,11 @@ const styles = (theme: any) =>
           borderColor: theme.palette.c_hl1
         }
       }
+    },
+    ".search-switch": {
+      minHeight: "2em",
+      display: "flex",
+      gap: ".5em"
     },
     ".search-debug": {
       padding: "0 20px",
@@ -197,12 +206,22 @@ const styles = (theme: any) =>
 
 const ExampleGrid = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const loadWorkflows = useWorkflowStore((state) => state.loadExamples);
   const createWorkflow = useWorkflowStore((state) => state.create);
   const [selectedTag, setSelectedTag] = useState<string | null>("start");
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [nodesOnlySearch, setNodesOnlySearch] = useState(false);
+
+  useEffect(() => {
+    const nodeParam = searchParams.get("node");
+    if (nodeParam) {
+      setSearchQuery(nodeParam);
+      setNodesOnlySearch(true);
+      setSelectedTag(null);
+    }
+  }, [searchParams]);
 
   const { data, isLoading, isError, error } = useQuery<WorkflowList, Error>({
     queryKey: ["examples"],
@@ -266,43 +285,56 @@ const ExampleGrid = () => {
     );
   }, [selectedTag, groupedWorkflows, data, searchQuery, nodesOnlySearch]);
 
-  const renderSearchDebug = () => {
-    if (!searchQuery.trim() || !searchResults.length) return null;
+  // const renderSearchDebug = () => {
+  //   if (!searchQuery.trim() || !searchResults.length) return null;
 
-    return (
-      <Box className="search-debug">
-        <Typography variant="body2">
-          Search results ({searchResults.length}):
-        </Typography>
-        {searchResults.slice(0, 3).map((result, idx) => {
-          const data = prepareWorkflowData(result.workflow);
-          return (
-            <Typography key={idx} variant="body2">
-              • {result.workflow.name} (score: {result.score.toFixed(2)})
-              {result.matches.slice(0, 2).map((match, midx) => (
-                <span key={midx}>
-                  <br />
-                  &nbsp;&nbsp;matched:{" "}
-                  <span className="match-highlight">{match.text}</span>
-                </span>
-              ))}
-              <br />
-              &nbsp;&nbsp;nodes:{" "}
-              <span className="match-highlight">
-                {data.nodeNames.join(", ")}
-              </span>
-            </Typography>
-          );
-        })}
-      </Box>
-    );
+  //   return (
+  //     <Box className="search-debug">
+  //       <Typography variant="body2">
+  //         Search results ({searchResults.length}):
+  //       </Typography>
+  //       {searchResults.slice(0, 3).map((result, idx) => {
+  //         const data = prepareWorkflowData(result.workflow);
+  //         return (
+  //           <Typography key={idx} variant="body2">
+  //             • {result.workflow.name} (score: {result.score.toFixed(2)})
+  //             {result.matches.slice(0, 2).map((match, midx) => (
+  //               <span key={midx}>
+  //                 <br />
+  //                 &nbsp;&nbsp;matched:{" "}
+  //                 <span className="match-highlight">{match.text}</span>
+  //               </span>
+  //             ))}
+  //             <br />
+  //             &nbsp;&nbsp;nodes:{" "}
+  //             <span className="match-highlight">
+  //               {data.nodeNames.join(", ")}
+  //             </span>
+  //           </Typography>
+  //         );
+  //       })}
+  //     </Box>
+  //   );
+  // };
+
+  const handleClearSearch = () => {
+    setSearchQuery("");
+    setNodesOnlySearch(false);
+    // Update URL to remove node parameter
+    const newSearchParams = new URLSearchParams(searchParams);
+    newSearchParams.delete("node");
+    navigate({ search: newSearchParams.toString() });
   };
 
   return (
     <div className="workflow-grid" css={styles}>
       <Box className="tag-menu">
         <div className="button-row">
-          <Tooltip title="Show all example workflows">
+          <Tooltip
+            title="Show all example workflows"
+            enterDelay={TOOLTIP_ENTER_DELAY}
+            leaveDelay={TOOLTIP_LEAVE_DELAY}
+          >
             <Button
               onClick={() => setSelectedTag(null)}
               variant="outlined"
@@ -311,7 +343,11 @@ const ExampleGrid = () => {
               All
             </Button>
           </Tooltip>
-          <Tooltip title="Basic examples to get started">
+          <Tooltip
+            title="Basic examples to get started"
+            enterDelay={TOOLTIP_ENTER_DELAY}
+            leaveDelay={TOOLTIP_LEAVE_DELAY}
+          >
             <Button
               onClick={() => setSelectedTag("start")}
               variant="outlined"
@@ -323,7 +359,12 @@ const ExampleGrid = () => {
           {Object.keys(groupedWorkflows)
             .filter((tag) => tag !== "start")
             .map((tag) => (
-              <Tooltip key={tag} title={`Show ${tag} examples`}>
+              <Tooltip
+                key={tag}
+                title={`Show ${tag} examples`}
+                enterDelay={TOOLTIP_ENTER_DELAY}
+                leaveDelay={TOOLTIP_LEAVE_DELAY}
+              >
                 <Button
                   onClick={() => setSelectedTag(tag)}
                   variant="outlined"
@@ -348,19 +389,42 @@ const ExampleGrid = () => {
               setSelectedTag(null);
             }
           }}
+          slotProps={{
+            input: {
+              endAdornment: searchQuery && (
+                <InputAdornment position="end">
+                  <IconButton
+                    aria-label="clear search"
+                    onClick={handleClearSearch}
+                    edge="end"
+                    size="small"
+                  >
+                    <ClearIcon />
+                  </IconButton>
+                </InputAdornment>
+              )
+            }
+          }}
         />
-        <FormControlLabel
-          control={
-            <Switch
-              checked={nodesOnlySearch}
-              onChange={(e) => setNodesOnlySearch(e.target.checked)}
-              size="small"
-            />
-          }
-          label="Search nodes only"
-        />
+        <Tooltip
+          title="Search for Nodes used in the example workflows"
+          enterDelay={TOOLTIP_ENTER_DELAY}
+          leaveDelay={TOOLTIP_LEAVE_DELAY}
+        >
+          <FormControlLabel
+            className="search-switch"
+            control={
+              <Switch
+                checked={nodesOnlySearch}
+                onChange={(e) => setNodesOnlySearch(e.target.checked)}
+                size="small"
+              />
+            }
+            label="Nodes only"
+          />
+        </Tooltip>
       </Box>
-      {renderSearchDebug()}
+      {/* {renderSearchDebug()} */}
       <Box className="container">
         {isLoading && (
           <div className="loading-indicator">
