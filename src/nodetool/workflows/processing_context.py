@@ -13,6 +13,7 @@ import joblib
 import base64
 import PIL.Image
 import numpy as np
+from ollama import ChatResponse
 import pandas as pd
 from pydub import AudioSegment
 import torch
@@ -63,7 +64,7 @@ from nodetool.common.chroma_client import get_chroma_client
 
 
 from io import BytesIO
-from typing import IO, Any, Literal, Union
+from typing import IO, Any, AsyncGenerator, Literal, Union
 from chromadb.api import ClientAPI
 from pickle import dumps, loads
 from chromadb.config import Settings
@@ -407,36 +408,19 @@ class ProcessingContext:
         res = await self.api_client.get(f"api/workflows/{workflow_id}")
         return Workflow(**res.json())
 
-    async def run_prediction(
+    async def _prepare_prediction(
         self,
         node_id: str,
         provider: Provider,
         model: str,
         params: dict[str, Any] | None = None,
         data: Any = None,
-    ) -> Any:
-        """
-
-        Run a prediction on a third-party provider.
-
-        Args:
-            node_id (str): The ID of the node.
-            provider (Literal["huggingface", "replicate", "openai", "anthropic"]): The provider to use for the prediction.
-            model (str): The name of the model to use for the prediction.
-            params (dict[str, Any] | None, optional): Additional parameters for the prediction. Defaults to None.
-            data (bytes | None, optional): Input data for the prediction. Defaults to None.
-
-        Returns:
-            Any: The result of the prediction.
-
-        """
-        from nodetool.providers.run_prediction import run_prediction
-
+    ) -> Prediction:
+        """Common setup for both streaming and non-streaming prediction runs."""
         if params is None:
             params = {}
 
-        # used for help endpoint
-        prediction = Prediction(
+        return Prediction(
             id="",
             user_id=self.user_id,
             status="",
@@ -448,14 +432,42 @@ class ProcessingContext:
             data=data,
         )
 
+    async def run_prediction(
+        self,
+        node_id: str,
+        provider: Provider,
+        model: str,
+        params: dict[str, Any] | None = None,
+        data: Any = None,
+    ) -> Any:
+        """Run a prediction on a third-party provider and return the final result."""
+        from nodetool.providers.run_prediction import run_prediction
+
+        prediction = await self._prepare_prediction(node_id, provider, model, params, data)
+
         async for msg in run_prediction(prediction, self.environment):
             if isinstance(msg, PredictionResult):
-                # TODO: save prediction result
                 return msg.decode_content()
             elif isinstance(msg, Prediction):
                 self.post_message(msg)
 
         raise ValueError("Prediction did not return a result")
+
+    async def stream_prediction(
+        self,
+        node_id: str,
+        provider: Provider,
+        model: str,
+        params: dict[str, Any] | None = None,
+        data: Any = None,
+    ) -> AsyncGenerator[PredictionResult | Prediction | ChatResponse, None]:
+        """Stream prediction results from a third-party provider."""
+        from nodetool.providers.run_prediction import run_prediction
+
+        prediction = await self._prepare_prediction(node_id, provider, model, params, data)
+
+        async for msg in run_prediction(prediction, self.environment):
+            yield msg
 
     async def paginate_assets(
         self,

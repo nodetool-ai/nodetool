@@ -43,6 +43,7 @@ class NodeProgress(BaseModel):
     node_id: str
     progress: int
     total: int
+    chunk: str | None = None
 
 
 class Error(BaseModel):

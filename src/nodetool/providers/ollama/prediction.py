@@ -16,13 +16,26 @@ async def run_ollama(prediction: Prediction, env: dict[str, str]) -> Any:
 
     if "raw" in params:
         res = await client.generate(model=model, **params)
+        yield PredictionResult(
+            prediction=prediction,
+            content=res,
+            encoding="json",
+        )
     elif "prompt" in params:
         res = await client.embeddings(model=model, **params)
+        yield PredictionResult(
+            prediction=prediction,
+            content=res,
+            encoding="json",
+        )
     else:
         res = await client.chat(model=model, **params)
-
-    yield PredictionResult(
-        prediction=prediction,
-        content=res,
-        encoding="json",
-    )
+        if params.get("stream", False):
+            async for part in res:
+                yield part
+        else:
+            yield PredictionResult(
+                prediction=prediction,
+                content=res,
+                encoding="json",
+            )
