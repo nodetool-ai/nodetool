@@ -60,11 +60,11 @@ const scrollableContentStyles = (theme: any) =>
       display: "flex",
       alignItems: "center",
       margin: "0",
-      padding: "0.025em",
+      padding: ".25em",
       borderRadius: "3px",
       cursor: "pointer",
       ".node-button": {
-        padding: ".1em .5em",
+        padding: ".1em",
         flexGrow: 1,
         "& .MuiTypography-root": {
           fontSize: theme.fontSizeSmall
@@ -85,6 +85,13 @@ const scrollableContentStyles = (theme: any) =>
       backgroundColor: theme.palette.c_gray2,
       borderRadius: "3px",
       boxShadow: "inset 1px 1px 2px #00000044"
+    },
+    ".Mui-disabled": {
+      opacity: 0.7,
+      color: "white"
+    },
+    h4: {
+      padding: ".25em"
     }
   });
 
