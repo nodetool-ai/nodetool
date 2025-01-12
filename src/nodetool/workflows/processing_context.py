@@ -72,6 +72,9 @@ from chromadb.config import Settings
 
 log = Environment.get_logger()
 
+
+AUDIO_CODEC = "mp3"
+
 HTTP_HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/1"
 }
@@ -982,6 +985,20 @@ class ProcessingContext:
         samples = samples.astype(np.float32) / max_value
 
         return samples, segment.frame_rate, segment.channels
+    
+    async def audio_to_base64(self, audio_ref: AudioRef) -> str:
+        """
+        Converts the audio to a base64-encoded string.
+
+        Args:
+            audio_ref (AudioRef): The audio reference.
+
+        Returns:
+            str: The base64-encoded string.
+        """
+        audio_bytes = await self.asset_to_io(audio_ref)
+        audio_bytes.seek(0)
+        return base64.b64encode(audio_bytes.read()).decode("utf-8")
 
     async def audio_from_io(
         self,
@@ -1100,7 +1117,7 @@ class ProcessingContext:
 
         """
         buffer = BytesIO()
-        audio_segment.export(buffer, format="opus")
+        audio_segment.export(buffer, format="mp3")
         buffer.seek(0)
         return await self.audio_from_io(buffer, name=name, parent_id=parent_id)
 

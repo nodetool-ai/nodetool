@@ -52,6 +52,60 @@ VOICE_ID_MAPPING = {
 }
 
 
+class ModelID(str, Enum):
+    """Available ElevenLabs models"""
+    MULTILINGUAL_V2 = "eleven_multilingual_v2"  # Most life-like, 29 languages
+    TURBO_V2_5 = "eleven_turbo_v2_5"  # High quality, low latency, 32 languages
+    FLASH_V2_5 = "eleven_flash_v2_5"  # Ultra low latency, 32 languages
+    TURBO_V2 = "eleven_turbo_v2"  # English-only, low latency
+    FLASH_V2 = "eleven_flash_v2"  # Ultra low latency, English-only
+    MULTILINGUAL_STS_V2 = "eleven_multilingual_sts_v2"  # Speech-to-speech, multilingual
+    ENGLISH_STS_V2 = "eleven_english_sts_v2"  # Speech-to-speech, English
+    MONOLINGUAL_V1 = "eleven_monolingual_v1"  # Legacy English model
+    MULTILINGUAL_V1 = "eleven_multilingual_v1"  # Legacy multilingual model
+
+class LanguageID(str, Enum):
+    """Available languages for ElevenLabs models"""
+    NONE = "none"
+    ENGLISH = "en"
+    JAPANESE = "ja"
+    CHINESE = "zh"
+    GERMAN = "de"
+    HINDI = "hi"
+    FRENCH = "fr"
+    KOREAN = "ko"
+    PORTUGUESE = "pt"
+    ITALIAN = "it"
+    SPANISH = "es"
+    RUSSIAN = "ru"
+    INDONESIAN = "id"
+    DUTCH = "nl"
+    TURKISH = "tr"
+    FILIPINO = "fil"
+    POLISH = "pl"
+    SWEDISH = "sv"
+    BULGARIAN = "bg"
+    ROMANIAN = "ro"
+    ARABIC = "ar"
+    CZECH = "cs"
+    GREEK = "el"
+    FINNISH = "fi"
+    CROATIAN = "hr"
+    MALAY = "ms"
+    SLOVAK = "sk"
+    DANISH = "da"
+    TAMIL = "ta"
+    UKRAINIAN = "uk"
+    VIETNAMESE = "vi"
+    NORWEGIAN = "no"
+    HUNGARIAN = "hu"
+
+class TextNormalization(str, Enum):
+    """Text normalization options"""
+    AUTO = "auto"
+    ON = "on"
+    OFF = "off"
+
 class TextToSpeech(BaseNode):
     """
     Generates speech using ElevenLabs' text-to-speech API.
@@ -72,19 +126,61 @@ class TextToSpeech(BaseNode):
         default="Hello, how are you?",
         description="The text to convert to speech",
     )
-    model_id: str | None = Field(
-        default=None,
-        description="Optional model ID (e.g., eleven_monolingual_v1)",
+    tts_model_id: ModelID = Field(
+        default=ModelID.MONOLINGUAL_V1,
+        description="The TTS model to use for generation",
     )
-    voice_settings: dict | None = Field(
+    voice_settings: dict = Field(
         default=None,
         description="Optional voice settings to override defaults",
+    )
+    language_code: LanguageID = Field(
+        default=LanguageID.NONE,
+        description="Language code to enforce (only works with Turbo v2.5)",
+    )
+    optimize_streaming_latency: int = Field(
+        default=2,
+        ge=0,
+        le=4,
+        description="Latency optimization level (0-4). Higher values trade quality for speed",
+    )
+    seed: int = Field(
+        default=-1,
+        ge=-1,
+        le=4294967295,
+        description="Seed for deterministic generation (0-4294967295). -1 means random",
+    )
+    text_normalization: TextNormalization = Field(
+        default=TextNormalization.AUTO,
+        description="Controls text normalization behavior",
+    )
+    stability: float = Field(
+        default=0.5,
+        ge=0.0,
+        le=1.0,
+        description="Voice stability (0-1). Higher values make output more consistent, lower values more varied",
+    )
+    similarity_boost: float = Field(
+        default=0.75,
+        ge=0.0,
+        le=1.0,
+        description="Similarity to original voice (0-1). Higher values make output closer to original voice",
+    )
+    style: float = Field(
+        default=0.0,
+        ge=0.0,
+        le=1.0,
+        description="Speaking style emphasis (0-1). Higher values increase style expression",
+    )
+    use_speaker_boost: bool = Field(
+        default=False,
+        description="Whether to use speaker boost for clearer, more consistent output",
     )
 
     async def process(self, context: ProcessingContext) -> AudioRef:
         api_key = context.environment.get("ELEVENLABS_API_KEY")
         if not api_key:
-            raise ValueError("ELEVENLABS_API_KEYis required")
+            raise ValueError("ELEVENLABS_API_KEY is required")
 
         voice_id = VOICE_ID_MAPPING[self.voice]
         url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
@@ -96,10 +192,30 @@ class TextToSpeech(BaseNode):
 
         payload = {
             "text": self.text,
+            "model_id": self.tts_model_id,
+            "voice_settings": self.voice_settings,
+            "optimize_streaming_latency": self.optimize_streaming_latency,
         }
+        
+        voice_settings = {}
 
-        if self.model_id:
-            payload["model_id"] = self.model_id
+        if self.language_code != LanguageID.NONE:
+            payload["language_code"] = self.language_code
+        if self.seed != -1:
+            payload["seed"] = self.seed
+        if self.text_normalization:
+            payload["text_normalization"] = self.text_normalization
+        if self.stability != 0.5:
+            voice_settings["stability"] = self.stability
+        if self.similarity_boost != 0.75:
+            voice_settings["similarity_boost"] = self.similarity_boost
+        if self.style != 0.0:
+            voice_settings["style"] = self.style
+        if self.use_speaker_boost:
+            voice_settings["use_speaker_boost"] = self.use_speaker_boost
+            
+        if voice_settings:
+            payload["voice_settings"] = voice_settings
 
         async with aiohttp.ClientSession() as session:
             async with session.post(url, json=payload, headers=headers) as response:

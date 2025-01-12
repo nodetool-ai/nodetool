@@ -1839,9 +1839,9 @@ class ExtractAudio(BaseNode):
                     ffmpeg.input(temp_input.name)
                     .output(
                         temp_audio.name,
-                        acodec="libopus",
+                        acodec="libmp3lame",
                         map="0:a",
-                        format="opus",
+                        format="mp3",
                         loglevel="error",
                     )
                     .overwrite_output()
