@@ -1,0 +1,165 @@
+{
+  "id": "01170228d0c411efaac30000491f150f",
+  "access": "public",
+  "created_at": "2025-01-12T10:53:36.693288",
+  "updated_at": "2025-01-12T10:53:36.693315",
+  "name": "Paper2Podcast",
+  "description": "",
+  "tags": null,
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "1",
+        "parent_id": null,
+        "type": "elevenlabs.text_to_speech.TextToSpeech",
+        "data": {
+          "voice": "Aria (American female, expressive)",
+          "model_id": null,
+          "voice_settings": null
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 615,
+            "y": 88
+          },
+          "zIndex": 0,
+          "width": 240,
+          "selectable": true
+        }
+      },
+      {
+        "id": "2",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "audio_output_2025-01-12"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 885,
+            "y": 100
+          },
+          "zIndex": 0,
+          "width": 160,
+          "height": 160,
+          "selectable": true
+        }
+      },
+      {
+        "id": "4",
+        "parent_id": null,
+        "type": "nodetool.file.pdf.ExtractText",
+        "data": {
+          "start_page": 0,
+          "end_page": 4
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 285,
+            "y": 104
+          },
+          "zIndex": 0,
+          "width": 111,
+          "selectable": true
+        }
+      },
+      {
+        "id": "5",
+        "parent_id": null,
+        "type": "nodetool.network.http.GetRequestDocument",
+        "data": {
+          "url": "https://arxiv.org/pdf/1706.03762",
+          "headers": null,
+          "auth": null
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 50,
+            "y": 90
+          },
+          "zIndex": 0,
+          "width": 205,
+          "selectable": true
+        }
+      },
+      {
+        "id": "6",
+        "parent_id": null,
+        "type": "ollama.agents.Summarizer",
+        "data": {
+          "model": {
+            "type": "llama_model",
+            "repo_id": "llama3.2:3b"
+          },
+          "prompt": "Create a summary following these rules:\n\u2022 Focus ONLY on the key information from the source text\n\u2022 Maintain a neutral, objective tone throughout\n\u2022 Present information in a logical flow\n\u2022 Remove any redundant points\n\u2022 Keep only the most important ideas and relationships\n* NO CONCLUSION\n* NO INTRODUCTION\n* NO EXPLANATION OR ADDITIONAL TEXT\n* ONLY RESPOND WITH THE SUMMARY\n* The output should be used with a TTS system",
+          "num_predict": 256,
+          "context_window": 4096,
+          "temperature": 0,
+          "top_k": 50,
+          "top_p": 0.95,
+          "keep_alive": 300
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 426,
+            "y": 50
+          },
+          "zIndex": 0,
+          "width": 159,
+          "selectable": true
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "158a300a-f102-4a3d-b0e3-37dbf337c543",
+        "source": "5",
+        "sourceHandle": "output",
+        "target": "4",
+        "targetHandle": "pdf",
+        "ui_properties": {
+          "className": "document"
+        }
+      },
+      {
+        "id": "1",
+        "source": "1",
+        "sourceHandle": "output",
+        "target": "2",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "audio"
+        }
+      },
+      {
+        "id": "42b56767-3e35-41a3-bc7d-ee4d8a477875",
+        "source": "6",
+        "sourceHandle": "output",
+        "target": "1",
+        "targetHandle": "text",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "76c75f5a-4183-464f-a0d9-91258c1976ae",
+        "source": "4",
+        "sourceHandle": "output",
+        "target": "6",
+        "targetHandle": "text",
+        "ui_properties": {
+          "className": "str"
+        }
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null
+}

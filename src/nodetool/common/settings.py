@@ -33,6 +33,9 @@ class SecretsModel(BaseModel):
         default=None, description="Google app password"
     )
     GEMINI_API_KEY: str | None = Field(default=None, description="Gemini API key")
+    ELEVENLABS_API_KEY: str | None = Field(
+        default=None, description="ElevenLabs API key"
+    )
 
 
 def get_system_file_path(filename: str) -> Path:

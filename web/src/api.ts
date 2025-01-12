@@ -1239,11 +1239,11 @@ export interface components {
              *       "type": "datetime",
              *       "year": 2025,
              *       "month": 1,
-             *       "day": 11,
-             *       "hour": 21,
-             *       "minute": 6,
-             *       "second": 38,
-             *       "microsecond": 495739,
+             *       "day": 12,
+             *       "hour": 10,
+             *       "minute": 4,
+             *       "second": 6,
+             *       "microsecond": 766992,
              *       "tzinfo": "UTC",
              *       "utc_offset": 0
              *     }
@@ -3041,6 +3041,11 @@ export interface components {
              * @description Gemini API key
              */
             GEMINI_API_KEY?: string | null;
+            /**
+             * Elevenlabs Api Key
+             * @description ElevenLabs API key
+             */
+            ELEVENLABS_API_KEY?: string | null;
         };
         /** SettingsModel */
         SettingsModel: {

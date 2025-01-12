@@ -13,7 +13,7 @@ import nodetool.nodes.openai
 import nodetool.nodes.replicate
 import nodetool.nodes.ollama
 import nodetool.nodes.google
-
+import nodetool.nodes.elevenlabs
 
 class EnumEncoder(json.JSONEncoder):
     def default(self, obj):

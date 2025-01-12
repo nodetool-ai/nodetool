@@ -5,6 +5,7 @@ import aiohttp
 from pydantic import Field
 from nodetool.metadata.types import (
     DataframeRef,
+    DocumentRef,
     FilePath,
     ImageRef,
 )
@@ -60,7 +61,7 @@ class GetRequest(HTTPBaseNode):
 
     @classmethod
     def get_title(cls):
-        return "HTTP GET Request"
+        return "GET Request"
 
     async def process(self, context: ProcessingContext) -> str:
         res = await context.http_get(self.url, **self.get_request_kwargs())
@@ -81,7 +82,7 @@ class PostRequest(HTTPBaseNode):
 
     @classmethod
     def get_title(cls):
-        return "HTTP POST Request"
+        return "POST Request"
 
     data: str = Field(
         default="",
@@ -109,7 +110,7 @@ class PutRequest(HTTPBaseNode):
 
     @classmethod
     def get_title(cls):
-        return "HTTP PUT Request"
+        return "PUT Request"
 
     data: str = Field(
         default="",
@@ -137,7 +138,7 @@ class DeleteRequest(HTTPBaseNode):
 
     @classmethod
     def get_title(cls):
-        return "HTTP DELETE Request"
+        return "DELETE Request"
 
     async def process(self, context: ProcessingContext) -> str:
         res = await context.http_delete(self.url, **self.get_request_kwargs())
@@ -157,7 +158,7 @@ class HeadRequest(HTTPBaseNode):
 
     @classmethod
     def get_title(cls):
-        return "HTTP HEAD Request"
+        return "HEAD Request"
 
     async def process(self, context: ProcessingContext) -> dict[str, str]:
         res = await context.http_head(self.url, **self.get_request_kwargs())
@@ -304,11 +305,31 @@ class GetRequestBinary(HTTPBaseNode):
 
     @classmethod
     def get_title(cls):
-        return "HTTP GET Request (Binary)"
+        return "GET Binary"
 
     async def process(self, context: ProcessingContext) -> bytes:
         res = await context.http_get(self.url, **self.get_request_kwargs())
         return res.content
+    
+class GetRequestDocument(HTTPBaseNode):
+    """
+    Perform an HTTP GET request and return a document
+    http, get, request, url, document
+
+    Use cases:
+    - Download PDF documents
+    - Retrieve Word documents
+    - Fetch Excel files
+    - Download any document format
+    """
+
+    @classmethod
+    def get_title(cls):
+        return "GET Document"
+
+    async def process(self, context: ProcessingContext) -> DocumentRef:
+        res = await context.http_get(self.url, **self.get_request_kwargs())
+        return DocumentRef(data=res.content)
 
 
 class PostRequestBinary(HTTPBaseNode):
@@ -325,7 +346,7 @@ class PostRequestBinary(HTTPBaseNode):
 
     @classmethod
     def get_title(cls):
-        return "HTTP POST Request (Binary)"
+        return "POST Binary"
 
     data: str | bytes = Field(
         default="",
@@ -545,7 +566,7 @@ class JSONPostRequest(HTTPBaseNode):
 
     @classmethod
     def get_title(cls):
-        return "JSON POST Request"
+        return "POST JSON"
 
     data: dict = Field(
         default_factory=dict,
@@ -577,7 +598,7 @@ class JSONPutRequest(HTTPBaseNode):
 
     @classmethod
     def get_title(cls):
-        return "JSON PUT Request"
+        return "PUT JSON"
 
     data: dict = Field(
         default_factory=dict,
@@ -609,7 +630,7 @@ class JSONPatchRequest(HTTPBaseNode):
 
     @classmethod
     def get_title(cls):
-        return "JSON PATCH Request"
+        return "PATCH JSON"
 
     data: dict = Field(
         default_factory=dict,
@@ -641,7 +662,7 @@ class JSONGetRequest(HTTPBaseNode):
 
     @classmethod
     def get_title(cls):
-        return "JSON GET Request"
+        return "GET JSON"
 
     async def process(self, context: ProcessingContext) -> dict:
         headers = self.headers.copy()
