@@ -22380,10 +22380,10 @@
           "year": 2025,
           "month": 1,
           "day": 12,
-          "hour": 20,
-          "minute": 46,
-          "second": 27,
-          "microsecond": 406226,
+          "hour": 21,
+          "minute": 3,
+          "second": 54,
+          "microsecond": 437080,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23422,10 +23422,10 @@
           "year": 2025,
           "month": 1,
           "day": 12,
-          "hour": 20,
-          "minute": 46,
-          "second": 27,
-          "microsecond": 410185,
+          "hour": 21,
+          "minute": 3,
+          "second": 54,
+          "microsecond": 441033,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23475,10 +23475,10 @@
           "year": 2025,
           "month": 1,
           "day": 12,
-          "hour": 20,
-          "minute": 46,
-          "second": 27,
-          "microsecond": 410476,
+          "hour": 21,
+          "minute": 3,
+          "second": 54,
+          "microsecond": 441286,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23528,10 +23528,10 @@
           "year": 2025,
           "month": 1,
           "day": 12,
-          "hour": 20,
-          "minute": 46,
-          "second": 27,
-          "microsecond": 410687,
+          "hour": 21,
+          "minute": 3,
+          "second": 54,
+          "microsecond": 441487,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23581,10 +23581,10 @@
           "year": 2025,
           "month": 1,
           "day": 12,
-          "hour": 20,
-          "minute": 46,
-          "second": 27,
-          "microsecond": 410891,
+          "hour": 21,
+          "minute": 3,
+          "second": 54,
+          "microsecond": 441704,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23634,10 +23634,10 @@
           "year": 2025,
           "month": 1,
           "day": 12,
-          "hour": 20,
-          "minute": 46,
-          "second": 27,
-          "microsecond": 411099,
+          "hour": 21,
+          "minute": 3,
+          "second": 54,
+          "microsecond": 441908,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23687,10 +23687,10 @@
           "year": 2025,
           "month": 1,
           "day": 12,
-          "hour": 20,
-          "minute": 46,
-          "second": 27,
-          "microsecond": 411364,
+          "hour": 21,
+          "minute": 3,
+          "second": 54,
+          "microsecond": 442178,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23740,10 +23740,10 @@
           "year": 2025,
           "month": 1,
           "day": 12,
-          "hour": 20,
-          "minute": 46,
-          "second": 27,
-          "microsecond": 411589,
+          "hour": 21,
+          "minute": 3,
+          "second": 54,
+          "microsecond": 442397,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23809,10 +23809,10 @@
           "year": 2025,
           "month": 1,
           "day": 12,
-          "hour": 20,
-          "minute": 46,
-          "second": 27,
-          "microsecond": 411839,
+          "hour": 21,
+          "minute": 3,
+          "second": 54,
+          "microsecond": 442645,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -75041,7 +75041,7 @@
   },
   {
     "title": "Ideogram V 2 Turbo",
-    "description": "Accelerated image generation with Ideogram V2 Turbo. Create high-quality visuals, posters, \n    and logos with enhanced speed while maintaining Ideogram's signature quality.",
+    "description": "Accelerated image generation with Ideogram V2 Turbo. Create high-quality visuals, posters,\n    and logos with enhanced speed while maintaining Ideogram's signature quality.",
     "namespace": "fal.text_to_image",
     "node_type": "fal.text_to_image.IdeogramV2Turbo",
     "layout": "default",
@@ -75292,7 +75292,7 @@
   },
   {
     "title": "Flux V 1 Pro Ultra",
-    "description": "FLUX1.1 [ultra] is the latest and most advanced version of FLUX.1 [pro], \n    featuring cutting-edge improvements in image generation, delivering unparalleled \n    composition, detail, and artistic fidelity.",
+    "description": "FLUX1.1 [ultra] is the latest and most advanced version of FLUX.1 [pro],\n    featuring cutting-edge improvements in image generation, delivering unparalleled\n    composition, detail, and artistic fidelity.",
     "namespace": "fal.text_to_image",
     "node_type": "fal.text_to_image.FluxV1ProUltra",
     "layout": "default",
@@ -75403,7 +75403,7 @@
   },
   {
     "title": "Recraft V 3",
-    "description": "Recraft V3 is a text-to-image model with the ability to generate long texts, vector art, images in brand style, and much more. \n    image, text",
+    "description": "Recraft V3 is a text-to-image model with the ability to generate long texts, vector art, images in brand style, and much more.\n    image, text",
     "namespace": "fal.text_to_image",
     "node_type": "fal.text_to_image.RecraftV3",
     "layout": "default",
@@ -75549,7 +75549,7 @@
   },
   {
     "title": "Switti",
-    "description": "Switti is a scale-wise transformer for fast text-to-image generation that outperforms existing T2I AR models \n    and competes with state-of-the-art T2I diffusion models while being faster than distilled diffusion models.",
+    "description": "Switti is a scale-wise transformer for fast text-to-image generation that outperforms existing T2I AR models\n    and competes with state-of-the-art T2I diffusion models while being faster than distilled diffusion models.",
     "namespace": "fal.text_to_image",
     "node_type": "fal.text_to_image.Switti",
     "layout": "default",
@@ -75758,7 +75758,7 @@
   },
   {
     "title": "Aura Flow V 03",
-    "description": "AuraFlow v0.3 is an open-source flow-based text-to-image generation model that achieves \n    state-of-the-art results on GenEval.",
+    "description": "AuraFlow v0.3 is an open-source flow-based text-to-image generation model that achieves\n    state-of-the-art results on GenEval.",
     "namespace": "fal.text_to_image",
     "node_type": "fal.text_to_image.AuraFlowV03",
     "layout": "default",
@@ -76340,7 +76340,7 @@
   },
   {
     "title": "Flux Schnell",
-    "description": "FLUX.1 [schnell] is a 12 billion parameter flow transformer that generates high-quality images \n    from text in 1 to 4 steps, suitable for personal and commercial use.",
+    "description": "FLUX.1 [schnell] is a 12 billion parameter flow transformer that generates high-quality images\n    from text in 1 to 4 steps, suitable for personal and commercial use.",
     "namespace": "fal.text_to_image",
     "node_type": "fal.text_to_image.FluxSchnell",
     "layout": "default",
@@ -76607,7 +76607,7 @@
   },
   {
     "title": "Flux V 1 Pro New",
-    "description": "FLUX.1 [pro] new is an accelerated version of FLUX.1 [pro], maintaining professional-grade \n    image quality while delivering significantly faster generation speeds.",
+    "description": "FLUX.1 [pro] new is an accelerated version of FLUX.1 [pro], maintaining professional-grade\n    image quality while delivering significantly faster generation speeds.",
     "namespace": "fal.text_to_image",
     "node_type": "fal.text_to_image.FluxV1ProNew",
     "layout": "default",
@@ -76748,7 +76748,7 @@
   },
   {
     "title": "Sana V 1",
-    "description": "Sana can synthesize high-resolution, high-quality images with strong text-image alignment \n    at a remarkably fast speed, with the ability to generate 4K images in less than a second.",
+    "description": "Sana can synthesize high-resolution, high-quality images with strong text-image alignment\n    at a remarkably fast speed, with the ability to generate 4K images in less than a second.",
     "namespace": "fal.text_to_image",
     "node_type": "fal.text_to_image.SanaV1",
     "layout": "default",
@@ -76904,7 +76904,7 @@
   },
   {
     "title": "Omni Gen V 1",
-    "description": "OmniGen is a unified image generation model that can generate a wide range of images from multi-modal prompts.\n    It can be used for various tasks such as Image Editing, Personalized Image Generation, Virtual Try-On, \n    Multi Person Generation and more!",
+    "description": "OmniGen is a unified image generation model that can generate a wide range of images from multi-modal prompts.\n    It can be used for various tasks such as Image Editing, Personalized Image Generation, Virtual Try-On,\n    Multi Person Generation and more!",
     "namespace": "fal.text_to_image",
     "node_type": "fal.text_to_image.OmniGenV1",
     "layout": "default",
@@ -77100,7 +77100,7 @@
   },
   {
     "title": "Stable Diffusion V 35 Large",
-    "description": "Stable Diffusion 3.5 Large is a Multimodal Diffusion Transformer (MMDiT) text-to-image model that features \n    improved performance in image quality, typography, complex prompt understanding, and resource-efficiency.",
+    "description": "Stable Diffusion 3.5 Large is a Multimodal Diffusion Transformer (MMDiT) text-to-image model that features\n    improved performance in image quality, typography, complex prompt understanding, and resource-efficiency.",
     "namespace": "fal.text_to_image",
     "node_type": "fal.text_to_image.StableDiffusionV35Large",
     "layout": "default",
@@ -77565,7 +77565,7 @@
   },
   {
     "title": "Bria V 1 Fast",
-    "description": "Bria's Text-to-Image model with perfect harmony of latency and quality. \n    Trained exclusively on licensed data for safe and risk-free commercial use.\n    Features faster inference times while maintaining high image quality.",
+    "description": "Bria's Text-to-Image model with perfect harmony of latency and quality.\n    Trained exclusively on licensed data for safe and risk-free commercial use.\n    Features faster inference times while maintaining high image quality.",
     "namespace": "fal.text_to_image",
     "node_type": "fal.text_to_image.BriaV1Fast",
     "layout": "default",
@@ -77743,7 +77743,7 @@
   },
   {
     "title": "Bria V 1 HD",
-    "description": "Bria's Text-to-Image model for HD images. Trained exclusively on licensed data for safe and \n    risk-free commercial use. Features exceptional image quality and commercial licensing safety.",
+    "description": "Bria's Text-to-Image model for HD images. Trained exclusively on licensed data for safe and\n    risk-free commercial use. Features exceptional image quality and commercial licensing safety.",
     "namespace": "fal.text_to_image",
     "node_type": "fal.text_to_image.BriaV1HD",
     "layout": "default",
@@ -77921,7 +77921,7 @@
   },
   {
     "title": "Flux General",
-    "description": "FLUX.1 [dev] with Controlnets and Loras is a versatile text-to-image model that supports \n    multiple AI extensions including LoRA, ControlNet conditioning, and IP-Adapter integration, \n    enabling comprehensive control over image generation through various guidance methods.",
+    "description": "FLUX.1 [dev] with Controlnets and Loras is a versatile text-to-image model that supports\n    multiple AI extensions including LoRA, ControlNet conditioning, and IP-Adapter integration,\n    enabling comprehensive control over image generation through various guidance methods.",
     "namespace": "fal.text_to_image",
     "node_type": "fal.text_to_image.FluxGeneral",
     "layout": "default",
@@ -78152,7 +78152,7 @@
   },
   {
     "title": "Stable Diffusion V 3 Medium",
-    "description": "Stable Diffusion 3 Medium (Text to Image) is a Multimodal Diffusion Transformer (MMDiT) model \n    that improves image quality, typography, prompt understanding, and efficiency.",
+    "description": "Stable Diffusion 3 Medium (Text to Image) is a Multimodal Diffusion Transformer (MMDiT) model\n    that improves image quality, typography, prompt understanding, and efficiency.",
     "namespace": "fal.text_to_image",
     "node_type": "fal.text_to_image.StableDiffusionV3Medium",
     "layout": "default",
@@ -78719,7 +78719,7 @@
   },
   {
     "title": "Stable Cascade",
-    "description": "Stable Cascade is a state-of-the-art text-to-image model that generates images on a smaller & cheaper \n    latent space while maintaining high quality output.",
+    "description": "Stable Cascade is a state-of-the-art text-to-image model that generates images on a smaller & cheaper\n    latent space while maintaining high quality output.",
     "namespace": "fal.text_to_image",
     "node_type": "fal.text_to_image.StableCascade",
     "layout": "default",
@@ -78890,7 +78890,7 @@
   },
   {
     "title": "Luma Photon",
-    "description": "Luma Photon is a creative and personalizable text-to-image model that brings a step-function \n    change in the cost of high-quality image generation, optimized for creatives.",
+    "description": "Luma Photon is a creative and personalizable text-to-image model that brings a step-function\n    change in the cost of high-quality image generation, optimized for creatives.",
     "namespace": "fal.text_to_image",
     "node_type": "fal.text_to_image.LumaPhoton",
     "layout": "default",
@@ -78956,7 +78956,7 @@
   },
   {
     "title": "Luma Photon Flash",
-    "description": "Luma Photon Flash is the most creative, personalizable, and intelligent visual model for creatives, \n    bringing a step-function change in the cost of high-quality image generation with faster inference times.",
+    "description": "Luma Photon Flash is the most creative, personalizable, and intelligent visual model for creatives,\n    bringing a step-function change in the cost of high-quality image generation with faster inference times.",
     "namespace": "fal.text_to_image",
     "node_type": "fal.text_to_image.LumaPhotonFlash",
     "layout": "default",
@@ -79433,7 +79433,7 @@
   },
   {
     "title": "Fast Lightning SDXL",
-    "description": "Stable Diffusion XL Lightning Text to Image runs SDXL at the speed of light, enabling \n    ultra-fast high-quality image generation.",
+    "description": "Stable Diffusion XL Lightning Text to Image runs SDXL at the speed of light, enabling\n    ultra-fast high-quality image generation.",
     "namespace": "fal.text_to_image",
     "node_type": "fal.text_to_image.FastLightningSDXL",
     "layout": "default",
@@ -79715,7 +79715,7 @@
   },
   {
     "title": "Playground V 25",
-    "description": "Playground v2.5 is a state-of-the-art open-source model that excels in aesthetic quality \n    for text-to-image generation.",
+    "description": "Playground v2.5 is a state-of-the-art open-source model that excels in aesthetic quality\n    for text-to-image generation.",
     "namespace": "fal.text_to_image",
     "node_type": "fal.text_to_image.PlaygroundV25",
     "layout": "default",
@@ -79841,7 +79841,7 @@
   },
   {
     "title": "LCMDiffusion",
-    "description": "Latent Consistency Models (SDXL & SDv1.5) Text to Image produces high-quality images \n    with minimal inference steps.",
+    "description": "Latent Consistency Models (SDXL & SDv1.5) Text to Image produces high-quality images\n    with minimal inference steps.",
     "namespace": "fal.text_to_image",
     "node_type": "fal.text_to_image.LCMDiffusion",
     "layout": "default",
@@ -80000,7 +80000,7 @@
   },
   {
     "title": "Fooocus",
-    "description": "Fooocus is a text-to-image model with default parameters and automated optimizations \n    for quality improvements.",
+    "description": "Fooocus is a text-to-image model with default parameters and automated optimizations\n    for quality improvements.",
     "namespace": "fal.text_to_image",
     "node_type": "fal.text_to_image.Fooocus",
     "layout": "default",
@@ -80614,7 +80614,7 @@
   },
   {
     "title": "Flux Dev Image To Image",
-    "description": "FLUX.1 [dev] Image-to-Image is a high-performance endpoint that enables rapid transformation \n    of existing images, delivering high-quality style transfers and image modifications with \n    the core FLUX capabilities.",
+    "description": "FLUX.1 [dev] Image-to-Image is a high-performance endpoint that enables rapid transformation\n    of existing images, delivering high-quality style transfers and image modifications with\n    the core FLUX capabilities.",
     "namespace": "fal.text_to_image",
     "node_type": "fal.text_to_image.FluxDevImageToImage",
     "layout": "default",
@@ -80753,7 +80753,7 @@
   },
   {
     "title": "Diffusion Edge",
-    "description": "Diffusion Edge is a diffusion-based high-quality edge detection model that generates \n    edge maps from input images.",
+    "description": "Diffusion Edge is a diffusion-based high-quality edge detection model that generates\n    edge maps from input images.",
     "namespace": "fal.text_to_image",
     "node_type": "fal.text_to_image.DiffusionEdge",
     "layout": "default",
@@ -80796,6 +80796,333 @@
     "recommended_models": [],
     "basic_fields": [
       "image"
+    ]
+  },
+  {
+    "title": "MMAudio V2",
+    "description": "MMAudio V2 generates synchronized audio given text inputs.\n    It can generate sounds described by a prompt.",
+    "namespace": "fal.text_to_audio",
+    "node_type": "fal.text_to_audio.MMAudioV2",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "prompt",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Prompt",
+        "description": "The prompt to generate the audio for",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "negative_prompt",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Negative Prompt",
+        "description": "The negative prompt to avoid certain elements in the generated audio",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "num_steps",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 25,
+        "title": "Num Steps",
+        "description": "The number of steps to generate the audio for",
+        "min": 1.0,
+        "max": null
+      },
+      {
+        "name": "duration",
+        "type": {
+          "type": "float",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 8.0,
+        "title": "Duration",
+        "description": "The duration of the audio to generate in seconds",
+        "min": 1.0,
+        "max": null
+      },
+      {
+        "name": "cfg_strength",
+        "type": {
+          "type": "float",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 4.5,
+        "title": "Cfg Strength",
+        "description": "The strength of Classifier Free Guidance",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "mask_away_clip",
+        "type": {
+          "type": "bool",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": false,
+        "title": "Mask Away Clip",
+        "description": "Whether to mask away the clip",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "seed",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": -1,
+        "title": "Seed",
+        "description": "The same seed will output the same audio every time",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "audio",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "prompt",
+      "duration",
+      "num_steps"
+    ]
+  },
+  {
+    "title": "Stable Audio",
+    "description": "Stable Audio generates audio from text prompts.\n    Open source text-to-audio model from fal.ai.",
+    "namespace": "fal.text_to_audio",
+    "node_type": "fal.text_to_audio.StableAudio",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "prompt",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Prompt",
+        "description": "The prompt to generate the audio from",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "seconds_start",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 0,
+        "title": "Seconds Start",
+        "description": "The start point of the audio clip to generate",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "seconds_total",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 30,
+        "title": "Seconds Total",
+        "description": "The duration of the audio clip to generate in seconds",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "steps",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 100,
+        "title": "Steps",
+        "description": "The number of steps to denoise the audio for",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "audio",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "prompt",
+      "seconds_total",
+      "steps"
+    ]
+  },
+  {
+    "title": "F5 TTS",
+    "description": "F5 TTS converts text to speech using a reference audio for voice cloning.\n    Uses fal.ai's F5 TTS model for high-quality voice synthesis.",
+    "namespace": "fal.text_to_audio",
+    "node_type": "fal.text_to_audio.F5TTS",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "gen_text",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Gen Text",
+        "description": "The text to be converted to speech",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "ref_audio_url",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Ref Audio Url",
+        "description": "URL of the reference audio file to clone the voice from",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "ref_text",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Ref Text",
+        "description": "Optional reference text. If not provided, ASR will be used",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "model_type",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "F5-TTS",
+        "title": "Model Type",
+        "description": "Model type to use (F5-TTS or E2-TTS)",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "remove_silence",
+        "type": {
+          "type": "bool",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": true,
+        "title": "Remove Silence",
+        "description": "Whether to remove silence from the generated audio",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "audio",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "gen_text",
+      "ref_audio_url",
+      "model_type"
     ]
   },
   {
