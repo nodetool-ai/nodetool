@@ -2,7 +2,14 @@
 import { css } from "@emotion/react";
 
 import React, { useState, useCallback, useMemo, useEffect } from "react";
-import { Button, IconButton, InputBase, Box, Tooltip } from "@mui/material";
+import {
+  Button,
+  IconButton,
+  InputBase,
+  Box,
+  Tooltip,
+  Typography
+} from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
@@ -215,6 +222,11 @@ const LastWorkflowButton = React.memo(() => {
 
   return (
     <div className="last-workflow" css={styles}>
+      {!pathname.startsWith("/editor") && (
+        <Typography component="span" sx={{ mr: 1 }}>
+          Go back to
+        </Typography>
+      )}
       {!isEditing ? (
         <>
           {memoizedButton}
