@@ -286,7 +286,12 @@ const ExampleGrid = () => {
           variant="outlined"
           size="small"
           value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          onChange={(e) => {
+            setSearchQuery(e.target.value);
+            if (e.target.value.trim()) {
+              setSelectedTag(null);
+            }
+          }}
         />
       </Box>
       <Box className="container">
