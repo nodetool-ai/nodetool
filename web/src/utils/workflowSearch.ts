@@ -23,7 +23,8 @@ const extractNodeNames = (workflow: Workflow): string[] => {
       .map((node: any) => {
         const title = node.title || "";
         const type = node.type || "";
-        return [title, type].filter(Boolean);
+        const dataType = node.data?.type;
+        return [title, type, dataType].filter(Boolean);
       })
       .flat();
   } catch (e) {
@@ -33,49 +34,27 @@ const extractNodeNames = (workflow: Workflow): string[] => {
 };
 
 export const prepareWorkflowData = (workflow: Workflow): WorkflowSearchData => {
-  // const cached = workflowSearchCache.get(workflow.id);
-  // if (cached) {
-  //   console.log(`Cache hit for workflow "${workflow.name}" (${workflow.id})`);
-  //   return cached;
-  // }
-
-  // console.log(
-  //   `Cache miss for workflow "${workflow.name}" (${workflow.id}), computing node names...`
-  // );
   const nodeNames = extractNodeNames(workflow);
-  const searchText = [workflow.name, workflow.description, ...nodeNames]
-    .filter(Boolean)
-    .join(" ");
+  // Create individual search entries for each node name
+  const searchText = nodeNames.join(" ");
 
-  const data = { workflow, nodeNames, searchText };
-  workflowSearchCache.set(workflow.id, data);
-  return data;
-};
-
-const normalSearchOptions = {
-  includeScore: true,
-  keys: [
-    { name: "workflow.name", weight: 0.9 },
-    { name: "workflow.description", weight: 0.8 },
-    { name: "nodeNames", weight: 0.2 }
-  ],
-  threshold: 0.2,
-  distance: 30,
-  minMatchCharLength: 2,
-  ignoreLocation: true,
-  useExtendedSearch: true,
-  findAllMatches: true
+  return {
+    workflow,
+    nodeNames,
+    searchText
+  };
 };
 
 const nodeOnlySearchOptions = {
   includeScore: true,
-  keys: [{ name: "nodeNames", weight: 1.0 }],
+  includeMatches: true,
+  keys: ["nodeNames"],
   threshold: 0.1,
   distance: 100,
-  minMatchCharLength: 2,
+  tokenize: false,
+  minMatchCharLength: 3,
   ignoreLocation: true,
-  useExtendedSearch: true,
-  findAllMatches: true
+  useExtendedSearch: false
 };
 
 export interface SearchResult {
@@ -102,19 +81,23 @@ export const searchWorkflows = (
     };
   });
 
-  const fuse = new Fuse(
-    searchData,
-    nodesOnly ? nodeOnlySearchOptions : normalSearchOptions
-  );
+  const fuse = new Fuse(searchData, nodeOnlySearchOptions);
+  const results = fuse.search(query);
 
-  return fuse.search(query).map((result) => {
+  return results.map((result) => {
+    const uniqueMatches = new Set(
+      result.matches?.map((match) => {
+        const text = Array.isArray(match.value)
+          ? match.value.join(", ")
+          : String(match.value || "");
+        return text.split(".").pop() || text;
+      }) || []
+    );
+
     return {
       workflow: result.item.workflow,
       score: 1 - (result.score || 0),
-      matches:
-        result.matches?.map((match) => ({
-          text: match.value || ""
-        })) || []
+      matches: Array.from(uniqueMatches).map((text) => ({ text }))
     };
   });
 };
