@@ -43,8 +43,7 @@ const NodeContent: React.FC<NodeContentProps> = ({
         properties={nodeMetadata.properties}
         nodeType={nodeType}
         data={data}
-        onlyFields={isConstantNode}
-        onlyHandles={false}
+        showHandle={!isConstantNode}
         showAdvancedFields={showAdvancedFields}
         basicFields={basicFields}
       />

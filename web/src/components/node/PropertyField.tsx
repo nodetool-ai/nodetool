@@ -5,7 +5,7 @@ import { Tooltip, Zoom } from "@mui/material";
 import useConnectionStore from "../../stores/ConnectionStore";
 import { Property } from "../../stores/ApiTypes";
 import PropertyInput from "./PropertyInput";
-import { isConnectable, typeToString, Slugify } from "../../utils/TypeHandler";
+import { typeToString, Slugify } from "../../utils/TypeHandler";
 import {
   TOOLTIP_ENTER_DELAY,
   TOOLTIP_LEAVE_DELAY,
@@ -26,8 +26,8 @@ export type PropertyFieldProps = {
   layout?: string;
   property: Property;
   propertyIndex: string;
-  onlyInput?: boolean;
-  onlyHandle?: boolean;
+  showFields?: boolean;
+  showHandle?: boolean;
   isInspector?: boolean;
   tabIndex?: number;
   isBasicField?: boolean;
@@ -43,8 +43,8 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
   nodeType,
   propertyIndex,
   property,
-  onlyInput,
-  onlyHandle,
+  showFields = true,
+  showHandle = true,
   isInspector,
   tabIndex,
   showAdvancedFields,
@@ -66,8 +66,6 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
 
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
   const hideField = !isConnected && !isBasicField && !showAdvancedFields;
-  const showHandle = onlyHandle || !onlyInput;
-  const showInput = onlyInput || !onlyHandle;
 
   const classConnectable = useMemo(() => {
     return connectType !== null &&
@@ -148,7 +146,7 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
         </div>
       )}
 
-      {showInput ? (
+      {showFields ? (
         <PropertyInput
           propertyIndex={`${id}-${propertyIndex}`}
           id={id}
