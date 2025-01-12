@@ -368,11 +368,11 @@ const ExampleGrid = () => {
             leaveDelay={TOOLTIP_LEAVE_DELAY}
           >
             <Button
-              onClick={() => setSelectedTag("start")}
+              onClick={() => setSelectedTag("getting-started")}
               variant="outlined"
-              className={selectedTag === "start" ? "selected" : ""}
+              className={selectedTag === "getting-started" ? "selected" : ""}
             >
-              Start
+              Getting Started
             </Button>
           </Tooltip>
           {Object.keys(groupedWorkflows)
