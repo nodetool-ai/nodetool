@@ -8,7 +8,6 @@ import { devLog } from "../../utils/DevLog";
 import { isConnectable } from "../../utils/TypeHandler";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import useMetadataStore from "../../stores/MetadataStore";
-import { isConnectableCached } from "../../components/node_menu/typeFilterUtils";
 
 export default function useConnectionHandlers() {
   // useRef is needed to track current connection state
@@ -101,19 +100,21 @@ export default function useConnectionHandlers() {
           return;
         }
         if (connectDirection === "source") {
-          const possibleInputs = nodeMetadata.properties.filter((prop) =>
-            isConnectableCached(
-              {
-                type: connectType?.type || "any",
-                optional: false,
-                type_args: []
-              },
-              {
-                type: prop.type.type as TypeName,
-                optional: false,
-                type_args: []
-              }
-            )
+          const possibleInputs = nodeMetadata.properties.filter(
+            (prop) =>
+              isConnectable(
+                {
+                  type: connectType?.type || "any",
+                  optional: false,
+                  type_args: []
+                },
+                {
+                  type: prop.type.type as TypeName,
+                  optional: false,
+                  type_args: []
+                }
+              ),
+            true
           );
 
           if (possibleInputs.length > 0) {
@@ -163,7 +164,8 @@ export default function useConnectionHandlers() {
                 type: prop.type.type as TypeName,
                 optional: false,
                 type_args: []
-              }
+              },
+              true
             )
           );
           if (possibleOutputs.length > 0) {
