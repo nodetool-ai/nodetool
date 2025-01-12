@@ -69,7 +69,7 @@ const namespaceStyles = (theme: any, inPanel: boolean) =>
       overflowY: "auto",
       width: "fit-content",
       height: "fit-content",
-      maxHeight: inPanel ? "85vh" : "750px",
+      maxHeight: inPanel ? "85vh" : "680px",
       paddingRight: inPanel ? ".5em" : "1em",
       paddingBottom: "3em",
       marginRight: ".5em",
