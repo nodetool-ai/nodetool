@@ -66,7 +66,6 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
 
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
   const hideField = !isConnected && !isBasicField && !showAdvancedFields;
-
   const classConnectable = useMemo(() => {
     return connectType !== null &&
       isConnectableCached(connectType, property.type) &&
