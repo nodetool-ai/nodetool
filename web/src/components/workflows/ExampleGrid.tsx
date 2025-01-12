@@ -7,7 +7,9 @@ import {
   Button,
   ButtonGroup,
   Tooltip,
-  TextField
+  TextField,
+  Switch,
+  FormControlLabel
 } from "@mui/material";
 import { useWorkflowStore } from "../../stores/WorkflowStore";
 import { useCallback, useMemo, useState } from "react";
@@ -17,6 +19,11 @@ import ThemeNodetool from "../themes/ThemeNodetool";
 import { useQuery } from "@tanstack/react-query";
 import { ErrorOutlineRounded } from "@mui/icons-material";
 import { css } from "@emotion/react";
+import {
+  searchWorkflows,
+  SearchResult,
+  prepareWorkflowData
+} from "../../utils/workflowSearch";
 
 const styles = (theme: any) =>
   css({
@@ -157,7 +164,10 @@ const styles = (theme: any) =>
     },
     ".search-container": {
       padding: "0 20px",
-      marginBottom: "10px"
+      marginBottom: "10px",
+      display: "flex",
+      alignItems: "center",
+      gap: "16px"
     },
     ".search-field": {
       width: "100%",
@@ -170,6 +180,18 @@ const styles = (theme: any) =>
           borderColor: theme.palette.c_hl1
         }
       }
+    },
+    ".search-debug": {
+      padding: "0 20px",
+      marginBottom: "10px",
+      fontSize: "0.8rem",
+      color: theme.palette.text.secondary,
+      maxHeight: "100px",
+      overflowY: "auto"
+    },
+    ".match-highlight": {
+      color: theme.palette.c_hl1,
+      fontWeight: "bold"
     }
   });
 
@@ -179,6 +201,8 @@ const ExampleGrid = () => {
   const createWorkflow = useWorkflowStore((state) => state.create);
   const [selectedTag, setSelectedTag] = useState<string | null>("start");
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [nodesOnlySearch, setNodesOnlySearch] = useState(false);
 
   const { data, isLoading, isError, error } = useQuery<WorkflowList, Error>({
     queryKey: ["examples"],
@@ -223,24 +247,56 @@ const ExampleGrid = () => {
   }, [data]);
 
   const filteredWorkflows = useMemo(() => {
+    if (!data?.workflows) return [];
+
     let workflows =
       !selectedTag || !groupedWorkflows[selectedTag]
-        ? data?.workflows || []
+        ? data.workflows
         : groupedWorkflows[selectedTag];
 
     if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      workflows = workflows.filter(
-        (workflow) =>
-          workflow.name.toLowerCase().includes(query) ||
-          (workflow.description || "").toLowerCase().includes(query)
-      );
+      const results = searchWorkflows(workflows, searchQuery, nodesOnlySearch);
+      setSearchResults(results);
+      return results.map((r) => r.workflow);
     }
 
+    setSearchResults([]);
     return [...workflows].sort((a, b) =>
       a.name.toLowerCase().localeCompare(b.name.toLowerCase())
     );
-  }, [selectedTag, groupedWorkflows, data, searchQuery]);
+  }, [selectedTag, groupedWorkflows, data, searchQuery, nodesOnlySearch]);
+
+  const renderSearchDebug = () => {
+    if (!searchQuery.trim() || !searchResults.length) return null;
+
+    return (
+      <Box className="search-debug">
+        <Typography variant="body2">
+          Search results ({searchResults.length}):
+        </Typography>
+        {searchResults.slice(0, 3).map((result, idx) => {
+          const data = prepareWorkflowData(result.workflow);
+          return (
+            <Typography key={idx} variant="body2">
+              • {result.workflow.name} (score: {result.score.toFixed(2)})
+              {result.matches.slice(0, 2).map((match, midx) => (
+                <span key={midx}>
+                  <br />
+                  &nbsp;&nbsp;matched:{" "}
+                  <span className="match-highlight">{match.text}</span>
+                </span>
+              ))}
+              <br />
+              &nbsp;&nbsp;nodes:{" "}
+              <span className="match-highlight">
+                {data.nodeNames.join(", ")}
+              </span>
+            </Typography>
+          );
+        })}
+      </Box>
+    );
+  };
 
   return (
     <div className="workflow-grid" css={styles}>
@@ -293,7 +349,18 @@ const ExampleGrid = () => {
             }
           }}
         />
+        <FormControlLabel
+          control={
+            <Switch
+              checked={nodesOnlySearch}
+              onChange={(e) => setNodesOnlySearch(e.target.checked)}
+              size="small"
+            />
+          }
+          label="Search nodes only"
+        />
       </Box>
+      {renderSearchDebug()}
       <Box className="container">
         {isLoading && (
           <div className="loading-indicator">
