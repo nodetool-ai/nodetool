@@ -281,11 +281,11 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
     // Description matches
     const descriptionFuse = new Fuse(entries, {
       ...fuseOptions,
-      threshold: 0.3,
+      threshold: 0.29,
       distance: 100,
       minMatchCharLength: 3,
       keys: [
-        { name: "description", weight: 0.9 },
+        { name: "description", weight: 0.95 },
         { name: "use_cases", weight: 0.9 },
         { name: "recommended_models", weight: 0.7 }
       ],

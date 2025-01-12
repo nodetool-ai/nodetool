@@ -46,7 +46,7 @@ const renderGroupTitle = (title: string) => {
   const tooltips: Record<string, string> = {
     Name: "Exact matches in node names",
     Namespace: "Matches in node namespaces and tags",
-    Description: "Matches found in node descriptions"
+    Description: "Matches found in node descriptions. Better results on top."
   };
 
   return (
