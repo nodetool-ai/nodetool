@@ -1,8 +1,8 @@
 {
   "id": "66a76fbad01511ef97f9000025dd7c17",
   "access": "public",
-  "created_at": "2025-01-11T18:22:24.889412",
-  "updated_at": "2025-01-11T18:22:24.889436",
+  "created_at": "2025-01-12T01:20:42.665175",
+  "updated_at": "2025-01-12T01:20:42.665186",
   "name": "Summarize Newsletters",
   "description": "",
   "tags": null,
@@ -16,14 +16,13 @@
         "type": "nodetool.group.Loop",
         "data": {},
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 472,
-            "y": 67
+            "y": 119
           },
           "zIndex": -10,
-          "width": 930,
-          "height": 455,
+          "width": 900,
+          "height": 360,
           "selectable": false
         }
       },
@@ -33,10 +32,9 @@
         "type": "nodetool.input.GroupInput",
         "data": {},
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 50,
-            "y": 178
+            "y": 168
           },
           "zIndex": 0,
           "width": 122,
@@ -51,11 +49,11 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 651,
-            "y": 131
+            "x": 750,
+            "y": 168
           },
           "zIndex": 0,
-          "width": 200,
+          "width": 100,
           "selectable": true
         }
       },
@@ -67,10 +65,9 @@
           "name": "any_output_2024-12-29"
         },
         "ui_properties": {
-          "selected": false,
           "position": {
-            "x": 1462,
-            "y": 95
+            "x": 1432,
+            "y": 80
           },
           "zIndex": 0,
           "width": 201,
@@ -88,7 +85,6 @@
           "max_results": 10
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 242,
             "y": 219
@@ -104,10 +100,9 @@
         "type": "nodetool.network.imap.EmailFields",
         "data": {},
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 202,
-            "y": 91
+            "y": 77
           },
           "zIndex": 0,
           "width": 200,
@@ -119,13 +114,13 @@
         "parent_id": null,
         "type": "nodetool.list.JoinStrings",
         "data": {
-          "delimiter": "=== END OF MAIL ===\n\n\n"
+          "delimiter": "=== END OF MAIL ===\n\n\n\n\n"
         },
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 1462.5,
-            "y": 307
+            "x": 1432.5,
+            "y": 292
           },
           "zIndex": 0,
           "width": 200,
@@ -142,12 +137,12 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 1923,
-            "y": 191
+            "x": 1992,
+            "y": 180
           },
           "zIndex": 0,
-          "width": 451,
-          "height": 358,
+          "width": 619,
+          "height": 895,
           "selectable": true
         }
       },
@@ -158,28 +153,30 @@
         "data": {
           "model": {
             "type": "llama_model",
-            "repo_id": "gemma2:9b"
+            "repo_id": "phi4:14b"
           },
           "context_window": 4096,
           "max_length": 1000,
-          "temperature": 0.7,
+          "temperature": 0,
           "top_k": 50,
-          "top_p": 0.95,
+          "top_p": 0.9,
           "keep_alive": 300,
           "focus_aspects": "key insights",
           "style": "executive summary",
           "audience": "AI researchers",
           "key_points_count": 10,
-          "system_prompt": "You are an expert text summarizer. Follow these guidelines:\n\n1. Content Focus:\n   - Extract main arguments, findings, and conclusions\n   - Preserve critical evidence and methodologies\n   - Maintain factual accuracy and context\n   - Include key statistics when relevant\n\n2. Structure and Style:\n   - Present information in logical flow\n   - Use clear, precise language\n   - Balance brevity with completeness\n   - Adapt style to match source material\n\n3. Quality Standards:\n   - Include only information from the source\n   - Avoid personal interpretation\n   - Maintain technical accuracy\n   - Preserve nuance in complex topics\n\nYour goal is to create an accurate, useful, and efficient representation of the original text while maintaining its core meaning and significance."
+          "system_prompt": "You are an expert text summarizer. Follow these guidelines:\n\n1. Content Focus:\n   - Extract main arguments, findings, and conclusions\n   - Preserve critical evidence and methodologies\n   - Maintain factual accuracy and context\n   - Include key statistics when relevant\n\n2. Structure and Style:\n   - Present information in logical flow\n   - Use clear, precise language\n   - Balance brevity with completeness\n   - Adapt style to match source material\n\n3. Quality Standards:\n   - Include only information from the source\n   - Avoid personal interpretation\n   - Maintain technical accuracy\n   - Preserve nuance in complex topics\n\nYour goal is to create an accurate, useful, and efficient representation of the original text while maintaining its core meaning and significance.",
+          "prompt": "Create a comprehensive summary of all the newsletter emails:\n\u2022 Focus ONLY on the key information from the source text\n\u2022 Maintain a neutral, objective tone throughout\n\u2022 Present information in a logical flow\n\u2022 Remove any redundant points\n\u2022 Keep only the most important ideas and relationships\n* GROUP ALL NEWS INTO TOPICS\n* IMPORTANT NEWS FIRST",
+          "num_predict": 4096
         },
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 1693,
-            "y": 230
+            "x": 1663,
+            "y": 229
           },
           "zIndex": 0,
-          "width": 200,
+          "width": 299,
           "selectable": true
         }
       },
@@ -190,7 +187,7 @@
         "data": {
           "model": {
             "type": "llama_model",
-            "repo_id": "gemma2:2b"
+            "repo_id": "llama3.2:1b"
           },
           "context_window": 8192,
           "max_length": 200,
@@ -202,7 +199,8 @@
           "audience": "LLM",
           "focus_aspects": "technical details",
           "key_points_count": 3,
-          "system_prompt": "You are an expert text summarizer. Follow these guidelines:\n\n1. Content Focus:\n   - Extract main arguments, findings, and conclusions\n   - Preserve critical evidence and methodologies\n   - Maintain factual accuracy and context\n   - Include key statistics when relevant\n\n2. Structure and Style:\n   - Present information in logical flow\n   - Use clear, precise language\n   - Balance brevity with completeness\n   - Adapt style to match source material\n\n3. Quality Standards:\n   - Include only information from the source\n   - Avoid personal interpretation\n   - Maintain technical accuracy\n   - Preserve nuance in complex topics\n\nYour goal is to create an accurate, useful, and efficient representation of the original text while maintaining its core meaning and significance."
+          "system_prompt": "You are an expert text summarizer. Follow these guidelines:\n\n1. Content Focus:\n   - Extract main arguments, findings, and conclusions\n   - Preserve critical evidence and methodologies\n   - Maintain factual accuracy and context\n   - Include key statistics when relevant\n\n2. Structure and Style:\n   - Present information in logical flow\n   - Use clear, precise language\n   - Balance brevity with completeness\n   - Adapt style to match source material\n\n3. Quality Standards:\n   - Include only information from the source\n   - Avoid personal interpretation\n   - Maintain technical accuracy\n   - Preserve nuance in complex topics\n\nYour goal is to create an accurate, useful, and efficient representation of the original text while maintaining its core meaning and significance.",
+          "prompt": "Summarize this email newsletter:\n\u2022 Focus ONLY on the key information from the source text\n\u2022 Maintain a neutral, objective tone throughout\n\u2022 Present information in a logical flow\n\u2022 Remove any redundant points\n\u2022 Keep only the most important ideas and relationships\n* NO CONCLUSION\n* NO INTRODUCTION\n* NO EXPLANATION OR ADDITIONAL TEXT\n* ONLY RESPOND WITH THE SUMMAR"
         },
         "ui_properties": {
           "selected": false,
@@ -211,26 +209,7 @@
             "y": 50
           },
           "zIndex": 0,
-          "width": 159,
-          "selectable": true
-        }
-      },
-      {
-        "id": "37",
-        "parent_id": "12",
-        "type": "nodetool.workflows.base_node.Preview",
-        "data": {
-          "name": "str_output_2025-01-11"
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 651,
-            "y": 205
-          },
-          "zIndex": 0,
-          "width": 229,
-          "height": 200,
+          "width": 288,
           "selectable": true
         }
       },
@@ -243,7 +222,7 @@
           "to_address": "",
           "subject": "AINews",
           "body": "",
-          "date_filter": "SINCE_ONE_WEEK",
+          "date_filter": "SINCE_ONE_MONTH",
           "flags": null,
           "keywords": "",
           "folder": "INBOX",
@@ -277,7 +256,6 @@
           ]
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": -127,
             "y": 160
@@ -301,13 +279,23 @@
         }
       },
       {
-        "id": "96a69b90-9c7a-4c77-acfe-74f947b8ce38",
-        "source": "38",
+        "id": "f4cd7afd-ba08-4850-b47f-417ee7a9cd77",
+        "source": "36",
         "sourceHandle": "output",
-        "target": "20",
-        "targetHandle": "search_criteria",
+        "target": "14",
+        "targetHandle": "input",
         "ui_properties": {
-          "className": "email_search_criteria"
+          "className": "str"
+        }
+      },
+      {
+        "id": "08465db1-1dfd-4199-bf47-14c0a6b3610c",
+        "source": "20",
+        "sourceHandle": "output",
+        "target": "12",
+        "targetHandle": "input",
+        "ui_properties": {
+          "className": "list"
         }
       },
       {
@@ -321,13 +309,13 @@
         }
       },
       {
-        "id": "a270ae57-f9f7-42f4-98f1-81891f2618a6",
-        "source": "31",
+        "id": "019f70a8-ba9a-4da2-a433-1cb26f370c40",
+        "source": "13",
         "sourceHandle": "output",
-        "target": "35",
-        "targetHandle": "text",
+        "target": "22",
+        "targetHandle": "email",
         "ui_properties": {
-          "className": "str"
+          "className": "any"
         }
       },
       {
@@ -341,33 +329,13 @@
         }
       },
       {
-        "id": "019f70a8-ba9a-4da2-a433-1cb26f370c40",
-        "source": "13",
+        "id": "96a69b90-9c7a-4c77-acfe-74f947b8ce38",
+        "source": "38",
         "sourceHandle": "output",
-        "target": "22",
-        "targetHandle": "email",
+        "target": "20",
+        "targetHandle": "search_criteria",
         "ui_properties": {
-          "className": "any"
-        }
-      },
-      {
-        "id": "f4cd7afd-ba08-4850-b47f-417ee7a9cd77",
-        "source": "36",
-        "sourceHandle": "output",
-        "target": "14",
-        "targetHandle": "input",
-        "ui_properties": {
-          "className": "str"
-        }
-      },
-      {
-        "id": "79987",
-        "source": "36",
-        "sourceHandle": "output",
-        "target": "37",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "str"
+          "className": "email_search_criteria"
         }
       },
       {
@@ -381,13 +349,13 @@
         }
       },
       {
-        "id": "08465db1-1dfd-4199-bf47-14c0a6b3610c",
-        "source": "20",
+        "id": "a270ae57-f9f7-42f4-98f1-81891f2618a6",
+        "source": "31",
         "sourceHandle": "output",
-        "target": "12",
-        "targetHandle": "input",
+        "target": "35",
+        "targetHandle": "text",
         "ui_properties": {
-          "className": "list"
+          "className": "str"
         }
       }
     ]

@@ -1,3 +1,4 @@
+from ollama import ChatResponse
 from nodetool.metadata.types import Provider
 from nodetool.providers.anthropic.prediction import run_anthropic
 from nodetool.providers.google.prediction import run_gemini
@@ -12,7 +13,7 @@ from typing import AsyncGenerator
 
 async def run_prediction(
     prediction: Prediction, env: dict[str, str]
-) -> AsyncGenerator[PredictionResult | Prediction, None]:
+) -> AsyncGenerator[PredictionResult | Prediction | ChatResponse, None]:
     """
     Run the prediction for a given model.
     """

@@ -20418,7 +20418,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": 11,
+        "default": 12,
         "title": "Day",
         "description": "Day of the date",
         "min": null,
@@ -20492,7 +20492,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": 11,
+        "default": 12,
         "title": "Day",
         "description": "Day of the datetime",
         "min": null,
@@ -22251,11 +22251,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 11,
-          "hour": 18,
-          "minute": 19,
-          "second": 23,
-          "microsecond": 769618,
+          "day": 12,
+          "hour": 0,
+          "minute": 39,
+          "second": 18,
+          "microsecond": 436466,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23293,11 +23293,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 11,
-          "hour": 18,
-          "minute": 19,
-          "second": 23,
-          "microsecond": 773754,
+          "day": 12,
+          "hour": 0,
+          "minute": 39,
+          "second": 18,
+          "microsecond": 440481,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23346,11 +23346,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 11,
-          "hour": 18,
-          "minute": 19,
-          "second": 23,
-          "microsecond": 773973,
+          "day": 12,
+          "hour": 0,
+          "minute": 39,
+          "second": 18,
+          "microsecond": 440704,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23399,11 +23399,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 11,
-          "hour": 18,
-          "minute": 19,
-          "second": 23,
-          "microsecond": 774227,
+          "day": 12,
+          "hour": 0,
+          "minute": 39,
+          "second": 18,
+          "microsecond": 440924,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23452,11 +23452,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 11,
-          "hour": 18,
-          "minute": 19,
-          "second": 23,
-          "microsecond": 774449,
+          "day": 12,
+          "hour": 0,
+          "minute": 39,
+          "second": 18,
+          "microsecond": 441133,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23505,11 +23505,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 11,
-          "hour": 18,
-          "minute": 19,
-          "second": 23,
-          "microsecond": 774668,
+          "day": 12,
+          "hour": 0,
+          "minute": 39,
+          "second": 18,
+          "microsecond": 441386,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23558,11 +23558,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 11,
-          "hour": 18,
-          "minute": 19,
-          "second": 23,
-          "microsecond": 774895,
+          "day": 12,
+          "hour": 0,
+          "minute": 39,
+          "second": 18,
+          "microsecond": 441597,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23611,11 +23611,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 11,
-          "hour": 18,
-          "minute": 19,
-          "second": 23,
-          "microsecond": 775139,
+          "day": 12,
+          "hour": 0,
+          "minute": 39,
+          "second": 18,
+          "microsecond": 441829,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23680,11 +23680,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 11,
-          "hour": 18,
-          "minute": 19,
-          "second": 23,
-          "microsecond": 775406,
+          "day": 12,
+          "hour": 0,
+          "minute": 39,
+          "second": 18,
+          "microsecond": 442105,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -97331,10 +97331,10 @@
     ]
   },
   {
-    "title": "Summarizer",
-    "description": "LLM Agent to generate concise summaries of text content.\n    llm, summarization, text processing\n\n    Use cases:\n    - Document summarization\n    - Article abstraction\n    - Content briefing\n    - Key points extraction",
+    "title": "Summarize Chunks",
+    "description": "LLM Agent to break down and summarize long text into manageable chunks.\n    llm, summarization, text processing\n\n    Use cases:\n    - Breaking down long documents\n    - Initial summarization of large texts\n    - Preparing content for final summarization",
     "namespace": "ollama.agents",
-    "node_type": "ollama.agents.Summarizer",
+    "node_type": "ollama.agents.SummarizeChunks",
     "layout": "default",
     "properties": [
       {
@@ -97361,19 +97361,19 @@
         "max": null
       },
       {
-        "name": "context_window",
+        "name": "prompt",
         "type": {
-          "type": "int",
+          "type": "str",
           "optional": false,
           "values": null,
           "type_args": [],
           "type_name": null
         },
-        "default": 4096,
-        "title": "Context Window",
-        "description": "The context window size to use for the model.",
-        "min": 1.0,
-        "max": 8192.0
+        "default": "\n        Create a summary following these rules:\n        \u2022 Focus ONLY on the key information from the source text\n        \u2022 Maintain a neutral, objective tone throughout\n        \u2022 Present information in a logical flow\n        \u2022 Remove any redundant points\n        \u2022 Keep only the most important ideas and relationships\n        * NO CONCLUSION\n        * NO INTRODUCTION\n        * NO EXPLANATION OR ADDITIONAL TEXT\n        * ONLY RESPOND WITH THE SUMMARY",
+        "title": "Prompt",
+        "description": "Instruction for summarizing individual chunks of text",
+        "min": null,
+        "max": null
       },
       {
         "name": "text",
@@ -97391,7 +97391,7 @@
         "max": null
       },
       {
-        "name": "max_length",
+        "name": "context_window",
         "type": {
           "type": "int",
           "optional": false,
@@ -97399,11 +97399,26 @@
           "type_args": [],
           "type_name": null
         },
-        "default": 200,
-        "title": "Max Length",
-        "description": "Target maximum length of the summary in words",
+        "default": 4096,
+        "title": "Context Window",
+        "description": "The context window size to use for the model.",
         "min": 1.0,
-        "max": null
+        "max": 16384.0
+      },
+      {
+        "name": "num_predict",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 256,
+        "title": "Num Predict",
+        "description": "Number of tokens to predict for each chunk",
+        "min": 0.0,
+        "max": 16384.0
       },
       {
         "name": "chunk_overlap",
@@ -97429,7 +97444,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": 0.7,
+        "default": 0.0,
         "title": "Temperature",
         "description": "The temperature to use for sampling.",
         "min": 0.0,
@@ -97479,9 +97494,69 @@
         "description": "The number of seconds to keep the model alive.",
         "min": null,
         "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "str",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "model",
+      "text",
+      "prompt"
+    ]
+  },
+  {
+    "title": "Summarizer",
+    "description": "LLM Agent to summarize text\n    llm, summarization, text processing\n\n    Use cases:\n    - Creating final summaries from multiple sources\n    - Combining chapter summaries\n    - Generating executive summaries",
+    "namespace": "ollama.agents",
+    "node_type": "ollama.agents.Summarizer",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "model",
+        "type": {
+          "type": "llama_model",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "llama_model",
+          "name": "",
+          "repo_id": "",
+          "modified_at": "",
+          "size": 0,
+          "digest": "",
+          "details": {}
+        },
+        "title": "Model",
+        "description": "The Llama model to use for summarization.",
+        "min": null,
+        "max": null
       },
       {
-        "name": "system_prompt",
+        "name": "prompt",
         "type": {
           "type": "str",
           "optional": false,
@@ -97489,9 +97564,114 @@
           "type_args": [],
           "type_name": null
         },
-        "default": "You are an expert text summarizer. Follow these guidelines:\n\n1. Content Focus:\n   - Extract main arguments, findings, and conclusions\n   - Preserve critical evidence and methodologies\n   - Maintain factual accuracy and context\n   - Include key statistics when relevant\n\n2. Structure and Style:\n   - Present information in logical flow\n   - Use clear, precise language\n   - Balance brevity with completeness\n   - Adapt style to match source material\n\n3. Quality Standards:\n   - Include only information from the source\n   - Avoid personal interpretation\n   - Maintain technical accuracy\n   - Preserve nuance in complex topics\n\nYour goal is to create an accurate, useful, and efficient representation of the original text while maintaining its core meaning and significance.",
-        "title": "System Prompt",
-        "description": "System prompt for the summarization task. Defines the behavior and guidelines for the summarization.",
+        "default": "Create a summary following these rules:\n\u2022 Focus ONLY on the key information from the source text\n\u2022 Maintain a neutral, objective tone throughout\n\u2022 Present information in a logical flow\n\u2022 Remove any redundant points\n\u2022 Keep only the most important ideas and relationships\n* NO CONCLUSION\n* NO INTRODUCTION\n* NO EXPLANATION OR ADDITIONAL TEXT\n* ONLY RESPOND WITH THE SUMMARY",
+        "title": "Prompt",
+        "description": "Instruction for creating the final summary",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "text",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Text",
+        "description": "The text to summarize",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "num_predict",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 256,
+        "title": "Num Predict",
+        "description": "Number of tokens to predict",
+        "min": 0.0,
+        "max": 16384.0
+      },
+      {
+        "name": "context_window",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 4096,
+        "title": "Context Window",
+        "description": "The context window size to use for the model.",
+        "min": 1.0,
+        "max": 16384.0
+      },
+      {
+        "name": "temperature",
+        "type": {
+          "type": "float",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 0.0,
+        "title": "Temperature",
+        "description": "The temperature to use for sampling.",
+        "min": 0.0,
+        "max": 2.0
+      },
+      {
+        "name": "top_k",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 50,
+        "title": "Top K",
+        "description": "The number of highest probability tokens to keep for top-k sampling.",
+        "min": 1.0,
+        "max": 100.0
+      },
+      {
+        "name": "top_p",
+        "type": {
+          "type": "float",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 0.95,
+        "title": "Top P",
+        "description": "The cumulative probability cutoff for nucleus/top-p sampling.",
+        "min": 0.0,
+        "max": 1.0
+      },
+      {
+        "name": "keep_alive",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 300,
+        "title": "Keep Alive",
+        "description": "The number of seconds to keep the model alive.",
         "min": null,
         "max": null
       }
@@ -97514,8 +97694,7 @@
     "basic_fields": [
       "model",
       "text",
-      "max_length",
-      "system_prompt"
+      "prompt"
     ]
   },
   {

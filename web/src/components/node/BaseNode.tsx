@@ -89,6 +89,13 @@ const styles = (colors: string[]) =>
     ".node-resizer .react-flow__resize-control.line:hover": {
       opacity: 1
     },
+    ".node-progress pre": {
+      margin: "0",
+      padding: ".25em",
+      backgroundColor: ThemeNodes.palette.c_gray0,
+      width: "100%",
+      overflowX: "scroll"
+    },
 
     "&.loading": {
       position: "relative",

@@ -3,6 +3,7 @@ import { memo, useEffect, useState, useRef } from "react";
 import { LinearProgress, Typography } from "@mui/material";
 import useResultsStore from "../../stores/ResultsStore";
 import { isEqual } from "lodash";
+import MarkdownRenderer from "../../utils/MarkdownRenderer";
 
 const NodeProgress = ({
   id,
@@ -16,6 +17,7 @@ const NodeProgress = ({
   );
   const [eta, setEta] = useState<number | null>(null);
   const startTimeRef = useRef<number | null>(null);
+  const chunkRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (progress && startTimeRef.current === null) {
@@ -31,6 +33,12 @@ const NodeProgress = ({
       setEta(etaSeconds);
     }
   }, [progress]);
+
+  useEffect(() => {
+    if (chunkRef.current && progress?.chunk) {
+      chunkRef.current.scrollTop = chunkRef.current.scrollHeight;
+    }
+  }, [progress?.chunk]);
 
   if (!progress) {
     return null;
@@ -52,6 +60,19 @@ const NodeProgress = ({
         {progress.progress} / {progress.total}
         {eta && ` (eta ${eta}s)`}
       </Typography>
+      {progress.chunk && (
+        <div
+          ref={chunkRef}
+          style={{
+            marginTop: "0.5em",
+            maxHeight: "200px",
+            padding: "0.5em",
+            overflowY: "scroll"
+          }}
+        >
+          <MarkdownRenderer content={progress.chunk} />
+        </div>
+      )}
     </div>
   );
 };
