@@ -219,6 +219,8 @@ const LoopNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           data={props.data}
           showFields={false}
           showHandle={true}
+          basicFields={["input"]}
+          showAdvancedFields={true}
         />
         <Tooltip
           title="Loop nodes expect a List or Dataframe of any type. Use the GroupInput node inside the loop to use those items one by one."

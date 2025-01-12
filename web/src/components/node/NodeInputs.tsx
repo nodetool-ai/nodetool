@@ -19,11 +19,9 @@ export interface NodeInputsProps {
 
 const isDropdownProperty = (property: Property): boolean => {
   const type = property.type.type;
-  console.debug(`Property ${property.name}: type=${type}`);
 
   // Check for enum type
   if (type === "enum" || type === "collection") {
-    console.debug(`Property ${property.name} is dropdown (enum/collection)`);
     return true;
   }
 
@@ -36,9 +34,6 @@ const isDropdownProperty = (property: Property): boolean => {
     "hf."
   ];
   const isModel = modelPrefixes.some((prefix) => type.startsWith(prefix));
-  console.debug(
-    `Property ${property.name} is${isModel ? "" : " not"} a model dropdown`
-  );
   return isModel;
 };
 
