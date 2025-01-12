@@ -89,7 +89,7 @@ const nodeInfoStyles = (theme: any, inPanel: boolean) =>
         position: "static",
         height: "auto",
         maxHeight: "none",
-        lineHeight: "1.5"
+        lineHeight: "1.2em"
       }
     },
     ".node-tags": {

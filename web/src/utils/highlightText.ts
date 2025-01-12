@@ -8,9 +8,35 @@ const escapeHtml = (text: string): string => {
   return div.innerHTML;
 };
 
+// Convert hex color to RGB values
+const hexToRgb = (hex: string) => {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  if (!result) return null;
+  return `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(
+    result[3],
+    16
+  )}`;
+};
+
 export interface HighlightResult {
   html: string;
   highlightedWords: string[];
+}
+
+// Cache for highlighted results
+const highlightCache = new Map<string, HighlightResult>();
+
+interface FuseMatch {
+  indices: Array<[number, number]>;
+  key: string;
+  value: string;
+}
+
+interface Match {
+  indices: [number, number];
+  text: string;
+  length: number;
+  source: string;
 }
 
 export const highlightText = (
@@ -18,88 +44,130 @@ export const highlightText = (
   key: string,
   searchTerm: string | null,
   searchInfo?: NodeMetadata["searchInfo"],
-  minMatchLength: number = 3
+  isBulletList: boolean = false
 ): HighlightResult => {
   const highlightedWords: string[] = [];
 
+  // If no search or matches, return plain text
   if (!searchTerm || !searchInfo?.matches) {
-    return { html: escapeHtml(text), highlightedWords };
+    const html = isBulletList
+      ? formatBulletList(escapeHtml(text))
+      : escapeHtml(text);
+    return { html, highlightedWords };
   }
 
-  // Get all valid matches first
-  const allMatches = searchInfo.matches
-    .filter((match) => match.key === key) // Only use matches from the specified key
-    .flatMap((match) => {
-      return match.indices
-        .map(([start, end]) => {
-          const matchText = text.slice(start, end + 1);
+  // Get matches for this key
+  const matches = searchInfo.matches
+    .filter((match) => match.key === key)
+    .flatMap((match) =>
+      match.indices.map(([start, end]) => ({
+        start,
+        end,
+        text: text.slice(start, end + 1),
+        length: end - start + 1,
+        // Calculate similarity to search term
+        relevance: searchTerm
+          ? text
+              .slice(start, end + 1)
+              .toLowerCase()
+              .includes(searchTerm.toLowerCase())
+            ? 2
+            : text
+                .slice(start, end + 1)
+                .toLowerCase()
+                .replace(/\s+/g, "")
+                .includes(searchTerm.toLowerCase().replace(/\s+/g, ""))
+            ? 1
+            : 0
+          : 0
+      }))
+    )
+    .filter((match) => match.start < text.length); // Validate bounds
 
-          // Basic validation
-          if (start >= text.length || matchText.length < minMatchLength) {
-            return null;
-          }
+  if (matches.length === 0) {
+    const html = isBulletList
+      ? formatBulletList(escapeHtml(text))
+      : escapeHtml(text);
+    return { html, highlightedWords };
+  }
 
-          // Verify match contains part of the search term
-          const searchTermLower = searchTerm.toLowerCase();
-          const matchTextLower = matchText.toLowerCase();
-          const searchParts = searchTermLower.split(/\s+/);
-          if (!searchParts.some((part) => matchTextLower.includes(part))) {
-            return null;
-          }
-
-          return {
-            indices: [start, end] as [number, number],
-            text: matchText,
-            length: matchText.length
-          };
-        })
-        .filter((m): m is NonNullable<typeof m> => m !== null);
+  // Remove overlapping matches, keeping the better ones
+  const nonOverlappingMatches = matches
+    .sort((a, b) => {
+      // First sort by relevance (descending)
+      if (b.relevance !== a.relevance) return b.relevance - a.relevance;
+      // Then by length (descending)
+      if (b.length !== a.length) return b.length - a.length;
+      // Then by start position (ascending)
+      return a.start - b.start;
+    })
+    .filter((match, index, arr) => {
+      // Keep this match if it doesn't overlap with any previous (better) matches
+      return !arr
+        .slice(0, index)
+        .some(
+          (prevMatch) =>
+            match.start <= prevMatch.end && match.end >= prevMatch.start
+        );
     });
 
-  // Find the longest match that isn't contained within another match
-  const longestMatch = allMatches.reduce((longest, current) => {
-    if (!longest) return current;
-
-    // Check if current match overlaps with longest match
-    const [cStart, cEnd] = current.indices;
-    const [lStart, lEnd] = longest.indices;
-
-    // If they overlap, take the longer one
-    if (!(cEnd < lStart || cStart > lEnd)) {
-      return current.length > longest.length ? current : longest;
-    }
-
-    // If they don't overlap, keep the longest one seen so far
-    return current.length > longest.length ? current : longest;
-  }, null as (typeof allMatches)[0] | null);
-
-  if (!longestMatch) {
-    return { html: escapeHtml(text), highlightedWords };
-  }
-
-  // Create highlighted HTML with just the longest match
-  const parts: string[] = [];
-  const [start, end] = longestMatch.indices;
-  // Add text before match
-  if (start > 0) {
-    parts.push(escapeHtml(text.slice(0, start)));
-  }
-
-  // Add the highlighted match
-  highlightedWords.push(longestMatch.text);
-  parts.push(
-    `<span class="highlight" style="border-bottom: 1px solid ${
-      ThemeNodetool.palette.c_hl1
-    }">${escapeHtml(longestMatch.text)}</span>`
+  // Sort by position for processing
+  const orderedMatches = [...nonOverlappingMatches].sort(
+    (a, b) => a.start - b.start
   );
 
-  // Add text after match
-  if (end + 1 < text.length) {
-    parts.push(escapeHtml(text.slice(end + 1)));
+  // Find the best match for coloring (most relevant and longest)
+  const bestMatch = nonOverlappingMatches[0];
+  const longestLength =
+    orderedMatches.length > 0 ? orderedMatches[0].length : 0;
+
+  // Build highlighted HTML
+  const parts: string[] = [];
+  let lastEnd = 0;
+  let hasColoredMatch = false;
+  const rgbColor = hexToRgb(ThemeNodetool.palette.c_hl1 || "#fff");
+
+  for (const match of orderedMatches) {
+    // Add text before match
+    if (match.start > lastEnd) {
+      parts.push(escapeHtml(text.slice(lastEnd, match.start)));
+    }
+
+    // Add highlighted match
+    highlightedWords.push(match.text);
+    const opacity = Math.round(
+      (0.1 + 0.9 * (match.length / bestMatch.length)) * 100
+    );
+    const shouldColor = !hasColoredMatch && match === bestMatch;
+    if (shouldColor) hasColoredMatch = true;
+    const borderWidth = shouldColor ? "0px" : "1px";
+    parts.push(
+      `<span class="highlight" style="border-bottom: ${borderWidth} solid rgba(${
+        rgbColor || "255, 0, 0"
+      }, ${opacity}%);${
+        shouldColor ? `color: ${ThemeNodetool.palette.c_hl1 || "#fff"};` : ""
+      }transition: all 0.2s ease;">${escapeHtml(match.text)}</span>`
+    );
+
+    lastEnd = match.end + 1;
   }
 
-  return {
-    html: parts.join(""),
-    highlightedWords
-  };
+  // Add remaining text
+  if (lastEnd < text.length) {
+    parts.push(escapeHtml(text.slice(lastEnd)));
+  }
+
+  // Format result
+  let html = parts.join("");
+  if (isBulletList) {
+    html = formatBulletList(html);
+  }
+
+  return { html, highlightedWords };
+};
+
+// Helper function for bullet list formatting
+const formatBulletList = (text: string): string => {
+  const lines = text.split("\n").filter((line) => line.trim());
+  return `<ul>${lines.map((line) => `<li>${line}</li>`).join("\n")}</ul>`;
 };
