@@ -83,6 +83,11 @@ def _extract_json_content(text: str) -> str:
 class GeminiAgent(BaseNode):
     """
     Gemini version of the Agent node for task planning and goal decomposition.
+    agent, planning, task, decomposition
+    Use cases:
+    - Breaking down complex tasks into smaller steps
+    - Creating task dependencies and workflows
+    - Planning multi-step processes
     """
 
     goal: str = Field(default="", description="The user prompt")
@@ -140,7 +145,12 @@ class GeminiAgent(BaseNode):
 
 class ChainOfThought(BaseNode):
     """
-    Gemini version of chain-of-thought reasoning node.
+    Gemini version of chain-of-thought reasoning node for breaking down complex problems into clear steps.
+    agent, reasoning, analysis, problem-solving
+    Use cases:
+    - Analyzing complex problems step by step
+    - Breaking down solutions into logical steps
+    - Providing detailed reasoning for decisions
     """
 
     messages: list[Message] = Field(default=[], description="The messages to analyze")
@@ -190,8 +200,12 @@ class ChainOfThought(BaseNode):
 
 class DataGenerator(BaseNode):
     """
-    Gemini version of the data generator for creating dataframes based on user prompts.
-    Supports multimodal inputs including images and audio.
+    Gemini version of the data generator for creating dataframes based on user prompts. Supports multimodal inputs including images and audio.
+    data, generator, dataframe, multimodal
+    Use cases:
+    - Creating a dataset for a machine learning model
+    - Creating a dataset for a data visualization
+    - Creating a dataset for a data analysis
     """
 
     model: GeminiModel = Field(
@@ -359,6 +373,11 @@ def parse_svg_content(content: str) -> list[SVGElement]:
 class SVGGenerator(BaseNode):
     """
     Gemini version of SVG generator for creating SVG elements based on user prompts.
+    svg, generator, vector, graphics
+    Use cases:
+    - Creating vector graphics from text descriptions
+    - Generating scalable illustrations
+    - Creating custom icons and diagrams
     """
 
     model: GeminiModel = Field(
@@ -575,6 +594,11 @@ class SVGGenerator(BaseNode):
 class Summarizer(BaseNode):
     """
     Gemini version of the summarizer for creating concise summaries of text content.
+    text, summarization, nlp, content
+    Use cases:
+    - Condensing long documents into key points
+    - Creating executive summaries
+    - Extracting main ideas from text
     """
 
     model: GeminiModel = Field(
