@@ -66,7 +66,6 @@ jwt = "*"
 kornia = "0.7.4"
 langchain-text-splitters = "0.3.4"
 librosa = "0.10.2.post1"
-lumaai = "1.1.0"
 markitdown = "0.0.1a3"
 matplotlib = "3.9.2"
 moto = { version = "*", extras = ["s3"] }

@@ -84,7 +84,9 @@ const RemoteSettings = () => {
     AIME_USER: "",
     AIME_API_KEY: "",
     GOOGLE_APP_PASSWORD: "",
-    GEMINI_API_KEY: ""
+    GEMINI_API_KEY: "",
+    FAL_API_KEY: "",
+    ELEVENLABS_API_KEY: ""
   });
 
   const updateSettingsMutation = useMutation({
@@ -107,7 +109,9 @@ const RemoteSettings = () => {
         AIME_USER: data.secrets.AIME_USER || "",
         AIME_API_KEY: data.secrets.AIME_API_KEY || "",
         GOOGLE_APP_PASSWORD: data.secrets.GOOGLE_APP_PASSWORD || "",
-        GEMINI_API_KEY: data.secrets.GEMINI_API_KEY || ""
+        GEMINI_API_KEY: data.secrets.GEMINI_API_KEY || "",
+        FAL_API_KEY: data.secrets.FAL_API_KEY || "",
+        ELEVENLABS_API_KEY: data.secrets.ELEVENLABS_API_KEY || ""
       });
     }
   }, [isSuccess, data]);
@@ -373,6 +377,60 @@ const RemoteSettings = () => {
                   rel="noopener noreferrer"
                 >
                   &rarr; Google AI Studio API Keys
+                </a>
+              </Typography>
+            </div>
+          </div>
+
+          <Typography variant="h2">Fal.ai</Typography>
+          <div className="settings-item">
+            <TextField
+              autoComplete="off"
+              id="fal-api-key-input"
+              label="Fal.ai API Key"
+              value={settings.FAL_API_KEY}
+              onChange={(e) => handleChange("FAL_API_KEY", e.target.value)}
+              variant="standard"
+            />
+            <div className="text-and-button">
+              <Typography className="description">
+                Enter your Fal.ai API key to access their AI models and
+                services.
+                <br />
+                <a
+                  href="https://fal.ai/dashboard/keys"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  &rarr; Fal.ai API Keys
+                </a>
+              </Typography>
+            </div>
+          </div>
+
+          <Typography variant="h2">Eleven Labs</Typography>
+          <div className="settings-item">
+            <TextField
+              autoComplete="off"
+              id="elevenlabs-api-key-input"
+              label="ElevenLabs API Key"
+              value={settings.ELEVENLABS_API_KEY}
+              onChange={(e) =>
+                handleChange("ELEVENLABS_API_KEY", e.target.value)
+              }
+              variant="standard"
+            />
+            <div className="text-and-button">
+              <Typography className="description">
+                Enter your ElevenLabs API key to access advanced text-to-speech
+                capabilities.
+                <br />
+                <a
+                  href="https://elevenlabs.io/app/settings/api-keys"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  &rarr; ElevenLabs Dashboard
                 </a>
               </Typography>
             </div>

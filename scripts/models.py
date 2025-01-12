@@ -221,8 +221,6 @@ def recommended(
     import nodetool.nodes.openai
     import nodetool.nodes.replicate
     import nodetool.nodes.ollama
-    import nodetool.nodes.luma
-    import nodetool.nodes.kling
 
     client = RunPodClient()
     node_classes = get_registered_node_classes()

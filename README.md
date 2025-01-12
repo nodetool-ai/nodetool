@@ -3,18 +3,16 @@
   NodeTool - Your Personal Automation Platform
 </h1>
 
-NodeTool enables you to create custom automation workflows powered by AI, right on your desktop. Perfect for professionals who want to streamline their daily tasks and workflows. Whether you're building personal productivity tools, learning assistants, or desktop utilities, NodeTool provides the foundation for creating powerful, privacy-focused automation solutions.
+NodeTool enables you to create custom automation workflows powered by AI, right on your desktop. Perfect for professionals who want to streamline their daily tasks and workflows. Whether you're building personal productivity tools, learning assistants, or powerful media generation and manipulation tools, NodeTool provides the foundation for creating powerful, privacy-focused automation solutions.
 
 With NodeTool, you can:
 
 - **Build Privacy-First**: Keep your data local and secure with no need to send files to external servers
 - **Create Custom Solutions**: Design AI tools that work exactly the way you need them to
 - **Run Locally**: Utilize your own hardware to run open-source models via Ollama and access hundreds of models via Hugging Face
-- **Integrate Seamlessly**: Connect AI workflows to your favorite local apps and desktop utilities
-- **Build Privacy-First**: Keep your data local and secure with no need to send files to external servers
-- **Create Custom Solutions**: Design AI tools that work exactly the way you need them to
-- **Run Locally**: Utilize your own hardware to run open-source models via Ollama and access hundreds of models via Hugging Face
-- **Integrate Seamlessly**: Connect AI workflows to your favorite local apps and desktop utilities
+- **Integrate Seamlessly**: Connect AI workflows to your favorite apps and services
+- **Generate & Edit Media**: Create and manipulate images, audio, and video using state-of-the-art AI models
+- **Process Multiple Formats**: Work with text, images, audio, and video in a single unified interface
 
 ![NodeTool](nodetool.png)
 
@@ -27,6 +25,9 @@ Automate anything you can imagine! Share your automation success stories with us
 - 🎨 **Personal Learning Assistant**: Create chatbots that read and explain your PDFs, e-books, or academic papers
 - 📝 **Note Summarization**: Extract key insights from Obsidian or Apple Notes
 - 🎤 **Voice Memo to Presentation**: Convert recorded ideas into documents
+- 🔧️ **Image Generation & Editing**: Create and modify images with advanced AI models
+- 🎵 **Audio Processing**: Generate and edit audio content with AI assistance
+- 🎬 **Video Creation**: Produce and manipulate video content using AI tools
 - 🔧 **Desktop Utilities**: Access NodeTool mini-apps from your system tray
 - 🗣️ **Siri Integration**: Extend Siri's capabilities with custom AI workflows
 - ⚡ **Automation**: Streamline repetitive tasks with AI-powered scripts
@@ -81,13 +82,14 @@ NodeTool offers a diverse range of nodes to support various AI tasks, integratin
 - **Anthropic** (`anthropic`): Text-based AI operations using Anthropic's models.
 - **ComfyUI** (`comfyui`): Native support for ComfyUI nodes, enabling advanced image processing workflows directly within NodeTool.
 - **Chroma** (`chroma`): Vector database for storing and querying embeddings.
+- **ElevenLabs** (`elevenlabs`): Text-to-speech using ElevenLabs' models.
+- **Fal** (`fal`): AI services for audio, image, text, video, and multimodal processing.
+- **Google** (`google`): Gemini Models and GMail access.
 - **HuggingFace** (`huggingface`): Comprehensive AI capabilities including audio, image, text, video, and multimodal processing.
 - **NodeTool Core** (`nodetool`): Core functionalities for data manipulation, I/O operations, and various media processing.
 - **Ollama** (`ollama`): Run local large language models directly on your machine.
 - **OpenAI** (`openai`): AI operations for audio, image, and text using OpenAI's models.
 - **Replicate** (`replicate`): Versatile AI capabilities for audio, image, text, and video processing via cloud execution.
-- **Stable Diffusion** (`stable_diffusion`): Specialized image generation and manipulation.
-- **Luma** (`luma`): Generate videos from text and images.
 
 ## Model Manager 🗂️
 
