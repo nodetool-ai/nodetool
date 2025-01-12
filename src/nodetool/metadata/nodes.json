@@ -22380,10 +22380,10 @@
           "year": 2025,
           "month": 1,
           "day": 12,
-          "hour": 17,
-          "minute": 44,
-          "second": 21,
-          "microsecond": 594860,
+          "hour": 20,
+          "minute": 46,
+          "second": 27,
+          "microsecond": 406226,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23422,10 +23422,10 @@
           "year": 2025,
           "month": 1,
           "day": 12,
-          "hour": 17,
-          "minute": 44,
-          "second": 21,
-          "microsecond": 598829,
+          "hour": 20,
+          "minute": 46,
+          "second": 27,
+          "microsecond": 410185,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23475,10 +23475,10 @@
           "year": 2025,
           "month": 1,
           "day": 12,
-          "hour": 17,
-          "minute": 44,
-          "second": 21,
-          "microsecond": 599201,
+          "hour": 20,
+          "minute": 46,
+          "second": 27,
+          "microsecond": 410476,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23528,10 +23528,10 @@
           "year": 2025,
           "month": 1,
           "day": 12,
-          "hour": 17,
-          "minute": 44,
-          "second": 21,
-          "microsecond": 599500,
+          "hour": 20,
+          "minute": 46,
+          "second": 27,
+          "microsecond": 410687,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23581,10 +23581,10 @@
           "year": 2025,
           "month": 1,
           "day": 12,
-          "hour": 17,
-          "minute": 44,
-          "second": 21,
-          "microsecond": 599751,
+          "hour": 20,
+          "minute": 46,
+          "second": 27,
+          "microsecond": 410891,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23634,10 +23634,10 @@
           "year": 2025,
           "month": 1,
           "day": 12,
-          "hour": 17,
-          "minute": 44,
-          "second": 21,
-          "microsecond": 599977,
+          "hour": 20,
+          "minute": 46,
+          "second": 27,
+          "microsecond": 411099,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23687,10 +23687,10 @@
           "year": 2025,
           "month": 1,
           "day": 12,
-          "hour": 17,
-          "minute": 44,
-          "second": 21,
-          "microsecond": 600238,
+          "hour": 20,
+          "minute": 46,
+          "second": 27,
+          "microsecond": 411364,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23740,10 +23740,10 @@
           "year": 2025,
           "month": 1,
           "day": 12,
-          "hour": 17,
-          "minute": 44,
-          "second": 21,
-          "microsecond": 600454,
+          "hour": 20,
+          "minute": 46,
+          "second": 27,
+          "microsecond": 411589,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23809,10 +23809,10 @@
           "year": 2025,
           "month": 1,
           "day": 12,
-          "hour": 17,
-          "minute": 44,
-          "second": 21,
-          "microsecond": 600708,
+          "hour": 20,
+          "minute": 46,
+          "second": 27,
+          "microsecond": 411839,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -75403,7 +75403,7 @@
   },
   {
     "title": "Recraft V 3",
-    "description": "REDUX3 is a cutting-edge image generation model that combines advanced AI technology with \n    advanced image processing techniques to deliver stunning visual results.",
+    "description": "Recraft V3 is a text-to-image model with the ability to generate long texts, vector art, images in brand style, and much more. \n    image, text",
     "namespace": "fal.text_to_image",
     "node_type": "fal.text_to_image.RecraftV3",
     "layout": "default",
@@ -83323,7 +83323,7 @@
   },
   {
     "title": "Haiper Image To Video",
-    "description": "Transform images into hyper-realistic videos with Haiper 2.0. Experience industry-leading \n    resolution, fluid motion, and rapid generation for stunning AI videos.",
+    "description": "Transform images into hyper-realistic videos with Haiper 2.0. Experience industry-leading\n    resolution, fluid motion, and rapid generation for stunning AI videos.",
     "namespace": "fal.image_to_video",
     "node_type": "fal.image_to_video.HaiperImageToVideo",
     "layout": "default",
@@ -83773,6 +83773,913 @@
       "image",
       "prompt",
       "duration"
+    ]
+  },
+  {
+    "title": "Cog Video X",
+    "description": "Generate videos from images using CogVideoX-5B. Features high-quality motion synthesis with\n    configurable parameters for fine-tuned control over the output.",
+    "namespace": "fal.image_to_video",
+    "node_type": "fal.image_to_video.CogVideoX",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "image",
+        "type": {
+          "type": "image",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null
+        },
+        "title": "Image",
+        "description": "The image to transform into a video",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "prompt",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Prompt",
+        "description": "A description of the desired video motion and style",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "video_size",
+        "type": {
+          "type": "enum",
+          "optional": false,
+          "values": [
+            "square_hd",
+            "square",
+            "portrait_4_3",
+            "portrait_16_9",
+            "landscape_4_3",
+            "landscape_16_9"
+          ],
+          "type_args": [],
+          "type_name": "nodetool.nodes.fal.image_to_video.VideoSize"
+        },
+        "default": "landscape_16_9",
+        "title": "Video Size",
+        "description": "The size/aspect ratio of the generated video",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "negative_prompt",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "Distorted, discontinuous, Ugly, blurry, low resolution, motionless, static, disfigured, disconnected limbs, Ugly faces, incomplete arms",
+        "title": "Negative Prompt",
+        "description": "What to avoid in the generated video",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "num_inference_steps",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 50,
+        "title": "Num Inference Steps",
+        "description": "Number of denoising steps (higher = better quality but slower)",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "guidance_scale",
+        "type": {
+          "type": "float",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 7.0,
+        "title": "Guidance Scale",
+        "description": "How closely to follow the prompt (higher = more faithful but less creative)",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "use_rife",
+        "type": {
+          "type": "bool",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": true,
+        "title": "Use Rife",
+        "description": "Whether to use RIFE for video interpolation",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "export_fps",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 16,
+        "title": "Export Fps",
+        "description": "Target frames per second for the output video",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "seed",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": -1,
+        "title": "Seed",
+        "description": "The same seed will output the same video every time",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "video",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "image",
+      "prompt",
+      "video_size"
+    ]
+  },
+  {
+    "title": "Mini Max Video",
+    "description": "Generate video clips from your images using MiniMax Video model. Transform static art into dynamic\n    masterpieces with enhanced smoothness and vivid motion.",
+    "namespace": "fal.image_to_video",
+    "node_type": "fal.image_to_video.MiniMaxVideo",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "image",
+        "type": {
+          "type": "image",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null
+        },
+        "title": "Image",
+        "description": "The image to transform into a video",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "prompt",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Prompt",
+        "description": "A description of the desired video motion and style",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "prompt_optimizer",
+        "type": {
+          "type": "bool",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": true,
+        "title": "Prompt Optimizer",
+        "description": "Whether to use the model's prompt optimizer",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "video",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "image",
+      "prompt"
+    ]
+  },
+  {
+    "title": "LTXVideo",
+    "description": "Generate videos from images using LTX Video. Best results with 768x512 images and detailed,\n    chronological descriptions of actions and scenes.",
+    "namespace": "fal.image_to_video",
+    "node_type": "fal.image_to_video.LTXVideo",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "image",
+        "type": {
+          "type": "image",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null
+        },
+        "title": "Image",
+        "description": "The image to transform into a video (768x512 recommended)",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "prompt",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Prompt",
+        "description": "A detailed description of the desired video motion and style",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "negative_prompt",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "low quality, worst quality, deformed, distorted, disfigured, motion smear, motion artifacts, fused fingers, bad anatomy, weird hand, ugly",
+        "title": "Negative Prompt",
+        "description": "What to avoid in the generated video",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "num_inference_steps",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 30,
+        "title": "Num Inference Steps",
+        "description": "Number of inference steps (higher = better quality but slower)",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "guidance_scale",
+        "type": {
+          "type": "float",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 3.0,
+        "title": "Guidance Scale",
+        "description": "How closely to follow the prompt (higher = more faithful)",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "seed",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": -1,
+        "title": "Seed",
+        "description": "The same seed will output the same video every time",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "video",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "image",
+      "prompt"
+    ]
+  },
+  {
+    "title": "Stable Video",
+    "description": "Generate short video clips from your images using Stable Video Diffusion v1.1. Features high-quality\n    motion synthesis with configurable parameters.",
+    "namespace": "fal.image_to_video",
+    "node_type": "fal.image_to_video.StableVideo",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "image",
+        "type": {
+          "type": "image",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null
+        },
+        "title": "Image",
+        "description": "The image to transform into a video",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "motion_bucket_id",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 127,
+        "title": "Motion Bucket Id",
+        "description": "Controls motion intensity (higher = more motion)",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "cond_aug",
+        "type": {
+          "type": "float",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 0.02,
+        "title": "Cond Aug",
+        "description": "Amount of noise added to conditioning (higher = more motion)",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "fps",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 25,
+        "title": "Fps",
+        "description": "Frames per second of the output video",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "seed",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": -1,
+        "title": "Seed",
+        "description": "The same seed will output the same video every time",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "video",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "image",
+      "motion_bucket_id",
+      "fps"
+    ]
+  },
+  {
+    "title": "Fast SVD",
+    "description": "Generate short video clips from your images using SVD v1.1 at Lightning Speed. Features high-quality\n    motion synthesis with configurable parameters for rapid video generation.",
+    "namespace": "fal.image_to_video",
+    "node_type": "fal.image_to_video.FastSVD",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "image",
+        "type": {
+          "type": "image",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null
+        },
+        "title": "Image",
+        "description": "The image to transform into a video",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "motion_bucket_id",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 127,
+        "title": "Motion Bucket Id",
+        "description": "Controls motion intensity (higher = more motion)",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "cond_aug",
+        "type": {
+          "type": "float",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 0.02,
+        "title": "Cond Aug",
+        "description": "Amount of noise added to conditioning (higher = more motion)",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "steps",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 4,
+        "title": "Steps",
+        "description": "Number of inference steps (higher = better quality but slower)",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "fps",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 10,
+        "title": "Fps",
+        "description": "Frames per second of the output video (total length is 25 frames)",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "seed",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": -1,
+        "title": "Seed",
+        "description": "The same seed will output the same video every time",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "video",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "image",
+      "motion_bucket_id",
+      "fps"
+    ]
+  },
+  {
+    "title": "AMTInterpolation",
+    "description": "Interpolate between image frames to create smooth video transitions. Supports configurable FPS\n    and recursive interpolation passes for higher quality results.",
+    "namespace": "fal.image_to_video",
+    "node_type": "fal.image_to_video.AMTInterpolation",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "frames",
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "image",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": [
+          {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null
+          },
+          {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null
+          }
+        ],
+        "title": "Frames",
+        "description": "List of frames to interpolate between (minimum 2 frames required)",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "output_fps",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 24,
+        "title": "Output Fps",
+        "description": "Output frames per second",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "recursive_interpolation_passes",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 4,
+        "title": "Recursive Interpolation Passes",
+        "description": "Number of recursive interpolation passes (higher = smoother)",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "video",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "frames",
+      "output_fps"
+    ]
+  },
+  {
+    "title": "Sad Talker",
+    "description": "Generate talking face animations from a single image and audio file. Features configurable\n    face model resolution and expression controls.",
+    "namespace": "fal.image_to_video",
+    "node_type": "fal.image_to_video.SadTalker",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "image",
+        "type": {
+          "type": "image",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null
+        },
+        "title": "Image",
+        "description": "The source image to animate",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "audio",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Audio",
+        "description": "URL of the audio file to drive the animation",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "face_model_resolution",
+        "type": {
+          "type": "enum",
+          "optional": false,
+          "values": [
+            "256",
+            "512"
+          ],
+          "type_args": [],
+          "type_name": "nodetool.nodes.fal.image_to_video.FaceModelResolution"
+        },
+        "default": "256",
+        "title": "Face Model Resolution",
+        "description": "Resolution of the face model",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "expression_scale",
+        "type": {
+          "type": "float",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 1.0,
+        "title": "Expression Scale",
+        "description": "Scale of the expression (1.0 = normal)",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "still_mode",
+        "type": {
+          "type": "bool",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": false,
+        "title": "Still Mode",
+        "description": "Reduce head motion (works with preprocess 'full')",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "preprocess",
+        "type": {
+          "type": "enum",
+          "optional": false,
+          "values": [
+            "crop",
+            "extcrop",
+            "resize",
+            "full",
+            "extfull"
+          ],
+          "type_args": [],
+          "type_name": "nodetool.nodes.fal.image_to_video.PreprocessType"
+        },
+        "default": "crop",
+        "title": "Preprocess",
+        "description": "Type of image preprocessing to apply",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "video",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "image",
+      "audio",
+      "face_model_resolution"
+    ]
+  },
+  {
+    "title": "Muse Talk",
+    "description": "Real-time high quality audio-driven lip-syncing model. Animate a face video with custom audio\n    for natural-looking speech animation.",
+    "namespace": "fal.image_to_video",
+    "node_type": "fal.image_to_video.MuseTalk",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "video",
+        "type": {
+          "type": "video",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "video",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "duration": null,
+          "format": null
+        },
+        "title": "Video",
+        "description": "URL of the source video to animate",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "audio",
+        "type": {
+          "type": "audio",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "audio",
+          "uri": "",
+          "asset_id": null,
+          "data": null
+        },
+        "title": "Audio",
+        "description": "URL of the audio file to drive the lip sync",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "video",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "video",
+      "audio"
     ]
   },
   {
