@@ -165,10 +165,9 @@ const NodeContextMenu: React.FC = () => {
       />
 
       <Divider />
-      {/* Find Examples using this node */}
       <ContextMenuItem
         onClick={handleFindExamples}
-        label="Find Examples using this node"
+        label="Show Examples"
         IconComponent={<SearchIcon />}
         tooltip="Find Examples using this node"
       />

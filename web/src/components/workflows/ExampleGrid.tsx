@@ -36,8 +36,8 @@ const styles = (theme: any) =>
     "&": {
       position: "relative",
       width: "calc(100% - 70px)",
-      left: "60px",
       height: "calc(100vh - 64px)",
+      left: "65px",
       overflow: "hidden",
       display: "flex",
       flexDirection: "column"
@@ -47,12 +47,14 @@ const styles = (theme: any) =>
       flexWrap: "wrap",
       alignItems: "flex-start",
       overflowY: "auto",
-      flex: 1,
-      padding: "0 20px"
+      padding: "1em .5em",
+      gap: "1.5em"
     },
     ".workflow": {
-      flex: "1 0 200px",
-      margin: "20px",
+      flexGrow: "1",
+      flexShrink: "0",
+      flexBasis: "200px",
+      margin: ".5em",
       maxWidth: "200px",
       cursor: "pointer",
       display: "flex",
@@ -198,9 +200,15 @@ const styles = (theme: any) =>
       maxHeight: "100px",
       overflowY: "auto"
     },
-    ".match-highlight": {
-      color: theme.palette.c_hl1,
-      fontWeight: "bold"
+    ".matched-item": {
+      fontSize: theme.fontSizeSmaller,
+      fontWeight: 600,
+      padding: ".1em .4em",
+      marginRight: ".5em",
+      borderRadius: ".3em",
+      color: theme.palette.c_black,
+      wordBreak: "break-word",
+      backgroundColor: theme.palette.c_gray4
     }
   });
 
@@ -420,7 +428,7 @@ const ExampleGrid = () => {
                 size="small"
               />
             }
-            label="Nodes only"
+            label="Node Search"
           />
         </Tooltip>
       </Box>
@@ -437,29 +445,49 @@ const ExampleGrid = () => {
             <Typography>{error?.message}</Typography>
           </ErrorOutlineRounded>
         )}
-        {filteredWorkflows.map((workflow) => (
-          <Box
-            key={workflow.id}
-            className="workflow"
-            onClick={() => onClickWorkflow(workflow)}
-          >
-            <Box className="image-wrapper">
-              {workflow.thumbnail_url && (
-                <img
-                  width="200px"
-                  src={workflow.thumbnail_url}
-                  alt={workflow.name}
-                />
+        {filteredWorkflows.map((workflow) => {
+          const searchResult = searchResults.find(
+            (r) => r.workflow.id === workflow.id
+          );
+          const matchedNodes = searchResult?.matches?.length
+            ? searchResult.matches
+            : [];
+
+          return (
+            <Box
+              key={workflow.id}
+              className="workflow"
+              onClick={() => onClickWorkflow(workflow)}
+            >
+              <Box className="image-wrapper">
+                {workflow.thumbnail_url && (
+                  <img
+                    width="200px"
+                    src={workflow.thumbnail_url}
+                    alt={workflow.name}
+                  />
+                )}
+              </Box>
+              <Typography variant="h4" component={"h4"}>
+                {workflow.name}
+              </Typography>
+              <Typography className="description">
+                {workflow.description}
+              </Typography>
+              {nodesOnlySearch && matchedNodes.length > 0 && (
+                <Box
+                  sx={{ mt: 1, display: "flex", gap: 0.5, flexWrap: "wrap" }}
+                >
+                  {matchedNodes.map((match, idx) => (
+                    <Typography key={idx} className="matched-item">
+                      {match.text}
+                    </Typography>
+                  ))}
+                </Box>
               )}
             </Box>
-            <Typography variant="h4" component={"h4"}>
-              {workflow.name}
-            </Typography>
-            <Typography className="description">
-              {workflow.description}
-            </Typography>
-          </Box>
-        ))}
+          );
+        })}
       </Box>
     </div>
   );
