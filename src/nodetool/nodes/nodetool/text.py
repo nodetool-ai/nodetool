@@ -605,33 +605,6 @@ class RegexValidate(BaseNode):
         return bool(re.match(self.pattern, self.text))
 
 
-class RegexExtract(BaseNode):
-    """
-    Extract named groups from text using regex.
-    regex, extract, groups
-
-    Use cases:
-    - Parse structured data
-    - Extract semantic components
-    - Named field extraction
-    """
-
-    text: str = Field(default="", description="Text to extract from")
-    pattern: str = Field(
-        default="", description="Regular expression pattern with named groups"
-    )
-
-    @classmethod
-    def get_title(cls):
-        return "Extract Regex Groups"
-
-    async def process(self, context: ProcessingContext) -> dict:
-        match = re.search(self.pattern, self.text)
-        if match:
-            return match.groupdict()
-        return {}
-
-
 def convert_html_to_text(html: str, preserve_linebreaks: bool = True) -> str:
     """
     Converts HTML to plain text while preserving structure and handling whitespace.

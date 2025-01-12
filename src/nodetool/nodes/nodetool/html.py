@@ -18,6 +18,39 @@ from nodetool.workflows.processing_context import ProcessingContext
 from bs4 import BeautifulSoup
 
 
+class BaseUrl(BaseNode):
+    """
+    Extract the base URL from a given URL.
+    url parsing, domain extraction, web utilities
+
+    Use cases:
+    - Get domain name from full URLs
+    - Clean up URLs for comparison
+    - Extract root website addresses
+    - Standardize URL formats
+    """
+
+    url: str = Field(
+        title="URL",
+        description="The URL to extract the base from",
+        default=""
+    )
+
+    @classmethod
+    def get_basic_fields(cls) -> list[str]:
+        return ["url"]
+
+    async def process(self, context: ProcessingContext) -> str:
+        from urllib.parse import urlparse
+
+        if not self.url:
+            raise ValueError("URL must not be empty")
+
+        parsed = urlparse(self.url)
+        base_url = f"{parsed.scheme}://{parsed.netloc}"
+        return base_url
+
+
 class ExtractLinks(BaseNode):
     """
     Extract links from HTML content.

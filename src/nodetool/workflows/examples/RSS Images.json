@@ -1,0 +1,367 @@
+{
+  "id": "d7db3e82d0bf11efae4200007ff10094",
+  "access": "public",
+  "created_at": "2025-01-12T09:50:24.748291",
+  "updated_at": "2025-01-12T09:50:24.748302",
+  "name": "RSS Images",
+  "description": "",
+  "tags": null,
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "9",
+        "parent_id": null,
+        "type": "nodetool.group.Loop",
+        "data": {},
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 458,
+            "y": 115
+          },
+          "zIndex": -10,
+          "width": 966,
+          "height": 455,
+          "selectable": false
+        }
+      },
+      {
+        "id": "1",
+        "parent_id": null,
+        "type": "nodetool.network.rss.FetchRSSFeed",
+        "data": {
+          "url": "https://feeds.bbci.co.uk/news/world/europe/rss.xml"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 50,
+            "y": 272
+          },
+          "zIndex": 0,
+          "width": 159,
+          "selectable": true
+        }
+      },
+      {
+        "id": "2",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "dataframe_output_2025-01-12"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 269,
+            "y": 50
+          },
+          "zIndex": 0,
+          "width": 159,
+          "height": 159,
+          "selectable": true
+        }
+      },
+      {
+        "id": "10",
+        "parent_id": "9",
+        "type": "nodetool.input.GroupInput",
+        "data": {},
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 50,
+            "y": 147
+          },
+          "zIndex": 0,
+          "width": 111,
+          "selectable": true
+        }
+      },
+      {
+        "id": "11",
+        "parent_id": "9",
+        "type": "nodetool.output.GroupOutput",
+        "data": {},
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 796,
+            "y": 130
+          },
+          "zIndex": 0,
+          "width": 120,
+          "selectable": true
+        }
+      },
+      {
+        "id": "12",
+        "parent_id": "9",
+        "type": "nodetool.network.rss.RSSEntryFields",
+        "data": {},
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 191,
+            "y": 50
+          },
+          "zIndex": 0,
+          "width": 137,
+          "selectable": true
+        }
+      },
+      {
+        "id": "13",
+        "parent_id": "9",
+        "type": "nodetool.network.http.GetRequest",
+        "data": {
+          "headers": null,
+          "auth": null
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 388,
+            "y": 225
+          },
+          "zIndex": 0,
+          "width": 159,
+          "selectable": true
+        }
+      },
+      {
+        "id": "16",
+        "parent_id": null,
+        "type": "nodetool.list.Slice",
+        "data": {
+          "start": 0,
+          "stop": 1,
+          "step": 1
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 298.5,
+            "y": 259
+          },
+          "zIndex": 0,
+          "width": 100,
+          "selectable": true
+        }
+      },
+      {
+        "id": "22",
+        "parent_id": "9",
+        "type": "nodetool.html.ExtractImages",
+        "data": {},
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 607,
+            "y": 71
+          },
+          "zIndex": 0,
+          "width": 159,
+          "selectable": true
+        }
+      },
+      {
+        "id": "23",
+        "parent_id": null,
+        "type": "nodetool.image.grid.CombineImageGrid",
+        "data": {
+          "columns": 3
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1582,
+            "y": 286
+          },
+          "zIndex": 0,
+          "width": 240,
+          "selectable": true
+        }
+      },
+      {
+        "id": "24",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "image_output_2025-01-12"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1852,
+            "y": 187
+          },
+          "zIndex": 0,
+          "width": 347,
+          "height": 311,
+          "selectable": true
+        }
+      },
+      {
+        "id": "25",
+        "parent_id": null,
+        "type": "nodetool.list.Flatten",
+        "data": {
+          "max_depth": 1
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1454,
+            "y": 286
+          },
+          "zIndex": 0,
+          "width": 98,
+          "selectable": true
+        }
+      },
+      {
+        "id": "26",
+        "parent_id": "9",
+        "type": "nodetool.html.BaseUrl",
+        "data": {},
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 388.5,
+            "y": 69
+          },
+          "zIndex": 0,
+          "width": 158,
+          "selectable": true
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "3f616e72-90ab-4ce3-bf53-6264410b07da",
+        "source": "1",
+        "sourceHandle": "output",
+        "target": "2",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "dataframe"
+        }
+      },
+      {
+        "id": "440d8ed3-5219-4662-b7bc-2065bdf88d05",
+        "source": "1",
+        "sourceHandle": "output",
+        "target": "16",
+        "targetHandle": "values",
+        "ui_properties": {
+          "className": "list"
+        }
+      },
+      {
+        "id": "dd158221-4b6d-4b3b-b814-3719fca39e76",
+        "source": "13",
+        "sourceHandle": "output",
+        "target": "22",
+        "targetHandle": "html",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "831cb14c-c49a-4d49-a3d1-f9898602a42d",
+        "source": "16",
+        "sourceHandle": "output",
+        "target": "9",
+        "targetHandle": "input",
+        "ui_properties": {
+          "className": "list"
+        }
+      },
+      {
+        "id": "5db170d0-ae12-46b1-9bf5-4b4894275d84",
+        "source": "22",
+        "sourceHandle": "output",
+        "target": "11",
+        "targetHandle": "input",
+        "ui_properties": {
+          "className": "list"
+        }
+      },
+      {
+        "id": "e19a5014-a167-4004-9a0c-86150c3465b5",
+        "source": "10",
+        "sourceHandle": "output",
+        "target": "12",
+        "targetHandle": "entry",
+        "ui_properties": {
+          "className": "any"
+        }
+      },
+      {
+        "id": "3f50e7d4-ff70-4783-9596-b02e61f5f117",
+        "source": "12",
+        "sourceHandle": "link",
+        "target": "26",
+        "targetHandle": "url",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "53fb6ff2-3984-4a8c-93da-3071f75b6de6",
+        "source": "12",
+        "sourceHandle": "link",
+        "target": "13",
+        "targetHandle": "url",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "47e8d7cf-04d1-4c5e-83c7-4dd86c2116c2",
+        "source": "25",
+        "sourceHandle": "output",
+        "target": "23",
+        "targetHandle": "tiles",
+        "ui_properties": {
+          "className": "list hovered"
+        }
+      },
+      {
+        "id": "f0e06816-ff20-4bed-9637-14db38ee678a",
+        "source": "9",
+        "sourceHandle": "output",
+        "target": "25",
+        "targetHandle": "values",
+        "ui_properties": {
+          "className": "any"
+        }
+      },
+      {
+        "id": "5588cdd7-2d91-4a5e-9880-ea9a5f4abffa",
+        "source": "26",
+        "sourceHandle": "output",
+        "target": "22",
+        "targetHandle": "base_url",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "1069",
+        "source": "23",
+        "sourceHandle": "output",
+        "target": "24",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "image"
+        }
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null
+}

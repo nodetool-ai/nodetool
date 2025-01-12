@@ -1164,3 +1164,43 @@ class MapTemplate(BaseNode):
                 continue
 
         return results
+
+
+class Flatten(BaseNode):
+    """
+    Flattens a nested list structure into a single flat list.
+    list, flatten, nested, structure
+
+    Use cases:
+    - Convert nested lists into a single flat list
+    - Simplify complex list structures
+    - Process hierarchical data as a sequence
+
+    Examples:
+    [[1, 2], [3, 4]] -> [1, 2, 3, 4]
+    [[1, [2, 3]], [4, [5, 6]]] -> [1, 2, 3, 4, 5, 6]
+    """
+
+    values: list[Any] = Field(
+        default_factory=list,
+        description="The nested list structure to flatten"
+    )
+    max_depth: int = Field(
+        default=-1,
+        description="Maximum depth to flatten (-1 for unlimited)",
+        ge=-1
+    )
+
+    def _flatten(self, lst: list[Any], current_depth: int = 0) -> list[Any]:
+        result = []
+        for item in lst:
+            if isinstance(item, list) and (self.max_depth == -1 or current_depth < self.max_depth):
+                result.extend(self._flatten(item, current_depth + 1))
+            else:
+                result.append(item)
+        return result
+
+    async def process(self, context: ProcessingContext) -> list[Any]:
+        if not isinstance(self.values, list):
+            raise ValueError("Input must be a list")
+        return self._flatten(self.values)
