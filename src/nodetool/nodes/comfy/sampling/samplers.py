@@ -17,8 +17,12 @@ import comfy_extras.nodes_custom_sampler
 
 class KSamplerSelect(ComfyNode):
     """
-    The KSampler Select node allows choosing a specific sampler for the diffusion process.
-    Different samplers can produce varying results or have different performance characteristics.
+    Select a specific sampler for the diffusion process with different performance characteristics and output qualities.
+    sampling, diffusion
+    Use cases:
+    - Experimenting with different sampling methods for optimal image quality
+    - Balancing speed vs quality in image generation
+    - Testing model behavior with different sampling algorithms
     """
 
     _comfy_class = comfy_extras.nodes_custom_sampler.KSamplerSelect
@@ -44,8 +48,12 @@ class DeviceEnum(str, Enum):
 
 class SamplerDPMPP_2M_SDE(ComfyNode):
     """
-    The SamplerDPMPP_2M_SDE node implements the DPMPP (2M) SDE sampler, which is an advanced
-    sampling method that can potentially produce high-quality results with fewer steps.
+    Advanced DPMPP (2M) SDE sampler implementation offering high-quality results with fewer steps.
+    sampling, diffusion, sde, dpmpp
+    Use cases:
+    - High-quality image generation with reduced step count
+    - Performance-optimized sampling for production workflows
+    - Advanced noise control with GPU/CPU options
     """
 
     _comfy_class = comfy_extras.nodes_custom_sampler.SamplerDPMPP_2M_SDE
@@ -67,8 +75,12 @@ class SamplerDPMPP_2M_SDE(ComfyNode):
 
 class SamplerDPMPP_SDE(ComfyNode):
     """
-    The SamplerDPMPP_SDE node implements the DPMPP SDE sampler, another advanced sampling
-    method that can offer good performance and quality in certain scenarios.
+    Implementation of DPMPP SDE sampler with configurable noise and performance parameters.
+    sampling, diffusion, sde, dpmpp
+    Use cases:
+    - Efficient image generation with controllable noise levels
+    - Fine-tuning sampling parameters for specific image styles
+    - Balancing quality and speed with custom parameters
     """
 
     _comfy_class = comfy_extras.nodes_custom_sampler.SamplerDPMPP_SDE
@@ -88,8 +100,12 @@ class SamplerDPMPP_SDE(ComfyNode):
 
 class SamplerCustom(ComfyNode):
     """
-    The SamplerCustom node provides a customizable sampling process, allowing fine-grained
-    control over various sampling parameters including noise, CFG, and conditioning.
+    Customizable sampling process with fine-grained control over noise, CFG, and conditioning parameters.
+    sampling, cfg, noise, conditioning
+    Use cases:
+    - Advanced sampling control for complex image generation tasks
+    - Customizing sampling parameters for specific models or tasks
+    - Fine-tuning sampling for specific effects or styles
     """
 
     _comfy_class = comfy_extras.nodes_custom_sampler.SamplerCustom
@@ -119,9 +135,12 @@ class SamplerCustom(ComfyNode):
 
 class SamplerCustomAdvanced(ComfyNode):
     """
-    The SamplerCustomAdvanced node offers even more advanced customization options for
-    the sampling process, including separate control over noise, guidance, and the ability
-    to output both the final latent and the denoised latent.
+    Advanced sampling implementation with separate control over noise, guidance, and multiple output options.
+    sampling, noise, guidance, cfg
+    Use cases:
+    - Complex image generation requiring precise noise control
+    - Workflows needing access to intermediate denoised results
+    - Advanced guidance-based sampling applications
     """
 
     _comfy_class = comfy_extras.nodes_custom_sampler.SamplerCustomAdvanced
