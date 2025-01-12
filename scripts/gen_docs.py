@@ -326,6 +326,7 @@ if __name__ == "__main__":
     import nodetool.nodes.ollama
     import nodetool.nodes.openai
     import nodetool.nodes.replicate
+    import nodetool.nodes.elevenlabs
 
     # Generate full documentation
     generate_documentation(nodetool, "docs")

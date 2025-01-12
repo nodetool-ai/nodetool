@@ -244,6 +244,11 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
         return (
           !secrets.ANTHROPIC_API_KEY || secrets.ANTHROPIC_API_KEY.trim() === ""
         );
+      case "elevenlabs":
+        return (
+          !secrets.ELEVENLABS_API_KEY ||
+          secrets.ELEVENLABS_API_KEY.trim() === ""
+        );
       case "aime":
         return (
           !secrets.AIME_API_KEY ||

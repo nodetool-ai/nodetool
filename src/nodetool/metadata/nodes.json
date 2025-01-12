@@ -22380,10 +22380,10 @@
           "year": 2025,
           "month": 1,
           "day": 12,
-          "hour": 9,
-          "minute": 40,
-          "second": 4,
-          "microsecond": 698169,
+          "hour": 10,
+          "minute": 46,
+          "second": 11,
+          "microsecond": 856598,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23422,10 +23422,10 @@
           "year": 2025,
           "month": 1,
           "day": 12,
-          "hour": 9,
-          "minute": 40,
-          "second": 4,
-          "microsecond": 702202,
+          "hour": 10,
+          "minute": 46,
+          "second": 11,
+          "microsecond": 860728,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23475,10 +23475,10 @@
           "year": 2025,
           "month": 1,
           "day": 12,
-          "hour": 9,
-          "minute": 40,
-          "second": 4,
-          "microsecond": 702450,
+          "hour": 10,
+          "minute": 46,
+          "second": 11,
+          "microsecond": 860972,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23528,10 +23528,10 @@
           "year": 2025,
           "month": 1,
           "day": 12,
-          "hour": 9,
-          "minute": 40,
-          "second": 4,
-          "microsecond": 702659,
+          "hour": 10,
+          "minute": 46,
+          "second": 11,
+          "microsecond": 861182,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23581,10 +23581,10 @@
           "year": 2025,
           "month": 1,
           "day": 12,
-          "hour": 9,
-          "minute": 40,
-          "second": 4,
-          "microsecond": 702866,
+          "hour": 10,
+          "minute": 46,
+          "second": 11,
+          "microsecond": 861388,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23634,10 +23634,10 @@
           "year": 2025,
           "month": 1,
           "day": 12,
-          "hour": 9,
-          "minute": 40,
-          "second": 4,
-          "microsecond": 703070,
+          "hour": 10,
+          "minute": 46,
+          "second": 11,
+          "microsecond": 861596,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23687,10 +23687,10 @@
           "year": 2025,
           "month": 1,
           "day": 12,
-          "hour": 9,
-          "minute": 40,
-          "second": 4,
-          "microsecond": 703306,
+          "hour": 10,
+          "minute": 46,
+          "second": 11,
+          "microsecond": 861859,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23740,10 +23740,10 @@
           "year": 2025,
           "month": 1,
           "day": 12,
-          "hour": 9,
-          "minute": 40,
-          "second": 4,
-          "microsecond": 703509,
+          "hour": 10,
+          "minute": 46,
+          "second": 11,
+          "microsecond": 862063,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23809,10 +23809,10 @@
           "year": 2025,
           "month": 1,
           "day": 12,
-          "hour": 9,
-          "minute": 40,
-          "second": 4,
-          "microsecond": 703760,
+          "hour": 10,
+          "minute": 46,
+          "second": 11,
+          "microsecond": 862309,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -40199,7 +40199,7 @@
     ]
   },
   {
-    "title": "HTTP GET Request",
+    "title": "GET Request",
     "description": "Perform an HTTP GET request to retrieve data from a specified URL.\n    http, get, request, url\n\n    Use cases:\n    - Fetch web page content\n    - Retrieve API data\n    - Download files\n    - Check website availability",
     "namespace": "nodetool.network.http",
     "node_type": "nodetool.network.http.GetRequest",
@@ -40303,7 +40303,7 @@
     ]
   },
   {
-    "title": "HTTP POST Request",
+    "title": "POST Request",
     "description": "Send data to a server using an HTTP POST request.\n    http, post, request, url, data\n\n    Use cases:\n    - Submit form data\n    - Create new resources on an API\n    - Upload files\n    - Authenticate users",
     "namespace": "nodetool.network.http",
     "node_type": "nodetool.network.http.PostRequest",
@@ -40423,7 +40423,7 @@
     ]
   },
   {
-    "title": "HTTP PUT Request",
+    "title": "PUT Request",
     "description": "Update existing resources on a server using an HTTP PUT request.\n    http, put, request, url, data\n\n    Use cases:\n    - Update user profiles\n    - Modify existing API resources\n    - Replace file contents\n    - Set configuration values",
     "namespace": "nodetool.network.http",
     "node_type": "nodetool.network.http.PutRequest",
@@ -40543,7 +40543,7 @@
     ]
   },
   {
-    "title": "HTTP DELETE Request",
+    "title": "DELETE Request",
     "description": "Remove a resource from a server using an HTTP DELETE request.\n    http, delete, request, url\n\n    Use cases:\n    - Delete user accounts\n    - Remove API resources\n    - Cancel subscriptions\n    - Clear cache entries",
     "namespace": "nodetool.network.http",
     "node_type": "nodetool.network.http.DeleteRequest",
@@ -40647,7 +40647,7 @@
     ]
   },
   {
-    "title": "HTTP HEAD Request",
+    "title": "HEAD Request",
     "description": "Retrieve headers from a resource using an HTTP HEAD request.\n    http, head, request, url\n\n    Use cases:\n    - Check resource existence\n    - Get metadata without downloading content\n    - Verify authentication or permissions",
     "namespace": "nodetool.network.http",
     "node_type": "nodetool.network.http.HeadRequest",
@@ -40949,7 +40949,7 @@
     ]
   },
   {
-    "title": "HTTP GET Request (Binary)",
+    "title": "GET Binary",
     "description": "Perform an HTTP GET request and return raw binary data.\n    http, get, request, url, binary, download\n\n    Use cases:\n    - Download binary files\n    - Fetch images or media\n    - Retrieve PDF documents\n    - Download any non-text content",
     "namespace": "nodetool.network.http",
     "node_type": "nodetool.network.http.GetRequestBinary",
@@ -41053,7 +41053,111 @@
     ]
   },
   {
-    "title": "HTTP POST Request (Binary)",
+    "title": "GET Document",
+    "description": "Perform an HTTP GET request and return a document\n    http, get, request, url, document\n\n    Use cases:\n    - Download PDF documents\n    - Retrieve Word documents\n    - Fetch Excel files\n    - Download any document format",
+    "namespace": "nodetool.network.http",
+    "node_type": "nodetool.network.http.GetRequestDocument",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "url",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Url",
+        "description": "The URL to make the request to.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "headers",
+        "type": {
+          "type": "dict",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "str",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            },
+            {
+              "type": "str",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Headers",
+        "description": "Optional headers to include in the request.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "auth",
+        "type": {
+          "type": "union",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "str",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            },
+            {
+              "type": "none",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Auth",
+        "description": "Authentication credentials.",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "document",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "url",
+      "headers",
+      "auth"
+    ]
+  },
+  {
+    "title": "POST Binary",
     "description": "Send data using an HTTP POST request and return raw binary data.\n    http, post, request, url, data, binary\n\n    Use cases:\n    - Upload and receive binary files\n    - Interact with binary APIs\n    - Process image or media uploads\n    - Handle binary file transformations",
     "namespace": "nodetool.network.http",
     "node_type": "nodetool.network.http.PostRequestBinary",
@@ -41511,7 +41615,7 @@
     ]
   },
   {
-    "title": "JSON POST Request",
+    "title": "POST JSON",
     "description": "Send JSON data to a server using an HTTP POST request.\n    http, post, request, url, json, api\n\n    Use cases:\n    - Send structured data to REST APIs\n    - Create resources with JSON payloads\n    - Interface with modern web services",
     "namespace": "nodetool.network.http",
     "node_type": "nodetool.network.http.JSONPostRequest",
@@ -41631,7 +41735,7 @@
     ]
   },
   {
-    "title": "JSON PUT Request",
+    "title": "PUT JSON",
     "description": "Update resources with JSON data using an HTTP PUT request.\n    http, put, request, url, json, api\n\n    Use cases:\n    - Update existing API resources\n    - Replace complete objects in REST APIs\n    - Set configuration with JSON data",
     "namespace": "nodetool.network.http",
     "node_type": "nodetool.network.http.JSONPutRequest",
@@ -41751,7 +41855,7 @@
     ]
   },
   {
-    "title": "JSON PATCH Request",
+    "title": "PATCH JSON",
     "description": "Partially update resources with JSON data using an HTTP PATCH request.\n    http, patch, request, url, json, api\n\n    Use cases:\n    - Partial updates to API resources\n    - Modify specific fields without full replacement\n    - Efficient updates for large objects",
     "namespace": "nodetool.network.http",
     "node_type": "nodetool.network.http.JSONPatchRequest",
@@ -41871,7 +41975,7 @@
     ]
   },
   {
-    "title": "JSON GET Request",
+    "title": "GET JSON",
     "description": "Perform an HTTP GET request and parse the response as JSON.\n    http, get, request, url, json, api\n\n    Use cases:\n    - Fetch data from REST APIs\n    - Retrieve JSON-formatted responses\n    - Interface with JSON web services",
     "namespace": "nodetool.network.http",
     "node_type": "nodetool.network.http.JSONGetRequest",
@@ -99325,6 +99429,144 @@
     "basic_fields": [
       "text",
       "max_words"
+    ]
+  },
+  {
+    "title": "Text To Speech",
+    "description": "Generates speech using ElevenLabs' text-to-speech API.\n    audio, generation, AI, text-to-speech, TTS, elevenlabs\n\n    Use cases:\n    - Generate natural-sounding speech from text\n    - Create voiceovers for videos or presentations\n    - Produce audio content with different voices and styles\n    - Create realistic AI-generated speech for various applications",
+    "namespace": "elevenlabs.text_to_speech",
+    "node_type": "elevenlabs.text_to_speech.TextToSpeech",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "voice",
+        "type": {
+          "type": "enum",
+          "optional": false,
+          "values": [
+            "Aria (American female, expressive)",
+            "Roger (American male, confident)",
+            "Sarah (American female, soft)",
+            "Laura (American female, upbeat)",
+            "Charlie (Australian male, natural)",
+            "George (British male, warm)",
+            "Callum (Transatlantic male, intense)",
+            "River (American non-binary, confident)",
+            "Liam (American male, articulate)",
+            "Charlotte (Swedish female, seductive)",
+            "Alice (British female, confident)",
+            "Will (American male, friendly)",
+            "Jessica (American female, expressive)",
+            "Eric (American male, friendly)",
+            "Chris (American male, casual)",
+            "Brian (American male, deep)",
+            "Daniel (British male, authoritative)",
+            "Lily (British female, warm)",
+            "Bill (American male, trustworthy)"
+          ],
+          "type_args": [],
+          "type_name": "nodetool.nodes.elevenlabs.text_to_speech.VoiceIDEnum"
+        },
+        "default": "Aria (American female, expressive)",
+        "title": "Voice",
+        "description": "Voice ID to be used for generation",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "text",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "Hello, how are you?",
+        "title": "Text",
+        "description": "The text to convert to speech",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "model_id",
+        "type": {
+          "type": "union",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "str",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            },
+            {
+              "type": "none",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Model Id",
+        "description": "Optional model ID (e.g., eleven_monolingual_v1)",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "voice_settings",
+        "type": {
+          "type": "union",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "dict",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            },
+            {
+              "type": "none",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Voice Settings",
+        "description": "Optional voice settings to override defaults",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "audio",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "voice",
+      "text"
     ]
   }
 ]
