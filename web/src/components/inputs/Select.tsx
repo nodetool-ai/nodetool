@@ -86,7 +86,7 @@ const menuStyles = (theme: any) =>
     ".select-header": {
       padding: "0px 5px",
       margin: "5px 0",
-      backgroundColor: theme.palette.c_gray1,
+      backgroundColor: theme.palette.c_gray2,
       border: `1px solid ${theme.palette.c_gray2}`,
       fontSize: theme.fontSizeSmaller,
       borderRadius: ".3em",
