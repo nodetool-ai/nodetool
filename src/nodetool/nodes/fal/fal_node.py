@@ -13,6 +13,14 @@ class FALNode(BaseNode):
     @classmethod
     def is_visible(cls) -> bool:
         return cls is not FALNode
+    
+
+    def get_client(self, context: ProcessingContext) -> AsyncClient:
+        if context.environment.get("FAL_API_KEY") is None:
+            raise ValueError("FAL_API_KEY is not set in the environment")
+
+        os.environ["FAL_KEY"] = context.environment.get("FAL_API_KEY") # type: ignore
+        return AsyncClient()
 
     async def submit_request(
         self,
@@ -31,13 +39,7 @@ class FALNode(BaseNode):
         Returns:
             Dict[str, Any]: The result from the FAL API
         """
-        client = AsyncClient()
-
-        if context.environment.get("FAL_API_KEY") is None:
-            raise ValueError("FAL_API_KEY is not set in the environment")
-
-        os.environ["FAL_KEY"] = context.environment.get("FAL_API_KEY") # type: ignore
-
+        client = self.get_client(context)
         handler = await client.submit(
             application,
             arguments=arguments,

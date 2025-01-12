@@ -1625,3 +1625,11 @@ class RSSEntry(BaseType):
     published: Datetime = Datetime()
     summary: str = ""
     author: str = ""
+    
+
+class LoraWeight(BaseType):
+    """A weight for a LoRA model."""
+
+    type: Literal["lora_weight"] = "lora_weight"
+    url: str = ""
+    scale: float = 1.0
