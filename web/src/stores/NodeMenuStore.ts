@@ -62,18 +62,42 @@ export const formatNodeDocumentation = (
         .map((line) => {
           const content = line.replace(/^-\s*/, "").trim();
           if (searchTerm && searchInfo) {
-            devLog("\n=== USE CASE HIGHLIGHT ===");
-            devLog("Content to highlight:", content);
-            devLog("Search term:", searchTerm);
-            devLog("Search info:", searchInfo);
-            const highlighted = highlightTextUtil(
-              content,
-              "use_cases",
-              searchTerm,
-              searchInfo
-            );
-            devLog("Highlight result:", highlighted);
-            return highlighted.html;
+            // Find position of this line in the combined string
+            const fullString =
+              searchInfo.matches?.find((m) => m.key === "use_cases")?.value ||
+              "";
+            const lineStart = fullString.indexOf(content);
+
+            if (lineStart !== -1) {
+              // Adjust match indices to be relative to this line
+              const lineMatches = searchInfo.matches
+                ?.find((m) => m.key === "use_cases")
+                ?.indices.filter(([start, end]) => {
+                  const matchStart = start - lineStart;
+                  const matchEnd = end - lineStart;
+                  return matchStart >= 0 && matchEnd < content.length;
+                })
+                .map(([start, end]) => [start - lineStart, end - lineStart]);
+
+              const lineSearchInfo = {
+                ...searchInfo,
+                matches: [
+                  {
+                    key: "use_cases",
+                    indices: lineMatches || [],
+                    value: content
+                  }
+                ]
+              };
+
+              const highlighted = highlightTextUtil(
+                content,
+                "use_cases",
+                searchTerm,
+                lineSearchInfo
+              );
+              return highlighted.html;
+            }
           }
           return content;
         });
@@ -84,17 +108,12 @@ export const formatNodeDocumentation = (
       useCasesHtml = `<ul>${useCasesHtml}</ul>`;
     } else {
       if (searchTerm && searchInfo) {
-        devLog("\n=== USE CASE HIGHLIGHT (non-list) ===");
-        devLog("Content to highlight:", useCasesRaw);
-        devLog("Search term:", searchTerm);
-        devLog("Search info:", searchInfo);
         const highlighted = highlightTextUtil(
           useCasesRaw,
           "use_cases",
           searchTerm,
           searchInfo
         );
-        devLog("Highlight result:", highlighted);
         useCasesHtml = highlighted.html;
       } else {
         useCasesHtml = useCasesRaw;
