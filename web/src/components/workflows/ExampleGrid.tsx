@@ -25,6 +25,7 @@ import {
   TOOLTIP_ENTER_DELAY,
   TOOLTIP_LEAVE_DELAY
 } from "../../config/constants";
+import ThemeNodetool from "../themes/ThemeNodetool";
 
 const styles = (theme: any) =>
   css({
@@ -209,6 +210,16 @@ const styles = (theme: any) =>
       color: theme.palette.c_black,
       wordBreak: "break-word",
       backgroundColor: theme.palette.c_gray4
+    },
+    ".no-results": {
+      padding: "2em",
+      opacity: 0,
+      animation: "fadeIn 0.2s ease-in forwards",
+      animationDelay: "2s"
+    },
+    "@keyframes fadeIn": {
+      from: { opacity: 0 },
+      to: { opacity: 1 }
     }
   });
 
@@ -488,6 +499,65 @@ const ExampleGrid = () => {
             </Box>
           );
         })}
+        {filteredWorkflows.length === 0 && searchQuery && (
+          <Box className="no-results">
+            <Typography variant="body1" sx={{ marginBottom: "1em" }}>
+              Nothing found for
+              <strong style={{ color: ThemeNodetool.palette.c_hl1 }}>
+                {" "}
+                &quot;{searchQuery}&quot;
+              </strong>
+            </Typography>
+
+            <Typography variant="h4" sx={{ margin: "1em 0 0.5em 0" }}>
+              Help us improve the examples
+            </Typography>
+            <Typography variant="body1" sx={{ marginBottom: "1em" }}>
+              Let us know what you're missing!
+            </Typography>
+            <ul
+              style={{
+                listStyleType: "none",
+                padding: 0,
+                margin: 0
+                // "& li": { marginBottom: "0.5em" }
+              }}
+            >
+              <li>
+                <a
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    window.open(
+                      "https://discord.gg/WmQTWZRcYE",
+                      "_blank",
+                      "noopener,noreferrer"
+                    );
+                  }}
+                  style={{ color: "#61dafb" }}
+                >
+                  Join our Discord
+                </a>
+              </li>
+              <li>
+                <a
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    window.open(
+                      "https://forum.nodetool.ai",
+                      "_blank",
+                      "noopener,noreferrer"
+                    );
+                  }}
+                  style={{ color: "#61dafb" }}
+                >
+                  Join the Nodetool Forum
+                </a>
+              </li>
+            </ul>
+          </Box>
+        )}
       </Box>
     </div>
   );
