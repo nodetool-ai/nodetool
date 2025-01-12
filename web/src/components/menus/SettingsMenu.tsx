@@ -34,7 +34,7 @@ export const settingsStyles = (theme: any): any =>
     ".MuiPaper-root": {
       backgroundColor: theme.palette.c_gray0,
       border: `2px solid ${theme.palette.c_gray0}`,
-      borderRadius: "1em",
+      borderRadius: ".2em",
       maxWidth: "1000px",
       height: "90vh",
       overflow: "hidden"

@@ -103,7 +103,7 @@ const styles = (theme: any) =>
       borderColor: theme.palette.c_gray3,
       display: "flex",
       alignItems: "center",
-      borderRadius: "1em",
+      borderRadius: ".5em",
       boxShadow: "0 2px 6px rgba(0, 0, 0, 0.1)"
     },
     ".compose-message textarea": {
@@ -118,15 +118,14 @@ const styles = (theme: any) =>
       flexGrow: 1,
       outline: "none",
       border: "1px solid transparent",
-      borderRadius: "1em",
+      borderRadius: ".5em",
       padding: ".5em 1em",
       transition: "border 0.2s ease-in-out",
       "&::placeholder": {
         color: theme.palette.c_gray3
       },
       "&:focus": {
-        border: "1px solid" + theme.palette.c_gray5,
-        borderRadius: "1em"
+        border: "1px solid" + theme.palette.c_gray5
       }
     },
     ".compose-message button": {

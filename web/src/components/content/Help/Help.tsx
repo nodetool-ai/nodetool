@@ -18,7 +18,7 @@ const helpStyles = (theme: any) =>
     "&": {
       backgroundColor: "#222",
       padding: "2em",
-      borderRadius: "1em",
+      borderRadius: ".2em",
       position: "fixed",
       width: "70vw",
       minWidth: "600px",
