@@ -22252,10 +22252,10 @@
           "year": 2025,
           "month": 1,
           "day": 11,
-          "hour": 13,
-          "minute": 11,
-          "second": 21,
-          "microsecond": 267020,
+          "hour": 18,
+          "minute": 19,
+          "second": 23,
+          "microsecond": 769618,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23294,10 +23294,10 @@
           "year": 2025,
           "month": 1,
           "day": 11,
-          "hour": 13,
-          "minute": 11,
-          "second": 21,
-          "microsecond": 271035,
+          "hour": 18,
+          "minute": 19,
+          "second": 23,
+          "microsecond": 773754,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23347,10 +23347,10 @@
           "year": 2025,
           "month": 1,
           "day": 11,
-          "hour": 13,
-          "minute": 11,
-          "second": 21,
-          "microsecond": 271278,
+          "hour": 18,
+          "minute": 19,
+          "second": 23,
+          "microsecond": 773973,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23400,10 +23400,10 @@
           "year": 2025,
           "month": 1,
           "day": 11,
-          "hour": 13,
-          "minute": 11,
-          "second": 21,
-          "microsecond": 271525,
+          "hour": 18,
+          "minute": 19,
+          "second": 23,
+          "microsecond": 774227,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23453,10 +23453,10 @@
           "year": 2025,
           "month": 1,
           "day": 11,
-          "hour": 13,
-          "minute": 11,
-          "second": 21,
-          "microsecond": 271758,
+          "hour": 18,
+          "minute": 19,
+          "second": 23,
+          "microsecond": 774449,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23506,10 +23506,10 @@
           "year": 2025,
           "month": 1,
           "day": 11,
-          "hour": 13,
-          "minute": 11,
-          "second": 21,
-          "microsecond": 271975,
+          "hour": 18,
+          "minute": 19,
+          "second": 23,
+          "microsecond": 774668,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23559,10 +23559,10 @@
           "year": 2025,
           "month": 1,
           "day": 11,
-          "hour": 13,
-          "minute": 11,
-          "second": 21,
-          "microsecond": 272196,
+          "hour": 18,
+          "minute": 19,
+          "second": 23,
+          "microsecond": 774895,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23612,10 +23612,10 @@
           "year": 2025,
           "month": 1,
           "day": 11,
-          "hour": 13,
-          "minute": 11,
-          "second": 21,
-          "microsecond": 272448,
+          "hour": 18,
+          "minute": 19,
+          "second": 23,
+          "microsecond": 775139,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23681,10 +23681,10 @@
           "year": 2025,
           "month": 1,
           "day": 11,
-          "hour": 13,
-          "minute": 11,
-          "second": 21,
-          "microsecond": 272714,
+          "hour": 18,
+          "minute": 19,
+          "second": 23,
+          "microsecond": 775406,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -96405,7 +96405,7 @@
         "title": "Context Window",
         "description": "The context window size to use for the model.",
         "min": 1.0,
-        "max": null
+        "max": 8192.0
       },
       {
         "name": "prompt",
@@ -96565,7 +96565,7 @@
         "title": "Context Window",
         "description": "The context window size to use for the model.",
         "min": 1.0,
-        "max": null
+        "max": 8192.0
       },
       {
         "name": "prompt",
@@ -96714,7 +96714,7 @@
         "title": "Context Window",
         "description": "The context window size to use for the model.",
         "min": 1.0,
-        "max": null
+        "max": 8192.0
       },
       {
         "name": "prompt",
@@ -96895,7 +96895,7 @@
         "title": "Context Window",
         "description": "The context window size to use for the model.",
         "min": 1.0,
-        "max": null
+        "max": 8192.0
       },
       {
         "name": "question",
@@ -97059,7 +97059,7 @@
         "title": "Context Window",
         "description": "The context window size to use for the model.",
         "min": 1.0,
-        "max": null
+        "max": 8192.0
       },
       {
         "name": "prompt",
@@ -97216,7 +97216,7 @@
         "title": "Context Window",
         "description": "The context window size to use for the model.",
         "min": 1.0,
-        "max": null
+        "max": 8192.0
       },
       {
         "name": "input_text",
@@ -97257,7 +97257,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": 0.2,
+        "default": 0.0,
         "title": "Temperature",
         "description": "The temperature to use for sampling.",
         "min": 0.0,
@@ -97272,7 +97272,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": 5,
+        "default": 1,
         "title": "Top K",
         "description": "The number of highest probability tokens to keep for top-k sampling.",
         "min": 1.0,
@@ -97287,7 +97287,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": 0.5,
+        "default": 0.95,
         "title": "Top P",
         "description": "The cumulative probability cutoff for nucleus/top-p sampling.",
         "min": 0.0,
@@ -97328,6 +97328,194 @@
       "model",
       "input_text",
       "labels"
+    ]
+  },
+  {
+    "title": "Summarizer",
+    "description": "LLM Agent to generate concise summaries of text content.\n    llm, summarization, text processing\n\n    Use cases:\n    - Document summarization\n    - Article abstraction\n    - Content briefing\n    - Key points extraction",
+    "namespace": "ollama.agents",
+    "node_type": "ollama.agents.Summarizer",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "model",
+        "type": {
+          "type": "llama_model",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "llama_model",
+          "name": "",
+          "repo_id": "",
+          "modified_at": "",
+          "size": 0,
+          "digest": "",
+          "details": {}
+        },
+        "title": "Model",
+        "description": "The Llama model to use for summarization.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "context_window",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 4096,
+        "title": "Context Window",
+        "description": "The context window size to use for the model.",
+        "min": 1.0,
+        "max": 8192.0
+      },
+      {
+        "name": "text",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Text",
+        "description": "The text to summarize",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "max_length",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 200,
+        "title": "Max Length",
+        "description": "Target maximum length of the summary in words",
+        "min": 1.0,
+        "max": null
+      },
+      {
+        "name": "chunk_overlap",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 100,
+        "title": "Chunk Overlap",
+        "description": "Number of tokens to overlap between chunks",
+        "min": 0.0,
+        "max": null
+      },
+      {
+        "name": "temperature",
+        "type": {
+          "type": "float",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 0.7,
+        "title": "Temperature",
+        "description": "The temperature to use for sampling.",
+        "min": 0.0,
+        "max": 2.0
+      },
+      {
+        "name": "top_k",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 50,
+        "title": "Top K",
+        "description": "The number of highest probability tokens to keep for top-k sampling.",
+        "min": 1.0,
+        "max": 100.0
+      },
+      {
+        "name": "top_p",
+        "type": {
+          "type": "float",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 0.95,
+        "title": "Top P",
+        "description": "The cumulative probability cutoff for nucleus/top-p sampling.",
+        "min": 0.0,
+        "max": 1.0
+      },
+      {
+        "name": "keep_alive",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 300,
+        "title": "Keep Alive",
+        "description": "The number of seconds to keep the model alive.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "system_prompt",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "You are an expert text summarizer. Follow these guidelines:\n\n1. Content Focus:\n   - Extract main arguments, findings, and conclusions\n   - Preserve critical evidence and methodologies\n   - Maintain factual accuracy and context\n   - Include key statistics when relevant\n\n2. Structure and Style:\n   - Present information in logical flow\n   - Use clear, precise language\n   - Balance brevity with completeness\n   - Adapt style to match source material\n\n3. Quality Standards:\n   - Include only information from the source\n   - Avoid personal interpretation\n   - Maintain technical accuracy\n   - Preserve nuance in complex topics\n\nYour goal is to create an accurate, useful, and efficient representation of the original text while maintaining its core meaning and significance.",
+        "title": "System Prompt",
+        "description": "System prompt for the summarization task. Defines the behavior and guidelines for the summarization.",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "model",
+      "text",
+      "max_length",
+      "system_prompt"
     ]
   },
   {
@@ -98375,6 +98563,98 @@
       "prompt",
       "image",
       "audio"
+    ]
+  },
+  {
+    "title": "Summarizer",
+    "description": "Gemini version of the summarizer for creating concise summaries of text content.",
+    "namespace": "google.agents",
+    "node_type": "google.agents.Summarizer",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "model",
+        "type": {
+          "type": "enum",
+          "optional": false,
+          "values": [
+            "gemini-1.5-pro",
+            "gemini-1.5-flash",
+            "gemini-2.0-flash-exp"
+          ],
+          "type_args": [],
+          "type_name": "nodetool.nodes.google.gemini.GeminiModel"
+        },
+        "default": "gemini-2.0-flash-exp",
+        "title": "Model",
+        "description": "The Gemini model to use",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "text",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Text",
+        "description": "The text to summarize",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "max_words",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 150,
+        "title": "Max Words",
+        "description": "Target maximum number of words for the summary",
+        "min": 50.0,
+        "max": 500.0
+      },
+      {
+        "name": "temperature",
+        "type": {
+          "type": "float",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 0.0,
+        "title": "Temperature",
+        "description": "Temperature for sampling",
+        "min": 0.0,
+        "max": 1.0
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "text",
+      "max_words"
     ]
   }
 ]

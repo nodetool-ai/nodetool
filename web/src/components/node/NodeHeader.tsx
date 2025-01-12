@@ -10,10 +10,12 @@ import { titleizeString } from "../../utils/titleizeString";
 import { NodeData } from "../../stores/NodeData";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
+import { Tooltip } from "@mui/material";
 
 export interface NodeHeaderProps {
   id: string;
   metadataTitle: string;
+  description?: string;
   hasParent?: boolean;
   parentColor?: string;
   showMenu?: boolean;
@@ -141,6 +143,7 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
   hasParent,
   data,
   backgroundColor,
+  description,
   showMenu = true
 }: NodeHeaderProps) => {
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
@@ -174,35 +177,37 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
   }, [updateNode, id]);
 
   return (
-    <div
-      className="node-header"
-      css={memoizedHeaderStyle}
-      onClick={handleHeaderClick}
-      style={{
-        backgroundColor: backgroundColor
-      }}
-    >
-      {data.title && (
-        <span className="node-title">
-          <span className="title-container">
-            <span className="title">{data.title}</span>
+    <Tooltip title={description} placement="top">
+      <div
+        className="node-header"
+        css={memoizedHeaderStyle}
+        onClick={handleHeaderClick}
+        style={{
+          backgroundColor: backgroundColor
+        }}
+      >
+        {data.title && (
+          <span className="node-title">
+            <span className="title-container">
+              <span className="title">{data.title}</span>
+            </span>
+            <span className="type">{titleizedType}</span>
           </span>
-          <span className="type">{titleizedType}</span>
-        </span>
-      )}
-      {!data.title && <span className="node-title">{titleizedType}</span>}
-      {showMenu && (
-        <div className="menu-button" tabIndex={-1}>
-          <button
-            className="menu-button"
-            tabIndex={-1}
-            onClick={handleOpenContextMenu}
-          >
-            <MoreHoriz />
-          </button>
-        </div>
-      )}
-    </div>
+        )}
+        {!data.title && <span className="node-title">{titleizedType}</span>}
+        {showMenu && (
+          <div className="menu-button" tabIndex={-1}>
+            <button
+              className="menu-button"
+              tabIndex={-1}
+              onClick={handleOpenContextMenu}
+            >
+              <MoreHoriz />
+            </button>
+          </div>
+        )}
+      </div>
+    </Tooltip>
   );
 };
 
