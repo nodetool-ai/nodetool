@@ -22381,9 +22381,9 @@
           "month": 1,
           "day": 12,
           "hour": 21,
-          "minute": 3,
-          "second": 54,
-          "microsecond": 437080,
+          "minute": 20,
+          "second": 45,
+          "microsecond": 654886,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23423,9 +23423,9 @@
           "month": 1,
           "day": 12,
           "hour": 21,
-          "minute": 3,
-          "second": 54,
-          "microsecond": 441033,
+          "minute": 20,
+          "second": 45,
+          "microsecond": 658766,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23476,9 +23476,9 @@
           "month": 1,
           "day": 12,
           "hour": 21,
-          "minute": 3,
-          "second": 54,
-          "microsecond": 441286,
+          "minute": 20,
+          "second": 45,
+          "microsecond": 659014,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23529,9 +23529,9 @@
           "month": 1,
           "day": 12,
           "hour": 21,
-          "minute": 3,
-          "second": 54,
-          "microsecond": 441487,
+          "minute": 20,
+          "second": 45,
+          "microsecond": 659222,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23582,9 +23582,9 @@
           "month": 1,
           "day": 12,
           "hour": 21,
-          "minute": 3,
-          "second": 54,
-          "microsecond": 441704,
+          "minute": 20,
+          "second": 45,
+          "microsecond": 659433,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23635,9 +23635,9 @@
           "month": 1,
           "day": 12,
           "hour": 21,
-          "minute": 3,
-          "second": 54,
-          "microsecond": 441908,
+          "minute": 20,
+          "second": 45,
+          "microsecond": 659641,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23688,9 +23688,9 @@
           "month": 1,
           "day": 12,
           "hour": 21,
-          "minute": 3,
-          "second": 54,
-          "microsecond": 442178,
+          "minute": 20,
+          "second": 45,
+          "microsecond": 659900,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23741,9 +23741,9 @@
           "month": 1,
           "day": 12,
           "hour": 21,
-          "minute": 3,
-          "second": 54,
-          "microsecond": 442397,
+          "minute": 20,
+          "second": 45,
+          "microsecond": 660105,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23810,9 +23810,9 @@
           "month": 1,
           "day": 12,
           "hour": 21,
-          "minute": 3,
-          "second": 54,
-          "microsecond": 442645,
+          "minute": 20,
+          "second": 45,
+          "microsecond": 660342,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -74898,6 +74898,93 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": []
+  },
+  {
+    "title": "Any LLM",
+    "description": "Use any large language model from a selected catalogue (powered by OpenRouter).\n    Supports various models including Claude 3, Gemini, Llama, and GPT-4.",
+    "namespace": "fal.llm",
+    "node_type": "fal.llm.AnyLLM",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "prompt",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Prompt",
+        "description": "The prompt to send to the language model",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "system_prompt",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "System Prompt",
+        "description": "Optional system prompt to provide context or instructions",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "model",
+        "type": {
+          "type": "enum",
+          "optional": false,
+          "values": [
+            "anthropic/claude-3.5-sonnet",
+            "anthropic/claude-3-5-haiku",
+            "anthropic/claude-3-haiku",
+            "google/gemini-pro-1.5",
+            "google/gemini-flash-1.5",
+            "google/gemini-flash-1.5-8b",
+            "meta-llama/llama-3.2-1b-instruct",
+            "meta-llama/llama-3.2-3b-instruct",
+            "meta-llama/llama-3.1-8b-instruct",
+            "meta-llama/llama-3.1-70b-instruct",
+            "openai/gpt-4o-mini",
+            "openai/gpt-4o"
+          ],
+          "type_args": [],
+          "type_name": "nodetool.nodes.fal.llm.ModelEnum"
+        },
+        "default": "google/gemini-flash-1.5",
+        "title": "Model",
+        "description": "The language model to use for the completion",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "prompt",
+      "model",
+      "system_prompt"
+    ]
   },
   {
     "title": "Ideogram V 2",
