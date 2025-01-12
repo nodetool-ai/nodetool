@@ -1,5 +1,6 @@
 import Fuse from "fuse.js";
 import { Workflow } from "../stores/ApiTypes";
+import { devError } from "./DevLog";
 
 interface WorkflowSearchData {
   workflow: Workflow;
@@ -17,9 +18,7 @@ const extractNodeNames = (workflow: Workflow): string[] => {
       typeof workflow.graph === "string"
         ? JSON.parse(workflow.graph)
         : workflow.graph;
-    // Get all nodes from the graph
     const nodes = Object.values(graph.nodes || {});
-    // Extract both the title and the type of each node
     return nodes
       .map((node: any) => {
         const title = node.title || "";
@@ -28,15 +27,21 @@ const extractNodeNames = (workflow: Workflow): string[] => {
       })
       .flat();
   } catch (e) {
-    console.error("Error extracting node names:", e);
+    devError("Error extracting node names:", e);
     return [];
   }
 };
 
 export const prepareWorkflowData = (workflow: Workflow): WorkflowSearchData => {
-  const cached = workflowSearchCache.get(workflow.id);
-  if (cached) return cached;
+  // const cached = workflowSearchCache.get(workflow.id);
+  // if (cached) {
+  //   console.log(`Cache hit for workflow "${workflow.name}" (${workflow.id})`);
+  //   return cached;
+  // }
 
+  // console.log(
+  //   `Cache miss for workflow "${workflow.name}" (${workflow.id}), computing node names...`
+  // );
   const nodeNames = extractNodeNames(workflow);
   const searchText = [workflow.name, workflow.description, ...nodeNames]
     .filter(Boolean)
@@ -65,8 +70,8 @@ const normalSearchOptions = {
 const nodeOnlySearchOptions = {
   includeScore: true,
   keys: [{ name: "nodeNames", weight: 1.0 }],
-  threshold: 0.2,
-  distance: 20,
+  threshold: 0.1,
+  distance: 100,
   minMatchCharLength: 2,
   ignoreLocation: true,
   useExtendedSearch: true,
@@ -103,13 +108,6 @@ export const searchWorkflows = (
   );
 
   return fuse.search(query).map((result) => {
-    const data = prepareWorkflowData(result.item.workflow);
-    console.log(
-      `Node names for "${result.item.workflow.name}":`,
-      data.nodeNames,
-      nodesOnly ? "(nodes only search)" : "(normal search)"
-    );
-
     return {
       workflow: result.item.workflow,
       score: 1 - (result.score || 0),

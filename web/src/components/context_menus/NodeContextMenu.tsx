@@ -1,14 +1,7 @@
 import React, { useCallback, useState } from "react";
 import { useReactFlow } from "@xyflow/react";
 //mui
-import {
-  Checkbox,
-  Divider,
-  FormControlLabel,
-  Menu,
-  MenuItem,
-  Typography
-} from "@mui/material";
+import { Divider, Menu, MenuItem, Typography } from "@mui/material";
 import ContextMenuItem from "./ContextMenuItem";
 //icons
 import QueueIcon from "@mui/icons-material/Queue";
@@ -17,6 +10,7 @@ import RemoveCircleIcon from "@mui/icons-material/RemoveCircle";
 import DataArrayIcon from "@mui/icons-material/DataArray";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import GroupRemoveIcon from "@mui/icons-material/GroupRemove";
+import SearchIcon from "@mui/icons-material/Search";
 //store
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { useNodeStore, NodeStore } from "../../stores/NodeStore";
@@ -33,6 +27,7 @@ import { useRemoveFromGroup } from "../../hooks/nodes/useRemoveFromGroup";
 //reactflow
 import { Node } from "@xyflow/react";
 import useMetadataStore from "../../stores/MetadataStore";
+import { useNavigate } from "react-router-dom";
 
 const NodeContextMenu: React.FC = () => {
   const menuPosition = useContextMenuStore((state) => state.menuPosition);
@@ -45,9 +40,6 @@ const NodeContextMenu: React.FC = () => {
   );
   const { getNode } = useReactFlow();
   const deleteNode = useNodeStore((state: NodeStore) => state.deleteNode);
-  const updateNodeData = useNodeStore(
-    (state: NodeStore) => state.updateNodeData
-  );
   const node = nodeId !== null ? getNode(nodeId) : null;
   const nodeData = node?.data as NodeData;
   const removeFromGroup = useRemoveFromGroup();
@@ -55,12 +47,12 @@ const NodeContextMenu: React.FC = () => {
     state.getMetadata(node?.type ?? "")
   );
   const { handleCopy } = useCopyPaste();
-  // const isCollapsed = nodeData?.collapsed || false;
   const duplicateNodes = useDuplicateNodes();
   const { writeClipboard } = useClipboard();
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
+  const navigate = useNavigate();
 
   //copy metadata to clipboard
   const handleCopyMetadataToClipboard = useCallback(() => {
@@ -109,31 +101,10 @@ const NodeContextMenu: React.FC = () => {
     [closeContextMenu, deleteNode]
   );
 
-  //collapse
-  // const toggleCollapse = useCallback(
-  //   (val: boolean) => {
-  //     if (nodeId !== null) {
-  //       updateNodeData(nodeId, {
-  //         properties: { ...nodeData?.properties },
-  //         workflow_id: nodeData?.workflow_id || "",
-  //         collapsed: val
-  //       });
-  //     }
-  //   },
-  //   [nodeData?.properties, nodeData?.workflow_id, nodeId, updateNodeData]
-  // );
-
   const handleDuplicateNodes = useCallback(() => {
     duplicateNodes();
     closeContextMenu();
   }, [closeContextMenu, duplicateNodes]);
-
-  // const handleCollapse = (
-  //   event: React.ChangeEvent<HTMLInputElement>,
-  //   checked: boolean
-  // ) => {
-  //   toggleCollapse(checked);
-  // };
 
   const handleOpenDocumentation = useCallback(() => {
     openDocumentation(node?.type || "", {
@@ -141,6 +112,13 @@ const NodeContextMenu: React.FC = () => {
       y: menuPosition?.y ?? 0
     });
   }, [menuPosition?.x, menuPosition?.y, node?.type, openDocumentation]);
+
+  const handleFindExamples = () => {
+    const nodeType = node?.type || "";
+    // Navigate to examples with the node type as a search parameter
+    navigate(`/examples?node=${encodeURIComponent(nodeType)}`);
+    closeContextMenu();
+  };
 
   return (
     <Menu
@@ -185,22 +163,15 @@ const NodeContextMenu: React.FC = () => {
         IconComponent={<CopyAllIcon />}
         tooltip="CTRL+C | Meta+C"
       />
-      {/* <ContextMenuItem
-        onClick={(event: any) => handleCopyClicked(event, nodeId)}
-        label="Collapsed"
-        IconComponent={<CopyAllIcon />}
-        tooltip="Double click node header"
-        controlElement={
-          <FormControlLabel
-            className="nodrag checkbox"
-            label="Collapsed"
-            control={
-              <Checkbox checked={isCollapsed} onChange={handleCollapse} />
-            }
-          />
-        }
-      /> */}
+
       <Divider />
+      {/* Find Examples using this node */}
+      <ContextMenuItem
+        onClick={handleFindExamples}
+        label="Find Examples using this node"
+        IconComponent={<SearchIcon />}
+        tooltip="Find Examples using this node"
+      />
       <ContextMenuItem
         onClick={handleCopyMetadataToClipboard}
         label="Copy NodeData"
