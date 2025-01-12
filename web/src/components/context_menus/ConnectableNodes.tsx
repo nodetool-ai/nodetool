@@ -182,9 +182,9 @@ const ConnectableNodes: React.FC<ConnectableNodesProps> = ({
       addNode(newNode);
 
       if (nodeId) {
-        // Find the property that is connectable to the source handle
-        // and create an edge from the node to the new node
-        if (filterType === "output" && typeMetadata) {
+        // When filterType is "input", we're looking at nodes with compatible inputs
+        // because we started from an output handle
+        if (filterType === "input" && typeMetadata) {
           const properties = metadata?.properties || [];
           const property = properties.find((property) =>
             isConnectable(typeMetadata, property.type, true)
@@ -192,8 +192,8 @@ const ConnectableNodes: React.FC<ConnectableNodesProps> = ({
           if (!property) return;
           const edge = {
             id: generateEdgeId(),
-            source: nodeId,
-            target: newNode.id,
+            source: nodeId, // FROM existing node
+            target: newNode.id, // TO new node
             sourceHandle: sourceHandle,
             targetHandle: property.name,
             type: "default",
@@ -201,16 +201,17 @@ const ConnectableNodes: React.FC<ConnectableNodesProps> = ({
           };
           addEdge(edge);
         }
-        if (filterType === "input" && typeMetadata) {
-          // Find the output that is connectable to the target handle
-          // and create an edge from the new node to the node
+
+        // When filterType is "output", we're looking at nodes with compatible outputs
+        // because we started from an input handle
+        if (filterType === "output" && typeMetadata) {
           const output =
             metadata.outputs.length > 0 ? metadata.outputs[0] : null;
           if (!output) return;
           const edge = {
             id: generateEdgeId(),
-            source: newNode.id,
-            target: nodeId,
+            source: newNode.id, // FROM new node
+            target: nodeId, // TO existing node
             sourceHandle: output.name,
             targetHandle: targetHandle,
             type: "default",
