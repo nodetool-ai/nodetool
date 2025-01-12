@@ -76,7 +76,7 @@ def decode_bytes_with_fallback(
     return ""
 
 
-def fetch_emails(imap, message_ids: List[str], batch_size: int = 10) -> List[Email]:
+def fetch_emails(imap, message_ids: List[str], batch_size: int = 100) -> List[Email]:
     """
     Fetches email details for the given message IDs in batches.
 

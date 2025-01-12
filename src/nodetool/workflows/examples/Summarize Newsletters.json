@@ -1,8 +1,8 @@
 {
   "id": "66a76fbad01511ef97f9000025dd7c17",
   "access": "public",
-  "created_at": "2025-01-11T13:27:42.067357",
-  "updated_at": "2025-01-11T13:27:42.067373",
+  "created_at": "2025-01-11T18:22:24.889412",
+  "updated_at": "2025-01-11T18:22:24.889436",
   "name": "Summarize Newsletters",
   "description": "",
   "tags": null,
@@ -18,12 +18,12 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 277,
-            "y": 50
+            "x": 472,
+            "y": 67
           },
           "zIndex": -10,
-          "width": 1393,
-          "height": 581,
+          "width": 930,
+          "height": 455,
           "selectable": false
         }
       },
@@ -36,10 +36,10 @@
           "selected": false,
           "position": {
             "x": 50,
-            "y": 200
+            "y": 178
           },
           "zIndex": 0,
-          "width": 117,
+          "width": 122,
           "selectable": true
         }
       },
@@ -51,11 +51,11 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 1216,
-            "y": 179
+            "x": 651,
+            "y": 131
           },
           "zIndex": 0,
-          "width": 127,
+          "width": 200,
           "selectable": true
         }
       },
@@ -69,31 +69,12 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 1730,
-            "y": 158
+            "x": 1462,
+            "y": 95
           },
           "zIndex": 0,
-          "width": 152,
-          "height": 172,
-          "selectable": true
-        }
-      },
-      {
-        "id": "18",
-        "parent_id": "12",
-        "type": "nodetool.workflows.base_node.Preview",
-        "data": {
-          "name": "str_output_2024-12-29"
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 1027,
-            "y": 381
-          },
-          "zIndex": 0,
-          "width": 150,
-          "height": 150,
+          "width": 201,
+          "height": 162,
           "selectable": true
         }
       },
@@ -102,18 +83,18 @@
         "parent_id": null,
         "type": "google.mail.GmailSearch",
         "data": {
-          "email_address": "username@gmail.com",
+          "email_address": "matti.georgi@gmail.com",
           "search_query": "",
-          "max_results": 20
+          "max_results": 10
         },
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 50,
-            "y": 261
+            "x": 242,
+            "y": 219
           },
           "zIndex": 0,
-          "width": 197,
+          "width": 200,
           "selectable": true
         }
       },
@@ -125,152 +106,11 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 197,
-            "y": 109
+            "x": 202,
+            "y": 91
           },
           "zIndex": 0,
-          "width": 143,
-          "selectable": true
-        }
-      },
-      {
-        "id": "23",
-        "parent_id": "12",
-        "type": "nodetool.dictionary.MakeDictionary",
-        "data": {
-          "key2": "subject",
-          "key1": "category",
-          "key3": "body"
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 1027,
-            "y": 50
-          },
-          "zIndex": 0,
-          "width": 159,
-          "selectable": true
-        }
-      },
-      {
-        "id": "25",
-        "parent_id": "12",
-        "type": "nodetool.text.Concat",
-        "data": {},
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 400,
-            "y": 202
-          },
-          "zIndex": 0,
-          "width": 159,
-          "selectable": true
-        }
-      },
-      {
-        "id": "26",
-        "parent_id": "12",
-        "type": "ollama.agents.Classifier",
-        "data": {
-          "model": {
-            "type": "llama_model",
-            "repo_id": "gemma2:2b"
-          },
-          "context_window": 4096,
-          "labels": "newsletter,notification,marketing,other",
-          "temperature": 0.2,
-          "top_k": 5,
-          "top_p": 0.5,
-          "keep_alive": 300
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 808,
-            "y": 202
-          },
-          "zIndex": 0,
-          "width": 159,
-          "selectable": true
-        }
-      },
-      {
-        "id": "27",
-        "parent_id": "12",
-        "type": "nodetool.text.Slice",
-        "data": {
-          "start": null,
-          "stop": 512,
-          "step": null
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 619,
-            "y": 238
-          },
-          "zIndex": 0,
-          "width": 159,
-          "selectable": true
-        }
-      },
-      {
-        "id": "28",
-        "parent_id": null,
-        "type": "nodetool.list.FilterDictsByValue",
-        "data": {
-          "key": "category",
-          "filter_type": "contains",
-          "criteria": "newsletter"
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 1730,
-            "y": 380
-          },
-          "zIndex": 0,
-          "width": 159,
-          "selectable": true
-        }
-      },
-      {
-        "id": "29",
-        "parent_id": null,
-        "type": "nodetool.workflows.base_node.Preview",
-        "data": {
-          "name": "list_output_2025-01-11"
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 1949,
-            "y": 222
-          },
-          "zIndex": 0,
-          "width": 150,
-          "height": 183,
-          "selectable": true
-        }
-      },
-      {
-        "id": "30",
-        "parent_id": null,
-        "type": "nodetool.list.MapField",
-        "data": {
-          "field": "body",
-          "default": null
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 1949,
-            "y": 455
-          },
-          "zIndex": 0,
-          "width": 159,
+          "width": 200,
           "selectable": true
         }
       },
@@ -279,68 +119,16 @@
         "parent_id": null,
         "type": "nodetool.list.JoinStrings",
         "data": {
-          "delimiter": "==============================="
+          "delimiter": "=== END OF MAIL ===\n\n\n"
         },
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 2138,
-            "y": 468
+            "x": 1462.5,
+            "y": 307
           },
           "zIndex": 0,
-          "width": 159,
-          "selectable": true
-        }
-      },
-      {
-        "id": "32",
-        "parent_id": null,
-        "type": "ollama.text.Ollama",
-        "data": {
-          "model": {
-            "type": "llama_model",
-            "repo_id": "gemma2:9b"
-          },
-          "image": {
-            "type": "image",
-            "uri": "",
-            "asset_id": null,
-            "data": null
-          },
-          "system_prompt": "You are an assistant.",
-          "messages": [],
-          "context_window": 4096,
-          "temperature": 0.7,
-          "top_k": 50,
-          "top_p": 0.95,
-          "keep_alive": "300"
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 2516,
-            "y": 415
-          },
-          "zIndex": 0,
-          "width": 159,
-          "selectable": true
-        }
-      },
-      {
-        "id": "33",
-        "parent_id": null,
-        "type": "nodetool.text.Concat",
-        "data": {
-          "a": "Summarize all newsletter for the most interesting stuff: "
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 2327,
-            "y": 458
-          },
-          "zIndex": 0,
-          "width": 159,
+          "width": 200,
           "selectable": true
         }
       },
@@ -352,126 +140,174 @@
           "name": "str_output_2025-01-11"
         },
         "ui_properties": {
+          "selected": false,
           "position": {
-            "x": 2705,
-            "y": 240
+            "x": 1923,
+            "y": 191
           },
           "zIndex": 0,
-          "width": 482,
-          "height": 589,
+          "width": 451,
+          "height": 358,
+          "selectable": true
+        }
+      },
+      {
+        "id": "35",
+        "parent_id": null,
+        "type": "ollama.agents.Summarizer",
+        "data": {
+          "model": {
+            "type": "llama_model",
+            "repo_id": "gemma2:9b"
+          },
+          "context_window": 4096,
+          "max_length": 1000,
+          "temperature": 0.7,
+          "top_k": 50,
+          "top_p": 0.95,
+          "keep_alive": 300,
+          "focus_aspects": "key insights",
+          "style": "executive summary",
+          "audience": "AI researchers",
+          "key_points_count": 10,
+          "system_prompt": "You are an expert text summarizer. Follow these guidelines:\n\n1. Content Focus:\n   - Extract main arguments, findings, and conclusions\n   - Preserve critical evidence and methodologies\n   - Maintain factual accuracy and context\n   - Include key statistics when relevant\n\n2. Structure and Style:\n   - Present information in logical flow\n   - Use clear, precise language\n   - Balance brevity with completeness\n   - Adapt style to match source material\n\n3. Quality Standards:\n   - Include only information from the source\n   - Avoid personal interpretation\n   - Maintain technical accuracy\n   - Preserve nuance in complex topics\n\nYour goal is to create an accurate, useful, and efficient representation of the original text while maintaining its core meaning and significance."
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1693,
+            "y": 230
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true
+        }
+      },
+      {
+        "id": "36",
+        "parent_id": "12",
+        "type": "ollama.agents.Summarizer",
+        "data": {
+          "model": {
+            "type": "llama_model",
+            "repo_id": "gemma2:2b"
+          },
+          "context_window": 8192,
+          "max_length": 200,
+          "temperature": 0.7,
+          "top_k": 50,
+          "top_p": 0.95,
+          "keep_alive": 300,
+          "style": "concise bullet points",
+          "audience": "LLM",
+          "focus_aspects": "technical details",
+          "key_points_count": 3,
+          "system_prompt": "You are an expert text summarizer. Follow these guidelines:\n\n1. Content Focus:\n   - Extract main arguments, findings, and conclusions\n   - Preserve critical evidence and methodologies\n   - Maintain factual accuracy and context\n   - Include key statistics when relevant\n\n2. Structure and Style:\n   - Present information in logical flow\n   - Use clear, precise language\n   - Balance brevity with completeness\n   - Adapt style to match source material\n\n3. Quality Standards:\n   - Include only information from the source\n   - Avoid personal interpretation\n   - Maintain technical accuracy\n   - Preserve nuance in complex topics\n\nYour goal is to create an accurate, useful, and efficient representation of the original text while maintaining its core meaning and significance."
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 432,
+            "y": 50
+          },
+          "zIndex": 0,
+          "width": 159,
+          "selectable": true
+        }
+      },
+      {
+        "id": "37",
+        "parent_id": "12",
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "str_output_2025-01-11"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 651,
+            "y": 205
+          },
+          "zIndex": 0,
+          "width": 229,
+          "height": 200,
+          "selectable": true
+        }
+      },
+      {
+        "id": "38",
+        "parent_id": null,
+        "type": "google.mail.EmailSearchCriteria",
+        "data": {
+          "from_address": "",
+          "to_address": "",
+          "subject": "AINews",
+          "body": "",
+          "date_filter": "SINCE_ONE_WEEK",
+          "flags": null,
+          "keywords": "",
+          "folder": "INBOX",
+          "text": null
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 50,
+            "y": 50
+          },
+          "zIndex": 0,
+          "width": 162,
+          "selectable": true
+        }
+      },
+      {
+        "id": "39",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": [
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "EDIT SUBJECT"
+                }
+              ]
+            }
+          ]
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": -127,
+            "y": 160
+          },
+          "zIndex": 0,
+          "width": 150,
+          "height": 100,
           "selectable": true
         }
       }
     ],
     "edges": [
       {
-        "id": "019f70a8-ba9a-4da2-a433-1cb26f370c40",
-        "source": "13",
+        "id": "a563f4cf-b41c-4ff1-a5ba-0eca90be0221",
+        "source": "35",
         "sourceHandle": "output",
-        "target": "22",
-        "targetHandle": "email",
-        "ui_properties": {
-          "className": "any"
-        }
-      },
-      {
-        "id": "08465db1-1dfd-4199-bf47-14c0a6b3610c",
-        "source": "20",
-        "sourceHandle": "output",
-        "target": "12",
-        "targetHandle": "input",
-        "ui_properties": {
-          "className": "list"
-        }
-      },
-      {
-        "id": "c0e31a79-9466-4f0e-90f0-9397dae2eb4c",
-        "source": "22",
-        "sourceHandle": "body",
-        "target": "25",
-        "targetHandle": "b",
-        "ui_properties": {
-          "className": "str"
-        }
-      },
-      {
-        "id": "1fede168-8736-4315-8e0c-6589dbcd48e8",
-        "source": "22",
-        "sourceHandle": "subject",
-        "target": "25",
-        "targetHandle": "a",
-        "ui_properties": {
-          "className": "str"
-        }
-      },
-      {
-        "id": "7e544523-6f3a-4407-8ed9-785c9389988e",
-        "source": "26",
-        "sourceHandle": "output",
-        "target": "18",
+        "target": "34",
         "targetHandle": "value",
         "ui_properties": {
           "className": "str"
         }
       },
       {
-        "id": "724a00c8-dfc2-4f3d-bb42-0b4e573e08bd",
-        "source": "23",
+        "id": "96a69b90-9c7a-4c77-acfe-74f947b8ce38",
+        "source": "38",
         "sourceHandle": "output",
-        "target": "14",
-        "targetHandle": "input",
+        "target": "20",
+        "targetHandle": "search_criteria",
         "ui_properties": {
-          "className": "dict"
-        }
-      },
-      {
-        "id": "1e6e8896-9b28-4179-80a4-06aa8be63228",
-        "source": "26",
-        "sourceHandle": "output",
-        "target": "23",
-        "targetHandle": "value1",
-        "ui_properties": {
-          "className": "str"
-        }
-      },
-      {
-        "id": "bb66f653-81e4-49dd-a5bb-4e29ac066547",
-        "source": "25",
-        "sourceHandle": "output",
-        "target": "27",
-        "targetHandle": "text",
-        "ui_properties": {
-          "className": "union"
-        }
-      },
-      {
-        "id": "b7e724c8-8a07-407f-bf0f-21f0f4e54b97",
-        "source": "27",
-        "sourceHandle": "output",
-        "target": "26",
-        "targetHandle": "input_text",
-        "ui_properties": {
-          "className": "union"
-        }
-      },
-      {
-        "id": "d1413e9c-307a-411c-b1cf-8a31be4ce037",
-        "source": "22",
-        "sourceHandle": "subject",
-        "target": "23",
-        "targetHandle": "value2",
-        "ui_properties": {
-          "className": "str"
-        }
-      },
-      {
-        "id": "38701e0f-5abb-449c-bd77-ce1fafa66128",
-        "source": "22",
-        "sourceHandle": "body",
-        "target": "23",
-        "targetHandle": "value3",
-        "ui_properties": {
-          "className": "str"
+          "className": "email_search_criteria"
         }
       },
       {
@@ -485,71 +321,71 @@
         }
       },
       {
-        "id": "15c65be9-4ede-4e6e-ab4e-f62f0f4c7296",
+        "id": "a270ae57-f9f7-42f4-98f1-81891f2618a6",
+        "source": "31",
+        "sourceHandle": "output",
+        "target": "35",
+        "targetHandle": "text",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "79986c7a-a2cf-4904-89fa-4effbe58d784",
+        "source": "22",
+        "sourceHandle": "body",
+        "target": "36",
+        "targetHandle": "text",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "019f70a8-ba9a-4da2-a433-1cb26f370c40",
+        "source": "13",
+        "sourceHandle": "output",
+        "target": "22",
+        "targetHandle": "email",
+        "ui_properties": {
+          "className": "any"
+        }
+      },
+      {
+        "id": "f4cd7afd-ba08-4850-b47f-417ee7a9cd77",
+        "source": "36",
+        "sourceHandle": "output",
+        "target": "14",
+        "targetHandle": "input",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "79987",
+        "source": "36",
+        "sourceHandle": "output",
+        "target": "37",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "062d3357-44b5-4e0d-bfcc-39e3f36d4d1c",
         "source": "12",
         "sourceHandle": "output",
-        "target": "28",
+        "target": "31",
         "targetHandle": "values",
         "ui_properties": {
           "className": "any"
         }
       },
       {
-        "id": "271e790e-eb6d-4a2f-a9a8-ca642c60c059",
-        "source": "28",
+        "id": "08465db1-1dfd-4199-bf47-14c0a6b3610c",
+        "source": "20",
         "sourceHandle": "output",
-        "target": "30",
-        "targetHandle": "values",
-        "ui_properties": {
-          "className": "list"
-        }
-      },
-      {
-        "id": "76e2e828-cc3b-4255-b19c-4ae5b5cbbd9a",
-        "source": "30",
-        "sourceHandle": "output",
-        "target": "31",
-        "targetHandle": "values",
-        "ui_properties": {
-          "className": "list"
-        }
-      },
-      {
-        "id": "c41803a9-f414-4fa0-977b-182e7235bf10",
-        "source": "33",
-        "sourceHandle": "output",
-        "target": "32",
-        "targetHandle": "prompt",
-        "ui_properties": {
-          "className": "union"
-        }
-      },
-      {
-        "id": "2f628f05-4151-4b88-9d1a-ddf121e28729",
-        "source": "31",
-        "sourceHandle": "output",
-        "target": "33",
-        "targetHandle": "b",
-        "ui_properties": {
-          "className": "str"
-        }
-      },
-      {
-        "id": "58337",
-        "source": "32",
-        "sourceHandle": "output",
-        "target": "34",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "str"
-        }
-      },
-      {
-        "id": "58336",
-        "source": "28",
-        "sourceHandle": "output",
-        "target": "29",
-        "targetHandle": "value",
+        "target": "12",
+        "targetHandle": "input",
         "ui_properties": {
           "className": "list"
         }
