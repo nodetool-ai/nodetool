@@ -84,27 +84,34 @@ const HuggingFaceModelSelect = ({
 
   const options = useMemo(() => {
     if (!models || isLoading || isError) return [];
-    return [
-      { value: "", label: "None" },
-      ...(models as HuggingFaceModel[]).map((model) => ({
-        value: model.path ? `${model.repo_id}:${model.path}` : model.repo_id,
-        label: model.path ? (
-          <div>
-            <div
-              style={{
-                fontSize: "0.75em",
-                fontWeight: "normal",
-                fontStyle: "italic"
-              }}
-            >
-              {model.repo_id}
-            </div>
-            <div>{model.path}</div>
+
+    const modelOptions = (models as HuggingFaceModel[]).map((model) => ({
+      value: model.path ? `${model.repo_id}:${model.path}` : model.repo_id,
+      label: model.path ? (
+        <div>
+          <div
+            style={{
+              fontSize: "0.75em",
+              fontWeight: "normal",
+              fontStyle: "italic"
+            }}
+          >
+            {model.repo_id}
           </div>
-        ) : (
-          model.repo_id || ""
-        )
-      }))
+          <div>{model.path}</div>
+        </div>
+      ) : (
+        model.repo_id || ""
+      ),
+      // Add sortKey for consistent sorting
+      sortKey: model.path
+        ? `${model.repo_id} ${model.path}`
+        : model.repo_id || ""
+    }));
+
+    return [
+      { value: "", label: "None", sortKey: "" },
+      ...modelOptions.sort((a, b) => a.sortKey.localeCompare(b.sortKey))
     ];
   }, [models, isLoading, isError]);
 
