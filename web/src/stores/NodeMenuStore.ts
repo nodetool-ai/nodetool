@@ -249,6 +249,8 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
           !secrets.ELEVENLABS_API_KEY ||
           secrets.ELEVENLABS_API_KEY.trim() === ""
         );
+      case "fal":
+        return !secrets.FAL_API_KEY || secrets.FAL_API_KEY.trim() === "";
       case "aime":
         return (
           !secrets.AIME_API_KEY ||

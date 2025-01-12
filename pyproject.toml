@@ -43,6 +43,7 @@ datasets = "3.1.0"
 python-docx = "1.1.2"
 diffusers = { extras = ["torch"], version = "0.31.0" }
 einops = "0.8.0"
+fal-client = "0.5.6"
 fastapi = "0.115.5"
 feedparser = "6.0.11"
 filelock = "3.16.1"
@@ -140,3 +141,6 @@ pytest-xdist = "*"
 
 [tool.poetry.scripts]
 nodetool = "nodetool.cli:cli"
+
+[tool.poetry.requires-plugins]
+poetry-plugin-export = ">=1.8"
