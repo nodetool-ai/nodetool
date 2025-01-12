@@ -64,20 +64,27 @@ export const formatNodeDocumentation = (
           if (searchTerm && searchInfo) {
             // Find position of this line in the combined string
             const fullString =
-              searchInfo.matches?.find((m) => m.key === "use_cases")?.value ||
-              "";
+              searchInfo.matches?.find(
+                (m: { key: string; value: string }) => m.key === "use_cases"
+              )?.value || "";
             const lineStart = fullString.indexOf(content);
 
             if (lineStart !== -1) {
               // Adjust match indices to be relative to this line
               const lineMatches = searchInfo.matches
-                ?.find((m) => m.key === "use_cases")
-                ?.indices.filter(([start, end]) => {
+                ?.find(
+                  (m: { key: string; indices: [number, number][] }) =>
+                    m.key === "use_cases"
+                )
+                ?.indices.filter(([start, end]: [number, number]) => {
                   const matchStart = start - lineStart;
                   const matchEnd = end - lineStart;
                   return matchStart >= 0 && matchEnd < content.length;
                 })
-                .map(([start, end]) => [start - lineStart, end - lineStart]);
+                .map(([start, end]: [number, number]) => [
+                  start - lineStart,
+                  end - lineStart
+                ]);
 
               const lineSearchInfo = {
                 ...searchInfo,
@@ -321,19 +328,20 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
     // Description matches
     const descriptionFuse = new Fuse(entries, {
       ...fuseOptions,
-      threshold: 0.1,
-      distance: 20,
-      minMatchCharLength: 4,
+      threshold: 0.25,
+      distance: 100,
+      minMatchCharLength: 3,
       keys: [
         { name: "description", weight: 0.9 },
         { name: "use_cases", weight: 0.9 },
-        { name: "recommended_models", weight: 0.9 }
+        { name: "recommended_models", weight: 0.7 }
       ],
       tokenize: true,
       tokenSeparator: /[\s\.,\-]+/,
       findAllMatches: true,
       ignoreLocation: true,
-      includeMatches: true
+      includeMatches: true,
+      useExtendedSearch: true
     } as ExtendedFuseOptions<any>);
 
     const titleResults = titleFuse.search(term).map((result) => ({
