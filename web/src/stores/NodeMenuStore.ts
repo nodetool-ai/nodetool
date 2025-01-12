@@ -52,79 +52,32 @@ export const formatNodeDocumentation = (
       .slice(useCasesIndex + 1, endIndex)
       .filter((line) => line.trim());
 
-    // Store raw text version
-    useCasesRaw = useCaseLines.join(" ");
+    // Check if we have bullet points
+    const hasBullets = useCaseLines.some((line) => line.trim().startsWith("-"));
 
-    // Format HTML version with optional highlighting
-    if (useCaseLines.some((line) => line.trim().startsWith("-"))) {
-      const cleanedLines = useCaseLines
+    if (hasBullets) {
+      // Clean bullet points but keep as separate lines
+      useCasesRaw = useCaseLines
         .filter((line) => line.trim().startsWith("-"))
-        .map((line) => {
-          const content = line.replace(/^-\s*/, "").trim();
-          if (searchTerm && searchInfo) {
-            // Find position of this line in the combined string
-            const fullString =
-              searchInfo.matches?.find(
-                (m: { key: string; value: string }) => m.key === "use_cases"
-              )?.value || "";
-            const lineStart = fullString.indexOf(content);
-
-            if (lineStart !== -1) {
-              // Adjust match indices to be relative to this line
-              const lineMatches = searchInfo.matches
-                ?.find(
-                  (m: { key: string; indices: [number, number][] }) =>
-                    m.key === "use_cases"
-                )
-                ?.indices.filter(([start, end]: [number, number]) => {
-                  const matchStart = start - lineStart;
-                  const matchEnd = end - lineStart;
-                  return matchStart >= 0 && matchEnd < content.length;
-                })
-                .map(([start, end]: [number, number]) => [
-                  start - lineStart,
-                  end - lineStart
-                ]);
-
-              const lineSearchInfo = {
-                ...searchInfo,
-                matches: [
-                  {
-                    key: "use_cases",
-                    indices: lineMatches || [],
-                    value: content
-                  }
-                ]
-              };
-
-              const highlighted = highlightTextUtil(
-                content,
-                "use_cases",
-                searchTerm,
-                lineSearchInfo
-              );
-              return highlighted.html;
-            }
-          }
-          return content;
-        });
-      useCasesHtml = cleanedLines
-        .filter((line) => line.length > 0)
-        .map((line) => `<li>${line}</li>`)
+        .map((line) => line.replace(/^-\s*/, "").trim())
         .join("\n");
-      useCasesHtml = `<ul>${useCasesHtml}</ul>`;
     } else {
-      if (searchTerm && searchInfo) {
-        const highlighted = highlightTextUtil(
-          useCasesRaw,
-          "use_cases",
-          searchTerm,
-          searchInfo
-        );
-        useCasesHtml = highlighted.html;
-      } else {
-        useCasesHtml = useCasesRaw;
-      }
+      // Join without bullets
+      useCasesRaw = useCaseLines.join(" ");
+    }
+
+    // Highlight the text
+    if (searchTerm && searchInfo) {
+      const highlighted = highlightTextUtil(
+        useCasesRaw,
+        "use_cases",
+        searchTerm,
+        searchInfo,
+        hasBullets // Pass this flag to highlightText
+      );
+      useCasesHtml = highlighted.html;
+    } else {
+      useCasesHtml = useCasesRaw;
     }
   }
 
@@ -328,7 +281,7 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
     // Description matches
     const descriptionFuse = new Fuse(entries, {
       ...fuseOptions,
-      threshold: 0.25,
+      threshold: 0.3,
       distance: 100,
       minMatchCharLength: 3,
       keys: [
@@ -337,7 +290,7 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
         { name: "recommended_models", weight: 0.7 }
       ],
       tokenize: true,
-      tokenSeparator: /[\s\.,\-]+/,
+      tokenSeparator: /[\s\.,\-_]+/,
       findAllMatches: true,
       ignoreLocation: true,
       includeMatches: true,
@@ -368,8 +321,22 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
         }
       }));
 
-    const descriptionResults = descriptionFuse
-      .search(term)
+    // Search with original term and with spaces removed
+    const termNoSpaces = term.replace(/\s+/g, "");
+    const results = new Map();
+
+    // Collect all results, keeping only one match per position
+    [
+      ...descriptionFuse.search(term),
+      ...descriptionFuse.search(termNoSpaces)
+    ].forEach((result) => {
+      const nodeType = result.item.metadata.node_type;
+      if (!results.has(nodeType)) {
+        results.set(nodeType, result);
+      }
+    });
+
+    const descriptionResults = Array.from(results.values())
       .filter(
         (result) =>
           !titleResults.some(
