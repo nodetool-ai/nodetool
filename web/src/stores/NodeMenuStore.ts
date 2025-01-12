@@ -459,9 +459,9 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
             title: node.title,
             node_type: node.node_type,
             namespace: node.namespace,
-            description: node.description,
+            description: description,
             use_cases: useCases.raw,
-            tags,
+            tags: tags.join(", "),
             metadata: node
           };
         });
@@ -475,11 +475,12 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
       // Get nodes in the selected path
       const selectedPathString = get().selectedPath.join(".");
 
-      // Modified logic: Show results even without a selected path if there are type filters
+      // Show results if we have a search term or type filters
       const hasTypeFilters =
         get().selectedInputType || get().selectedOutputType;
+      const hasSearchTerm = term.trim().length > 0;
 
-      if (!term.trim() && !selectedPathString && !hasTypeFilters) {
+      if (!hasSearchTerm && !selectedPathString && !hasTypeFilters) {
         set({
           searchResults: [],
           groupedSearchResults: []
@@ -488,8 +489,8 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
         return;
       }
 
-      // If we have type filters or a search term, show all matching results
-      if (hasTypeFilters || term.trim()) {
+      // If we have a search term or type filters, show all matching results
+      if (hasSearchTerm || hasTypeFilters) {
         const filteredResults = selectedPathString
           ? searchMatchedNodes.filter((node) => {
               if (!selectedPathString.includes(".")) {
@@ -512,13 +513,19 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
               }
             ]
           : performGroupedSearch(
-              filteredResults.map((node) => ({
-                title: node.title,
-                node_type: node.node_type,
-                namespace: node.namespace,
-                description: node.description,
-                metadata: node
-              })),
+              filteredResults.map((node) => {
+                const { description, tags } = formatNodeDocumentation(
+                  node.description
+                );
+                return {
+                  title: node.title,
+                  node_type: node.node_type,
+                  namespace: node.namespace,
+                  description: description,
+                  tags: tags.join(", "),
+                  metadata: node
+                };
+              }),
               term
             );
 
@@ -651,7 +658,9 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
         dragToCreate: false,
         connectDirection: null,
         isMenuOpen: false,
-        menuPosition: { x: 100, y: 100 }
+        menuPosition: { x: 100, y: 100 },
+        searchResults: [],
+        groupedSearchResults: []
       });
     },
 
