@@ -34,6 +34,7 @@ import nodetool.nodes.nodetool.list
 import nodetool.nodes.nodetool.math
 import nodetool.nodes.nodetool.network.http
 import nodetool.nodes.nodetool.network.imap
+import nodetool.nodes.nodetool.network.rss
 import nodetool.nodes.nodetool.os
 import nodetool.nodes.nodetool.output
 import nodetool.nodes.nodetool.tensor

@@ -58,6 +58,10 @@ class GetRequest(HTTPBaseNode):
     - Check website availability
     """
 
+    @classmethod
+    def get_title(cls):
+        return "HTTP GET Request"
+
     async def process(self, context: ProcessingContext) -> str:
         res = await context.http_get(self.url, **self.get_request_kwargs())
         return res.content.decode(res.encoding or "utf-8")
@@ -74,6 +78,10 @@ class PostRequest(HTTPBaseNode):
     - Upload files
     - Authenticate users
     """
+
+    @classmethod
+    def get_title(cls):
+        return "HTTP POST Request"
 
     data: str = Field(
         default="",
@@ -99,6 +107,10 @@ class PutRequest(HTTPBaseNode):
     - Set configuration values
     """
 
+    @classmethod
+    def get_title(cls):
+        return "HTTP PUT Request"
+
     data: str = Field(
         default="",
         description="The data to send in the PUT request.",
@@ -123,6 +135,10 @@ class DeleteRequest(HTTPBaseNode):
     - Clear cache entries
     """
 
+    @classmethod
+    def get_title(cls):
+        return "HTTP DELETE Request"
+
     async def process(self, context: ProcessingContext) -> str:
         res = await context.http_delete(self.url, **self.get_request_kwargs())
         return res.content.decode(res.encoding or "utf-8")
@@ -138,6 +154,10 @@ class HeadRequest(HTTPBaseNode):
     - Get metadata without downloading content
     - Verify authentication or permissions
     """
+
+    @classmethod
+    def get_title(cls):
+        return "HTTP HEAD Request"
 
     async def process(self, context: ProcessingContext) -> dict[str, str]:
         res = await context.http_head(self.url, **self.get_request_kwargs())

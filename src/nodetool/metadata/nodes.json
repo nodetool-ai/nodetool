@@ -1727,7 +1727,7 @@
   },
   {
     "title": "Index Images",
-    "description": "Index a list of image assets or files.",
+    "description": "Index a list of image assets or files.\n    chroma, embedding, collection, RAG, index, image, batch",
     "namespace": "chroma.index",
     "node_type": "chroma.index.IndexImages",
     "layout": "default",
@@ -1800,7 +1800,7 @@
   },
   {
     "title": "Index Texts",
-    "description": "Index a list of text assets or files.",
+    "description": "Index a list of text assets or files.\n    chroma, embedding, collection, RAG, index, text, batch",
     "namespace": "chroma.index",
     "node_type": "chroma.index.IndexTexts",
     "layout": "default",
@@ -1857,7 +1857,7 @@
   },
   {
     "title": "Index Image",
-    "description": "Index a single image asset.",
+    "description": "Index a single image asset.\n    chroma, embedding, collection, RAG, index, image",
     "namespace": "chroma.index",
     "node_type": "chroma.index.IndexImage",
     "layout": "default",
@@ -1911,7 +1911,7 @@
   },
   {
     "title": "Index Text",
-    "description": "Index a single text asset.",
+    "description": "Index a single text asset.\n    chroma, embedding, collection, RAG, index, text",
     "namespace": "chroma.index",
     "node_type": "chroma.index.IndexText",
     "layout": "default",
@@ -1965,7 +1965,7 @@
   },
   {
     "title": "Index Text Chunk",
-    "description": "Index a single text chunk.",
+    "description": "Index a single text chunk.\n    chroma, embedding, collection, RAG, index, text, chunk",
     "namespace": "chroma.index",
     "node_type": "chroma.index.IndexTextChunk",
     "layout": "default",
@@ -2019,7 +2019,7 @@
   },
   {
     "title": "Index Text Chunks",
-    "description": "Index multiple text chunks at once.",
+    "description": "Index multiple text chunks at once.\n    chroma, embedding, collection, RAG, index, text, chunk, batch",
     "namespace": "chroma.index",
     "node_type": "chroma.index.IndexTextChunks",
     "layout": "default",
@@ -2076,7 +2076,7 @@
   },
   {
     "title": "Index String",
-    "description": "Index a string with a Document ID to a collection.\n    text, document_id, collection, index, save\n\n    Use cases:\n    - Index documents for a vector search",
+    "description": "Index a string with a Document ID to a collection.\n    chroma, embedding, collection, RAG, index, text, string\n\n    Use cases:\n    - Index documents for a vector search",
     "namespace": "chroma.index",
     "node_type": "chroma.index.IndexString",
     "layout": "default",
@@ -22048,6 +22048,134 @@
     ]
   },
   {
+    "title": "To List",
+    "description": "Convert dataframe to list of dictionaries.\n    dataframe, list, convert\n\n    Use cases:\n    - Convert dataframe data for API consumption\n    - Transform data for JSON serialization\n    - Prepare data for document-based storage",
+    "namespace": "nodetool.dataframe",
+    "node_type": "nodetool.dataframe.ToList",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "dataframe",
+        "type": {
+          "type": "dataframe",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "dataframe",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "columns": null
+        },
+        "title": "Dataframe",
+        "description": "The input dataframe to convert.",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "dict",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "dataframe"
+    ]
+  },
+  {
+    "title": "Map Template",
+    "description": "Maps a template string over dataframe rows.\n    dataframe, template, format, string\n\n    Use cases:\n    - Format each row into a custom string representation\n    - Generate text summaries from structured data\n    - Create formatted output from dataframe records\n    \n    Example:\n    Template: \"Name: {name}, Age: {age}\"\n    Row: {\"name\": \"Alice\", \"age\": 30}\n    Output: \"Name: Alice, Age: 30\"",
+    "namespace": "nodetool.dataframe",
+    "node_type": "nodetool.dataframe.MapTemplate",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "dataframe",
+        "type": {
+          "type": "dataframe",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "dataframe",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "columns": null
+        },
+        "title": "Dataframe",
+        "description": "The input dataframe.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "template",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Template",
+        "description": "Template string with placeholders matching column names (e.g., {column_name}).",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "str",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "dataframe",
+      "template"
+    ]
+  },
+  {
     "title": "Today",
     "description": "Get the current date.\n    date, today, now",
     "namespace": "nodetool.date",
@@ -22252,10 +22380,10 @@
           "year": 2025,
           "month": 1,
           "day": 12,
-          "hour": 0,
-          "minute": 39,
-          "second": 18,
-          "microsecond": 436466,
+          "hour": 8,
+          "minute": 43,
+          "second": 43,
+          "microsecond": 340032,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23294,10 +23422,10 @@
           "year": 2025,
           "month": 1,
           "day": 12,
-          "hour": 0,
-          "minute": 39,
-          "second": 18,
-          "microsecond": 440481,
+          "hour": 8,
+          "minute": 43,
+          "second": 43,
+          "microsecond": 344448,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23347,10 +23475,10 @@
           "year": 2025,
           "month": 1,
           "day": 12,
-          "hour": 0,
-          "minute": 39,
-          "second": 18,
-          "microsecond": 440704,
+          "hour": 8,
+          "minute": 43,
+          "second": 43,
+          "microsecond": 344803,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23400,10 +23528,10 @@
           "year": 2025,
           "month": 1,
           "day": 12,
-          "hour": 0,
-          "minute": 39,
-          "second": 18,
-          "microsecond": 440924,
+          "hour": 8,
+          "minute": 43,
+          "second": 43,
+          "microsecond": 345032,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23453,10 +23581,10 @@
           "year": 2025,
           "month": 1,
           "day": 12,
-          "hour": 0,
-          "minute": 39,
-          "second": 18,
-          "microsecond": 441133,
+          "hour": 8,
+          "minute": 43,
+          "second": 43,
+          "microsecond": 345393,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23506,10 +23634,10 @@
           "year": 2025,
           "month": 1,
           "day": 12,
-          "hour": 0,
-          "minute": 39,
-          "second": 18,
-          "microsecond": 441386,
+          "hour": 8,
+          "minute": 43,
+          "second": 43,
+          "microsecond": 345698,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23559,10 +23687,10 @@
           "year": 2025,
           "month": 1,
           "day": 12,
-          "hour": 0,
-          "minute": 39,
-          "second": 18,
-          "microsecond": 441597,
+          "hour": 8,
+          "minute": 43,
+          "second": 43,
+          "microsecond": 346002,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23612,10 +23740,10 @@
           "year": 2025,
           "month": 1,
           "day": 12,
-          "hour": 0,
-          "minute": 39,
-          "second": 18,
-          "microsecond": 441829,
+          "hour": 8,
+          "minute": 43,
+          "second": 43,
+          "microsecond": 346238,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23681,10 +23809,10 @@
           "year": 2025,
           "month": 1,
           "day": 12,
-          "hour": 0,
-          "minute": 39,
-          "second": 18,
-          "microsecond": 442105,
+          "hour": 8,
+          "minute": 43,
+          "second": 43,
+          "microsecond": 346499,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -39955,7 +40083,7 @@
     ]
   },
   {
-    "title": "Get Request",
+    "title": "HTTP GET Request",
     "description": "Perform an HTTP GET request to retrieve data from a specified URL.\n    http, get, request, url\n\n    Use cases:\n    - Fetch web page content\n    - Retrieve API data\n    - Download files\n    - Check website availability",
     "namespace": "nodetool.network.http",
     "node_type": "nodetool.network.http.GetRequest",
@@ -40059,7 +40187,7 @@
     ]
   },
   {
-    "title": "Post Request",
+    "title": "HTTP POST Request",
     "description": "Send data to a server using an HTTP POST request.\n    http, post, request, url, data\n\n    Use cases:\n    - Submit form data\n    - Create new resources on an API\n    - Upload files\n    - Authenticate users",
     "namespace": "nodetool.network.http",
     "node_type": "nodetool.network.http.PostRequest",
@@ -40179,7 +40307,7 @@
     ]
   },
   {
-    "title": "Put Request",
+    "title": "HTTP PUT Request",
     "description": "Update existing resources on a server using an HTTP PUT request.\n    http, put, request, url, data\n\n    Use cases:\n    - Update user profiles\n    - Modify existing API resources\n    - Replace file contents\n    - Set configuration values",
     "namespace": "nodetool.network.http",
     "node_type": "nodetool.network.http.PutRequest",
@@ -40299,7 +40427,7 @@
     ]
   },
   {
-    "title": "Delete Request",
+    "title": "HTTP DELETE Request",
     "description": "Remove a resource from a server using an HTTP DELETE request.\n    http, delete, request, url\n\n    Use cases:\n    - Delete user accounts\n    - Remove API resources\n    - Cancel subscriptions\n    - Clear cache entries",
     "namespace": "nodetool.network.http",
     "node_type": "nodetool.network.http.DeleteRequest",
@@ -40403,7 +40531,7 @@
     ]
   },
   {
-    "title": "Head Request",
+    "title": "HTTP HEAD Request",
     "description": "Retrieve headers from a resource using an HTTP HEAD request.\n    http, head, request, url\n\n    Use cases:\n    - Check resource existence\n    - Get metadata without downloading content\n    - Verify authentication or permissions",
     "namespace": "nodetool.network.http",
     "node_type": "nodetool.network.http.HeadRequest",
@@ -41731,7 +41859,7 @@
     ]
   },
   {
-    "title": "Text ID",
+    "title": "Get Text ID",
     "description": "Returns the asset id.\n    index, asset, identifier",
     "namespace": "nodetool.text",
     "node_type": "nodetool.text.TextID",
@@ -41788,7 +41916,7 @@
     ]
   },
   {
-    "title": "Concat",
+    "title": "Concatenate Text",
     "description": "Concatenates two text inputs into a single output.\n    text, concatenation, combine\n\n    Use cases:\n    - Joining outputs from multiple text processing nodes\n    - Combining parts of sentences or paragraphs\n    - Merging text data from different sources",
     "namespace": "nodetool.text",
     "node_type": "nodetool.text.Concat",
@@ -41891,7 +42019,7 @@
     ]
   },
   {
-    "title": "Join",
+    "title": "Join Text",
     "description": "Joins a list of strings into a single string using a specified separator.\n    text, join, combine\n\n    Use cases:\n    - Combining multiple text elements with a consistent delimiter\n    - Creating comma-separated lists from individual items\n    - Assembling formatted text from array elements",
     "namespace": "nodetool.text",
     "node_type": "nodetool.text.Join",
@@ -41987,7 +42115,7 @@
     ]
   },
   {
-    "title": "Template",
+    "title": "Format Text",
     "description": "Replaces placeholders in a string with provided values.\n    text, template, formatting\n\n    Use cases:\n    - Generating personalized messages with dynamic content\n    - Creating parameterized queries or commands\n    - Formatting text output based on variable inputs\n\n    Examples:\n    - text: \"Hello, {name}!\" values: {\"name\": \"Alice\"} -> \"Hello, Alice!\"\n    - text: \"Hello, {0} {1}!\" values: [\"Alice\", \"Meyer\"] -> \"Hello, Alice Meyer!\"\n    - text: \"Hello, {0}!\" values: \"Alice\" -> \"Hello, Alice!\"",
     "namespace": "nodetool.text",
     "node_type": "nodetool.text.Template",
@@ -42119,7 +42247,7 @@
     ]
   },
   {
-    "title": "Replace",
+    "title": "Replace Text",
     "description": "Replaces a substring in a text with another substring.\n    text, replace, substitute\n\n    Use cases:\n    - Correcting or updating specific text patterns\n    - Sanitizing or normalizing text data\n    - Implementing simple text transformations",
     "namespace": "nodetool.text",
     "node_type": "nodetool.text.Replace",
@@ -42223,7 +42351,7 @@
     ]
   },
   {
-    "title": "JSONTo Dataframe",
+    "title": "Convert JSON to DataFrame",
     "description": "Transforms a JSON string into a pandas DataFrame.\n    json, dataframe, conversion\n\n    Use cases:\n    - Converting API responses to tabular format\n    - Preparing JSON data for analysis or visualization\n    - Structuring unstructured JSON data for further processing",
     "namespace": "nodetool.text",
     "node_type": "nodetool.text.JSONToDataframe",
@@ -42374,7 +42502,7 @@
     ]
   },
   {
-    "title": "Split",
+    "title": "Split Text",
     "description": "Separates text into a list of strings based on a specified delimiter.\n    text, split, tokenize\n\n    Use cases:\n    - Parsing CSV or similar delimited data\n    - Breaking down sentences into words or phrases\n    - Extracting specific elements from structured text",
     "namespace": "nodetool.text",
     "node_type": "nodetool.text.Split",
@@ -42455,7 +42583,7 @@
     ]
   },
   {
-    "title": "Extract",
+    "title": "Extract Text",
     "description": "Extracts a substring from input text.\n    text, extract, substring\n\n    Use cases:\n    - Extracting specific portions of text for analysis\n    - Trimming unwanted parts from text data\n    - Focusing on relevant sections of longer documents",
     "namespace": "nodetool.text",
     "node_type": "nodetool.text.Extract",
@@ -42559,7 +42687,7 @@
     ]
   },
   {
-    "title": "Chunk",
+    "title": "Split Text into Chunks",
     "description": "Splits text into chunks of specified word length.\n    text, chunk, split\n\n    Use cases:\n    - Preparing text for processing by models with input length limits\n    - Creating manageable text segments for parallel processing\n    - Generating summaries of text sections",
     "namespace": "nodetool.text",
     "node_type": "nodetool.text.Chunk",
@@ -42687,7 +42815,7 @@
     ]
   },
   {
-    "title": "Extract Regex",
+    "title": "Extract Regex Groups",
     "description": "Extracts substrings matching regex groups from text.\n    text, regex, extract\n\n    Use cases:\n    - Extracting structured data (e.g., dates, emails) from unstructured text\n    - Parsing specific patterns in log files or documents\n    - Isolating relevant information from complex text formats",
     "namespace": "nodetool.text",
     "node_type": "nodetool.text.ExtractRegex",
@@ -42816,7 +42944,7 @@
     ]
   },
   {
-    "title": "Find All Regex",
+    "title": "Find All Regex Matches",
     "description": "Finds all regex matches in text as separate substrings.\n    text, regex, find\n\n    Use cases:\n    - Identifying all occurrences of a pattern in text\n    - Extracting multiple instances of structured data\n    - Analyzing frequency and distribution of specific text patterns",
     "namespace": "nodetool.text",
     "node_type": "nodetool.text.FindAllRegex",
@@ -42945,7 +43073,7 @@
     ]
   },
   {
-    "title": "Parse JSON",
+    "title": "Parse JSON String",
     "description": "Parses a JSON string into a Python object.\n    json, parse, convert\n\n    Use cases:\n    - Converting JSON API responses for further processing\n    - Preparing structured data for analysis or storage\n    - Extracting configuration or settings from JSON files",
     "namespace": "nodetool.text",
     "node_type": "nodetool.text.ParseJSON",
@@ -43091,7 +43219,7 @@
     ]
   },
   {
-    "title": "Sentence Splitter",
+    "title": "Split Sentences",
     "description": "Splits text into chunks of a minimum length.\n    text, split, sentences\n\n    Use cases:\n    - Splitting text into manageable chunks for processing\n    - Creating traceable units for analysis or storage\n    - Preparing text for language model processing",
     "namespace": "nodetool.text",
     "node_type": "nodetool.text.SentenceSplitter",
@@ -43156,6 +43284,36 @@
         "description": null,
         "min": null,
         "max": null
+      },
+      {
+        "name": "chunk_size",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 1000,
+        "title": "Chunk Size",
+        "description": null,
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "chunk_overlap",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 200,
+        "title": "Chunk Overlap",
+        "description": null,
+        "min": null,
+        "max": null
       }
     ],
     "outputs": [
@@ -43184,11 +43342,13 @@
     "basic_fields": [
       "text",
       "min_length",
-      "source_id"
+      "source_id",
+      "chunk_size",
+      "chunk_overlap"
     ]
   },
   {
-    "title": "Regex Match",
+    "title": "Find Regex Matches",
     "description": "Find all matches of a regex pattern in text.\n    regex, search, pattern, match\n\n    Use cases:\n    - Extract specific patterns from text\n    - Validate text against patterns\n    - Find all occurrences of a pattern",
     "namespace": "nodetool.text",
     "node_type": "nodetool.text.RegexMatch",
@@ -43270,7 +43430,7 @@
     ]
   },
   {
-    "title": "Regex Replace",
+    "title": "Replace with Regex",
     "description": "Replace text matching a regex pattern.\n    regex, replace, substitute\n\n    Use cases:\n    - Clean or standardize text\n    - Remove unwanted patterns\n    - Transform text formats",
     "namespace": "nodetool.text",
     "node_type": "nodetool.text.RegexReplace",
@@ -43360,7 +43520,7 @@
     ]
   },
   {
-    "title": "Regex Split",
+    "title": "Split with Regex",
     "description": "Split text using a regex pattern as delimiter.\n    regex, split, tokenize\n\n    Use cases:\n    - Parse structured text\n    - Extract fields from formatted strings\n    - Tokenize text",
     "namespace": "nodetool.text",
     "node_type": "nodetool.text.RegexSplit",
@@ -43442,7 +43602,7 @@
     ]
   },
   {
-    "title": "Regex Validate",
+    "title": "Validate with Regex",
     "description": "Check if text matches a regex pattern.\n    regex, validate, check\n\n    Use cases:\n    - Validate input formats (email, phone, etc)\n    - Check text structure\n    - Filter text based on patterns",
     "namespace": "nodetool.text",
     "node_type": "nodetool.text.RegexValidate",
@@ -43500,7 +43660,7 @@
     ]
   },
   {
-    "title": "Regex Extract",
+    "title": "Extract Regex Groups",
     "description": "Extract named groups from text using regex.\n    regex, extract, groups\n\n    Use cases:\n    - Parse structured data\n    - Extract semantic components\n    - Named field extraction",
     "namespace": "nodetool.text",
     "node_type": "nodetool.text.RegexExtract",
@@ -43558,7 +43718,7 @@
     ]
   },
   {
-    "title": "HTMLTo Text",
+    "title": "Convert HTML to Text",
     "description": "Converts HTML to plain text by removing tags and decoding entities using BeautifulSoup.\n    html, text, convert\n\n    Use cases:\n    - Cleaning HTML content for text analysis\n    - Extracting readable content from web pages\n    - Preparing HTML data for natural language processing",
     "namespace": "nodetool.text",
     "node_type": "nodetool.text.HTMLToText",
@@ -43646,7 +43806,7 @@
     ]
   },
   {
-    "title": "Slice",
+    "title": "Slice Text",
     "description": "Slices text using Python's slice notation (start:stop:step).\n    text, slice, substring\n\n    Use cases:\n    - Extracting specific portions of text with flexible indexing\n    - Reversing text using negative step\n    - Taking every nth character with step parameter\n\n    Examples:\n    - start=0, stop=5: first 5 characters\n    - start=-5: last 5 characters\n    - step=2: every second character\n    - step=-1: reverse the text",
     "namespace": "nodetool.text",
     "node_type": "nodetool.text.Slice",
@@ -43811,7 +43971,7 @@
     ]
   },
   {
-    "title": "Recursive Text Splitter",
+    "title": "Split Recursively",
     "description": "Splits text recursively using LangChain's RecursiveCharacterTextSplitter.\n    text, split, chunks\n\n    Use cases:\n    - Splitting documents while preserving semantic relationships\n    - Creating chunks for language model processing\n    - Handling text in languages with/without word boundaries",
     "namespace": "nodetool.text",
     "node_type": "nodetool.text.RecursiveTextSplitter",
@@ -43952,7 +44112,7 @@
     ]
   },
   {
-    "title": "Markdown Splitter",
+    "title": "Split Markdown",
     "description": "Splits markdown text by headers while preserving header hierarchy in metadata.\n    markdown, split, headers\n\n    Use cases:\n    - Splitting markdown documentation while preserving structure\n    - Processing markdown files for semantic search\n    - Creating context-aware chunks from markdown content",
     "namespace": "nodetool.text",
     "node_type": "nodetool.text.MarkdownSplitter",
@@ -44310,7 +44470,7 @@
     ]
   },
   {
-    "title": "Contains",
+    "title": "Contains Text",
     "description": "Checks if text contains a specified substring.\n    text, check, contains, compare, validate, substring, string\n\n    Use cases:\n    - Searching for keywords in text\n    - Filtering content based on presence of terms\n    - Validating text content",
     "namespace": "nodetool.text",
     "node_type": "nodetool.text.Contains",
@@ -44472,7 +44632,7 @@
     ]
   },
   {
-    "title": "Has Length",
+    "title": "Check Length",
     "description": "Checks if text length meets specified conditions.\n    text, check, length, compare, validate, whitespace, string\n\n    Use cases:\n    - Validating input length requirements\n    - Filtering text by length\n    - Checking content size constraints",
     "namespace": "nodetool.text",
     "node_type": "nodetool.text.HasLength",
@@ -44619,6 +44779,83 @@
       "min_length",
       "max_length",
       "exact_length"
+    ]
+  },
+  {
+    "title": "Count Tokens",
+    "description": "Counts the number of tokens in text using tiktoken.\n    text, tokens, count, encoding\n\n    Use cases:\n    - Checking text length for LLM input limits\n    - Estimating API costs\n    - Managing token budgets in text processing",
+    "namespace": "nodetool.text",
+    "node_type": "nodetool.text.CountTokens",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "text",
+        "type": {
+          "type": "union",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "str",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            },
+            {
+              "type": "text",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Text",
+        "description": null,
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "encoding",
+        "type": {
+          "type": "enum",
+          "optional": false,
+          "values": [
+            "cl100k_base",
+            "p50k_base",
+            "r50k_base"
+          ],
+          "type_args": [],
+          "type_name": "nodetool.nodes.nodetool.text.TiktokenEncoding"
+        },
+        "default": "cl100k_base",
+        "title": "Encoding",
+        "description": "The tiktoken encoding to use for token counting",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "text",
+      "encoding"
     ]
   },
   {
@@ -44913,6 +45150,202 @@
       "connection",
       "search_criteria",
       "max_results"
+    ]
+  },
+  {
+    "title": "Fetch RSS Feed",
+    "description": "Fetches and parses an RSS feed from a URL.\n    rss, feed, network\n    \n    Use cases:\n    - Monitor news feeds\n    - Aggregate content from multiple sources\n    - Process blog updates",
+    "namespace": "nodetool.network.rss",
+    "node_type": "nodetool.network.rss.FetchRSSFeed",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "url",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Url",
+        "description": "URL of the RSS feed to fetch",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "rss_entry",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "url"
+    ]
+  },
+  {
+    "title": "Extract RSS Entry Fields",
+    "description": "Extracts fields from an RSS entry.\n    rss, entry, fields",
+    "namespace": "nodetool.network.rss",
+    "node_type": "nodetool.network.rss.RSSEntryFields",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "entry",
+        "type": {
+          "type": "rss_entry",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "rss_entry",
+          "title": "",
+          "link": "",
+          "published": {
+            "type": "datetime",
+            "year": 0,
+            "month": 0,
+            "day": 0,
+            "hour": 0,
+            "minute": 0,
+            "second": 0,
+            "microsecond": 0,
+            "tzinfo": "UTC",
+            "utc_offset": 0
+          },
+          "summary": "",
+          "author": ""
+        },
+        "title": "Entry",
+        "description": "The RSS entry to extract fields from.",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "title",
+        "stream": false
+      },
+      {
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "link",
+        "stream": false
+      },
+      {
+        "type": {
+          "type": "datetime",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "published",
+        "stream": false
+      },
+      {
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "summary",
+        "stream": false
+      },
+      {
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "author",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "entry"
+    ]
+  },
+  {
+    "title": "Extract Feed Metadata",
+    "description": "Extracts metadata from an RSS feed.\n    rss, metadata, feed\n    \n    Use cases:\n    - Get feed information\n    - Validate feed details\n    - Extract feed metadata",
+    "namespace": "nodetool.network.rss",
+    "node_type": "nodetool.network.rss.ExtractFeedMetadata",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "url",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Url",
+        "description": "URL of the RSS feed",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "dict",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "url"
     ]
   },
   {
@@ -70029,7 +70462,7 @@
   },
   {
     "title": "KSampler Select",
-    "description": "The KSampler Select node allows choosing a specific sampler for the diffusion process.\n    Different samplers can produce varying results or have different performance characteristics.",
+    "description": "Select a specific sampler for the diffusion process with different performance characteristics and output qualities.\n    sampling, diffusion\n    Use cases:\n    - Experimenting with different sampling methods for optimal image quality\n    - Balancing speed vs quality in image generation\n    - Testing model behavior with different sampling algorithms",
     "namespace": "comfy.sampling.samplers",
     "node_type": "comfy.sampling.samplers.KSamplerSelect",
     "layout": "default",
@@ -70094,7 +70527,7 @@
   },
   {
     "title": "Sampler DPMPP 2 M SDE",
-    "description": "The SamplerDPMPP_2M_SDE node implements the DPMPP (2M) SDE sampler, which is an advanced\n    sampling method that can potentially produce high-quality results with fewer steps.",
+    "description": "Advanced DPMPP (2M) SDE sampler implementation offering high-quality results with fewer steps.\n    sampling, diffusion, sde, dpmpp\n    Use cases:\n    - High-quality image generation with reduced step count\n    - Performance-optimized sampling for production workflows\n    - Advanced noise control with GPU/CPU options",
     "namespace": "comfy.sampling.samplers",
     "node_type": "comfy.sampling.samplers.SamplerDPMPP_2M_SDE",
     "layout": "default",
@@ -70190,7 +70623,7 @@
   },
   {
     "title": "Sampler DPMPP SDE",
-    "description": "The SamplerDPMPP_SDE node implements the DPMPP SDE sampler, another advanced sampling\n    method that can offer good performance and quality in certain scenarios.",
+    "description": "Implementation of DPMPP SDE sampler with configurable noise and performance parameters.\n    sampling, diffusion, sde, dpmpp\n    Use cases:\n    - Efficient image generation with controllable noise levels\n    - Fine-tuning sampling parameters for specific image styles\n    - Balancing quality and speed with custom parameters",
     "namespace": "comfy.sampling.samplers",
     "node_type": "comfy.sampling.samplers.SamplerDPMPP_SDE",
     "layout": "default",
@@ -70283,7 +70716,7 @@
   },
   {
     "title": "Sampler Custom",
-    "description": "The SamplerCustom node provides a customizable sampling process, allowing fine-grained\n    control over various sampling parameters including noise, CFG, and conditioning.",
+    "description": "Customizable sampling process with fine-grained control over noise, CFG, and conditioning parameters.\n    sampling, cfg, noise, conditioning\n    Use cases:\n    - Advanced sampling control for complex image generation tasks\n    - Customizing sampling parameters for specific models or tasks\n    - Fine-tuning sampling for specific effects or styles",
     "namespace": "comfy.sampling.samplers",
     "node_type": "comfy.sampling.samplers.SamplerCustom",
     "layout": "default",
@@ -70472,7 +70905,7 @@
   },
   {
     "title": "Sampler Custom Advanced",
-    "description": "The SamplerCustomAdvanced node offers even more advanced customization options for\n    the sampling process, including separate control over noise, guidance, and the ability\n    to output both the final latent and the denoised latent.",
+    "description": "Advanced sampling implementation with separate control over noise, guidance, and multiple output options.\n    sampling, noise, guidance, cfg\n    Use cases:\n    - Complex image generation requiring precise noise control\n    - Workflows needing access to intermediate denoised results\n    - Advanced guidance-based sampling applications",
     "namespace": "comfy.sampling.samplers",
     "node_type": "comfy.sampling.samplers.SamplerCustomAdvanced",
     "layout": "default",
@@ -71343,7 +71776,7 @@
   },
   {
     "title": "Basic Guider",
-    "description": "The Basic Guider node provides a simple guidance mechanism for the sampling process.\n    It uses a single conditioning input to guide the model's generation.",
+    "description": "The Basic Guider node provides a simple guidance mechanism for the sampling process. It uses a single conditioning input to guide the model's generation.\n    sampling, guidance, basic\n    Use cases:\n    - Simple guidance for image generation\n    - Single conditioning input scenarios\n    - Basic control over the sampling process",
     "namespace": "comfy.sampling.guiders",
     "node_type": "comfy.sampling.guiders.BasicGuider",
     "layout": "default",
@@ -71408,7 +71841,7 @@
   },
   {
     "title": "CFGGuider",
-    "description": "The CFG (Classifier-Free Guidance) Guider node implements the classifier-free guidance\n    method for controlling the generation process. It allows for separate positive and\n    negative conditioning, along with a CFG scale parameter.",
+    "description": "The CFG (Classifier-Free Guidance) Guider node implements the classifier-free guidance method for controlling the generation process. It allows for separate positive and negative conditioning, along with a CFG scale parameter.\n    sampling, guidance, cfg\n    Use cases:\n    - Advanced control over the sampling process\n    - Combining multiple conditioning inputs\n    - Creating diverse image variations",
     "namespace": "comfy.sampling.guiders",
     "node_type": "comfy.sampling.guiders.CFGGuider",
     "layout": "default",
@@ -71502,7 +71935,7 @@
   },
   {
     "title": "Dual CFGGuider",
-    "description": "The Dual CFG Guider node extends the CFG guidance method by allowing two separate\n    conditioning inputs, each with its own CFG scale. This can be useful for more\n    complex guidance scenarios or when combining multiple concepts.",
+    "description": "The Dual CFG Guider node extends the CFG guidance method by allowing two separate conditioning inputs, each with its own CFG scale. This can be useful for more complex guidance scenarios or when combining multiple concepts.\n    sampling, guidance, cfg, dual\n    Use cases:\n    - Advanced control over the sampling process\n    - Combining multiple conditioning inputs\n    - Creating diverse image variations",
     "namespace": "comfy.sampling.guiders",
     "node_type": "comfy.sampling.guiders.DualCFGGuider",
     "layout": "default",
@@ -71634,7 +72067,7 @@
   },
   {
     "title": "Video Linear CFGGuidance",
-    "description": "The Video Linear CFG Guidance node applies a linear CFG guidance scheme specifically\n    designed for video generation tasks. It allows setting a minimum CFG value to control\n    the strength of the guidance throughout the video frames.",
+    "description": "The Video Linear CFG Guidance node applies a linear CFG guidance scheme specifically designed for video generation tasks. It allows setting a minimum CFG value to control the strength of the guidance throughout the video frames.\n    sampling, guidance, cfg, video\n    Use cases:\n    - Creating consistent video outputs\n    - Controlling the strength of guidance across frames\n    - Enhancing video generation with CFG",
     "namespace": "comfy.sampling.guiders",
     "node_type": "comfy.sampling.guiders.VideoLinearCFGGuidance",
     "layout": "default",
@@ -71696,7 +72129,7 @@
   },
   {
     "title": "Video Triangle CFGGuidance",
-    "description": "The Video Triangle CFG Guidance node applies a triangular CFG guidance scheme for\n    video generation. This can create a varying strength of guidance across video frames,\n    potentially leading to more dynamic or consistent video outputs.",
+    "description": "The Video Triangle CFG Guidance node applies a triangular CFG guidance scheme for video generation. This can create a varying strength of guidance across video frames, potentially leading to more dynamic or consistent video outputs.\n    sampling, guidance, cfg, video\n    Use cases:\n    - Creating dynamic video outputs\n    - Controlling the strength of guidance across frames\n    - Enhancing video generation with CFG",
     "namespace": "comfy.sampling.guiders",
     "node_type": "comfy.sampling.guiders.VideoTriangleCFGGuidance",
     "layout": "default",
@@ -98313,7 +98746,7 @@
   },
   {
     "title": "Gemini Agent",
-    "description": "Gemini version of the Agent node for task planning and goal decomposition.",
+    "description": "Gemini version of the Agent node for task planning and goal decomposition.\n    agent, planning, task, decomposition\n    Use cases:\n    - Breaking down complex tasks into smaller steps\n    - Creating task dependencies and workflows\n    - Planning multi-step processes",
     "namespace": "google.agents",
     "node_type": "google.agents.GeminiAgent",
     "layout": "default",
@@ -98399,7 +98832,7 @@
   },
   {
     "title": "Chain Of Thought",
-    "description": "Gemini version of chain-of-thought reasoning node.",
+    "description": "Gemini version of chain-of-thought reasoning node for breaking down complex problems into clear steps.\n    agent, reasoning, analysis, problem-solving\n    Use cases:\n    - Analyzing complex problems step by step\n    - Breaking down solutions into logical steps\n    - Providing detailed reasoning for decisions",
     "namespace": "google.agents",
     "node_type": "google.agents.ChainOfThought",
     "layout": "default",
@@ -98483,7 +98916,7 @@
   },
   {
     "title": "Data Generator",
-    "description": "Gemini version of the data generator for creating dataframes based on user prompts.\n    Supports multimodal inputs including images and audio.",
+    "description": "Gemini version of the data generator for creating dataframes based on user prompts. Supports multimodal inputs including images and audio.\n    data, generator, dataframe, multimodal\n    Use cases:\n    - Creating a dataset for a machine learning model\n    - Creating a dataset for a data visualization\n    - Creating a dataset for a data analysis",
     "namespace": "google.agents",
     "node_type": "google.agents.DataGenerator",
     "layout": "default",
@@ -98620,7 +99053,7 @@
   },
   {
     "title": "SVGGenerator",
-    "description": "Gemini version of SVG generator for creating SVG elements based on user prompts.",
+    "description": "Gemini version of SVG generator for creating SVG elements based on user prompts.\n    svg, generator, vector, graphics\n    Use cases:\n    - Creating vector graphics from text descriptions\n    - Generating scalable illustrations\n    - Creating custom icons and diagrams",
     "namespace": "google.agents",
     "node_type": "google.agents.SVGGenerator",
     "layout": "default",
@@ -98746,7 +99179,7 @@
   },
   {
     "title": "Summarizer",
-    "description": "Gemini version of the summarizer for creating concise summaries of text content.",
+    "description": "Gemini version of the summarizer for creating concise summaries of text content.\n    text, summarization, nlp, content\n    Use cases:\n    - Condensing long documents into key points\n    - Creating executive summaries\n    - Extracting main ideas from text",
     "namespace": "google.agents",
     "node_type": "google.agents.Summarizer",
     "layout": "default",

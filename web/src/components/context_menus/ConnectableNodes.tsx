@@ -185,6 +185,8 @@ const ConnectableNodes: React.FC<ConnectableNodesProps> = ({
           y: menuPosition?.y || 0
         })
       );
+      newNode.width = 200;
+      newNode.height = 200;
 
       addNode(newNode);
 

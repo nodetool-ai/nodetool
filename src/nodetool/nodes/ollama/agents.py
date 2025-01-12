@@ -1094,6 +1094,9 @@ class Summarizer(BaseNode):
     async def process(self, context: ProcessingContext) -> str:
         encoding = tiktoken.get_encoding("cl100k_base")
         
+        if not self.model.is_set():
+            raise ValueError("Model is not set")
+        
         parts = []
         token_progress = 0
         

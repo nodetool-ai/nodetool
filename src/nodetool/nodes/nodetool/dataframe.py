@@ -610,3 +610,52 @@ class Slice(BaseNode):
 
         sliced_df = df.iloc[self.start_index : self.end_index]
         return await context.dataframe_from_pandas(sliced_df)
+
+
+class ToList(BaseNode):
+    """
+    Convert dataframe to list of dictionaries.
+    dataframe, list, convert
+
+    Use cases:
+    - Convert dataframe data for API consumption
+    - Transform data for JSON serialization
+    - Prepare data for document-based storage
+    """
+
+    dataframe: DataframeRef = Field(
+        default=DataframeRef(), description="The input dataframe to convert."
+    )
+
+    async def process(self, context: ProcessingContext) -> list[dict]:
+        df = await context.dataframe_to_pandas(self.dataframe)
+        return df.to_dict('records')
+
+
+class MapTemplate(BaseNode):
+    """
+    Maps a template string over dataframe rows.
+    dataframe, template, format, string
+
+    Use cases:
+    - Format each row into a custom string representation
+    - Generate text summaries from structured data
+    - Create formatted output from dataframe records
+    
+    Example:
+    Template: "Name: {name}, Age: {age}"
+    Row: {"name": "Alice", "age": 30}
+    Output: "Name: Alice, Age: 30"
+    """
+
+    dataframe: DataframeRef = Field(
+        default=DataframeRef(), description="The input dataframe."
+    )
+    template: str = Field(
+        default="",
+        description="Template string with placeholders matching column names (e.g., {column_name})."
+    )
+
+    async def process(self, context: ProcessingContext) -> list[str]:
+        df = await context.dataframe_to_pandas(self.dataframe)
+        return [self.template.format(**row) for _, row in df.iterrows()]
