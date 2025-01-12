@@ -22,6 +22,7 @@ from dataclasses import dataclass
 from typing import Optional
 from html import unescape
 from bs4 import BeautifulSoup
+from enum import Enum
 
 
 async def to_string(context: ProcessingContext, text: TextRef | str) -> str:
@@ -49,6 +50,10 @@ class TextID(BaseNode):
 
     text: TextRef = Field(title="Text", default="")
 
+    @classmethod
+    def get_title(cls):
+        return "Get Text ID"
+
     async def process(self, context: ProcessingContext) -> str | None:
         return self.text.asset_id
 
@@ -66,6 +71,10 @@ class Concat(BaseNode):
 
     a: str | TextRef = ""
     b: str | TextRef = ""
+
+    @classmethod
+    def get_title(cls):
+        return "Concatenate Text"
 
     async def process(self, context: ProcessingContext) -> str | TextRef:
         res = await to_string(context, self.a) + await to_string(context, self.b)
@@ -85,6 +94,10 @@ class Join(BaseNode):
 
     strings: list[str | TextRef] = []
     separator: str = ""
+
+    @classmethod
+    def get_title(cls):
+        return "Join Text"
 
     async def process(self, context: ProcessingContext) -> str | TextRef:
         if len(self.strings) == 0:
@@ -125,6 +138,10 @@ class Template(BaseNode):
         """,
     )
 
+    @classmethod
+    def get_title(cls):
+        return "Format Text"
+
     async def process(self, context: ProcessingContext) -> str | TextRef:
         string = await to_string(context, self.string)
         if isinstance(self.values, str):
@@ -155,6 +172,10 @@ class Replace(BaseNode):
     old: str = Field(title="Old", default="")
     new: str = Field(title="New", default="")
 
+    @classmethod
+    def get_title(cls):
+        return "Replace Text"
+
     async def process(self, context: ProcessingContext) -> str | TextRef:
         text = await to_string(context, self.text)
         res = text.replace(self.old, self.new)
@@ -173,6 +194,10 @@ class JSONToDataframe(BaseNode):
     """
 
     text: str | TextRef = Field(title="JSON", default_factory=TextRef)
+
+    @classmethod
+    def get_title(cls):
+        return "Convert JSON to DataFrame"
 
     async def process(self, context: ProcessingContext) -> DataframeRef:
         json_string = await to_string(context, self.text)
@@ -214,6 +239,10 @@ class SaveText(BaseNode):
     def required_inputs(self):
         return ["text"]
 
+    @classmethod
+    def get_title(cls):
+        return "Save Text"
+
     async def process(self, context: ProcessingContext) -> TextRef:
         string = await to_string(context, self.text)
         filename = datetime.now().strftime(self.name)
@@ -237,6 +266,10 @@ class Split(BaseNode):
     text: str | TextRef = Field(title="Text", default="")
     delimiter: str = ","
 
+    @classmethod
+    def get_title(cls):
+        return "Split Text"
+
     async def process(self, context: ProcessingContext) -> list[str]:
         text = await to_string(context, self.text)
         res = text.split(self.delimiter)
@@ -257,6 +290,10 @@ class Extract(BaseNode):
     text: str | TextRef = Field(title="Text", default="")
     start: int = Field(title="Start", default=0)
     end: int = Field(title="End", default=0)
+
+    @classmethod
+    def get_title(cls):
+        return "Extract Text"
 
     async def process(self, context: ProcessingContext) -> str | TextRef:
         text = await to_string(context, self.text)
@@ -279,6 +316,10 @@ class Chunk(BaseNode):
     length: int = Field(title="Length", default=100, le=1000, ge=1)
     overlap: int = Field(title="Overlap", default=0)
     separator: str | None = Field(title="Separator", default=None)
+
+    @classmethod
+    def get_title(cls):
+        return "Split Text into Chunks"
 
     async def process(self, context: ProcessingContext) -> list[str]:
         text = await to_string(context, self.text)
@@ -307,6 +348,10 @@ class ExtractRegex(BaseNode):
     dotall: bool = Field(title="Dotall", default=False)
     ignorecase: bool = Field(title="Ignorecase", default=False)
     multiline: bool = Field(title="Multiline", default=False)
+
+    @classmethod
+    def get_title(cls):
+        return "Extract Regex Groups"
 
     async def process(self, context: ProcessingContext) -> list[str]:
         options = 0
@@ -340,6 +385,10 @@ class FindAllRegex(BaseNode):
     ignorecase: bool = Field(title="Ignorecase", default=False)
     multiline: bool = Field(title="Multiline", default=False)
 
+    @classmethod
+    def get_title(cls):
+        return "Find All Regex Matches"
+
     async def process(self, context: ProcessingContext) -> list[str]:
         options = 0
         if self.dotall:
@@ -366,6 +415,10 @@ class ParseJSON(BaseNode):
 
     text: str | TextRef = Field(title="JSON string", default="")
 
+    @classmethod
+    def get_title(cls):
+        return "Parse JSON String"
+
     async def process(self, context: ProcessingContext) -> Any:
         json_string = await to_string(context, self.text)
         return json.loads(json_string)
@@ -385,6 +438,10 @@ class ExtractJSON(BaseNode):
     text: str | TextRef = Field(title="JSON Text", default_factory=TextRef)
     json_path: str = Field(title="JSONPath Expression", default="$.*")
     find_all: bool = Field(title="Find All", default=False)
+
+    @classmethod
+    def get_title(cls):
+        return "Extract JSON"
 
     async def process(self, context: ProcessingContext) -> Any:
         json_string = await to_string(context, self.text)
@@ -410,25 +467,41 @@ class SentenceSplitter(BaseNode):
     text: str | TextRef = Field(title="Text", default="")
     min_length: int = Field(title="Minimum Length", default=10)
     source_id: str = Field(title="Source ID", default="")
+    chunk_size: int = Field(title="Chunk Size", default=1000)
+    chunk_overlap: int = Field(title="Chunk Overlap", default=200)
+
+    @classmethod
+    def get_title(cls):
+        return "Split Sentences"
 
     async def process(self, context: ProcessingContext) -> list[TextChunk]:
-        text = await to_string(context, self.text)
-        chunks = []
+        from langchain_text_splitters import RecursiveCharacterTextSplitter
+        from langchain_core.documents import Document
 
-        # Simple sentence splitting using common punctuation
-        for match in re.finditer(r"[^.!?]+[.!?]+", text):
-            sentence = match.group().strip()
-            if len(sentence) >= self.min_length:
-                start_idx = match.start()
-                chunks.append(
-                    TextChunk(
-                        text=sentence,
-                        source_id=self.source_id,
-                        start_index=start_idx,
-                    )
-                )
+        assert self.source_id, "document_id is required"
 
-        return chunks
+        content = await to_string(context, self.text)
+        separators = ["\n\n", "\n", ".", "?", "!", " ", ""]
+
+        splitter = RecursiveCharacterTextSplitter(
+            chunk_size=self.chunk_size,
+            chunk_overlap=self.chunk_overlap,
+            separators=separators,
+            length_function=len,
+            is_separator_regex=False,
+            add_start_index=True,
+        )
+
+        docs = splitter.split_documents([Document(page_content=content)])
+
+        return [
+            TextChunk(
+                text=doc.page_content,
+                source_id=self.source_id,
+                start_index=doc.metadata["start_index"],
+            )
+            for doc in docs
+        ]
 
 
 class RegexMatch(BaseNode):
@@ -447,6 +520,10 @@ class RegexMatch(BaseNode):
     group: Optional[int] = Field(
         default=None, description="Capture group to extract (0 for full match)"
     )
+
+    @classmethod
+    def get_title(cls):
+        return "Find Regex Matches"
 
     async def process(self, context: ProcessingContext) -> list[str]:
         if self.group is None:
@@ -471,6 +548,10 @@ class RegexReplace(BaseNode):
     replacement: str = Field(default="", description="Replacement text")
     count: int = Field(default=0, description="Maximum replacements (0 for unlimited)")
 
+    @classmethod
+    def get_title(cls):
+        return "Replace with Regex"
+
     async def process(self, context: ProcessingContext) -> str:
         return re.sub(self.pattern, self.replacement, self.text, count=self.count)
 
@@ -494,6 +575,10 @@ class RegexSplit(BaseNode):
         default=0, description="Maximum number of splits (0 for unlimited)"
     )
 
+    @classmethod
+    def get_title(cls):
+        return "Split with Regex"
+
     async def process(self, context: ProcessingContext) -> list[str]:
         return re.split(self.pattern, self.text, maxsplit=self.maxsplit)
 
@@ -511,6 +596,10 @@ class RegexValidate(BaseNode):
 
     text: str = Field(default="", description="Text to validate")
     pattern: str = Field(default="", description="Regular expression pattern")
+
+    @classmethod
+    def get_title(cls):
+        return "Validate with Regex"
 
     async def process(self, context: ProcessingContext) -> bool:
         return bool(re.match(self.pattern, self.text))
@@ -531,6 +620,10 @@ class RegexExtract(BaseNode):
     pattern: str = Field(
         default="", description="Regular expression pattern with named groups"
     )
+
+    @classmethod
+    def get_title(cls):
+        return "Extract Regex Groups"
 
     async def process(self, context: ProcessingContext) -> dict:
         match = re.search(self.pattern, self.text)
@@ -594,6 +687,10 @@ class HTMLToText(BaseNode):
         description="Convert block-level elements to newlines",
     )
 
+    @classmethod
+    def get_title(cls):
+        return "Convert HTML to Text"
+
     async def process(self, context: ProcessingContext) -> str | TextRef:
         html = await to_string(context, self.text)
         text = convert_html_to_text(html, self.preserve_linebreaks)
@@ -621,6 +718,10 @@ class Slice(BaseNode):
     start: int | None = Field(title="Start Index", default=None)
     stop: int | None = Field(title="Stop Index", default=None)
     step: int | None = Field(title="Step", default=None)
+
+    @classmethod
+    def get_title(cls):
+        return "Slice Text"
 
     async def process(self, context: ProcessingContext) -> str | TextRef:
         text = await to_string(context, self.text)
@@ -659,6 +760,10 @@ class RecursiveTextSplitter(BaseNode):
         ],
         description="List of separators to use for splitting, in order of preference",
     )
+
+    @classmethod
+    def get_title(cls):
+        return "Split Recursively"
 
     async def process(self, context: ProcessingContext) -> list[TextChunk]:
         from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -727,6 +832,10 @@ class MarkdownSplitter(BaseNode):
         description="Overlap size when using chunk_size",
     )
 
+    @classmethod
+    def get_title(cls):
+        return "Split Markdown"
+
     async def process(self, context: ProcessingContext) -> list[TextChunk]:
         from langchain_text_splitters import (
             MarkdownHeaderTextSplitter,
@@ -777,6 +886,10 @@ class StartsWith(BaseNode):
     text: str | TextRef = Field(title="Text", default="")
     prefix: str = Field(title="Prefix", default="")
 
+    @classmethod
+    def get_title(cls):
+        return "Starts With"
+
     async def process(self, context: ProcessingContext) -> bool:
         text = await to_string(context, self.text)
         return text.startswith(self.prefix)
@@ -795,6 +908,10 @@ class EndsWith(BaseNode):
 
     text: str | TextRef = Field(title="Text", default="")
     suffix: str = Field(title="Suffix", default="")
+
+    @classmethod
+    def get_title(cls):
+        return "Ends With"
 
     async def process(self, context: ProcessingContext) -> bool:
         text = await to_string(context, self.text)
@@ -815,6 +932,10 @@ class Contains(BaseNode):
     text: str | TextRef = Field(title="Text", default="")
     substring: str = Field(title="Substring", default="")
     case_sensitive: bool = Field(title="Case Sensitive", default=True)
+
+    @classmethod
+    def get_title(cls):
+        return "Contains Text"
 
     async def process(self, context: ProcessingContext) -> bool:
         text = await to_string(context, self.text)
@@ -840,6 +961,10 @@ class IsEmpty(BaseNode):
     text: str | TextRef = Field(title="Text", default="")
     trim_whitespace: bool = Field(title="Trim Whitespace", default=True)
 
+    @classmethod
+    def get_title(cls):
+        return "Is Empty"
+
     async def process(self, context: ProcessingContext) -> bool:
         text = await to_string(context, self.text)
         if self.trim_whitespace:
@@ -863,6 +988,10 @@ class HasLength(BaseNode):
     max_length: int | None = Field(title="Maximum Length", default=None)
     exact_length: int | None = Field(title="Exact Length", default=None)
 
+    @classmethod
+    def get_title(cls):
+        return "Check Length"
+
     async def process(self, context: ProcessingContext) -> bool:
         text = await to_string(context, self.text)
         length = len(text)
@@ -877,3 +1006,40 @@ class HasLength(BaseNode):
             return False
             
         return True
+
+
+class TiktokenEncoding(str, Enum):
+    """Available tiktoken encodings"""
+    CL100K_BASE = "cl100k_base"  # GPT-4, GPT-3.5
+    P50K_BASE = "p50k_base"      # GPT-3
+    R50K_BASE = "r50k_base"      # GPT-2
+
+
+class CountTokens(BaseNode):
+    """
+    Counts the number of tokens in text using tiktoken.
+    text, tokens, count, encoding
+
+    Use cases:
+    - Checking text length for LLM input limits
+    - Estimating API costs
+    - Managing token budgets in text processing
+    """
+
+    text: str | TextRef = Field(title="Text", default="")
+    encoding: TiktokenEncoding = Field(
+        title="Encoding",
+        default=TiktokenEncoding.CL100K_BASE,
+        description="The tiktoken encoding to use for token counting",
+    )
+
+    @classmethod
+    def get_title(cls):
+        return "Count Tokens"
+
+    async def process(self, context: ProcessingContext) -> int:
+        import tiktoken
+
+        text = await to_string(context, self.text)
+        encoding = tiktoken.get_encoding(self.encoding.value)
+        return len(encoding.encode(text))

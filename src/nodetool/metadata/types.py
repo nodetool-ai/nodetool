@@ -1605,12 +1605,23 @@ class IMAPConnection(BaseType):
     """Configuration for an IMAP email connection."""
 
     type: Literal["imap_connection"] = "imap_connection"
-    host: str = Field(default="", description="IMAP server hostname")
-    port: int = Field(default=993, description="IMAP server port")
-    username: str = Field(default="", description="Email account username")
-    password: str = Field(default="", description="Email account password")
-    use_ssl: bool = Field(default=True, description="Whether to use SSL/TLS connection")
+    host: str = ""
+    port: int = 993
+    username: str = ""
+    password: str = ""
+    use_ssl: bool = True
 
     def is_configured(self) -> bool:
         """Check if the connection has all required fields set."""
         return bool(self.host and self.username and self.password)
+
+
+class RSSEntry(BaseType):
+    """Represents an RSS entry."""
+
+    type: Literal["rss_entry"] = "rss_entry"
+    title: str = ""
+    link: str = ""
+    published: Datetime = Datetime()
+    summary: str = ""
+    author: str = ""
