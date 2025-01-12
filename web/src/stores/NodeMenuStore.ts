@@ -62,12 +62,17 @@ export const formatNodeDocumentation = (
         .map((line) => {
           const content = line.replace(/^-\s*/, "").trim();
           if (searchTerm && searchInfo) {
+            devLog("\n=== USE CASE HIGHLIGHT ===");
+            devLog("Content to highlight:", content);
+            devLog("Search term:", searchTerm);
+            devLog("Search info:", searchInfo);
             const highlighted = highlightTextUtil(
               content,
               "use_cases",
               searchTerm,
               searchInfo
             );
+            devLog("Highlight result:", highlighted);
             return highlighted.html;
           }
           return content;
@@ -79,12 +84,17 @@ export const formatNodeDocumentation = (
       useCasesHtml = `<ul>${useCasesHtml}</ul>`;
     } else {
       if (searchTerm && searchInfo) {
+        devLog("\n=== USE CASE HIGHLIGHT (non-list) ===");
+        devLog("Content to highlight:", useCasesRaw);
+        devLog("Search term:", searchTerm);
+        devLog("Search info:", searchInfo);
         const highlighted = highlightTextUtil(
           useCasesRaw,
           "use_cases",
           searchTerm,
           searchInfo
         );
+        devLog("Highlight result:", highlighted);
         useCasesHtml = highlighted.html;
       } else {
         useCasesHtml = useCasesRaw;
@@ -297,11 +307,12 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
       minMatchCharLength: 4,
       keys: [
         { name: "description", weight: 0.9 },
-        { name: "use_cases", weight: 0.9 }
+        { name: "use_cases", weight: 0.9 },
+        { name: "recommended_models", weight: 0.9 }
       ],
       tokenize: true,
       tokenSeparator: /[\s\.,\-]+/,
-      findAllMatches: false,
+      findAllMatches: true,
       ignoreLocation: true,
       includeMatches: true
     } as ExtendedFuseOptions<any>);
@@ -451,9 +462,8 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
       let searchMatchedNodes = typeFilteredMetadata;
       if (term.trim()) {
         const allEntries = typeFilteredMetadata.map((node: NodeMetadata) => {
-          const { description, tags, useCases } = formatNodeDocumentation(
-            node.description
-          );
+          const { description, tags, useCases, recommendedModels } =
+            formatNodeDocumentation(node.description);
 
           return {
             title: node.title,
@@ -461,6 +471,7 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
             namespace: node.namespace,
             description: description,
             use_cases: useCases.raw,
+            recommended_models: recommendedModels.raw,
             tags: tags.join(", "),
             metadata: node
           };
@@ -514,14 +525,15 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
             ]
           : performGroupedSearch(
               filteredResults.map((node) => {
-                const { description, tags } = formatNodeDocumentation(
-                  node.description
-                );
+                const { description, tags, useCases, recommendedModels } =
+                  formatNodeDocumentation(node.description);
                 return {
                   title: node.title,
                   node_type: node.node_type,
                   namespace: node.namespace,
                   description: description,
+                  use_cases: useCases.raw,
+                  recommended_models: recommendedModels.raw,
                   tags: tags.join(", "),
                   metadata: node
                 };
