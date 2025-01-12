@@ -22380,10 +22380,10 @@
           "year": 2025,
           "month": 1,
           "day": 12,
-          "hour": 8,
-          "minute": 43,
-          "second": 43,
-          "microsecond": 340032,
+          "hour": 9,
+          "minute": 40,
+          "second": 4,
+          "microsecond": 698169,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23422,10 +23422,10 @@
           "year": 2025,
           "month": 1,
           "day": 12,
-          "hour": 8,
-          "minute": 43,
-          "second": 43,
-          "microsecond": 344448,
+          "hour": 9,
+          "minute": 40,
+          "second": 4,
+          "microsecond": 702202,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23475,10 +23475,10 @@
           "year": 2025,
           "month": 1,
           "day": 12,
-          "hour": 8,
-          "minute": 43,
-          "second": 43,
-          "microsecond": 344803,
+          "hour": 9,
+          "minute": 40,
+          "second": 4,
+          "microsecond": 702450,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23528,10 +23528,10 @@
           "year": 2025,
           "month": 1,
           "day": 12,
-          "hour": 8,
-          "minute": 43,
-          "second": 43,
-          "microsecond": 345032,
+          "hour": 9,
+          "minute": 40,
+          "second": 4,
+          "microsecond": 702659,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23581,10 +23581,10 @@
           "year": 2025,
           "month": 1,
           "day": 12,
-          "hour": 8,
-          "minute": 43,
-          "second": 43,
-          "microsecond": 345393,
+          "hour": 9,
+          "minute": 40,
+          "second": 4,
+          "microsecond": 702866,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23634,10 +23634,10 @@
           "year": 2025,
           "month": 1,
           "day": 12,
-          "hour": 8,
-          "minute": 43,
-          "second": 43,
-          "microsecond": 345698,
+          "hour": 9,
+          "minute": 40,
+          "second": 4,
+          "microsecond": 703070,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23687,10 +23687,10 @@
           "year": 2025,
           "month": 1,
           "day": 12,
-          "hour": 8,
-          "minute": 43,
-          "second": 43,
-          "microsecond": 346002,
+          "hour": 9,
+          "minute": 40,
+          "second": 4,
+          "microsecond": 703306,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23740,10 +23740,10 @@
           "year": 2025,
           "month": 1,
           "day": 12,
-          "hour": 8,
-          "minute": 43,
-          "second": 43,
-          "microsecond": 346238,
+          "hour": 9,
+          "minute": 40,
+          "second": 4,
+          "microsecond": 703509,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23809,10 +23809,10 @@
           "year": 2025,
           "month": 1,
           "day": 12,
-          "hour": 8,
-          "minute": 43,
-          "second": 43,
-          "microsecond": 346499,
+          "hour": 9,
+          "minute": 40,
+          "second": 4,
+          "microsecond": 703760,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -29195,6 +29195,48 @@
     "recommended_models": [],
     "basic_fields": [
       "input"
+    ]
+  },
+  {
+    "title": "Base Url",
+    "description": "Extract the base URL from a given URL.\n    url parsing, domain extraction, web utilities\n\n    Use cases:\n    - Get domain name from full URLs\n    - Clean up URLs for comparison\n    - Extract root website addresses\n    - Standardize URL formats",
+    "namespace": "nodetool.html",
+    "node_type": "nodetool.html.BaseUrl",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "url",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "URL",
+        "description": "The URL to extract the base from",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "url"
     ]
   },
   {
@@ -38971,6 +39013,80 @@
     ]
   },
   {
+    "title": "Flatten",
+    "description": "Flattens a nested list structure into a single flat list.\n    list, flatten, nested, structure\n\n    Use cases:\n    - Convert nested lists into a single flat list\n    - Simplify complex list structures\n    - Process hierarchical data as a sequence\n\n    Examples:\n    [[1, 2], [3, 4]] -> [1, 2, 3, 4]\n    [[1, [2, 3]], [4, [5, 6]]] -> [1, 2, 3, 4, 5, 6]",
+    "namespace": "nodetool.list",
+    "node_type": "nodetool.list.Flatten",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "values",
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "any",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Values",
+        "description": "The nested list structure to flatten",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "max_depth",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": -1,
+        "title": "Max Depth",
+        "description": "Maximum depth to flatten (-1 for unlimited)",
+        "min": -1.0,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "any",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "values",
+      "max_depth"
+    ]
+  },
+  {
     "title": "Binary Operation",
     "description": "",
     "namespace": "nodetool.math",
@@ -43643,64 +43759,6 @@
       {
         "type": {
           "type": "bool",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [
-      "text",
-      "pattern"
-    ]
-  },
-  {
-    "title": "Extract Regex Groups",
-    "description": "Extract named groups from text using regex.\n    regex, extract, groups\n\n    Use cases:\n    - Parse structured data\n    - Extract semantic components\n    - Named field extraction",
-    "namespace": "nodetool.text",
-    "node_type": "nodetool.text.RegexExtract",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "text",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Text",
-        "description": "Text to extract from",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "pattern",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Pattern",
-        "description": "Regular expression pattern with named groups",
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "dict",
           "optional": false,
           "values": null,
           "type_args": [],

@@ -30,29 +30,17 @@ class FetchRSSFeed(BaseNode):
         
         data = []
         for entry in feed.entries:
-            # Try different common RSS date formats
-            published_str = entry.get('published', '')
-            try:
-                # Format with numeric timezone
-                published = datetime.strptime(published_str, '%a, %d %b %Y %H:%M:%S %z')
-            except ValueError:
-                try:
-                    # Format with GMT/UTC
-                    published = datetime.strptime(published_str, '%a, %d %b %Y %H:%M:%S GMT')
-                except ValueError:
-                    try:
-                        # Alternative format sometimes used
-                        published = datetime.strptime(published_str, '%Y-%m-%dT%H:%M:%S%z')
-                    except ValueError:
-                        # If all parsing attempts fail, use current time
-                        published = datetime.now()
-            
+            # Use published_parsed instead of manual parsing
+            published = datetime.now()  # fallback
+            if entry.get('published_parsed'):
+                published = datetime(*entry.published_parsed[:6])
+
             data.append(RSSEntry(
                 title=entry.get('title', ''),
                 link=entry.get('link', ''),
                 published=Datetime.from_datetime(published),
                 summary=entry.get('summary', ''),
-                author=entry.get('author', '')
+                author=entry.get('author', ''),
             ))
         return data
     
@@ -78,7 +66,7 @@ class RSSEntryFields(BaseNode):
             "link": str,
             "published": Datetime,
             "summary": str,
-            "author": str
+            "author": str,
         }
 
     
@@ -88,7 +76,7 @@ class RSSEntryFields(BaseNode):
             "link": self.entry.link,
             "published": self.entry.published,
             "summary": self.entry.summary,
-            "author": self.entry.author
+            "author": self.entry.author,
         }
 
 
