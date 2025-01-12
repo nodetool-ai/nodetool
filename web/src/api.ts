@@ -1241,9 +1241,9 @@ export interface components {
              *       "month": 1,
              *       "day": 12,
              *       "hour": 10,
-             *       "minute": 4,
-             *       "second": 6,
-             *       "microsecond": 766992,
+             *       "minute": 55,
+             *       "second": 12,
+             *       "microsecond": 212654,
              *       "tzinfo": "UTC",
              *       "utc_offset": 0
              *     }
@@ -3046,6 +3046,11 @@ export interface components {
              * @description ElevenLabs API key
              */
             ELEVENLABS_API_KEY?: string | null;
+            /**
+             * Fal Api Key
+             * @description FAL API key
+             */
+            FAL_API_KEY?: string | null;
         };
         /** SettingsModel */
         SettingsModel: {

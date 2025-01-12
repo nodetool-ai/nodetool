@@ -1710,6 +1710,28 @@ files = [
 testing = ["hatch", "pre-commit", "pytest", "tox"]
 
 [[package]]
+name = "fal-client"
+version = "0.5.6"
+description = "Python client for fal.ai"
+optional = false
+python-versions = ">=3.8"
+groups = ["main"]
+markers = "python_version <= \"3.11\" or python_version >= \"3.12\""
+files = [
+    {file = "fal_client-0.5.6-py3-none-any.whl", hash = "sha256:631fd857a3c44753ee46a2eea1e7276471453aca58faac9c3702f744c7c84050"},
+    {file = "fal_client-0.5.6.tar.gz", hash = "sha256:d3afc4b6250023d0ee8437ec504558231d3b106d7aabc12cda8c39883faddecb"},
+]
+
+[package.dependencies]
+httpx = ">=0.21.0,<1"
+httpx-sse = ">=0.4.0,<0.5"
+
+[package.extras]
+dev = ["fal-client[docs,test]"]
+docs = ["sphinx", "sphinx-autodoc-typehints", "sphinx-rtd-theme"]
+test = ["pillow", "pytest", "pytest-asyncio"]
+
+[[package]]
 name = "fastapi"
 version = "0.115.5"
 description = "FastAPI framework, high performance, easy to learn, fast to code, ready for production"
@@ -2507,6 +2529,19 @@ cli = ["click (==8.*)", "pygments (==2.*)", "rich (>=10,<14)"]
 http2 = ["h2 (>=3,<5)"]
 socks = ["socksio (==1.*)"]
 zstd = ["zstandard (>=0.18.0)"]
+
+[[package]]
+name = "httpx-sse"
+version = "0.4.0"
+description = "Consume Server-Sent Event (SSE) messages with HTTPX."
+optional = false
+python-versions = ">=3.8"
+groups = ["main"]
+markers = "python_version <= \"3.11\" or python_version >= \"3.12\""
+files = [
+    {file = "httpx-sse-0.4.0.tar.gz", hash = "sha256:1e81a3a3070ce322add1d3529ed42eb5f70817f45ed6ec915ab753f961139721"},
+    {file = "httpx_sse-0.4.0-py3-none-any.whl", hash = "sha256:f329af6eae57eaa2bdfd962b42524764af68075ea87370a2de920af5341e318f"},
+]
 
 [[package]]
 name = "huggingface-hub"
@@ -9663,4 +9698,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.10"
-content-hash = "ddc4cdc507818b8be6b26006171823b20e4c7d432d667a4df1f8ec2a8af69e15"
+content-hash = "5b0ec2d6057bd3ded2e5b01b07088c620980e4f29585ee60a02d0c4695ecc77c"

@@ -320,6 +320,7 @@ if __name__ == "__main__":
     import nodetool.nodes.anthropic
     import nodetool.nodes.apple
     import nodetool.nodes.chroma
+    import nodetool.nodes.fal
     import nodetool.nodes.google
     import nodetool.nodes.huggingface
     import nodetool.nodes.nodetool

@@ -22380,10 +22380,10 @@
           "year": 2025,
           "month": 1,
           "day": 12,
-          "hour": 10,
-          "minute": 46,
-          "second": 11,
-          "microsecond": 856598,
+          "hour": 12,
+          "minute": 18,
+          "second": 29,
+          "microsecond": 498397,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23422,10 +23422,10 @@
           "year": 2025,
           "month": 1,
           "day": 12,
-          "hour": 10,
-          "minute": 46,
-          "second": 11,
-          "microsecond": 860728,
+          "hour": 12,
+          "minute": 18,
+          "second": 29,
+          "microsecond": 502411,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23475,10 +23475,10 @@
           "year": 2025,
           "month": 1,
           "day": 12,
-          "hour": 10,
-          "minute": 46,
-          "second": 11,
-          "microsecond": 860972,
+          "hour": 12,
+          "minute": 18,
+          "second": 29,
+          "microsecond": 502649,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23528,10 +23528,10 @@
           "year": 2025,
           "month": 1,
           "day": 12,
-          "hour": 10,
-          "minute": 46,
-          "second": 11,
-          "microsecond": 861182,
+          "hour": 12,
+          "minute": 18,
+          "second": 29,
+          "microsecond": 502856,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23581,10 +23581,10 @@
           "year": 2025,
           "month": 1,
           "day": 12,
-          "hour": 10,
-          "minute": 46,
-          "second": 11,
-          "microsecond": 861388,
+          "hour": 12,
+          "minute": 18,
+          "second": 29,
+          "microsecond": 503076,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23634,10 +23634,10 @@
           "year": 2025,
           "month": 1,
           "day": 12,
-          "hour": 10,
-          "minute": 46,
-          "second": 11,
-          "microsecond": 861596,
+          "hour": 12,
+          "minute": 18,
+          "second": 29,
+          "microsecond": 503289,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23687,10 +23687,10 @@
           "year": 2025,
           "month": 1,
           "day": 12,
-          "hour": 10,
-          "minute": 46,
-          "second": 11,
-          "microsecond": 861859,
+          "hour": 12,
+          "minute": 18,
+          "second": 29,
+          "microsecond": 503541,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23740,10 +23740,10 @@
           "year": 2025,
           "month": 1,
           "day": 12,
-          "hour": 10,
-          "minute": 46,
-          "second": 11,
-          "microsecond": 862063,
+          "hour": 12,
+          "minute": 18,
+          "second": 29,
+          "microsecond": 503744,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23809,10 +23809,10 @@
           "year": 2025,
           "month": 1,
           "day": 12,
-          "hour": 10,
-          "minute": 46,
-          "second": 11,
-          "microsecond": 862309,
+          "hour": 12,
+          "minute": 18,
+          "second": 29,
+          "microsecond": 504008,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -74898,6 +74898,132 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": []
+  },
+  {
+    "title": "Flux V 1 Pro",
+    "description": "FLUX1.1 [pro] is an enhanced version of FLUX.1 [pro], improved image generation capabilities, delivering superior composition, detail, and artistic fidelity compared to its predecessor.\n    fal, text, image",
+    "namespace": "fal.text_to_image",
+    "node_type": "fal.text_to_image.FluxV1Pro",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "prompt",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Prompt",
+        "description": "The prompt to generate an image from",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "image",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "prompt"
+    ]
+  },
+  {
+    "title": "Flux V 1 Pro Ultra",
+    "description": "FLUX1.1 [ultra] is the latest and most advanced version of FLUX.1 [pro], \n    featuring cutting-edge improvements in image generation, delivering unparalleled \n    composition, detail, and artistic fidelity.",
+    "namespace": "fal.text_to_image",
+    "node_type": "fal.text_to_image.FluxV1ProUltra",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "prompt",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Prompt",
+        "description": "The prompt to generate an image from",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "image",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "prompt"
+    ]
+  },
+  {
+    "title": "Redux V 3",
+    "description": "REDUX3 is a cutting-edge image generation model that combines advanced AI technology with \n    advanced image processing techniques to deliver stunning visual results.",
+    "namespace": "fal.text_to_image",
+    "node_type": "fal.text_to_image.ReduxV3",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "prompt",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Prompt",
+        "description": "The prompt to generate an image from",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "image",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "prompt"
+    ]
   },
   {
     "title": "Text To Speech",
