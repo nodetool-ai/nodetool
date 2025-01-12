@@ -17,6 +17,7 @@ import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { useNodeStore } from "../../stores/NodeStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useLocation, useNavigate } from "react-router-dom";
+import ThemeNodetool from "../themes/ThemeNodetool";
 
 const styles = (theme: any) =>
   css({
@@ -37,21 +38,28 @@ const styles = (theme: any) =>
         color: theme.palette.c_hl1
       }
     },
+    "&.last-workflow": {
+      position: "absolute",
+      top: ".6em",
+      left: "50%",
+      transform: "translateX(-50%)",
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center"
+    },
     "&.last-workflow button": {
       color: theme.palette.c_white,
-      backgroundColor: "transparent",
-      borderRadius: "1em",
+      borderRadius: ".5em",
       textTransform: "none",
-      fontSize: "1em"
+      fontSize: "1em",
+      padding: ".1em .8em"
     },
     "&.last-workflow button.disabled": {
-      borderRadius: "0",
-      backgroundColor: theme.palette.c_gray1,
+      backgroundColor: "transparent",
       color: theme.palette.c_gray6
     },
     "&.last-workflow button:hover ": {
-      backgroundColor: theme.palette.c_gray3,
-      borderRadius: "1em"
+      backgroundColor: theme.palette.c_gray3
     },
     "&.last-workflow span": {
       color: theme.palette.c_attention,
@@ -61,7 +69,7 @@ const styles = (theme: any) =>
       display: "block",
       position: "absolute",
       right: "-.8em",
-      top: ".5em",
+      top: ".1e2",
       width: "1em",
       height: "1em",
       opacity: 0,
@@ -198,12 +206,18 @@ const LastWorkflowButton = React.memo(() => {
     }
   }, [isEditing]);
 
+  const pathIsEditor = pathname.startsWith("/editor");
   const memoizedButton = useMemo(
     () => (
       <Button
         onClick={handleNavigateToLastWorkflow}
         onDoubleClick={handleDoubleClick}
-        disabled={pathname.startsWith("/editor")}
+        disabled={pathIsEditor}
+        sx={{
+          backgroundColor: !pathIsEditor
+            ? ThemeNodetool.palette.c_gray2
+            : "transparent"
+        }}
       >
         {workflow?.name}
         {workflowDirty && <span>*</span>}
@@ -212,7 +226,7 @@ const LastWorkflowButton = React.memo(() => {
     [
       workflow?.name,
       workflowDirty,
-      pathname,
+      pathIsEditor,
       handleNavigateToLastWorkflow,
       handleDoubleClick
     ]
@@ -222,8 +236,11 @@ const LastWorkflowButton = React.memo(() => {
 
   return (
     <div className="last-workflow" css={styles}>
-      {!pathname.startsWith("/editor") && (
-        <Typography component="span" sx={{ mr: 1 }}>
+      {!pathIsEditor && (
+        <Typography
+          component="span"
+          sx={{ position: "absolute", left: "-100px", pr: 4 }}
+        >
           Go back to
         </Typography>
       )}
