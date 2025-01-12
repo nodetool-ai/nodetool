@@ -35,10 +35,7 @@ export const highlightText = (
           const matchText = text.slice(start, end + 1);
 
           // Basic validation
-          if (start >= text.length) {
-            return null;
-          }
-          if (matchText.length < minMatchLength) {
+          if (start >= text.length || matchText.length < minMatchLength) {
             return null;
           }
 
@@ -59,12 +56,21 @@ export const highlightText = (
         .filter((m): m is NonNullable<typeof m> => m !== null);
     });
 
-  // Find the longest match
+  // Find the longest match that isn't contained within another match
   const longestMatch = allMatches.reduce((longest, current) => {
-    if (!longest || current.length > longest.length) {
-      return current;
+    if (!longest) return current;
+
+    // Check if current match overlaps with longest match
+    const [cStart, cEnd] = current.indices;
+    const [lStart, lEnd] = longest.indices;
+
+    // If they overlap, take the longer one
+    if (!(cEnd < lStart || cStart > lEnd)) {
+      return current.length > longest.length ? current : longest;
     }
-    return longest;
+
+    // If they don't overlap, keep the longest one seen so far
+    return current.length > longest.length ? current : longest;
   }, null as (typeof allMatches)[0] | null);
 
   if (!longestMatch) {
