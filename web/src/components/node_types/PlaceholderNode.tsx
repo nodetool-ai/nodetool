@@ -143,12 +143,9 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
       {mockProperties.length > 0 && (
         <NodeInputs
           id={props.id}
-          layout={mockMetadata.layout}
-          properties={mockProperties}
           nodeType={nodeType || ""}
-          data={nodeData || {}}
-          onlyFields={false}
-          onlyHandles={false}
+          properties={mockProperties}
+          data={nodeData}
         />
       )}
       <NodeOutputs id={props.id} outputs={mockMetadata.outputs} />

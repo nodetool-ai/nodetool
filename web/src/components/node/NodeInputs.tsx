@@ -11,19 +11,44 @@ export interface NodeInputsProps {
   nodeType: string;
   properties: Property[];
   data: NodeData;
-  onlyFields?: boolean;
-  onlyHandles?: boolean;
+  showFields?: boolean;
+  showHandle?: boolean;
   showAdvancedFields?: boolean;
   basicFields?: string[];
 }
+
+const isDropdownProperty = (property: Property): boolean => {
+  const type = property.type.type;
+  console.debug(`Property ${property.name}: type=${type}`);
+
+  // Check for enum type
+  if (type === "enum" || type === "collection") {
+    console.debug(`Property ${property.name} is dropdown (enum/collection)`);
+    return true;
+  }
+
+  // Check for model types that use dropdowns
+  const modelPrefixes = [
+    "function_model",
+    "language_model",
+    "llama_model",
+    "comfy.",
+    "hf."
+  ];
+  const isModel = modelPrefixes.some((prefix) => type.startsWith(prefix));
+  console.debug(
+    `Property ${property.name} is${isModel ? "" : " not"} a model dropdown`
+  );
+  return isModel;
+};
 
 export const NodeInputs: React.FC<NodeInputsProps> = ({
   id,
   properties,
   data,
   nodeType,
-  onlyHandles,
-  onlyFields,
+  showHandle = true,
+  showFields = true,
   layout,
   showAdvancedFields,
   basicFields
@@ -43,6 +68,8 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
         );
         const isTabable = tabIndex !== -1;
         const finalTabIndex = isTabable ? nodeOffset + tabIndex + 1 : -1;
+        const isConstantNode =
+          property.type.type.startsWith("nodetool.constant");
 
         return (
           <PropertyField
@@ -53,8 +80,10 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
             layout={layout}
             property={property}
             propertyIndex={index.toString()}
-            onlyInput={onlyFields}
-            onlyHandle={onlyHandles}
+            showFields={showFields}
+            showHandle={
+              showHandle && !isDropdownProperty(property) && !isConstantNode
+            }
             tabIndex={finalTabIndex}
             isBasicField={basicFields?.includes(property.name)}
             showAdvancedFields={showAdvancedFields}
