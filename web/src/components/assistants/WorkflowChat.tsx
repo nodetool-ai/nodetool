@@ -1,14 +1,11 @@
-import React, { useCallback, useEffect } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import useWorkflowChatStore from "../../stores/WorkflowChatStore";
-import {
-  Message,
-  MessageImageContent,
-  MessageTextContent
-} from "../../stores/ApiTypes";
+import { Message } from "../../stores/ApiTypes";
 import ChatView from "./ChatView";
 import { useNodeStore } from "../../stores/NodeStore";
 import { Alert, Box, Fade } from "@mui/material";
 import { ChatHeader } from "./chat/ChatHeader";
+import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
 
 interface WorkflowChatProps {
   workflow_id: string;
@@ -72,42 +69,36 @@ const WorkflowChat: React.FC<WorkflowChatProps> = ({
   return (
     <Box
       sx={{
-        position: "absolute",
-        bottom: 0,
-        left: "50%",
-        transform: "translateX(-50%)"
+        position: "fixed",
+        right: 20,
+        bottom: 20,
+        zIndex: 1000
       }}
     >
       <Box
         className="workflow-chat-container"
         sx={{
-          position: "absolute",
-          bottom: 0,
-          left: "50%",
-          transform: "translateX(-50%)",
-          width: isMinimized ? "180px" : "50vw",
-          maxHeight: isMinimized ? "64px" : "80vh",
-          height: isMinimized ? "50px" : "50vh",
-          minHeight: isMinimized ? "50px" : "250px",
+          position: "relative",
+          width: isMinimized ? "120px" : "400px",
+          maxHeight: "600px",
+          height: isMinimized ? "56px" : "500px",
+          transform: "translate(0, 0)",
           display: "flex",
           flexDirection: "column",
           backgroundColor: isOpen
             ? "rgba(8, 8, 8, 0.9)"
             : "rgba(16, 16, 16, 0.5)",
           boxShadow: isOpen
-            ? "0 -32px 64px rgba(0, 0, 0, 0.2)"
-            : "0 -16px 32px rgba(0, 0, 0, 0.1)",
-          borderTopLeftRadius: 8,
-          borderTopRightRadius: 8,
+            ? "0 0 32px rgba(0, 0, 0, 0.3)"
+            : "0 0 16px rgba(0, 0, 0, 0.2)",
+          borderRadius: 8,
           overflow: "hidden",
           m: 0,
-          p: 2,
-          // transitionProperty: "width, height, min-height, max-height",
-          // transitionDuration: "300ms",
-          // transitionTimingFunction: "cubic-bezier(0.4, 0, 0.2, 1)",
+          p: 0,
           transition: "all 0.3s ease-out",
           backdropFilter: "blur(10px)",
-          pointerEvents: isOpen ? "auto" : "none"
+          pointerEvents: isOpen ? "auto" : "none",
+          cursor: "default"
         }}
       >
         <ChatHeader
@@ -115,7 +106,8 @@ const WorkflowChat: React.FC<WorkflowChatProps> = ({
           onMinimize={handleMinimize}
           onReset={handleReset}
           messagesCount={messages.length}
-          title="Workflow Chat"
+          title="Chat"
+          icon={<ChatBubbleOutlineIcon sx={{ fontSize: "1.5em" }} />}
           description="Chat with your workflow"
         />
 
@@ -125,8 +117,9 @@ const WorkflowChat: React.FC<WorkflowChatProps> = ({
               flex: 1,
               display: "flex",
               flexDirection: "column",
-              height: "calc(100% - 64px)",
-              overflow: "hidden"
+              // height: "calc(100% - 20px)",
+              overflow: "hidden",
+              pb: 5
             }}
           >
             {error && <Alert severity="error">{error}</Alert>}
