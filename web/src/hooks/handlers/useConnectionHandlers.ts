@@ -9,6 +9,22 @@ import { isConnectable } from "../../utils/TypeHandler";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import useMetadataStore from "../../stores/MetadataStore";
 
+/**
+ * Find if an element or any of its parents has a class name
+ */
+const findClassNameinElementOrParents = (
+  element: HTMLElement,
+  className: string
+) => {
+  if (element.classList.contains(className)) {
+    return true;
+  }
+  if (element.parentElement) {
+    return findClassNameinElementOrParents(element.parentElement, className);
+  }
+  return false;
+};
+
 export default function useConnectionHandlers() {
   // useRef is needed to track current connection state
   const connectionCreated = useRef(false);
@@ -80,11 +96,15 @@ export default function useConnectionHandlers() {
     (event: any) => {
       const { connectDirection, connectNodeId, connectHandleId, connectType } =
         useConnectionStore.getState();
-      const targetIsGroup = event.target.classList.contains("loop-node");
+      const targetIsGroup = findClassNameinElementOrParents(
+        event.target,
+        "loop-node"
+      );
       const targetIsPane = event.target.classList.contains("react-flow__pane");
       const targetIsNode =
         event.target.closest(".react-flow__node") !== null &&
-        !event.target.classList.contains("loop-node");
+        !targetIsGroup &&
+        !targetIsPane;
 
       // targetIsNode: try to auto-connect
       if (!connectionCreated.current && targetIsNode) {
