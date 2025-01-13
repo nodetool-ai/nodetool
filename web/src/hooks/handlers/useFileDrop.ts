@@ -7,7 +7,7 @@ import { useNotificationStore } from "../../stores/NotificationStore";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 
 export type FileDropProps = {
-  type: "image" | "audio" | "video" | "all";
+  type: "image" | "audio" | "video" | "document" | "all";
   uploadAsset?: boolean;
   onChange?: (uri: string) => void;
   onChangeAsset?: (asset: Asset) => void;
@@ -29,11 +29,24 @@ export function useFileDrop(props: FileDropProps): {
   const onDrop = useCallback(
     (event: DragEvent) => {
       event.preventDefault();
+      event.stopPropagation();
       if (event.dataTransfer.files[0]) {
         const file = event.dataTransfer.files[0];
         const items = event.dataTransfer.items;
+        const isDocument =
+          file.type === "application/pdf" ||
+          file.type === "application/msword" ||
+          file.type ===
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
-        if (props.type === "all" || file?.type.startsWith(`${props.type}/`)) {
+        const fileTypeMatchesType = file?.type.startsWith(`${props.type}/`);
+        const documentTypeMatchesType = isDocument && props.type === "document";
+
+        if (
+          props.type === "all" ||
+          fileTypeMatchesType ||
+          documentTypeMatchesType
+        ) {
           setFilename(file.name);
           const reader = new FileReader();
 

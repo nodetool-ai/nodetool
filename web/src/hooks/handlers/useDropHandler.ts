@@ -19,6 +19,14 @@ function detectFileType(file: File): string {
       return "json";
     case "text/csv":
       return "csv";
+    case "application/pdf":
+      return "document";
+    case "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+      return "document";
+    case "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
+      return "document";
+    case "application/vnd.openxmlformats-officedocument.presentationml.presentation":
+      return "document";
     default:
       return "unknown";
   }
