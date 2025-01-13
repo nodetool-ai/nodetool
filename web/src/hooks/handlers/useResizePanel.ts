@@ -34,10 +34,7 @@ export const useResizePanel = (panelPosition: "left" | "right" = "left") => {
   const actions = usePanelStore(
     useCallback(
       (state) => ({
-        setSize: (position: "left" | "right", size: number) => {
-          state.setSize(position, size);
-          storePanelSize(position, size);
-        },
+        setSize: state.setSize,
         setIsDragging: state.setIsDragging,
         setHasDragged: state.setHasDragged
       }),
@@ -109,6 +106,7 @@ export const useResizePanel = (panelPosition: "left" | "right" = "left") => {
       } else {
         // If panel is open, store current size and minimize
         lastSizeRef.current = panel.size;
+        storePanelSize(panelPosition, panel.size);
         actions.setSize(panelPosition, panel.minWidth);
       }
     }
