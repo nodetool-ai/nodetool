@@ -18,7 +18,7 @@ class SayText(BaseNode):
     - Accessibility features
     """
 
-    text: str | TextRef = Field(default="", description="Text to be spoken")
+    text: str = Field(default="", description="Text to be spoken")
     rate: int = Field(default=175, description="Speaking rate (words per minute)")
 
     @classmethod
@@ -26,8 +26,7 @@ class SayText(BaseNode):
         return False
 
     async def process(self, context: ProcessingContext) -> bool:
-        text_content = await context.text_to_str(self.text)
-        text_content = escape_for_applescript(text_content)
+        text_content = escape_for_applescript(self.text)
 
         script = f"""
         tell application "System Events"

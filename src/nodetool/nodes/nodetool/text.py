@@ -1,4 +1,3 @@
-import asyncio
 from datetime import datetime
 from io import BytesIO
 import json
@@ -8,7 +7,6 @@ import pandas as pd
 from pydantic import Field
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.metadata.types import DataframeRef, FolderRef, TextChunk
-from nodetool.metadata.types import TextRef
 from nodetool.workflows.base_node import BaseNode
 import json
 import re
@@ -18,28 +16,9 @@ from pydantic import Field
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.metadata.types import TextRef
 from nodetool.workflows.base_node import BaseNode
-from dataclasses import dataclass
 from typing import Optional
-from html import unescape
 from bs4 import BeautifulSoup
 from enum import Enum
-
-
-async def to_string(context: ProcessingContext, text: TextRef | str) -> str:
-    if isinstance(text, TextRef):
-        stream = await context.asset_to_io(text)
-        return stream.read().decode("utf-8")
-    else:
-        return text
-
-
-async def convert_result(
-    context: ProcessingContext, input: list[TextRef | str], result: str
-) -> TextRef | str:
-    if any(isinstance(text, TextRef) for text in input):
-        return await context.text_from_str(result)
-    else:
-        return result
 
 
 class TextID(BaseNode):
@@ -48,14 +27,14 @@ class TextID(BaseNode):
     index, asset, identifier
     """
 
-    text: TextRef = Field(title="Text", default="")
+    text: str = Field(title="Text", default="")
 
     @classmethod
     def get_title(cls):
         return "Get Text ID"
 
     async def process(self, context: ProcessingContext) -> str | None:
-        return self.text.asset_id
+        return self.text
 
 
 class Concat(BaseNode):
@@ -69,16 +48,15 @@ class Concat(BaseNode):
     - Merging text data from different sources
     """
 
-    a: str | TextRef = ""
-    b: str | TextRef = ""
+    a: str = Field(default="")
+    b: str = Field(default="")
 
     @classmethod
     def get_title(cls):
         return "Concatenate Text"
 
-    async def process(self, context: ProcessingContext) -> str | TextRef:
-        res = await to_string(context, self.a) + await to_string(context, self.b)
-        return await convert_result(context, [self.a, self.b], res)
+    async def process(self, context: ProcessingContext) -> str:
+        return self.a + self.b
 
 
 class Join(BaseNode):
@@ -92,21 +70,17 @@ class Join(BaseNode):
     - Assembling formatted text from array elements
     """
 
-    strings: list[str | TextRef] = []
-    separator: str = ""
+    strings: list[str] = Field(default_factory=list)
+    separator: str = Field(default="")
 
     @classmethod
     def get_title(cls):
         return "Join Text"
 
-    async def process(self, context: ProcessingContext) -> str | TextRef:
+    async def process(self, context: ProcessingContext) -> str:
         if len(self.strings) == 0:
             return ""
-        strings = await asyncio.gather(
-            *[to_string(context, text) for text in self.strings]
-        )
-        res = self.separator.join(strings)
-        return await convert_result(context, self.strings, res)
+        return self.separator.join(self.strings)
 
 
 class Template(BaseNode):
@@ -125,7 +99,7 @@ class Template(BaseNode):
     - text: "Hello, {0}!" values: "Alice" -> "Hello, Alice!"
     """
 
-    string: str | TextRef = Field(title="String", default="")
+    string: str = Field(title="String", default="")
     values: str | list | dict[str, Any] | object = Field(
         title="Values",
         default={},
@@ -142,19 +116,17 @@ class Template(BaseNode):
     def get_title(cls):
         return "Format Text"
 
-    async def process(self, context: ProcessingContext) -> str | TextRef:
-        string = await to_string(context, self.string)
+    async def process(self, context: ProcessingContext) -> str:
         if isinstance(self.values, str):
-            res = string.format(self.values)
+            return self.string.format(self.values)
         elif isinstance(self.values, list):
-            res = string.format(*self.values)
+            return self.string.format(*self.values)
         elif isinstance(self.values, dict):
-            res = string.format(**self.values)
+            return self.string.format(**self.values)
         elif isinstance(self.values, object):
-            res = string.format(**self.values.__dict__)
+            return self.string.format(**self.values.__dict__)
         else:
             raise ValueError("Invalid values type")
-        return await convert_result(context, [self.string], res)
 
 
 class Replace(BaseNode):
@@ -168,7 +140,7 @@ class Replace(BaseNode):
     - Implementing simple text transformations
     """
 
-    text: str | TextRef = Field(title="Text", default="")
+    text: str = Field(title="Text", default="")
     old: str = Field(title="Old", default="")
     new: str = Field(title="New", default="")
 
@@ -176,10 +148,8 @@ class Replace(BaseNode):
     def get_title(cls):
         return "Replace Text"
 
-    async def process(self, context: ProcessingContext) -> str | TextRef:
-        text = await to_string(context, self.text)
-        res = text.replace(self.old, self.new)
-        return await convert_result(context, [self.text], res)
+    async def process(self, context: ProcessingContext) -> str:
+        return self.text.replace(self.old, self.new)
 
 
 class JSONToDataframe(BaseNode):
@@ -193,15 +163,14 @@ class JSONToDataframe(BaseNode):
     - Structuring unstructured JSON data for further processing
     """
 
-    text: str | TextRef = Field(title="JSON", default_factory=TextRef)
+    text: str = Field(title="JSON", default="")
 
     @classmethod
     def get_title(cls):
         return "Convert JSON to DataFrame"
 
     async def process(self, context: ProcessingContext) -> DataframeRef:
-        json_string = await to_string(context, self.text)
-        rows = json.loads(json_string)
+        rows = json.loads(self.text)
         df = pd.DataFrame(rows)
         return await context.dataframe_from_pandas(df)
 
@@ -217,7 +186,7 @@ class SaveText(BaseNode):
     - Archiving text data within the workflow
     """
 
-    text: str | TextRef = Field(title="Text", default_factory=TextRef)
+    text: str = Field(title="Text", default="")
     folder: FolderRef = Field(
         default=FolderRef(), description="Name of the output folder."
     )
@@ -244,9 +213,8 @@ class SaveText(BaseNode):
         return "Save Text"
 
     async def process(self, context: ProcessingContext) -> TextRef:
-        string = await to_string(context, self.text)
         filename = datetime.now().strftime(self.name)
-        file = BytesIO(string.encode("utf-8"))
+        file = BytesIO(self.text.encode("utf-8"))
         parent_id = self.folder.asset_id if self.folder.is_set() else None
         asset = await context.create_asset(filename, "text/plain", file, parent_id)
         return TextRef(uri=asset.get_url or "", asset_id=asset.id)
@@ -263,7 +231,7 @@ class Split(BaseNode):
     - Extracting specific elements from structured text
     """
 
-    text: str | TextRef = Field(title="Text", default="")
+    text: str = Field(title="Text", default="")
     delimiter: str = ","
 
     @classmethod
@@ -271,9 +239,7 @@ class Split(BaseNode):
         return "Split Text"
 
     async def process(self, context: ProcessingContext) -> list[str]:
-        text = await to_string(context, self.text)
-        res = text.split(self.delimiter)
-        return res
+        return self.text.split(self.delimiter)
 
 
 class Extract(BaseNode):
@@ -287,7 +253,7 @@ class Extract(BaseNode):
     - Focusing on relevant sections of longer documents
     """
 
-    text: str | TextRef = Field(title="Text", default="")
+    text: str = Field(title="Text", default="")
     start: int = Field(title="Start", default=0)
     end: int = Field(title="End", default=0)
 
@@ -295,10 +261,8 @@ class Extract(BaseNode):
     def get_title(cls):
         return "Extract Text"
 
-    async def process(self, context: ProcessingContext) -> str | TextRef:
-        text = await to_string(context, self.text)
-        res = text[self.start : self.end]
-        return await convert_result(context, [self.text], res)
+    async def process(self, context: ProcessingContext) -> str:
+        return self.text[self.start : self.end]
 
 
 class Chunk(BaseNode):
@@ -312,7 +276,7 @@ class Chunk(BaseNode):
     - Generating summaries of text sections
     """
 
-    text: str | TextRef = Field(title="Text", default="")
+    text: str = Field(title="Text", default="")
     length: int = Field(title="Length", default=100, le=1000, ge=1)
     overlap: int = Field(title="Overlap", default=0)
     separator: str | None = Field(title="Separator", default=None)
@@ -322,9 +286,7 @@ class Chunk(BaseNode):
         return "Split Text into Chunks"
 
     async def process(self, context: ProcessingContext) -> list[str]:
-        text = await to_string(context, self.text)
-        text = text.split(sep=self.separator)
-
+        text = self.text.split(sep=self.separator)
         chunks = [
             text[i : i + self.length]
             for i in range(0, len(text), self.length - self.overlap)
@@ -343,7 +305,7 @@ class ExtractRegex(BaseNode):
     - Isolating relevant information from complex text formats
     """
 
-    text: str | TextRef = Field(title="Text", default="")
+    text: str = Field(title="Text", default="")
     regex: str = Field(title="Regex", default="")
     dotall: bool = Field(title="Dotall", default=False)
     ignorecase: bool = Field(title="Ignorecase", default=False)
@@ -361,8 +323,7 @@ class ExtractRegex(BaseNode):
             options |= re.IGNORECASE
         if self.multiline:
             options |= re.MULTILINE
-        text = await to_string(context, self.text)
-        match = re.search(self.regex, text, options)
+        match = re.search(self.regex, self.text, options)
         if match is None:
             return []
         return list(match.groups())
@@ -379,7 +340,7 @@ class FindAllRegex(BaseNode):
     - Analyzing frequency and distribution of specific text patterns
     """
 
-    text: str | TextRef = Field(title="Text", default="")
+    text: str = Field(title="Text", default="")
     regex: str = Field(title="Regex", default="")
     dotall: bool = Field(title="Dotall", default=False)
     ignorecase: bool = Field(title="Ignorecase", default=False)
@@ -397,8 +358,7 @@ class FindAllRegex(BaseNode):
             options |= re.IGNORECASE
         if self.multiline:
             options |= re.MULTILINE
-        text = await to_string(context, self.text)
-        matches = re.findall(self.regex, text, options)
+        matches = re.findall(self.regex, self.text, options)
         return list(matches)
 
 
@@ -413,15 +373,14 @@ class ParseJSON(BaseNode):
     - Extracting configuration or settings from JSON files
     """
 
-    text: str | TextRef = Field(title="JSON string", default="")
+    text: str = Field(title="JSON string", default="")
 
     @classmethod
     def get_title(cls):
         return "Parse JSON String"
 
     async def process(self, context: ProcessingContext) -> Any:
-        json_string = await to_string(context, self.text)
-        return json.loads(json_string)
+        return json.loads(self.text)
 
 
 class ExtractJSON(BaseNode):
@@ -435,7 +394,7 @@ class ExtractJSON(BaseNode):
     - Extracting nested data from API responses or configurations
     """
 
-    text: str | TextRef = Field(title="JSON Text", default_factory=TextRef)
+    text: str = Field(title="JSON Text", default="")
     json_path: str = Field(title="JSONPath Expression", default="$.*")
     find_all: bool = Field(title="Find All", default=False)
 
@@ -444,8 +403,7 @@ class ExtractJSON(BaseNode):
         return "Extract JSON"
 
     async def process(self, context: ProcessingContext) -> Any:
-        json_string = await to_string(context, self.text)
-        parsed_json = json.loads(json_string)
+        parsed_json = json.loads(self.text)
         jsonpath_expr = parse(self.json_path)
         if self.find_all:
             return [match.value for match in jsonpath_expr.find(parsed_json)]
@@ -464,7 +422,7 @@ class SentenceSplitter(BaseNode):
     - Preparing text for language model processing
     """
 
-    text: str | TextRef = Field(title="Text", default="")
+    text: str = Field(title="Text", default="")
     min_length: int = Field(title="Minimum Length", default=10)
     source_id: str = Field(title="Source ID", default="")
     chunk_size: int = Field(title="Chunk Size", default=1000)
@@ -480,7 +438,6 @@ class SentenceSplitter(BaseNode):
 
         assert self.source_id, "document_id is required"
 
-        content = await to_string(context, self.text)
         separators = ["\n\n", "\n", ".", "?", "!", " ", ""]
 
         splitter = RecursiveCharacterTextSplitter(
@@ -492,7 +449,7 @@ class SentenceSplitter(BaseNode):
             add_start_index=True,
         )
 
-        docs = splitter.split_documents([Document(page_content=content)])
+        docs = splitter.split_documents([Document(page_content=self.text)])
 
         return [
             TextChunk(
@@ -653,7 +610,7 @@ class HTMLToText(BaseNode):
     - Preparing HTML data for natural language processing
     """
 
-    text: str | TextRef = Field(title="HTML", default="")
+    text: str = Field(title="HTML", default="")
     preserve_linebreaks: bool = Field(
         title="Preserve Line Breaks",
         default=True,
@@ -664,10 +621,8 @@ class HTMLToText(BaseNode):
     def get_title(cls):
         return "Convert HTML to Text"
 
-    async def process(self, context: ProcessingContext) -> str | TextRef:
-        html = await to_string(context, self.text)
-        text = convert_html_to_text(html, self.preserve_linebreaks)
-        return await convert_result(context, [self.text], text)
+    async def process(self, context: ProcessingContext) -> str:
+        return convert_html_to_text(self.text, self.preserve_linebreaks)
 
 
 class Slice(BaseNode):
@@ -687,7 +642,7 @@ class Slice(BaseNode):
     - step=-1: reverse the text
     """
 
-    text: str | TextRef = Field(title="Text", default="")
+    text: str = Field(title="Text", default="")
     start: int | None = Field(title="Start Index", default=None)
     stop: int | None = Field(title="Stop Index", default=None)
     step: int | None = Field(title="Step", default=None)
@@ -696,10 +651,8 @@ class Slice(BaseNode):
     def get_title(cls):
         return "Slice Text"
 
-    async def process(self, context: ProcessingContext) -> str | TextRef:
-        text = await to_string(context, self.text)
-        res = text[slice(self.start, self.stop, self.step)]
-        return await convert_result(context, [self.text], res)
+    async def process(self, context: ProcessingContext) -> str:
+        return self.text[self.start : self.stop : self.step]
 
 
 class RecursiveTextSplitter(BaseNode):
@@ -713,7 +666,7 @@ class RecursiveTextSplitter(BaseNode):
     - Handling text in languages with/without word boundaries
     """
 
-    text: str | TextRef = Field(title="Text", default="")
+    text: str = Field(title="Text", default="")
     source_id: str = Field(title="Document ID", default="")
     chunk_size: int = Field(
         title="Chunk Size",
@@ -726,11 +679,7 @@ class RecursiveTextSplitter(BaseNode):
         description="Number of characters to overlap between chunks",
     )
     separators: list[str] = Field(
-        default=[
-            "\n\n",
-            "\n",
-            ".",
-        ],
+        default=["\n\n", "\n", "."],
         description="List of separators to use for splitting, in order of preference",
     )
 
@@ -744,8 +693,6 @@ class RecursiveTextSplitter(BaseNode):
 
         assert self.source_id, "document_id is required"
 
-        content = await to_string(context, self.text)
-
         splitter = RecursiveCharacterTextSplitter(
             chunk_size=self.chunk_size,
             chunk_overlap=self.chunk_overlap,
@@ -755,7 +702,7 @@ class RecursiveTextSplitter(BaseNode):
             add_start_index=True,
         )
 
-        docs = splitter.split_documents([Document(page_content=content)])
+        docs = splitter.split_documents([Document(page_content=self.text)])
 
         return [
             TextChunk(
@@ -778,7 +725,7 @@ class MarkdownSplitter(BaseNode):
     - Creating context-aware chunks from markdown content
     """
 
-    text: str | TextRef = Field(title="Markdown Text", default="")
+    text: str = Field(title="Markdown Text", default="")
     source_id: str = Field(title="Document ID", default="")
     headers_to_split_on: list[tuple[str, str]] = Field(
         default=[
@@ -815,8 +762,6 @@ class MarkdownSplitter(BaseNode):
             RecursiveCharacterTextSplitter,
         )
 
-        content = await to_string(context, self.text)
-
         # Initialize markdown splitter
         markdown_splitter = MarkdownHeaderTextSplitter(
             headers_to_split_on=self.headers_to_split_on,
@@ -825,7 +770,7 @@ class MarkdownSplitter(BaseNode):
         )
 
         # Split by headers
-        splits = markdown_splitter.split_text(content)
+        splits = markdown_splitter.split_text(self.text)
 
         # Further split by chunk size if specified
         if self.chunk_size:
@@ -856,7 +801,7 @@ class StartsWith(BaseNode):
     - Checking file name patterns
     """
 
-    text: str | TextRef = Field(title="Text", default="")
+    text: str = Field(title="Text", default="")
     prefix: str = Field(title="Prefix", default="")
 
     @classmethod
@@ -864,8 +809,7 @@ class StartsWith(BaseNode):
         return "Starts With"
 
     async def process(self, context: ProcessingContext) -> bool:
-        text = await to_string(context, self.text)
-        return text.startswith(self.prefix)
+        return self.text.startswith(self.prefix)
 
 
 class EndsWith(BaseNode):
@@ -879,7 +823,7 @@ class EndsWith(BaseNode):
     - Filtering text based on ending content
     """
 
-    text: str | TextRef = Field(title="Text", default="")
+    text: str = Field(title="Text", default="")
     suffix: str = Field(title="Suffix", default="")
 
     @classmethod
@@ -887,8 +831,7 @@ class EndsWith(BaseNode):
         return "Ends With"
 
     async def process(self, context: ProcessingContext) -> bool:
-        text = await to_string(context, self.text)
-        return text.endswith(self.suffix)
+        return self.text.endswith(self.suffix)
 
 
 class Contains(BaseNode):
@@ -902,7 +845,7 @@ class Contains(BaseNode):
     - Validating text content
     """
 
-    text: str | TextRef = Field(title="Text", default="")
+    text: str = Field(title="Text", default="")
     substring: str = Field(title="Substring", default="")
     case_sensitive: bool = Field(title="Case Sensitive", default=True)
 
@@ -911,7 +854,7 @@ class Contains(BaseNode):
         return "Contains Text"
 
     async def process(self, context: ProcessingContext) -> bool:
-        text = await to_string(context, self.text)
+        text = self.text
         if not self.case_sensitive:
             text = text.lower()
             substring = self.substring.lower()
@@ -931,7 +874,7 @@ class IsEmpty(BaseNode):
     - Checking for meaningful input
     """
 
-    text: str | TextRef = Field(title="Text", default="")
+    text: str = Field(title="Text", default="")
     trim_whitespace: bool = Field(title="Trim Whitespace", default=True)
 
     @classmethod
@@ -939,7 +882,7 @@ class IsEmpty(BaseNode):
         return "Is Empty"
 
     async def process(self, context: ProcessingContext) -> bool:
-        text = await to_string(context, self.text)
+        text = self.text
         if self.trim_whitespace:
             text = text.strip()
         return len(text) == 0
@@ -956,7 +899,7 @@ class HasLength(BaseNode):
     - Checking content size constraints
     """
 
-    text: str | TextRef = Field(title="Text", default="")
+    text: str = Field(title="Text", default="")
     min_length: int | None = Field(title="Minimum Length", default=None)
     max_length: int | None = Field(title="Maximum Length", default=None)
     exact_length: int | None = Field(title="Exact Length", default=None)
@@ -966,26 +909,26 @@ class HasLength(BaseNode):
         return "Check Length"
 
     async def process(self, context: ProcessingContext) -> bool:
-        text = await to_string(context, self.text)
-        length = len(text)
-        
+        length = len(self.text)
+
         if self.exact_length is not None:
             return length == self.exact_length
-        
+
         if self.min_length is not None and length < self.min_length:
             return False
-        
+
         if self.max_length is not None and length > self.max_length:
             return False
-            
+
         return True
 
 
 class TiktokenEncoding(str, Enum):
     """Available tiktoken encodings"""
+
     CL100K_BASE = "cl100k_base"  # GPT-4, GPT-3.5
-    P50K_BASE = "p50k_base"      # GPT-3
-    R50K_BASE = "r50k_base"      # GPT-2
+    P50K_BASE = "p50k_base"  # GPT-3
+    R50K_BASE = "r50k_base"  # GPT-2
 
 
 class CountTokens(BaseNode):
@@ -999,7 +942,7 @@ class CountTokens(BaseNode):
     - Managing token budgets in text processing
     """
 
-    text: str | TextRef = Field(title="Text", default="")
+    text: str = Field(title="Text", default="")
     encoding: TiktokenEncoding = Field(
         title="Encoding",
         default=TiktokenEncoding.CL100K_BASE,
@@ -1013,6 +956,5 @@ class CountTokens(BaseNode):
     async def process(self, context: ProcessingContext) -> int:
         import tiktoken
 
-        text = await to_string(context, self.text)
         encoding = tiktoken.get_encoding(self.encoding.value)
-        return len(encoding.encode(text))
+        return len(encoding.encode(self.text))

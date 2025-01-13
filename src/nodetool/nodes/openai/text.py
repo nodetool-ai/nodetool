@@ -37,18 +37,17 @@ class Embedding(BaseNode):
     - Measuring text similarity and diversity
     """
 
-    input: str | TextRef = Field(title="Input", default="")
+    input: str = Field(title="Input", default="")
     model: EmbeddingModel = Field(
         title="Model", default=EmbeddingModel.TEXT_EMBEDDING_3_SMALL
     )
     chunk_size: int = 4096
 
     async def process(self, context: ProcessingContext) -> Tensor:
-        input = await context.text_to_str(self.input)
         # chunk the input into smaller pieces
         chunks = [
-            input[i : i + self.chunk_size]
-            for i in range(0, len(input), self.chunk_size)
+            self.input[i : i + self.chunk_size]
+            for i in range(0, len(self.input), self.chunk_size)
         ]
 
         response = await context.run_prediction(
