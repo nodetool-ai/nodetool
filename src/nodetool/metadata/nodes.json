@@ -19944,6 +19944,53 @@
     ]
   },
   {
+    "title": "Document",
+    "description": "Represents a document constant in the workflow.\n    document, pdf, word, docx",
+    "namespace": "nodetool.constant",
+    "node_type": "nodetool.constant.Document",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "value",
+        "type": {
+          "type": "document",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "document",
+          "uri": "",
+          "asset_id": null,
+          "data": null
+        },
+        "title": "Document",
+        "description": null,
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "document",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "value"
+    ]
+  },
+  {
     "title": "Dict",
     "description": "Represents a dictionary constant in the workflow.\n    dictionary, key-value, mapping\n\n    Use cases:\n    - Store configuration settings\n    - Provide structured data inputs\n    - Define parameter sets for other nodes",
     "namespace": "nodetool.constant",
@@ -22350,10 +22397,10 @@
           "year": 2025,
           "month": 1,
           "day": 13,
-          "hour": 13,
-          "minute": 41,
-          "second": 34,
-          "microsecond": 859691,
+          "hour": 22,
+          "minute": 32,
+          "second": 32,
+          "microsecond": 692326,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23392,10 +23439,10 @@
           "year": 2025,
           "month": 1,
           "day": 13,
-          "hour": 13,
-          "minute": 41,
-          "second": 34,
-          "microsecond": 863674,
+          "hour": 22,
+          "minute": 32,
+          "second": 32,
+          "microsecond": 696223,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23445,10 +23492,10 @@
           "year": 2025,
           "month": 1,
           "day": 13,
-          "hour": 13,
-          "minute": 41,
-          "second": 34,
-          "microsecond": 863921,
+          "hour": 22,
+          "minute": 32,
+          "second": 32,
+          "microsecond": 696472,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23498,10 +23545,10 @@
           "year": 2025,
           "month": 1,
           "day": 13,
-          "hour": 13,
-          "minute": 41,
-          "second": 34,
-          "microsecond": 864146,
+          "hour": 22,
+          "minute": 32,
+          "second": 32,
+          "microsecond": 696699,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23551,10 +23598,10 @@
           "year": 2025,
           "month": 1,
           "day": 13,
-          "hour": 13,
-          "minute": 41,
-          "second": 34,
-          "microsecond": 864357,
+          "hour": 22,
+          "minute": 32,
+          "second": 32,
+          "microsecond": 696903,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23604,10 +23651,10 @@
           "year": 2025,
           "month": 1,
           "day": 13,
-          "hour": 13,
-          "minute": 41,
-          "second": 34,
-          "microsecond": 864572,
+          "hour": 22,
+          "minute": 32,
+          "second": 32,
+          "microsecond": 697111,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23657,10 +23704,10 @@
           "year": 2025,
           "month": 1,
           "day": 13,
-          "hour": 13,
-          "minute": 41,
-          "second": 34,
-          "microsecond": 864820,
+          "hour": 22,
+          "minute": 32,
+          "second": 32,
+          "microsecond": 697362,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23710,10 +23757,10 @@
           "year": 2025,
           "month": 1,
           "day": 13,
-          "hour": 13,
-          "minute": 41,
-          "second": 34,
-          "microsecond": 865040,
+          "hour": 22,
+          "minute": 32,
+          "second": 32,
+          "microsecond": 697575,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23779,10 +23826,10 @@
           "year": 2025,
           "month": 1,
           "day": 13,
-          "hour": 13,
-          "minute": 41,
-          "second": 34,
-          "microsecond": 865302,
+          "hour": 22,
+          "minute": 32,
+          "second": 32,
+          "microsecond": 697828,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -46380,6 +46427,85 @@
     "recommended_models": [],
     "basic_fields": [
       "input"
+    ]
+  },
+  {
+    "title": "Document Output",
+    "description": "Output node for document content references.\n    document, pdf, file\n\n    Use cases:\n    - Displaying processed or generated documents\n    - Passing document data between workflow nodes\n    - Returning results of document analysis",
+    "namespace": "nodetool.output",
+    "node_type": "nodetool.output.DocumentOutput",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "name",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Name",
+        "description": "The parameter name for the workflow.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "label",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "Output Label",
+        "title": "Label",
+        "description": "The label for this output node.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "value",
+        "type": {
+          "type": "document",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "document",
+          "uri": "",
+          "asset_id": null,
+          "data": null
+        },
+        "title": "Value",
+        "description": null,
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "document",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "name",
+      "label",
+      "value"
     ]
   },
   {
