@@ -4,7 +4,7 @@ from typing import Any, Literal
 from pydantic import Field
 from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
-from nodetool.metadata.types import AudioRef, Datetime
+from nodetool.metadata.types import AudioRef, Datetime, DocumentRef
 from nodetool.metadata.types import Date as DateType
 from nodetool.metadata.types import DataframeRef as DataFrameRef
 from nodetool.metadata.types import ImageRef
@@ -62,6 +62,17 @@ class DataFrame(Constant):
     value: DataFrameRef = Field(title="DataFrame", default=DataFrameRef())
 
     async def process(self, context: ProcessingContext) -> DataFrameRef:
+        return self.value
+
+
+class Document(Constant):
+    """Represents a document constant in the workflow.
+    document, pdf, word, docx
+    """
+
+    value: DocumentRef = Field(title="Document", default=DocumentRef())
+
+    async def process(self, context: ProcessingContext) -> DocumentRef:
         return self.value
 
 
