@@ -57,6 +57,8 @@ def json_schema_for_column(column: ColumnDef) -> dict:
         return {"type": "number", "description": description}
     if data_type == "int":
         return {"type": "integer", "description": description}
+    if data_type == "float":
+        return {"type": "number", "description": description}
     if data_type == "datetime":
         return {"type": "string", "format": "date-time", "description": description}
     raise ValueError(f"Unknown data type {data_type}")
