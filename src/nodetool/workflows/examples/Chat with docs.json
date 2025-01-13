@@ -11,60 +11,6 @@
   "graph": {
     "nodes": [
       {
-        "id": "cf57ce8c-cb13-4b38-bd6a-33bd10c952f1",
-        "parent_id": null,
-        "type": "chroma.embedding_functions.SentenceTransformerEmbeddingFunction",
-        "data": {
-          "model": "all-MiniLM-L6-v2"
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 50,
-            "y": 258
-          },
-          "zIndex": 0,
-          "width": 200,
-          "selectable": true
-        }
-      },
-      {
-        "id": "1",
-        "parent_id": null,
-        "type": "chroma.collections.Collection",
-        "data": {
-          "name": "notes"
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 280,
-            "y": 254
-          },
-          "zIndex": 0,
-          "width": 197,
-          "selectable": true
-        }
-      },
-      {
-        "id": "3",
-        "parent_id": null,
-        "type": "chroma.query.QueryDocuments",
-        "data": {
-          "n_results": 5
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 537,
-            "y": 301
-          },
-          "zIndex": 0,
-          "width": 153,
-          "selectable": true
-        }
-      },
-      {
         "id": "4",
         "parent_id": null,
         "type": "nodetool.workflows.base_node.Preview",
