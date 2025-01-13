@@ -23,6 +23,7 @@ export type WorkflowRequest = components["schemas"]["WorkflowRequest"];
 export type Property = components["schemas"]["Property"];
 export type OutputSlot = components["schemas"]["OutputSlot"];
 export type BaseNodeMetadata = components["schemas"]["NodeMetadata"];
+export type IndexResponse = components["schemas"]["IndexResponse"];
 
 export interface NodeMetadata extends BaseNodeMetadata {
   searchInfo?: {
