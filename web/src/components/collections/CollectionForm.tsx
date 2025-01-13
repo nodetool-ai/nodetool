@@ -103,6 +103,7 @@ const CollectionForm = ({ onClose }: CollectionFormProps) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["collections"] });
       setFormData({ name: "", embedding_model: "" });
+      onClose();
     }
   });
 

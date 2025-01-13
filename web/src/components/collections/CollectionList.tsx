@@ -13,15 +13,18 @@ import {
   DialogActions,
   Button,
   LinearProgress,
-  Box
+  Box,
+  Popover
 } from "@mui/material";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { memo, useState, useCallback } from "react";
+import { memo, useState, useCallback, useMemo } from "react";
 import { CollectionList as CollectionListType } from "../../stores/ApiTypes";
 import { client } from "../../stores/ApiClient";
 import CollectionForm from "./CollectionForm";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
+import InfoIcon from "@mui/icons-material/Info";
+import { IndexResponse } from "../../stores/ApiTypes";
 
 type IndexMutation = {
   name: string;
@@ -39,7 +42,7 @@ const CollectionList = () => {
     queryFn: async () => {
       const { data, error } = await client.GET("/api/collections/");
       if (error) {
-        throw error;
+        throw new Error(error.detail?.[0]?.msg || "Unknown error");
       }
       return data;
     }
@@ -58,16 +61,19 @@ const CollectionList = () => {
   });
   const indexMutation = useMutation({
     mutationFn: async (req: IndexMutation) => {
-      const { error } = await client.POST("/api/collections/{name}/index", {
-        params: {
-          path: { name: req.name }
-        },
-        body: {
-          files: [req.file]
+      const { data, error } = await client.POST(
+        "/api/collections/{name}/index",
+        {
+          params: {
+            path: { name: req.name }
+          },
+          body: {
+            files: [req.file]
+          }
         }
-      });
+      );
       if (error) throw error;
-      return "success";
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["collections"] });
@@ -83,7 +89,18 @@ const CollectionList = () => {
     collection: string;
     current: number;
     total: number;
+    startTime: number;
   } | null>(null);
+  const [formatInfoAnchor, setFormatInfoAnchor] = useState<HTMLElement | null>(
+    null
+  );
+  const [indexErrors, setIndexErrors] = useState<
+    { file: string; error: string }[]
+  >([]);
+
+  const isElectron = useMemo(() => {
+    return window.api !== undefined;
+  }, []);
 
   const handleDeleteClick = (collectionName: string) => {
     setDeleteTarget(collectionName);
@@ -103,6 +120,7 @@ const CollectionList = () => {
   const handleDrop = useCallback(
     (collectionName: string) =>
       async (event: React.DragEvent<HTMLDivElement>) => {
+        if (!isElectron) return;
         event.preventDefault();
         setDragOverCollection(null);
         const files = Array.from(event.dataTransfer.files).map((file) => ({
@@ -114,15 +132,26 @@ const CollectionList = () => {
         setIndexProgress({
           collection: collectionName,
           current: 0,
-          total: files.length
+          total: files.length,
+          startTime: Date.now()
         });
+
+        const errors: { file: string; error: string }[] = [];
 
         try {
           for (let i = 0; i < files.length; i++) {
-            await indexMutation.mutateAsync({
-              name: collectionName,
-              file: files[i]
-            });
+            try {
+              const res = await indexMutation.mutateAsync({
+                name: collectionName,
+                file: files[i]
+              });
+              if (res[0].error) {
+                errors.push({ file: files[i].path, error: res[0].error });
+              }
+            } catch (error) {
+              console.error("Failed to index file:", error);
+              errors.push({ file: files[i].path, error: error as string });
+            }
             setIndexProgress((prev) =>
               prev
                 ? {
@@ -132,21 +161,21 @@ const CollectionList = () => {
                 : null
             );
           }
-        } catch (error) {
-          console.error("Failed to index file:", error);
         } finally {
           setIndexProgress(null);
+          setIndexErrors(errors);
         }
       },
-    [indexMutation]
+    [indexMutation, isElectron]
   );
 
   const handleDragOver = useCallback(
     (event: React.DragEvent, collectionName: string) => {
+      if (!isElectron) return;
       event.preventDefault();
       setDragOverCollection(collectionName);
     },
-    []
+    [isElectron]
   );
 
   const handleDragLeave = useCallback((event: React.DragEvent) => {
@@ -164,164 +193,243 @@ const CollectionList = () => {
       >
         Create Collection
       </Button>
-      <Box sx={{ mb: 2 }}>
-        <Typography variant="h6" sx={{ mb: 1 }}>
-          File Indexing with MarkItDown
-        </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-          <strong>Drag and drop files</strong> onto a collection to index them
-          using MarkItDown.
-        </Typography>
-        <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
-          Supported Formats:
-        </Typography>
-        <Typography variant="body2" component="div" color="text.secondary">
-          <ul style={{ margin: 0, paddingLeft: "1.5em" }}>
-            <li>PDFs, PowerPoint, Word, Excel</li>
-            <li>Images (with EXIF & OCR support)</li>
-            <li>Audio files (with EXIF & transcription)</li>
-            <li>HTML and text-based files (CSV, JSON, XML)</li>
-            <li>ZIP archives (contents automatically processed)</li>
-          </ul>
-        </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-          All files will be analyzed and added to the collection for semantic
-          search.
-        </Typography>
-      </Box>
-      {showForm && <CollectionForm onClose={() => setShowForm(false)} />}
-      {error && (
-        <Typography color="error" sx={{ marginTop: 2 }}>
-          Error loading collections
-        </Typography>
-      )}
-      {isLoading ? (
-        <Typography sx={{ marginTop: 2 }}>Loading collections...</Typography>
-      ) : !data?.collections.length && !showForm ? (
-        <Box sx={{ marginTop: 2 }}>
-          <Typography variant="h2" sx={{ margin: "1em 0 .5em 0" }}>
-            ChromaDB Collections
-          </Typography>
-          <Typography variant="body1" sx={{ marginBottom: 1 }}>
-            Collections are powerful vector databases that enable semantic
-            search and retrieval of your assets.
-          </Typography>
-          <Typography variant="h4" sx={{ margin: "1em 0" }}>
-            Create a new collection to make use of nodes in the Chroma
-            namespace.
-          </Typography>
-          <Typography variant="body1" sx={{ marginBottom: 1 }}>
-            <ul style={{ paddingLeft: "1em" }}>
-              <li>Store embeddings of text, images, and other assets</li>
-              <li>Enable semantic similarity search across content</li>
-              <li>
-                Organize and retrieve assets based on their meaning, not just
-                keywords
-              </li>
-            </ul>
-          </Typography>
-        </Box>
-      ) : (
-        <Paper sx={{ marginTop: 2 }}>
-          <List>
-            {data?.collections.map((collection) => (
-              <ListItem
-                component="div"
-                key={collection.name}
-                onDrop={(e: React.DragEvent<HTMLDivElement>) =>
-                  handleDrop(collection.name)(e)
+      {!showForm && (
+        <>
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="h6" sx={{ mb: 1 }}>
+              File Indexing with MarkItDown
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+              {isElectron ? (
+                <>
+                  <strong>Drag and drop files</strong> onto a collection to
+                  index them using MarkItDown.
+                </>
+              ) : (
+                <strong style={{ color: "#cc6666" }}>
+                  File drag and drop is only available in the desktop app
+                </strong>
+              )}{" "}
+            </Typography>
+            <Typography
+              variant="subtitle2"
+              sx={{
+                mb: 0.5,
+                display: "flex",
+                alignItems: "center",
+                cursor: "pointer",
+                "&:hover": {
+                  color: "primary.main"
                 }
-                onDragOver={(e) => handleDragOver(e, collection.name)}
-                onDragLeave={handleDragLeave}
-                sx={{
-                  borderBottom: "1px solid #666",
-                  cursor: "copy",
-                  "&:hover": {
-                    backgroundColor: "action.hover"
-                  },
-                  ...(dragOverCollection === collection.name && {
-                    backgroundColor: "action.selected",
-                    borderStyle: "dashed",
-                    borderWidth: 2,
-                    borderColor: "primary.main",
-                    "& .MuiTypography-root": {
-                      color: "primary.main"
+              }}
+              onClick={(e) => setFormatInfoAnchor(e.currentTarget)}
+            >
+              <InfoIcon sx={{ mr: 1, fontSize: "1rem" }} />
+              Supported Formats
+            </Typography>
+            <Popover
+              open={Boolean(formatInfoAnchor)}
+              anchorEl={formatInfoAnchor}
+              onClose={() => setFormatInfoAnchor(null)}
+              anchorOrigin={{
+                vertical: "bottom",
+                horizontal: "left"
+              }}
+              transformOrigin={{
+                vertical: "top",
+                horizontal: "left"
+              }}
+            >
+              <Box sx={{ p: 2, maxWidth: 400 }}>
+                <Typography
+                  variant="body2"
+                  component="div"
+                  color="text.secondary"
+                >
+                  <ul style={{ margin: 0, paddingLeft: "1.5em" }}>
+                    <li>PDFs, PowerPoint, Word, Excel</li>
+                    <li>Images (with EXIF & OCR support)</li>
+                    <li>Audio files (with EXIF & transcription)</li>
+                    <li>HTML and text-based files (CSV, JSON, XML)</li>
+                    <li>ZIP archives (contents automatically processed)</li>
+                  </ul>
+                </Typography>
+              </Box>
+            </Popover>
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ mt: 1, fontSize: "0.8em" }}
+            >
+              All files will be analyzed and added to the collection for
+              semantic search.
+            </Typography>
+          </Box>
+          {error && (
+            <Typography color="error" sx={{ marginTop: 2 }}>
+              Error loading collections
+            </Typography>
+          )}
+          {isLoading ? (
+            <Typography sx={{ marginTop: 2 }}>
+              Loading collections...
+            </Typography>
+          ) : !data?.collections.length ? (
+            <Box sx={{ marginTop: 2 }}>
+              <Typography variant="h2" sx={{ margin: "1em 0 .5em 0" }}>
+                ChromaDB Collections
+              </Typography>
+              <Typography variant="body1" sx={{ marginBottom: 1 }}>
+                Collections are powerful vector databases that enable semantic
+                search and retrieval of your assets.
+              </Typography>
+              <Typography variant="h4" sx={{ margin: "1em 0" }}>
+                Create a new collection to make use of nodes in the Chroma
+                namespace.
+              </Typography>
+              <Typography variant="body1" sx={{ marginBottom: 1 }}>
+                <ul style={{ paddingLeft: "1em" }}>
+                  <li>Store embeddings of text, images, and other assets</li>
+                  <li>Enable semantic similarity search across content</li>
+                  <li>
+                    Organize and retrieve assets based on their meaning, not
+                    just keywords
+                  </li>
+                </ul>
+              </Typography>
+            </Box>
+          ) : (
+            <Paper sx={{ marginTop: 2 }}>
+              <List>
+                {data?.collections.map((collection) => (
+                  <ListItem
+                    component="div"
+                    key={collection.name}
+                    onDrop={(e: React.DragEvent<HTMLDivElement>) =>
+                      handleDrop(collection.name)(e)
                     }
-                  }),
-                  transition: "all 0.2s"
-                }}
-                secondaryAction={
-                  <IconButton
-                    edge="end"
-                    aria-label="delete"
-                    onClick={() => handleDeleteClick(collection.name)}
-                    disabled={deleteMutation.isPending}
+                    onDragOver={(e) => handleDragOver(e, collection.name)}
+                    onDragLeave={handleDragLeave}
+                    sx={{
+                      borderBottom: "1px solid #666",
+                      cursor: isElectron ? "copy" : "default",
+                      "&:hover": {
+                        backgroundColor: isElectron
+                          ? "action.hover"
+                          : "transparent"
+                      },
+                      ...(dragOverCollection === collection.name &&
+                        isElectron && {
+                          backgroundColor: "action.selected",
+                          borderStyle: "dashed",
+                          borderWidth: 2,
+                          borderColor: "primary.main",
+                          "& .MuiTypography-root": {
+                            color: "primary.main"
+                          }
+                        }),
+                      transition: "all 0.2s"
+                    }}
+                    secondaryAction={
+                      <IconButton
+                        edge="end"
+                        aria-label="delete"
+                        onClick={() => handleDeleteClick(collection.name)}
+                        disabled={deleteMutation.isPending}
+                      >
+                        {deleteMutation.isPending &&
+                        deleteMutation.variables === collection.name ? (
+                          <CircularProgress size={20} />
+                        ) : (
+                          <DeleteIcon />
+                        )}
+                      </IconButton>
+                    }
                   >
-                    {deleteMutation.isPending &&
-                    deleteMutation.variables === collection.name ? (
-                      <CircularProgress size={20} />
-                    ) : (
-                      <DeleteIcon />
-                    )}
-                  </IconButton>
-                }
-              >
-                <ListItemText
-                  primary={
-                    <Typography
-                      variant="h4"
-                      sx={{
-                        fontWeight: 600,
-                        color: "primary.main"
-                      }}
-                    >
-                      {collection.name}
-                      {indexProgress?.collection === collection.name && (
-                        <>
-                          <LinearProgress
-                            sx={{
-                              ml: 2,
-                              width: 100,
-                              display: "inline-block",
-                              verticalAlign: "middle"
-                            }}
-                            variant="determinate"
-                            value={
-                              (indexProgress.current / indexProgress.total) *
-                              100
-                            }
-                          />
-                          <CircularProgress
-                            size={16}
-                            sx={{ ml: 1, verticalAlign: "middle" }}
-                          />
-                          <Typography variant="caption" sx={{ ml: 1 }}>
-                            Indexing {indexProgress.current}/
-                            {indexProgress.total} documents
-                          </Typography>
-                        </>
-                      )}
-                    </Typography>
-                  }
-                  secondary={
-                    <Typography
-                      variant="body1"
-                      sx={{
-                        color: "text.secondary",
-                        fontSize: "0.8em"
-                      }}
-                    >
-                      {collection.metadata?.embedding_model}
-                      <br />
-                      {collection.count} items
-                    </Typography>
-                  }
-                />
-              </ListItem>
-            ))}
-          </List>
-        </Paper>
+                    <ListItemText
+                      primary={
+                        <Typography
+                          variant="body1"
+                          sx={{
+                            fontWeight: 600,
+                            color: "primary.main"
+                          }}
+                        >
+                          {collection.name}
+                          {indexProgress?.collection === collection.name && (
+                            <>
+                              <LinearProgress
+                                sx={{
+                                  ml: 2,
+                                  width: 100,
+                                  display: "inline-block",
+                                  verticalAlign: "middle"
+                                }}
+                                variant="determinate"
+                                value={
+                                  (indexProgress.current /
+                                    indexProgress.total) *
+                                  100
+                                }
+                              />
+                              <br />
+                              <CircularProgress
+                                size={16}
+                                sx={{ ml: 1, verticalAlign: "middle" }}
+                              />
+                              <Typography variant="caption" sx={{ ml: 1 }}>
+                                Indexing {indexProgress.current}&nbsp;of&nbsp;
+                                {indexProgress.total} documents
+                                {indexProgress.current > 0 && (
+                                  <>
+                                    {" "}
+                                    • ETA:{" "}
+                                    {(() => {
+                                      const elapsed =
+                                        Date.now() - indexProgress.startTime;
+                                      const avgTimePerItem =
+                                        elapsed / indexProgress.current;
+                                      const remainingItems =
+                                        indexProgress.total -
+                                        indexProgress.current;
+                                      const etaSeconds = Math.round(
+                                        (avgTimePerItem * remainingItems) / 1000
+                                      );
+                                      return etaSeconds < 60
+                                        ? `${etaSeconds}s`
+                                        : `${Math.round(etaSeconds / 60)}m ${
+                                            etaSeconds % 60
+                                          }s`;
+                                    })()}
+                                  </>
+                                )}
+                              </Typography>
+                            </>
+                          )}
+                        </Typography>
+                      }
+                      secondary={
+                        <Typography
+                          variant="body1"
+                          sx={{
+                            color: "text.secondary",
+                            fontSize: "0.8em"
+                          }}
+                        >
+                          {collection.metadata?.embedding_model}
+                          <br />
+                          {collection.count} items
+                        </Typography>
+                      }
+                    />
+                  </ListItem>
+                ))}
+              </List>
+            </Paper>
+          )}
+        </>
       )}
+      {showForm && <CollectionForm onClose={() => setShowForm(false)} />}
 
       <Dialog open={Boolean(deleteTarget)} onClose={handleCancelDelete}>
         <DialogTitle>Confirm Deletion</DialogTitle>
@@ -339,6 +447,27 @@ const CollectionList = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {indexErrors.length > 0 && (
+        <Dialog open={true} onClose={() => setIndexErrors([])}>
+          <DialogTitle>Indexing Report</DialogTitle>
+          <DialogContent>
+            <Typography variant="body1">
+              The following files encountered errors during indexing:
+            </Typography>
+            <ul>
+              {indexErrors.map((error, index) => (
+                <li key={index}>
+                  <strong>{error.file}</strong>: {error.error}
+                </li>
+              ))}
+            </ul>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setIndexErrors([])}>Close</Button>
+          </DialogActions>
+        </Dialog>
+      )}
     </>
   );
 };
