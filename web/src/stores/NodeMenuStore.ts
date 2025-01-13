@@ -403,7 +403,7 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
     },
     menuPosition: { x: 0, y: 0 },
     menuWidth: 900,
-    menuHeight: 800,
+    menuHeight: 750,
     setMenuPosition: (x, y) => {
       set({
         menuPosition: { x, y }
@@ -619,8 +619,8 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
     clickPosition: { x: 0, y: 0 },
 
     openNodeMenu: (
-      x,
-      y,
+      x: number,
+      y: number,
       openedByDrop: boolean = false,
       dropType: string = "",
       connectDirection: ConnectDirection = null,
@@ -638,9 +638,12 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
       // Constrain x position to keep menu within window bounds
       const constrainedX = Math.min(Math.max(x, 0), maxPosX);
 
-      // Position the menu below the click point, with some offset
+      // Ensure minimum Y position (add some padding from top)
+      const minPosY = 80; // Minimum distance from top of window
       const menuOffset = 20; // Add some space between click point and menu
-      const constrainedY = Math.min(y + menuOffset, maxPosY);
+
+      // Constrain Y position between minimum and maximum bounds
+      const constrainedY = Math.min(Math.max(y + menuOffset, minPosY), maxPosY);
 
       set({
         isMenuOpen: true,

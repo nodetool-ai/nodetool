@@ -69,7 +69,8 @@ const namespaceStyles = (theme: any, inPanel: boolean) =>
       overflowY: "auto",
       width: "fit-content",
       height: "fit-content",
-      maxHeight: inPanel ? "85vh" : "680px",
+      maxHeight: inPanel ? "85vh" : "calc(min(750px, 50vh))",
+
       paddingRight: inPanel ? ".5em" : "1em",
       paddingBottom: "3em",
       marginRight: ".5em",
@@ -108,8 +109,7 @@ const namespaceStyles = (theme: any, inPanel: boolean) =>
       overflowY: "auto"
     },
     ".no-selection": {
-      maxWidth: "400px",
-      display: "flex",
+      maxWidth: "200px",
       flexDirection: "column",
       color: theme.palette.c_white,
       fontFamily: theme.fontFamily1,
@@ -117,7 +117,25 @@ const namespaceStyles = (theme: any, inPanel: boolean) =>
       padding: "0 1em",
       margin: 0,
       alignItems: "stretch",
-      gap: "1em"
+      gap: "1em",
+      opacity: 0,
+      animation: "fadeIn 0.4s ease-in forwards",
+      animationDelay: ".5s",
+      display: "hidden",
+      overflow: "hidden",
+      textWrap: "nowrap"
+    },
+    "@keyframes fadeIn": {
+      from: {
+        display: "flex",
+        maxWidth: "400px",
+        opacity: 0
+      },
+      to: {
+        display: "flex",
+        maxWidth: "400px",
+        opacity: 1
+      }
     },
     ".explanation": {
       overflowY: "scroll",
@@ -181,6 +199,7 @@ const namespaceStyles = (theme: any, inPanel: boolean) =>
     ".nodes": {
       display: "flex",
       flexDirection: "column",
+      minWidth: "200px",
       backgroundColor: "transparent"
     },
     ".node": {
