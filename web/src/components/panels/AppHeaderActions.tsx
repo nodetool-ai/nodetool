@@ -6,10 +6,10 @@ import {
   Box,
   Typography
 } from "@mui/material";
-import NodesIcon from "@mui/icons-material/CircleOutlined";
 import LayoutIcon from "@mui/icons-material/ViewModule";
 import SaveIcon from "@mui/icons-material/Save";
 import NoteAddIcon from "@mui/icons-material/NoteAdd";
+import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
 
 import PlayArrow from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
@@ -163,11 +163,18 @@ const AppHeaderActions: React.FC = () => {
     },
     [addNotification]
   );
+  const workflowId = path.split("/").pop();
 
   const handleCreateWorkflow = useCallback(async () => {
     const workflow = await createNewWorkflow();
     navigate(`/editor/${workflow.id}`);
   }, [createNewWorkflow, navigate]);
+
+  const handleRunAsApp = useCallback(() => {
+    if (workflowId) {
+      window.parent.api.runApp(workflowId);
+    }
+  }, [workflowId]);
 
   useCombo(
     ["Alt+s"],
@@ -320,6 +327,17 @@ const AppHeaderActions: React.FC = () => {
                 tabIndex={-1}
               >
                 <StopIcon />
+              </Button>
+            </Tooltip>
+
+            <Tooltip title="Run as App" enterDelay={TOOLTIP_ENTER_DELAY}>
+              <Button
+                className="action-button"
+                onClick={handleRunAsApp}
+                tabIndex={-1}
+              >
+                <RocketLaunchIcon />
+                Run App
               </Button>
             </Tooltip>
           </>
