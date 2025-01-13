@@ -5,7 +5,6 @@ import Fuse, { IFuseOptions } from "fuse.js";
 import { filterDataByType } from "../components/node_menu/typeFilterUtils";
 import useMetadataStore from "./MetadataStore";
 import useRemoteSettingsStore from "./RemoteSettingStore";
-import { devLog } from "../utils/DevLog";
 import { highlightText as highlightTextUtil } from "../utils/highlightText";
 
 export interface SplitNodeDescription {
@@ -626,23 +625,13 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
       connectDirection: ConnectDirection = null,
       searchTerm: string = ""
     ) => {
-      const { menuWidth, menuHeight } = get();
-
-      // Store the original click position
       set({ clickPosition: { x, y } });
-
-      // Calculate menu position
+      const { menuWidth, menuHeight } = get();
       const maxPosX = window.innerWidth - menuWidth;
       const maxPosY = window.innerHeight - menuHeight - 40;
-
-      // Constrain x position to keep menu within window bounds
       const constrainedX = Math.min(Math.max(x, 0), maxPosX);
-
-      // Ensure minimum Y position (add some padding from top)
-      const minPosY = 80; // Minimum distance from top of window
-      const menuOffset = 20; // Add some space between click point and menu
-
-      // Constrain Y position between minimum and maximum bounds
+      const minPosY = 80;
+      const menuOffset = 20;
       const constrainedY = Math.min(Math.max(y + menuOffset, minPosY), maxPosY);
 
       set({
