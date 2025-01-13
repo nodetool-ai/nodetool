@@ -163,8 +163,7 @@ class Embedding(BaseNode):
     - Aid in text classification tasks
     """
 
-    input: str | TextRef = Field(title="Input", default="")
-    input: str | TextRef = Field(title="Input", default="")
+    input: str = Field(title="Input", default="")
     model: LlamaModel = Field(title="Model", default=LlamaModel())
     context_window: int = Field(
         default=4096,
@@ -185,11 +184,10 @@ class Embedding(BaseNode):
     async def process(self, context: ProcessingContext) -> Tensor:
         import numpy as np
 
-        input = await context.text_to_str(self.input)
         # chunk the input into smaller pieces
         chunks = [
-            input[i : i + self.chunk_size]
-            for i in range(0, len(input), self.chunk_size)
+            self.input[i : i + self.chunk_size]
+            for i in range(0, len(self.input), self.chunk_size)
         ]
         embeddings = []
         for chunk in chunks:

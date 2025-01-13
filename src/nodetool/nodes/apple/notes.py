@@ -34,7 +34,7 @@ class CreateNote(BaseNode):
     """
 
     title: str = Field(default="", description="Title of the note")
-    body: str | TextRef = Field(default="", description="Content of the note")
+    body: str = Field(default="", description="Content of the note")
     folder: str = Field(default="Notes", description="Notes folder to save to")
 
     @classmethod
@@ -42,10 +42,8 @@ class CreateNote(BaseNode):
         return False
 
     async def process(self, context: ProcessingContext):
-        body_content = await context.text_to_str(self.body)
-
         # Replace existing escaping with new function
-        body_content = escape_for_applescript(body_content)
+        body_content = escape_for_applescript(self.body)
         title = escape_for_applescript(self.title)
 
         script = f"""
