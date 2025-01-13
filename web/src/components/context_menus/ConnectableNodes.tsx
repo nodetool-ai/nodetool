@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { memo, useCallback, useState, useRef } from "react";
+import React, { memo, useCallback, useState, useRef, useEffect } from "react";
 import {
   Menu,
   MenuItem,
@@ -164,6 +164,15 @@ const ConnectableNodes: React.FC<ConnectableNodesProps> = ({
   const [isFocused, setIsFocused] = useState(false);
   const focusedNodeRef = useRef<HTMLDivElement>(null);
   const currentHoveredNodeRef = useRef<NodeMetadata | null>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isVisible) {
+      setTimeout(() => {
+        searchInputRef.current?.focus();
+      }, 100);
+    }
+  }, [isVisible]);
 
   const filteredNodes = searchTerm
     ? searchNodesHelper(connectableNodes, searchTerm)
@@ -271,6 +280,7 @@ const ConnectableNodes: React.FC<ConnectableNodesProps> = ({
         </MenuItem>
         <MenuItem>
           <TextField
+            inputRef={searchInputRef}
             className="connectable-nodes-search"
             size="small"
             fullWidth
@@ -278,7 +288,6 @@ const ConnectableNodes: React.FC<ConnectableNodesProps> = ({
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             onClick={(e) => e.stopPropagation()}
-            autoFocus
             onKeyDown={(e) => {
               if (e.key === "Escape") {
                 hideMenu();
