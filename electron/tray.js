@@ -255,7 +255,7 @@ function createWorkflowMenuItems(workflow) {
     {
       label: "View Schedule Logs",
       click: async () => {
-        const logPath = getLaunchAgentLogPath(workflow.id);
+        const logPath = await getLaunchAgentLogPath(workflow.id);
         try {
           await fs.access(logPath);
           shell.showItemInFolder(logPath);
