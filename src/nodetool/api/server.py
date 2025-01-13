@@ -3,7 +3,7 @@ from typing import Any
 import dotenv
 import warnings
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from nodetool.api import collection, file, prediction
 from nodetool.common.websocket_proxy import WebSocketProxy
@@ -124,6 +124,10 @@ def create_app(
     @app.get("/health")
     async def health_check() -> str:
         return "OK"
+
+    @app.get("/editor/{workflow_id}")
+    async def editor_redirect(workflow_id: str):
+        return RedirectResponse(url="/")
 
     worker_url = Environment.get_worker_url()
 

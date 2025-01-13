@@ -916,6 +916,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/editor/{workflow_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Editor Redirect */
+        get: operations["editor_redirect_editor__workflow_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1239,11 +1256,11 @@ export interface components {
              *       "type": "datetime",
              *       "year": 2025,
              *       "month": 1,
-             *       "day": 12,
-             *       "hour": 10,
-             *       "minute": 55,
-             *       "second": 12,
-             *       "microsecond": 212654,
+             *       "day": 13,
+             *       "hour": 15,
+             *       "minute": 49,
+             *       "second": 46,
+             *       "microsecond": 762408,
              *       "tzinfo": "UTC",
              *       "utc_offset": 0
              *     }
@@ -2314,6 +2331,13 @@ export interface components {
         IndexRequest: {
             /** Files */
             files: components["schemas"]["IndexFile"][];
+        };
+        /** IndexResponse */
+        IndexResponse: {
+            /** Path */
+            path: string;
+            /** Error */
+            error?: string | null;
         };
         /** Job */
         Job: {
@@ -5745,7 +5769,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["IndexResponse"][];
                 };
             };
             /** @description Validation Error */
@@ -5775,6 +5799,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": string;
+                };
+            };
+        };
+    };
+    editor_redirect_editor__workflow_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workflow_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

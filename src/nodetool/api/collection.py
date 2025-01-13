@@ -111,24 +111,35 @@ async def delete_collection(name: str, user: User = Depends(current_user)):
         raise HTTPException(status_code=404, detail=f"Collection {name} not found")
 
 
-@router.post("/{name}/index")
-async def index(name: str, req: IndexRequest, user: User = Depends(current_user)):
+class IndexResponse(BaseModel):
+    path: str
+    error: Optional[str] = None
+
+
+@router.post("/{name}/index", response_model=List[IndexResponse])
+async def index(
+    name: str, req: IndexRequest, user: User = Depends(current_user)
+) -> List[IndexResponse]:
     try:
         collection = get_collection(name)
         md = MarkItDown()
+        results = []
 
         def convert_file(file: IndexFile):
             try:
-                return (file.path, md.convert(file.path).text_content)
+                return (file.path, md.convert(file.path).text_content, True)
             except Exception as e:
                 print(e)
-                return (file.path, None)
+                return (file.path, str(e), False)
 
         converted = [convert_file(file) for file in req.files]
         chunks = []
-        for path, text in converted:
-            if text:
+        for path, text, success in converted:
+            if success:
                 chunks.extend(split_document(text, path))
+                results.append(IndexResponse(path=path, error=None))
+            else:
+                results.append(IndexResponse(path=path, error=text))
 
         chunks = [chunk for chunk in chunks if chunk.text]
 
@@ -136,5 +147,7 @@ async def index(name: str, req: IndexRequest, user: User = Depends(current_user)
         docs = [chunk.text for chunk in chunks]
 
         collection.upsert(documents=docs, ids=ids)
+
+        return results
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
