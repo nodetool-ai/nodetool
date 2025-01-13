@@ -121,17 +121,19 @@ const namespaceStyles = (theme: any, inPanel: boolean) =>
       opacity: 0,
       animation: "fadeIn 0.4s ease-in forwards",
       animationDelay: ".5s",
-      display: "hidden",
-      overflow: "hidden",
-      textWrap: "nowrap"
+      visibility: "hidden",
+      overflow: "hidden"
+      // textWrap: "nowrap"
     },
     "@keyframes fadeIn": {
       from: {
+        visibility: "visible",
         display: "flex",
         maxWidth: "400px",
         opacity: 0
       },
       to: {
+        visibility: "visible",
         display: "flex",
         maxWidth: "400px",
         opacity: 1
