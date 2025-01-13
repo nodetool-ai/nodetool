@@ -273,42 +273,51 @@ def capitalize(name: str) -> str:
     return name[0].upper() + name[1:]
 
 
-def parse_model_info(url: str):
+async def parse_model_info(client: httpx.AsyncClient, url: str):
     """
     Parses the replicate model information from the given URL.
 
     Args:
+        client (httpx.AsyncClient): The HTTP client.
         url (str): The URL to fetch the HTML content from.
 
     Returns:
         dict: A dictionary containing the parsed model information.
     """
+    hardware = "None"
+    retries = 3
 
-    # Fetch the HTML content
-    response = httpx.get(url)
-    response.raise_for_status()
-    html_content = response.content
+    for attempt in range(retries + 1):
+        try:
+            # Fetch the HTML content
+            response = await client.get(url)
+            response.raise_for_status()
+            html_content = response.content
 
-    # Parse the HTML content with BeautifulSoup
-    soup = BeautifulSoup(html_content, "html.parser")
+            # Parse the HTML content with BeautifulSoup
+            soup = BeautifulSoup(html_content, "html.parser")
 
-    # Find the section titled "Run time and cost"
-    runtime_section = soup.find("div", {"id": "performance"})
+            # Find the section titled "Run time and cost"
+            runtime_section = soup.find("div", {"id": "performance"})
 
-    if runtime_section:
-        # Extract the hardware information
-        hardware_info = runtime_section.find("p", string=lambda text: "hardware" in text.lower())  # type: ignore
-        if hardware_info:
-            match = re.search(
-                r"This model runs on (.+?) hardware", hardware_info.text.strip()
-            )
-            if match:
-                hardware = match.group(1)
+            if runtime_section:
+                # Extract the hardware information
+                hardware_info = runtime_section.find("p", string=lambda text: "hardware" in text.lower())  # type: ignore
+                if hardware_info:
+                    match = re.search(
+                        r"This model runs on (.+?) hardware", hardware_info.text.strip()
+                    )
+                    if match:
+                        hardware = match.group(1)
+                    else:
+                        hardware = hardware_info.text.strip()
+                break  # Exit the loop if successful
             else:
-                hardware = hardware_info.text.strip()
-        else:
-            hardware = "None"
+                return {}
+        except (httpx.RequestError, httpx.HTTPStatusError) as e:
+            if attempt < retries:
+                await asyncio.sleep(2**attempt)  # Exponential backoff
+            else:
+                raise e
 
-        return {"hardware": hardware}
-    else:
-        return {}
+    return {"hardware": hardware}

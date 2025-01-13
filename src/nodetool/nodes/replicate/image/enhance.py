@@ -6,7 +6,11 @@ from enum import Enum
 
 
 class CodeFormer(ReplicateNode):
-    """Robust face restoration algorithm for old photos/AI-generated faces - (A40 GPU)"""
+    """Robust face restoration algorithm for old photos/AI-generated faces"""
+
+    @classmethod
+    def get_basic_fields(cls):
+        return ["image", "upscale", "face_upsample"]
 
     @classmethod
     def replicate_model_id(cls):
@@ -14,23 +18,23 @@ class CodeFormer(ReplicateNode):
 
     @classmethod
     def get_hardware(cls):
-        return "Nvidia A40 (Large) GPU"
+        return "None"
 
     @classmethod
     def get_model_info(cls):
         return {
             "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/cf736d61-411f-4301-89b3-16aff1a02ed1/codeformer_logo.png",
             "created_at": "2023-09-06T04:10:50.158696Z",
-            "description": "Robust face restoration algorithm for old photos/AI-generated faces - (A40 GPU)",
+            "description": "Robust face restoration algorithm for old photos/AI-generated faces",
             "github_url": "https://github.com/sczhou/CodeFormer",
             "license_url": "https://github.com/sczhou/CodeFormer/blob/master/LICENSE",
             "name": "codeformer",
             "owner": "lucataco",
             "paper_url": "https://arxiv.org/abs/2206.11253",
-            "run_count": 306794,
+            "run_count": 622371,
             "url": "https://replicate.com/lucataco/codeformer",
             "visibility": "public",
-            "hardware": "Nvidia A40 (Large) GPU",
+            "weights_url": None,
         }
 
     @classmethod
@@ -66,12 +70,16 @@ class Night_Enhancement(ReplicateNode):
     """Unsupervised Night Image Enhancement"""
 
     @classmethod
+    def get_basic_fields(cls):
+        return ["image"]
+
+    @classmethod
     def replicate_model_id(cls):
         return "cjwbw/night-enhancement:4328e402cfedafa70ad7cec04412e86ab61832204deccd94108ae5222c9b1ae1"
 
     @classmethod
     def get_hardware(cls):
-        return "Nvidia T4 GPU"
+        return "None"
 
     @classmethod
     def get_model_info(cls):
@@ -84,10 +92,10 @@ class Night_Enhancement(ReplicateNode):
             "name": "night-enhancement",
             "owner": "cjwbw",
             "paper_url": "https://arxiv.org/pdf/2207.10564.pdf",
-            "run_count": 40338,
+            "run_count": 41628,
             "url": "https://replicate.com/cjwbw/night-enhancement",
             "visibility": "public",
-            "hardware": "Nvidia T4 GPU",
+            "weights_url": None,
         }
 
     @classmethod
@@ -106,12 +114,16 @@ class Supir_V0Q(ReplicateNode):
         WAVELET = "Wavelet"
 
     @classmethod
+    def get_basic_fields(cls):
+        return ["seed", "image", "s_cfg"]
+
+    @classmethod
     def replicate_model_id(cls):
         return "cjwbw/supir-v0q:ede69f6a5ae7d09f769d683347325b08d2f83a93d136ed89747941205e0a71da"
 
     @classmethod
     def get_hardware(cls):
-        return "Nvidia A40 (Large) GPU"
+        return "None"
 
     @classmethod
     def get_model_info(cls):
@@ -124,10 +136,10 @@ class Supir_V0Q(ReplicateNode):
             "name": "supir-v0q",
             "owner": "cjwbw",
             "paper_url": "https://arxiv.org/abs/2401.13627",
-            "run_count": 4957,
+            "run_count": 7856,
             "url": "https://replicate.com/cjwbw/supir-v0q",
             "visibility": "public",
-            "hardware": "Nvidia A40 (Large) GPU",
+            "weights_url": None,
         }
 
     @classmethod
@@ -220,12 +232,16 @@ class Supir_V0F(ReplicateNode):
         WAVELET = "Wavelet"
 
     @classmethod
+    def get_basic_fields(cls):
+        return ["seed", "image", "s_cfg"]
+
+    @classmethod
     def replicate_model_id(cls):
         return "cjwbw/supir-v0f:b9c26267b41f3617099b53f09f2d894a621ebf4a59b632bfedb5031eeabd8959"
 
     @classmethod
     def get_hardware(cls):
-        return "Nvidia A40 (Large) GPU"
+        return "None"
 
     @classmethod
     def get_model_info(cls):
@@ -238,10 +254,10 @@ class Supir_V0F(ReplicateNode):
             "name": "supir-v0f",
             "owner": "cjwbw",
             "paper_url": "https://arxiv.org/abs/2401.13627",
-            "run_count": 7080,
+            "run_count": 11184,
             "url": "https://replicate.com/cjwbw/supir-v0f",
             "visibility": "public",
-            "hardware": "Nvidia A40 (Large) GPU",
+            "weights_url": None,
         }
 
     @classmethod
@@ -342,17 +358,21 @@ class Maxim(ReplicateNode):
         IMAGE_ENHANCEMENT__RETOUCHING = "Image Enhancement (Retouching)"
 
     @classmethod
+    def get_basic_fields(cls):
+        return ["image", "model"]
+
+    @classmethod
     def replicate_model_id(cls):
         return "google-research/maxim:494ca4d578293b4b93945115601b6a38190519da18467556ca223d219c3af9f9"
 
     @classmethod
     def get_hardware(cls):
-        return "Nvidia T4 GPU"
+        return "None"
 
     @classmethod
     def get_model_info(cls):
         return {
-            "cover_image_url": "https://replicate.delivery/mgxm/716ffa94-41f7-46b4-a2f0-287f0e907f9c/output.png",
+            "cover_image_url": "https://tjzk.replicate.delivery/models_models_featured_image/df5769aa-0908-4a2e-9378-c582838461db/1fromGOPR0950.png",
             "created_at": "2022-04-20T16:32:30.049391Z",
             "description": "Multi-Axis MLP for Image Processing",
             "github_url": "https://github.com/google-research/maxim",
@@ -360,10 +380,10 @@ class Maxim(ReplicateNode):
             "name": "maxim",
             "owner": "google-research",
             "paper_url": "https://arxiv.org/abs/2201.02973",
-            "run_count": 425960,
+            "run_count": 481512,
             "url": "https://replicate.com/google-research/maxim",
             "visibility": "public",
-            "hardware": "Nvidia T4 GPU",
+            "weights_url": None,
         }
 
     @classmethod
@@ -378,17 +398,21 @@ class OldPhotosRestoration(ReplicateNode):
     """Bringing Old Photos Back to Life"""
 
     @classmethod
+    def get_basic_fields(cls):
+        return ["HR", "image", "with_scratch"]
+
+    @classmethod
     def replicate_model_id(cls):
         return "microsoft/bringing-old-photos-back-to-life:c75db81db6cbd809d93cc3b7e7a088a351a3349c9fa02b6d393e35e0d51ba799"
 
     @classmethod
     def get_hardware(cls):
-        return "Nvidia T4 GPU"
+        return "None"
 
     @classmethod
     def get_model_info(cls):
         return {
-            "cover_image_url": "https://replicate.delivery/mgxm/18b02ad9-ae81-4044-800e-65732df6bdc7/out.png",
+            "cover_image_url": "https://tjzk.replicate.delivery/models_models_featured_image/9f2124ae-ad0f-4a41-bf7e-c3173d0f7c9b/out.png",
             "created_at": "2021-09-11T14:44:30.681818Z",
             "description": "Bringing Old Photos Back to Life",
             "github_url": "https://github.com/microsoft/Bringing-Old-Photos-Back-to-Life",
@@ -396,10 +420,10 @@ class OldPhotosRestoration(ReplicateNode):
             "name": "bringing-old-photos-back-to-life",
             "owner": "microsoft",
             "paper_url": "https://arxiv.org/abs/2004.09484",
-            "run_count": 870478,
+            "run_count": 946942,
             "url": "https://replicate.com/microsoft/bringing-old-photos-back-to-life",
             "visibility": "public",
-            "hardware": "Nvidia T4 GPU",
+            "weights_url": None,
         }
 
     @classmethod

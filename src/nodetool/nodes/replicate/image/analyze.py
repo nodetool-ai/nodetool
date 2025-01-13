@@ -13,12 +13,16 @@ class SDXLClipInterrogator(ReplicateNode):
         FAST = "fast"
 
     @classmethod
+    def get_basic_fields(cls):
+        return ["mode", "image"]
+
+    @classmethod
     def replicate_model_id(cls):
         return "lucataco/sdxl-clip-interrogator:b8dd624ad312d215250b362af0ecff05d7ad4f8270f9beb034c483d70682e7b3"
 
     @classmethod
     def get_hardware(cls):
-        return "Nvidia A40 GPU"
+        return "None"
 
     @classmethod
     def get_model_info(cls):
@@ -31,10 +35,10 @@ class SDXLClipInterrogator(ReplicateNode):
             "name": "sdxl-clip-interrogator",
             "owner": "lucataco",
             "paper_url": None,
-            "run_count": 840052,
+            "run_count": 845652,
             "url": "https://replicate.com/lucataco/sdxl-clip-interrogator",
             "visibility": "public",
-            "hardware": "Nvidia A40 GPU",
+            "weights_url": None,
         }
 
     @classmethod
@@ -52,17 +56,21 @@ class Img2Prompt(ReplicateNode):
     """Get an approximate text prompt, with style, matching an image.  (Optimized for stable-diffusion (clip ViT-L/14))"""
 
     @classmethod
+    def get_basic_fields(cls):
+        return ["image"]
+
+    @classmethod
     def replicate_model_id(cls):
         return "methexis-inc/img2prompt:50adaf2d3ad20a6f911a8a9e3ccf777b263b8596fbd2c8fc26e8888f8a0edbb5"
 
     @classmethod
     def get_hardware(cls):
-        return "Nvidia T4 GPU"
+        return "None"
 
     @classmethod
     def get_model_info(cls):
         return {
-            "cover_image_url": "https://replicate.delivery/mgxm/8b4d747d-feca-477d-8069-ee4d5f89ad8e/a_high_detail_shot_of_a_cat_wearing_a_suit_realism_8k_-n_9_.png",
+            "cover_image_url": "https://tjzk.replicate.delivery/models_models_featured_image/504b1747-8c67-438b-b02f-a6ea9254589d/a_high_detail_shot_of_a_cat_we.png",
             "created_at": "2022-08-24T08:53:28.614572Z",
             "description": "Get an approximate text prompt, with style, matching an image.  (Optimized for stable-diffusion (clip ViT-L/14))",
             "github_url": "https://github.com/pharmapsychotic/clip-interrogator",
@@ -70,10 +78,10 @@ class Img2Prompt(ReplicateNode):
             "name": "img2prompt",
             "owner": "methexis-inc",
             "paper_url": None,
-            "run_count": 2590067,
+            "run_count": 2640193,
             "url": "https://replicate.com/methexis-inc/img2prompt",
             "visibility": "public",
-            "hardware": "Nvidia T4 GPU",
+            "weights_url": None,
         }
 
     @classmethod
@@ -87,17 +95,21 @@ class Moondream2(ReplicateNode):
     """moondream2 is a small vision language model designed to run efficiently on edge devices"""
 
     @classmethod
+    def get_basic_fields(cls):
+        return ["image", "prompt"]
+
+    @classmethod
     def replicate_model_id(cls):
-        return "lucataco/moondream2:392a53ac3f36d630d2d07ce0e78142acaccc338d6caeeb8ca552fe5baca2781e"
+        return "lucataco/moondream2:72ccb656353c348c1385df54b237eeb7bfa874bf11486cf0b9473e691b662d31"
 
     @classmethod
     def get_hardware(cls):
-        return "Nvidia A40 GPU"
+        return "None"
 
     @classmethod
     def get_model_info(cls):
         return {
-            "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/3cbb4e68-08b8-4e82-8e83-3300f877dd0f/moondream2.png",
+            "cover_image_url": "https://tjzk.replicate.delivery/models_models_featured_image/dc0dc539-f592-4c34-b24f-2d112f742975/moondream2.png",
             "created_at": "2024-03-05T02:29:40.377800Z",
             "description": "moondream2 is a small vision language model designed to run efficiently on edge devices",
             "github_url": "https://github.com/lucataco/cog-moondream2",
@@ -105,10 +117,10 @@ class Moondream2(ReplicateNode):
             "name": "moondream2",
             "owner": "lucataco",
             "paper_url": None,
-            "run_count": 65100,
+            "run_count": 242366,
             "url": "https://replicate.com/lucataco/moondream2",
             "visibility": "public",
-            "hardware": "Nvidia A40 GPU",
+            "weights_url": None,
         }
 
     @classmethod
@@ -121,124 +133,12 @@ class Moondream2(ReplicateNode):
     )
 
 
-class MiniGPT4(ReplicateNode):
-    """A model which generates text in response to an input image and prompt."""
-
-    @classmethod
-    def replicate_model_id(cls):
-        return "daanelson/minigpt-4:e447a8583cffd86ce3b93f9c2cd24f2eae603d99ace6afa94b33a08e94a3cd06"
-
-    @classmethod
-    def get_hardware(cls):
-        return "Nvidia A100 (40GB) GPU"
-
-    @classmethod
-    def get_model_info(cls):
-        return {
-            "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/af717919-83de-46e8-9b1a-9c66f4f747bf/out_0.png",
-            "created_at": "2023-05-16T19:05:24.691944Z",
-            "description": "A model which generates text in response to an input image and prompt.",
-            "github_url": "https://github.com/daanelson/MiniGPT-4",
-            "license_url": "https://github.com/Vision-CAIR/MiniGPT-4/blob/main/LICENSE.md",
-            "name": "minigpt-4",
-            "owner": "daanelson",
-            "paper_url": "https://arxiv.org/pdf/2304.10592.pdf",
-            "run_count": 1343562,
-            "url": "https://replicate.com/daanelson/minigpt-4",
-            "visibility": "public",
-            "hardware": "Nvidia A100 (40GB) GPU",
-        }
-
-    @classmethod
-    def return_type(cls):
-        return str
-
-    image: ImageRef = Field(default=ImageRef(), description="Image to discuss")
-    top_p: float = Field(
-        title="Top P",
-        description="Sample from the top p percent most likely tokens",
-        ge=0.0,
-        le=1.0,
-        default=0.9,
-    )
-    prompt: str | None = Field(
-        title="Prompt",
-        description="Prompt for mini-gpt4 regarding input image",
-        default=None,
-    )
-    num_beams: int = Field(
-        title="Num Beams",
-        description="Number of beams for beam search decoding",
-        ge=1.0,
-        le=10.0,
-        default=3,
-    )
-    max_length: int = Field(
-        title="Max Length",
-        description="Total length of prompt and output in tokens",
-        ge=1.0,
-        default=4000,
-    )
-    temperature: float = Field(
-        title="Temperature",
-        description="Temperature for generating tokens, lower = more predictable results",
-        ge=0.01,
-        le=2.0,
-        default=1,
-    )
-    max_new_tokens: int = Field(
-        title="Max New Tokens",
-        description="Maximum number of new tokens to generate",
-        ge=1.0,
-        default=3000,
-    )
-    repetition_penalty: float = Field(
-        title="Repetition Penalty",
-        description="Penalty for repeated words in generated text; 1 is no penalty, values greater than 1 discourage repetition, less than 1 encourage it.",
-        ge=0.01,
-        le=5.0,
-        default=1,
-    )
-
-
-class GLM_4V_9B(ReplicateNode):
-    """GLM-4V is a multimodal model competitive with GPT-4o and other top models."""
-
-    @classmethod
-    def replicate_model_id(cls):
-        return "cuuupid/glm-4v-9b:a75c919339f65bf00afa96511af653fdbd0ec3cb0f5e6f4350809445eee0e14f"
-
-    @classmethod
-    def get_hardware(cls):
-        return "Nvidia A40 GPU"
-
-    @classmethod
-    def get_model_info(cls):
-        return {
-            "cover_image_url": "https://replicate.delivery/pbxt/L4xKZdxJyTzXJWgiLgvyaeHHhKvZDu2TdTukDoUKMC6eMRxD/replicate-prediction-3a2y5bv2e1rgg0cfxqysh6g9v0%20(1).png",
-            "created_at": "2024-06-11T17:01:39.744025Z",
-            "description": "GLM-4V is a multimodal model competitive with GPT-4o and other top models.",
-            "github_url": "https://github.com/THUDM/GLM-4",
-            "license_url": "https://huggingface.co/THUDM/glm-4-9b/blob/main/LICENSE",
-            "name": "glm-4v-9b",
-            "owner": "cuuupid",
-            "paper_url": None,
-            "run_count": 699,
-            "url": "https://replicate.com/cuuupid/glm-4v-9b",
-            "visibility": "public",
-            "hardware": "Nvidia A40 GPU",
-        }
-
-    @classmethod
-    def return_type(cls):
-        return str
-
-    image: ImageRef = Field(default=ImageRef(), description="Image input")
-    prompt: str | None = Field(title="Prompt", description="Propmt", default=None)
-
-
 class NSFWImageDetection(ReplicateNode):
-    """Falcons.ai Fine-Tuned Vision Transformer (ViT) for NSFW Image Classification"""
+    """Fine-Tuned Vision Transformer (ViT) for NSFW Image Classification"""
+
+    @classmethod
+    def get_basic_fields(cls):
+        return ["image"]
 
     @classmethod
     def replicate_model_id(cls):
@@ -246,23 +146,23 @@ class NSFWImageDetection(ReplicateNode):
 
     @classmethod
     def get_hardware(cls):
-        return "Nvidia T4 GPU"
+        return "None"
 
     @classmethod
     def get_model_info(cls):
         return {
             "cover_image_url": "https://replicate.delivery/pbxt/JurYNQcIfISvpS6WtaOcwZXw1ifEudlLyQqiLj5N1Zq977Q3/falcon.jpg",
             "created_at": "2023-11-21T14:53:34.798862Z",
-            "description": "Falcons.ai Fine-Tuned Vision Transformer (ViT) for NSFW Image Classification",
+            "description": "Fine-Tuned Vision Transformer (ViT) for NSFW Image Classification",
             "github_url": "https://github.com/lucataco/cog-nsfw_image_detection",
             "license_url": "https://huggingface.co/models?license=license:apache-2.0",
             "name": "nsfw_image_detection",
-            "owner": "lucataco",
-            "paper_url": "https://huggingface.co/papers/2010.11929",
-            "run_count": 1748854,
-            "url": "https://replicate.com/lucataco/nsfw_image_detection",
+            "owner": "falcons-ai",
+            "paper_url": "https://arxiv.org/abs/2010.11929",
+            "run_count": 41917944,
+            "url": "https://replicate.com/falcons-ai/nsfw_image_detection",
             "visibility": "public",
-            "hardware": "Nvidia T4 GPU",
+            "weights_url": "https://huggingface.co/Falconsai/nsfw_image_detection",
         }
 
     @classmethod
@@ -272,65 +172,126 @@ class NSFWImageDetection(ReplicateNode):
     image: str | None = Field(title="Image", description="Input image", default=None)
 
 
-class Llava34B(ReplicateNode):
-    """LLaVA v1.6: Large Language and Vision Assistant (Nous-Hermes-2-34B)"""
+class Blip(ReplicateNode):
+    """Generate image captions"""
+
+    class Task(str, Enum):
+        IMAGE_CAPTIONING = "image_captioning"
+        VISUAL_QUESTION_ANSWERING = "visual_question_answering"
+        IMAGE_TEXT_MATCHING = "image_text_matching"
+
+    @classmethod
+    def get_basic_fields(cls):
+        return ["task", "image", "caption"]
 
     @classmethod
     def replicate_model_id(cls):
-        return "yorickvp/llava-v1.6-34b:41ecfbfb261e6c1adf3ad896c9066ca98346996d7c4045c5bc944a79d430f174"
+        return "salesforce/blip:2e1dddc8621f72155f24cf2e0adbde548458d3cab9f00c0139eea840d0ac4746"
 
     @classmethod
     def get_hardware(cls):
-        return "Nvidia A100 (80GB) GPU"
+        return "None"
 
     @classmethod
     def get_model_info(cls):
         return {
-            "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/c6163ba0-edfc-4b53-9a23-eab7fd08b28a/b14df1cd-2e49-4e6b-b965-0deea7c1.webp",
-            "created_at": "2024-02-01T14:41:55.242062Z",
-            "description": "LLaVA v1.6: Large Language and Vision Assistant (Nous-Hermes-2-34B)",
-            "github_url": "https://github.com/haotian-liu/LLaVA",
-            "license_url": "https://huggingface.co/NousResearch/Nous-Hermes-2-Yi-34B",
-            "name": "llava-v1.6-34b",
-            "owner": "yorickvp",
-            "paper_url": None,
-            "run_count": 1385384,
-            "url": "https://replicate.com/yorickvp/llava-v1.6-34b",
+            "cover_image_url": "https://tjzk.replicate.delivery/models_models_featured_image/b59b459c-c475-414f-ba67-c424a7e6e6ca/demo.jpg",
+            "created_at": "2022-02-06T17:40:38.855280Z",
+            "description": "Generate image captions",
+            "github_url": "https://github.com/salesforce/BLIP",
+            "license_url": "https://github.com/salesforce/BLIP/blob/main/LICENSE.txt",
+            "name": "blip",
+            "owner": "salesforce",
+            "paper_url": "https://arxiv.org/abs/2201.12086",
+            "run_count": 122049964,
+            "url": "https://replicate.com/salesforce/blip",
             "visibility": "public",
-            "hardware": "Nvidia A100 (80GB) GPU",
+            "weights_url": None,
         }
 
     @classmethod
     def return_type(cls):
         return str
 
+    task: Task = Field(description="Choose a task.", default=Task("image_captioning"))
     image: ImageRef = Field(default=ImageRef(), description="Input image")
-    top_p: float = Field(
-        title="Top P",
-        description="When decoding text, samples from the top p percentage of most likely tokens; lower to ignore less likely tokens",
-        ge=0.0,
-        le=1.0,
-        default=1,
+    caption: str | None = Field(
+        title="Caption",
+        description="Type caption for the input image for image text matching task.",
+        default=None,
     )
-    prompt: str | None = Field(
-        title="Prompt", description="Prompt to use for text generation", default=None
+    question: str | None = Field(
+        title="Question",
+        description="Type question for the input image for visual question answering task.",
+        default=None,
     )
-    history: list = Field(
-        title="History",
-        description="List of earlier chat messages, alternating roles, starting with user input. Include <image> to specify which message to attach the image to.",
-        default_factory=list,
+
+
+class Blip2(ReplicateNode):
+    """Answers questions about images"""
+
+    @classmethod
+    def get_basic_fields(cls):
+        return ["image", "caption", "context"]
+
+    @classmethod
+    def replicate_model_id(cls):
+        return "andreasjansson/blip-2:f677695e5e89f8b236e52ecd1d3f01beb44c34606419bcc19345e046d8f786f9"
+
+    @classmethod
+    def get_hardware(cls):
+        return "None"
+
+    @classmethod
+    def get_model_info(cls):
+        return {
+            "cover_image_url": "https://tjzk.replicate.delivery/models_models_featured_image/031b9aee-ed15-4429-a7e4-813b72e9edc5/gg_bridge.jpeg",
+            "created_at": "2023-02-13T07:06:23.521189Z",
+            "description": "Answers questions about images",
+            "github_url": "https://github.com/daanelson/cog-blip-2",
+            "license_url": None,
+            "name": "blip-2",
+            "owner": "andreasjansson",
+            "paper_url": "https://arxiv.org/abs/2301.12597",
+            "run_count": 29051671,
+            "url": "https://replicate.com/andreasjansson/blip-2",
+            "visibility": "public",
+            "weights_url": None,
+        }
+
+    @classmethod
+    def return_type(cls):
+        return str
+
+    image: ImageRef = Field(
+        default=ImageRef(), description="Input image to query or caption"
     )
-    max_tokens: int = Field(
-        title="Max Tokens",
-        description="Maximum number of tokens to generate. A word is generally 2-3 tokens",
-        ge=0.0,
-        default=1024,
+    caption: bool = Field(
+        title="Caption",
+        description="Select if you want to generate image captions instead of asking questions",
+        default=False,
+    )
+    context: str | None = Field(
+        title="Context",
+        description="Optional - previous questions and answers to be used as context for answering current question",
+        default=None,
+    )
+    question: str = Field(
+        title="Question",
+        description="Question to ask about this image. Leave blank for captioning",
+        default="What is this a picture of?",
     )
     temperature: float = Field(
         title="Temperature",
-        description="Adjusts randomness of outputs, greater than 1 is random and 0 is deterministic",
-        ge=0.0,
-        default=0.2,
+        description="Temperature for use with nucleus sampling",
+        ge=0.5,
+        le=1.0,
+        default=1,
+    )
+    use_nucleus_sampling: bool = Field(
+        title="Use Nucleus Sampling",
+        description="Toggles the model using nucleus sampling to generate responses",
+        default=False,
     )
 
 
@@ -349,12 +310,16 @@ class ClipInterrogator(ReplicateNode):
         VIT_BIGG_14_LAION2B_S39B_B160K = "ViT-bigG-14/laion2b_s39b_b160k"
 
     @classmethod
+    def get_basic_fields(cls):
+        return ["mode", "image", "clip_model_name"]
+
+    @classmethod
     def replicate_model_id(cls):
         return "pharmapsychotic/clip-interrogator:8151e1c9f47e696fa316146a2e35812ccf79cfc9eba05b11c7f450155102af70"
 
     @classmethod
     def get_hardware(cls):
-        return "Nvidia T4 GPU"
+        return "None"
 
     @classmethod
     def get_model_info(cls):
@@ -367,10 +332,10 @@ class ClipInterrogator(ReplicateNode):
             "name": "clip-interrogator",
             "owner": "pharmapsychotic",
             "paper_url": None,
-            "run_count": 1857156,
+            "run_count": 2936158,
             "url": "https://replicate.com/pharmapsychotic/clip-interrogator",
             "visibility": "public",
-            "hardware": "Nvidia T4 GPU",
+            "weights_url": None,
         }
 
     @classmethod
@@ -392,17 +357,21 @@ class Llava13b(ReplicateNode):
     """Visual instruction tuning towards large language and vision models with GPT-4 level capabilities"""
 
     @classmethod
+    def get_basic_fields(cls):
+        return ["image", "top_p", "prompt"]
+
+    @classmethod
     def replicate_model_id(cls):
-        return "yorickvp/llava-13b:b5f6212d032508382d61ff00469ddda3e32fd8a0e75dc39d8a4191bb742157fb"
+        return "yorickvp/llava-13b:80537f9eead1a5bfa72d5ac6ea6414379be41d4d4f6679fd776e9535d1eb58bb"
 
     @classmethod
     def get_hardware(cls):
-        return "Nvidia A40 (Large) GPU"
+        return "None"
 
     @classmethod
     def get_model_info(cls):
         return {
-            "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/2c5dbfff-209d-4ab5-a294-b3e5e56105c0/dalle3.jpg",
+            "cover_image_url": "https://tjzk.replicate.delivery/models_models_featured_image/454548d6-4978-4d85-bca3-d067dfc031bf/llava.png",
             "created_at": "2023-10-09T16:27:51.777748Z",
             "description": "Visual instruction tuning towards large language and vision models with GPT-4 level capabilities",
             "github_url": "https://github.com/haotian-liu/LLaVA",
@@ -410,10 +379,10 @@ class Llava13b(ReplicateNode):
             "name": "llava-13b",
             "owner": "yorickvp",
             "paper_url": "https://arxiv.org/abs/2310.03744",
-            "run_count": 9322203,
+            "run_count": 21141699,
             "url": "https://replicate.com/yorickvp/llava-13b",
             "visibility": "public",
-            "hardware": "Nvidia A40 (Large) GPU",
+            "weights_url": None,
         }
 
     @classmethod
@@ -449,17 +418,21 @@ class ClipFeatures(ReplicateNode):
     """Return CLIP features for the clip-vit-large-patch14 model"""
 
     @classmethod
+    def get_basic_fields(cls):
+        return ["inputs"]
+
+    @classmethod
     def replicate_model_id(cls):
         return "andreasjansson/clip-features:75b33f253f7714a281ad3e9b28f63e3232d583716ef6718f2e46641077ea040a"
 
     @classmethod
     def get_hardware(cls):
-        return "Nvidia T4 GPU"
+        return "None"
 
     @classmethod
     def get_model_info(cls):
         return {
-            "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/21f9d2a0-bb57-4c32-9bee-67784c9d6a76/clip_image.png",
+            "cover_image_url": "https://tjzk.replicate.delivery/models_models_featured_image/07d242b3-4246-4da2-9522-b4ad134336fc/clip_image.png",
             "created_at": "2022-09-22T20:23:55.682616Z",
             "description": "Return CLIP features for the clip-vit-large-patch14 model",
             "github_url": "https://github.com/andreasjansson/cog-clip",
@@ -467,10 +440,10 @@ class ClipFeatures(ReplicateNode):
             "name": "clip-features",
             "owner": "andreasjansson",
             "paper_url": None,
-            "run_count": 57962795,
+            "run_count": 71642394,
             "url": "https://replicate.com/andreasjansson/clip-features",
             "visibility": "public",
-            "hardware": "Nvidia T4 GPU",
+            "weights_url": None,
         }
 
     @classmethod

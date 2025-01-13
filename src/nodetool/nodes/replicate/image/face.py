@@ -17,6 +17,10 @@ class FaceToMany(ReplicateNode):
         TOY = "Toy"
 
     @classmethod
+    def get_basic_fields(cls):
+        return ["seed", "image", "style"]
+
+    @classmethod
     def replicate_model_id(cls):
         return "fofr/face-to-many:a07f252abbbd832009640b27f063ea52d87d7a23a185ca165bec23b5adc8deaf"
 
@@ -27,7 +31,7 @@ class FaceToMany(ReplicateNode):
     @classmethod
     def get_model_info(cls):
         return {
-            "cover_image_url": "https://replicate.delivery/pbxt/R1ayGe5efoQbaoRzgDEJdLsIZ20lWRiprvoW1F4uKAZIha6kA/ComfyUI_00001_.png",
+            "cover_image_url": "https://tjzk.replicate.delivery/models_models_featured_image/583bfb50-534d-4835-a856-80bd2abb332e/mona-list-emoji.webp",
             "created_at": "2024-03-05T13:01:03.163557Z",
             "description": "Turn a face into 3D, emoji, pixel art, video game, claymation or toy",
             "github_url": "https://github.com/fofr/cog-face-to-many",
@@ -35,9 +39,10 @@ class FaceToMany(ReplicateNode):
             "name": "face-to-many",
             "owner": "fofr",
             "paper_url": None,
-            "run_count": 10891149,
+            "run_count": 12183237,
             "url": "https://replicate.com/fofr/face-to-many",
             "visibility": "public",
+            "weights_url": None,
         }
 
     @classmethod
@@ -105,17 +110,21 @@ class BecomeImage(ReplicateNode):
     """Adapt any picture of a face into another image"""
 
     @classmethod
+    def get_basic_fields(cls):
+        return ["seed", "image", "prompt"]
+
+    @classmethod
     def replicate_model_id(cls):
         return "fofr/become-image:8d0b076a2aff3904dfcec3253c778e0310a68f78483c4699c7fd800f3051d2b3"
 
     @classmethod
     def get_hardware(cls):
-        return "Nvidia A40 (Large) GPU"
+        return "None"
 
     @classmethod
     def get_model_info(cls):
         return {
-            "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/d93dcb3c-dbc8-4e41-a3e1-f96aaf5875b1/pearl-earring.webp",
+            "cover_image_url": "https://tjzk.replicate.delivery/models_models_featured_image/b37fc7b7-0cef-4895-9176-bf5bb0cb7011/pearl-earring-1.webp",
             "created_at": "2024-03-11T11:16:22.168373Z",
             "description": "Adapt any picture of a face into another image",
             "github_url": "https://github.com/fofr/cog-become-image",
@@ -123,10 +132,10 @@ class BecomeImage(ReplicateNode):
             "name": "become-image",
             "owner": "fofr",
             "paper_url": None,
-            "run_count": 247254,
+            "run_count": 424153,
             "url": "https://replicate.com/fofr/become-image",
             "visibility": "public",
-            "hardware": "Nvidia A40 (Large) GPU",
+            "weights_url": None,
         }
 
     @classmethod
@@ -223,17 +232,21 @@ class PhotoMaker(ReplicateNode):
         LINE_ART = "Line art"
 
     @classmethod
+    def get_basic_fields(cls):
+        return ["seed", "prompt", "num_steps"]
+
+    @classmethod
     def replicate_model_id(cls):
         return "tencentarc/photomaker:ddfc2b08d209f9fa8c1eca692712918bd449f695dabb4a958da31802a9570fe4"
 
     @classmethod
     def get_hardware(cls):
-        return "Nvidia A40 (Large) GPU"
+        return "None"
 
     @classmethod
     def get_model_info(cls):
         return {
-            "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/75f21a83-c142-4cba-9750-dc9724b12b77/photomaker-cover-img-scarjo.jpg",
+            "cover_image_url": "https://tjzk.replicate.delivery/models_models_featured_image/c10ac3c0-f86a-4249-9f3d-d7723cc93d45/photomaker.jpg",
             "created_at": "2024-01-16T15:42:17.882162Z",
             "description": "Create photos, paintings and avatars for anyone in any style within seconds.",
             "github_url": "https://github.com/datakami-models/PhotoMaker",
@@ -241,10 +254,10 @@ class PhotoMaker(ReplicateNode):
             "name": "photomaker",
             "owner": "tencentarc",
             "paper_url": "https://huggingface.co/papers/2312.04461",
-            "run_count": 2204855,
+            "run_count": 5173177,
             "url": "https://replicate.com/tencentarc/photomaker",
             "visibility": "public",
-            "hardware": "Nvidia A40 (Large) GPU",
+            "weights_url": None,
         }
 
     @classmethod
@@ -344,12 +357,16 @@ class PhotoMakerStyle(ReplicateNode):
         LINE_ART = "Line art"
 
     @classmethod
+    def get_basic_fields(cls):
+        return ["seed", "prompt", "num_steps"]
+
+    @classmethod
     def replicate_model_id(cls):
         return "tencentarc/photomaker-style:467d062309da518648ba89d226490e02b8ed09b5abc15026e54e31c5a8cd0769"
 
     @classmethod
     def get_hardware(cls):
-        return "Nvidia A40 (Large) GPU"
+        return "None"
 
     @classmethod
     def get_model_info(cls):
@@ -362,10 +379,10 @@ class PhotoMakerStyle(ReplicateNode):
             "name": "photomaker-style",
             "owner": "tencentarc",
             "paper_url": "https://huggingface.co/papers/2312.04461",
-            "run_count": 455875,
+            "run_count": 1036542,
             "url": "https://replicate.com/tencentarc/photomaker-style",
             "visibility": "public",
-            "hardware": "Nvidia A40 (Large) GPU",
+            "weights_url": None,
         }
 
     @classmethod
@@ -445,17 +462,21 @@ class FaceToSticker(ReplicateNode):
     """Turn a face into a sticker"""
 
     @classmethod
+    def get_basic_fields(cls):
+        return ["seed", "image", "steps"]
+
+    @classmethod
     def replicate_model_id(cls):
         return "fofr/face-to-sticker:764d4827ea159608a07cdde8ddf1c6000019627515eb02b6b449695fd547e5ef"
 
     @classmethod
     def get_hardware(cls):
-        return "Nvidia A40 (Large) GPU"
+        return "None"
 
     @classmethod
     def get_model_info(cls):
         return {
-            "cover_image_url": "https://replicate.delivery/pbxt/RZzqVdLsqSZgHtEefD00iMK8VuDif6iVmXlSbNeiAShPuHtJB/ComfyUI_00002_.png",
+            "cover_image_url": "https://replicate.delivery/xezq/vvHSs2p5vPJtPRNW7ffCYt54fwP43r8I3kG4LPfoCCMaMBWPB/ComfyUI_00002_.png",
             "created_at": "2024-02-28T15:14:15.687345Z",
             "description": "Turn a face into a sticker",
             "github_url": "https://github.com/fofr/cog-face-to-sticker",
@@ -463,10 +484,10 @@ class FaceToSticker(ReplicateNode):
             "name": "face-to-sticker",
             "owner": "fofr",
             "paper_url": None,
-            "run_count": 1010377,
+            "run_count": 1300693,
             "url": "https://replicate.com/fofr/face-to-sticker",
             "visibility": "public",
-            "hardware": "Nvidia A40 (Large) GPU",
+            "weights_url": None,
         }
 
     @classmethod
@@ -563,17 +584,21 @@ class InstantId(ReplicateNode):
         PNG = "png"
 
     @classmethod
+    def get_basic_fields(cls):
+        return ["seed", "image", "prompt"]
+
+    @classmethod
     def replicate_model_id(cls):
-        return "zsxkib/instant-id:f1ca369da43885a347690a98f6b710afbf5f167cb9bf13bd5af512ba4a9f7b63"
+        return "zsxkib/instant-id:2e4785a4d80dadf580077b2244c8d7c05d8e3faac04a04c02d8e099dd2876789"
 
     @classmethod
     def get_hardware(cls):
-        return "Nvidia A40 (Large) GPU"
+        return "None"
 
     @classmethod
     def get_model_info(cls):
         return {
-            "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/29bb719e-5db7-4816-9cfc-84b141ac8670/instantidcover.jpg",
+            "cover_image_url": "https://tjzk.replicate.delivery/models_models_featured_image/3bb0b275-5996-4382-b73f-5bccfbddde92/instantidcover.jpg",
             "created_at": "2024-01-22T21:00:49.120905Z",
             "description": "Make realistic images of real people instantly",
             "github_url": "https://github.com/zsxkib/InstantID",
@@ -581,10 +606,10 @@ class InstantId(ReplicateNode):
             "name": "instant-id",
             "owner": "zsxkib",
             "paper_url": "https://arxiv.org/abs/2401.07519",
-            "run_count": 457929,
+            "run_count": 751782,
             "url": "https://replicate.com/zsxkib/instant-id",
             "visibility": "public",
-            "hardware": "Nvidia A40 (Large) GPU",
+            "weights_url": None,
         }
 
     @classmethod
@@ -733,5 +758,183 @@ class InstantId(ReplicateNode):
         description="Scale for IdentityNet strength (for fidelity)",
         ge=0.0,
         le=1.5,
+        default=0.8,
+    )
+
+
+class Instant_ID_Photorealistic(ReplicateNode):
+    """InstantID : Zero-shot Identity-Preserving Generation in Seconds. Using Juggernaut-XL v8 as the base model to encourage photorealism"""
+
+    @classmethod
+    def get_basic_fields(cls):
+        return ["image", "width", "height"]
+
+    @classmethod
+    def replicate_model_id(cls):
+        return "grandlineai/instant-id-photorealistic:03914a0c3326bf44383d0cd84b06822618af879229ce5d1d53bef38d93b68279"
+
+    @classmethod
+    def get_hardware(cls):
+        return "None"
+
+    @classmethod
+    def get_model_info(cls):
+        return {
+            "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/0c6bd74f-6129-4323-8125-beb65871a8de/Screenshot_2024-01-24_at_15.24.13.png",
+            "created_at": "2024-01-24T07:43:55.954510Z",
+            "description": "InstantID : Zero-shot Identity-Preserving Generation in Seconds. Using Juggernaut-XL v8 as the base model to encourage photorealism",
+            "github_url": "https://github.com/GrandlineAI/InstantID",
+            "license_url": "https://github.com/InstantID/InstantID/blob/main/LICENSE",
+            "name": "instant-id-photorealistic",
+            "owner": "grandlineai",
+            "paper_url": None,
+            "run_count": 31760,
+            "url": "https://replicate.com/grandlineai/instant-id-photorealistic",
+            "visibility": "public",
+            "weights_url": None,
+        }
+
+    @classmethod
+    def return_type(cls):
+        return ImageRef
+
+    image: ImageRef = Field(default=ImageRef(), description="Input image")
+    width: int = Field(
+        title="Width",
+        description="Width of output image",
+        ge=512.0,
+        le=2048.0,
+        default=640,
+    )
+    height: int = Field(
+        title="Height",
+        description="Height of output image",
+        ge=512.0,
+        le=2048.0,
+        default=640,
+    )
+    prompt: str = Field(
+        title="Prompt",
+        description="Input prompt",
+        default="analog film photo of a man. faded film, desaturated, 35mm photo, grainy, vignette, vintage, Kodachrome, Lomography, stained, highly detailed, found footage, masterpiece, best quality",
+    )
+    guidance_scale: float = Field(
+        title="Guidance Scale",
+        description="Scale for classifier-free guidance",
+        ge=1.0,
+        le=50.0,
+        default=5,
+    )
+    negative_prompt: str = Field(
+        title="Negative Prompt", description="Input Negative Prompt", default=""
+    )
+    ip_adapter_scale: float = Field(
+        title="Ip Adapter Scale",
+        description="Scale for IP adapter",
+        ge=0.0,
+        le=1.0,
+        default=0.8,
+    )
+    num_inference_steps: int = Field(
+        title="Num Inference Steps",
+        description="Number of denoising steps",
+        ge=1.0,
+        le=500.0,
+        default=30,
+    )
+    controlnet_conditioning_scale: float = Field(
+        title="Controlnet Conditioning Scale",
+        description="Scale for ControlNet conditioning",
+        ge=0.0,
+        le=1.0,
+        default=0.8,
+    )
+
+
+class Instant_ID_Artistic(ReplicateNode):
+    """InstantID : Zero-shot Identity-Preserving Generation in Seconds. Using Dreamshaper-XL as the base model to encourage artistic generations"""
+
+    @classmethod
+    def get_basic_fields(cls):
+        return ["image", "width", "height"]
+
+    @classmethod
+    def replicate_model_id(cls):
+        return "grandlineai/instant-id-artistic:9cad10c7870bac9d6b587f406aef28208f964454abff5c4152f7dec9b0212a9a"
+
+    @classmethod
+    def get_hardware(cls):
+        return "None"
+
+    @classmethod
+    def get_model_info(cls):
+        return {
+            "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/87b24249-b2c1-43f3-b3cf-a5005f23b21c/Screenshot_2024-01-24_at_15.24.13.png",
+            "created_at": "2024-01-24T04:34:52.345779Z",
+            "description": "InstantID : Zero-shot Identity-Preserving Generation in Seconds. Using Dreamshaper-XL as the base model to encourage artistic generations",
+            "github_url": "https://github.com/GrandlineAI/InstantID",
+            "license_url": "https://github.com/InstantID/InstantID/blob/main/LICENSE",
+            "name": "instant-id-artistic",
+            "owner": "grandlineai",
+            "paper_url": None,
+            "run_count": 2176,
+            "url": "https://replicate.com/grandlineai/instant-id-artistic",
+            "visibility": "public",
+            "weights_url": None,
+        }
+
+    @classmethod
+    def return_type(cls):
+        return ImageRef
+
+    image: ImageRef = Field(default=ImageRef(), description="Input image")
+    width: int = Field(
+        title="Width",
+        description="Width of output image",
+        ge=512.0,
+        le=2048.0,
+        default=640,
+    )
+    height: int = Field(
+        title="Height",
+        description="Height of output image",
+        ge=512.0,
+        le=2048.0,
+        default=640,
+    )
+    prompt: str = Field(
+        title="Prompt",
+        description="Input prompt",
+        default="analog film photo of a man. faded film, desaturated, 35mm photo, grainy, vignette, vintage, Kodachrome, Lomography, stained, highly detailed, found footage, masterpiece, best quality",
+    )
+    guidance_scale: float = Field(
+        title="Guidance Scale",
+        description="Scale for classifier-free guidance",
+        ge=1.0,
+        le=50.0,
+        default=5,
+    )
+    negative_prompt: str = Field(
+        title="Negative Prompt", description="Input Negative Prompt", default=""
+    )
+    ip_adapter_scale: float = Field(
+        title="Ip Adapter Scale",
+        description="Scale for IP adapter",
+        ge=0.0,
+        le=1.0,
+        default=0.8,
+    )
+    num_inference_steps: int = Field(
+        title="Num Inference Steps",
+        description="Number of denoising steps",
+        ge=1.0,
+        le=500.0,
+        default=30,
+    )
+    controlnet_conditioning_scale: float = Field(
+        title="Controlnet Conditioning Scale",
+        description="Scale for ControlNet conditioning",
+        ge=0.0,
+        le=1.0,
         default=0.8,
     )

@@ -9,12 +9,16 @@ class TextExtractOCR(ReplicateNode):
     """A simple OCR Model that can easily extract text from an image."""
 
     @classmethod
+    def get_basic_fields(cls):
+        return ["image"]
+
+    @classmethod
     def replicate_model_id(cls):
         return "abiruyt/text-extract-ocr:a524caeaa23495bc9edc805ab08ab5fe943afd3febed884a4f3747aa32e9cd61"
 
     @classmethod
     def get_hardware(cls):
-        return "CPU"
+        return "None"
 
     @classmethod
     def get_model_info(cls):
@@ -27,10 +31,10 @@ class TextExtractOCR(ReplicateNode):
             "name": "text-extract-ocr",
             "owner": "abiruyt",
             "paper_url": None,
-            "run_count": 17277072,
+            "run_count": 89578954,
             "url": "https://replicate.com/abiruyt/text-extract-ocr",
             "visibility": "public",
-            "hardware": "CPU",
+            "weights_url": None,
         }
 
     @classmethod
@@ -44,12 +48,16 @@ class LatexOCR(ReplicateNode):
     """Optical character recognition to turn images of latex equations into latex format."""
 
     @classmethod
+    def get_basic_fields(cls):
+        return ["image_path"]
+
+    @classmethod
     def replicate_model_id(cls):
         return "mickeybeurskens/latex-ocr:b3278fae4c46eb2798804fc66e721e6ce61a450d072041a7e402b2c77805dcc3"
 
     @classmethod
     def get_hardware(cls):
-        return "Nvidia T4 GPU"
+        return "None"
 
     @classmethod
     def get_model_info(cls):
@@ -62,10 +70,10 @@ class LatexOCR(ReplicateNode):
             "name": "latex-ocr",
             "owner": "mickeybeurskens",
             "paper_url": None,
-            "run_count": 532,
+            "run_count": 808,
             "url": "https://replicate.com/mickeybeurskens/latex-ocr",
             "visibility": "public",
-            "hardware": "Nvidia T4 GPU",
+            "weights_url": None,
         }
 
     @classmethod
