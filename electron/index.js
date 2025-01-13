@@ -55,12 +55,13 @@ const simpleLogger = createSimpleLogger(logElement);
  */
 function loadContentWithNoCaching(initialURL) {
   const timestamp = new Date().getTime();
-  if (!(contentElement instanceof HTMLIFrameElement)) {
-    console.warn("Content element must be an HTMLIFrameElement");
-    return;
-  }
+  // if (!(contentElement instanceof HTMLIFrameElement)) {
+  //   console.warn("Content element must be an HTMLIFrameElement");
+  //   return;
+  // }
 
-  contentElement.src = `${initialURL}?nocache=${timestamp}`;
+  // contentElement.src = `${initialURL}?nocache=${timestamp}`;
+  window.location.href = `${initialURL}?nocache=${timestamp}`;
 }
 
 /**

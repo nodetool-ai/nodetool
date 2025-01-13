@@ -2,6 +2,7 @@ const path = require("path");
 const os = require("os");
 const fs = require("fs");
 const yaml = require("js-yaml");
+const { logMessage } = require("./logger");
 
 // Add cache at the module level
 let settingsCache = null;
@@ -61,6 +62,8 @@ function readSettings() {
       settingsCache = {};
       return settingsCache;
     }
+
+    logMessage("Reading settings from " + settingsPath);
 
     const fileContents = fs.readFileSync(settingsPath, "utf8");
     settingsCache = yaml.load(fileContents) || {};

@@ -27,7 +27,7 @@ const { emitBootMessage } = require("./events");
 const fs = require("fs");
 const path = require("path");
 const { createTray } = require("./tray");
-const { isWorkflowWindow } = require("./workflow-window");
+const { isWorkflowWindow, runWorkflow } = require("./workflow-window");
 
 /**
  * Global application state flags and objects
@@ -185,6 +185,11 @@ ipcMain.handle(
     }
   }
 );
+
+ipcMain.handle("run-app", async (_event, workflowId) => {
+  logMessage(`Running app with workflow ID: ${workflowId}`);
+  runWorkflow(workflowId);
+});
 
 /**
  * Event handler for app quit

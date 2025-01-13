@@ -161,6 +161,8 @@ function createInput(key, value, onChange) {
     return createCheckbox(key, onChange);
   } else if (value.type === "object" && value.properties?.uri) {
     return createFileInput(key, onChange);
+  } else if (value.type === "enum") {
+    return createEnumInput(key, value, onChange);
   }
   return createTextArea(key, onChange);
 }
@@ -357,4 +359,38 @@ export function enableInputFields(container) {
       input.disabled = false;
     }
   });
+}
+
+/**
+ * Creates a select input element for enum values
+ * @param {string} key
+ * @param {JSONSchema} value
+ * @param {() => void} onChange
+ * @returns {HTMLSelectElement}
+ */
+function createEnumInput(key, value, onChange) {
+  const select = document.createElement("select");
+  select.id = key;
+  select.className = "form-control";
+
+  // Add default empty option if not required
+  if (!value.required) {
+    const defaultOption = document.createElement("option");
+    defaultOption.value = "";
+    defaultOption.textContent = "-- Select an option --";
+    select.appendChild(defaultOption);
+  }
+
+  // Add options from enum array
+  if (Array.isArray(value.enum)) {
+    value.enum.forEach((enumValue) => {
+      const option = document.createElement("option");
+      option.value = enumValue;
+      option.textContent = enumValue;
+      select.appendChild(option);
+    });
+  }
+
+  select.addEventListener("change", () => onChange());
+  return select;
 }
