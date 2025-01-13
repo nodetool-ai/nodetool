@@ -20,11 +20,6 @@ export interface NodeInputsProps {
 const isDropdownProperty = (property: Property): boolean => {
   const type = property.type.type;
 
-  // Check for enum type
-  if (type === "enum" || type === "collection") {
-    return true;
-  }
-
   // Check for model types that use dropdowns
   const modelPrefixes = [
     "function_model",
