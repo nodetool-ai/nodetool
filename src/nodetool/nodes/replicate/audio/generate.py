@@ -35,17 +35,21 @@ class RealisticVoiceCloning(ReplicateNode):
         MANGIO_CREPE = "mangio-crepe"
 
     @classmethod
+    def get_basic_fields(cls):
+        return ["protect", "rvc_model", "index_rate"]
+
+    @classmethod
     def replicate_model_id(cls):
         return "zsxkib/realistic-voice-cloning:0a9c7c558af4c0f20667c1bd1260ce32a2879944a0b9e44e1398660c077b1550"
 
     @classmethod
     def get_hardware(cls):
-        return "Nvidia T4 GPU"
+        return "None"
 
     @classmethod
     def get_model_info(cls):
         return {
-            "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/7a110507-8a38-4fcb-8826-61aec80309cb/Out_0_1024x1024.png",
+            "cover_image_url": "https://tjzk.replicate.delivery/models_models_featured_image/ce3d3d2c-5a06-413c-96ff-546fc96c90e2/Out_0_1024x1024.png",
             "created_at": "2023-11-09T16:32:42.062982Z",
             "description": "Create song covers with any RVC v2 trained AI voice from audio files.",
             "github_url": "https://github.com/zsxkib/AICoverGen.git",
@@ -53,10 +57,10 @@ class RealisticVoiceCloning(ReplicateNode):
             "name": "realistic-voice-cloning",
             "owner": "zsxkib",
             "paper_url": None,
-            "run_count": 212959,
+            "run_count": 530184,
             "url": "https://replicate.com/zsxkib/realistic-voice-cloning",
             "visibility": "public",
-            "hardware": "Nvidia T4 GPU",
+            "weights_url": None,
         }
 
     @classmethod
@@ -285,12 +289,16 @@ class TortoiseTTS(ReplicateNode):
         DISABLED = "disabled"
 
     @classmethod
+    def get_basic_fields(cls):
+        return ["seed", "text", "preset"]
+
+    @classmethod
     def replicate_model_id(cls):
         return "afiaka87/tortoise-tts:e9658de4b325863c4fcdc12d94bb7c9b54cbfe351b7ca1b36860008172b91c71"
 
     @classmethod
     def get_hardware(cls):
-        return "Nvidia T4 GPU"
+        return "None"
 
     @classmethod
     def get_model_info(cls):
@@ -303,10 +311,10 @@ class TortoiseTTS(ReplicateNode):
             "name": "tortoise-tts",
             "owner": "afiaka87",
             "paper_url": "https://github.com/neonbjb/tortoise-tts",
-            "run_count": 158359,
+            "run_count": 166639,
             "url": "https://replicate.com/afiaka87/tortoise-tts",
             "visibility": "public",
-            "hardware": "Nvidia T4 GPU",
+            "weights_url": None,
         }
 
     @classmethod
@@ -356,12 +364,16 @@ class StyleTTS2(ReplicateNode):
     """Generates speech from text"""
 
     @classmethod
+    def get_basic_fields(cls):
+        return ["beta", "seed", "text"]
+
+    @classmethod
     def replicate_model_id(cls):
         return "adirik/styletts2:989cb5ea6d2401314eb30685740cb9f6fd1c9001b8940659b406f952837ab5ac"
 
     @classmethod
     def get_hardware(cls):
-        return "Nvidia T4 GPU"
+        return "None"
 
     @classmethod
     def get_model_info(cls):
@@ -374,10 +386,10 @@ class StyleTTS2(ReplicateNode):
             "name": "styletts2",
             "owner": "adirik",
             "paper_url": "https://arxiv.org/abs/2306.07691",
-            "run_count": 102676,
+            "run_count": 127679,
             "url": "https://replicate.com/adirik/styletts2",
             "visibility": "public",
-            "hardware": "Nvidia T4 GPU",
+            "weights_url": None,
         }
 
     @classmethod
@@ -443,17 +455,21 @@ class Riffusion(ReplicateNode):
         VIBES = "vibes"
 
     @classmethod
+    def get_basic_fields(cls):
+        return ["alpha", "prompt_a", "prompt_b"]
+
+    @classmethod
     def replicate_model_id(cls):
         return "riffusion/riffusion:8cf61ea6c56afd61d8f5b9ffd14d7c216c0a93844ce2d82ac1c9ecc9c7f24e05"
 
     @classmethod
     def get_hardware(cls):
-        return "Nvidia T4 GPU"
+        return "None"
 
     @classmethod
     def get_model_info(cls):
         return {
-            "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/4f67b4e2-4df3-4ce9-9b80-00bbf5a186d8/riffusion.gif",
+            "cover_image_url": "https://tjzk.replicate.delivery/models_models_featured_image/4154e53a-5c5d-4ac5-9da8-62a1fec212bf/riffusion.gif",
             "created_at": "2022-12-16T07:31:34.983811Z",
             "description": "Stable diffusion for real-time music generation",
             "github_url": "https://github.com/riffusion/riffusion",
@@ -461,10 +477,10 @@ class Riffusion(ReplicateNode):
             "name": "riffusion",
             "owner": "riffusion",
             "paper_url": "https://www.riffusion.com/about",
-            "run_count": 918659,
+            "run_count": 984529,
             "url": "https://replicate.com/riffusion/riffusion",
             "visibility": "public",
-            "hardware": "Nvidia T4 GPU",
+            "weights_url": None,
         }
 
     @classmethod
@@ -509,205 +525,6 @@ class Riffusion(ReplicateNode):
     )
 
 
-class Bark(ReplicateNode):
-    """🔊 Text-Prompted Generative Audio Model"""
-
-    class History_prompt(str, Enum):
-        ANNOUNCER = "announcer"
-        DE_SPEAKER_0 = "de_speaker_0"
-        DE_SPEAKER_1 = "de_speaker_1"
-        DE_SPEAKER_2 = "de_speaker_2"
-        DE_SPEAKER_3 = "de_speaker_3"
-        DE_SPEAKER_4 = "de_speaker_4"
-        DE_SPEAKER_5 = "de_speaker_5"
-        DE_SPEAKER_6 = "de_speaker_6"
-        DE_SPEAKER_7 = "de_speaker_7"
-        DE_SPEAKER_8 = "de_speaker_8"
-        DE_SPEAKER_9 = "de_speaker_9"
-        EN_SPEAKER_0 = "en_speaker_0"
-        EN_SPEAKER_1 = "en_speaker_1"
-        EN_SPEAKER_2 = "en_speaker_2"
-        EN_SPEAKER_3 = "en_speaker_3"
-        EN_SPEAKER_4 = "en_speaker_4"
-        EN_SPEAKER_5 = "en_speaker_5"
-        EN_SPEAKER_6 = "en_speaker_6"
-        EN_SPEAKER_7 = "en_speaker_7"
-        EN_SPEAKER_8 = "en_speaker_8"
-        EN_SPEAKER_9 = "en_speaker_9"
-        ES_SPEAKER_0 = "es_speaker_0"
-        ES_SPEAKER_1 = "es_speaker_1"
-        ES_SPEAKER_2 = "es_speaker_2"
-        ES_SPEAKER_3 = "es_speaker_3"
-        ES_SPEAKER_4 = "es_speaker_4"
-        ES_SPEAKER_5 = "es_speaker_5"
-        ES_SPEAKER_6 = "es_speaker_6"
-        ES_SPEAKER_7 = "es_speaker_7"
-        ES_SPEAKER_8 = "es_speaker_8"
-        ES_SPEAKER_9 = "es_speaker_9"
-        FR_SPEAKER_0 = "fr_speaker_0"
-        FR_SPEAKER_1 = "fr_speaker_1"
-        FR_SPEAKER_2 = "fr_speaker_2"
-        FR_SPEAKER_3 = "fr_speaker_3"
-        FR_SPEAKER_4 = "fr_speaker_4"
-        FR_SPEAKER_5 = "fr_speaker_5"
-        FR_SPEAKER_6 = "fr_speaker_6"
-        FR_SPEAKER_7 = "fr_speaker_7"
-        FR_SPEAKER_8 = "fr_speaker_8"
-        FR_SPEAKER_9 = "fr_speaker_9"
-        HI_SPEAKER_0 = "hi_speaker_0"
-        HI_SPEAKER_1 = "hi_speaker_1"
-        HI_SPEAKER_2 = "hi_speaker_2"
-        HI_SPEAKER_3 = "hi_speaker_3"
-        HI_SPEAKER_4 = "hi_speaker_4"
-        HI_SPEAKER_5 = "hi_speaker_5"
-        HI_SPEAKER_6 = "hi_speaker_6"
-        HI_SPEAKER_7 = "hi_speaker_7"
-        HI_SPEAKER_8 = "hi_speaker_8"
-        HI_SPEAKER_9 = "hi_speaker_9"
-        IT_SPEAKER_0 = "it_speaker_0"
-        IT_SPEAKER_1 = "it_speaker_1"
-        IT_SPEAKER_2 = "it_speaker_2"
-        IT_SPEAKER_3 = "it_speaker_3"
-        IT_SPEAKER_4 = "it_speaker_4"
-        IT_SPEAKER_5 = "it_speaker_5"
-        IT_SPEAKER_6 = "it_speaker_6"
-        IT_SPEAKER_7 = "it_speaker_7"
-        IT_SPEAKER_8 = "it_speaker_8"
-        IT_SPEAKER_9 = "it_speaker_9"
-        JA_SPEAKER_0 = "ja_speaker_0"
-        JA_SPEAKER_1 = "ja_speaker_1"
-        JA_SPEAKER_2 = "ja_speaker_2"
-        JA_SPEAKER_3 = "ja_speaker_3"
-        JA_SPEAKER_4 = "ja_speaker_4"
-        JA_SPEAKER_5 = "ja_speaker_5"
-        JA_SPEAKER_6 = "ja_speaker_6"
-        JA_SPEAKER_7 = "ja_speaker_7"
-        JA_SPEAKER_8 = "ja_speaker_8"
-        JA_SPEAKER_9 = "ja_speaker_9"
-        KO_SPEAKER_0 = "ko_speaker_0"
-        KO_SPEAKER_1 = "ko_speaker_1"
-        KO_SPEAKER_2 = "ko_speaker_2"
-        KO_SPEAKER_3 = "ko_speaker_3"
-        KO_SPEAKER_4 = "ko_speaker_4"
-        KO_SPEAKER_5 = "ko_speaker_5"
-        KO_SPEAKER_6 = "ko_speaker_6"
-        KO_SPEAKER_7 = "ko_speaker_7"
-        KO_SPEAKER_8 = "ko_speaker_8"
-        KO_SPEAKER_9 = "ko_speaker_9"
-        PL_SPEAKER_0 = "pl_speaker_0"
-        PL_SPEAKER_1 = "pl_speaker_1"
-        PL_SPEAKER_2 = "pl_speaker_2"
-        PL_SPEAKER_3 = "pl_speaker_3"
-        PL_SPEAKER_4 = "pl_speaker_4"
-        PL_SPEAKER_5 = "pl_speaker_5"
-        PL_SPEAKER_6 = "pl_speaker_6"
-        PL_SPEAKER_7 = "pl_speaker_7"
-        PL_SPEAKER_8 = "pl_speaker_8"
-        PL_SPEAKER_9 = "pl_speaker_9"
-        PT_SPEAKER_0 = "pt_speaker_0"
-        PT_SPEAKER_1 = "pt_speaker_1"
-        PT_SPEAKER_2 = "pt_speaker_2"
-        PT_SPEAKER_3 = "pt_speaker_3"
-        PT_SPEAKER_4 = "pt_speaker_4"
-        PT_SPEAKER_5 = "pt_speaker_5"
-        PT_SPEAKER_6 = "pt_speaker_6"
-        PT_SPEAKER_7 = "pt_speaker_7"
-        PT_SPEAKER_8 = "pt_speaker_8"
-        PT_SPEAKER_9 = "pt_speaker_9"
-        RU_SPEAKER_0 = "ru_speaker_0"
-        RU_SPEAKER_1 = "ru_speaker_1"
-        RU_SPEAKER_2 = "ru_speaker_2"
-        RU_SPEAKER_3 = "ru_speaker_3"
-        RU_SPEAKER_4 = "ru_speaker_4"
-        RU_SPEAKER_5 = "ru_speaker_5"
-        RU_SPEAKER_6 = "ru_speaker_6"
-        RU_SPEAKER_7 = "ru_speaker_7"
-        RU_SPEAKER_8 = "ru_speaker_8"
-        RU_SPEAKER_9 = "ru_speaker_9"
-        TR_SPEAKER_0 = "tr_speaker_0"
-        TR_SPEAKER_1 = "tr_speaker_1"
-        TR_SPEAKER_2 = "tr_speaker_2"
-        TR_SPEAKER_3 = "tr_speaker_3"
-        TR_SPEAKER_4 = "tr_speaker_4"
-        TR_SPEAKER_5 = "tr_speaker_5"
-        TR_SPEAKER_6 = "tr_speaker_6"
-        TR_SPEAKER_7 = "tr_speaker_7"
-        TR_SPEAKER_8 = "tr_speaker_8"
-        TR_SPEAKER_9 = "tr_speaker_9"
-        ZH_SPEAKER_0 = "zh_speaker_0"
-        ZH_SPEAKER_1 = "zh_speaker_1"
-        ZH_SPEAKER_2 = "zh_speaker_2"
-        ZH_SPEAKER_3 = "zh_speaker_3"
-        ZH_SPEAKER_4 = "zh_speaker_4"
-        ZH_SPEAKER_5 = "zh_speaker_5"
-        ZH_SPEAKER_6 = "zh_speaker_6"
-        ZH_SPEAKER_7 = "zh_speaker_7"
-        ZH_SPEAKER_8 = "zh_speaker_8"
-        ZH_SPEAKER_9 = "zh_speaker_9"
-
-    @classmethod
-    def replicate_model_id(cls):
-        return "suno-ai/bark:b76242b40d67c76ab6742e987628a2a9ac019e11d56ab96c4e91ce03b79b2787"
-
-    @classmethod
-    def get_hardware(cls):
-        return "Nvidia T4 GPU"
-
-    @classmethod
-    def get_model_info(cls):
-        return {
-            "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/9fbbe7c2-beb0-4caa-bd59-647dd7eeee6b/fofr_dog.jpg",
-            "created_at": "2023-04-25T20:56:39.740033Z",
-            "description": "🔊 Text-Prompted Generative Audio Model",
-            "github_url": "https://github.com/chenxwh/bark",
-            "license_url": "https://github.com/suno-ai/bark/blob/main/LICENSE",
-            "name": "bark",
-            "owner": "suno-ai",
-            "paper_url": None,
-            "run_count": 234505,
-            "url": "https://replicate.com/suno-ai/bark",
-            "visibility": "public",
-            "hardware": "Nvidia T4 GPU",
-        }
-
-    @classmethod
-    def return_type(cls):
-        return AudioRef
-
-    def output_key(self):
-        return "audio_out"
-
-    prompt: str = Field(
-        title="Prompt",
-        description="Input prompt",
-        default="Hello, my name is Suno. And, uh — and I like pizza. [laughs] But I also have other interests such as playing tic tac toe.",
-    )
-    text_temp: float = Field(
-        title="Text Temp",
-        description="generation temperature (1.0 more diverse, 0.0 more conservative)",
-        default=0.7,
-    )
-    output_full: bool = Field(
-        title="Output Full",
-        description="return full generation as a .npz file to be used as a history prompt",
-        default=False,
-    )
-    waveform_temp: float = Field(
-        title="Waveform Temp",
-        description="generation temperature (1.0 more diverse, 0.0 more conservative)",
-        default=0.7,
-    )
-    history_prompt: History_prompt | None = Field(
-        description="history choice for audio cloning, choose from the list",
-        default=None,
-    )
-    custom_history_prompt: str | None = Field(
-        title="Custom History Prompt",
-        description="Provide your own .npz file with history choice for audio cloning, this will override the previous history_prompt setting",
-        default=None,
-    )
-
-
 class MusicGen(ReplicateNode):
     """Generate music from a prompt or melody"""
 
@@ -728,17 +545,21 @@ class MusicGen(ReplicateNode):
         RMS = "rms"
 
     @classmethod
+    def get_basic_fields(cls):
+        return ["seed", "top_k", "top_p"]
+
+    @classmethod
     def replicate_model_id(cls):
         return "meta/musicgen:671ac645ce5e552cc63a54a2bbff63fcf798043055d2dac5fc9e36a837eedcfb"
 
     @classmethod
     def get_hardware(cls):
-        return "Nvidia A100 (40GB) GPU"
+        return "None"
 
     @classmethod
     def get_model_info(cls):
         return {
-            "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/e3d6b391-571b-4e24-8531-936a0fee9fba/musicgen.jpeg",
+            "cover_image_url": "https://tjzk.replicate.delivery/models_models_featured_image/a921a8b3-3e9e-48ef-995c-29143ea11bec/musicgen.jpeg",
             "created_at": "2023-06-12T19:22:05.525230Z",
             "description": "Generate music from a prompt or melody",
             "github_url": "https://github.com/replicate/cog-musicgen",
@@ -746,10 +567,10 @@ class MusicGen(ReplicateNode):
             "name": "musicgen",
             "owner": "meta",
             "paper_url": "https://arxiv.org/abs/2306.05284",
-            "run_count": 1732738,
+            "run_count": 2217440,
             "url": "https://replicate.com/meta/musicgen",
             "visibility": "public",
-            "hardware": "Nvidia A100 (40GB) GPU",
+            "weights_url": None,
         }
 
     @classmethod
@@ -828,4 +649,69 @@ class MusicGen(ReplicateNode):
         title="Classifier Free Guidance",
         description="Increases the influence of inputs on the output. Higher values produce lower-varience outputs that adhere more closely to inputs.",
         default=3,
+    )
+
+
+class MMAudio(ReplicateNode):
+    """Add sound to video. An advanced AI model that synthesizes high-quality audio from video content, enabling seamless video-to-audio transformation"""
+
+    @classmethod
+    def get_basic_fields(cls):
+        return ["seed", "video", "prompt"]
+
+    @classmethod
+    def replicate_model_id(cls):
+        return "zsxkib/mmaudio:4b9f801a167b1f6cc2db6ba7ffdeb307630bf411841d4e8300e63ca992de0be9"
+
+    @classmethod
+    def get_hardware(cls):
+        return "None"
+
+    @classmethod
+    def get_model_info(cls):
+        return {
+            "cover_image_url": "https://tjzk.replicate.delivery/models_models_featured_image/34262841-19bf-443c-9892-72488fec1ef2/mmaudio-cover.webp",
+            "created_at": "2024-12-11T14:46:16.273908Z",
+            "description": "Add sound to video. An advanced AI model that synthesizes high-quality audio from video content, enabling seamless video-to-audio transformation",
+            "github_url": "https://github.com/hkchengrex/MMAudio",
+            "license_url": "https://github.com/hkchengrex/MMAudio#MIT-1-ov-file",
+            "name": "mmaudio",
+            "owner": "zsxkib",
+            "paper_url": "https://hkchengrex.github.io/MMAudio",
+            "run_count": 39507,
+            "url": "https://replicate.com/zsxkib/mmaudio",
+            "visibility": "public",
+            "weights_url": "https://huggingface.co/hkchengrex/MMAudio/tree/main",
+        }
+
+    @classmethod
+    def return_type(cls):
+        return AudioRef
+
+    seed: int = Field(
+        title="Seed",
+        description="Random seed. Use -1 to randomize the seed",
+        default=-1,
+    )
+    video: str | None = Field(
+        title="Video",
+        description="Optional video file for video-to-audio generation",
+        default=None,
+    )
+    prompt: str = Field(
+        title="Prompt", description="Text prompt for generated audio", default=""
+    )
+    duration: float = Field(
+        title="Duration", description="Duration of output in seconds", default=8
+    )
+    num_steps: int = Field(
+        title="Num Steps", description="Number of inference steps", default=25
+    )
+    cfg_strength: float = Field(
+        title="Cfg Strength", description="Guidance strength (CFG)", default=4.5
+    )
+    negative_prompt: str = Field(
+        title="Negative Prompt",
+        description="Negative prompt to avoid certain sounds",
+        default="music",
     )
