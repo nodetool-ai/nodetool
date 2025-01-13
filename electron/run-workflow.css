@@ -146,7 +146,7 @@ h4 {
 .results-container {
   -webkit-app-region: no-drag;
   padding-bottom: 80px;
-  overflow: hidden;
+  overflow: auto;
 }
 
 .output-field {
@@ -957,4 +957,24 @@ textarea:disabled {
   object-fit: contain;
   border-radius: 4px;
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+}
+
+.markdown-content {
+  line-height: 1.6;
+}
+
+.markdown-content p {
+  margin: 0.5em 0;
+}
+
+.markdown-content code {
+  background: #f0f0f0;
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
+}
+
+.markdown-content pre code {
+  display: block;
+  padding: 1em;
+  overflow-x: auto;
 }
