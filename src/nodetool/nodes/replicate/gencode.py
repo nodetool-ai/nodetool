@@ -1,7 +1,8 @@
+import asyncio
 from nodetool.providers.replicate.code_generation import (
     create_replicate_namespace,
 )
-from nodetool.metadata.types import AudioRef, ImageRef, VideoRef
+from nodetool.metadata.types import AudioRef, ImageRef, SVGRef, VideoRef
 import argparse
 import dotenv
 import os
@@ -126,11 +127,32 @@ replicate_nodes = [
         "overrides": {"image": ImageRef, "pose_image": ImageRef},
     },
     {
+        "model_id": "grandlineai/instant-id-photorealistic",
+        "node_name": "Instant_ID_Photorealistic",
+        "namespace": "image.face",
+        "return_type": ImageRef,
+        "overrides": {"image": ImageRef},
+    },
+    {
+        "model_id": "grandlineai/instant-id-artistic",
+        "node_name": "Instant_ID_Artistic",
+        "namespace": "image.face",
+        "return_type": ImageRef,
+        "overrides": {"image": ImageRef},
+    },
+    {
         "node_name": "RealEsrGan",
         "namespace": "image.upscale",
         "model_id": "daanelson/real-esrgan-a100",
         "return_type": ImageRef,
         "overrides": {"image": ImageRef},
+    },
+    {
+        "model_id": "tencentarc/gfpgan",
+        "node_name": "GFPGAN",
+        "namespace": "image.upscale",
+        "return_type": ImageRef,
+        "overrides": {"img": ImageRef},
     },
     {
         "node_name": "ClarityUpscaler",
@@ -222,44 +244,51 @@ replicate_nodes = [
         "namespace": "image.generate",
         "return_type": ImageRef,
     },
-    # {
-    #     "model_id": "usamaehsan/controlnet-1.1-x-realistic-vision-v2.0",
-    #     "node_name": "Controlnet_Realistic_Vision",
-    #     "namespace": "image.generate",
-    #     "return_type": ImageRef,
-    #     "overrides": {"image": ImageRef},
-    # },
+    {
+        "model_id": "stability-ai/stable-diffusion-3.5-medium",
+        "node_name": "StableDiffusion3_5_Medium",
+        "namespace": "image.generate",
+        "return_type": ImageRef,
+        "overrides": {"image": ImageRef},
+    },
+    {
+        "model_id": "stability-ai/stable-diffusion-3.5-large",
+        "node_name": "StableDiffusion3_5_Large",
+        "namespace": "image.generate",
+        "return_type": ImageRef,
+        "overrides": {"image": ImageRef},
+    },
+    {
+        "model_id": "stability-ai/stable-diffusion-3.5-large-turbo",
+        "node_name": "StableDiffusion3_5_Large_Turbo",
+        "namespace": "image.generate",
+        "return_type": ImageRef,
+        "overrides": {"image": ImageRef},
+    },
+    {
+        "model_id": "luma/ray",
+        "node_name": "Ray",
+        "namespace": "video.generate",
+        "return_type": VideoRef,
+        "overrides": {"start_image_url": ImageRef, "end_image_url": ImageRef},
+    },
+    {
+        "model_id": "luma/photon-flash",
+        "node_name": "Photon_Flash",
+        "namespace": "image.generate",
+        "return_type": ImageRef,
+        "overrides": {
+            "image_reference_url": ImageRef,
+            "style_reference_url": ImageRef,
+            "character_reference_url": ImageRef,
+        },
+    },
     {
         "model_id": "stability-ai/sdxl",
         "node_name": "StableDiffusionXL",
         "namespace": "image.generate",
         "return_type": ImageRef,
         "overrides": {"image": ImageRef, "mask": ImageRef},
-    },
-    # {
-    #     "model_id": "stability-ai/stable-diffusion-3",
-    #     "node_name": "StableDiffusion3",
-    #     "namespace": "image.generate",
-    #     "return_type": ImageRef,
-    # },
-    {
-        "model_id": "fofr/sd3-explorer",
-        "node_name": "SD3_Explorer",
-        "namespace": "image.generate",
-        "return_type": ImageRef,
-    },
-    {
-        "model_id": "lucataco/juggernaut-xl-v9",
-        "node_name": "Juggernaut_XL_V9",
-        "namespace": "image.generate",
-        "return_type": ImageRef,
-        "overrides": {"image": ImageRef, "mask": ImageRef},
-    },
-    {
-        "model_id": "fofr/epicrealismxl-lightning-hades",
-        "node_name": "EpicRealismXL_Lightning_Hades",
-        "namespace": "image.generate",
-        "return_type": ImageRef,
     },
     {
         "model_id": "swartype/sdxl-pixar",
@@ -276,13 +305,6 @@ replicate_nodes = [
         "overrides": {"image": ImageRef, "mask": ImageRef},
     },
     {
-        "model_id": "lucataco/sdxl-inpainting",
-        "node_name": "StableDiffusionInpainting",
-        "namespace": "image.generate",
-        "return_type": ImageRef,
-        "overrides": {"image": ImageRef},
-    },
-    {
         "model_id": "stability-ai/stable-diffusion-inpainting",
         "node_name": "StableDiffusionInpainting",
         "namespace": "image.generate",
@@ -295,13 +317,6 @@ replicate_nodes = [
         "namespace": "image.generate",
         "return_type": ImageRef,
         "overrides": {"image": ImageRef},
-    },
-    {
-        "model_id": "lucataco/realvisxl-v2.0",
-        "node_name": "RealVisXL_V2",
-        "namespace": "image.generate",
-        "return_type": ImageRef,
-        "overrides": {"image": ImageRef, "mask": ImageRef},
     },
     {
         "model_id": "black-forest-labs/flux-schnell",
@@ -321,26 +336,152 @@ replicate_nodes = [
         "namespace": "image.generate",
         "return_type": ImageRef,
     },
-    # {
-    #     "model_id": "lucataco/realvisxl2-lcm",
-    #     "node_name": "RealVisXL2_LCM",
-    #     "namespace": "image.generate",
-    #     "return_type": ImageRef,
-    #     "overrides": {"image": ImageRef, "mask": ImageRef},
-    # },
-    # {
-    #     "model_id": "fofr/realvisxl-v3-multi-controlnet-lora",
-    #     "node_name": "RealVisXL_V3_Multi_Controlnet_Lora",
-    #     "namespace": "image.generate",
-    #     "return_type": ImageRef,
-    #     "overrides": {
-    #         "image": ImageRef,
-    #         "mask": ImageRef,
-    #         "controlnet_1_image": ImageRef,
-    #         "controlnet_2_image": ImageRef,
-    #         "controlnet_3_image": ImageRef,
-    #     },
-    # },
+    {
+        "model_id": "black-forest-labs/flux-1.1-pro-ultra",
+        "node_name": "Flux_1_1_Pro_Ultra",
+        "namespace": "image.generate",
+        "return_type": ImageRef,
+    },
+    {
+        "model_id": "black-forest-labs/flux-dev-lora",
+        "node_name": "Flux_Dev_Lora",
+        "namespace": "image.generate",
+        "return_type": ImageRef,
+        "overrides": {"image": ImageRef},
+    },
+    {
+        "model_id": "black-forest-labs/flux-schnell-lora",
+        "node_name": "Flux_Schnell_Lora",
+        "namespace": "image.generate",
+        "return_type": ImageRef,
+        "overrides": {"image": ImageRef},
+    },
+    {
+        "model_id": "black-forest-labs/flux-depth-pro",
+        "node_name": "Flux_Depth_Pro",
+        "namespace": "image.generate",
+        "return_type": ImageRef,
+        "overrides": {"control_image": ImageRef},
+    },
+    {
+        "model_id": "black-forest-labs/flux-canny-pro",
+        "node_name": "Flux_Canny_Pro",
+        "namespace": "image.generate",
+        "return_type": ImageRef,
+        "overrides": {"control_image": ImageRef},
+    },
+    {
+        "model_id": "black-forest-labs/flux-fill-pro",
+        "node_name": "Flux_Fill_Pro",
+        "namespace": "image.generate",
+        "return_type": ImageRef,
+        "overrides": {"control_image": ImageRef},
+    },
+    {
+        "model_id": "black-forest-labs/flux-1.1-pro-ultra",
+        "node_name": "Flux_1_1_Pro_Ultra",
+        "namespace": "image.generate",
+        "return_type": ImageRef,
+    },
+    {
+        "model_id": "black-forest-labs/flux-pro",
+        "node_name": "Flux_Pro",
+        "namespace": "image.generate",
+        "return_type": ImageRef,
+    },
+    {
+        "model_id": "black-forest-labs/flux-depth-dev",
+        "node_name": "Flux_Depth_Dev",
+        "namespace": "image.generate",
+        "return_type": ImageRef,
+        "overrides": {"control_image": ImageRef},
+    },
+    {
+        "model_id": "bytedance/hyper-flux-8step",
+        "node_name": "Hyper_Flux_8Step",
+        "namespace": "image.generate",
+        "return_type": ImageRef,
+    },
+    {
+        "model_id": "fofr/flux-mona-lisa",
+        "node_name": "Flux_Mona_Lisa",
+        "namespace": "image.generate",
+        "return_type": ImageRef,
+        "overrides": {"image": ImageRef, "mask": ImageRef},
+    },
+    {
+        "model_id": "adirik/flux-cinestill",
+        "node_name": "Flux_Cinestill",
+        "namespace": "image.generate",
+        "return_type": ImageRef,
+        "overrides": {"image": ImageRef, "mask": ImageRef},
+    },
+    {
+        "model_id": "fofr/flux-black-light",
+        "node_name": "Flux_Black_Light",
+        "namespace": "image.generate",
+        "return_type": ImageRef,
+        "overrides": {"image": ImageRef, "mask": ImageRef},
+    },
+    {
+        "model_id": "igorriti/flux-360",
+        "node_name": "Flux_360",
+        "namespace": "image.generate",
+        "return_type": ImageRef,
+        "overrides": {"image": ImageRef, "mask": ImageRef},
+    },
+    {
+        "model_id": "recraft-ai/recraft-v3",
+        "node_name": "Recraft_V3",
+        "namespace": "image.generate",
+        "return_type": ImageRef,
+    },
+    {
+        "model_id": "recraft-ai/recraft-20b",
+        "node_name": "Recraft_20B",
+        "namespace": "image.generate",
+        "return_type": ImageRef,
+    },
+    {
+        "model_id": "recraft-ai/recraft-20b-svg",
+        "node_name": "Recraft_20B_SVG",
+        "namespace": "image.generate",
+        "return_type": SVGRef,
+    },
+    {
+        "model_id": "recraft-ai/recraft-v3-svg",
+        "node_name": "Recraft_V3_SVG",
+        "namespace": "image.generate",
+        "return_type": SVGRef,
+    },
+    {
+        "model_id": "black-forest-labs/flux-canny-dev",
+        "node_name": "Flux_Canny_Dev",
+        "namespace": "image.generate",
+        "return_type": ImageRef,
+        "overrides": {"control_image": ImageRef},
+    },
+    {
+        "model_id": "black-forest-labs/flux-fill-dev",
+        "node_name": "Flux_Fill_Dev",
+        "namespace": "image.generate",
+        "return_type": ImageRef,
+        "overrides": {"control_image": ImageRef},
+    },
+    {
+        "model_id": "black-forest-labs/flux-redux-schnell",
+        "node_name": "Flux_Redux_Schnell",
+        "namespace": "image.generate",
+        "return_type": ImageRef,
+        "overrides": {"redux_image": ImageRef},
+    },
+    {
+        "model_id": "black-forest-labs/flux-redux-dev",
+        "node_name": "Flux_Redux_Dev",
+        "namespace": "image.generate",
+        "return_type": ImageRef,
+        "overrides": {"redux_image": ImageRef},
+    },
     {
         "model_id": "lucataco/sdxl-controlnet",
         "node_name": "SDXL_Controlnet",
@@ -383,8 +524,15 @@ replicate_nodes = [
         "overrides": {"image": ImageRef},
     },
     {
+        "model_id": "datacte/proteus-v0.2",
+        "node_name": "Proteus_V_02",
+        "namespace": "image.generate",
+        "return_type": ImageRef,
+        "overrides": {"image": ImageRef, "mask": ImageRef},
+    },
+    {
         "model_id": "datacte/proteus-v0.3",
-        "node_name": "Proteus_V0_3",
+        "node_name": "Proteus_V_03",
         "namespace": "image.generate",
         "return_type": ImageRef,
         "overrides": {"image": ImageRef, "mask": ImageRef},
@@ -395,19 +543,6 @@ replicate_nodes = [
         "namespace": "image.generate",
         "return_type": ImageRef,
         "overrides": {"image": ImageRef},
-    },
-    {
-        "node_name": "VideoMorpher",
-        "model_id": "fofr/video-morpher",
-        "return_type": VideoRef,
-        "namespace": "video.generate",
-        "overrides": {
-            "subject_image_1": ImageRef,
-            "subject_image_2": ImageRef,
-            "subject_image_3": ImageRef,
-            "subject_image_4": ImageRef,
-            "style_image": ImageRef,
-        },
     },
     {
         "node_name": "StyleTransfer",
@@ -421,30 +556,6 @@ replicate_nodes = [
         "namespace": "video.generate",
         "model_id": "lucataco/hotshot-xl",
         "return_type": VideoRef,
-    },
-    {
-        "node_name": "AnimateDiff",
-        "namespace": "video.generate",
-        "model_id": "zsxkib/animate-diff",
-        "return_type": VideoRef,
-    },
-    {
-        "node_name": "Tooncrafter",
-        "namespace": "video.generate",
-        "model_id": "fofr/tooncrafter",
-        "return_type": VideoRef,
-        "overrides": {
-            "image_1": ImageRef,
-            "image_2": ImageRef,
-            "image_3": ImageRef,
-            "image_4": ImageRef,
-            "image_5": ImageRef,
-            "image_6": ImageRef,
-            "image_7": ImageRef,
-            "image_8": ImageRef,
-            "image_9": ImageRef,
-            "image_10": ImageRef,
-        },
     },
     {
         "node_name": "Zeroscope_V2_XL",
@@ -466,13 +577,6 @@ replicate_nodes = [
     #     "return_type": VideoRef,
     # },
     {
-        "node_name": "AnimateDiffIllusions",
-        "namespace": "video.generate",
-        "model_id": "zsxkib/animatediff-illusions",
-        "return_type": VideoRef,
-        "overrides": {"controlnet_video": VideoRef},
-    },
-    {
         "node_name": "Illusions",
         "namespace": "image.generate",
         "model_id": "fofr/illusions",
@@ -484,46 +588,25 @@ replicate_nodes = [
         },
     },
     {
-        "model_id": "daanelson/minigpt-4",
-        "node_name": "MiniGPT4",
-        "namespace": "image.analyze",
-        "overrides": {"image": ImageRef},
-        "return_type": "str",
-    },
-    {
-        "model_id": "cuuupid/glm-4v-9b",
-        "node_name": "GLM_4V_9B",
-        "namespace": "image.analyze",
-        "overrides": {"image": ImageRef},
-        "return_type": "str",
-    },
-    {
         "model_id": "lucataco/nsfw_image_detection",
         "node_name": "NSFWImageDetection",
         "namespace": "image.analyze",
         "return_type": "str",
     },
     {
-        "model_id": "yorickvp/llava-v1.6-34b",
-        "node_name": "Llava34B",
+        "model_id": "salesforce/blip",
+        "node_name": "Blip",
         "namespace": "image.analyze",
         "return_type": "str",
         "overrides": {"image": ImageRef},
     },
-    # {
-    #     "model_id": "salesforce/blip",
-    #     "node_name": "Blip",
-    #     "namespace": "image.analyze",
-    #     "return_type": "str",
-    #     "overrides": {"image": ImageRef},
-    # },
-    # {
-    #     "model_id": "andreasjansson/blip-2",
-    #     "node_name": "Blip2",
-    #     "namespace": "image.analyze",
-    #     "return_type": "str",
-    #     "overrides": {"image": ImageRef},
-    # },
+    {
+        "model_id": "andreasjansson/blip-2",
+        "node_name": "Blip2",
+        "namespace": "image.analyze",
+        "return_type": "str",
+        "overrides": {"image": ImageRef},
+    },
     {
         "model_id": "pharmapsychotic/clip-interrogator",
         "node_name": "ClipInterrogator",
@@ -551,6 +634,12 @@ replicate_nodes = [
         "return_type": str,
     },
     {
+        "model_id": "meta/meta-llama-3-8b-instruct",
+        "node_name": "Llama3_8B_Instruct",
+        "namespace": "text.generate",
+        "return_type": str,
+    },
+    {
         "model_id": "meta/meta-llama-3-70b",
         "node_name": "Llama3_70B",
         "namespace": "text.generate",
@@ -565,6 +654,24 @@ replicate_nodes = [
     {
         "model_id": "meta/meta-llama-3-70b-instruct",
         "node_name": "Llama3_70B_Instruct",
+        "namespace": "text.generate",
+        "return_type": str,
+    },
+    {
+        "model_id": "meta/meta-llama-3.1-405b-instruct",
+        "node_name": "Llama3_1_405B_Instruct",
+        "namespace": "text.generate",
+        "return_type": str,
+    },
+    {
+        "model_id": "meta/llama-guard-3-11b-vision",
+        "node_name": "LlamaGuard_3_11B_Vision",
+        "namespace": "text.generate",
+        "return_type": str,
+    },
+    {
+        "model_id": "meta/llama-guard-3-8b",
+        "node_name": "LlamaGuard_3_8B",
         "namespace": "text.generate",
         "return_type": str,
     },
@@ -677,25 +784,82 @@ replicate_nodes = [
     #     "return_type": AudioRef,
     #     "output_key": "audio_out",
     # },
-    # {
-    #     "node_name": "MusicGen",
-    #     "namespace": "audio.generate",
-    #     "model_id": "meta/musicgen",
-    #     "return_type": AudioRef,
-    # },
     {
-        "node_name": "VideoLlava",
-        "namespace": "video.analyze",
-        "model_id": "nateraw/video-llava",
-        "return_type": str,
-        "overrides": {"video_path": VideoRef, "image_path": ImageRef},
+        "node_name": "MusicGen",
+        "namespace": "audio.generate",
+        "model_id": "meta/musicgen",
+        "return_type": AudioRef,
     },
+    # No latest version
+    # {
+    #     "node_name": "VideoLlava",
+    #     "namespace": "video.analyze",
+    #     "model_id": "nateraw/video-llava",
+    #     "return_type": str,
+    #     "overrides": {"video_path": VideoRef, "image_path": ImageRef},
+    # },
     {
         "node_name": "AudioToWaveform",
         "namespace": "video.generate",
         "model_id": "fofr/audio-to-waveform",
         "return_type": VideoRef,
         "overrides": {"audio": AudioRef},
+    },
+    {
+        "model_id": "tencent/hunyuan-video",
+        "node_name": "Hunyuan_Video",
+        "namespace": "video.generate",
+        "return_type": VideoRef,
+    },
+    {
+        "model_id": "minimax/video-01-live",
+        "node_name": "Video_01_Live",
+        "namespace": "video.generate",
+        "return_type": VideoRef,
+    },
+    {
+        "model_id": "zsxkib/mmaudio",
+        "node_name": "MMAudio",
+        "namespace": "audio.generate",
+        "return_type": AudioRef,
+    },
+    {
+        "model_id": "minimax/video-01",
+        "node_name": "Video_01",
+        "namespace": "video.generate",
+        "return_type": VideoRef,
+    },
+    {
+        "model_id": "minimax/music-01",
+        "node_name": "Music_01",
+        "namespace": "video.generate",
+        "return_type": AudioRef,
+        "overrides": {
+            "voice_file": AudioRef,
+            "song_file": AudioRef,
+            "instumental_file": AudioRef,
+        },
+    },
+    {
+        "model_id": "ideogram-ai/ideogram-v2",
+        "node_name": "Ideogram_V2",
+        "namespace": "image.generate",
+        "return_type": ImageRef,
+        "overrides": {"image": ImageRef, "mask": ImageRef},
+    },
+    {
+        "model_id": "ideogram-ai/ideogram-v2-turbo",
+        "node_name": "Ideogram_V2_Turbo",
+        "namespace": "image.generate",
+        "return_type": ImageRef,
+        "overrides": {"image": ImageRef, "mask": ImageRef},
+    },
+    {
+        "model_id": "lightricks/ltx-video",
+        "node_name": "LTX_Video",
+        "namespace": "video.generate",
+        "return_type": VideoRef,
+        "overrides": {"image": ImageRef},
     },
 ]
 
@@ -713,7 +877,9 @@ if __name__ == "__main__":
                 nodes.append(node)
 
         print(f"Creating namespace: {args.namespace}")
-        create_replicate_namespace(replicate_nodes_folder, args.namespace, nodes)
+        asyncio.run(
+            create_replicate_namespace(replicate_nodes_folder, args.namespace, nodes)
+        )
     else:
         nodes_by_namespace = {}
         for node in replicate_nodes:
@@ -723,4 +889,6 @@ if __name__ == "__main__":
 
         for namespace, nodes in nodes_by_namespace.items():
             print(f"Creating namespace: {namespace}")
-            create_replicate_namespace(replicate_nodes_folder, namespace, nodes)
+            asyncio.run(
+                create_replicate_namespace(replicate_nodes_folder, namespace, nodes)
+            )

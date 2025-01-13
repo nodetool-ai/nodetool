@@ -9,12 +9,16 @@ class RemoveBackground(ReplicateNode):
     """Remove images background"""
 
     @classmethod
+    def get_basic_fields(cls):
+        return ["image"]
+
+    @classmethod
     def replicate_model_id(cls):
         return "cjwbw/rembg:fb8af171cfa1616ddcf1242c093f9c46bcada5ad4cf6f2fbe8b81b330ec5c003"
 
     @classmethod
     def get_hardware(cls):
-        return "Nvidia A40 GPU"
+        return "None"
 
     @classmethod
     def get_model_info(cls):
@@ -27,10 +31,10 @@ class RemoveBackground(ReplicateNode):
             "name": "rembg",
             "owner": "cjwbw",
             "paper_url": None,
-            "run_count": 6022214,
+            "run_count": 7573408,
             "url": "https://replicate.com/cjwbw/rembg",
             "visibility": "public",
-            "hardware": "Nvidia A40 GPU",
+            "weights_url": None,
         }
 
     @classmethod
@@ -44,12 +48,16 @@ class ModNet(ReplicateNode):
     """A deep learning approach to remove background & adding new background image"""
 
     @classmethod
+    def get_basic_fields(cls):
+        return ["image"]
+
+    @classmethod
     def replicate_model_id(cls):
         return "pollinations/modnet:da7d45f3b836795f945f221fc0b01a6d3ab7f5e163f13208948ad436001e2255"
 
     @classmethod
     def get_hardware(cls):
-        return "Nvidia T4 GPU"
+        return "None"
 
     @classmethod
     def get_model_info(cls):
@@ -62,10 +70,10 @@ class ModNet(ReplicateNode):
             "name": "modnet",
             "owner": "pollinations",
             "paper_url": "https://arxiv.org/pdf/2011.11961.pdf",
-            "run_count": 522031,
+            "run_count": 618937,
             "url": "https://replicate.com/pollinations/modnet",
             "visibility": "public",
-            "hardware": "Nvidia T4 GPU",
+            "weights_url": None,
         }
 
     @classmethod
@@ -83,17 +91,21 @@ class DD_Color(ReplicateNode):
         TINY = "tiny"
 
     @classmethod
+    def get_basic_fields(cls):
+        return ["image", "model_size"]
+
+    @classmethod
     def replicate_model_id(cls):
         return "piddnad/ddcolor:ca494ba129e44e45f661d6ece83c4c98a9a7c774309beca01429b58fce8aa695"
 
     @classmethod
     def get_hardware(cls):
-        return "Nvidia A40 (Large) GPU"
+        return "None"
 
     @classmethod
     def get_model_info(cls):
         return {
-            "cover_image_url": "https://replicate.delivery/pbxt/ZumJoHeMlA0WVyesmCZlkoKtNPakny5ariWAaXR3aEhvflXkA/out.png",
+            "cover_image_url": "https://tjzk.replicate.delivery/models_models_featured_image/d8d3648a-044e-4474-8392-87d52c0c2c68/ddcolor.jpg",
             "created_at": "2024-01-12T15:02:06.387410Z",
             "description": "Towards Photo-Realistic Image Colorization via Dual Decoders",
             "github_url": "https://github.com/piddnad/DDColor",
@@ -101,10 +113,10 @@ class DD_Color(ReplicateNode):
             "name": "ddcolor",
             "owner": "piddnad",
             "paper_url": "https://arxiv.org/abs/2212.11613",
-            "run_count": 84779,
+            "run_count": 177834,
             "url": "https://replicate.com/piddnad/ddcolor",
             "visibility": "public",
-            "hardware": "Nvidia A40 (Large) GPU",
+            "weights_url": None,
         }
 
     @classmethod
@@ -132,12 +144,16 @@ class Magic_Style_Transfer(ReplicateNode):
         PNDM = "PNDM"
 
     @classmethod
+    def get_basic_fields(cls):
+        return ["seed", "image", "prompt"]
+
+    @classmethod
     def replicate_model_id(cls):
         return "batouresearch/magic-style-transfer:3b5fa5d360c361090f11164292e45cc5d14cea8d089591d47c580cac9ec1c7ca"
 
     @classmethod
     def get_hardware(cls):
-        return "Nvidia A40 (Large) GPU"
+        return "None"
 
     @classmethod
     def get_model_info(cls):
@@ -150,10 +166,10 @@ class Magic_Style_Transfer(ReplicateNode):
             "name": "magic-style-transfer",
             "owner": "batouresearch",
             "paper_url": None,
-            "run_count": 3202,
+            "run_count": 24650,
             "url": "https://replicate.com/batouresearch/magic-style-transfer",
             "visibility": "public",
-            "hardware": "Nvidia A40 (Large) GPU",
+            "weights_url": None,
         }
 
     @classmethod
@@ -262,12 +278,16 @@ class ObjectRemover(ReplicateNode):
     """None"""
 
     @classmethod
+    def get_basic_fields(cls):
+        return ["org_image", "mask_image"]
+
+    @classmethod
     def replicate_model_id(cls):
         return "codeplugtech/object_remover:499559d430d997c34aa80142bfede2ad182b78e9dda9e8e03be5689d99969282"
 
     @classmethod
     def get_hardware(cls):
-        return "Nvidia A40 (Large) GPU"
+        return "None"
 
     @classmethod
     def get_model_info(cls):
@@ -280,10 +300,10 @@ class ObjectRemover(ReplicateNode):
             "name": "object_remover",
             "owner": "codeplugtech",
             "paper_url": None,
-            "run_count": 1837,
+            "run_count": 5365,
             "url": "https://replicate.com/codeplugtech/object_remover",
             "visibility": "public",
-            "hardware": "Nvidia A40 (Large) GPU",
+            "weights_url": None,
         }
 
     @classmethod

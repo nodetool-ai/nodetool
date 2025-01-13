@@ -5,113 +5,78 @@ from nodetool.providers.replicate.replicate_node import ReplicateNode
 from enum import Enum
 
 
-class VideoMorpher(ReplicateNode):
-    """Generate a video that morphs between subjects, with an optional style"""
-
-    class Mode(str, Enum):
-        SMALL = "small"
-        MEDIUM = "medium"
-        UPSCALED = "upscaled"
-        UPSCALED_AND_INTERPOLATED = "upscaled-and-interpolated"
-
-    class Checkpoint(str, Enum):
-        REALISTIC = "realistic"
-        ILLUSTRATED = "illustrated"
-        ANIME = "anime"
-        _3D = "3D"
-        ANY = "any"
+class Ray(ReplicateNode):
+    """Fast, high quality text-to-video and image-to-video (Also known as Dream Machine)"""
 
     class Aspect_ratio(str, Enum):
-        _16_9 = "16:9"
-        _4_3 = "4:3"
-        _3_2 = "3:2"
         _1_1 = "1:1"
-        _2_3 = "2:3"
         _3_4 = "3:4"
+        _4_3 = "4:3"
         _9_16 = "9:16"
+        _16_9 = "16:9"
+        _9_21 = "9:21"
+        _21_9 = "21:9"
+
+    @classmethod
+    def get_basic_fields(cls):
+        return ["loop", "prompt", "aspect_ratio"]
 
     @classmethod
     def replicate_model_id(cls):
-        return "fofr/video-morpher:e70e975067d2b5dbe9e2d9022833d27230a1bdeb3f4af6fe6bb49a548a3039a7"
+        return (
+            "luma/ray:8af469846e8ba045167fb3f1570af72f6545901b2d815b851aa36e5c33b5e1e5"
+        )
 
     @classmethod
     def get_hardware(cls):
-        return "Nvidia A40 (Large) GPU"
+        return "None"
 
     @classmethod
     def get_model_info(cls):
         return {
-            "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/cd22e70a-5a93-463d-87ae-bb328d3a2573/ezgif-7-39b54a9237.gif",
-            "created_at": "2024-04-24T13:25:30.032622Z",
-            "description": "Generate a video that morphs between subjects, with an optional style",
-            "github_url": "https://github.com/fofr/cog-video-morpher",
-            "license_url": "https://github.com/fofr/cog-video-morpher/blob/main/LICENSE",
-            "name": "video-morpher",
-            "owner": "fofr",
-            "paper_url": None,
-            "run_count": 6594,
-            "url": "https://replicate.com/fofr/video-morpher",
+            "cover_image_url": "https://tjzk.replicate.delivery/models_models_featured_image/496f8ab2-3a87-4fe7-9867-5572460c2b5e/ray-cover.webp",
+            "created_at": "2024-12-12T16:30:42.287210Z",
+            "description": "Fast, high quality text-to-video and image-to-video (Also known as Dream Machine)",
+            "github_url": None,
+            "license_url": "https://lumalabs.ai/dream-machine/api/terms",
+            "name": "ray",
+            "owner": "luma",
+            "paper_url": "https://lumalabs.ai/dream-machine",
+            "run_count": 6683,
+            "url": "https://replicate.com/luma/ray",
             "visibility": "public",
-            "hardware": "Nvidia A40 (Large) GPU",
+            "weights_url": None,
         }
 
     @classmethod
     def return_type(cls):
         return VideoRef
 
-    mode: Mode = Field(
-        description="Determines if you produce a quick experimental video or an upscaled interpolated one. (small ~20s, medium ~60s, upscaled ~2min, upscaled-and-interpolated ~4min)",
-        default=Mode("medium"),
+    loop: bool = Field(
+        title="Loop", description="Whether the video should loop", default=False
     )
-    seed: int | None = Field(
-        title="Seed",
-        description="Set a seed for reproducibility. Random by default.",
-        default=None,
-    )
-    prompt: str = Field(
-        title="Prompt",
-        description="The prompt has a small effect, but most of the video is driven by the subject images",
-        default="",
-    )
-    checkpoint: Checkpoint = Field(
-        description="The checkpoint to use for the model",
-        default=Checkpoint("realistic"),
-    )
-    style_image: ImageRef = Field(
-        default=ImageRef(),
-        description="Apply the style from this image to the whole video",
+    prompt: str | None = Field(
+        title="Prompt", description="Text prompt for video generation", default=None
     )
     aspect_ratio: Aspect_ratio = Field(
-        description="The aspect ratio of the video", default=Aspect_ratio("2:3")
+        description="Aspect ratio of the video (e.g. '16:9'). Ignored if a start or end frame or video ID is given.",
+        default=Aspect_ratio("16:9"),
     )
-    style_strength: float = Field(
-        title="Style Strength",
-        description="How strong the style is applied",
-        ge=0.0,
-        le=2.0,
-        default=1,
+    end_video_id: str | None = Field(
+        title="End Video Id",
+        description="Prepend a new video generation to the beginning of an existing one (Also called 'reverse extend'). You can combine this with start_image_url, or start_video_id.",
+        default=None,
     )
-    use_controlnet: bool = Field(
-        title="Use Controlnet",
-        description="Use geometric circles to guide the generation",
-        default=True,
+    end_image_url: ImageRef = Field(
+        default=ImageRef(), description="URL of an image to use as the ending frame"
     )
-    negative_prompt: str = Field(
-        title="Negative Prompt",
-        description="What you do not want to see in the video",
-        default="",
+    start_video_id: str | None = Field(
+        title="Start Video Id",
+        description="Continue or extend a video generation with a new generation. You can combine this with end_image_url, or end_video_id.",
+        default=None,
     )
-    subject_image_1: ImageRef = Field(
-        default=ImageRef(), description="The first subject of the video"
-    )
-    subject_image_2: ImageRef = Field(
-        default=ImageRef(), description="The second subject of the video"
-    )
-    subject_image_3: ImageRef = Field(
-        default=ImageRef(), description="The third subject of the video"
-    )
-    subject_image_4: ImageRef = Field(
-        default=ImageRef(), description="The fourth subject of the video"
+    start_image_url: ImageRef = Field(
+        default=ImageRef(), description="URL of an image to use as the starting frame"
     )
 
 
@@ -160,17 +125,21 @@ class HotshotXL(ReplicateNode):
         PNDMSCHEDULER = "PNDMScheduler"
 
     @classmethod
+    def get_basic_fields(cls):
+        return ["mp4", "seed", "steps"]
+
+    @classmethod
     def replicate_model_id(cls):
         return "lucataco/hotshot-xl:78b3a6257e16e4b241245d65c8b2b81ea2e1ff7ed4c55306b511509ddbfd327a"
 
     @classmethod
     def get_hardware(cls):
-        return "Nvidia A40 GPU"
+        return "None"
 
     @classmethod
     def get_model_info(cls):
         return {
-            "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/ed1749eb-87a6-45a9-bff3-cac89b7df97a/output.gif",
+            "cover_image_url": "https://tjzk.replicate.delivery/models_models_featured_image/70393e62-deab-4f95-ace7-eaeb8a9800db/compressed.gif",
             "created_at": "2023-10-05T04:09:21.646870Z",
             "description": "😊 Hotshot-XL is an AI text-to-GIF model trained to work alongside Stable Diffusion XL",
             "github_url": "https://github.com/lucataco/cog-hotshot-xl",
@@ -178,10 +147,10 @@ class HotshotXL(ReplicateNode):
             "name": "hotshot-xl",
             "owner": "lucataco",
             "paper_url": "https://huggingface.co/hotshotco/SDXL-512",
-            "run_count": 103080,
+            "run_count": 428229,
             "url": "https://replicate.com/lucataco/hotshot-xl",
             "visibility": "public",
-            "hardware": "Nvidia A40 GPU",
+            "weights_url": None,
         }
 
     @classmethod
@@ -219,247 +188,6 @@ class HotshotXL(ReplicateNode):
     )
 
 
-class AnimateDiff(ReplicateNode):
-    """🎨 AnimateDiff (w/ MotionLoRAs for Panning, Zooming, etc): Animate Your Personalized Text-to-Image Diffusion Models without Specific Tuning"""
-
-    class Base_model(str, Enum):
-        REALISTICVISIONV20_V20 = "realisticVisionV20_v20"
-        LYRIEL_V16 = "lyriel_v16"
-        MAJICMIXREALISTIC_V5PREVIEW = "majicmixRealistic_v5Preview"
-        RCNZCARTOON3D_V10 = "rcnzCartoon3d_v10"
-        TOONYOU_BETA3 = "toonyou_beta3"
-
-    class Output_format(str, Enum):
-        MP4 = "mp4"
-        GIF = "gif"
-
-    @classmethod
-    def replicate_model_id(cls):
-        return "zsxkib/animate-diff:269a616c8b0c2bbc12fc15fd51bb202b11e94ff0f7786c026aa905305c4ed9fb"
-
-    @classmethod
-    def get_hardware(cls):
-        return "Nvidia A40 GPU"
-
-    @classmethod
-    def get_model_info(cls):
-        return {
-            "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/336d5c4e-4fd1-415a-a3f7-4a40fa5bdf2b/a_middle-aged_woman_utilizing__zo.gif",
-            "created_at": "2023-09-26T19:55:56.734880Z",
-            "description": "🎨 AnimateDiff (w/ MotionLoRAs for Panning, Zooming, etc): Animate Your Personalized Text-to-Image Diffusion Models without Specific Tuning",
-            "github_url": "https://github.com/guoyww/AnimateDiff",
-            "license_url": "https://github.com/guoyww/AnimateDiff/blob/main/LICENSE.txt",
-            "name": "animate-diff",
-            "owner": "zsxkib",
-            "paper_url": "https://arxiv.org/abs/2307.04725",
-            "run_count": 39493,
-            "url": "https://replicate.com/zsxkib/animate-diff",
-            "visibility": "public",
-            "hardware": "Nvidia A40 GPU",
-        }
-
-    @classmethod
-    def return_type(cls):
-        return VideoRef
-
-    seed: int = Field(
-        title="Seed",
-        description="Seed for different images and reproducibility. Use -1 to randomise seed",
-        default=-1,
-    )
-    steps: int = Field(
-        title="Steps",
-        description="Number of inference steps",
-        ge=1.0,
-        le=100.0,
-        default=25,
-    )
-    width: int = Field(title="Width", description="Width in pixels", default=512)
-    frames: int = Field(
-        title="Frames",
-        description="Length of the video in frames (playback is at 8 fps e.g. 16 frames @ 8 fps is 2 seconds)",
-        ge=1.0,
-        le=32.0,
-        default=16,
-    )
-    height: int = Field(title="Height", description="Height in pixels", default=512)
-    prompt: str = Field(
-        title="Prompt",
-        default="photo of vocano, rocks, storm weather, wind, lava waves, lightning, 8k uhd, dslr, soft lighting, high quality, film grain, Fujifilm XT3",
-    )
-    base_model: Base_model = Field(
-        description="Select a base model (DreamBooth checkpoint)",
-        default=Base_model("realisticVisionV20_v20"),
-    )
-    output_format: Output_format = Field(
-        description="Output format of the video. Can be 'mp4' or 'gif'",
-        default=Output_format("mp4"),
-    )
-    guidance_scale: float = Field(
-        title="Guidance Scale",
-        description="Guidance Scale. How closely do we want to adhere to the prompt and its contents",
-        ge=0.0,
-        le=20.0,
-        default=7.5,
-    )
-    negative_prompt: str = Field(
-        title="Negative Prompt",
-        default="blur, haze, deformed iris, deformed pupils, semi-realistic, cgi, 3d, render, sketch, cartoon, drawing, anime, mutated hands and fingers, deformed, distorted, disfigured, poorly drawn, bad anatomy, wrong anatomy, extra limb, missing limb, floating limbs, disconnected limbs, mutation, mutated, ugly, disgusting, amputation",
-    )
-    pan_up_motion_strength: float = Field(
-        title="Pan Up Motion Strength",
-        description="Strength of Pan Up Motion LoRA. 0 disables the LoRA",
-        ge=0.0,
-        le=1.0,
-        default=0,
-    )
-    zoom_in_motion_strength: float = Field(
-        title="Zoom In Motion Strength",
-        description="Strength of Zoom In Motion LoRA. 0 disables the LoRA",
-        ge=0.0,
-        le=1.0,
-        default=0,
-    )
-    pan_down_motion_strength: float = Field(
-        title="Pan Down Motion Strength",
-        description="Strength of Pan Down Motion LoRA. 0 disables the LoRA",
-        ge=0.0,
-        le=1.0,
-        default=0,
-    )
-    pan_left_motion_strength: float = Field(
-        title="Pan Left Motion Strength",
-        description="Strength of Pan Left Motion LoRA. 0 disables the LoRA",
-        ge=0.0,
-        le=1.0,
-        default=0,
-    )
-    zoom_out_motion_strength: float = Field(
-        title="Zoom Out Motion Strength",
-        description="Strength of Zoom Out Motion LoRA. 0 disables the LoRA",
-        ge=0.0,
-        le=1.0,
-        default=0,
-    )
-    pan_right_motion_strength: float = Field(
-        title="Pan Right Motion Strength",
-        description="Strength of Pan Right Motion LoRA. 0 disables the LoRA",
-        ge=0.0,
-        le=1.0,
-        default=0,
-    )
-    rolling_clockwise_motion_strength: float = Field(
-        title="Rolling Clockwise Motion Strength",
-        description="Strength of Rolling Clockwise Motion LoRA. 0 disables the LoRA",
-        ge=0.0,
-        le=1.0,
-        default=0,
-    )
-    rolling_anticlockwise_motion_strength: float = Field(
-        title="Rolling Anticlockwise Motion Strength",
-        description="Strength of Rolling Anticlockwise Motion LoRA. 0 disables the LoRA",
-        ge=0.0,
-        le=1.0,
-        default=0,
-    )
-
-
-class Tooncrafter(ReplicateNode):
-    """Create videos from illustrated input images"""
-
-    @classmethod
-    def replicate_model_id(cls):
-        return "fofr/tooncrafter:51bf654d60d307ab45c4ffe09546a3c9606f8f33861ab28f5bb0e43ad3fa40ed"
-
-    @classmethod
-    def get_hardware(cls):
-        return "Nvidia A100 (40GB) GPU"
-
-    @classmethod
-    def get_model_info(cls):
-        return {
-            "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/e3adaa0a-c534-496c-81d1-281f9000fbb4/tooncrafter.gif",
-            "created_at": "2024-06-02T21:29:15.300292Z",
-            "description": "Create videos from illustrated input images",
-            "github_url": "https://github.com/fofr/cog-comfyui-tooncrafter",
-            "license_url": "https://github.com/fofr/cog-comfyui-tooncrafter/blob/main/LICENSE",
-            "name": "tooncrafter",
-            "owner": "fofr",
-            "paper_url": "https://doubiiu.github.io/projects/ToonCrafter/",
-            "run_count": 8583,
-            "url": "https://replicate.com/fofr/tooncrafter",
-            "visibility": "public",
-            "hardware": "Nvidia A100 (40GB) GPU",
-        }
-
-    @classmethod
-    def return_type(cls):
-        return VideoRef
-
-    loop: bool = Field(title="Loop", description="Loop the video", default=False)
-    seed: int | None = Field(
-        title="Seed",
-        description="Set a seed for reproducibility. Random by default.",
-        default=None,
-    )
-    prompt: str = Field(title="Prompt", default="")
-    image_1: ImageRef = Field(default=ImageRef(), description="First input image")
-    image_2: ImageRef = Field(default=ImageRef(), description="Second input image")
-    image_3: ImageRef = Field(
-        default=ImageRef(), description="Third input image (optional)"
-    )
-    image_4: ImageRef = Field(
-        default=ImageRef(), description="Fourth input image (optional)"
-    )
-    image_5: ImageRef = Field(
-        default=ImageRef(), description="Fifth input image (optional)"
-    )
-    image_6: ImageRef = Field(
-        default=ImageRef(), description="Sixth input image (optional)"
-    )
-    image_7: ImageRef = Field(
-        default=ImageRef(), description="Seventh input image (optional)"
-    )
-    image_8: ImageRef = Field(
-        default=ImageRef(), description="Eighth input image (optional)"
-    )
-    image_9: ImageRef = Field(
-        default=ImageRef(), description="Ninth input image (optional)"
-    )
-    image_10: ImageRef = Field(
-        default=ImageRef(), description="Tenth input image (optional)"
-    )
-    max_width: int = Field(
-        title="Max Width",
-        description="Maximum width of the video",
-        ge=256.0,
-        le=768.0,
-        default=512,
-    )
-    max_height: int = Field(
-        title="Max Height",
-        description="Maximum height of the video",
-        ge=256.0,
-        le=768.0,
-        default=512,
-    )
-    interpolate: bool = Field(
-        title="Interpolate",
-        description="Enable 2x interpolation using FILM",
-        default=False,
-    )
-    negative_prompt: str = Field(
-        title="Negative Prompt",
-        description="Things you do not want to see in your video",
-        default="",
-    )
-    color_correction: bool = Field(
-        title="Color Correction",
-        description="If the colors are coming out strange, or if the colors between your input images are very different, disable this",
-        default=True,
-    )
-
-
 class Zeroscope_V2_XL(ReplicateNode):
     """Zeroscope V2 XL & 576w"""
 
@@ -470,17 +198,21 @@ class Zeroscope_V2_XL(ReplicateNode):
         ANIMOV_512X = "animov-512x"
 
     @classmethod
+    def get_basic_fields(cls):
+        return ["fps", "seed", "model"]
+
+    @classmethod
     def replicate_model_id(cls):
         return "anotherjesse/zeroscope-v2-xl:9f747673945c62801b13b84701c783929c0ee784e4748ec062204894dda1a351"
 
     @classmethod
     def get_hardware(cls):
-        return "Nvidia A100 (40GB) GPU"
+        return "None"
 
     @classmethod
     def get_model_info(cls):
         return {
-            "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/021a0a2e-b57b-4b45-a5c7-e29773aa5345/1mrNnh8.png",
+            "cover_image_url": "https://tjzk.replicate.delivery/models_models_featured_image/d56e8888-a591-4edd-a9d3-2285b2ab66b4/1mrNnh8.jpg",
             "created_at": "2023-06-24T18:30:41.874899Z",
             "description": "Zeroscope V2 XL & 576w",
             "github_url": "https://github.com/anotherjesse/cog-text2video",
@@ -488,10 +220,10 @@ class Zeroscope_V2_XL(ReplicateNode):
             "name": "zeroscope-v2-xl",
             "owner": "anotherjesse",
             "paper_url": "https://huggingface.co/cerspense/zeroscope_v2_576w",
-            "run_count": 262471,
+            "run_count": 283226,
             "url": "https://replicate.com/anotherjesse/zeroscope-v2-xl",
             "visibility": "public",
-            "hardware": "Nvidia A100 (40GB) GPU",
+            "weights_url": None,
         }
 
     @classmethod
@@ -563,12 +295,16 @@ class RobustVideoMatting(ReplicateNode):
         FOREGROUND_MASK = "foreground-mask"
 
     @classmethod
+    def get_basic_fields(cls):
+        return ["input_video", "output_type"]
+
+    @classmethod
     def replicate_model_id(cls):
         return "arielreplicate/robust_video_matting:73d2128a371922d5d1abf0712a1d974be0e4e2358cc1218e4e34714767232bac"
 
     @classmethod
     def get_hardware(cls):
-        return "Nvidia T4 GPU"
+        return "None"
 
     @classmethod
     def get_model_info(cls):
@@ -581,10 +317,10 @@ class RobustVideoMatting(ReplicateNode):
             "name": "robust_video_matting",
             "owner": "arielreplicate",
             "paper_url": "https://arxiv.org/abs/2108.11515",
-            "run_count": 44518,
+            "run_count": 48967,
             "url": "https://replicate.com/arielreplicate/robust_video_matting",
             "visibility": "public",
-            "hardware": "Nvidia T4 GPU",
+            "weights_url": None,
         }
 
     @classmethod
@@ -595,258 +331,12 @@ class RobustVideoMatting(ReplicateNode):
     output_type: Output_type = Field(default=Output_type("green-screen"))
 
 
-class StableDiffusionInfiniteZoom(ReplicateNode):
-    """Use Runway's Stable-diffusion inpainting model to create an infinite loop video"""
-
-    class Output_format(str, Enum):
-        MP4 = "mp4"
-        GIF = "gif"
-
-    @classmethod
-    def replicate_model_id(cls):
-        return "arielreplicate/stable_diffusion_infinite_zoom:a2527c5074fc0cf9fa6015a40d75d080d1ddf7082fabe142f1ccd882c18fce61"
-
-    @classmethod
-    def get_hardware(cls):
-        return "Nvidia A100 (40GB) GPU"
-
-    @classmethod
-    def get_model_info(cls):
-        return {
-            "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/0d244e1c-0f30-49ee-acb4-6a451c27f82f/infinite_zoom.gif",
-            "created_at": "2022-10-30T16:19:54.154872Z",
-            "description": "Use Runway's Stable-diffusion inpainting model to create an infinite loop video",
-            "github_url": "https://github.com/ArielReplicate/stable-diffusion-infinite-zoom",
-            "license_url": "https://github.com/ArielReplicate/stable-diffusion-infinite-zoom/blob/add-cog/LICENSE",
-            "name": "stable_diffusion_infinite_zoom",
-            "owner": "arielreplicate",
-            "paper_url": None,
-            "run_count": 35819,
-            "url": "https://replicate.com/arielreplicate/stable_diffusion_infinite_zoom",
-            "visibility": "public",
-            "hardware": "Nvidia A100 (40GB) GPU",
-        }
-
-    @classmethod
-    def return_type(cls):
-        return VideoRef
-
-    prompt: str | None = Field(title="Prompt", description="Prompt", default=None)
-    inpaint_iter: int = Field(
-        title="Inpaint Iter",
-        description="Number of iterations of pasting the image in it's center and inpainting the boarders",
-        default=2,
-    )
-    output_format: Output_format = Field(
-        description="infinite loop gif or mp4 video", default=Output_format("mp4")
-    )
-
-
-class AnimateDiffIllusions(ReplicateNode):
-    """Monster Labs' Controlnet QR Code Monster v2 For SD-1.5 on top of AnimateDiff Prompt Travel (Motion Module SD 1.5 v2)"""
-
-    class Scheduler(str, Enum):
-        DDIM = "ddim"
-        PNDM = "pndm"
-        HEUN = "heun"
-        UNIPC = "unipc"
-        EULER = "euler"
-        EULER_A = "euler_a"
-        LMS = "lms"
-        K_LMS = "k_lms"
-        DPM_2 = "dpm_2"
-        K_DPM_2 = "k_dpm_2"
-        DPM_2_A = "dpm_2_a"
-        K_DPM_2_A = "k_dpm_2_a"
-        DPMPP_2M = "dpmpp_2m"
-        K_DPMPP_2M = "k_dpmpp_2m"
-        DPMPP_SDE = "dpmpp_sde"
-        K_DPMPP_SDE = "k_dpmpp_sde"
-        DPMPP_2M_SDE = "dpmpp_2m_sde"
-        K_DPMPP_2M_SDE = "k_dpmpp_2m_sde"
-
-    class Base_model(str, Enum):
-        REALISTICVISIONV40_V20NOVAE = "realisticVisionV40_v20Novae"
-        LYRIEL_V16 = "lyriel_v16"
-        MAJICMIXREALISTIC_V5PREVIEW = "majicmixRealistic_v5Preview"
-        RCNZCARTOON3D_V10 = "rcnzCartoon3d_v10"
-        TOONYOU_BETA3 = "toonyou_beta3"
-        CUSTOM = "CUSTOM"
-
-    class Output_format(str, Enum):
-        MP4 = "mp4"
-        GIF = "gif"
-
-    @classmethod
-    def replicate_model_id(cls):
-        return "zsxkib/animatediff-illusions:b3ccb0101402aafd04bfea042950be606223e2abedbad93cf848bfffa072bb61"
-
-    @classmethod
-    def get_hardware(cls):
-        return "Nvidia A40 (Large) GPU"
-
-    @classmethod
-    def get_model_info(cls):
-        return {
-            "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/f6b87381-05b4-44d2-a1fd-f6bf45cf2580/output.gif",
-            "created_at": "2023-10-26T12:08:10.288839Z",
-            "description": "Monster Labs' Controlnet QR Code Monster v2 For SD-1.5 on top of AnimateDiff Prompt Travel (Motion Module SD 1.5 v2)",
-            "github_url": "https://github.com/s9roll7/animatediff-cli-prompt-travel",
-            "license_url": "https://github.com/s9roll7/animatediff-cli-prompt-travel/blob/main/LICENSE.md",
-            "name": "animatediff-illusions",
-            "owner": "zsxkib",
-            "paper_url": "https://arxiv.org/abs/2307.04725",
-            "run_count": 8435,
-            "url": "https://replicate.com/zsxkib/animatediff-illusions",
-            "visibility": "public",
-            "hardware": "Nvidia A40 (Large) GPU",
-        }
-
-    @classmethod
-    def return_type(cls):
-        return VideoRef
-
-    loop: bool = Field(
-        title="Loop",
-        description="Flag to loop the video. Use when you have an 'infinitely' repeating video/gif ControlNet video",
-        default=True,
-    )
-    seed: int | None = Field(
-        title="Seed",
-        description="Seed for different images and reproducibility. Leave blank to randomise seed",
-        default=None,
-    )
-    steps: int = Field(
-        title="Steps",
-        description="Number of inference steps",
-        ge=1.0,
-        le=100.0,
-        default=25,
-    )
-    width: int = Field(
-        title="Width",
-        description="Width of generated video in pixels, must be divisable by 8",
-        ge=64.0,
-        le=2160.0,
-        default=256,
-    )
-    frames: int = Field(
-        title="Frames",
-        description="Length of the video in frames (playback is at 8 fps e.g. 16 frames @ 8 fps is 2 seconds)",
-        ge=1.0,
-        le=1024.0,
-        default=128,
-    )
-    height: int = Field(
-        title="Height",
-        description="Height of generated video in pixels, must be divisable by 8",
-        ge=64.0,
-        le=2160.0,
-        default=384,
-    )
-    context: int = Field(
-        title="Context",
-        description="Number of frames to condition on (default: max of <length> or 32). max for motion module v1 is 24",
-        ge=1.0,
-        le=32.0,
-        default=16,
-    )
-    clip_skip: int = Field(
-        title="Clip Skip",
-        description="Skip the last N-1 layers of the CLIP text encoder (lower values follow prompt more closely)",
-        ge=1.0,
-        le=6.0,
-        default=2,
-    )
-    scheduler: Scheduler = Field(
-        description="Diffusion scheduler", default=Scheduler("k_dpmpp_sde")
-    )
-    base_model: Base_model = Field(
-        description="Choose the base model for animation generation. If 'CUSTOM' is selected, provide a custom model URL in the next parameter",
-        default=Base_model("majicmixRealistic_v5Preview"),
-    )
-    prompt_map: str = Field(
-        title="Prompt Map",
-        description="Prompt for changes in animation. Provide 'frame number : prompt at this frame', separate different prompts with '|'. Make sure the frame number does not exceed the length of video (frames)",
-        default="",
-    )
-    head_prompt: str = Field(
-        title="Head Prompt",
-        description="Primary animation prompt. If a prompt map is provided, this will be prefixed at the start of every individual prompt in the map",
-        default="masterpiece, best quality, a haunting and detailed depiction of a ship at sea, battered by waves, ominous,((dark clouds:1.3)),distant lightning, rough seas, rain, silhouette of the ship against the stormy sky",
-    )
-    tail_prompt: str = Field(
-        title="Tail Prompt",
-        description="Additional prompt that will be appended at the end of the main prompt or individual prompts in the map",
-        default="",
-    )
-    output_format: Output_format = Field(
-        description="Output format of the video. Can be 'mp4' or 'gif'",
-        default=Output_format("mp4"),
-    )
-    guidance_scale: float = Field(
-        title="Guidance Scale",
-        description="Guidance Scale. How closely do we want to adhere to the prompt and its contents",
-        ge=0.0,
-        le=20.0,
-        default=7.5,
-    )
-    negative_prompt: str = Field(title="Negative Prompt", default="")
-    controlnet_video: VideoRef = Field(
-        default=VideoRef(),
-        description="A short video/gif that will be used as the keyframes for QR Code Monster to use, Please note, all of the frames will be used as keyframes",
-    )
-    film_interpolation: bool = Field(
-        title="Film Interpolation",
-        description="Whether to use FILM for between-frame interpolation (film-net.github.io)",
-        default=True,
-    )
-    prompt_fixed_ratio: float = Field(
-        title="Prompt Fixed Ratio",
-        description="Defines the ratio of adherence to the fixed part of the prompt versus the dynamic part (from prompt map). Value should be between 0 (only dynamic) to 1 (only fixed).",
-        ge=0.0,
-        le=1.0,
-        default=0.5,
-    )
-    custom_base_model_url: str = Field(
-        title="Custom Base Model Url",
-        description="Only used when base model is set to 'CUSTOM'. URL of the custom model to download if 'CUSTOM' is selected in the base model. Only downloads from 'https://civitai.com/api/download/models/' are allowed",
-        default="",
-    )
-    num_interpolation_steps: int = Field(
-        title="Num Interpolation Steps",
-        description="Number of steps to interpolate between animation frames",
-        ge=1.0,
-        le=50.0,
-        default=3,
-    )
-    enable_qr_code_monster_v2: bool = Field(
-        title="Enable Qr Code Monster V2",
-        description="Flag to enable QR Code Monster V2 ControlNet",
-        default=True,
-    )
-    playback_frames_per_second: int = Field(
-        title="Playback Frames Per Second", ge=1.0, le=60.0, default=8
-    )
-    controlnet_conditioning_scale: float = Field(
-        title="Controlnet Conditioning Scale",
-        description="Strength of ControlNet. The outputs of the ControlNet are multiplied by `controlnet_conditioning_scale` before they are added to the residual in the original UNet",
-        default=0.18,
-    )
-    qr_code_monster_v2_guess_mode: bool = Field(
-        title="Qr Code Monster V2 Guess Mode",
-        description="Flag to enable guess mode (un-guided) for QR Code Monster V2 ControlNet",
-        default=False,
-    )
-    qr_code_monster_v2_preprocessor: bool = Field(
-        title="Qr Code Monster V2 Preprocessor",
-        description="Flag to pre-process keyframes for QR Code Monster V2 ControlNet",
-        default=True,
-    )
-
-
 class AudioToWaveform(ReplicateNode):
     """Create a waveform video from audio"""
+
+    @classmethod
+    def get_basic_fields(cls):
+        return ["audio", "bg_color", "fg_alpha"]
 
     @classmethod
     def replicate_model_id(cls):
@@ -854,7 +344,7 @@ class AudioToWaveform(ReplicateNode):
 
     @classmethod
     def get_hardware(cls):
-        return "CPU"
+        return "None"
 
     @classmethod
     def get_model_info(cls):
@@ -867,10 +357,10 @@ class AudioToWaveform(ReplicateNode):
             "name": "audio-to-waveform",
             "owner": "fofr",
             "paper_url": "https://gradio.app/docs/#make_waveform",
-            "run_count": 369138,
+            "run_count": 381596,
             "url": "https://replicate.com/fofr/audio-to-waveform",
             "visibility": "public",
-            "hardware": "CPU",
+            "weights_url": None,
         }
 
     @classmethod
@@ -899,4 +389,389 @@ class AudioToWaveform(ReplicateNode):
     )
     caption_text: str = Field(
         title="Caption Text", description="Caption text for the video", default=""
+    )
+
+
+class Hunyuan_Video(ReplicateNode):
+    """A state-of-the-art text-to-video generation model capable of creating high-quality videos with realistic motion from text descriptions"""
+
+    @classmethod
+    def get_basic_fields(cls):
+        return ["fps", "seed", "width"]
+
+    @classmethod
+    def replicate_model_id(cls):
+        return "tencent/hunyuan-video:8283f26be7ce5dc0119324b4752cbfd3970b3ef1b923c4d3c35eb6546518747a"
+
+    @classmethod
+    def get_hardware(cls):
+        return "None"
+
+    @classmethod
+    def get_model_info(cls):
+        return {
+            "cover_image_url": "https://tjzk.replicate.delivery/models_models_featured_image/3bebc89d-37c7-47ea-9a7b-a334b76eea87/hunyuan-featured.webp",
+            "created_at": "2024-12-03T14:21:37.443615Z",
+            "description": "A state-of-the-art text-to-video generation model capable of creating high-quality videos with realistic motion from text descriptions",
+            "github_url": "https://github.com/zsxkib/HunyuanVideo/tree/replicate",
+            "license_url": "https://huggingface.co/tencent/HunyuanVideo/blob/main/LICENSE",
+            "name": "hunyuan-video",
+            "owner": "tencent",
+            "paper_url": "https://github.com/Tencent/HunyuanVideo/blob/main/assets/hunyuanvideo.pdf",
+            "run_count": 28316,
+            "url": "https://replicate.com/tencent/hunyuan-video",
+            "visibility": "public",
+            "weights_url": "https://huggingface.co/tencent/HunyuanVideo",
+        }
+
+    @classmethod
+    def return_type(cls):
+        return VideoRef
+
+    fps: int = Field(
+        title="Fps",
+        description="Frames per second of the output video",
+        ge=1.0,
+        default=24,
+    )
+    seed: int | None = Field(
+        title="Seed", description="Random seed (leave empty for random)", default=None
+    )
+    width: int = Field(
+        title="Width",
+        description="Width of the video in pixels (must be divisible by 16)",
+        ge=16.0,
+        default=864,
+    )
+    height: int = Field(
+        title="Height",
+        description="Height of the video in pixels (must be divisible by 16)",
+        ge=16.0,
+        default=480,
+    )
+    prompt: str = Field(
+        title="Prompt",
+        description="The prompt to guide the video generation",
+        default="A cat walks on the grass, realistic style",
+    )
+    infer_steps: int = Field(
+        title="Infer Steps", description="Number of denoising steps", ge=1.0, default=50
+    )
+    video_length: int = Field(
+        title="Video Length",
+        description="Number of frames to generate (must be 4k+1, ex: 49 or 129)",
+        ge=1.0,
+        default=129,
+    )
+    embedded_guidance_scale: float = Field(
+        title="Embedded Guidance Scale",
+        description="Guidance scale",
+        ge=1.0,
+        le=10.0,
+        default=6,
+    )
+
+
+class Video_01_Live(ReplicateNode):
+    """An image-to-video (I2V) model specifically trained for Live2D and general animation use cases"""
+
+    @classmethod
+    def get_basic_fields(cls):
+        return ["prompt", "prompt_optimizer", "first_frame_image"]
+
+    @classmethod
+    def replicate_model_id(cls):
+        return "minimax/video-01-live:4bce7c1730a5fc582699fb7e630c2e39c3dd4ddb11ca87fa3b7f0fc52537dd09"
+
+    @classmethod
+    def get_hardware(cls):
+        return "None"
+
+    @classmethod
+    def get_model_info(cls):
+        return {
+            "cover_image_url": "https://tjzk.replicate.delivery/models_models_featured_image/c202ad97-edd0-40b6-afaf-c99d71398d44/video-01-live-cover.webp",
+            "created_at": "2024-12-16T20:27:52.715593Z",
+            "description": "An image-to-video (I2V) model specifically trained for Live2D and general animation use cases",
+            "github_url": None,
+            "license_url": "https://intl.minimaxi.com/protocol/terms-of-service",
+            "name": "video-01-live",
+            "owner": "minimax",
+            "paper_url": None,
+            "run_count": 25499,
+            "url": "https://replicate.com/minimax/video-01-live",
+            "visibility": "public",
+            "weights_url": None,
+        }
+
+    @classmethod
+    def return_type(cls):
+        return VideoRef
+
+    prompt: str | None = Field(
+        title="Prompt", description="Text prompt for image generation", default=None
+    )
+    prompt_optimizer: bool = Field(
+        title="Prompt Optimizer", description="Use prompt optimizer", default=True
+    )
+    first_frame_image: str | None = Field(
+        title="First Frame Image",
+        description="First frame image for video generation",
+        default=None,
+    )
+
+
+class Video_01(ReplicateNode):
+    """Generate 6s videos with prompts or images. (Also known as Hailuo)"""
+
+    @classmethod
+    def get_basic_fields(cls):
+        return ["prompt", "prompt_optimizer", "first_frame_image"]
+
+    @classmethod
+    def replicate_model_id(cls):
+        return "minimax/video-01:6be8dfbbf29ba949b6bce8ca1b93fd8cf24f84f0b246852e98e0a5c7a4c02091"
+
+    @classmethod
+    def get_hardware(cls):
+        return "None"
+
+    @classmethod
+    def get_model_info(cls):
+        return {
+            "cover_image_url": "https://tjzk.replicate.delivery/models_models_featured_image/b56c831c-4c68-4443-b69e-b71b105afe7f/minimax.webp",
+            "created_at": "2024-11-26T14:40:21.652537Z",
+            "description": "Generate 6s videos with prompts or images. (Also known as Hailuo)",
+            "github_url": None,
+            "license_url": "https://intl.minimaxi.com/protocol/terms-of-service",
+            "name": "video-01",
+            "owner": "minimax",
+            "paper_url": None,
+            "run_count": 67585,
+            "url": "https://replicate.com/minimax/video-01",
+            "visibility": "public",
+            "weights_url": None,
+        }
+
+    @classmethod
+    def return_type(cls):
+        return VideoRef
+
+    prompt: str | None = Field(
+        title="Prompt", description="Text prompt for image generation", default=None
+    )
+    prompt_optimizer: bool = Field(
+        title="Prompt Optimizer", description="Use prompt optimizer", default=True
+    )
+    first_frame_image: str | None = Field(
+        title="First Frame Image",
+        description="First frame image for video generation",
+        default=None,
+    )
+
+
+class Music_01(ReplicateNode):
+    """Quickly generate up to 1 minute of music with lyrics and vocals in the style of a reference track"""
+
+    class Bitrate(int, Enum):
+        _32000 = 32000
+        _64000 = 64000
+        _128000 = 128000
+        _256000 = 256000
+
+    class Sample_rate(int, Enum):
+        _16000 = 16000
+        _24000 = 24000
+        _32000 = 32000
+        _44100 = 44100
+
+    @classmethod
+    def get_basic_fields(cls):
+        return ["lyrics", "bitrate", "voice_id"]
+
+    @classmethod
+    def replicate_model_id(cls):
+        return "minimax/music-01:a05a52e0512dc0942a782ba75429de791b46a567581f358f4c0c5623d5ff7242"
+
+    @classmethod
+    def get_hardware(cls):
+        return "None"
+
+    @classmethod
+    def get_model_info(cls):
+        return {
+            "cover_image_url": "https://tjzk.replicate.delivery/models_models_featured_image/1d2de931-15ff-48b0-9c4d-2f9200eb2913/music-01-cover.jpg",
+            "created_at": "2024-12-17T12:40:30.320043Z",
+            "description": "Quickly generate up to 1 minute of music with lyrics and vocals in the style of a reference track",
+            "github_url": None,
+            "license_url": "https://intl.minimaxi.com/protocol/terms-of-service",
+            "name": "music-01",
+            "owner": "minimax",
+            "paper_url": None,
+            "run_count": 12066,
+            "url": "https://replicate.com/minimax/music-01",
+            "visibility": "public",
+            "weights_url": None,
+        }
+
+    @classmethod
+    def return_type(cls):
+        return AudioRef
+
+    lyrics: str = Field(
+        title="Lyrics",
+        description="Lyrics with optional formatting. You can use a newline to separate each line of lyrics. You can use two newlines to add a pause between lines. You can use double hash marks (##) at the beginning and end of the lyrics to add accompaniment.",
+        default="",
+    )
+    bitrate: Bitrate = Field(
+        description="Bitrate for the generated music", default=Bitrate(256000)
+    )
+    voice_id: str | None = Field(
+        title="Voice Id",
+        description="Reuse a previously uploaded voice ID",
+        default=None,
+    )
+    song_file: AudioRef = Field(
+        default=AudioRef(),
+        description="Reference song, should contain music and vocals. Must be a .wav or .mp3 file longer than 15 seconds.",
+    )
+    voice_file: AudioRef = Field(
+        default=AudioRef(),
+        description="Voice reference. Must be a .wav or .mp3 file longer than 15 seconds. If only a voice reference is given, an a cappella vocal hum will be generated.",
+    )
+    sample_rate: Sample_rate = Field(
+        description="Sample rate for the generated music", default=Sample_rate(44100)
+    )
+    instrumental_id: str | None = Field(
+        title="Instrumental Id",
+        description="Reuse a previously uploaded instrumental ID",
+        default=None,
+    )
+    instrumental_file: str | None = Field(
+        title="Instrumental File",
+        description="Instrumental reference. Must be a .wav or .mp3 file longer than 15 seconds. If only an instrumental reference is given, a track without vocals will be generated.",
+        default=None,
+    )
+
+
+class LTX_Video(ReplicateNode):
+    """LTX-Video is the first DiT-based video generation model capable of generating high-quality videos in real-time. It produces 24 FPS videos at a 768x512 resolution faster than they can be watched."""
+
+    class Model(str, Enum):
+        _0_9_1 = "0.9.1"
+        _0_9 = "0.9"
+
+    class Length(int, Enum):
+        _97 = 97
+        _129 = 129
+        _161 = 161
+        _193 = 193
+        _225 = 225
+        _257 = 257
+
+    class Target_size(int, Enum):
+        _512 = 512
+        _576 = 576
+        _640 = 640
+        _704 = 704
+        _768 = 768
+        _832 = 832
+        _896 = 896
+        _960 = 960
+        _1024 = 1024
+
+    class Aspect_ratio(str, Enum):
+        _1_1 = "1:1"
+        _1_2 = "1:2"
+        _2_1 = "2:1"
+        _2_3 = "2:3"
+        _3_2 = "3:2"
+        _3_4 = "3:4"
+        _4_3 = "4:3"
+        _4_5 = "4:5"
+        _5_4 = "5:4"
+        _9_16 = "9:16"
+        _16_9 = "16:9"
+        _9_21 = "9:21"
+        _21_9 = "21:9"
+
+    @classmethod
+    def get_basic_fields(cls):
+        return ["cfg", "seed", "image"]
+
+    @classmethod
+    def replicate_model_id(cls):
+        return "lightricks/ltx-video:8c47da666861d081eeb4d1261853087de23923a268a69b63febdf5dc1dee08e4"
+
+    @classmethod
+    def get_hardware(cls):
+        return "None"
+
+    @classmethod
+    def get_model_info(cls):
+        return {
+            "cover_image_url": "https://tjzk.replicate.delivery/models_models_featured_image/184609cb-a0c5-47c9-8fec-987fb21cc977/replicate-prediction-_QTChmfY.webp",
+            "created_at": "2024-11-29T14:15:01.460922Z",
+            "description": "LTX-Video is the first DiT-based video generation model capable of generating high-quality videos in real-time. It produces 24 FPS videos at a 768x512 resolution faster than they can be watched.",
+            "github_url": "https://github.com/Lightricks/LTX-Video",
+            "license_url": "https://github.com/Lightricks/LTX-Video/blob/main/LICENSE",
+            "name": "ltx-video",
+            "owner": "lightricks",
+            "paper_url": None,
+            "run_count": 27132,
+            "url": "https://replicate.com/lightricks/ltx-video",
+            "visibility": "public",
+            "weights_url": "https://huggingface.co/Lightricks/LTX-Video",
+        }
+
+    @classmethod
+    def return_type(cls):
+        return VideoRef
+
+    cfg: float = Field(
+        title="Cfg",
+        description="How strongly the video follows the prompt",
+        ge=1.0,
+        le=20.0,
+        default=3,
+    )
+    seed: int | None = Field(
+        title="Seed",
+        description="Set a seed for reproducibility. Random by default.",
+        default=None,
+    )
+    image: ImageRef = Field(
+        default=ImageRef(),
+        description="Optional input image to use as the starting frame",
+    )
+    model: Model = Field(description="Model version to use", default=Model("0.9.1"))
+    steps: int = Field(
+        title="Steps", description="Number of steps", ge=1.0, le=50.0, default=30
+    )
+    length: Length = Field(
+        description="Length of the output video in frames", default=Length(97)
+    )
+    prompt: str = Field(
+        title="Prompt",
+        description="Text prompt for the video. This model needs long descriptive prompts, if the prompt is too short the quality won't be good.",
+        default="best quality, 4k, HDR, a tracking shot of a beautiful scene",
+    )
+    target_size: Target_size = Field(
+        description="Target size for the output video", default=Target_size(640)
+    )
+    aspect_ratio: Aspect_ratio = Field(
+        description="Aspect ratio of the output video. Ignored if an image is provided.",
+        default=Aspect_ratio("3:2"),
+    )
+    negative_prompt: str = Field(
+        title="Negative Prompt",
+        description="Things you do not want to see in your video",
+        default="low quality, worst quality, deformed, distorted",
+    )
+    image_noise_scale: float = Field(
+        title="Image Noise Scale",
+        description="Lower numbers stick more closely to the input image",
+        ge=0.0,
+        le=1.0,
+        default=0.15,
     )
