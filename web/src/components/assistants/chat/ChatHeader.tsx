@@ -9,6 +9,7 @@ interface ChatHeaderProps {
   onReset?: () => void;
   messagesCount: number;
   title?: string;
+  icon?: React.ReactNode;
   description?: string;
 }
 
@@ -18,19 +19,25 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   onReset,
   messagesCount,
   title,
+  icon,
   description
 }) => (
   <Box
     className="chat-header"
     sx={{
       display: "flex",
+      cursor: "grab",
       justifyContent: "space-between",
       alignItems: "center",
       mb: isMinimized ? 0 : 2,
       position: "sticky",
       top: 0,
       zIndex: 1,
-      py: 1
+      py: 2,
+      px: 2,
+      backdropFilter: "blur(8px)",
+      borderRadius: isMinimized ? "20px" : "12px 12px 0 0",
+      boxShadow: "0 1px 3px rgba(0,0,0,0.1)"
     }}
   >
     {!isMinimized && onReset && (
@@ -45,6 +52,9 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
           padding: "0.5em 1em 0 1em",
           textAlign: "center",
           width: "100%",
+          display: "flex",
+          alignItems: "center",
+          gap: 3,
           cursor: "pointer",
           userSelect: "none",
           "&:hover": {
@@ -52,6 +62,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
           }
         }}
       >
+        {icon}
         {title}
       </Typography>
     )}
