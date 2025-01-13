@@ -90,7 +90,7 @@ const isEnumConnectable = (a: TypeMetadata, b: TypeMetadata): boolean => {
 };
 
 const nonObjectTypes = [
-  "string",
+  "str",
   "number",
   "boolean",
   "null",
@@ -132,9 +132,16 @@ export const isConnectable = (
     return !nonObjectTypes.includes(source.type);
   }
 
+  if (target.type === "enum") {
+    return source.type === "str";
+  }
+
   switch (source.type) {
     case "union":
     case "enum":
+      if (target.type === "str") {
+        return true;
+      }
       return target.type === "enum" && isEnumConnectable(source, target);
     case "list":
       if (target.type === "list") {
