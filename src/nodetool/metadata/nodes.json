@@ -960,25 +960,10 @@
       {
         "name": "body",
         "type": {
-          "type": "union",
+          "type": "str",
           "optional": false,
           "values": null,
-          "type_args": [
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            },
-            {
-              "type": "text",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
+          "type_args": [],
           "type_name": null
         },
         "default": "",
@@ -1280,25 +1265,10 @@
       {
         "name": "text",
         "type": {
-          "type": "union",
+          "type": "str",
           "optional": false,
           "values": null,
-          "type_args": [
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            },
-            {
-              "type": "text",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
+          "type_args": [],
           "type_name": null
         },
         "default": "",
@@ -22380,10 +22350,10 @@
           "year": 2025,
           "month": 1,
           "day": 13,
-          "hour": 1,
-          "minute": 26,
-          "second": 42,
-          "microsecond": 294365,
+          "hour": 13,
+          "minute": 41,
+          "second": 34,
+          "microsecond": 859691,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23422,10 +23392,10 @@
           "year": 2025,
           "month": 1,
           "day": 13,
-          "hour": 1,
-          "minute": 26,
-          "second": 42,
-          "microsecond": 298435,
+          "hour": 13,
+          "minute": 41,
+          "second": 34,
+          "microsecond": 863674,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23475,10 +23445,10 @@
           "year": 2025,
           "month": 1,
           "day": 13,
-          "hour": 1,
-          "minute": 26,
-          "second": 42,
-          "microsecond": 298685,
+          "hour": 13,
+          "minute": 41,
+          "second": 34,
+          "microsecond": 863921,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23528,10 +23498,10 @@
           "year": 2025,
           "month": 1,
           "day": 13,
-          "hour": 1,
-          "minute": 26,
-          "second": 42,
-          "microsecond": 298913,
+          "hour": 13,
+          "minute": 41,
+          "second": 34,
+          "microsecond": 864146,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23581,10 +23551,10 @@
           "year": 2025,
           "month": 1,
           "day": 13,
-          "hour": 1,
-          "minute": 26,
-          "second": 42,
-          "microsecond": 299137,
+          "hour": 13,
+          "minute": 41,
+          "second": 34,
+          "microsecond": 864357,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23634,10 +23604,10 @@
           "year": 2025,
           "month": 1,
           "day": 13,
-          "hour": 1,
-          "minute": 26,
-          "second": 42,
-          "microsecond": 299352,
+          "hour": 13,
+          "minute": 41,
+          "second": 34,
+          "microsecond": 864572,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23687,10 +23657,10 @@
           "year": 2025,
           "month": 1,
           "day": 13,
-          "hour": 1,
-          "minute": 26,
-          "second": 42,
-          "microsecond": 299612,
+          "hour": 13,
+          "minute": 41,
+          "second": 34,
+          "microsecond": 864820,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23740,10 +23710,10 @@
           "year": 2025,
           "month": 1,
           "day": 13,
-          "hour": 1,
-          "minute": 26,
-          "second": 42,
-          "microsecond": 299830,
+          "hour": 13,
+          "minute": 41,
+          "second": 34,
+          "microsecond": 865040,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23809,10 +23779,10 @@
           "year": 2025,
           "month": 1,
           "day": 13,
-          "hour": 1,
-          "minute": 26,
-          "second": 42,
-          "microsecond": 300094,
+          "hour": 13,
+          "minute": 41,
+          "second": 34,
+          "microsecond": 865302,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -30234,106 +30204,6 @@
         "max": null
       },
       {
-        "name": "style",
-        "type": {
-          "type": "enum",
-          "optional": false,
-          "values": [
-            "darkgrid",
-            "whitegrid",
-            "dark",
-            "white",
-            "ticks"
-          ],
-          "type_args": [],
-          "type_name": "nodetool.nodes.nodetool.image.chart.SeabornStyle"
-        },
-        "default": "whitegrid",
-        "title": "Style",
-        "description": "The style of the plot background and grid.",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "context",
-        "type": {
-          "type": "enum",
-          "optional": false,
-          "values": [
-            "paper",
-            "notebook",
-            "talk",
-            "poster"
-          ],
-          "type_args": [],
-          "type_name": "nodetool.nodes.nodetool.image.chart.SeabornContext"
-        },
-        "default": "notebook",
-        "title": "Context",
-        "description": "The context of the plot, affecting scale and aesthetics.",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "palette",
-        "type": {
-          "type": "enum",
-          "optional": false,
-          "values": [
-            "deep",
-            "muted",
-            "pastel",
-            "bright",
-            "dark",
-            "colorblind"
-          ],
-          "type_args": [],
-          "type_name": "nodetool.nodes.nodetool.image.chart.SeabornPalette"
-        },
-        "default": "deep",
-        "title": "Palette",
-        "description": "Color palette for the plot.",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "font_scale",
-        "type": {
-          "type": "float",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": 1.0,
-        "title": "Font Scale",
-        "description": "Scale factor for font sizes.",
-        "min": 0.1,
-        "max": 5.0
-      },
-      {
-        "name": "font",
-        "type": {
-          "type": "enum",
-          "optional": false,
-          "values": [
-            "sans-serif",
-            "serif",
-            "monospace",
-            "Arial",
-            "Helvetica",
-            "Times New Roman"
-          ],
-          "type_args": [],
-          "type_name": "nodetool.nodes.nodetool.image.chart.SeabornFont"
-        },
-        "default": "sans-serif",
-        "title": "Font",
-        "description": "Font family for text elements.",
-        "min": null,
-        "max": null
-      },
-      {
         "name": "despine",
         "type": {
           "type": "bool",
@@ -30384,11 +30254,6 @@
       "width",
       "height",
       "data",
-      "style",
-      "context",
-      "palette",
-      "font_scale",
-      "font",
       "despine",
       "trim_margins"
     ]
@@ -35394,6 +35259,96 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": []
+  },
+  {
+    "title": "Enum Input",
+    "description": "Enumeration parameter input for workflows.\n    input, parameter, enum, options, select\n\n    Use cases:\n    - Select from predefined options\n    - Enforce choice from valid values\n    - Configure categorical parameters",
+    "namespace": "nodetool.input",
+    "node_type": "nodetool.input.EnumInput",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "label",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "Input Label",
+        "title": "Label",
+        "description": "The label for this input node.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "name",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Name",
+        "description": "The parameter name for the workflow.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "value",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Value",
+        "description": null,
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "options",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Options",
+        "description": "Comma-separated list of valid options",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "label",
+      "name",
+      "value",
+      "options"
+    ]
   },
   {
     "title": "Parse Dict",
@@ -42088,7 +42043,7 @@
       {
         "name": "text",
         "type": {
-          "type": "text",
+          "type": "str",
           "optional": false,
           "values": null,
           "type_args": [],
@@ -42145,25 +42100,10 @@
       {
         "name": "a",
         "type": {
-          "type": "union",
+          "type": "str",
           "optional": false,
           "values": null,
-          "type_args": [
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            },
-            {
-              "type": "text",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
+          "type_args": [],
           "type_name": null
         },
         "default": "",
@@ -42175,25 +42115,10 @@
       {
         "name": "b",
         "type": {
-          "type": "union",
+          "type": "str",
           "optional": false,
           "values": null,
-          "type_args": [
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            },
-            {
-              "type": "text",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
+          "type_args": [],
           "type_name": null
         },
         "default": "",
@@ -42206,25 +42131,10 @@
     "outputs": [
       {
         "type": {
-          "type": "union",
+          "type": "str",
           "optional": false,
           "values": null,
-          "type_args": [
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            },
-            {
-              "type": "text",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
+          "type_args": [],
           "type_name": null
         },
         "name": "output",
@@ -42253,31 +42163,16 @@
           "values": null,
           "type_args": [
             {
-              "type": "union",
+              "type": "str",
               "optional": false,
               "values": null,
-              "type_args": [
-                {
-                  "type": "str",
-                  "optional": false,
-                  "values": null,
-                  "type_args": [],
-                  "type_name": null
-                },
-                {
-                  "type": "text",
-                  "optional": false,
-                  "values": null,
-                  "type_args": [],
-                  "type_name": null
-                }
-              ],
+              "type_args": [],
               "type_name": null
             }
           ],
           "type_name": null
         },
-        "default": [],
+        "default": null,
         "title": "Strings",
         "description": null,
         "min": null,
@@ -42302,25 +42197,10 @@
     "outputs": [
       {
         "type": {
-          "type": "union",
+          "type": "str",
           "optional": false,
           "values": null,
-          "type_args": [
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            },
-            {
-              "type": "text",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
+          "type_args": [],
           "type_name": null
         },
         "name": "output",
@@ -42344,25 +42224,10 @@
       {
         "name": "string",
         "type": {
-          "type": "union",
+          "type": "str",
           "optional": false,
           "values": null,
-          "type_args": [
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            },
-            {
-              "type": "text",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
+          "type_args": [],
           "type_name": null
         },
         "default": "",
@@ -42434,25 +42299,10 @@
     "outputs": [
       {
         "type": {
-          "type": "union",
+          "type": "str",
           "optional": false,
           "values": null,
-          "type_args": [
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            },
-            {
-              "type": "text",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
+          "type_args": [],
           "type_name": null
         },
         "name": "output",
@@ -42476,25 +42326,10 @@
       {
         "name": "text",
         "type": {
-          "type": "union",
+          "type": "str",
           "optional": false,
           "values": null,
-          "type_args": [
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            },
-            {
-              "type": "text",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
+          "type_args": [],
           "type_name": null
         },
         "default": "",
@@ -42537,25 +42372,10 @@
     "outputs": [
       {
         "type": {
-          "type": "union",
+          "type": "str",
           "optional": false,
           "values": null,
-          "type_args": [
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            },
-            {
-              "type": "text",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
+          "type_args": [],
           "type_name": null
         },
         "name": "output",
@@ -42580,28 +42400,13 @@
       {
         "name": "text",
         "type": {
-          "type": "union",
+          "type": "str",
           "optional": false,
           "values": null,
-          "type_args": [
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            },
-            {
-              "type": "text",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
+          "type_args": [],
           "type_name": null
         },
-        "default": null,
+        "default": "",
         "title": "JSON",
         "description": null,
         "min": null,
@@ -42637,28 +42442,13 @@
       {
         "name": "text",
         "type": {
-          "type": "union",
+          "type": "str",
           "optional": false,
           "values": null,
-          "type_args": [
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            },
-            {
-              "type": "text",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
+          "type_args": [],
           "type_name": null
         },
-        "default": null,
+        "default": "",
         "title": "Text",
         "description": null,
         "min": null,
@@ -42731,25 +42521,10 @@
       {
         "name": "text",
         "type": {
-          "type": "union",
+          "type": "str",
           "optional": false,
           "values": null,
-          "type_args": [
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            },
-            {
-              "type": "text",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
+          "type_args": [],
           "type_name": null
         },
         "default": "",
@@ -42812,25 +42587,10 @@
       {
         "name": "text",
         "type": {
-          "type": "union",
+          "type": "str",
           "optional": false,
           "values": null,
-          "type_args": [
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            },
-            {
-              "type": "text",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
+          "type_args": [],
           "type_name": null
         },
         "default": "",
@@ -42873,25 +42633,10 @@
     "outputs": [
       {
         "type": {
-          "type": "union",
+          "type": "str",
           "optional": false,
           "values": null,
-          "type_args": [
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            },
-            {
-              "type": "text",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
+          "type_args": [],
           "type_name": null
         },
         "name": "output",
@@ -42916,25 +42661,10 @@
       {
         "name": "text",
         "type": {
-          "type": "union",
+          "type": "str",
           "optional": false,
           "values": null,
-          "type_args": [
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            },
-            {
-              "type": "text",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
+          "type_args": [],
           "type_name": null
         },
         "default": "",
@@ -43044,25 +42774,10 @@
       {
         "name": "text",
         "type": {
-          "type": "union",
+          "type": "str",
           "optional": false,
           "values": null,
-          "type_args": [
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            },
-            {
-              "type": "text",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
+          "type_args": [],
           "type_name": null
         },
         "default": "",
@@ -43173,25 +42888,10 @@
       {
         "name": "text",
         "type": {
-          "type": "union",
+          "type": "str",
           "optional": false,
           "values": null,
-          "type_args": [
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            },
-            {
-              "type": "text",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
+          "type_args": [],
           "type_name": null
         },
         "default": "",
@@ -43302,25 +43002,10 @@
       {
         "name": "text",
         "type": {
-          "type": "union",
+          "type": "str",
           "optional": false,
           "values": null,
-          "type_args": [
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            },
-            {
-              "type": "text",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
+          "type_args": [],
           "type_name": null
         },
         "default": "",
@@ -43359,28 +43044,13 @@
       {
         "name": "text",
         "type": {
-          "type": "union",
+          "type": "str",
           "optional": false,
           "values": null,
-          "type_args": [
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            },
-            {
-              "type": "text",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
+          "type_args": [],
           "type_name": null
         },
-        "default": null,
+        "default": "",
         "title": "JSON Text",
         "description": null,
         "min": null,
@@ -43448,25 +43118,10 @@
       {
         "name": "text",
         "type": {
-          "type": "union",
+          "type": "str",
           "optional": false,
           "values": null,
-          "type_args": [
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            },
-            {
-              "type": "text",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
+          "type_args": [],
           "type_name": null
         },
         "default": "",
@@ -43889,25 +43544,10 @@
       {
         "name": "text",
         "type": {
-          "type": "union",
+          "type": "str",
           "optional": false,
           "values": null,
-          "type_args": [
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            },
-            {
-              "type": "text",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
+          "type_args": [],
           "type_name": null
         },
         "default": "",
@@ -43935,25 +43575,10 @@
     "outputs": [
       {
         "type": {
-          "type": "union",
+          "type": "str",
           "optional": false,
           "values": null,
-          "type_args": [
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            },
-            {
-              "type": "text",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
+          "type_args": [],
           "type_name": null
         },
         "name": "output",
@@ -43977,25 +43602,10 @@
       {
         "name": "text",
         "type": {
-          "type": "union",
+          "type": "str",
           "optional": false,
           "values": null,
-          "type_args": [
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            },
-            {
-              "type": "text",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
+          "type_args": [],
           "type_name": null
         },
         "default": "",
@@ -44098,25 +43708,10 @@
     "outputs": [
       {
         "type": {
-          "type": "union",
+          "type": "str",
           "optional": false,
           "values": null,
-          "type_args": [
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            },
-            {
-              "type": "text",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
+          "type_args": [],
           "type_name": null
         },
         "name": "output",
@@ -44142,25 +43737,10 @@
       {
         "name": "text",
         "type": {
-          "type": "union",
+          "type": "str",
           "optional": false,
           "values": null,
-          "type_args": [
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            },
-            {
-              "type": "text",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
+          "type_args": [],
           "type_name": null
         },
         "default": "",
@@ -44283,25 +43863,10 @@
       {
         "name": "text",
         "type": {
-          "type": "union",
+          "type": "str",
           "optional": false,
           "values": null,
-          "type_args": [
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            },
-            {
-              "type": "text",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
+          "type_args": [],
           "type_name": null
         },
         "default": "",
@@ -44495,25 +44060,10 @@
       {
         "name": "text",
         "type": {
-          "type": "union",
+          "type": "str",
           "optional": false,
           "values": null,
-          "type_args": [
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            },
-            {
-              "type": "text",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
+          "type_args": [],
           "type_name": null
         },
         "default": "",
@@ -44568,25 +44118,10 @@
       {
         "name": "text",
         "type": {
-          "type": "union",
+          "type": "str",
           "optional": false,
           "values": null,
-          "type_args": [
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            },
-            {
-              "type": "text",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
+          "type_args": [],
           "type_name": null
         },
         "default": "",
@@ -44641,25 +44176,10 @@
       {
         "name": "text",
         "type": {
-          "type": "union",
+          "type": "str",
           "optional": false,
           "values": null,
-          "type_args": [
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            },
-            {
-              "type": "text",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
+          "type_args": [],
           "type_name": null
         },
         "default": "",
@@ -44730,25 +44250,10 @@
       {
         "name": "text",
         "type": {
-          "type": "union",
+          "type": "str",
           "optional": false,
           "values": null,
-          "type_args": [
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            },
-            {
-              "type": "text",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
+          "type_args": [],
           "type_name": null
         },
         "default": "",
@@ -44803,25 +44308,10 @@
       {
         "name": "text",
         "type": {
-          "type": "union",
+          "type": "str",
           "optional": false,
           "values": null,
-          "type_args": [
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            },
-            {
-              "type": "text",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
+          "type_args": [],
           "type_name": null
         },
         "default": "",
@@ -44953,25 +44443,10 @@
       {
         "name": "text",
         "type": {
-          "type": "union",
+          "type": "str",
           "optional": false,
           "values": null,
-          "type_args": [
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            },
-            {
-              "type": "text",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
+          "type_args": [],
           "type_name": null
         },
         "default": "",
@@ -86585,25 +86060,10 @@
       {
         "name": "input",
         "type": {
-          "type": "union",
+          "type": "str",
           "optional": false,
           "values": null,
-          "type_args": [
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            },
-            {
-              "type": "text",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
+          "type_args": [],
           "type_name": null
         },
         "default": "",
@@ -112388,25 +111848,10 @@
       {
         "name": "input",
         "type": {
-          "type": "union",
+          "type": "str",
           "optional": false,
           "values": null,
-          "type_args": [
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            },
-            {
-              "type": "text",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
+          "type_args": [],
           "type_name": null
         },
         "default": "",
@@ -112859,6 +112304,46 @@
         "max": null
       },
       {
+        "name": "plot_type",
+        "type": {
+          "type": "enum",
+          "optional": false,
+          "values": [
+            "scatter",
+            "line",
+            "relplot",
+            "histplot",
+            "kdeplot",
+            "ecdfplot",
+            "rugplot",
+            "distplot",
+            "stripplot",
+            "swarmplot",
+            "boxplot",
+            "violinplot",
+            "boxenplot",
+            "pointplot",
+            "barplot",
+            "countplot",
+            "regplot",
+            "lmplot",
+            "residplot",
+            "heatmap",
+            "clustermap",
+            "jointplot",
+            "pairplot",
+            "facetgrid"
+          ],
+          "type_args": [],
+          "type_name": "nodetool.metadata.types.SeabornPlotType"
+        },
+        "default": "line",
+        "title": "Plot Type",
+        "description": "The type of plot to generate",
+        "min": null,
+        "max": null
+      },
+      {
         "name": "data",
         "type": {
           "type": "dataframe",
@@ -112976,7 +112461,8 @@
     "basic_fields": [
       "model",
       "prompt",
-      "data"
+      "data",
+      "plot_type"
     ]
   },
   {
@@ -113541,7 +113027,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": 256,
+        "default": 4096,
         "title": "Num Predict",
         "description": "Number of tokens to predict for each chunk",
         "min": 0.0,
@@ -113721,7 +113207,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": 256,
+        "default": 4096,
         "title": "Num Predict",
         "description": "Number of tokens to predict",
         "min": 0.0,
