@@ -3,6 +3,7 @@ import React, { useCallback, useMemo } from "react";
 import { css } from "@emotion/react";
 
 import ThemeNodetool from "../themes/ThemeNodetool";
+import { useResizePanel } from "../../hooks/handlers/useResizePanel";
 
 // components
 import SettingsMenu from "../menus/SettingsMenu";
@@ -164,6 +165,9 @@ const AppHeader: React.FC = React.memo(() => {
     (state) => state.settings.showWelcomeOnStartup
   );
 
+  const { handlePanelToggle, collapsed: panelLeftCollapsed } =
+    useResizePanel("left");
+
   const handleResize = useCallback(() => {
     if (window.innerWidth <= 1200) {
       setButtonAppearance("icon");
@@ -197,7 +201,12 @@ const AppHeader: React.FC = React.memo(() => {
         <Tooltip title="Explore Examples" enterDelay={TOOLTIP_ENTER_DELAY}>
           <Button
             className={`nav-button ${path === "/examples" ? "active" : ""}`}
-            onClick={() => navigate("/examples")}
+            onClick={() => {
+              navigate("/examples");
+              if (!panelLeftCollapsed) {
+                handlePanelToggle();
+              }
+            }}
             tabIndex={-1}
             style={{
               color: path.startsWith("/examples")
@@ -216,7 +225,12 @@ const AppHeader: React.FC = React.memo(() => {
         >
           <Button
             className={`nav-button ${path === "/assets" ? "active" : ""}`}
-            onClick={() => navigate("/assets")}
+            onClick={() => {
+              navigate("/assets");
+              if (!panelLeftCollapsed) {
+                handlePanelToggle();
+              }
+            }}
             tabIndex={-1}
             style={{
               color: path.startsWith("/assets")
@@ -250,7 +264,7 @@ const AppHeader: React.FC = React.memo(() => {
         </Tooltip>
       </Box>
     ),
-    [path, buttonAppearance, navigate]
+    [path, buttonAppearance, navigate, panelLeftCollapsed, handlePanelToggle]
   );
 
   const RightSideButtons = useMemo(
