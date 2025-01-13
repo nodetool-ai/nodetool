@@ -49,12 +49,16 @@ class Demucs(ReplicateNode):
         WAV = "wav"
 
     @classmethod
+    def get_basic_fields(cls):
+        return ["jobs", "stem", "audio"]
+
+    @classmethod
     def replicate_model_id(cls):
-        return "ryan5453/demucs:53191dee0efbfc3cbfdbab276b0dcce930705e9a4d1bb9fe1e2a7cdd33d9ca82"
+        return "ryan5453/demucs:5a7041cc9b82e5a558fea6b3d7b12dea89625e89da33f0447bd727c2d0ab9e77"
 
     @classmethod
     def get_hardware(cls):
-        return "Nvidia A40 GPU"
+        return "None"
 
     @classmethod
     def get_model_info(cls):
@@ -67,10 +71,10 @@ class Demucs(ReplicateNode):
             "name": "demucs",
             "owner": "ryan5453",
             "paper_url": "https://arxiv.org/abs/2111.03600",
-            "run_count": 342154,
+            "run_count": 349277,
             "url": "https://replicate.com/ryan5453/demucs",
             "visibility": "public",
-            "hardware": "Nvidia A40 GPU",
+            "weights_url": None,
         }
 
     @classmethod

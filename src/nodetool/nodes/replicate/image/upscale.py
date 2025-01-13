@@ -9,12 +9,16 @@ class RealEsrGan(ReplicateNode):
     """Real-ESRGAN for image upscaling on an A100"""
 
     @classmethod
+    def get_basic_fields(cls):
+        return ["image", "scale", "face_enhance"]
+
+    @classmethod
     def replicate_model_id(cls):
-        return "daanelson/real-esrgan-a100:499940604f95b416c3939423df5c64a5c95cfd32b464d755dacfe2192a2de7ef"
+        return "daanelson/real-esrgan-a100:f94d7ed4a1f7e1ffed0d51e4089e4911609d5eeee5e874ef323d2c7562624bed"
 
     @classmethod
     def get_hardware(cls):
-        return "Nvidia A100 (40GB) GPU"
+        return "None"
 
     @classmethod
     def get_model_info(cls):
@@ -22,15 +26,15 @@ class RealEsrGan(ReplicateNode):
             "cover_image_url": "https://replicate.delivery/pbxt/lv0iOW3u6DrNOd30ybfmufqWebiuW10YjILw05YZGbeipZZCB/output.png",
             "created_at": "2023-03-10T22:36:15.201038Z",
             "description": "Real-ESRGAN for image upscaling on an A100",
-            "github_url": "https://github.com/daanelson/Real-ESRGAN/",
-            "license_url": None,
+            "github_url": "https://github.com/replicate/cog-real-esrgan",
+            "license_url": "https://github.com/replicate/cog-real-esrgan/blob/main/LICENSE",
             "name": "real-esrgan-a100",
             "owner": "daanelson",
             "paper_url": None,
-            "run_count": 9943669,
+            "run_count": 12694507,
             "url": "https://replicate.com/daanelson/real-esrgan-a100",
             "visibility": "public",
-            "hardware": "Nvidia A100 (40GB) GPU",
+            "weights_url": None,
         }
 
     @classmethod
@@ -49,6 +53,56 @@ class RealEsrGan(ReplicateNode):
         title="Face Enhance",
         description="Run GFPGAN face enhancement along with upscaling",
         default=False,
+    )
+
+
+class GFPGAN(ReplicateNode):
+    """Practical face restoration algorithm for *old photos* or *AI-generated faces*"""
+
+    class Version(str, Enum):
+        V1_2 = "v1.2"
+        V1_3 = "v1.3"
+        V1_4 = "v1.4"
+        RESTOREFORMER = "RestoreFormer"
+
+    @classmethod
+    def get_basic_fields(cls):
+        return ["img", "scale", "version"]
+
+    @classmethod
+    def replicate_model_id(cls):
+        return "tencentarc/gfpgan:0fbacf7afc6c144e5be9767cff80f25aff23e52b0708f17e20f9879b2f21516c"
+
+    @classmethod
+    def get_hardware(cls):
+        return "None"
+
+    @classmethod
+    def get_model_info(cls):
+        return {
+            "cover_image_url": "https://tjzk.replicate.delivery/models_models_featured_image/40223a51-a460-4f27-b13a-bf5d6429b686/output_1.png",
+            "created_at": "2021-09-15T22:08:48.809672Z",
+            "description": "Practical face restoration algorithm for *old photos* or *AI-generated faces*",
+            "github_url": "https://github.com/replicate/GFPGAN",
+            "license_url": "https://github.com/TencentARC/GFPGAN/blob/master/LICENSE",
+            "name": "gfpgan",
+            "owner": "tencentarc",
+            "paper_url": "https://arxiv.org/abs/2101.04061",
+            "run_count": 84219663,
+            "url": "https://replicate.com/tencentarc/gfpgan",
+            "visibility": "public",
+            "weights_url": None,
+        }
+
+    @classmethod
+    def return_type(cls):
+        return ImageRef
+
+    img: ImageRef = Field(default=ImageRef(), description="Input")
+    scale: float = Field(title="Scale", description="Rescaling factor", default=2)
+    version: Version = Field(
+        description="GFPGAN version. v1.3: better quality. v1.4: more details and better identity.",
+        default=Version("v1.4"),
     )
 
 
@@ -143,12 +197,16 @@ class ClarityUpscaler(ReplicateNode):
         _256 = 256
 
     @classmethod
+    def get_basic_fields(cls):
+        return ["mask", "seed", "image"]
+
+    @classmethod
     def replicate_model_id(cls):
-        return "philz1337x/clarity-upscaler:5bd0e37172efef85d38698ff2a570f4ce67a9c40c486de0bfddcc5b022acbbd8"
+        return "philz1337x/clarity-upscaler:dfad41707589d68ecdccd1dfa600d55a208f9310748e44bfe35b4a6291453d5e"
 
     @classmethod
     def get_hardware(cls):
-        return "Nvidia A100 (40GB) GPU"
+        return "None"
 
     @classmethod
     def get_model_info(cls):
@@ -161,10 +219,10 @@ class ClarityUpscaler(ReplicateNode):
             "name": "clarity-upscaler",
             "owner": "philz1337x",
             "paper_url": "https://clarityai.co",
-            "run_count": 2219516,
+            "run_count": 7768565,
             "url": "https://replicate.com/philz1337x/clarity-upscaler",
             "visibility": "public",
-            "hardware": "Nvidia A100 (40GB) GPU",
+            "weights_url": None,
         }
 
     @classmethod
@@ -192,6 +250,11 @@ class ClarityUpscaler(ReplicateNode):
     )
     handfix: Handfix = Field(
         description="Use clarity to fix hands in the image", default=Handfix("disabled")
+    )
+    pattern: bool = Field(
+        title="Pattern",
+        description="Upscale a pattern with seamless tiling",
+        default=False,
     )
     sharpen: float = Field(
         title="Sharpen",
@@ -280,12 +343,16 @@ class MagicImageRefiner(ReplicateNode):
         _2048 = "2048"
 
     @classmethod
+    def get_basic_fields(cls):
+        return ["hdr", "mask", "seed"]
+
+    @classmethod
     def replicate_model_id(cls):
         return "batouresearch/magic-image-refiner:507ddf6f977a7e30e46c0daefd30de7d563c72322f9e4cf7cbac52ef0f667b13"
 
     @classmethod
     def get_hardware(cls):
-        return "Nvidia A40 (Large) GPU"
+        return "None"
 
     @classmethod
     def get_model_info(cls):
@@ -298,10 +365,10 @@ class MagicImageRefiner(ReplicateNode):
             "name": "magic-image-refiner",
             "owner": "batouresearch",
             "paper_url": None,
-            "run_count": 683802,
+            "run_count": 914817,
             "url": "https://replicate.com/batouresearch/magic-image-refiner",
             "visibility": "public",
-            "hardware": "Nvidia A40 (Large) GPU",
+            "weights_url": None,
         }
 
     @classmethod
@@ -373,12 +440,16 @@ class ruDallE_SR(ReplicateNode):
         _8 = 8
 
     @classmethod
+    def get_basic_fields(cls):
+        return ["image", "scale"]
+
+    @classmethod
     def replicate_model_id(cls):
         return "cjwbw/rudalle-sr:32fdb2231d00a10d33754cc2ba794a2dfec94216579770785849ce6f149dbc69"
 
     @classmethod
     def get_hardware(cls):
-        return "Nvidia T4 GPU"
+        return "None"
 
     @classmethod
     def get_model_info(cls):
@@ -391,10 +462,10 @@ class ruDallE_SR(ReplicateNode):
             "name": "rudalle-sr",
             "owner": "cjwbw",
             "paper_url": "https://arxiv.org/abs/2107.10833",
-            "run_count": 473516,
+            "run_count": 482456,
             "url": "https://replicate.com/cjwbw/rudalle-sr",
             "visibility": "public",
-            "hardware": "Nvidia T4 GPU",
+            "weights_url": None,
         }
 
     @classmethod
@@ -406,7 +477,11 @@ class ruDallE_SR(ReplicateNode):
 
 
 class HighResolutionControlNetTile(ReplicateNode):
-    """Fermat.app open-source implementation of an efficient ControlNet 1.1 tile for high-quality upscales. Increase the creativity to encourage hallucination."""
+    """UPDATE: new upscaling algorithm for a much improved image quality. Fermat.app open-source implementation of an efficient ControlNet 1.1 tile for high-quality upscales. Increase the creativity to encourage hallucination."""
+
+    class Format(str, Enum):
+        JPG = "jpg"
+        PNG = "png"
 
     class Scheduler(str, Enum):
         DDIM = "DDIM"
@@ -417,30 +492,35 @@ class HighResolutionControlNetTile(ReplicateNode):
     class Resolution(int, Enum):
         _2048 = 2048
         _2560 = 2560
+        _4096 = 4096
+
+    @classmethod
+    def get_basic_fields(cls):
+        return ["hdr", "seed", "image"]
 
     @classmethod
     def replicate_model_id(cls):
-        return "batouresearch/high-resolution-controlnet-tile:4af11083a13ebb9bf97a88d7906ef21cf79d1f2e5fa9d87b70739ce6b8113d29"
+        return "batouresearch/high-resolution-controlnet-tile:8e6a54d7b2848c48dc741a109d3fb0ea2a7f554eb4becd39a25cc532536ea975"
 
     @classmethod
     def get_hardware(cls):
-        return "Nvidia A100 (80GB) GPU"
+        return "None"
 
     @classmethod
     def get_model_info(cls):
         return {
-            "cover_image_url": "https://replicate.delivery/pbxt/8Reu1zg6zAV6GShu5yiyP0ueFch9EddJPlVfIxyiMLWBlwJkA/out-0.png",
+            "cover_image_url": "https://tjzk.replicate.delivery/models_models_featured_image/db4434b4-7b0f-49f7-b78a-774fe9e630a7/batou.jpeg",
             "created_at": "2023-12-08T02:32:38.082772Z",
-            "description": "Fermat.app open-source implementation of an efficient ControlNet 1.1 tile for high-quality upscales. Increase the creativity to encourage hallucination.",
-            "github_url": "https://github.com/BatouResearch/controlnet-tile-upscale",
+            "description": "UPDATE: new upscaling algorithm for a much improved image quality. Fermat.app open-source implementation of an efficient ControlNet 1.1 tile for high-quality upscales. Increase the creativity to encourage hallucination.",
+            "github_url": None,
             "license_url": None,
             "name": "high-resolution-controlnet-tile",
             "owner": "batouresearch",
             "paper_url": None,
-            "run_count": 380716,
+            "run_count": 592194,
             "url": "https://replicate.com/batouresearch/high-resolution-controlnet-tile",
             "visibility": "public",
-            "hardware": "Nvidia A100 (80GB) GPU",
+            "weights_url": None,
         }
 
     @classmethod
@@ -458,7 +538,8 @@ class HighResolutionControlNetTile(ReplicateNode):
     image: ImageRef = Field(
         default=ImageRef(), description="Control image for scribble controlnet"
     )
-    steps: int = Field(title="Steps", description="Steps", default=20)
+    steps: int = Field(title="Steps", description="Steps", default=8)
+    format: Format = Field(description="Format of the output.", default=Format("jpg"))
     prompt: str | None = Field(
         title="Prompt", description="Prompt for the model", default=None
     )
@@ -468,36 +549,50 @@ class HighResolutionControlNetTile(ReplicateNode):
     creativity: float = Field(
         title="Creativity",
         description="Denoising strength. 1 means total destruction of the original image",
-        ge=0.0,
+        ge=0.1,
         le=1.0,
-        default=0.5,
+        default=0.35,
     )
     guess_mode: bool = Field(
         title="Guess Mode",
-        description="In this mode, the ControlNet encoder will try best to recognize the content of the input image even if you remove all prompts. The `guidance_scale` between 3.0 and 5.0 is recommended.",
+        description="In this mode, the ControlNet encoder will try best to recognize the content of the input image even if you remove all prompts.",
         default=False,
     )
     resolution: Resolution = Field(
-        description="Image resolution", default=Resolution(2048)
+        description="Image resolution", default=Resolution(2560)
     )
     resemblance: float = Field(
         title="Resemblance",
         description="Conditioning scale for controlnet",
         ge=0.0,
         le=1.0,
-        default=0.5,
+        default=0.85,
     )
     guidance_scale: float = Field(
         title="Guidance Scale",
-        description="Scale for classifier-free guidance",
-        ge=0.1,
+        description="Scale for classifier-free guidance, should be 0.",
+        ge=0.0,
         le=30.0,
-        default=7,
+        default=0,
     )
     negative_prompt: str = Field(
         title="Negative Prompt",
         description="Negative prompt",
         default="teeth, tooth, open mouth, longbody, lowres, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, mutant",
+    )
+    lora_details_strength: float = Field(
+        title="Lora Details Strength",
+        description="Strength of the image's details",
+        ge=-5.0,
+        le=3.0,
+        default=1,
+    )
+    lora_sharpness_strength: float = Field(
+        title="Lora Sharpness Strength",
+        description="Strength of the image's sharpness. We don't recommend values above 2.",
+        ge=-5.0,
+        le=10.0,
+        default=1.25,
     )
 
 
@@ -552,12 +647,16 @@ class UltimateSDUpscale(ReplicateNode):
         HALF_TILE___INTERSECTIONS = "Half Tile + Intersections"
 
     @classmethod
+    def get_basic_fields(cls):
+        return ["cfg", "seed", "image"]
+
+    @classmethod
     def replicate_model_id(cls):
         return "fewjative/ultimate-sd-upscale:5daf1012d946160622cd1bd45ed8f12d9675d24659276ccfe24804035f3b3ad7"
 
     @classmethod
     def get_hardware(cls):
-        return "Nvidia A100 (40GB) GPU"
+        return "None"
 
     @classmethod
     def get_model_info(cls):
@@ -570,10 +669,10 @@ class UltimateSDUpscale(ReplicateNode):
             "name": "ultimate-sd-upscale",
             "owner": "fewjative",
             "paper_url": None,
-            "run_count": 113206,
+            "run_count": 157899,
             "url": "https://replicate.com/fewjative/ultimate-sd-upscale",
             "visibility": "public",
-            "hardware": "Nvidia A100 (40GB) GPU",
+            "weights_url": None,
         }
 
     @classmethod
@@ -658,17 +757,21 @@ class SwinIR(ReplicateNode):
         JPEG_COMPRESSION_ARTIFACT_REDUCTION = "JPEG Compression Artifact Reduction"
 
     @classmethod
+    def get_basic_fields(cls):
+        return ["jpeg", "image", "noise"]
+
+    @classmethod
     def replicate_model_id(cls):
         return "jingyunliang/swinir:660d922d33153019e8c263a3bba265de882e7f4f70396546b6c9c8f9d47a021a"
 
     @classmethod
     def get_hardware(cls):
-        return "Nvidia A100 (40GB) GPU"
+        return "None"
 
     @classmethod
     def get_model_info(cls):
         return {
-            "cover_image_url": "https://replicate.delivery/mgxm/1e3c0b87-01a7-4795-abac-aaf17479cf84/out.png",
+            "cover_image_url": "https://tjzk.replicate.delivery/models_models_featured_image/c62290f9-ba1d-419b-95b8-eedfe5863122/out.png",
             "created_at": "2021-09-13T19:58:55.156216Z",
             "description": "Image Restoration Using Swin Transformer",
             "github_url": "https://github.com/JingyunLiang/SwinIR",
@@ -676,10 +779,10 @@ class SwinIR(ReplicateNode):
             "name": "swinir",
             "owner": "jingyunliang",
             "paper_url": "https://arxiv.org/abs/2108.10257",
-            "run_count": 5666819,
+            "run_count": 5855107,
             "url": "https://replicate.com/jingyunliang/swinir",
             "visibility": "public",
-            "hardware": "Nvidia A100 (40GB) GPU",
+            "weights_url": None,
         }
 
     @classmethod
@@ -711,12 +814,16 @@ class Swin2SR(ReplicateNode):
         COMPRESSED_SR = "compressed_sr"
 
     @classmethod
+    def get_basic_fields(cls):
+        return ["task", "image"]
+
+    @classmethod
     def replicate_model_id(cls):
         return "mv-lab/swin2sr:a01b0512004918ca55d02e554914a9eca63909fa83a29ff0f115c78a7045574f"
 
     @classmethod
     def get_hardware(cls):
-        return "Nvidia T4 GPU"
+        return "None"
 
     @classmethod
     def get_model_info(cls):
@@ -729,10 +836,10 @@ class Swin2SR(ReplicateNode):
             "name": "swin2sr",
             "owner": "mv-lab",
             "paper_url": "https://arxiv.org/abs/2209.11345",
-            "run_count": 3509777,
+            "run_count": 3555229,
             "url": "https://replicate.com/mv-lab/swin2sr",
             "visibility": "public",
-            "hardware": "Nvidia T4 GPU",
+            "weights_url": None,
         }
 
     @classmethod

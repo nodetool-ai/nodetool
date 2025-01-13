@@ -4,6 +4,7 @@ from time import sleep
 import black
 import httpx
 from openapi_pydantic.v3.parser import OpenAPIv3
+from pydantic import BaseModel
 from nodetool.common.environment import Environment
 from openapi_pydantic.v3 import DataType, Reference, Schema, parse_obj
 from nodetool.providers.replicate.replicate_node import (
@@ -14,6 +15,7 @@ from nodetool.providers.replicate.replicate_node import (
 )
 from nodetool.dsl.codegen import field_default, type_to_string
 from nodetool.metadata.utils import is_enum_type
+import asyncio
 
 
 def format_code(code: str) -> str:
@@ -22,7 +24,9 @@ def format_code(code: str) -> str:
     return black.format_file_contents(code, fast=False, mode=mode)
 
 
-def retry_http_request(url: str, headers: dict[str, str], retries: int = 3) -> Any:
+async def retry_http_request(
+    client: httpx.AsyncClient, url: str, headers: dict[str, str], retries: int = 3
+) -> Any:
     """
     Retry an HTTP request with exponential backoff.
 
@@ -39,20 +43,28 @@ def retry_http_request(url: str, headers: dict[str, str], retries: int = 3) -> A
     """
     for attempt in range(retries + 1):
         try:
-            response = httpx.get(url, headers=headers)
+            response = await client.get(url, headers=headers)
             response.raise_for_status()
             return response.json()
         except (httpx.RequestError, httpx.HTTPStatusError) as e:
             if attempt < retries:
                 delay = 2**attempt
-                sleep(delay)
+                await asyncio.sleep(delay)
             else:
                 raise e
 
 
-def get_model_api(
+class ModelMetadata(BaseModel):
+    model_id: str
+    model_version: str
+    api: OpenAPIv3
+    model_info: dict[str, Any]
+
+
+async def get_model_api(
+    client: httpx.AsyncClient,
     model_id: str,
-) -> tuple[OpenAPIv3, str, str, dict[str, Any]]:
+):
     """
     Retrieves the API specification for a specific model and version from the Replicate API.
 
@@ -60,8 +72,6 @@ def get_model_api(
         model_id (str): The replicate model ID.
         model_version (str, optional): The model version. Defaults to None.
     """
-    model_name = model_id.replace("/", "_").replace("-", "_").replace(".", "_")
-
     if "REPLICATE_API_TOKEN" not in os.environ:
         raise ValueError("REPLICATE_API_TOKEN environment variable is not set")
 
@@ -69,16 +79,29 @@ def get_model_api(
         "Authorization": "Token " + Environment.get("REPLICATE_API_TOKEN"),
     }
 
-    model_info = retry_http_request(
+    model_info = await retry_http_request(
+        client,
         f"https://api.replicate.com/v1/models/{model_id}",
         headers=headers,
     )
-    model_info.update(parse_model_info(f"https://replicate.com/{model_id}"))
-    latest_version = model_info["latest_version"]
+    model_info.update(
+        await parse_model_info(client, f"https://replicate.com/{model_id}")
+    )
+    latest_version = model_info.get("latest_version", None)
+    if latest_version is None:
+        raise ValueError(f"No latest version found for model {model_id}")
     api = parse_obj(latest_version["openapi_schema"])
     model_version = latest_version.get("id", "")
 
-    return api, model_id, model_version, model_info
+    assert api.components
+    assert api.components.schemas
+
+    return ModelMetadata(
+        model_id=model_id,
+        model_version=model_version,
+        api=api,
+        model_info=model_info,
+    )
 
 
 def convert_datatype_to_type(
@@ -172,6 +195,8 @@ def generate_model_source_code(
     if not schema.properties:
         raise ValueError("Schema has no properties")
 
+    basic_fields = [p for p in schema.properties.keys()][:3]
+
     imports = ""
 
     lines = [
@@ -179,6 +204,8 @@ def generate_model_source_code(
         f'    """{description}"""',
         *enums,
         "",
+        "    @classmethod",
+        f"    def get_basic_fields(cls): return {repr(basic_fields)}",
         "    @classmethod",
         f"    def replicate_model_id(cls): return '{replicate_model_id}'",
         "    @classmethod",
@@ -287,10 +314,11 @@ def create_replicate_node(
     node_name: str,
     model_id: str,
     return_type: Type,
+    metadata: ModelMetadata,
     overrides: dict[str, type] = {},
     output_index: int = 0,
     output_key: str = "output",
-    namespace: str | None = None,
+    namespace: str = "",
 ):
     """
     Creates a node from a model ID and version.
@@ -302,11 +330,12 @@ def create_replicate_node(
         enums (set[str]): A set of enum names.
         model_id (str): The ID of the model on replicate.
         return_type (Type): The return type of the node.
+        metadata (ModelMetadata): The metadata of the model.
         model_version (str, optional): The version of the model. Defaults to None.
         overrides (dict[str, type]): A dictionary of overrides for the node fields.
         output_index (int): The index for list outputs to use. Defaults to 0.
         output_key (str): The key for dict outputs to use. Defaults to "output".
-
+        namespace (str): The namespace of the node.
     Returns:
         Replicate: The generated node class.
 
@@ -317,12 +346,13 @@ def create_replicate_node(
     type_lookup = {}
     source_code = ""
     enums = []
-    api, model_id, model_version, model_info = get_model_api(model_id)
 
-    assert api.components
-    assert api.components.schemas
+    print("Creating node for", metadata.model_id)
 
-    for name, schema in api.components.schemas.items():
+    assert metadata.api.components
+    assert metadata.api.components.schemas
+
+    for name, schema in metadata.api.components.schemas.items():
         if name in (
             "Input",
             "Output",
@@ -345,28 +375,28 @@ def create_replicate_node(
                 create_enum_from_schema(capitalized_name, schema),  # type: ignore
             ]
 
-    del model_info["default_example"]
-    del model_info["latest_version"]
+    del metadata.model_info["default_example"]
+    del metadata.model_info["latest_version"]
 
     source_code += generate_model_source_code(
         model_name=node_name,
-        model_info=model_info,
+        model_info=metadata.model_info,
         enums=enums,
-        description=model_info.get("description", ""),
-        schema=api.components.schemas["Input"],  # type: ignore
+        description=metadata.model_info.get("description", ""),
+        schema=metadata.api.components.schemas["Input"],  # type: ignore
         type_lookup=type_lookup,
         overrides=overrides,
         return_type=return_type,
         output_index=output_index,
         output_key=output_key,
-        hardware=model_info.get("hardware", None),
-        replicate_model_id=f"{model_id}:{model_version}",
+        hardware=metadata.model_info.get("hardware", None),
+        replicate_model_id=f"{model_id}:{metadata.model_version}",
     )
 
     return source_code
 
 
-def create_replicate_namespace(
+async def create_replicate_namespace(
     folder: str, namespace: str, nodes: list[dict[str, Any]]
 ):
     imports = (
@@ -380,10 +410,21 @@ def create_replicate_namespace(
     namespace_folder = os.path.dirname(namespace_path)
     os.makedirs(namespace_folder, exist_ok=True)
 
+    async with httpx.AsyncClient(
+        timeout=60, follow_redirects=True, limits=httpx.Limits(max_connections=5)
+    ) as client:
+
+        async def get(node: dict[str, Any]):
+            print("Getting metadata for", node["model_id"])
+            return await get_model_api(client, node["model_id"])
+
+        metadata = await asyncio.gather(*[get(node) for node in nodes])
+
     with open(namespace_path + ".py", "w") as f:
         f.write(imports)
-        for node in nodes:
-            source_code = create_replicate_node(**node)
+        for node, metadata in zip(nodes, metadata):
+            print("Creating node for", node["model_id"])
+            source_code = create_replicate_node(**node, metadata=metadata)
             f.write(source_code)
 
 

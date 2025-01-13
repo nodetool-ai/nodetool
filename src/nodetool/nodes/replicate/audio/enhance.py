@@ -9,12 +9,16 @@ class AudioSuperResolution(ReplicateNode):
     """AudioSR: Versatile Audio Super-resolution at Scale"""
 
     @classmethod
+    def get_basic_fields(cls):
+        return ["seed", "ddim_steps", "input_file"]
+
+    @classmethod
     def replicate_model_id(cls):
-        return "nateraw/audio-super-resolution:9c3d3e39fb0cb6aea677264881d8073f835336137b39fdea4e94093319379535"
+        return "nateraw/audio-super-resolution:0e453d5e4c2e0ef4f8d38a6167053dda09cf3c8dbca2355cde61dca55a915bc5"
 
     @classmethod
     def get_hardware(cls):
-        return "Nvidia A40 (Large) GPU"
+        return "None"
 
     @classmethod
     def get_model_info(cls):
@@ -27,10 +31,10 @@ class AudioSuperResolution(ReplicateNode):
             "name": "audio-super-resolution",
             "owner": "nateraw",
             "paper_url": "https://arxiv.org/abs/2309.07314",
-            "run_count": 40455,
+            "run_count": 52785,
             "url": "https://replicate.com/nateraw/audio-super-resolution",
             "visibility": "public",
-            "hardware": "Nvidia A40 (Large) GPU",
+            "weights_url": None,
         }
 
     @classmethod
