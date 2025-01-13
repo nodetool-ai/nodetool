@@ -632,7 +632,7 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
       set({ clickPosition: { x, y } });
 
       // Calculate menu position
-      const maxPosX = window.innerWidth - menuWidth + 250;
+      const maxPosX = window.innerWidth - menuWidth;
       const maxPosY = window.innerHeight - menuHeight - 40;
 
       // Constrain x position to keep menu within window bounds
