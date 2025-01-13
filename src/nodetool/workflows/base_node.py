@@ -341,10 +341,7 @@ class BaseNode(BaseModel):
 
     @classmethod
     def get_basic_fields(cls) -> list[str]:
-        return [
-            p.name
-            for p in cls.properties()
-        ]
+        return [p.name for p in cls.properties()]
 
     @classmethod
     def metadata(cls: Type["BaseNode"]):
@@ -863,8 +860,12 @@ class InputNode(BaseNode):
         name (str): The parameter name for this input in the workflow.
     """
 
-    label: str = Field("Input Label", description="The label for this input node.")
     name: str = Field("", description="The parameter name for the workflow.")
+    description: str = Field("", description="The description for this input node.")
+
+    @classmethod
+    def get_basic_fields(cls):
+        return ["name"]
 
     @classmethod
     def is_visible(cls):
@@ -886,14 +887,15 @@ class OutputNode(BaseNode):
     """
 
     name: str = Field("", description="The parameter name for the workflow.")
-    label: str = Field(
-        default="Output Label", description="The label for this output node."
-    )
-    _basic_fields: list[str] = ["name"]
+    description: str = Field("", description="The description for this output node.")
 
     @classmethod
     def is_visible(cls):
         return cls is not OutputNode
+
+    @classmethod
+    def get_basic_fields(cls):
+        return ["name"]
 
     def result_for_client(self, result: dict[str, Any]) -> dict[str, Any]:
         return self.result_for_all_outputs(result)

@@ -22397,10 +22397,10 @@
           "year": 2025,
           "month": 1,
           "day": 13,
-          "hour": 22,
-          "minute": 32,
-          "second": 32,
-          "microsecond": 692326,
+          "hour": 23,
+          "minute": 44,
+          "second": 4,
+          "microsecond": 998420,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23439,10 +23439,10 @@
           "year": 2025,
           "month": 1,
           "day": 13,
-          "hour": 22,
-          "minute": 32,
-          "second": 32,
-          "microsecond": 696223,
+          "hour": 23,
+          "minute": 44,
+          "second": 5,
+          "microsecond": 2361,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23492,10 +23492,10 @@
           "year": 2025,
           "month": 1,
           "day": 13,
-          "hour": 22,
-          "minute": 32,
-          "second": 32,
-          "microsecond": 696472,
+          "hour": 23,
+          "minute": 44,
+          "second": 5,
+          "microsecond": 2596,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23545,10 +23545,10 @@
           "year": 2025,
           "month": 1,
           "day": 13,
-          "hour": 22,
-          "minute": 32,
-          "second": 32,
-          "microsecond": 696699,
+          "hour": 23,
+          "minute": 44,
+          "second": 5,
+          "microsecond": 2805,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23598,10 +23598,10 @@
           "year": 2025,
           "month": 1,
           "day": 13,
-          "hour": 22,
-          "minute": 32,
-          "second": 32,
-          "microsecond": 696903,
+          "hour": 23,
+          "minute": 44,
+          "second": 5,
+          "microsecond": 3018,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23651,10 +23651,10 @@
           "year": 2025,
           "month": 1,
           "day": 13,
-          "hour": 22,
-          "minute": 32,
-          "second": 32,
-          "microsecond": 697111,
+          "hour": 23,
+          "minute": 44,
+          "second": 5,
+          "microsecond": 3242,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23704,10 +23704,10 @@
           "year": 2025,
           "month": 1,
           "day": 13,
-          "hour": 22,
-          "minute": 32,
-          "second": 32,
-          "microsecond": 697362,
+          "hour": 23,
+          "minute": 44,
+          "second": 5,
+          "microsecond": 3480,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23757,10 +23757,10 @@
           "year": 2025,
           "month": 1,
           "day": 13,
-          "hour": 22,
-          "minute": 32,
-          "second": 32,
-          "microsecond": 697575,
+          "hour": 23,
+          "minute": 44,
+          "second": 5,
+          "microsecond": 3682,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23826,10 +23826,10 @@
           "year": 2025,
           "month": 1,
           "day": 13,
-          "hour": 22,
-          "minute": 32,
-          "second": 32,
-          "microsecond": 697828,
+          "hour": 23,
+          "minute": 44,
+          "second": 5,
+          "microsecond": 3922,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -34312,21 +34312,6 @@
     "layout": "default",
     "properties": [
       {
-        "name": "label",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "Input Label",
-        "title": "Label",
-        "description": "The label for this input node.",
-        "min": null,
-        "max": null
-      },
-      {
         "name": "name",
         "type": {
           "type": "str",
@@ -34338,6 +34323,21 @@
         "default": "",
         "title": "Name",
         "description": "The parameter name for the workflow.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "description",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Description",
+        "description": "The description for this input node.",
         "min": null,
         "max": null
       },
@@ -34403,11 +34403,7 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "label",
-      "name",
-      "value",
-      "min",
-      "max"
+      "name"
     ]
   },
   {
@@ -34417,21 +34413,6 @@
     "node_type": "nodetool.input.BooleanInput",
     "layout": "default",
     "properties": [
-      {
-        "name": "label",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "Input Label",
-        "title": "Label",
-        "description": "The label for this input node.",
-        "min": null,
-        "max": null
-      },
       {
         "name": "name",
         "type": {
@@ -34444,6 +34425,21 @@
         "default": "",
         "title": "Name",
         "description": "The parameter name for the workflow.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "description",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Description",
+        "description": "The description for this input node.",
         "min": null,
         "max": null
       },
@@ -34479,9 +34475,7 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "label",
-      "name",
-      "value"
+      "name"
     ]
   },
   {
@@ -34491,21 +34485,6 @@
     "node_type": "nodetool.input.IntegerInput",
     "layout": "default",
     "properties": [
-      {
-        "name": "label",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "Input Label",
-        "title": "Label",
-        "description": "The label for this input node.",
-        "min": null,
-        "max": null
-      },
       {
         "name": "name",
         "type": {
@@ -34518,6 +34497,21 @@
         "default": "",
         "title": "Name",
         "description": "The parameter name for the workflow.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "description",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Description",
+        "description": "The description for this input node.",
         "min": null,
         "max": null
       },
@@ -34583,11 +34577,7 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "label",
-      "name",
-      "value",
-      "min",
-      "max"
+      "name"
     ]
   },
   {
@@ -34597,21 +34587,6 @@
     "node_type": "nodetool.input.StringInput",
     "layout": "default",
     "properties": [
-      {
-        "name": "label",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "Input Label",
-        "title": "Label",
-        "description": "The label for this input node.",
-        "min": null,
-        "max": null
-      },
       {
         "name": "name",
         "type": {
@@ -34624,6 +34599,21 @@
         "default": "",
         "title": "Name",
         "description": "The parameter name for the workflow.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "description",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Description",
+        "description": "The description for this input node.",
         "min": null,
         "max": null
       },
@@ -34659,9 +34649,7 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "label",
-      "name",
-      "value"
+      "name"
     ]
   },
   {
@@ -34671,21 +34659,6 @@
     "node_type": "nodetool.input.ChatInput",
     "layout": "default",
     "properties": [
-      {
-        "name": "label",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "Input Label",
-        "title": "Label",
-        "description": "The label for this input node.",
-        "min": null,
-        "max": null
-      },
       {
         "name": "name",
         "type": {
@@ -34698,6 +34671,21 @@
         "default": "",
         "title": "Name",
         "description": "The parameter name for the workflow.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "description",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Description",
+        "description": "The description for this input node.",
         "min": null,
         "max": null
       },
@@ -34804,9 +34792,7 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "label",
-      "name",
-      "value"
+      "name"
     ]
   },
   {
@@ -34816,21 +34802,6 @@
     "node_type": "nodetool.input.TextInput",
     "layout": "default",
     "properties": [
-      {
-        "name": "label",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "Input Label",
-        "title": "Label",
-        "description": "The label for this input node.",
-        "min": null,
-        "max": null
-      },
       {
         "name": "name",
         "type": {
@@ -34843,6 +34814,21 @@
         "default": "",
         "title": "Name",
         "description": "The parameter name for the workflow.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "description",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Description",
+        "description": "The description for this input node.",
         "min": null,
         "max": null
       },
@@ -34883,9 +34869,7 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "label",
-      "name",
-      "value"
+      "name"
     ]
   },
   {
@@ -34895,21 +34879,6 @@
     "node_type": "nodetool.input.DocumentInput",
     "layout": "default",
     "properties": [
-      {
-        "name": "label",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "Input Label",
-        "title": "Label",
-        "description": "The label for this input node.",
-        "min": null,
-        "max": null
-      },
       {
         "name": "name",
         "type": {
@@ -34922,6 +34891,21 @@
         "default": "",
         "title": "Name",
         "description": "The parameter name for the workflow.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "description",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Description",
+        "description": "The description for this input node.",
         "min": null,
         "max": null
       },
@@ -34962,9 +34946,7 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "label",
-      "name",
-      "value"
+      "name"
     ]
   },
   {
@@ -34974,21 +34956,6 @@
     "node_type": "nodetool.input.ImageInput",
     "layout": "default",
     "properties": [
-      {
-        "name": "label",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "Input Label",
-        "title": "Label",
-        "description": "The label for this input node.",
-        "min": null,
-        "max": null
-      },
       {
         "name": "name",
         "type": {
@@ -35001,6 +34968,21 @@
         "default": "",
         "title": "Name",
         "description": "The parameter name for the workflow.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "description",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Description",
+        "description": "The description for this input node.",
         "min": null,
         "max": null
       },
@@ -35041,9 +35023,7 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "label",
-      "name",
-      "value"
+      "name"
     ]
   },
   {
@@ -35053,21 +35033,6 @@
     "node_type": "nodetool.input.VideoInput",
     "layout": "default",
     "properties": [
-      {
-        "name": "label",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "Input Label",
-        "title": "Label",
-        "description": "The label for this input node.",
-        "min": null,
-        "max": null
-      },
       {
         "name": "name",
         "type": {
@@ -35080,6 +35045,21 @@
         "default": "",
         "title": "Name",
         "description": "The parameter name for the workflow.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "description",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Description",
+        "description": "The description for this input node.",
         "min": null,
         "max": null
       },
@@ -35122,9 +35102,7 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "label",
-      "name",
-      "value"
+      "name"
     ]
   },
   {
@@ -35134,21 +35112,6 @@
     "node_type": "nodetool.input.AudioInput",
     "layout": "default",
     "properties": [
-      {
-        "name": "label",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "Input Label",
-        "title": "Label",
-        "description": "The label for this input node.",
-        "min": null,
-        "max": null
-      },
       {
         "name": "name",
         "type": {
@@ -35161,6 +35124,21 @@
         "default": "",
         "title": "Name",
         "description": "The parameter name for the workflow.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "description",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Description",
+        "description": "The description for this input node.",
         "min": null,
         "max": null
       },
@@ -35201,9 +35179,7 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "label",
-      "name",
-      "value"
+      "name"
     ]
   },
   {
@@ -35213,21 +35189,6 @@
     "node_type": "nodetool.input.PathInput",
     "layout": "default",
     "properties": [
-      {
-        "name": "label",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "Input Label",
-        "title": "Label",
-        "description": "The label for this input node.",
-        "min": null,
-        "max": null
-      },
       {
         "name": "name",
         "type": {
@@ -35240,6 +35201,21 @@
         "default": "",
         "title": "Name",
         "description": "The parameter name for the workflow.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "description",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Description",
+        "description": "The description for this input node.",
         "min": null,
         "max": null
       },
@@ -35278,9 +35254,7 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "label",
-      "name",
-      "value"
+      "name"
     ]
   },
   {
@@ -35315,21 +35289,6 @@
     "layout": "default",
     "properties": [
       {
-        "name": "label",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "Input Label",
-        "title": "Label",
-        "description": "The label for this input node.",
-        "min": null,
-        "max": null
-      },
-      {
         "name": "name",
         "type": {
           "type": "str",
@@ -35341,6 +35300,21 @@
         "default": "",
         "title": "Name",
         "description": "The parameter name for the workflow.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "description",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Description",
+        "description": "The description for this input node.",
         "min": null,
         "max": null
       },
@@ -35391,10 +35365,7 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "label",
-      "name",
-      "value",
-      "options"
+      "name"
     ]
   },
   {
@@ -45267,7 +45238,7 @@
         "max": null
       },
       {
-        "name": "label",
+        "name": "description",
         "type": {
           "type": "str",
           "optional": false,
@@ -45275,9 +45246,9 @@
           "type_args": [],
           "type_name": null
         },
-        "default": "Output Label",
-        "title": "Label",
-        "description": "The label for this output node.",
+        "default": "",
+        "title": "Description",
+        "description": "The description for this output node.",
         "min": null,
         "max": null
       },
@@ -45329,9 +45300,7 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "name",
-      "label",
-      "value"
+      "name"
     ]
   },
   {
@@ -45357,7 +45326,7 @@
         "max": null
       },
       {
-        "name": "label",
+        "name": "description",
         "type": {
           "type": "str",
           "optional": false,
@@ -45365,9 +45334,9 @@
           "type_args": [],
           "type_name": null
         },
-        "default": "Output Label",
-        "title": "Label",
-        "description": "The label for this output node.",
+        "default": "",
+        "title": "Description",
+        "description": "The description for this output node.",
         "min": null,
         "max": null
       },
@@ -45419,9 +45388,7 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "name",
-      "label",
-      "value"
+      "name"
     ]
   },
   {
@@ -45447,7 +45414,7 @@
         "max": null
       },
       {
-        "name": "label",
+        "name": "description",
         "type": {
           "type": "str",
           "optional": false,
@@ -45455,9 +45422,9 @@
           "type_args": [],
           "type_name": null
         },
-        "default": "Output Label",
-        "title": "Label",
-        "description": "The label for this output node.",
+        "default": "",
+        "title": "Description",
+        "description": "The description for this output node.",
         "min": null,
         "max": null
       },
@@ -45493,9 +45460,7 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "name",
-      "label",
-      "value"
+      "name"
     ]
   },
   {
@@ -45521,7 +45486,7 @@
         "max": null
       },
       {
-        "name": "label",
+        "name": "description",
         "type": {
           "type": "str",
           "optional": false,
@@ -45529,9 +45494,9 @@
           "type_args": [],
           "type_name": null
         },
-        "default": "Output Label",
-        "title": "Label",
-        "description": "The label for this output node.",
+        "default": "",
+        "title": "Description",
+        "description": "The description for this output node.",
         "min": null,
         "max": null
       },
@@ -45567,9 +45532,7 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "name",
-      "label",
-      "value"
+      "name"
     ]
   },
   {
@@ -45595,7 +45558,7 @@
         "max": null
       },
       {
-        "name": "label",
+        "name": "description",
         "type": {
           "type": "str",
           "optional": false,
@@ -45603,9 +45566,9 @@
           "type_args": [],
           "type_name": null
         },
-        "default": "Output Label",
-        "title": "Label",
-        "description": "The label for this output node.",
+        "default": "",
+        "title": "Description",
+        "description": "The description for this output node.",
         "min": null,
         "max": null
       },
@@ -45641,9 +45604,7 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "name",
-      "label",
-      "value"
+      "name"
     ]
   },
   {
@@ -45669,7 +45630,7 @@
         "max": null
       },
       {
-        "name": "label",
+        "name": "description",
         "type": {
           "type": "str",
           "optional": false,
@@ -45677,9 +45638,9 @@
           "type_args": [],
           "type_name": null
         },
-        "default": "Output Label",
-        "title": "Label",
-        "description": "The label for this output node.",
+        "default": "",
+        "title": "Description",
+        "description": "The description for this output node.",
         "min": null,
         "max": null
       },
@@ -45715,9 +45676,7 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "name",
-      "label",
-      "value"
+      "name"
     ]
   },
   {
@@ -45743,7 +45702,7 @@
         "max": null
       },
       {
-        "name": "label",
+        "name": "description",
         "type": {
           "type": "str",
           "optional": false,
@@ -45751,9 +45710,9 @@
           "type_args": [],
           "type_name": null
         },
-        "default": "Output Label",
-        "title": "Label",
-        "description": "The label for this output node.",
+        "default": "",
+        "title": "Description",
+        "description": "The description for this output node.",
         "min": null,
         "max": null
       },
@@ -45794,9 +45753,7 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "name",
-      "label",
-      "value"
+      "name"
     ]
   },
   {
@@ -45822,7 +45779,7 @@
         "max": null
       },
       {
-        "name": "label",
+        "name": "description",
         "type": {
           "type": "str",
           "optional": false,
@@ -45830,9 +45787,9 @@
           "type_args": [],
           "type_name": null
         },
-        "default": "Output Label",
-        "title": "Label",
-        "description": "The label for this output node.",
+        "default": "",
+        "title": "Description",
+        "description": "The description for this output node.",
         "min": null,
         "max": null
       },
@@ -45873,9 +45830,7 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "name",
-      "label",
-      "value"
+      "name"
     ]
   },
   {
@@ -45901,7 +45856,7 @@
         "max": null
       },
       {
-        "name": "label",
+        "name": "description",
         "type": {
           "type": "str",
           "optional": false,
@@ -45909,9 +45864,9 @@
           "type_args": [],
           "type_name": null
         },
-        "default": "Output Label",
-        "title": "Label",
-        "description": "The label for this output node.",
+        "default": "",
+        "title": "Description",
+        "description": "The description for this output node.",
         "min": null,
         "max": null
       },
@@ -45954,9 +45909,7 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "name",
-      "label",
-      "value"
+      "name"
     ]
   },
   {
@@ -45982,7 +45935,7 @@
         "max": null
       },
       {
-        "name": "label",
+        "name": "description",
         "type": {
           "type": "str",
           "optional": false,
@@ -45990,9 +45943,9 @@
           "type_args": [],
           "type_name": null
         },
-        "default": "Output Label",
-        "title": "Label",
-        "description": "The label for this output node.",
+        "default": "",
+        "title": "Description",
+        "description": "The description for this output node.",
         "min": null,
         "max": null
       },
@@ -46032,9 +45985,7 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "name",
-      "label",
-      "value"
+      "name"
     ]
   },
   {
@@ -46060,7 +46011,7 @@
         "max": null
       },
       {
-        "name": "label",
+        "name": "description",
         "type": {
           "type": "str",
           "optional": false,
@@ -46068,9 +46019,9 @@
           "type_args": [],
           "type_name": null
         },
-        "default": "Output Label",
-        "title": "Label",
-        "description": "The label for this output node.",
+        "default": "",
+        "title": "Description",
+        "description": "The description for this output node.",
         "min": null,
         "max": null
       },
@@ -46111,9 +46062,7 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "name",
-      "label",
-      "value"
+      "name"
     ]
   },
   {
@@ -46139,7 +46088,7 @@
         "max": null
       },
       {
-        "name": "label",
+        "name": "description",
         "type": {
           "type": "str",
           "optional": false,
@@ -46147,9 +46096,9 @@
           "type_args": [],
           "type_name": null
         },
-        "default": "Output Label",
-        "title": "Label",
-        "description": "The label for this output node.",
+        "default": "",
+        "title": "Description",
+        "description": "The description for this output node.",
         "min": null,
         "max": null
       },
@@ -46190,9 +46139,7 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "name",
-      "label",
-      "value"
+      "name"
     ]
   },
   {
@@ -46218,7 +46165,7 @@
         "max": null
       },
       {
-        "name": "label",
+        "name": "description",
         "type": {
           "type": "str",
           "optional": false,
@@ -46226,9 +46173,9 @@
           "type_args": [],
           "type_name": null
         },
-        "default": "Output Label",
-        "title": "Label",
-        "description": "The label for this output node.",
+        "default": "",
+        "title": "Description",
+        "description": "The description for this output node.",
         "min": null,
         "max": null
       },
@@ -46270,9 +46217,7 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "name",
-      "label",
-      "value"
+      "name"
     ]
   },
   {
@@ -46298,7 +46243,7 @@
         "max": null
       },
       {
-        "name": "label",
+        "name": "description",
         "type": {
           "type": "str",
           "optional": false,
@@ -46306,9 +46251,9 @@
           "type_args": [],
           "type_name": null
         },
-        "default": "Output Label",
-        "title": "Label",
-        "description": "The label for this output node.",
+        "default": "",
+        "title": "Description",
+        "description": "The description for this output node.",
         "min": null,
         "max": null
       },
@@ -46374,9 +46319,7 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "name",
-      "label",
-      "value"
+      "name"
     ]
   },
   {
@@ -46452,7 +46395,7 @@
         "max": null
       },
       {
-        "name": "label",
+        "name": "description",
         "type": {
           "type": "str",
           "optional": false,
@@ -46460,9 +46403,9 @@
           "type_args": [],
           "type_name": null
         },
-        "default": "Output Label",
-        "title": "Label",
-        "description": "The label for this output node.",
+        "default": "",
+        "title": "Description",
+        "description": "The description for this output node.",
         "min": null,
         "max": null
       },
@@ -46503,9 +46446,7 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "name",
-      "label",
-      "value"
+      "name"
     ]
   },
   {

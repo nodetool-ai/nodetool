@@ -239,6 +239,7 @@ function createCheckbox(key, onChange) {
  * @returns {HTMLDivElement}
  */
 function createFileInput(key, onChange) {
+  debugger;
   const wrapper = document.createElement("div");
   wrapper.className = "file-drop-area";
 
