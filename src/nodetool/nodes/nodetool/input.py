@@ -289,3 +289,26 @@ class GroupInput(BaseNode):
     @classmethod
     def is_cacheable(cls):
         return False
+
+
+class EnumInput(InputNode):
+    """
+    Enumeration parameter input for workflows.
+    input, parameter, enum, options, select
+
+    Use cases:
+    - Select from predefined options
+    - Enforce choice from valid values
+    - Configure categorical parameters
+    """
+
+    value: str = ""
+    options: str = Field("", description="Comma-separated list of valid options")
+
+    async def process(self, context: ProcessingContext) -> str:
+        valid_options = [opt.strip() for opt in self.options.split(",") if opt.strip()]
+        if not valid_options:
+            return self.value
+        if self.value not in valid_options:
+            return valid_options[0]
+        return self.value
