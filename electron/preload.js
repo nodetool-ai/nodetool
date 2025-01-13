@@ -62,17 +62,54 @@ contextBridge.exposeInMainWorld("api", {
   onUpdateProgress: (callback) =>
     ipcRenderer.on("update-progress", (event, data) => callback(data)),
 
+  /**
+   * Gets the path to the application's log file.
+   * @returns {Promise<string>} A promise that resolves to the full path of the log file
+   */
   getLogFilePath: () => ipcRenderer.invoke("get-log-file-path"),
+
+  /**
+   * Opens the application's log file in the system's default text editor.
+   * @returns {Promise<void>} A promise that resolves when the file is opened
+   */
   openLogFile: () => ipcRenderer.invoke("open-log-file"),
 
+  /**
+   * Saves a file to disk with the provided content and options.
+   * @param {Buffer} buffer - The content to save to the file
+   * @param {string} defaultPath - The default file path to suggest in the save dialog
+   * @param {Object[]} filters - File filters for the save dialog
+   * @returns {Promise<string>} A promise that resolves to the path where the file was saved
+   */
   saveFile: (buffer, defaultPath, filters) =>
     ipcRenderer.invoke("save-file", { buffer, defaultPath, filters }),
 
+  /**
+   * Runs a specific workflow in the application.
+   * @param {string} workflowId - The ID of the workflow to run
+   * @returns {Promise<void>} A promise that resolves when the workflow starts
+   */
+  runApp: (workflowId) => ipcRenderer.invoke("run-app", workflowId),
+
+  /**
+   * Registers a callback to be invoked when an update is available.
+   * @param {Function} callback - The function to be called when an update is available
+   *                             Signature: (info: Object) => void
+   */
   onUpdateAvailable: (callback) =>
     ipcRenderer.on("update-available", (event, info) => callback(info)),
 
+  /**
+   * Initiates the installation of a pending update.
+   * @returns {Promise<void>} A promise that resolves when the update installation begins
+   */
   installUpdate: () => ipcRenderer.invoke("install-update"),
 
+  /**
+   * Opens a URL in the user's default external browser.
+   * @param {string} url - The URL to open
+   * @returns {Promise<void>} A promise that resolves when the URL is opened
+   */
   openExternal: (url) => shell.openExternal(url),
 });
 

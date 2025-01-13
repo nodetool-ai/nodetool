@@ -32,6 +32,9 @@ function createWindow() {
     show: false,
   });
 
+  // set window background color
+  window.setBackgroundColor("#111111");
+
   // Load the index.html
   window.loadFile(path.join(__dirname, "index.html"));
 

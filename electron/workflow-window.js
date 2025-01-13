@@ -22,6 +22,8 @@ function createWorkflowWindow(workflow) {
     },
   });
 
+  workflowWindow.setBackgroundColor("#111111");
+
   const windowId = workflowWindow.id;
   workflowWindows.set(windowId, workflowWindow);
 
@@ -45,7 +47,43 @@ function isWorkflowWindow(window) {
   return workflowWindows.has(window.id);
 }
 
+/**
+ * Fetches a workflow from the local API
+ * @param {string} workflowId - The workflow ID to fetch
+ * @returns {Promise<Workflow>} The fetched workflow
+ * @throws {Error} When the API request fails
+ */
+async function fetchWorkflow(workflowId) {
+  try {
+    const response = await fetch(
+      `http://127.0.0.1:8000/api/workflows/${workflowId}`,
+      {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+        },
+      }
+    );
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    throw new Error(`Failed to fetch workflows: ${error.message}`);
+  }
+}
+
+/**
+ * Runs a workflow by fetching it and creating a new window for it
+ * @param {string} workflowId - The workflow ID to run
+ */
+async function runWorkflow(workflowId) {
+  const workflow = await fetchWorkflow(workflowId);
+  createWorkflowWindow(workflow);
+}
+
 module.exports = {
   createWorkflowWindow,
   isWorkflowWindow,
+  runWorkflow,
 };
