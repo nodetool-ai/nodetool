@@ -169,7 +169,7 @@ const Inspector: React.FC = () => {
             value={selectedNode.data}
             property={property}
             propertyIndex={index.toString()}
-            onlyInput={true}
+            showHandle={false}
             isInspector={true}
             nodeType="inspector"
             layout=""
