@@ -26,6 +26,11 @@ export const contentTypeToNodeType = (contentType: string): TypeName | null => {
     case "audio/webm":
     case "audio/mp3":
       return "audio";
+    case "application/pdf":
+    case "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+    case "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
+    case "application/vnd.openxmlformats-officedocument.presentationml.presentation":
+      return "document";
     // internal asset types
     case "folder":
       return "folder";
@@ -55,6 +60,8 @@ export const inputForType = (type: TypeName) => {
       return "nodetool.input.VideoInput";
     case "audio":
       return "nodetool.input.AudioInput";
+    case "document":
+      return "nodetool.input.DocumentInput";
     default:
       return null;
   }
@@ -85,6 +92,8 @@ export const outputForType = (type: TypeName) => {
       return "nodetool.output.DataFrameOutput";
     case "tensor":
       return "nodetool.output.TensorOutput";
+    case "document":
+      return "nodetool.output.DocumentOutput";
     default:
       return null;
   }
@@ -117,6 +126,8 @@ export const constantForType = (type: TypeName) => {
       return "nodetool.constant.List";
     case "folder":
       return "nodetool.input.Folder";
+    case "document":
+      return "nodetool.constant.Document";
     default:
       return null;
   }

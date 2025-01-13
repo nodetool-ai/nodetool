@@ -31,6 +31,7 @@ import ColorProperty from "../properties/ColorProperty";
 import FilePathProperty from "../properties/FilePathProperty";
 import CollectionProperty from "../properties/CollectionProperty";
 import FolderPathProperty from "../properties/FolderPathProperty";
+import DocumentProperty from "../properties/DocumentProperty";
 
 export type PropertyProps = {
   property: Property;
@@ -97,6 +98,8 @@ function handleAdvancedDataTypes(
       return VideoProperty;
     case "collection":
       return CollectionProperty;
+    case "document":
+      return DocumentProperty;
     case "enum":
       return EnumProperty;
     case "thread":

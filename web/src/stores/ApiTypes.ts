@@ -50,6 +50,7 @@ export type MessageDocumentContent =
 export type OAuthAuthorizeRequest =
   components["schemas"]["OAuthAuthorizeRequest"];
 export type Image = components["schemas"]["ImageRef"];
+export type Document = components["schemas"]["DocumentRef"];
 export type FolderRef = components["schemas"]["FolderRef"];
 export type Audio = components["schemas"]["AudioRef"];
 export type Video = components["schemas"]["VideoRef"];
