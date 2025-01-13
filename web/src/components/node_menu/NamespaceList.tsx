@@ -15,6 +15,7 @@ import {
 import NodeInfo from "./NodeInfo";
 import { isEqual } from "lodash";
 import ThemeNodetool from "../themes/ThemeNodetool";
+import useMetadataStore from "../../stores/MetadataStore";
 
 type NamespaceTree = {
   [key: string]: {
@@ -173,14 +174,20 @@ const namespaceStyles = (theme: any, inPanel: boolean) =>
       alignItems: "center",
       gap: "0.25em",
       fontSize: theme.fontSizeNormal,
-      padding: "0.25em .5em .2em .5em",
+      padding: "0.25em .75em .2em .75em",
       borderRadius: "4px",
       backgroundColor: theme.palette.c_gray2,
-      margin: "0 .5em"
+      margin: "1em .5em 0 0"
     },
     ".result-info span": {
       color: theme.palette.c_hl1,
       fontWeight: "500"
+    },
+    ".result-label": {
+      color: `${theme.palette.c_gray4} !important`,
+      fontSize: "0.8em",
+      fontWeight: "400",
+      marginLeft: "0.5em"
     },
     ".no-selection p": {
       margin: "0",
@@ -344,9 +351,9 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
 }) => {
   const {
     searchTerm,
-    highlightedNamespaces,
     selectedPath,
     searchResults,
+    allSearchMatches,
     hoveredNode,
     setHoveredNode,
     selectedInputType,
@@ -356,6 +363,7 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
     highlightedNamespaces: state.highlightedNamespaces,
     selectedPath: state.selectedPath,
     searchResults: state.searchResults,
+    allSearchMatches: state.allSearchMatches,
     hoveredNode: state.hoveredNode,
     setHoveredNode: state.setHoveredNode,
     selectedInputType: state.selectedInputType,
@@ -480,16 +488,41 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
     [inPanel]
   );
 
+  const totalNodes = useMetadataStore((state) => state.getAllMetadata()).length;
+
   return (
     <div css={memoizedStyles}>
       <Box className="header">
         <Tooltip
           title={
-            <span style={{ color: "#eee", fontSize: "1.25em" }}>
-              Showing nodes found:
-              <br />
-              Selected namespace / Total results
-            </span>
+            <div style={{ color: "#eee", fontSize: "1.25em" }}>
+              {selectedPathString && (
+                <div>Current namespace: {currentNodes?.length} nodes</div>
+              )}
+              {searchTerm.length > 1 ? (
+                <>
+                  <div>Total search matches: {allSearchMatches.length}</div>
+                  <div
+                    style={{
+                      fontSize: "0.8em",
+                      color: "#aaa",
+                      marginTop: "0.5em"
+                    }}
+                  ></div>
+                </>
+              ) : (
+                <>
+                  <div>Total available: {totalNodes} nodes</div>
+                  <div
+                    style={{
+                      fontSize: "0.8em",
+                      color: "#aaa",
+                      marginTop: "0.5em"
+                    }}
+                  ></div>
+                </>
+              )}
+            </div>
           }
           enterDelay={TOOLTIP_ENTER_DELAY}
           leaveDelay={TOOLTIP_LEAVE_DELAY}
@@ -497,8 +530,27 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
           placement="bottom"
         >
           <Typography className="result-info">
-            <span>{currentNodes?.length}</span> /{" "}
-            <span>{searchResults.length}</span>
+            {searchTerm.length > 1 ? (
+              <>
+                <span>
+                  {searchTerm.length > 1
+                    ? searchResults.length
+                    : currentNodes?.length}
+                </span>{" "}
+                /{" "}
+                <span>
+                  {searchTerm.length > 1
+                    ? allSearchMatches.length
+                    : metadata.length}
+                </span>
+              </>
+            ) : (
+              // no search term
+              <span>
+                {selectedPathString ? currentNodes.length : totalNodes}
+              </span>
+            )}
+            <span className="result-label">nodes</span>
           </Typography>
         </Tooltip>
       </Box>
