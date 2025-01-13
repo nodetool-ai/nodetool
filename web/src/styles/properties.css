@@ -81,11 +81,6 @@
   font-weight: 300;
 }
 
-/* Enum property */
-.node-property.enum .react-flow__handle {
-  display: none;
-}
-
 /* List view */
 .node-property.list ul {
   max-height: 500px;
@@ -177,7 +172,7 @@
   width: 100%;
   outline: none;
   margin: 0;
-  padding: 1em .5em;
+  padding: 1em 0.5em;
   color: var(--c_white);
   background-color: var(--c_gray1);
   border: none;
@@ -485,7 +480,7 @@
 
 .container input {
   flex: 1;
-  padding: em .5em;
+  padding: em 0.5em;
   border: 1px solid var(--c_gray3);
   border-radius: 4px;
   color: var(--text-primary);
