@@ -1,29 +1,28 @@
 from enum import Enum
 from matplotlib import pyplot as plt
-from matplotlib.figure import Figure
 from nodetool.metadata.types import (
     ChartConfig,
-    GPTModel,
     ImageRef,
     SeabornPlotType,
 )
+import seaborn as sns
 from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
 
 
 from pydantic import Field
 
-import matplotlib.pyplot as plt
+import matplotlib
+
+matplotlib.use("Agg")
+from matplotlib import pyplot as plt
 import io
 import pandas as pd
-from matplotlib.figure import Figure
 
-import json
 
 from typing import Any
 from pydantic import Field
 from nodetool.metadata.types import (
-    GPTModel,
     ImageRef,
 )
 from nodetool.workflows.base_node import BaseNode
@@ -87,29 +86,6 @@ class ChartRenderer(BaseNode):
     data: Any = Field(
         default=None, description="The data to visualize as a pandas DataFrame."
     )
-    # Added Seaborn style options with Enums
-    style: SeabornStyle = Field(
-        default=SeabornStyle.WHITEGRID,
-        description="The style of the plot background and grid.",
-    )
-    context: SeabornContext = Field(
-        default=SeabornContext.NOTEBOOK,
-        description="The context of the plot, affecting scale and aesthetics.",
-    )
-    palette: SeabornPalette = Field(
-        default=SeabornPalette.DEEP,
-        description="Color palette for the plot.",
-    )
-    font_scale: float = Field(
-        default=1.0,
-        ge=0.1,
-        le=5.0,
-        description="Scale factor for font sizes.",
-    )
-    font: SeabornFont = Field(
-        default=SeabornFont.SANS_SERIF,
-        description="Font family for text elements.",
-    )
     despine: bool = Field(
         default=True,
         description="Whether to remove top and right spines.",
@@ -128,19 +104,9 @@ class ChartRenderer(BaseNode):
             self.data.data, columns=[col.name for col in self.data.columns]
         )
 
-        # Set up Seaborn styling
-        import seaborn as sns
-
-        sns.set_theme(
-            style=self.style.value,
-            context=self.context.value,
-            palette=self.palette.value,
-            font=self.font.value,
-            font_scale=self.font_scale,
-        )
-
-        # Create figure with specified dimensions
-        fig = Figure(figsize=(self.width / 100, self.height / 100), dpi=100)
+        # Clear any existing plots and set the style
+        plt.clf()
+        fig = plt.figure(figsize=(self.width / 100, self.height / 100), dpi=100)
 
         # Handle special plot types that require different figure handling
         if any(
@@ -172,9 +138,7 @@ class ChartRenderer(BaseNode):
                 )
                 fig = g.figure
         else:
-            # Handle regular plots
             ax = fig.add_subplot(111)
-
             for series in self.chart_config.data.series:
                 plot_kwargs = {
                     "data": df,
@@ -291,6 +255,9 @@ class ChartRenderer(BaseNode):
             if self.chart_config.y_scale:
                 ax.set_yscale(self.chart_config.y_scale)
 
+        # When saving, get the current figure
+        fig = plt.gcf()
+
         # Apply styling customizations
         if self.despine:
             sns.despine(fig=fig)
@@ -301,7 +268,12 @@ class ChartRenderer(BaseNode):
         # Convert plot to image bytes
         buf = io.BytesIO()
         fig.savefig(
-            buf, format="png", bbox_inches="tight" if self.trim_margins else None
+            buf,
+            format="png",
+            bbox_inches="tight" if self.trim_margins else None,
+            facecolor=fig.get_facecolor(),
+            edgecolor=fig.get_edgecolor(),
+            transparent=False,
         )
         plt.close(fig)
 
