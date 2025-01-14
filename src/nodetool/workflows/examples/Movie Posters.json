@@ -1,119 +1,33 @@
 {
   "id": "movie_posters",
   "access": "public",
-  "created_at": "2025-01-09T00:38:44.684178",
-  "updated_at": "2025-01-09T00:38:44.684188",
+  "created_at": "2025-01-15T00:49:54.863816",
+  "updated_at": "2025-01-15T00:49:54.863827",
   "name": "Movie Posters",
   "description": "Create cinematic movie posters using AI image generation",
-  "tags": ["start", "image"],
+  "tags": [
+    "start",
+    "image"
+  ],
   "thumbnail": null,
   "thumbnail_url": "/examples/movie_posters.jpg",
   "graph": {
     "nodes": [
-      {
-        "id": "1",
-        "parent_id": null,
-        "type": "nodetool.constant.DataFrame",
-        "data": {
-          "value": {
-            "type": "dataframe",
-            "uri": "",
-            "asset_id": null,
-            "temp_id": null,
-            "columns": [
-              {
-                "name": "Title",
-                "data_type": "object",
-                "description": ""
-              },
-              {
-                "name": "Main Character",
-                "data_type": "object",
-                "description": ""
-              },
-              {
-                "name": "Character Description",
-                "data_type": "object",
-                "description": ""
-              }
-            ],
-            "data": [
-              [
-                "The Godfather",
-                "Michael Corleone",
-                "The youngest son of Vito Corleone who becomes the new Don of the Corleone crime family."
-              ],
-              [
-                "The Dark Knight",
-                "Bruce Wayne / Batman",
-                "A wealthy playboy who fights crime as the vigilante Batman in Gotham City."
-              ],
-              [
-                "Pulp Fiction",
-                "Vincent Vega",
-                "A hitman working for mob boss Marsellus Wallace."
-              ],
-              [
-                "The Matrix",
-                "Neo",
-                "A computer hacker who discovers the truth about reality and his role in saving humanity."
-              ],
-              [
-                "Interstellar",
-                "Cooper",
-                "A former NASA pilot who leads a mission to find a new habitable planet for humanity."
-              ]
-            ]
-          }
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 50,
-            "y": 82
-          },
-          "zIndex": 0,
-          "width": 200,
-          "color": "#d33682",
-          "selectable": true
-        }
-      },
       {
         "id": "2",
         "parent_id": null,
         "type": "nodetool.group.Loop",
         "data": {},
         "ui_properties": {
+          "selected": false,
           "position": {
-            "x": 280,
-            "y": 78
-          },
-          "zIndex": -10,
-          "width": 1050,
-          "height": 554,
-          "selectable": false
-        }
-      },
-      {
-        "id": "6",
-        "parent_id": "2",
-        "type": "nodetool.image.SaveImage",
-        "data": {
-          "folder": {
-            "type": "folder",
-            "uri": "",
-            "asset_id": null,
-            "temp_id": null
-          }
-        },
-        "ui_properties": {
-          "position": {
-            "x": 800,
+            "x": 760,
             "y": 50
           },
-          "zIndex": 0,
-          "width": 200,
-          "selectable": true
+          "zIndex": -10,
+          "width": 849,
+          "height": 377,
+          "selectable": false
         }
       },
       {
@@ -124,9 +38,10 @@
           "string": "shot from the motion picture {Title}, {Main Character}: {Character Description}, detailed, sharp focus, clear composition, dramatic, award winning, perfect lighting, film grain, bokeh, depth of field"
         },
         "ui_properties": {
+          "selected": false,
           "position": {
-            "x": 310,
-            "y": 310
+            "x": 180,
+            "y": 126
           },
           "zIndex": 0,
           "width": 200,
@@ -146,7 +61,7 @@
           },
           "negative_prompt": "blurry, low quality, deformed, mutated, bad anatomy, extra limbs, bad proportions, text, watermark, grainy, pixelated, disfigured face, missing fingers, cropped image, bad lighting",
           "seed": -1,
-          "num_inference_steps": 25,
+          "num_inference_steps": 20,
           "guidance_scale": 7.5,
           "scheduler": "EulerDiscreteScheduler",
           "lora_model": {
@@ -165,31 +80,14 @@
           "width": 512,
           "height": 768,
           "hires": true,
-          "detail_level": 0.81,
+          "detail_level": 0.96,
           "preserve_composition": 0.61
         },
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 540,
-            "y": 271
-          },
-          "zIndex": 0,
-          "width": 200,
-          "selectable": true
-        }
-      },
-      {
-        "id": "bedbc384-1dc9-40e4-8b13-edf61a010ea7",
-        "parent_id": "2",
-        "type": "nodetool.text.Template",
-        "data": {
-          "string": "{Title}.png"
-        },
-        "ui_properties": {
-          "position": {
-            "x": 540,
-            "y": 65
+            "x": 410,
+            "y": 50
           },
           "zIndex": 0,
           "width": 200,
@@ -205,43 +103,10 @@
           "selected": false,
           "position": {
             "x": 50,
-            "y": 127
+            "y": 171
           },
           "zIndex": 0,
-          "width": 200,
-          "selectable": true
-        }
-      },
-      {
-        "id": "10",
-        "parent_id": "2",
-        "type": "nodetool.output.GroupOutput",
-        "data": {},
-        "ui_properties": {
-          "position": {
-            "x": 800,
-            "y": 401
-          },
-          "zIndex": 0,
-          "width": 200,
-          "selectable": true
-        }
-      },
-      {
-        "id": "11",
-        "parent_id": null,
-        "type": "nodetool.workflows.base_node.Preview",
-        "data": {
-          "name": "any_output_2024-07-07"
-        },
-        "ui_properties": {
-          "position": {
-            "x": 1360,
-            "y": 50
-          },
-          "zIndex": 0,
-          "width": 259,
-          "height": 609,
+          "width": 100,
           "selectable": true
         }
       },
@@ -255,7 +120,7 @@
               "type": "paragraph",
               "children": [
                 {
-                  "text": "- Data Frame contains a list of movies with descriptions"
+                  "text": "- Ollama generates 3 movie and character descriptions"
                 }
               ]
             },
@@ -263,7 +128,7 @@
               "type": "paragraph",
               "children": [
                 {
-                  "text": "- The Loop will run the inner nodes for each row in the data frame"
+                  "text": "- The Loop will run for each row in the data frame"
                 }
               ]
             },
@@ -271,7 +136,7 @@
               "type": "paragraph",
               "children": [
                 {
-                  "text": "- Rendered images are saved into your assets"
+                  "text": "- Outputs will be streamed to the mini app"
                 }
               ]
             },
@@ -279,63 +144,129 @@
               "type": "paragraph",
               "children": [
                 {
-                  "text": "- You can double click the preview in the Save Image node to view fullscreen"
-                }
-              ]
-            },
-            {
-              "type": "paragraph",
-              "children": [
-                {
-                  "text": "- Experiment with different prompts and movies "
+                  "text": "- Use RUN APP to test it"
                 }
               ]
             }
           ]
         },
         "ui_properties": {
+          "selected": false,
           "position": {
-            "x": 2,
-            "y": -172
+            "x": 1,
+            "y": -120
           },
           "zIndex": 0,
-          "width": 652,
-          "height": 153,
+          "width": 440,
+          "height": 129,
+          "selectable": true
+        }
+      },
+      {
+        "id": "13",
+        "parent_id": null,
+        "type": "ollama.agents.DataGenerator",
+        "data": {
+          "model": {
+            "type": "llama_model",
+            "repo_id": "llama3.2:3b"
+          },
+          "context_window": 4096,
+          "temperature": 1,
+          "top_k": 50,
+          "top_p": 0.95,
+          "keep_alive": "300",
+          "columns": {
+            "type": "record_type",
+            "columns": [
+              {
+                "name": "Title",
+                "data_type": "string",
+                "description": "title of the movie"
+              },
+              {
+                "name": "Main Character",
+                "data_type": "string",
+                "description": "main character of the movie"
+              },
+              {
+                "name": "Character Description",
+                "data_type": "string",
+                "description": "visual description of the main character"
+              }
+            ]
+          }
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 428,
+            "y": 82
+          },
+          "zIndex": 0,
+          "width": 302,
+          "selectable": true
+        }
+      },
+      {
+        "id": "15",
+        "parent_id": null,
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "genre",
+          "description": "",
+          "value": ""
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 50,
+            "y": 177
+          },
+          "zIndex": 0,
+          "width": 159,
+          "selectable": true
+        }
+      },
+      {
+        "id": "16",
+        "parent_id": null,
+        "type": "nodetool.text.Concat",
+        "data": {
+          "b": ": list 3 iconic movies with their main characters"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 239,
+            "y": 166
+          },
+          "zIndex": 0,
+          "width": 159,
+          "selectable": true
+        }
+      },
+      {
+        "id": "17",
+        "parent_id": "2",
+        "type": "nodetool.output.ImageOutput",
+        "data": {
+          "name": "image",
+          "description": ""
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 640,
+            "y": 114
+          },
+          "zIndex": 0,
+          "width": 159,
           "selectable": true
         }
       }
     ],
     "edges": [
-      {
-        "id": "11d783b9-adb1-41d8-80ec-e1145b154991",
-        "source": "8",
-        "sourceHandle": "output",
-        "target": "6",
-        "targetHandle": "image",
-        "ui_properties": {
-          "className": "image"
-        }
-      },
-      {
-        "id": "98cdede8-e113-4cd7-bc60-d99360d2d6bb",
-        "source": "2",
-        "sourceHandle": "output",
-        "target": "11",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "any"
-        }
-      },
-      {
-        "id": "e3afbe2e-3456-4e09-b333-74a48e1133c1",
-        "source": "9",
-        "sourceHandle": "output",
-        "target": "bedbc384-1dc9-40e4-8b13-edf61a010ea7",
-        "targetHandle": "values",
-        "ui_properties": {
-          "className": "any"
-        }
-      },
       {
         "id": "e54387f3-a238-4a31-a561-fb4e42bb4a6b",
         "source": "7",
@@ -347,13 +278,33 @@
         }
       },
       {
-        "id": "2a2896fc-1078-4e53-8c0f-b236c49b6f81",
-        "source": "1",
+        "id": "7258f765-8dcb-4f00-95d7-609833c8b54c",
+        "source": "13",
         "sourceHandle": "output",
         "target": "2",
         "targetHandle": "input",
         "ui_properties": {
           "className": "dataframe"
+        }
+      },
+      {
+        "id": "b84719fd-c2aa-4fff-8fd2-c682f5280d7b",
+        "source": "15",
+        "sourceHandle": "output",
+        "target": "16",
+        "targetHandle": "a",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "422bbe80-a4fd-4010-b8df-42da587395f1",
+        "source": "16",
+        "sourceHandle": "output",
+        "target": "13",
+        "targetHandle": "prompt",
+        "ui_properties": {
+          "className": "str"
         }
       },
       {
@@ -367,21 +318,11 @@
         }
       },
       {
-        "id": "3ad78da0-fd8c-402d-94bf-14937d251968",
-        "source": "bedbc384-1dc9-40e4-8b13-edf61a010ea7",
-        "sourceHandle": "output",
-        "target": "6",
-        "targetHandle": "name",
-        "ui_properties": {
-          "className": "union"
-        }
-      },
-      {
-        "id": "df0a599a-3774-409a-874d-9b5d073019c9",
+        "id": "19754675-eb40-4998-aab8-04120a77090f",
         "source": "8",
         "sourceHandle": "output",
-        "target": "10",
-        "targetHandle": "input",
+        "target": "17",
+        "targetHandle": "value",
         "ui_properties": {
           "className": "image"
         }
