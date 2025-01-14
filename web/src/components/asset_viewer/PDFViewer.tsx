@@ -36,13 +36,17 @@ const styles = (theme: any) =>
       flexDirection: "column",
       alignItems: "center",
       overflow: "auto",
-      paddingRight: "48px"
+      paddingRight: "48px",
+      backgroundColor: "transparent"
     },
     ".pdf-document": {
       width: "90%",
-      backgroundColor: theme.palette.c_gray1,
+      height: "100%",
+      backgroundColor: "transparent",
       marginBottom: "1em",
       "& .react-pdf__Page": {
+        width: "100%",
+        height: "100%",
         marginBottom: "1em",
         display: "flex",
         justifyContent: "center",
@@ -201,8 +205,13 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ asset, url }) => {
       </div>
       <div className="vertical-slider">
         <Slider
-          value={pageNumber}
-          onChange={handleSliderChange}
+          value={numPages ? numPages - pageNumber + 1 : 1}
+          onChange={(_event: Event, newValue: number | number[]) => {
+            const actualPage = numPages
+              ? numPages - (newValue as number) + 1
+              : 1;
+            setPageNumber(actualPage);
+          }}
           min={1}
           max={numPages || 1}
           step={1}
