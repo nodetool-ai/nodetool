@@ -13,6 +13,7 @@ import {
 
 // @ts-ignore
 import WaveSurfer from "https://cdn.jsdelivr.net/npm/wavesurfer.js@7/dist/wavesurfer.esm.js";
+// @ts-ignore
 import { marked } from "https://cdn.jsdelivr.net/npm/marked/lib/marked.esm.js";
 
 const WORKER_URL = "ws://127.0.0.1:8000/predict";
@@ -262,9 +263,11 @@ function createAudioPlayer(data) {
   const controls = document.createElement("div");
   controls.className = "audio-controls";
 
-  // Create blob and URL only once
-  const blob = new Blob([data], { type: "audio/wav" });
-  const url = URL.createObjectURL(blob);
+  // Handle URI string
+  const url =
+    data instanceof Uint8Array
+      ? URL.createObjectURL(new Blob([data], { type: "audio/wav" }))
+      : data; // Use URI directly if data is a string
 
   // Clean up the URL when the audio is loaded
   const cleanup = () => {
@@ -322,15 +325,19 @@ function createVideoPlayer(data) {
   const videoContainer = document.createElement("div");
   videoContainer.className = "video-container";
 
-  const blob = new Blob([data], { type: "video/mp4" });
-  const url = URL.createObjectURL(blob);
+  const url =
+    data instanceof Uint8Array
+      ? URL.createObjectURL(new Blob([data], { type: "video/mp4" }))
+      : data; // Use URI directly if data is a string
 
   const video = document.createElement("video");
   video.controls = true;
   video.src = url;
 
-  // Clean up URL when video loads
-  video.onload = () => URL.revokeObjectURL(url);
+  // Only cleanup URL if we created it
+  if (data instanceof Uint8Array) {
+    video.onload = () => URL.revokeObjectURL(url);
+  }
 
   videoContainer.appendChild(video);
   return videoContainer;
@@ -342,24 +349,46 @@ function createVideoPlayer(data) {
  * @returns {HTMLElement} The image element
  */
 function createImage(data) {
-  // Create container
   const container = document.createElement("div");
   container.className = "image-result";
 
-  // Create drag indicator
   const dragIndicator = document.createElement("div");
   dragIndicator.className = "drag-indicator";
   dragIndicator.textContent = "↓ Drag image to save ↓";
 
-  // Create and setup image
   const img = document.createElement("img");
   img.draggable = true;
-  const blob = new Blob([data], { type: "image/png" });
-  const url = URL.createObjectURL(blob);
-  img.onload = () => URL.revokeObjectURL(url);
-  img.src = url;
 
-  // Assemble
+  // Add loading state
+  img.style.opacity = "0";
+  const loader = document.createElement("div");
+  loader.className = "image-loader";
+  loader.textContent = "Loading image...";
+  container.appendChild(loader);
+
+  try {
+    const url =
+      data instanceof Uint8Array ? URL.createObjectURL(new Blob([data])) : data; // Use URI directly if data is a string
+
+    img.onload = () => {
+      if (data instanceof Uint8Array) {
+        URL.revokeObjectURL(url);
+      }
+      img.style.opacity = "1";
+      loader.remove();
+    };
+
+    img.onerror = () => {
+      loader.textContent = "Error loading image";
+      console.error("Failed to load image");
+    };
+
+    img.src = url;
+  } catch (error) {
+    console.error("Error creating image:", error);
+    loader.textContent = "Error creating image";
+  }
+
   container.appendChild(dragIndicator);
   container.appendChild(img);
 
@@ -397,6 +426,7 @@ function createPreformatted(value) {
  * @returns {void}
  */
 function displayResults(results, outputSchema) {
+  debugger;
   const loaderContainer = document.querySelector(".loader-container");
   if (loaderContainer instanceof HTMLElement) {
     loaderContainer.style.display = "none";
@@ -411,14 +441,15 @@ function displayResults(results, outputSchema) {
     const field = document.createElement("div");
     field.className = "output-field";
 
+    console.log("fieldSchema", fieldSchema);
     let content;
     if (fieldSchema.type === "object") {
       if (fieldSchema.properties.type.const === "audio") {
-        content = createAudioPlayer(value.data);
+        content = createAudioPlayer(value.data || value.uri);
       } else if (fieldSchema.properties.type.const === "video") {
-        content = createVideoPlayer(value.data);
+        content = createVideoPlayer(value.data || value.uri);
       } else if (fieldSchema.properties.type.const === "image") {
-        content = createImage(value.data);
+        content = createImage(value.data || value.uri);
       } else {
         content = createPreformatted(value);
       }
@@ -547,6 +578,16 @@ export async function init() {
         throw new Error("No workflow received");
       }
 
+      // Add validation for empty input node names
+      if (
+        workflow.input_schema?.properties &&
+        "" in workflow.input_schema.properties
+      ) {
+        throw new Error(
+          "Invalid workflow: Input nodes must have names. Found an empty node name."
+        );
+      }
+
       const workflowName = document.querySelector(".workflow-name");
       if (workflowName instanceof HTMLElement) {
         workflowName.textContent = workflow.name;
@@ -561,6 +602,12 @@ export async function init() {
         } else {
           workflowDescription.style.display = "none";
         }
+      }
+
+      // Clear any existing error messages
+      const existingError = document.querySelector(".workflow-error");
+      if (existingError) {
+        existingError.remove();
       }
 
       if (hasInputFields(workflow.input_schema)) {
@@ -657,6 +704,23 @@ export async function init() {
       }
     } catch (error) {
       console.error("Workflow error:", error);
+
+      // Create and display error message
+      const errorDiv = document.createElement("div");
+      errorDiv.className = "workflow-error";
+      errorDiv.textContent = `Error: ${error.message}`;
+
+      // Insert error after workflow name/description
+      const container = document.querySelector(".container");
+      if (container instanceof HTMLElement) {
+        container.insertAdjacentElement("beforebegin", errorDiv);
+      }
+
+      // Hide loading elements
+      const loaderContainer = document.querySelector(".loader-container");
+      if (loaderContainer instanceof HTMLElement) {
+        loaderContainer.style.display = "none";
+      }
     }
   }
 

@@ -881,9 +881,9 @@ class OutputNode(BaseNode):
     A special node type representing an output from the workflow.
 
     Attributes:
-        label (str): A human-readable label for the output.
         name (str): The parameter name for this output in the workflow.
         description (str): A detailed description of the output.
+        value (Any): The value of the output.
     """
 
     name: str = Field("", description="The parameter name for the workflow.")
@@ -895,7 +895,7 @@ class OutputNode(BaseNode):
 
     @classmethod
     def get_basic_fields(cls):
-        return ["name"]
+        return ["name", "value"]
 
     def result_for_client(self, result: dict[str, Any]) -> dict[str, Any]:
         return self.result_for_all_outputs(result)
