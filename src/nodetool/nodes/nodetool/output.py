@@ -1,7 +1,7 @@
 from typing import Any, Literal
 
 from pydantic import Field
-from nodetool.metadata.types import Message
+from nodetool.metadata.types import DocumentRef, Message
 from nodetool.metadata.types import Tensor
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.metadata.types import AudioRef
@@ -275,3 +275,20 @@ class GroupOutput(BaseNode):
     @classmethod
     def is_cacheable(cls):
         return False
+
+
+class DocumentOutput(OutputNode):
+    """
+    Output node for document content references.
+    document, pdf, file
+
+    Use cases:
+    - Displaying processed or generated documents
+    - Passing document data between workflow nodes
+    - Returning results of document analysis
+    """
+
+    value: DocumentRef = DocumentRef()
+
+    async def process(self, context: ProcessingContext) -> DocumentRef:
+        return self.value

@@ -6,6 +6,7 @@ import ImageIcon from "@mui/icons-material/Image";
 import VideoFileIcon from "@mui/icons-material/VideoFile";
 import AudioFileIcon from "@mui/icons-material/AudioFile";
 import TextSnippetIcon from "@mui/icons-material/TextSnippet";
+import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import { Asset } from "../../stores/ApiTypes";
 import DeleteButton from "../buttons/DeleteButton";
 import { secondsToHMS } from "../../utils/formatDateAndTime";
@@ -283,6 +284,10 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
     () => asset?.content_type?.match("video") !== null,
     [asset?.content_type]
   );
+  const isPdf = useMemo(
+    () => asset?.content_type?.match("pdf") !== null,
+    [asset?.content_type]
+  );
 
   return (
     <div
@@ -374,6 +379,23 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
               <Typography className="duration info">
                 {secondsToHMS(asset.duration)}
               </Typography>
+            )}
+          </>
+        )}
+        {isPdf && (
+          <>
+            <PictureAsPdfIcon
+              className="placeholder"
+              style={{ color: `var(--c_${assetType})` }}
+            />
+            {asset.thumb_url && (
+              <div
+                className="image"
+                style={{
+                  backgroundImage: `url(${asset.thumb_url})`
+                }}
+                aria-label={asset.id}
+              />
             )}
           </>
         )}

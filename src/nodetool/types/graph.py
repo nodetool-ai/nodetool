@@ -95,7 +95,12 @@ def get_input_schema(graph: Graph):
                     "type": "boolean",
                     "default": node.data.get("value", False),
                 }
-            elif input_type in ["ImageInput", "VideoInput", "AudioInput"]:
+            elif input_type in [
+                "ImageInput",
+                "VideoInput",
+                "AudioInput",
+                "DocumentInput",
+            ]:
                 node_schema = {
                     "type": "object",
                     "properties": {
@@ -145,7 +150,12 @@ def get_output_schema(graph: Graph):
                 node_schema = {"type": "boolean"}
             elif output_type in ["StringOutput", "TextOutput"]:
                 node_schema = {"type": "string"}
-            elif output_type in ["ImageOutput", "VideoOutput", "AudioOutput"]:
+            elif output_type in [
+                "ImageOutput",
+                "VideoOutput",
+                "AudioOutput",
+                "DocumentOutput",
+            ]:
                 node_schema = {
                     "type": "object",
                     "properties": {

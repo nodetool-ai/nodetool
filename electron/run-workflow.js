@@ -13,6 +13,7 @@ import {
 
 // @ts-ignore
 import WaveSurfer from "https://cdn.jsdelivr.net/npm/wavesurfer.js@7/dist/wavesurfer.esm.js";
+import { marked } from "https://cdn.jsdelivr.net/npm/marked/lib/marked.esm.js";
 
 const WORKER_URL = "ws://127.0.0.1:8000/predict";
 /**
@@ -366,14 +367,15 @@ function createImage(data) {
 }
 
 /**
- * Creates a text component
+ * Creates a text component with markdown support
  * @param {string} text - The text to display
- * @returns {HTMLParagraphElement} The text element
+ * @returns {HTMLDivElement} The text element
  */
 function createText(text) {
-  const p = document.createElement("p");
-  p.textContent = text;
-  return p;
+  const div = document.createElement("div");
+  div.className = "markdown-content";
+  div.innerHTML = marked.parse(text);
+  return div;
 }
 
 /**
