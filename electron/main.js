@@ -4,8 +4,6 @@ const {
   dialog,
   shell,
   systemPreferences,
-  Tray,
-  Menu,
   BrowserWindow,
 } = require("electron");
 const { createWindow, forceQuit, handleActivation } = require("./window");
@@ -38,6 +36,8 @@ let isAppQuitting = false;
 let tray = null;
 /** @type {import('electron').Menu} */
 let contextMenu = null;
+/** @type {import('electron').BrowserWindow|null} */
+let mainWindow = null;
 
 /**
  * Checks and sets up the Python Conda environment
@@ -75,10 +75,8 @@ async function initialize() {
     return;
   }
 
-  createWindow();
   setupAutoUpdater();
 
-  // Check if Conda environment exists, but don't update packages
   await checkPythonEnvironment();
 
   emitBootMessage("Starting NodeTool server...");
@@ -148,6 +146,20 @@ app.on("ready", async () => {
   await checkMediaPermissions();
   await initialize();
   await createTray();
+
+  // Check for --run argument
+  const runIndex = process.argv.indexOf("--run");
+  if (runIndex > -1 && process.argv[runIndex + 1]) {
+    const workflowId = process.argv[runIndex + 1];
+    logMessage(`Running workflow from command line: ${workflowId}`);
+    runWorkflow(workflowId);
+    return;
+  }
+
+  // Only create main window if --tray flag is not present
+  if (!process.argv.includes("--tray")) {
+    mainWindow = createWindow();
+  }
 });
 
 /**
@@ -285,5 +297,17 @@ ipcMain.on("MAXIMIZE-APP", (event) => {
     } else {
       window.maximize();
     }
+  }
+});
+
+/**
+ * IPC handler to show the window when needed
+ * @returns {void}
+ */
+ipcMain.handle("show-main-window", () => {
+  if (!mainWindow) {
+    mainWindow = createWindow();
+  } else {
+    mainWindow.show();
   }
 });
