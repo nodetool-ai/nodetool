@@ -1,15 +1,16 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import { memo, useState } from "react";
+import { memo, useCallback, useState } from "react";
 import { Asset } from "../../stores/ApiTypes";
 import { useFileDrop } from "../../hooks/handlers/useFileDrop";
-import { Button, TextField } from "@mui/material";
+import { Box, Button, TextField } from "@mui/material";
 import AssetViewer from "../assets/AssetViewer";
 import WaveRecorder from "../audio/WaveRecorder";
 import AudioPlayer from "../audio/AudioPlayer";
 import { PropertyProps } from "../node/PropertyInput";
 import { isEqual } from "lodash";
+import PDFViewer from "../asset_viewer/PDFViewer";
 
 interface PropertyDropzoneProps {
   asset: Asset | undefined;
@@ -45,7 +46,6 @@ const PropertyDropzone = ({
       ".drop-container": {
         position: "relative",
         width: "100%",
-        // maxWidth: "140px",
         marginTop: "-3px",
         display: "flex",
         flexDirection: "column",
@@ -90,15 +90,21 @@ const PropertyDropzone = ({
         border: "0"
       },
       ".dropzone": {
-        width: showUrlInput ? "100%" : "calc(100% - 20px)",
+        width: showUrlInput ? "100%" : "100%",
         border: "0",
-        maxWidth: "180px",
-        textAlign: "left"
+        maxWidth: "none",
+        textAlign: "left",
+        transition: "all 0.2s ease",
+        "&.drag-over": {
+          backgroundColor: theme.palette.c_gray2,
+          outline: `2px dashed ${theme.palette.c_gray6}`,
+          outlineOffset: "-2px"
+        }
       },
       ".dropzone.dropped": {
         width: "100%",
         border: "0",
-        maxWidth: "180px"
+        maxWidth: "none"
       },
       ".dropzone p": {
         textAlign: "left"
@@ -109,8 +115,27 @@ const PropertyDropzone = ({
       }
     });
 
+  const [isDragOver, setIsDragOver] = useState(false);
+
+  const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    onDragOver(e);
+    setIsDragOver(true);
+  }, []);
+
+  const handleDragLeave = useCallback(() => {
+    setIsDragOver(false);
+  }, []);
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent<HTMLDivElement>) => {
+      onDrop(e);
+      setIsDragOver(false);
+    },
+    [onDrop]
+  );
+
   const renderViewer = () => {
-    // if (!uri) return null;
+    console.log("contentType", contentType);
     switch (contentType.split("/")[0]) {
       case "image":
         return (
@@ -182,6 +207,21 @@ const PropertyDropzone = ({
             )}
           </>
         );
+      case "document":
+        return (
+          <>
+            <AssetViewer
+              contentType="document"
+              asset={asset ? asset : undefined}
+              url={uri ? uri : undefined}
+              open={openViewer}
+              onClose={() => setOpenViewer(false)}
+            />
+            <Box sx={{ width: "100%", height: "800px", display: "flex" }}>
+              <PDFViewer url={uri} asset={asset} />
+            </Box>
+          </>
+        );
       default:
         return null;
     }
@@ -216,12 +256,15 @@ const PropertyDropzone = ({
         </Button>
 
         <div
-          className={`dropzone ${uri ? "dropped" : ""}`}
+          className={`dropzone ${uri ? "dropped" : ""} ${
+            isDragOver ? "drag-over" : ""
+          }`}
           style={{
             borderWidth: uri === "" ? "1px" : "0px"
           }}
-          onDragOver={onDragOver}
-          onDrop={onDrop}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
         >
           {uri || contentType.split("/")[0] === "audio" ? (
             renderViewer()

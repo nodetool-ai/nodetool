@@ -17,6 +17,7 @@ import ImageViewer from "../asset_viewer/ImageViewer";
 import AudioViewer from "../asset_viewer/AudioViewer";
 import TextViewer from "../asset_viewer/TextViewer";
 import VideoViewer from "../asset_viewer/VideoViewer";
+import PDFViewer from "../asset_viewer/PDFViewer";
 //store
 import { useAssetStore } from "../../stores/AssetStore";
 import { Asset } from "../../stores/ApiTypes";
@@ -346,8 +347,9 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
     }, [changeAsset, open])
   );
 
-  const renderAsset = () => {
+  const assetViewer = useMemo(() => {
     const type = currentAsset?.content_type || contentType || "";
+
     if (currentAsset) {
       if (type.startsWith("image/")) {
         return <ImageViewer asset={currentAsset} />;
@@ -360,6 +362,9 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
       }
       if (type.startsWith("video/")) {
         return <VideoViewer asset={currentAsset} />;
+      }
+      if (type.startsWith("application/pdf")) {
+        return <PDFViewer asset={currentAsset} />;
       }
     }
     if (url) {
@@ -375,8 +380,15 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
       if (type.startsWith("video/")) {
         return <VideoViewer url={url} />;
       }
+      if (type.startsWith("application/pdf")) {
+        return <PDFViewer url={url} />;
+      }
+      if (type === "document" && url?.endsWith(".pdf")) {
+        return <PDFViewer url={url} />;
+      }
     }
-  };
+  }, [currentAsset, url, contentType]);
+
   const renderNavigation = () => {
     if (currentIndex === null) return null;
     const prevAssets =
@@ -512,7 +524,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
           </Tooltip>
         </div>
 
-        {renderAsset()}
+        {assetViewer}
         {renderNavigation()}
       </Dialog>
     </div>
