@@ -420,13 +420,41 @@ function createPreformatted(value) {
 }
 
 /**
+ * Displays a single result in the UI
+ * @param {any} result - The result to display
+ * @returns {HTMLDivElement} The result field element
+ */
+function displayResult(result) {
+  const field = document.createElement("div");
+  field.className = "output-field";
+
+  let content;
+  if (typeof result === "object") {
+    if (result.type === "audio") {
+      content = createAudioPlayer(result.data || result.uri);
+    } else if (result.type === "video") {
+      content = createVideoPlayer(result.data || result.uri);
+    } else if (result.type === "image") {
+      content = createImage(result.data || result.uri);
+    } else {
+      content = createPreformatted(result);
+    }
+  } else if (typeof result === "string") {
+    content = createText(result);
+  } else {
+    content = createPreformatted(result);
+  }
+
+  field.appendChild(content);
+  return field;
+}
+
+/**
  * Displays the workflow results in the UI
  * @param {Object} results - The results object from the workflow
- * @param {JSONSchema} outputSchema - The output schema of the workflow
  * @returns {void}
  */
-function displayResults(results, outputSchema) {
-  debugger;
+function displayResults(results) {
   const loaderContainer = document.querySelector(".loader-container");
   if (loaderContainer instanceof HTMLElement) {
     loaderContainer.style.display = "none";
@@ -437,29 +465,7 @@ function displayResults(results, outputSchema) {
   }
 
   for (const [key, value] of Object.entries(results)) {
-    const fieldSchema = outputSchema.properties[key];
-    const field = document.createElement("div");
-    field.className = "output-field";
-
-    console.log("fieldSchema", fieldSchema);
-    let content;
-    if (fieldSchema.type === "object") {
-      if (fieldSchema.properties.type.const === "audio") {
-        content = createAudioPlayer(value.data || value.uri);
-      } else if (fieldSchema.properties.type.const === "video") {
-        content = createVideoPlayer(value.data || value.uri);
-      } else if (fieldSchema.properties.type.const === "image") {
-        content = createImage(value.data || value.uri);
-      } else {
-        content = createPreformatted(value);
-      }
-    } else if (fieldSchema.type === "string") {
-      content = createText(value);
-    } else {
-      content = createPreformatted(value);
-    }
-
-    field.appendChild(content);
+    const field = displayResult(value);
     resultsContainer.appendChild(field);
   }
 }
@@ -693,11 +699,19 @@ async function setupMiniAppView(workflow) {
       if (nodeUpdateMessage instanceof HTMLElement) {
         nodeUpdateMessage.textContent = `${data.node_name} ${data.status}`;
       }
+      if (data.result && data.result.output) {
+        const field = displayResult(data.result.output);
+        const resultsContainer = document.querySelector(".results-container");
+        if (resultsContainer instanceof HTMLElement) {
+          resultsContainer.style.display = "block";
+        }
+        resultsContainer.appendChild(field);
+      }
     });
 
     try {
       const results = await runner.run(workflow.id, params);
-      displayResults(results, workflow.output_schema);
+      displayResults(results);
     } catch (error) {
       console.error("Workflow error:", error);
     } finally {
