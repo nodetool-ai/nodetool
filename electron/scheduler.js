@@ -11,6 +11,37 @@ const LAUNCH_AGENT_DIR = path.join(app.getPath("home"), "Library/LaunchAgents");
 const AGENT_LABEL = "ai.nodetool.workflow";
 
 /**
+ * Gets list of currently scheduled workflows
+ * @returns {Promise<Array<string>>}
+ */
+async function getScheduledWorkflows() {
+  return new Promise((resolve) => {
+    const { exec } = require("child_process");
+    exec("launchctl list", (error, stdout) => {
+      if (error) {
+        logMessage(
+          `Error getting scheduled workflows: ${error.message}`,
+          "error"
+        );
+        resolve([]);
+        return;
+      }
+
+      const scheduledWorkflows = stdout
+        .split("\n")
+        .filter((line) => line.includes(AGENT_LABEL))
+        .map((line) => {
+          const match = line.match(new RegExp(`${AGENT_LABEL}\\.(.*)`));
+          return match ? match[1] : null;
+        })
+        .filter(Boolean);
+
+      resolve(scheduledWorkflows);
+    });
+  });
+}
+
+/**
  * Gets the log file path for a workflow's launch agent
  * @param {string} workflowId - The workflow ID
  * @returns {Promise<string>} The path to the log file
@@ -39,6 +70,7 @@ async function getLaunchAgentLogPath(workflowId) {
 async function createLaunchAgent(workflowId, intervalMinutes) {
   const { getPythonPath, srcPath } = require("./config");
   const pythonPath = getPythonPath();
+  const binPath = path.dirname(pythonPath);
   const logPath = await getLaunchAgentLogPath(workflowId);
 
   const plistContent = `<?xml version="1.0" encoding="UTF-8"?>
@@ -49,7 +81,7 @@ async function createLaunchAgent(workflowId, intervalMinutes) {
     <string>${AGENT_LABEL}.${workflowId}</string>
     <key>ProgramArguments</key>
     <array>
-        <string>${pythonPath}</string>
+        <string>python</string>
         <string>-m</string>
         <string>nodetool.cli</string>
         <string>run</string>
@@ -59,6 +91,8 @@ async function createLaunchAgent(workflowId, intervalMinutes) {
     <dict>
         <key>PYTHONPATH</key>
         <string>${srcPath}</string>
+        <key>PATH</key>
+        <string>${binPath}:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
     </dict>
     <key>StartInterval</key>
     <integer>${intervalMinutes * 60}</integer>
@@ -81,13 +115,16 @@ async function createLaunchAgent(workflowId, intervalMinutes) {
     await fsPromises.writeFile(plistPath, plistContent);
     logMessage(`Created launch agent at ${plistPath}`);
 
-    // Load the launch agent
+    // Load the launch agent with output capture
     const { exec } = require("child_process");
-    exec(`launchctl load ${plistPath}`, (error) => {
+    exec(`launchctl load ${plistPath}`, (error, stdout, stderr) => {
       if (error) {
         logMessage(`Error loading launch agent: ${error.message}`, "error");
+        if (stdout) logMessage(`launchctl stdout: ${stdout}`, "error");
+        if (stderr) logMessage(`launchctl stderr: ${stderr}`, "error");
       } else {
         logMessage("Launch agent loaded successfully");
+        if (stdout) logMessage(`launchctl stdout: ${stdout}`, "error");
       }
     });
   } catch (error) {
@@ -110,10 +147,13 @@ async function removeLaunchAgent(workflowId) {
   try {
     // Unload the launch agent first
     const { exec } = require("child_process");
-    exec(`launchctl unload ${plistPath}`, async (error) => {
+    exec(`launchctl unload ${plistPath}`, async (error, stdout, stderr) => {
       if (error) {
-        logMessage(`Error unloading launch agent: ${error.message}`, "error");
+        logMessage(`Error unloading launch agent: ${error.message}`);
+        if (stdout) logMessage(`launchctl stdout: ${stdout}`);
+        if (stderr) logMessage(`launchctl stderr: ${stderr}`);
       } else {
+        if (stdout) logMessage(`launchctl stdout: ${stdout}`);
         try {
           await fsPromises.unlink(plistPath);
           logMessage(`Removed launch agent at ${plistPath}`);
@@ -159,4 +199,5 @@ module.exports = {
   createLaunchAgent,
   removeLaunchAgent,
   getLaunchAgentLogPath,
+  getScheduledWorkflows,
 };

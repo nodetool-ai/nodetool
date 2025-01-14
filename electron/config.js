@@ -12,6 +12,16 @@ const srcPath = app.isPackaged
 
 const userDataPath = app.getPath("userData");
 const legacyCondaPath = path.join(userDataPath, "conda_env");
+const webPath = app.isPackaged
+  ? path.join(process.resourcesPath, "web")
+  : path.join(__dirname, "../web/dist");
+
+const PID_FILE_PATH = path.join(app.getPath("userData"), "server.pid");
+const LAUNCHD_SERVICE_NAME = "ai.nodetool.server";
+const PLIST_PATH = path.join(
+  app.getPath("home"),
+  `Library/LaunchAgents/${LAUNCHD_SERVICE_NAME}.plist`
+);
 
 const getCondaEnvPath = () => {
   const settings = require("./settings").readSettings();
@@ -109,4 +119,8 @@ module.exports = {
   saveUserRequirements,
   getProcessEnv,
   srcPath,
+  PID_FILE_PATH,
+  LAUNCHD_SERVICE_NAME,
+  PLIST_PATH,
+  webPath,
 };

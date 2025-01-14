@@ -116,12 +116,10 @@ export function generateInputFields(schema, container, onSubmit) {
     container.appendChild(formGroup);
   }
 
-  if (!autoSubmit) {
-    const submitButton = createSubmitButton(() =>
-      getInputValues(schema).then(onSubmit)
-    );
-    container.appendChild(submitButton);
-  }
+  const submitButton = createSubmitButton(() =>
+    getInputValues(schema).then(onSubmit)
+  );
+  container.appendChild(submitButton);
 }
 
 /**

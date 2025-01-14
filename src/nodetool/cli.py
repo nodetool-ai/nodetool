@@ -1,3 +1,4 @@
+import asyncio
 import threading
 import traceback
 import click
@@ -177,23 +178,29 @@ def serve(
 
 @click.command()
 @click.argument("workflow_id", type=str)
-async def run(workflow_id: str):
+def run(workflow_id: str):
     """Run a workflow from a file."""
     request = RunJobRequest(
         workflow_id=workflow_id, user_id="1", auth_token="local_token"
     )
 
-    try:
+    async def run_workflow_async():
         async for message in run_workflow(request):
-            # Print message type and content
-            if hasattr(message, "type"):
-                print(f"{message.type}: {message.model_dump_json()}")
-            else:
-                print(message)
-    except Exception as e:
-        print(f"Error running workflow: {e}")
-        traceback.print_exc()
-        exit(1)
+            print("Running workflow...")
+            try:
+                async for message in run_workflow(request):
+                    # Print message type and content
+                    if hasattr(message, "type"):
+                        print(f"{message.type}: {message.model_dump_json()}")
+                    else:
+                        print(message)
+                print("Workflow finished")
+            except Exception as e:
+                print(f"Error running workflow: {e}")
+                traceback.print_exc()
+                exit(1)
+
+    asyncio.run(run_workflow_async())
 
 
 cli.add_command(worker)

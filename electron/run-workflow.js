@@ -573,154 +573,17 @@ export async function init() {
   async function runWorkflow(workflow) {
     try {
       console.log("Workflow received:", workflow);
+      validateWorkflow(workflow);
+      updateWorkflowMetadata(workflow);
+      clearExistingErrors();
 
-      if (!workflow) {
-        throw new Error("No workflow received");
-      }
-
-      // Add validation for empty input node names
-      if (
-        workflow.input_schema?.properties &&
-        "" in workflow.input_schema.properties
-      ) {
-        throw new Error(
-          "Invalid workflow: Input nodes must have names. Found an empty node name."
-        );
-      }
-
-      const workflowName = document.querySelector(".workflow-name");
-      if (workflowName instanceof HTMLElement) {
-        workflowName.textContent = workflow.name;
-      }
-
-      const workflowDescription = document.querySelector(
-        ".workflow-description"
-      );
-      if (workflowDescription instanceof HTMLElement) {
-        if (workflow.description) {
-          workflowDescription.textContent = workflow.description;
-        } else {
-          workflowDescription.style.display = "none";
-        }
-      }
-
-      // Clear any existing error messages
-      const existingError = document.querySelector(".workflow-error");
-      if (existingError) {
-        existingError.remove();
-      }
-
-      if (hasInputFields(workflow.input_schema)) {
-        const firstProperty = Object.entries(
-          workflow.input_schema.properties
-        )[0];
-        if (firstProperty && firstProperty[1].format === "chat") {
-          const chatView = document.querySelector(".chat-view");
-          const container = document.querySelector(".container");
-
-          if (chatView instanceof HTMLElement) {
-            chatView.style.display = "block";
-          }
-          if (container instanceof HTMLElement) {
-            container.style.display = "none";
-          }
-
-          /**
-           * @param {MessageContent[]} messageContents - The message to send to the chat runner
-           * @returns {Promise<void>}
-           */
-          const onSubmitChat = async (messageContents) => {
-            if (!chatRunner.socket || chatRunner.status === "disconnected") {
-              await chatRunner.connect(workflow.id);
-            }
-            console.log("Sending message:", messageContents);
-            await chatRunner.sendMessage({
-              type: "message",
-              role: "user",
-              content: messageContents,
-              workflow_id: workflow.id,
-              auth_token: "local_token",
-            });
-          };
-
-          generateChatInterface(
-            document.querySelector(".chat-view"),
-            firstProperty[0],
-            onSubmitChat
-          );
-        } else {
-          const inputContainer = document.getElementById("input-container");
-          if (inputContainer instanceof HTMLElement) {
-            inputContainer.style.display = "block";
-          }
-
-          /**
-           * @param {Object} params - The parameters to pass to the workflow
-           * @returns {Promise<void>}
-           */
-          const onSubmitWorkflow = async (params) => {
-            disableInputFields(inputContainer);
-            clearResults();
-
-            // For non-chat workflows, use the regular WorkflowRunner
-            const runner = new WorkflowRunner({ token: "local_token" });
-            runner.onProgress(updateProgress);
-            runner.onNodeUpdate((data) => {
-              const nodeUpdateMessage = document.querySelector(
-                ".node-update-message"
-              );
-              if (nodeUpdateMessage instanceof HTMLElement) {
-                nodeUpdateMessage.textContent = `${data.node_name} ${data.status}`;
-              }
-            });
-            runner
-              .run(workflow.id, params)
-              .then((results) => {
-                displayResults(results, workflow.output_schema);
-                enableInputFields(inputContainer);
-              })
-              .catch((error) => {
-                console.error("Workflow error:", error);
-                enableInputFields(inputContainer);
-              });
-          };
-
-          generateInputFields(
-            workflow.input_schema,
-            inputContainer,
-            onSubmitWorkflow
-          );
-        }
+      if (isChatWorkflow(workflow.input_schema)) {
+        await setupChatView(workflow, chatRunner);
       } else {
-        const runner = new WorkflowRunner({ token: "local_token" });
-        runner
-          .run(workflow.id, {})
-          .then((results) => {
-            displayResults(results, workflow.output_schema);
-          })
-          .catch((error) => {
-            console.error("Workflow error:", error);
-          });
+        await setupMiniAppView(workflow);
       }
     } catch (error) {
-      console.error("Workflow error:", error);
-
-      // Create and display error message
-      const errorDiv = document.createElement("div");
-      errorDiv.className = "workflow-error";
-      errorDiv.textContent = `Error: ${error.message}`;
-
-      // Insert error after workflow name/description
-      const container = document.querySelector(".container");
-      if (container instanceof HTMLElement) {
-        container.insertAdjacentElement("beforebegin", errorDiv);
-      }
-
-      // Hide loading elements
-      const loaderContainer = document.querySelector(".loader-container");
-      if (loaderContainer instanceof HTMLElement) {
-        loaderContainer.style.display = "none";
-      }
+      handleWorkflowError(error);
     }
   }
 
@@ -771,3 +634,171 @@ function isChatWorkflow(schema) {
 document.addEventListener("DOMContentLoaded", () => {
   init();
 });
+
+/**
+ * Sets up the chat interface for chat-based workflows
+ * @param {Object} workflow - The workflow configuration
+ * @param {ChatRunner} chatRunner - The chat runner instance
+ */
+async function setupChatView(workflow, chatRunner) {
+  const chatView = document.querySelector(".chat-view");
+  const container = document.querySelector(".container");
+
+  if (chatView instanceof HTMLElement) {
+    chatView.style.display = "block";
+  }
+  if (container instanceof HTMLElement) {
+    container.style.display = "none";
+  }
+
+  const firstProperty = Object.entries(workflow.input_schema.properties)[0];
+  const onSubmitChat = async (messageContents) => {
+    if (!chatRunner.socket || chatRunner.status === "disconnected") {
+      await chatRunner.connect(workflow.id);
+    }
+    await chatRunner.sendMessage({
+      type: "message",
+      role: "user",
+      content: messageContents,
+      workflow_id: workflow.id,
+      auth_token: "local_token",
+    });
+  };
+
+  generateChatInterface(
+    document.querySelector(".chat-view"),
+    firstProperty[0],
+    onSubmitChat
+  );
+}
+
+/**
+ * Sets up the normal workflow interface for non-chat workflows
+ * @param {Object} workflow - The workflow configuration
+ */
+async function setupMiniAppView(workflow) {
+  const inputContainer = document.getElementById("input-container");
+  if (inputContainer instanceof HTMLElement) {
+    inputContainer.style.display = "block";
+  }
+
+  const onSubmitWorkflow = async (params) => {
+    disableInputFields(inputContainer);
+    clearResults();
+
+    const runner = new WorkflowRunner({ token: "local_token" });
+    runner.onProgress(updateProgress);
+    runner.onNodeUpdate((data) => {
+      const nodeUpdateMessage = document.querySelector(".node-update-message");
+      if (nodeUpdateMessage instanceof HTMLElement) {
+        nodeUpdateMessage.textContent = `${data.node_name} ${data.status}`;
+      }
+    });
+
+    try {
+      const results = await runner.run(workflow.id, params);
+      displayResults(results, workflow.output_schema);
+    } catch (error) {
+      console.error("Workflow error:", error);
+    } finally {
+      enableInputFields(inputContainer);
+    }
+  };
+
+  generateInputFields(workflow.input_schema, inputContainer, onSubmitWorkflow);
+}
+
+/**
+ * Validates the workflow configuration
+ * @param {Object} workflow - The workflow to validate
+ */
+function validateWorkflow(workflow) {
+  if (!workflow) {
+    throw new Error("No workflow received");
+  }
+
+  if (
+    workflow.input_schema?.properties &&
+    "" in workflow.input_schema.properties
+  ) {
+    throw new Error(
+      "Invalid workflow: Input nodes must have names. Found an empty node name."
+    );
+  }
+}
+
+/**
+ * Updates the workflow metadata in the UI
+ * @param {Object} workflow - The workflow configuration
+ */
+function updateWorkflowMetadata(workflow) {
+  const workflowName = document.querySelector(".workflow-name");
+  if (workflowName instanceof HTMLElement) {
+    workflowName.textContent = workflow.name;
+  }
+
+  const workflowDescription = document.querySelector(".workflow-description");
+  if (workflowDescription instanceof HTMLElement) {
+    if (workflow.description) {
+      workflowDescription.textContent = workflow.description;
+    } else {
+      workflowDescription.style.display = "none";
+    }
+  }
+}
+
+/**
+ * Clears any existing error messages from the UI
+ * @returns {void}
+ */
+function clearExistingErrors() {
+  // Clear error messages from input fields
+  const errorMessages = document.querySelectorAll(".error-message");
+  errorMessages.forEach((element) => element.remove());
+
+  // Clear any error styling from input fields
+  const inputFields = document.querySelectorAll(".input-field");
+  inputFields.forEach((field) => field.classList.remove("error"));
+
+  // Clear any global error messages
+  const globalError = document.querySelector(".global-error");
+  if (globalError instanceof HTMLElement) {
+    globalError.style.display = "none";
+    globalError.textContent = "";
+  }
+}
+
+/**
+ * Handles and displays workflow errors in the UI
+ * @param {Error} error - The error to handle
+ * @returns {void}
+ */
+function handleWorkflowError(error) {
+  console.error("Workflow error:", error);
+
+  // Get or create global error container
+  let globalError = document.querySelector(".global-error");
+  if (!globalError) {
+    globalError = document.createElement("div");
+    globalError.className = "global-error";
+    document.querySelector(".container")?.prepend(globalError);
+  }
+
+  // Display the error message
+  if (globalError instanceof HTMLElement) {
+    globalError.style.display = "block";
+    globalError.textContent = `Error: ${error.message}`;
+  }
+
+  // Hide the loader if it's visible
+  const loaderContainer = document.querySelector(".loader-container");
+  if (loaderContainer instanceof HTMLElement) {
+    loaderContainer.style.display = "none";
+  }
+
+  // Re-enable any disabled input fields
+  const inputContainer = document.getElementById("input-container");
+  if (inputContainer instanceof HTMLElement) {
+    enableInputFields(inputContainer);
+  }
+}
