@@ -5,12 +5,14 @@ const WebSocket = require("ws");
 const { createWorkflowWindow } = require("./workflow-window");
 const { getMainWindow } = require("./state");
 const { createWindow } = require("./window");
+const { LAUNCHD_SERVICE_NAME } = require("./config");
 const {
   createLaunchAgent,
   removeLaunchAgent,
-  getLaunchAgentLogPath,
+  getScheduledWorkflows,
 } = require("./scheduler");
 const fs = require("fs/promises");
+const { exec } = require("child_process");
 
 /**
  * @typedef {Object} Workflow
@@ -81,14 +83,14 @@ async function createTray() {
     setupWindowsTrayEvents(trayInstance);
   }
 
-  // Create initial menu
-  const workflows = await fetchWorkflows();
-  await updateTrayMenu(workflows);
+  await updateTrayMenu();
 
   // Set up WebSocket connection after delay
   setTimeout(() => {
     connectToWebSocketUpdates();
   }, 30000);
+
+  startHealthCheck();
 
   return trayInstance;
 }
@@ -179,6 +181,7 @@ async function showScheduleDialog(workflowId) {
     { label: "Every 15 minutes", value: 15 },
     { label: "Every 30 minutes", value: 30 },
     { label: "Every hour", value: 60 },
+    { label: "Every 24 hours", value: 1440 },
   ];
 
   if (process.platform !== "darwin") {
@@ -218,87 +221,174 @@ async function showScheduleDialog(workflowId) {
 }
 
 /**
- * Creates menu items for a workflow
- * @param {Object} workflow - The workflow object
- * @returns {Electron.MenuItemConstructorOptions[]}
+ * Checks if the NodeTool service is running
+ * @returns {Promise<boolean>} True if service is healthy
  */
-function createWorkflowMenuItems(workflow) {
-  return [
-    {
-      label: "Open as App",
-      click: () => createWorkflowWindow(workflow),
-    },
-    {
-      label: "Set Schedule",
-      click: () => showScheduleDialog(workflow.id),
-    },
-    {
-      label: "Remove Schedule",
-      click: async () => {
-        try {
-          await removeLaunchAgent(workflow.id);
-          dialog.showMessageBox({
-            type: "info",
-            message: "Schedule removed successfully",
-            buttons: ["OK"],
-          });
-        } catch (error) {
-          dialog.showMessageBox({
-            type: "error",
-            message: "Failed to remove schedule",
-            detail: error.message,
-            buttons: ["OK"],
-          });
-        }
-      },
-    },
-    {
-      label: "View Schedule Logs",
-      click: async () => {
-        const logPath = await getLaunchAgentLogPath(workflow.id);
-        try {
-          await fs.access(logPath);
-          shell.showItemInFolder(logPath);
-        } catch (error) {
-          dialog.showMessageBox({
-            type: "info",
-            message: "No logs available",
-            detail:
-              "This workflow hasn't been scheduled yet or hasn't generated any logs.",
-            buttons: ["OK"],
-          });
-        }
-      },
-    },
-  ];
+async function checkServiceHealth() {
+  try {
+    const response = await fetch("http://127.0.0.1:8000/health");
+    return response.ok;
+  } catch (error) {
+    return false;
+  }
 }
 
 /**
  * Updates the tray menu with current workflows
  * @returns {Promise<void>}
  */
-async function updateTrayMenu(workflows = null) {
+async function updateTrayMenu() {
   if (!trayInstance) return;
 
-  if (workflows === null) {
-    workflows = await fetchWorkflows();
-  }
+  // Check service status
+  const isHealthy = await checkServiceHealth();
+
+  const scheduledWorkflows = await getScheduledWorkflows();
+  // Create status indicator
+  const statusIndicator = isHealthy ? "🟢" : "🔴";
+
+  const workflows = isHealthy ? await fetchWorkflows() : [];
+
+  /*
+  Poll until server is stopped and update menu
+  
+  @param {function} waitCondition - A function that returns true when the server is stopped
+  @returns {Promise<void>}
+  */
+  const waitUntil = async (waitCondition) => {
+    const pollInterval = setInterval(async () => {
+      try {
+        const response = await fetch("http://127.0.0.1:8000/health");
+        if (waitCondition(response)) {
+          clearInterval(pollInterval);
+          updateTrayMenu();
+        }
+      } catch (error) {
+        clearInterval(pollInterval);
+        updateTrayMenu();
+      }
+    }, 100);
+  };
 
   const contextMenu = Menu.buildFromTemplate([
     {
-      label: "Show NodeTool",
-      click: () => focusNodeTool(),
+      label: `${statusIndicator} NodeTool Service`,
+      enabled: false,
+    },
+    {
+      label: "Start Service",
+      enabled: !isHealthy,
+      click: async () => {
+        try {
+          exec(
+            `launchctl load -w ~/Library/LaunchAgents/${LAUNCHD_SERVICE_NAME}.plist`,
+            (error, stdout, stderr) => {
+              if (error) {
+                logMessage(
+                  `Failed to start service: ${error.message}`,
+                  "error"
+                );
+                dialog.showErrorBox(
+                  "Service Error",
+                  "Failed to start NodeTool service"
+                );
+              }
+              waitUntil((response) => response.ok);
+              updateTrayMenu();
+            }
+          );
+        } catch (error) {
+          logMessage(`Failed to start service: ${error.message}`, "error");
+          dialog.showErrorBox(
+            "Service Error",
+            "Failed to start NodeTool service"
+          );
+        }
+      },
+    },
+    {
+      label: "Stop Service",
+      enabled: isHealthy,
+      click: async () => {
+        try {
+          exec(
+            `launchctl unload -w ~/Library/LaunchAgents/${LAUNCHD_SERVICE_NAME}.plist`,
+            (error, stdout, stderr) => {
+              if (error) {
+                logMessage(`Failed to stop service: ${error.message}`, "error");
+                dialog.showErrorBox(
+                  "Service Error",
+                  "Failed to stop NodeTool service"
+                );
+              }
+              waitUntil((response) => !response.ok);
+              updateTrayMenu();
+            }
+          );
+        } catch (error) {
+          logMessage(`Failed to stop service: ${error.message}`, "error");
+          dialog.showErrorBox(
+            "Service Error",
+            "Failed to stop NodeTool service"
+          );
+        }
+      },
     },
     { type: "separator" },
     {
-      label: "Workflows",
+      label: "Show NodeTool",
+      enabled: true,
+      click: async () => focusNodeTool(),
+    },
+    { type: "separator" },
+    {
+      label: "Mini Apps",
       submenu:
         workflows.length > 0
           ? workflows.map((workflow) => ({
               label: workflow.name,
-              submenu: createWorkflowMenuItems(workflow),
+              click: () => createWorkflowWindow(workflow),
             }))
           : [{ label: "No workflows available", enabled: false }],
+    },
+    {
+      label: "Schedule",
+      submenu:
+        workflows.length > 0
+          ? workflows.map((workflow) => ({
+              label: workflow.name,
+              click: () => showScheduleDialog(workflow.id),
+            }))
+          : [{ label: "No workflows available", enabled: false }],
+    },
+    {
+      label: "Unschedule",
+      submenu:
+        scheduledWorkflows.length > 0
+          ? workflows
+              .filter((w) => scheduledWorkflows.includes(w.id))
+              .map((workflow) => ({
+                label: workflow.name,
+                click: async () => {
+                  try {
+                    await removeLaunchAgent(workflow.id);
+                    dialog.showMessageBox({
+                      type: "info",
+                      message: "Schedule removed successfully",
+                      buttons: ["OK"],
+                    });
+                    updateTrayMenu();
+                  } catch (error) {
+                    dialog.showMessageBox({
+                      type: "error",
+                      message: "Failed to remove schedule",
+                      detail: error.message,
+                      buttons: ["OK"],
+                    });
+                  }
+                },
+              }))
+          : [{ label: "No scheduled workflows", enabled: false }],
     },
     { type: "separator" },
     {
@@ -358,6 +448,31 @@ async function connectToWebSocketUpdates() {
     logMessage(`WebSocket error: ${error.message}`, "error");
   });
 }
+
+// Add a periodic health check
+let healthCheckInterval;
+
+/**
+ * Starts periodic health checking
+ */
+function startHealthCheck() {
+  if (healthCheckInterval) {
+    clearInterval(healthCheckInterval);
+  }
+
+  healthCheckInterval = setInterval(async () => {
+    if (trayInstance) {
+      await updateTrayMenu();
+    }
+  }, 30000); // Check every 30 seconds
+}
+
+// Clean up on quit
+app.on("before-quit", () => {
+  if (healthCheckInterval) {
+    clearInterval(healthCheckInterval);
+  }
+});
 
 module.exports = {
   createTray,

@@ -30,6 +30,21 @@
             "console": "integratedTerminal"
         },
         {
+            "name": "Debug: Run Workflow",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "nodetool.cli",
+            "justMyCode": false,
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/src"
+            },
+            "args": [
+                "run",
+                "6685aa30d28411ef8ba70000391d98e5"
+            ],
+            "console": "integratedTerminal"
+        },
+        {
             "name": "Debug: Worker",
             "type": "debugpy",
             "request": "launch",
