@@ -436,6 +436,19 @@ async function isServerRunning() {
  */
 async function initializeBackendServer() {
   try {
+    // Try health check first
+    try {
+      const response = await fetch("http://127.0.0.1:8000/health");
+      if (response.ok) {
+        logMessage("Server already running and healthy, connecting...");
+        emitServerStarted();
+        return;
+      }
+    } catch (error) {
+      logMessage("Health check failed, proceeding with server startup");
+    }
+
+    // Existing startup logic
     if (process.platform !== "darwin") {
       return startNodeToolBackendProcess();
     }
