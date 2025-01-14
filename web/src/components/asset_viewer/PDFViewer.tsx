@@ -9,7 +9,13 @@ import {
   IconButton,
   Slider
 } from "@mui/material";
-import { NavigateBefore, NavigateNext } from "@mui/icons-material";
+import {
+  NavigateBefore,
+  NavigateNext,
+  ZoomIn,
+  ZoomOut,
+  RestartAlt
+} from "@mui/icons-material";
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   "pdfjs-dist/build/pdf.worker.min.mjs",
@@ -35,26 +41,31 @@ const styles = (theme: any) =>
       display: "flex",
       flexDirection: "column",
       alignItems: "center",
-      overflow: "auto",
-      paddingRight: "48px",
+      width: "100%",
+      height: "100%",
+      overflow: "hidden",
+      paddingRight: "50px",
       backgroundColor: "transparent"
     },
     ".pdf-document": {
-      width: "90%",
+      width: "calc(100% - 320px)",
       height: "100%",
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
       backgroundColor: "transparent",
       marginBottom: "1em",
+      overflow: "auto scroll",
       "& .react-pdf__Page": {
-        width: "100%",
-        height: "100%",
         marginBottom: "1em",
         display: "flex",
         justifyContent: "center",
         position: "relative",
-
         "& canvas": {
           position: "relative",
-          zIndex: 1
+          zIndex: 1,
+          width: "auto !important",
+          height: "auto !important"
         },
         "& .react-pdf__Page__annotations": {
           display: "none",
@@ -76,7 +87,7 @@ const styles = (theme: any) =>
         }
       },
       "& .react-pdf__Page__canvas": {
-        maxWidth: "100%",
+        width: "auto !important",
         height: "auto !important",
         boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
       }
@@ -88,22 +99,33 @@ const styles = (theme: any) =>
     ".page-controls": {
       position: "sticky",
       bottom: "1em",
-      background: theme.palette.background.paper,
+      background: theme.palette.c_gray2,
       padding: "0.8em 1em",
-      borderRadius: "4px",
-      boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+      borderRadius: "4px 4px 0 0",
       zIndex: 1,
       display: "flex",
       alignItems: "center",
       gap: "1em",
-      minWidth: "200px"
+      minWidth: "200px",
+      userSelect: "none"
+    },
+    ".zoom-controls": {
+      position: "absolute",
+      right: "230px",
+      bottom: "75px",
+      background: theme.palette.background.paper,
+      padding: "0.2em",
+      borderRadius: "4px",
+      zIndex: 1,
+      display: "flex",
+      flexDirection: "row",
+      gap: "0.2em"
     },
     ".vertical-slider": {
       position: "absolute",
-      right: "11em",
-      top: "50%",
-      transform: "translateY(-50%)",
-      height: "70%",
+      right: "150px",
+      top: "25px",
+      height: "calc(100% - 85px)",
       padding: "1em 0",
       display: "flex",
       alignItems: "center",
@@ -126,9 +148,9 @@ const styles = (theme: any) =>
         },
         "& .MuiSlider-mark": {
           backgroundColor: theme.palette.c_gray2,
+          borderRadius: "0",
           width: "4px",
-          height: "4px",
-          borderRadius: "50%"
+          height: "4px"
         }
       }
     }
@@ -141,6 +163,7 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ asset, url }) => {
   const [numPages, setNumPages] = useState<number | null>(null);
   const [pageNumber, setPageNumber] = useState<number>(1);
   const [error, setError] = useState<Error | null>(null);
+  const [scale, setScale] = useState(1);
 
   const pdfUrl = asset?.get_url || url;
 
@@ -162,7 +185,20 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ asset, url }) => {
   };
 
   const handleSliderChange = (_event: Event, newValue: number | number[]) => {
-    setPageNumber(newValue as number);
+    const actualPage = numPages ? numPages - (newValue as number) + 1 : 1;
+    setPageNumber(actualPage);
+  };
+
+  const zoomIn = () => {
+    setScale((prev) => Math.min(prev + 0.2, 3));
+  };
+
+  const zoomOut = () => {
+    setScale((prev) => Math.max(prev - 0.2, 1.0));
+  };
+
+  const resetZoom = () => {
+    setScale(1.4);
   };
 
   return (
@@ -181,7 +217,7 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ asset, url }) => {
           loading={<CircularProgress />}
           error={<Typography color="error">Failed to load PDF</Typography>}
         >
-          <Page pageNumber={pageNumber} />
+          <Page pageNumber={pageNumber} scale={scale} />
         </Document>
         <div className="page-controls">
           <IconButton
@@ -203,15 +239,21 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ asset, url }) => {
           </IconButton>
         </div>
       </div>
+      <div className="zoom-controls">
+        <IconButton onClick={zoomIn} size="small" title="Zoom in">
+          <ZoomIn fontSize="small" />
+        </IconButton>
+        <IconButton onClick={zoomOut} size="small" title="Zoom out">
+          <ZoomOut fontSize="small" />
+        </IconButton>
+        <IconButton onClick={resetZoom} size="small" title="Reset zoom">
+          <RestartAlt fontSize="small" />
+        </IconButton>
+      </div>
       <div className="vertical-slider">
         <Slider
           value={numPages ? numPages - pageNumber + 1 : 1}
-          onChange={(_event: Event, newValue: number | number[]) => {
-            const actualPage = numPages
-              ? numPages - (newValue as number) + 1
-              : 1;
-            setPageNumber(actualPage);
-          }}
+          onChange={handleSliderChange}
           min={1}
           max={numPages || 1}
           step={1}
