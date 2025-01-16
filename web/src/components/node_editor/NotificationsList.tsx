@@ -95,14 +95,18 @@ const NotificationsList: React.FC = () => {
     .slice(0, NOTIFICATIONS_LIST_MAX_ITEMS);
 
   return (
-    <Box css={styles}>
-      <List dense>
+    <Box css={styles} className="notifications-list-container">
+      <List dense className="notifications-list">
         {recentNotifications.map((notification) => (
-          <ListItem className={notification.type} key={notification.id}>
+          <ListItem
+            className={`notification-item ${notification.type}`}
+            key={notification.id}
+          >
             <ListItemText
+              className="notification-content"
               primary={
-                <div style={{ display: "flex" }}>
-                  <span className="time">
+                <div style={{ display: "flex" }} className="notification-row">
+                  <span className="time notification-timestamp">
                     {new Date(notification.timestamp).toLocaleTimeString(
                       "en-US",
                       {
@@ -113,7 +117,12 @@ const NotificationsList: React.FC = () => {
                       }
                     )}
                   </span>
-                  <span className="message">{notification.content}</span>
+                  <span
+                    className={`message notification-message ${notification.type}-message`}
+                    style={{ wordWrap: "break-word" }}
+                  >
+                    {notification.content}
+                  </span>
                 </div>
               }
             />
