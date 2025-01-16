@@ -43,7 +43,7 @@ const NotificationButton: React.FC = React.memo(() => {
     <>
       <Tooltip title="Notifications" enterDelay={TOOLTIP_ENTER_DELAY}>
         <Button
-          className="command-button"
+          className="notification-button command-button"
           onClick={handleNotificationClick}
           tabIndex={-1}
           sx={{
@@ -55,12 +55,20 @@ const NotificationButton: React.FC = React.memo(() => {
             }
           }}
         >
-          <Badge badgeContent={unreadCount} color="error">
-            <NotificationsIcon sx={{ fontSize: "1.2rem" }} />
+          <Badge
+            badgeContent={unreadCount}
+            color="error"
+            className="notification-badge"
+          >
+            <NotificationsIcon
+              sx={{ fontSize: "1.2rem" }}
+              className="notification-icon"
+            />
           </Badge>
         </Button>
       </Tooltip>
       <Popover
+        className="notification-popover"
         open={Boolean(notificationAnchor)}
         anchorEl={notificationAnchor}
         onClose={handleNotificationClose}
@@ -82,6 +90,7 @@ const NotificationButton: React.FC = React.memo(() => {
         }}
       >
         <Box
+          className="notification-container"
           sx={{
             p: 3,
             width: "600px",
@@ -98,6 +107,7 @@ const NotificationButton: React.FC = React.memo(() => {
         >
           {notifications.length === 0 ? (
             <Typography
+              className="notification-empty-message"
               color="textSecondary"
               sx={{ fontSize: "0.9rem", fontWeight: 300 }}
             >
@@ -107,6 +117,7 @@ const NotificationButton: React.FC = React.memo(() => {
             notifications.map((notification) => (
               <Box
                 key={notification.id}
+                className={`notification-item notification-type-${notification.type}`}
                 sx={{
                   p: 2,
                   mb: 1.5,
@@ -133,13 +144,19 @@ const NotificationButton: React.FC = React.memo(() => {
                 <Typography
                   variant="body2"
                   color="textPrimary"
-                  sx={{ fontSize: "0.85rem", lineHeight: 1.5 }}
+                  className="notification-content"
+                  sx={{
+                    fontSize: "0.85rem",
+                    lineHeight: 1.5,
+                    wordWrap: "break-word"
+                  }}
                 >
                   {notification.content}
                 </Typography>
                 <Typography
                   variant="caption"
                   color="textSecondary"
+                  className="notification-timestamp"
                   sx={{
                     fontSize: "0.75rem",
                     display: "block",
