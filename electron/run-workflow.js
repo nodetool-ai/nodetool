@@ -429,7 +429,7 @@ function displayResult(result) {
   field.className = "output-field";
 
   let content;
-  if (typeof result === "object") {
+  if (result && typeof result === "object") {
     if (result.type === "audio") {
       content = createAudioPlayer(result.data || result.uri);
     } else if (result.type === "video") {
@@ -689,6 +689,9 @@ async function setupMiniAppView(workflow) {
   }
 
   const onSubmitWorkflow = async (params) => {
+    if (inputContainer instanceof HTMLElement) {
+      inputContainer.style.display = "none";
+    }
     disableInputFields(inputContainer);
     clearResults();
 
@@ -699,13 +702,18 @@ async function setupMiniAppView(workflow) {
       if (nodeUpdateMessage instanceof HTMLElement) {
         nodeUpdateMessage.textContent = `${data.node_name} ${data.status}`;
       }
-      if (data.result && data.result.output) {
+      if (
+        data.result &&
+        data.result.output &&
+        data.node_name.includes("Output")
+      ) {
         const field = displayResult(data.result.output);
         const resultsContainer = document.querySelector(".results-container");
         if (resultsContainer instanceof HTMLElement) {
           resultsContainer.style.display = "block";
         }
         resultsContainer.appendChild(field);
+        resultsContainer.scrollTop = resultsContainer.scrollHeight;
       }
     });
 

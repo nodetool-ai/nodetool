@@ -96,14 +96,31 @@ class FormatText(BaseNode):
 
     _is_dynamic = True
 
-    string: str = Field(title="String", default="")
+    template: str = Field(default="")
 
     @classmethod
     def get_title(cls):
         return "Format Text"
 
     async def process(self, context: ProcessingContext) -> str:
-        return self.string.format(**self._dynamic_properties)
+        try:
+            # Convert template placeholders to lowercase
+            template = re.sub(
+                r"\{([^}]+)\}", lambda m: "{" + m.group(1).lower() + "}", self.template
+            )
+
+            # Convert all dynamic property keys to lowercase
+            lowercase_properties = {
+                k.lower(): v for k, v in self._dynamic_properties.items()
+            }
+
+            return template.format(**lowercase_properties)
+        except KeyError as e:
+            raise ValueError(
+                f"Missing required placeholder in template: {e} missing in {lowercase_properties}"
+            )
+        except ValueError as e:
+            raise ValueError(f"Invalid template format: {str(e)}")
 
 
 class Template(BaseNode):
@@ -136,16 +153,32 @@ class Template(BaseNode):
     )
 
     async def process(self, context: ProcessingContext) -> str:
-        if isinstance(self.values, str):
-            return self.string.format(self.values)
-        elif isinstance(self.values, list):
-            return self.string.format(*self.values)
-        elif isinstance(self.values, dict):
-            return self.string.format(**self.values)
-        elif isinstance(self.values, object):
-            return self.string.format(**self.values.__dict__)
-        else:
-            raise ValueError("Invalid values type")
+        try:
+            # Convert template placeholders to lowercase
+            template = re.sub(
+                r"\{([^}]+)\}", lambda m: "{" + m.group(1).lower() + "}", self.string
+            )
+
+            if isinstance(self.values, str):
+                return template.format(self.values)
+            elif isinstance(self.values, list):
+                return template.format(*self.values)
+            elif isinstance(self.values, dict):
+                # Convert all dictionary keys to lowercase
+                lowercase_values = {k.lower(): v for k, v in self.values.items()}
+                return template.format(**lowercase_values)
+            elif isinstance(self.values, object):
+                # Convert object dict keys to lowercase
+                lowercase_values = {
+                    k.lower(): v for k, v in self.values.__dict__.items()
+                }
+                return template.format(**lowercase_values)
+            else:
+                raise ValueError("Invalid values type")
+        except KeyError as e:
+            raise ValueError(f"Missing required placeholder in template: {e}")
+        except ValueError as e:
+            raise ValueError(f"Invalid template format: {str(e)}")
 
 
 class Replace(BaseNode):

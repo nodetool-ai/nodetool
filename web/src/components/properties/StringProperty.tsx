@@ -11,7 +11,8 @@ const StringProperty = ({
   value,
   onChange,
   tabIndex,
-  nodeId
+  nodeId,
+  isConnected
 }: PropertyProps) => {
   const id = `textfield-${property.name}-${propertyIndex}`;
   const [isExpanded, setIsExpanded] = useState(false);
@@ -36,31 +37,35 @@ const StringProperty = ({
         description={property.description}
         id={id}
       />
-      <div className="container">
-        <input
-          ref={inputRef}
-          type="text"
-          id={id}
-          name={property.name}
-          className="nodrag"
-          value={value || ""}
-          onChange={handleChange}
-          onFocus={handleFocus}
-          autoComplete="off"
-          autoCorrect="off"
-          autoCapitalize="off"
-          spellCheck="false"
-          tabIndex={tabIndex}
-        />
-        <button
-          className="expand-button"
-          onClick={toggleExpand}
-          tabIndex={-1}
-          aria-label="Open Editor"
-        >
-          {isExpanded ? "↙" : "↗"}
-        </button>
-      </div>
+      {!isConnected && (
+        <>
+          <div className="container">
+            <input
+              ref={inputRef}
+              type="text"
+              id={id}
+              name={property.name}
+              className="nodrag"
+              value={value || ""}
+              onChange={handleChange}
+              onFocus={handleFocus}
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck="false"
+              tabIndex={tabIndex}
+            />
+            <button
+              className="expand-button"
+              onClick={toggleExpand}
+              tabIndex={-1}
+              aria-label="Open Editor"
+            >
+              {isExpanded ? "↙" : "↗"}
+            </button>
+          </div>
+        </>
+      )}
       {isExpanded && (
         <TextEditorModal
           value={value || ""}

@@ -8,6 +8,7 @@ import ThemeNodes from "../themes/ThemeNodes";
 import { isEqual } from "lodash";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import SettingsIcon from "@mui/icons-material/Settings";
 
 const PrettyNamespace = memo<{ namespace: string }>(({ namespace }) => {
   const parts = namespace.split(".");
@@ -40,6 +41,9 @@ export interface NodeFooterProps {
   metadata: NodeMetadata;
   backgroundColor?: string;
   nodeType: string;
+  hasAdvancedFields?: boolean;
+  showAdvancedFields?: boolean;
+  onToggleAdvancedFields?: () => void;
 }
 export const footerStyles = (theme: any) =>
   css({
@@ -71,12 +75,11 @@ export const footerStyles = (theme: any) =>
       color: theme.palette.c_hl1 + " !important"
     },
     ".help-button": {
-      height: "18px",
       display: "block",
       padding: "0",
-      margin: "0",
+      margin: "0 2px",
+      minWidth: "18px",
       top: "-4px",
-      right: "-7px",
       color: theme.palette.c_gray6,
       backgroundColor: "transparent",
       border: "none",
@@ -87,6 +90,27 @@ export const footerStyles = (theme: any) =>
     },
     ".help-button svg": {
       scale: "0.5"
+    },
+    ".advanced-fields-button": {
+      display: "block",
+      padding: "0",
+      margin: "0 2px",
+      minWidth: "18px",
+      top: "-4px",
+      right: "-7px",
+      color: theme.palette.c_gray6,
+      backgroundColor: "transparent",
+      border: "none",
+      cursor: "pointer",
+      "&:hover": {
+        color: theme.palette.c_white
+      },
+      "&.active": {
+        color: theme.palette.c_hl1
+      }
+    },
+    ".advanced-fields-button svg": {
+      scale: "0.5"
     }
   });
 
@@ -94,7 +118,10 @@ export const NodeFooter: React.FC<NodeFooterProps> = ({
   nodeNamespace,
   metadata,
   backgroundColor,
-  nodeType
+  nodeType,
+  hasAdvancedFields,
+  showAdvancedFields,
+  onToggleAdvancedFields
 }) => {
   const {
     openNodeMenu,
@@ -150,6 +177,23 @@ export const NodeFooter: React.FC<NodeFooterProps> = ({
           <PrettyNamespace namespace={nodeNamespace} />
         </Button>
       </Tooltip>
+      {hasAdvancedFields && (
+        <Tooltip
+          title={`${showAdvancedFields ? "Hide" : "Show"} Advanced Fields`}
+          placement="bottom"
+          enterDelay={TOOLTIP_ENTER_DELAY}
+        >
+          <Button
+            className={`advanced-fields-button${
+              showAdvancedFields ? " active" : ""
+            }`}
+            tabIndex={-1}
+            onClick={onToggleAdvancedFields}
+          >
+            <SettingsIcon />
+          </Button>
+        </Tooltip>
+      )}
       <Tooltip
         title="Click to show documentation"
         placement="bottom-start"

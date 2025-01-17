@@ -394,6 +394,7 @@ class BaseNode(BaseModel):
     def assign_property(self, name: str, value: Any):
         """
         Assign a value to a node property, performing type checking and conversion.
+        If the property is dynamic, it will be added to the _dynamic_properties dictionary.
 
         Args:
             name (str): The name of the property to assign.
@@ -427,7 +428,33 @@ class BaseNode(BaseModel):
         else:
             v = value
 
-        setattr(self, name, v)
+        if hasattr(self, name):
+            setattr(self, name, v)
+        elif self._is_dynamic:
+            self._dynamic_properties[name] = v
+        else:
+            raise ValueError(f"Property {name} does not exist")
+
+    def read_property(self, name: str) -> Any:
+        """
+        Read a property from the node.
+        If the property is dynamic, it will be read from the _dynamic_properties dictionary.
+
+        Args:
+            name (str): The name of the property to read.
+
+        Returns:
+            Any: The value of the property.
+
+        Raises:
+            ValueError: If the property does not exist.
+        """
+        if hasattr(self, name):
+            return getattr(self, name)
+        elif self._is_dynamic and name in self._dynamic_properties:
+            return self._dynamic_properties[name]
+        else:
+            raise ValueError(f"Property {name} does not exist")
 
     def set_node_properties(
         self, properties: dict[str, Any], skip_errors: bool = False
@@ -515,7 +542,7 @@ class BaseNode(BaseModel):
         props = self.properties_for_client()
         if properties is not None:
             for p in properties:
-                value = getattr(self, p)
+                value = self.read_property(p)
                 if isinstance(value, torch.Tensor):
                     pass
                 elif isinstance(value, ComfyData):
@@ -784,7 +811,9 @@ class BaseNode(BaseModel):
         return {**parent_properties, **current_properties}
 
     def node_properties(self):
-        return {name: getattr(self, name) for name in self.inherited_fields().keys()}
+        return {
+            name: self.read_property(name) for name in self.inherited_fields().keys()
+        }
 
     async def convert_output(self, context: Any, output: Any) -> Any:
         if type(self.return_type()) is dict:

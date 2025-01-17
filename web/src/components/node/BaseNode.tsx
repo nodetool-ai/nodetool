@@ -32,7 +32,7 @@ import useMetadataStore from "../../stores/MetadataStore";
 import NodeFooter from "./NodeFooter";
 import useSelect from "../../hooks/nodes/useSelect";
 import { useNodeStore } from "../../stores/NodeStore";
-import { Add, Delete } from "@mui/icons-material";
+import NodePropertyForm from "./NodePropertyForm";
 
 // Node sizing constants
 const BASE_HEIGHT = 0; // Minimum height for the node
@@ -119,7 +119,7 @@ const styles = (colors: string[]) =>
               ${colors[3]},
               ${colors[4]},
               ${colors[0]}
-            )`,
+          )`,
         borderRadius: "inherit",
         zIndex: -20,
         animation: `${gradientAnimationKeyframes} 5s ease-in-out infinite`,
@@ -138,8 +138,6 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const hasParent = Boolean(parentId);
   const { activeSelect } = useSelect();
   const [showAdvancedFields, setShowAdvancedFields] = useState(false);
-  const [showPropertyForm, setShowPropertyForm] = useState(false);
-  const [newPropertyName, setNewPropertyName] = useState("");
 
   // Workflow and status
   const workflowId = props.data.workflow_id;
@@ -295,23 +293,18 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   );
 
   // Add handler for property submission
-  const handlePropertySubmit = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === "Enter" && newPropertyName.trim()) {
-        const updatedDynamicProperties = {
-          ...(props.data.dynamic_properties as Record<string, any>),
-          [newPropertyName]: ""
-        };
+  const handleAddProperty = useCallback(
+    (propertyName: string) => {
+      const updatedDynamicProperties = {
+        ...(props.data.dynamic_properties as Record<string, any>),
+        [propertyName]: ""
+      };
 
-        updateNodeData(props.id, {
-          dynamic_properties: updatedDynamicProperties
-        });
-
-        setNewPropertyName("");
-        setShowPropertyForm(false);
-      }
+      updateNodeData(props.id, {
+        dynamic_properties: updatedDynamicProperties
+      });
     },
-    [newPropertyName, props.data, props.id]
+    [props.data, props.id, updateNodeData]
   );
 
   if (!metadata) {
@@ -355,61 +348,6 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       <NodeStatus status={status} />
       {!isProduction && <ModelRecommendations nodeType={props.type} />}
       {!isProduction && <ApiKeyValidation nodeNamespace={nodeNamespace} />}
-      {metadata?.is_dynamic && (
-        <div
-          css={css({
-            padding: "8px",
-            borderBottom: `1px solid ${ThemeNodes.palette.c_gray2}`
-          })}
-        >
-          {!showPropertyForm ? (
-            <button
-              onClick={() => setShowPropertyForm(true)}
-              css={css({
-                width: "100%",
-                padding: "8px",
-                background: "transparent",
-                border: `1px dashed ${ThemeNodes.palette.c_gray2}`,
-                borderRadius: "4px",
-                cursor: "pointer",
-                color: ThemeNodes.palette.c_white,
-                fontSize: "0.9em",
-                transition: "all 0.2s ease",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "4px",
-                "&:hover": {
-                  background: ThemeNodes.palette.c_gray1,
-                  borderStyle: "solid"
-                }
-              })}
-            >
-              <Add style={{ fontSize: "1.2em" }} />
-              Add Property
-            </button>
-          ) : (
-            <TextField
-              autoFocus
-              size="small"
-              placeholder="Property name..."
-              value={newPropertyName}
-              onChange={(e) => setNewPropertyName(e.target.value)}
-              onKeyPress={handlePropertySubmit}
-              onBlur={() => {
-                setShowPropertyForm(false);
-                setNewPropertyName("");
-              }}
-              css={css({
-                width: "100%",
-                "& .MuiOutlinedInput-root": {
-                  background: ThemeNodes.palette.c_gray0
-                }
-              })}
-            />
-          )}
-        </div>
-      )}
       <NodeContent
         id={props.id}
         nodeType={props.type}
@@ -424,29 +362,20 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         renderedResult={renderedResult}
         onDeleteProperty={handleDeleteProperty}
       />
-      {props.selected && resizer}
-      {hasAdvancedFields && (
-        <div
-          css={css({
-            display: "flex",
-            justifyContent: "center",
-            padding: "4px 0",
-            borderTop: `1px solid ${ThemeNodes.palette.c_gray2}`,
-            cursor: "pointer",
-            "&:hover": {
-              backgroundColor: ThemeNodes.palette.c_gray1
-            }
-          })}
-          onClick={() => setShowAdvancedFields(!showAdvancedFields)}
-        >
-          {showAdvancedFields ? "Hide Advanced Fields" : "Show Advanced Fields"}
-        </div>
+      {metadata?.is_dynamic && (
+        <NodePropertyForm onAddProperty={handleAddProperty} />
       )}
+      {props.selected && resizer}
       <NodeFooter
         nodeNamespace={metadata.namespace}
         metadata={metadata}
         backgroundColor={footerColor}
         nodeType={props.type}
+        hasAdvancedFields={hasAdvancedFields}
+        showAdvancedFields={showAdvancedFields}
+        onToggleAdvancedFields={() =>
+          setShowAdvancedFields(!showAdvancedFields)
+        }
       />
     </Container>
   );
