@@ -18,21 +18,6 @@ export interface NodeInputsProps {
   onDeleteProperty?: (propertyName: string) => void;
 }
 
-const isDropdownProperty = (property: Property): boolean => {
-  const type = property.type.type;
-
-  // Check for model types that use dropdowns
-  const modelPrefixes = [
-    "function_model",
-    "language_model",
-    "llama_model",
-    "comfy.",
-    "hf."
-  ];
-  const isModel = modelPrefixes.some((prefix) => type.startsWith(prefix));
-  return isModel;
-};
-
 export const NodeInputs: React.FC<NodeInputsProps> = ({
   id,
   properties,
@@ -75,9 +60,7 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
             property={property}
             propertyIndex={index.toString()}
             showFields={showFields}
-            showHandle={
-              showHandle && !isDropdownProperty(property) && !isConstantNode
-            }
+            showHandle={showHandle && !isConstantNode}
             tabIndex={finalTabIndex}
             isBasicField={basicFields?.includes(property.name)}
             showAdvancedFields={showAdvancedFields}
