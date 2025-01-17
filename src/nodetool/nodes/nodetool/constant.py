@@ -127,7 +127,7 @@ class Integer(Constant):
 
 class List(Constant):
     """Represents a list constant in the workflow.
-    array, squence, collection
+    array, sequence, collection
 
     Use cases:
     - Store multiple values of the same type
