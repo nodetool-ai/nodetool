@@ -204,6 +204,7 @@ export type PropertyInputProps = {
   controlKeyPressed?: boolean;
   isInspector?: boolean;
   tabIndex?: number;
+  isDynamicProperty?: boolean;
 };
 
 const PropertyInput: React.FC<PropertyInputProps> = ({
@@ -213,14 +214,33 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
   property,
   propertyIndex,
   controlKeyPressed,
-  tabIndex
+  tabIndex,
+  isDynamicProperty
 }: PropertyInputProps) => {
+  const { updateNodeProperties, findNode, updateNodeData } = useNodeStore(
+    (state) => ({
+      updateNodeProperties: state.updateNodeProperties,
+      updateNodeData: state.updateNodeData,
+      findNode: state.findNode
+    })
+  );
   const onChange = useCallback(
     (value: any) => {
-      const updateNodeProperties = useNodeStore.getState().updateNodeProperties;
-      updateNodeProperties(id, { [property.name]: value });
+      if (isDynamicProperty) {
+        const node = findNode(id);
+        const dynamicProperties = node?.data.dynamic_properties;
+        const updatedDynamicProperties = {
+          ...dynamicProperties,
+          [property.name]: value
+        };
+        updateNodeData(id, {
+          dynamic_properties: updatedDynamicProperties
+        });
+      } else {
+        updateNodeProperties(id, { [property.name]: value });
+      }
     },
-    [id, property.name]
+    [id, property.name, isDynamicProperty, findNode, updateNodeProperties]
   );
 
   const propertyProps = {
@@ -246,8 +266,9 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
         event.clientY,
         "node-property",
         undefined,
-        undefined,
-        prop.description || undefined
+        prop.name,
+        prop.description || undefined,
+        isDynamicProperty
       );
     },
     [id, openContextMenu]

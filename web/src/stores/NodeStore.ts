@@ -87,6 +87,7 @@ export function graphNodeToReactFlowNode(
     selectable: ui_properties?.selectable,
     data: {
       properties: node.data || {},
+      dynamic_properties: node.dynamic_properties || {},
       selectable: ui_properties?.selectable,
       dirty: true,
       collapsed: false,
@@ -137,7 +138,8 @@ export function reactFlowNodeToGraphNode(node: Node<NodeData>): GraphNode {
     type: node.type || "",
     data: node.data?.properties,
     parent_id: node.parentId,
-    ui_properties: ui_properties
+    ui_properties: ui_properties,
+    dynamic_properties: node.data?.dynamic_properties || {}
   };
 }
 
@@ -397,7 +399,8 @@ export const useNodeStore = create<NodeStore>()(
             collapsed: false,
             dirty: true,
             selectable: true,
-            workflow_id: get().workflow.id
+            workflow_id: get().workflow.id,
+            dynamic_properties: {}
           },
           targetPosition: Position.Left,
           position: position

@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { memo, useCallback, useMemo } from "react";
 import { Handle, Position } from "@xyflow/react";
-import { Tooltip, Zoom } from "@mui/material";
+import { css, Tooltip, Zoom } from "@mui/material";
 import useConnectionStore from "../../stores/ConnectionStore";
 import { Property } from "../../stores/ApiTypes";
 import PropertyInput from "./PropertyInput";
@@ -18,6 +18,7 @@ import useContextMenuStore from "../../stores/ContextMenuStore";
 import { isEqual } from "lodash";
 import { useNodeStore } from "../../stores/NodeStore";
 import { isConnectableCached } from "../node_menu/typeFilterUtils";
+import { Close } from "@mui/icons-material";
 
 export type PropertyFieldProps = {
   id: string;
@@ -32,6 +33,8 @@ export type PropertyFieldProps = {
   tabIndex?: number;
   isBasicField?: boolean;
   showAdvancedFields?: boolean;
+  isDynamicProperty?: boolean;
+  onDeleteProperty?: (propertyName: string) => void;
 };
 
 /**
@@ -48,7 +51,9 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
   isInspector,
   tabIndex,
   showAdvancedFields,
-  isBasicField
+  isBasicField,
+  isDynamicProperty,
+  onDeleteProperty
 }) => {
   const edges = useNodeStore((state) => state.edges);
   const controlKeyPressed = useKeyPressedStore((state) =>
@@ -85,11 +90,14 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
         event.clientY - 50,
         "react-flow__pane",
         property.type,
-        property.name
+        property.name,
+        property.description || undefined
       );
     },
     [id, openContextMenu, property.name, property.type.type]
   );
+
+  const updateNodeData = useNodeStore((state) => state.updateNodeData);
 
   const tooltipTitle = useMemo(
     () => (
@@ -145,20 +153,40 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
         </div>
       )}
 
-      {showFields ? (
-        <PropertyInput
-          propertyIndex={`${id}-${propertyIndex}`}
-          id={id}
-          value={value}
-          nodeType={nodeType}
-          property={property}
-          controlKeyPressed={controlKeyPressed || metaKeyPressed}
-          isInspector={isInspector}
-          tabIndex={tabIndex}
-        />
-      ) : (
-        <div className="property-spacer" style={{ height: "20px" }} />
-      )}
+      <div css={css({ display: "flex", alignItems: "center", width: "100%" })}>
+        {showFields ? (
+          <>
+            <PropertyInput
+              propertyIndex={`${id}-${propertyIndex}`}
+              id={id}
+              value={value}
+              nodeType={nodeType}
+              property={property}
+              controlKeyPressed={controlKeyPressed || metaKeyPressed}
+              isInspector={isInspector}
+              tabIndex={tabIndex}
+              isDynamicProperty={isDynamicProperty}
+            />
+            {isDynamicProperty && onDeleteProperty && (
+              <Close
+                css={css({
+                  fontSize: "1em",
+                  cursor: "pointer",
+                  marginTop: "1.5em",
+                  marginLeft: "0.5em",
+                  opacity: 0.6,
+                  "&:hover": {
+                    opacity: 1
+                  }
+                })}
+                onClick={() => onDeleteProperty(property.name)}
+              />
+            )}
+          </>
+        ) : (
+          <div className="property-spacer" style={{ height: "20px" }} />
+        )}
+      </div>
     </div>
   );
 };

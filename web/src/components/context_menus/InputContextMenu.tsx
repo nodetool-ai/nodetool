@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback } from "react";
 //mui
 import { Divider, Menu, MenuItem, Typography } from "@mui/material";
 import ContextMenuItem from "./ContextMenuItem";
@@ -55,6 +55,8 @@ const InputContextMenu: React.FC = () => {
     setConnectableType: state.setTypeMetadata,
     setSourceHandle: state.setSourceHandle
   }));
+
+  const findNode = useNodeStore((state) => state.findNode);
 
   const handleOpenNodeMenu = (event?: React.MouseEvent<HTMLElement>) => {
     if (event) {

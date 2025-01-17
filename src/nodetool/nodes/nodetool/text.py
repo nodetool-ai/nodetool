@@ -83,6 +83,29 @@ class Join(BaseNode):
         return self.separator.join(self.strings)
 
 
+class FormatText(BaseNode):
+    """
+    Replaces placeholders in a string with dynamic inputs.
+    text, template, formatting
+
+    Use cases:
+    - Generating personalized messages with dynamic content
+    - Creating parameterized queries or commands
+    - Formatting text output based on variable inputs
+    """
+
+    _is_dynamic = True
+
+    string: str = Field(title="String", default="")
+
+    @classmethod
+    def get_title(cls):
+        return "Format Text"
+
+    async def process(self, context: ProcessingContext) -> str:
+        return self.string.format(**self._dynamic_properties)
+
+
 class Template(BaseNode):
     """
     Replaces placeholders in a string with provided values.
@@ -111,10 +134,6 @@ class Template(BaseNode):
         - If an object, it will be converted to a dictionary using the object's __dict__ method.
         """,
     )
-
-    @classmethod
-    def get_title(cls):
-        return "Format Text"
 
     async def process(self, context: ProcessingContext) -> str:
         if isinstance(self.values, str):

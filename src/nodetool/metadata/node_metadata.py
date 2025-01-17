@@ -22,6 +22,8 @@ class NodeMetadata(BaseModel):
     the_model_info: dict[str, Any]
     recommended_models: list[HuggingFaceModel]
     basic_fields: list[str]
+    is_dynamic: bool
+
 
 @lru_cache(maxsize=1)
 def load_node_metadata() -> list[NodeMetadata]:

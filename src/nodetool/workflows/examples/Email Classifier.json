@@ -246,10 +246,10 @@
         "id": "19",
         "parent_id": "9",
         "type": "nodetool.dictionary.MakeDictionary",
-        "data": {
-          "key1": "category",
-          "key2": "body",
-          "key3": "id"
+        "dynamic_properties": {
+          "category": "",
+          "body": "",
+          "id": ""
         },
         "ui_properties": {
           "selected": false,

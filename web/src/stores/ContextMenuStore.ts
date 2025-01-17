@@ -8,6 +8,7 @@ interface ContextMenuState {
   type: TypeMetadata | null;
   handleId: string | null;
   description?: string;
+  isDynamicProperty?: boolean;
 
   openContextMenu: (
     contextMenuClass: string,
@@ -17,7 +18,8 @@ interface ContextMenuState {
     outsideClickIgnoreClass?: string,
     type?: TypeMetadata,
     handleId?: string,
-    description?: string
+    description?: string,
+    isDynamicProperty?: boolean
   ) => void;
   closeContextMenu: () => void;
 }
@@ -51,7 +53,8 @@ const useContextMenuStore = create<ContextMenuState>((set) => {
     outsideClickIgnoreClass?: string,
     type?: TypeMetadata,
     handleId?: string,
-    description?: string
+    description?: string,
+    isDynamicProperty?: boolean
   ) => {
     // Remove existing event listener if any
     if (currentClickOutsideHandler) {
@@ -74,7 +77,8 @@ const useContextMenuStore = create<ContextMenuState>((set) => {
         menuPosition: { x, y },
         type: type,
         handleId: handleId,
-        description: description
+        description: description,
+        isDynamicProperty: isDynamicProperty
       });
       setTimeout(() => {
         currentClickOutsideHandler = clickOutsideHandler(
@@ -97,7 +101,8 @@ const useContextMenuStore = create<ContextMenuState>((set) => {
         menuPosition: null,
         type: null,
         handleId: null,
-        description: undefined
+        description: undefined,
+        isDynamicProperty: undefined
       });
     }, 50);
   };
@@ -110,7 +115,8 @@ const useContextMenuStore = create<ContextMenuState>((set) => {
     closeContextMenu,
     type: null,
     handleId: null,
-    description: undefined
+    description: undefined,
+    isDynamicProperty: undefined
   };
 });
 

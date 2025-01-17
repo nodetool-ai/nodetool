@@ -204,18 +204,22 @@ class BaseNode(BaseModel):
     _ui_properties: dict[str, Any] = {}
     _visible: bool = True
     _layout: str = "default"
+    _dynamic_properties: dict[str, Any] = {}
+    _is_dynamic: bool = False
 
     def __init__(
         self,
         id: str = "",
         parent_id: str | None = None,
         ui_properties: dict[str, Any] = {},
+        dynamic_properties: dict[str, Any] = {},
         **data: Any,
     ):
         super().__init__(**data)
         self._id = id
         self._parent_id = parent_id
         self._ui_properties = ui_properties
+        self._dynamic_properties = dynamic_properties
 
     def required_inputs(self):
         return []
@@ -223,6 +227,10 @@ class BaseNode(BaseModel):
     @classmethod
     def is_visible(cls):
         return cls._visible.default  # type: ignore
+
+    @classmethod
+    def is_dynamic(cls):
+        return cls._is_dynamic.default  # type: ignore
 
     @classmethod
     def layout(cls):
@@ -283,6 +291,7 @@ class BaseNode(BaseModel):
             id=node["id"],
             parent_id=node.get("parent_id"),
             ui_properties=node.get("ui_properties", {}),
+            dynamic_properties=node.get("dynamic_properties", {}),
         )
         data = node.get("data", {})
         n.set_node_properties(data, skip_errors=skip_errors)
@@ -366,6 +375,7 @@ class BaseNode(BaseModel):
             layout=cls.layout(),
             recommended_models=cls.get_recommended_models(),
             basic_fields=cls.get_basic_fields(),
+            is_dynamic=cls.is_dynamic(),
         )
 
     @classmethod
@@ -540,8 +550,7 @@ class BaseNode(BaseModel):
         )
         context.post_message(update)
 
-    @classmethod
-    def is_assignable(cls, name: str, value: Any) -> bool:
+    def is_assignable(self, name: str, value: Any) -> bool:
         """
         Check if a value can be assigned to a specific property of the node.
 
@@ -552,7 +561,7 @@ class BaseNode(BaseModel):
         Returns:
             bool: True if the value can be assigned to the property, False otherwise.
         """
-        return is_assignable(cls.find_property(name).type, value)
+        return is_assignable(self.find_property(name).type, value)
 
     @classmethod
     def is_cacheable(cls):
@@ -562,10 +571,20 @@ class BaseNode(BaseModel):
         Returns:
             bool: True if the node is cacheable, False otherwise.
         """
-        return True
+        return not cls.is_dynamic()
 
-    @classmethod
-    def find_property(cls, name: str):
+    def get_dynamic_properties(self):
+        from nodetool.workflows.property import Property
+
+        return {
+            name: Property(
+                name=name,
+                type=type_metadata(type(value)),
+            )
+            for name, value in self._dynamic_properties.items()
+        }
+
+    def find_property(self, name: str):
         """
         Find a property of the node by its name.
 
@@ -578,9 +597,19 @@ class BaseNode(BaseModel):
         Raises:
             ValueError: If no property with the given name exists.
         """
-        if name not in cls.properties_dict():
+        from nodetool.workflows.property import Property
+
+        class_properties = self.properties_dict()
+
+        if name in class_properties:
+            return class_properties[name]
+        elif name in self._dynamic_properties:
+            return Property(
+                name=name,
+                type=type_metadata(type(self._dynamic_properties[name])),
+            )
+        else:
             raise ValueError(f"Property {name} does not exist")
-        return cls.properties_dict()[name]
 
     @classmethod
     def find_output(cls, name: str) -> OutputSlot:
