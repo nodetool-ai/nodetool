@@ -153,40 +153,38 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
         </div>
       )}
 
-      <div css={css({ display: "flex", alignItems: "center", width: "100%" })}>
-        {showFields ? (
-          <>
-            <PropertyInput
-              propertyIndex={`${id}-${propertyIndex}`}
-              id={id}
-              value={value}
-              nodeType={nodeType}
-              property={property}
-              controlKeyPressed={controlKeyPressed || metaKeyPressed}
-              isInspector={isInspector}
-              tabIndex={tabIndex}
-              isDynamicProperty={isDynamicProperty}
+      {showFields ? (
+        <>
+          <PropertyInput
+            propertyIndex={`${id}-${propertyIndex}`}
+            id={id}
+            value={value}
+            nodeType={nodeType}
+            property={property}
+            controlKeyPressed={controlKeyPressed || metaKeyPressed}
+            isInspector={isInspector}
+            tabIndex={tabIndex}
+            isDynamicProperty={isDynamicProperty}
+          />
+          {isDynamicProperty && onDeleteProperty && (
+            <Close
+              css={css({
+                fontSize: "1em",
+                cursor: "pointer",
+                marginTop: "1.5em",
+                marginLeft: "0.5em",
+                opacity: 0.6,
+                "&:hover": {
+                  opacity: 1
+                }
+              })}
+              onClick={() => onDeleteProperty(property.name)}
             />
-            {isDynamicProperty && onDeleteProperty && (
-              <Close
-                css={css({
-                  fontSize: "1em",
-                  cursor: "pointer",
-                  marginTop: "1.5em",
-                  marginLeft: "0.5em",
-                  opacity: 0.6,
-                  "&:hover": {
-                    opacity: 1
-                  }
-                })}
-                onClick={() => onDeleteProperty(property.name)}
-              />
-            )}
-          </>
-        ) : (
-          <div className="property-spacer" style={{ height: "20px" }} />
-        )}
-      </div>
+          )}
+        </>
+      ) : (
+        <div className="property-spacer" style={{ height: "20px" }} />
+      )}
     </div>
   );
 };
