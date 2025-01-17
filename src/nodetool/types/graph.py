@@ -10,6 +10,7 @@ class Node(BaseModel):
     type: str = "default"
     data: Any = {}
     ui_properties: Any = {}
+    dynamic_properties: dict[str, Any] = {}
 
 
 class Edge(BaseModel):

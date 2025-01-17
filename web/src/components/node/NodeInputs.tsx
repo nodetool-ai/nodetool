@@ -15,6 +15,7 @@ export interface NodeInputsProps {
   showHandle?: boolean;
   showAdvancedFields?: boolean;
   basicFields?: string[];
+  onDeleteProperty?: (propertyName: string) => void;
 }
 
 const isDropdownProperty = (property: Property): boolean => {
@@ -41,7 +42,8 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
   showFields = true,
   layout,
   showAdvancedFields,
-  basicFields
+  basicFields,
+  onDeleteProperty
 }) => {
   // use node id for tab index
   const nodeOffset = parseInt(id) * 100;
@@ -49,6 +51,8 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
     const type = property.type;
     return !type.optional && type.type !== "readonly";
   });
+  const dynamicProperties: { [key: string]: Property } =
+    data.dynamic_properties || {};
 
   return (
     <div className={`node-inputs node-${id}`}>
@@ -80,6 +84,32 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
           />
         );
       })}
+
+      {Object.entries(dynamicProperties).map(([name, value], index) => (
+        <PropertyField
+          key={`dynamic-${name}-${id}`}
+          id={id}
+          value={value}
+          nodeType={nodeType}
+          layout={layout}
+          property={{
+            name,
+            type: {
+              type: "str",
+              type_args: [],
+              optional: false
+            }
+          }}
+          propertyIndex={`dynamic-${index}`}
+          showFields={true}
+          showHandle={true}
+          tabIndex={-1}
+          isBasicField={true}
+          isDynamicProperty={true}
+          showAdvancedFields={showAdvancedFields}
+          onDeleteProperty={onDeleteProperty}
+        />
+      ))}
     </div>
   );
 };

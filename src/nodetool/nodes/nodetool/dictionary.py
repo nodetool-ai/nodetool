@@ -231,23 +231,11 @@ class MakeDictionary(BaseNode):
     """
 
     _layout = "small"
-
-    key1: str = Field(default="", description="First key")
-    value1: Any = Field(default=None, description="First value")
-    key2: str = Field(default="", description="Second key (optional)")
-    value2: Any = Field(default=None, description="Second value (optional)")
-    key3: str = Field(default="", description="Third key (optional)")
-    value3: Any = Field(default=None, description="Third value (optional)")
+    _is_dynamic = True
 
     async def process(self, context: ProcessingContext) -> dict[str, Any]:
-        result = {}
-        if self.key1:
-            result[self.key1] = self.value1
-        if self.key2:
-            result[self.key2] = self.value2
-        if self.key3:
-            result[self.key3] = self.value3
-        return result
+        print(self._dynamic_properties)
+        return self._dynamic_properties.copy()
 
 
 class ArgMax(BaseNode):
@@ -265,7 +253,7 @@ class ArgMax(BaseNode):
 
     scores: dict[str, float] = Field(
         default={},
-        description="Dictionary mapping labels to their corresponding scores/values"
+        description="Dictionary mapping labels to their corresponding scores/values",
     )
 
     async def process(self, context: ProcessingContext) -> str:

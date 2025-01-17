@@ -1256,11 +1256,11 @@ export interface components {
              *       "type": "datetime",
              *       "year": 2025,
              *       "month": 1,
-             *       "day": 13,
-             *       "hour": 15,
-             *       "minute": 49,
-             *       "second": 46,
-             *       "microsecond": 762408,
+             *       "day": 15,
+             *       "hour": 21,
+             *       "minute": 12,
+             *       "second": 10,
+             *       "microsecond": 933805,
              *       "tzinfo": "UTC",
              *       "utc_offset": 0
              *     }
@@ -2709,6 +2709,11 @@ export interface components {
              * @default {}
              */
             ui_properties: unknown;
+            /**
+             * Dynamic Properties
+             * @default {}
+             */
+            dynamic_properties: Record<string, never>;
         };
         /**
          * NodeMetadata
@@ -2735,6 +2740,8 @@ export interface components {
             recommended_models: components["schemas"]["HuggingFaceModel"][];
             /** Basic Fields */
             basic_fields: string[];
+            /** Is Dynamic */
+            is_dynamic: boolean;
         };
         /** NodeProgress */
         NodeProgress: {

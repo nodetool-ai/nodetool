@@ -84,7 +84,8 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     onNodesChange,
     onEdgesChange,
     onEdgeUpdate,
-    updateNodeData
+    updateNodeData,
+    findNode
   } = useNodeStore((state) => ({
     nodes: state.nodes,
     edges: state.edges,
@@ -92,7 +93,8 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     onNodesChange: state.onNodesChange,
     onEdgesChange: state.onEdgesChange,
     onEdgeUpdate: state.onEdgeUpdate,
-    updateNodeData: state.updateNodeData
+    updateNodeData: state.updateNodeData,
+    findNode: state.findNode
   }));
 
   const { handleOnConnect, onConnectStart, onConnectEnd } =

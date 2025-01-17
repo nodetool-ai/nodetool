@@ -1,12 +1,11 @@
 import React from "react";
 //mui
 import { Divider, Menu, MenuItem, Typography } from "@mui/material";
-import ContextMenuItem from "./ContextMenuItem";
-//icons
-import SettingsBackupRestoreIcon from "@mui/icons-material/SettingsBackupRestore";
-//store
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import ThemeNodes from "../themes/ThemeNodes";
+import ContextMenuItem from "./ContextMenuItem";
+import { useNodeStore } from "../../stores/NodeStore";
+import DeleteIcon from "@mui/icons-material/Delete";
 
 // TODO: WIP: reset property value to default, already implemented using the shortcut ctrl right-click in components/node/PropertyInput.tsx
 // import { useReactFlow } from "@xyflow/react";
@@ -16,18 +15,43 @@ import ThemeNodes from "../themes/ThemeNodes";
 // import { useCopyPaste } from "../../hooks/handlers/useCopyPaste";
 
 const PropertyContextMenu: React.FC = () => {
-  const { menuPosition, closeContextMenu, description } = useContextMenuStore(
-    (state) => {
-      return {
-        menuPosition: state.menuPosition,
-        closeContextMenu: state.closeContextMenu,
-        description: state.description
-      };
-    }
-  );
-
+  const {
+    menuPosition,
+    closeContextMenu,
+    nodeId,
+    handleId,
+    description,
+    isDynamicProperty
+  } = useContextMenuStore((state) => {
+    return {
+      menuPosition: state.menuPosition,
+      closeContextMenu: state.closeContextMenu,
+      description: state.description,
+      nodeId: state.nodeId,
+      handleId: state.handleId,
+      isDynamicProperty: state.isDynamicProperty
+    };
+  });
+  const { findNode, updateNodeData } = useNodeStore();
   if (!menuPosition) return null;
 
+  const handleRemoveDynamicProperty = (
+    event?: React.MouseEvent<HTMLElement>
+  ) => {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    if (nodeId && handleId) {
+      const node = findNode(nodeId);
+      if (node?.data.dynamic_properties) {
+        const { [handleId]: _, ...remainingProperties } =
+          node.data.dynamic_properties;
+        updateNodeData(nodeId, { dynamic_properties: remainingProperties });
+      }
+    }
+    closeContextMenu();
+  };
   //reset
   // const handleReset = (event?: React.MouseEvent<HTMLElement>) => {
   //   if (event) {
@@ -75,6 +99,18 @@ const PropertyContextMenu: React.FC = () => {
         </MenuItem>
       )}
 
+      {isDynamicProperty && (
+        <>
+          <Divider />
+          <ContextMenuItem
+            onClick={handleRemoveDynamicProperty}
+            label="Remove Dynamic Property"
+            addButtonClassName="remove-dynamic-property"
+            IconComponent={<DeleteIcon />}
+            tooltip="Remove this property from being dynamic"
+          />
+        </>
+      )}
       <Divider />
       {/* <ContextMenuItem
         onClick={closeContextMenu}

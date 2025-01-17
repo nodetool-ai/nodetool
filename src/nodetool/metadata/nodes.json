@@ -21,7 +21,8 @@
     ],
     "the_model_info": {},
     "recommended_models": [],
-    "basic_fields": []
+    "basic_fields": [],
+    "is_dynamic": false
   },
   {
     "title": "Llama 3 Chat",
@@ -167,7 +168,8 @@
       "top_k",
       "top_p",
       "max_tokens"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Mixtral Chat",
@@ -313,7 +315,8 @@
       "top_k",
       "top_p",
       "max_tokens"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Stable Diffusion 3",
@@ -504,7 +507,8 @@
       "steps",
       "cfg_scale",
       "denoise"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Flux",
@@ -663,7 +667,8 @@
       "steps",
       "guidance",
       "image2image_strength"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Seamless Communication",
@@ -840,7 +845,8 @@
       "tgt_lang",
       "generate_audio",
       "text_input"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Tortoise TTS",
@@ -933,7 +939,8 @@
       "voice",
       "preset",
       "text_input"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Create Note",
@@ -995,7 +1002,8 @@
       "title",
       "body",
       "folder"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Read Notes",
@@ -1077,7 +1085,8 @@
       "search_term",
       "note_limit",
       "note_limit_per_folder"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Create Calendar Event",
@@ -1207,7 +1216,8 @@
       "start_date",
       "end_date",
       "calendar_name"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Send Message",
@@ -1253,7 +1263,8 @@
     "basic_fields": [
       "recipient",
       "text"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Say Text",
@@ -1311,7 +1322,8 @@
     "basic_fields": [
       "text",
       "rate"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Claude",
@@ -1470,7 +1482,8 @@
       "system",
       "prompt",
       "image"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Count",
@@ -1515,7 +1528,8 @@
     "recommended_models": [],
     "basic_fields": [
       "collection"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Get Documents",
@@ -1624,7 +1638,8 @@
       "ids",
       "limit",
       "offset"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Peek",
@@ -1693,7 +1708,8 @@
     "basic_fields": [
       "collection",
       "limit"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Index Images",
@@ -1766,7 +1782,8 @@
       "collection",
       "images",
       "upsert"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Index Texts",
@@ -1823,7 +1840,8 @@
     "basic_fields": [
       "collection",
       "docs"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Index Image",
@@ -1877,7 +1895,8 @@
     "basic_fields": [
       "collection",
       "image"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Index Text",
@@ -1931,7 +1950,8 @@
     "basic_fields": [
       "collection",
       "text"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Index Text Chunk",
@@ -1985,7 +2005,8 @@
     "basic_fields": [
       "collection",
       "text_chunk"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Index Text Chunks",
@@ -2042,7 +2063,8 @@
     "basic_fields": [
       "collection",
       "text_chunks"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Index String",
@@ -2107,7 +2129,8 @@
       "collection",
       "text",
       "document_id"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Query Image",
@@ -2254,7 +2277,8 @@
       "collection",
       "image",
       "n_results"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Query Text",
@@ -2396,7 +2420,8 @@
       "collection",
       "text",
       "n_results"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "CLIPText Encode SDXLRefiner",
@@ -2506,7 +2531,8 @@
       "height",
       "text",
       "clip"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "CLIPText Encode SDXL",
@@ -2680,7 +2706,8 @@
       "text_g",
       "text_l",
       "clip"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Triple CLIP Loader",
@@ -2754,7 +2781,8 @@
       "clip_name1",
       "clip_name2",
       "clip_name3"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "CLIP Text Encode SD3",
@@ -2867,7 +2895,8 @@
       "clip_g",
       "t5xxl",
       "empty_padding"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "ControlNet Apply SD3",
@@ -3051,7 +3080,8 @@
       "strength",
       "start_percent",
       "end_percent"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Model Sampling Base",
@@ -3075,7 +3105,8 @@
     ],
     "the_model_info": {},
     "recommended_models": [],
-    "basic_fields": []
+    "basic_fields": [],
+    "is_dynamic": false
   },
   {
     "title": "Model Sampling Discrete",
@@ -3158,7 +3189,8 @@
       "model",
       "sampling",
       "zsnr"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Model Sampling Stable Cascade",
@@ -3220,7 +3252,8 @@
     "basic_fields": [
       "model",
       "shift"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Model Sampling SD3",
@@ -3282,7 +3315,8 @@
     "basic_fields": [
       "model",
       "shift"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Model Sampling Aura Flow",
@@ -3344,7 +3378,8 @@
     "basic_fields": [
       "model",
       "shift"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Model Sampling Flux",
@@ -3454,7 +3489,8 @@
       "base_shift",
       "width",
       "height"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Model Sampling Continuous EDM",
@@ -3552,7 +3588,8 @@
       "sampling",
       "sigma_max",
       "sigma_min"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Model Sampling Continuous V",
@@ -3650,7 +3687,8 @@
       "sampling",
       "sigma_max",
       "sigma_min"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Rescale CFG",
@@ -3712,7 +3750,8 @@
     "basic_fields": [
       "model",
       "multiplier"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Model Sampling LTXV",
@@ -3802,7 +3841,8 @@
       "max_shift",
       "base_shift",
       "latent"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "CLIP Text Encode (Prompt)",
@@ -3864,7 +3904,8 @@
     "basic_fields": [
       "text",
       "clip"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Conditioning (Combine)",
@@ -3928,7 +3969,8 @@
     "basic_fields": [
       "conditioning_1",
       "conditioning_2"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Conditioning (Average)",
@@ -4008,7 +4050,8 @@
       "conditioning_to",
       "conditioning_from",
       "conditioning_to_strength"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Conditioning (Concat)",
@@ -4072,7 +4115,8 @@
     "basic_fields": [
       "conditioning_to",
       "conditioning_from"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Conditioning (Set Area)",
@@ -4197,7 +4241,8 @@
       "x",
       "y",
       "strength"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Conditioning (Set Area with Percentage)",
@@ -4322,7 +4367,8 @@
       "x",
       "y",
       "strength"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Conditioning (Set Mask)",
@@ -4421,7 +4467,8 @@
       "mask",
       "strength",
       "set_cond_area"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Conditioning (Zero Out)",
@@ -4466,7 +4513,8 @@
     "recommended_models": [],
     "basic_fields": [
       "conditioning"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Conditioning (Set Timestep Range)",
@@ -4543,7 +4591,8 @@
       "conditioning",
       "start",
       "end"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "CLIPVision Encode",
@@ -4610,7 +4659,8 @@
     "basic_fields": [
       "clip_vision",
       "image"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "CLIPSet Last Layer",
@@ -4672,7 +4722,8 @@
     "basic_fields": [
       "clip",
       "stop_at_clip_layer"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Apply ControlNet",
@@ -4769,7 +4820,8 @@
       "control_net",
       "image",
       "strength"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Apply ControlNet (Advanced)",
@@ -4910,7 +4962,8 @@
       "strength",
       "start_percent",
       "end_percent"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "un CLIPConditioning",
@@ -5006,7 +5059,8 @@
       "clip_vision_output",
       "strength",
       "noise_augmentation"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "GLIGENText Box Apply",
@@ -5171,7 +5225,8 @@
       "height",
       "x",
       "y"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "SVD img 2 vid Conditioning",
@@ -5376,7 +5431,8 @@
       "motion_bucket_id",
       "fps",
       "augmentation_level"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Inpaint Model Conditioning",
@@ -5522,7 +5578,8 @@
       "vae",
       "pixels",
       "mask"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Apply Style Model",
@@ -5606,7 +5663,8 @@
       "conditioning",
       "style_model",
       "clip_vision_output"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "LTXV Conditioning",
@@ -5697,7 +5755,8 @@
       "positive",
       "negative",
       "frame_rate"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "LTXV Image to Video",
@@ -5888,7 +5947,8 @@
       "height",
       "length",
       "batch_size"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Dense Pose Preprocessor",
@@ -5989,7 +6049,8 @@
       "resolution",
       "model",
       "cmap"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "DWPose Preprocessor",
@@ -6114,7 +6175,8 @@
       "detect_face",
       "bbox_detector",
       "pose_estimator"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Openpose Preprocessor",
@@ -6234,7 +6296,8 @@
       "detect_hand",
       "detect_body",
       "detect_face"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "SAMPreprocessor",
@@ -6297,7 +6360,8 @@
     "basic_fields": [
       "image",
       "resolution"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Anime Face Sem Seg Preprocessor",
@@ -6376,7 +6440,8 @@
       "image",
       "resolution",
       "remove_background_using_abgr"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "One Former COCOSem Seg Preprocessor",
@@ -6439,7 +6504,8 @@
     "basic_fields": [
       "image",
       "resolution"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "One Former ADE 20 K Sem Seg Preprocessor",
@@ -6502,7 +6568,8 @@
     "basic_fields": [
       "image",
       "resolution"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Uniformer Sem Seg Preprocessor",
@@ -6565,7 +6632,8 @@
     "basic_fields": [
       "image",
       "resolution"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Le Re SDepth Map Preprocessor",
@@ -6679,7 +6747,8 @@
       "rm_nearest",
       "rm_background",
       "boost"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Inpaint Preprocessor",
@@ -6761,7 +6830,8 @@
       "image",
       "resolution",
       "mask"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "MIDASNormal Map Preprocessor",
@@ -6856,7 +6926,8 @@
       "resolution",
       "a",
       "bg_threshold"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "MIDASDepth Map Preprocessor",
@@ -6951,7 +7022,8 @@
       "resolution",
       "a",
       "bg_threshold"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "BAE Normal Map Preprocessor",
@@ -7014,7 +7086,8 @@
     "basic_fields": [
       "image",
       "resolution"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Zoe Depth Map Preprocessor",
@@ -7077,7 +7150,8 @@
     "basic_fields": [
       "image",
       "resolution"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Depth Anything V 2 Preprocessor",
@@ -7160,7 +7234,8 @@
       "image",
       "resolution",
       "ckpt_name"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Zoe Depth Anything Preprocessor",
@@ -7242,7 +7317,8 @@
       "image",
       "resolution",
       "environment"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "DSINE Normal Map Preprocessor",
@@ -7337,7 +7413,8 @@
       "resolution",
       "fov",
       "iterations"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Metric 3 D Depth Map Preprocessor",
@@ -7452,7 +7529,8 @@
       "backbone",
       "fx",
       "fy"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Tile Preprocessor",
@@ -7531,7 +7609,8 @@
       "image",
       "resolution",
       "pyrUp_iters"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Image Luminance",
@@ -7610,7 +7689,8 @@
       "image",
       "resolution",
       "gamma_correction"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Image Intensity",
@@ -7689,7 +7769,8 @@
       "image",
       "resolution",
       "gamma_correction"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Binary Preprocessor",
@@ -7768,7 +7849,8 @@
       "image",
       "resolution",
       "bin_threshold"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Canny Edge Preprocessor",
@@ -7863,7 +7945,8 @@
       "resolution",
       "low_threshold",
       "high_threshold"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Lineart Preprocessor",
@@ -7945,7 +8028,8 @@
       "image",
       "resolution",
       "coarse"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Manga 2 Anime Line Art Preprocessor",
@@ -8008,7 +8092,8 @@
     "basic_fields": [
       "image",
       "resolution"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Lineart Standard Preprocessor",
@@ -8103,7 +8188,8 @@
       "resolution",
       "guassian_sigma",
       "intensity_threshold"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Pi Di Net Preprocessor",
@@ -8185,7 +8271,8 @@
       "image",
       "resolution",
       "safe"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Anime Line Art Preprocessor",
@@ -8248,7 +8335,8 @@
     "basic_fields": [
       "image",
       "resolution"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "HEDPreprocessor",
@@ -8330,7 +8418,8 @@
       "image",
       "resolution",
       "safe"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Scribble Preprocessor",
@@ -8393,7 +8482,8 @@
     "basic_fields": [
       "image",
       "resolution"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Scribble XDo GPreprocessor",
@@ -8472,7 +8562,8 @@
       "image",
       "resolution",
       "threshold"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Any Line Preprocessor",
@@ -8615,7 +8706,8 @@
       "lineart_upper_bound",
       "object_min_size",
       "object_connectivity"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Diffusion Edge Preprocessor",
@@ -8714,7 +8806,8 @@
       "resolution",
       "environment",
       "patch_batch_size"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Color Preprocessor",
@@ -8777,7 +8870,8 @@
     "basic_fields": [
       "image",
       "resolution"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Shuffle Preprocessor",
@@ -8840,7 +8934,8 @@
     "basic_fields": [
       "image",
       "resolution"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "CLIPText Encode SDXLSimplified",
@@ -8950,7 +9045,8 @@
       "size_cond_factor",
       "text",
       "clip"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Conditioning Combine Multiple",
@@ -9062,7 +9158,8 @@
       "conditioning_3",
       "conditioning_4",
       "conditioning_5"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "SD 3 Negative Conditioning",
@@ -9123,7 +9220,8 @@
     "basic_fields": [
       "conditioning",
       "end"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Image Enhance Difference",
@@ -9207,7 +9305,8 @@
       "image1",
       "image2",
       "exponent"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Image Batch Multiple",
@@ -9334,7 +9433,8 @@
       "image_3",
       "image_4",
       "image_5"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Image Expand Batch",
@@ -9413,7 +9513,8 @@
       "image",
       "size",
       "method"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Image From Batch",
@@ -9492,7 +9593,8 @@
       "image",
       "start",
       "length"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Image List To Batch",
@@ -9542,7 +9644,8 @@
     "recommended_models": [],
     "basic_fields": [
       "image"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Image Composite From Mask Batch",
@@ -9629,7 +9732,8 @@
       "image_from",
       "image_to",
       "mask"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Image Composite",
@@ -9777,7 +9881,8 @@
       "offset_x",
       "offset_y",
       "mask"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Image Resize",
@@ -9942,7 +10047,8 @@
       "method",
       "condition",
       "multiple_of"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Image Flip",
@@ -10005,7 +10111,8 @@
     "basic_fields": [
       "image",
       "axis"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Image Crop",
@@ -10154,7 +10261,8 @@
       "position",
       "x_offset",
       "y_offset"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Image Tile",
@@ -10325,7 +10433,8 @@
       "overlap",
       "overlap_x",
       "overlap_y"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Image Untile",
@@ -10436,7 +10545,8 @@
       "overlap_y",
       "rows",
       "cols"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Image Color Match",
@@ -10584,7 +10694,8 @@
       "device",
       "batch_size",
       "reference_mask"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Image Smart Sharpen",
@@ -10695,7 +10806,8 @@
       "preserve_edges",
       "sharpen",
       "ratio"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Image Preview From Latent",
@@ -10825,7 +10937,8 @@
       "vae",
       "tile_size",
       "image"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Noise From Image",
@@ -11032,7 +11145,8 @@
       "contrast",
       "blur",
       "noise_mask"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Mask Blur",
@@ -11109,7 +11223,8 @@
       "mask",
       "amount",
       "device"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Mask Flip",
@@ -11170,7 +11285,8 @@
     "basic_fields": [
       "mask",
       "axis"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Mask Preview",
@@ -11215,7 +11331,8 @@
     "recommended_models": [],
     "basic_fields": [
       "mask"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Mask Batch",
@@ -11279,7 +11396,8 @@
     "basic_fields": [
       "mask1",
       "mask2"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Mask Expand Batch",
@@ -11356,7 +11474,8 @@
       "mask",
       "size",
       "method"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Mask Bounding Box",
@@ -11504,7 +11623,8 @@
       "padding",
       "blur",
       "image_optional"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Mask From Color",
@@ -11615,7 +11735,8 @@
       "green",
       "blue",
       "threshold"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Mask From Segmentation",
@@ -11726,7 +11847,8 @@
       "remove_isolated_pixels",
       "remove_small_masks",
       "fill_holes"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Mask Fix",
@@ -11851,7 +11973,8 @@
       "remove_isolated_pixels",
       "smooth",
       "blur"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Transition Mask",
@@ -11989,7 +12112,8 @@
       "end_frame",
       "transition_type",
       "timing_function"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Simple Math Float",
@@ -12031,7 +12155,8 @@
     "recommended_models": [],
     "basic_fields": [
       "value"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Simple Math Percent",
@@ -12073,7 +12198,8 @@
     "recommended_models": [],
     "basic_fields": [
       "value"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Simple Math Int",
@@ -12115,7 +12241,8 @@
     "recommended_models": [],
     "basic_fields": [
       "value"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Simple Math Slider",
@@ -12157,7 +12284,8 @@
     "recommended_models": [],
     "basic_fields": [
       "value"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Simple Math Boolean",
@@ -12199,7 +12327,8 @@
     "recommended_models": [],
     "basic_fields": [
       "value"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Simple Math",
@@ -12345,7 +12474,8 @@
       "b",
       "c",
       "value"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Simple Math Condition",
@@ -12478,7 +12608,8 @@
       "evaluate",
       "on_true",
       "on_false"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Simple Condition",
@@ -12552,7 +12683,8 @@
       "evaluate",
       "on_true",
       "on_false"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Simple Comparison",
@@ -12626,7 +12758,8 @@
       "a",
       "b",
       "comparison"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Console Debug",
@@ -12672,7 +12805,8 @@
     "basic_fields": [
       "value",
       "prefix"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Debug Tensor Shape",
@@ -12702,7 +12836,8 @@
     "recommended_models": [],
     "basic_fields": [
       "tensor"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Batch Count",
@@ -12744,7 +12879,8 @@
     "recommended_models": [],
     "basic_fields": [
       "batch"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Model Compile",
@@ -12834,7 +12970,8 @@
       "fullgraph",
       "dynamic",
       "mode"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Remove Latent Mask",
@@ -12876,7 +13013,8 @@
     "recommended_models": [],
     "basic_fields": [
       "samples"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "SDXLEmpty Latent Size Picker",
@@ -12988,7 +13126,8 @@
       "batch_size",
       "width_override",
       "height_override"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "KSampler Variations Stochastic",
@@ -13219,7 +13358,8 @@
       "variation_seed",
       "variation_strength",
       "cfg_scale"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "KSampler Variations With Noise",
@@ -13450,7 +13590,8 @@
       "variation_strength",
       "variation_seed",
       "denoise"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Inject Latent Noise",
@@ -13559,7 +13700,8 @@
       "noise_strength",
       "normalize",
       "mask"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Flux Sampler Params",
@@ -13782,7 +13924,8 @@
       "max_shift",
       "base_shift",
       "denoise"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Plot Parameters",
@@ -13925,7 +14068,8 @@
       "cols_num",
       "add_prompt",
       "add_params"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Text Encode For Sampler Params",
@@ -13987,7 +14131,8 @@
     "basic_fields": [
       "text",
       "clip"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Sampler Select Helper",
@@ -14037,7 +14182,8 @@
     "recommended_models": [],
     "basic_fields": [
       "samplers"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Scheduler Select Helper",
@@ -14087,7 +14233,8 @@
     "recommended_models": [],
     "basic_fields": [
       "schedulers"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Load CLIPSeg Models",
@@ -14126,7 +14273,8 @@
     ],
     "the_model_info": {},
     "recommended_models": [],
-    "basic_fields": []
+    "basic_fields": [],
+    "is_dynamic": false
   },
   {
     "title": "Apply CLIPSeg",
@@ -14287,7 +14435,8 @@
       "smooth",
       "dilate",
       "blur"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Draw Text",
@@ -14559,7 +14708,8 @@
       "offset_y",
       "direction",
       "img_composite"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "CLIP Text Encode Flux",
@@ -14653,7 +14803,8 @@
       "clip_l",
       "t5xxl",
       "guidance"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Flux Guidance",
@@ -14714,7 +14865,8 @@
     "basic_fields": [
       "conditioning",
       "guidance"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Empty Image",
@@ -14792,7 +14944,8 @@
       "height",
       "batch_size",
       "color"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Save Audio",
@@ -14876,7 +15029,8 @@
       "audio",
       "folder",
       "name"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Amplitude To DB",
@@ -14922,7 +15076,8 @@
     "recommended_models": [],
     "basic_fields": [
       "tensor"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Chroma STFT",
@@ -15001,7 +15156,8 @@
       "audio",
       "n_fft",
       "hop_length"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "DBTo Amplitude",
@@ -15047,7 +15203,8 @@
     "recommended_models": [],
     "basic_fields": [
       "tensor"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "DBTo Power",
@@ -15093,7 +15250,8 @@
     "recommended_models": [],
     "basic_fields": [
       "tensor"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Griffin Lim",
@@ -15235,7 +15393,8 @@
       "window",
       "center",
       "length"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Mel Spectrogram",
@@ -15359,7 +15518,8 @@
       "audio",
       "n_mels",
       "fmax"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "MFCC",
@@ -15483,7 +15643,8 @@
       "audio",
       "n_mfcc",
       "n_fft"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Plot Spectrogram",
@@ -15545,7 +15706,8 @@
     "basic_fields": [
       "tensor",
       "fmax"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Powert To DB",
@@ -15591,7 +15753,8 @@
     "recommended_models": [],
     "basic_fields": [
       "tensor"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Spectral Contrast",
@@ -15670,7 +15833,8 @@
       "audio",
       "n_fft",
       "hop_length"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "STFT",
@@ -15794,7 +15958,8 @@
       "audio",
       "n_fft",
       "hop_length"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Spectral Centroid",
@@ -15873,7 +16038,8 @@
       "audio",
       "n_fft",
       "hop_length"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Trim",
@@ -15952,7 +16118,8 @@
       "audio",
       "start",
       "end"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Convert To Tensor",
@@ -15999,7 +16166,8 @@
     "recommended_models": [],
     "basic_fields": [
       "audio"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Create Silence",
@@ -16041,7 +16209,8 @@
     "recommended_models": [],
     "basic_fields": [
       "duration"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Reverb",
@@ -16152,7 +16321,8 @@
       "damping",
       "wet_level",
       "dry_level"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Compress",
@@ -16263,7 +16433,8 @@
       "ratio",
       "attack",
       "release"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Time Stretch",
@@ -16326,7 +16497,8 @@
     "basic_fields": [
       "audio",
       "rate"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Pitch Shift",
@@ -16389,7 +16561,8 @@
     "basic_fields": [
       "audio",
       "semitones"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Noise Gate",
@@ -16484,7 +16657,8 @@
       "threshold_db",
       "attack_ms",
       "release_ms"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Low Shelf Filter",
@@ -16563,7 +16737,8 @@
       "audio",
       "cutoff_frequency_hz",
       "gain_db"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "High Shelf Filter",
@@ -16642,7 +16817,8 @@
       "audio",
       "cutoff_frequency_hz",
       "gain_db"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "High Pass Filter",
@@ -16705,7 +16881,8 @@
     "basic_fields": [
       "audio",
       "cutoff_frequency_hz"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Low Pass Filter",
@@ -16768,7 +16945,8 @@
     "basic_fields": [
       "audio",
       "cutoff_frequency_hz"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Peak Filter",
@@ -16847,7 +17025,8 @@
       "audio",
       "cutoff_frequency_hz",
       "q_factor"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Distortion",
@@ -16910,7 +17089,8 @@
     "basic_fields": [
       "audio",
       "drive_db"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Phaser",
@@ -17037,7 +17217,8 @@
       "centre_frequency_hz",
       "feedback",
       "mix"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Delay",
@@ -17132,7 +17313,8 @@
       "delay_seconds",
       "feedback",
       "mix"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Gain",
@@ -17195,7 +17377,8 @@
     "basic_fields": [
       "audio",
       "gain_db"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Limiter",
@@ -17274,7 +17457,8 @@
       "audio",
       "threshold_db",
       "release_ms"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Bitcrush",
@@ -17353,7 +17537,8 @@
       "audio",
       "bit_depth",
       "sample_rate_reduction"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Detect Onsets",
@@ -17416,7 +17601,8 @@
     "basic_fields": [
       "audio",
       "hop_length"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Segment Audio By Onsets",
@@ -17507,7 +17693,8 @@
       "audio",
       "onsets",
       "min_segment_length"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Save Audio Segments",
@@ -17594,7 +17781,8 @@
       "segments",
       "output_folder",
       "name_prefix"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Oscillator",
@@ -17756,7 +17944,8 @@
       "pitch_envelope_amount",
       "pitch_envelope_time",
       "pitch_envelope_curve"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "White Noise",
@@ -17830,7 +18019,8 @@
       "amplitude",
       "duration",
       "sample_rate"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Pink Noise",
@@ -17904,7 +18094,8 @@
       "amplitude",
       "duration",
       "sample_rate"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "FM Synthesis",
@@ -18026,7 +18217,8 @@
       "amplitude",
       "duration",
       "sample_rate"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Envelope",
@@ -18137,7 +18329,8 @@
       "decay",
       "release",
       "peak_amplitude"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Concat",
@@ -18205,7 +18398,8 @@
     "basic_fields": [
       "a",
       "b"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Concat List",
@@ -18255,7 +18449,8 @@
     "recommended_models": [],
     "basic_fields": [
       "audio_files"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Normalize",
@@ -18302,7 +18497,8 @@
     "recommended_models": [],
     "basic_fields": [
       "audio"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Overlay Audio",
@@ -18370,7 +18566,8 @@
     "basic_fields": [
       "a",
       "b"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Remove Silence",
@@ -18497,7 +18694,8 @@
       "reduction_factor",
       "crossfade",
       "min_silence_between_parts"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Slice Audio",
@@ -18576,7 +18774,8 @@
       "audio",
       "start",
       "end"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Tone",
@@ -18666,7 +18865,8 @@
       "sampling_rate",
       "duration",
       "phi"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Mono To Stereo",
@@ -18713,7 +18913,8 @@
     "recommended_models": [],
     "basic_fields": [
       "audio"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Stereo To Mono",
@@ -18776,7 +18977,8 @@
     "basic_fields": [
       "audio",
       "method"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Reverse",
@@ -18823,7 +19025,8 @@
     "recommended_models": [],
     "basic_fields": [
       "audio"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Fade In",
@@ -18886,7 +19089,8 @@
     "basic_fields": [
       "audio",
       "duration"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Fade Out",
@@ -18949,7 +19153,8 @@
     "basic_fields": [
       "audio",
       "duration"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Repeat",
@@ -19012,7 +19217,8 @@
     "basic_fields": [
       "audio",
       "loops"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Audio Mixer",
@@ -19223,7 +19429,8 @@
       "volume3",
       "volume4",
       "volume5"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Logical Operator",
@@ -19303,7 +19510,8 @@
       "a",
       "b",
       "operation"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Not",
@@ -19345,7 +19553,8 @@
     "recommended_models": [],
     "basic_fields": [
       "value"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Compare",
@@ -19426,7 +19635,8 @@
       "a",
       "b",
       "comparison"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Is None",
@@ -19468,7 +19678,8 @@
     "recommended_models": [],
     "basic_fields": [
       "value"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Is In",
@@ -19534,7 +19745,8 @@
     "basic_fields": [
       "value",
       "options"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "All",
@@ -19584,7 +19796,8 @@
     "recommended_models": [],
     "basic_fields": [
       "values"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Some",
@@ -19634,7 +19847,8 @@
     "recommended_models": [],
     "basic_fields": [
       "values"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Execute Python",
@@ -19707,7 +19921,8 @@
     "basic_fields": [
       "code",
       "inputs"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Evaluate Expression",
@@ -19780,7 +19995,8 @@
     "basic_fields": [
       "expression",
       "variables"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Constant",
@@ -19804,7 +20020,8 @@
     ],
     "the_model_info": {},
     "recommended_models": [],
-    "basic_fields": []
+    "basic_fields": [],
+    "is_dynamic": false
   },
   {
     "title": "Audio",
@@ -19851,7 +20068,8 @@
     "recommended_models": [],
     "basic_fields": [
       "value"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Bool",
@@ -19893,7 +20111,8 @@
     "recommended_models": [],
     "basic_fields": [
       "value"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Data Frame",
@@ -19941,7 +20160,8 @@
     "recommended_models": [],
     "basic_fields": [
       "value"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Document",
@@ -19988,7 +20208,8 @@
     "recommended_models": [],
     "basic_fields": [
       "value"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Dict",
@@ -20060,7 +20281,8 @@
     "recommended_models": [],
     "basic_fields": [
       "value"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Image",
@@ -20107,7 +20329,8 @@
     "recommended_models": [],
     "basic_fields": [
       "value"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Integer",
@@ -20149,7 +20372,8 @@
     "recommended_models": [],
     "basic_fields": [
       "value"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "List",
@@ -20207,7 +20431,8 @@
     "recommended_models": [],
     "basic_fields": [
       "value"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Float",
@@ -20249,7 +20474,8 @@
     "recommended_models": [],
     "basic_fields": [
       "value"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "String",
@@ -20291,7 +20517,8 @@
     "recommended_models": [],
     "basic_fields": [
       "value"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Text",
@@ -20338,7 +20565,8 @@
     "recommended_models": [],
     "basic_fields": [
       "value"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Video",
@@ -20387,7 +20615,8 @@
     "recommended_models": [],
     "basic_fields": [
       "value"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Date",
@@ -20435,7 +20664,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": 14,
+        "default": 17,
         "title": "Day",
         "description": "Day of the date",
         "min": null,
@@ -20461,7 +20690,8 @@
       "year",
       "month",
       "day"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Date Time",
@@ -20509,7 +20739,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": 14,
+        "default": 17,
         "title": "Day",
         "description": "Day of the datetime",
         "min": null,
@@ -20631,7 +20861,8 @@
       "microsecond",
       "tzinfo",
       "utc_offset"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "If",
@@ -20700,7 +20931,8 @@
     "basic_fields": [
       "condition",
       "value"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Save Dataframe",
@@ -20785,7 +21017,8 @@
       "df",
       "folder",
       "name"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Select Column",
@@ -20849,7 +21082,8 @@
     "basic_fields": [
       "dataframe",
       "columns"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Extract Column",
@@ -20921,7 +21155,8 @@
     "basic_fields": [
       "dataframe",
       "column_name"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Format As Text",
@@ -20993,7 +21228,8 @@
     "basic_fields": [
       "dataframe",
       "template"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Add Column",
@@ -21081,7 +21317,8 @@
       "dataframe",
       "column_name",
       "values"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "From List",
@@ -21131,7 +21368,8 @@
     "recommended_models": [],
     "basic_fields": [
       "values"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Import CSV",
@@ -21173,7 +21411,8 @@
     "recommended_models": [],
     "basic_fields": [
       "csv_data"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Merge Side By Side",
@@ -21243,7 +21482,8 @@
     "basic_fields": [
       "dataframe_a",
       "dataframe_b"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Combine Vertically",
@@ -21313,7 +21553,8 @@
     "basic_fields": [
       "dataframe_a",
       "dataframe_b"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Join",
@@ -21399,7 +21640,8 @@
       "dataframe_a",
       "dataframe_b",
       "join_on"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Convert To Tensor",
@@ -21447,7 +21689,8 @@
     "recommended_models": [],
     "basic_fields": [
       "dataframe"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Chart",
@@ -21547,7 +21790,8 @@
       "x_column",
       "y_column",
       "plot_type"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Histogram",
@@ -21611,7 +21855,8 @@
     "basic_fields": [
       "dataframe",
       "column"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Heatmap",
@@ -21659,7 +21904,8 @@
     "recommended_models": [],
     "basic_fields": [
       "dataframe"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Filter",
@@ -21723,7 +21969,8 @@
     "basic_fields": [
       "df",
       "condition"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Find One Row",
@@ -21787,7 +22034,8 @@
     "basic_fields": [
       "df",
       "condition"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Sort By Column",
@@ -21851,7 +22099,8 @@
     "basic_fields": [
       "df",
       "column"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Remove Duplicates",
@@ -21899,7 +22148,8 @@
     "recommended_models": [],
     "basic_fields": [
       "df"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Remove Incomplete Rows",
@@ -21947,7 +22197,8 @@
     "recommended_models": [],
     "basic_fields": [
       "df"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Load Iris Dataset",
@@ -21982,7 +22233,8 @@
     ],
     "the_model_info": {},
     "recommended_models": [],
-    "basic_fields": []
+    "basic_fields": [],
+    "is_dynamic": false
   },
   {
     "title": "Slice",
@@ -22062,7 +22314,8 @@
       "dataframe",
       "start_index",
       "end_index"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "To List",
@@ -22118,7 +22371,8 @@
     "recommended_models": [],
     "basic_fields": [
       "dataframe"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Map Template",
@@ -22190,7 +22444,8 @@
     "basic_fields": [
       "dataframe",
       "template"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Today",
@@ -22214,7 +22469,8 @@
     ],
     "the_model_info": {},
     "recommended_models": [],
-    "basic_fields": []
+    "basic_fields": [],
+    "is_dynamic": false
   },
   {
     "title": "Now",
@@ -22238,7 +22494,8 @@
     ],
     "the_model_info": {},
     "recommended_models": [],
-    "basic_fields": []
+    "basic_fields": [],
+    "is_dynamic": false
   },
   {
     "title": "Parse Date",
@@ -22306,7 +22563,8 @@
     "basic_fields": [
       "date_string",
       "input_format"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Parse Date Time",
@@ -22374,7 +22632,8 @@
     "basic_fields": [
       "datetime_string",
       "input_format"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Add Time Delta",
@@ -22396,11 +22655,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 14,
-          "hour": 7,
-          "minute": 16,
-          "second": 57,
-          "microsecond": 469740,
+          "day": 17,
+          "hour": 0,
+          "minute": 23,
+          "second": 0,
+          "microsecond": 249692,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -22475,7 +22734,8 @@
       "days",
       "hours",
       "minutes"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Date Difference",
@@ -22599,7 +22859,8 @@
     "basic_fields": [
       "start_date",
       "end_date"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Format Date Time",
@@ -22678,7 +22939,8 @@
     "basic_fields": [
       "input_datetime",
       "output_format"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Get Weekday",
@@ -22762,7 +23024,8 @@
     "basic_fields": [
       "input_datetime",
       "as_name"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Date Range",
@@ -22866,7 +23129,8 @@
       "start_date",
       "end_date",
       "step_days"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Is Date In Range",
@@ -22989,7 +23253,8 @@
       "start_date",
       "end_date",
       "inclusive"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Get Quarter",
@@ -23064,7 +23329,8 @@
     "recommended_models": [],
     "basic_fields": [
       "input_datetime"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Date To Datetime",
@@ -23111,7 +23377,8 @@
     "recommended_models": [],
     "basic_fields": [
       "input_date"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Datetime To Date",
@@ -23164,7 +23431,8 @@
     "recommended_models": [],
     "basic_fields": [
       "input_datetime"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Hours Ago",
@@ -23206,7 +23474,8 @@
     "recommended_models": [],
     "basic_fields": [
       "hours"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Hours From Now",
@@ -23248,7 +23517,8 @@
     "recommended_models": [],
     "basic_fields": [
       "hours"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Days Ago",
@@ -23290,7 +23560,8 @@
     "recommended_models": [],
     "basic_fields": [
       "days"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Days From Now",
@@ -23332,7 +23603,8 @@
     "recommended_models": [],
     "basic_fields": [
       "days"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Months Ago",
@@ -23374,7 +23646,8 @@
     "recommended_models": [],
     "basic_fields": [
       "months"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Months From Now",
@@ -23416,7 +23689,8 @@
     "recommended_models": [],
     "basic_fields": [
       "months"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Start Of Day",
@@ -23438,11 +23712,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 14,
-          "hour": 7,
-          "minute": 16,
-          "second": 57,
-          "microsecond": 473545,
+          "day": 17,
+          "hour": 0,
+          "minute": 23,
+          "second": 0,
+          "microsecond": 253787,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23469,7 +23743,8 @@
     "recommended_models": [],
     "basic_fields": [
       "input_datetime"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "End Of Day",
@@ -23491,11 +23766,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 14,
-          "hour": 7,
-          "minute": 16,
-          "second": 57,
-          "microsecond": 473776,
+          "day": 17,
+          "hour": 0,
+          "minute": 23,
+          "second": 0,
+          "microsecond": 254016,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23522,7 +23797,8 @@
     "recommended_models": [],
     "basic_fields": [
       "input_datetime"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Start Of Month",
@@ -23544,11 +23820,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 14,
-          "hour": 7,
-          "minute": 16,
-          "second": 57,
-          "microsecond": 473978,
+          "day": 17,
+          "hour": 0,
+          "minute": 23,
+          "second": 0,
+          "microsecond": 254238,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23575,7 +23851,8 @@
     "recommended_models": [],
     "basic_fields": [
       "input_datetime"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "End Of Month",
@@ -23597,11 +23874,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 14,
-          "hour": 7,
-          "minute": 16,
-          "second": 57,
-          "microsecond": 474189,
+          "day": 17,
+          "hour": 0,
+          "minute": 23,
+          "second": 0,
+          "microsecond": 254467,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23628,7 +23905,8 @@
     "recommended_models": [],
     "basic_fields": [
       "input_datetime"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Start Of Year",
@@ -23650,11 +23928,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 14,
-          "hour": 7,
-          "minute": 16,
-          "second": 57,
-          "microsecond": 474388,
+          "day": 17,
+          "hour": 0,
+          "minute": 23,
+          "second": 0,
+          "microsecond": 254718,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23681,7 +23959,8 @@
     "recommended_models": [],
     "basic_fields": [
       "input_datetime"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "End Of Year",
@@ -23703,11 +23982,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 14,
-          "hour": 7,
-          "minute": 16,
-          "second": 57,
-          "microsecond": 474622,
+          "day": 17,
+          "hour": 0,
+          "minute": 23,
+          "second": 0,
+          "microsecond": 254935,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23734,7 +24013,8 @@
     "recommended_models": [],
     "basic_fields": [
       "input_datetime"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Start Of Week",
@@ -23756,11 +24036,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 14,
-          "hour": 7,
-          "minute": 16,
-          "second": 57,
-          "microsecond": 474825,
+          "day": 17,
+          "hour": 0,
+          "minute": 23,
+          "second": 0,
+          "microsecond": 255161,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23803,7 +24083,8 @@
     "basic_fields": [
       "input_datetime",
       "start_monday"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "End Of Week",
@@ -23825,11 +24106,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 14,
-          "hour": 7,
-          "minute": 16,
-          "second": 57,
-          "microsecond": 475064,
+          "day": 17,
+          "hour": 0,
+          "minute": 23,
+          "second": 0,
+          "microsecond": 255423,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23872,7 +24153,8 @@
     "basic_fields": [
       "input_datetime",
       "start_monday"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Get Value",
@@ -23961,7 +24243,8 @@
       "dictionary",
       "key",
       "default"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Update",
@@ -24064,7 +24347,8 @@
     "basic_fields": [
       "dictionary",
       "new_pairs"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Remove",
@@ -24152,7 +24436,8 @@
     "basic_fields": [
       "dictionary",
       "key"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Parse JSON",
@@ -24209,7 +24494,8 @@
     "recommended_models": [],
     "basic_fields": [
       "json_string"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Zip",
@@ -24298,7 +24584,8 @@
     "basic_fields": [
       "keys",
       "values"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Combine",
@@ -24401,7 +24688,8 @@
     "basic_fields": [
       "dict_a",
       "dict_b"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Filter",
@@ -24497,7 +24785,8 @@
     "basic_fields": [
       "dictionary",
       "keys"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Reduce Dictionaries",
@@ -24644,7 +24933,8 @@
       "key_field",
       "value_field",
       "conflict_resolution"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Make Dictionary",
@@ -24652,98 +24942,7 @@
     "namespace": "nodetool.dictionary",
     "node_type": "nodetool.dictionary.MakeDictionary",
     "layout": "small",
-    "properties": [
-      {
-        "name": "key1",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Key1",
-        "description": "First key",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "value1",
-        "type": {
-          "type": "any",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": null,
-        "title": "Value1",
-        "description": "First value",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "key2",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Key2",
-        "description": "Second key (optional)",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "value2",
-        "type": {
-          "type": "any",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": null,
-        "title": "Value2",
-        "description": "Second value (optional)",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "key3",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Key3",
-        "description": "Third key (optional)",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "value3",
-        "type": {
-          "type": "any",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": null,
-        "title": "Value3",
-        "description": "Third value (optional)",
-        "min": null,
-        "max": null
-      }
-    ],
+    "properties": [],
     "outputs": [
       {
         "type": {
@@ -24774,14 +24973,8 @@
     ],
     "the_model_info": {},
     "recommended_models": [],
-    "basic_fields": [
-      "key1",
-      "value1",
-      "key2",
-      "value2",
-      "key3",
-      "value3"
-    ]
+    "basic_fields": [],
+    "is_dynamic": true
   },
   {
     "title": "Arg Max",
@@ -24838,7 +25031,8 @@
     "recommended_models": [],
     "basic_fields": [
       "scores"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "File Exists",
@@ -24871,7 +25065,8 @@
     "recommended_models": [],
     "basic_fields": [
       "path"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "List Files",
@@ -24956,7 +25151,8 @@
       "directory",
       "pattern",
       "recursive"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Copy File",
@@ -25008,7 +25204,8 @@
     "basic_fields": [
       "source_path",
       "destination_path"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Move File",
@@ -25060,7 +25257,8 @@
     "basic_fields": [
       "source_path",
       "destination_path"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Create Directory",
@@ -25109,7 +25307,8 @@
     "basic_fields": [
       "path",
       "exist_ok"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Get File Size",
@@ -25154,7 +25353,8 @@
     "recommended_models": [],
     "basic_fields": [
       "path"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Created Time",
@@ -25199,7 +25399,8 @@
     "recommended_models": [],
     "basic_fields": [
       "path"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Modified Time",
@@ -25244,7 +25445,8 @@
     "recommended_models": [],
     "basic_fields": [
       "path"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Accessed Time",
@@ -25289,7 +25491,8 @@
     "recommended_models": [],
     "basic_fields": [
       "path"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Is File",
@@ -25334,7 +25537,8 @@
     "recommended_models": [],
     "basic_fields": [
       "path"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Is Directory",
@@ -25379,7 +25583,8 @@
     "recommended_models": [],
     "basic_fields": [
       "path"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "File Extension",
@@ -25424,7 +25629,8 @@
     "recommended_models": [],
     "basic_fields": [
       "path"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "File Name",
@@ -25469,7 +25675,8 @@
     "recommended_models": [],
     "basic_fields": [
       "path"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Get Directory",
@@ -25514,7 +25721,8 @@
     "recommended_models": [],
     "basic_fields": [
       "path"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Load Document",
@@ -25559,7 +25767,8 @@
     "recommended_models": [],
     "basic_fields": [
       "path"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Save Document",
@@ -25629,7 +25838,8 @@
       "document",
       "folder",
       "filename"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Load CSV",
@@ -25682,7 +25892,8 @@
     "recommended_models": [],
     "basic_fields": [
       "path"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Save CSV",
@@ -25755,7 +25966,8 @@
       "data",
       "folder",
       "filename"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Save CSVDataframe",
@@ -25820,7 +26032,8 @@
       "dataframe",
       "folder",
       "filename"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Load Bytes",
@@ -25865,7 +26078,8 @@
     "recommended_models": [],
     "basic_fields": [
       "path"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Save Bytes",
@@ -25930,7 +26144,8 @@
       "data",
       "folder",
       "filename"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Load Image",
@@ -25975,7 +26190,8 @@
     "recommended_models": [],
     "basic_fields": [
       "path"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Save Image",
@@ -26057,7 +26273,8 @@
       "image",
       "folder",
       "filename"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Load Audio",
@@ -26102,7 +26319,8 @@
     "recommended_models": [],
     "basic_fields": [
       "path"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Save Audio",
@@ -26184,7 +26402,8 @@
       "audio",
       "folder",
       "filename"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Load Video",
@@ -26226,7 +26445,8 @@
     "recommended_models": [],
     "basic_fields": [
       "path"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Save Video",
@@ -26310,7 +26530,8 @@
       "video",
       "folder",
       "filename"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "File Name Match",
@@ -26384,7 +26605,8 @@
       "filename",
       "pattern",
       "case_sensitive"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Filter File Names",
@@ -26474,7 +26696,8 @@
       "filenames",
       "pattern",
       "case_sensitive"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Basename",
@@ -26532,7 +26755,8 @@
     "basic_fields": [
       "path",
       "remove_extension"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Dirname",
@@ -26574,7 +26798,8 @@
     "recommended_models": [],
     "basic_fields": [
       "path"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Join Paths",
@@ -26624,7 +26849,8 @@
     "recommended_models": [],
     "basic_fields": [
       "paths"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Normalize Path",
@@ -26666,7 +26892,8 @@
     "recommended_models": [],
     "basic_fields": [
       "path"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Get Path Info",
@@ -26708,7 +26935,8 @@
     "recommended_models": [],
     "basic_fields": [
       "path"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Absolute Path",
@@ -26750,7 +26978,8 @@
     "recommended_models": [],
     "basic_fields": [
       "path"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Split Path",
@@ -26792,7 +27021,8 @@
     "recommended_models": [],
     "basic_fields": [
       "path"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Split Extension",
@@ -26834,7 +27064,8 @@
     "recommended_models": [],
     "basic_fields": [
       "path"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Relative Path",
@@ -26892,7 +27123,8 @@
     "basic_fields": [
       "target_path",
       "start_path"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Path To String",
@@ -26937,7 +27169,8 @@
     "recommended_models": [],
     "basic_fields": [
       "file_path"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Create Document",
@@ -26961,7 +27194,8 @@
     ],
     "the_model_info": {},
     "recommended_models": [],
-    "basic_fields": []
+    "basic_fields": [],
+    "is_dynamic": false
   },
   {
     "title": "Load Word Document",
@@ -27003,7 +27237,8 @@
     "recommended_models": [],
     "basic_fields": [
       "path"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Add Heading",
@@ -27082,7 +27317,8 @@
       "document",
       "text",
       "level"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Add Paragraph",
@@ -27214,7 +27450,8 @@
       "bold",
       "italic",
       "font_size"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Add Table",
@@ -27325,7 +27562,8 @@
       "rows",
       "cols",
       "data"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Add Image",
@@ -27425,7 +27663,8 @@
       "image",
       "width",
       "height"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Add Page Break",
@@ -27472,7 +27711,8 @@
     "recommended_models": [],
     "basic_fields": [
       "document"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Set Document Properties",
@@ -27583,7 +27823,8 @@
       "author",
       "subject",
       "keywords"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Save Document",
@@ -27637,7 +27878,8 @@
     "basic_fields": [
       "document",
       "path"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Create Workbook",
@@ -27679,7 +27921,8 @@
     "recommended_models": [],
     "basic_fields": [
       "sheet_name"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Data Frame To Excel",
@@ -27796,7 +28039,8 @@
       "sheet_name",
       "start_cell",
       "include_header"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Excel To Data Frame",
@@ -27875,7 +28119,8 @@
       "workbook",
       "sheet_name",
       "has_header"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Format Cells",
@@ -28002,7 +28247,8 @@
       "bold",
       "background_color",
       "text_color"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Save Workbook",
@@ -28056,7 +28302,8 @@
     "basic_fields": [
       "workbook",
       "filepath"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Auto Fit Columns",
@@ -28119,7 +28366,8 @@
     "basic_fields": [
       "workbook",
       "sheet_name"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Convert To Markdown",
@@ -28166,7 +28414,8 @@
     "recommended_models": [],
     "basic_fields": [
       "document"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Extract Links",
@@ -28247,7 +28496,8 @@
     "basic_fields": [
       "markdown",
       "include_titles"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Extract Headers",
@@ -28328,7 +28578,8 @@
     "basic_fields": [
       "markdown",
       "max_level"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Extract Bullet Lists",
@@ -28393,7 +28644,8 @@
     "recommended_models": [],
     "basic_fields": [
       "markdown"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Extract Numbered Lists",
@@ -28443,7 +28695,8 @@
     "recommended_models": [],
     "basic_fields": [
       "markdown"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Extract Code Blocks",
@@ -28508,7 +28761,8 @@
     "recommended_models": [],
     "basic_fields": [
       "markdown"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Extract Tables",
@@ -28550,7 +28804,8 @@
     "recommended_models": [],
     "basic_fields": [
       "markdown"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Convert File",
@@ -28719,7 +28974,8 @@
       "input_format",
       "output_format",
       "extra_args"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Convert Text",
@@ -28885,7 +29141,8 @@
       "input_format",
       "output_format",
       "extra_args"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Extract Text",
@@ -28964,7 +29221,8 @@
       "pdf",
       "start_page",
       "end_page"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Extract Images",
@@ -29046,7 +29304,8 @@
       "pdf",
       "start_page",
       "end_page"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Get Page Count",
@@ -29088,7 +29347,8 @@
     "recommended_models": [],
     "basic_fields": [
       "pdf"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Extract Page Metadata",
@@ -29170,7 +29430,8 @@
       "pdf",
       "start_page",
       "end_page"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Loop",
@@ -29212,7 +29473,8 @@
     "recommended_models": [],
     "basic_fields": [
       "input"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Base Url",
@@ -29254,7 +29516,8 @@
     "recommended_models": [],
     "basic_fields": [
       "url"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Extract Links",
@@ -29312,7 +29575,8 @@
     "basic_fields": [
       "html",
       "base_url"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Extract Metadata",
@@ -29354,7 +29618,8 @@
     "recommended_models": [],
     "basic_fields": [
       "html"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Extract Images",
@@ -29420,7 +29685,8 @@
     "basic_fields": [
       "html",
       "base_url"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Extract Videos",
@@ -29486,7 +29752,8 @@
     "basic_fields": [
       "html",
       "base_url"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Extract Audio",
@@ -29552,7 +29819,8 @@
     "basic_fields": [
       "html",
       "base_url"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Website Content Extractor",
@@ -29594,7 +29862,8 @@
     "recommended_models": [],
     "basic_fields": [
       "html_content"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Save Image",
@@ -29678,7 +29947,8 @@
       "image",
       "folder",
       "name"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Get Metadata",
@@ -29769,7 +30039,8 @@
     "recommended_models": [],
     "basic_fields": [
       "image"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Batch To List",
@@ -29824,7 +30095,8 @@
     "recommended_models": [],
     "basic_fields": [
       "batch"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Convert To Tensor",
@@ -29871,7 +30143,8 @@
     "recommended_models": [],
     "basic_fields": [
       "image"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Paste",
@@ -29971,7 +30244,8 @@
       "paste",
       "left",
       "top"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Blend",
@@ -30055,7 +30329,8 @@
       "image1",
       "image2",
       "alpha"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Composite",
@@ -30144,7 +30419,8 @@
       "image1",
       "image2",
       "mask"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Chart Renderer",
@@ -30303,7 +30579,8 @@
       "data",
       "despine",
       "trim_margins"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Auto Contrast",
@@ -30366,7 +30643,8 @@
     "basic_fields": [
       "image",
       "cutoff"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Sharpness",
@@ -30429,7 +30707,8 @@
     "basic_fields": [
       "image",
       "factor"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Equalize",
@@ -30476,7 +30755,8 @@
     "recommended_models": [],
     "basic_fields": [
       "image"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Contrast",
@@ -30539,7 +30819,8 @@
     "basic_fields": [
       "image",
       "factor"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Edge Enhance",
@@ -30586,7 +30867,8 @@
     "recommended_models": [],
     "basic_fields": [
       "image"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Sharpen",
@@ -30633,7 +30915,8 @@
     "recommended_models": [],
     "basic_fields": [
       "image"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Rank Filter",
@@ -30712,7 +30995,8 @@
       "image",
       "size",
       "rank"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Unsharp Mask",
@@ -30807,7 +31091,8 @@
       "radius",
       "percent",
       "threshold"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Brightness",
@@ -30885,7 +31170,8 @@
     "basic_fields": [
       "image",
       "factor"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Color",
@@ -30948,7 +31234,8 @@
     "basic_fields": [
       "image",
       "factor"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Detail",
@@ -30995,7 +31282,8 @@
     "recommended_models": [],
     "basic_fields": [
       "image"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Adaptive Contrast",
@@ -31074,7 +31362,8 @@
       "image",
       "clip_limit",
       "grid_size"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Slice Image Grid",
@@ -31161,7 +31450,8 @@
       "image",
       "columns",
       "rows"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Combine Image Grid",
@@ -31227,7 +31517,8 @@
     "basic_fields": [
       "tiles",
       "columns"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Background",
@@ -31304,7 +31595,8 @@
       "width",
       "height",
       "color"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Render Text",
@@ -31474,7 +31766,8 @@
       "color",
       "align",
       "image"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Gaussian Noise",
@@ -31564,7 +31857,8 @@
       "stddev",
       "width",
       "height"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Rectangle",
@@ -31708,7 +32002,8 @@
       "fill",
       "stroke",
       "stroke_width"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Circle",
@@ -31836,7 +32131,8 @@
       "fill",
       "stroke",
       "stroke_width"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Ellipse",
@@ -31980,7 +32276,8 @@
       "fill",
       "stroke",
       "stroke_width"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Line",
@@ -32105,7 +32402,8 @@
       "y2",
       "stroke",
       "stroke_width"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Polygon",
@@ -32201,7 +32499,8 @@
       "fill",
       "stroke",
       "stroke_width"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Path",
@@ -32297,7 +32596,8 @@
       "fill",
       "stroke",
       "stroke_width"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Text",
@@ -32442,7 +32742,8 @@
       "font_size",
       "fill",
       "text_anchor"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Gaussian Blur",
@@ -32484,7 +32785,8 @@
     "recommended_models": [],
     "basic_fields": [
       "std_deviation"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Drop Shadow",
@@ -32577,7 +32879,8 @@
       "dx",
       "dy",
       "color"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "SVG Document",
@@ -32697,7 +33000,8 @@
       "width",
       "height",
       "viewBox"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Combine",
@@ -32811,7 +33115,8 @@
       "element3",
       "element4",
       "element5"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "SVG to Image",
@@ -32947,7 +33252,8 @@
       "height",
       "viewBox",
       "scale"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Gradient",
@@ -33094,7 +33400,8 @@
       "y2",
       "color1",
       "color2"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Transform",
@@ -33216,7 +33523,8 @@
       "rotate",
       "scale_x",
       "scale_y"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Clip Path",
@@ -33274,7 +33582,8 @@
     "basic_fields": [
       "clip_content",
       "content"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Invert",
@@ -33321,7 +33630,8 @@
     "recommended_models": [],
     "basic_fields": [
       "image"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Solarize",
@@ -33384,7 +33694,8 @@
     "basic_fields": [
       "image",
       "threshold"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Posterize",
@@ -33447,7 +33758,8 @@
     "basic_fields": [
       "image",
       "bits"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Fit",
@@ -33526,7 +33838,8 @@
       "image",
       "width",
       "height"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Expand",
@@ -33605,7 +33918,8 @@
       "image",
       "border",
       "fill"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Blur",
@@ -33668,7 +33982,8 @@
     "basic_fields": [
       "image",
       "radius"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Contour",
@@ -33715,7 +34030,8 @@
     "recommended_models": [],
     "basic_fields": [
       "image"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Emboss",
@@ -33762,7 +34078,8 @@
     "recommended_models": [],
     "basic_fields": [
       "image"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Find Edges",
@@ -33809,7 +34126,8 @@
     "recommended_models": [],
     "basic_fields": [
       "image"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Smooth",
@@ -33856,7 +34174,8 @@
     "recommended_models": [],
     "basic_fields": [
       "image"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Canny",
@@ -33935,7 +34254,8 @@
       "image",
       "low_threshold",
       "high_threshold"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Scale",
@@ -33998,7 +34318,8 @@
     "basic_fields": [
       "image",
       "scale"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Resize",
@@ -34077,7 +34398,8 @@
       "image",
       "width",
       "height"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Crop",
@@ -34188,7 +34510,8 @@
       "top",
       "right",
       "bottom"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Convert To Grayscale",
@@ -34235,7 +34558,8 @@
     "recommended_models": [],
     "basic_fields": [
       "image"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Get Channel",
@@ -34302,7 +34626,8 @@
     "basic_fields": [
       "image",
       "channel"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Float Input",
@@ -34404,7 +34729,8 @@
     "recommended_models": [],
     "basic_fields": [
       "name"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Boolean Input",
@@ -34476,7 +34802,8 @@
     "recommended_models": [],
     "basic_fields": [
       "name"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Integer Input",
@@ -34578,7 +34905,8 @@
     "recommended_models": [],
     "basic_fields": [
       "name"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "String Input",
@@ -34650,7 +34978,8 @@
     "recommended_models": [],
     "basic_fields": [
       "name"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Chat Input",
@@ -34793,7 +35122,8 @@
     "recommended_models": [],
     "basic_fields": [
       "name"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Text Input",
@@ -34870,7 +35200,8 @@
     "recommended_models": [],
     "basic_fields": [
       "name"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Document Input",
@@ -34947,7 +35278,8 @@
     "recommended_models": [],
     "basic_fields": [
       "name"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Image Input",
@@ -35024,7 +35356,8 @@
     "recommended_models": [],
     "basic_fields": [
       "name"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Video Input",
@@ -35103,7 +35436,8 @@
     "recommended_models": [],
     "basic_fields": [
       "name"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Audio Input",
@@ -35180,7 +35514,8 @@
     "recommended_models": [],
     "basic_fields": [
       "name"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Path Input",
@@ -35255,7 +35590,8 @@
     "recommended_models": [],
     "basic_fields": [
       "name"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Group Input",
@@ -35279,7 +35615,8 @@
     ],
     "the_model_info": {},
     "recommended_models": [],
-    "basic_fields": []
+    "basic_fields": [],
+    "is_dynamic": false
   },
   {
     "title": "Enum Input",
@@ -35366,7 +35703,8 @@
     "recommended_models": [],
     "basic_fields": [
       "name"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Parse Dict",
@@ -35408,7 +35746,8 @@
     "recommended_models": [],
     "basic_fields": [
       "json_string"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Parse List",
@@ -35450,7 +35789,8 @@
     "recommended_models": [],
     "basic_fields": [
       "json_string"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Stringify JSON",
@@ -35508,7 +35848,8 @@
     "basic_fields": [
       "data",
       "indent"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Get JSONPath Str",
@@ -35582,7 +35923,8 @@
       "data",
       "path",
       "default"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Get JSONPath Int",
@@ -35656,7 +35998,8 @@
       "data",
       "path",
       "default"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Get JSONPath Float",
@@ -35730,7 +36073,8 @@
       "data",
       "path",
       "default"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Get JSONPath Bool",
@@ -35804,7 +36148,8 @@
       "data",
       "path",
       "default"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Get JSONPath List",
@@ -35878,7 +36223,8 @@
       "data",
       "path",
       "default"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Get JSONPath Dict",
@@ -35952,7 +36298,8 @@
       "data",
       "path",
       "default"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Validate JSON",
@@ -36010,7 +36357,8 @@
     "basic_fields": [
       "data",
       "schema"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Filter JSON",
@@ -36100,7 +36448,8 @@
       "array",
       "key",
       "value"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "JSON Template",
@@ -36173,7 +36522,8 @@
     "basic_fields": [
       "template",
       "values"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Length",
@@ -36223,7 +36573,8 @@
     "recommended_models": [],
     "basic_fields": [
       "values"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Generate Sequence",
@@ -36305,7 +36656,8 @@
       "start",
       "stop",
       "step"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Slice",
@@ -36411,7 +36763,8 @@
       "start",
       "stop",
       "step"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Select Elements",
@@ -36493,7 +36846,8 @@
     "basic_fields": [
       "values",
       "indices"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Get Element",
@@ -36559,7 +36913,8 @@
     "basic_fields": [
       "values",
       "index"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Append",
@@ -36633,7 +36988,8 @@
     "basic_fields": [
       "values",
       "value"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Extend",
@@ -36715,7 +37071,8 @@
     "basic_fields": [
       "values",
       "other_values"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Dedupe",
@@ -36773,7 +37130,8 @@
     "recommended_models": [],
     "basic_fields": [
       "values"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Reverse",
@@ -36831,7 +37189,8 @@
     "recommended_models": [],
     "basic_fields": [
       "values"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Save List",
@@ -36897,7 +37256,8 @@
     "basic_fields": [
       "values",
       "name"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Randomize",
@@ -36955,7 +37315,8 @@
     "recommended_models": [],
     "basic_fields": [
       "values"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Sort",
@@ -37032,7 +37393,8 @@
     "basic_fields": [
       "values",
       "order"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Filter Dicts",
@@ -37106,7 +37468,8 @@
     "basic_fields": [
       "values",
       "condition"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Filter Strings",
@@ -37203,7 +37566,8 @@
       "values",
       "filter_type",
       "criteria"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Filter Numbers",
@@ -37316,7 +37680,8 @@
       "values",
       "filter_type",
       "value"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Filter Number Range",
@@ -37422,7 +37787,8 @@
       "min_value",
       "max_value",
       "inclusive"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Filter Regex",
@@ -37512,7 +37878,8 @@
       "values",
       "pattern",
       "full_match"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Filter None",
@@ -37570,7 +37937,8 @@
     "recommended_models": [],
     "basic_fields": [
       "values"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Filter Dicts By Value",
@@ -37685,7 +38053,8 @@
       "key",
       "filter_type",
       "criteria"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Filter Dicts By Range",
@@ -37807,7 +38176,8 @@
       "min_value",
       "max_value",
       "inclusive"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Filter Dicts By Number",
@@ -37936,7 +38306,8 @@
       "key",
       "filter_type",
       "value"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Filter Dicts Regex",
@@ -38042,7 +38413,8 @@
       "key",
       "pattern",
       "full_match"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Intersection",
@@ -38124,7 +38496,8 @@
     "basic_fields": [
       "list1",
       "list2"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Union",
@@ -38206,7 +38579,8 @@
     "basic_fields": [
       "list1",
       "list2"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Difference",
@@ -38288,7 +38662,8 @@
     "basic_fields": [
       "list1",
       "list2"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Chunk",
@@ -38370,7 +38745,8 @@
     "basic_fields": [
       "values",
       "chunk_size"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Transform",
@@ -38451,7 +38827,8 @@
     "basic_fields": [
       "values",
       "transform_type"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Sum",
@@ -38501,7 +38878,8 @@
     "recommended_models": [],
     "basic_fields": [
       "values"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Average",
@@ -38551,7 +38929,8 @@
     "recommended_models": [],
     "basic_fields": [
       "values"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Minimum",
@@ -38601,7 +38980,8 @@
     "recommended_models": [],
     "basic_fields": [
       "values"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Maximum",
@@ -38651,7 +39031,8 @@
     "recommended_models": [],
     "basic_fields": [
       "values"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Product",
@@ -38701,7 +39082,8 @@
     "recommended_models": [],
     "basic_fields": [
       "values"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Map Field",
@@ -38806,7 +39188,8 @@
       "values",
       "field",
       "default"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Join Strings",
@@ -38872,7 +39255,8 @@
     "basic_fields": [
       "values",
       "delimiter"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Map Template",
@@ -38983,7 +39367,8 @@
     "basic_fields": [
       "template",
       "values"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Flatten",
@@ -39057,7 +39442,8 @@
     "basic_fields": [
       "values",
       "max_depth"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Binary Operation",
@@ -39181,7 +39567,8 @@
     "basic_fields": [
       "a",
       "b"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Add",
@@ -39305,7 +39692,8 @@
     "basic_fields": [
       "a",
       "b"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Subtract",
@@ -39429,7 +39817,8 @@
     "basic_fields": [
       "a",
       "b"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Multiply",
@@ -39553,7 +39942,8 @@
     "basic_fields": [
       "a",
       "b"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Divide",
@@ -39677,7 +40067,8 @@
     "basic_fields": [
       "a",
       "b"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Modulus",
@@ -39801,7 +40192,8 @@
     "basic_fields": [
       "a",
       "b"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Sine",
@@ -39880,7 +40272,8 @@
     "recommended_models": [],
     "basic_fields": [
       "angle_rad"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Cosine",
@@ -39959,7 +40352,8 @@
     "recommended_models": [],
     "basic_fields": [
       "angle_rad"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Power",
@@ -40083,7 +40477,8 @@
     "basic_fields": [
       "base",
       "exponent"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Sqrt",
@@ -40169,7 +40564,8 @@
     "recommended_models": [],
     "basic_fields": [
       "x"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "GET Request",
@@ -40273,7 +40669,8 @@
       "url",
       "headers",
       "auth"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "POST Request",
@@ -40393,7 +40790,8 @@
       "headers",
       "auth",
       "data"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "PUT Request",
@@ -40513,7 +40911,8 @@
       "headers",
       "auth",
       "data"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "DELETE Request",
@@ -40617,7 +41016,8 @@
       "url",
       "headers",
       "auth"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "HEAD Request",
@@ -40736,7 +41136,8 @@
       "url",
       "headers",
       "auth"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Fetch Page",
@@ -40831,7 +41232,8 @@
     "basic_fields": [
       "url",
       "wait_time"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Image Downloader",
@@ -40919,7 +41321,8 @@
       "images",
       "base_url",
       "max_concurrent_downloads"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "GET Binary",
@@ -41023,7 +41426,8 @@
       "url",
       "headers",
       "auth"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "GET Document",
@@ -41127,7 +41531,8 @@
       "url",
       "headers",
       "auth"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "POST Binary",
@@ -41262,7 +41667,8 @@
       "headers",
       "auth",
       "data"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Filter Valid URLs",
@@ -41414,7 +41820,8 @@
       "auth",
       "urls",
       "max_concurrent_requests"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Download Files",
@@ -41585,7 +41992,8 @@
       "headers",
       "auth",
       "max_concurrent_downloads"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "POST JSON",
@@ -41705,7 +42113,8 @@
       "headers",
       "auth",
       "data"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "PUT JSON",
@@ -41825,7 +42234,8 @@
       "headers",
       "auth",
       "data"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "PATCH JSON",
@@ -41945,7 +42355,8 @@
       "headers",
       "auth",
       "data"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "GET JSON",
@@ -42049,7 +42460,8 @@
       "url",
       "headers",
       "auth"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Get Text ID",
@@ -42106,7 +42518,8 @@
     "recommended_models": [],
     "basic_fields": [
       "text"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Concatenate Text",
@@ -42164,7 +42577,8 @@
     "basic_fields": [
       "a",
       "b"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Join Text",
@@ -42230,10 +42644,54 @@
     "basic_fields": [
       "strings",
       "separator"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Format Text",
+    "description": "Replaces placeholders in a string with dynamic inputs.\n    text, template, formatting\n\n    Use cases:\n    - Generating personalized messages with dynamic content\n    - Creating parameterized queries or commands\n    - Formatting text output based on variable inputs",
+    "namespace": "nodetool.text",
+    "node_type": "nodetool.text.FormatText",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "string",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "String",
+        "description": null,
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "string"
+    ],
+    "is_dynamic": true
+  },
+  {
+    "title": "Template",
     "description": "Replaces placeholders in a string with provided values.\n    text, template, formatting\n\n    Use cases:\n    - Generating personalized messages with dynamic content\n    - Creating parameterized queries or commands\n    - Formatting text output based on variable inputs\n\n    Examples:\n    - text: \"Hello, {name}!\" values: {\"name\": \"Alice\"} -> \"Hello, Alice!\"\n    - text: \"Hello, {0} {1}!\" values: [\"Alice\", \"Meyer\"] -> \"Hello, Alice Meyer!\"\n    - text: \"Hello, {0}!\" values: \"Alice\" -> \"Hello, Alice!\"",
     "namespace": "nodetool.text",
     "node_type": "nodetool.text.Template",
@@ -42332,7 +42790,8 @@
     "basic_fields": [
       "string",
       "values"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Replace Text",
@@ -42406,7 +42865,8 @@
       "text",
       "old",
       "new"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Convert JSON to DataFrame",
@@ -42448,7 +42908,8 @@
     "recommended_models": [],
     "basic_fields": [
       "text"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Save Text",
@@ -42527,7 +42988,8 @@
       "text",
       "folder",
       "name"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Split Text",
@@ -42593,7 +43055,8 @@
     "basic_fields": [
       "text",
       "delimiter"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Extract Text",
@@ -42667,7 +43130,8 @@
       "text",
       "start",
       "end"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Split Text into Chunks",
@@ -42780,7 +43244,8 @@
       "length",
       "overlap",
       "separator"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Extract Regex Groups",
@@ -42894,7 +43359,8 @@
       "dotall",
       "ignorecase",
       "multiline"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Find All Regex Matches",
@@ -43008,7 +43474,8 @@
       "dotall",
       "ignorecase",
       "multiline"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Parse JSON String",
@@ -43050,7 +43517,8 @@
     "recommended_models": [],
     "basic_fields": [
       "text"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Extract JSON",
@@ -43124,7 +43592,8 @@
       "text",
       "json_path",
       "find_all"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Split Sentences",
@@ -43238,7 +43707,8 @@
       "source_id",
       "chunk_size",
       "chunk_overlap"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Find Regex Matches",
@@ -43320,7 +43790,8 @@
       "text",
       "pattern",
       "group"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Replace with Regex",
@@ -43410,7 +43881,8 @@
       "pattern",
       "replacement",
       "count"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Split with Regex",
@@ -43492,7 +43964,8 @@
       "text",
       "pattern",
       "maxsplit"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Validate with Regex",
@@ -43550,7 +44023,8 @@
     "basic_fields": [
       "text",
       "pattern"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Convert HTML to Text",
@@ -43608,7 +44082,8 @@
     "basic_fields": [
       "text",
       "preserve_linebreaks"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Slice Text",
@@ -43743,7 +44218,8 @@
       "start",
       "stop",
       "step"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Split Recursively",
@@ -43869,7 +44345,8 @@
       "chunk_size",
       "chunk_overlap",
       "separators"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Split Markdown",
@@ -44066,7 +44543,8 @@
       "return_each_line",
       "chunk_size",
       "chunk_overlap"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Starts With",
@@ -44124,7 +44602,8 @@
     "basic_fields": [
       "text",
       "prefix"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Ends With",
@@ -44182,7 +44661,8 @@
     "basic_fields": [
       "text",
       "suffix"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Contains Text",
@@ -44256,7 +44736,8 @@
       "text",
       "substring",
       "case_sensitive"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Is Empty",
@@ -44314,7 +44795,8 @@
     "basic_fields": [
       "text",
       "trim_whitespace"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Check Length",
@@ -44449,7 +44931,8 @@
       "min_length",
       "max_length",
       "exact_length"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Count Tokens",
@@ -44511,7 +44994,8 @@
     "basic_fields": [
       "text",
       "encoding"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Email Fields",
@@ -44597,7 +45081,8 @@
     "recommended_models": [],
     "basic_fields": [
       "email"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Configure IMAP",
@@ -44703,7 +45188,8 @@
       "username",
       "password",
       "use_ssl"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "IMAPSearch",
@@ -44805,7 +45291,8 @@
       "connection",
       "search_criteria",
       "max_results"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Fetch RSS Feed",
@@ -44855,7 +45342,8 @@
     "recommended_models": [],
     "basic_fields": [
       "url"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Extract RSS Entry Fields",
@@ -44959,7 +45447,8 @@
     "recommended_models": [],
     "basic_fields": [
       "entry"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Extract Feed Metadata",
@@ -45001,7 +45490,8 @@
     "recommended_models": [],
     "basic_fields": [
       "url"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Get Environment Variable",
@@ -45059,7 +45549,8 @@
     "basic_fields": [
       "name",
       "default"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Set Environment Variable",
@@ -45105,7 +45596,8 @@
     "basic_fields": [
       "name",
       "value"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Get System Info",
@@ -45129,7 +45621,8 @@
     ],
     "the_model_info": {},
     "recommended_models": [],
-    "basic_fields": []
+    "basic_fields": [],
+    "is_dynamic": false
   },
   {
     "title": "Copy Text To Clipboard",
@@ -45159,7 +45652,8 @@
     "recommended_models": [],
     "basic_fields": [
       "text"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Paste Text From Clipboard",
@@ -45183,7 +45677,8 @@
     ],
     "the_model_info": {},
     "recommended_models": [],
-    "basic_fields": []
+    "basic_fields": [],
+    "is_dynamic": false
   },
   {
     "title": "Copy Image To Clipboard",
@@ -45213,7 +45708,8 @@
     "recommended_models": [],
     "basic_fields": [
       "image"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "List Output",
@@ -45302,7 +45798,8 @@
     "basic_fields": [
       "name",
       "value"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Image List Output",
@@ -45391,7 +45888,8 @@
     "basic_fields": [
       "name",
       "value"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Integer Output",
@@ -45464,7 +45962,8 @@
     "basic_fields": [
       "name",
       "value"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Float Output",
@@ -45537,7 +46036,8 @@
     "basic_fields": [
       "name",
       "value"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Boolean Output",
@@ -45610,7 +46110,8 @@
     "basic_fields": [
       "name",
       "value"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "String Output",
@@ -45683,7 +46184,8 @@
     "basic_fields": [
       "name",
       "value"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Text Output",
@@ -45761,7 +46263,8 @@
     "basic_fields": [
       "name",
       "value"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Image Output",
@@ -45839,7 +46342,8 @@
     "basic_fields": [
       "name",
       "value"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Video Output",
@@ -45919,7 +46423,8 @@
     "basic_fields": [
       "name",
       "value"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Tensor Output",
@@ -45996,7 +46501,8 @@
     "basic_fields": [
       "name",
       "value"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Model Output",
@@ -46074,7 +46580,8 @@
     "basic_fields": [
       "name",
       "value"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Audio Output",
@@ -46152,7 +46659,8 @@
     "basic_fields": [
       "name",
       "value"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Dataframe Output",
@@ -46231,7 +46739,8 @@
     "basic_fields": [
       "name",
       "value"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Dictionary Output",
@@ -46334,7 +46843,8 @@
     "basic_fields": [
       "name",
       "value"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Group Output",
@@ -46384,7 +46894,8 @@
     "recommended_models": [],
     "basic_fields": [
       "input"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Document Output",
@@ -46462,7 +46973,8 @@
     "basic_fields": [
       "name",
       "value"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Save Tensor",
@@ -46545,7 +47057,8 @@
       "tensor",
       "folder",
       "name"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Convert To Image",
@@ -46591,7 +47104,8 @@
     "recommended_models": [],
     "basic_fields": [
       "tensor"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Convert To Audio",
@@ -46653,7 +47167,8 @@
     "basic_fields": [
       "tensor",
       "sample_rate"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Stack",
@@ -46719,7 +47234,8 @@
     "basic_fields": [
       "tensors",
       "axis"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Mat Mul",
@@ -46785,7 +47301,8 @@
     "basic_fields": [
       "a",
       "b"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Transpose",
@@ -46831,7 +47348,8 @@
     "recommended_models": [],
     "basic_fields": [
       "tensor"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Max",
@@ -46930,7 +47448,8 @@
     "basic_fields": [
       "tensor",
       "axis"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Min",
@@ -47029,7 +47548,8 @@
     "basic_fields": [
       "tensor",
       "axis"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Mean",
@@ -47128,7 +47648,8 @@
     "basic_fields": [
       "tensor",
       "axis"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Sum",
@@ -47227,7 +47748,8 @@
     "basic_fields": [
       "tensor",
       "axis"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Arg Max",
@@ -47319,7 +47841,8 @@
     "basic_fields": [
       "a",
       "axis"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Arg Min",
@@ -47411,7 +47934,8 @@
     "basic_fields": [
       "tensor",
       "axis"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Abs",
@@ -47453,7 +47977,8 @@
     "recommended_models": [],
     "basic_fields": [
       "input_tensor"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Tensor To Scalar",
@@ -47514,7 +48039,8 @@
     "recommended_models": [],
     "basic_fields": [
       "tensor"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Scalar To Tensor",
@@ -47571,7 +48097,8 @@
     "recommended_models": [],
     "basic_fields": [
       "value"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "List To Tensor",
@@ -47621,7 +48148,8 @@
     "recommended_models": [],
     "basic_fields": [
       "values"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Plot Tensor",
@@ -47687,7 +48215,8 @@
     "basic_fields": [
       "tensor",
       "plot_type"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Plot TSNE",
@@ -47773,7 +48302,8 @@
       "tensor",
       "color_indices",
       "perplexity"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Tensor To List",
@@ -47827,7 +48357,8 @@
     "recommended_models": [],
     "basic_fields": [
       "tensor"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Exp",
@@ -47913,7 +48444,8 @@
     "recommended_models": [],
     "basic_fields": [
       "x"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Log",
@@ -47999,7 +48531,8 @@
     "recommended_models": [],
     "basic_fields": [
       "x"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Nearest Neighbors",
@@ -48112,7 +48645,8 @@
       "documents",
       "query",
       "n_neighbors"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Display Text",
@@ -48206,7 +48740,8 @@
       "height",
       "text",
       "font"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Display Image",
@@ -48284,7 +48819,8 @@
       "width",
       "height",
       "image"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Save Video",
@@ -48370,7 +48906,8 @@
       "video",
       "folder",
       "name"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Extract Frames",
@@ -48459,7 +48996,8 @@
       "video",
       "start",
       "end"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Fps",
@@ -48508,7 +49046,8 @@
     "recommended_models": [],
     "basic_fields": [
       "video"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Create Video",
@@ -48574,7 +49113,8 @@
     "basic_fields": [
       "frames",
       "fps"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Concat",
@@ -48646,7 +49186,8 @@
     "basic_fields": [
       "video_a",
       "video_b"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Trim",
@@ -48727,7 +49268,8 @@
       "video",
       "start_time",
       "end_time"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Resize",
@@ -48808,7 +49350,8 @@
       "video",
       "width",
       "height"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Rotate",
@@ -48873,7 +49416,8 @@
     "basic_fields": [
       "video",
       "angle"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Set Speed",
@@ -48938,7 +49482,8 @@
     "basic_fields": [
       "video",
       "speed_factor"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Overlay",
@@ -49074,7 +49619,8 @@
       "y",
       "scale",
       "overlay_audio_volume"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Color Balance",
@@ -49171,7 +49717,8 @@
       "red_adjust",
       "green_adjust",
       "blue_adjust"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Denoise",
@@ -49236,7 +49783,8 @@
     "basic_fields": [
       "video",
       "strength"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Stabilize",
@@ -49317,7 +49865,8 @@
       "video",
       "smoothing",
       "crop_black"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Sharpness",
@@ -49398,7 +49947,8 @@
       "video",
       "luma_amount",
       "chroma_amount"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Blur",
@@ -49463,7 +50013,8 @@
     "basic_fields": [
       "video",
       "strength"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Saturation",
@@ -49528,7 +50079,8 @@
     "basic_fields": [
       "video",
       "saturation"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Add Subtitles",
@@ -49676,7 +50228,8 @@
       "align",
       "font_size",
       "font_color"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Reverse",
@@ -49725,7 +50278,8 @@
     "recommended_models": [],
     "basic_fields": [
       "video"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Transition",
@@ -49888,7 +50442,8 @@
       "video_b",
       "transition_type",
       "duration"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Add Audio",
@@ -49990,7 +50545,8 @@
       "audio",
       "volume",
       "mix"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Chroma Key",
@@ -50090,7 +50646,8 @@
       "key_color",
       "similarity",
       "blend"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Extract Audio",
@@ -50139,7 +50696,8 @@
     "recommended_models": [],
     "basic_fields": [
       "video"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Image Composite Masked",
@@ -50271,7 +50829,8 @@
       "y",
       "resize_source",
       "mask"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Load Image",
@@ -50329,7 +50888,8 @@
     "recommended_models": [],
     "basic_fields": [
       "image"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Load Image Mask",
@@ -50397,7 +50957,8 @@
     "basic_fields": [
       "image",
       "channel"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Save Image",
@@ -50448,7 +51009,8 @@
     "basic_fields": [
       "images",
       "filename_prefix"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Pad Image for Outpainting",
@@ -50586,7 +51148,8 @@
       "right",
       "bottom",
       "feathering"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Save Animated WEBP",
@@ -50704,7 +51267,8 @@
       "lossless",
       "quality",
       "method"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Save Animated PNG",
@@ -50821,7 +51385,8 @@
       "fps",
       "compress_level",
       "hidden_fields"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Repeat Image Batch",
@@ -50884,7 +51449,8 @@
     "basic_fields": [
       "image",
       "amount"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Image Crop",
@@ -50995,7 +51561,8 @@
       "height",
       "x",
       "y"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Image Scale",
@@ -51115,7 +51682,8 @@
       "width",
       "height",
       "crop"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Image Scale By",
@@ -51200,7 +51768,8 @@
       "image",
       "upscale_method",
       "scale_by"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Image Upscale With Model",
@@ -51263,7 +51832,8 @@
     "basic_fields": [
       "upscale_model",
       "image"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Audio Classifier",
@@ -51384,7 +51954,8 @@
       "model",
       "audio",
       "top_k"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Zero Shot Audio Classifier",
@@ -51496,7 +52067,8 @@
       "model",
       "audio",
       "candidate_labels"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Whisper",
@@ -51744,7 +52316,8 @@
     "basic_fields": [
       "audio",
       "task"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Chunks To SRT",
@@ -51810,7 +52383,8 @@
     "basic_fields": [
       "chunks",
       "time_offset"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Depth Estimation",
@@ -51914,7 +52488,8 @@
     "basic_fields": [
       "model",
       "image"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Feature Extraction",
@@ -52012,7 +52587,8 @@
     "basic_fields": [
       "model",
       "inputs"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Fill Mask",
@@ -52152,7 +52728,8 @@
       "model",
       "inputs",
       "top_k"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Image Classifier",
@@ -52333,7 +52910,8 @@
     "basic_fields": [
       "model",
       "image"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Zero-Shot Image Classifier",
@@ -52506,7 +53084,8 @@
       "model",
       "image",
       "candidate_labels"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Image Segmentation",
@@ -52608,7 +53187,8 @@
     "basic_fields": [
       "model",
       "image"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "SAM2 Segmentation",
@@ -52671,7 +53251,8 @@
     ],
     "basic_fields": [
       "image"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Find Segment",
@@ -52737,7 +53318,8 @@
     "basic_fields": [
       "segments",
       "segment_label"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Visualize Segmentation",
@@ -52808,7 +53390,8 @@
     "basic_fields": [
       "image",
       "segments"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Real ESRGAN",
@@ -52906,7 +53489,8 @@
     "basic_fields": [
       "image",
       "model"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Swin2SR",
@@ -53040,7 +53624,8 @@
       "image",
       "prompt",
       "model"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Kandinsky 3 Image-to-Image",
@@ -53163,7 +53748,8 @@
       "prompt",
       "num_inference_steps",
       "strength"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Stable Diffusion ControlNet",
@@ -53743,7 +54329,8 @@
       "controlnet",
       "control_image",
       "controlnet_conditioning_scale"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Stable Diffusion (Img2Img)",
@@ -54203,7 +54790,8 @@
       "prompt",
       "init_image",
       "strength"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Stable Diffusion ControlNet Inpaint",
@@ -54722,7 +55310,8 @@
       "mask_image",
       "control_image",
       "controlnet_conditioning_scale"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Stable Diffusion (Inpaint)",
@@ -55203,7 +55792,8 @@
       "init_image",
       "mask_image",
       "strength"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Stable Diffusion ControlNet (Img2Img)",
@@ -55803,7 +56393,8 @@
       "image",
       "controlnet",
       "control_image"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Stable Diffusion 4x Upscale",
@@ -55986,7 +56577,8 @@
       "prompt",
       "negative_prompt",
       "image"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Stable Diffusion XL (Img2Img)",
@@ -56418,7 +57010,8 @@
       "height",
       "init_image",
       "strength"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Stable Diffusion XL (Inpaint)",
@@ -56871,7 +57464,8 @@
       "image",
       "mask_image",
       "strength"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Stable Diffusion XL ControlNet",
@@ -57362,7 +57956,8 @@
       "controlnet",
       "control_image",
       "controlnet_conditioning_scale"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "LoRA Selector",
@@ -57958,7 +58553,8 @@
       "strength4",
       "lora5",
       "strength5"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "LoRA XL Selector",
@@ -58232,7 +58828,8 @@
       "strength4",
       "lora5",
       "strength5"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Image To Text",
@@ -58362,7 +58959,8 @@
       "model",
       "image",
       "max_new_tokens"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Visual Question Answering",
@@ -58459,7 +59057,8 @@
       "model",
       "image",
       "question"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "GOTOCR",
@@ -58584,7 +59183,8 @@
     "basic_fields": [
       "model",
       "image"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Object Detection",
@@ -58776,7 +59376,8 @@
     "basic_fields": [
       "model",
       "image"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Visualize Object Detection",
@@ -58847,7 +59448,8 @@
     "basic_fields": [
       "image",
       "objects"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Zero-Shot Object Detection",
@@ -59051,7 +59653,8 @@
       "threshold",
       "top_k",
       "candidate_labels"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Reranker",
@@ -59188,7 +59791,8 @@
       "model",
       "query",
       "candidates"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Sentence Similarity",
@@ -59297,7 +59901,8 @@
     "basic_fields": [
       "model",
       "inputs"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Summarize",
@@ -59425,7 +60030,8 @@
     "basic_fields": [
       "model",
       "inputs"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Music Gen",
@@ -59571,7 +60177,8 @@
     "basic_fields": [
       "model",
       "prompt"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Music LDM",
@@ -59677,7 +60284,8 @@
     "basic_fields": [
       "model",
       "prompt"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Audio LDM",
@@ -59777,7 +60385,8 @@
     "basic_fields": [
       "model",
       "prompt"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Audio LDM 2",
@@ -59907,7 +60516,8 @@
     "basic_fields": [
       "model",
       "prompt"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Dance Diffusion",
@@ -59992,7 +60602,8 @@
     "basic_fields": [
       "model",
       "prompt"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Stable Audio",
@@ -60107,7 +60718,8 @@
     "basic_fields": [
       "model",
       "prompt"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Text Classifier",
@@ -60209,7 +60821,8 @@
     "basic_fields": [
       "model",
       "prompt"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Zero Shot Text Classifier",
@@ -60398,7 +61011,8 @@
       "inputs",
       "candidate_labels",
       "multi_label"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Stable Diffusion",
@@ -60853,7 +61467,8 @@
       "prompt",
       "width",
       "height"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Stable Diffusion XL",
@@ -61250,7 +61865,8 @@
       "height",
       "width",
       "height"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Text Generation",
@@ -61419,7 +62035,8 @@
     "basic_fields": [
       "model",
       "prompt"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Bark",
@@ -61506,7 +62123,8 @@
     "basic_fields": [
       "model",
       "prompt"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Text To Speech",
@@ -61615,7 +62233,8 @@
     "basic_fields": [
       "model",
       "text"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Text To Text",
@@ -61739,7 +62358,8 @@
     "basic_fields": [
       "model",
       "text"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Token Classification",
@@ -61824,7 +62444,8 @@
       "model",
       "inputs",
       "aggregation_strategy"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Translation",
@@ -62028,7 +62649,8 @@
       "inputs",
       "source_lang",
       "target_lang"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Animate Diff",
@@ -62251,7 +62873,8 @@
     "basic_fields": [
       "model",
       "prompt"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Stable Video Diffusion",
@@ -62391,7 +63014,8 @@
       "fps",
       "decode_chunk_size",
       "seed"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Prep Image For Clip Vision",
@@ -62500,7 +63124,8 @@
       "interpolation",
       "crop_position",
       "sharpening"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "IPAdapter Encoder",
@@ -62756,7 +63381,8 @@
       "weight_2",
       "weight_3",
       "weight_4"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "IPAdapter Apply",
@@ -62994,7 +63620,8 @@
       "end_at",
       "unfold_batch",
       "attn_mask"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "IPAdapter Apply Encoded",
@@ -63251,7 +63878,8 @@
       "unfold_batch",
       "attn_mask",
       "embeds"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "IPAdapter Save Embeds",
@@ -63300,7 +63928,8 @@
     "basic_fields": [
       "embeds",
       "filename_prefix"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "IPAdapter Batch Embeds",
@@ -63364,7 +63993,8 @@
     "basic_fields": [
       "embed1",
       "embed2"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Latent Composite Masked",
@@ -63495,7 +64125,8 @@
       "y",
       "resize_source",
       "mask"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Empty Latent Image",
@@ -63569,7 +64200,8 @@
       "width",
       "height",
       "batch_size"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Empty SD3 Latent Image",
@@ -63643,7 +64275,8 @@
       "width",
       "height",
       "batch_size"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "VAE Encode",
@@ -63710,7 +64343,8 @@
     "basic_fields": [
       "pixels",
       "vae"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "VAEEncode Tiled",
@@ -63793,7 +64427,8 @@
       "pixels",
       "vae",
       "tile_size"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "VAEEncode For Inpaint",
@@ -63895,7 +64530,8 @@
       "vae",
       "mask",
       "grow_mask_by"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "VAE Decode",
@@ -63960,7 +64596,8 @@
     "basic_fields": [
       "samples",
       "vae"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "VAEDecode Tiled",
@@ -64041,7 +64678,8 @@
       "samples",
       "vae",
       "tile_size"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Save Latent",
@@ -64111,7 +64749,8 @@
       "samples",
       "folder",
       "name"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Upscale Latent",
@@ -64229,7 +64868,8 @@
       "width",
       "height",
       "crop"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Upscale Latent By",
@@ -64312,7 +64952,8 @@
       "samples",
       "upscale_method",
       "scale_by"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Latent Composite",
@@ -64424,7 +65065,8 @@
       "x",
       "y",
       "feather"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Latent Blend",
@@ -64504,7 +65146,8 @@
       "samples1",
       "samples2",
       "blend_factor"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Flip Latent",
@@ -64581,7 +65224,8 @@
       "samples",
       "horizontal",
       "vertical"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Rotate Latent",
@@ -64642,7 +65286,8 @@
     "basic_fields": [
       "samples",
       "angle"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Crop Latent",
@@ -64751,7 +65396,8 @@
       "y",
       "width",
       "height"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Latent Add",
@@ -64815,7 +65461,8 @@
     "basic_fields": [
       "samples1",
       "samples2"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Latent Subtract",
@@ -64879,7 +65526,8 @@
     "basic_fields": [
       "samples1",
       "samples2"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Latent Multiply",
@@ -64940,7 +65588,8 @@
     "basic_fields": [
       "samples",
       "multiplier"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Latent Interpolate",
@@ -65020,7 +65669,8 @@
       "samples1",
       "samples2",
       "ratio"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Latent From Batch",
@@ -65097,7 +65747,8 @@
       "samples",
       "batch_index",
       "length"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Repeat Latent Batch",
@@ -65158,7 +65809,8 @@
     "basic_fields": [
       "samples",
       "amount"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Latent Batch",
@@ -65222,7 +65874,8 @@
     "basic_fields": [
       "samples1",
       "samples2"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Set Latent Noise Mask",
@@ -65286,7 +65939,8 @@
     "basic_fields": [
       "samples",
       "mask"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Stable Cascade Empty Latent Image",
@@ -65387,7 +66041,8 @@
       "height",
       "compression",
       "batch_size"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Stable Cascade Stage C VAE Encode",
@@ -65481,7 +66136,8 @@
       "image",
       "vae",
       "compression"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Stable Cascade Stage B Conditioning",
@@ -65545,7 +66201,8 @@
     "basic_fields": [
       "conditioning",
       "stage_c"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Stable Cascade Super Resolution Controlnet",
@@ -65634,7 +66291,8 @@
     "basic_fields": [
       "image",
       "vae"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Latent Rotate",
@@ -65700,7 +66358,8 @@
     "basic_fields": [
       "samples",
       "rotation"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Latent Flip",
@@ -65764,7 +66423,8 @@
     "basic_fields": [
       "samples",
       "flip_method"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Latent Crop",
@@ -65873,7 +66533,8 @@
       "height",
       "x",
       "y"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Empty Mochi Latent Video",
@@ -65963,7 +66624,8 @@
       "height",
       "length",
       "batch_size"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Empty LTXV Latent Video",
@@ -66053,7 +66715,8 @@
       "height",
       "length",
       "batch_size"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Load Checkpoint",
@@ -66120,7 +66783,8 @@
     "recommended_models": [],
     "basic_fields": [
       "ckpt_name"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Load Checkpoint (Advanced)",
@@ -66187,7 +66851,8 @@
     "recommended_models": [],
     "basic_fields": [
       "ckpt_name"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Load Checkpoint from Huggingface",
@@ -66433,7 +67098,8 @@
     ],
     "basic_fields": [
       "model"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "un CLIPCheckpoint Loader",
@@ -66511,7 +67177,8 @@
     "recommended_models": [],
     "basic_fields": [
       "ckpt_name"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "CLIPVision Loader",
@@ -66556,7 +67223,8 @@
     "recommended_models": [],
     "basic_fields": [
       "clip_name"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Load CLIP Vision from Huggingface",
@@ -66626,7 +67294,8 @@
     ],
     "basic_fields": [
       "model"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Load ControlNet Model",
@@ -66671,7 +67340,8 @@
     "recommended_models": [],
     "basic_fields": [
       "control_net_name"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Load ControlNet from Huggingface",
@@ -66818,7 +67488,8 @@
     ],
     "basic_fields": [
       "model"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Load Upscale Model",
@@ -66863,7 +67534,8 @@
     "recommended_models": [],
     "basic_fields": [
       "model_name"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Load GLIGEN Model",
@@ -66908,7 +67580,8 @@
     "recommended_models": [],
     "basic_fields": [
       "gligen_name"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Lora Loader",
@@ -67036,7 +67709,8 @@
       "lora_name",
       "strength_model",
       "strength_clip"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Load LoRA from Huggingface",
@@ -67588,7 +68262,8 @@
       "lora",
       "strength_model",
       "strength_clip"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Lora Loader Model Only",
@@ -67669,7 +68344,8 @@
       "model",
       "lora_name",
       "strength_model"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Load VAE",
@@ -67714,7 +68390,8 @@
     "recommended_models": [],
     "basic_fields": [
       "vae_name"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Load VAE from Huggingface",
@@ -67777,7 +68454,8 @@
     ],
     "basic_fields": [
       "model"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Load CLIP",
@@ -67845,7 +68523,8 @@
     "basic_fields": [
       "clip_name",
       "type"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Load CLIP from Huggingface",
@@ -67945,7 +68624,8 @@
     "basic_fields": [
       "model",
       "type"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Load Dual CLIP",
@@ -68029,7 +68709,8 @@
       "clip_name1",
       "clip_name2",
       "type"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Load Dual CLIP from Huggingface",
@@ -68148,7 +68829,8 @@
       "type",
       "clip_model_1",
       "clip_model_2"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Load Diffusion Model",
@@ -68214,7 +68896,8 @@
     "basic_fields": [
       "unet_name",
       "weight_dtype"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Load Diffusion Model from Huggingface",
@@ -68312,7 +68995,8 @@
     "basic_fields": [
       "model",
       "weight_dtype"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Image Only Checkpoint Loader (img2vid model)",
@@ -68376,7 +69060,8 @@
     "recommended_models": [],
     "basic_fields": [
       "ckpt_name"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Load IPAdapter",
@@ -68421,7 +69106,8 @@
     "recommended_models": [],
     "basic_fields": [
       "ipadapter_file"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Load IPAdapter from Huggingface",
@@ -68512,7 +69198,8 @@
     ],
     "basic_fields": [
       "ipadapter"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Load Style Model",
@@ -68557,7 +69244,8 @@
     "recommended_models": [],
     "basic_fields": [
       "style_model_name"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Load Style Model from Huggingface",
@@ -68613,7 +69301,8 @@
     ],
     "basic_fields": [
       "model"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Convert Mask to Image",
@@ -68658,7 +69347,8 @@
     "recommended_models": [],
     "basic_fields": [
       "mask"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Convert Image to Mask",
@@ -68726,7 +69416,8 @@
     "basic_fields": [
       "image",
       "channel"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Image Color To Mask",
@@ -68789,7 +69480,8 @@
     "basic_fields": [
       "image",
       "color"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Solid Mask",
@@ -68863,7 +69555,8 @@
       "value",
       "width",
       "height"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Invert Mask",
@@ -68908,7 +69601,8 @@
     "recommended_models": [],
     "basic_fields": [
       "mask"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Crop Mask",
@@ -69017,7 +69711,8 @@
       "y",
       "width",
       "height"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Mask Composite",
@@ -69136,7 +69831,8 @@
       "x",
       "y",
       "operation"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Feather Mask",
@@ -69245,7 +69941,8 @@
       "top",
       "right",
       "bottom"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Grow Mask",
@@ -69322,7 +70019,8 @@
       "mask",
       "expand",
       "tapered_corners"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Porter Duff Image Composite",
@@ -69474,7 +70172,8 @@
       "destination",
       "destination_alpha",
       "mode"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Split Image With Alpha",
@@ -69532,7 +70231,8 @@
     "recommended_models": [],
     "basic_fields": [
       "image"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Join Image With Alpha",
@@ -69598,7 +70298,8 @@
     "basic_fields": [
       "image",
       "alpha"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "KSampler",
@@ -69848,7 +70549,8 @@
       "negative",
       "latent_image",
       "denoise"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "KSampler (Advanced)",
@@ -70131,7 +70833,8 @@
       "start_at_step",
       "end_at_step",
       "return_with_leftover_noise"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Differential Diffusion",
@@ -70177,7 +70880,8 @@
     "recommended_models": [],
     "basic_fields": [
       "model"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "KSampler Select",
@@ -70242,7 +70946,8 @@
     "recommended_models": [],
     "basic_fields": [
       "sampler_name"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Sampler DPMPP 2 M SDE",
@@ -70338,7 +71043,8 @@
       "eta",
       "s_noise",
       "noise_device"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Sampler DPMPP SDE",
@@ -70431,7 +71137,8 @@
       "s_noise",
       "r",
       "noise_device"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Sampler Custom",
@@ -70620,7 +71327,8 @@
       "sampler",
       "sigmas",
       "latent_image"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Sampler Custom Advanced",
@@ -70752,7 +71460,8 @@
       "sampler",
       "sigmas",
       "latent_image"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Basic Scheduler",
@@ -70853,7 +71562,8 @@
       "scheduler",
       "steps",
       "denoise"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Karras Scheduler",
@@ -70943,7 +71653,8 @@
       "sigma_max",
       "sigma_min",
       "rho"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Exponential Scheduler",
@@ -71017,7 +71728,8 @@
       "steps",
       "sigma_max",
       "sigma_min"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Polyexponential Scheduler",
@@ -71107,7 +71819,8 @@
       "sigma_max",
       "sigma_min",
       "rho"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "SDTurbo Scheduler",
@@ -71185,7 +71898,8 @@
       "model",
       "steps",
       "denoise"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "VPScheduler",
@@ -71275,7 +71989,8 @@
       "beta_d",
       "beta_min",
       "eps_s"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "LTXV Scheduler",
@@ -71397,7 +72112,8 @@
       "stretch",
       "terminal",
       "latent"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Split Sigmas",
@@ -71446,7 +72162,8 @@
     "basic_fields": [
       "sigmas",
       "step"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Flip Sigmas",
@@ -71491,7 +72208,8 @@
     "recommended_models": [],
     "basic_fields": [
       "sigmas"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Basic Guider",
@@ -71556,7 +72274,8 @@
     "basic_fields": [
       "model",
       "conditioning"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "CFGGuider",
@@ -71650,7 +72369,8 @@
       "positive",
       "negative",
       "cfg"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Dual CFGGuider",
@@ -71782,7 +72502,8 @@
       "negative",
       "cfg_conds",
       "cfg_conds2_negative"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Video Linear CFGGuidance",
@@ -71844,7 +72565,8 @@
     "basic_fields": [
       "model",
       "min_cfg"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Video Triangle CFGGuidance",
@@ -71906,7 +72628,8 @@
     "basic_fields": [
       "model",
       "min_cfg"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Random Noise",
@@ -71948,7 +72671,8 @@
     "recommended_models": [],
     "basic_fields": [
       "noise_seed"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Disable Noise",
@@ -71960,7 +72684,8 @@
     "outputs": [],
     "the_model_info": {},
     "recommended_models": [],
-    "basic_fields": []
+    "basic_fields": [],
+    "is_dynamic": false
   },
   {
     "title": "Add Noise",
@@ -72045,7 +72770,8 @@
       "noise",
       "sigmas",
       "latent_image"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Lo RASelector",
@@ -72254,7 +72980,8 @@
       "strength4",
       "lora5",
       "strength5"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Stable Diffusion",
@@ -72647,7 +73374,8 @@
       "grow_mask_by",
       "denoise",
       "loras"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Stable Diffusion XL",
@@ -73033,7 +73761,8 @@
       "grow_mask_by",
       "denoise",
       "loras"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Stable Diffusion 3.5",
@@ -73363,7 +74092,8 @@
       "grow_mask_by",
       "denoise",
       "loras"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Control Net",
@@ -73843,7 +74573,8 @@
       "controlnet",
       "image",
       "strength"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Flux",
@@ -74135,7 +74866,8 @@
       "denoise",
       "scheduler",
       "sampler"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Flux FP8",
@@ -74406,7 +75138,8 @@
       "denoise",
       "scheduler",
       "sampler"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Primitive",
@@ -74430,7 +75163,8 @@
     ],
     "the_model_info": {},
     "recommended_models": [],
-    "basic_fields": []
+    "basic_fields": [],
+    "is_dynamic": false
   },
   {
     "title": "Reroute",
@@ -74454,7 +75188,8 @@
     ],
     "the_model_info": {},
     "recommended_models": [],
-    "basic_fields": []
+    "basic_fields": [],
+    "is_dynamic": false
   },
   {
     "title": "Any LLM",
@@ -74541,7 +75276,8 @@
       "prompt",
       "model",
       "system_prompt"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Ideogram V 2",
@@ -74681,7 +75417,8 @@
       "prompt",
       "aspect_ratio",
       "style"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Ideogram V 2 Turbo",
@@ -74821,7 +75558,8 @@
       "prompt",
       "aspect_ratio",
       "style"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Flux V 1 Pro",
@@ -74932,7 +75670,8 @@
       "prompt",
       "image_size",
       "guidance_scale"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Flux V 1 Pro Ultra",
@@ -75043,7 +75782,8 @@
       "prompt",
       "image_size",
       "guidance_scale"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Recraft V 3",
@@ -75189,7 +75929,8 @@
       "prompt",
       "image_size",
       "style"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Switti",
@@ -75398,7 +76139,8 @@
       "prompt",
       "guidance_scale",
       "negative_prompt"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Aura Flow V 03",
@@ -75517,7 +76259,8 @@
       "prompt",
       "guidance_scale",
       "num_inference_steps"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Flux Dev",
@@ -75658,7 +76401,8 @@
       "prompt",
       "image_size",
       "guidance_scale"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Flux Lora",
@@ -75807,7 +76551,8 @@
       "prompt",
       "image_size",
       "loras"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Flux Lora Inpainting",
@@ -75980,7 +76725,8 @@
       "image",
       "mask",
       "loras"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Flux Schnell",
@@ -76106,7 +76852,8 @@
       "prompt",
       "image_size",
       "num_inference_steps"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Flux Subject",
@@ -76247,7 +76994,8 @@
       "prompt",
       "image",
       "image_size"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Flux V 1 Pro New",
@@ -76388,7 +77136,8 @@
       "prompt",
       "image_size",
       "guidance_scale"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Sana V 1",
@@ -76544,7 +77293,8 @@
       "prompt",
       "image_size",
       "guidance_scale"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Omni Gen V 1",
@@ -76740,7 +77490,8 @@
       "prompt",
       "input_image_1",
       "image_size"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Stable Diffusion V 35 Large",
@@ -76881,7 +77632,8 @@
       "prompt",
       "negative_prompt",
       "guidance_scale"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Recraft 20 B",
@@ -77027,7 +77779,8 @@
       "prompt",
       "image_size",
       "style"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Bria V 1",
@@ -77205,7 +77958,8 @@
       "prompt",
       "negative_prompt",
       "aspect_ratio"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Bria V 1 Fast",
@@ -77383,7 +78137,8 @@
       "prompt",
       "negative_prompt",
       "aspect_ratio"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Bria V 1 HD",
@@ -77561,7 +78316,8 @@
       "prompt",
       "negative_prompt",
       "aspect_ratio"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Flux General",
@@ -77792,7 +78548,8 @@
       "prompt",
       "image_size",
       "guidance_scale"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Stable Diffusion V 3 Medium",
@@ -77963,7 +78720,8 @@
       "prompt",
       "negative_prompt",
       "guidance_scale"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Fast SDXL",
@@ -78157,7 +78915,8 @@
       "prompt",
       "negative_prompt",
       "guidance_scale"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Flux Lora TTI",
@@ -78359,7 +79118,8 @@
       "prompt",
       "model_name",
       "loras"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Stable Cascade",
@@ -78530,7 +79290,8 @@
       "prompt",
       "negative_prompt",
       "guidance_scale"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Luma Photon",
@@ -78596,7 +79357,8 @@
     "basic_fields": [
       "prompt",
       "aspect_ratio"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Luma Photon Flash",
@@ -78662,7 +79424,8 @@
     "basic_fields": [
       "prompt",
       "aspect_ratio"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Fast Turbo Diffusion",
@@ -78836,7 +79599,8 @@
       "prompt",
       "model_name",
       "guidance_scale"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Fast LCMDiffusion",
@@ -79073,7 +79837,8 @@
       "prompt",
       "model_name",
       "guidance_scale"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Fast Lightning SDXL",
@@ -79199,7 +79964,8 @@
       "prompt",
       "image_size",
       "num_inference_steps"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Hyper SDXL",
@@ -79355,7 +80121,8 @@
       "prompt",
       "image_size",
       "num_inference_steps"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Playground V 25",
@@ -79481,7 +80248,8 @@
       "prompt",
       "image_size",
       "guidance_scale"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "LCMDiffusion",
@@ -79640,7 +80408,8 @@
       "prompt",
       "model",
       "guidance_scale"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Fooocus",
@@ -79947,7 +80716,8 @@
       "prompt",
       "negative_prompt",
       "styles"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Illusion Diffusion",
@@ -80093,7 +80863,8 @@
       "prompt",
       "image",
       "guidance_scale"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Fast SDXLControl Net Canny",
@@ -80254,7 +81025,8 @@
       "prompt",
       "control_image",
       "guidance_scale"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Flux Dev Image To Image",
@@ -80393,7 +81165,8 @@
       "prompt",
       "image",
       "strength"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Diffusion Edge",
@@ -80440,7 +81213,8 @@
     "recommended_models": [],
     "basic_fields": [
       "image"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "MMAudio V2",
@@ -80574,7 +81348,8 @@
       "prompt",
       "duration",
       "num_steps"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Stable Audio",
@@ -80663,7 +81438,8 @@
       "prompt",
       "seconds_total",
       "steps"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "F5 TTS",
@@ -80767,7 +81543,8 @@
       "gen_text",
       "ref_audio_url",
       "model_type"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Whisper",
@@ -81085,7 +81862,8 @@
       "audio",
       "task",
       "diarize"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Flux Schnell Redux",
@@ -81201,7 +81979,8 @@
       "image",
       "image_size",
       "num_inference_steps"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Flux Dev Redux",
@@ -81332,7 +82111,8 @@
       "image",
       "image_size",
       "guidance_scale"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Flux Pro Redux",
@@ -81463,7 +82243,8 @@
       "image",
       "image_size",
       "guidance_scale"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Flux Pro Ultra Redux",
@@ -81609,7 +82390,8 @@
       "image",
       "image_size",
       "guidance_scale"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Flux Pro Fill",
@@ -81738,7 +82520,8 @@
       "image",
       "mask",
       "prompt"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Flux Pro Canny",
@@ -81884,7 +82667,8 @@
       "control_image",
       "prompt",
       "image_size"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Flux Pro Depth",
@@ -82030,7 +82814,8 @@
       "control_image",
       "prompt",
       "image_size"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Flux Lora Canny",
@@ -82176,7 +82961,8 @@
       "control_image",
       "prompt",
       "image_size"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Flux Lora Depth",
@@ -82322,7 +83108,8 @@
       "control_image",
       "prompt",
       "image_size"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Ideogram V 2 Edit",
@@ -82451,7 +83238,8 @@
       "prompt",
       "image",
       "mask"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Ideogram V 2 Remix",
@@ -82590,7 +83378,8 @@
       "prompt",
       "image",
       "strength"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Bria Eraser",
@@ -82673,7 +83462,8 @@
     "basic_fields": [
       "image",
       "mask"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Bria Product Shot",
@@ -82801,7 +83591,8 @@
     "basic_fields": [
       "image",
       "scene_description"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Bria Background Replace",
@@ -82929,7 +83720,8 @@
     "basic_fields": [
       "image",
       "prompt"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Bria Gen Fill",
@@ -83043,7 +83835,8 @@
       "image",
       "mask",
       "prompt"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Bria Expand",
@@ -83243,7 +84036,8 @@
       "canvas_width",
       "canvas_height",
       "prompt"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Bria Background Remove",
@@ -83290,7 +84084,8 @@
     "recommended_models": [],
     "basic_fields": [
       "image"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Haiper Image To Video",
@@ -83402,7 +84197,8 @@
       "image",
       "prompt",
       "duration"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Luma Dream Machine",
@@ -83534,7 +84330,8 @@
       "image",
       "prompt",
       "aspect_ratio"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Kling Video",
@@ -83639,7 +84436,8 @@
       "image",
       "prompt",
       "duration"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Kling Video Pro",
@@ -83744,7 +84542,8 @@
       "image",
       "prompt",
       "duration"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Cog Video X",
@@ -83920,7 +84719,8 @@
       "image",
       "prompt",
       "video_size"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Mini Max Video",
@@ -83998,7 +84798,8 @@
     "basic_fields": [
       "image",
       "prompt"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "LTXVideo",
@@ -84121,7 +84922,8 @@
     "basic_fields": [
       "image",
       "prompt"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Stable Video",
@@ -84230,7 +85032,8 @@
       "image",
       "motion_bucket_id",
       "fps"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Fast SVD",
@@ -84354,7 +85157,8 @@
       "image",
       "motion_bucket_id",
       "fps"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "AMTInterpolation",
@@ -84448,7 +85252,8 @@
     "basic_fields": [
       "frames",
       "output_fps"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Sad Talker",
@@ -84581,7 +85386,8 @@
       "image",
       "audio",
       "face_model_resolution"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Muse Talk",
@@ -84651,7 +85457,8 @@
     "basic_fields": [
       "video",
       "audio"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Text To Speech",
@@ -84750,7 +85557,8 @@
       "input",
       "model",
       "voice"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Transcribe",
@@ -84813,7 +85621,8 @@
     "basic_fields": [
       "audio",
       "temperature"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Translate",
@@ -84876,7 +85685,8 @@
     "basic_fields": [
       "audio",
       "temperature"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Agent",
@@ -84979,7 +85789,8 @@
       "goal",
       "model",
       "temperature"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Run Tasks",
@@ -85113,7 +85924,8 @@
       "tasks",
       "model",
       "temperature"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Data Generator",
@@ -85261,7 +86073,8 @@
       "prompt",
       "model",
       "temperature"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Chain Of Thought",
@@ -85383,7 +86196,8 @@
       "messages",
       "model",
       "temperature"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Process Thought",
@@ -85495,7 +86309,8 @@
       "current_step",
       "model",
       "temperature"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Chart Generator",
@@ -85629,7 +86444,8 @@
       "prompt",
       "data",
       "model"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Regression Analyst",
@@ -85745,7 +86561,8 @@
       "prompt",
       "data",
       "model"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Synthesizer Agent",
@@ -85855,7 +86672,8 @@
       "prompt",
       "duration",
       "model"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Chain Of Thought Summarizer",
@@ -86030,7 +86848,8 @@
       "steps",
       "messages",
       "model"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Dall E",
@@ -86130,7 +86949,8 @@
       "size",
       "quality",
       "style"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Embedding",
@@ -86207,7 +87027,8 @@
       "input",
       "model",
       "chunk_size"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "GPT",
@@ -86382,7 +87203,8 @@
       "prompt",
       "model",
       "temperature"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Audio Super Resolution",
@@ -86504,7 +87326,8 @@
       "seed",
       "ddim_steps",
       "input_file"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Realistic Voice Cloning",
@@ -86873,7 +87696,8 @@
       "protect",
       "rvc_model",
       "index_rate"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Tortoise TTS",
@@ -87147,7 +87971,8 @@
       "seed",
       "text",
       "preset"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Style TTS 2",
@@ -87344,7 +88169,8 @@
       "beta",
       "seed",
       "text"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Riffusion",
@@ -87503,7 +88329,8 @@
       "alpha",
       "prompt_a",
       "prompt_b"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Music Gen",
@@ -87843,7 +88670,8 @@
       "seed",
       "top_k",
       "top_p"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "MMAudio",
@@ -88005,7 +88833,8 @@
       "seed",
       "video",
       "prompt"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Incredibly Fast Whisper",
@@ -88280,7 +89109,8 @@
       "task",
       "audio",
       "hf_token"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Demucs",
@@ -88604,7 +89434,8 @@
       "jobs",
       "stem",
       "audio"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "SDXLClip Interrogator",
@@ -88683,7 +89514,8 @@
     "basic_fields": [
       "mode",
       "image"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Img 2 Prompt",
@@ -88743,7 +89575,8 @@
     "recommended_models": [],
     "basic_fields": [
       "image"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Moondream 2",
@@ -88819,7 +89652,8 @@
     "basic_fields": [
       "image",
       "prompt"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "NSFWImage Detection",
@@ -88889,7 +89723,8 @@
     "recommended_models": [],
     "basic_fields": [
       "image"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Blip",
@@ -89030,7 +89865,8 @@
       "task",
       "image",
       "caption"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Blip 2",
@@ -89182,7 +90018,8 @@
       "image",
       "caption",
       "context"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Clip Interrogator",
@@ -89283,7 +90120,8 @@
       "mode",
       "image",
       "clip_model_name"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Llava 13 b",
@@ -89420,7 +90258,8 @@
       "image",
       "top_p",
       "prompt"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Clip Features",
@@ -89483,7 +90322,8 @@
     "recommended_models": [],
     "basic_fields": [
       "inputs"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Code Former",
@@ -89605,7 +90445,8 @@
       "image",
       "upscale",
       "face_upsample"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Night Enhancement",
@@ -89665,7 +90506,8 @@
     "recommended_models": [],
     "basic_fields": [
       "image"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Supir V 0 Q",
@@ -89986,7 +90828,8 @@
       "seed",
       "image",
       "s_cfg"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Supir V 0 F",
@@ -90307,7 +91150,8 @@
       "seed",
       "image",
       "s_cfg"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Maxim",
@@ -90410,7 +91254,8 @@
     "basic_fields": [
       "image",
       "model"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Old Photos Restoration",
@@ -90502,7 +91347,8 @@
       "HR",
       "image",
       "with_scratch"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Face To Many",
@@ -90751,7 +91597,8 @@
       "seed",
       "image",
       "style"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Become Image",
@@ -91013,7 +91860,8 @@
       "seed",
       "image",
       "prompt"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Photo Maker",
@@ -91337,7 +92185,8 @@
       "seed",
       "prompt",
       "num_steps"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Photo Maker Style",
@@ -91621,7 +92470,8 @@
       "seed",
       "prompt",
       "num_steps"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Face To Sticker",
@@ -91878,7 +92728,8 @@
       "seed",
       "image",
       "steps"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Instant Id",
@@ -92379,7 +93230,8 @@
       "seed",
       "image",
       "prompt"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Instant ID Photorealistic",
@@ -92561,7 +93413,8 @@
       "image",
       "width",
       "height"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Instant ID Artistic",
@@ -92743,7 +93596,8 @@
       "image",
       "width",
       "height"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Ad Inpaint",
@@ -92966,7 +93820,8 @@
       "pixel",
       "scale",
       "prompt"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Consistent Character",
@@ -93182,7 +94037,8 @@
       "seed",
       "prompt",
       "subject"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Pulid Base",
@@ -93425,7 +94281,8 @@
       "seed",
       "width",
       "height"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Stable Diffusion",
@@ -93673,7 +94530,8 @@
       "seed",
       "width",
       "height"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Stable Diffusion 3 5 Medium",
@@ -93886,7 +94744,8 @@
       "cfg",
       "seed",
       "image"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Stable Diffusion 3 5 Large",
@@ -94099,7 +94958,8 @@
       "cfg",
       "seed",
       "image"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Stable Diffusion 3 5 Large Turbo",
@@ -94312,7 +95172,8 @@
       "cfg",
       "seed",
       "image"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Photon Flash",
@@ -94527,7 +95388,8 @@
       "seed",
       "prompt",
       "aspect_ratio"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Stable Diffusion XL",
@@ -94921,7 +95783,8 @@
       "mask",
       "seed",
       "image"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "SDXL Pixar",
@@ -95315,7 +96178,8 @@
       "mask",
       "seed",
       "image"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "SDXL Emoji",
@@ -95709,7 +96573,8 @@
       "mask",
       "seed",
       "image"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Stable Diffusion Inpainting",
@@ -96012,7 +96877,8 @@
       "mask",
       "seed",
       "image"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Kandinsky 2 2",
@@ -96251,7 +97117,8 @@
       "seed",
       "width",
       "height"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Flux Schnell",
@@ -96492,7 +97359,8 @@
       "seed",
       "prompt",
       "go_fast"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Flux Dev",
@@ -96793,7 +97661,8 @@
       "seed",
       "image",
       "prompt"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Flux Pro",
@@ -97120,7 +97989,8 @@
       "seed",
       "steps",
       "width"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Flux 1 1 Pro Ultra",
@@ -97342,7 +98212,8 @@
       "raw",
       "seed",
       "prompt"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Flux Dev Lora",
@@ -97678,7 +98549,8 @@
       "seed",
       "image",
       "prompt"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Flux Schnell Lora",
@@ -97964,7 +98836,8 @@
       "seed",
       "prompt",
       "go_fast"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Flux Depth Pro",
@@ -98164,7 +99037,8 @@
       "seed",
       "steps",
       "prompt"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Flux Canny Pro",
@@ -98364,7 +99238,8 @@
       "seed",
       "steps",
       "prompt"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Flux Fill Pro",
@@ -98604,7 +99479,8 @@
       "mask",
       "seed",
       "image"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Flux Depth Dev",
@@ -98839,7 +99715,8 @@
       "seed",
       "prompt",
       "guidance"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Hyper Flux 8 Step",
@@ -99123,7 +100000,8 @@
       "seed",
       "width",
       "height"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Flux Mona Lisa",
@@ -99603,7 +100481,8 @@
       "mask",
       "seed",
       "image"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Flux Cinestill",
@@ -100083,7 +100962,8 @@
       "mask",
       "seed",
       "image"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Flux Black Light",
@@ -100563,7 +101443,8 @@
       "mask",
       "seed",
       "image"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Flux 360",
@@ -101043,7 +101924,8 @@
       "mask",
       "seed",
       "image"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Recraft V 3",
@@ -101181,7 +102063,8 @@
       "size",
       "style",
       "prompt"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Recraft 20 B",
@@ -101326,7 +102209,8 @@
       "size",
       "style",
       "prompt"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Recraft 20 B SVG",
@@ -101466,7 +102350,8 @@
       "size",
       "style",
       "prompt"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Recraft V 3 SVG",
@@ -101590,7 +102475,8 @@
       "size",
       "style",
       "prompt"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Flux Canny Dev",
@@ -101825,7 +102711,8 @@
       "seed",
       "prompt",
       "guidance"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Flux Fill Dev",
@@ -102100,7 +102987,8 @@
       "mask",
       "seed",
       "image"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Flux Redux Schnell",
@@ -102316,7 +103204,8 @@
       "seed",
       "megapixels",
       "num_outputs"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Flux Redux Dev",
@@ -102547,7 +103436,8 @@
       "seed",
       "guidance",
       "megapixels"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "SDXL Controlnet",
@@ -102684,7 +103574,8 @@
       "seed",
       "image",
       "prompt"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "SDXL Ad Inpaint",
@@ -102999,7 +103890,8 @@
       "seed",
       "image",
       "prompt"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Kandinsky",
@@ -103238,7 +104130,8 @@
       "seed",
       "width",
       "height"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Stable Diffusion XLLightning",
@@ -103454,7 +104347,8 @@
       "seed",
       "width",
       "height"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Playground V 2",
@@ -103750,7 +104644,8 @@
       "mask",
       "seed",
       "image"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Proteus V 02",
@@ -104035,7 +104930,8 @@
       "mask",
       "seed",
       "image"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Proteus V 03",
@@ -104321,7 +105217,8 @@
       "mask",
       "seed",
       "image"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Sticker Maker",
@@ -104517,7 +105414,8 @@
       "seed",
       "steps",
       "width"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Style Transfer",
@@ -104789,7 +105687,8 @@
       "seed",
       "model",
       "width"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Illusions",
@@ -105105,7 +106004,8 @@
       "seed",
       "image",
       "width"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Ideogram V 2",
@@ -105441,7 +106341,8 @@
       "mask",
       "seed",
       "image"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Ideogram V 2 Turbo",
@@ -105777,7 +106678,8 @@
       "mask",
       "seed",
       "image"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Text Extract OCR",
@@ -105837,7 +106739,8 @@
     "recommended_models": [],
     "basic_fields": [
       "image"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Latex OCR",
@@ -105907,7 +106810,8 @@
     "recommended_models": [],
     "basic_fields": [
       "image_path"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Remove Background",
@@ -105967,7 +106871,8 @@
     "recommended_models": [],
     "basic_fields": [
       "image"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Mod Net",
@@ -106027,7 +106932,8 @@
     "recommended_models": [],
     "basic_fields": [
       "image"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "DD Color",
@@ -106116,7 +107022,8 @@
     "basic_fields": [
       "image",
       "model_size"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Magic Style Transfer",
@@ -106476,7 +107383,8 @@
       "seed",
       "image",
       "prompt"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Object Remover",
@@ -106557,7 +107465,8 @@
     "basic_fields": [
       "org_image",
       "mask_image"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Real Esr Gan",
@@ -106649,7 +107558,8 @@
       "image",
       "scale",
       "face_enhance"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "GFPGAN",
@@ -106746,7 +107656,8 @@
       "img",
       "scale",
       "version"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Clarity Upscaler",
@@ -107215,7 +108126,8 @@
       "mask",
       "seed",
       "image"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Magic Image Refiner",
@@ -107501,7 +108413,8 @@
       "hdr",
       "mask",
       "seed"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "ru Dall E SR",
@@ -107581,7 +108494,8 @@
     "basic_fields": [
       "image",
       "scale"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "High Resolution Control Net Tile",
@@ -107895,7 +108809,8 @@
       "hdr",
       "seed",
       "image"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Ultimate SDUpscale",
@@ -108359,7 +109274,8 @@
       "cfg",
       "seed",
       "image"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Swin IR",
@@ -108476,7 +109392,8 @@
       "jpeg",
       "image",
       "noise"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Swin 2 SR",
@@ -108556,7 +109473,8 @@
     "basic_fields": [
       "task",
       "image"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Llama 3 8 B",
@@ -108733,7 +109651,8 @@
       "top_k",
       "top_p",
       "prompt"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Llama 3 8 B Instruct",
@@ -108910,7 +109829,8 @@
       "top_k",
       "top_p",
       "prompt"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Llama 3 70 B",
@@ -109087,7 +110007,8 @@
       "top_k",
       "top_p",
       "prompt"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Llama 3 70 B Instruct",
@@ -109264,7 +110185,8 @@
       "top_k",
       "top_p",
       "prompt"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Llama 3 1 405 B Instruct",
@@ -109471,7 +110393,8 @@
       "top_k",
       "top_p",
       "prompt"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Llama Guard 3 11 B Vision",
@@ -109557,7 +110480,8 @@
     "basic_fields": [
       "image",
       "prompt"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Llama Guard 3 8 B",
@@ -109643,7 +110567,8 @@
     "basic_fields": [
       "prompt",
       "assistant"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Snowflake Arctic Instruct",
@@ -109744,7 +110669,8 @@
     "basic_fields": [
       "name",
       "name_file"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Video Llava",
@@ -109858,7 +110784,8 @@
       "image_path",
       "video_path",
       "text_prompt"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Ray",
@@ -110068,7 +110995,8 @@
       "loop",
       "prompt",
       "aspect_ratio"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Hotshot XL",
@@ -110283,7 +111211,8 @@
       "mp4",
       "seed",
       "steps"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Zeroscope V 2 XL",
@@ -110585,7 +111514,8 @@
       "fps",
       "seed",
       "model"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Robust Video Matting",
@@ -110667,7 +111597,8 @@
     "basic_fields": [
       "input_video",
       "output_type"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Audio To Waveform",
@@ -110819,7 +111750,8 @@
       "audio",
       "bg_color",
       "fg_alpha"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Hunyuan Video",
@@ -110996,7 +111928,8 @@
       "fps",
       "seed",
       "width"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Video 01 Live",
@@ -111113,7 +112046,8 @@
       "prompt",
       "prompt_optimizer",
       "first_frame_image"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Video 01",
@@ -111230,7 +112164,8 @@
       "prompt",
       "prompt_optimizer",
       "first_frame_image"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Music 01",
@@ -111457,7 +112392,8 @@
       "lyrics",
       "bitrate",
       "voice_id"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "LTX Video",
@@ -111718,7 +112654,8 @@
       "cfg",
       "seed",
       "image"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Ollama",
@@ -111918,7 +112855,8 @@
       "model",
       "prompt",
       "image"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Embedding",
@@ -112014,7 +112952,8 @@
     "basic_fields": [
       "model",
       "input"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Data Generator",
@@ -112174,7 +113113,8 @@
       "model",
       "prompt",
       "columns"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "SVG Generator",
@@ -112323,7 +113263,8 @@
     "basic_fields": [
       "model",
       "prompt"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Chart Generator",
@@ -112545,7 +113486,8 @@
       "prompt",
       "data",
       "plot_type"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Question Answer Agent",
@@ -112709,7 +113651,8 @@
     "basic_fields": [
       "model",
       "prompt"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Schema Generator",
@@ -112866,7 +113809,8 @@
       "model",
       "prompt",
       "schema"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Classifier",
@@ -113023,7 +113967,8 @@
       "model",
       "input_text",
       "labels"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Summarize Chunks",
@@ -113218,7 +114163,8 @@
       "model",
       "text",
       "prompt"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Summarizer",
@@ -113390,7 +114336,8 @@
       "model",
       "text",
       "prompt"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Gmail Search",
@@ -113485,7 +114432,8 @@
       "email_address",
       "search_criteria",
       "max_results"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Move To Archive",
@@ -113559,7 +114507,8 @@
     "basic_fields": [
       "email_address",
       "message_ids"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Email Search Criteria",
@@ -113748,7 +114697,8 @@
       "keywords",
       "folder",
       "text"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Gemini",
@@ -114004,7 +114954,8 @@
       "max_output_tokens",
       "presence_penalty",
       "frequency_penalty"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Gemini Agent",
@@ -114090,7 +115041,8 @@
       "goal",
       "model",
       "temperature"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Chain Of Thought",
@@ -114174,7 +115126,8 @@
     "recommended_models": [],
     "basic_fields": [
       "messages"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Data Generator",
@@ -114311,7 +115264,8 @@
       "image",
       "audio",
       "columns"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "SVGGenerator",
@@ -114437,7 +115391,8 @@
       "prompt",
       "image",
       "audio"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Summarizer",
@@ -114529,7 +115484,8 @@
     "basic_fields": [
       "text",
       "max_words"
-    ]
+    ],
+    "is_dynamic": false
   },
   {
     "title": "Text To Speech",
@@ -114805,6 +115761,7 @@
     "basic_fields": [
       "voice",
       "text"
-    ]
+    ],
+    "is_dynamic": false
   }
 ]

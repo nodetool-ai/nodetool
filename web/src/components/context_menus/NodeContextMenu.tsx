@@ -11,6 +11,7 @@ import DataArrayIcon from "@mui/icons-material/DataArray";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import GroupRemoveIcon from "@mui/icons-material/GroupRemove";
 import SearchIcon from "@mui/icons-material/Search";
+import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 //store
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { useNodeStore, NodeStore } from "../../stores/NodeStore";
@@ -124,6 +125,7 @@ const NodeContextMenu: React.FC = () => {
     <Menu
       className="context-menu node-context-menu"
       open={menuPosition !== null}
+      onClose={closeContextMenu}
       onContextMenu={(event) => event.preventDefault()}
       anchorReference="anchorPosition"
       anchorPosition={

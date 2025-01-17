@@ -3,7 +3,7 @@ import { css, keyframes } from "@emotion/react";
 import { colorForType } from "../../config/data_types";
 
 import ThemeNodes from "../themes/ThemeNodes";
-import { memo, useMemo, useState } from "react";
+import { memo, useMemo, useState, useCallback } from "react";
 import {
   Node,
   NodeProps,
@@ -13,7 +13,7 @@ import {
   ResizeParams
 } from "@xyflow/react";
 import { isEqual } from "lodash";
-import { Container } from "@mui/material";
+import { Container, TextField } from "@mui/material";
 import { NodeData } from "../../stores/NodeData";
 import { NodeHeader } from "./NodeHeader";
 import { NodeErrors } from "./NodeErrors";
@@ -31,6 +31,8 @@ import { darkenHexColor, simulateOpacity } from "../../utils/ColorUtils";
 import useMetadataStore from "../../stores/MetadataStore";
 import NodeFooter from "./NodeFooter";
 import useSelect from "../../hooks/nodes/useSelect";
+import { useNodeStore } from "../../stores/NodeStore";
+import { Add, Delete } from "@mui/icons-material";
 
 // Node sizing constants
 const BASE_HEIGHT = 0; // Minimum height for the node
@@ -136,6 +138,8 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const hasParent = Boolean(parentId);
   const { activeSelect } = useSelect();
   const [showAdvancedFields, setShowAdvancedFields] = useState(false);
+  const [showPropertyForm, setShowPropertyForm] = useState(false);
+  const [newPropertyName, setNewPropertyName] = useState("");
 
   // Workflow and status
   const workflowId = props.data.workflow_id;
@@ -194,8 +198,8 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   }, [metadata]);
 
   // Node metadata and properties
-  const node_namespace = metadata?.namespace || "";
-  const node_basic_fields = metadata?.basic_fields || [];
+  const nodeNamespace = metadata?.namespace || "";
+  const nodeBasicFields = metadata?.basic_fields || [];
   const nodeColors = useMemo(() => {
     const outputColors = [
       ...new Set(
@@ -233,7 +237,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     workflowId,
     status,
     isProduction,
-    node_namespace,
+    node_namespace: nodeNamespace,
     isConstantNode,
     isOutputNode,
     renderedResult,
@@ -264,20 +268,51 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           )
         : ""
     };
-
-    // Otherwise use parent's group color
-    // if (!parentNode?.data?.properties?.group_color) return "";
-    // return simulateOpacity(
-    //   parentNode?.data?.properties?.group_color,
-    //   0.15,
-    //   ThemeNodes.palette.c_editor_bg_color
-    // );
   }, [metadata]);
 
   const hasAdvancedFields = useMemo(() => {
     if (!metadata?.properties || !metadata?.basic_fields) return false;
     return metadata.properties.length > metadata.basic_fields.length;
   }, [metadata]);
+
+  const { updateNodeData } = useNodeStore((state) => ({
+    updateNodeData: state.updateNodeData
+  }));
+
+  // Add delete handler for dynamic properties
+  const handleDeleteProperty = useCallback(
+    (propertyName: string) => {
+      const updatedDynamicProperties = {
+        ...(props.data.dynamic_properties as Record<string, any>)
+      };
+      delete updatedDynamicProperties[propertyName];
+
+      updateNodeData(props.id, {
+        dynamic_properties: updatedDynamicProperties
+      });
+    },
+    [props.data, props.id, updateNodeData]
+  );
+
+  // Add handler for property submission
+  const handlePropertySubmit = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter" && newPropertyName.trim()) {
+        const updatedDynamicProperties = {
+          ...(props.data.dynamic_properties as Record<string, any>),
+          [newPropertyName]: ""
+        };
+
+        updateNodeData(props.id, {
+          dynamic_properties: updatedDynamicProperties
+        });
+
+        setNewPropertyName("");
+        setShowPropertyForm(false);
+      }
+    },
+    [newPropertyName, props.data, props.id]
+  );
 
   if (!metadata) {
     return (
@@ -286,11 +321,6 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       </Container>
     );
   }
-
-  // if (parentIsCollapsed) {
-  //   return null;
-  // }
-  //
 
   // first line of description
   const description = metadata.description?.split("\n")[0];
@@ -324,7 +354,62 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       <NodeErrors id={props.id} workflow_id={workflowId} />
       <NodeStatus status={status} />
       {!isProduction && <ModelRecommendations nodeType={props.type} />}
-      {!isProduction && <ApiKeyValidation nodeNamespace={node_namespace} />}
+      {!isProduction && <ApiKeyValidation nodeNamespace={nodeNamespace} />}
+      {metadata?.is_dynamic && (
+        <div
+          css={css({
+            padding: "8px",
+            borderBottom: `1px solid ${ThemeNodes.palette.c_gray2}`
+          })}
+        >
+          {!showPropertyForm ? (
+            <button
+              onClick={() => setShowPropertyForm(true)}
+              css={css({
+                width: "100%",
+                padding: "8px",
+                background: "transparent",
+                border: `1px dashed ${ThemeNodes.palette.c_gray2}`,
+                borderRadius: "4px",
+                cursor: "pointer",
+                color: ThemeNodes.palette.c_white,
+                fontSize: "0.9em",
+                transition: "all 0.2s ease",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "4px",
+                "&:hover": {
+                  background: ThemeNodes.palette.c_gray1,
+                  borderStyle: "solid"
+                }
+              })}
+            >
+              <Add style={{ fontSize: "1.2em" }} />
+              Add Property
+            </button>
+          ) : (
+            <TextField
+              autoFocus
+              size="small"
+              placeholder="Property name..."
+              value={newPropertyName}
+              onChange={(e) => setNewPropertyName(e.target.value)}
+              onKeyPress={handlePropertySubmit}
+              onBlur={() => {
+                setShowPropertyForm(false);
+                setNewPropertyName("");
+              }}
+              css={css({
+                width: "100%",
+                "& .MuiOutlinedInput-root": {
+                  background: ThemeNodes.palette.c_gray0
+                }
+              })}
+            />
+          )}
+        </div>
+      )}
       <NodeContent
         id={props.id}
         nodeType={props.type}
@@ -333,10 +418,11 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         isOutputNode={isOutputNode}
         data={props.data}
         showAdvancedFields={showAdvancedFields}
-        basicFields={node_basic_fields}
+        basicFields={nodeBasicFields}
         status={status}
         workflowId={workflowId}
         renderedResult={renderedResult}
+        onDeleteProperty={handleDeleteProperty}
       />
       {props.selected && resizer}
       {hasAdvancedFields && (

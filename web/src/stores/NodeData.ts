@@ -1,6 +1,7 @@
 export type NodeData = {
   properties: any;
   selectable: boolean | undefined;
+  dynamic_properties: any;
   workflow_id: string;
   title?: string;
   color?: string;
