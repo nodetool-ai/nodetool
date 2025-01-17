@@ -72,7 +72,7 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
   const hideField = !isConnected && !isBasicField && !showAdvancedFields;
   const classConnectable = useMemo(() => {
-    return connectType !== null &&
+    return connectType &&
       isConnectableCached(connectType, property.type) &&
       connectNodeId !== id &&
       connectDirection === "source"
@@ -96,8 +96,6 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
     },
     [id, openContextMenu, property.name, property.type.type]
   );
-
-  const updateNodeData = useNodeStore((state) => state.updateNodeData);
 
   const tooltipTitle = useMemo(
     () => (
@@ -163,24 +161,11 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
             property={property}
             controlKeyPressed={controlKeyPressed || metaKeyPressed}
             isInspector={isInspector}
+            isConnected={isConnected}
             tabIndex={tabIndex}
             isDynamicProperty={isDynamicProperty}
+            onDeleteProperty={onDeleteProperty}
           />
-          {isDynamicProperty && onDeleteProperty && (
-            <Close
-              css={css({
-                fontSize: "1em",
-                cursor: "pointer",
-                marginTop: "1.5em",
-                marginLeft: "0.5em",
-                opacity: 0.6,
-                "&:hover": {
-                  opacity: 1
-                }
-              })}
-              onClick={() => onDeleteProperty(property.name)}
-            />
-          )}
         </>
       ) : (
         <div className="property-spacer" style={{ height: "20px" }} />

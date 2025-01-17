@@ -32,6 +32,8 @@ import FilePathProperty from "../properties/FilePathProperty";
 import CollectionProperty from "../properties/CollectionProperty";
 import FolderPathProperty from "../properties/FolderPathProperty";
 import DocumentProperty from "../properties/DocumentProperty";
+import Close from "@mui/icons-material/Close";
+import { css } from "@emotion/react";
 
 export type PropertyProps = {
   property: Property;
@@ -41,6 +43,7 @@ export type PropertyProps = {
   hideLabel?: boolean;
   propertyIndex: string;
   isInspector?: boolean;
+  isConnected?: boolean;
   onChange: (value: any) => void;
   tabIndex?: number;
 };
@@ -203,8 +206,10 @@ export type PropertyInputProps = {
   propertyIndex?: string;
   controlKeyPressed?: boolean;
   isInspector?: boolean;
+  isConnected?: boolean;
   tabIndex?: number;
   isDynamicProperty?: boolean;
+  onDeleteProperty?: (property: string) => void;
 };
 
 const PropertyInput: React.FC<PropertyInputProps> = ({
@@ -215,7 +220,9 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
   propertyIndex,
   controlKeyPressed,
   tabIndex,
-  isDynamicProperty
+  isConnected,
+  isDynamicProperty,
+  onDeleteProperty
 }: PropertyInputProps) => {
   const { updateNodeProperties, findNode, updateNodeData } = useNodeStore(
     (state) => ({
@@ -250,7 +257,8 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
     nodeType: nodeType,
     nodeId: id,
     onChange: onChange,
-    tabIndex: tabIndex
+    tabIndex: tabIndex,
+    isConnected: isConnected
   };
 
   // Property Context Menu
@@ -265,7 +273,7 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
         event.clientX,
         event.clientY,
         "node-property",
-        undefined,
+        prop.type,
         prop.name,
         prop.description || undefined,
         isDynamicProperty
@@ -300,8 +308,26 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
   }
 
   return (
-    <div className={className} onContextMenu={onContextMenu}>
+    <div
+      className={className}
+      onContextMenu={onContextMenu}
+      css={onDeleteProperty ? { display: "flex", alignItems: "center" } : {}}
+    >
       {inputField}
+      {onDeleteProperty && (
+        <Close
+          css={css({
+            fontSize: "1em",
+            cursor: "pointer",
+            marginLeft: "0.5em",
+            opacity: 0.6,
+            "&:hover": {
+              opacity: 1
+            }
+          })}
+          onClick={() => onDeleteProperty(property.name)}
+        />
+      )}
     </div>
   );
 };

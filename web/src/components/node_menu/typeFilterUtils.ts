@@ -5,7 +5,10 @@ import { DATA_TYPES } from "../../config/data_types";
 export type ConnectabilityMatrix = Record<TypeName, Record<TypeName, boolean>>;
 
 const hashType = (type: TypeMetadata) => {
-  return `${type.type}_${type.type_args.join("_")}`;
+  if (type) {
+    return `${type.type}_${type.type_args.join("_")}`;
+  }
+  return "";
 };
 
 let connectabilityMatrix: ConnectabilityMatrix | null = null;

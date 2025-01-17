@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { NodeMetadata, OutputSlot, Property, TypeMetadata } from "./ApiTypes";
+import { useNodeStore } from "./NodeStore";
 
 export type ConnectDirection = "target" | "source" | "" | null;
 
@@ -55,7 +56,7 @@ const useConnectionStore = create<ConnectionStore>((set) => ({
     metadata: NodeMetadata
   ) => {
     if (handleType === "source") {
-      const connectType = metadata.outputs.find(
+      let connectType = metadata.outputs.find(
         (output: OutputSlot) => output.name === handleId
       )?.type as TypeMetadata;
       set({
@@ -67,9 +68,17 @@ const useConnectionStore = create<ConnectionStore>((set) => ({
       });
     }
     if (handleType === "target") {
-      const connectType = metadata.properties.find(
+      const node = useNodeStore.getState().findNode(nodeId);
+      let connectType = metadata.properties.find(
         (input: Property) => input.name === handleId
       )?.type as TypeMetadata;
+      if (node?.data.dynamic_properties[handleId] !== undefined) {
+        connectType = {
+          type: "str",
+          type_args: [],
+          optional: false
+        };
+      }
       set({
         connecting: true,
         connectType,

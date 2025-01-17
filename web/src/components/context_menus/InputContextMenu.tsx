@@ -56,8 +56,6 @@ const InputContextMenu: React.FC = () => {
     setSourceHandle: state.setSourceHandle
   }));
 
-  const findNode = useNodeStore((state) => state.findNode);
-
   const handleOpenNodeMenu = (event?: React.MouseEvent<HTMLElement>) => {
     if (event) {
       event.preventDefault();
