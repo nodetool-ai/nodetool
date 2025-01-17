@@ -7,9 +7,11 @@ import React, {
   useRef,
   useEffect,
   memo,
-  useId
+  useId,
+  useState
 } from "react";
 import useSelect from "../../hooks/nodes/useSelect";
+import Fuse, { IFuseOptions } from "fuse.js";
 
 interface Option {
   value: any;
@@ -23,6 +25,7 @@ interface SelectProps {
   onChange: (value: string) => void;
   placeholder?: string;
   tabIndex?: number;
+  fuseOptions?: IFuseOptions<Option>;
 }
 
 const ChevronIcon = ({ className }: { className?: string }) => (
@@ -77,9 +80,19 @@ const menuStyles = (theme: any) =>
         color: theme.palette.c_white
       },
 
+      "&.matching": {
+        backgroundColor: theme.palette.c_gray3,
+        fontWeight: "bold"
+      },
+
       "&.selected": {
         backgroundColor: theme.palette.c_gray2,
         color: theme.palette.c_hl1
+      },
+
+      "&.highlighted": {
+        backgroundColor: theme.palette.c_gray3,
+        color: theme.palette.c_white
       }
     },
 
@@ -113,6 +126,22 @@ const menuStyles = (theme: any) =>
       "&.open": {
         transform: "rotate(180deg)"
       }
+    },
+
+    ".search-input": {
+      width: "100%",
+      margin: "0",
+      padding: "4px 8px",
+      backgroundColor: theme.palette.c_gray1,
+      border: `1px solid ${theme.palette.c_gray3}`,
+      borderRadius: ".3em",
+      color: theme.palette.c_white,
+      fontSize: theme.fontSizeNormal,
+
+      "&:focus": {
+        outline: "none",
+        borderColor: theme.palette.c_gray4
+      }
     }
   });
 
@@ -121,12 +150,17 @@ const Select: React.FC<SelectProps> = ({
   value,
   onChange,
   placeholder,
-  tabIndex
+  tabIndex,
+  fuseOptions
 }) => {
   const selectRef = useRef<HTMLDivElement>(null);
   const optionsRef = useRef<HTMLUListElement>(null);
-  const { open, close, activeSelect } = useSelect();
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const { open, close, activeSelect, searchQuery, setSearchQuery } =
+    useSelect();
   const id = useId();
+
+  const [highlightedIndex, setHighlightedIndex] = useState<number>(-1);
 
   const toggleDropdown = useCallback(() => {
     activeSelect === id ? close() : open(id);
@@ -186,57 +220,128 @@ const Select: React.FC<SelectProps> = ({
     };
   }, [close, activeSelect, id]);
 
+  // Focus search input when dropdown opens
+  useEffect(() => {
+    if (activeSelect === id && searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  }, [activeSelect, id]);
+
+  const fuse = useMemo(() => {
+    const defaultOptions: IFuseOptions<Option> = {
+      keys: ["label"],
+      threshold: 0.3,
+      ignoreLocation: true
+    };
+
+    return new Fuse(options, {
+      ...defaultOptions,
+      ...fuseOptions
+    });
+  }, [options, fuseOptions]);
+
   const handleKeyDown = useCallback(
-    (event: React.KeyboardEvent) => {
-      if (event.key === " " || event.key === "Enter") {
-        event.preventDefault();
-        toggleDropdown();
-      } else if (event.key === "Escape" && activeSelect === id) {
-        event.preventDefault();
-        close();
-      } else if (event.key === "Tab" && activeSelect === id) {
-        close();
+    (e: React.KeyboardEvent) => {
+      if (activeSelect !== id) return;
+
+      const filteredOptions = searchQuery
+        ? fuse.search(searchQuery).map(({ item }) => item)
+        : options;
+
+      switch (e.key) {
+        case "ArrowDown":
+          e.preventDefault();
+          setHighlightedIndex((prev) =>
+            prev < filteredOptions.length - 1 ? prev + 1 : 0
+          );
+          break;
+        case "ArrowUp":
+          e.preventDefault();
+          setHighlightedIndex((prev) =>
+            prev > 0 ? prev - 1 : filteredOptions.length - 1
+          );
+          break;
+        case "Enter":
+          e.preventDefault();
+          if (highlightedIndex >= 0) {
+            handleOptionClick(filteredOptions[highlightedIndex].value);
+          }
+          break;
+        case "Escape":
+          e.preventDefault();
+          close();
+          break;
       }
     },
-    [toggleDropdown, close, activeSelect, id]
+    [
+      activeSelect,
+      id,
+      searchQuery,
+      options,
+      fuse,
+      highlightedIndex,
+      handleOptionClick,
+      close
+    ]
   );
+
+  useEffect(() => {
+    setHighlightedIndex(-1);
+  }, [searchQuery]);
 
   return (
     <div
       ref={selectRef}
       className={`custom-select ${activeSelect === id ? "open" : ""}`}
       css={menuStyles}
-      onKeyDown={handleKeyDown}
       tabIndex={-1}
+      onKeyDown={handleKeyDown}
     >
-      <div
-        className="select-header"
-        onClick={toggleDropdown}
-        onKeyDown={handleKeyDown}
-        tabIndex={tabIndex}
-        role="button"
-      >
-        <span className="select-header-text">
-          {selectedOption
-            ? selectedOption.label
-            : placeholder || "Select an option"}
-        </span>
-        <ChevronIcon
-          className={`chevron ${activeSelect === id ? "open" : ""}`}
-        />
-      </div>
+      {activeSelect !== id && (
+        <div
+          className="select-header"
+          onClick={toggleDropdown}
+          tabIndex={tabIndex}
+          role="button"
+        >
+          <span className="select-header-text">
+            {selectedOption
+              ? selectedOption.label
+              : placeholder || "Select an option"}
+          </span>
+          <ChevronIcon
+            className={`chevron ${activeSelect === id ? "open" : ""}`}
+          />
+        </div>
+      )}
       {activeSelect === id && (
-        <ul ref={optionsRef} className="options-list nowheel">
-          {options.map((option) => (
-            <li
-              key={option.value}
-              className={`option ${option.value === value ? "selected" : ""}`}
-              onClick={() => handleOptionClick(option.value)}
-            >
-              {option.label}
-            </li>
-          ))}
-        </ul>
+        <>
+          <input
+            ref={searchInputRef}
+            type="text"
+            className="search-input"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search..."
+            onClick={(e) => e.stopPropagation()}
+          />
+          <ul ref={optionsRef} className="options-list nowheel">
+            {(searchQuery
+              ? fuse.search(searchQuery).map(({ item }) => item)
+              : options
+            ).map((option, index) => (
+              <li
+                key={option.value}
+                className={`option ${
+                  option.value === value ? "selected" : ""
+                } ${index === highlightedIndex ? "highlighted" : ""}`}
+                onClick={() => handleOptionClick(option.value)}
+              >
+                {option.label}
+              </li>
+            ))}
+          </ul>
+        </>
       )}
     </div>
   );

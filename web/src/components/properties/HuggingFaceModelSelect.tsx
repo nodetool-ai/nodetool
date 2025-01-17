@@ -159,6 +159,9 @@ const HuggingFaceModelSelect = ({
       value={isValueMissing ? "" : selectValue}
       onChange={handleChange}
       placeholder={placeholder}
+      fuseOptions={{
+        keys: ["value"]
+      }}
     />
   );
 };
