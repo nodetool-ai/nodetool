@@ -34,7 +34,7 @@ const NamespaceItem: React.FC<NamespaceItemProps> = ({
       <ListItem
         className={`list-item ${isExpanded ? "expanded" : "collapsed"} ${
           isSelected ? "selected" : ""
-        } ${isHighlighted ? "highlighted" : ""}`}
+        } ${isHighlighted ? "highlighted" : "no-highlight"}`}
         onClick={handleClick}
       >
         <div className="namespace-item">{namespace}</div>

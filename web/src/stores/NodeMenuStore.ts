@@ -277,7 +277,7 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
       ...fuseOptions,
       threshold: 0.2,
       distance: 2,
-      minMatchCharLength: 2,
+      minMatchCharLength: 1,
       keys: [
         { name: "namespace", weight: 0.8 },
         { name: "tags", weight: 0.6 }

@@ -187,7 +187,8 @@ const namespaceStyles = (theme: any, inPanel: boolean) =>
       color: `${theme.palette.c_gray4} !important`,
       fontSize: "0.8em",
       fontWeight: "400",
-      marginLeft: "0.5em"
+      marginLeft: "0.5em",
+      userSelect: "none"
     },
     ".no-selection p": {
       margin: "0",
@@ -249,7 +250,9 @@ const namespaceStyles = (theme: any, inPanel: boolean) =>
       padding: ".5em 0 0 0",
       margin: "1em 0 .5em 0",
       letterSpacing: "0.5px",
-      wordBreak: "break-word"
+      wordBreak: "break-word",
+      userSelect: "none",
+      pointerEvents: "none"
     },
     ".info-button": {
       marginLeft: "auto"
@@ -270,7 +273,8 @@ const namespaceStyles = (theme: any, inPanel: boolean) =>
     },
     ".namespace-item": {
       color: theme.palette.c_white,
-      textTransform: "capitalize"
+      textTransform: "capitalize",
+      userSelect: "none"
     },
     ".disabled .namespace-item": {
       color: theme.palette.c_gray4
@@ -341,6 +345,13 @@ const namespaceStyles = (theme: any, inPanel: boolean) =>
       color: theme.palette.c_gray5,
       fontSize: theme.fontSizeSmall,
       margin: "0.5em 0"
+    },
+    "&.has-search-results .namespace-list-enabled .no-highlight .namespace-item":
+      {
+        color: theme.palette.c_gray5
+      },
+    "&.has-search-results .no-highlight": {
+      pointerEvents: "none"
     }
   });
 
@@ -379,6 +390,14 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
     setHoveredNode(null);
   }, [setHoveredNode]);
 
+  const minSearchTermLength =
+    searchTerm.includes("+") ||
+    searchTerm.includes("-") ||
+    searchTerm.includes("*") ||
+    searchTerm.includes("/")
+      ? 0
+      : 1;
+
   const { enabledTree, disabledTree } = useMemo(() => {
     const enabled: NamespaceTree = {};
     const disabled: NamespaceTree = {};
@@ -404,7 +423,7 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
         .filter((node) => {
           // When searching or filtering by types, show all matching nodes
           if (
-            searchTerm.length > 1 ||
+            searchTerm.length > minSearchTermLength ||
             selectedInputType ||
             selectedOutputType
           ) {
@@ -491,7 +510,14 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
   const totalNodes = useMetadataStore((state) => state.getAllMetadata()).length;
 
   return (
-    <div css={memoizedStyles}>
+    <div
+      css={memoizedStyles}
+      className={
+        searchTerm.length > minSearchTermLength && searchResults.length > 1
+          ? "has-search-results"
+          : "no-search-results"
+      }
+    >
       <Box className="header">
         <Tooltip
           title={
@@ -499,7 +525,7 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
               {selectedPathString && (
                 <div>Current namespace: {currentNodes?.length} nodes</div>
               )}
-              {searchTerm.length > 1 ? (
+              {searchTerm.length > minSearchTermLength ? (
                 <>
                   <div>Total search matches: {allSearchMatches.length}</div>
                   <div
@@ -530,16 +556,16 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
           placement="bottom"
         >
           <Typography className="result-info">
-            {searchTerm.length > 1 ? (
+            {searchTerm.length > minSearchTermLength ? (
               <>
                 <span>
-                  {searchTerm.length > 1
+                  {searchTerm.length > minSearchTermLength
                     ? searchResults.length
                     : currentNodes?.length}
                 </span>{" "}
                 /{" "}
                 <span>
-                  {searchTerm.length > 1
+                  {searchTerm.length > minSearchTermLength
                     ? allSearchMatches.length
                     : metadata.length}
                 </span>
@@ -562,7 +588,7 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
             <List className="node-list">{renderNodes}</List>
             {renderNodeInfo}
           </>
-        ) : searchTerm.length > 0 ? (
+        ) : searchTerm.length > minSearchTermLength ? (
           <div className="no-selection">
             <p>
               {selectedPathString ? (
