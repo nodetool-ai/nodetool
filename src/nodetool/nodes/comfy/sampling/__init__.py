@@ -144,8 +144,7 @@ class KSamplerAdvanced(ComfyNode):
 
 class DifferentialDiffusion(ComfyNode):
     """
-    Implements differential diffusion by modifying the model's denoise mask function.
-    Adapted from https://github.com/exx8/differential-diffusion
+    Implements differential diffusion by modifying the model's denoise mask function. Adapted from https://github.com/exx8/differential-diffusion
     """
 
     _comfy_class = comfy_extras.nodes_differential_diffusion.DifferentialDiffusion
