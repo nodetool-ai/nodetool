@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import { useEffect, useMemo, useRef } from "react";
+import { memo, useEffect, useMemo, useRef } from "react";
 
 // mui
 import { IconButton, Box, Typography } from "@mui/material";
@@ -20,6 +20,8 @@ import ThemeNodetool from "../themes/ThemeNodetool";
 import useNamespaceTree from "../../hooks/useNamespaceTree";
 import SearchInput from "../search/SearchInput";
 import { useCombo } from "../../stores/KeyPressedStore";
+import { isEqual } from "lodash";
+import { useRenderLogger } from "../../hooks/useRenderLogger";
 
 const treeStyles = (theme: any) =>
   css({
@@ -110,7 +112,8 @@ const treeStyles = (theme: any) =>
 type NodeMenuProps = {
   focusSearchInput?: boolean;
 };
-export default function NodeMenu({ focusSearchInput = false }: NodeMenuProps) {
+
+function NodeMenu({ focusSearchInput = false }: NodeMenuProps) {
   const nodeRef = useRef(null);
   const namespaceTree = useNamespaceTree();
   const {
@@ -147,6 +150,12 @@ export default function NodeMenu({ focusSearchInput = false }: NodeMenuProps) {
   }));
 
   useCombo(["Escape"], closeNodeMenu);
+
+  useRenderLogger("NodeMenu", {
+    dropType,
+    connectDirection,
+    isMenuOpen
+  });
 
   // SET SELECTED TYPE FILTER
   // dropping a handle from left or right side of a node
@@ -237,3 +246,5 @@ export default function NodeMenu({ focusSearchInput = false }: NodeMenuProps) {
     <></>
   );
 }
+
+export default memo(NodeMenu, isEqual);

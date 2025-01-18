@@ -8,8 +8,6 @@ import ThemeNodes from "../themes/ThemeNodes";
 import { isEqual } from "lodash";
 import { titleizeString } from "../../utils/titleizeString";
 import { NodeData } from "../../stores/NodeData";
-import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
-import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { Tooltip } from "@mui/material";
 
 export interface NodeHeaderProps {
