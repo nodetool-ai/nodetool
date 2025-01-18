@@ -1,52 +1,18 @@
 {
   "id": "image_enhance",
   "access": "public",
-  "created_at": "2024-10-19T19:08:03.772840",
-  "updated_at": "2024-10-19T19:08:03.772863",
+  "created_at": "2025-01-18T09:07:36.570348",
+  "updated_at": "2025-01-18T09:07:36.570366",
   "name": "Image Enhance",
   "description": "Improve image quality with basic enhancement tools like sharpening, contrast and color adjustment",
-  "tags": ["image", "start"],
-  "thumbnail": "",
+  "tags": [
+    "image",
+    "start"
+  ],
+  "thumbnail": null,
   "thumbnail_url": "/examples/image_enhance.jpg",
   "graph": {
     "nodes": [
-      {
-        "id": "3",
-        "parent_id": null,
-        "type": "nodetool.workflows.base_node.Preview",
-        "data": {
-          "name": "image_output_2024-07-06"
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 839,
-            "y": 394
-          },
-          "zIndex": 0,
-          "width": 214,
-          "height": 211,
-          "selectable": true
-        }
-      },
-      {
-        "id": "4",
-        "parent_id": null,
-        "type": "nodetool.workflows.base_node.Preview",
-        "data": {
-          "name": "image_output_2024-07-06"
-        },
-        "ui_properties": {
-          "position": {
-            "x": 320,
-            "y": 50
-          },
-          "zIndex": 0,
-          "width": 211,
-          "height": 210,
-          "selectable": true
-        }
-      },
       {
         "id": "6",
         "parent_id": null,
@@ -56,13 +22,14 @@
         },
         "ui_properties": {
           "position": {
-            "x": 600,
-            "y": 444
+            "x": 499,
+            "y": 225
           },
           "zIndex": 0,
           "width": 200,
           "selectable": true
-        }
+        },
+        "dynamic_properties": {}
       },
       {
         "id": "8",
@@ -98,16 +65,16 @@
           "headline": "More Image.Enhance nodes"
         },
         "ui_properties": {
-          "selected": false,
           "position": {
-            "x": 321,
-            "y": 615
+            "x": 311,
+            "y": 368
           },
           "zIndex": 0,
           "width": 405,
           "height": 105,
           "selectable": true
-        }
+        },
+        "dynamic_properties": {}
       },
       {
         "id": "11",
@@ -118,32 +85,14 @@
         },
         "ui_properties": {
           "position": {
-            "x": 325.5,
-            "y": 444
+            "x": 269,
+            "y": 225
           },
           "zIndex": 0,
           "width": 200,
           "selectable": true
-        }
-      },
-      {
-        "id": "4b900c04-d29b-4466-94fa-f2cf1229115a",
-        "parent_id": null,
-        "type": "nodetool.workflows.base_node.Preview",
-        "data": {
-          "name": "image_output_2024-07-06"
         },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 591,
-            "y": 178
-          },
-          "zIndex": 0,
-          "width": 218,
-          "height": 216,
-          "selectable": true
-        }
+        "dynamic_properties": {}
       },
       {
         "id": "5b962592-953e-411e-9c8f-4d188607b1ad",
@@ -152,13 +101,14 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 325.5,
-            "y": 310
+            "x": 269,
+            "y": 74
           },
           "zIndex": 0,
           "width": 200,
           "selectable": true
-        }
+        },
+        "dynamic_properties": {}
       },
       {
         "id": "97876",
@@ -202,70 +152,74 @@
           "width": 546,
           "height": 132,
           "selectable": true
-        }
+        },
+        "dynamic_properties": {}
       },
       {
         "id": "97877",
         "parent_id": null,
-        "type": "nodetool.constant.Image",
+        "type": "nodetool.output.ImageOutput",
         "data": {
+          "name": "sharpened",
+          "description": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 499,
+            "y": 50
+          },
+          "zIndex": 0,
+          "width": 159,
+          "selectable": true
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "97878",
+        "parent_id": null,
+        "type": "nodetool.output.ImageOutput",
+        "data": {
+          "name": "contrast",
+          "description": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 729,
+            "y": 215
+          },
+          "zIndex": 0,
+          "width": 159,
+          "selectable": true
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "97879",
+        "parent_id": null,
+        "type": "nodetool.input.ImageInput",
+        "data": {
+          "name": "image",
+          "description": "",
           "value": {
-            "uri": "https://www.mauritshuis.nl/media/rgxggmkv/vermeer-meisje-met-de-parel-mh670-mauritshuis-den-haag.jpg?center=0.44178550792733645,0.47243107769423559&mode=crop&width=1200&height=0&rnd=133018598924500000&quality=70",
-            "type": "image"
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null
           }
         },
         "ui_properties": {
           "position": {
             "x": 50,
-            "y": 293
+            "y": 213
           },
           "zIndex": 0,
-          "width": 200,
+          "width": 159,
           "selectable": true
-        }
+        },
+        "dynamic_properties": {}
       }
     ],
     "edges": [
-      {
-        "id": "1c1ec75c-b699-4fa2-ab15-bf87bd225401",
-        "source": "97877",
-        "sourceHandle": "output",
-        "target": "5b962592-953e-411e-9c8f-4d188607b1ad",
-        "targetHandle": "image",
-        "ui_properties": {
-          "className": "image"
-        }
-      },
-      {
-        "id": "27594e37-fde4-400f-9e5f-60f90ef03c30",
-        "source": "97877",
-        "sourceHandle": "output",
-        "target": "11",
-        "targetHandle": "image",
-        "ui_properties": {
-          "className": "image"
-        }
-      },
-      {
-        "id": "a52249ae-aead-48e7-911a-7cb26faf00f2",
-        "source": "97877",
-        "sourceHandle": "output",
-        "target": "4",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "image"
-        }
-      },
-      {
-        "id": "380ae2ba-c21e-4460-b411-4853fae085d4",
-        "source": "6",
-        "sourceHandle": "output",
-        "target": "3",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "image"
-        }
-      },
       {
         "id": "5b1aa42a-bdb8-461b-bebc-58386e28fd44",
         "source": "11",
@@ -277,11 +231,41 @@
         }
       },
       {
-        "id": "20f75457-d5e0-477b-b215-94152cd30d33",
+        "id": "6",
         "source": "5b962592-953e-411e-9c8f-4d188607b1ad",
         "sourceHandle": "output",
-        "target": "4b900c04-d29b-4466-94fa-f2cf1229115a",
+        "target": "97877",
         "targetHandle": "value",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "7",
+        "source": "6",
+        "sourceHandle": "output",
+        "target": "97878",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "8",
+        "source": "97879",
+        "sourceHandle": "output",
+        "target": "5b962592-953e-411e-9c8f-4d188607b1ad",
+        "targetHandle": "image",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "495c69f4-2060-4109-b8f6-e64ab5e18ca8",
+        "source": "97879",
+        "sourceHandle": "output",
+        "target": "11",
+        "targetHandle": "image",
         "ui_properties": {
           "className": "image"
         }
