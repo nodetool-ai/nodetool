@@ -88,7 +88,7 @@ class FloatOutput(OutputNode):
 class BooleanOutput(OutputNode):
     """
     Output node for a single boolean value.
-    boolean, true/false, flag
+    boolean, true, false, flag, condition, flow-control, branch, else, true, false, switch, toggle
 
     Use cases:
     - Returning binary results (yes/no, true/false)
