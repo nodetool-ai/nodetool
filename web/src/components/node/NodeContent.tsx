@@ -21,6 +21,10 @@ interface NodeContentProps {
   workflowId: string;
   renderedResult: React.ReactNode;
   onDeleteProperty: (propertyName: string) => void;
+  onUpdatePropertyName: (
+    oldPropertyName: string,
+    newPropertyName: string
+  ) => void;
 }
 
 const NodeContent: React.FC<NodeContentProps> = ({
@@ -35,7 +39,8 @@ const NodeContent: React.FC<NodeContentProps> = ({
   status,
   workflowId,
   renderedResult,
-  onDeleteProperty
+  onDeleteProperty,
+  onUpdatePropertyName
 }) => {
   return (
     <>
@@ -49,6 +54,7 @@ const NodeContent: React.FC<NodeContentProps> = ({
         showAdvancedFields={showAdvancedFields}
         basicFields={basicFields}
         onDeleteProperty={onDeleteProperty}
+        onUpdatePropertyName={onUpdatePropertyName}
       />
       {!isOutputNode && <NodeOutputs id={id} outputs={nodeMetadata.outputs} />}
       {renderedResult}

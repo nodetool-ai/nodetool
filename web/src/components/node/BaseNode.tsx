@@ -31,8 +31,8 @@ import { darkenHexColor, simulateOpacity } from "../../utils/ColorUtils";
 import useMetadataStore from "../../stores/MetadataStore";
 import NodeFooter from "./NodeFooter";
 import useSelect from "../../hooks/nodes/useSelect";
-import { useNodeStore } from "../../stores/NodeStore";
 import NodePropertyForm from "./NodePropertyForm";
+import { useDynamicProperty } from "../../hooks/nodes/useDynamicProperty";
 
 // Node sizing constants
 const BASE_HEIGHT = 0; // Minimum height for the node
@@ -273,39 +273,11 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     return metadata.properties.length > metadata.basic_fields.length;
   }, [metadata]);
 
-  const { updateNodeData } = useNodeStore((state) => ({
-    updateNodeData: state.updateNodeData
-  }));
-
-  // Add delete handler for dynamic properties
-  const handleDeleteProperty = useCallback(
-    (propertyName: string) => {
-      const updatedDynamicProperties = {
-        ...(props.data.dynamic_properties as Record<string, any>)
-      };
-      delete updatedDynamicProperties[propertyName];
-
-      updateNodeData(props.id, {
-        dynamic_properties: updatedDynamicProperties
-      });
-    },
-    [props.data, props.id, updateNodeData]
-  );
-
-  // Add handler for property submission
-  const handleAddProperty = useCallback(
-    (propertyName: string) => {
-      const updatedDynamicProperties = {
-        ...(props.data.dynamic_properties as Record<string, any>),
-        [propertyName]: ""
-      };
-
-      updateNodeData(props.id, {
-        dynamic_properties: updatedDynamicProperties
-      });
-    },
-    [props.data, props.id, updateNodeData]
-  );
+  const { handleDeleteProperty, handleAddProperty, handleUpdatePropertyName } =
+    useDynamicProperty(
+      props.id,
+      props.data.dynamic_properties as Record<string, any>
+    );
 
   if (!metadata) {
     return (
@@ -360,6 +332,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         status={status}
         workflowId={workflowId}
         renderedResult={renderedResult}
+        onUpdatePropertyName={handleUpdatePropertyName}
         onDeleteProperty={handleDeleteProperty}
       />
       {metadata?.is_dynamic && (

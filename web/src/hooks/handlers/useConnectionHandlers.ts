@@ -83,7 +83,6 @@ export default function useConnectionHandlers() {
     (connection: Connection) => {
       connectionCreated.current = true;
       devLog("Connection Created", connection);
-      // Call the onConnect function from NodeStore
       useNodeStore.getState().onConnect(connection);
     },
     [connectionCreated]
