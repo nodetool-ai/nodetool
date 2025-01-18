@@ -94,6 +94,15 @@ Use cases:
 
 **Fields:**
 - **workbook**: The Excel workbook to save (ExcelRef)
-- **filepath**: Path where to save the file (FilePath)
+- **filepath**: 
+        Path where to save the file.
+        You can use time and date variables to create unique names:
+        %Y - Year
+        %m - Month
+        %d - Day
+        %H - Hour
+        %M - Minute
+        %S - Second
+         (FilePath)
 
 

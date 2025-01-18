@@ -14,7 +14,16 @@ Use cases:
 **Fields:**
 - **audio** (AudioRef)
 - **folder**: The folder to save the audio file to.  (FolderRef)
-- **name**: The name of the audio file. (str)
+- **name**: 
+        The name of the audio file.
+        You can use time and date variables to create unique names:
+        %Y - Year
+        %m - Month
+        %d - Day
+        %H - Hour
+        %M - Minute
+        %S - Second
+         (str)
 
 ### required_inputs
 

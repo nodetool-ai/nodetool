@@ -4,6 +4,8 @@
 
 Adds a heading to the document
 
+**Tags:** document, docx, heading, format
+
 **Fields:**
 - **document**: The document to add the heading to (DocumentRef)
 - **text**: The heading text (str)
@@ -13,6 +15,8 @@ Adds a heading to the document
 ## AddImage
 
 Adds an image to the document
+
+**Tags:** document, docx, image, format
 
 **Fields:**
 - **document**: The document to add the image to (DocumentRef)
@@ -25,6 +29,8 @@ Adds an image to the document
 
 Adds a page break to the document
 
+**Tags:** document, docx, format, layout
+
 **Fields:**
 - **document**: The document to add the page break to (DocumentRef)
 
@@ -32,6 +38,8 @@ Adds a page break to the document
 ## AddParagraph
 
 Adds a paragraph of text to the document
+
+**Tags:** document, docx, text, format
 
 **Fields:**
 - **document**: The document to add the paragraph to (DocumentRef)
@@ -46,6 +54,8 @@ Adds a paragraph of text to the document
 
 Adds a table to the document
 
+**Tags:** document, docx, table, format
+
 **Fields:**
 - **document**: The document to add the table to (DocumentRef)
 - **rows**: Number of rows (int)
@@ -57,6 +67,8 @@ Adds a table to the document
 
 Creates a new Word document
 
+**Tags:** document, docx, file, create
+
 **Fields:**
 
 
@@ -64,24 +76,41 @@ Creates a new Word document
 
 Loads a Word document from disk
 
+**Tags:** document, docx, file, load, input
+
 **Fields:**
 - **path**: Path to the document to load (str)
 
 
 ## ParagraphAlignment
 
+An enumeration.
+
 ## SaveDocument
 
 Writes the document to a file
 
+**Tags:** document, docx, file, save, output
+
 **Fields:**
 - **document**: The document to write (DocumentRef)
-- **path**: The path to write the document to (FilePath)
+- **path**: 
+        The path to write the document to.
+        You can use time and date variables to create unique names:
+        %Y - Year
+        %m - Month
+        %d - Day
+        %H - Hour
+        %M - Minute
+        %S - Second
+         (FilePath)
 
 
 ## SetDocumentProperties
 
 Sets document metadata properties
+
+**Tags:** document, docx, metadata, properties
 
 **Fields:**
 - **document**: The document to modify (DocumentRef)

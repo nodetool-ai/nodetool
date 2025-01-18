@@ -4,6 +4,8 @@
 - [nodetool.nodes.anthropic](nodes/anthropic.md)
 - [nodetool.nodes.apple](nodes/apple.md)
 - [nodetool.nodes.chroma](nodes/chroma.md)
+- [nodetool.nodes.elevenlabs](nodes/elevenlabs.md)
+- [nodetool.nodes.fal](nodes/fal.md)
 - [nodetool.nodes.google](nodes/google.md)
 - [nodetool.nodes.huggingface](nodes/huggingface.md)
 - [nodetool.nodes.nodetool](nodes/nodetool.md)

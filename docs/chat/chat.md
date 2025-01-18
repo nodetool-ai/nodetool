@@ -66,7 +66,7 @@ Creates an anthropic completion by sending messages to the anthropic client.
 - **node_id (str)**
 - **messages (typing.Sequence[nodetool.metadata.types.ChatMessageParam])**
 - **tools (typing.Sequence[nodetool.chat.tools.Tool]) (default: [])**
-- **tool_choice (dict[str, typing.Any]) (default: {})**
+- **tool_choice (dict) (default: {})**
 - **kwargs**
 
 **Returns:** Message
@@ -110,7 +110,7 @@ Creates an Ollama completion by sending messages to the Ollama client.
 - **node_id (str)**
 - **messages (typing.Sequence[nodetool.metadata.types.ChatMessageParam])**
 - **tools (typing.Sequence[nodetool.chat.tools.Tool]) (default: [])**
-- **tool_choice (dict[str, typing.Any]) (default: {})**
+- **tool_choice (dict) (default: {})**
 - **kwargs**
 
 **Returns:** Message
@@ -140,7 +140,7 @@ Creates an OpenAI completion using the provided messages.
 - **node_id (str)**
 - **messages (typing.Sequence[nodetool.metadata.types.ChatMessageParam])**
 - **tools (typing.Sequence[nodetool.chat.tools.Tool]) (default: [])**
-- **tool_choice (dict[str, typing.Any]) (default: {})**
+- **tool_choice (dict) (default: {})**
 - **kwargs**
 
 **Returns:** Message
@@ -148,7 +148,7 @@ Creates an OpenAI completion using the provided messages.
 ### default_serializer
 
 **Args:**
-- **obj (Any)**
+- **obj (typing.Any)**
 
 **Returns:** dict
 
@@ -173,7 +173,7 @@ Create a JSON schema for a column.
 ### json_schema_for_dataframe
 
 **Args:**
-- **columns (list[nodetool.metadata.types.ColumnDef])**
+- **columns (list)**
 
 **Returns:** dict
 
@@ -191,7 +191,7 @@ Convert a message content to an OpenAI content part.
 
 - **OpenAIChatCompletionContentPartParam**: The OpenAI content part.
 **Args:**
-- **content (nodetool.metadata.types.MessageTextContent | nodetool.metadata.types.MessageImageContent | nodetool.metadata.types.MessageAudioContent | nodetool.metadata.types.MessageVideoContent)**
+- **content (nodetool.metadata.types.MessageTextContent | nodetool.metadata.types.MessageImageContent | nodetool.metadata.types.MessageAudioContent | nodetool.metadata.types.MessageVideoContent | nodetool.metadata.types.MessageDocumentContent)**
 
 **Returns:** typing.Union[openai.types.chat.chat_completion_content_part_text_param.ChatCompletionContentPartTextParam, openai.types.chat.chat_completion_content_part_image_param.ChatCompletionContentPartImageParam, openai.types.chat.chat_completion_content_part_input_audio_param.ChatCompletionContentPartInputAudioParam]
 
@@ -230,7 +230,7 @@ Parse a tool call from a string.
 **Args:**
 - **s**
 
-**Returns:** list[nodetool.metadata.types.ToolCall]
+**Returns:** list
 
 ### process_messages
 
@@ -261,7 +261,7 @@ Use process_tool_calls to execute the tool calls if needed.
 - **model (FunctionModel)**
 - **node_id (str)**
 - **tools (typing.Sequence[nodetool.chat.tools.Tool]) (default: [])**
-- **tool_choice (dict[str, str]) (default: {})**
+- **tool_choice (dict) (default: {})**
 - **kwargs**
 
 **Returns:** Message
@@ -288,7 +288,7 @@ It is required to call process_tool_responses if you want the chat model to resp
 - **tool_calls (typing.Sequence[nodetool.metadata.types.ToolCall])**
 - **tools (typing.Sequence[nodetool.chat.tools.Tool])**
 
-**Returns:** list[nodetool.metadata.types.ToolCall]
+**Returns:** list
 
 ### process_tool_responses
 
@@ -315,7 +315,7 @@ The completion created.
 - **model (FunctionModel)**
 - **node_id (str)**
 - **thread_id (str)**
-- **messages (list[nodetool.metadata.types.Message])**
+- **messages (list)**
 - **tool_responses (typing.Sequence[nodetool.metadata.types.ToolCall])**
 - **kwargs**
 

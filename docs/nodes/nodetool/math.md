@@ -53,7 +53,7 @@ Use cases:
 
 Divides the first input by the second.
 
-**Tags:** math, division, arithmetic, quotient
+**Tags:** math, division, arithmetic, quotient, /
 
 **Fields:**
 - **a** (int | float | nodetool.metadata.types.Tensor)

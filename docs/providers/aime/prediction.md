@@ -14,7 +14,7 @@ Fetch authentication key from AIME API.
 
 **Args:**
 - **prediction (Prediction)**
-- **env (dict[str, str])**
+- **env (dict)**
 
 **Returns:** typing.AsyncGenerator[nodetool.types.prediction.PredictionResult, NoneType]
 

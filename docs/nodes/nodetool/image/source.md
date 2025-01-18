@@ -10,7 +10,7 @@ This node is mainly used for generating a base layer for image processing tasks.
 - As a starting point for generating patterns or graphics.
 - When blank backgrounds of specific colors are required for visualization tasks.
 
-**Tags:** 
+**Tags:** image, background, blank, base, layer
 
 **Fields:**
 - **width** (int)
@@ -21,6 +21,7 @@ This node is mainly used for generating a base layer for image processing tasks.
 ## GaussianNoise
 
 This node creates and adds Gaussian noise to an image.
+
 The Gaussian Noise Node is designed to simulate realistic distortions that can occur in a photographic image. It generates a noise-filled image using the Gaussian (normal) distribution. The noise level can be adjusted using the mean and standard deviation parameters.
 
 #### Applications
@@ -28,7 +29,7 @@ The Gaussian Noise Node is designed to simulate realistic distortions that can o
 - Testing image-processing algorithms' resilience to noise.
 - Creating artistic effects in images.
 
-**Tags:** 
+**Tags:** image, noise, gaussian, distortion, artifact
 
 **Fields:**
 - **mean** (float)
@@ -50,7 +51,7 @@ The Render Text Node offers customizable options, including the ability to choos
 - Adding custom captions to photographs.
 - Creating instructional images to guide the reader's view.
 
-**Tags:** 
+**Tags:** text, font, label, title, watermark, caption, image, overlay
 
 **Fields:**
 - **text**: The text to render. (str)

@@ -4,8 +4,10 @@
 
 Extracts a specific segment from a list of segmentation masks.
 
+**Tags:** image, segmentation, object detection, mask
+
 **Fields:**
-- **segments**: The segmentation masks to search (list[nodetool.metadata.types.ImageSegmentationResult])
+- **segments**: The segmentation masks to search (list)
 - **segment_label**: The label of the segment to extract (str)
 
 ### required_inputs
@@ -23,7 +25,7 @@ Use cases:
 - Interactive segmentation with point prompts
 - Scene understanding and object detection
 
-**Tags:** image, segmentation, object detection, scene parsing
+**Tags:** image, segmentation, object detection, scene parsing, mask
 
 **Fields:**
 - **image**: The input image to segment (ImageRef)
@@ -89,11 +91,11 @@ Use cases:
 - Analyze and compare different segmentation techniques
 - Create labeled images for presentations or reports
 
-**Tags:** image, segmentation, visualization
+**Tags:** image, segmentation, visualization, mask
 
 **Fields:**
 - **image**: The input image to visualize (ImageRef)
-- **segments**: The segmentation masks to visualize (list[nodetool.metadata.types.ImageSegmentationResult])
+- **segments**: The segmentation masks to visualize (list)
 
 ### generate_color_map
 

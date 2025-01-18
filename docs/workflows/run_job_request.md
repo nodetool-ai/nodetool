@@ -5,7 +5,7 @@
 **Fields:**
 - **type** (typing.Literal['run_job_request'])
 - **job_type** (str)
-- **params** (typing.Any | None)
+- **params** (typing.Optional[typing.Any])
 - **messages** (list[nodetool.metadata.types.Message] | None)
 - **workflow_id** (str)
 - **user_id** (str)
@@ -13,6 +13,6 @@
 - **api_url** (str | None)
 - **env** (dict[str, typing.Any] | None)
 - **graph** (nodetool.types.graph.Graph | None)
-- **explicit_types** (bool)
+- **explicit_types** (bool | None)
 
 

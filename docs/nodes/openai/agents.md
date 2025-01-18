@@ -21,7 +21,7 @@ Use cases:
 
 Helper method to process messages based on model type
 **Args:**
-- **messages (list[nodetool.metadata.types.Message])**
+- **messages (list)**
 - **context (ProcessingContext)**
 - **kwargs**
 
@@ -41,7 +41,7 @@ Use cases:
 **Tags:** into step-by-step solutions.
 
 **Fields:**
-- **messages**: The messages to use in the prompt. (list[nodetool.metadata.types.Message])
+- **messages**: The messages to use in the prompt. (list)
 - **max_tokens**: The maximum number of tokens to generate. (int)
 - **temperature**: The temperature to use for sampling. (float)
 - **model**: The GPT model to use for chain of thought reasoning. (GPTModel)
@@ -60,8 +60,8 @@ Use cases:
 **Tags:** into a final, coherent conclusion.
 
 **Fields:**
-- **steps**: The completed chain of thought steps with their results (list[nodetool.nodes.openai.agents.ThoughtStep])
-- **messages**: The messages used to generate the chain of thought steps (list[nodetool.metadata.types.Message])
+- **steps**: The completed chain of thought steps with their results (list)
+- **messages**: The messages used to generate the chain of thought steps (list)
 - **max_tokens**: The maximum number of tokens to generate (int)
 - **temperature**: The temperature to use for sampling (float)
 - **model**: The GPT model to use for summarizing chain of thought results. (GPTModel)
@@ -157,8 +157,8 @@ Use cases:
 **Tags:** task execution, model integration, tool coordination
 
 **Fields:**
-- **tasks**: The task to process. (list[nodetool.metadata.types.Task])
-- **image_nodes**: The image generation nodes to use. (list[nodetool.metadata.types.NodeRef])
+- **tasks**: The task to process. (list)
+- **image_nodes**: The image generation nodes to use. (list)
 - **max_tokens**: The maximum number of tokens to generate. (int)
 - **temperature**: The temperature to use for sampling. (float)
 - **model**: The GPT model to use for processing tasks. (GPTModel)
@@ -168,7 +168,7 @@ Use cases:
 **Args:**
 - **thread_id (str)**
 - **task (Task)**
-- **tasks_by_name (dict[str, nodetool.metadata.types.Task])**
+- **tasks_by_name (dict)**
 - **context (ProcessingContext)**
 
 **Returns:** str
@@ -177,9 +177,9 @@ Use cases:
 
 Perform a topological sort on the tasks to determine the order of execution.
 **Args:**
-- **tasks (list[nodetool.metadata.types.Task])**
+- **tasks (list)**
 
-**Returns:** list[nodetool.metadata.types.Task]
+**Returns:** list
 
 
 ## SynthesizerAgent

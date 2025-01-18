@@ -10,7 +10,11 @@
 
 ## LogicalOperator
 
+An enumeration.
+
 ## Operator
+
+An enumeration.
 
 ## Variable
 

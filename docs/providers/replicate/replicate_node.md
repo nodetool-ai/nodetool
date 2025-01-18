@@ -31,9 +31,9 @@ Convert the output to the specified type.
 The converted output.
 **Args:**
 - **context (ProcessingContext)**
-- **output (Any)**
+- **output (typing.Any)**
 
-**Returns:** Any
+**Returns:** typing.Any
 
 ### get_output_index
 
@@ -70,7 +70,7 @@ Result of the prediction.
 
 **Args:**
 - **model_id (str)**
-- **model_info (dict[str, typing.Any])**
+- **model_info (dict)**
 
 ### capitalize
 
@@ -104,7 +104,7 @@ Converts an enum value to its corresponding value.
 
 - **Any**: The converted value.
 **Args:**
-- **value (Any)**
+- **value (typing.Any)**
 
 ### convert_output_value
 
@@ -128,7 +128,7 @@ Performs automatic conversions using heuristics.
 
 - **TypeError**: If the value is not of the expected type.
 **Args:**
-- **value (Any)**
+- **value (typing.Any)**
 - **t (typing.Type[typing.Any])**
 - **output_index (int) (default: 0)**
 - **output_key (str) (default: output)**
@@ -140,6 +140,7 @@ Parses the replicate model information from the given URL.
 
 **Args:**
 
+- **client (httpx.AsyncClient)**: The HTTP client.
 - **url (str)**: The URL to fetch the HTML content from.
 
 
@@ -147,6 +148,7 @@ Parses the replicate model information from the given URL.
 
 - **dict**: A dictionary containing the parsed model information.
 **Args:**
+- **client (AsyncClient)**
 - **url (str)**
 
 ### sanitize_enum

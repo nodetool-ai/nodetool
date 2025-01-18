@@ -13,8 +13,8 @@ Use cases:
 
 **Fields:**
 - **title**: Title of the calendar event (str)
-- **start_date**: Start date and time of the event (datetime)
-- **end_date**: End date and time of the event (datetime)
+- **start_date**: Start date and time of the event (Datetime)
+- **end_date**: End date and time of the event (Datetime)
 - **calendar_name**: Name of the calendar (str)
 - **location**: Location of the event (str)
 - **description**: Description/notes for the event (str)

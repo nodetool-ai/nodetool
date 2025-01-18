@@ -4,18 +4,21 @@
 
 Checks if all boolean values in a list are True.
 
+
 Use cases:
 - Ensure all conditions in a set are met
 - Implement comprehensive checks
 - Validate multiple criteria simultaneously
 
-**Tags:** boolean, all, check
+**Tags:** boolean, all, check, logic, condition, flow-control, branch
 
 **Fields:**
-- **values**: List of boolean values to check (list[bool])
+- **values**: List of boolean values to check (list)
 
 
 ## BooleanOperation
+
+An enumeration.
 
 ## Compare
 
@@ -29,29 +32,14 @@ Use cases:
 **Tags:** compare, condition, logic
 
 **Fields:**
-- **a**: First value to compare (Any)
-- **b**: Second value to compare (Any)
+- **a**: First value to compare (typing.Any)
+- **b**: Second value to compare (typing.Any)
 - **comparison**: Comparison operator to use (Comparison)
 
 
 ## Comparison
 
-## If
-
-Selects between two values based on a condition.
-
-Use cases:
-- Implement conditional logic in workflows
-- Create dynamic output selection
-- Handle different cases based on input conditions
-
-**Tags:** conditional, if-else, branch
-
-**Fields:**
-- **condition**: The condition to evaluate (bool)
-- **if_true**: Value to return if the condition is true (Any)
-- **if_false**: Value to return if the condition is false (Any)
-
+An enumeration.
 
 ## IsIn
 
@@ -65,8 +53,8 @@ Use cases:
 **Tags:** membership, contains, check
 
 **Fields:**
-- **value**: The value to check for membership (Any)
-- **options**: The list of options to check against (list[typing.Any])
+- **value**: The value to check for membership (typing.Any)
+- **options**: The list of options to check against (list)
 
 
 ## IsNone
@@ -81,7 +69,7 @@ Use cases:
 **Tags:** null, none, check
 
 **Fields:**
-- **value**: The value to check for None (Any)
+- **value**: The value to check for None (typing.Any)
 
 
 ## LogicalOperator
@@ -93,7 +81,7 @@ Use cases:
 - Implement complex logical rules in workflows
 - Create advanced filters or triggers
 
-**Tags:** boolean, logic, operator
+**Tags:** boolean, logic, operator, condition, flow-control, branch, else, true, false, switch, toggle
 
 **Fields:**
 - **a**: First boolean input (bool)
@@ -110,7 +98,7 @@ Use cases:
 - Implement toggle functionality
 - Create opposite logic branches
 
-**Tags:** boolean, logic, not, invert
+**Tags:** boolean, logic, not, invert, !, negation, condition, else, true, false, switch, toggle, flow-control, branch
 
 **Fields:**
 - **value**: Boolean input to negate (bool)
@@ -125,9 +113,9 @@ Use cases:
 - Implement optional criteria checks
 - Create flexible validation rules
 
-**Tags:** boolean, any, check
+**Tags:** boolean, any, check, logic, condition, flow-control, branch
 
 **Fields:**
-- **values**: List of boolean values to check (list[bool])
+- **values**: List of boolean values to check (list)
 
 

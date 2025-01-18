@@ -39,7 +39,7 @@ Use cases:
 - Create variations of existing visual content
 - Blend AI-generated elements with existing images
 
-**Tags:** image, generation, AI, image-to-image
+**Tags:** image, generation, image-to-image
 
 **Fields:**
 - **prompt**: A text prompt describing the desired image transformation. (str)
@@ -82,7 +82,7 @@ Use cases:
 
 **Fields:**
 - **image**: The input image to transform (ImageRef)
-- **scale**: The scale factor for the image super-resolution (RealESRGANScale)
+- **model**: The RealESRGAN model to use for image super-resolution (HFRealESRGAN)
 
 ### initialize
 
@@ -109,7 +109,7 @@ Use cases:
 - Create variations of existing visual content while maintaining certain features
 - Enhance image editing capabilities with AI-guided transformations
 
-**Tags:** image, generation, AI, image-to-image, controlnet
+**Tags:** image, generation, image-to-image, controlnet, SD
 
 **Fields:**
 - **model**: The model to use for image generation. (HFStableDiffusion)
@@ -119,13 +119,14 @@ Use cases:
 - **num_inference_steps**: Number of denoising steps. (int)
 - **guidance_scale**: Guidance scale for generation. (float)
 - **scheduler**: The scheduler to use for the diffusion process. (StableDiffusionScheduler)
-- **loras**: The LoRA models to use for image processing (list[nodetool.metadata.types.HFLoraSDConfig])
+- **loras**: The LoRA models to use for image processing (list)
 - **ip_adapter_model**: The IP adapter model to use for image processing (HFIPAdapter)
 - **ip_adapter_image**: When provided the image will be fed into the IP adapter (ImageRef)
 - **ip_adapter_scale**: The strength of the IP adapter (float)
 - **detail_level**: Level of detail for the hi-res pass. 0.0 is low detail, 1.0 is high detail. (float)
 - **enable_tiling**: Enable tiling for the VAE. This can reduce VRAM usage. (bool)
 - **enable_cpu_offload**: Enable CPU offload for the pipeline. This can reduce VRAM usage. (bool)
+- **upscaler**: The upscaler to use for 2-pass generation. (StableDiffusionUpscaler)
 - **image**: The input image to be transformed. (ImageRef)
 - **strength**: Similarity to the input image (float)
 - **controlnet**: The ControlNet model to use for guidance. (HFControlNet)
@@ -150,7 +151,7 @@ Use cases:
 - Fill in missing parts of images guided by control images
 - Modify specific areas of images while preserving the rest and maintaining structure
 
-**Tags:** image, inpainting, AI, controlnet
+**Tags:** image, inpainting, controlnet, SD
 
 **Fields:**
 - **model**: The model to use for image generation. (HFStableDiffusion)
@@ -160,13 +161,14 @@ Use cases:
 - **num_inference_steps**: Number of denoising steps. (int)
 - **guidance_scale**: Guidance scale for generation. (float)
 - **scheduler**: The scheduler to use for the diffusion process. (StableDiffusionScheduler)
-- **loras**: The LoRA models to use for image processing (list[nodetool.metadata.types.HFLoraSDConfig])
+- **loras**: The LoRA models to use for image processing (list)
 - **ip_adapter_model**: The IP adapter model to use for image processing (HFIPAdapter)
 - **ip_adapter_image**: When provided the image will be fed into the IP adapter (ImageRef)
 - **ip_adapter_scale**: The strength of the IP adapter (float)
 - **detail_level**: Level of detail for the hi-res pass. 0.0 is low detail, 1.0 is high detail. (float)
 - **enable_tiling**: Enable tiling for the VAE. This can reduce VRAM usage. (bool)
 - **enable_cpu_offload**: Enable CPU offload for the pipeline. This can reduce VRAM usage. (bool)
+- **upscaler**: The upscaler to use for 2-pass generation. (StableDiffusionUpscaler)
 - **controlnet**: The ControlNet model to use for guidance. (StableDiffusionControlNetModel)
 - **init_image**: The initial image to be inpainted. (ImageRef)
 - **mask_image**: The mask image indicating areas to be inpainted. (ImageRef)
@@ -192,7 +194,7 @@ Use cases:
 - Create variations of existing images while maintaining specific features
 - Artistic image generation with guided outputs
 
-**Tags:** image, generation, AI, text-to-image, controlnet
+**Tags:** image, generation, text-to-image, controlnet, SD
 
 **Fields:**
 - **model**: The model to use for image generation. (HFStableDiffusion)
@@ -202,13 +204,14 @@ Use cases:
 - **num_inference_steps**: Number of denoising steps. (int)
 - **guidance_scale**: Guidance scale for generation. (float)
 - **scheduler**: The scheduler to use for the diffusion process. (StableDiffusionScheduler)
-- **loras**: The LoRA models to use for image processing (list[nodetool.metadata.types.HFLoraSDConfig])
+- **loras**: The LoRA models to use for image processing (list)
 - **ip_adapter_model**: The IP adapter model to use for image processing (HFIPAdapter)
 - **ip_adapter_image**: When provided the image will be fed into the IP adapter (ImageRef)
 - **ip_adapter_scale**: The strength of the IP adapter (float)
 - **detail_level**: Level of detail for the hi-res pass. 0.0 is low detail, 1.0 is high detail. (float)
 - **enable_tiling**: Enable tiling for the VAE. This can reduce VRAM usage. (bool)
 - **enable_cpu_offload**: Enable CPU offload for the pipeline. This can reduce VRAM usage. (bool)
+- **upscaler**: The upscaler to use for 2-pass generation. (StableDiffusionUpscaler)
 - **controlnet**: The ControlNet model to use for guidance. (HFControlNet)
 - **control_image**: The control image to guide the generation process. (ImageRef)
 - **controlnet_conditioning_scale**: The scale for ControlNet conditioning. (float)
@@ -238,7 +241,7 @@ Use cases:
 - Creating variations of existing artwork
 - Applying text-guided edits to images
 
-**Tags:** image, generation, AI, image-to-image
+**Tags:** image, generation, image-to-image, SD, img2img
 
 **Fields:**
 - **model**: The model to use for image generation. (HFStableDiffusion)
@@ -248,13 +251,14 @@ Use cases:
 - **num_inference_steps**: Number of denoising steps. (int)
 - **guidance_scale**: Guidance scale for generation. (float)
 - **scheduler**: The scheduler to use for the diffusion process. (StableDiffusionScheduler)
-- **loras**: The LoRA models to use for image processing (list[nodetool.metadata.types.HFLoraSDConfig])
+- **loras**: The LoRA models to use for image processing (list)
 - **ip_adapter_model**: The IP adapter model to use for image processing (HFIPAdapter)
 - **ip_adapter_image**: When provided the image will be fed into the IP adapter (ImageRef)
 - **ip_adapter_scale**: The strength of the IP adapter (float)
 - **detail_level**: Level of detail for the hi-res pass. 0.0 is low detail, 1.0 is high detail. (float)
 - **enable_tiling**: Enable tiling for the VAE. This can reduce VRAM usage. (bool)
 - **enable_cpu_offload**: Enable CPU offload for the pipeline. This can reduce VRAM usage. (bool)
+- **upscaler**: The upscaler to use for 2-pass generation. (StableDiffusionUpscaler)
 - **init_image**: The initial image for Image-to-Image generation. (ImageRef)
 - **strength**: Strength for Image-to-Image generation. Higher values allow for more deviation from the original image. (float)
 
@@ -277,7 +281,7 @@ Use cases:
 - Fill in missing parts of images
 - Modify specific areas of images while preserving the rest
 
-**Tags:** image, inpainting, AI
+**Tags:** image, inpainting, AI, SD
 
 **Fields:**
 - **model**: The model to use for image generation. (HFStableDiffusion)
@@ -287,13 +291,14 @@ Use cases:
 - **num_inference_steps**: Number of denoising steps. (int)
 - **guidance_scale**: Guidance scale for generation. (float)
 - **scheduler**: The scheduler to use for the diffusion process. (StableDiffusionScheduler)
-- **loras**: The LoRA models to use for image processing (list[nodetool.metadata.types.HFLoraSDConfig])
+- **loras**: The LoRA models to use for image processing (list)
 - **ip_adapter_model**: The IP adapter model to use for image processing (HFIPAdapter)
 - **ip_adapter_image**: When provided the image will be fed into the IP adapter (ImageRef)
 - **ip_adapter_scale**: The strength of the IP adapter (float)
 - **detail_level**: Level of detail for the hi-res pass. 0.0 is low detail, 1.0 is high detail. (float)
 - **enable_tiling**: Enable tiling for the VAE. This can reduce VRAM usage. (bool)
 - **enable_cpu_offload**: Enable CPU offload for the pipeline. This can reduce VRAM usage. (bool)
+- **upscaler**: The upscaler to use for 2-pass generation. (StableDiffusionUpscaler)
 - **init_image**: The initial image to be inpainted. (ImageRef)
 - **mask_image**: The mask image indicating areas to be inpainted. (ImageRef)
 - **strength**: Strength for inpainting. Higher values allow for more deviation from the original image. (float)
@@ -317,7 +322,7 @@ Use cases:
 - Improve image quality for printing or display
 - Create high-resolution versions of small images
 
-**Tags:** image, upscaling, AI, stable-diffusion
+**Tags:** image, upscaling, stable-diffusion, SD
 
 **Fields:**
 - **prompt**: The prompt for image generation. (str)
@@ -354,7 +359,7 @@ Use cases:
 - Create variations of existing visual content while maintaining certain features
 - Enhance image editing capabilities with AI-guided transformations
 
-**Tags:** image, generation, AI, image-to-image, controlnet
+**Tags:** image, generation, image-to-image, controlnet, SDXL
 
 **Fields:**
 - **model**: The Stable Diffusion XL model to use for generation. (HFStableDiffusionXL)
@@ -366,7 +371,7 @@ Use cases:
 - **width**: Width of the generated image. (int)
 - **height**: Height of the generated image (int)
 - **scheduler**: The scheduler to use for the diffusion process. (StableDiffusionScheduler)
-- **loras**: The LoRA models to use for image processing (list[nodetool.metadata.types.HFLoraSDXLConfig])
+- **loras**: The LoRA models to use for image processing (list)
 - **lora_scale**: Strength of the LoRAs (float)
 - **ip_adapter_model**: The IP adapter model to use for image processing (HFIPAdapter)
 - **ip_adapter_image**: When provided the image will be fed into the IP adapter (ImageRef)
@@ -399,7 +404,7 @@ Use cases:
 - Creating variations of existing artwork
 - Applying text-guided edits to images
 
-**Tags:** image, generation, AI, image-to-image
+**Tags:** image, generation, image-to-image, SDXL
 
 **Fields:**
 - **model**: The Stable Diffusion XL model to use for generation. (HFStableDiffusionXL)
@@ -411,7 +416,7 @@ Use cases:
 - **width**: Width of the generated image. (int)
 - **height**: Height of the generated image (int)
 - **scheduler**: The scheduler to use for the diffusion process. (StableDiffusionScheduler)
-- **loras**: The LoRA models to use for image processing (list[nodetool.metadata.types.HFLoraSDXLConfig])
+- **loras**: The LoRA models to use for image processing (list)
 - **lora_scale**: Strength of the LoRAs (float)
 - **ip_adapter_model**: The IP adapter model to use for image processing (HFIPAdapter)
 - **ip_adapter_image**: When provided the image will be fed into the IP adapter (ImageRef)
@@ -440,7 +445,7 @@ Use cases:
 - Fill in missing parts of images
 - Modify specific areas of images while preserving the rest
 
-**Tags:** image, inpainting, AI
+**Tags:** image, inpainting, SDXL
 
 **Fields:**
 - **model**: The Stable Diffusion XL model to use for generation. (HFStableDiffusionXL)
@@ -452,7 +457,7 @@ Use cases:
 - **width**: Width of the generated image. (int)
 - **height**: Height of the generated image (int)
 - **scheduler**: The scheduler to use for the diffusion process. (StableDiffusionScheduler)
-- **loras**: The LoRA models to use for image processing (list[nodetool.metadata.types.HFLoraSDXLConfig])
+- **loras**: The LoRA models to use for image processing (list)
 - **lora_scale**: Strength of the LoRAs (float)
 - **ip_adapter_model**: The IP adapter model to use for image processing (HFIPAdapter)
 - **ip_adapter_image**: When provided the image will be fed into the IP adapter (ImageRef)

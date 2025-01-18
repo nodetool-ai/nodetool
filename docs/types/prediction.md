@@ -15,8 +15,8 @@ A prediction made by a remote model.
 - **version** (str | None)
 - **node_type** (str | None)
 - **status** (str)
-- **params** (dict[str, typing.Any])
-- **data** (typing.Any | None)
+- **params** (dict)
+- **data** (typing.Optional[typing.Any])
 - **cost** (float | None)
 - **logs** (str | None)
 - **error** (str | None)
@@ -34,7 +34,7 @@ The request body for creating a prediction.
 - **provider** (Provider)
 - **model** (str)
 - **node_id** (str)
-- **params** (dict[str, typing.Any])
+- **params** (dict)
 - **version** (str | None)
 - **workflow_id** (str | None)
 
@@ -52,18 +52,18 @@ The request body for creating a prediction.
 - **type** (typing.Literal['prediction_result'])
 - **prediction** (Prediction)
 - **encoding** (typing.Union[typing.Literal['json'], typing.Literal['base64']])
-- **content** (Any)
+- **content** (typing.Any)
 
 ### decode_content
 
 **Args:**
 
-**Returns:** Any
+**Returns:** typing.Any
 
 ### from_result
 
 **Args:**
 - **prediction (Prediction)**
-- **content (Any)**
+- **content (typing.Any)**
 
 

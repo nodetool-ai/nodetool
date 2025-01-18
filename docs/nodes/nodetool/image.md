@@ -33,14 +33,13 @@ Use cases:
 ## Composite
 
 Combine two images using a mask for advanced compositing.
-Keywords: composite, mask, blend, layering
 
 Use cases:
 - Create complex image compositions
 - Apply selective blending or effects
 - Implement advanced photo editing techniques
 
-**Tags:** 
+**Tags:** composite, mask, blend, layering
 
 **Fields:**
 - **image1**: The first image to composite. (ImageRef)
@@ -110,7 +109,16 @@ Use cases:
 **Fields:**
 - **image**: The image to save. (ImageRef)
 - **folder**: The folder to save the image in. (FolderRef)
-- **name** (str)
+- **name**: 
+        Name of the output file.
+        You can use time and date variables to create unique names:
+        %Y - Year
+        %m - Month
+        %d - Day
+        %H - Hour
+        %M - Minute
+        %S - Second
+         (str)
 
 ### required_inputs
 
@@ -119,9 +127,9 @@ Use cases:
 ### result_for_client
 
 **Args:**
-- **result (dict[str, typing.Any])**
+- **result (dict)**
 
-**Returns:** dict[str, typing.Any]
+**Returns:** dict
 
 
 - [nodetool.nodes.nodetool.image.chart](image/chart.md)

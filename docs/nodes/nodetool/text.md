@@ -12,7 +12,7 @@ Use cases:
 **Tags:** text, chunk, split
 
 **Fields:**
-- **text** (str | nodetool.metadata.types.TextRef)
+- **text** (str)
 - **length** (int)
 - **overlap** (int)
 - **separator** (str | None)
@@ -27,11 +27,60 @@ Use cases:
 - Combining parts of sentences or paragraphs
 - Merging text data from different sources
 
-**Tags:** text, concatenation, combine
+**Tags:** text, concatenation, combine, +
 
 **Fields:**
-- **a** (str | nodetool.metadata.types.TextRef)
-- **b** (str | nodetool.metadata.types.TextRef)
+- **a** (str)
+- **b** (str)
+
+
+## Contains
+
+Checks if text contains a specified substring.
+
+Use cases:
+- Searching for keywords in text
+- Filtering content based on presence of terms
+- Validating text content
+
+**Tags:** text, check, contains, compare, validate, substring, string
+
+**Fields:**
+- **text** (str)
+- **substring** (str)
+- **case_sensitive** (bool)
+
+
+## CountTokens
+
+Counts the number of tokens in text using tiktoken.
+
+Use cases:
+- Checking text length for LLM input limits
+- Estimating API costs
+- Managing token budgets in text processing
+
+**Tags:** text, tokens, count, encoding
+
+**Fields:**
+- **text** (str)
+- **encoding**: The tiktoken encoding to use for token counting (TiktokenEncoding)
+
+
+## EndsWith
+
+Checks if text ends with a specified suffix.
+
+Use cases:
+- Validating file extensions
+- Checking string endings
+- Filtering text based on ending content
+
+**Tags:** text, check, suffix, compare, validate, substring, string
+
+**Fields:**
+- **text** (str)
+- **suffix** (str)
 
 
 ## Extract
@@ -46,7 +95,7 @@ Use cases:
 **Tags:** text, extract, substring
 
 **Fields:**
-- **text** (str | nodetool.metadata.types.TextRef)
+- **text** (str)
 - **start** (int)
 - **end** (int)
 
@@ -63,7 +112,7 @@ Use cases:
 **Tags:** json, extract, jsonpath
 
 **Fields:**
-- **text** (str | nodetool.metadata.types.TextRef)
+- **text** (str)
 - **json_path** (str)
 - **find_all** (bool)
 
@@ -80,7 +129,7 @@ Use cases:
 **Tags:** text, regex, extract
 
 **Fields:**
-- **text** (str | nodetool.metadata.types.TextRef)
+- **text** (str)
 - **regex** (str)
 - **dotall** (bool)
 - **ignorecase** (bool)
@@ -99,11 +148,26 @@ Use cases:
 **Tags:** text, regex, find
 
 **Fields:**
-- **text** (str | nodetool.metadata.types.TextRef)
+- **text** (str)
 - **regex** (str)
 - **dotall** (bool)
 - **ignorecase** (bool)
 - **multiline** (bool)
+
+
+## FormatText
+
+Replaces placeholders in a string with dynamic inputs.
+
+Use cases:
+- Generating personalized messages with dynamic content
+- Creating parameterized queries or commands
+- Formatting text output based on variable inputs
+
+**Tags:** text, template, formatting
+
+**Fields:**
+- **template** (str)
 
 
 ## HTMLToText
@@ -118,8 +182,42 @@ Use cases:
 **Tags:** html, text, convert
 
 **Fields:**
-- **text** (str | nodetool.metadata.types.TextRef)
+- **text** (str)
 - **preserve_linebreaks**: Convert block-level elements to newlines (bool)
+
+
+## HasLength
+
+Checks if text length meets specified conditions.
+
+Use cases:
+- Validating input length requirements
+- Filtering text by length
+- Checking content size constraints
+
+**Tags:** text, check, length, compare, validate, whitespace, string
+
+**Fields:**
+- **text** (str)
+- **min_length** (int | None)
+- **max_length** (int | None)
+- **exact_length** (int | None)
+
+
+## IsEmpty
+
+Checks if text is empty or contains only whitespace.
+
+Use cases:
+- Validating required text fields
+- Filtering out empty content
+- Checking for meaningful input
+
+**Tags:** text, check, empty, compare, validate, whitespace, string
+
+**Fields:**
+- **text** (str)
+- **trim_whitespace** (bool)
 
 
 ## JSONToDataframe
@@ -134,7 +232,7 @@ Use cases:
 **Tags:** json, dataframe, conversion
 
 **Fields:**
-- **text** (str | nodetool.metadata.types.TextRef)
+- **text** (str)
 
 
 ## Join
@@ -146,28 +244,32 @@ Use cases:
 - Creating comma-separated lists from individual items
 - Assembling formatted text from array elements
 
-**Tags:** text, join, combine
+**Tags:** text, join, combine, +, add, concatenate
 
 **Fields:**
-- **strings** (list[str | nodetool.metadata.types.TextRef])
+- **strings** (list)
 - **separator** (str)
 
 
-## ParagraphSplitter
+## MarkdownSplitter
 
-Splits text into paragraphs with source tracking metadata.
+Splits markdown text by headers while preserving header hierarchy in metadata.
 
 Use cases:
-- Dividing documents into traceable paragraph chunks
-- Processing text by natural document sections with source tracking
-- Maintaining context in text analysis
+- Splitting markdown documentation while preserving structure
+- Processing markdown files for semantic search
+- Creating context-aware chunks from markdown content
 
-**Tags:** text, split, paragraphs
+**Tags:** markdown, split, headers
 
 **Fields:**
-- **text** (str | nodetool.metadata.types.TextRef)
-- **min_length** (int)
+- **text** (str)
 - **source_id** (str)
+- **headers_to_split_on**: List of tuples containing (header_symbol, header_name) (list)
+- **strip_headers**: Whether to remove headers from the output content (bool)
+- **return_each_line**: Whether to split into individual lines instead of header sections (bool)
+- **chunk_size**: Optional maximum chunk size for further splitting (int | None)
+- **chunk_overlap**: Overlap size when using chunk_size (int)
 
 
 ## ParseJSON
@@ -182,23 +284,26 @@ Use cases:
 **Tags:** json, parse, convert
 
 **Fields:**
-- **text** (str | nodetool.metadata.types.TextRef)
+- **text** (str)
 
 
-## RegexExtract
+## RecursiveTextSplitter
 
-Extract named groups from text using regex.
+Splits text recursively using LangChain's RecursiveCharacterTextSplitter.
 
 Use cases:
-- Parse structured data
-- Extract semantic components
-- Named field extraction
+- Splitting documents while preserving semantic relationships
+- Creating chunks for language model processing
+- Handling text in languages with/without word boundaries
 
-**Tags:** regex, extract, groups
+**Tags:** text, split, chunks
 
 **Fields:**
-- **text**: Text to extract from (str)
-- **pattern**: Regular expression pattern with named groups (str)
+- **text** (str)
+- **source_id** (str)
+- **chunk_size**: Maximum size of each chunk in characters (int)
+- **chunk_overlap**: Number of characters to overlap between chunks (int)
+- **separators**: List of separators to use for splitting, in order of preference (list)
 
 
 ## RegexMatch
@@ -281,7 +386,7 @@ Use cases:
 **Tags:** text, replace, substitute
 
 **Fields:**
-- **text** (str | nodetool.metadata.types.TextRef)
+- **text** (str)
 - **old** (str)
 - **new** (str)
 
@@ -298,9 +403,18 @@ Use cases:
 **Tags:** text, save, file
 
 **Fields:**
-- **text** (str | nodetool.metadata.types.TextRef)
+- **text** (str)
 - **folder**: Name of the output folder. (FolderRef)
-- **name** (str)
+- **name**: 
+        Name of the output file.
+        You can use time and date variables to create unique names:
+        %Y - Year
+        %m - Month
+        %d - Day
+        %H - Hour
+        %M - Minute
+        %S - Second
+         (str)
 
 ### required_inputs
 
@@ -309,19 +423,21 @@ Use cases:
 
 ## SentenceSplitter
 
-Splits text into sentences with source tracking metadata.
+Splits text into chunks of a minimum length.
 
 Use cases:
-- Breaking down documents into traceable sentence-level chunks
-- Preparing text for sentence-based analysis with source tracking
-- Creating manageable units for language model processing
+- Splitting text into manageable chunks for processing
+- Creating traceable units for analysis or storage
+- Preparing text for language model processing
 
 **Tags:** text, split, sentences
 
 **Fields:**
-- **text** (str | nodetool.metadata.types.TextRef)
+- **text** (str)
 - **min_length** (int)
 - **source_id** (str)
+- **chunk_size** (int)
+- **chunk_overlap** (int)
 
 
 ## Slice
@@ -342,7 +458,7 @@ Examples:
 **Tags:** text, slice, substring
 
 **Fields:**
-- **text** (str | nodetool.metadata.types.TextRef)
+- **text** (str)
 - **start** (int | None)
 - **stop** (int | None)
 - **step** (int | None)
@@ -360,8 +476,24 @@ Use cases:
 **Tags:** text, split, tokenize
 
 **Fields:**
-- **text** (str | nodetool.metadata.types.TextRef)
+- **text** (str)
 - **delimiter** (str)
+
+
+## StartsWith
+
+Checks if text starts with a specified prefix.
+
+Use cases:
+- Validating string prefixes
+- Filtering text based on starting content
+- Checking file name patterns
+
+**Tags:** text, check, prefix, compare, validate, substring, string
+
+**Fields:**
+- **text** (str)
+- **prefix** (str)
 
 
 ## Template
@@ -378,53 +510,50 @@ Examples:
 - text: "Hello, {0} {1}!" values: ["Alice", "Meyer"] -> "Hello, Alice Meyer!"
 - text: "Hello, {0}!" values: "Alice" -> "Hello, Alice!"
 
-**Tags:** text, template, formatting
+**Tags:** text, template, formatting, format, combine, concatenate, +, add, variable, replace
 
 **Fields:**
-- **string** (str | nodetool.metadata.types.TextRef)
-- **values** (str | list | dict[str, typing.Any])
+- **string** (str)
+- **values**: 
+        The values to replace in the string.
+        - If a string, it will be used as the format string.
+        - If a list, it will be used as the format arguments.
+        - If a dictionary, it will be used as the format keyword arguments.
+        - If an object, it will be converted to a dictionary using the object's __dict__ method.
+         (str | list | dict[str, typing.Any] | object)
 
 
 ## TextID
 
 Returns the asset id.
 
-**Fields:**
-- **text** (TextRef)
-
-
-## TokenSplitter
-
-Splits text into token-based chunks with source tracking metadata.
-
-Use cases:
-- Creating fixed-size chunks for language model input with source tracking
-- Maintaining context with overlapping text segments
-- Optimizing text processing for specific token limits
-
-**Tags:** text, split, tokens
+**Tags:** index, asset, identifier
 
 **Fields:**
-- **text** (str | nodetool.metadata.types.TextRef)
-- **chunk_size** (int)
-- **overlap** (int)
-- **source_id** (str)
+- **text** (str)
 
 
-### convert_result
+## TiktokenEncoding
+
+Available tiktoken encodings
+
+### convert_html_to_text
+
+Converts HTML to plain text while preserving structure and handling whitespace.
+
 
 **Args:**
-- **context (ProcessingContext)**
-- **input (list[nodetool.metadata.types.TextRef | str])**
-- **result (str)**
 
-**Returns:** nodetool.metadata.types.TextRef | str
+- **html**: HTML string to convert
+- **preserve_linebreaks**: Whether to preserve line breaks from block elements
 
-### to_string
 
+**Returns:**
+
+Cleaned plain text string
 **Args:**
-- **context (ProcessingContext)**
-- **text (nodetool.metadata.types.TextRef | str)**
+- **html (str)**
+- **preserve_linebreaks (bool) (default: True)**
 
 **Returns:** str
 

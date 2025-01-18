@@ -2,6 +2,10 @@
 
 ## Summarize
 
+Summarizes text using a Hugging Face model.
+
+**Tags:** text, summarization, AI, LLM
+
 **Fields:**
 - **model**: The model ID to use for the text generation (HFTextGeneration)
 - **inputs**: The input text to summarize (str)

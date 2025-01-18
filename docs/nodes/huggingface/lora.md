@@ -9,7 +9,7 @@ Use cases:
 - Fine-tuning Stable Diffusion models with specific attributes
 - Experimenting with different LoRA combinations
 
-**Tags:** lora, model customization, fine-tuning
+**Tags:** lora, model customization, fine-tuning, SD
 
 **Fields:**
 - **lora1**: First LoRA model (HFLoraSD)
@@ -33,7 +33,7 @@ Use cases:
 - Fine-tuning Stable Diffusion XL models with specific attributes
 - Experimenting with different LoRA combinations
 
-**Tags:** lora, model customization, fine-tuning
+**Tags:** lora, model customization, fine-tuning, SDXL
 
 **Fields:**
 - **lora1**: First LoRA model (HFLoraSDXL)

@@ -14,7 +14,7 @@ Use cases:
 
 **Fields:**
 - **url**: The URL to make the request to. (str)
-- **headers**: Optional headers to include in the request. (dict[str, str])
+- **headers**: Optional headers to include in the request. (dict)
 - **auth**: Authentication credentials. (str | None)
 
 
@@ -31,9 +31,9 @@ Use cases:
 **Tags:** download, files, urls, batch
 
 **Fields:**
-- **urls**: List of URLs to download. (list[str])
+- **urls**: List of URLs to download. (list)
 - **output_folder**: Local folder path where files will be saved. (FilePath)
-- **headers**: Optional headers to include in the request. (dict[str, str])
+- **headers**: Optional headers to include in the request. (dict)
 - **auth**: Authentication credentials. (str | None)
 - **max_concurrent_downloads**: Maximum number of concurrent downloads. (int)
 
@@ -79,9 +79,9 @@ Use cases:
 
 **Fields:**
 - **url**: The URL to make the request to. (str)
-- **headers**: Optional headers to include in the request. (dict[str, str])
+- **headers**: Optional headers to include in the request. (dict)
 - **auth**: Authentication credentials. (str | None)
-- **urls**: List of URLs to validate. (list[str])
+- **urls**: List of URLs to validate. (list)
 - **max_concurrent_requests**: Maximum number of concurrent HEAD requests. (int)
 
 ### check_url
@@ -90,7 +90,7 @@ Use cases:
 - **session (ClientSession)**
 - **url (str)**
 
-**Returns:** tuple[str, bool]
+**Returns:** tuple
 
 
 ## GetRequest
@@ -107,7 +107,7 @@ Use cases:
 
 **Fields:**
 - **url**: The URL to make the request to. (str)
-- **headers**: Optional headers to include in the request. (dict[str, str])
+- **headers**: Optional headers to include in the request. (dict)
 - **auth**: Authentication credentials. (str | None)
 
 
@@ -125,7 +125,25 @@ Use cases:
 
 **Fields:**
 - **url**: The URL to make the request to. (str)
-- **headers**: Optional headers to include in the request. (dict[str, str])
+- **headers**: Optional headers to include in the request. (dict)
+- **auth**: Authentication credentials. (str | None)
+
+
+## GetRequestDocument
+
+Perform an HTTP GET request and return a document
+
+Use cases:
+- Download PDF documents
+- Retrieve Word documents
+- Fetch Excel files
+- Download any document format
+
+**Tags:** http, get, request, url, document
+
+**Fields:**
+- **url**: The URL to make the request to. (str)
+- **headers**: Optional headers to include in the request. (dict)
 - **auth**: Authentication credentials. (str | None)
 
 
@@ -133,7 +151,7 @@ Use cases:
 
 **Fields:**
 - **url**: The URL to make the request to. (str)
-- **headers**: Optional headers to include in the request. (dict[str, str])
+- **headers**: Optional headers to include in the request. (dict)
 - **auth**: Authentication credentials. (str | None)
 
 ### get_request_kwargs
@@ -154,7 +172,7 @@ Use cases:
 
 **Fields:**
 - **url**: The URL to make the request to. (str)
-- **headers**: Optional headers to include in the request. (dict[str, str])
+- **headers**: Optional headers to include in the request. (dict)
 - **auth**: Authentication credentials. (str | None)
 
 
@@ -184,6 +202,77 @@ Use cases:
 **Returns:** nodetool.metadata.types.ImageRef | None
 
 
+## JSONGetRequest
+
+Perform an HTTP GET request and parse the response as JSON.
+
+Use cases:
+- Fetch data from REST APIs
+- Retrieve JSON-formatted responses
+- Interface with JSON web services
+
+**Tags:** http, get, request, url, json, api
+
+**Fields:**
+- **url**: The URL to make the request to. (str)
+- **headers**: Optional headers to include in the request. (dict)
+- **auth**: Authentication credentials. (str | None)
+
+
+## JSONPatchRequest
+
+Partially update resources with JSON data using an HTTP PATCH request.
+
+Use cases:
+- Partial updates to API resources
+- Modify specific fields without full replacement
+- Efficient updates for large objects
+
+**Tags:** http, patch, request, url, json, api
+
+**Fields:**
+- **url**: The URL to make the request to. (str)
+- **headers**: Optional headers to include in the request. (dict)
+- **auth**: Authentication credentials. (str | None)
+- **data**: The JSON data to send in the PATCH request. (dict)
+
+
+## JSONPostRequest
+
+Send JSON data to a server using an HTTP POST request.
+
+Use cases:
+- Send structured data to REST APIs
+- Create resources with JSON payloads
+- Interface with modern web services
+
+**Tags:** http, post, request, url, json, api
+
+**Fields:**
+- **url**: The URL to make the request to. (str)
+- **headers**: Optional headers to include in the request. (dict)
+- **auth**: Authentication credentials. (str | None)
+- **data**: The JSON data to send in the POST request. (dict)
+
+
+## JSONPutRequest
+
+Update resources with JSON data using an HTTP PUT request.
+
+Use cases:
+- Update existing API resources
+- Replace complete objects in REST APIs
+- Set configuration with JSON data
+
+**Tags:** http, put, request, url, json, api
+
+**Fields:**
+- **url**: The URL to make the request to. (str)
+- **headers**: Optional headers to include in the request. (dict)
+- **auth**: Authentication credentials. (str | None)
+- **data**: The JSON data to send in the PUT request. (dict)
+
+
 ## PostRequest
 
 Send data to a server using an HTTP POST request.
@@ -198,7 +287,7 @@ Use cases:
 
 **Fields:**
 - **url**: The URL to make the request to. (str)
-- **headers**: Optional headers to include in the request. (dict[str, str])
+- **headers**: Optional headers to include in the request. (dict)
 - **auth**: Authentication credentials. (str | None)
 - **data**: The data to send in the POST request. (str)
 
@@ -217,7 +306,7 @@ Use cases:
 
 **Fields:**
 - **url**: The URL to make the request to. (str)
-- **headers**: Optional headers to include in the request. (dict[str, str])
+- **headers**: Optional headers to include in the request. (dict)
 - **auth**: Authentication credentials. (str | None)
 - **data**: The data to send in the POST request. Can be string or binary. (str | bytes)
 
@@ -236,7 +325,7 @@ Use cases:
 
 **Fields:**
 - **url**: The URL to make the request to. (str)
-- **headers**: Optional headers to include in the request. (dict[str, str])
+- **headers**: Optional headers to include in the request. (dict)
 - **auth**: Authentication credentials. (str | None)
 - **data**: The data to send in the PUT request. (str)
 

@@ -21,6 +21,7 @@ type checking, and node processing.
 ### assign_property
 
 Assign a value to a node property, performing type checking and conversion.
+If the property is dynamic, it will be added to the _dynamic_properties dictionary.
 
 
 **Args:**
@@ -39,15 +40,15 @@ Assign a value to a node property, performing type checking and conversion.
 This method handles type conversion for enums, lists, and objects with 'model_validate' method.
 **Args:**
 - **name (str)**
-- **value (Any)**
+- **value (typing.Any)**
 
 ### convert_output
 
 **Args:**
-- **context (Any)**
-- **output (Any)**
+- **context (typing.Any)**
+- **output (typing.Any)**
 
-**Returns:** Any
+**Returns:** typing.Any
 
 ### finalize
 
@@ -57,6 +58,27 @@ This method is called when the workflow is shutting down.
 It's responsible for cleaning up resources, unloading GPU models, and performing any necessary teardown operations.
 **Args:**
 - **context**
+
+### find_property
+
+Find a property of the node by its name.
+
+
+**Args:**
+
+- **name (str)**: The name of the property to find.
+
+
+**Returns:**
+
+- **Property**: The found property object.
+
+
+**Raises:**
+
+- **ValueError**: If no property with the given name exists.
+**Args:**
+- **name (str)**
 
 ### from_dict
 
@@ -72,10 +94,14 @@ Create a Node object from a dictionary representation.
 
 - **Node**: The created Node object.
 **Args:**
-- **node (dict[str, typing.Any])**
+- **node (dict)**
 - **skip_errors (bool) (default: False)**
 
 **Returns:** BaseNode
+
+### get_dynamic_properties
+
+**Args:**
 
 ### has_parent
 
@@ -87,8 +113,28 @@ Initialize the node when workflow starts.
 
 Responsible for setting up the node, including loading any necessary GPU models.
 **Args:**
-- **context (Any)**
+- **context (typing.Any)**
 - **skip_cache (bool) (default: False)**
+
+### is_assignable
+
+Check if a value can be assigned to a specific property of the node.
+
+
+**Args:**
+
+- **name (str)**: The name of the property to check.
+- **value (Any)**: The value to check for assignability.
+
+
+**Returns:**
+
+- **bool**: True if the value can be assigned to the property, False otherwise.
+**Args:**
+- **name (str)**
+- **value (typing.Any)**
+
+**Returns:** bool
 
 ### move_to_device
 
@@ -111,9 +157,9 @@ Pre-process the node before processing.
 This will be called before cache key is computed.
 Default implementation generates a seed for any field named seed.
 **Args:**
-- **context (Any)**
+- **context (typing.Any)**
 
-**Returns:** Any
+**Returns:** typing.Any
 
 ### process_with_gpu
 
@@ -121,15 +167,39 @@ Process the node with GPU.
 Default implementation calls the process method in inference mode.
 For training nodes, this method should be overridden.
 **Args:**
-- **context (Any)**
+- **context (typing.Any)**
 
-**Returns:** Any
+**Returns:** typing.Any
 
 ### properties_for_client
 
 Properties to send to the client for updating the node.
 Comfy types and tensors are excluded.
 **Args:**
+
+### read_property
+
+Read a property from the node.
+If the property is dynamic, it will be read from the _dynamic_properties dictionary.
+
+
+**Args:**
+
+- **name (str)**: The name of the property to read.
+
+
+**Returns:**
+
+- **Any**: The value of the property.
+
+
+**Raises:**
+
+- **ValueError**: If the property does not exist.
+**Args:**
+- **name (str)**
+
+**Returns:** typing.Any
 
 ### required_inputs
 
@@ -153,9 +223,9 @@ Prepares the node result for inclusion in a NodeUpdate message.
 
 This method is used when the node is sending updates for all outputs.
 **Args:**
-- **result (dict[str, typing.Any])**
+- **result (dict)**
 
-**Returns:** dict[str, typing.Any]
+**Returns:** dict
 
 ### result_for_client
 
@@ -178,9 +248,9 @@ Prepares the node result for inclusion in a NodeUpdate message.
 - Converts Pydantic models to dictionaries.
 - Serializes binary data to base64.
 **Args:**
-- **result (dict[str, typing.Any])**
+- **result (dict)**
 
-**Returns:** dict[str, typing.Any]
+**Returns:** dict
 
 ### send_update
 
@@ -194,7 +264,7 @@ Send a status update for the node to the client.
 - **result (dict[str, Any], optional)**: The result of the node's processing. Defaults to {}.
 - **properties (list[str], optional)**: The properties to send to the client. Defaults to None.
 **Args:**
-- **context (Any)**
+- **context (typing.Any)**
 - **status (str)**
 - **result (dict[str, typing.Any] | None) (default: None)**
 - **properties (list[str] | None) (default: None)**
@@ -219,14 +289,14 @@ Set multiple node properties at once.
 
 Errors during property assignment are printed regardless of the skip_errors flag.
 **Args:**
-- **properties (dict[str, typing.Any])**
+- **properties (dict)**
 - **skip_errors (bool) (default: False)**
 
 ### to_dict
 
 **Args:**
 
-**Returns:** dict[str, typing.Any]
+**Returns:** dict
 
 ### validate
 
@@ -242,7 +312,7 @@ Validate the node's inputs before processing.
 
 - **ValueError**: If any input is missing or invalid.
 **Args:**
-- **input_edges (list[nodetool.types.graph.Edge])**
+- **input_edges (list)**
 
 
 ## Comment
@@ -255,16 +325,17 @@ comment (list[Any]): The content of the comment, stored as a list of elements.
 
 **Fields:**
 - **headline**: The headline for this comment. (str)
-- **comment**: The comment for this node. (list[typing.Any])
+- **comment**: The comment for this node. (list)
 - **comment_color**: The color for the comment. (str)
 
 
 ## GroupNode
 
 A special node type that can contain a subgraph of nodes.
+
 This node type allows for hierarchical structuring of workflows.
 
-**Tags:** 
+**Tags:** group, workflow, structure, organize
 
 **Fields:**
 
@@ -279,30 +350,30 @@ name (str): The parameter name for this input in the workflow.
 **Tags:** 
 
 **Fields:**
-- **label**: The label for this input node. (str)
 - **name**: The parameter name for the workflow. (str)
+- **description**: The description for this input node. (str)
 
 
 ## OutputNode
 
 A special node type representing an output from the workflow.
 Attributes:
-label (str): A human-readable label for the output.
 name (str): The parameter name for this output in the workflow.
 description (str): A detailed description of the output.
+value (Any): The value of the output.
 
 **Tags:** 
 
 **Fields:**
-- **label**: The label for this output node. (str)
 - **name**: The parameter name for the workflow. (str)
+- **description**: The description for this output node. (str)
 
 ### result_for_client
 
 **Args:**
-- **result (dict[str, typing.Any])**
+- **result (dict)**
 
-**Returns:** dict[str, typing.Any]
+**Returns:** dict
 
 
 ## Preview
@@ -314,15 +385,15 @@ value (Any): The value to be previewed.
 **Tags:** 
 
 **Fields:**
-- **value**: The value to preview. (Any)
+- **value**: The value to preview. (typing.Any)
 - **name**: The name of the preview node. (str)
 
 ### result_for_client
 
 **Args:**
-- **result (dict[str, typing.Any])**
+- **result (dict)**
 
-**Returns:** dict[str, typing.Any]
+**Returns:** dict
 
 
 ### add_comfy_classname
@@ -341,7 +412,7 @@ To avoid name conflicts, we store comfy classes in a separate dictionary.
 If the node class has a 'comfy_class' attribute, it uses that as the class name.
 Otherwise, it uses the actual class name.
 **Args:**
-- **node_class (type['BaseNode'])**
+- **node_class (type)**
 
 **Returns:** None
 
@@ -355,7 +426,7 @@ Add a node type to the registry.
 - **node_type (str)**: The node_type of the node.
 - **node_class (type[Node])**: The class of the node.
 **Args:**
-- **node_class (type['BaseNode'])**
+- **node_class (type)**
 
 **Returns:** None
 

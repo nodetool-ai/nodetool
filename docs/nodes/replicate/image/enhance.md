@@ -2,7 +2,7 @@
 
 ## CodeFormer
 
-Robust face restoration algorithm for old photos/AI-generated faces - (A40 GPU)
+Robust face restoration algorithm for old photos/AI-generated faces
 
 **Fields:**
 - **image**: Input image (ImageRef)

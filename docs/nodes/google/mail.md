@@ -1,36 +1,86 @@
 # nodetool.nodes.google.mail
 
-## GmailLabel
+## DateFilter
 
-Searches Gmail for emails with specific labels.
+An enumeration.
 
-**Tags:** email, gmail, label
+## EmailSearchCriteriaNode
+
+Comprehensive Email search criteria using IMAP search operators.
+
+**Tags:** email, gmail, search
 
 **Fields:**
-- **email_address**: Gmail address to connect to (str)
-- **label**: Gmail label to search (e.g., INBOX, SENT, DRAFT, SPAM) (str)
-- **unread_only**: Only return unread emails (bool)
-- **max_results**: Maximum number of emails to return (int)
+- **from_address**: Sender's email address to search for.
+        - Case-insensitive
+        - Partial matches work (e.g., "@company.com")
+        - Use quotes for addresses with spaces
+        - Multiple addresses can be combined with OR operator
+         (str)
+- **to_address**: Recipient's email address to search for.
+        - Case-insensitive
+        - Partial matches work (e.g., "@company.com")
+        - Use quotes for addresses with spaces
+        - Includes primary recipients only (not CC/BCC)
+         (str)
+- **subject**: Text to search for in email subject.
+        - Case-insensitive
+        - Partial word matches work
+        - Use quotes for phrases with spaces
+        - Special characters should be escaped
+         (str)
+- **body**: Text to search for in email body.
+        - Case-insensitive
+        - Searches message body only
+        - Use quotes for phrases with spaces
+        - HTML and plain text content are searched
+         (str)
+- **date_filter**: Date filter to search for. (DateFilter)
+- **flags**: Email status flag to search for.
+        - SEEN/UNSEEN: Read/unread messages
+        - ANSWERED/UNANSWERED: Replied/unreplied messages
+        - FLAGGED/UNFLAGGED: Starred/unstarred messages
+         (EmailFlag)
+- **keywords**: Custom keywords or labels to search for.
+        - Case-sensitive
+        - Gmail labels are treated as keywords
+        - Custom labels are used as-is
+         (str)
+- **folder**: Email folder to search in. (GmailFolder)
+- **text**: General text to search for anywhere in the email.
+        - Searches all text fields (subject, body, addresses)
+        - Case-insensitive
+        - Partial matches work
+        - Use quotes for phrases with spaces
+        - Most flexible but slower than specific field searches
+         (str)
 
+
+## GmailFolder
+
+An enumeration.
 
 ## GmailSearch
 
 Searches Gmail using Gmail-specific search operators.
 
-Examples of Gmail search operators:
-- from:sender@example.com
-- to:recipient@example.com
-- subject:hello
-- has:attachment
-- newer_than:2d
-- older_than:1y
-- label:important
+Returns emails with following fields:
+- id: Message ID
+- subject: Email subject
+- from: Sender address
+- date: Datetime of email
+- body: Email body content
+
+Use cases:
+- Search for emails based on specific criteria
+- Retrieve emails from a specific sender
+- Filter emails by subject, sender, or date
 
 **Tags:** email, gmail, search
 
 **Fields:**
 - **email_address**: Gmail address to connect to (str)
-- **search_query**: Gmail search query using Gmail search operators: from:sender@example.com to:recipient@example.com subject:hello has:attachment newer_than:2d older_than:1y label:important (str)
+- **search_criteria**: Search criteria (EmailSearchCriteria)
 - **max_results**: Maximum number of emails to return (int)
 
 
@@ -69,39 +119,4 @@ IMAPConnection configured for Gmail
 - **app_password (str)**
 
 **Returns:** IMAPConnection
-
-### decode_bytes_with_fallback
-
-Attempts to decode bytes using multiple encodings with fallback to empty string.
-
-
-**Args:**
-
-- **byte_string**: The bytes to decode
-- **encodings**: Tuple of encodings to try in order
-
-
-**Returns:**
-
-Decoded string or empty string if all decodings fail
-**Args:**
-- **byte_string (bytes)**
-- **encodings (default: ('utf-8', 'latin-1', 'ascii'))**
-
-**Returns:** str
-
-### fetch_emails
-
-**Args:**
-- **imap**
-- **message_ids (typing.List[str])**
-
-**Returns:** typing.List[dict]
-
-### get_email_body
-
-**Args:**
-- **email_message**
-
-**Returns:** str
 

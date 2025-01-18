@@ -1,5 +1,21 @@
 # nodetool.nodes.nodetool.html
 
+## BaseUrl
+
+Extract the base URL from a given URL.
+
+Use cases:
+- Get domain name from full URLs
+- Clean up URLs for comparison
+- Extract root website addresses
+- Standardize URL formats
+
+**Tags:** url parsing, domain extraction, web utilities
+
+**Fields:**
+- **url**: The URL to extract the base from (str)
+
+
 ## ExtractAudio
 
 Extract audio elements from HTML content.
@@ -88,7 +104,7 @@ Use cases:
 - Extract article text from news websites
 - Prepare web content for summarization
 
-**Tags:** web scraping, content extraction, text analysis
+**Tags:** scrape, web scraping, content extraction, text analysis
 
 **Fields:**
 - **html_content**: The raw HTML content of the website. (str)
