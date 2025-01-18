@@ -126,8 +126,15 @@ class LanguageEnum(str, Enum):
 
 class Whisper(FALNode):
     """
-    Whisper is a model for speech transcription and translation.
-    It can transcribe audio in multiple languages and optionally translate to English.
+    Whisper is a model for speech transcription and translation that can transcribe audio in multiple languages and optionally translate to English.
+    speech, audio, transcription, translation, transcribe, translate, multilingual, speech-to-text, audio-to-text
+
+    Use cases:
+    - Transcribe spoken content to text
+    - Translate speech to English
+    - Generate subtitles and captions
+    - Create text records of audio content
+    - Analyze multilingual audio content
     """
 
     audio: AudioRef = Field(

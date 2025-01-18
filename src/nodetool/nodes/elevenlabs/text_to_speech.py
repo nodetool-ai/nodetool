@@ -108,14 +108,15 @@ class TextNormalization(str, Enum):
 
 class TextToSpeech(BaseNode):
     """
-    Generates speech using ElevenLabs' text-to-speech API.
-    audio, generation, AI, text-to-speech, TTS, elevenlabs
+    Generate natural-sounding speech using ElevenLabs' advanced text-to-speech technology. Features multiple voices and customizable parameters.
+    audio, tts, speech, synthesis, voice
 
     Use cases:
-    - Generate natural-sounding speech from text
-    - Create voiceovers for videos or presentations
-    - Produce audio content with different voices and styles
-    - Create realistic AI-generated speech for various applications
+    - Create professional voiceovers
+    - Generate character voices
+    - Produce multilingual content
+    - Create audiobooks
+    - Generate voice content
     """
 
     voice: VoiceIDEnum = Field(

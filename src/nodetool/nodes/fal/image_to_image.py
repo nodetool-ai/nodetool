@@ -8,9 +8,13 @@ from .text_to_image import ImageSizePreset
 
 class FluxSchnellRedux(FALNode):
     """
-    FLUX.1 [schnell] Redux is a high-performance endpoint that enables rapid transformation 
-    of existing images, delivering high-quality style transfers and image modifications with 
-    the core FLUX capabilities.
+    FLUX.1 [schnell] Redux is a high-performance endpoint that enables rapid transformation of existing images, delivering high-quality style transfers and image modifications with the core FLUX capabilities.
+    image, transformation, style-transfer, fast, flux
+
+    Use cases:
+    - Transform images with style transfers
+    - Apply artistic modifications to photos
+    - Create image variations
     """
 
     image: ImageRef = Field(
@@ -64,8 +68,13 @@ class FluxSchnellRedux(FALNode):
 
 class FluxDevRedux(FALNode):
     """
-    FLUX.1 [dev] Redux is a high-performance endpoint that enables rapid transformation 
-    of existing images, delivering high-quality style transfers and image modifications.
+    FLUX.1 [dev] Redux is a high-performance endpoint that enables rapid transformation of existing images, delivering high-quality style transfers and image modifications.
+    image, transformation, style-transfer, development, flux
+
+    Use cases:
+    - Transform images with advanced controls
+    - Create customized image variations
+    - Apply precise style modifications
     """
 
     image: ImageRef = Field(
@@ -124,8 +133,12 @@ class FluxDevRedux(FALNode):
 
 class FluxProRedux(FALNode):
     """
-    FLUX.1 [pro] Redux is a high-performance endpoint that enables rapid transformation 
-    of existing images, delivering high-quality style transfers and image modifications.
+    FLUX.1 [pro] Redux is a high-performance endpoint that enables rapid transformation of existing images, delivering high-quality style transfers and image modifications.
+    image, transformation, style-transfer, flux
+
+    Use cases:
+    - Create professional image transformations
+    - Generate style transfers
     """
 
     image: ImageRef = Field(
@@ -184,9 +197,12 @@ class FluxProRedux(FALNode):
 
 class FluxProUltraRedux(FALNode):
     """
-    FLUX1.1 [pro] ultra Redux is a high-performance endpoint that enables rapid transformation 
-    of existing images, delivering high-quality style transfers and image modifications with 
-    the core FLUX capabilities.
+    FLUX1.1 [pro] ultra Redux is a high-performance endpoint that enables rapid transformation of existing images, delivering high-quality style transfers and image modifications with the core FLUX capabilities.
+    image, transformation, style-transfer, ultra, professional
+
+    Use cases:
+    - Apply precise image modifications
+    - Process images with maximum control
     """
 
     image: ImageRef = Field(
@@ -249,9 +265,15 @@ class FluxProUltraRedux(FALNode):
 
 
 class FluxProFill(FALNode):
-    """
-    FLUX.1 [pro] Fill is a high-performance endpoint that enables rapid transformation 
-    of existing images with inpainting/outpainting capabilities.
+    """FLUX.1 [pro] Fill is a high-performance endpoint that enables rapid transformation of existing images with inpainting/outpainting capabilities.
+    image, inpainting, outpainting, transformation, professional
+
+    Use cases:
+    - Fill in missing or masked parts of images
+    - Extend images beyond their original boundaries
+    - Remove and replace unwanted elements
+    - Create seamless image completions
+    - Generate context-aware image content
     """
 
     image: ImageRef = Field(
@@ -310,9 +332,15 @@ class FluxProFill(FALNode):
 
 
 class FluxProCanny(FALNode):
-    """
-    FLUX.1 [pro] Canny enables precise control over composition, style, and structure 
-    through advanced edge detection and guidance mechanisms.
+    """FLUX.1 [pro] Canny enables precise control over composition, style, and structure through advanced edge detection and guidance mechanisms.
+    image, edge, composition, style, control
+
+    Use cases:
+    - Generate images with precise structural control
+    - Create artwork based on edge maps
+    - Transform sketches into detailed images
+    - Maintain specific compositional elements
+    - Generate variations with consistent structure
     """
 
     control_image: ImageRef = Field(
@@ -375,9 +403,15 @@ class FluxProCanny(FALNode):
 
 
 class FluxProDepth(FALNode):
-    """
-    FLUX.1 [pro] Depth enables precise control over composition and structure through 
-    depth map detection and guidance mechanisms.
+    """FLUX.1 [pro] Depth enables precise control over composition and structure through depth map detection and guidance mechanisms.
+    image, depth-map, composition, structure, control
+
+    Use cases:
+    - Generate images with controlled depth perception
+    - Create 3D-aware image transformations
+    - Maintain spatial relationships in generated images
+    - Produce images with accurate perspective
+    - Generate variations with consistent depth structure
     """
 
     control_image: ImageRef = Field(
@@ -440,9 +474,14 @@ class FluxProDepth(FALNode):
 
 
 class FluxLoraCanny(FALNode):
-    """
-    FLUX LoRA Canny enables precise control over composition and style through 
-    edge detection and LoRA-based guidance mechanisms.
+    """FLUX LoRA Canny enables precise control over composition and style through edge detection and LoRA-based guidance mechanisms.
+    image, edge, lora, style-transfer, control
+
+    Use cases:
+    - Generate stylized images with structural control
+    - Create edge-guided artistic transformations
+    - Apply custom styles while maintaining composition
+    - Produce consistent style variations
     """
 
     control_image: ImageRef = Field(
@@ -505,9 +544,15 @@ class FluxLoraCanny(FALNode):
 
 
 class FluxLoraDepth(FALNode):
-    """
-    FLUX LoRA Depth enables precise control over composition and structure through 
-    depth map detection and LoRA-based guidance mechanisms.
+    """FLUX LoRA Depth enables precise control over composition and structure through depth map detection and LoRA-based guidance mechanisms.
+    image, depth, lora, structure, control
+
+    Use cases:
+    - Generate depth-aware stylized images
+    - Create 3D-conscious artistic transformations
+    - Maintain spatial relationships with custom styles
+    - Produce depth-consistent variations
+    - Generate images with controlled perspective
     """
 
     control_image: ImageRef = Field(
@@ -572,9 +617,14 @@ class FluxLoraDepth(FALNode):
 # ... existing code ...
 
 class IdeogramV2Edit(FALNode):
-    """
-    Transform existing images with Ideogram V2's editing capabilities. Modify, adjust, and refine 
-    images while maintaining high fidelity and realistic outputs with precise prompt control.
+    """Transform existing images with Ideogram V2's editing capabilities. Modify, adjust, and refine images while maintaining high fidelity and realistic outputs with precise prompt control.
+    image, editing, transformation, fidelity, control
+
+    Use cases:
+    - Edit specific parts of images with precision
+    - Create targeted image modifications
+    - Refine and enhance image details
+    - Generate contextual image edits
     """
     
     prompt: str = Field(
@@ -630,9 +680,15 @@ class IdeogramV2Edit(FALNode):
         return ["prompt", "image", "mask"]
 
 class IdeogramV2Remix(FALNode):
-    """
-    Reimagine existing images with Ideogram V2's remix feature. Create variations and adaptations 
-    while preserving core elements and adding new creative directions through prompt guidance.
+    """Reimagine existing images with Ideogram V2's remix feature. Create variations and adaptations while preserving core elements and adding new creative directions through prompt guidance.
+    image, remix, variation, creativity, adaptation
+
+    Use cases:
+    - Create artistic variations of images
+    - Generate style-transferred versions
+    - Produce creative image adaptations
+    - Transform images while preserving key elements
+    - Generate alternative interpretations
     """
 
     prompt: str = Field(
@@ -693,8 +749,15 @@ class IdeogramV2Remix(FALNode):
 
 class BriaEraser(FALNode):
     """
-    Bria Eraser enables precise removal of unwanted objects from images while maintaining 
-    high-quality outputs. Trained exclusively on licensed data for safe and risk-free commercial use.
+    Bria Eraser enables precise removal of unwanted objects from images while maintaining high-quality outputs. Trained exclusively on licensed data for safe and risk-free commercial use.
+    image, removal, cleanup
+
+    Use cases:
+    - Remove unwanted objects from images
+    - Clean up image imperfections
+    - Prepare images for commercial use
+    - Remove distracting elements
+    - Create clean, professional images
     """
 
     image: ImageRef = Field(
@@ -733,10 +796,15 @@ class BriaEraser(FALNode):
         return ["image", "mask"]
 
 class BriaProductShot(FALNode):
-    """
-    Place any product in any scenery with just a prompt or reference image while maintaining high 
-    integrity of the product. Trained exclusively on licensed data for safe and risk-free commercial 
-    use and optimized for eCommerce.
+    """Place any product in any scenery with just a prompt or reference image while maintaining high integrity of the product. Trained exclusively on licensed data for safe and risk-free commercial use and optimized for eCommerce.
+    image, product, placement, ecommerce
+
+    Use cases:
+    - Create professional product photography
+    - Generate contextual product shots
+    - Place products in custom environments
+    - Create eCommerce product listings
+    - Generate marketing visuals
     """
 
     image: ImageRef = Field(
@@ -793,10 +861,15 @@ class BriaProductShot(FALNode):
         return ["image", "scene_description"]
 
 class BriaBackgroundReplace(FALNode):
-    """
-    Bria Background Replace allows for efficient swapping of backgrounds in images via text prompts 
-    or reference image, delivering realistic and polished results. Trained exclusively on licensed 
-    data for safe and risk-free commercial use.
+    """Bria Background Replace allows for efficient swapping of backgrounds in images via text prompts or reference image, delivering realistic and polished results. Trained exclusively on licensed data for safe and risk-free commercial use.
+    image, background, replacement, swap
+
+    Use cases:
+    - Replace image backgrounds seamlessly
+    - Create professional photo compositions
+    - Generate custom scene settings
+    - Produce commercial-ready images
+    - Create consistent visual environments
     """
 
     image: ImageRef = Field(
@@ -854,9 +927,15 @@ class BriaBackgroundReplace(FALNode):
         return ["image", "prompt"]
 
 class BriaGenFill(FALNode):
-    """
-    Bria GenFill enables high-quality object addition or visual transformation. 
-    Trained exclusively on licensed data for safe and risk-free commercial use.
+    """Bria GenFill enables high-quality object addition or visual transformation. Trained exclusively on licensed data for safe and risk-free commercial use.
+    image, generation, filling, transformation
+
+    Use cases:
+    - Add new objects to existing images
+    - Transform specific image areas
+    - Generate contextual content
+    - Create seamless visual additions
+    - Produce professional image modifications
     """
 
     image: ImageRef = Field(
@@ -907,9 +986,14 @@ class BriaGenFill(FALNode):
         return ["image", "mask", "prompt"]
 
 class BriaExpand(FALNode):
-    """
-    Bria Expand expands images beyond their borders in high quality. 
-    Trained exclusively on licensed data for safe and risk-free commercial use.
+    """Bria Expand expands images beyond their borders in high quality. Trained exclusively on licensed data for safe and risk-free commercial use.
+    image, expansion, outpainting
+
+    Use cases:
+    - Extend image boundaries seamlessly
+    - Create wider or taller compositions
+    - Expand images for different aspect ratios
+    - Generate additional scene content
     """
 
     image: ImageRef = Field(

@@ -14,8 +14,15 @@ class VideoDuration(Enum):
 
 class HaiperImageToVideo(FALNode):
     """
-    Transform images into hyper-realistic videos with Haiper 2.0. Experience industry-leading
-    resolution, fluid motion, and rapid generation for stunning AI videos.
+    Transform images into hyper-realistic videos with Haiper 2.0. Experience industry-leading resolution, fluid motion, and rapid generation for stunning AI videos.
+    video, generation, hyper-realistic, motion, animation, image-to-video, img2vid
+
+    Use cases:
+    - Create cinematic animations
+    - Generate dynamic video content
+    - Transform static images into motion
+    - Produce high-resolution videos
+    - Create visual effects
     """
 
     image: ImageRef = Field(
@@ -77,8 +84,15 @@ class KlingDuration(Enum):
 
 class LumaDreamMachine(FALNode):
     """
-    Generate video clips from your images using Luma Dream Machine v1.5. Supports various aspect ratios
-    and optional end-frame blending.
+    Generate video clips from your images using Luma Dream Machine v1.5. Supports various aspect ratios and optional end-frame blending.
+    video, generation, animation, blending, aspect-ratio, img2vid, image-to-video
+
+    Use cases:
+    - Create seamless video loops
+    - Generate video transitions
+    - Transform images into animations
+    - Create motion graphics
+    - Produce video content
     """
 
     image: ImageRef = Field(
@@ -129,6 +143,14 @@ class LumaDreamMachine(FALNode):
 class KlingVideo(FALNode):
     """
     Generate video clips from your images using Kling 1.6. Supports multiple durations and aspect ratios.
+    video, generation, animation, duration, aspect-ratio, img2vid, image-to-video
+
+    Use cases:
+    - Create custom video content
+    - Generate video animations
+    - Transform static images
+    - Produce motion graphics
+    - Create visual presentations
     """
 
     image: ImageRef = Field(
@@ -171,8 +193,15 @@ class KlingVideo(FALNode):
 
 class KlingVideoPro(FALNode):
     """
-    Generate video clips from your images using Kling 1.6 Pro. The professional version offers
-    enhanced quality and performance compared to the standard version.
+    Generate video clips from your images using Kling 1.6 Pro. The professional version offers enhanced quality and performance compared to the standard version.
+    video, generation, professional, quality, performance, img2vid, image-to-video
+
+    Use cases:
+    - Create professional video content
+    - Generate high-quality animations
+    - Produce commercial video assets
+    - Create advanced motion graphics
+    - Generate premium visual content
     """
 
     image: ImageRef = Field(
@@ -224,8 +253,15 @@ class VideoSize(Enum):
 
 class CogVideoX(FALNode):
     """
-    Generate videos from images using CogVideoX-5B. Features high-quality motion synthesis with
-    configurable parameters for fine-tuned control over the output.
+    Generate videos from images using CogVideoX-5B. Features high-quality motion synthesis with configurable parameters for fine-tuned control over the output.
+    video, generation, motion, synthesis, control, img2vid, image-to-video
+
+    Use cases:
+    - Create controlled video animations
+    - Generate precise motion effects
+    - Produce customized video content
+    - Create fine-tuned animations
+    - Generate motion sequences
     """
 
     image: ImageRef = Field(
@@ -291,8 +327,15 @@ class CogVideoX(FALNode):
 
 class MiniMaxVideo(FALNode):
     """
-    Generate video clips from your images using MiniMax Video model. Transform static art into dynamic
-    masterpieces with enhanced smoothness and vivid motion.
+    Generate video clips from your images using MiniMax Video model. Transform static art into dynamic masterpieces with enhanced smoothness and vivid motion.
+    video, generation, art, motion, smoothness, img2vid, image-to-video
+
+    Use cases:
+    - Transform artwork into videos
+    - Create smooth animations
+    - Generate artistic motion content
+    - Produce dynamic visualizations
+    - Create video art pieces
     """
 
     image: ImageRef = Field(
@@ -329,8 +372,15 @@ class MiniMaxVideo(FALNode):
 
 class LTXVideo(FALNode):
     """
-    Generate videos from images using LTX Video. Best results with 768x512 images and detailed,
-    chronological descriptions of actions and scenes.
+    Generate videos from images using LTX Video. Best results with 768x512 images and detailed, chronological descriptions of actions and scenes.
+    video, generation, chronological, scenes, actions, img2vid, image-to-video
+
+    Use cases:
+    - Create scene-based animations
+    - Generate sequential video content
+    - Produce narrative videos
+    - Create storyboard animations
+    - Generate action sequences
     """
 
     image: ImageRef = Field(
@@ -385,8 +435,15 @@ class LTXVideo(FALNode):
 
 class StableVideo(FALNode):
     """
-    Generate short video clips from your images using Stable Video Diffusion v1.1. Features high-quality
-    motion synthesis with configurable parameters.
+    Generate short video clips from your images using Stable Video Diffusion v1.1. Features high-quality motion synthesis with configurable parameters.
+    video, generation, diffusion, motion, synthesis, img2vid, image-to-video
+
+    Use cases:
+    - Create stable video animations
+    - Generate motion content
+    - Transform images into videos
+    - Produce smooth transitions
+    - Create visual effects
     """
 
     image: ImageRef = Field(
@@ -431,8 +488,15 @@ class StableVideo(FALNode):
 
 class FastSVD(FALNode):
     """
-    Generate short video clips from your images using SVD v1.1 at Lightning Speed. Features high-quality
-    motion synthesis with configurable parameters for rapid video generation.
+    Generate short video clips from your images using SVD v1.1 at Lightning Speed. Features high-quality motion synthesis with configurable parameters for rapid video generation.
+    video, generation, fast, motion, synthesis, img2vid, image-to-video
+
+    Use cases:
+    - Create quick video animations
+    - Generate rapid motion content
+    - Produce fast video transitions
+    - Create instant visual effects
+    - Generate quick previews
     """
 
     image: ImageRef = Field(
@@ -485,8 +549,15 @@ class FastSVD(FALNode):
 
 class AMTInterpolation(FALNode):
     """
-    Interpolate between image frames to create smooth video transitions. Supports configurable FPS
-    and recursive interpolation passes for higher quality results.
+    Interpolate between image frames to create smooth video transitions. Supports configurable FPS and recursive interpolation passes for higher quality results.
+    video, interpolation, transitions, frames, smoothing, img2vid, image-to-video
+
+    Use cases:
+    - Create smooth frame transitions
+    - Generate fluid animations
+    - Enhance video frame rates
+    - Produce slow-motion effects
+    - Create seamless video blends
     """
 
     frames: list[ImageRef] = Field(
@@ -539,8 +610,15 @@ class PreprocessType(Enum):
 
 class SadTalker(FALNode):
     """
-    Generate talking face animations from a single image and audio file. Features configurable
-    face model resolution and expression controls.
+    Generate talking face animations from a single image and audio file. Features configurable face model resolution and expression controls.
+    video, animation, face, talking, expression, img2vid, image-to-video, audio-to-video, wav2vid
+
+    Use cases:
+    - Create talking head videos
+    - Generate lip-sync animations
+    - Produce character animations
+    - Create video presentations
+    - Generate facial expressions
     """
 
     image: ImageRef = Field(
@@ -591,8 +669,15 @@ class SadTalker(FALNode):
 
 class MuseTalk(FALNode):
     """
-    Real-time high quality audio-driven lip-syncing model. Animate a face video with custom audio
-    for natural-looking speech animation.
+    Real-time high quality audio-driven lip-syncing model. Animate a face video with custom audio for natural-looking speech animation.
+    video, lip-sync, animation, speech, real-time, wav2vid, audio-to-video
+
+    Use cases:
+    - Create lip-synced videos
+    - Generate speech animations
+    - Produce dubbed content
+    - Create animated presentations
+    - Generate voice-over videos
     """
 
     video: VideoRef = Field(

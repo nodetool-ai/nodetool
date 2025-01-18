@@ -23,6 +23,14 @@ class AnyLLM(FALNode):
     """
     Use any large language model from a selected catalogue (powered by OpenRouter).
     Supports various models including Claude 3, Gemini, Llama, and GPT-4.
+    llm, text, generation, ai, language
+
+    Use cases:
+    - Generate natural language responses
+    - Create conversational AI interactions
+    - Process and analyze text content
+    - Generate creative writing
+    - Assist with problem-solving tasks
     """
 
     prompt: str = Field(

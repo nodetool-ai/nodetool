@@ -175,7 +175,17 @@ class RealisticVoiceCloning(ReplicateNode):
 
 
 class TortoiseTTS(ReplicateNode):
-    """Generate speech from text, clone voices from mp3 files. From James Betker AKA "neonbjb"."""
+    """
+    Generate speech from text, clone voices from mp3 files. From James Betker AKA "neonbjb".
+    speech, voice, synthesis, cloning, text-to-speech, text-to-audio
+
+    Use cases:
+    - Generate natural-sounding speech
+    - Clone and replicate voices
+    - Create custom voiceovers
+    - Produce multilingual speech
+    - Create voice-based content
+    """
 
     class Preset(str, Enum):
         ULTRA_FAST = "ultra_fast"
@@ -361,7 +371,17 @@ class TortoiseTTS(ReplicateNode):
 
 
 class StyleTTS2(ReplicateNode):
-    """Generates speech from text"""
+    """
+    Generates speech from text.
+    speech, synthesis, text-to-speech, voice, generation
+
+    Use cases:
+    - Convert text to natural speech
+    - Generate styled voice content
+    - Create audio narrations
+    - Produce voice-based media
+    - Generate multilingual speech
+    """
 
     @classmethod
     def get_basic_fields(cls):
@@ -398,7 +418,7 @@ class StyleTTS2(ReplicateNode):
 
     beta: float = Field(
         title="Beta",
-        description="Only used for long text inputs or in case of reference speaker,             determines the prosody of the speaker. Use lower values to sample style based             on previous or reference speech instead of text.",
+        description="Only used for long text inputs or in case of reference speaker, determines the prosody of the speaker. Use lower values to sample style based on previous or reference speech instead of text.",
         ge=0.0,
         le=1.0,
         default=0.7,
@@ -409,14 +429,14 @@ class StyleTTS2(ReplicateNode):
     )
     alpha: float = Field(
         title="Alpha",
-        description="Only used for long text inputs or in case of reference speaker,             determines the timbre of the speaker. Use lower values to sample style based             on previous or reference speech instead of text.",
+        description="Only used for long text inputs or in case of reference speaker, determines the timbre of the speaker. Use lower values to sample style based on previous or reference speech instead of text.",
         ge=0.0,
         le=1.0,
         default=0.3,
     )
     weights: str | None = Field(
         title="Weights",
-        description="Replicate weights url for inference with model that is fine-tuned on new speakers.            If provided, a reference speech must also be provided.             If not provided, the default model will be used.",
+        description="Replicate weights url for inference with model that is fine-tuned on new speakers. If provided, a reference speech must also be provided. If not provided, the default model will be used.",
         default=None,
     )
     reference: AudioRef = Field(
@@ -439,7 +459,17 @@ class StyleTTS2(ReplicateNode):
 
 
 class Riffusion(ReplicateNode):
-    """Stable diffusion for real-time music generation"""
+    """
+    Stable diffusion for real-time music generation.
+    audio, music, generation, real-time, diffusion
+
+    Use cases:
+    - Generate music from text descriptions
+    - Create custom soundtracks
+    - Produce background music
+    - Generate sound effects
+    - Create musical variations
+    """
 
     class Seed_image_id(str, Enum):
         AGILE = "agile"
@@ -526,7 +556,17 @@ class Riffusion(ReplicateNode):
 
 
 class MusicGen(ReplicateNode):
-    """Generate music from a prompt or melody"""
+    """
+    Generate music from a prompt or melody.
+    music, generation, audio, melody, synthesis
+
+    Use cases:
+    - Create original music compositions
+    - Generate music from text descriptions
+    - Produce melody variations
+    - Create custom soundtracks
+    - Generate background music
+    """
 
     class Model_version(str, Enum):
         STEREO_MELODY_LARGE = "stereo-melody-large"
@@ -653,7 +693,17 @@ class MusicGen(ReplicateNode):
 
 
 class MMAudio(ReplicateNode):
-    """Add sound to video. An advanced AI model that synthesizes high-quality audio from video content, enabling seamless video-to-audio transformation"""
+    """
+    Add sound to video. An advanced AI model that synthesizes high-quality audio from video content, enabling seamless video-to-audio transformation.
+    audio, video, synthesis, transformation, sound, video-to-audio, vid2wav
+
+    Use cases:
+    - Generate audio for silent videos
+    - Create sound effects from visuals
+    - Produce synchronized audio content
+    - Generate ambient soundscapes
+    - Create video soundtracks
+    """
 
     @classmethod
     def get_basic_fields(cls):
