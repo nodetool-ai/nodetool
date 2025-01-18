@@ -108,7 +108,7 @@ const WorkflowChat: React.FC<WorkflowChatProps> = ({
           messagesCount={messages.length}
           title="Chat"
           icon={<ChatBubbleOutlineIcon sx={{ fontSize: "1.5em" }} />}
-          description="Chat with your workflow"
+          description="Chat"
         />
 
         {!isMinimized && (
