@@ -1,8 +1,8 @@
 {
   "id": "style_transfer",
   "access": "public",
-  "created_at": "2025-01-09T18:30:25.197545",
-  "updated_at": "2025-01-09T18:30:25.197563",
+  "created_at": "2025-01-18T08:50:58.172851",
+  "updated_at": "2025-01-18T08:50:58.172870",
   "name": "Style Transfer",
   "description": "Apply the style of an image to another image",
   "tags": [
@@ -14,71 +14,6 @@
   "thumbnail_url": "/examples/style_transfer.jpg",
   "graph": {
     "nodes": [
-      {
-        "id": "2",
-        "parent_id": null,
-        "type": "nodetool.constant.Image",
-        "data": {
-          "value": {
-            "uri": "https://www.mauritshuis.nl/media/rgxggmkv/vermeer-meisje-met-de-parel-mh670-mauritshuis-den-haag.jpg?center=0.44178550792733645,0.47243107769423559&mode=crop&width=1200&height=0&rnd=133018598924500000&quality=70",
-            "type": "image"
-          }
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 50,
-            "y": 356
-          },
-          "zIndex": 0,
-          "width": 200,
-          "title": "Control",
-          "color": "#d33682",
-          "selectable": true
-        }
-      },
-      {
-        "id": "3",
-        "parent_id": null,
-        "type": "nodetool.constant.Image",
-        "data": {
-          "value": {
-            "uri": "https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/e36b69a2-a218-4f43-97c0-dd316a21c699/dgc0peb-d694edce-d0eb-4b93-ab7b-81936a9ab15a.jpg/v1/fill/w_768,h_768,q_75,strp/futuristic_human_by_pickgameru_dgc0peb-fullview.jpg?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOjdlMGQxODg5ODIyNjQzNzNhNWYwZDQxNWVhMGQyNmUwIiwiaXNzIjoidXJuOmFwcDo3ZTBkMTg4OTgyMjY0MzczYTVmMGQ0MTVlYTBkMjZlMCIsIm9iaiI6W1t7ImhlaWdodCI6Ijw9NzY4IiwicGF0aCI6IlwvZlwvZTM2YjY5YTItYTIxOC00ZjQzLTk3YzAtZGQzMTZhMjFjNjk5XC9kZ2MwcGViLWQ2OTRlZGNlLWQwZWItNGI5My1hYjdiLTgxOTM2YTlhYjE1YS5qcGciLCJ3aWR0aCI6Ijw9NzY4In1dXSwiYXVkIjpbInVybjpzZXJ2aWNlOmltYWdlLm9wZXJhdGlvbnMiXX0.s-9V0oHC2cAeii6oDuazDBbG-hjMdZa0deSu1O23zhc",
-            "type": "image"
-          }
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 500,
-            "y": 527
-          },
-          "zIndex": 0,
-          "width": 200,
-          "title": "Style",
-          "color": "#cb4b16",
-          "selectable": true
-        }
-      },
-      {
-        "id": "4",
-        "parent_id": null,
-        "type": "nodetool.workflows.base_node.Preview",
-        "data": {
-          "name": "image_output_2024-08-18"
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 1000,
-            "y": 308
-          },
-          "zIndex": 0,
-          "width": 300,
-          "height": 338,
-          "selectable": true
-        }
-      },
       {
         "id": "9",
         "parent_id": null,
@@ -153,35 +88,16 @@
           ]
         },
         "ui_properties": {
-          "selected": false,
           "position": {
-            "x": 52,
-            "y": 91
+            "x": 56,
+            "y": -159
           },
           "zIndex": 0,
           "width": 450,
           "height": 184,
           "selectable": true
-        }
-      },
-      {
-        "id": "12",
-        "parent_id": null,
-        "type": "nodetool.workflows.base_node.Preview",
-        "data": {
-          "name": "image_output_2024-09-23"
         },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 770,
-            "y": 71
-          },
-          "zIndex": 0,
-          "width": 160,
-          "height": 160,
-          "selectable": true
-        }
+        "dynamic_properties": {}
       },
       {
         "id": "13",
@@ -192,15 +108,15 @@
           "high_threshold": 203
         },
         "ui_properties": {
-          "selected": false,
           "position": {
-            "x": 500,
-            "y": 368
+            "x": 269,
+            "y": 352
           },
           "zIndex": 0,
           "width": 200,
           "selectable": true
-        }
+        },
+        "dynamic_properties": {}
       },
       {
         "id": "14",
@@ -237,33 +153,15 @@
           "upscaler": "None"
         },
         "ui_properties": {
-          "selected": false,
           "position": {
-            "x": 770,
-            "y": 281
+            "x": 539,
+            "y": 61
           },
           "zIndex": 0,
           "width": 200,
           "selectable": true
-        }
-      },
-      {
-        "id": "15",
-        "parent_id": null,
-        "type": "nodetool.image.transform.Scale",
-        "data": {
-          "scale": 0.5
         },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 280,
-            "y": 442
-          },
-          "zIndex": 0,
-          "width": 160,
-          "selectable": true
-        }
+        "dynamic_properties": {}
       },
       {
         "id": "16",
@@ -272,16 +170,10 @@
         "data": {
           "model": {
             "type": "llama_model",
-            "repo_id": "gemma:2b"
+            "repo_id": "llama3.2:3b"
           },
           "system_prompt": "You are an artist.",
-          "prompt": "Write an visual description of a cyborg lady from a sci-fi movie. Only one paragraph. Realistic eyes, very detailed eyes are important.",
-          "image": {
-            "type": "image",
-            "uri": "",
-            "asset_id": null,
-            "data": null
-          },
+          "prompt": "Describe the image",
           "messages": [],
           "context_window": 4096,
           "temperature": 0.7,
@@ -290,66 +182,95 @@
           "keep_alive": "300"
         },
         "ui_properties": {
-          "selected": false,
           "position": {
-            "x": 541,
+            "x": 289.5,
+            "y": 94
+          },
+          "zIndex": 0,
+          "width": 159,
+          "selectable": true
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "17",
+        "parent_id": null,
+        "type": "nodetool.input.ImageInput",
+        "data": {
+          "name": "image",
+          "description": "Upload a portrait",
+          "value": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 50,
+            "y": 429
+          },
+          "zIndex": 0,
+          "width": 159,
+          "selectable": true
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "18",
+        "parent_id": null,
+        "type": "nodetool.input.ImageInput",
+        "data": {
+          "name": "style",
+          "description": "Upload the style image",
+          "value": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 50,
             "y": 50
           },
           "zIndex": 0,
           "width": 159,
           "selectable": true
-        }
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "19",
+        "parent_id": null,
+        "type": "nodetool.output.ImageOutput",
+        "data": {
+          "name": "image",
+          "description": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 769,
+            "y": 169
+          },
+          "zIndex": 0,
+          "width": 159,
+          "selectable": true
+        },
+        "dynamic_properties": {}
       }
     ],
     "edges": [
       {
-        "id": "77a73236-ca6e-444d-b4d0-9b603ebaae84",
-        "source": "2",
-        "sourceHandle": "output",
-        "target": "15",
-        "targetHandle": "image",
-        "ui_properties": {
-          "className": "image"
-        }
-      },
-      {
-        "id": "3219b7c0-2743-4f05-8cab-ca1c4dec2ccc",
-        "source": "14",
-        "sourceHandle": "output",
-        "target": "4",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "image"
-        }
-      },
-      {
-        "id": "c3b8fac5-e91b-42be-b095-aa532f3590df",
-        "source": "15",
-        "sourceHandle": "output",
-        "target": "13",
-        "targetHandle": "image",
-        "ui_properties": {
-          "className": "image"
-        }
-      },
-      {
-        "id": "f940ad26-09d1-4558-87d5-2c2979576804",
-        "source": "15",
+        "id": "913a7aee-71de-40f3-920e-e01ef9d20240",
+        "source": "16",
         "sourceHandle": "output",
         "target": "14",
-        "targetHandle": "image",
+        "targetHandle": "prompt",
         "ui_properties": {
-          "className": "image"
-        }
-      },
-      {
-        "id": "1b406ca5-b337-4fbc-855b-51426dd7645c",
-        "source": "3",
-        "sourceHandle": "output",
-        "target": "14",
-        "targetHandle": "ip_adapter_image",
-        "ui_properties": {
-          "className": "image"
+          "className": "str"
         }
       },
       {
@@ -363,23 +284,53 @@
         }
       },
       {
-        "id": "c71c3532-031f-4a37-b77b-ffdaaaf89e6b",
-        "source": "13",
+        "id": "982cefbd-2397-485b-9aa7-46eb0f5d4e35",
+        "source": "17",
         "sourceHandle": "output",
-        "target": "12",
+        "target": "14",
+        "targetHandle": "image",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "852831",
+        "source": "14",
+        "sourceHandle": "output",
+        "target": "19",
         "targetHandle": "value",
         "ui_properties": {
           "className": "image"
         }
       },
       {
-        "id": "913a7aee-71de-40f3-920e-e01ef9d20240",
-        "source": "16",
+        "id": "d6e96385-7bb3-4c31-b0de-cb83f903f62a",
+        "source": "17",
+        "sourceHandle": "output",
+        "target": "13",
+        "targetHandle": "image",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "852830",
+        "source": "18",
         "sourceHandle": "output",
         "target": "14",
-        "targetHandle": "prompt",
+        "targetHandle": "ip_adapter_image",
         "ui_properties": {
-          "className": "str"
+          "className": "image"
+        }
+      },
+      {
+        "id": "3381275f-a05f-4978-9bdf-e8b8649fe58d",
+        "source": "18",
+        "sourceHandle": "output",
+        "target": "16",
+        "targetHandle": "image",
+        "ui_properties": {
+          "className": "image"
         }
       }
     ]
