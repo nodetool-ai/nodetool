@@ -44,9 +44,11 @@ Recommended models:
 
 Visualizes object detection results on images.
 
+**Tags:** image, object detection, bounding boxes, visualization, mask
+
 **Fields:**
 - **image**: The input image to visualize (ImageRef)
-- **objects**: The detected objects to visualize (list[nodetool.metadata.types.ObjectDetectionResult])
+- **objects**: The detected objects to visualize (list)
 
 ### required_inputs
 
@@ -70,7 +72,7 @@ Recommended models:
 - google/owlv2-base-patch16-ensemble
 - IDEA-Research/grounding-dino-tiny
 
-**Tags:** image, object detection, bounding boxes, zero-shot
+**Tags:** image, object detection, bounding boxes, zero-shot, mask
 
 **Fields:**
 - **model**: The model ID to use for object detection (HFZeroShotObjectDetection)

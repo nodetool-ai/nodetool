@@ -2,7 +2,11 @@
 
 ## IPAdapter_SD15_Model
 
+An enumeration.
+
 ## IPAdapter_SDXL_Model
+
+An enumeration.
 
 ## StableDiffusionBaseNode
 
@@ -14,13 +18,14 @@
 - **num_inference_steps**: Number of denoising steps. (int)
 - **guidance_scale**: Guidance scale for generation. (float)
 - **scheduler**: The scheduler to use for the diffusion process. (StableDiffusionScheduler)
-- **loras**: The LoRA models to use for image processing (list[nodetool.metadata.types.HFLoraSDConfig])
+- **loras**: The LoRA models to use for image processing (list)
 - **ip_adapter_model**: The IP adapter model to use for image processing (HFIPAdapter)
 - **ip_adapter_image**: When provided the image will be fed into the IP adapter (ImageRef)
 - **ip_adapter_scale**: The strength of the IP adapter (float)
 - **detail_level**: Level of detail for the hi-res pass. 0.0 is low detail, 1.0 is high detail. (float)
 - **enable_tiling**: Enable tiling for the VAE. This can reduce VRAM usage. (bool)
 - **enable_cpu_offload**: Enable CPU offload for the pipeline. This can reduce VRAM usage. (bool)
+- **upscaler**: The upscaler to use for 2-pass generation. (StableDiffusionUpscaler)
 
 ### move_to_device
 
@@ -54,7 +59,15 @@
 
 ## StableDiffusionDetailLevel
 
+An enumeration.
+
 ## StableDiffusionScheduler
+
+An enumeration.
+
+## StableDiffusionUpscaler
+
+An enumeration.
 
 ## StableDiffusionXLBase
 
@@ -68,7 +81,7 @@
 - **width**: Width of the generated image. (int)
 - **height**: Height of the generated image (int)
 - **scheduler**: The scheduler to use for the diffusion process. (StableDiffusionScheduler)
-- **loras**: The LoRA models to use for image processing (list[nodetool.metadata.types.HFLoraSDXLConfig])
+- **loras**: The LoRA models to use for image processing (list)
 - **lora_scale**: Strength of the LoRAs (float)
 - **ip_adapter_model**: The IP adapter model to use for image processing (HFIPAdapter)
 - **ip_adapter_image**: When provided the image will be fed into the IP adapter (ImageRef)
@@ -112,11 +125,31 @@
 ### load_loras
 
 **Args:**
-- **pipeline (Any)**
+- **pipeline (typing.Any)**
 - **loras (list[nodetool.metadata.types.HFLoraSDConfig] | list[nodetool.metadata.types.HFLoraSDXLConfig])**
 
 ### quantize_to_multiple_of_64
 
 **Args:**
 - **value**
+
+### upscale_latents
+
+Upscale latents using torch interpolation.
+
+
+**Args:**
+
+- **latents**: Input latents tensor of shape (B, C, H, W)
+- **scale_factor**: Factor to scale dimensions by
+
+
+**Returns:**
+
+Upscaled latents tensor
+**Args:**
+- **latents (Tensor)**
+- **scale_factor (int) (default: 2)**
+
+**Returns:** Tensor
 

@@ -19,7 +19,7 @@ True if the type is an async generator, False otherwise.
 ### is_class
 
 **Args:**
-- **obj (Any)**
+- **obj (typing.Any)**
 
 **Returns:** bool
 

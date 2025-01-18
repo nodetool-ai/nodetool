@@ -15,6 +15,16 @@ Use cases:
 - **path**: Path to convert to absolute (str)
 
 
+## AccessedTime
+
+Get file last accessed timestamp.
+
+**Tags:** files, metadata, accessed, time
+
+**Fields:**
+- **path**: Path to file (FilePath)
+
+
 ## Basename
 
 Get the base name component of a file path.
@@ -62,6 +72,16 @@ Use cases:
 - **exist_ok**: Don't error if directory already exists (bool)
 
 
+## CreatedTime
+
+Get file creation timestamp.
+
+**Tags:** files, metadata, created, time
+
+**Fields:**
+- **path**: Path to file (FilePath)
+
+
 ## Dirname
 
 Get the directory name component of a file path.
@@ -89,6 +109,26 @@ Use cases:
 
 **Fields:**
 - **path**: Path to check for existence (FilePath)
+
+
+## FileExtension
+
+Get file extension.
+
+**Tags:** files, metadata, extension
+
+**Fields:**
+- **path**: Path to file (FilePath)
+
+
+## FileName
+
+Get file name without path.
+
+**Tags:** files, metadata, name
+
+**Fields:**
+- **path**: Path to file (FilePath)
 
 
 ## FileNameMatch
@@ -120,21 +160,26 @@ Use cases:
 **Tags:** files, pattern, filter, list
 
 **Fields:**
-- **filenames**: list of filenames to filter (list[str])
+- **filenames**: list of filenames to filter (list)
 - **pattern**: Pattern to filter by (e.g. *.txt, data_*.csv) (str)
 - **case_sensitive**: Whether the pattern matching should be case-sensitive (bool)
 
 
-## GetFileInfo
+## GetDirectory
 
-Get information about a file like size, modification time, etc.
+Get directory containing the file.
 
-Use cases:
-- Filter files based on attributes
-- Monitor file changes
-- Generate file reports
+**Tags:** files, metadata, directory
 
-**Tags:** files, metadata, info
+**Fields:**
+- **path**: Path to file (FilePath)
+
+
+## GetFileSize
+
+Get file size in bytes.
+
+**Tags:** files, metadata, size
 
 **Fields:**
 - **path**: Path to file (FilePath)
@@ -154,6 +199,26 @@ Use cases:
 - **path**: Path to analyze (str)
 
 
+## IsDirectory
+
+Check if path is a directory.
+
+**Tags:** files, metadata, type
+
+**Fields:**
+- **path**: Path to check (FilePath)
+
+
+## IsFile
+
+Check if path is a file.
+
+**Tags:** files, metadata, type
+
+**Fields:**
+- **path**: Path to check (FilePath)
+
+
 ## JoinPaths
 
 Joins path components.
@@ -165,7 +230,7 @@ Use cases:
 **Tags:** path, join, combine
 
 **Fields:**
-- **paths**: Path components to join (list[str])
+- **paths**: Path components to join (list)
 
 
 ## ListFiles
@@ -263,6 +328,16 @@ Use cases:
 - **path**: Path to the video file to read (str)
 
 
+## ModifiedTime
+
+Get file last modified timestamp.
+
+**Tags:** files, metadata, modified, time
+
+**Fields:**
+- **path**: Path to file (FilePath)
+
+
 ## MoveFile
 
 Move a file from source to destination path.
@@ -328,60 +403,89 @@ Use cases:
 
 Write an audio file to disk.
 
-Use cases:
-- Save processed audio
-- Export edited sound files
-- Archive audio results
+The filename can include time and date variables:
+%Y - Year, %m - Month, %d - Day
+%H - Hour, %M - Minute, %S - Second
 
 **Tags:** audio, output, save, file
 
 **Fields:**
 - **audio**: The audio to save (AudioRef)
-- **path**: Output file path (FilePath)
+- **folder**: Folder where the file will be saved (FolderPath)
+- **filename**: 
+        Name of the file to save.
+        You can use time and date variables to create unique names:
+        %Y - Year
+        %m - Month
+        %d - Day
+        %H - Hour
+        %M - Minute
+        %S - Second
+         (str)
 
 
 ## SaveBytes
 
 Write raw bytes to a file on disk.
 
+The filename can include time and date variables:
+%Y - Year, %m - Month, %d - Day
+%H - Hour, %M - Minute, %S - Second
+
 **Tags:** files, bytes, save, output
 
 **Fields:**
 - **data**: The bytes to write to file (bytes)
-- **path**: Output file path (FilePath)
+- **folder**: Folder where the file will be saved (FolderPath)
+- **filename**: Name of the file to save. Supports strftime format codes. (str)
 
 
 ## SaveCSV
 
 Write a list of dictionaries to a CSV file.
 
+The filename can include time and date variables:
+%Y - Year, %m - Month, %d - Day
+%H - Hour, %M - Minute, %S - Second
+
 **Tags:** files, csv, write, output, save, file
 
 **Fields:**
-- **data**: list of dictionaries to write to CSV (list[dict])
-- **path**: Path to the CSV file to write (FilePath)
+- **data**: list of dictionaries to write to CSV (list)
+- **folder**: Folder where the file will be saved (FolderPath)
+- **filename**: Name of the CSV file to save. Supports strftime format codes. (str)
 
 
 ## SaveCSVDataframe
 
 Write a pandas DataFrame to a CSV file.
 
+The filename can include time and date variables:
+%Y - Year, %m - Month, %d - Day
+%H - Hour, %M - Minute, %S - Second
+
 **Tags:** files, csv, write, output, save, file
 
 **Fields:**
 - **dataframe**: DataFrame to write to CSV (DataframeRef)
-- **path**: Path to the CSV file to write (FilePath)
+- **folder**: Folder where the file will be saved (FolderPath)
+- **filename**: Name of the CSV file to save. Supports strftime format codes. (str)
 
 
 ## SaveDocument
 
 Write a document to disk.
 
+The filename can include time and date variables:
+%Y - Year, %m - Month, %d - Day
+%H - Hour, %M - Minute, %S - Second
+
 **Tags:** files, document, write, output, save, file
 
 **Fields:**
 - **document**: The document to save (DocumentRef)
-- **path**: Path to the document to write (FilePath)
+- **folder**: Folder where the file will be saved (FolderPath)
+- **filename**: Name of the file to save. Supports strftime format codes. (str)
 
 
 ## SaveImage
@@ -397,23 +501,42 @@ Use cases:
 
 **Fields:**
 - **image**: The image to save (ImageRef)
-- **path**: Output file path (FilePath)
+- **folder**: Folder where the file will be saved (FolderPath)
+- **filename**: 
+        The name of the image file.
+        You can use time and date variables to create unique names:
+        %Y - Year
+        %m - Month
+        %d - Day
+        %H - Hour
+        %M - Minute
+        %S - Second
+         (str)
 
 
 ## SaveVideo
 
 Write a video file to disk.
 
-Use cases:
-- Save processed videos
-- Export edited video files
-- Archive video results
+The filename can include time and date variables:
+%Y - Year, %m - Month, %d - Day
+%H - Hour, %M - Minute, %S - Second
 
 **Tags:** video, output, save, file
 
 **Fields:**
 - **video**: The video to save (VideoRef)
-- **path**: Output file path. Defaults to output.mp4 in current directory (FilePath)
+- **folder**: Folder where the file will be saved (FolderPath)
+- **filename**: 
+        Name of the file to save.
+        You can use time and date variables to create unique names:
+        %Y - Year
+        %m - Month
+        %d - Day
+        %H - Hour
+        %M - Minute
+        %S - Second
+         (str)
 
 
 ## SplitExtension
@@ -449,5 +572,6 @@ Use cases:
 - [nodetool.nodes.nodetool.file.docx](file/docx.md)
 - [nodetool.nodes.nodetool.file.excel](file/excel.md)
 - [nodetool.nodes.nodetool.file.markdown](file/markdown.md)
+- [nodetool.nodes.nodetool.file.markitdown](file/markitdown.md)
 - [nodetool.nodes.nodetool.file.pandoc](file/pandoc.md)
 - [nodetool.nodes.nodetool.file.pdf](file/pdf.md)

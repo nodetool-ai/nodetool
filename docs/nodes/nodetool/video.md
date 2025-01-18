@@ -31,12 +31,11 @@ Use cases:
 
 **Fields:**
 - **video**: The input video to add subtitles to. (VideoRef)
-- **chunks**: Audio chunks to add as subtitles. (list[nodetool.metadata.types.AudioChunk])
+- **chunks**: Audio chunks to add as subtitles. (list)
 - **font**: The font to use. (SubtitleTextFont)
 - **align**: Vertical alignment of subtitles. (SubtitleTextAlignment)
 - **font_size**: The font size. (int)
 - **font_color**: The font color. (ColorRef)
-- **outline_color**: The outline color for better text visibility. (ColorRef)
 
 
 ## Blur
@@ -95,7 +94,7 @@ Use cases:
 
 Concatenate multiple video files into a single video, including audio when available.
 
-**Tags:** video, concat, merge, combine, audio
+**Tags:** video, concat, merge, combine, audio, +
 
 **Fields:**
 - **video_a**: The first video to concatenate. (VideoRef)
@@ -114,7 +113,7 @@ Use cases:
 **Tags:** video, frames, combine, sequence
 
 **Fields:**
-- **frames**: The frames to combine into a video. (list[nodetool.metadata.types.ImageRef])
+- **frames**: The frames to combine into a video. (list)
 - **fps**: The FPS of the output video. (float)
 
 
@@ -137,6 +136,8 @@ Use cases:
 ## ExtractAudio
 
 Separate audio from a video file.
+
+**Tags:** video, audio, extract, separate
 
 **Fields:**
 - **video**: The input video to separate. (VideoRef)
@@ -161,9 +162,9 @@ Use cases:
 ### result_for_client
 
 **Args:**
-- **result (dict[str, typing.Any])**
+- **result (dict)**
 
-**Returns:** dict[str, typing.Any]
+**Returns:** dict
 
 
 ## Fps
@@ -274,7 +275,16 @@ Use cases:
 **Fields:**
 - **video**: The video to save. (VideoRef)
 - **folder**: Name of the output folder. (FolderRef)
-- **name**: Name of the output video. (str)
+- **name**: 
+        Name of the output video.
+        You can use time and date variables to create unique names:
+        %Y - Year
+        %m - Month
+        %d - Day
+        %H - Hour
+        %M - Minute
+        %S - Second
+         (str)
 
 ### required_inputs
 

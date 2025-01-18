@@ -40,7 +40,7 @@ Use cases:
 - Generate dynamic content for presentations or social media
 - Prototype video ideas from still concept art
 
-**Tags:** video, generation, AI, image-to-video, stable-diffusion
+**Tags:** video, generation, AI, image-to-video, stable-diffusion, SD
 
 **Fields:**
 - **input_image**: The input image to generate the video from, resized to 1024x576. (ImageRef)

@@ -11,6 +11,7 @@ High resolution image Upscaler and Enhancer. Use at ClarityAI.co. A free Magnifi
 - **prompt**: Prompt (str)
 - **dynamic**: HDR, try from 3 - 9 (float)
 - **handfix**: Use clarity to fix hands in the image (Handfix)
+- **pattern**: Upscale a pattern with seamless tiling (bool)
 - **sharpen**: Sharpen the image after upscaling. The higher the value, the more sharpening is applied. 0 for no sharpening (float)
 - **sd_model**: Stable Diffusion model checkpoint (Sd_model)
 - **scheduler**: scheduler (Scheduler)
@@ -28,23 +29,36 @@ High resolution image Upscaler and Enhancer. Use at ClarityAI.co. A free Magnifi
 - **downscaling_resolution**: Downscaling resolution (int)
 
 
+## GFPGAN
+
+Practical face restoration algorithm for *old photos* or *AI-generated faces*
+
+**Fields:**
+- **img**: Input (ImageRef)
+- **scale**: Rescaling factor (float)
+- **version**: GFPGAN version. v1.3: better quality. v1.4: more details and better identity. (Version)
+
+
 ## HighResolutionControlNetTile
 
-Fermat.app open-source implementation of an efficient ControlNet 1.1 tile for high-quality upscales. Increase the creativity to encourage hallucination.
+UPDATE: new upscaling algorithm for a much improved image quality. Fermat.app open-source implementation of an efficient ControlNet 1.1 tile for high-quality upscales. Increase the creativity to encourage hallucination.
 
 **Fields:**
 - **hdr**: HDR improvement over the original image (float)
 - **seed**: Seed (int | None)
 - **image**: Control image for scribble controlnet (ImageRef)
 - **steps**: Steps (int)
+- **format**: Format of the output. (Format)
 - **prompt**: Prompt for the model (str | None)
 - **scheduler**: Choose a scheduler. (Scheduler)
 - **creativity**: Denoising strength. 1 means total destruction of the original image (float)
-- **guess_mode**: In this mode, the ControlNet encoder will try best to recognize the content of the input image even if you remove all prompts. The `guidance_scale` between 3.0 and 5.0 is recommended. (bool)
+- **guess_mode**: In this mode, the ControlNet encoder will try best to recognize the content of the input image even if you remove all prompts. (bool)
 - **resolution**: Image resolution (Resolution)
 - **resemblance**: Conditioning scale for controlnet (float)
-- **guidance_scale**: Scale for classifier-free guidance (float)
+- **guidance_scale**: Scale for classifier-free guidance, should be 0. (float)
 - **negative_prompt**: Negative prompt (str)
+- **lora_details_strength**: Strength of the image's details (float)
+- **lora_sharpness_strength**: Strength of the image's sharpness. We don't recommend values above 2. (float)
 
 
 ## MagicImageRefiner

@@ -15,7 +15,7 @@ Use cases:
 - **input_path**: Path to the input file (FilePath)
 - **input_format**: Input format (InputFormat)
 - **output_format**: Output format (OutputFormat)
-- **extra_args**: Additional pandoc arguments (list[str])
+- **extra_args**: Additional pandoc arguments (list)
 
 
 ## ConvertText
@@ -33,10 +33,12 @@ Use cases:
 - **content**: Text content to convert (str)
 - **input_format**: Input format (InputFormat)
 - **output_format**: Output format (OutputFormat)
-- **extra_args**: Additional pandoc arguments (list[str])
+- **extra_args**: Additional pandoc arguments (list)
 
 
 ## InputFormat
+
+An enumeration.
 
 ## OutputFormat
 

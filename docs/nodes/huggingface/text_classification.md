@@ -2,6 +2,10 @@
 
 ## TextClassifier
 
+Classifies text into predefined categories using a Hugging Face model.
+
+**Tags:** text, classification, zero-shot, natural language processing
+
 **Fields:**
 - **model**: The model ID to use for the classification (HFTextClassification)
 - **prompt**: The input text to the model (str)

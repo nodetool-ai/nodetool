@@ -10,7 +10,7 @@ Use cases:
 - Producing unique visual content for marketing materials
 - Exploring AI-generated art for personal or professional use
 
-**Tags:** image, generation, AI, text-to-image
+**Tags:** image, generation, AI, text-to-image, SD
 
 **Fields:**
 - **model**: The model to use for image generation. (HFStableDiffusion)
@@ -20,13 +20,14 @@ Use cases:
 - **num_inference_steps**: Number of denoising steps. (int)
 - **guidance_scale**: Guidance scale for generation. (float)
 - **scheduler**: The scheduler to use for the diffusion process. (StableDiffusionScheduler)
-- **loras**: The LoRA models to use for image processing (list[nodetool.metadata.types.HFLoraSDConfig])
+- **loras**: The LoRA models to use for image processing (list)
 - **ip_adapter_model**: The IP adapter model to use for image processing (HFIPAdapter)
 - **ip_adapter_image**: When provided the image will be fed into the IP adapter (ImageRef)
 - **ip_adapter_scale**: The strength of the IP adapter (float)
 - **detail_level**: Level of detail for the hi-res pass. 0.0 is low detail, 1.0 is high detail. (float)
 - **enable_tiling**: Enable tiling for the VAE. This can reduce VRAM usage. (bool)
 - **enable_cpu_offload**: Enable CPU offload for the pipeline. This can reduce VRAM usage. (bool)
+- **upscaler**: The upscaler to use for 2-pass generation. (StableDiffusionUpscaler)
 - **width**: Width of the generated image. (int)
 - **height**: Height of the generated image (int)
 
@@ -75,7 +76,7 @@ Use cases:
 - Producing unique stock imagery for websites and publications
 - Visualizing interior design concepts for clients
 
-**Tags:** image, generation, AI, text-to-image
+**Tags:** image, generation, AI, text-to-image, SDXL
 
 **Fields:**
 - **model**: The Stable Diffusion XL model to use for generation. (HFStableDiffusionXL)
@@ -87,7 +88,7 @@ Use cases:
 - **width**: Width of the generated image. (int)
 - **height**: Height of the generated image (int)
 - **scheduler**: The scheduler to use for the diffusion process. (StableDiffusionScheduler)
-- **loras**: The LoRA models to use for image processing (list[nodetool.metadata.types.HFLoraSDXLConfig])
+- **loras**: The LoRA models to use for image processing (list)
 - **lora_scale**: Strength of the LoRAs (float)
 - **ip_adapter_model**: The IP adapter model to use for image processing (HFIPAdapter)
 - **ip_adapter_image**: When provided the image will be fed into the IP adapter (ImageRef)

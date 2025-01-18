@@ -1,5 +1,20 @@
 # nodetool.nodes.nodetool.dictionary
 
+## ArgMax
+
+Returns the label associated with the highest value in a dictionary.
+
+Use cases:
+- Get the most likely class from classification probabilities
+- Find the category with highest score
+- Identify the winner in a voting/ranking system
+
+**Tags:** dictionary, maximum, label, argmax
+
+**Fields:**
+- **scores**: Dictionary mapping labels to their corresponding scores/values (dict)
+
+
 ## Combine
 
 Merges two dictionaries, with second dictionary values taking precedence.
@@ -9,14 +24,16 @@ Use cases:
 - Merge partial updates with existing data
 - Create aggregate data structures
 
-**Tags:** dictionary, merge, update
+**Tags:** dictionary, merge, update, +, add, concatenate
 
 **Fields:**
-- **dict_a** (dict[str, typing.Any])
-- **dict_b** (dict[str, typing.Any])
+- **dict_a** (dict)
+- **dict_b** (dict)
 
 
 ## ConflictResolution
+
+An enumeration.
 
 ## Filter
 
@@ -30,8 +47,8 @@ Use cases:
 **Tags:** dictionary, filter, select
 
 **Fields:**
-- **dictionary** (dict[str, typing.Any])
-- **keys** (list[str])
+- **dictionary** (dict)
+- **keys** (list)
 
 
 ## GetValue
@@ -46,9 +63,9 @@ Use cases:
 **Tags:** dictionary, get, value, key
 
 **Fields:**
-- **dictionary** (dict[str, typing.Any])
+- **dictionary** (dict)
 - **key** (str)
-- **default** (Any)
+- **default** (typing.Any)
 
 
 ## MakeDictionary
@@ -63,12 +80,6 @@ Use cases:
 **Tags:** dictionary, create, simple
 
 **Fields:**
-- **key1**: First key (str)
-- **value1**: First value (Any)
-- **key2**: Second key (optional) (str)
-- **value2**: Second value (optional) (Any)
-- **key3**: Third key (optional) (str)
-- **value3**: Third value (optional) (Any)
 
 
 ## ParseJSON
@@ -98,7 +109,7 @@ Use cases:
 **Tags:** dictionary, reduce, aggregate
 
 **Fields:**
-- **dictionaries**: List of dictionaries to be reduced (list[dict[str, typing.Any]])
+- **dictionaries**: List of dictionaries to be reduced (list)
 - **key_field**: The field to use as the key in the resulting dictionary (str)
 - **value_field**: Optional field to use as the value. If not specified, the entire dictionary (minus the key field) will be used as the value. (str | None)
 - **conflict_resolution**: How to handle conflicts when the same key appears multiple times (ConflictResolution)
@@ -116,7 +127,7 @@ Use cases:
 **Tags:** dictionary, remove, delete
 
 **Fields:**
-- **dictionary** (dict[str, typing.Any])
+- **dictionary** (dict)
 - **key** (str)
 
 
@@ -132,8 +143,8 @@ Use cases:
 **Tags:** dictionary, add, update
 
 **Fields:**
-- **dictionary** (dict[str, typing.Any])
-- **new_pairs** (dict[str, typing.Any])
+- **dictionary** (dict)
+- **new_pairs** (dict)
 
 
 ## Zip
@@ -148,7 +159,7 @@ Use cases:
 **Tags:** dictionary, create, zip
 
 **Fields:**
-- **keys** (list[typing.Any])
-- **values** (list[typing.Any])
+- **keys** (list)
+- **values** (list)
 
 

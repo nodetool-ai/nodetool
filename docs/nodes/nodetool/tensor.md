@@ -66,14 +66,13 @@ Use cases:
 ## ConvertToImage
 
 Convert tensor data to PIL Image format.
-Keywords: tensor, image, conversion, denormalization
 
 Use cases:
 - Visualize tensor data as images
 - Save processed tensor results as images
 - Convert model outputs back to viewable format
 
-**Tags:** 
+**Tags:** tensor, image, conversion, denormalization
 
 **Fields:**
 - **tensor**: The input tensor to convert to an image. Should have either 1, 3, or 4 channels. (Tensor)
@@ -106,7 +105,7 @@ Use cases:
 **Tags:** list, tensor, conversion, type
 
 **Fields:**
-- **values** (list[typing.Any])
+- **values** (list)
 
 
 ## Log
@@ -192,8 +191,10 @@ Use cases:
 
 Stores input embeddings in a database and retrieves the nearest neighbors for a query embedding.
 
+**Tags:** tensor, embeddings, nearest neighbors, search, similarity
+
 **Fields:**
-- **documents**: The list of documents to search (list[nodetool.metadata.types.Tensor])
+- **documents**: The list of documents to search (list)
 - **query**: The query to search for (Tensor)
 - **n_neighbors**: The number of neighbors to return (int)
 
@@ -211,7 +212,7 @@ Use cases:
 
 **Fields:**
 - **tensor** (Tensor)
-- **color_indices** (list[int])
+- **color_indices** (list)
 - **perplexity** (int)
 
 
@@ -245,7 +246,16 @@ Use cases:
 **Fields:**
 - **tensor**: The tensor to save. (Tensor)
 - **folder**: The folder to save the tensor in. (FolderRef)
-- **name**: The name of the asset to save. (str)
+- **name**: 
+        The name of the asset to save.
+        You can use time and date variables to create unique names:
+        %Y - Year
+        %m - Month
+        %d - Day
+        %H - Hour
+        %M - Minute
+        %S - Second
+         (str)
 
 ### required_inputs
 
@@ -279,7 +289,7 @@ Use cases:
 **Tags:** tensor, stack, concatenate, join, merge, axis
 
 **Fields:**
-- **tensors** (list[nodetool.metadata.types.Tensor])
+- **tensors** (list)
 - **axis**: The axis to stack along. (int)
 
 

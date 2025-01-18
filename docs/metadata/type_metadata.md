@@ -8,7 +8,7 @@ Metadata for a type.
 - **type** (str)
 - **optional** (bool)
 - **values** (typing.Optional[list[str | int]])
-- **type_args** (list[nodetool.metadata.type_metadata.TypeMetadata])
+- **type_args** (list)
 - **type_name** (typing.Optional[str])
 
 ### get_json_schema
@@ -16,7 +16,7 @@ Metadata for a type.
 Returns a JSON schema for the type.
 **Args:**
 
-**Returns:** dict[str, typing.Any]
+**Returns:** dict
 
 ### get_python_type
 

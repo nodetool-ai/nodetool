@@ -16,12 +16,14 @@ These vectors capture semantic meaning, enabling:
 **Tags:** embeddings, similarity, search, clustering, classification
 
 **Fields:**
-- **input** (str | nodetool.metadata.types.TextRef)
+- **input** (str)
 - **model** (EmbeddingModel)
 - **chunk_size** (int)
 
 
 ## EmbeddingModel
+
+An enumeration.
 
 ## GPT
 
@@ -50,4 +52,6 @@ Leverages OpenAI's GPT models to:
 
 
 ## ResponseFormat
+
+An enumeration.
 

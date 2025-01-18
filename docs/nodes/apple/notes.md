@@ -13,13 +13,20 @@ Use cases:
 
 **Fields:**
 - **title**: Title of the note (str)
-- **body**: Content of the note (str | nodetool.metadata.types.TextRef)
+- **body**: Content of the note (str)
 - **folder**: Notes folder to save to (str)
 
 
 ## ReadNotes
 
 Read notes from Apple Notes via AppleScript using temporary files
+
+Use cases:
+- Access your Apple Notes content programmatically
+- Search through notes using keywords
+- Get notes content for further processing
+
+**Tags:** notes, automation, macos, productivity
 
 **Fields:**
 - **search_term**: Optional search term to filter notes (str)

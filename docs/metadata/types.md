@@ -2,13 +2,15 @@
 
 ## AnthropicModel
 
+An enumeration.
+
 ## AssetRef
 
 **Fields:**
 - **type** (str)
 - **uri** (str)
 - **asset_id** (str | None)
-- **data** (Any)
+- **data** (typing.Any)
 
 ### encode_data_to_uri
 
@@ -33,7 +35,7 @@ Represents a chunk of audio with metadata about its source
 
 **Fields:**
 - **type** (typing.Literal['audio_chunk'])
-- **timestamp** (tuple[float, float])
+- **timestamp** (tuple)
 - **text** (str)
 
 
@@ -45,7 +47,7 @@ A reference to an audio asset.
 - **type** (typing.Literal['audio'])
 - **uri** (str)
 - **asset_id** (str | None)
-- **data** (Any)
+- **data** (typing.Any)
 
 
 ## BaseType
@@ -74,7 +76,7 @@ It is used to create a mapping of type names to their corresponding classes.
 **Fields:**
 - **type** (typing.Literal['comfy.clip'])
 - **name** (str)
-- **model** (Any)
+- **model** (typing.Any)
 
 
 ## CLIPFile
@@ -89,7 +91,7 @@ It is used to create a mapping of type names to their corresponding classes.
 **Fields:**
 - **type** (typing.Literal['comfy.clip_vision'])
 - **name** (str)
-- **model** (Any)
+- **model** (typing.Any)
 
 
 ## CLIPVisionFile
@@ -103,7 +105,7 @@ It is used to create a mapping of type names to their corresponding classes.
 
 **Fields:**
 - **type** (typing.Literal['comfy.clip_vision_output'])
-- **data** (Any)
+- **data** (typing.Any)
 
 
 ## ChartConfig
@@ -155,7 +157,7 @@ It is used to create a mapping of type names to their corresponding classes.
 - **y_lim** (typing.Optional[tuple[float, float]])
 - **x_scale** (typing.Optional[typing.Literal['linear', 'log']])
 - **y_scale** (typing.Optional[typing.Literal['linear', 'log']])
-- **legend_position** (typing.Literal['auto', 'right', 'left', 'top', 'bottom'])
+- **legend_position** (typing.Optional[typing.Literal['auto', 'right', 'left', 'top', 'bottom']])
 - **palette** (typing.Optional[str])
 - **hue_order** (typing.Optional[list[str]])
 - **hue_norm** (typing.Optional[tuple[float, float]])
@@ -179,7 +181,7 @@ It is used to create a mapping of type names to their corresponding classes.
 
 **Fields:**
 - **type** (typing.Literal['chart_data'])
-- **series** (list[nodetool.metadata.types.DataSeries])
+- **series** (list)
 - **row** (str | None)
 - **col** (str | None)
 - **col_wrap** (int | None)
@@ -188,7 +190,7 @@ It is used to create a mapping of type names to their corresponding classes.
 ## ChartDataSchema
 
 **Fields:**
-- **series** (list[nodetool.metadata.types.DataSeriesSchema])
+- **series** (list)
 - **row** (typing.Optional[str])
 - **col** (typing.Optional[str])
 - **col_wrap** (typing.Optional[int])
@@ -208,7 +210,7 @@ It is used to create a mapping of type names to their corresponding classes.
 The result of a chat conversation.
 
 **Fields:**
-- **messages**: The messages in the conversation (list[str])
+- **messages**: The messages in the conversation (list)
 - **response**: The response from the chat system (str)
 
 
@@ -230,7 +232,7 @@ The result of a chat conversation.
 
 **Fields:**
 - **role** (typing.Literal['tool'])
-- **content** (Any)
+- **content** (typing.Any)
 - **tool_call_id** (str)
 
 
@@ -245,7 +247,7 @@ The result of a chat conversation.
 
 **Fields:**
 - **role** (typing.Literal['user'])
-- **content** (str | list[nodetool.metadata.types.MessageTextContent | nodetool.metadata.types.MessageImageContent | nodetool.metadata.types.MessageAudioContent | nodetool.metadata.types.MessageVideoContent])
+- **content** (str | list[nodetool.metadata.types.MessageTextContent | nodetool.metadata.types.MessageImageContent | nodetool.metadata.types.MessageAudioContent | nodetool.metadata.types.MessageVideoContent | nodetool.metadata.types.MessageDocumentContent])
 - **name** (typing.Optional[str])
 
 
@@ -256,24 +258,12 @@ The result of a chat conversation.
 - **name** (str)
 
 
-## ChromaCollection
+## Collection
 
 **Fields:**
-- **type** (typing.Literal['chroma_collection'])
+- **type** (typing.Literal['collection'])
 - **name** (str)
-- **embedding_function** (ChromaEmbeddingFunction)
 
-
-## ChromaEmbeddingFunction
-
-**Fields:**
-- **type** (typing.Literal['chroma.embedding_function'])
-- **embedding_function** (ChromaEmbeddingFunctionEnum)
-- **model** (str | None)
-- **repo_id** (str | None)
-
-
-## ChromaEmbeddingFunctionEnum
 
 ## ColorRef
 
@@ -296,7 +286,7 @@ A reference to a color value.
 
 **Fields:**
 - **type** (str)
-- **data** (Any)
+- **data** (typing.Any)
 
 ### serialize
 
@@ -308,14 +298,14 @@ A reference to a color value.
 **Fields:**
 - **type** (str)
 - **name** (str)
-- **model** (Any)
+- **model** (typing.Any)
 
 
 ## Conditioning
 
 **Fields:**
 - **type** (typing.Literal['comfy.conditioning'])
-- **data** (Any)
+- **data** (typing.Any)
 
 
 ## ControlNet
@@ -323,7 +313,7 @@ A reference to a color value.
 **Fields:**
 - **type** (typing.Literal['comfy.control_net'])
 - **name** (str)
-- **model** (Any)
+- **model** (typing.Any)
 
 
 ## ControlNetFile
@@ -380,7 +370,7 @@ A reference to a color value.
 - **units** (typing.Optional[str])
 - **seed** (typing.Optional[int])
 - **stat** (typing.Optional[nodetool.metadata.types.SeabornStatistic])
-- **bins** (typing.Union[int, str, NoneType])
+- **bins** (typing.Optional[int])
 - **binwidth** (typing.Optional[float])
 - **binrange** (typing.Optional[tuple[float, float]])
 - **discrete** (typing.Optional[bool])
@@ -409,6 +399,55 @@ This class represents a dataset, which includes a dataframe of features and a da
 - **target** (DataframeRef)
 
 
+## Date
+
+**Fields:**
+- **type** (typing.Literal['date'])
+- **year** (int)
+- **month** (int)
+- **day** (int)
+
+### to_date
+
+**Args:**
+
+
+## DateCriteria
+
+An enumeration.
+
+## DateSearchCondition
+
+**Fields:**
+- **type** (typing.Literal['date_search_condition'])
+- **criteria** (DateCriteria)
+- **date** (Datetime)
+
+
+## Datetime
+
+**Fields:**
+- **type** (typing.Literal['datetime'])
+- **year** (int)
+- **month** (int)
+- **day** (int)
+- **hour** (int)
+- **minute** (int)
+- **second** (int)
+- **microsecond** (int)
+- **tzinfo** (str)
+- **utc_offset** (float)
+
+### from_datetime
+
+**Args:**
+- **dt (datetime)**
+
+### to_datetime
+
+**Args:**
+
+
 ## DocumentRef
 
 A reference to a document asset.
@@ -419,24 +458,46 @@ A reference to a document asset.
 - **type** (typing.Literal['document'])
 - **uri** (str)
 - **asset_id** (str | None)
-- **data** (Any)
+- **data** (typing.Any)
 
 
 ## Email
 
 **Fields:**
 - **type** (typing.Literal['email'])
+- **id**: Message ID (str)
 - **sender**: Sender email address (str)
-- **to**: Recipient email address (str)
 - **subject**: Email subject line (str)
+- **date**: Email date (Datetime)
 - **body**: Email body content (str | nodetool.metadata.types.TextRef)
+
+
+## EmailFlag
+
+An enumeration.
+
+## EmailSearchCriteria
+
+**Fields:**
+- **type** (typing.Literal['email_search_criteria'])
+- **from_address** (typing.Optional[str])
+- **to_address** (typing.Optional[str])
+- **subject** (typing.Optional[str])
+- **body** (typing.Optional[str])
+- **cc** (typing.Optional[str])
+- **bcc** (typing.Optional[str])
+- **date_condition** (typing.Optional[nodetool.metadata.types.DateSearchCondition])
+- **flags** (typing.List[nodetool.metadata.types.EmailFlag])
+- **keywords** (typing.List[str])
+- **folder** (typing.Optional[str])
+- **text** (typing.Optional[str])
 
 
 ## Embeds
 
 **Fields:**
 - **type** (typing.Literal['comfy.embeds'])
-- **data** (Any)
+- **data** (typing.Any)
 
 
 ## ExcelRef
@@ -445,21 +506,21 @@ A reference to a document asset.
 - **type** (typing.Literal['excel'])
 - **uri** (str)
 - **asset_id** (str | None)
-- **data** (Any)
+- **data** (typing.Any)
 
 
 ## FaceAnalysis
 
 **Fields:**
 - **type** (typing.Literal['comfy.face_analysis'])
-- **data** (Any)
+- **data** (typing.Any)
 
 
 ## FaceEmbeds
 
 **Fields:**
 - **type** (typing.Literal['comfy.face_embeds'])
-- **data** (Any)
+- **data** (typing.Any)
 
 
 ## FilePath
@@ -469,13 +530,20 @@ A reference to a document asset.
 - **path** (str)
 
 
+## FolderPath
+
+**Fields:**
+- **type** (typing.Literal['folder_path'])
+- **path** (str)
+
+
 ## FolderRef
 
 **Fields:**
 - **type** (typing.Literal['folder'])
 - **uri** (str)
 - **asset_id** (str | None)
-- **data** (Any)
+- **data** (typing.Any)
 
 
 ## FunctionDefinition
@@ -483,7 +551,7 @@ A reference to a document asset.
 **Fields:**
 - **name** (str)
 - **description** (str)
-- **parameters** (Any)
+- **parameters** (typing.Any)
 
 
 ## FunctionModel
@@ -502,7 +570,7 @@ A reference to a document asset.
 **Fields:**
 - **type** (typing.Literal['comfy.gligen'])
 - **name** (str)
-- **model** (Any)
+- **model** (typing.Any)
 
 
 ## GLIGENFile
@@ -514,11 +582,13 @@ A reference to a document asset.
 
 ## GPTModel
 
+An enumeration.
+
 ## Guider
 
 **Fields:**
 - **type** (typing.Literal['comfy.guider'])
-- **data** (Any)
+- **data** (typing.Any)
 
 
 ## HFAudioClassification
@@ -1205,11 +1275,11 @@ Configuration for an IMAP email connection.
 
 **Fields:**
 - **type** (typing.Literal['imap_connection'])
-- **host**: IMAP server hostname (str)
-- **port**: IMAP server port (int)
-- **username**: Email account username (str)
-- **password**: Email account password (str)
-- **use_ssl**: Whether to use SSL/TLS connection (bool)
+- **host** (str)
+- **port** (int)
+- **username** (str)
+- **password** (str)
+- **use_ssl** (bool)
 
 ### is_configured
 
@@ -1224,7 +1294,7 @@ Check if the connection has all required fields set.
 **Fields:**
 - **type** (typing.Literal['comfy.ip_adapter'])
 - **name** (str)
-- **model** (Any)
+- **model** (typing.Any)
 
 
 ## IPAdapterFile
@@ -1242,7 +1312,7 @@ A reference to an image asset.
 - **type** (typing.Literal['image'])
 - **uri** (str)
 - **asset_id** (str | None)
-- **data** (Any)
+- **data** (typing.Any)
 
 
 ## ImageSegmentationResult
@@ -1257,7 +1327,7 @@ A reference to an image asset.
 
 **Fields:**
 - **type** (typing.Literal['comfy.image_tensor'])
-- **data** (Any)
+- **data** (typing.Any)
 
 
 ## InstantID
@@ -1265,7 +1335,7 @@ A reference to an image asset.
 **Fields:**
 - **type** (typing.Literal['comfy.instant_id'])
 - **name** (str)
-- **model** (Any)
+- **model** (typing.Any)
 
 
 ## InstantIDFile
@@ -1280,7 +1350,7 @@ A reference to an image asset.
 **Fields:**
 - **type** (typing.Literal['comfy.lora'])
 - **name** (str)
-- **model** (Any)
+- **model** (typing.Any)
 
 
 ## LORAFile
@@ -1294,7 +1364,7 @@ A reference to an image asset.
 
 **Fields:**
 - **type** (typing.Literal['comfy.latent'])
-- **data** (Any)
+- **data** (typing.Any)
 
 
 ## LlamaModel
@@ -1323,11 +1393,25 @@ A reference to an image asset.
 - **strength**: LoRA strength (float)
 
 
+## LogicalOperator
+
+An enumeration.
+
+## LoraWeight
+
+A weight for a LoRA model.
+
+**Fields:**
+- **type** (typing.Literal['lora_weight'])
+- **url** (str)
+- **scale** (float)
+
+
 ## Mask
 
 **Fields:**
 - **type** (typing.Literal['comfy.mask'])
-- **data** (Any)
+- **data** (typing.Any)
 
 
 ## Message
@@ -1347,7 +1431,7 @@ Abstract representation for a chat message.
 - **tool_call_id** (str | None)
 - **role** (str)
 - **name** (str)
-- **content** (str | list[nodetool.metadata.types.MessageTextContent | nodetool.metadata.types.MessageImageContent | nodetool.metadata.types.MessageAudioContent | nodetool.metadata.types.MessageVideoContent] | None)
+- **content** (str | list[nodetool.metadata.types.MessageTextContent | nodetool.metadata.types.MessageImageContent | nodetool.metadata.types.MessageAudioContent | nodetool.metadata.types.MessageVideoContent | nodetool.metadata.types.MessageDocumentContent] | None)
 - **tool_calls** (list[nodetool.metadata.types.ToolCall] | None)
 - **created_at** (str | None)
 
@@ -1365,7 +1449,7 @@ Convert a Model object to a Message object.
 
 - **Message**: The abstract Message object.
 **Args:**
-- **message (Any)**
+- **message (typing.Any)**
 
 
 ## MessageAudioContent
@@ -1373,6 +1457,13 @@ Convert a Model object to a Message object.
 **Fields:**
 - **type** (typing.Literal['audio'])
 - **audio** (AudioRef)
+
+
+## MessageDocumentContent
+
+**Fields:**
+- **type** (typing.Literal['document'])
+- **document** (DocumentRef)
 
 
 ## MessageImageContent
@@ -1421,7 +1512,7 @@ Convert a Model object to a Message object.
 - **type** (typing.Literal['model_ref'])
 - **uri** (str)
 - **asset_id** (str | None)
-- **data** (Any)
+- **data** (typing.Any)
 
 
 ## NodeRef
@@ -1435,7 +1526,7 @@ Convert a Model object to a Message object.
 
 **Fields:**
 - **type** (typing.Literal['comfy.noise'])
-- **data** (Any)
+- **data** (typing.Any)
 
 
 ## ObjectDetectionResult
@@ -1448,6 +1539,8 @@ Convert a Model object to a Message object.
 
 
 ## OpenAIEmbeddingModel
+
+An enumeration.
 
 ## OutputSlot
 
@@ -1470,11 +1563,26 @@ This is the base class for all strucutred output types when a node
 
 ## Provider
 
+An enumeration.
+
 ## REMBGSession
 
 **Fields:**
 - **type** (typing.Literal['comfy.rembg_session'])
-- **data** (Any)
+- **data** (typing.Any)
+
+
+## RSSEntry
+
+Represents an RSS entry.
+
+**Fields:**
+- **type** (typing.Literal['rss_entry'])
+- **title** (str)
+- **link** (str)
+- **published** (Datetime)
+- **summary** (str)
+- **author** (str)
 
 
 ## RankingResult
@@ -1489,7 +1597,7 @@ This is the base class for all strucutred output types when a node
 
 **Fields:**
 - **type** (typing.Literal['record_type'])
-- **columns** (list[nodetool.metadata.types.ColumnDef])
+- **columns** (list)
 
 
 ## SVGElement
@@ -1499,9 +1607,9 @@ Base type for SVG elements that can be combined.
 **Fields:**
 - **type** (typing.Literal['svg_element'])
 - **name** (str)
-- **attributes** (dict[str, str])
-- **content** (str)
-- **children** (list[nodetool.metadata.types.SVGElement])
+- **attributes** (dict)
+- **content** (str | None)
+- **children** (list)
 
 ### render_attributes
 
@@ -1525,20 +1633,35 @@ A reference to an SVG asset.
 
 **Fields:**
 - **type** (typing.Literal['comfy.sampler'])
-- **data** (Any)
+- **data** (typing.Any)
 
 
 ## SeabornEstimator
 
+An enumeration.
+
 ## SeabornPlotType
 
+An enumeration.
+
 ## SeabornStatistic
+
+An enumeration.
+
+## SearchCondition
+
+**Fields:**
+- **type** (typing.Literal['search_condition'])
+- **field** (str)
+- **value** (str)
+- **operator** (typing.Optional[nodetool.metadata.types.LogicalOperator])
+
 
 ## Sigmas
 
 **Fields:**
 - **type** (typing.Literal['comfy.sigmas'])
-- **data** (Any)
+- **data** (typing.Any)
 
 
 ## StyleModel
@@ -1546,7 +1669,7 @@ A reference to an SVG asset.
 **Fields:**
 - **type** (typing.Literal['comfy.style_model'])
 - **name** (str)
-- **model** (Any)
+- **model** (typing.Any)
 
 
 ## StyleModelFile
@@ -1567,7 +1690,7 @@ A reference to an SVG asset.
 - **status** (str)
 - **name** (str)
 - **instructions** (str)
-- **dependencies** (list[str])
+- **dependencies** (list)
 - **started_at** (str)
 - **finished_at** (str | None)
 - **error** (str | None)
@@ -1579,7 +1702,7 @@ A reference to an SVG asset.
 
 **Fields:**
 - **type** (typing.Literal['tensor'])
-- **value** (list[typing.Any])
+- **value** (list)
 - **dtype** (typing.Optional[str])
 
 ### from_list
@@ -1619,9 +1742,7 @@ Represents a chunk of text with metadata about its source
 - **type** (typing.Literal['text_chunk'])
 - **text** (str)
 - **source_id** (str)
-- **start_idx** (int)
-- **end_idx** (int)
-- **chunk_type** (str)
+- **start_index** (int)
 
 ### get_document_id
 
@@ -1636,7 +1757,7 @@ A reference to a plain text asset.
 - **type** (typing.Literal['text'])
 - **uri** (str)
 - **asset_id** (str | None)
-- **data** (Any)
+- **data** (typing.Any)
 
 
 ## ToolCall
@@ -1644,8 +1765,8 @@ A reference to a plain text asset.
 **Fields:**
 - **id** (str)
 - **name** (str)
-- **args** (dict[str, typing.Any])
-- **result** (Any)
+- **args** (dict)
+- **result** (typing.Any)
 
 
 ## UNet
@@ -1653,7 +1774,7 @@ A reference to a plain text asset.
 **Fields:**
 - **type** (typing.Literal['comfy.unet'])
 - **name** (str)
-- **model** (Any)
+- **model** (typing.Any)
 
 
 ## UNetFile
@@ -1668,7 +1789,7 @@ A reference to a plain text asset.
 **Fields:**
 - **type** (typing.Literal['comfy.upscale_model'])
 - **name** (str)
-- **model** (Any)
+- **model** (typing.Any)
 
 
 ## UpscaleModelFile
@@ -1683,7 +1804,7 @@ A reference to a plain text asset.
 **Fields:**
 - **type** (typing.Literal['comfy.vae'])
 - **name** (str)
-- **model** (Any)
+- **model** (typing.Any)
 
 
 ## VAEFile
@@ -1701,7 +1822,7 @@ A reference to a video asset.
 - **type** (typing.Literal['video'])
 - **uri** (str)
 - **asset_id** (str | None)
-- **data** (Any)
+- **data** (typing.Any)
 - **duration** (typing.Optional[float])
 - **format** (typing.Optional[str])
 

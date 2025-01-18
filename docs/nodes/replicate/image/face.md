@@ -92,6 +92,38 @@ Make realistic images of real people instantly
 - **controlnet_conditioning_scale**: Scale for IdentityNet strength (for fidelity) (float)
 
 
+## Instant_ID_Artistic
+
+InstantID : Zero-shot Identity-Preserving Generation in Seconds. Using Dreamshaper-XL as the base model to encourage artistic generations
+
+**Fields:**
+- **image**: Input image (ImageRef)
+- **width**: Width of output image (int)
+- **height**: Height of output image (int)
+- **prompt**: Input prompt (str)
+- **guidance_scale**: Scale for classifier-free guidance (float)
+- **negative_prompt**: Input Negative Prompt (str)
+- **ip_adapter_scale**: Scale for IP adapter (float)
+- **num_inference_steps**: Number of denoising steps (int)
+- **controlnet_conditioning_scale**: Scale for ControlNet conditioning (float)
+
+
+## Instant_ID_Photorealistic
+
+InstantID : Zero-shot Identity-Preserving Generation in Seconds. Using Juggernaut-XL v8 as the base model to encourage photorealism
+
+**Fields:**
+- **image**: Input image (ImageRef)
+- **width**: Width of output image (int)
+- **height**: Height of output image (int)
+- **prompt**: Input prompt (str)
+- **guidance_scale**: Scale for classifier-free guidance (float)
+- **negative_prompt**: Input Negative Prompt (str)
+- **ip_adapter_scale**: Scale for IP adapter (float)
+- **num_inference_steps**: Number of denoising steps (int)
+- **controlnet_conditioning_scale**: Scale for ControlNet conditioning (float)
+
+
 ## PhotoMaker
 
 Create photos, paintings and avatars for anyone in any style within seconds.

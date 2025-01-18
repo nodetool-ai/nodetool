@@ -6,7 +6,15 @@ Preset options for generation quality
 
 ## TortoiseTTS
 
-Generate audio from text using the Tortoise TTS API.
+Generate high-quality speech from text using the Tortoise TTS API. Features multiple voices and quality presets.
+
+Use cases:
+- Generate natural-sounding speech
+- Create voiceovers
+- Produce multilingual audio
+- Create character voices
+
+**Tags:** audio, tts, speech, synthesis, voice
 
 **Fields:**
 - **voice** (VoiceType)

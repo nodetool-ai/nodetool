@@ -4,8 +4,10 @@
 
 Index a single image asset.
 
+**Tags:** chroma, embedding, collection, RAG, index, image
+
 **Fields:**
-- **collection**: The collection to index (ChromaCollection)
+- **collection**: The collection to index (Collection)
 - **image**: Image asset to index (ImageRef)
 
 
@@ -13,9 +15,12 @@ Index a single image asset.
 
 Index a list of image assets or files.
 
+**Tags:** chroma, embedding, collection, RAG, index, image, batch
+
 **Fields:**
-- **collection**: The collection to index (ChromaCollection)
-- **images**: List of image assets to index (list[nodetool.metadata.types.ImageRef])
+- **collection**: The collection to index (Collection)
+- **images**: List of image assets to index (list)
+- **upsert**: Whether to upsert the images (bool)
 
 
 ## IndexString
@@ -25,10 +30,10 @@ Index a string with a Document ID to a collection.
 Use cases:
 - Index documents for a vector search
 
-**Tags:** text, document_id, collection, index, save
+**Tags:** chroma, embedding, collection, RAG, index, text, string
 
 **Fields:**
-- **collection**: The collection to index (ChromaCollection)
+- **collection**: The collection to index (Collection)
 - **text**: Text content to index (str)
 - **document_id**: Document ID to associate with the text content (str)
 
@@ -37,8 +42,10 @@ Use cases:
 
 Index a single text asset.
 
+**Tags:** chroma, embedding, collection, RAG, index, text
+
 **Fields:**
-- **collection**: The collection to index (ChromaCollection)
+- **collection**: The collection to index (Collection)
 - **text**: Text asset to index (TextRef)
 
 
@@ -46,8 +53,10 @@ Index a single text asset.
 
 Index a single text chunk.
 
+**Tags:** chroma, embedding, collection, RAG, index, text, chunk
+
 **Fields:**
-- **collection**: The collection to index (ChromaCollection)
+- **collection**: The collection to index (Collection)
 - **text_chunk**: Text chunk to index (TextChunk)
 
 
@@ -55,8 +64,10 @@ Index a single text chunk.
 
 Index multiple text chunks at once.
 
+**Tags:** chroma, embedding, collection, RAG, index, text, chunk, batch
+
 **Fields:**
-- **collection**: The collection to index (ChromaCollection)
+- **collection**: The collection to index (Collection)
 - **text_chunks**: List of text chunks to index (typing.List[nodetool.metadata.types.TextChunk])
 
 
@@ -64,8 +75,10 @@ Index multiple text chunks at once.
 
 Index a list of text assets or files.
 
+**Tags:** chroma, embedding, collection, RAG, index, text, batch
+
 **Fields:**
-- **collection**: The collection to index (ChromaCollection)
-- **docs**: Dictionary of ID to text content pairs to index (list[nodetool.metadata.types.TextRef])
+- **collection**: The collection to index (Collection)
+- **docs**: Dictionary of ID to text content pairs to index (list)
 
 

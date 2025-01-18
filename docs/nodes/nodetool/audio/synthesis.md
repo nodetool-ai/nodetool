@@ -63,6 +63,8 @@ Use cases:
 
 ## OscillatorWaveform
 
+An enumeration.
+
 ## PinkNoise
 
 Generates pink noise (1/f noise).
@@ -81,6 +83,8 @@ Use cases:
 
 
 ## PitchEnvelopeCurve
+
+An enumeration.
 
 ## WhiteNoise
 

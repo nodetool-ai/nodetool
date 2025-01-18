@@ -50,6 +50,36 @@ Use cases:
 - **value** (DataframeRef)
 
 
+## Date
+
+Make a date object from year, month, day.
+
+**Tags:** date, make, create
+
+**Fields:**
+- **year**: Year of the date (int)
+- **month**: Month of the date (int)
+- **day**: Day of the date (int)
+
+
+## DateTime
+
+Make a datetime object from year, month, day, hour, minute, second.
+
+**Tags:** datetime, make, create
+
+**Fields:**
+- **year**: Year of the datetime (int)
+- **month**: Month of the datetime (int)
+- **day**: Day of the datetime (int)
+- **hour**: Hour of the datetime (int)
+- **minute**: Minute of the datetime (int)
+- **second**: Second of the datetime (int)
+- **microsecond**: Microsecond of the datetime (int)
+- **tzinfo**: Timezone of the datetime (str)
+- **utc_offset**: UTC offset of the datetime (int)
+
+
 ## Dict
 
 Represents a dictionary constant in the workflow.
@@ -62,7 +92,17 @@ Use cases:
 **Tags:** dictionary, key-value, mapping
 
 **Fields:**
-- **value** (dict[str, typing.Any])
+- **value** (dict)
+
+
+## Document
+
+Represents a document constant in the workflow.
+
+**Tags:** document, pdf, word, docx
+
+**Fields:**
+- **value** (DocumentRef)
 
 
 ## Float
@@ -119,10 +159,10 @@ Use cases:
 - Provide ordered data inputs
 - Define sequences for iteration in other nodes
 
-**Tags:** array, squence, collection
+**Tags:** array, sequence, collection
 
 **Fields:**
-- **value** (list[typing.Any])
+- **value** (list)
 
 
 ## String

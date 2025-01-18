@@ -33,7 +33,7 @@ Use cases:
 - Combine multiple audio clips into a single file
 - Create longer audio tracks from shorter segments
 
-**Tags:** audio, edit, join
+**Tags:** audio, edit, join, +
 
 **Fields:**
 - **a**: The first audio file. (AudioRef)
@@ -49,10 +49,10 @@ Use cases:
 - Create longer audio tracks from multiple segments
 - Chain multiple audio files in order
 
-**Tags:** audio, edit, join, multiple
+**Tags:** audio, edit, join, multiple, +
 
 **Fields:**
-- **audio_files**: List of audio files to concatenate in sequence. (list[nodetool.metadata.types.AudioRef])
+- **audio_files**: List of audio files to concatenate in sequence. (list)
 
 
 ## FadeIn
@@ -107,7 +107,7 @@ Use cases:
 - Ensure consistent volume across multiple audio files
 - Adjust overall volume level before further processing
 
-**Tags:** audio, fix, dynamics
+**Tags:** audio, fix, dynamics, volume
 
 **Fields:**
 - **audio**: The audio file to normalize. (AudioRef)

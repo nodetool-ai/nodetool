@@ -12,7 +12,7 @@ Use cases:
 **Tags:** speech, automation, macos, accessibility
 
 **Fields:**
-- **text**: Text to be spoken (str | nodetool.metadata.types.TextRef)
+- **text**: Text to be spoken (str)
 - **rate**: Speaking rate (words per minute) (int)
 
 

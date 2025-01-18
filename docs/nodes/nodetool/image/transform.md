@@ -140,13 +140,12 @@ Resize an image to fit within specified dimensions while preserving aspect ratio
 ## GetChannel
 
 Extract a specific color channel from an image.
-#image #color
 
 - Isolate color information for image analysis
 - Manipulate specific color components in graphic design
 - Enhance or reduce visibility of certain colors
 
-**Tags:** 
+**Tags:** image, color, channel, isolate, extract
 
 **Fields:**
 - **image**: The image to get the channel from. (ImageRef)

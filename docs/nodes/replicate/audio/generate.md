@@ -1,25 +1,40 @@
 # nodetool.nodes.replicate.audio.generate
 
-## Bark
+## MMAudio
 
-🔊 Text-Prompted Generative Audio Model
+Add sound to video. An advanced AI model that synthesizes high-quality audio from video content, enabling seamless video-to-audio transformation.
+
+Use cases:
+- Generate audio for silent videos
+- Create sound effects from visuals
+- Produce synchronized audio content
+- Generate ambient soundscapes
+- Create video soundtracks
+
+**Tags:** audio, video, synthesis, transformation, sound, video-to-audio, vid2wav
 
 **Fields:**
-- **prompt**: Input prompt (str)
-- **text_temp**: generation temperature (1.0 more diverse, 0.0 more conservative) (float)
-- **output_full**: return full generation as a .npz file to be used as a history prompt (bool)
-- **waveform_temp**: generation temperature (1.0 more diverse, 0.0 more conservative) (float)
-- **history_prompt**: history choice for audio cloning, choose from the list (nodetool.nodes.replicate.audio.generate.Bark.History_prompt | None)
-- **custom_history_prompt**: Provide your own .npz file with history choice for audio cloning, this will override the previous history_prompt setting (str | None)
-
-### output_key
-
-**Args:**
+- **seed**: Random seed. Use -1 to randomize the seed (int)
+- **video**: Optional video file for video-to-audio generation (str | None)
+- **prompt**: Text prompt for generated audio (str)
+- **duration**: Duration of output in seconds (float)
+- **num_steps**: Number of inference steps (int)
+- **cfg_strength**: Guidance strength (CFG) (float)
+- **negative_prompt**: Negative prompt to avoid certain sounds (str)
 
 
 ## MusicGen
 
-Generate music from a prompt or melody
+Generate music from a prompt or melody.
+
+Use cases:
+- Create original music compositions
+- Generate music from text descriptions
+- Produce melody variations
+- Create custom soundtracks
+- Generate background music
+
+**Tags:** music, generation, audio, melody, synthesis
 
 **Fields:**
 - **seed**: Seed for random number generator. If None or -1, a random seed will be used. (int | None)
@@ -67,7 +82,16 @@ Create song covers with any RVC v2 trained AI voice from audio files.
 
 ## Riffusion
 
-Stable diffusion for real-time music generation
+Stable diffusion for real-time music generation.
+
+Use cases:
+- Generate music from text descriptions
+- Create custom soundtracks
+- Produce background music
+- Generate sound effects
+- Create musical variations
+
+**Tags:** audio, music, generation, real-time, diffusion
 
 **Fields:**
 - **alpha**: Interpolation alpha if using two prompts. A value of 0 uses prompt_a fully, a value of 1 uses prompt_b fully (float)
@@ -84,14 +108,23 @@ Stable diffusion for real-time music generation
 
 ## StyleTTS2
 
-Generates speech from text
+Generates speech from text.
+
+Use cases:
+- Convert text to natural speech
+- Generate styled voice content
+- Create audio narrations
+- Produce voice-based media
+- Generate multilingual speech
+
+**Tags:** speech, synthesis, text-to-speech, voice, generation
 
 **Fields:**
-- **beta**: Only used for long text inputs or in case of reference speaker,             determines the prosody of the speaker. Use lower values to sample style based             on previous or reference speech instead of text. (float)
+- **beta**: Only used for long text inputs or in case of reference speaker, determines the prosody of the speaker. Use lower values to sample style based on previous or reference speech instead of text. (float)
 - **seed**: Seed for reproducibility (int)
 - **text**: Text to convert to speech (str | None)
-- **alpha**: Only used for long text inputs or in case of reference speaker,             determines the timbre of the speaker. Use lower values to sample style based             on previous or reference speech instead of text. (float)
-- **weights**: Replicate weights url for inference with model that is fine-tuned on new speakers.            If provided, a reference speech must also be provided.             If not provided, the default model will be used. (str | None)
+- **alpha**: Only used for long text inputs or in case of reference speaker, determines the timbre of the speaker. Use lower values to sample style based on previous or reference speech instead of text. (float)
+- **weights**: Replicate weights url for inference with model that is fine-tuned on new speakers. If provided, a reference speech must also be provided. If not provided, the default model will be used. (str | None)
 - **reference**: Reference speech to copy style from (AudioRef)
 - **diffusion_steps**: Number of diffusion steps (int)
 - **embedding_scale**: Embedding scale, use higher values for pronounced emotion (float)
@@ -100,6 +133,15 @@ Generates speech from text
 ## TortoiseTTS
 
 Generate speech from text, clone voices from mp3 files. From James Betker AKA "neonbjb".
+
+Use cases:
+- Generate natural-sounding speech
+- Clone and replicate voices
+- Create custom voiceovers
+- Produce multilingual speech
+- Create voice-based content
+
+**Tags:** speech, voice, synthesis, cloning, text-to-speech, text-to-audio
 
 **Fields:**
 - **seed**: Random seed which can be used to reproduce results. (int)

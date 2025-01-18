@@ -14,7 +14,7 @@ Use cases:
 **Fields:**
 - **dataframe**: Dataframe object to add a new column to. (DataframeRef)
 - **column_name**: The name of the new column to be added to the dataframe. (str)
-- **values**: A list of any type of elements which will be the new column's values. (list[typing.Any])
+- **values**: A list of any type of elements which will be the new column's values. (list)
 
 
 ## Chart
@@ -158,7 +158,7 @@ Use cases:
 **Tags:** list, dataframe, convert
 
 **Fields:**
-- **values**: List of values to be converted, each value will be a row. (list[typing.Any])
+- **values**: List of values to be converted, each value will be a row. (list)
 
 
 ## Heatmap
@@ -237,6 +237,27 @@ Use cases:
 **Fields:**
 
 
+## MapTemplate
+
+Maps a template string over dataframe rows.
+
+Use cases:
+- Format each row into a custom string representation
+- Generate text summaries from structured data
+- Create formatted output from dataframe records
+
+Example:
+Template: "Name: {name}, Age: {age}"
+Row: {"name": "Alice", "age": 30}
+Output: "Name: Alice, Age: 30"
+
+**Tags:** dataframe, template, format, string
+
+**Fields:**
+- **dataframe**: The input dataframe. (DataframeRef)
+- **template**: Template string with placeholders matching column names (e.g., {column_name}). (str)
+
+
 ## MergeSideBySide
 
 Merge two dataframes along columns.
@@ -296,7 +317,16 @@ Use cases:
 **Fields:**
 - **df** (DataframeRef)
 - **folder**: Name of the output folder. (FolderRef)
-- **name**: Name of the output file. (str)
+- **name**: 
+        Name of the output file.
+        You can use time and date variables to create unique names:
+        %Y - Year
+        %m - Month
+        %d - Day
+        %H - Hour
+        %M - Minute
+        %S - Second
+         (str)
 
 ### required_inputs
 
@@ -350,5 +380,20 @@ Use cases:
 **Fields:**
 - **df** (DataframeRef)
 - **column**: The column to sort the DataFrame by. (str)
+
+
+## ToList
+
+Convert dataframe to list of dictionaries.
+
+Use cases:
+- Convert dataframe data for API consumption
+- Transform data for JSON serialization
+- Prepare data for document-based storage
+
+**Tags:** dataframe, list, convert
+
+**Fields:**
+- **dataframe**: The input dataframe to convert. (DataframeRef)
 
 

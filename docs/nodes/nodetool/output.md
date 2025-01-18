@@ -12,8 +12,8 @@ Use cases:
 **Tags:** audio, sound, media
 
 **Fields:**
-- **label**: The label for this output node. (str)
 - **name**: The parameter name for the workflow. (str)
+- **description**: The description for this output node. (str)
 - **value** (AudioRef)
 
 
@@ -29,8 +29,8 @@ Use cases:
 **Tags:** boolean, true/false, flag
 
 **Fields:**
-- **label**: The label for this output node. (str)
 - **name**: The parameter name for the workflow. (str)
+- **description**: The description for this output node. (str)
 - **value** (bool)
 
 
@@ -46,8 +46,8 @@ Use cases:
 **Tags:** dataframe, table, structured
 
 **Fields:**
-- **label**: The label for this output node. (str)
 - **name**: The parameter name for the workflow. (str)
+- **description**: The description for this output node. (str)
 - **value** (DataframeRef)
 
 
@@ -63,9 +63,26 @@ Use cases:
 **Tags:** dictionary, key-value, mapping
 
 **Fields:**
-- **label**: The label for this output node. (str)
 - **name**: The parameter name for the workflow. (str)
-- **value** (dict[str, typing.Any])
+- **description**: The description for this output node. (str)
+- **value** (dict)
+
+
+## DocumentOutput
+
+Output node for document content references.
+
+Use cases:
+- Displaying processed or generated documents
+- Passing document data between workflow nodes
+- Returning results of document analysis
+
+**Tags:** document, pdf, file
+
+**Fields:**
+- **name**: The parameter name for the workflow. (str)
+- **description**: The description for this output node. (str)
+- **value** (DocumentRef)
 
 
 ## FloatOutput
@@ -80,8 +97,8 @@ Use cases:
 **Tags:** float, decimal, number
 
 **Fields:**
-- **label**: The label for this output node. (str)
 - **name**: The parameter name for the workflow. (str)
+- **description**: The description for this output node. (str)
 - **value** (float)
 
 
@@ -97,7 +114,7 @@ Use cases:
 **Tags:** group, composite, multi-output
 
 **Fields:**
-- **input** (Any)
+- **input** (typing.Any)
 
 
 ## ImageListOutput
@@ -111,9 +128,9 @@ Use cases:
 **Tags:** images, list, gallery
 
 **Fields:**
-- **label**: The label for this output node. (str)
 - **name**: The parameter name for the workflow. (str)
-- **value**: The images to display. (list[nodetool.metadata.types.ImageRef])
+- **description**: The description for this output node. (str)
+- **value**: The images to display. (list)
 
 
 ## ImageOutput
@@ -128,8 +145,8 @@ Use cases:
 **Tags:** image, picture, visual
 
 **Fields:**
-- **label**: The label for this output node. (str)
 - **name**: The parameter name for the workflow. (str)
+- **description**: The description for this output node. (str)
 - **value** (ImageRef)
 
 
@@ -145,8 +162,8 @@ Use cases:
 **Tags:** integer, number, count
 
 **Fields:**
-- **label**: The label for this output node. (str)
 - **name**: The parameter name for the workflow. (str)
+- **description**: The description for this output node. (str)
 - **value** (int)
 
 
@@ -161,9 +178,9 @@ Use cases:
 **Tags:** list, output, any
 
 **Fields:**
-- **label**: The label for this output node. (str)
 - **name**: The parameter name for the workflow. (str)
-- **value** (list[typing.Any])
+- **description**: The description for this output node. (str)
+- **value** (list)
 
 
 ## ModelOutput
@@ -178,8 +195,8 @@ Use cases:
 **Tags:** model, ml, ai
 
 **Fields:**
-- **label**: The label for this output node. (str)
 - **name**: The parameter name for the workflow. (str)
+- **description**: The description for this output node. (str)
 - **value** (ModelRef)
 
 
@@ -195,8 +212,8 @@ Use cases:
 **Tags:** string, text, output
 
 **Fields:**
-- **label**: The label for this output node. (str)
 - **name**: The parameter name for the workflow. (str)
+- **description**: The description for this output node. (str)
 - **value** (str)
 
 
@@ -212,8 +229,8 @@ Use cases:
 **Tags:** tensor, array, numerical
 
 **Fields:**
-- **label**: The label for this output node. (str)
 - **name**: The parameter name for the workflow. (str)
+- **description**: The description for this output node. (str)
 - **value** (Tensor)
 
 
@@ -229,8 +246,8 @@ Use cases:
 **Tags:** text, content, document
 
 **Fields:**
-- **label**: The label for this output node. (str)
 - **name**: The parameter name for the workflow. (str)
+- **description**: The description for this output node. (str)
 - **value** (TextRef)
 
 
@@ -246,8 +263,8 @@ Use cases:
 **Tags:** video, media, clip
 
 **Fields:**
-- **label**: The label for this output node. (str)
 - **name**: The parameter name for the workflow. (str)
+- **description**: The description for this output node. (str)
 - **value** (VideoRef)
 
 

@@ -1,23 +1,5 @@
 # nodetool.nodes.nodetool.input
 
-## AudioFolder
-
-Folder of audio assets input for workflows.
-
-Use cases:
-- Batch process multiple audio files
-- Analyze audio datasets
-- Create playlists or audio collections
-
-**Tags:** input, parameter, folder, audio
-
-**Fields:**
-- **label**: The label for this input node. (str)
-- **name**: The parameter name for the workflow. (str)
-- **folder**: The folder to use as input. (FolderRef)
-- **limit** (int)
-
-
 ## AudioInput
 
 Audio asset input for workflows.
@@ -30,8 +12,8 @@ Use cases:
 **Tags:** input, parameter, audio
 
 **Fields:**
-- **label**: The label for this input node. (str)
 - **name**: The parameter name for the workflow. (str)
+- **description**: The description for this input node. (str)
 - **value**: The audio to use as input. (AudioRef)
 
 
@@ -47,8 +29,8 @@ Use cases:
 **Tags:** input, parameter, boolean, bool
 
 **Fields:**
-- **label**: The label for this input node. (str)
 - **name**: The parameter name for the workflow. (str)
+- **description**: The description for this input node. (str)
 - **value** (bool)
 
 
@@ -64,9 +46,44 @@ Use cases:
 **Tags:** input, parameter, chat, message
 
 **Fields:**
-- **label**: The label for this input node. (str)
 - **name**: The parameter name for the workflow. (str)
-- **value**: The chat message to use as input. (list[nodetool.metadata.types.Message])
+- **description**: The description for this input node. (str)
+- **value**: The chat message to use as input. (list)
+
+
+## DocumentInput
+
+Document asset input for workflows.
+
+Use cases:
+- Load documents for processing
+- Analyze document content
+- Provide document input to models
+
+**Tags:** input, parameter, document
+
+**Fields:**
+- **name**: The parameter name for the workflow. (str)
+- **description**: The description for this input node. (str)
+- **value**: The document to use as input. (DocumentRef)
+
+
+## EnumInput
+
+Enumeration parameter input for workflows.
+
+Use cases:
+- Select from predefined options
+- Enforce choice from valid values
+- Configure categorical parameters
+
+**Tags:** input, parameter, enum, options, select
+
+**Fields:**
+- **name**: The parameter name for the workflow. (str)
+- **description**: The description for this input node. (str)
+- **value** (str)
+- **options**: Comma-separated list of valid options (str)
 
 
 ## FloatInput
@@ -81,29 +98,11 @@ Use cases:
 **Tags:** input, parameter, float, number
 
 **Fields:**
-- **label**: The label for this input node. (str)
 - **name**: The parameter name for the workflow. (str)
+- **description**: The description for this input node. (str)
 - **value** (float)
 - **min** (float)
 - **max** (float)
-
-
-## Folder
-
-Folder of assets input for workflows.
-
-Use cases:
-- Batch process multiple assets
-- Select a collection of related files
-- Iterate over a set of inputs
-
-**Tags:** input, parameter, folder
-
-**Fields:**
-- **label**: The label for this input node. (str)
-- **name**: The parameter name for the workflow. (str)
-- **folder**: The folder to use as input. (FolderRef)
-- **limit** (int)
 
 
 ## GroupInput
@@ -119,24 +118,6 @@ Use cases:
 **Fields:**
 
 
-## ImageFolder
-
-Folder of image assets input for workflows.
-
-Use cases:
-- Batch process multiple images
-- Train models on image datasets
-- Create image galleries or collections
-
-**Tags:** input, parameter, folder, image
-
-**Fields:**
-- **label**: The label for this input node. (str)
-- **name**: The parameter name for the workflow. (str)
-- **folder**: The folder to use as input. (FolderRef)
-- **limit** (int)
-
-
 ## ImageInput
 
 Image asset input for workflows.
@@ -149,8 +130,8 @@ Use cases:
 **Tags:** input, parameter, image
 
 **Fields:**
-- **label**: The label for this input node. (str)
 - **name**: The parameter name for the workflow. (str)
+- **description**: The description for this input node. (str)
 - **value**: The image to use as input. (ImageRef)
 
 
@@ -166,11 +147,28 @@ Use cases:
 **Tags:** input, parameter, integer, number
 
 **Fields:**
-- **label**: The label for this input node. (str)
 - **name**: The parameter name for the workflow. (str)
+- **description**: The description for this input node. (str)
 - **value** (int)
 - **min** (int)
 - **max** (int)
+
+
+## PathInput
+
+Local path input for workflows.
+
+Use cases:
+- Provide a local path to a file or directory
+- Specify a file or directory for processing
+- Load local data for analysis
+
+**Tags:** input, parameter, path
+
+**Fields:**
+- **name**: The parameter name for the workflow. (str)
+- **description**: The description for this input node. (str)
+- **value**: The path to use as input. (FilePath)
 
 
 ## StringInput
@@ -185,27 +183,9 @@ Use cases:
 **Tags:** input, parameter, string, text
 
 **Fields:**
-- **label**: The label for this input node. (str)
 - **name**: The parameter name for the workflow. (str)
+- **description**: The description for this input node. (str)
 - **value** (str)
-
-
-## TextFolder
-
-Folder of text assets input for workflows.
-
-Use cases:
-- Batch process multiple text documents
-- Analyze text corpora
-- Create document collections
-
-**Tags:** input, parameter, folder, text
-
-**Fields:**
-- **label**: The label for this input node. (str)
-- **name**: The parameter name for the workflow. (str)
-- **folder**: The folder to use as input. (FolderRef)
-- **limit** (int)
 
 
 ## TextInput
@@ -220,27 +200,9 @@ Use cases:
 **Tags:** input, parameter, text
 
 **Fields:**
-- **label**: The label for this input node. (str)
 - **name**: The parameter name for the workflow. (str)
+- **description**: The description for this input node. (str)
 - **value**: The text to use as input. (TextRef)
-
-
-## VideoFolder
-
-Folder of video assets input for workflows.
-
-Use cases:
-- Batch process multiple video files
-- Analyze video datasets
-- Create video playlists or collections
-
-**Tags:** input, parameter, folder, video
-
-**Fields:**
-- **label**: The label for this input node. (str)
-- **name**: The parameter name for the workflow. (str)
-- **folder**: The folder to use as input. (FolderRef)
-- **limit** (int)
 
 
 ## VideoInput
@@ -255,8 +217,8 @@ Use cases:
 **Tags:** input, parameter, video
 
 **Fields:**
-- **label**: The label for this input node. (str)
 - **name**: The parameter name for the workflow. (str)
+- **description**: The description for this input node. (str)
 - **value**: The video to use as input. (VideoRef)
 
 

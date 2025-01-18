@@ -850,7 +850,7 @@
   },
   {
     "title": "Tortoise TTS",
-    "description": "Generate audio from text using the Tortoise TTS API.",
+    "description": "Generate high-quality speech from text using the Tortoise TTS API. Features multiple voices and quality presets.\n    audio, tts, speech, synthesis, voice\n\n    Use cases:\n    - Generate natural-sounding speech\n    - Create voiceovers\n    - Produce multilingual audio\n    - Create character voices",
     "namespace": "aime.audio",
     "node_type": "aime.audio.TortoiseTTS",
     "layout": "default",
@@ -12289,7 +12289,7 @@
   },
   {
     "title": "Simple Math Boolean",
-    "description": "Represent a boolean value.\n    boolean, toggle, switch\n\n    Use cases:\n    - Provide on/off switches for features\n    - Control conditional logic\n    - Toggle between two states",
+    "description": "Represent a boolean value.\n    boolean, toggle, switch, condition, logic\n\n    Use cases:\n    - Provide on/off switches for features\n    - Control conditional logic\n    - Toggle between two states",
     "namespace": "comfy.essentials.misc",
     "node_type": "comfy.essentials.misc.SimpleMathBoolean",
     "layout": "default",
@@ -18334,7 +18334,7 @@
   },
   {
     "title": "Concat",
-    "description": "Concatenates two audio files together.\n    audio, edit, join\n\n    Use cases:\n    - Combine multiple audio clips into a single file\n    - Create longer audio tracks from shorter segments",
+    "description": "Concatenates two audio files together.\n    audio, edit, join, +\n\n    Use cases:\n    - Combine multiple audio clips into a single file\n    - Create longer audio tracks from shorter segments",
     "namespace": "nodetool.audio.transform",
     "node_type": "nodetool.audio.transform.Concat",
     "layout": "default",
@@ -18403,7 +18403,7 @@
   },
   {
     "title": "Concat List",
-    "description": "Concatenates multiple audio files together in sequence.\n    audio, edit, join, multiple\n\n    Use cases:\n    - Combine multiple audio clips into a single file\n    - Create longer audio tracks from multiple segments\n    - Chain multiple audio files in order",
+    "description": "Concatenates multiple audio files together in sequence.\n    audio, edit, join, multiple, +\n\n    Use cases:\n    - Combine multiple audio clips into a single file\n    - Create longer audio tracks from multiple segments\n    - Chain multiple audio files in order",
     "namespace": "nodetool.audio.transform",
     "node_type": "nodetool.audio.transform.ConcatList",
     "layout": "default",
@@ -18454,7 +18454,7 @@
   },
   {
     "title": "Normalize",
-    "description": "Normalizes the volume of an audio file.\n    audio, fix, dynamics\n\n    Use cases:\n    - Ensure consistent volume across multiple audio files\n    - Adjust overall volume level before further processing",
+    "description": "Normalizes the volume of an audio file.\n    audio, fix, dynamics, volume\n\n    Use cases:\n    - Ensure consistent volume across multiple audio files\n    - Adjust overall volume level before further processing",
     "namespace": "nodetool.audio.transform",
     "node_type": "nodetool.audio.transform.Normalize",
     "layout": "default",
@@ -19434,7 +19434,7 @@
   },
   {
     "title": "Logical Operator",
-    "description": "Performs logical operations on two boolean inputs.\n    boolean, logic, operator\n\n    Use cases:\n    - Combine multiple conditions in decision-making\n    - Implement complex logical rules in workflows\n    - Create advanced filters or triggers",
+    "description": "Performs logical operations on two boolean inputs.\n    boolean, logic, operator, condition, flow-control, branch, else, true, false, switch, toggle\n\n    Use cases:\n    - Combine multiple conditions in decision-making\n    - Implement complex logical rules in workflows\n    - Create advanced filters or triggers",
     "namespace": "nodetool.boolean",
     "node_type": "nodetool.boolean.LogicalOperator",
     "layout": "default",
@@ -19515,7 +19515,7 @@
   },
   {
     "title": "Not",
-    "description": "Performs logical NOT operation on a boolean input.\n    boolean, logic, not, invert\n\n    Use cases:\n    - Invert a condition's result\n    - Implement toggle functionality\n    - Create opposite logic branches",
+    "description": "Performs logical NOT operation on a boolean input.\n    boolean, logic, not, invert, !, negation, condition, else, true, false, switch, toggle, flow-control, branch\n\n    Use cases:\n    - Invert a condition's result\n    - Implement toggle functionality\n    - Create opposite logic branches",
     "namespace": "nodetool.boolean",
     "node_type": "nodetool.boolean.Not",
     "layout": "default",
@@ -19750,7 +19750,7 @@
   },
   {
     "title": "All",
-    "description": "Checks if all boolean values in a list are True.\n    boolean, all, check\n\n    Use cases:\n    - Ensure all conditions in a set are met\n    - Implement comprehensive checks\n    - Validate multiple criteria simultaneously",
+    "description": "Checks if all boolean values in a list are True.\n    boolean, all, check, logic, condition, flow-control, branch\n\n\n    Use cases:\n    - Ensure all conditions in a set are met\n    - Implement comprehensive checks\n    - Validate multiple criteria simultaneously",
     "namespace": "nodetool.boolean",
     "node_type": "nodetool.boolean.All",
     "layout": "default",
@@ -19801,7 +19801,7 @@
   },
   {
     "title": "Some",
-    "description": "Checks if any boolean value in a list is True.\n    boolean, any, check\n\n    Use cases:\n    - Check if at least one condition in a set is met\n    - Implement optional criteria checks\n    - Create flexible validation rules",
+    "description": "Checks if any boolean value in a list is True.\n    boolean, any, check, logic, condition, flow-control, branch\n\n    Use cases:\n    - Check if at least one condition in a set is met\n    - Implement optional criteria checks\n    - Create flexible validation rules",
     "namespace": "nodetool.boolean",
     "node_type": "nodetool.boolean.Some",
     "layout": "default",
@@ -20377,7 +20377,7 @@
   },
   {
     "title": "List",
-    "description": "Represents a list constant in the workflow.\n    array, squence, collection\n\n    Use cases:\n    - Store multiple values of the same type\n    - Provide ordered data inputs\n    - Define sequences for iteration in other nodes",
+    "description": "Represents a list constant in the workflow.\n    array, sequence, collection\n\n    Use cases:\n    - Store multiple values of the same type\n    - Provide ordered data inputs\n    - Define sequences for iteration in other nodes",
     "namespace": "nodetool.constant",
     "node_type": "nodetool.constant.List",
     "layout": "default",
@@ -20664,7 +20664,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": 17,
+        "default": 18,
         "title": "Day",
         "description": "Day of the date",
         "min": null,
@@ -20739,7 +20739,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": 17,
+        "default": 18,
         "title": "Day",
         "description": "Day of the datetime",
         "min": null,
@@ -20866,7 +20866,7 @@
   },
   {
     "title": "If",
-    "description": "Conditionally executes one of two branches based on a condition.\n    control, flow, condition\n\n    Use cases:\n    - Branch workflow based on conditions\n    - Handle different cases in data processing\n    - Implement decision logic",
+    "description": "Conditionally executes one of two branches based on a condition.\n    control, flow, condition, logic, else, true, false, switch, toggle, flow-control\n\n    Use cases:\n    - Branch workflow based on conditions\n    - Handle different cases in data processing\n    - Implement decision logic",
     "namespace": "nodetool.control",
     "node_type": "nodetool.control.If",
     "layout": "default",
@@ -22655,11 +22655,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 17,
-          "hour": 19,
-          "minute": 40,
-          "second": 46,
-          "microsecond": 953924,
+          "day": 18,
+          "hour": 21,
+          "minute": 46,
+          "second": 0,
+          "microsecond": 932444,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23712,11 +23712,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 17,
-          "hour": 19,
-          "minute": 40,
-          "second": 46,
-          "microsecond": 958454,
+          "day": 18,
+          "hour": 21,
+          "minute": 46,
+          "second": 0,
+          "microsecond": 954194,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23766,11 +23766,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 17,
-          "hour": 19,
-          "minute": 40,
-          "second": 46,
-          "microsecond": 958682,
+          "day": 18,
+          "hour": 21,
+          "minute": 46,
+          "second": 0,
+          "microsecond": 954944,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23820,11 +23820,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 17,
-          "hour": 19,
-          "minute": 40,
-          "second": 46,
-          "microsecond": 958891,
+          "day": 18,
+          "hour": 21,
+          "minute": 46,
+          "second": 0,
+          "microsecond": 957196,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23874,11 +23874,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 17,
-          "hour": 19,
-          "minute": 40,
-          "second": 46,
-          "microsecond": 959099,
+          "day": 18,
+          "hour": 21,
+          "minute": 46,
+          "second": 0,
+          "microsecond": 958696,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23928,11 +23928,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 17,
-          "hour": 19,
-          "minute": 40,
-          "second": 46,
-          "microsecond": 959336,
+          "day": 18,
+          "hour": 21,
+          "minute": 46,
+          "second": 0,
+          "microsecond": 960944,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23982,11 +23982,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 17,
-          "hour": 19,
-          "minute": 40,
-          "second": 46,
-          "microsecond": 959543,
+          "day": 18,
+          "hour": 21,
+          "minute": 46,
+          "second": 0,
+          "microsecond": 962445,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -24036,11 +24036,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 17,
-          "hour": 19,
-          "minute": 40,
-          "second": 46,
-          "microsecond": 959751,
+          "day": 18,
+          "hour": 21,
+          "minute": 46,
+          "second": 0,
+          "microsecond": 963948,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -24106,11 +24106,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 17,
-          "hour": 19,
-          "minute": 40,
-          "second": 46,
-          "microsecond": 959994,
+          "day": 18,
+          "hour": 21,
+          "minute": 46,
+          "second": 0,
+          "microsecond": 965443,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -24589,7 +24589,7 @@
   },
   {
     "title": "Combine",
-    "description": "Merges two dictionaries, with second dictionary values taking precedence.\n    dictionary, merge, update\n\n    Use cases:\n    - Combine default and custom configurations\n    - Merge partial updates with existing data\n    - Create aggregate data structures",
+    "description": "Merges two dictionaries, with second dictionary values taking precedence.\n    dictionary, merge, update, +, add, concatenate\n\n    Use cases:\n    - Combine default and custom configurations\n    - Merge partial updates with existing data\n    - Create aggregate data structures",
     "namespace": "nodetool.dictionary",
     "node_type": "nodetool.dictionary.Combine",
     "layout": "small",
@@ -39193,7 +39193,7 @@
   },
   {
     "title": "Join Strings",
-    "description": "Joins a list of strings using a specified delimiter.\n    list, join, concatenate, strings\n\n    Use cases:\n    - Combine strings with a separator\n    - Create CSV-like strings\n    - Format text for display or output",
+    "description": "Joins a list of strings using a specified delimiter.\n    list, join, concatenate, strings, +\n\n    Use cases:\n    - Combine strings with a separator\n    - Create CSV-like strings\n    - Format text for display or output",
     "namespace": "nodetool.list",
     "node_type": "nodetool.list.JoinStrings",
     "layout": "default",
@@ -39947,7 +39947,7 @@
   },
   {
     "title": "Divide",
-    "description": "Divides the first input by the second.\n    math, division, arithmetic, quotient",
+    "description": "Divides the first input by the second.\n    math, division, arithmetic, quotient, /",
     "namespace": "nodetool.math",
     "node_type": "nodetool.math.Divide",
     "layout": "small",
@@ -42523,7 +42523,7 @@
   },
   {
     "title": "Concatenate Text",
-    "description": "Concatenates two text inputs into a single output.\n    text, concatenation, combine\n\n    Use cases:\n    - Joining outputs from multiple text processing nodes\n    - Combining parts of sentences or paragraphs\n    - Merging text data from different sources",
+    "description": "Concatenates two text inputs into a single output.\n    text, concatenation, combine, +\n\n    Use cases:\n    - Joining outputs from multiple text processing nodes\n    - Combining parts of sentences or paragraphs\n    - Merging text data from different sources",
     "namespace": "nodetool.text",
     "node_type": "nodetool.text.Concat",
     "layout": "default",
@@ -42582,7 +42582,7 @@
   },
   {
     "title": "Join Text",
-    "description": "Joins a list of strings into a single string using a specified separator.\n    text, join, combine\n\n    Use cases:\n    - Combining multiple text elements with a consistent delimiter\n    - Creating comma-separated lists from individual items\n    - Assembling formatted text from array elements",
+    "description": "Joins a list of strings into a single string using a specified separator.\n    text, join, combine, +, add, concatenate\n\n    Use cases:\n    - Combining multiple text elements with a consistent delimiter\n    - Creating comma-separated lists from individual items\n    - Assembling formatted text from array elements",
     "namespace": "nodetool.text",
     "node_type": "nodetool.text.Join",
     "layout": "default",
@@ -42692,7 +42692,7 @@
   },
   {
     "title": "Template",
-    "description": "Replaces placeholders in a string with provided values.\n    text, template, formatting\n\n    Use cases:\n    - Generating personalized messages with dynamic content\n    - Creating parameterized queries or commands\n    - Formatting text output based on variable inputs\n\n    Examples:\n    - text: \"Hello, {name}!\" values: {\"name\": \"Alice\"} -> \"Hello, Alice!\"\n    - text: \"Hello, {0} {1}!\" values: [\"Alice\", \"Meyer\"] -> \"Hello, Alice Meyer!\"\n    - text: \"Hello, {0}!\" values: \"Alice\" -> \"Hello, Alice!\"",
+    "description": "Replaces placeholders in a string with provided values.\n    text, template, formatting, format, combine, concatenate, +, add, variable, replace\n\n    Use cases:\n    - Generating personalized messages with dynamic content\n    - Creating parameterized queries or commands\n    - Formatting text output based on variable inputs\n\n    Examples:\n    - text: \"Hello, {name}!\" values: {\"name\": \"Alice\"} -> \"Hello, Alice!\"\n    - text: \"Hello, {0} {1}!\" values: [\"Alice\", \"Meyer\"] -> \"Hello, Alice Meyer!\"\n    - text: \"Hello, {0}!\" values: \"Alice\" -> \"Hello, Alice!\"",
     "namespace": "nodetool.text",
     "node_type": "nodetool.text.Template",
     "layout": "default",
@@ -49118,7 +49118,7 @@
   },
   {
     "title": "Concat",
-    "description": "Concatenate multiple video files into a single video, including audio when available.\n    video, concat, merge, combine, audio",
+    "description": "Concatenate multiple video files into a single video, including audio when available.\n    video, concat, merge, combine, audio, +",
     "namespace": "nodetool.video",
     "node_type": "nodetool.video.Concat",
     "layout": "default",
@@ -60035,7 +60035,7 @@
   },
   {
     "title": "Music Gen",
-    "description": "Generates audio (music or sound effects) from text descriptions.\n    audio, music, generation, huggingface\n\n    Use cases:\n    - Create custom background music for videos or games\n    - Generate sound effects based on textual descriptions\n    - Prototype musical ideas quickly",
+    "description": "Generates audio (music or sound effects) from text descriptions.\n    audio, music, generation, huggingface, text-to-audio\n\n    Use cases:\n    - Create custom background music for videos or games\n    - Generate sound effects based on textual descriptions\n    - Prototype musical ideas quickly",
     "namespace": "huggingface.text_to_audio",
     "node_type": "huggingface.text_to_audio.MusicGen",
     "layout": "default",
@@ -60182,7 +60182,7 @@
   },
   {
     "title": "Music LDM",
-    "description": "Generates audio (music or sound effects) from text descriptions.\n    audio, music, generation, huggingface\n\n    Use cases:\n    - Create custom background music for videos or games\n    - Generate sound effects based on textual descriptions\n    - Prototype musical ideas quickly",
+    "description": "Generates audio (music or sound effects) from text descriptions.\n    audio, music, generation, huggingface, text-to-audio\n\n    Use cases:\n    - Create custom background music for videos or games\n    - Generate sound effects based on textual descriptions\n    - Prototype musical ideas quickly",
     "namespace": "huggingface.text_to_audio",
     "node_type": "huggingface.text_to_audio.MusicLDM",
     "layout": "default",
@@ -60521,7 +60521,7 @@
   },
   {
     "title": "Dance Diffusion",
-    "description": "Generates audio using the DanceDiffusion model.\n    audio, generation, AI, music\n\n    Use cases:\n    - Create AI-generated music samples\n    - Produce background music for videos or games\n    - Generate audio content for creative projects\n    - Explore AI-composed musical ideas",
+    "description": "Generates audio using the DanceDiffusion model.\n    audio, generation, AI, music, text-to-audio\n\n    Use cases:\n    - Create AI-generated music samples\n    - Produce background music for videos or games\n    - Generate audio content for creative projects\n    - Explore AI-composed musical ideas",
     "namespace": "huggingface.text_to_audio",
     "node_type": "huggingface.text_to_audio.DanceDiffusion",
     "layout": "default",
@@ -60607,7 +60607,7 @@
   },
   {
     "title": "Stable Audio",
-    "description": "Generates audio using the Stable Audio Pipeline based on a text prompt.\n    audio, generation, AI, text-to-audio\n\n    Use cases:\n    - Creating custom sound effects based on textual descriptions\n    - Generating background audio for videos or games\n    - Exploring AI-generated audio for creative projects",
+    "description": "Generate audio using Stable Audio model based on text prompts. Features high-quality audio synthesis with configurable parameters.\n    audio, generation, synthesis, text-to-audio, text-to-audio\n\n    Use cases:\n    - Create custom audio content from text\n    - Generate background music and sounds\n    - Produce audio for multimedia projects\n    - Create sound effects and ambience\n    - Generate experimental audio content",
     "namespace": "huggingface.text_to_audio",
     "node_type": "huggingface.text_to_audio.StableAudio",
     "layout": "default",
@@ -70838,7 +70838,7 @@
   },
   {
     "title": "Differential Diffusion",
-    "description": "Implements differential diffusion by modifying the model's denoise mask function.\n    Adapted from https://github.com/exx8/differential-diffusion",
+    "description": "Implements differential diffusion by modifying the model's denoise mask function. Adapted from https://github.com/exx8/differential-diffusion",
     "namespace": "comfy.sampling",
     "node_type": "comfy.sampling.DifferentialDiffusion",
     "layout": "default",
@@ -75193,7 +75193,7 @@
   },
   {
     "title": "Any LLM",
-    "description": "Use any large language model from a selected catalogue (powered by OpenRouter).\n    Supports various models including Claude 3, Gemini, Llama, and GPT-4.",
+    "description": "Use any large language model from a selected catalogue (powered by OpenRouter).\n    Supports various models including Claude 3, Gemini, Llama, and GPT-4.\n    llm, text, generation, ai, language\n\n    Use cases:\n    - Generate natural language responses\n    - Create conversational AI interactions\n    - Process and analyze text content\n    - Generate creative writing\n    - Assist with problem-solving tasks",
     "namespace": "fal.llm",
     "node_type": "fal.llm.AnyLLM",
     "layout": "default",
@@ -75281,7 +75281,7 @@
   },
   {
     "title": "Ideogram V 2",
-    "description": "Ideogram V2 is a state-of-the-art image generation model optimized for commercial and creative use,\n    featuring exceptional typography handling and realistic outputs.",
+    "description": "Ideogram V2 is a state-of-the-art image generation model optimized for commercial and creative use, featuring exceptional typography handling and realistic outputs.\n    image, generation, ai, typography, realistic, text-to-image, txt2img\n\n    Use cases:\n    - Create commercial artwork and designs\n    - Generate realistic product visualizations\n    - Design marketing materials with text\n    - Produce high-quality illustrations\n    - Create brand assets and logos",
     "namespace": "fal.text_to_image",
     "node_type": "fal.text_to_image.IdeogramV2",
     "layout": "default",
@@ -75563,7 +75563,7 @@
   },
   {
     "title": "Flux V 1 Pro",
-    "description": "FLUX1.1 [pro] is an enhanced version of FLUX.1 [pro], improved image generation capabilities, delivering superior composition, detail, and artistic fidelity compared to its predecessor.\n    fal, text, image",
+    "description": "FLUX1.1 [pro] is an enhanced version of FLUX.1 [pro], improved image generation capabilities, delivering superior composition, detail, and artistic fidelity compared to its predecessor.\n    image, generation, composition, detail, artistic, text-to-image, txt2img\n\n    Use cases:\n    - Generate high-fidelity artwork\n    - Create detailed illustrations\n    - Design complex compositions\n    - Produce artistic renderings\n    - Generate professional visuals",
     "namespace": "fal.text_to_image",
     "node_type": "fal.text_to_image.FluxV1Pro",
     "layout": "default",
@@ -75934,7 +75934,7 @@
   },
   {
     "title": "Switti",
-    "description": "Switti is a scale-wise transformer for fast text-to-image generation that outperforms existing T2I AR models\n    and competes with state-of-the-art T2I diffusion models while being faster than distilled diffusion models.",
+    "description": "Switti is a scale-wise transformer for fast text-to-image generation that outperforms existing T2I AR models and competes with state-of-the-art T2I diffusion models while being faster than distilled diffusion models.\n    image, generation, fast, transformer, efficient, text-to-image, txt2img\n\n    Use cases:\n    - Rapid image prototyping\n    - Real-time image generation\n    - Quick visual concept testing\n    - Fast artistic visualization\n    - Efficient batch image creation",
     "namespace": "fal.text_to_image",
     "node_type": "fal.text_to_image.Switti",
     "layout": "default",
@@ -76144,7 +76144,7 @@
   },
   {
     "title": "Aura Flow V 03",
-    "description": "AuraFlow v0.3 is an open-source flow-based text-to-image generation model that achieves\n    state-of-the-art results on GenEval.",
+    "description": "AuraFlow v0.3 is an open-source flow-based text-to-image generation model that achieves state-of-the-art results on GenEval.\n    image, generation, flow-based, text-to-image, txt2img\n\n    Use cases:\n    - Generate high-quality images\n    - Create artistic visualizations",
     "namespace": "fal.text_to_image",
     "node_type": "fal.text_to_image.AuraFlowV03",
     "layout": "default",
@@ -76406,7 +76406,7 @@
   },
   {
     "title": "Flux Lora",
-    "description": "FLUX.1 [dev] with LoRAs is a text-to-image model that supports LoRA adaptations,\n    enabling rapid and high-quality image generation with pre-trained LoRA weights for\n    personalization, specific styles, brand identities, and product-specific outputs.",
+    "description": "FLUX.1 [dev] with LoRAs is a text-to-image model that supports LoRA adaptations, enabling rapid and high-quality image generation with pre-trained LoRA weights for personalization, specific styles, brand identities, and product-specific outputs.\n    image, generation, lora, personalization, style-transfer, text-to-image, txt2img\n\n    Use cases:\n    - Create brand-specific visuals\n    - Generate custom styled images\n    - Adapt existing styles to new content\n    - Produce personalized artwork\n    - Design consistent visual identities",
     "namespace": "fal.text_to_image",
     "node_type": "fal.text_to_image.FluxLora",
     "layout": "default",
@@ -76857,7 +76857,7 @@
   },
   {
     "title": "Flux Subject",
-    "description": "FLUX.1 Subject is a super fast endpoint for the FLUX.1 [schnell] model with subject input capabilities,\n    enabling rapid and high-quality image generation for personalization, specific styles, brand identities,\n    and product-specific outputs.",
+    "description": "FLUX.1 Subject is a super fast endpoint for the FLUX.1 [schnell] model with subject input capabilities, enabling rapid and high-quality image generation for personalization, specific styles, brand identities, and product-specific outputs.\n    image, generation, subject-driven, personalization, fast, text-to-image, txt2img\n\n    Use cases:\n    - Create variations of existing subjects\n    - Generate personalized product images\n    - Design brand-specific visuals\n    - Produce custom character artwork\n    - Create subject-based illustrations",
     "namespace": "fal.text_to_image",
     "node_type": "fal.text_to_image.FluxSubject",
     "layout": "default",
@@ -77141,7 +77141,7 @@
   },
   {
     "title": "Sana V 1",
-    "description": "Sana can synthesize high-resolution, high-quality images with strong text-image alignment\n    at a remarkably fast speed, with the ability to generate 4K images in less than a second.",
+    "description": "Sana can synthesize high-resolution, high-quality images with strong text-image alignment at a remarkably fast speed, with the ability to generate 4K images in less than a second.\n    image, generation, high-resolution, fast, text-alignment, text-to-image, txt2img\n\n    Use cases:\n    - Generate 4K quality images\n    - Create high-resolution artwork\n    - Produce rapid visual prototypes\n    - Design detailed illustrations\n    - Generate precise text-aligned visuals",
     "namespace": "fal.text_to_image",
     "node_type": "fal.text_to_image.SanaV1",
     "layout": "default",
@@ -77298,7 +77298,7 @@
   },
   {
     "title": "Omni Gen V 1",
-    "description": "OmniGen is a unified image generation model that can generate a wide range of images from multi-modal prompts.\n    It can be used for various tasks such as Image Editing, Personalized Image Generation, Virtual Try-On,\n    Multi Person Generation and more!",
+    "description": "OmniGen is a unified image generation model that can generate a wide range of images from multi-modal prompts. It can be used for various tasks such as Image Editing, Personalized Image Generation, Virtual Try-On, Multi Person Generation and more!\n    image, generation, multi-modal, editing, personalization, text-to-image, txt2img\n\n    Use cases:\n    - Edit and modify existing images\n    - Create personalized visual content\n    - Generate virtual try-on images\n    - Create multi-person compositions\n    - Combine multiple images creatively",
     "namespace": "fal.text_to_image",
     "node_type": "fal.text_to_image.OmniGenV1",
     "layout": "default",
@@ -77637,7 +77637,7 @@
   },
   {
     "title": "Recraft 20 B",
-    "description": "Recraft 20B is a new and affordable text-to-image model that delivers state-of-the-art results.",
+    "description": "Recraft 20B is a new and affordable text-to-image model that delivers state-of-the-art results.\n     image, generation, efficient, text-to-image, txt2img\n\n    Use cases:\n    - Generate cost-effective visuals\n    - Create high-quality images\n    - Produce professional artwork\n    - Design marketing materials\n    - Generate commercial content",
     "namespace": "fal.text_to_image",
     "node_type": "fal.text_to_image.Recraft20B",
     "layout": "default",
@@ -78142,7 +78142,7 @@
   },
   {
     "title": "Bria V 1 HD",
-    "description": "Bria's Text-to-Image model for HD images. Trained exclusively on licensed data for safe and\n    risk-free commercial use. Features exceptional image quality and commercial licensing safety.",
+    "description": "Bria's Text-to-Image model for HD images. Trained exclusively on licensed data for safe and risk-free commercial use. Features exceptional image quality and commercial licensing safety.\n    image, generation, hd, text-to-image, txt2img\n\n    Use cases:\n    - Create commercial marketing materials\n    - Generate licensed artwork\n    - Produce high-definition visuals\n    - Design professional content\n    - Create legally safe visual assets",
     "namespace": "fal.text_to_image",
     "node_type": "fal.text_to_image.BriaV1HD",
     "layout": "default",
@@ -78321,7 +78321,7 @@
   },
   {
     "title": "Flux General",
-    "description": "FLUX.1 [dev] with Controlnets and Loras is a versatile text-to-image model that supports\n    multiple AI extensions including LoRA, ControlNet conditioning, and IP-Adapter integration,\n    enabling comprehensive control over image generation through various guidance methods.",
+    "description": "FLUX.1 [dev] with Controlnets and Loras is a versatile text-to-image model that supports multiple AI extensions including LoRA, ControlNet conditioning, and IP-Adapter integration, enabling comprehensive control over image generation through various guidance methods.\n    image, generation, controlnet, lora, ip-adapter, text-to-image, txt2img\n\n    Use cases:\n    - Create controlled image generations\n    - Apply multiple AI extensions\n    - Generate guided visual content\n    - Produce customized artwork\n    - Design with precise control",
     "namespace": "fal.text_to_image",
     "node_type": "fal.text_to_image.FluxGeneral",
     "layout": "default",
@@ -81218,7 +81218,7 @@
   },
   {
     "title": "MMAudio V2",
-    "description": "MMAudio V2 generates synchronized audio given text inputs.\n    It can generate sounds described by a prompt.",
+    "description": "MMAudio V2 generates synchronized audio given text inputs. It can generate sounds described by a prompt.\n    audio, generation, synthesis, text-to-audio, synchronization\n\n    Use cases:\n    - Generate synchronized audio from text descriptions\n    - Create custom sound effects\n    - Produce ambient soundscapes\n    - Generate audio for multimedia content\n    - Create sound design elements",
     "namespace": "fal.text_to_audio",
     "node_type": "fal.text_to_audio.MMAudioV2",
     "layout": "default",
@@ -81353,7 +81353,7 @@
   },
   {
     "title": "Stable Audio",
-    "description": "Stable Audio generates audio from text prompts.\n    Open source text-to-audio model from fal.ai.",
+    "description": "Stable Audio generates audio from text prompts. Open source text-to-audio model from fal.ai.\n    audio, generation, synthesis, text-to-audio, open-source\n\n    Use cases:\n    - Generate custom audio content from text\n    - Create background music and sounds\n    - Produce audio assets for projects\n    - Generate sound effects\n    - Create experimental audio content",
     "namespace": "fal.text_to_audio",
     "node_type": "fal.text_to_audio.StableAudio",
     "layout": "default",
@@ -81443,7 +81443,7 @@
   },
   {
     "title": "F5 TTS",
-    "description": "F5 TTS converts text to speech using a reference audio for voice cloning.\n    Uses fal.ai's F5 TTS model for high-quality voice synthesis.",
+    "description": "F5 TTS (Text-to-Speech) model for generating natural-sounding speech from text with voice cloning capabilities.\n    audio, tts, voice-cloning, speech, synthesis, text-to-speech, tts, text-to-audio\n\n    Use cases:\n    - Generate natural speech from text\n    - Clone and replicate voices\n    - Create custom voiceovers\n    - Produce multilingual speech content\n    - Generate personalized audio content",
     "namespace": "fal.text_to_audio",
     "node_type": "fal.text_to_audio.F5TTS",
     "layout": "default",
@@ -81548,7 +81548,7 @@
   },
   {
     "title": "Whisper",
-    "description": "Whisper is a model for speech transcription and translation.\n    It can transcribe audio in multiple languages and optionally translate to English.",
+    "description": "Whisper is a model for speech transcription and translation that can transcribe audio in multiple languages and optionally translate to English.\n    speech, audio, transcription, translation, transcribe, translate, multilingual, speech-to-text, audio-to-text\n\n    Use cases:\n    - Transcribe spoken content to text\n    - Translate speech to English\n    - Generate subtitles and captions\n    - Create text records of audio content\n    - Analyze multilingual audio content",
     "namespace": "fal.speech_to_text",
     "node_type": "fal.speech_to_text.Whisper",
     "layout": "default",
@@ -81867,7 +81867,7 @@
   },
   {
     "title": "Flux Schnell Redux",
-    "description": "FLUX.1 [schnell] Redux is a high-performance endpoint that enables rapid transformation \n    of existing images, delivering high-quality style transfers and image modifications with \n    the core FLUX capabilities.",
+    "description": "FLUX.1 [schnell] Redux is a high-performance endpoint that enables rapid transformation of existing images, delivering high-quality style transfers and image modifications with the core FLUX capabilities.\n    image, transformation, style-transfer, fast, flux\n\n    Use cases:\n    - Transform images with style transfers\n    - Apply artistic modifications to photos\n    - Create image variations",
     "namespace": "fal.image_to_image",
     "node_type": "fal.image_to_image.FluxSchnellRedux",
     "layout": "default",
@@ -81984,7 +81984,7 @@
   },
   {
     "title": "Flux Dev Redux",
-    "description": "FLUX.1 [dev] Redux is a high-performance endpoint that enables rapid transformation \n    of existing images, delivering high-quality style transfers and image modifications.",
+    "description": "FLUX.1 [dev] Redux is a high-performance endpoint that enables rapid transformation of existing images, delivering high-quality style transfers and image modifications.\n    image, transformation, style-transfer, development, flux\n\n    Use cases:\n    - Transform images with advanced controls\n    - Create customized image variations\n    - Apply precise style modifications",
     "namespace": "fal.image_to_image",
     "node_type": "fal.image_to_image.FluxDevRedux",
     "layout": "default",
@@ -82116,7 +82116,7 @@
   },
   {
     "title": "Flux Pro Redux",
-    "description": "FLUX.1 [pro] Redux is a high-performance endpoint that enables rapid transformation \n    of existing images, delivering high-quality style transfers and image modifications.",
+    "description": "FLUX.1 [pro] Redux is a high-performance endpoint that enables rapid transformation of existing images, delivering high-quality style transfers and image modifications.\n    image, transformation, style-transfer, flux\n\n    Use cases:\n    - Create professional image transformations\n    - Generate style transfers",
     "namespace": "fal.image_to_image",
     "node_type": "fal.image_to_image.FluxProRedux",
     "layout": "default",
@@ -82248,7 +82248,7 @@
   },
   {
     "title": "Flux Pro Ultra Redux",
-    "description": "FLUX1.1 [pro] ultra Redux is a high-performance endpoint that enables rapid transformation \n    of existing images, delivering high-quality style transfers and image modifications with \n    the core FLUX capabilities.",
+    "description": "FLUX1.1 [pro] ultra Redux is a high-performance endpoint that enables rapid transformation of existing images, delivering high-quality style transfers and image modifications with the core FLUX capabilities.\n    image, transformation, style-transfer, ultra, professional\n\n    Use cases:\n    - Apply precise image modifications\n    - Process images with maximum control",
     "namespace": "fal.image_to_image",
     "node_type": "fal.image_to_image.FluxProUltraRedux",
     "layout": "default",
@@ -82395,7 +82395,7 @@
   },
   {
     "title": "Flux Pro Fill",
-    "description": "FLUX.1 [pro] Fill is a high-performance endpoint that enables rapid transformation \n    of existing images with inpainting/outpainting capabilities.",
+    "description": "FLUX.1 [pro] Fill is a high-performance endpoint that enables rapid transformation of existing images with inpainting/outpainting capabilities.\n    image, inpainting, outpainting, transformation, professional\n\n    Use cases:\n    - Fill in missing or masked parts of images\n    - Extend images beyond their original boundaries\n    - Remove and replace unwanted elements\n    - Create seamless image completions\n    - Generate context-aware image content",
     "namespace": "fal.image_to_image",
     "node_type": "fal.image_to_image.FluxProFill",
     "layout": "default",
@@ -82525,7 +82525,7 @@
   },
   {
     "title": "Flux Pro Canny",
-    "description": "FLUX.1 [pro] Canny enables precise control over composition, style, and structure \n    through advanced edge detection and guidance mechanisms.",
+    "description": "FLUX.1 [pro] Canny enables precise control over composition, style, and structure through advanced edge detection and guidance mechanisms.\n    image, edge, composition, style, control\n\n    Use cases:\n    - Generate images with precise structural control\n    - Create artwork based on edge maps\n    - Transform sketches into detailed images\n    - Maintain specific compositional elements\n    - Generate variations with consistent structure",
     "namespace": "fal.image_to_image",
     "node_type": "fal.image_to_image.FluxProCanny",
     "layout": "default",
@@ -82672,7 +82672,7 @@
   },
   {
     "title": "Flux Pro Depth",
-    "description": "FLUX.1 [pro] Depth enables precise control over composition and structure through \n    depth map detection and guidance mechanisms.",
+    "description": "FLUX.1 [pro] Depth enables precise control over composition and structure through depth map detection and guidance mechanisms.\n    image, depth-map, composition, structure, control\n\n    Use cases:\n    - Generate images with controlled depth perception\n    - Create 3D-aware image transformations\n    - Maintain spatial relationships in generated images\n    - Produce images with accurate perspective\n    - Generate variations with consistent depth structure",
     "namespace": "fal.image_to_image",
     "node_type": "fal.image_to_image.FluxProDepth",
     "layout": "default",
@@ -82819,7 +82819,7 @@
   },
   {
     "title": "Flux Lora Canny",
-    "description": "FLUX LoRA Canny enables precise control over composition and style through \n    edge detection and LoRA-based guidance mechanisms.",
+    "description": "FLUX LoRA Canny enables precise control over composition and style through edge detection and LoRA-based guidance mechanisms.\n    image, edge, lora, style-transfer, control\n\n    Use cases:\n    - Generate stylized images with structural control\n    - Create edge-guided artistic transformations\n    - Apply custom styles while maintaining composition\n    - Produce consistent style variations",
     "namespace": "fal.image_to_image",
     "node_type": "fal.image_to_image.FluxLoraCanny",
     "layout": "default",
@@ -82966,7 +82966,7 @@
   },
   {
     "title": "Flux Lora Depth",
-    "description": "FLUX LoRA Depth enables precise control over composition and structure through \n    depth map detection and LoRA-based guidance mechanisms.",
+    "description": "FLUX LoRA Depth enables precise control over composition and structure through depth map detection and LoRA-based guidance mechanisms.\n    image, depth, lora, structure, control\n\n    Use cases:\n    - Generate depth-aware stylized images\n    - Create 3D-conscious artistic transformations\n    - Maintain spatial relationships with custom styles\n    - Produce depth-consistent variations\n    - Generate images with controlled perspective",
     "namespace": "fal.image_to_image",
     "node_type": "fal.image_to_image.FluxLoraDepth",
     "layout": "default",
@@ -83113,7 +83113,7 @@
   },
   {
     "title": "Ideogram V 2 Edit",
-    "description": "Transform existing images with Ideogram V2's editing capabilities. Modify, adjust, and refine \n    images while maintaining high fidelity and realistic outputs with precise prompt control.",
+    "description": "Transform existing images with Ideogram V2's editing capabilities. Modify, adjust, and refine images while maintaining high fidelity and realistic outputs with precise prompt control.\n    image, editing, transformation, fidelity, control\n\n    Use cases:\n    - Edit specific parts of images with precision\n    - Create targeted image modifications\n    - Refine and enhance image details\n    - Generate contextual image edits",
     "namespace": "fal.image_to_image",
     "node_type": "fal.image_to_image.IdeogramV2Edit",
     "layout": "default",
@@ -83243,7 +83243,7 @@
   },
   {
     "title": "Ideogram V 2 Remix",
-    "description": "Reimagine existing images with Ideogram V2's remix feature. Create variations and adaptations \n    while preserving core elements and adding new creative directions through prompt guidance.",
+    "description": "Reimagine existing images with Ideogram V2's remix feature. Create variations and adaptations while preserving core elements and adding new creative directions through prompt guidance.\n    image, remix, variation, creativity, adaptation\n\n    Use cases:\n    - Create artistic variations of images\n    - Generate style-transferred versions\n    - Produce creative image adaptations\n    - Transform images while preserving key elements\n    - Generate alternative interpretations",
     "namespace": "fal.image_to_image",
     "node_type": "fal.image_to_image.IdeogramV2Remix",
     "layout": "default",
@@ -83383,7 +83383,7 @@
   },
   {
     "title": "Bria Eraser",
-    "description": "Bria Eraser enables precise removal of unwanted objects from images while maintaining \n    high-quality outputs. Trained exclusively on licensed data for safe and risk-free commercial use.",
+    "description": "Bria Eraser enables precise removal of unwanted objects from images while maintaining high-quality outputs. Trained exclusively on licensed data for safe and risk-free commercial use.\n    image, removal, cleanup\n\n    Use cases:\n    - Remove unwanted objects from images\n    - Clean up image imperfections\n    - Prepare images for commercial use\n    - Remove distracting elements\n    - Create clean, professional images",
     "namespace": "fal.image_to_image",
     "node_type": "fal.image_to_image.BriaEraser",
     "layout": "default",
@@ -83467,7 +83467,7 @@
   },
   {
     "title": "Bria Product Shot",
-    "description": "Place any product in any scenery with just a prompt or reference image while maintaining high \n    integrity of the product. Trained exclusively on licensed data for safe and risk-free commercial \n    use and optimized for eCommerce.",
+    "description": "Place any product in any scenery with just a prompt or reference image while maintaining high integrity of the product. Trained exclusively on licensed data for safe and risk-free commercial use and optimized for eCommerce.\n    image, product, placement, ecommerce\n\n    Use cases:\n    - Create professional product photography\n    - Generate contextual product shots\n    - Place products in custom environments\n    - Create eCommerce product listings\n    - Generate marketing visuals",
     "namespace": "fal.image_to_image",
     "node_type": "fal.image_to_image.BriaProductShot",
     "layout": "default",
@@ -83596,7 +83596,7 @@
   },
   {
     "title": "Bria Background Replace",
-    "description": "Bria Background Replace allows for efficient swapping of backgrounds in images via text prompts \n    or reference image, delivering realistic and polished results. Trained exclusively on licensed \n    data for safe and risk-free commercial use.",
+    "description": "Bria Background Replace allows for efficient swapping of backgrounds in images via text prompts or reference image, delivering realistic and polished results. Trained exclusively on licensed data for safe and risk-free commercial use.\n    image, background, replacement, swap\n\n    Use cases:\n    - Replace image backgrounds seamlessly\n    - Create professional photo compositions\n    - Generate custom scene settings\n    - Produce commercial-ready images\n    - Create consistent visual environments",
     "namespace": "fal.image_to_image",
     "node_type": "fal.image_to_image.BriaBackgroundReplace",
     "layout": "default",
@@ -83725,7 +83725,7 @@
   },
   {
     "title": "Bria Gen Fill",
-    "description": "Bria GenFill enables high-quality object addition or visual transformation. \n    Trained exclusively on licensed data for safe and risk-free commercial use.",
+    "description": "Bria GenFill enables high-quality object addition or visual transformation. Trained exclusively on licensed data for safe and risk-free commercial use.\n    image, generation, filling, transformation\n\n    Use cases:\n    - Add new objects to existing images\n    - Transform specific image areas\n    - Generate contextual content\n    - Create seamless visual additions\n    - Produce professional image modifications",
     "namespace": "fal.image_to_image",
     "node_type": "fal.image_to_image.BriaGenFill",
     "layout": "default",
@@ -83840,7 +83840,7 @@
   },
   {
     "title": "Bria Expand",
-    "description": "Bria Expand expands images beyond their borders in high quality. \n    Trained exclusively on licensed data for safe and risk-free commercial use.",
+    "description": "Bria Expand expands images beyond their borders in high quality. Trained exclusively on licensed data for safe and risk-free commercial use.\n    image, expansion, outpainting\n\n    Use cases:\n    - Extend image boundaries seamlessly\n    - Create wider or taller compositions\n    - Expand images for different aspect ratios\n    - Generate additional scene content",
     "namespace": "fal.image_to_image",
     "node_type": "fal.image_to_image.BriaExpand",
     "layout": "default",
@@ -84089,7 +84089,7 @@
   },
   {
     "title": "Haiper Image To Video",
-    "description": "Transform images into hyper-realistic videos with Haiper 2.0. Experience industry-leading\n    resolution, fluid motion, and rapid generation for stunning AI videos.",
+    "description": "Transform images into hyper-realistic videos with Haiper 2.0. Experience industry-leading resolution, fluid motion, and rapid generation for stunning AI videos.\n    video, generation, hyper-realistic, motion, animation, image-to-video, img2vid\n\n    Use cases:\n    - Create cinematic animations\n    - Generate dynamic video content\n    - Transform static images into motion\n    - Produce high-resolution videos\n    - Create visual effects",
     "namespace": "fal.image_to_video",
     "node_type": "fal.image_to_video.HaiperImageToVideo",
     "layout": "default",
@@ -84202,7 +84202,7 @@
   },
   {
     "title": "Luma Dream Machine",
-    "description": "Generate video clips from your images using Luma Dream Machine v1.5. Supports various aspect ratios\n    and optional end-frame blending.",
+    "description": "Generate video clips from your images using Luma Dream Machine v1.5. Supports various aspect ratios and optional end-frame blending.\n    video, generation, animation, blending, aspect-ratio, img2vid, image-to-video\n\n    Use cases:\n    - Create seamless video loops\n    - Generate video transitions\n    - Transform images into animations\n    - Create motion graphics\n    - Produce video content",
     "namespace": "fal.image_to_video",
     "node_type": "fal.image_to_video.LumaDreamMachine",
     "layout": "default",
@@ -84335,7 +84335,7 @@
   },
   {
     "title": "Kling Video",
-    "description": "Generate video clips from your images using Kling 1.6. Supports multiple durations and aspect ratios.",
+    "description": "Generate video clips from your images using Kling 1.6. Supports multiple durations and aspect ratios.\n    video, generation, animation, duration, aspect-ratio, img2vid, image-to-video\n\n    Use cases:\n    - Create custom video content\n    - Generate video animations\n    - Transform static images\n    - Produce motion graphics\n    - Create visual presentations",
     "namespace": "fal.image_to_video",
     "node_type": "fal.image_to_video.KlingVideo",
     "layout": "default",
@@ -84441,7 +84441,7 @@
   },
   {
     "title": "Kling Video Pro",
-    "description": "Generate video clips from your images using Kling 1.6 Pro. The professional version offers\n    enhanced quality and performance compared to the standard version.",
+    "description": "Generate video clips from your images using Kling 1.6 Pro. The professional version offers enhanced quality and performance compared to the standard version.\n    video, generation, professional, quality, performance, img2vid, image-to-video\n\n    Use cases:\n    - Create professional video content\n    - Generate high-quality animations\n    - Produce commercial video assets\n    - Create advanced motion graphics\n    - Generate premium visual content",
     "namespace": "fal.image_to_video",
     "node_type": "fal.image_to_video.KlingVideoPro",
     "layout": "default",
@@ -84547,7 +84547,7 @@
   },
   {
     "title": "Cog Video X",
-    "description": "Generate videos from images using CogVideoX-5B. Features high-quality motion synthesis with\n    configurable parameters for fine-tuned control over the output.",
+    "description": "Generate videos from images using CogVideoX-5B. Features high-quality motion synthesis with configurable parameters for fine-tuned control over the output.\n    video, generation, motion, synthesis, control, img2vid, image-to-video\n\n    Use cases:\n    - Create controlled video animations\n    - Generate precise motion effects\n    - Produce customized video content\n    - Create fine-tuned animations\n    - Generate motion sequences",
     "namespace": "fal.image_to_video",
     "node_type": "fal.image_to_video.CogVideoX",
     "layout": "default",
@@ -84724,7 +84724,7 @@
   },
   {
     "title": "Mini Max Video",
-    "description": "Generate video clips from your images using MiniMax Video model. Transform static art into dynamic\n    masterpieces with enhanced smoothness and vivid motion.",
+    "description": "Generate video clips from your images using MiniMax Video model. Transform static art into dynamic masterpieces with enhanced smoothness and vivid motion.\n    video, generation, art, motion, smoothness, img2vid, image-to-video\n\n    Use cases:\n    - Transform artwork into videos\n    - Create smooth animations\n    - Generate artistic motion content\n    - Produce dynamic visualizations\n    - Create video art pieces",
     "namespace": "fal.image_to_video",
     "node_type": "fal.image_to_video.MiniMaxVideo",
     "layout": "default",
@@ -84803,7 +84803,7 @@
   },
   {
     "title": "LTXVideo",
-    "description": "Generate videos from images using LTX Video. Best results with 768x512 images and detailed,\n    chronological descriptions of actions and scenes.",
+    "description": "Generate videos from images using LTX Video. Best results with 768x512 images and detailed, chronological descriptions of actions and scenes.\n    video, generation, chronological, scenes, actions, img2vid, image-to-video\n\n    Use cases:\n    - Create scene-based animations\n    - Generate sequential video content\n    - Produce narrative videos\n    - Create storyboard animations\n    - Generate action sequences",
     "namespace": "fal.image_to_video",
     "node_type": "fal.image_to_video.LTXVideo",
     "layout": "default",
@@ -84927,7 +84927,7 @@
   },
   {
     "title": "Stable Video",
-    "description": "Generate short video clips from your images using Stable Video Diffusion v1.1. Features high-quality\n    motion synthesis with configurable parameters.",
+    "description": "Generate short video clips from your images using Stable Video Diffusion v1.1. Features high-quality motion synthesis with configurable parameters.\n    video, generation, diffusion, motion, synthesis, img2vid, image-to-video\n\n    Use cases:\n    - Create stable video animations\n    - Generate motion content\n    - Transform images into videos\n    - Produce smooth transitions\n    - Create visual effects",
     "namespace": "fal.image_to_video",
     "node_type": "fal.image_to_video.StableVideo",
     "layout": "default",
@@ -85037,7 +85037,7 @@
   },
   {
     "title": "Fast SVD",
-    "description": "Generate short video clips from your images using SVD v1.1 at Lightning Speed. Features high-quality\n    motion synthesis with configurable parameters for rapid video generation.",
+    "description": "Generate short video clips from your images using SVD v1.1 at Lightning Speed. Features high-quality motion synthesis with configurable parameters for rapid video generation.\n    video, generation, fast, motion, synthesis, img2vid, image-to-video\n\n    Use cases:\n    - Create quick video animations\n    - Generate rapid motion content\n    - Produce fast video transitions\n    - Create instant visual effects\n    - Generate quick previews",
     "namespace": "fal.image_to_video",
     "node_type": "fal.image_to_video.FastSVD",
     "layout": "default",
@@ -85162,7 +85162,7 @@
   },
   {
     "title": "AMTInterpolation",
-    "description": "Interpolate between image frames to create smooth video transitions. Supports configurable FPS\n    and recursive interpolation passes for higher quality results.",
+    "description": "Interpolate between image frames to create smooth video transitions. Supports configurable FPS and recursive interpolation passes for higher quality results.\n    video, interpolation, transitions, frames, smoothing, img2vid, image-to-video\n\n    Use cases:\n    - Create smooth frame transitions\n    - Generate fluid animations\n    - Enhance video frame rates\n    - Produce slow-motion effects\n    - Create seamless video blends",
     "namespace": "fal.image_to_video",
     "node_type": "fal.image_to_video.AMTInterpolation",
     "layout": "default",
@@ -85257,7 +85257,7 @@
   },
   {
     "title": "Sad Talker",
-    "description": "Generate talking face animations from a single image and audio file. Features configurable\n    face model resolution and expression controls.",
+    "description": "Generate talking face animations from a single image and audio file. Features configurable face model resolution and expression controls.\n    video, animation, face, talking, expression, img2vid, image-to-video, audio-to-video, wav2vid\n\n    Use cases:\n    - Create talking head videos\n    - Generate lip-sync animations\n    - Produce character animations\n    - Create video presentations\n    - Generate facial expressions",
     "namespace": "fal.image_to_video",
     "node_type": "fal.image_to_video.SadTalker",
     "layout": "default",
@@ -85391,7 +85391,7 @@
   },
   {
     "title": "Muse Talk",
-    "description": "Real-time high quality audio-driven lip-syncing model. Animate a face video with custom audio\n    for natural-looking speech animation.",
+    "description": "Real-time high quality audio-driven lip-syncing model. Animate a face video with custom audio for natural-looking speech animation.\n    video, lip-sync, animation, speech, real-time, wav2vid, audio-to-video\n\n    Use cases:\n    - Create lip-synced videos\n    - Generate speech animations\n    - Produce dubbed content\n    - Create animated presentations\n    - Generate voice-over videos",
     "namespace": "fal.image_to_video",
     "node_type": "fal.image_to_video.MuseTalk",
     "layout": "default",
@@ -87701,7 +87701,7 @@
   },
   {
     "title": "Tortoise TTS",
-    "description": "Generate speech from text, clone voices from mp3 files. From James Betker AKA \"neonbjb\".",
+    "description": "Generate speech from text, clone voices from mp3 files. From James Betker AKA \"neonbjb\".\n    speech, voice, synthesis, cloning, text-to-speech, text-to-audio\n\n    Use cases:\n    - Generate natural-sounding speech\n    - Clone and replicate voices\n    - Create custom voiceovers\n    - Produce multilingual speech\n    - Create voice-based content",
     "namespace": "replicate.audio.generate",
     "node_type": "replicate.audio.generate.TortoiseTTS",
     "layout": "default",
@@ -87976,7 +87976,7 @@
   },
   {
     "title": "Style TTS 2",
-    "description": "Generates speech from text",
+    "description": "Generates speech from text.\n    speech, synthesis, text-to-speech, voice, generation\n\n    Use cases:\n    - Convert text to natural speech\n    - Generate styled voice content\n    - Create audio narrations\n    - Produce voice-based media\n    - Generate multilingual speech",
     "namespace": "replicate.audio.generate",
     "node_type": "replicate.audio.generate.StyleTTS2",
     "layout": "default",
@@ -87992,7 +87992,7 @@
         },
         "default": 0.7,
         "title": "Beta",
-        "description": "Only used for long text inputs or in case of reference speaker,             determines the prosody of the speaker. Use lower values to sample style based             on previous or reference speech instead of text.",
+        "description": "Only used for long text inputs or in case of reference speaker, determines the prosody of the speaker. Use lower values to sample style based on previous or reference speech instead of text.",
         "min": 0.0,
         "max": 1.0
       },
@@ -88052,7 +88052,7 @@
         },
         "default": 0.3,
         "title": "Alpha",
-        "description": "Only used for long text inputs or in case of reference speaker,             determines the timbre of the speaker. Use lower values to sample style based             on previous or reference speech instead of text.",
+        "description": "Only used for long text inputs or in case of reference speaker, determines the timbre of the speaker. Use lower values to sample style based on previous or reference speech instead of text.",
         "min": 0.0,
         "max": 1.0
       },
@@ -88082,7 +88082,7 @@
         },
         "default": null,
         "title": "Weights",
-        "description": "Replicate weights url for inference with model that is fine-tuned on new speakers.            If provided, a reference speech must also be provided.             If not provided, the default model will be used.",
+        "description": "Replicate weights url for inference with model that is fine-tuned on new speakers. If provided, a reference speech must also be provided. If not provided, the default model will be used.",
         "min": null,
         "max": null
       },
@@ -88174,7 +88174,7 @@
   },
   {
     "title": "Riffusion",
-    "description": "Stable diffusion for real-time music generation",
+    "description": "Stable diffusion for real-time music generation.\n    audio, music, generation, real-time, diffusion\n\n    Use cases:\n    - Generate music from text descriptions\n    - Create custom soundtracks\n    - Produce background music\n    - Generate sound effects\n    - Create musical variations",
     "namespace": "replicate.audio.generate",
     "node_type": "replicate.audio.generate.Riffusion",
     "layout": "default",
@@ -88334,7 +88334,7 @@
   },
   {
     "title": "Music Gen",
-    "description": "Generate music from a prompt or melody",
+    "description": "Generate music from a prompt or melody.\n    music, generation, audio, melody, synthesis\n\n    Use cases:\n    - Create original music compositions\n    - Generate music from text descriptions\n    - Produce melody variations\n    - Create custom soundtracks\n    - Generate background music",
     "namespace": "replicate.audio.generate",
     "node_type": "replicate.audio.generate.MusicGen",
     "layout": "default",
@@ -88675,7 +88675,7 @@
   },
   {
     "title": "MMAudio",
-    "description": "Add sound to video. An advanced AI model that synthesizes high-quality audio from video content, enabling seamless video-to-audio transformation",
+    "description": "Add sound to video. An advanced AI model that synthesizes high-quality audio from video content, enabling seamless video-to-audio transformation.\n    audio, video, synthesis, transformation, sound, video-to-audio, vid2wav\n\n    Use cases:\n    - Generate audio for silent videos\n    - Create sound effects from visuals\n    - Produce synchronized audio content\n    - Generate ambient soundscapes\n    - Create video soundtracks",
     "namespace": "replicate.audio.generate",
     "node_type": "replicate.audio.generate.MMAudio",
     "layout": "default",
@@ -115489,7 +115489,7 @@
   },
   {
     "title": "Text To Speech",
-    "description": "Generates speech using ElevenLabs' text-to-speech API.\n    audio, generation, AI, text-to-speech, TTS, elevenlabs\n\n    Use cases:\n    - Generate natural-sounding speech from text\n    - Create voiceovers for videos or presentations\n    - Produce audio content with different voices and styles\n    - Create realistic AI-generated speech for various applications",
+    "description": "Generate natural-sounding speech using ElevenLabs' advanced text-to-speech technology. Features multiple voices and customizable parameters.\n    audio, tts, speech, synthesis, voice\n\n    Use cases:\n    - Create professional voiceovers\n    - Generate character voices\n    - Produce multilingual content\n    - Create audiobooks\n    - Generate voice content",
     "namespace": "elevenlabs.text_to_speech",
     "node_type": "elevenlabs.text_to_speech.TextToSpeech",
     "layout": "default",

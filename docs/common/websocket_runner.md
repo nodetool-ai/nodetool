@@ -2,6 +2,8 @@
 
 ## CommandType
 
+An enumeration.
+
 ## WebSocketCommand
 
 **Fields:**
@@ -10,6 +12,8 @@
 
 
 ## WebSocketMode
+
+An enumeration.
 
 ## WebSocketRunner
 

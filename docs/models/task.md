@@ -10,7 +10,7 @@
 - **status** (str)
 - **name** (str)
 - **instructions** (str)
-- **dependencies** (list[str])
+- **dependencies** (list)
 - **started_at** (datetime)
 - **finished_at** (datetime.datetime | None)
 - **error** (str | None)

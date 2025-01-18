@@ -60,7 +60,7 @@ Use cases:
 - Generate audio content for creative projects
 - Explore AI-composed musical ideas
 
-**Tags:** audio, generation, AI, music
+**Tags:** audio, generation, AI, music, text-to-audio
 
 **Fields:**
 - **audio_length_in_s**: The desired duration of the generated audio in seconds. (float)
@@ -82,7 +82,7 @@ Use cases:
 - Generate sound effects based on textual descriptions
 - Prototype musical ideas quickly
 
-**Tags:** audio, music, generation, huggingface
+**Tags:** audio, music, generation, huggingface, text-to-audio
 
 **Fields:**
 - **model**: The model ID to use for the audio generation (HFTextToAudio)
@@ -113,7 +113,7 @@ Use cases:
 - Generate sound effects based on textual descriptions
 - Prototype musical ideas quickly
 
-**Tags:** audio, music, generation, huggingface
+**Tags:** audio, music, generation, huggingface, text-to-audio
 
 **Fields:**
 - **model**: The model ID to use for the audio generation (HFTextToAudio)
@@ -134,14 +134,16 @@ Use cases:
 
 ## StableAudioNode
 
-Generates audio using the Stable Audio Pipeline based on a text prompt.
+Generate audio using Stable Audio model based on text prompts. Features high-quality audio synthesis with configurable parameters.
 
 Use cases:
-- Creating custom sound effects based on textual descriptions
-- Generating background audio for videos or games
-- Exploring AI-generated audio for creative projects
+- Create custom audio content from text
+- Generate background music and sounds
+- Produce audio for multimedia projects
+- Create sound effects and ambience
+- Generate experimental audio content
 
-**Tags:** audio, generation, AI, text-to-audio
+**Tags:** audio, generation, synthesis, text-to-audio, text-to-audio
 
 **Fields:**
 - **prompt**: A text prompt describing the desired audio. (str)
