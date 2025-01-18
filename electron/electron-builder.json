@@ -7,10 +7,24 @@
     },
     "files": [
         "*.js",
-        "*.html"
+        "*.html",
+        "*.css",
+        "*.json",
+        "build/**/*"
     ],
     "extraResources": [
-        "requirements.txt",
+        {
+            "from": "resources/tray-icon.png",
+            "to": "tray-icon.png"
+        },
+        {
+            "from": "resources/tray-icon.ico",
+            "to": "tray-icon.ico"
+        },
+        {
+            "from": "../requirements.txt",
+            "to": "requirements.txt"
+        },
         {
             "from": "../web/dist",
             "to": "web"
@@ -49,7 +63,13 @@
         "gatekeeperAssess": false,
         "entitlements": "entitlements.mac.plist",
         "entitlementsInherit": "entitlements.mac.plist",
-        "notarize": true
+        "notarize": true,
+        "extendInfo": {
+            "NSMicrophoneUsageDescription": "Allow access to your microphone for audio recording",
+            "NSCameraUsageDescription": "Allow access to your camera for video recording",
+            "com.apple.security.device.audio-input": true,
+            "com.apple.security.device.camera": true
+        }
     },
     "win": {
         "target": [
