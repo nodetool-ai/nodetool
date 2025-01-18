@@ -450,23 +450,13 @@ function displayResult(result) {
 }
 
 /**
- * Displays the workflow results in the UI
- * @param {Object} results - The results object from the workflow
+ * Hides the loader
  * @returns {void}
  */
-function displayResults(results) {
+function hideLoader() {
   const loaderContainer = document.querySelector(".loader-container");
   if (loaderContainer instanceof HTMLElement) {
     loaderContainer.style.display = "none";
-  }
-  const resultsContainer = document.querySelector(".results-container");
-  if (resultsContainer instanceof HTMLElement) {
-    resultsContainer.style.display = "block";
-  }
-
-  for (const [key, value] of Object.entries(results)) {
-    const field = displayResult(value);
-    resultsContainer.appendChild(field);
   }
 }
 
@@ -718,8 +708,8 @@ async function setupMiniAppView(workflow) {
     });
 
     try {
-      const results = await runner.run(workflow.id, params);
-      displayResults(results);
+      await runner.run(workflow.id, params);
+      hideLoader();
     } catch (error) {
       console.error("Workflow error:", error);
     } finally {
