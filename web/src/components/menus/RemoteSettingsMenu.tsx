@@ -178,6 +178,7 @@ const RemoteSettings = () => {
           <Typography variant="h2">Replicate</Typography>
           <div className="settings-item">
             <TextField
+              type="password"
               autoComplete="off"
               id="replicate-api-token-input"
               label="Replicate API token"
@@ -209,6 +210,7 @@ const RemoteSettings = () => {
           <Typography variant="h2">OpenAI</Typography>
           <div className="settings-item">
             <TextField
+              type="password"
               autoComplete="off"
               id="openai-api-key-input"
               label="OpenAI API key"
@@ -236,6 +238,7 @@ const RemoteSettings = () => {
           <Typography variant="h2">Anthropic</Typography>
           <div className="settings-item">
             <TextField
+              type="password"
               autoComplete="off"
               id="anthropic-api-key-input"
               label="Anthropic API key"
@@ -264,6 +267,7 @@ const RemoteSettings = () => {
           <Typography variant="h2">HuggingFace</Typography>
           <div className="settings-item">
             <TextField
+              type="password"
               autoComplete="off"
               id="hf-token-input"
               label="HuggingFace token"
@@ -298,6 +302,7 @@ const RemoteSettings = () => {
               variant="standard"
             />
             <TextField
+              type="password"
               autoComplete="off"
               id="aime-api-key-input"
               label="AIME API Key"
@@ -322,6 +327,7 @@ const RemoteSettings = () => {
           <Typography variant="h2">Google</Typography>
           <div className="settings-item">
             <TextField
+              type="password"
               autoComplete="off"
               id="google-app-password-input"
               label="Google App Password"
@@ -359,6 +365,7 @@ const RemoteSettings = () => {
 
           <div className="settings-item">
             <TextField
+              type="password"
               autoComplete="off"
               id="gemini-api-key-input"
               label="Google Gemini API Key"
@@ -385,6 +392,7 @@ const RemoteSettings = () => {
           <Typography variant="h2">Fal.ai</Typography>
           <div className="settings-item">
             <TextField
+              type="password"
               autoComplete="off"
               id="fal-api-key-input"
               label="Fal.ai API Key"
@@ -411,6 +419,7 @@ const RemoteSettings = () => {
           <Typography variant="h2">Eleven Labs</Typography>
           <div className="settings-item">
             <TextField
+              type="password"
               autoComplete="off"
               id="elevenlabs-api-key-input"
               label="ElevenLabs API Key"

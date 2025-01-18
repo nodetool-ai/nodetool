@@ -162,7 +162,7 @@
         "data": {
           "model": {
             "type": "llama_model",
-            "repo_id": "gemma2:2b"
+            "repo_id": "llama3.2:3b"
           },
           "system_prompt": "You are an prompt engineer and write optimized Stable Diffusion prompts. The prompt should be roughly: <subject>, <style>, <scene>, <visual properties>. ONLY output the prompt, nothing else.",
           "image": {

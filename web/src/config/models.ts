@@ -52,7 +52,7 @@ export const llama_models: UnifiedModel[] = [
     type: "llama_model"
   },
   {
-    id: "gemma2:2b",
+    id: "llama3.2:3b",
     name: "Gemma2 - 2B",
     type: "llama_model"
   },
