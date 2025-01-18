@@ -300,13 +300,19 @@ export function appendMessage(messagesList, role, contents) {
           imgContainer.className = "image-message-container";
 
           const img = document.createElement("img");
-          img.src = content.image.uri;
+          // Handle both URI and raw data cases
+          if (content.image.data instanceof Uint8Array) {
+            const blob = new Blob([content.image.data], { type: "image/png" });
+            img.src = URL.createObjectURL(blob);
+          } else {
+            img.src = content.image.uri;
+          }
           img.className = "message-image";
 
           const modal = document.createElement("div");
           modal.className = "image-modal";
           const modalImg = document.createElement("img");
-          modalImg.src = content.image.uri;
+          modalImg.src = img.src; // Use the same source as the thumbnail
           modal.appendChild(modalImg);
 
           imgContainer.appendChild(img);
@@ -329,7 +335,12 @@ export function appendMessage(messagesList, role, contents) {
           audioContainer.className = "audio-message";
           const audioPlayer = document.createElement("audio");
           audioPlayer.controls = true;
-          audioPlayer.src = content.audio.uri;
+          if (content.audio.data instanceof Uint8Array) {
+            const blob = new Blob([content.audio.data], { type: "audio/mpeg" });
+            audioPlayer.src = URL.createObjectURL(blob);
+          } else {
+            audioPlayer.src = content.audio.uri;
+          }
           audioContainer.appendChild(audioPlayer);
           message.appendChild(audioContainer);
           break;
@@ -339,7 +350,12 @@ export function appendMessage(messagesList, role, contents) {
           videoContainer.className = "video-message";
           const videoPlayer = document.createElement("video");
           videoPlayer.controls = true;
-          videoPlayer.src = content.video.uri;
+          if (content.video.data instanceof Uint8Array) {
+            const blob = new Blob([content.video.data], { type: "video/mp4" });
+            videoPlayer.src = URL.createObjectURL(blob);
+          } else {
+            videoPlayer.src = content.video.uri;
+          }
           videoContainer.appendChild(videoPlayer);
           message.appendChild(videoContainer);
           break;
