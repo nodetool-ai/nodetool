@@ -1,7 +1,8 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-
 import { memo, useEffect, useMemo, useRef } from "react";
+import { NodeMetadata } from "../../stores/ApiTypes";
+import { ConnectDirection } from "../../stores/ConnectionStore";
 
 // mui
 import { IconButton, Box, Typography } from "@mui/material";
@@ -113,11 +114,19 @@ type NodeMenuProps = {
   focusSearchInput?: boolean;
 };
 
-function NodeMenu({ focusSearchInput = false }: NodeMenuProps) {
-  const nodeRef = useRef(null);
-  const namespaceTree = useNamespaceTree();
+// Add performance timing
+let menuOpenRequestTime: number | null = null;
+
+const NodeMenu = memo(function NodeMenu({
+  focusSearchInput = false
+}: NodeMenuProps) {
+  const nodeRef = useRef<HTMLDivElement>(null);
+
+  // Only subscribe to minimal state when closed
+  const isMenuOpen = useNodeMenuStore((state) => state.isMenuOpen);
+
+  // Use lazy initialization for the rest of the state
   const {
-    isMenuOpen,
     closeNodeMenu,
     menuWidth,
     menuHeight,
@@ -131,48 +140,82 @@ function NodeMenu({ focusSearchInput = false }: NodeMenuProps) {
     setSelectedOutputType,
     searchTerm,
     setSearchTerm
-  } = useNodeMenuStore((state) => ({
-    isMenuOpen: state.isMenuOpen,
-    closeNodeMenu: state.closeNodeMenu,
-    menuWidth: state.menuWidth,
-    menuHeight: state.menuHeight,
-    menuPosition: state.menuPosition,
-    dropType: state.dropType,
-    connectDirection: state.connectDirection,
-    searchResults: state.searchResults,
-    selectedInputType: state.selectedInputType,
-    setSelectedInputType: state.setSelectedInputType,
-    selectedOutputType: state.selectedOutputType,
-    setSelectedOutputType: state.setSelectedOutputType,
-    searchTerm: state.searchTerm,
-    setSearchTerm: state.setSearchTerm,
-    setSelectedPath: state.setSelectedPath
-  }));
+  } = useNodeMenuStore(
+    (state) => ({
+      closeNodeMenu: state.closeNodeMenu,
+      menuWidth: state.menuWidth,
+      menuHeight: state.menuHeight,
+      menuPosition: state.menuPosition,
+      dropType: state.dropType,
+      connectDirection: state.connectDirection,
+      searchResults: state.searchResults,
+      selectedInputType: state.selectedInputType,
+      setSelectedInputType: state.setSelectedInputType,
+      selectedOutputType: state.selectedOutputType,
+      setSelectedOutputType: state.setSelectedOutputType,
+      searchTerm: state.searchTerm,
+      setSearchTerm: state.setSearchTerm
+    }),
+    isEqual
+  );
+
+  const namespaceTree = useNamespaceTree();
+  const memoizedStyles = useMemo(() => treeStyles(ThemeNodetool), []);
 
   useCombo(["Escape"], closeNodeMenu);
+  useRenderLogger("NodeMenu", { isMenuOpen });
 
-  useRenderLogger("NodeMenu", {
-    dropType,
-    connectDirection,
-    isMenuOpen
+  // Start timing when menu opens
+  useEffect(() => {
+    if (isMenuOpen) {
+      menuOpenRequestTime = performance.now();
+      console.log("NodeMenu open requested");
+    }
+  }, [isMenuOpen]);
+
+  // Log when menu is mounted and visible
+  useEffect(() => {
+    if (!isMenuOpen || !nodeRef.current) return;
+
+    const startTime = menuOpenRequestTime || performance.now();
+    console.log(
+      `NodeMenu mount time: ${(performance.now() - startTime).toFixed(2)}ms`
+    );
+
+    requestAnimationFrame(() => {
+      if (startTime) {
+        console.log(
+          `NodeMenu visual time: ${(performance.now() - startTime).toFixed(
+            2
+          )}ms`
+        );
+        menuOpenRequestTime = null;
+      }
+    });
   });
 
   // SET SELECTED TYPE FILTER
-  // dropping a handle from left or right side of a node
   useEffect(() => {
+    if (!isMenuOpen) return;
     setSelectedInputType("");
     setSelectedOutputType("");
-    if (connectDirection === "source") {
+    if (connectDirection === "source" && dropType) {
       setSelectedInputType(dropType);
     }
-    if (connectDirection === "target") {
+    if (connectDirection === "target" && dropType) {
       setSelectedOutputType(dropType);
     }
-  }, [dropType, connectDirection, setSelectedInputType, setSelectedOutputType]);
+  }, [
+    isMenuOpen,
+    dropType,
+    connectDirection,
+    setSelectedInputType,
+    setSelectedOutputType
+  ]);
 
-  const memoizedStyles = useMemo(() => treeStyles(ThemeNodetool), []);
+  if (!isMenuOpen) return null;
 
-  return isMenuOpen ? (
+  return (
     <Draggable
       bounds={{
         left: 0,
@@ -185,10 +228,10 @@ function NodeMenu({ focusSearchInput = false }: NodeMenuProps) {
       handle=".draggable-header"
     >
       <Box
+        ref={nodeRef}
         sx={{ minWidth: "400px", maxHeight: menuHeight }}
         className="floating-node-menu"
         css={memoizedStyles}
-        ref={nodeRef}
       >
         <div className="draggable-header">
           <Typography
@@ -242,9 +285,7 @@ function NodeMenu({ focusSearchInput = false }: NodeMenuProps) {
         </Box>
       </Box>
     </Draggable>
-  ) : (
-    <></>
   );
-}
+});
 
-export default memo(NodeMenu, isEqual);
+export default NodeMenu;
