@@ -116,7 +116,7 @@ class Zip(BaseNode):
 class Combine(BaseNode):
     """
     Merges two dictionaries, with second dictionary values taking precedence.
-    dictionary, merge, update
+    dictionary, merge, update, +, add, concatenate
 
     Use cases:
     - Combine default and custom configurations

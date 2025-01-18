@@ -84,7 +84,7 @@ class SimpleMathSlider(ComfyNode):
 class SimpleMathBoolean(ComfyNode):
     """
     Represent a boolean value.
-    boolean, toggle, switch
+    boolean, toggle, switch, condition, logic
 
     Use cases:
     - Provide on/off switches for features

@@ -82,7 +82,7 @@ class Multiply(BinaryOperation):
 class Divide(BinaryOperation):
     """
     Divides the first input by the second.
-    math, division, arithmetic, quotient
+    math, division, arithmetic, quotient, /
     """
 
     def operation(self, a: np.ndarray, b: np.ndarray) -> np.ndarray:

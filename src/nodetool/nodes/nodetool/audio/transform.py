@@ -8,7 +8,7 @@ from nodetool.workflows.processing_context import ProcessingContext
 class Concat(BaseNode):
     """
     Concatenates two audio files together.
-    audio, edit, join
+    audio, edit, join, +
 
     Use cases:
     - Combine multiple audio clips into a single file
@@ -28,7 +28,7 @@ class Concat(BaseNode):
 class ConcatList(BaseNode):
     """
     Concatenates multiple audio files together in sequence.
-    audio, edit, join, multiple
+    audio, edit, join, multiple, +
 
     Use cases:
     - Combine multiple audio clips into a single file
@@ -64,7 +64,7 @@ class ConcatList(BaseNode):
 class Normalize(BaseNode):
     """
     Normalizes the volume of an audio file.
-    audio, fix, dynamics
+    audio, fix, dynamics, volume
 
     Use cases:
     - Ensure consistent volume across multiple audio files

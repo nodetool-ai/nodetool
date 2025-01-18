@@ -40,7 +40,7 @@ class TextID(BaseNode):
 class Concat(BaseNode):
     """
     Concatenates two text inputs into a single output.
-    text, concatenation, combine
+    text, concatenation, combine, +
 
     Use cases:
     - Joining outputs from multiple text processing nodes
@@ -62,7 +62,7 @@ class Concat(BaseNode):
 class Join(BaseNode):
     """
     Joins a list of strings into a single string using a specified separator.
-    text, join, combine
+    text, join, combine, +, add, concatenate
 
     Use cases:
     - Combining multiple text elements with a consistent delimiter
@@ -126,7 +126,7 @@ class FormatText(BaseNode):
 class Template(BaseNode):
     """
     Replaces placeholders in a string with provided values.
-    text, template, formatting
+    text, template, formatting, format, combine, concatenate, +, add, variable, replace
 
     Use cases:
     - Generating personalized messages with dynamic content
