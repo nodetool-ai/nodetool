@@ -23,6 +23,8 @@ import { useSettingsStore } from "../../stores/SettingsStore";
 import ThemeNodetool from "../themes/ThemeNodetool";
 import { VERSION } from "../../config/constants";
 import { useAppHeaderStore } from "../../stores/AppHeaderStore";
+import { client } from "../../stores/ApiClient";
+import { createErrorMessage } from "../../utils/errorHandling";
 
 const styles = (theme: any) =>
   css({
@@ -175,7 +177,6 @@ const listStyles = (theme: any) =>
 
 const OpenOrCreateDialog = () => {
   const settings = useSettingsStore((state) => state.settings);
-  const loadWorkflows = useWorkflowStore((state) => state.load);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const createNewWorkflow = useWorkflowStore((state) => state.createNew);
@@ -184,6 +185,19 @@ const OpenOrCreateDialog = () => {
   function addBreaks(text: string) {
     return text.replace(/([-_.])/g, "$1<wbr>");
   }
+  const loadWorkflows = async (cursor?: string, limit?: number) => {
+    console.log("loadWorkflows", cursor, limit);
+    cursor = cursor || "";
+    const { data, error } = await client.GET("/api/workflows/", {
+      params: {
+        query: { cursor, limit, columns: "name,id,updated_at,description" }
+      }
+    });
+    if (error) {
+      throw createErrorMessage(error, "Failed to load workflows");
+    }
+    return data;
+  };
   // LOAD WORKFLOWS
   const { data, isLoading, error, isError } = useQuery<WorkflowList, Error>({
     queryKey: ["workflows"],
