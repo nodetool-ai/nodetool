@@ -1,6 +1,5 @@
 import React from "react";
 import { Button, Tooltip } from "@mui/material";
-import { ClearIcon } from "@mui/x-date-pickers/icons";
 
 interface ResetButtonProps {
   onClick: () => void;
@@ -20,10 +19,11 @@ export const ResetButton: React.FC<ResetButtonProps> = ({
       <Button
         className="reset-chat-button"
         variant="text"
-        startIcon={<ClearIcon />}
         onClick={(e) => !disabled && onClick()}
         sx={{
+          p: 3,
           color: "text.secondary",
+          fontSize: "0.8em",
           opacity: !disabled ? 1 : 0.5,
           "&:hover": {
             backgroundColor: !disabled ? "action.hover" : "transparent"
