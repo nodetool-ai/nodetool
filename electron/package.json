@@ -8,7 +8,8 @@
     "start": "electron .",
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "electron-builder",
-    "typecheck": "tsc --noEmit --allowJs --checkJs"
+    "typecheck": "tsc --noEmit --allowJs --checkJs",
+    "vite:build": "vite build"
   },
   "author": "matti.georgi@gmail.com",
   "license": "AGPL-3.0-only",
@@ -17,18 +18,22 @@
     "@types/ws": "^8.5.13",
     "electron": "29.4.6",
     "electron-builder": "^26.0.0-alpha.4",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "vite": "^5.0.0"
   },
   "optionalDependencies": {
     "dmg-license": "^1.0.11"
   },
   "dependencies": {
+    "@msgpack/msgpack": "^3.0.0-beta2",
     "electron-log": "^5.2.0",
     "electron-updater": "^6.1.8",
     "gunzip-maybe": "^1.4.2",
     "js-yaml": "^4.1.0",
+    "marked": "^15.0.6",
     "node-stream-zip": "^1.15.0",
     "tar-fs": "^3.0.6",
+    "wavesurfer.js": "^7.8.16",
     "ws": "^8.18.0"
   },
   "permissions": [
@@ -37,17 +42,5 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/nodetool-ai/nodetool.git"
-  },
-  "build": {
-    "mac": {
-      "extendInfo": {
-        "NSMicrophoneUsageDescription": "Allow access to your microphone for audio recording",
-        "NSCameraUsageDescription": "Allow access to your camera for video recording",
-        "com.apple.security.device.audio-input": true,
-        "com.apple.security.device.camera": true
-      },
-      "entitlements": "entitlements.mac.plist",
-      "entitlementsInherit": "entitlements.mac.plist"
-    }
   }
 }

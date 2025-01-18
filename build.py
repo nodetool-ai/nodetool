@@ -72,8 +72,6 @@ class Build:
         self.publish = publish
 
         self.BUILD_DIR = PROJECT_ROOT / "build"
-        self.ELECTRON_DIR = PROJECT_ROOT / "electron"
-        self.WEB_DIR = PROJECT_ROOT / "web"
         self.ENV_DIR = self.BUILD_DIR / "env"
 
         if not self.BUILD_DIR.exists():
@@ -176,48 +174,6 @@ class Build:
             logger.error(f"Failed to create build directory: {e}")
             sys.exit(1)
 
-    def electron(self) -> None:
-        """Build Electron app."""
-        logger.info(f"Building Electron app for {self.platform} ({self.arch})")
-
-        # Create build directory if it doesn't exist
-        self.create_directory(self.BUILD_DIR)
-
-        # Copy all files (not directories) from electron folder root
-        for file in self.ELECTRON_DIR.glob("*"):
-            if file.is_file():
-                self.copy_file(file, self.BUILD_DIR / file.name)
-
-        # Copy resources and environment
-        self.copy_tree(self.ELECTRON_DIR / "resources", self.BUILD_DIR / "resources")
-        self.copy_file(
-            PROJECT_ROOT / "requirements.txt",
-            self.BUILD_DIR / "requirements.txt",
-        )
-
-        # Install dependencies
-        self.run_command(["npm", "ci"], cwd=self.BUILD_DIR)
-
-        # Build command
-        build_command = [
-            "npx",
-            "electron-builder",
-            "--config",
-            "electron-builder.json",
-        ]
-
-        if self.publish:
-            build_command.extend(["--publish", "always"])
-
-        if self.platform:
-            electron_platform = "mac" if self.platform == "darwin" else self.platform
-            build_command.append(f"--{electron_platform}")
-        if self.arch:
-            build_command.append(f"--{self.arch}")
-
-        self.run_command(build_command, cwd=self.BUILD_DIR)
-        logger.info("Electron app built successfully")
-
     def build_conda_package(
         self,
         name: str,
@@ -310,12 +266,6 @@ class Build:
                 return match.group(1)
             else:
                 raise BuildError("Version not found in pyproject.toml")
-
-    def web(self) -> None:
-        """Build web app."""
-        logger.info("Building web app")
-        self.run_command(["npm", "ci"], cwd=self.WEB_DIR)
-        self.run_command(["npm", "run", "build"], cwd=self.WEB_DIR)
 
     def upload(self) -> None:
         """Create conda channel index and upload to S3 with locking mechanism."""
@@ -422,13 +372,13 @@ class Build:
                 "ffmpeg",
                 "cairo",
                 "x264",
-                "x265", 
+                "x265",
                 "libvpx",
-                "aom",  
+                "aom",
                 "libopus",
-                "libvorbis", 
+                "libvorbis",
                 "lame",
-                "libfdk-aac", 
+                "libfdk-aac",
                 "pandoc",
                 "-y",
                 "--channel",
@@ -514,8 +464,6 @@ def main() -> None:
         "step",
         choices=[
             "setup",
-            "electron",
-            "web",
             "pack",
         ],
         help="Build step to run",
@@ -524,11 +472,6 @@ def main() -> None:
         "--clean",
         action="store_true",
         help="Clean the build directory before running",
-    )
-    parser.add_argument(
-        "--publish",
-        action="store_true",
-        help="Publish the Electron app",
     )
     parser.add_argument(
         "--python-version",

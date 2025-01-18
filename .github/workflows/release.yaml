@@ -45,7 +45,6 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     env:
-      PYTHON_VERSION: "3.11"
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_TOKEN }}
       AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
@@ -57,11 +56,6 @@ jobs:
 
       - name: Install Snapcraft
         uses: samuelmeuli/action-snapcraft@v3
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.11"
 
       - name: Set up Node.js
         uses: actions/setup-node@v3
@@ -103,7 +97,9 @@ jobs:
       - name: Build Web
         shell: bash -l {0}
         run: |
-          python build.py web
+          cd web
+          npm ci
+          npm run build
 
       - name: Build and Publish Electron
         shell: bash -l {0}
@@ -119,4 +115,7 @@ jobs:
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
-          python build.py electron --publish
+          cd electron
+          npm ci
+          npm run vite:build
+          npx electron-builder --config electron-builder.json --publish always

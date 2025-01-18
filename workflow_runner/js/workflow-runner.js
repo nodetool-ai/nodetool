@@ -1,3 +1,5 @@
+import { encode, decode } from "./node_modules/@msgpack/msgpack/dist/index.js";
+
 /**
  * @typedef {Object} JobUpdate
  * @property {string} type - The type of update ('job_update', 'node_progress', 'node_update')
@@ -59,7 +61,7 @@ class WorkflowRunner {
 
         this.socket.onmessage = (event) => {
           const arrayBuffer = event.data;
-          const data = msgpack.decode(new Uint8Array(arrayBuffer));
+          const data = decode(new Uint8Array(arrayBuffer));
           this.handleMessage(data);
         };
       };
@@ -142,7 +144,7 @@ class WorkflowRunner {
       console.log("Sending request:", request);
 
       this.socket.send(
-        msgpack.encode({
+        encode({
           command: "run_job",
           data: request,
         })

@@ -1,3 +1,5 @@
+import { encode, decode } from "@msgpack/msgpack";
+
 /**
  * @typedef {Object} ImageRef
  * @property {string} url - URL of the image
@@ -96,8 +98,8 @@ class ChatRunner {
 
     this.socket.onmessage = async (event) => {
       const arrayBuffer = await event.data.arrayBuffer();
-      // @ts-ignore - assuming msgpack is globally available
-      const data = msgpack.decode(new Uint8Array(arrayBuffer));
+      /** @type any */
+      const data = decode(new Uint8Array(arrayBuffer));
 
       if (data.type === "message") {
         this.messages.push(data);
@@ -150,7 +152,7 @@ class ChatRunner {
     this._setStatus("loading");
 
     // @ts-ignore - assuming msgpack is globally available
-    this.socket?.send(msgpack.encode(message));
+    this.socket?.send(encode(message));
   }
 
   /**

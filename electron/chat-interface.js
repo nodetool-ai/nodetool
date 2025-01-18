@@ -1,5 +1,4 @@
-// @ts-ignore
-const md = new markdownit();
+import { marked } from "./node_modules/marked/lib/marked.esm.js";
 
 /**
  * @typedef {Object} MessageTextContent
@@ -363,7 +362,7 @@ export function appendMessage(messagesList, role, contents) {
         case "text":
           const markdownContent = document.createElement("div");
           markdownContent.className = "markdown-content";
-          markdownContent.innerHTML = md.render(content.text);
+          markdownContent.innerHTML = marked.parse(content.text);
           message.appendChild(markdownContent);
           break;
 
@@ -374,7 +373,7 @@ export function appendMessage(messagesList, role, contents) {
   } else if (typeof contents === "string") {
     const markdownContent = document.createElement("div");
     markdownContent.className = "markdown-content";
-    markdownContent.innerHTML = md.render(contents);
+    markdownContent.innerHTML = marked.parse(contents);
     message.appendChild(markdownContent);
   }
 
