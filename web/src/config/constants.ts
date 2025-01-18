@@ -26,3 +26,6 @@ export const CHAT_HISTORY_AMOUNT = 10;
 export const DUPLICATE_SPACING = 50;
 export const MIN_ZOOM = 0.38;
 export const MAX_ZOOM = 3.5;
+
+// MODEL
+export const DEFAULT_MODEL = "llama3.2:3b";

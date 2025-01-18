@@ -32,11 +32,10 @@ import WhatsNew from "./WhatsNew";
 import useRemoteSettingsStore from "../../../stores/RemoteSettingStore";
 import RemoteSettingsMenu from "../../menus/RemoteSettingsMenu";
 import ThemeNodetool from "../../themes/ThemeNodetool";
-import RecommendedModels from "../../hugging_face/RecommendedModels";
 import { UnifiedModel } from "../../../stores/ApiTypes";
 import { useModelDownloadStore } from "../../../stores/ModelDownloadStore";
-import { DownloadProgress } from "../../hugging_face/DownloadProgress";
 import ModelDownloadList from "../../hugging_face/ModelDownloadList";
+import { DEFAULT_MODEL } from "../../../config/constants";
 
 enum TabValue {
   Overview = 0,
@@ -320,17 +319,17 @@ const recommendedModels: UnifiedModel[] = [
     path: "Realistic_Vision_V5.1_fp16-no-ema.safetensors"
   },
   {
-    id: "stabilityai/sd-x2-latent-upscaler",
-    name: "SD XL Latent Upscaler",
-    type: "hf.stable_diffusion",
-    repo_id: "stabilityai/sd-x2-latent-upscaler",
-    allow_patterns: ["**/*.json", "**/*.txt", "**/*.json"]
+    id: "ai-forever/Real-ESRGAN",
+    name: "Real ESRGAN",
+    type: "hf.real_esrgan",
+    repo_id: "ai-forever/Real-ESRGAN",
+    path: "RealESRGAN_x2.pth"
   },
   {
-    id: "gemma2:2b",
-    name: "Gemma2 2B",
+    id: DEFAULT_MODEL,
+    name: "Llama 3.2 3B",
     type: "llama_model",
-    repo_id: "gemma2:2b"
+    repo_id: DEFAULT_MODEL
   },
   {
     id: "nomic-embed-text",
@@ -344,6 +343,12 @@ const recommendedModels: UnifiedModel[] = [
     type: "hf.automatic_speech_recognition",
     repo_id: "openai/whisper-small",
     allow_patterns: ["model.safetensors", "*.json", "*.txt"]
+  },
+  {
+    id: "llama3.2-vision:11b",
+    name: "Llama 3.2 - Vision 11B",
+    type: "llama_model",
+    repo_id: "llama3.2-vision:11b"
   }
 ];
 
@@ -705,19 +710,25 @@ const Welcome = ({ handleClose }: { handleClose: () => void }) => {
                     </li>
                     <li>
                       <Typography variant="body1">
-                        <b>SD XL Latent Upscaler</b> - To enable high-quality
-                        image scaling.
+                        <b>Real ESRGAN</b> - To enable high-quality image
+                        scaling.
                       </Typography>
                     </li>
                     <li>
                       <Typography variant="body1">
-                        <b>Gemma2 2B</b> - A multilingual large language model.
+                        <b>Llama 3.2 3B</b> - A large language model.
                       </Typography>
                     </li>
                     <li>
                       <Typography variant="body1">
                         <b>Whisper</b> - A multilingual speech recognition
                         model.
+                      </Typography>
+                    </li>
+                    <li>
+                      <Typography variant="body1">
+                        <b>Llama 3.2 - Vision</b> - A vision model to analyze
+                        images.
                       </Typography>
                     </li>
                   </ul>

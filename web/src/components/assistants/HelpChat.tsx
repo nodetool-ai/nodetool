@@ -12,6 +12,7 @@ import { fetchOllamaModelInfo } from "../hugging_face/ModelUtils";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { isProduction } from "../../stores/ApiClient";
 import { ChatHeader } from "./chat/ChatHeader";
+import { DEFAULT_MODEL } from "../../config/constants";
 
 const HelpChat: React.FC = () => {
   const { messages, isLoading, sendMessage, setMessages } = useChatStore();
@@ -37,8 +38,8 @@ const HelpChat: React.FC = () => {
   });
 
   const { data: ollamaModelInfo, isLoading: isLoadingOllamaModel } = useQuery({
-    queryKey: ["ollamaModel", "gemma2:2b"],
-    queryFn: () => fetchOllamaModelInfo("gemma2:2b")
+    queryKey: ["ollamaModel", DEFAULT_MODEL],
+    queryFn: () => fetchOllamaModelInfo(DEFAULT_MODEL)
   });
 
   const handleResetChat = useCallback(() => {
@@ -47,21 +48,21 @@ const HelpChat: React.FC = () => {
   }, [setMessages]);
 
   const handleDownloadModel = useCallback(() => {
-    startDownload("gemma2:2b", "llama_model");
+    startDownload(DEFAULT_MODEL, "llama_model");
     openDialog();
   }, [startDownload, openDialog]);
 
   const isModelAvailable = isProduction || Boolean(ollamaModelInfo);
   const { downloads } = useModelDownloadStore();
-  const isDownloading = downloads["gemma2:2b"]?.status === "running";
+  const isDownloading = downloads[DEFAULT_MODEL]?.status === "running";
 
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    const downloadStatus = downloads["gemma2:2b"]?.status;
+    const downloadStatus = downloads[DEFAULT_MODEL]?.status;
     if (downloadStatus === "completed") {
       queryClient.invalidateQueries({
-        queryKey: ["ollamaModel", "gemma2:2b"]
+        queryKey: ["ollamaModel", DEFAULT_MODEL]
       });
     }
   }, [downloads, queryClient]);
