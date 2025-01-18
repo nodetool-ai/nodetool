@@ -8,7 +8,7 @@ from nodetool.workflows.processing_context import ProcessingContext
 class If(BaseNode):
     """
     Conditionally executes one of two branches based on a condition.
-    control, flow, condition
+    control, flow, condition, logic, else, true, false, switch, toggle, flow-control
 
     Use cases:
     - Branch workflow based on conditions

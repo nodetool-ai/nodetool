@@ -1087,7 +1087,7 @@ class MapField(BaseNode):
 class JoinStrings(BaseNode):
     """
     Joins a list of strings using a specified delimiter.
-    list, join, concatenate, strings
+    list, join, concatenate, strings, +
 
     Use cases:
     - Combine strings with a separator

@@ -16,7 +16,7 @@ class BooleanOperation(str, Enum):
 class LogicalOperator(BaseNode):
     """
     Performs logical operations on two boolean inputs.
-    boolean, logic, operator
+    boolean, logic, operator, condition, flow-control, branch, else, true, false, switch, toggle
 
     Use cases:
     - Combine multiple conditions in decision-making
@@ -48,7 +48,7 @@ class LogicalOperator(BaseNode):
 class Not(BaseNode):
     """
     Performs logical NOT operation on a boolean input.
-    boolean, logic, not, invert
+    boolean, logic, not, invert, !, negation, condition, else, true, false, switch, toggle, flow-control, branch
 
     Use cases:
     - Invert a condition's result
@@ -143,7 +143,8 @@ class IsIn(BaseNode):
 class All(BaseNode):
     """
     Checks if all boolean values in a list are True.
-    boolean, all, check
+    boolean, all, check, logic, condition, flow-control, branch
+
 
     Use cases:
     - Ensure all conditions in a set are met
@@ -160,7 +161,7 @@ class All(BaseNode):
 class Some(BaseNode):
     """
     Checks if any boolean value in a list is True.
-    boolean, any, check
+    boolean, any, check, logic, condition, flow-control, branch
 
     Use cases:
     - Check if at least one condition in a set is met

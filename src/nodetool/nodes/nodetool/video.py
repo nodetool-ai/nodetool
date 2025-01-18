@@ -219,7 +219,7 @@ class CreateVideo(BaseNode):
 class Concat(BaseNode):
     """
     Concatenate multiple video files into a single video, including audio when available.
-    video, concat, merge, combine, audio
+    video, concat, merge, combine, audio, +
     """
 
     video_a: VideoRef = Field(
