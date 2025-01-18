@@ -223,25 +223,6 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   }, [metadata]);
 
   const memoizedStyles = useMemo(() => styles(nodeColors), [nodeColors]);
-
-  useRenderLogger(metadata?.title || "", {
-    metadata,
-    // parentIsCollapsed,
-    className,
-    props,
-    ThemeNodes,
-    nodeColors,
-    minHeight,
-    workflowId,
-    status,
-    isProduction,
-    node_namespace: nodeNamespace,
-    isConstantNode,
-    isOutputNode,
-    renderedResult,
-    resizer
-  });
-
   const { headerColor, footerColor } = useMemo(() => {
     const firstOutputColor = metadata?.outputs?.[0]?.type?.type;
     return {
@@ -288,7 +269,38 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   }
 
   // first line of description
-  const description = metadata.description?.split("\n")[0];
+  const description = useMemo(
+    () => metadata.description?.split("\n")[0],
+    [metadata]
+  );
+
+  useRenderLogger(props.type || "", {
+    metadata,
+    className,
+    props,
+    ThemeNodes,
+    nodeColors,
+    minHeight,
+    workflowId,
+    status,
+    isProduction,
+    nodeNamespace,
+    isConstantNode,
+    isOutputNode,
+    renderedResult,
+    resizer,
+    nodeBasicFields,
+    memoizedStyles,
+    result,
+    hasParent,
+    isLoading,
+    showAdvancedFields,
+    hasAdvancedFields,
+    activeSelect,
+    headerColor,
+    footerColor,
+    description
+  });
 
   return (
     <Container
