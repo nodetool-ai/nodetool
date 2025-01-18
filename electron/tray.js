@@ -394,9 +394,8 @@ async function updateTrayMenu() {
     {
       label: "Open Log File",
       click: () => {
-        const { shell } = require("electron");
         const { LOG_FILE } = require("./logger");
-        shell.showItemInFolder(LOG_FILE);
+        shell.openPath(LOG_FILE);
       },
     },
     { type: "separator" },

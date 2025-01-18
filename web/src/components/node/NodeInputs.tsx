@@ -15,6 +15,10 @@ export interface NodeInputsProps {
   showHandle?: boolean;
   showAdvancedFields?: boolean;
   basicFields?: string[];
+  onUpdatePropertyName?: (
+    oldPropertyName: string,
+    newPropertyName: string
+  ) => void;
   onDeleteProperty?: (propertyName: string) => void;
 }
 
@@ -28,7 +32,8 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
   layout,
   showAdvancedFields,
   basicFields,
-  onDeleteProperty
+  onDeleteProperty,
+  onUpdatePropertyName
 }) => {
   // use node id for tab index
   const nodeOffset = parseInt(id) * 100;
@@ -91,6 +96,7 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
           isDynamicProperty={true}
           showAdvancedFields={showAdvancedFields}
           onDeleteProperty={onDeleteProperty}
+          onUpdatePropertyName={onUpdatePropertyName}
         />
       ))}
     </div>

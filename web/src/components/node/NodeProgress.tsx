@@ -18,6 +18,7 @@ const NodeProgress = ({
   const [eta, setEta] = useState<number | null>(null);
   const startTimeRef = useRef<number | null>(null);
   const chunkRef = useRef<HTMLDivElement>(null);
+  console.log(progress);
 
   useEffect(() => {
     if (progress && startTimeRef.current === null) {

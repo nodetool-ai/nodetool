@@ -33,6 +33,7 @@ import CollectionProperty from "../properties/CollectionProperty";
 import FolderPathProperty from "../properties/FolderPathProperty";
 import DocumentProperty from "../properties/DocumentProperty";
 import Close from "@mui/icons-material/Close";
+import Edit from "@mui/icons-material/Edit";
 import { css } from "@emotion/react";
 
 export type PropertyProps = {
@@ -209,7 +210,9 @@ export type PropertyInputProps = {
   isConnected?: boolean;
   tabIndex?: number;
   isDynamicProperty?: boolean;
+  onUpdateProperty?: (property: string, value: any) => void;
   onDeleteProperty?: (property: string) => void;
+  onUpdatePropertyName?: (oldName: string, newName: string) => void;
 };
 
 const PropertyInput: React.FC<PropertyInputProps> = ({
@@ -222,7 +225,9 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
   tabIndex,
   isConnected,
   isDynamicProperty,
-  onDeleteProperty
+  onDeleteProperty,
+  onUpdateProperty,
+  onUpdatePropertyName
 }: PropertyInputProps) => {
   const { updateNodeProperties, findNode, updateNodeData } = useNodeStore(
     (state) => ({
@@ -298,11 +303,43 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
   const className =
     value === property.default ? "value-default" : "value-changed";
 
+  const [isEditingName, setIsEditingName] = React.useState(false);
+  const [editedName, setEditedName] = React.useState(property.name);
+
+  const handleNameSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (editedName && editedName !== property.name) {
+      onUpdatePropertyName?.(property.name, editedName);
+    }
+    setIsEditingName(false);
+  };
+
   const componentType = componentFor(property);
 
   let inputField = null;
   if (componentType) {
-    inputField = createElement(componentType, propertyProps);
+    if (isDynamicProperty && isEditingName) {
+      inputField = (
+        <form onSubmit={handleNameSubmit} css={{ display: "inline" }}>
+          <input
+            value={editedName}
+            onChange={(e) => setEditedName(e.target.value)}
+            onBlur={handleNameSubmit}
+            autoFocus
+            css={css({
+              padding: "2px 4px",
+              border: "1px solid #666",
+              borderRadius: "3px",
+              background: "transparent",
+              color: "inherit",
+              fontSize: "inherit"
+            })}
+          />
+        </form>
+      );
+    } else {
+      inputField = createElement(componentType, propertyProps);
+    }
   } else {
     inputField = <div>Unsupported property type</div>;
   }
@@ -311,22 +348,55 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
     <div
       className={className}
       onContextMenu={onContextMenu}
-      css={onDeleteProperty ? { display: "flex", alignItems: "center" } : {}}
+      css={css({
+        position: "relative",
+        gap: "0.5em",
+        "& .action-icons": {
+          position: "absolute",
+          right: 0,
+          top: "25%",
+          transform: "translateY(-50%)",
+          display: "flex",
+          alignItems: "center",
+          opacity: 0,
+          transition: "opacity 0.2s",
+          backgroundColor: "var(--background-color)",
+          padding: "0 4px"
+        },
+        "&:hover .action-icons": {
+          opacity: 1
+        },
+        "& .action-icon:hover": {
+          opacity: 1
+        }
+      })}
     >
       {inputField}
-      {onDeleteProperty && (
-        <Close
-          css={css({
-            fontSize: "1em",
-            cursor: "pointer",
-            marginLeft: "0.5em",
-            opacity: 0.6,
-            "&:hover": {
-              opacity: 1
-            }
-          })}
-          onClick={() => onDeleteProperty(property.name)}
-        />
+      {(isDynamicProperty || onDeleteProperty) && !isEditingName && (
+        <div className="action-icons">
+          {isDynamicProperty && (
+            <Edit
+              className="action-icon"
+              css={css({
+                fontSize: "1.2em",
+                cursor: "pointer",
+                margin: "0.2em 0.2em 0.2em 0.5em"
+              })}
+              onClick={() => setIsEditingName(true)}
+            />
+          )}
+          {onDeleteProperty && (
+            <Close
+              className="action-icon"
+              css={css({
+                fontSize: "1.2em",
+                cursor: "pointer",
+                margin: "0.2em 0.5em 0.2em 0em"
+              })}
+              onClick={() => onDeleteProperty(property.name)}
+            />
+          )}
+        </div>
       )}
     </div>
   );

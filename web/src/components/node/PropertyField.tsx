@@ -35,6 +35,10 @@ export type PropertyFieldProps = {
   showAdvancedFields?: boolean;
   isDynamicProperty?: boolean;
   onDeleteProperty?: (propertyName: string) => void;
+  onUpdatePropertyName?: (
+    oldPropertyName: string,
+    newPropertyName: string
+  ) => void;
 };
 
 /**
@@ -53,7 +57,8 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
   showAdvancedFields,
   isBasicField,
   isDynamicProperty,
-  onDeleteProperty
+  onDeleteProperty,
+  onUpdatePropertyName
 }) => {
   const edges = useNodeStore((state) => state.edges);
   const controlKeyPressed = useKeyPressedStore((state) =>
@@ -164,6 +169,7 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
             isConnected={isConnected}
             tabIndex={tabIndex}
             isDynamicProperty={isDynamicProperty}
+            onUpdatePropertyName={onUpdatePropertyName}
             onDeleteProperty={onDeleteProperty}
           />
         </>

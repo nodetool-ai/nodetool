@@ -121,7 +121,7 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
     set({
       progress: {
         ...get().progress,
-        [key]: { progress, total, chunk: currentChunk + chunk }
+        [key]: { progress, total, chunk: currentChunk + (chunk || "") }
       }
     });
   },

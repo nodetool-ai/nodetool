@@ -200,6 +200,11 @@ export interface NodeStore {
   deleteEdge: (id: string) => void;
   addEdge: (edge: Edge) => void;
   updateEdge: (edge: Edge) => void;
+  updateEdgeHandle: (
+    nodeId: string,
+    oldHandle: string,
+    newHandle: string
+  ) => void;
   getModels: () => UnifiedModel[];
   setNodes: (nodes: Node<NodeData>[], setDirty?: boolean) => void;
   setEdges: (edges: Edge[]) => void;
@@ -214,8 +219,8 @@ export interface NodeStore {
   updateFromWorkflowStore: () => Promise<void>;
   validateConnection: (
     connection: Connection,
-    srcMetadata: NodeMetadata,
-    targetMetadata: NodeMetadata
+    srcNode: Node<NodeData>,
+    targetNode: Node<NodeData>
   ) => boolean;
   sanitizeGraph: (
     nodes: Node<NodeData>[],
@@ -249,8 +254,8 @@ export const useNodeStore = create<NodeStore>()(
     (set, get) => ({
       explicitSave: false as boolean,
       shouldAutoLayout: false as boolean,
-      missingModelFiles: [],
-      missingModelRepos: [],
+      missingModelFiles: [] as RepoPath[],
+      missingModelRepos: [] as string[],
       workflow: {
         id: "",
         name: "",
@@ -503,15 +508,15 @@ export const useNodeStore = create<NodeStore>()(
           (e: GraphEdge) => graphEdgeToReactFlowEdge(e)
         );
 
-        // const { nodes: sanitizedNodes, edges: sanitizedEdges } =
-        //   get().sanitizeGraph(unsanitizedNodes, unsanitizedEdges, metadata);
+        const { nodes: sanitizedNodes, edges: sanitizedEdges } =
+          get().sanitizeGraph(unsanitizedNodes, unsanitizedEdges, metadata);
 
         set({
           workflow: workflow,
           lastWorkflow: workflow,
           shouldAutoLayout: false,
-          edges: unsanitizedEdges,
-          nodes: unsanitizedNodes,
+          edges: sanitizedEdges,
+          nodes: sanitizedNodes,
           workflowIsDirty: false
         });
 
@@ -685,6 +690,27 @@ export const useNodeStore = create<NodeStore>()(
       updateEdge: (edge: Edge) => {
         set({
           edges: [...get().edges.filter((e) => e.id !== edge.id), edge]
+        });
+      },
+
+      /**
+       * Update the handle of an edge.
+       *
+       * @param nodeId The id of the node to update.
+       * @param oldHandle The old handle of the edge.
+       * @param newHandle The new handle of the edge.
+       */
+      updateEdgeHandle: (
+        nodeId: string,
+        oldHandle: string,
+        newHandle: string
+      ) => {
+        set({
+          edges: get().edges.map((edge) =>
+            edge.target === nodeId && edge.targetHandle === oldHandle
+              ? { ...edge, targetHandle: newHandle }
+              : edge
+          )
         });
       },
 
@@ -901,13 +927,9 @@ export const useNodeStore = create<NodeStore>()(
         if (!srcNode?.type || !targetNode?.type) {
           return false;
         }
-        const srcMetadata = getMetadata(srcNode.type);
-        const targetMetadata = getMetadata(targetNode.type);
         if (
           oldEdge &&
-          srcMetadata &&
-          targetMetadata &&
-          get().validateConnection(connection, srcMetadata, targetMetadata)
+          get().validateConnection(connection, srcNode, targetNode)
         ) {
           set({ edgeUpdateSuccessful: true });
           const filteredEdges = edges.filter(
@@ -929,9 +951,16 @@ export const useNodeStore = create<NodeStore>()(
 
       validateConnection: (
         connection: Connection,
-        srcMetadata: NodeMetadata,
-        targetMetadata: NodeMetadata
+        srcNode: Node<NodeData>,
+        targetNode: Node<NodeData>
       ) => {
+        debugger;
+        const srcMetadata = useMetadataStore
+          .getState()
+          .getMetadata(srcNode.type as string);
+        const targetMetadata = useMetadataStore
+          .getState()
+          .getMetadata(targetNode.type as string);
         if (
           !srcMetadata ||
           !targetMetadata ||
@@ -961,7 +990,11 @@ export const useNodeStore = create<NodeStore>()(
         const targetProperty = targetMetadata?.properties.find(
           (property: Property) => property.name === targetHandle
         );
-        const targetType = targetProperty?.type;
+        const targetType = targetProperty?.type || {
+          type: "str",
+          optional: false,
+          type_args: []
+        };
         return (
           srcType !== undefined &&
           targetType !== undefined &&
@@ -998,15 +1031,15 @@ export const useNodeStore = create<NodeStore>()(
             const sourceMetadata = metadata[sourceNode.type];
             const targetMetadata = metadata[targetNode.type];
             if (!sourceMetadata || !targetMetadata) {
-              return acc;
-            }
-            if (
+              acc.push(edge);
+            } else if (
               sourceMetadata.outputs.some(
                 (output) => output.name === edge.sourceHandle
               ) &&
-              targetMetadata.properties.some(
-                (prop) => prop.name === edge.targetHandle
-              )
+              (targetMetadata.is_dynamic ||
+                targetMetadata.properties.some(
+                  (prop) => prop.name === edge.targetHandle
+                ))
             ) {
               acc.push(edge);
             }
@@ -1037,18 +1070,13 @@ export const useNodeStore = create<NodeStore>()(
           return false;
         }
         const srcMetadata = getMetadata(srcNode.type);
-        const targetMetadata = getMetadata(targetNode.type);
         const srcHandle = connection.sourceHandle;
         const srcOutput = srcMetadata?.outputs.find(
           (output: OutputSlot) => output.name === srcHandle
         );
         const srcType = srcOutput?.type.type;
 
-        if (
-          srcMetadata &&
-          targetMetadata &&
-          get().validateConnection(connection, srcMetadata, targetMetadata)
-        ) {
+        if (get().validateConnection(connection, srcNode, targetNode)) {
           // if target handle was connected, remove existing edge
           const filteredEdges = edges.filter(
             (edge) =>
