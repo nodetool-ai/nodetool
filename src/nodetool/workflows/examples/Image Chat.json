@@ -1,11 +1,15 @@
 {
   "id": "image-chat",
   "access": "public",
-  "created_at": "2025-01-09T18:10:47.292903",
-  "updated_at": "2025-01-09T18:10:47.292923",
+  "created_at": "2025-01-18T08:39:44.868136",
+  "updated_at": "2025-01-18T08:39:44.868162",
   "name": "Image Chat",
   "description": "Generate images from natural language descriptions using chat interface",
-  "tags": ["chat", "image", "start"],
+  "tags": [
+    "chat",
+    "image",
+    "start"
+  ],
   "thumbnail": null,
   "thumbnail_url": "/examples/chatbot.png",
   "graph": {
@@ -42,7 +46,8 @@
           "zIndex": 0,
           "width": 187,
           "selectable": true
-        }
+        },
+        "dynamic_properties": {}
       },
       {
         "id": "4",
@@ -74,15 +79,15 @@
           "upscaler": "None"
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 486,
-            "y": 76
+            "y": 55
           },
           "zIndex": 0,
           "width": 250,
           "selectable": true
-        }
+        },
+        "dynamic_properties": {}
       },
       {
         "id": "5",
@@ -96,12 +101,13 @@
         "ui_properties": {
           "position": {
             "x": 766,
-            "y": 129
+            "y": 59
           },
           "zIndex": 0,
           "width": 187,
           "selectable": true
-        }
+        },
+        "dynamic_properties": {}
       },
       {
         "id": "6",
@@ -114,13 +120,30 @@
               "type": "paragraph",
               "children": [
                 {
-                  "text": "Use the workflow chat on bottom of the screen to create images."
+                  "text": "Use the workflow chat on bottom right of the screen to create images."
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": ""
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "You can also test the chat app via \"Run App\""
                 }
               ]
             }
           ]
         },
         "ui_properties": {
+          "selected": false,
           "position": {
             "x": 52,
             "y": -130
@@ -129,7 +152,8 @@
           "width": 404,
           "height": 117,
           "selectable": true
-        }
+        },
+        "dynamic_properties": {}
       },
       {
         "id": "7",
@@ -156,12 +180,13 @@
         "ui_properties": {
           "position": {
             "x": 297,
-            "y": 88
+            "y": 64
           },
           "zIndex": 0,
           "width": 159,
           "selectable": true
-        }
+        },
+        "dynamic_properties": {}
       }
     ],
     "edges": [
@@ -176,16 +201,6 @@
         }
       },
       {
-        "id": "468f8aec-1c9f-4519-89bf-b3c59fe42444",
-        "source": "1",
-        "sourceHandle": "history",
-        "target": "7",
-        "targetHandle": "messages",
-        "ui_properties": {
-          "className": "list"
-        }
-      },
-      {
         "id": "382b99fb-a015-4ac8-8154-6d905a6426fd",
         "source": "7",
         "sourceHandle": "output",
@@ -193,6 +208,16 @@
         "targetHandle": "prompt",
         "ui_properties": {
           "className": "str"
+        }
+      },
+      {
+        "id": "468f8aec-1c9f-4519-89bf-b3c59fe42444",
+        "source": "1",
+        "sourceHandle": "history",
+        "target": "7",
+        "targetHandle": "messages",
+        "ui_properties": {
+          "className": "list"
         }
       },
       {
