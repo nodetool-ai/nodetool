@@ -391,17 +391,19 @@ async function startServerWithLaunchd() {
         logMessage(`Failed to read launchd logs: ${logError.message}`, "error");
       }
 
-      throw new Error("Failed to start server via launchd");
+      logMessage("Falling back to direct Python server process", "warn");
+      await startNodeToolBackendProcess();
+      return;
     }
 
     logMessage("Server started successfully via launchd");
     emitBootMessage("Server started, waiting for availability...");
   } catch (error) {
     logMessage(
-      `Failed to start server with launchd: ${error.message}`,
-      "error"
+      `Failed to start server with launchd: ${error.message}. Falling back to direct Python server process`,
+      "warn"
     );
-    throw error;
+    await startNodeToolBackendProcess();
   }
 }
 
