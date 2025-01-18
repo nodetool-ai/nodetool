@@ -33,7 +33,7 @@ import numpy as np
 class MusicGen(HuggingFacePipelineNode):
     """
     Generates audio (music or sound effects) from text descriptions.
-    audio, music, generation, huggingface
+    audio, music, generation, huggingface, text-to-audio
 
     Use cases:
     - Create custom background music for videos or games
@@ -138,7 +138,7 @@ class MusicGen(HuggingFacePipelineNode):
 class MusicLDM(HuggingFacePipelineNode):
     """
     Generates audio (music or sound effects) from text descriptions.
-    audio, music, generation, huggingface
+    audio, music, generation, huggingface, text-to-audio
 
     Use cases:
     - Create custom background music for videos or games
@@ -394,7 +394,7 @@ class AudioLDM2(HuggingFacePipelineNode):
 class DanceDiffusion(HuggingFacePipelineNode):
     """
     Generates audio using the DanceDiffusion model.
-    audio, generation, AI, music
+    audio, generation, AI, music, text-to-audio
 
     Use cases:
     - Create AI-generated music samples
@@ -462,13 +462,15 @@ class DanceDiffusion(HuggingFacePipelineNode):
 
 class StableAudioNode(HuggingFacePipelineNode):
     """
-    Generates audio using the Stable Audio Pipeline based on a text prompt.
-    audio, generation, AI, text-to-audio
+    Generate audio using Stable Audio model based on text prompts. Features high-quality audio synthesis with configurable parameters.
+    audio, generation, synthesis, text-to-audio, text-to-audio
 
     Use cases:
-    - Creating custom sound effects based on textual descriptions
-    - Generating background audio for videos or games
-    - Exploring AI-generated audio for creative projects
+    - Create custom audio content from text
+    - Generate background music and sounds
+    - Produce audio for multimedia projects
+    - Create sound effects and ambience
+    - Generate experimental audio content
     """
 
     prompt: str = Field(

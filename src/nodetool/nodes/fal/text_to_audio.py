@@ -6,8 +6,15 @@ from nodetool.workflows.processing_context import ProcessingContext
 
 class MMAudioV2(FALNode):
     """
-    MMAudio V2 generates synchronized audio given text inputs.
-    It can generate sounds described by a prompt.
+    MMAudio V2 generates synchronized audio given text inputs. It can generate sounds described by a prompt.
+    audio, generation, synthesis, text-to-audio, synchronization
+
+    Use cases:
+    - Generate synchronized audio from text descriptions
+    - Create custom sound effects
+    - Produce ambient soundscapes
+    - Generate audio for multimedia content
+    - Create sound design elements
     """
 
     prompt: str = Field(default="", description="The prompt to generate the audio for")
@@ -66,8 +73,15 @@ class MMAudioV2(FALNode):
 
 class StableAudio(FALNode):
     """
-    Stable Audio generates audio from text prompts.
-    Open source text-to-audio model from fal.ai.
+    Stable Audio generates audio from text prompts. Open source text-to-audio model from fal.ai.
+    audio, generation, synthesis, text-to-audio, open-source
+
+    Use cases:
+    - Generate custom audio content from text
+    - Create background music and sounds
+    - Produce audio assets for projects
+    - Generate sound effects
+    - Create experimental audio content
     """
 
     prompt: str = Field(default="", description="The prompt to generate the audio from")
@@ -106,8 +120,15 @@ class StableAudio(FALNode):
 
 class F5TTS(FALNode):
     """
-    F5 TTS converts text to speech using a reference audio for voice cloning.
-    Uses fal.ai's F5 TTS model for high-quality voice synthesis.
+    F5 TTS (Text-to-Speech) model for generating natural-sounding speech from text with voice cloning capabilities.
+    audio, tts, voice-cloning, speech, synthesis, text-to-speech, tts, text-to-audio
+
+    Use cases:
+    - Generate natural speech from text
+    - Clone and replicate voices
+    - Create custom voiceovers
+    - Produce multilingual speech content
+    - Generate personalized audio content
     """
 
     gen_text: str = Field(default="", description="The text to be converted to speech")

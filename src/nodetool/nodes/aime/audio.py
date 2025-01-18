@@ -38,7 +38,14 @@ class PresetType(str, Enum):
 
 class TortoiseTTS(BaseNode):
     """
-    Generate audio from text using the Tortoise TTS API.
+    Generate high-quality speech from text using the Tortoise TTS API. Features multiple voices and quality presets.
+    audio, tts, speech, synthesis, voice
+
+    Use cases:
+    - Generate natural-sounding speech
+    - Create voiceovers
+    - Produce multilingual audio
+    - Create character voices
     """
 
     voice: VoiceType = Field(title="Voice", default=VoiceType.TRAIN_GRACE)

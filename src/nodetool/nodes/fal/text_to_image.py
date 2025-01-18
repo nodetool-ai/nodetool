@@ -72,8 +72,15 @@ class IdeogramStyle(str, Enum):
 
 class IdeogramV2(FALNode):
     """
-    Ideogram V2 is a state-of-the-art image generation model optimized for commercial and creative use,
-    featuring exceptional typography handling and realistic outputs.
+    Ideogram V2 is a state-of-the-art image generation model optimized for commercial and creative use, featuring exceptional typography handling and realistic outputs.
+    image, generation, ai, typography, realistic, text-to-image, txt2img
+
+    Use cases:
+    - Create commercial artwork and designs
+    - Generate realistic product visualizations
+    - Design marketing materials with text
+    - Produce high-quality illustrations
+    - Create brand assets and logos
     """
 
     prompt: str = Field(default="", description="The prompt to generate an image from")
@@ -171,7 +178,14 @@ class IdeogramV2Turbo(FALNode):
 class FluxV1Pro(FALNode):
     """
     FLUX1.1 [pro] is an enhanced version of FLUX.1 [pro], improved image generation capabilities, delivering superior composition, detail, and artistic fidelity compared to its predecessor.
-    fal, text, image
+    image, generation, composition, detail, artistic, text-to-image, txt2img
+
+    Use cases:
+    - Generate high-fidelity artwork
+    - Create detailed illustrations
+    - Design complex compositions
+    - Produce artistic renderings
+    - Generate professional visuals
     """
 
     prompt: str = Field(default="", description="The prompt to generate an image from")
@@ -319,8 +333,15 @@ class RecraftV3(FALNode):
 
 class Switti(FALNode):
     """
-    Switti is a scale-wise transformer for fast text-to-image generation that outperforms existing T2I AR models
-    and competes with state-of-the-art T2I diffusion models while being faster than distilled diffusion models.
+    Switti is a scale-wise transformer for fast text-to-image generation that outperforms existing T2I AR models and competes with state-of-the-art T2I diffusion models while being faster than distilled diffusion models.
+    image, generation, fast, transformer, efficient, text-to-image, txt2img
+
+    Use cases:
+    - Rapid image prototyping
+    - Real-time image generation
+    - Quick visual concept testing
+    - Fast artistic visualization
+    - Efficient batch image creation
     """
 
     prompt: str = Field(default="", description="The prompt to generate an image from")
@@ -390,8 +411,12 @@ class Switti(FALNode):
 
 class AuraFlowV03(FALNode):
     """
-    AuraFlow v0.3 is an open-source flow-based text-to-image generation model that achieves
-    state-of-the-art results on GenEval.
+    AuraFlow v0.3 is an open-source flow-based text-to-image generation model that achieves state-of-the-art results on GenEval.
+    image, generation, flow-based, text-to-image, txt2img
+
+    Use cases:
+    - Generate high-quality images
+    - Create artistic visualizations
     """
 
     prompt: str = Field(default="", description="The prompt to generate an image from")
@@ -493,9 +518,15 @@ class FluxDev(FALNode):
 
 class FluxLora(FALNode):
     """
-    FLUX.1 [dev] with LoRAs is a text-to-image model that supports LoRA adaptations,
-    enabling rapid and high-quality image generation with pre-trained LoRA weights for
-    personalization, specific styles, brand identities, and product-specific outputs.
+    FLUX.1 [dev] with LoRAs is a text-to-image model that supports LoRA adaptations, enabling rapid and high-quality image generation with pre-trained LoRA weights for personalization, specific styles, brand identities, and product-specific outputs.
+    image, generation, lora, personalization, style-transfer, text-to-image, txt2img
+
+    Use cases:
+    - Create brand-specific visuals
+    - Generate custom styled images
+    - Adapt existing styles to new content
+    - Produce personalized artwork
+    - Design consistent visual identities
     """
 
     prompt: str = Field(default="", description="The prompt to generate an image from")
@@ -675,9 +706,15 @@ class FluxSchnell(FALNode):
 
 class FluxSubject(FALNode):
     """
-    FLUX.1 Subject is a super fast endpoint for the FLUX.1 [schnell] model with subject input capabilities,
-    enabling rapid and high-quality image generation for personalization, specific styles, brand identities,
-    and product-specific outputs.
+    FLUX.1 Subject is a super fast endpoint for the FLUX.1 [schnell] model with subject input capabilities, enabling rapid and high-quality image generation for personalization, specific styles, brand identities, and product-specific outputs.
+    image, generation, subject-driven, personalization, fast, text-to-image, txt2img
+
+    Use cases:
+    - Create variations of existing subjects
+    - Generate personalized product images
+    - Design brand-specific visuals
+    - Produce custom character artwork
+    - Create subject-based illustrations
     """
 
     prompt: str = Field(default="", description="The prompt to generate an image from")
@@ -797,8 +834,15 @@ class FluxV1ProNew(FALNode):
 
 class SanaV1(FALNode):
     """
-    Sana can synthesize high-resolution, high-quality images with strong text-image alignment
-    at a remarkably fast speed, with the ability to generate 4K images in less than a second.
+    Sana can synthesize high-resolution, high-quality images with strong text-image alignment at a remarkably fast speed, with the ability to generate 4K images in less than a second.
+    image, generation, high-resolution, fast, text-alignment, text-to-image, txt2img
+
+    Use cases:
+    - Generate 4K quality images
+    - Create high-resolution artwork
+    - Produce rapid visual prototypes
+    - Design detailed illustrations
+    - Generate precise text-aligned visuals
     """
 
     prompt: str = Field(default="", description="The prompt to generate an image from")
@@ -856,9 +900,15 @@ class SanaV1(FALNode):
 
 class OmniGenV1(FALNode):
     """
-    OmniGen is a unified image generation model that can generate a wide range of images from multi-modal prompts.
-    It can be used for various tasks such as Image Editing, Personalized Image Generation, Virtual Try-On,
-    Multi Person Generation and more!
+    OmniGen is a unified image generation model that can generate a wide range of images from multi-modal prompts. It can be used for various tasks such as Image Editing, Personalized Image Generation, Virtual Try-On, Multi Person Generation and more!
+    image, generation, multi-modal, editing, personalization, text-to-image, txt2img
+
+    Use cases:
+    - Edit and modify existing images
+    - Create personalized visual content
+    - Generate virtual try-on images
+    - Create multi-person compositions
+    - Combine multiple images creatively
     """
 
     prompt: str = Field(default="", description="The prompt to generate an image from")
@@ -988,6 +1038,14 @@ class StableDiffusionV35Large(FALNode):
 class Recraft20B(FALNode):
     """
     Recraft 20B is a new and affordable text-to-image model that delivers state-of-the-art results.
+     image, generation, efficient, text-to-image, txt2img
+
+    Use cases:
+    - Generate cost-effective visuals
+    - Create high-quality images
+    - Produce professional artwork
+    - Design marketing materials
+    - Generate commercial content
     """
 
     prompt: str = Field(default="", description="The prompt to generate an image from")
@@ -1006,11 +1064,15 @@ class Recraft20B(FALNode):
         default="", description="The ID of the custom style reference (optional)"
     )
 
+    @classmethod
+    def get_basic_fields(cls):
+        return ["prompt", "image_size", "style"]
+
     async def process(self, context: ProcessingContext) -> ImageRef:
         arguments = {
             "prompt": self.prompt,
-            "image_size": self.image_size.value,
             "style": self.style.value,
+            "image_size": self.image_size.value,
             "colors": [color.value for color in self.colors],
             "output_format": "png",
         }
@@ -1026,10 +1088,6 @@ class Recraft20B(FALNode):
         assert res["images"] is not None
         assert len(res["images"]) > 0
         return ImageRef(uri=res["images"][0]["url"])
-
-    @classmethod
-    def get_basic_fields(cls):
-        return ["prompt", "image_size", "style"]
 
 
 class BriaV1(FALNode):
@@ -1177,8 +1235,15 @@ class BriaV1Fast(FALNode):
 
 class BriaV1HD(FALNode):
     """
-    Bria's Text-to-Image model for HD images. Trained exclusively on licensed data for safe and
-    risk-free commercial use. Features exceptional image quality and commercial licensing safety.
+    Bria's Text-to-Image model for HD images. Trained exclusively on licensed data for safe and risk-free commercial use. Features exceptional image quality and commercial licensing safety.
+    image, generation, hd, text-to-image, txt2img
+
+    Use cases:
+    - Create commercial marketing materials
+    - Generate licensed artwork
+    - Produce high-definition visuals
+    - Design professional content
+    - Create legally safe visual assets
     """
 
     prompt: str = Field(default="", description="The prompt to generate an image from")
@@ -1245,9 +1310,15 @@ class BriaV1HD(FALNode):
 
 class FluxGeneral(FALNode):
     """
-    FLUX.1 [dev] with Controlnets and Loras is a versatile text-to-image model that supports
-    multiple AI extensions including LoRA, ControlNet conditioning, and IP-Adapter integration,
-    enabling comprehensive control over image generation through various guidance methods.
+    FLUX.1 [dev] with Controlnets and Loras is a versatile text-to-image model that supports multiple AI extensions including LoRA, ControlNet conditioning, and IP-Adapter integration, enabling comprehensive control over image generation through various guidance methods.
+    image, generation, controlnet, lora, ip-adapter, text-to-image, txt2img
+
+    Use cases:
+    - Create controlled image generations
+    - Apply multiple AI extensions
+    - Generate guided visual content
+    - Produce customized artwork
+    - Design with precise control
     """
 
     prompt: str = Field(default="", description="The prompt to generate an image from")
