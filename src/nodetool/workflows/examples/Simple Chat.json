@@ -1,11 +1,14 @@
 {
   "id": "simple-chat",
   "access": "public",
-  "created_at": "2025-01-03T16:07:13.129098",
-  "updated_at": "2025-01-03T16:07:13.129116",
+  "created_at": "2025-01-18T08:43:18.828508",
+  "updated_at": "2025-01-18T08:43:18.828523",
   "name": "Simple Chat",
   "description": "Basic chat interface using Gemma 2B model",
-  "tags": ["chat", "start"],
+  "tags": [
+    "chat",
+    "start"
+  ],
   "thumbnail": null,
   "thumbnail_url": "/examples/android.png",
   "graph": {
@@ -35,15 +38,15 @@
           }
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 50,
-            "y": 61
+            "y": 50
           },
           "zIndex": 0,
           "width": 187,
           "selectable": true
-        }
+        },
+        "dynamic_properties": {}
       },
       {
         "id": "3",
@@ -55,15 +58,15 @@
           "description": ""
         },
         "ui_properties": {
-          "selected": false,
           "position": {
-            "x": 482,
-            "y": 121
+            "x": 486,
+            "y": 110
           },
           "zIndex": 0,
           "width": 185,
           "selectable": true
-        }
+        },
+        "dynamic_properties": {}
       },
       {
         "id": "4",
@@ -76,23 +79,39 @@
               "type": "paragraph",
               "children": [
                 {
-                  "text": "Use the workflow chat at the bottom of the screen to interact with the workflow."
+                  "text": "Use the workflow chat at the bottom right of the screen to interact with the workflow."
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": ""
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "You can also test the chat app by clicking \"RUN APP\" in the toolbar."
                 }
               ]
             }
           ]
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 52,
             "y": -130
           },
           "zIndex": 0,
-          "width": 337,
-          "height": 110,
+          "width": 508,
+          "height": 137,
           "selectable": true
-        }
+        },
+        "dynamic_properties": {}
       },
       {
         "id": "5",
@@ -101,7 +120,7 @@
         "data": {
           "model": {
             "type": "llama_model",
-            "repo_id": "gemma2:2b"
+            "repo_id": "llama3.2:3b"
           },
           "system_prompt": "You are an assistant.",
           "image": {
@@ -117,15 +136,15 @@
           "keep_alive": 0
         },
         "ui_properties": {
-          "selected": false,
           "position": {
-            "x": 290,
-            "y": 34
+            "x": 297,
+            "y": 65
           },
           "zIndex": 0,
           "width": 159,
           "selectable": true
-        }
+        },
+        "dynamic_properties": {}
       }
     ],
     "edges": [
