@@ -168,7 +168,7 @@ class RealESRGANNode(BaseNode):
             raise ValueError("Invalid model path, should be in the format *x2*.pth")
         scale = int(match.group(1))
 
-        self._model = RealESRGAN("cpu", scale=scale)
+        self._model = RealESRGAN(context.device, scale=scale)
         self._model.load_weights(model_path)
 
     async def move_to_device(self, device: str):
@@ -269,7 +269,12 @@ class Kandinsky3Img2Img(HuggingFacePipelineNode):
 
     @classmethod
     def get_basic_fields(cls):
-        return super().get_basic_fields() + ["image", "prompt", "num_inference_steps", "strength"]
+        return super().get_basic_fields() + [
+            "image",
+            "prompt",
+            "num_inference_steps",
+            "strength",
+        ]
 
     @classmethod
     def get_recommended_models(cls) -> list[HuggingFaceModel]:
@@ -355,7 +360,11 @@ class StableDiffusionControlNetNode(StableDiffusionBaseNode):
 
     @classmethod
     def get_basic_fields(cls):
-        return super().get_basic_fields() + ["controlnet", "control_image", "controlnet_conditioning_scale"]
+        return super().get_basic_fields() + [
+            "controlnet",
+            "control_image",
+            "controlnet_conditioning_scale",
+        ]
 
     @classmethod
     def get_recommended_models(cls):
@@ -507,7 +516,12 @@ class StableDiffusionControlNetInpaintNode(StableDiffusionBaseNode):
 
     @classmethod
     def get_basic_fields(cls):
-        return super().get_basic_fields() + ["init_image", "mask_image", "control_image", "controlnet_conditioning_scale"]
+        return super().get_basic_fields() + [
+            "init_image",
+            "mask_image",
+            "control_image",
+            "controlnet_conditioning_scale",
+        ]
 
     def required_inputs(self):
         return ["init_image", "mask_image", "control_image"]
@@ -984,7 +998,11 @@ class StableDiffusionXLControlNetNode(StableDiffusionXLImg2Img):
 
     @classmethod
     def get_basic_fields(cls):
-        return super().get_basic_fields() + ["controlnet", "control_image", "controlnet_conditioning_scale"]
+        return super().get_basic_fields() + [
+            "controlnet",
+            "control_image",
+            "controlnet_conditioning_scale",
+        ]
 
     def required_inputs(self):
         return ["control_image"]

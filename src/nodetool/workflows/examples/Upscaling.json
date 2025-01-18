@@ -1,8 +1,8 @@
 {
   "id": "upscaling",
   "access": "public",
-  "created_at": "2025-01-09T21:24:57.217155",
-  "updated_at": "2025-01-09T21:24:57.217189",
+  "created_at": "2025-01-18T09:01:27.271253",
+  "updated_at": "2025-01-18T09:01:27.271270",
   "name": "Upscaling",
   "description": "Upscale an image to a higher resolution using a RealESRGAN model.",
   "tags": [
@@ -23,15 +23,7 @@
               "type": "paragraph",
               "children": [
                 {
-                  "text": "- Real ESRGAN is a a fast upscale model"
-                }
-              ]
-            },
-            {
-              "type": "paragraph",
-              "children": [
-                {
-                  "text": "- The output of the ESRGAN model is fed into the Stable Diffusion model"
+                  "text": "Use Real ESR GAN for Upscaling."
                 }
               ]
             },
@@ -47,31 +39,7 @@
               "type": "paragraph",
               "children": [
                 {
-                  "text": "- Stable Diffusion changes the input image"
-                }
-              ]
-            },
-            {
-              "type": "paragraph",
-              "children": [
-                {
-                  "text": "- Use strength to control for the change, higher values change more"
-                }
-              ]
-            },
-            {
-              "type": "paragraph",
-              "children": [
-                {
-                  "text": ""
-                }
-              ]
-            },
-            {
-              "type": "paragraph",
-              "children": [
-                {
-                  "text": "- Finally we combine the output of both models"
+                  "text": "Use \"RUN APP\" to start the mini-app. "
                 }
               ]
             }
@@ -79,114 +47,16 @@
           "headline": "Upscaling"
         },
         "ui_properties": {
-          "selected": false,
           "position": {
-            "x": 190,
-            "y": -148
+            "x": 202,
+            "y": -86
           },
           "zIndex": 0,
-          "width": 479,
-          "height": 184,
+          "width": 290,
+          "height": 113,
           "selectable": true
-        }
-      },
-      {
-        "id": "fdf72faf-1770-46f1-9f26-53d1cd07d785",
-        "parent_id": null,
-        "type": "nodetool.constant.Image",
-        "data": {
-          "value": {
-            "uri": "https://app.nodetool.ai/examples/ip_adapter.jpg",
-            "type": "image"
-          }
         },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 50,
-            "y": 155
-          },
-          "zIndex": 0,
-          "width": 200,
-          "color": "#d33682",
-          "selectable": true
-        }
-      },
-      {
-        "id": "7487d44c-3afe-464d-a71e-405a493609f1",
-        "parent_id": null,
-        "type": "huggingface.image_to_image.StableDiffusionControlNetImg2Img",
-        "data": {
-          "model": {
-            "type": "hf.stable_diffusion",
-            "repo_id": "SG161222/Realistic_Vision_V5.1_noVAE",
-            "path": "Realistic_Vision_V5.1_fp16-no-ema.safetensors"
-          },
-          "prompt": "woman, red hair, blue eyes, detailed skin, photorealistic",
-          "negative_prompt": "",
-          "seed": -1,
-          "num_inference_steps": 25,
-          "guidance_scale": 6,
-          "scheduler": "EulerDiscreteScheduler",
-          "loras": [],
-          "ip_adapter_model": "ip-adapter_sd15.bin",
-          "ip_adapter_scale": 1,
-          "detail_level": 1,
-          "strength": 0.5,
-          "controlnet": {
-            "type": "hf.controlnet",
-            "repo_id": "lllyasviel/control_v11p_sd15_canny",
-            "path": "diffusion_pytorch_model.fp16.safetensors"
-          }
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 727,
-            "y": 50
-          },
-          "zIndex": 0,
-          "width": 250,
-          "selectable": true
-        }
-      },
-      {
-        "id": "a5a8b875-416a-489a-929c-8594539b49df",
-        "parent_id": null,
-        "type": "nodetool.image.transform.Canny",
-        "data": {
-          "low_threshold": 59,
-          "high_threshold": 161
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 540,
-            "y": 109
-          },
-          "zIndex": 0,
-          "width": 157,
-          "selectable": true
-        }
-      },
-      {
-        "id": "c615ad10-2612-4a64-a362-41bd5be9e7cb",
-        "parent_id": null,
-        "type": "nodetool.workflows.base_node.Preview",
-        "data": {
-          "name": "image_output_2024-10-19"
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 1007,
-            "y": 74
-          },
-          "zIndex": 0,
-          "width": 371,
-          "height": 348,
-          "selectable": true
-        }
+        "dynamic_properties": {}
       },
       {
         "id": "833c6933-0566-434b-847c-896a513a606f",
@@ -201,21 +71,65 @@
           }
         },
         "ui_properties": {
-          "selected": false,
           "position": {
-            "x": 280,
-            "y": 184
+            "x": 239,
+            "y": 50
           },
           "zIndex": 0,
           "width": 200,
           "selectable": true
-        }
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "2034477",
+        "parent_id": null,
+        "type": "nodetool.input.ImageInput",
+        "data": {
+          "name": "image",
+          "description": "The image to be upscale",
+          "value": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 50,
+            "y": 91
+          },
+          "zIndex": 0,
+          "width": 159,
+          "selectable": true
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "2034479",
+        "parent_id": null,
+        "type": "nodetool.output.ImageOutput",
+        "data": {
+          "name": "image",
+          "description": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 469,
+            "y": 77
+          },
+          "zIndex": 0,
+          "width": 159,
+          "selectable": true
+        },
+        "dynamic_properties": {}
       }
     ],
     "edges": [
       {
-        "id": "996790b6-57c6-4b96-b4eb-6dacedff1ae5",
-        "source": "fdf72faf-1770-46f1-9f26-53d1cd07d785",
+        "id": "689",
+        "source": "2034477",
         "sourceHandle": "output",
         "target": "833c6933-0566-434b-847c-896a513a606f",
         "targetHandle": "image",
@@ -224,41 +138,11 @@
         }
       },
       {
-        "id": "82dd9a9b-2a54-4c9a-9872-7705015064a9",
+        "id": "e8519708-32ec-4c18-8489-5f1c3ceb3c56",
         "source": "833c6933-0566-434b-847c-896a513a606f",
         "sourceHandle": "output",
-        "target": "7487d44c-3afe-464d-a71e-405a493609f1",
-        "targetHandle": "image",
-        "ui_properties": {
-          "className": "image"
-        }
-      },
-      {
-        "id": "dd740e68-4674-4bbb-8fb2-d26125da975c",
-        "source": "833c6933-0566-434b-847c-896a513a606f",
-        "sourceHandle": "output",
-        "target": "a5a8b875-416a-489a-929c-8594539b49df",
-        "targetHandle": "image",
-        "ui_properties": {
-          "className": "image"
-        }
-      },
-      {
-        "id": "c0f83ef6-fe60-44ad-92dd-e299d90033d5",
-        "source": "7487d44c-3afe-464d-a71e-405a493609f1",
-        "sourceHandle": "output",
-        "target": "c615ad10-2612-4a64-a362-41bd5be9e7cb",
+        "target": "2034479",
         "targetHandle": "value",
-        "ui_properties": {
-          "className": "image"
-        }
-      },
-      {
-        "id": "688f2355-2d16-484f-8e1d-973b8501852d",
-        "source": "a5a8b875-416a-489a-929c-8594539b49df",
-        "sourceHandle": "output",
-        "target": "7487d44c-3afe-464d-a71e-405a493609f1",
-        "targetHandle": "control_image",
         "ui_properties": {
           "className": "image"
         }
