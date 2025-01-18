@@ -10,17 +10,10 @@
         "*.html",
         "*.css",
         "*.json",
-        "build/**/*"
+        "build/**/*",
+        "assets/**/*"
     ],
     "extraResources": [
-        {
-            "from": "resources/tray-icon.png",
-            "to": "tray-icon.png"
-        },
-        {
-            "from": "resources/tray-icon.ico",
-            "to": "tray-icon.ico"
-        },
         {
             "from": "../requirements.txt",
             "to": "requirements.txt"
