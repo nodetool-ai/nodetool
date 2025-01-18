@@ -9,6 +9,7 @@ import { isEqual } from "lodash";
 import { titleizeString } from "../../utils/titleizeString";
 import { NodeData } from "../../stores/NodeData";
 import { Tooltip } from "@mui/material";
+import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
 export interface NodeHeaderProps {
   id: string;
@@ -175,7 +176,11 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
   }, [updateNode, id]);
 
   return (
-    <Tooltip title={description} placement="top">
+    <Tooltip
+      title={description}
+      placement="top"
+      enterDelay={TOOLTIP_ENTER_DELAY}
+    >
       <div
         className="node-header"
         css={memoizedHeaderStyle}
