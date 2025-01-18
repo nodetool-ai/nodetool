@@ -45,7 +45,8 @@ async function createTray() {
 
   const isWindows = process.platform === "win32";
   const iconPath = path.join(
-    process.resourcesPath,
+    __dirname,
+    "assets",
     isWindows ? "tray-icon.ico" : "tray-icon.png"
   );
 

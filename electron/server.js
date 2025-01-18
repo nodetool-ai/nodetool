@@ -277,6 +277,15 @@ async function createLaunchdPlist() {
     "nodetool-server-error.log"
   );
 
+  // Clean up existing log files
+  try {
+    await fs.unlink(logPath).catch(() => {});
+    await fs.unlink(errorLogPath).catch(() => {});
+    logMessage("Cleaned up existing log files");
+  } catch (error) {
+    logMessage(`Error cleaning up log files: ${error.message}`, "warn");
+  }
+
   // make sure the log folder exists
   await fs.mkdir(app.getPath("logs"), { recursive: true });
 
@@ -334,6 +343,7 @@ async function startServerWithLaunchd() {
     logMessage("Starting server with launchd...");
 
     const { stdout, stderr } = await new Promise((resolve, reject) => {
+      console.log("launchctl", ["load", PLIST_PATH]);
       const process = spawn("launchctl", ["load", PLIST_PATH]);
       let stdout = "",
         stderr = "";
@@ -362,6 +372,25 @@ async function startServerWithLaunchd() {
     // Verify the service is running
     const isRunning = await isServerRunningViaLaunchd();
     if (!isRunning) {
+      // Read and log the launchd service logs
+      const logPath = path.join(app.getPath("logs"), "nodetool-server.log");
+      const errorLogPath = path.join(
+        app.getPath("logs"),
+        "nodetool-server-error.log"
+      );
+
+      try {
+        const serviceLog = await fs.readFile(logPath, "utf8");
+        const errorLog = await fs.readFile(errorLogPath, "utf8");
+
+        logMessage("=== Launchd Service Logs ===");
+        logMessage(serviceLog);
+        logMessage("=== Launchd Error Logs ===");
+        logMessage(errorLog);
+      } catch (logError) {
+        logMessage(`Failed to read launchd logs: ${logError.message}`, "error");
+      }
+
       throw new Error("Failed to start server via launchd");
     }
 
@@ -396,16 +425,25 @@ async function isServerRunningViaLaunchd() {
   try {
     const { exec } = require("child_process");
     return new Promise((resolve) => {
+      // First check if service is listed
       exec(
         `launchctl list ${LAUNCHD_SERVICE_NAME}`,
         (error, stdout, stderr) => {
-          // If the command succeeds and returns PID, service is running
           if (!error && stdout && !stdout.includes("Could not find service")) {
-            logMessage("Server is already running via launchd");
+            logMessage("Server is running via launchd");
             resolve(true);
           } else {
-            logMessage("Server is not running via launchd");
-            resolve(false);
+            // If service not found or error, check for any error messages
+            exec(
+              `launchctl error ${LAUNCHD_SERVICE_NAME}`,
+              (errError, errStdout, errStderr) => {
+                if (errStdout) {
+                  logMessage(`Launchd service error: ${errStdout}`, "error");
+                }
+                logMessage("Server is not running via launchd");
+                resolve(false);
+              }
+            );
           }
         }
       );
