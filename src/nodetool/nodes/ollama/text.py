@@ -1,5 +1,6 @@
 import asyncio
 from typing import Mapping
+from ollama import ChatResponse
 from pydantic import Field, validator
 from nodetool.metadata.types import (
     ImageRef,
@@ -13,6 +14,7 @@ from nodetool.metadata.types import (
 )
 from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
+from nodetool.workflows.types import NodeProgress
 
 
 class Ollama(BaseNode):
@@ -130,12 +132,14 @@ class Ollama(BaseNode):
                 user_message["images"] = [image_base64]
             messages.append(user_message)
 
-        res = await context.run_prediction(
+        parts = []
+        async for response in context.stream_prediction(
             node_id=self._id,
             provider=Provider.Ollama,
             model=self.model.repo_id,
             params={
                 "messages": messages,
+                "stream": True,
                 "options": {
                     "temperature": self.temperature,
                     "top_k": self.top_k,
@@ -144,9 +148,21 @@ class Ollama(BaseNode):
                     "num_ctx": self.context_window,
                 },
             },
-        )
+        ):
+            assert isinstance(response, ChatResponse)
+            msg = response.message.content
+            if msg:
+                parts.append(msg)
+                context.post_message(
+                    NodeProgress(
+                        node_id=self._id,
+                        progress=0,
+                        total=0,
+                        chunk=msg,
+                    )
+                )
 
-        return str(res["message"]["content"])
+        return "".join(parts)
 
 
 class Embedding(BaseNode):

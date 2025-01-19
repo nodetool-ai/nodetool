@@ -130,8 +130,38 @@ class TypeMetadata(BaseModel):
             return {}
         if self.is_comfy_type():
             return {"type": "object", "properties": {"id": {"type": "string"}}}
-        if self.is_asset_type():
-            return {"type": "object", "properties": {"url": {"type": "string"}}}
+        if self.is_image_type():
+            return {
+                "type": "object",
+                "properties": {
+                    "uri": {"type": "string", "format": "uri"},
+                    "type": {"type": "string", "enum": ["image"]},
+                },
+            }
+        if self.is_audio_type():
+            return {
+                "type": "object",
+                "properties": {
+                    "uri": {"type": "string", "format": "uri"},
+                    "type": {"type": "string", "enum": ["audio"]},
+                },
+            }
+        if self.is_video_type():
+            return {
+                "type": "object",
+                "properties": {
+                    "uri": {"type": "string", "format": "uri"},
+                    "type": {"type": "string", "enum": ["video"]},
+                },
+            }
+        if self.is_asset_type():  # fallback for other asset types
+            return {
+                "type": "object",
+                "properties": {
+                    "uri": {"type": "string", "format": "uri"},
+                    "type": {"type": "string"},
+                },
+            }
         if self.type == "none":
             return {"type": "null"}
         if self.type == "int":

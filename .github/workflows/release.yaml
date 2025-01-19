@@ -117,5 +117,5 @@ jobs:
         run: |
           cd electron
           npm ci
-          npm run vite:build
+          npm run build:apps
           npx electron-builder --config electron-builder.json --publish always

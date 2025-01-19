@@ -956,7 +956,7 @@ class OutputNode(BaseNode):
         return ["name", "value"]
 
     def result_for_client(self, result: dict[str, Any]) -> dict[str, Any]:
-        return self.result_for_all_outputs(result)
+        return self.result_for_all_outputs({"name": self.name, **result})
 
     @classmethod
     def is_cacheable(cls):
