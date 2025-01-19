@@ -1,8 +1,8 @@
 {
   "id": "image-chat",
   "access": "public",
-  "created_at": "2025-01-18T08:39:44.868136",
-  "updated_at": "2025-01-18T08:39:44.868162",
+  "created_at": "2025-01-19T18:30:58.409812",
+  "updated_at": "2025-01-19T18:30:58.409835",
   "name": "Image Chat",
   "description": "Generate images from natural language descriptions using chat interface",
   "tags": [
@@ -41,7 +41,7 @@
         "ui_properties": {
           "position": {
             "x": 50,
-            "y": 50
+            "y": 52
           },
           "zIndex": 0,
           "width": 187,
@@ -80,8 +80,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 486,
-            "y": 55
+            "x": 705,
+            "y": 50
           },
           "zIndex": 0,
           "width": 250,
@@ -100,8 +100,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 766,
-            "y": 59
+            "x": 985,
+            "y": 104
           },
           "zIndex": 0,
           "width": 187,
@@ -162,7 +162,7 @@
         "data": {
           "model": {
             "type": "llama_model",
-            "repo_id": "llama3.2:3b"
+            "repo_id": "llama3.2:1b"
           },
           "system_prompt": "You are an prompt engineer and write optimized Stable Diffusion prompts. The prompt should be roughly: <subject>, <style>, <scene>, <visual properties>. ONLY output the prompt, nothing else.",
           "image": {
@@ -179,21 +179,51 @@
         },
         "ui_properties": {
           "position": {
-            "x": 297,
-            "y": 64
+            "x": 516,
+            "y": 59
           },
           "zIndex": 0,
           "width": 159,
           "selectable": true
         },
         "dynamic_properties": {}
+      },
+      {
+        "id": "8",
+        "parent_id": null,
+        "type": "nodetool.text.FormatText",
+        "data": {
+          "template": "Based on the user prompt {user},\nwrite a detailed image generation prompt for\nStable Diffusion with these elements:\n- Subject\n- Medium\n- Style\n- Resolution\n- Color\n- Lighting"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 297,
+            "y": 142
+          },
+          "zIndex": 0,
+          "width": 159,
+          "selectable": true
+        },
+        "dynamic_properties": {
+          "user": ""
+        }
       }
     ],
     "edges": [
       {
-        "id": "d3cfd954-fdf4-439b-be8b-e004bfa07162",
-        "source": "1",
-        "sourceHandle": "text",
+        "id": "382b99fb-a015-4ac8-8154-6d905a6426fd",
+        "source": "7",
+        "sourceHandle": "output",
+        "target": "4",
+        "targetHandle": "prompt",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "459d3c50-06f5-463e-b7ea-adcdb4d2da8a",
+        "source": "8",
+        "sourceHandle": "output",
         "target": "7",
         "targetHandle": "prompt",
         "ui_properties": {
@@ -201,11 +231,11 @@
         }
       },
       {
-        "id": "382b99fb-a015-4ac8-8154-6d905a6426fd",
-        "source": "7",
-        "sourceHandle": "output",
-        "target": "4",
-        "targetHandle": "prompt",
+        "id": "3d76290f-ec5c-44ef-83b7-69b4d3dcf729",
+        "source": "1",
+        "sourceHandle": "text",
+        "target": "8",
+        "targetHandle": "user",
         "ui_properties": {
           "className": "str"
         }
