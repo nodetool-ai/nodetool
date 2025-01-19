@@ -1,6 +1,5 @@
-const { BrowserWindow } = require("electron");
+const { BrowserWindow, app } = require("electron");
 const path = require("path");
-const isDev = process.env.NODE_ENV === "development";
 
 /** @typedef {import("./tray").Workflow} Workflow */
 
@@ -33,6 +32,11 @@ function createWorkflowWindow(workflow) {
   });
 
   workflowWindow.loadFile(path.join(__dirname, "build/run-workflow.html"));
+
+  // if (app.isPackaged) {
+  // } else {
+  //   workflowWindow.loadURL("http://localhost:5173");
+  // }
 
   workflowWindow.webContents.on("did-finish-load", () => {
     workflowWindow.webContents.send("workflow", workflow);
