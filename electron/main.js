@@ -147,7 +147,10 @@ app.on("ready", async () => {
   await initialize();
   await createTray();
 
-  // Check for --run argument
+  // Check for environment variable
+  const envWorkflowId = process.env.WORKFLOW_ID;
+
+  // Check for --run argument or environment variable
   const runIndex = process.argv.indexOf("--run");
   if (runIndex > -1 && process.argv[runIndex + 1]) {
     const workflowId = process.argv[runIndex + 1];

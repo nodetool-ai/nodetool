@@ -71,7 +71,7 @@
             "windows": {
                 "runtimeExecutable": "${workspaceFolder}/electron/node_modules/.bin/electron.cmd"
             },
-            "args": ["."],
+            "args": [".", "--run", "65cd53e4d57311efa61100001d7414ba"],
             "outputCapture": "std",
             "console": "integratedTerminal"
         },
