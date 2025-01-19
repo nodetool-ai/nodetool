@@ -15,8 +15,12 @@ __pycache__
 *.safetensors
 build/
 dist/
-electron/web/
+electron/apps/build/
 electron/dist/
+electron/dist-electron/
+# Temporary build files
+.tmp/
+// ... existing code ...
 package/
 postgres_data/
 .ipynb_checkpoints

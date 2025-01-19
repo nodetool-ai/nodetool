@@ -6,12 +6,11 @@
         "buildResources": "resources"
     },
     "files": [
-        "*.js",
-        "*.html",
-        "*.css",
-        "*.json",
+        "assets/**/*",
+        "apps/build/**/*",
         "build/**/*",
-        "assets/**/*"
+        "dist/**/*",
+        "dist-electron/**/*"
     ],
     "extraResources": [
         {

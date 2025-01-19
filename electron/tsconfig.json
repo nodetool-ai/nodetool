@@ -1,21 +1,18 @@
 {
   "compilerOptions": {
-    "allowJs": true,
-    "checkJs": true,
-    "noEmit": true,
-    "target": "ES2020",
-    "module": "CommonJS",
-    "moduleResolution": "node",
-    "strict": false,
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
     "baseUrl": ".",
     "paths": {
       "*": ["*", "node_modules/*"]
-    }
+    },
+    "skipLibCheck": true
   },
   "include": [
-    "*.js",
-    "**/*.js"
-  ],
+    "src/**/*.ts", "index.ts"
+, "preload.ts", "preload-workflow.ts"  ],
   "exclude": [
     "node_modules",
     "dist"
