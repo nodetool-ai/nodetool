@@ -1,0 +1,44 @@
+body {
+  /* font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; */
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  /* -webkit-app-region: drag; */
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+h1 {
+  -webkit-app-region: drag;
+}
+
+.window-controls {
+  position: fixed;
+  top: 0;
+  right: 0;
+  display: flex;
+  z-index: 1000;
+  -webkit-app-region: no-drag;
+}
+
+.window-control-button {
+  width: 45px;
+  height: 30px;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: #ffffff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+}
+
+.window-control-button:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+#close-button:hover {
+  background-color: #e81123;
+}
