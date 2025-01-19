@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { encode, decode } from "@msgpack/msgpack";
-import { Message } from "./types/workflow";
+import { Message } from "../types/workflow";
 
 type ChatStatus =
   | "disconnected"
@@ -11,42 +11,38 @@ type ChatStatus =
 
 interface ChatState {
   status: ChatStatus;
+  statusMessage: string;
   messages: Message[];
-  progress: number;
-  total: number;
+  progress: { current: number; total: number };
   error: string | null;
   workflowId: string | null;
   socket: WebSocket | null;
   chatUrl: string;
   droppedFiles: File[];
-  isDragging: boolean;
   currentNode: string;
+  streamingMessage: string;
   // Actions
   connect: (workflowId: string) => Promise<void>;
   disconnect: () => void;
   sendMessage: (message: Message) => Promise<void>;
   resetMessages: () => void;
   appendMessage: (message: Message) => void;
-
   setDroppedFiles: (files: File[]) => void;
-  addDroppedFiles: (files: File[]) => void;
-  removeDroppedFile: (fileToRemove: File) => void;
-  setIsDragging: (isDragging: boolean) => void;
 }
 
 const useChatStore = create<ChatState>((set, get) => ({
   status: "disconnected",
+  statusMessage: "",
   messages: [],
+  streamingMessage: "",
   results: {},
-  progress: 0,
-  total: 0,
+  progress: { current: 0, total: 0 },
   currentNode: "",
   error: null,
   workflowId: null,
   socket: null,
   chatUrl: "ws://127.0.0.1:8000/chat",
   droppedFiles: [],
-  isDragging: false,
   appendMessage: (message: Message) =>
     set((state) => ({ messages: [...state.messages, message] })),
 
@@ -70,41 +66,53 @@ const useChatStore = create<ChatState>((set, get) => ({
         set((state) => ({
           messages: [...state.messages, data],
           status: "connected",
-          progress: 0,
-          total: 0,
+          progress: { current: 0, total: 0 },
           currentNode: "",
         }));
       } else if (data.type === "job_update") {
         if (data.status === "completed") {
           set({
-            progress: 0,
-            total: 0,
+            progress: { current: 0, total: 0 },
             status: "connected",
             currentNode: "",
+            statusMessage: "",
+            streamingMessage: "",
           });
         } else if (data.status === "failed") {
           set({
             error: data.error,
             status: "error",
-            progress: 0,
-            total: 0,
+            progress: { current: 0, total: 0 },
             currentNode: "",
+            statusMessage: data.error,
           });
         }
       } else if (data.type === "node_update") {
         if (data.status === "completed") {
           set({
-            progress: 0,
-            total: 0,
-            currentNode: data.node_name,
+            progress: { current: 0, total: 0 },
+            currentNode: "",
+            statusMessage: "",
+          });
+        } else {
+          set({
+            statusMessage: `${data.node_name} ${data.status}`,
           });
         }
       } else if (data.type === "node_progress") {
-        set({
-          progress: data.progress,
-          total: data.total,
-          currentNode: data.node_name,
-        });
+        if (data.chunk.length > 0) {
+          set({
+            streamingMessage: get().streamingMessage + data.chunk,
+          });
+        } else {
+          set({
+            progress: {
+              current: data.progress,
+              total: data.total,
+            },
+            currentNode: data.node_name,
+          });
+        }
       }
     };
 
@@ -140,6 +148,9 @@ const useChatStore = create<ChatState>((set, get) => ({
 
   sendMessage: async (message: Message) => {
     const { socket } = get();
+    if (!socket) {
+      throw new Error("WebSocket connection not established");
+    }
     set((state) => ({
       messages: [...state.messages, message],
       status: "loading",
@@ -149,15 +160,6 @@ const useChatStore = create<ChatState>((set, get) => ({
 
   resetMessages: () => set({ messages: [] }),
   setDroppedFiles: (files) => set({ droppedFiles: files }),
-  addDroppedFiles: (files) =>
-    set((state) => ({
-      droppedFiles: [...state.droppedFiles, ...files],
-    })),
-  removeDroppedFile: (fileToRemove) =>
-    set((state) => ({
-      droppedFiles: state.droppedFiles.filter((file) => file !== fileToRemove),
-    })),
-  setIsDragging: (isDragging) => set({ isDragging }),
 }));
 
 export default useChatStore;

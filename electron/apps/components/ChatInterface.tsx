@@ -1,46 +1,78 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import {
-  Box,
-  Flex,
-  ListItem,
-  Textarea,
-  IconButton,
-  Spinner,
-} from "@chakra-ui/react";
+import { Box, Flex, Text } from "@chakra-ui/react";
+import { ProgressRoot, ProgressBar, ProgressValueText } from "./ui/progress";
+import styled from "@emotion/styled";
+import ReactMarkdown from "react-markdown";
 
 import { useColorModeValue } from "./ui/color-mode";
-import useChatStore from "../chat-runner";
+import useChatStore from "../stores/ChatStore";
 import { MessageContent } from "../types/workflow";
 import { ImageDisplay } from "./ImageDisplay";
 import { AudioPlayer } from "./AudioPlayer";
 import { VideoPlayer } from "./VideoPlayer";
 import { FileUploadRoot, FileUploadList } from "./ui/file-upload";
+import { Composer } from "./Composer";
 
 interface ChatInterfaceProps {
   workflowId: string;
   token: string;
 }
 
-interface FilePreviewProps {
-  file: File;
-  onRemove: () => void;
-}
+const LoadingDots = styled.div`
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  padding: 10px;
+
+  span {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: currentColor;
+    animation: bounce 1.4s infinite ease-in-out;
+
+    &:nth-of-type(1) {
+      animation-delay: -0.32s;
+    }
+    &:nth-of-type(2) {
+      animation-delay: -0.16s;
+    }
+  }
+
+  @keyframes bounce {
+    0%,
+    80%,
+    100% {
+      transform: scale(0);
+    }
+    40% {
+      transform: scale(1);
+    }
+  }
+`;
 
 const ChatInterface: React.FC<ChatInterfaceProps> = ({ workflowId, token }) => {
+  const userBgColor = useColorModeValue("gray.100", "gray.900");
+  const assistantBgColor = useColorModeValue("gray.200", "gray.800");
+
   const {
+    connect,
     status,
+    statusMessage,
+    streamingMessage,
     messages,
     droppedFiles,
-    isDragging,
+    progress,
     sendMessage,
     setDroppedFiles,
-    addDroppedFiles,
-    removeDroppedFile,
-    setIsDragging,
   } = useChatStore();
+
+  useEffect(() => {
+    connect(workflowId);
+  }, []);
+
   const [disabled, setDisabled] = useState(false);
 
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -49,41 +81,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ workflowId, token }) => {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, streamingMessage]);
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-
-    const files = Array.from(e.dataTransfer.files);
-    if (files.length > 0) {
-      addDroppedFiles(files);
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSubmit();
-    }
-  };
-
-  const handleSubmit = useCallback(async () => {
-    if (!textareaRef.current) return;
-
-    const message = textareaRef.current.value.trim();
-
-    if (message || droppedFiles.length > 0) {
+  const handleSubmit = useCallback(
+    async (message: string) => {
       const messageContents: MessageContent[] = [];
 
       if (message) {
@@ -138,32 +139,39 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ workflowId, token }) => {
         workflow_id: workflowId,
         auth_token: token,
       });
-      textareaRef.current.value = "";
       setDroppedFiles([]);
       setDisabled(true);
-    }
-  }, [droppedFiles]);
+    },
+    [droppedFiles]
+  );
 
   const renderMessageContent = (content: MessageContent) => {
+    console.log("content", content);
     switch (content.type) {
       case "text":
-        return <div>{content.text}</div>;
+        return <ReactMarkdown>{content.text}</ReactMarkdown>;
       case "image_url":
         return (
           <div className="media-content">
-            <ImageDisplay data={content.image.uri} />
+            <ImageDisplay
+              data={content.image.uri || (content.image.data as string)}
+            />
           </div>
         );
       case "audio":
         return (
           <div className="media-content">
-            <AudioPlayer data={content.audio.uri} />
+            <AudioPlayer
+              data={content.audio.uri || (content.audio.data as string)}
+            />
           </div>
         );
       case "video":
         return (
           <div className="media-content">
-            <VideoPlayer data={content.video.uri} />
+            <VideoPlayer
+              data={content.video.uri || (content.video.data as string)}
+            />
           </div>
         );
       default:
@@ -173,7 +181,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ workflowId, token }) => {
 
   return (
     <Box h="100%">
-      <Flex direction="column" h="calc(100% - 80px)" overflow="hidden">
+      <Flex direction="column" h="calc(100% - 120px)" overflow="hidden">
         <Box flex="1" overflowY="auto">
           {messages.map((msg, index) => (
             <Box
@@ -184,9 +192,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ workflowId, token }) => {
               maxW="80%"
               bg={
                 msg.role === "user"
-                  ? useColorModeValue("gray.100", "gray.700")
+                  ? userBgColor
                   : msg.role === "assistant"
-                    ? useColorModeValue("gray.700", "gray.100")
+                    ? assistantBgColor
                     : "transparent"
               }
               ml={msg.role === "user" ? "auto" : undefined}
@@ -206,87 +214,56 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ workflowId, token }) => {
                   })}
             </Box>
           ))}
+          {streamingMessage && (
+            <Box
+              mb="4"
+              p="3"
+              borderRadius="md"
+              maxW="80%"
+              bg={assistantBgColor}
+              mr="auto"
+            >
+              <ReactMarkdown>{streamingMessage}</ReactMarkdown>
+            </Box>
+          )}
           <Box ref={messagesEndRef} />
         </Box>
 
         {status === "loading" && (
-          <Box>
-            <Spinner />
+          <Box textAlign="center" py={2}>
+            <LoadingDots>
+              <span></span>
+              <span></span>
+              <span></span>
+            </LoadingDots>
+            <Text>{statusMessage}</Text>
           </Box>
         )}
+        {progress.current > 0 && (
+          <ProgressRoot
+            value={(progress.current * 100.0) / progress.total}
+            size="xs"
+            colorScheme="blue"
+            marginLeft="2"
+            marginRight="2"
+          >
+            <ProgressBar />
+            <ProgressValueText>
+              {progress.current} / {progress.total}
+            </ProgressValueText>
+          </ProgressRoot>
+        )}
       </Flex>
-
-      <Box
-        position="relative"
-        h="80px"
-        p="5"
-        bg={useColorModeValue("gray.100", "gray.700")}
-        borderTop="1px"
-        borderColor={useColorModeValue("gray.200", "gray.600")}
-      >
-        <FileUploadRoot maxFiles={10}>
-          <Flex position="relative" gap="2" alignItems="center">
-            <Textarea
-              ref={textareaRef}
-              placeholder="Type your message..."
-              flex="1"
-              bg="transparent"
-              border="none"
-              color={useColorModeValue("gray.800", "gray.100")}
-              fontSize="sm"
-              resize="none"
-              minH="24px"
-              maxH="200px"
-              p="2"
-              _placeholder={{
-                color: `${useColorModeValue("gray.800", "gray.100")}80`,
-              }}
-              onKeyDown={handleKeyDown}
-            />
-
-            <IconButton
-              aria-label="Send message"
-              onClick={handleSubmit}
-              variant="ghost"
-              color={useColorModeValue("teal.500", "teal.300")}
-              _hover={{ opacity: 0.8 }}
-            >
-              <SendIcon />
-            </IconButton>
-          </Flex>
-          {droppedFiles.length > 0 && <FileUploadList />}
-        </FileUploadRoot>
-      </Box>
+      <Composer
+        onSubmit={handleSubmit}
+        disabled={disabled}
+        droppedFiles={droppedFiles}
+        setDroppedFiles={setDroppedFiles}
+      />
     </Box>
   );
 };
 
-// Add icon components
-const SendIcon = () => (
-  <svg viewBox="0 0 24 24" width="24" height="24">
-    <path
-      fill="currentColor"
-      d="M3.4 20.4l17.45-7.48a1 1 0 000-1.84L3.4 3.6a.993.993 0 00-1.39.91L2 9.12c0 .5.37.93.87.99L17 12 2.87 13.88c-.5.07-.87.5-.87 1l.01 4.61c0 .71.73 1.2 1.39.91z"
-    />
-  </svg>
-);
-
-const FileIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24">
-    <path
-      fill="currentColor"
-      d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm4 18H6V4h7v5h5v11z"
-    />
-  </svg>
-);
-
-const CloseIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24">
-    <path
-      fill="currentColor"
-      d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
-    />
-  </svg>
-);
+// Keep FileIcon and CloseIcon if they're still needed
 
 export default ChatInterface;
