@@ -31,7 +31,7 @@ function createWorkflowWindow(workflow) {
     workflowWindows.delete(windowId);
   });
 
-  workflowWindow.loadFile(path.join(__dirname, "build/run-workflow.html"));
+  workflowWindow.loadFile(path.join(__dirname, "build/index.html"));
 
   // if (app.isPackaged) {
   // } else {

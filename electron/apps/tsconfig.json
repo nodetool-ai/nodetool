@@ -1,21 +1,17 @@
 {
   "compilerOptions": {
-    "target": "ESNext",
+    // "target": "ESNext",
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "strict": true,
-    "jsx": "preserve",
-    "sourceMap": true,
+    // "jsx": "preserve",
+    // "sourceMap": true,
     "resolveJsonModule": true,
-    "isolatedModules": true,
-    "esModuleInterop": true,
-    "lib": ["ESNext", "DOM", "DOM.Iterable"],
+    // // "isolatedModules": true,
+    // // "esModuleInterop": true,
+    // "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "skipLibCheck": true,
-    "noEmit": true,
     "baseUrl": ".",
-    "paths": {
-      "@/*": ["./src/*"]
-    }
   },
   "include": ["./**/*.ts", "./**/*.d.ts"],
   "exclude": ["node_modules"]

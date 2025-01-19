@@ -3,14 +3,14 @@ import { resolve } from "path";
 import react from "@vitejs/plugin-react";
 
 export default defineConfig({
-  base: "./", // Makes paths relative
+  base: "./",
   plugins: [react()],
   build: {
     outDir: "../build",
     sourcemap: true,
     rollupOptions: {
       input: {
-        "run-workflow": resolve(__dirname, "run-workflow.html"),
+        index: resolve(__dirname, "index.html"),
       },
       output: {
         entryFileNames: "[name].js",
@@ -27,14 +27,9 @@ export default defineConfig({
     strictPort: true,
     host: true,
   },
-  optimizeDeps: {
-    include: [
-      "@chakra-ui/react",
-      "@emotion/react",
-      "@emotion/styled",
-      "framer-motion",
-    ],
-  },
+  // optimizeDeps: {
+  //   include: ["@chakra-ui/react", "@emotion/react"],
+  // },
   resolve: {
     extensions: [".ts", ".tsx", ".js", ".jsx"],
   },

@@ -20,6 +20,7 @@
   "dependencies": {
     "@chakra-ui/react": "^3.4.0",
     "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
     "@msgpack/msgpack": "^3.0.0-beta2",
     "@types/react": "^19.0.7",
     "@types/react-dom": "^19.0.3",

@@ -1,5 +1,5 @@
 import { encode, decode } from "@msgpack/msgpack";
-import type { JobUpdate, NodeUpdate } from "./types/workflow";
+import type { JobUpdate, NodeUpdate } from "../types/workflow";
 import { create } from "zustand";
 
 const WORKER_URL = "ws://127.0.0.1:8000/predict";

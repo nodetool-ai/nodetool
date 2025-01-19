@@ -446,7 +446,9 @@ class ProcessingContext:
         """Run a prediction on a third-party provider and return the final result."""
         from nodetool.providers.run_prediction import run_prediction
 
-        prediction = await self._prepare_prediction(node_id, provider, model, params, data)
+        prediction = await self._prepare_prediction(
+            node_id, provider, model, params, data
+        )
 
         async for msg in run_prediction(prediction, self.environment):
             if isinstance(msg, PredictionResult):
@@ -467,7 +469,9 @@ class ProcessingContext:
         """Stream prediction results from a third-party provider."""
         from nodetool.providers.run_prediction import run_prediction
 
-        prediction = await self._prepare_prediction(node_id, provider, model, params, data)
+        prediction = await self._prepare_prediction(
+            node_id, provider, model, params, data
+        )
 
         async for msg in run_prediction(prediction, self.environment):
             yield msg
@@ -985,7 +989,7 @@ class ProcessingContext:
         samples = samples.astype(np.float32) / max_value
 
         return samples, segment.frame_rate, segment.channels
-    
+
     async def audio_to_base64(self, audio_ref: AudioRef) -> str:
         """
         Converts the audio to a base64-encoded string.

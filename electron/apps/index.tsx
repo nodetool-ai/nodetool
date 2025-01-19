@@ -1,7 +1,7 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./components/App";
-import "./run-workflow.css";
+import "./index.css";
 import { Provider } from "./components/ui/provider";
 
 const urlParams = new URLSearchParams(window.location.search);
