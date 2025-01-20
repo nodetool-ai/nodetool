@@ -1,17 +1,16 @@
-const { BrowserWindow, app } = require("electron");
-const path = require("path");
-
-/** @typedef {import("./tray").Workflow} Workflow */
+import { BrowserWindow, app } from "electron";
+import path from "path";
+import { Workflow } from "./types";
 
 // Map to store workflow windows
-const workflowWindows = new Map();
+const workflowWindows = new Map<number, BrowserWindow>();
 
 /**
  * Creates a new frameless workflow window
- * @param {Workflow} workflow - The workflow to create a window for
- * @returns {Electron.BrowserWindow} The created window
+ * @param workflow - The workflow to create a window for
+ * @returns The created window
  */
-function createWorkflowWindow(workflow) {
+function createWorkflowWindow(workflow: Workflow): BrowserWindow {
   const workflowWindow = new BrowserWindow({
     frame: false,
     titleBarStyle: "hidden",
@@ -31,12 +30,9 @@ function createWorkflowWindow(workflow) {
     workflowWindows.delete(windowId);
   });
 
-  workflowWindow.loadFile(path.join(__dirname, "build/index.html"));
-
-  // if (app.isPackaged) {
-  // } else {
-  //   workflowWindow.loadURL("http://localhost:5173");
-  // }
+  workflowWindow.loadFile(
+    path.join(__dirname, "..", "apps", "build", "index.html")
+  );
 
   workflowWindow.webContents.on("did-finish-load", () => {
     workflowWindow.webContents.send("workflow", workflow);
@@ -46,20 +42,20 @@ function createWorkflowWindow(workflow) {
 
 /**
  * Checks if a window is a workflow window
- * @param {Electron.BrowserWindow} window - The window to check
- * @returns {boolean} True if the window is a workflow window
+ * @param window - The window to check
+ * @returns True if the window is a workflow window
  */
-function isWorkflowWindow(window) {
+function isWorkflowWindow(window: BrowserWindow): boolean {
   return workflowWindows.has(window.id);
 }
 
 /**
  * Fetches a workflow from the local API
- * @param {string} workflowId - The workflow ID to fetch
- * @returns {Promise<Workflow>} The fetched workflow
+ * @param workflowId - The workflow ID to fetch
+ * @returns The fetched workflow
  * @throws {Error} When the API request fails
  */
-async function fetchWorkflow(workflowId) {
+async function fetchWorkflow(workflowId: string): Promise<Workflow> {
   try {
     const response = await fetch(
       `http://127.0.0.1:8000/api/workflows/${workflowId}`,
@@ -75,21 +71,17 @@ async function fetchWorkflow(workflowId) {
     }
     return await response.json();
   } catch (error) {
-    throw new Error(`Failed to fetch workflows: ${error.message}`);
+    throw new Error(`Failed to fetch workflows: ${(error as Error).message}`);
   }
 }
 
 /**
  * Runs a workflow by fetching it and creating a new window for it
- * @param {string} workflowId - The workflow ID to run
+ * @param workflowId - The workflow ID to run
  */
-async function runWorkflow(workflowId) {
+async function runWorkflow(workflowId: string): Promise<void> {
   const workflow = await fetchWorkflow(workflowId);
   createWorkflowWindow(workflow);
 }
 
-module.exports = {
-  createWorkflowWindow,
-  isWorkflowWindow,
-  runWorkflow,
-};
+export { createWorkflowWindow, isWorkflowWindow, runWorkflow };

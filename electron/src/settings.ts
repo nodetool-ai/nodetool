@@ -1,11 +1,11 @@
-const path = require("path");
-const os = require("os");
-const fs = require("fs");
-const yaml = require("js-yaml");
-const { logMessage } = require("./logger");
+import path from "path";
+import os from "os";
+import fs from "fs";
+import yaml from "js-yaml";
+import { logMessage } from "./logger";
 
 // Add cache at the module level
-let settingsCache = null;
+let settingsCache: Record<string, any> | null = null;
 
 /**
  * Gets the application's configuration directory path for storing data files
@@ -13,7 +13,7 @@ let settingsCache = null;
  * @returns {string} The complete file path
  * @throws {Error} If filename is not provided or invalid
  */
-function getAppConfigPath(filename) {
+function getAppConfigPath(filename: string): string {
   if (!filename || typeof filename !== "string") {
     throw new Error("Invalid filename provided");
   }
@@ -22,7 +22,7 @@ function getAppConfigPath(filename) {
   const platform = process.platform;
 
   try {
-    let basePath;
+    let basePath: string;
 
     if (platform === "linux" || platform === "darwin") {
       basePath = path.join(os.homedir(), ".config", APP_FOLDER);
@@ -40,7 +40,11 @@ function getAppConfigPath(filename) {
 
     return path.join(basePath, filename);
   } catch (error) {
-    throw new Error(`Failed to create system file path: ${error.message}`);
+    throw new Error(
+      `Failed to create system file path: ${
+        error instanceof Error ? error.message : String(error)
+      }`
+    );
   }
 }
 
@@ -49,7 +53,7 @@ function getAppConfigPath(filename) {
  * @returns {Object} Settings object
  * @throws {Error} If reading or parsing fails
  */
-function readSettings() {
+function readSettings(): Record<string, any> {
   try {
     // Return cached settings if available
     if (settingsCache !== null) {
@@ -66,10 +70,14 @@ function readSettings() {
     logMessage("Reading settings from " + settingsPath);
 
     const fileContents = fs.readFileSync(settingsPath, "utf8");
-    settingsCache = yaml.load(fileContents) || {};
+    settingsCache = (yaml.load(fileContents) as Record<string, any>) || {};
     return settingsCache;
   } catch (error) {
-    throw new Error(`Failed to read settings: ${error.message}`);
+    throw new Error(
+      `Failed to read settings: ${
+        error instanceof Error ? error.message : String(error)
+      }`
+    );
   }
 }
 
@@ -78,7 +86,7 @@ function readSettings() {
  * @param {Object} settings - Settings object to write
  * @throws {Error} If writing fails
  */
-function writeSettings(settings) {
+function writeSettings(settings: Record<string, any>): void {
   try {
     const settingsPath = getAppConfigPath("settings.yaml");
     const yamlString = yaml.dump(settings);
@@ -86,7 +94,11 @@ function writeSettings(settings) {
     // Update cache after successful write
     settingsCache = settings;
   } catch (error) {
-    throw new Error(`Failed to write settings: ${error.message}`);
+    throw new Error(
+      `Failed to write settings: ${
+        error instanceof Error ? error.message : String(error)
+      }`
+    );
   }
 }
 
@@ -96,7 +108,7 @@ function writeSettings(settings) {
  * @param {any} value - The new value for the setting
  * @throws {Error} If updating fails or key is invalid
  */
-function updateSetting(key, value) {
+function updateSetting(key: string, value: any): Record<string, any> {
   try {
     if (!key || typeof key !== "string") {
       throw new Error("Invalid setting key provided");
@@ -111,13 +123,12 @@ function updateSetting(key, value) {
     writeSettings(updatedSettings);
     return updatedSettings;
   } catch (error) {
-    throw new Error(`Failed to update setting: ${error.message}`);
+    throw new Error(
+      `Failed to update setting: ${
+        error instanceof Error ? error.message : String(error)
+      }`
+    );
   }
 }
 
-module.exports = {
-  getAppConfigPath,
-  readSettings,
-  writeSettings,
-  updateSetting,
-};
+export { getAppConfigPath, readSettings, writeSettings, updateSetting };

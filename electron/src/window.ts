@@ -1,15 +1,15 @@
-const { BrowserWindow, app, session, dialog } = require("electron");
-const { setMainWindow, getMainWindow } = require("./state");
-const path = require("path");
-const { logMessage } = require("./logger");
+import { BrowserWindow, app, session, dialog, WebContents } from "electron";
+import { setMainWindow, getMainWindow } from "./state";
+import path from "path";
+import { logMessage } from "./logger";
 
-let isAppQuitting = false;
+let isAppQuitting: boolean = false;
 
 /**
  * Creates the main application window
  * @returns {BrowserWindow} The created window instance
  */
-function createWindow() {
+function createWindow(): BrowserWindow {
   // Check if window already exists and is not destroyed
   const existingWindow = getMainWindow();
   if (existingWindow && !existingWindow.isDestroyed()) {
@@ -36,7 +36,7 @@ function createWindow() {
   window.setBackgroundColor("#111111");
 
   // Load the index.html
-  window.loadFile(path.join(__dirname, "index.html"));
+  window.loadFile(path.join(__dirname, "..", "dist", "index.html"));
 
   window.webContents.on("before-input-event", (event, input) => {
     if (
@@ -51,6 +51,7 @@ function createWindow() {
       }
     }
   });
+
   // Show window when ready
   window.once("ready-to-show", () => {
     window.show();
@@ -73,12 +74,21 @@ function createWindow() {
 /**
  * Set permission handlers for Electron sessions.
  */
-function initializePermissionHandlers() {
+function initializePermissionHandlers(): void {
   // Define allowed permissions at the top
-  const allowedPermissions = ["media", "enumerate-devices", "mediaKeySystem"];
+  const allowedPermissions: string[] = [
+    "media",
+    "enumerate-devices",
+    "mediaKeySystem",
+  ];
 
   session.defaultSession.setPermissionRequestHandler(
-    (webContents, permission, callback, details) => {
+    (
+      webContents: WebContents,
+      permission: string,
+      callback: (permissionGranted: boolean) => void,
+      details: { requestingUrl: string }
+    ) => {
       logMessage(
         `Permission requested: ${permission} from ${details.requestingUrl}`
       );
@@ -107,7 +117,11 @@ function initializePermissionHandlers() {
   );
 
   session.defaultSession.setPermissionCheckHandler(
-    (webContents, permission, requestingOrigin) => {
+    (
+      webContents: WebContents | null,
+      permission: string,
+      requestingOrigin: string
+    ): boolean => {
       // Always allow
       if (
         permission === allowedPermissions[0] ||
@@ -126,7 +140,7 @@ function initializePermissionHandlers() {
 /**
  * Force quit the application with error message.
  */
-function forceQuit(errorMessage) {
+function forceQuit(errorMessage: string): never {
   logMessage(`Force quitting application: ${errorMessage}`, "error");
   dialog.showErrorBox("Critical Error", errorMessage);
   process.exit(1);
@@ -136,7 +150,7 @@ function forceQuit(errorMessage) {
  * Handles app activation events
  * @returns {void}
  */
-function handleActivation() {
+function handleActivation(): void {
   // Get all visible windows (not just existing ones)
   const visibleWindows = BrowserWindow.getAllWindows().filter(
     (w) => !w.isDestroyed() && w.isVisible()
@@ -158,8 +172,4 @@ function handleActivation() {
   }
 }
 
-module.exports = {
-  createWindow,
-  forceQuit,
-  handleActivation,
-};
+export { createWindow, forceQuit, handleActivation };
