@@ -5,42 +5,52 @@ import { devError } from "./DevLog";
 interface WorkflowSearchData {
   workflow: Workflow;
   nodeNames: string[];
+  nodeDescriptions: string[];
   searchText: string;
 }
 
 const workflowSearchCache = new Map<string, WorkflowSearchData>();
 
-const extractNodeNames = (workflow: Workflow): string[] => {
-  if (!workflow.graph) return [];
+const extractNodeData = (
+  workflow: Workflow
+): { names: string[]; descriptions: string[] } => {
+  if (!workflow.graph) return { names: [], descriptions: [] };
 
   try {
     const graph =
       typeof workflow.graph === "string"
         ? JSON.parse(workflow.graph)
         : workflow.graph;
+
     const nodes = Object.values(graph.nodes || {});
-    return nodes
-      .map((node: any) => {
-        const title = node.title || "";
-        const type = node.type || "";
-        const dataType = node.data?.type;
-        return [title, type, dataType].filter(Boolean);
-      })
-      .flat();
+    const names: string[] = [];
+    const descriptions: string[] = [];
+
+    nodes.forEach((node: any) => {
+      const title = node.title || "";
+      const type = node.type || "";
+      const dataType = node.data?.type;
+      const description = node.data?.description || "";
+
+      names.push(...[title, type, dataType].filter(Boolean));
+      if (description) descriptions.push(description);
+    });
+
+    return { names, descriptions };
   } catch (e) {
-    devError("Error extracting node names:", e);
-    return [];
+    devError("Error extracting node data:", e);
+    return { names: [], descriptions: [] };
   }
 };
 
 export const prepareWorkflowData = (workflow: Workflow): WorkflowSearchData => {
-  const nodeNames = extractNodeNames(workflow);
-  // Create individual search entries for each node name
-  const searchText = nodeNames.join(" ");
+  const { names, descriptions } = extractNodeData(workflow);
+  const searchText = [...names, ...descriptions].join(" ");
 
   return {
     workflow,
-    nodeNames,
+    nodeNames: names,
+    nodeDescriptions: descriptions,
     searchText
   };
 };
@@ -52,9 +62,17 @@ const nodeOnlySearchOptions = {
   threshold: 0.1,
   distance: 100,
   tokenize: false,
-  minMatchCharLength: 3,
+  minMatchCharLength: 2,
   ignoreLocation: true,
   useExtendedSearch: false
+};
+
+const workflowSearchOptions = {
+  ...nodeOnlySearchOptions,
+  keys: [
+    { name: "workflow.name", weight: 2 },
+    { name: "workflow.description", weight: 1 }
+  ]
 };
 
 export interface SearchResult {
@@ -76,12 +94,15 @@ export const searchWorkflows = (
   const searchData = workflows.map((workflow) => {
     const data = prepareWorkflowData(workflow);
     return {
-      workflow: data.workflow,
+      workflow,
       nodeNames: data.nodeNames
     };
   });
 
-  const fuse = new Fuse(searchData, nodeOnlySearchOptions);
+  const fuse = new Fuse(
+    searchData,
+    nodesOnly ? nodeOnlySearchOptions : workflowSearchOptions
+  );
   const results = fuse.search(query);
 
   return results.map((result) => {
