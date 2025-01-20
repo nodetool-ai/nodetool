@@ -102,6 +102,7 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
       layout: "default",
       properties: mockProperties,
       basic_fields: [],
+      is_dynamic: false,
       outputs: [
         {
           name: "output",

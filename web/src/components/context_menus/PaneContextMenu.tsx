@@ -65,7 +65,8 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
       the_model_info: {},
       layout: "default",
       recommended_models: [],
-      basic_fields: []
+      basic_fields: [],
+      is_dynamic: false
     };
     const newNode = createNode(
       metadata,
@@ -92,7 +93,8 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
         the_model_info: {},
         layout: "default",
         recommended_models: [],
-        basic_fields: []
+        basic_fields: [],
+        is_dynamic: false
       };
       const position = reactFlowInstance.screenToFlowPosition({
         x: menuPosition?.x || event.clientX,

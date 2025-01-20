@@ -53,7 +53,7 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [selectedNodeType, setSelectedNodeType] = useState<string | null>(null);
-  const { panels } = usePanelStore();
+  const { panel } = usePanelStore();
   const [documentationPosition, setDocumentationPosition] = useState({
     x: 0,
     y: 0
@@ -70,12 +70,12 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
         const url = new URL(e.target.href);
         setSelectedNodeType(url.pathname.split("/").pop() || "");
         setDocumentationPosition({
-          x: e.clientX + panels.left.size,
+          x: e.clientX + panel.size,
           y: e.clientY - 150
         });
       }
     },
-    [panels.left.size]
+    [panel.size]
   );
 
   const isExternalLink = (url: string) => {

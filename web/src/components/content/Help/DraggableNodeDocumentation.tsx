@@ -85,7 +85,7 @@ const DraggableNodeDocumentation: React.FC<DraggableNodeDocumentationProps> = ({
   const { createNode, addNode } = useNodeStore();
   const reactFlowInstance = useReactFlow();
   const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
-  const { panels } = usePanelStore();
+  const { panel } = usePanelStore();
   const handleAddNode = useCallback(() => {
     if (nodeMetadata && nodeRef.current) {
       const rect = nodeRef.current.getBoundingClientRect();
@@ -104,9 +104,9 @@ const DraggableNodeDocumentation: React.FC<DraggableNodeDocumentationProps> = ({
   const handleOpenNodeMenu = useCallback(() => {
     if (nodeType) {
       const searchTerm = nodeType.replace(/\./g, " ");
-      openNodeMenu(panels.left.size, 100, false, "", null, searchTerm);
+      openNodeMenu(panel.size, 100, false, "", null, searchTerm);
     }
-  }, [nodeType, openNodeMenu, panels.left.size]);
+  }, [nodeType, openNodeMenu, panel.size]);
 
   const content = useMemo(() => {
     if (!nodeMetadata)

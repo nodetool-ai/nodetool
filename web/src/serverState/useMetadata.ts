@@ -13,6 +13,7 @@ const defaultMetadata: Record<string, NodeMetadata> = {
     node_type: "nodetool.workflows.base_node.Preview",
     layout: "default",
     basic_fields: [],
+    is_dynamic: false,
     properties: [
       {
         name: "value",
