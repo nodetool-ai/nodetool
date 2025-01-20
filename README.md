@@ -2,6 +2,7 @@
   <img src="https://github.com/user-attachments/assets/823b1091-78cd-423f-9b41-14f33b787c7d" alt="NodeTool Logo" height="24" style="vertical-align: -30px;"/>
   NodeTool - Your Personal Automation Platform
 </h1>
+
 ![Conda Pack](https://github.com/nodetool-ai/nodetool/actions/workflows/conda.yaml/badge.svg)
 ![Release](https://github.com/nodetool-ai/nodetool/actions/workflows/release.yaml/badge.svg)
 ![Tests](https://github.com/nodetool-ai/nodetool/actions/workflows/test.yml/badge.svg)
