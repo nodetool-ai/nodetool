@@ -9,7 +9,6 @@
 ![Type Check](https://github.com/nodetool-ai/nodetool/actions/workflows/typecheck.yml/badge.svg)
 ![Docker](https://github.com/nodetool-ai/nodetool/actions/workflows/docker-publish.yaml/badge.svg)
 ![CodeQL](https://github.com/nodetool-ai/nodetool/actions/workflows/github-code-scanning/codeql/badge.svg)
-![Dependabot](https://github.com/nodetool-ai/nodetool/actions/workflows/dependabot/dependabot-updates/badge.svg)
 
 NodeTool enables you to create custom automation workflows powered by AI, right on your desktop. Perfect for professionals who want to streamline their daily tasks and workflows. Whether you're building personal productivity tools, learning assistants, or powerful media generation and manipulation tools, NodeTool provides the foundation for creating powerful, privacy-focused automation solutions.
 
