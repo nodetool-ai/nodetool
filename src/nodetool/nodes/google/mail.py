@@ -15,9 +15,6 @@ from nodetool.metadata.types import (
     IMAPConnection,
 )
 import imaplib
-import email
-from email.header import decode_header
-from email.utils import parsedate_to_datetime
 
 
 def create_gmail_connection(email_address: str, app_password: str) -> IMAPConnection:
@@ -66,7 +63,6 @@ class GmailSearch(BaseNode):
     - Filter emails by subject, sender, or date
     """
 
-    email_address: str = Field(default="", description="Gmail address to connect to")
     search_criteria: EmailSearchCriteria = Field(
         default=EmailSearchCriteria(), description="Search criteria"
     )
@@ -76,11 +72,14 @@ class GmailSearch(BaseNode):
     )
 
     async def process(self, context: ProcessingContext) -> list[Email]:
+        email_address = context.environment.get("GOOGLE_MAIL_USER")
         app_password = context.environment.get("GOOGLE_APP_PASSWORD")
+        if not email_address:
+            raise ValueError("GOOGLE_MAIL_USER is not set")
         if not app_password:
             raise ValueError("GOOGLE_APP_PASSWORD is not set")
 
-        connection = create_gmail_connection(self.email_address, app_password)
+        connection = create_gmail_connection(email_address, app_password)
 
         return search_emails(connection, self.search_criteria, self.max_results)
 
@@ -91,18 +90,20 @@ class MoveToArchive(BaseNode):
     email, gmail, archive
     """
 
-    email_address: str = Field(default="", description="Gmail address to connect to")
     message_ids: List[str] = Field(
         default_factory=list,
         description="List of message IDs to archive",
     )
 
     async def process(self, context: ProcessingContext) -> List[str]:
+        email_address = context.environment.get("GOOGLE_MAIL_USER")
         app_password = context.environment.get("GOOGLE_APP_PASSWORD")
+        if not email_address:
+            raise ValueError("GOOGLE_MAIL_USER is not set")
         if not app_password:
             raise ValueError("GOOGLE_APP_PASSWORD is not set")
 
-        connection = create_gmail_connection(self.email_address, app_password)
+        connection = create_gmail_connection(email_address, app_password)
 
         imap = imaplib.IMAP4_SSL(connection.host, connection.port)
         try:
