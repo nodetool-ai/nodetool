@@ -1,8 +1,8 @@
 {
   "id": "16bb9572c57411efa9aa000050502141",
   "access": "public",
-  "created_at": "2024-12-30T23:55:14.710871",
-  "updated_at": "2024-12-30T23:55:14.711021",
+  "created_at": "2025-01-21T00:18:30.836582",
+  "updated_at": "2025-01-21T00:18:30.836600",
   "name": "Categorize Mails",
   "description": "Automatically categorize and organize emails using AI",
   "tags": null,
@@ -19,32 +19,14 @@
           "selected": false,
           "position": {
             "x": 307,
-            "y": 331
+            "y": 282
           },
           "zIndex": -10,
-          "width": 1056,
-          "height": 587,
+          "width": 1077,
+          "height": 654,
           "selectable": false
-        }
-      },
-      {
-        "id": "11",
-        "parent_id": null,
-        "type": "nodetool.workflows.base_node.Preview",
-        "data": {
-          "name": "list_output_2024-12-29"
         },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 307,
-            "y": 50
-          },
-          "zIndex": 0,
-          "width": 346,
-          "height": 231,
-          "selectable": true
-        }
+        "dynamic_properties": {}
       },
       {
         "id": "13",
@@ -55,28 +37,13 @@
           "selected": false,
           "position": {
             "x": 50,
-            "y": 224
+            "y": 387
           },
           "zIndex": 0,
           "width": 117,
           "selectable": true
-        }
-      },
-      {
-        "id": "14",
-        "parent_id": "12",
-        "type": "nodetool.output.GroupOutput",
-        "data": {},
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 681,
-            "y": 159
-          },
-          "zIndex": 0,
-          "width": 127,
-          "selectable": true
-        }
+        },
+        "dynamic_properties": {}
       },
       {
         "id": "16",
@@ -85,7 +52,7 @@
         "data": {
           "model": {
             "type": "llama_model",
-            "repo_id": "llama3.2:3b"
+            "repo_id": "llama3.2:1b"
           },
           "system_prompt": "You categorize emails from subject and sender, respond with CATEGORY ONLY",
           "context_window": 512,
@@ -103,69 +70,33 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 424,
-            "y": 50
+            "x": 484,
+            "y": 305
           },
           "zIndex": 0,
           "width": 197,
           "selectable": true
-        }
-      },
-      {
-        "id": "17",
-        "parent_id": null,
-        "type": "nodetool.workflows.base_node.Preview",
-        "data": {
-          "name": "any_output_2024-12-29"
         },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 1393,
-            "y": 388
-          },
-          "zIndex": 0,
-          "width": 413,
-          "height": 402,
-          "selectable": true
-        }
-      },
-      {
-        "id": "18",
-        "parent_id": "12",
-        "type": "nodetool.workflows.base_node.Preview",
-        "data": {
-          "name": "str_output_2024-12-29"
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 681,
-            "y": 249
-          },
-          "zIndex": 0,
-          "width": 325,
-          "height": 288,
-          "selectable": true
-        }
+        "dynamic_properties": {}
       },
       {
         "id": "19",
         "parent_id": "12",
         "type": "nodetool.text.Template",
         "data": {
-          "string": "Categorize following subject: {subject} - {from}. RESPOND WITH CATEGORY ONLY"
+          "string": "Categorize following subject: {{subject}}\nFrom sender: {{sender}}\nBody: {{body|truncate(100)}}\n\nRESPOND WITH A CATEGORY:\nP0 - highest priority\nP1\nP2\nP3 - lowest priority\n\nOnly RESPOND WITH 2 letters!"
         },
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 197,
-            "y": 177
+            "x": 227,
+            "y": 336
           },
           "zIndex": 0,
           "width": 197,
           "selectable": true
-        }
+        },
+        "dynamic_properties": {}
       },
       {
         "id": "20",
@@ -180,15 +111,130 @@
           "selected": false,
           "position": {
             "x": 50,
-            "y": 107
+            "y": 103
           },
           "zIndex": 0,
           "width": 197,
           "selectable": true
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "22",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "list_output_2025-01-20"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 307,
+            "y": 50
+          },
+          "zIndex": 0,
+          "width": 318,
+          "height": 182,
+          "selectable": true
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "23",
+        "parent_id": "12",
+        "type": "nodetool.output.GroupOutput",
+        "data": {},
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 907,
+            "y": 368
+          },
+          "zIndex": 0,
+          "width": 120,
+          "selectable": true
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "24",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "any_output_2025-01-21"
+        },
+        "ui_properties": {
+          "selected": true,
+          "position": {
+            "x": 1414,
+            "y": 324
+          },
+          "zIndex": 0,
+          "width": 1005,
+          "height": 430,
+          "selectable": true
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "25",
+        "parent_id": "12",
+        "type": "nodetool.dictionary.MakeDictionary",
+        "data": {},
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 741,
+            "y": 308
+          },
+          "zIndex": 0,
+          "width": 136,
+          "selectable": true
+        },
+        "dynamic_properties": {
+          "category": "",
+          "body": ""
         }
+      },
+      {
+        "id": "26",
+        "parent_id": "12",
+        "type": "nodetool.network.imap.EmailFields",
+        "data": {},
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 514.5,
+            "y": 50
+          },
+          "zIndex": 0,
+          "width": 136,
+          "selectable": true
+        },
+        "dynamic_properties": {}
       }
     ],
     "edges": [
+      {
+        "id": "8467",
+        "source": "20",
+        "sourceHandle": "output",
+        "target": "22",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "list"
+        }
+      },
+      {
+        "id": "90178",
+        "source": "12",
+        "sourceHandle": "output",
+        "target": "24",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "any"
+        }
+      },
       {
         "id": "2c0fe712-0fab-4de8-8c06-8204daf036cd",
         "source": "13",
@@ -200,33 +246,33 @@
         }
       },
       {
-        "id": "58334e63-282a-4f5d-91b5-beb9b1d5fc8d",
+        "id": "ad571b84-54f4-41f0-aa5a-24b1fbf91e12",
         "source": "16",
         "sourceHandle": "output",
-        "target": "14",
+        "target": "25",
+        "targetHandle": "category",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "a3f613da-ce6e-469a-b786-4d2c65fd19c7",
+        "source": "25",
+        "sourceHandle": "output",
+        "target": "23",
         "targetHandle": "input",
         "ui_properties": {
-          "className": "str"
+          "className": "dict"
         }
       },
       {
-        "id": "58336",
-        "source": "16",
-        "sourceHandle": "output",
-        "target": "18",
-        "targetHandle": "value",
+        "id": "b81ae609-5306-4d68-9cee-9c0d3ba3bcfa",
+        "source": "26",
+        "sourceHandle": "body",
+        "target": "25",
+        "targetHandle": "body",
         "ui_properties": {
           "className": "str"
-        }
-      },
-      {
-        "id": "7f2e2d52-0247-481d-9ae1-1be572d446b0",
-        "source": "20",
-        "sourceHandle": "output",
-        "target": "11",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "list"
         }
       },
       {
@@ -240,6 +286,16 @@
         }
       },
       {
+        "id": "80d2e52f-c8e1-4359-9461-4ad327ea5837",
+        "source": "13",
+        "sourceHandle": "output",
+        "target": "26",
+        "targetHandle": "email",
+        "ui_properties": {
+          "className": "any"
+        }
+      },
+      {
         "id": "4131d90f-2b14-444f-9dee-756be6b55ae9",
         "source": "19",
         "sourceHandle": "output",
@@ -247,16 +303,6 @@
         "targetHandle": "prompt",
         "ui_properties": {
           "className": "union"
-        }
-      },
-      {
-        "id": "58335",
-        "source": "12",
-        "sourceHandle": "output",
-        "target": "17",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "any"
         }
       }
     ]
