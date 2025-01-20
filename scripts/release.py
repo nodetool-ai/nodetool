@@ -18,11 +18,10 @@ def update_version_in_pyproject(new_version: str):
     update_version_in_file(pyproject_file, version_regex, new_version_line)
 
 
-def update_version_in_package_json(new_version: str):
-    package_json_file = Path("web/package.json")
+def update_version_in_package_json(file_path: Path, new_version: str):
     version_regex = r'"version": ".*?"'
     new_version_line = f'"version": "{new_version}"'
-    update_version_in_file(package_json_file, version_regex, new_version_line)
+    update_version_in_file(file_path, version_regex, new_version_line)
 
 
 def update_version_in_constants_ts(new_version: str):
@@ -30,13 +29,6 @@ def update_version_in_constants_ts(new_version: str):
     version_regex = r'export const VERSION = ".*?"'
     new_version_line = f'export const VERSION = "{new_version}"'
     update_version_in_file(constants_file, version_regex, new_version_line)
-
-
-def update_version_in_electron_package_json(new_version: str):
-    package_json_file = Path("electron/package.json")
-    version_regex = r'"version": ".*?"'
-    new_version_line = f'"version": "{new_version}"'
-    update_version_in_file(package_json_file, version_regex, new_version_line)
 
 
 def git_commit_and_tag(new_version: str):
@@ -54,8 +46,6 @@ def git_commit_and_tag(new_version: str):
     commands = [
         ["git", "commit", "-m", f"Release version {new_version}"],
         ["git", "tag", "-f", f"v{new_version}"],
-        ["git", "push"],
-        ["git", "push", "origin", "-f", f"v{new_version}"],
     ]
     for command in commands:
         print(subprocess.run(command, check=True, capture_output=True).stderr.decode())
@@ -65,10 +55,10 @@ def main():
     new_version = input("Enter the new version: ").strip()
 
     update_version_in_pyproject(new_version)
-    update_version_in_package_json(new_version)
     update_version_in_constants_ts(new_version)
-    update_version_in_electron_package_json(new_version)
-    # run_poetry_lock()
+    update_version_in_package_json(Path("web/package.json"), new_version)
+    update_version_in_package_json(Path("electron/package.json"), new_version)
+    update_version_in_package_json(Path("electron/apps/package.json"), new_version)
     git_commit_and_tag(new_version)
     print(f"Version {new_version} released successfully.")
 

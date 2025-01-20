@@ -1,6 +1,6 @@
 {
   "name": "nodetool-apps",
-  "version": "0.5.8",
+  "version": "0.6.0",
   "description": "Personalized apps for Nodetool",
   "homepage": "https://nodetool.ai",
   "scripts": {
