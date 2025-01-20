@@ -15,79 +15,23 @@ from typing import Any, Type
 
 from nodetool.workflows.types import Error, NodeProgress, NodeUpdate
 
-"""
-This module defines the WorkflowNode class, which represents a node in a workflow that can execute a sub-workflow.
-
-The WorkflowNode class extends BaseNode and provides functionality to:
-- Load and manage workflow definitions from JSON files
-- Generate properties based on input nodes in the workflow
-- Execute sub-workflows within a larger workflow context
-- Handle progress updates and logging during workflow execution
-
-Key components:
-- WorkflowNode: The main class representing a workflow node
-- properties_from_input_nodes: Helper function to generate properties from input nodes
-
-The module also includes imports for various dependencies and type definitions used in workflow processing.
-
-This module is part of the nodetool package and integrates with other components
-for workflow management, graph processing, and job execution.
-"""
-
-
-def properties_from_input_nodes(nodes: list[BaseNode]):
-    return [
-        Property(
-            name=node.name,
-            title=node.name,
-            default=node.value,  # type: ignore
-            min=node.min if hasattr(node, "min") else None,  # type: ignore
-            max=node.max if hasattr(node, "max") else None,  # type: ignore
-            type=node.properties_dict()["value"].type,
-        )
-        for node in nodes
-        if isinstance(node, InputNode)
-    ]
-
 
 class WorkflowNode(BaseNode):
-    inputs: dict[str, Any] = {}
+    """
+    A WorkflowNode is a node that can execute a sub-workflow.
 
-    def __init__(self, **kwargs):
-        id = kwargs.pop("_id", "")
-        ui_properties = kwargs.pop("_ui_properties", {})
-        super().__init__(id=id, ui_properties=ui_properties)
-        self.inputs = kwargs
+    - Load and manage workflow definitions from JSON, including validation of the structure.
+    - Generate properties based on input nodes in the workflow, allowing for dynamic input handling.
+    - Execute sub-workflows within a larger workflow context, enabling modular workflow design.
+    - Handle progress updates, error reporting, and logging during workflow execution to facilitate debugging and monitoring.
+    """
 
-    def assign_property(self, name: str, value: Any):
-        self.inputs[name] = value
+    _dynamic = True
 
-    @classmethod
-    def get_workflow_file(cls) -> str:
-        return ""
+    workflow_json: dict = {}
 
-    @classmethod
-    def read_workflow(cls) -> dict:
-        workflow_file = cls.get_workflow_file()
-        if workflow_file == "":
-            return {}
-        if not hasattr(cls, "workflow_json"):
-            with open(workflow_file, "r") as f:
-                cls.workflow_json = json.load(f)
-        return cls.workflow_json
-
-    @classmethod
-    def properties(cls):
-        graph = cls.load_graph()
-        return properties_from_input_nodes(list(graph.nodes))
-
-    @classmethod
-    def load_workflow(cls):
-        return read_graph(cls.read_workflow())
-
-    @classmethod
-    def load_graph(cls):
-        edges, nodes = cls.load_workflow()
+    def load_graph(self):
+        edges, nodes = read_graph(self.workflow_json)
         return Graph.from_dict(
             {
                 "nodes": [node.model_dump() for node in nodes],
@@ -95,34 +39,44 @@ class WorkflowNode(BaseNode):
             }
         )
 
-    @classmethod
-    def outputs(cls):
-        graph = cls.load_graph()
-        return [
-            OutputSlot(type=type_metadata(output.return_type()), name=output.name)  # type: ignore
-            for output in graph.outputs()
-        ]
-
     def get_api_graph(self) -> APIGraph:
-        edges, nodes = self.load_workflow()
+        edges, nodes = read_graph(self.workflow_json)
         return APIGraph(edges=edges, nodes=nodes)
 
-    async def process(self, context: ProcessingContext):
+    async def process(self, context: ProcessingContext) -> dict[str, Any]:
         logs = ""
 
         req = RunJobRequest(
             user_id=context.user_id,
             auth_token=context.auth_token,
             graph=self.get_api_graph(),
-            params=self.inputs or {},
+            params=self._dynamic_properties,
         )
         output = {}
-        async for msg in run_workflow(req):
-            context.post_message(msg)
-            if isinstance(msg, Error):
-                raise Exception(msg.error)
-            if isinstance(msg, JobUpdate):
-                if msg.status == "completed":
-                    output = msg.result
-
+        async for msg in run_workflow(req, use_thread=True):
+            assert "type" in msg
+            if msg["type"] == "error":
+                raise Exception(msg["error"])
+            if msg["type"] == "job_update":
+                if msg["status"] == "completed":
+                    output = msg["result"] or {}
+            if msg["type"] == "node_progress":
+                context.post_message(
+                    NodeProgress(
+                        node_id=self._id,
+                        progress=msg["progress"],
+                        total=msg["total"],
+                        chunk=msg["chunk"],
+                    )
+                )
+            if msg["type"] == "node_update":
+                if msg["status"] == "completed":
+                    context.post_message(
+                        NodeProgress(
+                            node_id=self._id,
+                            progress=0,
+                            total=0,
+                            chunk=f"{msg['node_name']} {msg['status']}",
+                        )
+                    )
         return output

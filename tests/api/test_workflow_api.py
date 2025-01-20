@@ -6,7 +6,6 @@ from nodetool.types.workflow import (
 )
 from nodetool.models.user import User
 from nodetool.models.workflow import Workflow
-import nodetool.nodes.nodetool
 
 
 def test_create_workflow(
@@ -54,6 +53,7 @@ def test_get_workflow(client: TestClient, workflow: Workflow, headers: dict[str,
                 "default": 10,
                 "minimum": 0,
                 "maximum": 100,
+                "label": "",
             },
         },
         "required": ["in1"],
@@ -79,6 +79,7 @@ def test_get_public_workflow(
                 "default": 10,
                 "minimum": 0,
                 "maximum": 100,
+                "label": "",
             },
         },
         "required": ["in1"],

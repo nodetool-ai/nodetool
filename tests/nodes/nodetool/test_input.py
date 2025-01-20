@@ -19,11 +19,6 @@ from nodetool.nodes.nodetool.input import (
     ImageInput,
     VideoInput,
     AudioInput,
-    Folder,
-    ImageFolder,
-    AudioFolder,
-    VideoFolder,
-    TextFolder,
     GroupInput,
 )
 
@@ -34,7 +29,7 @@ from nodetool.nodes.nodetool.input import (
     [
         (
             FloatInput(
-                label="Float",
+                description="Float",
                 name="float_input",
                 value=3.14,
             ),
@@ -43,7 +38,7 @@ from nodetool.nodes.nodetool.input import (
         ),
         (
             BooleanInput(
-                label="Boolean",
+                description="Boolean",
                 name="bool_input",
                 value=True,
             ),
@@ -52,7 +47,7 @@ from nodetool.nodes.nodetool.input import (
         ),
         (
             IntegerInput(
-                label="Integer",
+                description="Integer",
                 name="int_input",
                 value=42,
             ),
@@ -61,7 +56,7 @@ from nodetool.nodes.nodetool.input import (
         ),
         (
             StringInput(
-                label="String",
+                description="String",
                 name="string_input",
                 value="test",
             ),
@@ -69,13 +64,17 @@ from nodetool.nodes.nodetool.input import (
             str,
         ),
         (
-            ChatInput(label="Chat", name="chat_input", value=[]),
+            ChatInput(
+                description="Chat",
+                name="chat_input",
+                value=[],
+            ),
             [],
             dict,
         ),
         (
             TextInput(
-                label="Text",
+                description="Text",
                 name="text_input",
                 value=TextRef(uri="test.txt"),
             ),
@@ -84,7 +83,7 @@ from nodetool.nodes.nodetool.input import (
         ),
         (
             ImageInput(
-                label="Image",
+                description="Image",
                 name="image_input",
                 value=ImageRef(uri="test.jpg"),
             ),
@@ -93,7 +92,7 @@ from nodetool.nodes.nodetool.input import (
         ),
         (
             VideoInput(
-                label="Video",
+                description="Video",
                 name="video_input",
                 value=VideoRef(uri="test.mp4"),
             ),
@@ -102,57 +101,12 @@ from nodetool.nodes.nodetool.input import (
         ),
         (
             AudioInput(
-                label="Audio",
+                description="Audio",
                 name="audio_input",
                 value=AudioRef(uri="test.mp3"),
             ),
             AudioRef(uri="test.mp3"),
             AudioRef,
-        ),
-        (
-            Folder(
-                label="Folder",
-                name="folder_input",
-                folder=FolderRef(asset_id="test_folder"),
-            ),
-            [AssetRef()],
-            list,
-        ),
-        (
-            ImageFolder(
-                label="Image Folder",
-                name="image_folder_input",
-                folder=FolderRef(asset_id="test_folder"),
-            ),
-            [ImageRef()],
-            list,
-        ),
-        (
-            AudioFolder(
-                label="Audio Folder",
-                name="audio_folder_input",
-                folder=FolderRef(asset_id="test_folder"),
-            ),
-            [AudioRef()],
-            list,
-        ),
-        (
-            VideoFolder(
-                label="Video Folder",
-                name="video_folder_input",
-                folder=FolderRef(asset_id="test_folder"),
-            ),
-            [VideoRef()],
-            list,
-        ),
-        (
-            TextFolder(
-                label="Text Folder",
-                name="text_folder_input",
-                folder=FolderRef(asset_id="test_folder"),
-            ),
-            [TextRef()],
-            list,
         ),
     ],
 )
@@ -160,9 +114,7 @@ async def test_input_nodes(
     context: ProcessingContext, node, input_value, expected_type
 ):
     # For nodes that require setup
-    if isinstance(node, (Folder, ImageFolder, AudioFolder, VideoFolder, TextFolder)):
-        context.paginate_assets = AsyncMock(return_value=input_value)
-    elif isinstance(node, GroupInput):
+    if isinstance(node, GroupInput):
         node._value = input_value
 
     try:
@@ -197,21 +149,3 @@ async def test_input_node_json_schema(node_class):
     assert isinstance(schema, dict)
     assert "type" in schema
     assert "properties" in schema
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize(
-    "node_class",
-    [Folder, ImageFolder, AudioFolder, VideoFolder, TextFolder],
-)
-async def test_folder_input_nodes(context: ProcessingContext, node_class):
-    folder = FolderRef(asset_id="test_folder")
-    node = node_class(
-        label=f"{node_class.__name__} Label",
-        name=f"{node_class.__name__.lower()}_name",
-        folder=folder,
-    )
-    context.paginate_assets = AsyncMock(return_value=[AssetRef()])
-
-    result = await node.process(context)
-    assert isinstance(result, list)
