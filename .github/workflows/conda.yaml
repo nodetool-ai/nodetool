@@ -1,4 +1,4 @@
-name: Conda Pack
+name: Conda
 
 on:
   push:
