@@ -35,7 +35,7 @@ export function createIpcOnceHandler<T extends keyof IpcEvents>(
   channel: T,
   handler: IpcOnceHandler<T>
 ): void {
-  ipcMain.once(channel, handler);
+  ipcMain.once(channel as string, handler);
 }
 
 /**

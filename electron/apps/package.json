@@ -5,7 +5,8 @@
   "homepage": "https://nodetool.ai",
   "scripts": {
     "build": "vite build",
-    "start": "vite"
+    "start": "vite",
+    "typecheck": "tsc --noEmit"
   },
   "author": "matti.georgi@gmail.com",
   "license": "AGPL-3.0-only",

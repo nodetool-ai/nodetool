@@ -91,7 +91,7 @@ export interface WebSocketUpdate {
   workflow?: Workflow;
 }
 // IPC Channel names as const enum for type safety
-export const enum IpcChannels {
+export enum IpcChannels {
   GET_SERVER_STATE = "get-server-state",
   OPEN_LOG_FILE = "open-log-file",
   SELECT_DEFAULT_LOCATION = "select-default-location",

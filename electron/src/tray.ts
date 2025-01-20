@@ -1,6 +1,7 @@
 import { Tray, Menu, app, BrowserWindow, dialog, shell } from "electron";
 import path from "path";
 import { logMessage, LOG_FILE } from "./logger";
+// @ts-ignore
 import WebSocket from "ws";
 import { createWorkflowWindow } from "./workflow-window";
 import { getMainWindow } from "./state";

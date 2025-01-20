@@ -6,14 +6,12 @@ on:
       - main
     paths:
       - "web/**"
-      - "src/**"
       - "electron/**"
   pull_request:
     branches:
       - main
     paths:
       - "web/**"
-      - "src/**"
       - "electron/**"
 
 jobs:
@@ -33,7 +31,7 @@ jobs:
       - name: Install web dependencies
         run: |
           cd web
-          npm install
+          npm ci
 
       - name: Run TypeScript type check
         run: |
@@ -56,9 +54,26 @@ jobs:
       - name: Install electron dependencies
         run: |
           cd electron
-          npm install
+          npm ci
 
       - name: Run TypeScript type check
         run: |
           cd electron
           npm run typecheck
+
+  mini-apps-type-check:
+    name: Mini Apps TypeScript Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Install mini apps dependencies
+        run: |
+          cd electron/apps
+          npm ci
+
+      - name: Run TypeScript type check
+        run: |
+          cd electron/apps
+          npm ci

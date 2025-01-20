@@ -55,7 +55,9 @@ function createEventHandler<T extends keyof IpcEvents>(
   channel: T
 ): IpcEventHandler<T> {
   return (callback: (data: IpcEvents[T]) => void) => {
-    ipcRenderer.on(channel, (_event, data: IpcEvents[T]) => callback(data));
+    ipcRenderer.on(channel as string, (_event, data: IpcEvents[T]) =>
+      callback(data)
+    );
   };
 }
 
