@@ -8,7 +8,7 @@
     "start": "electron .",
     "build": "electron-builder",
     "vite:build": "vite build",
-    "typecheck": "tsc --noEmit --allowJs --checkJs"
+    "typecheck": "tsc --noEmit"
   },
   "author": "matti.georgi@gmail.com",
   "license": "AGPL-3.0-only",

@@ -1,6 +1,7 @@
 import path from "path";
 import os from "os";
 import fs from "fs";
+// @ts-ignore
 import yaml from "js-yaml";
 import { logMessage } from "./logger";
 

@@ -101,6 +101,13 @@ jobs:
           npm ci
           npm run build
 
+      - name: Build Mini Apps
+        shell: bash -l {0}
+        run: |
+          cd electron/apps
+          npm ci
+          npm run build
+
       - name: Build and Publish Electron
         shell: bash -l {0}
         env:
@@ -117,5 +124,5 @@ jobs:
         run: |
           cd electron
           npm ci
-          npm run build:apps
+          npm run vite:build
           npx electron-builder --config electron-builder.json --publish always
