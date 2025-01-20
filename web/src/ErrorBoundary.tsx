@@ -3,7 +3,6 @@ import { css } from "@emotion/react";
 
 import React from "react";
 import { useRouteError } from "react-router-dom";
-import { motion } from "framer-motion";
 import { Typography, Box, Button, ThemeProvider } from "@mui/material";
 import ThemeNodetool from "./components/themes/ThemeNodetool";
 
@@ -85,13 +84,7 @@ const ErrorBoundary: React.FC = () => {
   return (
     <ThemeProvider theme={ThemeNodetool}>
       <Box css={errorBoundaryStyles}>
-        <motion.div
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          transition={{ duration: 0.5 }}
-        >
-          <img src="/logo192.png" alt="NodeTool Logo" className="logo" />
-        </motion.div>
+        <img src="/logo192.png" alt="NodeTool Logo" className="logo" />
         <Typography variant="h2" className="error-title">
           NodeTool has encountered an error
         </Typography>
