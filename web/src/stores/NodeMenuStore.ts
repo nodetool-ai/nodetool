@@ -6,6 +6,7 @@ import { filterDataByType } from "../components/node_menu/typeFilterUtils";
 import useMetadataStore from "./MetadataStore";
 import useRemoteSettingsStore from "./RemoteSettingStore";
 import { highlightText as highlightTextUtil } from "../utils/highlightText";
+import { usePanelStore } from "./PanelStore";
 
 export interface SplitNodeDescription {
   description: string;
@@ -620,10 +621,10 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
     openNodeMenu: (
       x: number,
       y: number,
-      openedByDrop: boolean = false,
-      dropType: string = "",
-      connectDirection: ConnectDirection = null,
-      searchTerm: string = ""
+      openedByDrop?: boolean,
+      dropType?: string,
+      connectDirection?: ConnectDirection,
+      searchTerm?: string
     ) => {
       set({ clickPosition: { x, y } });
       const { menuWidth, menuHeight } = get();
@@ -634,39 +635,48 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
       const menuOffset = 20;
       const constrainedY = Math.min(Math.max(y + menuOffset, minPosY), maxPosY);
 
+      // Close the left panel if it's showing nodes
+      const panelStore = usePanelStore.getState();
+      if (panelStore.panel.activeView === "nodes") {
+        panelStore.closePanel();
+      }
+
       set({
         isMenuOpen: true,
         menuPosition: { x: constrainedX, y: constrainedY },
-        openedByDrop,
-        dropType,
-        connectDirection
+        openedByDrop: openedByDrop || false,
+        dropType: dropType || "",
+        connectDirection: connectDirection || null
       });
 
       setTimeout(() => {
-        get().performSearch(searchTerm);
+        get().performSearch(searchTerm || "");
       }, 0);
     },
 
     closeNodeMenu: () => {
-      if (get().dragToCreate) {
-        set({ dragToCreate: false });
-        return;
+      if (get().isMenuOpen) {
+        console.log("closeNodeMenu");
+        if (get().dragToCreate) {
+          set({ dragToCreate: false });
+          return;
+        }
+        if (get().openedByDrop) {
+          set({ openedByDrop: false });
+          return;
+        }
+        set({
+          searchTerm: "",
+          openedByDrop: false,
+          dropType: "",
+          dragToCreate: false,
+          connectDirection: null,
+          isMenuOpen: false,
+          menuPosition: { x: 100, y: 100 },
+          searchResults: [],
+          groupedSearchResults: []
+        });
       }
-      if (get().openedByDrop) {
-        set({ openedByDrop: false });
-        return;
-      }
-      set({
-        searchTerm: "",
-        openedByDrop: false,
-        dropType: "",
-        dragToCreate: false,
-        connectDirection: null,
-        isMenuOpen: false,
-        menuPosition: { x: 100, y: 100 },
-        searchResults: [],
-        groupedSearchResults: []
-      });
     },
 
     updateHighlightedNamespaces: (results: NodeMetadata[]) => {

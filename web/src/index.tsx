@@ -49,15 +49,11 @@ import { MIN_ZOOM } from "./config/constants";
 import { metadataQuery } from "./serverState/useMetadata";
 import useMetadataStore from "./stores/MetadataStore";
 import { useNodeStore } from "./stores/NodeStore";
-import { getStoredPanelSizes } from "./hooks/handlers/useResizePanel";
-import { usePanelStore } from "./stores/PanelStore";
 import { createConnectabilityMatrix } from "./components/node_menu/typeFilterUtils";
 
 if (!isProduction) {
   useRemoteSettingsStore.getState().fetchSettings();
 }
-
-usePanelStore.getState().initializePanelSizes(getStoredPanelSizes());
 
 const queryClient = new QueryClient();
 useAssetStore.getState().setQueryClient(queryClient);
