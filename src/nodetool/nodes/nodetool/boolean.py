@@ -13,6 +13,25 @@ class BooleanOperation(str, Enum):
     NOR = "nor"
 
 
+class ConditionalSwitch(BaseNode):
+    """
+    Performs a conditional check on a boolean input and returns a value based on the result.
+    if, condition, flow-control, branch, true, false, switch, toggle
+
+    Use cases:
+    - Implement conditional logic in workflows
+    - Create dynamic branches in workflows
+    - Implement decision points in workflows
+    """
+
+    condition: bool = Field(description="The condition to check")
+    if_true: Any = Field(description="The value to return if the condition is true")
+    if_false: Any = Field(description="The value to return if the condition is false")
+
+    async def process(self, context: ProcessingContext) -> Any:
+        return self.if_true if self.condition else self.if_false
+
+
 class LogicalOperator(BaseNode):
     """
     Performs logical operations on two boolean inputs.
@@ -134,7 +153,9 @@ class IsIn(BaseNode):
     """
 
     value: Any = Field(default=None, description="The value to check for membership")
-    options: list[Any] = Field(default_factory=list, description="The list of options to check against")
+    options: list[Any] = Field(
+        default_factory=list, description="The list of options to check against"
+    )
 
     async def process(self, context: ProcessingContext) -> bool:
         return self.value in self.options

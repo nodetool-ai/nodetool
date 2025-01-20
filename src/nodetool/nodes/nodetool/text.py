@@ -21,22 +21,6 @@ from bs4 import BeautifulSoup
 from enum import Enum
 
 
-class TextID(BaseNode):
-    """
-    Returns the asset id.
-    index, asset, identifier
-    """
-
-    text: str = Field(title="Text", default="")
-
-    @classmethod
-    def get_title(cls):
-        return "Get Text ID"
-
-    async def process(self, context: ProcessingContext) -> str | None:
-        return self.text
-
-
 class Concat(BaseNode):
     """
     Concatenates two text inputs into a single output.

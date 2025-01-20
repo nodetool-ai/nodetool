@@ -1,0 +1,5 @@
+pytest
+pytest-mock
+pytest-asyncio
+pytest-env
+pytest-xdist

@@ -279,8 +279,7 @@ async def test_scale(
 
 @pytest.mark.asyncio
 async def test_save_text_node(context: ProcessingContext, user: User, http_client):
-    text_ref = await context.text_from_str("Sample Text")
-    node = SaveText(name="TestText", value=text_ref)
+    node = SaveText(name="TestText", text="Sample Text")
 
     res = await node.process(context)
     assert res.asset_id, "TextRef should have an asset_id"
@@ -317,7 +316,7 @@ async def test_save_tensor_node(context: ProcessingContext, user: User):
     folder = Asset.create(user.id, "test", "folder")
     node = SaveTensor(
         name="TestTensor",
-        value=Tensor.from_numpy(np.array([1, 2, 3], dtype=np.float32)),
+        tensor=Tensor.from_numpy(np.array([1, 2, 3], dtype=np.float32)),
         folder=FolderRef(asset_id=folder.id),
     )
     result = await node.process(context)
@@ -333,7 +332,7 @@ async def test_save_audio_node(context: ProcessingContext, user: User, http_clie
 
     node = SaveAudio(
         name="TestAudio",
-        value=audio_ref,
+        audio=audio_ref,
         folder=FolderRef(asset_id=folder.id),
     )
     result = await node.process(context)

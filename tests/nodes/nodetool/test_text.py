@@ -3,7 +3,6 @@ import json
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.metadata.types import TextRef, DataframeRef
 from nodetool.nodes.nodetool.text import (
-    TextID,
     Concat,
     Join,
     Template,
@@ -20,21 +19,20 @@ from nodetool.nodes.nodetool.text import (
 )
 
 # Create dummy inputs for testing
-dummy_text = TextRef(data=b"Hello, world!")
 dummy_string = "Hello, world!"
+dummy_text = TextRef(data=b"Hello, world!")
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     "node, expected_type",
     [
-        (TextID(text=TextRef(asset_id="123")), str),
-        (Concat(a=dummy_text, b=dummy_text), (str, TextRef)),
-        (Join(strings=[dummy_string, dummy_string], separator=","), (str, TextRef)),
-        (Template(string=dummy_string, values={"name": "Alice"}), (str, TextRef)),
-        (Replace(text=dummy_string, old="world", new="universe"), (str, TextRef)),
+        (Concat(a=dummy_string, b=dummy_string), str),
+        (Join(strings=[dummy_string, dummy_string], separator=","), str),
+        (Template(string=dummy_string, values={"name": "Alice"}), (str,)),
+        (Replace(text=dummy_string, old="world", new="universe"), str),
         (JSONToDataframe(text='[{"a": 1, "b": 2}, {"a": 3, "b": 4}]'), DataframeRef),
-        (SaveText(value=dummy_string, name="test.txt"), TextRef),
+        (SaveText(text=dummy_string, name="test.txt"), TextRef),
         (Split(text="a,b,c", delimiter=","), list),
         (Extract(text="abcdef", start=1, end=4), (str, TextRef)),
         (Chunk(text="a b c d e", length=2, overlap=0), list),
