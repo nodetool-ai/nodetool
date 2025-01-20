@@ -29,6 +29,7 @@ class SecretsModel(BaseModel):
     )
     AIME_USER: str | None = Field(default=None, description="Aime user")
     AIME_API_KEY: str | None = Field(default=None, description="Aime API key")
+    GOOGLE_MAIL_USER: str | None = Field(default=None, description="Google mail user")
     GOOGLE_APP_PASSWORD: str | None = Field(
         default=None, description="Google app password"
     )

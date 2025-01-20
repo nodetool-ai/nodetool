@@ -86,7 +86,8 @@ const RemoteSettings = () => {
     GOOGLE_APP_PASSWORD: "",
     GEMINI_API_KEY: "",
     FAL_API_KEY: "",
-    ELEVENLABS_API_KEY: ""
+    ELEVENLABS_API_KEY: "",
+    GOOGLE_MAIL_USER: ""
   });
 
   const updateSettingsMutation = useMutation({
@@ -111,7 +112,8 @@ const RemoteSettings = () => {
         GOOGLE_APP_PASSWORD: data.secrets.GOOGLE_APP_PASSWORD || "",
         GEMINI_API_KEY: data.secrets.GEMINI_API_KEY || "",
         FAL_API_KEY: data.secrets.FAL_API_KEY || "",
-        ELEVENLABS_API_KEY: data.secrets.ELEVENLABS_API_KEY || ""
+        ELEVENLABS_API_KEY: data.secrets.ELEVENLABS_API_KEY || "",
+        GOOGLE_MAIL_USER: data.secrets.GOOGLE_MAIL_USER || ""
       });
     }
   }, [isSuccess, data]);
@@ -327,6 +329,14 @@ const RemoteSettings = () => {
           <Typography variant="h2">Google</Typography>
           <div className="settings-item">
             <TextField
+              autoComplete="off"
+              id="google-mail-user-input"
+              label="Google Mail User"
+              value={settings.GOOGLE_MAIL_USER}
+              onChange={(e) => handleChange("GOOGLE_MAIL_USER", e.target.value)}
+              variant="standard"
+            />
+            <TextField
               type="password"
               autoComplete="off"
               id="google-app-password-input"
@@ -336,6 +346,7 @@ const RemoteSettings = () => {
                 handleChange("GOOGLE_APP_PASSWORD", e.target.value)
               }
               variant="standard"
+              sx={{ marginTop: "1em" }}
             />
             <div className="text-and-button">
               <Typography className="description">
