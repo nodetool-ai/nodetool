@@ -17,6 +17,8 @@ import { serverState } from "./state";
 import fs from "fs/promises";
 import net from "net";
 import { updateTrayMenu } from "./tray";
+import { LOG_FILE } from "./logger";
+import { runWorkflow } from "./workflow-window";
 
 interface ServerState {
   initialURL: string;
@@ -498,6 +500,19 @@ async function stopServer(): Promise<void> {
   }
 
   logMessage("Graceful shutdown complete");
+}
+
+export function getServerState() {
+  return serverState;
+}
+
+export function openLogFile() {
+  return shell.showItemInFolder(LOG_FILE);
+}
+
+export async function runApp(workflowId: string) {
+  logMessage(`Running app with workflow ID: ${workflowId}`);
+  return runWorkflow(workflowId);
 }
 
 export {

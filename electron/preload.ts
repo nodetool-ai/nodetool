@@ -12,160 +12,113 @@
  *   update steps, and download progress
  */
 
-import { contextBridge, ipcRenderer, shell, IpcRendererEvent } from "electron";
+import { contextBridge, ipcRenderer, shell } from "electron";
 
-interface ServerState {
-  isStarted: boolean;
-  bootMsg: string;
-  logs: string[];
+import {
+  InstallLocationData,
+  IpcChannels,
+  IpcEvents,
+  IpcRequest,
+  IpcResponse,
+  ServerState,
+  UpdateProgressData,
+} from "./src/types.d";
+import { UpdateInfo } from "electron-updater";
+
+type IpcHandler<T extends keyof IpcRequest> = (
+  data: IpcRequest[T]
+) => Promise<IpcResponse[T]>;
+
+type IpcEventHandler<T extends keyof IpcEvents> = (
+  callback: (data: IpcEvents[T]) => void
+) => void;
+
+interface InstallLocationPrompt {
+  defaultPath: string;
+  downloadSize: string;
+  installedSize: string;
 }
 
-interface DownloadProgressData {
+/**
+ * Type-safe wrapper for IPC invoke calls
+ */
+function createInvokeHandler<T extends keyof IpcRequest>(
+  channel: T
+): IpcHandler<T> {
+  return (data: IpcRequest[T]) => ipcRenderer.invoke(channel, data);
+}
+
+/**
+ * Type-safe wrapper for IPC event listeners
+ */
+function createEventHandler<T extends keyof IpcEvents>(
+  channel: T
+): IpcEventHandler<T> {
+  return (callback: (data: IpcEvents[T]) => void) => {
+    ipcRenderer.on(channel, (_event, data: IpcEvents[T]) => callback(data));
+  };
+}
+
+interface UpdateProgress {
   componentName: string;
   progress: number;
+  action: string;
+  eta?: string;
 }
 
-interface SaveFileOptions {
-  buffer: Buffer;
-  defaultPath: string;
-  filters: FileFilter[];
+// Consolidate IPC types into a single interface
+interface IpcApi {
+  // Invoke methods (return promises)
+  getServerState(): Promise<ServerState>;
+  openLogFile(): Promise<void>;
+  selectInstallLocation(): Promise<string>;
+  selectCustomInstallLocation(): Promise<string>;
+  runApp(): Promise<void>;
+
+  // Event listeners
+  onServerStarted(callback: () => void): void;
+  onBootMessage(callback: (data: string) => void): void;
+  onServerLog(callback: (data: string) => void): void;
+  onUpdateProgress(callback: (data: UpdateProgress) => void): void;
+  onUpdateAvailable(callback: (data: UpdateInfo) => void): void;
+  onInstallLocationPrompt(
+    callback: (data: InstallLocationPrompt) => void
+  ): void;
+
+  // Window controls
+  windowControls: {
+    close(): void;
+    minimize(): void;
+    maximize(): void;
+  };
 }
 
-interface FileFilter {
-  name: string;
-  extensions: string[];
-}
-
-type CallbackFunction<T = any> = (data: T) => void;
-
-/**
- * Expose protected methods that allow the renderer process to use
- * specific ipcRenderer methods without exposing the entire ipcRenderer object.
- */
 contextBridge.exposeInMainWorld("api", {
-  /**
-   * Retrieves the current state of the NodeTool server.
-   * @returns {Promise<ServerState>}
-   *          A promise that resolves to an object containing:
-   *          - isStarted: Whether the server has started
-   *          - bootMsg: The current boot message
-   *          - logs: An array of server log messages
-   */
-  getServerState: (): Promise<ServerState> =>
-    ipcRenderer.invoke("get-server-state"),
+  getServerState: () => ipcRenderer.invoke(IpcChannels.GET_SERVER_STATE),
+  openLogFile: () => ipcRenderer.invoke(IpcChannels.OPEN_LOG_FILE),
+  selectDefaultInstallLocation: () =>
+    ipcRenderer.invoke(IpcChannels.SELECT_DEFAULT_LOCATION),
+  selectCustomInstallLocation: () =>
+    ipcRenderer.invoke(IpcChannels.SELECT_CUSTOM_LOCATION),
+  runApp: (workflowId: string) =>
+    ipcRenderer.invoke(IpcChannels.RUN_APP, workflowId),
 
-  /**
-   * Registers a callback to be invoked when the server has started.
-   * @param {CallbackFunction} callback - The function to be called when the server starts
-   */
-  onServerStarted: (callback: CallbackFunction) =>
-    ipcRenderer.on("server-started", (_event: IpcRendererEvent, info: any) =>
-      callback(info)
-    ),
+  onServerStarted: (callback: () => void) =>
+    createEventHandler(IpcChannels.SERVER_STARTED)(callback),
+  onBootMessage: (callback: (data: string) => void) =>
+    createEventHandler(IpcChannels.BOOT_MESSAGE)(callback),
+  onServerLog: (callback: (data: string) => void) =>
+    createEventHandler(IpcChannels.SERVER_LOG)(callback),
+  onUpdateProgress: (callback: (data: UpdateProgressData) => void) =>
+    createEventHandler(IpcChannels.UPDATE_PROGRESS)(callback),
+  onUpdateAvailable: (callback: (data: UpdateInfo) => void) =>
+    createEventHandler(IpcChannels.UPDATE_AVAILABLE)(callback),
+  onInstallLocationPrompt: (callback: (data: InstallLocationData) => void) =>
+    createEventHandler(IpcChannels.INSTALL_LOCATION_PROMPT)(callback),
 
-  /**
-   * Registers a callback to receive boot messages.
-   * @param {CallbackFunction<string>} callback - The function to be called with each boot message
-   */
-  onBootMessage: (callback: CallbackFunction<string>) =>
-    ipcRenderer.on(
-      "boot-message",
-      (_event: IpcRendererEvent, message: string) => callback(message)
-    ),
-
-  /**
-   * Registers a callback to receive server log messages.
-   * @param {CallbackFunction<string>} callback - The function to be called with each log message
-   */
-  onServerLog: (callback: CallbackFunction<string>) =>
-    ipcRenderer.on("server-log", (_event: IpcRendererEvent, message: string) =>
-      callback(message)
-    ),
-
-  /**
-   * Registers a callback to receive download progress updates.
-   * This is used during the component download process to show the progress
-   * of each component being downloaded.
-   * @param {CallbackFunction<DownloadProgressData>} callback - The function to be called with download progress data
-   */
-  onUpdateProgress: (callback: CallbackFunction<DownloadProgressData>) =>
-    ipcRenderer.on(
-      "update-progress",
-      (_event: IpcRendererEvent, data: DownloadProgressData) => callback(data)
-    ),
-
-  /**
-   * Gets the path to the application's log file.
-   * @returns {Promise<string>} A promise that resolves to the full path of the log file
-   */
-  getLogFilePath: (): Promise<string> =>
-    ipcRenderer.invoke("get-log-file-path"),
-
-  /**
-   * Opens the application's log file in the system's default text editor.
-   * @returns {Promise<void>} A promise that resolves when the file is opened
-   */
-  openLogFile: (): Promise<void> => ipcRenderer.invoke("open-log-file"),
-
-  /**
-   * Saves a file to disk with the provided content and options.
-   * @param {Buffer} buffer - The content to save to the file
-   * @param {string} defaultPath - The default file path to suggest in the save dialog
-   * @param {FileFilter[]} filters - File filters for the save dialog
-   * @returns {Promise<string>} A promise that resolves to the path where the file was saved
-   */
-  saveFile: (
-    buffer: Buffer,
-    defaultPath: string,
-    filters: FileFilter[]
-  ): Promise<string> =>
-    ipcRenderer.invoke("save-file", {
-      buffer,
-      defaultPath,
-      filters,
-    } as SaveFileOptions),
-
-  /**
-   * Runs a specific workflow in the application.
-   * @param {string} workflowId - The ID of the workflow to run
-   * @returns {Promise<void>} A promise that resolves when the workflow starts
-   */
-  runApp: (workflowId: string): Promise<void> =>
-    ipcRenderer.invoke("run-app", workflowId),
-
-  /**
-   * Registers a callback to be invoked when an update is available.
-   * @param {CallbackFunction} callback - The function to be called when an update is available
-   */
-  onUpdateAvailable: (callback: CallbackFunction) =>
-    ipcRenderer.on("update-available", (_event: IpcRendererEvent, info: any) =>
-      callback(info)
-    ),
-
-  /**
-   * Initiates the installation of a pending update.
-   * @returns {Promise<void>} A promise that resolves when the update installation begins
-   */
-  installUpdate: (): Promise<void> => ipcRenderer.invoke("install-update"),
-
-  /**
-   * Opens a URL in the user's default external browser.
-   * @param {string} url - The URL to open
-   * @returns {Promise<void>} A promise that resolves when the URL is opened
-   */
-  openExternal: (url: string): Promise<void> => shell.openExternal(url),
+  windowControls: {
+    close: () => ipcRenderer.send(IpcChannels.WINDOW_CLOSE),
+    minimize: () => ipcRenderer.send(IpcChannels.WINDOW_MINIMIZE),
+    maximize: () => ipcRenderer.send(IpcChannels.WINDOW_MAXIMIZE),
+  },
 });
-
-/**
- * Note on IPC (Inter-Process Communication):
- *
- * The exposed methods use IPC to communicate between the main process and
- * the renderer process. Here's a brief explanation of the IPC methods used:
- *
- * - ipcRenderer.invoke: Used for request-response style IPC. It sends a
- *   message to the main process and waits for a response.
- *
- * - ipcRenderer.on: Used to listen for events sent from the main process.
- *   It registers a callback that will be called whenever the specified
- *   event is emitted by the main process.
- */

@@ -13,7 +13,7 @@ import {
 } from "./scheduler";
 import { exec, execSync } from "child_process";
 import { stopServer } from "./server";
-import { Workflow, WebSocketUpdate } from "./types";
+import { Workflow, WebSocketUpdate } from "./types.d";
 
 let trayInstance: Electron.Tray | null = null;
 let wsConnection: WebSocket | null = null;

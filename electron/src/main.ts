@@ -24,6 +24,7 @@ import { emitBootMessage } from "./events";
 import fs from "fs";
 import { createTray } from "./tray";
 import { isWorkflowWindow, runWorkflow } from "./workflow-window";
+import { initializeIpcHandlers } from "./ipc";
 
 /**
  * Global application state flags and objects
@@ -39,6 +40,8 @@ let mainWindow: BrowserWindow | null = null;
 async function checkPythonEnvironment(): Promise<void> {
   emitBootMessage("Checking for Python environment...");
   const hasCondaEnv = await isCondaEnvironmentInstalled();
+
+  logMessage(`Python environment installed: ${hasCondaEnv}`);
 
   if (!hasCondaEnv) {
     await installCondaEnvironment();
@@ -130,12 +133,13 @@ async function checkMediaPermissions(): Promise<void> {
 }
 
 app.on("ready", async () => {
+  await initializeIpcHandlers();
   await checkMediaPermissions();
+
+  mainWindow = createWindow();
+
   await initialize();
   await createTray();
-
-  // Check for environment variable
-  const envWorkflowId = process.env.WORKFLOW_ID;
 
   // Check for --run argument or environment variable
   const runIndex = process.argv.indexOf("--run");
@@ -144,11 +148,6 @@ app.on("ready", async () => {
     logMessage(`Running workflow from command line: ${workflowId}`);
     runWorkflow(workflowId);
     return;
-  }
-
-  // Only create main window if --tray flag is not present
-  if (!process.argv.includes("--tray")) {
-    mainWindow = createWindow();
   }
 });
 
@@ -162,38 +161,6 @@ interface SaveFileOptions {
   defaultPath: string;
   filters?: Array<{ name: string; extensions: string[] }>;
 }
-
-ipcMain.handle(
-  "save-file",
-  async (
-    _event: IpcMainInvokeEvent,
-    { buffer, defaultPath, filters }: SaveFileOptions
-  ) => {
-    try {
-      const { filePath, canceled } = await dialog.showSaveDialog({
-        defaultPath,
-        filters: filters || [{ name: "All Files", extensions: ["*"] }],
-      });
-
-      if (!canceled && filePath) {
-        await fs.promises.writeFile(filePath, Buffer.from(buffer));
-        return { success: true, filePath };
-      }
-      return { success: false, canceled: true };
-    } catch (error) {
-      logMessage(`Save file error: ${(error as Error).message}`, "error");
-      return { success: false, error: (error as Error).message };
-    }
-  }
-);
-
-ipcMain.handle(
-  "run-app",
-  async (_event: IpcMainInvokeEvent, workflowId: string) => {
-    logMessage(`Running app with workflow ID: ${workflowId}`);
-    runWorkflow(workflowId);
-  }
-);
 
 app.on("before-quit", (event) => {
   if (!isAppQuitting) {
@@ -211,17 +178,6 @@ app.on("window-all-closed", () => {
 });
 
 app.on("activate", handleActivation);
-
-ipcMain.handle("get-server-state", () => {
-  console.log("Getting server state: " + JSON.stringify(serverState));
-  return serverState;
-});
-
-ipcMain.handle("get-log-file-path", () => LOG_FILE);
-
-ipcMain.handle("open-log-file", () => {
-  shell.showItemInFolder(LOG_FILE);
-});
 
 process.on("uncaughtException", (error: Error) => {
   logMessage(`Uncaught Exception: ${error.message}`, "error");
@@ -241,36 +197,4 @@ process.on(
     forceQuit(`Unhandled Promise Rejection: ${errorMessage}`);
   }
 );
-
-ipcMain.on("CLOSE-APP", (event) => {
-  const window = BrowserWindow.fromWebContents(event.sender);
-  if (window && isWorkflowWindow(window)) {
-    window.close();
-  }
-});
-
-ipcMain.on("MINIMIZE-APP", (event) => {
-  const window = BrowserWindow.fromWebContents(event.sender);
-  if (window && isWorkflowWindow(window)) {
-    window.minimize();
-  }
-});
-
-ipcMain.on("MAXIMIZE-APP", (event) => {
-  const window = BrowserWindow.fromWebContents(event.sender);
-  if (window && isWorkflowWindow(window)) {
-    if (window.isMaximized()) {
-      window.unmaximize();
-    } else {
-      window.maximize();
-    }
-  }
-});
-
-ipcMain.handle("show-main-window", () => {
-  if (!mainWindow) {
-    mainWindow = createWindow();
-  } else {
-    mainWindow.show();
-  }
-});
+export { mainWindow };

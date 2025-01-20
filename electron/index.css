@@ -69,7 +69,8 @@ ul li {
 #log-container {
   display: flex;
   flex-direction: column;
-  bottom: -20px;
+  position: fixed;
+  bottom: 0;
   left: 0;
   right: 0;
   background-color: #212121;
@@ -149,10 +150,6 @@ ul li {
   text-align: center;
   overflow: hidden;
   z-index: 1000;
-  background: radial-gradient(circle, #252525, #242424, #202020);
-  background-position-y: -20vh;
-  background-size: 100%;
-  background-repeat: no-repeat;
 }
 
 .boot-text {
@@ -216,10 +213,13 @@ ul li {
   text-align: center;
   width: 80%;
   max-width: 80%;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .progress-container {
-  margin-top: 10px;
+  width: 100%;
+  max-width: 600px;
 }
 
 .progress-label {
@@ -287,4 +287,152 @@ ul li {
 
 .log-button:hover {
   color: #4caf50;
+}
+
+#install-location-prompt {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  color: #eee;
+  width: 80%;
+  max-width: 800px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  background: #1a1a1a;
+  border-radius: 12px;
+  padding: 32px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+#install-location-prompt .prompt-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  align-items: center;
+  width: 100%;
+}
+
+#environment-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  width: 100%;
+}
+
+.info-content h3 {
+  margin: 0 0 24px 0;
+  color: #fff;
+  font-size: 28px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+.info-details {
+  color: #ddd;
+}
+
+.info-details ul {
+  margin: 16px 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px 24px;
+}
+
+.info-details li {
+  margin: 4px 0;
+  line-height: 1.6;
+  color: #bbb;
+  list-style-type: none;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 8px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.info-details li svg {
+  margin-right: 8px;
+}
+
+.info-details li:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.info-note {
+  background: linear-gradient(
+    to right,
+    rgba(42, 42, 42, 0.5),
+    rgba(48, 48, 48, 0.5)
+  );
+  padding: 16px;
+  border-radius: 12px;
+  margin: 24px 0;
+  color: #aaa;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.size-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 24px;
+  color: #bbb;
+  gap: 32px;
+}
+
+.location-options {
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+  width: 100%;
+}
+.location-button {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  padding: 18px;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.location-button:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+}
+
+.location-button.default-location {
+  background: rgba(144, 238, 144, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  color: #fff;
+}
+
+.location-button.custom-location {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+.location-button span:first-child {
+  font-weight: 600;
+  margin-bottom: 8px;
+  font-size: 18px;
+  text-align: left;
+}
+
+.location-button span:last-child {
+  font-size: 14px;
+  color: #aaa;
+  text-align: left;
 }
