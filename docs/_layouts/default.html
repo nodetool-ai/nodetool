@@ -23,14 +23,14 @@
         <nav>
           <ul id="module-tree">
             {% assign namespaces = "" | split: "" %} {% for page in site.pages
-            %} {% if page.title %} {% assign parts = page.title | split: "." |
-            first %} {% assign namespaces = namespaces | push: parts | uniq %}
-            {% endif %} {% endfor %} {% for namespace in namespaces %}
-            <li>
-              <span>{{ namespace }}</span>
+            %} {% if page.title %} {% assign parts = page.title | split: "." %}
+            {% assign namespaces = namespaces | concat: parts | uniq %} {% endif
+            %} {% endfor %} {% for namespace in namespaces %}
+            <li data-jstree='{"opened":true}'>
+              <a href="#">{{ namespace }}</a>
               <ul>
-                {% for page in site.pages %} {% if page.title and page.title
-                contains namespace %}
+                {% for page in site.pages %} {% if page.title contains namespace
+                %}
                 <li data-jstree='{"type":"file"}'>
                   <a href="{{ page.url | relative_url }}">{{ page.title }}</a>
                 </li>
