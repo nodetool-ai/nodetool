@@ -1,8 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { memo, useEffect, useMemo, useRef } from "react";
-import { NodeMetadata } from "../../stores/ApiTypes";
-import { ConnectDirection } from "../../stores/ConnectionStore";
 
 // mui
 import { IconButton, Box, Typography } from "@mui/material";
@@ -12,6 +10,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import TypeFilter from "./TypeFilter";
 import NamespaceList from "./NamespaceList";
 // store
+import { useStoreWithEqualityFn } from "zustand/traditional";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 
 // utils
@@ -123,7 +122,11 @@ const NodeMenu = memo(function NodeMenu({
   const nodeRef = useRef<HTMLDivElement>(null);
 
   // Only subscribe to minimal state when closed
-  const isMenuOpen = useNodeMenuStore((state) => state.isMenuOpen);
+  const isMenuOpen = useStoreWithEqualityFn(
+    useNodeMenuStore,
+    (state) => state.isMenuOpen,
+    Object.is
+  );
 
   // Use lazy initialization for the rest of the state
   const {
@@ -140,7 +143,8 @@ const NodeMenu = memo(function NodeMenu({
     setSelectedOutputType,
     searchTerm,
     setSearchTerm
-  } = useNodeMenuStore(
+  } = useStoreWithEqualityFn(
+    useNodeMenuStore,
     (state) => ({
       closeNodeMenu: state.closeNodeMenu,
       menuWidth: state.menuWidth,
@@ -245,6 +249,7 @@ const NodeMenu = memo(function NodeMenu({
           >
             Node Menu
           </Typography>
+
           <IconButton
             className="close-button"
             edge="end"
