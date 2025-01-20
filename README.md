@@ -2,6 +2,11 @@
   <img src="https://github.com/user-attachments/assets/823b1091-78cd-423f-9b41-14f33b787c7d" alt="NodeTool Logo" height="24" style="vertical-align: -30px;"/>
   NodeTool - Your Personal Automation Platform
 </h1>
+![Conda Pack](https://github.com/nodetool-ai/nodetool/actions/workflows/conda.yaml/badge.svg)
+![Release](https://github.com/nodetool-ai/nodetool/actions/workflows/release.yaml/badge.svg)
+![Tests](https://github.com/nodetool-ai/nodetool/actions/workflows/test.yml/badge.svg)
+![Type Check](https://github.com/nodetool-ai/nodetool/actions/workflows/typecheck.yml/badge.svg)
+![Publish Docker Image](https://github.com/nodetool-ai/nodetool/actions/workflows/docker-publish.yaml/badge.svg)
 
 NodeTool enables you to create custom automation workflows powered by AI, right on your desktop. Perfect for professionals who want to streamline their daily tasks and workflows. Whether you're building personal productivity tools, learning assistants, or powerful media generation and manipulation tools, NodeTool provides the foundation for creating powerful, privacy-focused automation solutions.
 
