@@ -16,7 +16,7 @@ import { AudioPlayer } from "./AudioPlayer";
 import { VideoPlayer } from "./VideoPlayer";
 import { SchemaInput } from "./SchemaInput";
 import { Alert } from "./ui/alert";
-
+import Markdown from "react-markdown";
 interface MiniAppProps {
   workflowId: string;
   schema: JSONSchema;
@@ -56,6 +56,24 @@ export const MiniApp: React.FC<MiniAppProps> = ({ workflowId, schema }) => {
       } else if (result.type === "video") {
         return <VideoPlayer data={result.uri || result.data} />;
       }
+    }
+    if (typeof result === "string") {
+      return (
+        <div style={{ margin: 0 }}>
+          <Markdown
+            components={{
+              ul: ({ children }) => (
+                <ul style={{ paddingLeft: "2em" }}>{children}</ul>
+              ),
+              ol: ({ children }) => (
+                <ol style={{ paddingLeft: "2em" }}>{children}</ol>
+              ),
+            }}
+          >
+            {result}
+          </Markdown>
+        </div>
+      );
     }
     return <pre>{JSON.stringify(result, null, 2)}</pre>;
   };

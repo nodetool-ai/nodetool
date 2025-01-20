@@ -1,8 +1,8 @@
 {
   "id": "1a70b9f8cbb011efbb9a00001572a293",
   "access": "public",
-  "created_at": "2025-01-06T22:00:40.390827",
-  "updated_at": "2025-01-06T22:00:40.390834",
+  "created_at": "2025-01-21T00:34:48.459468",
+  "updated_at": "2025-01-21T00:34:48.459479",
   "name": "Daily Digest using Gemini",
   "description": "Summarize daily emails and newsletters using Gemini AI",
   "tags": null,
@@ -22,12 +22,13 @@
         "ui_properties": {
           "position": {
             "x": 242,
-            "y": 219
+            "y": 242
           },
           "zIndex": 0,
           "width": 200,
           "selectable": true
-        }
+        },
+        "dynamic_properties": {}
       },
       {
         "id": "31",
@@ -52,7 +53,8 @@
           "zIndex": 0,
           "width": 162,
           "selectable": true
-        }
+        },
+        "dynamic_properties": {}
       },
       {
         "id": "32",
@@ -63,13 +65,14 @@
         },
         "ui_properties": {
           "position": {
-            "x": 773.5,
-            "y": 445
+            "x": 731,
+            "y": 600
           },
           "zIndex": 0,
           "width": 158,
           "selectable": true
-        }
+        },
+        "dynamic_properties": {}
       },
       {
         "id": "33",
@@ -81,13 +84,14 @@
         },
         "ui_properties": {
           "position": {
-            "x": 502.6666666666667,
-            "y": 404
+            "x": 508,
+            "y": 409
           },
           "zIndex": 0,
           "width": 159,
           "selectable": true
-        }
+        },
+        "dynamic_properties": {}
       },
       {
         "id": "34",
@@ -119,13 +123,14 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1013,
-            "y": 265
+            "x": 920,
+            "y": 430
           },
           "zIndex": 0,
           "width": 162,
           "selectable": true
-        }
+        },
+        "dynamic_properties": {}
       },
       {
         "id": "35",
@@ -136,14 +141,15 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1205,
-            "y": 282
+            "x": 1142,
+            "y": 184
           },
           "zIndex": 0,
           "width": 613,
           "height": 807,
           "selectable": true
-        }
+        },
+        "dynamic_properties": {}
       },
       {
         "id": "36",
@@ -154,14 +160,15 @@
         },
         "ui_properties": {
           "position": {
-            "x": 722,
-            "y": 156
+            "x": 730,
+            "y": 374
           },
           "zIndex": 0,
-          "width": 261,
-          "height": 239,
+          "width": 160,
+          "height": 176,
           "selectable": true
-        }
+        },
+        "dynamic_properties": {}
       },
       {
         "id": "37",
@@ -172,43 +179,53 @@
         },
         "ui_properties": {
           "position": {
-            "x": 474,
-            "y": 180
+            "x": 502,
+            "y": 201
           },
           "zIndex": 0,
-          "width": 210,
-          "height": 177,
+          "width": 168,
+          "height": 158,
           "selectable": true
-        }
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "38",
+        "parent_id": null,
+        "type": "nodetool.output.StringOutput",
+        "data": {
+          "name": "summary",
+          "description": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1142,
+            "y": 1041
+          },
+          "zIndex": 0,
+          "width": 159,
+          "selectable": true
+        },
+        "dynamic_properties": {}
       }
     ],
     "edges": [
-      {
-        "id": "084e0bde-b1ae-4f09-959a-8ef9acc68b98",
-        "source": "31",
-        "sourceHandle": "output",
-        "target": "20",
-        "targetHandle": "search_criteria",
-        "ui_properties": {
-          "className": "email_search_criteria"
-        }
-      },
-      {
-        "id": "9615",
-        "source": "34",
-        "sourceHandle": "output",
-        "target": "35",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "str"
-        }
-      },
       {
         "id": "9617",
         "source": "20",
         "sourceHandle": "output",
         "target": "37",
         "targetHandle": "value",
+        "ui_properties": {
+          "className": "list"
+        }
+      },
+      {
+        "id": "3e112ecc-ccec-4c7e-b772-57e6e997bb1f",
+        "source": "20",
+        "sourceHandle": "output",
+        "target": "33",
+        "targetHandle": "values",
         "ui_properties": {
           "className": "list"
         }
@@ -234,20 +251,40 @@
         }
       },
       {
+        "id": "084e0bde-b1ae-4f09-959a-8ef9acc68b98",
+        "source": "31",
+        "sourceHandle": "output",
+        "target": "20",
+        "targetHandle": "search_criteria",
+        "ui_properties": {
+          "className": "email_search_criteria"
+        }
+      },
+      {
+        "id": "9615",
+        "source": "34",
+        "sourceHandle": "output",
+        "target": "35",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "9618",
+        "source": "34",
+        "sourceHandle": "output",
+        "target": "38",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
         "id": "9614a3fb-b8d8-4e0c-a549-67f3d6c3c0c3",
         "source": "33",
         "sourceHandle": "output",
         "target": "32",
-        "targetHandle": "values",
-        "ui_properties": {
-          "className": "list"
-        }
-      },
-      {
-        "id": "3e112ecc-ccec-4c7e-b772-57e6e997bb1f",
-        "source": "20",
-        "sourceHandle": "output",
-        "target": "33",
         "targetHandle": "values",
         "ui_properties": {
           "className": "list"
