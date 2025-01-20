@@ -109,6 +109,7 @@ interface TextEditorModalProps {
 }
 
 import { CSSObject } from "@emotion/react";
+import Markdown from "react-markdown";
 
 const modalStyles = (
   theme: any,
@@ -308,7 +309,7 @@ const TextEditorModal = ({
                   : ThemeNodes.palette.c_white
               }}
             >
-              {propertyDescription}
+              <Markdown>{propertyDescription}</Markdown>
             </div>
           )}
           <div className="modal-body">
