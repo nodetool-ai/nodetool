@@ -10,24 +10,20 @@
 ![Docker](https://github.com/nodetool-ai/nodetool/actions/workflows/docker-publish.yaml/badge.svg)
 ![CodeQL](https://github.com/nodetool-ai/nodetool/actions/workflows/github-code-scanning/codeql/badge.svg)
 
-NodeTool enables you to create custom automation workflows powered by AI, right on your desktop. Perfect for professionals who want to streamline their daily tasks and workflows. Whether you're building personal productivity tools, learning assistants, or powerful media generation and manipulation tools, NodeTool provides the foundation for creating powerful, privacy-focused automation solutions.
+NodeTool enables you to create custom AI workflows on your computer.
 
 With NodeTool, you can:
 
 - **Build Privacy-First**: Keep your data local and secure with no need to send files to external servers
 - **Create Custom Solutions**: Design AI tools that work exactly the way you need them to
-- **Run Locally**: Utilize your own hardware to run open-source models via Ollama and access hundreds of models via Hugging Face
+- **Run Locally**: Utilize your own hardware to run open-source models via Ollama and access thousands of models via Hugging Face
 - **Integrate Seamlessly**: Connect AI workflows to your favorite apps and services
 - **Generate & Edit Media**: Create and manipulate images, audio, and video using state-of-the-art AI models
 - **Process Multiple Formats**: Work with text, images, audio, and video in a single unified interface
 
 ![NodeTool](nodetool.png)
 
-NodeTool simplifies access to advanced AI technologies, providing a creative space for both newcomers and experienced users to build powerful solutions for content creation, data analysis, automation, and more.
-
 ## Use Cases 🎨
-
-Automate anything you can imagine! Share your automation success stories with us.
 
 - 🎨 **Personal Learning Assistant**: Create chatbots that read and explain your PDFs, e-books, or academic papers
 - 📝 **Note Summarization**: Extract key insights from Obsidian or Apple Notes
@@ -41,24 +37,21 @@ Automate anything you can imagine! Share your automation success stories with us
 
 ## Features ✨
 
-Everything you need to automate your workflow:
+Key features to automate your workflow:
 
-- **Visual Editor | No-Code Development**: Create complex AI workflows visually—no coding needed! Dive into an intuitive, node-based design and let your creativity flow.
-- **Seamless Integration with Leading AI Platforms**: Mix and match models from OpenAI, Hugging Face, Anthropic, Ollama, and ComfyUI for endless possibilities.
-- **Native ComfyUI Support**: Run ComfyUI nodes directly within NodeTool—no separate installation required. Leverage the full power of ComfyUI's extensive node ecosystem.
-- **Hugging Face Integration**: Access a vast library of models and run Hugging Face Transformers and Diffusers directly within NodeTool.
-- **Ollama Integration**: Run local large language models for chat and embedding.
-- **Model Manager**: Browse and manage your favorite models locally. Download models directly from the Hugging Face Hub and run them on your GPU.
-- **Chat with Workflows**: Chat with workflows directly within NodeTool.
-- **Asset Browser**: Easily import and manage media assets to use in your AI creations.
-- **Multimodal Support**: Play with images, text, audio, video, and more — all in one place.
-- **API Integration**: Connect your AI tools with websites or apps seamlessly.
-- **Dual Model Execution Modes**:
-  - **Local Execution**: Run models locally using Ollama and Hugging Face, leveraging your own hardware.
-  - **Remote Execution**: Outsource processing to cloud services like Replicate, OpenAI, and Anthropic.
-- **Customizable Nodes**: Extend functionality with Python.
-- **Real-Time Execution**: WebSocket-based architecture for live processing.
-- **Cross-Platform Compatibility**: Available as standalone app on Mac and Windows.
+- **Visual Editor**: Build AI workflows visually—no coding required.
+- **Mini Apps**: Access NodeTool mini-apps from your system tray.
+- **Chat Apps**: Build chatbots that explain your PDFs, generate images, and more.
+- **Ollama Support**: Run local language models for chat.
+- **HuggingFace**: Run Transformers and Diffusers models locally.
+- **Model Manager**: Manage and download models from the Hugging Face Hub.
+- **Integration with AI Platforms**: Use models from OpenAI, Hugging Face, Anthropic, Ollama, and ComfyUI.
+- **ComfyUI Support**: Run ComfyUI nodes directly in NodeTool without extra installation.
+- **Asset Management**: Import and manage media assets easily.
+- **Multimodal Support**: Work with images, text, audio, and video together.
+- **API**: Call NodeTool API from your own scripts.
+- **Custom Nodes**: Enhance functionality with Python.
+- **Cross-Platform**: Available on Mac, Windows, and Linux.
 
 ## Quickstart 🚀
 
@@ -72,40 +65,19 @@ NodeTool is designed for your local environment:
 - **Lab or Office**: Deploy customized solutions for research and internal utilities
 - **On the Go**: Run lightweight workflows on laptops for portable AI assistance
 
-## Where to Use NodeTool 🖥️
-
-NodeTool is designed for your local environment:
-
-- **Home Workstation**: Build AI tools for personal productivity or creative projects
-- **Lab or Office**: Deploy customized solutions for research and internal utilities
-- **On the Go**: Run lightweight workflows on laptops for portable AI assistance
-
 ## Node Overview 🧩
 
-NodeTool offers a diverse range of nodes to support various AI tasks, integrating smoothly with platforms like OpenAI, Hugging Face, Anthropic, Ollama, and ComfyUI. Nodes are organized into categories:
-
-### Node Categories
-
-- **Anthropic** (`anthropic`): Text-based AI operations using Anthropic's models.
-- **ComfyUI** (`comfyui`): Native support for ComfyUI nodes, enabling advanced image processing workflows directly within NodeTool.
-- **Chroma** (`chroma`): Vector database for storing and querying embeddings.
-- **ElevenLabs** (`elevenlabs`): Text-to-speech using ElevenLabs' models.
-- **Fal** (`fal`): AI services for audio, image, text, video, and multimodal processing.
-- **Google** (`google`): Gemini Models and GMail access.
-- **HuggingFace** (`huggingface`): Comprehensive AI capabilities including audio, image, text, video, and multimodal processing.
-- **NodeTool Core** (`nodetool`): Core functionalities for data manipulation, I/O operations, and various media processing.
-- **Ollama** (`ollama`): Run local large language models directly on your machine.
-- **OpenAI** (`openai`): AI operations for audio, image, and text using OpenAI's models.
-- **Replicate** (`replicate`): Versatile AI capabilities for audio, image, text, and video processing via cloud execution.
-
-## Model Manager 🗂️
-
-NodeTool's Model Manager simplifies handling AI models:
-
-- **Browse Cached Models**: View and manage models already downloaded to your local machine.
-- **Download Recommended Models**: Easily access and download popular models from the Hugging Face Hub.
-- **Efficient Storage**: Manage disk space by selectively caching frequently used models.
-- **Seamless Integration**: Downloaded models are immediately available within your workflows.
+- **Anthropic** 🧠: Text-based AI tasks.
+- **Comfy** 🎨: Support for ComfyUI nodes for image processing.
+- **Chroma** 🌈: Vector database for embeddings.
+- **ElevenLabs** 🎤: Text-to-speech services.
+- **Fal** 🔊: AI for audio, image, text, and video.
+- **Google** 🔍: Access to Gemini Models and Gmail.
+- **HuggingFace** 🤗: AI for audio, image, text, and video.
+- **NodeTool Core** ⚙️: Core data and media processing functions.
+- **Ollama** 🦙: Run local language models.
+- **OpenAI** 🌐: AI for audio, image, and text tasks.
+- **Replicate** ☁️: AI for audio, image, text, and video in the cloud.
 
 ## Architecture 🏗️
 
@@ -140,21 +112,9 @@ D -->|Optional API Calls| F[OpenAI<br>Replicate<br>Anthropic<br>Others]
 
 ### Components Overview
 
-1. **🖥️ Frontend**: NodeTool Editor for workflows, assets, models. Built with ReactJS, Reactflow, MUI v5, TypeScript.
-2. **🌐 API Server**: Handles HTTP and WebSocket connections from the frontend, managing user sessions, workflow storage, and coordination between components.
-3. **🔌 WebSocket Runner**: Executes workflows in real-time, maintaining the state of running workflows and managing communication between nodes.
-4. **⚙️ Worker**: Performs the actual processing of individual nodes, allowing for parallel execution and scalability. It integrates seamlessly with:
-
-   - **Local Models**: Run models locally using Ollama and Hugging Face Transformers and Diffusers.
-   - **Remote Services**: Call external APIs like OpenAI, Replicate, Anthropic, and others for heavy GPU workloads.
-
-### Data Flow 🔄
-
-1. **User Interaction**: Create and modify workflows through the intuitive React frontend.
-2. **Workflow Management**: Frontend sends workflow data to the API server for storage and execution.
-3. **Execution Delegation**: API server hands off workflow execution to the WebSocket Runner.
-4. **Node Coordination**: WebSocket Runner orchestrates node execution across Workers.
-5. **Real-Time Feedback**: Results stream back to the frontend via WebSocket for instant updates.
+1. **🖥️ Frontend**: The NodeTool Editor for managing workflows and assets, built with ReactJS and TypeScript.
+2. **🌐 API Server**: Manages connections from the frontend and handles user sessions and workflow storage.
+3. **🔌 WebSocket Runner**: Runs workflows in real-time and keeps track of their state.
 
 ## Implementing Custom Nodes 🛠️
 
