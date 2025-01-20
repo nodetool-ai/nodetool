@@ -1,43 +1,25 @@
-const { Tray, Menu, app, BrowserWindow, dialog, shell } = require("electron");
-const path = require("path");
-const { logMessage } = require("./logger");
-const WebSocket = require("ws");
-const { createWorkflowWindow } = require("./workflow-window");
-const { getMainWindow } = require("./state");
-const { createWindow } = require("./window");
-const { LAUNCHD_SERVICE_NAME } = require("./config");
-const {
+import { Tray, Menu, app, BrowserWindow, dialog, shell } from "electron";
+import path from "path";
+import { logMessage, LOG_FILE } from "./logger";
+import WebSocket from "ws";
+import { createWorkflowWindow } from "./workflow-window";
+import { getMainWindow } from "./state";
+import { createWindow } from "./window";
+import { LAUNCHD_SERVICE_NAME } from "./config";
+import {
   createLaunchAgent,
   removeLaunchAgent,
   getScheduledWorkflows,
-} = require("./scheduler");
-const fs = require("fs/promises");
-const { exec } = require("child_process");
+} from "./scheduler";
+import { exec, execSync } from "child_process";
+import { stopServer } from "./server";
+import { Workflow, WebSocketUpdate } from "./types";
 
-/**
- * @typedef {Object} Workflow
- * @property {string} id - Unique identifier of the workflow
- * @property {string} name - Display name of the workflow
- * @property {string} description - Description of the workflow
- * @property {string} created_at - Date and time the workflow was created
- * @property {string} updated_at - Date and time the workflow was last updated
- * @property {string} tags - Tags of the workflow
- * @property {string} thumbnail - thumbnail ID
- * @property {string} thumbnail_url - URL of the workflow thumbnail
- */
+let trayInstance: Electron.Tray | null = null;
+let wsConnection: WebSocket | null = null;
+let healthCheckInterval: NodeJS.Timeout | undefined;
 
-/** @type {Electron.Tray|null} */
-let trayInstance = null;
-
-/** @type {WebSocket|null} */
-let wsConnection = null;
-
-/**
- * Creates and initializes the system tray icon
- * @returns {Promise<Electron.Tray>} The tray instance
- */
-async function createTray() {
-  // Destroy existing tray if it exists
+async function createTray(): Promise<Electron.Tray> {
   if (trayInstance) {
     trayInstance.destroy();
     trayInstance = null;
@@ -46,23 +28,20 @@ async function createTray() {
   const isWindows = process.platform === "win32";
   const iconPath = path.join(
     __dirname,
+    "..",
     "assets",
     isWindows ? "tray-icon.ico" : "tray-icon.png"
   );
 
-  // Windows-specific: Set the app user model ID
   if (isWindows) {
     app.setAppUserModelId("com.nodetool.desktop");
   }
 
   trayInstance = new Tray(iconPath);
 
-  // Windows-specific tray settings
   if (isWindows) {
     trayInstance.setIgnoreDoubleClickEvents(true);
 
-    // Update Windows registry for tray icon visibility
-    const { execSync } = require("child_process");
     try {
       const iconPreferenceKey =
         "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\TrayNotify";
@@ -73,19 +52,19 @@ async function createTray() {
         `reg add "${iconPreferenceKey}" /v "PastIconsStream" /t REG_BINARY /d "" /f`
       );
     } catch (error) {
-      logMessage(
-        `Failed to set tray icon preference: ${error.message}`,
-        "warn"
-      );
+      if (error instanceof Error) {
+        logMessage(
+          `Failed to set tray icon preference: ${error.message}`,
+          "warn"
+        );
+      }
     }
 
-    // Set up Windows-specific event handlers
     setupWindowsTrayEvents(trayInstance);
   }
 
   await updateTrayMenu();
 
-  // Set up WebSocket connection after delay
   setTimeout(() => {
     connectToWebSocketUpdates();
   }, 30000);
@@ -95,7 +74,7 @@ async function createTray() {
   return trayInstance;
 }
 
-function setupWindowsTrayEvents(tray) {
+function setupWindowsTrayEvents(tray: Electron.Tray): void {
   tray.on("double-click", () => {
     const mainWindow = getMainWindow();
     if (mainWindow) {
@@ -108,7 +87,6 @@ function setupWindowsTrayEvents(tray) {
   });
 
   tray.on("click", () => {
-    const { getMainWindow } = require("./state");
     const mainWindow = getMainWindow();
     if (mainWindow) {
       tray.popUpContextMenu();
@@ -120,16 +98,10 @@ function setupWindowsTrayEvents(tray) {
   });
 }
 
-/**
- * Handles app activation events
- * @returns {void}
- */
-function focusNodeTool() {
-  // Get all visible windows (not just existing ones)
+function focusNodeTool(): void {
   const visibleWindows = BrowserWindow.getAllWindows().filter(
     (w) => !w.isDestroyed() && w.isVisible()
   );
-  const createWindow = require("./window").createWindow;
 
   if (visibleWindows.length === 0) {
     createWindow();
@@ -147,12 +119,7 @@ function focusNodeTool() {
   }
 }
 
-/**
- * Fetches workflows from the local API
- * @returns {Promise<Workflow[]>} Array of workflow objects
- * @throws {Error} When the API request fails
- */
-async function fetchWorkflows() {
+async function fetchWorkflows(): Promise<Workflow[]> {
   try {
     const response = await fetch("http://127.0.0.1:8000/api/workflows/public", {
       method: "GET",
@@ -166,16 +133,14 @@ async function fetchWorkflows() {
     const data = await response.json();
     return data.workflows || [];
   } catch (error) {
-    logMessage(`Failed to fetch workflows: ${error.message}`, "error");
+    if (error instanceof Error) {
+      logMessage(`Failed to fetch workflows: ${error.message}`, "error");
+    }
     return [];
   }
 }
 
-/**
- * Shows the schedule dialog for a workflow
- * @param {string} workflowId - The workflow ID to schedule
- */
-async function showScheduleDialog(workflowId) {
+async function showScheduleDialog(workflowId: string): Promise<void> {
   const intervals = [
     { label: "Every 5 minutes", value: 5 },
     { label: "Every 15 minutes", value: 15 },
@@ -213,18 +178,14 @@ async function showScheduleDialog(workflowId) {
       dialog.showMessageBox({
         type: "error",
         message: "Failed to schedule workflow",
-        detail: error.message,
+        detail: error instanceof Error ? error.message : String(error),
         buttons: ["OK"],
       });
     }
   }
 }
 
-/**
- * Checks if the NodeTool service is running
- * @returns {Promise<boolean>} True if service is healthy
- */
-async function checkServiceHealth() {
+async function checkServiceHealth(): Promise<boolean> {
   try {
     const response = await fetch("http://127.0.0.1:8000/health");
     return response.ok;
@@ -233,29 +194,17 @@ async function checkServiceHealth() {
   }
 }
 
-/**
- * Updates the tray menu with current workflows
- * @returns {Promise<void>}
- */
-async function updateTrayMenu() {
+async function updateTrayMenu(): Promise<void> {
   if (!trayInstance) return;
 
-  // Check service status
   const isHealthy = await checkServiceHealth();
-
   const scheduledWorkflows = await getScheduledWorkflows();
-  // Create status indicator
   const statusIndicator = isHealthy ? "🟢" : "🔴";
-
   const workflows = isHealthy ? await fetchWorkflows() : [];
 
-  /*
-  Poll until server is stopped and update menu
-  
-  @param {function} waitCondition - A function that returns true when the server is stopped
-  @returns {Promise<void>}
-  */
-  const waitUntil = async (waitCondition) => {
+  const waitUntil = async (
+    waitCondition: (response: Response) => boolean
+  ): Promise<void> => {
     const pollInterval = setInterval(async () => {
       try {
         const response = await fetch("http://127.0.0.1:8000/health");
@@ -298,7 +247,9 @@ async function updateTrayMenu() {
             }
           );
         } catch (error) {
-          logMessage(`Failed to start service: ${error.message}`, "error");
+          if (error instanceof Error) {
+            logMessage(`Failed to start service: ${error.message}`, "error");
+          }
           dialog.showErrorBox(
             "Service Error",
             "Failed to start NodeTool service"
@@ -311,26 +262,11 @@ async function updateTrayMenu() {
       enabled: isHealthy,
       click: async () => {
         try {
-          exec(
-            `launchctl unload -w ~/Library/LaunchAgents/${LAUNCHD_SERVICE_NAME}.plist`,
-            (error, stdout, stderr) => {
-              if (error) {
-                logMessage(`Failed to stop service: ${error.message}`, "error");
-                dialog.showErrorBox(
-                  "Service Error",
-                  "Failed to stop NodeTool service"
-                );
-              }
-              waitUntil((response) => !response.ok);
-              updateTrayMenu();
-            }
-          );
+          await stopServer();
         } catch (error) {
-          logMessage(`Failed to stop service: ${error.message}`, "error");
-          dialog.showErrorBox(
-            "Service Error",
-            "Failed to stop NodeTool service"
-          );
+          if (error instanceof Error) {
+            logMessage(`Failed to stop service: ${error.message}`, "error");
+          }
         }
       },
     },
@@ -382,7 +318,8 @@ async function updateTrayMenu() {
                     dialog.showMessageBox({
                       type: "error",
                       message: "Failed to remove schedule",
-                      detail: error.message,
+                      detail:
+                        error instanceof Error ? error.message : String(error),
                       buttons: ["OK"],
                     });
                   }
@@ -394,7 +331,6 @@ async function updateTrayMenu() {
     {
       label: "Open Log File",
       click: () => {
-        const { LOG_FILE } = require("./logger");
         shell.openPath(LOG_FILE);
       },
     },
@@ -406,32 +342,30 @@ async function updateTrayMenu() {
   trayInstance.setToolTip("NodeTool Desktop");
 }
 
-/**
- * Connects to the WebSocket updates endpoint
- * @returns {Promise<void>}
- */
-async function connectToWebSocketUpdates() {
+async function connectToWebSocketUpdates(): Promise<void> {
   if (wsConnection) {
     wsConnection.close();
   }
 
   wsConnection = new WebSocket("ws://127.0.0.1:8000/updates");
 
-  wsConnection.on("message", (data) => {
+  wsConnection.on("message", (data: WebSocket.Data) => {
     try {
-      const update = JSON.parse(data.toString());
+      const update = JSON.parse(data.toString()) as WebSocketUpdate;
       if (update.type === "delete_workflow") {
         logMessage(`Deleting workflow: ${update.id}`);
         updateTrayMenu();
       } else if (update.type === "update_workflow") {
-        logMessage(`Updating workflow: ${update.workflow.name}`);
+        logMessage(`Updating workflow: ${update.workflow?.name}`);
         updateTrayMenu();
       } else if (update.type === "create_workflow") {
-        logMessage(`Creating workflow: ${update.workflow.name}`);
+        logMessage(`Creating workflow: ${update.workflow?.name}`);
         updateTrayMenu();
       }
     } catch (error) {
-      logMessage(`WebSocket message parse error: ${error.message}`, "error");
+      if (error instanceof Error) {
+        logMessage(`WebSocket message parse error: ${error.message}`, "error");
+      }
     }
   });
 
@@ -440,21 +374,15 @@ async function connectToWebSocketUpdates() {
       "WebSocket connection closed, attempting to reconnect...",
       "warn"
     );
-    setTimeout(connectToWebSocketUpdates, 5000); // Reconnect after 5 seconds
+    setTimeout(connectToWebSocketUpdates, 5000);
   });
 
-  wsConnection.on("error", (error) => {
+  wsConnection.on("error", (error: WebSocket.ErrorEvent) => {
     logMessage(`WebSocket error: ${error.message}`, "error");
   });
 }
 
-// Add a periodic health check
-let healthCheckInterval;
-
-/**
- * Starts periodic health checking
- */
-function startHealthCheck() {
+function startHealthCheck(): void {
   if (healthCheckInterval) {
     clearInterval(healthCheckInterval);
   }
@@ -463,17 +391,13 @@ function startHealthCheck() {
     if (trayInstance) {
       await updateTrayMenu();
     }
-  }, 30000); // Check every 30 seconds
+  }, 30000);
 }
 
-// Clean up on quit
 app.on("before-quit", () => {
   if (healthCheckInterval) {
     clearInterval(healthCheckInterval);
   }
 });
 
-module.exports = {
-  createTray,
-  updateTrayMenu,
-};
+export { createTray, updateTrayMenu };

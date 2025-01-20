@@ -1,7 +1,7 @@
-const { spawn } = require("child_process");
-const { dialog, shell, app } = require("electron");
-const { logMessage } = require("./logger");
-const {
+import { spawn, ChildProcess, exec } from "child_process";
+import { dialog, shell, app } from "electron";
+import { logMessage } from "./logger";
+import {
   getPythonPath,
   getProcessEnv,
   srcPath,
@@ -9,39 +9,24 @@ const {
   LAUNCHD_SERVICE_NAME,
   PLIST_PATH,
   webPath,
-} = require("./config");
-const path = require("path");
-const { forceQuit } = require("./window");
-const {
-  emitBootMessage,
-  emitServerStarted,
-  emitServerLog,
-} = require("./events");
-const { serverState } = require("./state");
-const fs = require("fs").promises;
-const net = require("net");
-const { updateTrayMenu } = require("./tray");
+} from "./config";
+import path from "path";
+import { forceQuit } from "./window";
+import { emitBootMessage, emitServerStarted, emitServerLog } from "./events";
+import { serverState } from "./state";
+import fs from "fs/promises";
+import net from "net";
+import { updateTrayMenu } from "./tray";
 
-/**
- * @typedef {Object} ServerState
- * @property {string} initialURL - The initial URL of the server
- */
+interface ServerState {
+  initialURL: string;
+}
 
-/** @type {import('child_process').ChildProcess | null} */
-let nodeToolBackendProcess = null;
-/** @type {boolean} */
-let isAppQuitting = false;
-/** @type {string[]} */
-let recentServerMessages = [];
-/** @type {number} */
-const MAX_RECENT_MESSAGES = 5;
+let nodeToolBackendProcess: ChildProcess | null = null;
+let recentServerMessages: string[] = [];
+const MAX_RECENT_MESSAGES: number = 5;
 
-/**
- * Check if a specific port is available
- * @param {number} port - Port to check
- * @returns {Promise<boolean>} - True if port is available, false otherwise
- */
-async function isPortAvailable(port) {
+async function isPortAvailable(port: number): Promise<boolean> {
   return new Promise((resolve) => {
     const server = net
       .createServer()
@@ -54,10 +39,7 @@ async function isPortAvailable(port) {
   });
 }
 
-/**
- * Show port in use error dialog
- */
-async function showPortInUseError() {
+async function showPortInUseError(): Promise<void> {
   dialog.showErrorBox(
     "Port Already in Use",
     "Port 8000 is already in use. Please ensure no other applications are using this port and try again."
@@ -65,23 +47,19 @@ async function showPortInUseError() {
   app.quit();
 }
 
-/**
- * Write process ID to PID file
- * @param {number} pid - Process ID to write
- */
-async function writePidFile(pid) {
+async function writePidFile(pid: number): Promise<void> {
   try {
     await fs.writeFile(PID_FILE_PATH, pid.toString());
     logMessage(`Written PID ${pid} to ${PID_FILE_PATH}`);
   } catch (error) {
-    logMessage(`Failed to write PID file: ${error.message}`, "error");
+    logMessage(
+      `Failed to write PID file: ${(error as Error).message}`,
+      "error"
+    );
   }
 }
 
-/**
- * Kill existing server process if running
- */
-async function killExistingServer() {
+async function killExistingServer(): Promise<void> {
   try {
     const pidContent = await fs.readFile(PID_FILE_PATH, "utf8");
     const pid = parseInt(pidContent, 10);
@@ -91,22 +69,18 @@ async function killExistingServer() {
         logMessage(`Killing existing server process ${pid}`);
         process.kill(pid);
 
-        // Wait for the process to be killed
-        await new Promise((resolve) => {
+        await new Promise<void>((resolve) => {
           const checkInterval = setInterval(() => {
             try {
-              // Try to send signal 0 to check if process exists
               process.kill(pid, 0);
             } catch (e) {
-              // ESRCH means process doesn't exist
-              if (e.code === "ESRCH") {
+              if ((e as NodeJS.ErrnoException).code === "ESRCH") {
                 clearInterval(checkInterval);
                 resolve();
               }
             }
           }, 100);
 
-          // Timeout after 5 seconds
           setTimeout(() => {
             clearInterval(checkInterval);
             resolve();
@@ -115,22 +89,25 @@ async function killExistingServer() {
 
         logMessage(`Killed existing server process ${pid}`);
       } catch (error) {
-        if (error.code !== "ESRCH") {
-          logMessage(`Error killing process ${pid}: ${error.message}`, "error");
+        if ((error as NodeJS.ErrnoException).code !== "ESRCH") {
+          logMessage(
+            `Error killing process ${pid}: ${(error as Error).message}`,
+            "error"
+          );
         }
       }
     }
   } catch (error) {
-    if (error.code !== "ENOENT") {
-      logMessage(`Error reading PID file: ${error.message}`, "error");
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+      logMessage(
+        `Error reading PID file: ${(error as Error).message}`,
+        "error"
+      );
     }
   }
 }
 
-/**
- * Start the NodeTool server process.
- */
-async function startNodeToolBackendProcess() {
+async function startServer(): Promise<void> {
   emitBootMessage("Configuring server environment...");
 
   const pythonExecutablePath = getPythonPath();
@@ -156,18 +133,20 @@ async function startNodeToolBackendProcess() {
       windowsHide: true,
     });
   } catch (error) {
-    forceQuit(`Failed to spawn server process: ${error.message}`);
+    forceQuit(`Failed to spawn server process: ${(error as Error).message}`);
     return;
   }
 
   nodeToolBackendProcess.on("spawn", () => {
     logMessage("NodeTool server starting...");
     emitBootMessage("NodeTool server starting...");
-    writePidFile(nodeToolBackendProcess.pid);
+    if (nodeToolBackendProcess?.pid) {
+      writePidFile(nodeToolBackendProcess.pid);
+    }
   });
 
-  nodeToolBackendProcess.stdout.on("data", handleServerOutput);
-  nodeToolBackendProcess.stderr.on("data", handleServerOutput);
+  nodeToolBackendProcess.stdout?.on("data", handleServerOutput);
+  nodeToolBackendProcess.stderr?.on("data", handleServerOutput);
 
   nodeToolBackendProcess.on("error", (error) => {
     forceQuit(`Server process error: ${error.message}`);
@@ -175,23 +154,10 @@ async function startNodeToolBackendProcess() {
 
   nodeToolBackendProcess.on("exit", (code, signal) => {
     logMessage(`Server process exited with code ${code} and signal ${signal}`);
-    if (code !== 0 && !isAppQuitting) {
-      const recentLogs = recentServerMessages.join("\n");
-      dialog.showErrorBox(
-        "Server Terminated Unexpectedly",
-        `The server process terminated unexpectedly with code ${code}\n\nRecent server messages:\n${recentLogs}`
-      );
-      forceQuit(`The server process terminated unexpectedly with code ${code}`);
-    }
   });
 }
 
-/**
- * Handle output from the server process
- * @param {Buffer} data - Output data from the server process
- * @returns {void}
- */
-function handleServerOutput(data) {
+function handleServerOutput(data: Buffer): void {
   const output = data.toString().trim();
   if (output) {
     logMessage(output);
@@ -228,11 +194,7 @@ function handleServerOutput(data) {
   emitServerLog(output);
 }
 
-/**
- * Ensure Ollama is installed and running
- * @returns {Promise<boolean>} True if Ollama is running, false otherwise
- */
-async function ensureOllamaIsRunning() {
+async function ensureOllamaIsRunning(): Promise<boolean> {
   try {
     const response = await fetch("http://localhost:11434/api/version");
     return response && response.status === 200;
@@ -242,11 +204,7 @@ async function ensureOllamaIsRunning() {
   }
 }
 
-/**
- * Show dialog explaining Ollama and providing download links
- * @returns {Promise<void>}
- */
-async function showOllamaInstallDialog() {
+async function showOllamaInstallDialog(): Promise<void> {
   const downloadUrl = "https://ollama.com/download";
   const response = await dialog.showMessageBox({
     type: "info",
@@ -264,11 +222,7 @@ async function showOllamaInstallDialog() {
   }
 }
 
-/**
- * Create launchd plist file
- * @returns {Promise<void>}
- */
-async function createLaunchdPlist() {
+async function createLaunchdPlist(): Promise<void> {
   const pythonPath = getPythonPath();
   const binPath = path.dirname(pythonPath);
   const logPath = path.join(app.getPath("logs"), "nodetool-server.log");
@@ -277,19 +231,18 @@ async function createLaunchdPlist() {
     "nodetool-server-error.log"
   );
 
-  // Clean up existing log files
   try {
     await fs.unlink(logPath).catch(() => {});
     await fs.unlink(errorLogPath).catch(() => {});
     logMessage("Cleaned up existing log files");
   } catch (error) {
-    logMessage(`Error cleaning up log files: ${error.message}`, "warn");
+    logMessage(
+      `Error cleaning up log files: ${(error as Error).message}`,
+      "warn"
+    );
   }
 
-  // make sure the log folder exists
   await fs.mkdir(app.getPath("logs"), { recursive: true });
-
-  // Create log directory if it doesn't exist
   await fs.mkdir(path.dirname(logPath), { recursive: true });
 
   const plistContent = `<?xml version="1.0" encoding="UTF-8"?>
@@ -330,26 +283,25 @@ async function createLaunchdPlist() {
 </plist>`;
 
   await fs.writeFile(PLIST_PATH, plistContent);
-  // Set proper permissions for the plist file
   await fs.chmod(PLIST_PATH, 0o644);
 }
 
-/**
- * Start server using launchd
- */
-async function startServerWithLaunchd() {
+async function startServerWithLaunchd(): Promise<void> {
   try {
     await createLaunchdPlist();
     logMessage("Starting server with launchd...");
 
-    const { stdout, stderr } = await new Promise((resolve, reject) => {
+    const { stdout, stderr } = await new Promise<{
+      stdout: string;
+      stderr: string;
+    }>((resolve, reject) => {
       console.log("launchctl", ["load", PLIST_PATH]);
       const process = spawn("launchctl", ["load", PLIST_PATH]);
       let stdout = "",
         stderr = "";
 
-      process.stdout.on("data", (data) => (stdout += data));
-      process.stderr.on("data", (data) => (stderr += data));
+      process.stdout?.on("data", (data) => (stdout += data));
+      process.stderr?.on("data", (data) => (stderr += data));
 
       process.on("close", (code) => {
         if (code === 0) {
@@ -366,13 +318,10 @@ async function startServerWithLaunchd() {
       logMessage(`launchctl warning: ${stderr}`, "warn");
     }
 
-    // Wait briefly to allow the service to start
     await new Promise((resolve) => setTimeout(resolve, 1000));
 
-    // Verify the service is running
     const isRunning = await isServerRunningViaLaunchd();
     if (!isRunning) {
-      // Read and log the launchd service logs
       const logPath = path.join(app.getPath("logs"), "nodetool-server.log");
       const errorLogPath = path.join(
         app.getPath("logs"),
@@ -388,11 +337,12 @@ async function startServerWithLaunchd() {
         logMessage("=== Launchd Error Logs ===");
         logMessage(errorLog);
       } catch (logError) {
-        logMessage(`Failed to read launchd logs: ${logError.message}`, "error");
+        logMessage(
+          `Failed to read launchd logs: ${(logError as Error).message}`,
+          "error"
+        );
       }
 
-      logMessage("Falling back to direct Python server process", "warn");
-      await startNodeToolBackendProcess();
       return;
     }
 
@@ -400,34 +350,30 @@ async function startServerWithLaunchd() {
     emitBootMessage("Server started, waiting for availability...");
   } catch (error) {
     logMessage(
-      `Failed to start server with launchd: ${error.message}. Falling back to direct Python server process`,
+      `Failed to start server with launchd: ${
+        (error as Error).message
+      }. Falling back to direct Python server process`,
       "warn"
     );
-    await startNodeToolBackendProcess();
+    await startServer();
   }
 }
 
-/**
- * Stop server using launchd
- */
-async function stopServerWithLaunchd() {
+async function stopServerWithLaunchd(): Promise<void> {
   try {
     await spawn("launchctl", ["remove", LAUNCHD_SERVICE_NAME]);
     await fs.unlink(PLIST_PATH);
   } catch (error) {
-    logMessage(`Error stopping launchd service: ${error.message}`, "error");
+    logMessage(
+      `Error stopping launchd service: ${(error as Error).message}`,
+      "error"
+    );
   }
 }
 
-/**
- * Check if server is running via launchd
- * @returns {Promise<boolean>}
- */
-async function isServerRunningViaLaunchd() {
+async function isServerRunningViaLaunchd(): Promise<boolean> {
   try {
-    const { exec } = require("child_process");
-    return new Promise((resolve) => {
-      // First check if service is listed
+    return new Promise<boolean>((resolve) => {
       exec(
         `launchctl list ${LAUNCHD_SERVICE_NAME}`,
         (error, stdout, stderr) => {
@@ -435,7 +381,6 @@ async function isServerRunningViaLaunchd() {
             logMessage("Server is running via launchd");
             resolve(true);
           } else {
-            // If service not found or error, check for any error messages
             exec(
               `launchctl error ${LAUNCHD_SERVICE_NAME}`,
               (errError, errStdout, errStderr) => {
@@ -451,17 +396,15 @@ async function isServerRunningViaLaunchd() {
       );
     });
   } catch (error) {
-    logMessage(`Error checking launchd status: ${error.message}`, "error");
+    logMessage(
+      `Error checking launchd status: ${(error as Error).message}`,
+      "error"
+    );
     return false;
   }
 }
 
-/**
- * Check if the server is running
- * @returns {Promise<boolean>} True if server is running
- */
-async function isServerRunning() {
-  // check if the server is running via launchd or the process is running
+async function isServerRunning(): Promise<boolean> {
   if (process.platform === "darwin") {
     return await isServerRunningViaLaunchd();
   } else {
@@ -469,14 +412,8 @@ async function isServerRunning() {
   }
 }
 
-/**
- * Initialize the backend server
- * @returns {Promise<void>}
- * @throws {Error} If server fails to start
- */
-async function initializeBackendServer() {
+async function initializeBackendServer(): Promise<void> {
   try {
-    // Try health check first
     try {
       const response = await fetch("http://127.0.0.1:8000/health");
       if (response.ok) {
@@ -488,15 +425,13 @@ async function initializeBackendServer() {
       logMessage("Health check failed, proceeding with server startup");
     }
 
-    // Existing startup logic
     if (process.platform !== "darwin") {
-      return startNodeToolBackendProcess();
+      return startServer();
     }
 
     const isRunning = await isServerRunningViaLaunchd();
     if (isRunning) {
       logMessage("Server already running, connecting...");
-      // Wait for server to be available
       await waitForServer();
       return;
     }
@@ -509,19 +444,14 @@ async function initializeBackendServer() {
     }
 
     await ensureOllamaIsRunning();
-    await startServerWithLaunchd();
+    await startServer();
     await waitForServer();
   } catch (error) {
-    forceQuit(`Critical error starting server: ${error.message}`);
+    forceQuit(`Critical error starting server: ${(error as Error).message}`);
   }
 }
 
-/**
- * Wait for server to become available
- * @param {number} timeout - Timeout in milliseconds
- * @returns {Promise<void>}
- */
-async function waitForServer(timeout = 30000) {
+async function waitForServer(timeout: number = 30000): Promise<void> {
   const startTime = Date.now();
   while (Date.now() - startTime < timeout) {
     try {
@@ -540,50 +470,40 @@ async function waitForServer(timeout = 30000) {
   throw new Error("Server failed to become available");
 }
 
-/**
- * Perform graceful shutdown of the server
- * @returns {Promise<void>}
- */
-async function gracefulShutdown() {
+async function stopServer(): Promise<void> {
   logMessage("Initiating graceful shutdown");
-  isAppQuitting = true;
 
-  if (process.platform === "darwin") {
-    await stopServerWithLaunchd();
-  } else {
-    try {
-      if (nodeToolBackendProcess) {
-        logMessage("Stopping server process");
-        nodeToolBackendProcess.kill("SIGTERM");
+  try {
+    if (nodeToolBackendProcess) {
+      logMessage("Stopping server process");
+      nodeToolBackendProcess.kill("SIGTERM");
 
-        await new Promise((resolve, reject) => {
-          nodeToolBackendProcess.on("exit", () => {
-            fs.unlink(PID_FILE_PATH).catch(() => {});
-            resolve();
-          });
-          nodeToolBackendProcess.on("error", reject);
-
-          setTimeout(() => {
-            if (!nodeToolBackendProcess.killed) {
-              nodeToolBackendProcess.kill("SIGKILL");
-            }
-            resolve();
-          }, 5000);
+      await new Promise<void>((resolve, reject) => {
+        nodeToolBackendProcess?.on("exit", () => {
+          fs.unlink(PID_FILE_PATH).catch(() => {});
+          resolve();
         });
-      }
-    } catch (error) {
-      logMessage(`Error during shutdown: ${error.message}`, "error");
+        nodeToolBackendProcess?.on("error", reject);
+
+        setTimeout(() => {
+          if (nodeToolBackendProcess && !nodeToolBackendProcess.killed) {
+            nodeToolBackendProcess.kill("SIGKILL");
+          }
+          resolve();
+        }, 5000);
+      });
     }
+  } catch (error) {
+    logMessage(`Error during shutdown: ${(error as Error).message}`, "error");
   }
 
   logMessage("Graceful shutdown complete");
 }
 
-/** @type {Object.<string, any>} */
-module.exports = {
+export {
   serverState,
   initializeBackendServer,
-  gracefulShutdown,
+  stopServer,
   webPath,
   LAUNCHD_SERVICE_NAME,
   isServerRunning,

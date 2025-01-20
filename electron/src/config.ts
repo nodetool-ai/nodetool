@@ -1,50 +1,50 @@
-const path = require("path");
-const { app } = require("electron");
-const { logMessage } = require("./logger");
-const fs = require("fs");
-const os = require("os");
+import * as path from "path";
+import { app } from "electron";
+import { logMessage } from "./logger";
+import * as fs from "fs";
+import { readSettings, updateSetting } from "./settings";
 
 // Base paths
-const resourcesPath = process.resourcesPath;
-const srcPath = app.isPackaged
+const resourcesPath: string = process.resourcesPath;
+const srcPath: string = app.isPackaged
   ? path.join(resourcesPath, "src")
-  : path.join(__dirname, "..", "src");
+  : path.join(__dirname, "..", "..", "src");
 
-const userDataPath = app.getPath("userData");
-const legacyCondaPath = path.join(userDataPath, "conda_env");
-const webPath = app.isPackaged
+const userDataPath: string = app.getPath("userData");
+const legacyCondaPath: string = path.join(userDataPath, "conda_env");
+const webPath: string = app.isPackaged
   ? path.join(process.resourcesPath, "web")
-  : path.join(__dirname, "../web/dist");
+  : path.join(__dirname, "..", "..", "web", "dist");
 
-const PID_FILE_PATH = path.join(app.getPath("userData"), "server.pid");
-const LAUNCHD_SERVICE_NAME = "ai.nodetool.server";
-const PLIST_PATH = path.join(
+const PID_FILE_PATH: string = path.join(app.getPath("userData"), "server.pid");
+const LAUNCHD_SERVICE_NAME: string = "ai.nodetool.server";
+const PLIST_PATH: string = path.join(
   app.getPath("home"),
   `Library/LaunchAgents/${LAUNCHD_SERVICE_NAME}.plist`
 );
 
-const getCondaEnvPath = () => {
-  const settings = require("./settings").readSettings();
+const getCondaEnvPath = (): string => {
+  const settings = readSettings();
 
   // Check if legacy path exists and settings doesn't have CONDA_ENV
   if (!settings.CONDA_ENV && fs.existsSync(legacyCondaPath)) {
     // Update settings with legacy path
-    const settingsManager = require("./settings");
-    settingsManager.updateSetting("CONDA_ENV", legacyCondaPath);
+    updateSetting("CONDA_ENV", legacyCondaPath);
     logMessage("Migrated legacy conda environment path to settings");
     return legacyCondaPath;
   }
 
-  const condaPath = settings.CONDA_ENV || legacyCondaPath;
+  const condaPath: string = settings.CONDA_ENV || legacyCondaPath;
 
   return condaPath;
 };
 
-const getRequirementsPath = () => {
-  const userRequirements = path.join(userDataPath, "requirements.txt");
-  const defaultRequirements = app.isPackaged
-    ? path.join(resourcesPath, "requirements.txt")
-    : path.join(__dirname, "..", "requirements.txt");
+const getRequirementsPath = (): string => {
+  const userRequirements: string = path.join(userDataPath, "requirements.txt");
+  const defaultRequirements: string = path.join(
+    resourcesPath,
+    "requirements.txt"
+  );
 
   try {
     // Synchronously check if user requirements exists
@@ -55,22 +55,22 @@ const getRequirementsPath = () => {
   }
 };
 
-const getPythonPath = () =>
+const getPythonPath = (): string =>
   process.platform === "win32"
     ? path.join(getCondaEnvPath(), "python.exe")
     : path.join(getCondaEnvPath(), "bin", "python");
 
-const getPipPath = () =>
+const getPipPath = (): string =>
   process.platform === "win32"
     ? path.join(getCondaEnvPath(), "Scripts", "pip.exe")
     : path.join(getCondaEnvPath(), "bin", "pip");
 
-const getCondaUnpackPath = () =>
+const getCondaUnpackPath = (): string =>
   process.platform === "win32"
     ? path.join(getCondaEnvPath(), "Scripts", "conda-unpack.exe")
     : path.join(getCondaEnvPath(), "bin", "conda-unpack");
 
-const saveUserRequirements = (requirements) => {
+const saveUserRequirements = (requirements: string): boolean => {
   logMessage(
     `Saving user requirements to ${path.join(userDataPath, "requirements.txt")}`
   );
@@ -83,8 +83,12 @@ const saveUserRequirements = (requirements) => {
   }
 };
 
-const getProcessEnv = () => {
-  const condaPath = getCondaEnvPath();
+interface ProcessEnv {
+  [key: string]: string;
+}
+
+const getProcessEnv = (): ProcessEnv => {
+  const condaPath: string = getCondaEnvPath();
 
   return {
     ...process.env,
@@ -110,7 +114,7 @@ const getProcessEnv = () => {
   };
 };
 
-module.exports = {
+export {
   getCondaEnvPath,
   getRequirementsPath,
   getPythonPath,

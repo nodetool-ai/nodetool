@@ -1,49 +1,42 @@
-const {
+import {
   app,
   ipcMain,
   dialog,
   shell,
   systemPreferences,
   BrowserWindow,
-} = require("electron");
-const { createWindow, forceQuit, handleActivation } = require("./window");
-const { setupAutoUpdater } = require("./updater");
-const { logMessage } = require("./logger");
-const {
-  initializeBackendServer,
-  gracefulShutdown,
-  serverState,
-} = require("./server");
-const {
+  Tray,
+  Menu,
+  IpcMainInvokeEvent,
+} from "electron";
+import { createWindow, forceQuit, handleActivation } from "./window";
+import { setupAutoUpdater } from "./updater";
+import { logMessage } from "./logger";
+import { initializeBackendServer, stopServer, serverState } from "./server";
+import {
   verifyApplicationPaths,
   isCondaEnvironmentInstalled,
-  installCondaEnvironment,
   updateCondaEnvironment,
-} = require("./python");
-const { LOG_FILE } = require("./logger");
-const { emitBootMessage } = require("./events");
-const fs = require("fs");
-const path = require("path");
-const { createTray } = require("./tray");
-const { isWorkflowWindow, runWorkflow } = require("./workflow-window");
+} from "./python";
+import { installCondaEnvironment } from "./installer";
+import { LOG_FILE } from "./logger";
+import { emitBootMessage } from "./events";
+import fs from "fs";
+import { createTray } from "./tray";
+import { isWorkflowWindow, runWorkflow } from "./workflow-window";
 
 /**
  * Global application state flags and objects
- * @type {boolean}
  */
 let isAppQuitting = false;
-/** @type {import('electron').Tray|null} */
-let tray = null;
-/** @type {import('electron').Menu} */
-let contextMenu = null;
-/** @type {import('electron').BrowserWindow|null} */
-let mainWindow = null;
+let tray: Tray | null = null;
+let contextMenu: Menu | null = null;
+let mainWindow: BrowserWindow | null = null;
 
 /**
  * Checks and sets up the Python Conda environment
- * @returns {Promise<void>}
  */
-async function checkPythonEnvironment() {
+async function checkPythonEnvironment(): Promise<void> {
   emitBootMessage("Checking for Python environment...");
   const hasCondaEnv = await isCondaEnvironmentInstalled();
 
@@ -56,10 +49,9 @@ async function checkPythonEnvironment() {
 
 /**
  * Initializes the application, verifies paths, and starts required servers
- * @returns {Promise<void>}
  * @throws {Error} When critical permissions are missing
  */
-async function initialize() {
+async function initialize(): Promise<void> {
   logMessage("Electron app is ready");
   emitBootMessage("Starting NodeTool Desktop...");
 
@@ -85,9 +77,8 @@ async function initialize() {
 
 /**
  * Checks system media permissions and requests access if needed
- * @returns {Promise<void>}
  */
-async function checkMediaPermissions() {
+async function checkMediaPermissions(): Promise<void> {
   if (process.platform === "win32" || process.platform === "darwin") {
     try {
       logMessage("Starting microphone permission check");
@@ -126,7 +117,7 @@ async function checkMediaPermissions() {
       }
     } catch (error) {
       logMessage(
-        `Error handling microphone permissions: ${error.message}`,
+        `Error handling microphone permissions: ${(error as Error).message}`,
         "error"
       );
       console.error("Detailed permission error:", error);
@@ -138,10 +129,6 @@ async function checkMediaPermissions() {
   }
 }
 
-/**
- * Event handler for app ready state
- * @returns {Promise<void>}
- */
 app.on("ready", async () => {
   await checkMediaPermissions();
   await initialize();
@@ -165,24 +152,23 @@ app.on("ready", async () => {
   }
 });
 
-/**
- * Event handler for update installation
- * @returns {Promise<void>}
- */
 ipcMain.handle("update-installed", async () => {
   logMessage("Update installed, updating Python environment");
   await checkPythonEnvironment();
 });
 
-/**
- * IPC handler for save file dialog
- * @param {Electron.IpcMainInvokeEvent} _event - The IPC event
- * @param {{buffer: Buffer, defaultPath: string, filters?: Array<{name: string, extensions: string[]}>}} options - Save options
- * @returns {Promise<{success: boolean, filePath?: string, canceled?: boolean, error?: string}>}
- */
+interface SaveFileOptions {
+  buffer: Buffer;
+  defaultPath: string;
+  filters?: Array<{ name: string; extensions: string[] }>;
+}
+
 ipcMain.handle(
   "save-file",
-  async (_event, { buffer, defaultPath, filters }) => {
+  async (
+    _event: IpcMainInvokeEvent,
+    { buffer, defaultPath, filters }: SaveFileOptions
+  ) => {
     try {
       const { filePath, canceled } = await dialog.showSaveDialog({
         defaultPath,
@@ -195,30 +181,28 @@ ipcMain.handle(
       }
       return { success: false, canceled: true };
     } catch (error) {
-      logMessage(`Save file error: ${error.message}`, "error");
-      return { success: false, error: error.message };
+      logMessage(`Save file error: ${(error as Error).message}`, "error");
+      return { success: false, error: (error as Error).message };
     }
   }
 );
 
-ipcMain.handle("run-app", async (_event, workflowId) => {
-  logMessage(`Running app with workflow ID: ${workflowId}`);
-  runWorkflow(workflowId);
-});
+ipcMain.handle(
+  "run-app",
+  async (_event: IpcMainInvokeEvent, workflowId: string) => {
+    logMessage(`Running app with workflow ID: ${workflowId}`);
+    runWorkflow(workflowId);
+  }
+);
 
-/**
- * Event handler for app quit
- * @param {Electron.Event} event - The quit event
- * @returns {void}
- */
 app.on("before-quit", (event) => {
   if (!isAppQuitting) {
     isAppQuitting = true;
-    gracefulShutdown();
+    stopServer();
   }
 });
 
-app.on("window-all-closed", function () {
+app.on("window-all-closed", () => {
   logMessage("All windows closed");
   if (process.platform !== "darwin") {
     logMessage("Quitting app (not on macOS)");
@@ -228,56 +212,36 @@ app.on("window-all-closed", function () {
 
 app.on("activate", handleActivation);
 
-// IPC handlers
-/**
- * IPC handler to get the current server state
- * @returns {Object} The current server state
- */
 ipcMain.handle("get-server-state", () => {
   console.log("Getting server state: " + JSON.stringify(serverState));
   return serverState;
 });
-/**
- * IPC handler to get the log file path
- * @returns {string} The path to the log file
- */
+
 ipcMain.handle("get-log-file-path", () => LOG_FILE);
-/**
- * IPC handler to open the log file in the system's file explorer
- * @returns {void}
- */
+
 ipcMain.handle("open-log-file", () => {
   shell.showItemInFolder(LOG_FILE);
 });
 
-/**
- * Global error handler for uncaught exceptions
- * @param {Error} error - The uncaught exception
- * @returns {void}
- */
-process.on("uncaughtException", (error) => {
+process.on("uncaughtException", (error: Error) => {
   logMessage(`Uncaught Exception: ${error.message}`, "error");
   logMessage(`Stack Trace: ${error.stack}`, "error");
   forceQuit(`Uncaught Exception: ${error.message}`);
 });
 
-/**
- * Global error handler for unhandled promise rejections
- * @param {unknown} reason - The reason for the rejection
- * @param {unknown} promise - The promise that was rejected
- * @returns {void}
- */
-process.on("unhandledRejection", (reason, promise) => {
-  const errorMessage =
-    reason instanceof Error ? reason.message : String(reason);
-  logMessage(`Unhandled Promise Rejection: ${errorMessage}`, "error");
-  if (reason instanceof Error) {
-    logMessage(`Stack Trace: ${reason.stack}`, "error");
+process.on(
+  "unhandledRejection",
+  (reason: unknown, promise: Promise<unknown>) => {
+    const errorMessage =
+      reason instanceof Error ? reason.message : String(reason);
+    logMessage(`Unhandled Promise Rejection: ${errorMessage}`, "error");
+    if (reason instanceof Error) {
+      logMessage(`Stack Trace: ${reason.stack}`, "error");
+    }
+    forceQuit(`Unhandled Promise Rejection: ${errorMessage}`);
   }
-  forceQuit(`Unhandled Promise Rejection: ${errorMessage}`);
-});
+);
 
-// Update the IPC handlers to use the new isWorkflowWindow function
 ipcMain.on("CLOSE-APP", (event) => {
   const window = BrowserWindow.fromWebContents(event.sender);
   if (window && isWorkflowWindow(window)) {
@@ -303,10 +267,6 @@ ipcMain.on("MAXIMIZE-APP", (event) => {
   }
 });
 
-/**
- * IPC handler to show the window when needed
- * @returns {void}
- */
 ipcMain.handle("show-main-window", () => {
   if (!mainWindow) {
     mainWindow = createWindow();

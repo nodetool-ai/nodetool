@@ -12,7 +12,31 @@
  *   update steps, and download progress
  */
 
-const { contextBridge, ipcRenderer, shell } = require("electron");
+import { contextBridge, ipcRenderer, shell, IpcRendererEvent } from "electron";
+
+interface ServerState {
+  isStarted: boolean;
+  bootMsg: string;
+  logs: string[];
+}
+
+interface DownloadProgressData {
+  componentName: string;
+  progress: number;
+}
+
+interface SaveFileOptions {
+  buffer: Buffer;
+  defaultPath: string;
+  filters: FileFilter[];
+}
+
+interface FileFilter {
+  name: string;
+  extensions: string[];
+}
+
+type CallbackFunction<T = any> = (data: T) => void;
 
 /**
  * Expose protected methods that allow the renderer process to use
@@ -21,96 +45,115 @@ const { contextBridge, ipcRenderer, shell } = require("electron");
 contextBridge.exposeInMainWorld("api", {
   /**
    * Retrieves the current state of the NodeTool server.
-   * @returns {Promise<{isStarted: boolean, bootMsg: string, logs: string[]}>}
+   * @returns {Promise<ServerState>}
    *          A promise that resolves to an object containing:
    *          - isStarted: Whether the server has started
    *          - bootMsg: The current boot message
    *          - logs: An array of server log messages
    */
-  getServerState: () => ipcRenderer.invoke("get-server-state"),
+  getServerState: (): Promise<ServerState> =>
+    ipcRenderer.invoke("get-server-state"),
 
   /**
    * Registers a callback to be invoked when the server has started.
-   * @param {Function} callback - The function to be called when the server starts
+   * @param {CallbackFunction} callback - The function to be called when the server starts
    */
-  onServerStarted: (callback) =>
-    ipcRenderer.on("server-started", (event, info) => callback(info)),
+  onServerStarted: (callback: CallbackFunction) =>
+    ipcRenderer.on("server-started", (_event: IpcRendererEvent, info: any) =>
+      callback(info)
+    ),
 
   /**
    * Registers a callback to receive boot messages.
-   * @param {Function} callback - The function to be called with each boot message
-   *                              Signature: (message: string) => void
+   * @param {CallbackFunction<string>} callback - The function to be called with each boot message
    */
-  onBootMessage: (callback) =>
-    ipcRenderer.on("boot-message", (event, message) => callback(message)),
+  onBootMessage: (callback: CallbackFunction<string>) =>
+    ipcRenderer.on(
+      "boot-message",
+      (_event: IpcRendererEvent, message: string) => callback(message)
+    ),
 
   /**
    * Registers a callback to receive server log messages.
-   * @param {Function} callback - The function to be called with each log message
-   *                              Signature: (message: string) => void
+   * @param {CallbackFunction<string>} callback - The function to be called with each log message
    */
-  onServerLog: (callback) =>
-    ipcRenderer.on("server-log", (event, message) => callback(message)),
+  onServerLog: (callback: CallbackFunction<string>) =>
+    ipcRenderer.on("server-log", (_event: IpcRendererEvent, message: string) =>
+      callback(message)
+    ),
 
   /**
    * Registers a callback to receive download progress updates.
    * This is used during the component download process to show the progress
    * of each component being downloaded.
-   * @param {Function} callback - The function to be called with download progress data
-   *                              Signature: (data: {componentName: string, progress: number}) => void
+   * @param {CallbackFunction<DownloadProgressData>} callback - The function to be called with download progress data
    */
-  onUpdateProgress: (callback) =>
-    ipcRenderer.on("update-progress", (event, data) => callback(data)),
+  onUpdateProgress: (callback: CallbackFunction<DownloadProgressData>) =>
+    ipcRenderer.on(
+      "update-progress",
+      (_event: IpcRendererEvent, data: DownloadProgressData) => callback(data)
+    ),
 
   /**
    * Gets the path to the application's log file.
    * @returns {Promise<string>} A promise that resolves to the full path of the log file
    */
-  getLogFilePath: () => ipcRenderer.invoke("get-log-file-path"),
+  getLogFilePath: (): Promise<string> =>
+    ipcRenderer.invoke("get-log-file-path"),
 
   /**
    * Opens the application's log file in the system's default text editor.
    * @returns {Promise<void>} A promise that resolves when the file is opened
    */
-  openLogFile: () => ipcRenderer.invoke("open-log-file"),
+  openLogFile: (): Promise<void> => ipcRenderer.invoke("open-log-file"),
 
   /**
    * Saves a file to disk with the provided content and options.
    * @param {Buffer} buffer - The content to save to the file
    * @param {string} defaultPath - The default file path to suggest in the save dialog
-   * @param {Object[]} filters - File filters for the save dialog
+   * @param {FileFilter[]} filters - File filters for the save dialog
    * @returns {Promise<string>} A promise that resolves to the path where the file was saved
    */
-  saveFile: (buffer, defaultPath, filters) =>
-    ipcRenderer.invoke("save-file", { buffer, defaultPath, filters }),
+  saveFile: (
+    buffer: Buffer,
+    defaultPath: string,
+    filters: FileFilter[]
+  ): Promise<string> =>
+    ipcRenderer.invoke("save-file", {
+      buffer,
+      defaultPath,
+      filters,
+    } as SaveFileOptions),
 
   /**
    * Runs a specific workflow in the application.
    * @param {string} workflowId - The ID of the workflow to run
    * @returns {Promise<void>} A promise that resolves when the workflow starts
    */
-  runApp: (workflowId) => ipcRenderer.invoke("run-app", workflowId),
+  runApp: (workflowId: string): Promise<void> =>
+    ipcRenderer.invoke("run-app", workflowId),
 
   /**
    * Registers a callback to be invoked when an update is available.
-   * @param {Function} callback - The function to be called when an update is available
-   *                             Signature: (info: Object) => void
+   * @param {CallbackFunction} callback - The function to be called when an update is available
    */
-  onUpdateAvailable: (callback) =>
-    ipcRenderer.on("update-available", (event, info) => callback(info)),
+  onUpdateAvailable: (callback: CallbackFunction) =>
+    ipcRenderer.on("update-available", (_event: IpcRendererEvent, info: any) =>
+      callback(info)
+    ),
 
   /**
    * Initiates the installation of a pending update.
    * @returns {Promise<void>} A promise that resolves when the update installation begins
    */
-  installUpdate: () => ipcRenderer.invoke("install-update"),
+  installUpdate: (): Promise<void> => ipcRenderer.invoke("install-update"),
 
   /**
    * Opens a URL in the user's default external browser.
    * @param {string} url - The URL to open
    * @returns {Promise<void>} A promise that resolves when the URL is opened
    */
-  openExternal: (url) => shell.openExternal(url),
+  openExternal: (url: string): Promise<void> => shell.openExternal(url),
 });
 
 /**
