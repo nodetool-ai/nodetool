@@ -19433,6 +19433,81 @@
     "is_dynamic": false
   },
   {
+    "title": "Conditional Switch",
+    "description": "Performs a conditional check on a boolean input and returns a value based on the result.\n    if, condition, flow-control, branch, true, false, switch, toggle\n\n    Use cases:\n    - Implement conditional logic in workflows\n    - Create dynamic branches in workflows\n    - Implement decision points in workflows",
+    "namespace": "nodetool.boolean",
+    "node_type": "nodetool.boolean.ConditionalSwitch",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "condition",
+        "type": {
+          "type": "bool",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Condition",
+        "description": "The condition to check",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "if_true",
+        "type": {
+          "type": "any",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": null,
+        "title": "If True",
+        "description": "The value to return if the condition is true",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "if_false",
+        "type": {
+          "type": "any",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": null,
+        "title": "If False",
+        "description": "The value to return if the condition is false",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "any",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "condition",
+      "if_true",
+      "if_false"
+    ],
+    "is_dynamic": false
+  },
+  {
     "title": "Logical Operator",
     "description": "Performs logical operations on two boolean inputs.\n    boolean, logic, operator, condition, flow-control, branch, else, true, false, switch, toggle\n\n    Use cases:\n    - Combine multiple conditions in decision-making\n    - Implement complex logical rules in workflows\n    - Create advanced filters or triggers",
     "namespace": "nodetool.boolean",
@@ -20664,7 +20739,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": 18,
+        "default": 21,
         "title": "Day",
         "description": "Day of the date",
         "min": null,
@@ -20739,7 +20814,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": 18,
+        "default": 21,
         "title": "Day",
         "description": "Day of the datetime",
         "min": null,
@@ -22655,11 +22730,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 18,
-          "hour": 21,
-          "minute": 46,
-          "second": 0,
-          "microsecond": 932444,
+          "day": 21,
+          "hour": 0,
+          "minute": 5,
+          "second": 17,
+          "microsecond": 590928,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23712,11 +23787,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 18,
-          "hour": 21,
-          "minute": 46,
-          "second": 0,
-          "microsecond": 954194,
+          "day": 21,
+          "hour": 0,
+          "minute": 5,
+          "second": 17,
+          "microsecond": 595462,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23766,11 +23841,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 18,
-          "hour": 21,
-          "minute": 46,
-          "second": 0,
-          "microsecond": 954944,
+          "day": 21,
+          "hour": 0,
+          "minute": 5,
+          "second": 17,
+          "microsecond": 595685,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23820,11 +23895,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 18,
-          "hour": 21,
-          "minute": 46,
-          "second": 0,
-          "microsecond": 957196,
+          "day": 21,
+          "hour": 0,
+          "minute": 5,
+          "second": 17,
+          "microsecond": 595905,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23874,11 +23949,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 18,
-          "hour": 21,
-          "minute": 46,
-          "second": 0,
-          "microsecond": 958696,
+          "day": 21,
+          "hour": 0,
+          "minute": 5,
+          "second": 17,
+          "microsecond": 596116,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23928,11 +24003,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 18,
-          "hour": 21,
-          "minute": 46,
-          "second": 0,
-          "microsecond": 960944,
+          "day": 21,
+          "hour": 0,
+          "minute": 5,
+          "second": 17,
+          "microsecond": 596360,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23982,11 +24057,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 18,
-          "hour": 21,
-          "minute": 46,
-          "second": 0,
-          "microsecond": 962445,
+          "day": 21,
+          "hour": 0,
+          "minute": 5,
+          "second": 17,
+          "microsecond": 596569,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -24036,11 +24111,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 18,
-          "hour": 21,
-          "minute": 46,
-          "second": 0,
-          "microsecond": 963948,
+          "day": 21,
+          "hour": 0,
+          "minute": 5,
+          "second": 17,
+          "microsecond": 596784,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -24106,11 +24181,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 18,
-          "hour": 21,
-          "minute": 46,
-          "second": 0,
-          "microsecond": 965443,
+          "day": 21,
+          "hour": 0,
+          "minute": 5,
+          "second": 17,
+          "microsecond": 597062,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -42464,64 +42539,6 @@
     "is_dynamic": false
   },
   {
-    "title": "Get Text ID",
-    "description": "Returns the asset id.\n    index, asset, identifier",
-    "namespace": "nodetool.text",
-    "node_type": "nodetool.text.TextID",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "text",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Text",
-        "description": null,
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "union",
-          "optional": false,
-          "values": null,
-          "type_args": [
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            },
-            {
-              "type": "none",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [
-      "text"
-    ],
-    "is_dynamic": false
-  },
-  {
     "title": "Concatenate Text",
     "description": "Concatenates two text inputs into a single output.\n    text, concatenation, combine, +\n\n    Use cases:\n    - Joining outputs from multiple text processing nodes\n    - Combining parts of sentences or paragraphs\n    - Merging text data from different sources",
     "namespace": "nodetool.text",
@@ -42649,7 +42666,7 @@
   },
   {
     "title": "Format Text",
-    "description": "Replaces placeholders in a string with dynamic inputs.\n    text, template, formatting\n\n    Use cases:\n    - Generating personalized messages with dynamic content\n    - Creating parameterized queries or commands\n    - Formatting text output based on variable inputs",
+    "description": "Replaces placeholders in a string with dynamic inputs using Jinja2 templating.\n    text, template, formatting\n\n    Use cases:\n    - Generating personalized messages with dynamic content\n    - Creating parameterized queries or commands\n    - Formatting and filtering text output based on variable inputs\n\n    Examples:\n    - text: \"Hello, {{ name }}!\"\n    - text: \"Title: {{ title|truncate(20) }}\"\n    - text: \"Name: {{ name|upper }}\"\n\n    Available filters:\n    - truncate(length): Truncates text to given length\n    - upper: Converts text to uppercase\n    - lower: Converts text to lowercase\n    - title: Converts text to title case\n    - trim: Removes whitespace from start/end\n    - replace(old, new): Replaces substring\n    - default(value): Sets default if value is undefined\n    - first: Gets first character/item\n    - last: Gets last character/item\n    - length: Gets length of string/list\n    - sort: Sorts list\n    - join(delimiter): Joins list with delimiter",
     "namespace": "nodetool.text",
     "node_type": "nodetool.text.FormatText",
     "layout": "default",
@@ -42665,7 +42682,7 @@
         },
         "default": "",
         "title": "Template",
-        "description": null,
+        "description": "\n    Examples:\n    - text: \"Hello, {{ name }}!\"\n    - text: \"Title: {{ title|truncate(20) }}\"\n    - text: \"Name: {{ name|upper }}\" \n\n    Available filters:\n    - truncate(length): Truncates text to given length\n    - upper: Converts text to uppercase\n    - lower: Converts text to lowercase\n    - title: Converts text to title case\n    - trim: Removes whitespace from start/end\n    - replace(old, new): Replaces substring\n    - default(value): Sets default if value is undefined\n    - first: Gets first character/item\n    - last: Gets last character/item\n    - length: Gets length of string/list\n    - sort: Sorts list\n    - join(delimiter): Joins list with delimiter\n",
         "min": null,
         "max": null
       }
@@ -42692,7 +42709,7 @@
   },
   {
     "title": "Template",
-    "description": "Replaces placeholders in a string with provided values.\n    text, template, formatting, format, combine, concatenate, +, add, variable, replace\n\n    Use cases:\n    - Generating personalized messages with dynamic content\n    - Creating parameterized queries or commands\n    - Formatting text output based on variable inputs\n\n    Examples:\n    - text: \"Hello, {name}!\" values: {\"name\": \"Alice\"} -> \"Hello, Alice!\"\n    - text: \"Hello, {0} {1}!\" values: [\"Alice\", \"Meyer\"] -> \"Hello, Alice Meyer!\"\n    - text: \"Hello, {0}!\" values: \"Alice\" -> \"Hello, Alice!\"",
+    "description": "Uses Jinja2 templating to format strings with variables and filters.\n    text, template, formatting, format, combine, concatenate, +, add, variable, replace, filter\n\n    Use cases:\n    - Generating personalized messages with dynamic content\n    - Creating parameterized queries or commands\n    - Formatting and filtering text output based on variable inputs\n\n    Examples:\n    - text: \"Hello, {{ name }}!\"\n    - text: \"Title: {{ title|truncate(20) }}\"\n    - text: \"Name: {{ name|upper }}\"\n\n    Available filters:\n    - truncate(length): Truncates text to given length\n    - upper: Converts text to uppercase\n    - lower: Converts text to lowercase\n    - title: Converts text to title case\n    - trim: Removes whitespace from start/end\n    - replace(old, new): Replaces substring\n    - default(value): Sets default if value is undefined\n    - first: Gets first character/item\n    - last: Gets last character/item\n    - length: Gets length of string/list\n    - sort: Sorts list\n    - join(delimiter): Joins list with delimiter",
     "namespace": "nodetool.text",
     "node_type": "nodetool.text.Template",
     "layout": "default",
@@ -42708,7 +42725,7 @@
         },
         "default": "",
         "title": "String",
-        "description": null,
+        "description": "\n    Examples:\n    - text: \"Hello, {{ name }}!\"\n    - text: \"Title: {{ title|truncate(20) }}\"\n    - text: \"Name: {{ name|upper }}\"\n\n    Available filters:\n    - truncate(length): Truncates text to given length\n    - upper: Converts text to uppercase\n    - lower: Converts text to lowercase\n    - title: Converts text to title case\n    - trim: Removes whitespace from start/end\n    - replace(old, new): Replaces substring\n    - default(value): Sets default if value is undefined\n    - first: Gets first character/item\n    - last: Gets last character/item\n    - length: Gets length of string/list\n    - sort: Sorts list\n    - join(delimiter): Joins list with delimiter\n",
         "min": null,
         "max": null
       },
@@ -42767,7 +42784,7 @@
         },
         "default": {},
         "title": "Values",
-        "description": "\n        The values to replace in the string.\n        - If a string, it will be used as the format string.\n        - If a list, it will be used as the format arguments.\n        - If a dictionary, it will be used as the format keyword arguments.\n        - If an object, it will be converted to a dictionary using the object's __dict__ method.\n        ",
+        "description": "\n        The values to replace in the string.\n        - If a string, it will be used as the format string.\n        - If a list, it will be used as the format arguments.\n        - If a dictionary, it will be used as the template variables.\n        - If an object, it will be converted to a dictionary using the object's __dict__ method.\n        ",
         "min": null,
         "max": null
       }
@@ -46041,7 +46058,7 @@
   },
   {
     "title": "Boolean Output",
-    "description": "Output node for a single boolean value.\n    boolean, true/false, flag\n\n    Use cases:\n    - Returning binary results (yes/no, true/false)\n    - Controlling conditional logic in workflows\n    - Indicating success/failure of operations",
+    "description": "Output node for a single boolean value.\n    boolean, true, false, flag, condition, flow-control, branch, else, true, false, switch, toggle\n\n    Use cases:\n    - Returning binary results (yes/no, true/false)\n    - Controlling conditional logic in workflows\n    - Indicating success/failure of operations",
     "namespace": "nodetool.output",
     "node_type": "nodetool.output.BooleanOutput",
     "layout": "default",
@@ -114347,21 +114364,6 @@
     "layout": "default",
     "properties": [
       {
-        "name": "email_address",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Email Address",
-        "description": "Gmail address to connect to",
-        "min": null,
-        "max": null
-      },
-      {
         "name": "search_criteria",
         "type": {
           "type": "email_search_criteria",
@@ -114429,7 +114431,6 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "email_address",
       "search_criteria",
       "max_results"
     ],
@@ -114442,21 +114443,6 @@
     "node_type": "google.mail.MoveToArchive",
     "layout": "default",
     "properties": [
-      {
-        "name": "email_address",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Email Address",
-        "description": "Gmail address to connect to",
-        "min": null,
-        "max": null
-      },
       {
         "name": "message_ids",
         "type": {
@@ -114505,7 +114491,6 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "email_address",
       "message_ids"
     ],
     "is_dynamic": false

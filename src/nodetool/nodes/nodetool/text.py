@@ -69,61 +69,136 @@ class Join(BaseNode):
 
 class FormatText(BaseNode):
     """
-    Replaces placeholders in a string with dynamic inputs.
+    Replaces placeholders in a string with dynamic inputs using Jinja2 templating.
     text, template, formatting
 
     Use cases:
     - Generating personalized messages with dynamic content
     - Creating parameterized queries or commands
-    - Formatting text output based on variable inputs
+    - Formatting and filtering text output based on variable inputs
+
+    Examples:
+    - text: "Hello, {{ name }}!"
+    - text: "Title: {{ title|truncate(20) }}"
+    - text: "Name: {{ name|upper }}"
+
+    Available filters:
+    - truncate(length): Truncates text to given length
+    - upper: Converts text to uppercase
+    - lower: Converts text to lowercase
+    - title: Converts text to title case
+    - trim: Removes whitespace from start/end
+    - replace(old, new): Replaces substring
+    - default(value): Sets default if value is undefined
+    - first: Gets first character/item
+    - last: Gets last character/item
+    - length: Gets length of string/list
+    - sort: Sorts list
+    - join(delimiter): Joins list with delimiter
     """
 
     _is_dynamic = True
 
-    template: str = Field(default="")
+    template: str = Field(
+        default="",
+        description="""
+    Examples:
+    - text: "Hello, {{ name }}!"
+    - text: "Title: {{ title|truncate(20) }}"
+    - text: "Name: {{ name|upper }}" 
+
+    Available filters:
+    - truncate(length): Truncates text to given length
+    - upper: Converts text to uppercase
+    - lower: Converts text to lowercase
+    - title: Converts text to title case
+    - trim: Removes whitespace from start/end
+    - replace(old, new): Replaces substring
+    - default(value): Sets default if value is undefined
+    - first: Gets first character/item
+    - last: Gets last character/item
+    - length: Gets length of string/list
+    - sort: Sorts list
+    - join(delimiter): Joins list with delimiter
+""",
+    )
 
     @classmethod
     def get_title(cls):
         return "Format Text"
 
     async def process(self, context: ProcessingContext) -> str:
-        try:
-            # Convert template placeholders to lowercase
-            template = re.sub(
-                r"\{([^}]+)\}", lambda m: "{" + m.group(1).lower() + "}", self.template
-            )
+        from jinja2 import Environment, BaseLoader
 
-            # Convert all dynamic property keys to lowercase
+        try:
+            # Create Jinja2 environment
+            env = Environment(loader=BaseLoader())
+            template = env.from_string(self.template)
+
+            # Convert all dynamic property keys to lowercase for consistency
             lowercase_properties = {
                 k.lower(): v for k, v in self._dynamic_properties.items()
             }
 
-            return template.format(**lowercase_properties)
-        except KeyError as e:
-            raise ValueError(
-                f"Missing required placeholder in template: {e} missing in {lowercase_properties}"
-            )
-        except ValueError as e:
-            raise ValueError(f"Invalid template format: {str(e)}")
+            # Render template with properties
+            return template.render(**lowercase_properties)
+        except Exception as e:
+            raise ValueError(f"Template error: {str(e)}")
 
 
 class Template(BaseNode):
     """
-    Replaces placeholders in a string with provided values.
-    text, template, formatting, format, combine, concatenate, +, add, variable, replace
+    Uses Jinja2 templating to format strings with variables and filters.
+    text, template, formatting, format, combine, concatenate, +, add, variable, replace, filter
 
     Use cases:
     - Generating personalized messages with dynamic content
     - Creating parameterized queries or commands
-    - Formatting text output based on variable inputs
+    - Formatting and filtering text output based on variable inputs
 
     Examples:
-    - text: "Hello, {name}!" values: {"name": "Alice"} -> "Hello, Alice!"
-    - text: "Hello, {0} {1}!" values: ["Alice", "Meyer"] -> "Hello, Alice Meyer!"
-    - text: "Hello, {0}!" values: "Alice" -> "Hello, Alice!"
+    - text: "Hello, {{ name }}!"
+    - text: "Title: {{ title|truncate(20) }}"
+    - text: "Name: {{ name|upper }}"
+
+    Available filters:
+    - truncate(length): Truncates text to given length
+    - upper: Converts text to uppercase
+    - lower: Converts text to lowercase
+    - title: Converts text to title case
+    - trim: Removes whitespace from start/end
+    - replace(old, new): Replaces substring
+    - default(value): Sets default if value is undefined
+    - first: Gets first character/item
+    - last: Gets last character/item
+    - length: Gets length of string/list
+    - sort: Sorts list
+    - join(delimiter): Joins list with delimiter
     """
 
-    string: str = Field(title="String", default="")
+    string: str = Field(
+        default="",
+        description="""
+    Examples:
+    - text: "Hello, {{ name }}!"
+    - text: "Title: {{ title|truncate(20) }}"
+    - text: "Name: {{ name|upper }}"
+
+    Available filters:
+    - truncate(length): Truncates text to given length
+    - upper: Converts text to uppercase
+    - lower: Converts text to lowercase
+    - title: Converts text to title case
+    - trim: Removes whitespace from start/end
+    - replace(old, new): Replaces substring
+    - default(value): Sets default if value is undefined
+    - first: Gets first character/item
+    - last: Gets last character/item
+    - length: Gets length of string/list
+    - sort: Sorts list
+    - join(delimiter): Joins list with delimiter
+""",
+    )
     values: str | list | dict[str, Any] | object = Field(
         title="Values",
         default={},
@@ -131,38 +206,36 @@ class Template(BaseNode):
         The values to replace in the string.
         - If a string, it will be used as the format string.
         - If a list, it will be used as the format arguments.
-        - If a dictionary, it will be used as the format keyword arguments.
+        - If a dictionary, it will be used as the template variables.
         - If an object, it will be converted to a dictionary using the object's __dict__ method.
         """,
     )
 
     async def process(self, context: ProcessingContext) -> str:
-        try:
-            # Convert template placeholders to lowercase
-            template = re.sub(
-                r"\{([^}]+)\}", lambda m: "{" + m.group(1).lower() + "}", self.string
-            )
+        from jinja2 import Environment, BaseLoader
 
+        try:
+            # Create Jinja2 environment
+            env = Environment(loader=BaseLoader())
+            template = env.from_string(self.string)
+
+            # Prepare values
             if isinstance(self.values, str):
-                return template.format(self.values)
+                values = {"value": self.values}
             elif isinstance(self.values, list):
-                return template.format(*self.values)
+                values = {"values": self.values}
             elif isinstance(self.values, dict):
-                # Convert all dictionary keys to lowercase
-                lowercase_values = {k.lower(): v for k, v in self.values.items()}
-                return template.format(**lowercase_values)
+                values = self.values
             elif isinstance(self.values, object):
-                # Convert object dict keys to lowercase
-                lowercase_values = {
-                    k.lower(): v for k, v in self.values.__dict__.items()
-                }
-                return template.format(**lowercase_values)
+                values = self.values.__dict__
             else:
                 raise ValueError("Invalid values type")
-        except KeyError as e:
-            raise ValueError(f"Missing required placeholder in template: {e}")
-        except ValueError as e:
-            raise ValueError(f"Invalid template format: {str(e)}")
+
+            # Render template
+            return template.render(**values)
+
+        except Exception as e:
+            raise ValueError(f"Template error: {str(e)}")
 
 
 class Replace(BaseNode):

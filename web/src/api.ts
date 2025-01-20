@@ -1256,11 +1256,11 @@ export interface components {
              *       "type": "datetime",
              *       "year": 2025,
              *       "month": 1,
-             *       "day": 15,
-             *       "hour": 21,
-             *       "minute": 12,
-             *       "second": 10,
-             *       "microsecond": 933805,
+             *       "day": 20,
+             *       "hour": 23,
+             *       "minute": 49,
+             *       "second": 26,
+             *       "microsecond": 457317,
              *       "tzinfo": "UTC",
              *       "utc_offset": 0
              *     }
@@ -2758,8 +2758,11 @@ export interface components {
             progress: number;
             /** Total */
             total: number;
-            /** Chunk */
-            chunk?: string | null;
+            /**
+             * Chunk
+             * @default
+             */
+            chunk: string;
         };
         /** NodeRef */
         NodeRef: {
@@ -3062,6 +3065,11 @@ export interface components {
              * @description Aime API key
              */
             AIME_API_KEY?: string | null;
+            /**
+             * Google Mail User
+             * @description Google mail user
+             */
+            GOOGLE_MAIL_USER?: string | null;
             /**
              * Google App Password
              * @description Google app password
