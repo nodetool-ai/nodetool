@@ -1,5 +1,4 @@
 import {
-  Grid2,
   List,
   ListItem,
   ListItemText,
@@ -24,7 +23,6 @@ import CollectionForm from "./CollectionForm";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
 import InfoIcon from "@mui/icons-material/Info";
-import { IndexResponse } from "../../stores/ApiTypes";
 
 type IndexMutation = {
   name: string;
@@ -241,19 +239,20 @@ const CollectionList = () => {
               }}
             >
               <Box sx={{ p: 2, maxWidth: 400 }}>
-                <Typography
-                  variant="body2"
-                  component="div"
-                  color="text.secondary"
-                >
-                  <ul style={{ margin: 0, paddingLeft: "1.5em" }}>
-                    <li>PDFs, PowerPoint, Word, Excel</li>
-                    <li>Images (with EXIF & OCR support)</li>
-                    <li>Audio files (with EXIF & transcription)</li>
-                    <li>HTML and text-based files (CSV, JSON, XML)</li>
-                    <li>ZIP archives (contents automatically processed)</li>
-                  </ul>
+                <Typography variant="body2" color="text.secondary" gutterBottom>
+                  Supported file formats:
                 </Typography>
+                <List dense sx={{ mt: 1, pl: 2 }}>
+                  <ListItem sx={{ display: "list-item" }}>
+                    PDFs, PowerPoint, Word, Excel
+                  </ListItem>
+                  <ListItem sx={{ display: "list-item" }}>
+                    Text files, Markdown, HTML
+                  </ListItem>
+                  <ListItem sx={{ display: "list-item" }}>
+                    Images (text extraction with OCR)
+                  </ListItem>
+                </List>
               </Box>
             </Popover>
             <Typography
@@ -288,15 +287,20 @@ const CollectionList = () => {
                 namespace.
               </Typography>
               <Typography variant="body1" sx={{ marginBottom: 1 }}>
-                <ul style={{ paddingLeft: "1em" }}>
-                  <li>Store embeddings of text, images, and other assets</li>
-                  <li>Enable semantic similarity search across content</li>
-                  <li>
-                    Organize and retrieve assets based on their meaning, not
-                    just keywords
-                  </li>
-                </ul>
+                Collections enable you to:
               </Typography>
+              <List sx={{ pl: 2, mb: 1 }}>
+                <ListItem sx={{ display: "list-item" }}>
+                  Store embeddings of text, images, and other assets
+                </ListItem>
+                <ListItem sx={{ display: "list-item" }}>
+                  Enable semantic similarity search across content
+                </ListItem>
+                <ListItem sx={{ display: "list-item" }}>
+                  Organize and retrieve assets based on their meaning, not just
+                  keywords
+                </ListItem>
+              </List>
             </Box>
           ) : (
             <Paper sx={{ marginTop: 2 }}>
@@ -452,16 +456,16 @@ const CollectionList = () => {
         <Dialog open={true} onClose={() => setIndexErrors([])}>
           <DialogTitle>Indexing Report</DialogTitle>
           <DialogContent>
-            <Typography variant="body1">
+            <Typography variant="body1" sx={{ mb: 2 }}>
               The following files encountered errors during indexing:
             </Typography>
-            <ul>
+            <List sx={{ pl: 2 }}>
               {indexErrors.map((error, index) => (
-                <li key={index}>
+                <ListItem key={index} sx={{ display: "list-item" }}>
                   <strong>{error.file}</strong>: {error.error}
-                </li>
+                </ListItem>
               ))}
-            </ul>
+            </List>
           </DialogContent>
           <DialogActions>
             <Button onClick={() => setIndexErrors([])}>Close</Button>

@@ -8,7 +8,7 @@ import "../../styles/panel.css";
 import HelpChat from "../assistants/HelpChat";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { isEqual } from "lodash";
-import { memo, useState, useCallback } from "react";
+import { memo, useCallback } from "react";
 import AssetGrid from "../assets/AssetGrid";
 import WorkflowForm from "../workflows/WorkflowForm";
 import GridViewIcon from "@mui/icons-material/GridView";
@@ -17,7 +17,7 @@ import StaticNodeMenu from "../node_menu/StaticNodeMenu";
 import { IconForType } from "../../config/data_types";
 import TuneIcon from "@mui/icons-material/Tune";
 import ControlPointIcon from "@mui/icons-material/ControlPoint";
-import CollectionsIcon from "@mui/icons-material/Collections";
+import { usePanelStore } from "../../stores/PanelStore";
 import CollectionList from "../collections/CollectionList";
 
 const styles = (theme: any) =>
@@ -71,30 +71,15 @@ const PanelLeft: React.FC = () => {
 
   useCombo(["1"], handlePanelToggle, false);
 
-  const [activeView, setActiveView] = useState<
-    "chat" | "assets" | "workflow" | "workflowGrid" | "nodes" | "collections"
-  >("nodes");
+  const activeView =
+    usePanelStore((state) => state.panel.activeView) || "nodes";
+  const handleViewChange = usePanelStore((state) => state.handleViewChange);
 
-  const handleViewChange = useCallback(
-    (
-      view:
-        | "chat"
-        | "assets"
-        | "workflow"
-        | "workflowGrid"
-        | "nodes"
-        | "collections"
-    ) => {
-      if (view === activeView) {
-        handlePanelToggle();
-      } else {
-        if (collapsed) {
-          handlePanelToggle();
-        }
-        setActiveView(view);
-      }
+  const onViewChange = useCallback(
+    (view: typeof activeView) => {
+      handleViewChange(view);
     },
-    [activeView, handlePanelToggle]
+    [handleViewChange]
   );
 
   return (
@@ -131,7 +116,7 @@ const PanelLeft: React.FC = () => {
           <div className="vertical-toolbar">
             <Tooltip title="Nodes" placement="right">
               <IconButton
-                onClick={() => handleViewChange("nodes")}
+                onClick={() => onViewChange("nodes")}
                 className={activeView === "nodes" ? "active" : ""}
               >
                 <ControlPointIcon />
@@ -139,7 +124,7 @@ const PanelLeft: React.FC = () => {
             </Tooltip>
             <Tooltip title="Workflows" placement="right">
               <IconButton
-                onClick={() => handleViewChange("workflowGrid")}
+                onClick={() => onViewChange("workflowGrid")}
                 className={activeView === "workflowGrid" ? "active" : ""}
               >
                 <GridViewIcon />
@@ -147,7 +132,7 @@ const PanelLeft: React.FC = () => {
             </Tooltip>
             <Tooltip title="Workflow Properties" placement="right">
               <IconButton
-                onClick={() => handleViewChange("workflow")}
+                onClick={() => onViewChange("workflow")}
                 className={activeView === "workflow" ? "active" : ""}
               >
                 <TuneIcon />
@@ -155,7 +140,7 @@ const PanelLeft: React.FC = () => {
             </Tooltip>
             <Tooltip title="Assets" placement="right">
               <Button
-                onClick={() => handleViewChange("assets")}
+                onClick={() => onViewChange("assets")}
                 className={activeView === "assets" ? "active" : ""}
               >
                 <IconForType
@@ -177,7 +162,7 @@ const PanelLeft: React.FC = () => {
             </Tooltip>
             <Tooltip title="Collections" placement="right">
               <IconButton
-                onClick={() => handleViewChange("collections")}
+                onClick={() => onViewChange("collections")}
                 className={activeView === "collections" ? "active" : ""}
               >
                 <IconForType
@@ -191,7 +176,7 @@ const PanelLeft: React.FC = () => {
             </Tooltip>
             <Tooltip title="Chat" placement="right">
               <IconButton
-                onClick={() => handleViewChange("chat")}
+                onClick={() => onViewChange("chat")}
                 className={activeView === "chat" ? "active" : ""}
               >
                 <ChatIcon />

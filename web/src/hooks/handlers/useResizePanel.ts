@@ -1,86 +1,79 @@
 import { useCallback, useRef } from "react";
 import { usePanelStore } from "../../stores/PanelStore";
 
-const PANEL_SIZE_KEY = "panel-sizes";
-
-// Helper function to get stored sizes
-export const getStoredPanelSizes = (): Record<string, number> => {
-  try {
-    const stored = localStorage.getItem(PANEL_SIZE_KEY);
-    return stored ? JSON.parse(stored) : {};
-  } catch {
-    return {};
-  }
-};
-
-// Helper function to store sizes
-const storePanelSize = (position: string, size: number) => {
-  try {
-    const currentSizes = getStoredPanelSizes();
-    localStorage.setItem(
-      PANEL_SIZE_KEY,
-      JSON.stringify({ ...currentSizes, [position]: size })
-    );
-  } catch {
-    // Silently fail if localStorage is not available
-  }
-};
+const DEFAULT_PANEL_SIZE = 400;
+const MIN_DRAG_SIZE = 60;
+const MIN_PANEL_SIZE = DEFAULT_PANEL_SIZE;
+const MAX_PANEL_SIZE = 800;
 
 export const useResizePanel = (panelPosition: "left" | "right" = "left") => {
-  const panel = usePanelStore(
-    useCallback((state) => state.panels[panelPosition], [panelPosition])
-  );
+  const panel = usePanelStore((state) => state.panel);
+  const startDragX = useRef(0);
+  const startDragSize = useRef(0);
 
   const actions = usePanelStore(
     useCallback(
       (state) => ({
         setSize: state.setSize,
         setIsDragging: state.setIsDragging,
-        setHasDragged: state.setHasDragged
+        setHasDragged: state.setHasDragged,
+        handleViewChange: state.handleViewChange
       }),
       []
     )
   );
 
   const ref = useRef<HTMLDivElement>(null);
-  const lastSizeRef = useRef(panel.size);
+  const lastSizeRef = useRef(
+    Math.max(MIN_PANEL_SIZE, panel.size || DEFAULT_PANEL_SIZE)
+  );
   const dragThreshold = 20;
 
   const handleMouseDown = useCallback(
     (event: React.MouseEvent<HTMLElement>) => {
-      actions.setIsDragging(panelPosition, true);
-      actions.setHasDragged(panelPosition, false);
+      startDragX.current = event.clientX;
+      startDragSize.current = panel.size || DEFAULT_PANEL_SIZE;
+      actions.setIsDragging(true);
+      actions.setHasDragged(false);
+
+      let hasMoved = false;
 
       const handleMouseMove = (event: MouseEvent) => {
-        let newSize;
+        hasMoved = true;
+        const deltaX = event.clientX - startDragX.current;
+        let newSize = startDragSize.current;
+
         if (panelPosition === "left") {
-          newSize =
-            event.clientX -
-            30 -
-            (ref.current?.getBoundingClientRect().left || 0);
+          newSize = startDragSize.current + deltaX;
         } else {
-          newSize = window.innerWidth - event.clientX - 30;
+          newSize = startDragSize.current - deltaX;
         }
 
-        newSize = Math.max(panel.minWidth, Math.min(newSize, panel.maxWidth));
+        newSize = Math.max(MIN_DRAG_SIZE, Math.min(newSize, MAX_PANEL_SIZE));
+        actions.setSize(newSize);
 
-        if (newSize < panel.minWidth * 3) {
-          newSize = panel.minWidth;
-        }
-        actions.setSize(panelPosition, newSize);
-
-        const distance = Math.abs(
-          event.clientX - (ref.current?.getBoundingClientRect().left || 0)
-        );
-
-        if (distance > dragThreshold) {
-          actions.setHasDragged(panelPosition, true);
+        if (Math.abs(deltaX) > dragThreshold) {
+          actions.setHasDragged(true);
         }
       };
 
       const handleMouseUp = () => {
-        actions.setIsDragging(panelPosition, false);
-        setTimeout(() => actions.setHasDragged(panelPosition, false), 0);
+        if (!hasMoved) {
+          // If we didn't move, treat it as a click and toggle the current view
+          actions.handleViewChange(panel.activeView);
+        } else {
+          // Ensure final size respects minimum
+          const finalSize = Math.max(
+            MIN_DRAG_SIZE,
+            panel.size || DEFAULT_PANEL_SIZE
+          );
+          if (finalSize !== panel.size) {
+            actions.setSize(finalSize);
+          }
+        }
+
+        actions.setIsDragging(false);
+        setTimeout(() => actions.setHasDragged(false), 0);
 
         document.removeEventListener("mousemove", handleMouseMove);
         document.removeEventListener("mouseup", handleMouseUp);
@@ -91,45 +84,20 @@ export const useResizePanel = (panelPosition: "left" | "right" = "left") => {
 
       event.preventDefault();
     },
-    [panelPosition, panel.minWidth, panel.maxWidth, actions]
+    [panelPosition, panel.size, panel.activeView, actions]
   );
 
-  const handlePanelToggle = useCallback(() => {
-    if (!panel.hasDragged) {
-      if (panel.size <= panel.minWidth) {
-        // If panel is minimized, restore to last size or default size
-        const newSize =
-          lastSizeRef.current > panel.minWidth
-            ? lastSizeRef.current
-            : panel.defaultWidth || 250; // fallback default width
-        actions.setSize(panelPosition, newSize);
-      } else {
-        // If panel is open, store current size and minimize
-        lastSizeRef.current = panel.size;
-        storePanelSize(panelPosition, panel.size);
-        actions.setSize(panelPosition, panel.minWidth);
-      }
-    }
-  }, [
-    panel.hasDragged,
-    panel.size,
-    panel.minWidth,
-    panel.defaultWidth,
-    actions,
-    panelPosition
-  ]);
-
-  // Store initial size in lastSizeRef when it changes
-  if (panel.size > panel.minWidth) {
+  // Update lastSizeRef when panel is open
+  if (panel.size > MIN_DRAG_SIZE) {
     lastSizeRef.current = panel.size;
   }
 
   return {
     ref,
-    size: panel.size,
-    collapsed: panel.size == panel.minWidth,
-    isDragging: panel.isDragging,
+    size: Math.max(MIN_DRAG_SIZE, panel.size || DEFAULT_PANEL_SIZE),
+    collapsed: panel.size <= MIN_DRAG_SIZE,
+    isDragging: panel.isDragging || false,
     handleMouseDown,
-    handlePanelToggle
+    handlePanelToggle: () => actions.handleViewChange(panel.activeView)
   };
 };

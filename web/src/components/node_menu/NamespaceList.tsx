@@ -508,6 +508,7 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
   );
 
   const totalNodes = useMetadataStore((state) => state.getAllMetadata()).length;
+  const currentPath = useNodeMenuStore((state) => state.selectedPath.join("."));
 
   return (
     <div
@@ -580,7 +581,6 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
           </Typography>
         </Tooltip>
       </Box>
-
       <Box className="list-box">
         <List className="namespace-list">{renderNamespaces}</List>
         {currentNodes && currentNodes.length > 0 ? (
