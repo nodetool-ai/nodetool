@@ -1,6 +1,6 @@
 import { BrowserWindow, app } from "electron";
 import path from "path";
-import { Workflow } from "./types";
+import { Workflow } from "./types.d";
 
 // Map to store workflow windows
 const workflowWindows = new Map<number, BrowserWindow>();

@@ -8,11 +8,18 @@
     "paths": {
       "*": ["*", "node_modules/*"]
     },
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "allowJs": true,
+    "moduleDetection": "force"
   },
   "include": [
-    "src/**/*.ts", "index.ts"
-, "preload.ts", "preload-workflow.ts"  ],
+    "src/**/*.ts",
+    "src/**/*.d.ts",
+    "index.ts",
+    "preload.ts",
+    "preload-workflow.ts"
+  ],
   "exclude": [
     "node_modules",
     "dist"

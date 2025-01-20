@@ -5,7 +5,9 @@ import {
   createReadStream,
 } from "fs";
 import StreamZip from "node-stream-zip";
+// @ts-ignore
 import tar from "tar-fs";
+// @ts-ignore
 import gunzip from "gunzip-maybe";
 import { dialog } from "electron";
 import { getCondaEnvUrl, getDefaultInstallLocation } from "./python";
@@ -22,7 +24,10 @@ import { getProcessEnv } from "./config";
 import { getCondaUnpackPath } from "./config";
 import { spawn } from "child_process";
 import { downloadFile } from "./download";
+import { BrowserWindow } from "electron";
 
+import { IpcChannels } from "./types.d";
+import { createIpcMainHandler } from "./ipc";
 /**
  * Format bytes to human readable size
  */
@@ -345,48 +350,59 @@ async function promptForInstallLocation(): Promise<string> {
 
   const defaultLocation = getDefaultInstallLocation();
 
-  const result = await dialog.showMessageBox({
-    type: "info",
-    buttons: ["Use Default Location", "Choose Custom Location", "Cancel"],
-    defaultId: 0,
-    title: "Python Environment Setup",
-    message: "Installing Machine Learning Environment",
-    detail:
-      `Nodetool comes with a complete machine learning environment that includes:\n\n` +
-      `• PyTorch for ML inference\n` +
-      `• CUDA support for GPU acceleration (Windows/Linux)\n` +
-      `• Scientific computing libraries (NumPy, SciPy, etc.)\n` +
-      `• Image processing libraries\n` +
-      `• All required dependencies\n\n` +
-      `This "batteries included" approach ensures everything works correctly without manual setup.\n\n` +
-      `Download size: ${downloadSize}\n` +
-      `Size on disk after installation: ${installedSize}\n\n` +
-      `Recommended location:\n${defaultLocation}`,
-  });
+  logMessage(`Default location: ${defaultLocation}`);
+  logMessage(`Download size: ${downloadSize}`);
+  logMessage(`Installed size: ${installedSize}`);
 
-  if (result.response === 2) {
-    throw new Error("Installation cancelled by user");
-  }
+  // Create a promise that will be resolved when the user makes a selection
+  return new Promise<string>((resolve, reject) => {
+    // Use createIpcMainHandler instead of createIpcOnceHandler for these events
+    createIpcMainHandler(
+      IpcChannels.SELECT_DEFAULT_LOCATION,
+      async (_event) => {
+        try {
+          await updateSetting("CONDA_ENV", defaultLocation);
+          resolve(defaultLocation);
+        } catch (error) {
+          reject(error);
+        }
+      }
+    );
 
-  let selectedPath: string;
-  if (result.response === 0) {
-    selectedPath = defaultLocation;
-  } else {
-    const { filePaths, canceled } = await dialog.showOpenDialog({
-      properties: ["openDirectory", "createDirectory"],
-      title: "Select Python Environment Location",
-      buttonLabel: "Select Folder",
-      defaultPath: defaultLocation,
+    createIpcMainHandler(IpcChannels.SELECT_CUSTOM_LOCATION, async () => {
+      try {
+        const { filePaths, canceled } = await dialog.showOpenDialog({
+          properties: ["openDirectory", "createDirectory"],
+          title: "Select Python Environment Location",
+          buttonLabel: "Select Folder",
+          defaultPath: defaultLocation,
+        });
+
+        if (canceled || !filePaths?.[0]) {
+          reject(new Error("No installation location selected"));
+        }
+
+        const selectedPath = path.join(filePaths[0], "nodetool-python");
+        await updateSetting("CONDA_ENV", selectedPath);
+        resolve(selectedPath);
+      } catch (error) {
+        reject(error);
+      }
     });
 
-    if (canceled || !filePaths?.[0]) {
-      throw new Error("No installation location selected");
+    // Send the prompt data to the renderer process
+    const mainWindow = BrowserWindow.getFocusedWindow();
+    if (!mainWindow) {
+      reject(new Error("No active window found"));
+      return;
     }
-    selectedPath = path.join(filePaths[0], "nodetool-python");
-  }
 
-  await updateSetting("CONDA_ENV", selectedPath);
-  return selectedPath;
+    mainWindow.webContents.send("install-location-prompt", {
+      defaultPath: defaultLocation,
+      downloadSize,
+      installedSize,
+    });
+  });
 }
 
 export { promptForInstallLocation, installCondaEnvironment };

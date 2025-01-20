@@ -1,6 +1,5 @@
-import { IntervalRef, ServerState, UpdateInfo } from "./src/types";
+import { IntervalRef } from "./src/types";
 
-const contentElement = document.getElementById("content");
 const logElement = document.getElementById("log")!;
 const bootMessage = document.getElementById("boot-message")!;
 const logContainer = document.getElementById("log-container")!;
@@ -88,6 +87,63 @@ function updateProgress(
   }
 }
 
+function hideElement(element: HTMLElement | null): void {
+  if (element) {
+    element.style.display = "none";
+  }
+}
+
+function showElement(
+  element: HTMLElement | null,
+  displayType: string = "block"
+): void {
+  if (element) {
+    element.style.display = displayType;
+  }
+}
+
+function hideBootMessage(): void {
+  hideElement(bootMessage);
+}
+
+function showBootMessage(): void {
+  showElement(bootMessage);
+}
+
+function hideUpdateSteps(): void {
+  hideElement(updateStepsElement);
+}
+
+function showUpdateSteps(): void {
+  showElement(updateStepsElement);
+}
+
+function hideInstallLocationPrompt(): void {
+  hideElement(document.getElementById("install-location-prompt"));
+}
+
+function showInstallLocationPrompt(): void {
+  showElement(document.getElementById("install-location-prompt"));
+}
+
+function hideUpdateNotification(): void {
+  hideElement(document.getElementById("update-notification"));
+}
+
+function showUpdateNotification(): void {
+  showElement(document.getElementById("update-notification"));
+}
+
+function hideLogs(): void {
+  logContainer.classList.remove("expanded");
+  logToggle.innerHTML = "<span>▲ Show Log</span>";
+}
+
+function showLogs(): void {
+  logContainer.classList.add("expanded");
+  logToggle.innerHTML = "<span>▼ Hide Log</span>";
+}
+
 function initializeApp(): void {
   window.api
     .getServerState()
@@ -95,10 +151,9 @@ function initializeApp(): void {
       console.log("Server state:", { isStarted, bootMsg, logs });
       if (isStarted) {
         loadContentWithNoCaching(initialURL);
-        bootMessage.style.display = "none";
-        updateStepsElement.style.display = "none";
-        logContainer.classList.remove("expanded");
-        logToggle.innerHTML = "<span>▲ Show Log</span>";
+        hideBootMessage();
+        hideUpdateSteps();
+        hideLogs();
         clearAllAnimations();
       } else {
         const bootTextElement = document.querySelector(".boot-text");
@@ -125,6 +180,10 @@ window.api.onBootMessage((message) => {
   if (bootTextElement) {
     bootTextElement.textContent = message;
   }
+
+  if (message.includes("Setting up Python")) {
+    showLogs();
+  }
 });
 
 window.api.onServerLog((message) => {
@@ -148,7 +207,7 @@ window.api.onUpdateAvailable((info) => {
     return;
   }
 
-  updateNotification.style.display = "block";
+  showUpdateNotification();
   releaseLink.href = info.releaseUrl;
   releaseLink.onclick = (e) => {
     e.preventDefault();
@@ -231,3 +290,37 @@ function startIconAnimations(): void {
     }, 5000);
   }, 10 * 60000 + 2500);
 }
+
+window.api.onInstallLocationPrompt(
+  async ({ defaultPath, downloadSize, installedSize }) => {
+    const defaultLocationPath = document.querySelector(".location-path");
+    const sizeInfo = document.querySelector(".size-info");
+
+    if (!defaultLocationPath || !sizeInfo) {
+      console.warn("Install location prompt elements not found");
+      return;
+    }
+
+    defaultLocationPath.textContent = defaultPath;
+    sizeInfo.textContent = `Download size: ${downloadSize}, Installed size: ${installedSize}`;
+    hideBootMessage();
+    showInstallLocationPrompt();
+
+    const defaultLocationButton = document.querySelector(".default-location");
+    const customLocationButton = document.querySelector(".custom-location");
+
+    if (defaultLocationButton && customLocationButton) {
+      defaultLocationButton.addEventListener("click", async () => {
+        await window.api.selectDefaultInstallLocation();
+        hideInstallLocationPrompt();
+        showBootMessage();
+      });
+
+      customLocationButton.addEventListener("click", async () => {
+        await window.api.selectCustomInstallLocation();
+        hideInstallLocationPrompt();
+        showBootMessage();
+      });
+    }
+  }
+);
