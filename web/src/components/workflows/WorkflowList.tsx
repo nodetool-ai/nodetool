@@ -127,15 +127,10 @@ const styles = (theme: any) =>
       gap: theme.spacing(2),
       marginBottom: theme.spacing(3),
       padding: theme.spacing(2, 0),
-      borderBottom: `1px solid ${theme.palette.c_gray3}`,
       "& h3": {
         margin: 0,
         fontSize: "1.5rem",
-        fontWeight: 500,
-        background: `linear-gradient(90deg, ${theme.palette.c_hl1}, ${theme.palette.c_hl2})`,
-        WebkitBackgroundClip: "text",
-        WebkitTextFillColor: "transparent",
-        animation: "shimmer 2s infinite linear"
+        color: theme.palette.c_white
       }
     }
   });

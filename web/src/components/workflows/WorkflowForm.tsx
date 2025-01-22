@@ -11,7 +11,6 @@ import {
   SelectChangeEvent,
   Typography,
   Autocomplete,
-  Chip,
   TextField
 } from "@mui/material";
 import { useEffect, useState } from "react";
@@ -21,7 +20,7 @@ import DeleteButton from "../buttons/DeleteButton";
 import { useFileDrop } from "../../hooks/handlers/useFileDrop";
 import { WorkflowAttributes } from "../../stores/ApiTypes";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import { prettyDate } from "../../utils/formatDateAndTime";
+import { prettyDate, relativeTime } from "../../utils/formatDateAndTime";
 import { useSettingsStore } from "../../stores/SettingsStore";
 
 const AVAILABLE_TAGS = [
@@ -51,7 +50,7 @@ const styles = (theme: any) =>
       backgroundSize: "contain",
       backgroundRepeat: "no-repeat",
       backgroundPosition: "center",
-      width: "64px",
+      width: "100%",
       height: "64px",
       userSelect: "none",
       color: theme.palette.c_gray4,
@@ -78,7 +77,8 @@ const styles = (theme: any) =>
     },
     ".save-text": {
       color: theme.palette.c_gray6,
-      fontSize: theme.fontSizeSmall
+      fontSize: theme.fontSizeSmall,
+      lineHeight: "1em"
     },
     '[role~="tooltip"][data-microtip-position|="center"]::after': {
       position: "absolute",
@@ -131,23 +131,11 @@ const styles = (theme: any) =>
       gap: theme.spacing(2),
       marginBottom: theme.spacing(3),
       padding: theme.spacing(2, 0),
-      borderBottom: `1px solid ${theme.palette.c_gray3}`,
       "& h3": {
         margin: 0,
         fontSize: "1.5rem",
         fontWeight: 500,
-        background: `linear-gradient(90deg, ${theme.palette.c_hl1}, ${theme.palette.c_hl2})`,
-        WebkitBackgroundClip: "text",
-        WebkitTextFillColor: "transparent",
-        animation: "shimmer 2s infinite linear"
-      }
-    },
-    "@keyframes shimmer": {
-      "0%": {
-        backgroundPosition: "-200% center"
-      },
-      "100%": {
-        backgroundPosition: "200% center"
+        color: theme.palette.c_white
       }
     }
   });
@@ -263,7 +251,7 @@ const WorkflowForm = () => {
     <div css={styles} className="workflow-form">
       <Box sx={{ pl: 2, pr: 2 }}>
         <div className="workflow-header">
-          <Typography variant="h3">Workflow</Typography>
+          <Typography variant="h3">Workflow Settings</Typography>
         </div>
         <FormControl>
           <FormLabel htmlFor="name">Name</FormLabel>
@@ -346,7 +334,8 @@ const WorkflowForm = () => {
           Save
         </Button>
         <Typography variant="caption" className="save-text">
-          {prettyDate(updatedAt, "normal", settings)}
+          {prettyDate(updatedAt, "normal", settings)} <br />
+          {relativeTime(updatedAt)}
         </Typography>
       </Box>
     </div>
