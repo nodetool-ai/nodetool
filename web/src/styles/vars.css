@@ -20,7 +20,7 @@
   --c_gray5: #bdbdbd;
   --c_gray6: #d9d9d9;
   --c_background: #424854;
-  --c_node_menu: #252525;
+  --c_node_menu: #232323;
   /* Highlights */
   --c_hl1: #76e5b8;
   --c_hl1_1: #b7e3d9;
@@ -76,7 +76,7 @@
   --c_node_bg: #1a1c1e;
   --c_node_bg_group: #2a2d30;
   --c_node_header_bg: #151515;
-  --c_node_header_bg_group: #252525;
+  --c_node_header_bg_group: #232323;
 
   --handle_width: 6px;
   --handle_height: 12px;
