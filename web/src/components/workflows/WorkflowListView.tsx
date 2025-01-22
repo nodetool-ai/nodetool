@@ -9,6 +9,7 @@ import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import Checkbox from "@mui/material/Checkbox";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { useNodeStore } from "../../stores/NodeStore";
+import { usePanelStore } from "../../stores/PanelStore";
 
 interface WorkflowListViewProps {
   workflows: Workflow[];
@@ -34,7 +35,7 @@ const listStyles = (theme: any) =>
       overflow: "hidden auto"
     },
     ".workflow": {
-      padding: "1em 1em 0.5em 1em",
+      padding: "1em .1em 0.5em 1em",
       display: "flex",
       flexDirection: "row",
       alignItems: "flex-start",
@@ -54,7 +55,7 @@ const listStyles = (theme: any) =>
       outline: `0`
     },
     ".workflow:hover": {
-      backgroundColor: theme.palette.c_gray1,
+      backgroundColor: theme.palette.c_gray2,
       outline: `0`
     },
     ".workflow.selected": {
@@ -63,25 +64,31 @@ const listStyles = (theme: any) =>
       outline: `0`
     },
     ".name": {
-      fontSize: theme.fontSizeSmall,
+      fontSize: theme.fontSizeNormal,
+      fontWeight: "lighter",
       margin: "0",
-      lineHeight: "1.4em",
+      lineHeight: "1.2em",
       color: theme.palette.c_white,
       userSelect: "none"
     },
     ".date": {
-      paddingRight: "0.5em",
+      paddingRight: "0.2em",
+      color: theme.palette.c_gray5,
       fontFamily: theme.fontFamily2,
-      fontSize: theme.fontSizeTiny,
+      fontSize: theme.fontSizeSmaller,
       right: "0",
-      height: "2em",
+      wordSpacing: "-0.1em",
       lineHeight: "2em",
       minWidth: "80px",
       userSelect: "none",
       textAlign: "right"
     },
     ".duplicate-button": {
+      opacity: 0,
       padding: "0"
+    },
+    ".workflow:hover .duplicate-button": {
+      opacity: 1
     },
     ".duplicate-button svg": {
       transform: "scale(0.7)"
@@ -110,7 +117,7 @@ export const WorkflowListView: React.FC<WorkflowListViewProps> = ({
   showCheckboxes
 }) => {
   const currentWorkflow = useNodeStore((state) => state.workflow);
-
+  const panelSize = usePanelStore((state) => state.panel.panelSize);
   const addBreaks = (text: string) => {
     return text.replace(/([-_.])/g, "$1<wbr>");
   };
@@ -131,6 +138,9 @@ export const WorkflowListView: React.FC<WorkflowListViewProps> = ({
               (selectedWorkflows?.includes(workflow.id) ? " selected" : "") +
               (currentWorkflow?.id === workflow.id ? " current" : "")
             }
+            onContextMenu={(e) => {
+              e.preventDefault();
+            }}
             onClick={(e) => {
               if (!e.defaultPrevented) {
                 onOpenWorkflow(workflow);
@@ -165,16 +175,17 @@ export const WorkflowListView: React.FC<WorkflowListViewProps> = ({
               ></div>
             </Tooltip>
             <div className="actions">
-              <Tooltip
-                title="Last modified"
-                placement="top"
-                enterDelay={TOOLTIP_ENTER_DELAY}
-              >
-                <Typography className="date">
-                  {relativeTime(workflow.updated_at)} <br />
-                </Typography>
-              </Tooltip>
-
+              {panelSize >= 400 && (
+                <Tooltip
+                  title="Last modified"
+                  placement="top"
+                  enterDelay={TOOLTIP_ENTER_DELAY}
+                >
+                  <Typography className="date">
+                    {relativeTime(workflow.updated_at)} <br />
+                  </Typography>
+                </Tooltip>
+              )}
               <Tooltip
                 title="Make a copy of this workflow"
                 placement="bottom"
