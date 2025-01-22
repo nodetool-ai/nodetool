@@ -104,9 +104,9 @@ const DraggableNodeDocumentation: React.FC<DraggableNodeDocumentationProps> = ({
   const handleOpenNodeMenu = useCallback(() => {
     if (nodeType) {
       const searchTerm = nodeType.replace(/\./g, " ");
-      openNodeMenu(panel.size, 100, false, "", null, searchTerm);
+      openNodeMenu(panel.panelSize, 100, false, "", null, searchTerm);
     }
-  }, [nodeType, openNodeMenu, panel.size]);
+  }, [nodeType, openNodeMenu, panel.panelSize]);
 
   const content = useMemo(() => {
     if (!nodeMetadata)

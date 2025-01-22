@@ -25,14 +25,14 @@ export const useResizePanel = (panelPosition: "left" | "right" = "left") => {
 
   const ref = useRef<HTMLDivElement>(null);
   const lastSizeRef = useRef(
-    Math.max(MIN_PANEL_SIZE, panel.size || DEFAULT_PANEL_SIZE)
+    Math.max(MIN_PANEL_SIZE, panel.panelSize || DEFAULT_PANEL_SIZE)
   );
   const dragThreshold = 20;
 
   const handleMouseDown = useCallback(
     (event: React.MouseEvent<HTMLElement>) => {
       startDragX.current = event.clientX;
-      startDragSize.current = panel.size || DEFAULT_PANEL_SIZE;
+      startDragSize.current = panel.panelSize || DEFAULT_PANEL_SIZE;
       actions.setIsDragging(true);
       actions.setHasDragged(false);
 
@@ -65,9 +65,9 @@ export const useResizePanel = (panelPosition: "left" | "right" = "left") => {
           // Ensure final size respects minimum
           const finalSize = Math.max(
             MIN_DRAG_SIZE,
-            panel.size || DEFAULT_PANEL_SIZE
+            panel.panelSize || DEFAULT_PANEL_SIZE
           );
-          if (finalSize !== panel.size) {
+          if (finalSize !== panel.panelSize) {
             actions.setSize(finalSize);
           }
         }
@@ -84,18 +84,18 @@ export const useResizePanel = (panelPosition: "left" | "right" = "left") => {
 
       event.preventDefault();
     },
-    [panelPosition, panel.size, panel.activeView, actions]
+    [panelPosition, panel.panelSize, panel.activeView, actions]
   );
 
   // Update lastSizeRef when panel is open
-  if (panel.size > MIN_DRAG_SIZE) {
-    lastSizeRef.current = panel.size;
+  if (panel.panelSize > MIN_DRAG_SIZE) {
+    lastSizeRef.current = panel.panelSize;
   }
 
   return {
     ref,
-    size: Math.max(MIN_DRAG_SIZE, panel.size || DEFAULT_PANEL_SIZE),
-    collapsed: panel.size <= MIN_DRAG_SIZE,
+    size: Math.max(MIN_DRAG_SIZE, panel.panelSize || DEFAULT_PANEL_SIZE),
+    collapsed: panel.panelSize <= MIN_DRAG_SIZE,
     isDragging: panel.isDragging || false,
     handleMouseDown,
     handlePanelToggle: () => actions.handleViewChange(panel.activeView)

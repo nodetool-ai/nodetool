@@ -12,7 +12,7 @@ export type LeftPanelView =
 export type PanelView = LeftPanelView;
 
 interface PanelState {
-  size: number;
+  panelSize: number;
   isDragging: boolean;
   hasDragged: boolean;
   minWidth: number;
@@ -58,7 +58,7 @@ try {
 // Create initial state with guaranteed valid values
 const createInitialState = (): PanelState => {
   return {
-    size: DEFAULT_PANEL_SIZE,
+    panelSize: DEFAULT_PANEL_SIZE,
     isDragging: false,
     hasDragged: false,
     minWidth: MIN_DRAG_SIZE,
@@ -89,7 +89,7 @@ export const usePanelStore = create<ResizePanelState>()(
             return {
               panel: {
                 ...state.panel,
-                size: MIN_DRAG_SIZE
+                panelSize: MIN_DRAG_SIZE
               }
             };
           }
@@ -98,7 +98,7 @@ export const usePanelStore = create<ResizePanelState>()(
           return {
             panel: {
               ...state.panel,
-              size: validSize,
+              panelSize: validSize,
               viewSizes: {
                 ...state.panel.viewSizes,
                 [state.panel.activeView]: validSize
@@ -128,7 +128,7 @@ export const usePanelStore = create<ResizePanelState>()(
         set((state) => ({
           panel: {
             ...state.panel,
-            size: validSize
+            panelSize: validSize
           }
         }));
       },
@@ -146,20 +146,20 @@ export const usePanelStore = create<ResizePanelState>()(
           panel: {
             ...state.panel,
             activeView: view,
-            size: validSize
+            panelSize: validSize
           }
         }));
       },
 
       closePanel: () => {
         set((state) => ({
-          panel: { ...state.panel, size: MIN_DRAG_SIZE }
+          panel: { ...state.panel, panelSize: MIN_DRAG_SIZE }
         }));
       },
 
       handleViewChange: (view: PanelView) => {
         const { panel } = get();
-        const isCollapsed = panel.size <= MIN_DRAG_SIZE;
+        const isCollapsed = panel.panelSize <= MIN_DRAG_SIZE;
 
         if (panel.activeView === view) {
           // Toggle panel for same view
@@ -201,10 +201,10 @@ export const usePanelStore = create<ResizePanelState>()(
         );
 
         // Store panel size if above MIN_DRAG_SIZE
-        return state.panel.size > MIN_DRAG_SIZE
+        return state.panel.panelSize > MIN_DRAG_SIZE
           ? {
               panel: {
-                size: Math.min(state.panel.size, MAX_PANEL_SIZE),
+                size: Math.min(state.panel.panelSize, MAX_PANEL_SIZE),
                 activeView: state.panel.activeView,
                 viewSizes: validViewSizes
               }
@@ -213,9 +213,9 @@ export const usePanelStore = create<ResizePanelState>()(
       },
       onRehydrateStorage: () => (state) => {
         if (
-          !state?.panel?.size ||
-          state.panel.size < MIN_DRAG_SIZE ||
-          state.panel.size > MAX_PANEL_SIZE
+          !state?.panel?.panelSize ||
+          state.panel.panelSize < MIN_DRAG_SIZE ||
+          state.panel.panelSize > MAX_PANEL_SIZE
         ) {
           const initialState = createInitialState();
           return { panel: initialState, isHydrated: true };
@@ -225,7 +225,7 @@ export const usePanelStore = create<ResizePanelState>()(
         const validState = {
           panel: {
             ...state.panel,
-            size: Math.min(state.panel.size, MAX_PANEL_SIZE),
+            size: Math.min(state.panel.panelSize, MAX_PANEL_SIZE),
             viewSizes: { ...createInitialState().viewSizes } // Start with defaults
           },
           isHydrated: true
