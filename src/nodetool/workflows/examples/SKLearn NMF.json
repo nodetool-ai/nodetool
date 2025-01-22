@@ -1,0 +1,101 @@
+{
+    "id": "sklearn_nmf",
+    "access": "public",
+    "created_at": "2024-03-19T10:00:00.000000",
+    "updated_at": "2024-03-19T10:00:00.000000",
+    "name": "SKLearn NMF",
+    "description": "Example Non-negative Matrix Factorization workflow using scikit-learn",
+    "tags": [
+        "sklearn"
+    ],
+    "graph": {
+        "nodes": [
+            {
+                "id": "1",
+                "type": "sklearn.datasets.MakeClassificationDataset",
+                "position": {
+                    "x": 100,
+                    "y": 100
+                },
+                "data": {
+                    "n_samples": 100,
+                    "n_features": 20,
+                    "n_informative": 15,
+                    "n_redundant": 5,
+                    "random_state": 42
+                }
+            },
+            {
+                "id": "2",
+                "type": "sklearn.preprocessing.MinMaxScaler",
+                "position": {
+                    "x": 400,
+                    "y": 100
+                },
+                "data": {
+                    "feature_range": [
+                        0,
+                        1
+                    ]
+                }
+            },
+            {
+                "id": "3",
+                "type": "sklearn.decomposition.NMF",
+                "position": {
+                    "x": 700,
+                    "y": 100
+                },
+                "data": {
+                    "n_components": 10,
+                    "init": "random",
+                    "random_state": 42,
+                    "max_iter": 200
+                }
+            },
+            {
+                "id": "4",
+                "type": "sklearn.visualization.NMFComponentsPlot",
+                "position": {
+                    "x": 1000,
+                    "y": 100
+                },
+                "data": {}
+            }
+        ],
+        "edges": [
+            {
+                "id": "e1-2",
+                "source": "1",
+                "sourceHandle": "data",
+                "target": "2",
+                "targetHandle": "X",
+                "ui_properties": {
+                    "className": "np_array"
+                }
+            },
+            {
+                "id": "e2-3",
+                "source": "2",
+                "sourceHandle": "transformed",
+                "target": "3",
+                "targetHandle": "X",
+                "ui_properties": {
+                    "className": "np_array"
+                }
+            },
+            {
+                "id": "e3-4",
+                "source": "3",
+                "sourceHandle": "components_",
+                "target": "4",
+                "targetHandle": "components",
+                "ui_properties": {
+                    "className": "np_array"
+                }
+            }
+        ]
+    },
+    "input_schema": null,
+    "output_schema": null
+}
