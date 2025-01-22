@@ -5,7 +5,6 @@ import React from "react";
 import { Box, Button, Tooltip, Typography } from "@mui/material";
 import { Workflow } from "../../stores/ApiTypes";
 import { relativeTime } from "../../utils/formatDateAndTime";
-import { useSettingsStore } from "../../stores/SettingsStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import Checkbox from "@mui/material/Checkbox";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
@@ -67,7 +66,7 @@ const listStyles = (theme: any) =>
       fontSize: theme.fontSizeSmall,
       margin: "0",
       lineHeight: "1.4em",
-      color: theme.palette.c_hl1,
+      color: theme.palette.c_white,
       userSelect: "none"
     },
     ".date": {
@@ -105,14 +104,11 @@ export const WorkflowListView: React.FC<WorkflowListViewProps> = ({
   workflows,
   onOpenWorkflow,
   onDuplicateWorkflow,
-  onDelete,
   onSelect,
   onScroll,
   selectedWorkflows,
-  workflowCategory,
   showCheckboxes
 }) => {
-  const settings = useSettingsStore((state) => state.settings);
   const currentWorkflow = useNodeStore((state) => state.workflow);
 
   const addBreaks = (text: string) => {
@@ -125,8 +121,9 @@ export const WorkflowListView: React.FC<WorkflowListViewProps> = ({
         <Tooltip
           key={workflow.id}
           title="Click to open workflow"
-          placement="top"
-          enterDelay={TOOLTIP_ENTER_DELAY}
+          placement="bottom-start"
+          enterDelay={TOOLTIP_ENTER_DELAY * 2}
+          enterNextDelay={2000}
         >
           <Box
             className={
