@@ -70,12 +70,12 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
         const url = new URL(e.target.href);
         setSelectedNodeType(url.pathname.split("/").pop() || "");
         setDocumentationPosition({
-          x: e.clientX + panel.size,
+          x: e.clientX + panel.panelSize,
           y: e.clientY - 150
         });
       }
     },
-    [panel.size]
+    [panel.panelSize]
   );
 
   const isExternalLink = (url: string) => {
