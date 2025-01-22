@@ -1,5 +1,5 @@
 import numpy as np
-from nodetool.metadata.types import ImageRef, Provider, Tensor
+from nodetool.metadata.types import ImageRef, Provider, NPArray
 from nodetool.metadata.types import TextRef
 from nodetool.workflows.base_node import BaseNode
 from nodetool.metadata.types import GPTModel
@@ -43,7 +43,7 @@ class Embedding(BaseNode):
     )
     chunk_size: int = 4096
 
-    async def process(self, context: ProcessingContext) -> Tensor:
+    async def process(self, context: ProcessingContext) -> NPArray:
         # chunk the input into smaller pieces
         chunks = [
             self.input[i : i + self.chunk_size]
@@ -61,7 +61,7 @@ class Embedding(BaseNode):
 
         all = [i.embedding for i in res.data]
         avg = np.mean(all, axis=0)
-        return Tensor.from_numpy(avg)
+        return NPArray.from_numpy(avg)
 
 
 class GPT(BaseNode):

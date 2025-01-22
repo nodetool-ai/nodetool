@@ -2,7 +2,7 @@ from typing import Any, Literal
 
 from pydantic import Field
 from nodetool.metadata.types import DocumentRef, Message
-from nodetool.metadata.types import Tensor
+from nodetool.metadata.types import NPArray
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.metadata.types import AudioRef
 from nodetool.metadata.types import DataframeRef
@@ -181,9 +181,9 @@ class TensorOutput(OutputNode):
     - Representing complex numerical data structures
     """
 
-    value: Tensor = Tensor()
+    value: NPArray = NPArray()
 
-    async def process(self, context: ProcessingContext) -> Tensor:
+    async def process(self, context: ProcessingContext) -> NPArray:
         return self.value
 
 

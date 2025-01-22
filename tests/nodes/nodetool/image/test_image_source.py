@@ -1,7 +1,7 @@
 from io import BytesIO
 import pytest
 from nodetool.workflows.processing_context import ProcessingContext
-from nodetool.metadata.types import ImageRef, Tensor
+from nodetool.metadata.types import ImageRef, NPArray
 from nodetool.nodes.nodetool.image.source import Background, RenderText, GaussianNoise
 import PIL.Image
 

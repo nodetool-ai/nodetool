@@ -1,3 +1,4 @@
+from enum import Enum
 from typing import Optional, List
 from pydantic import Field
 import pickle
@@ -5,6 +6,12 @@ from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.metadata.types import NPArray, SKLearnModel
+
+
+class DecisionTreeCriterion(str, Enum):
+    GINI = "gini"
+    ENTROPY = "entropy"
+    LOG_LOSS = "log_loss"
 
 
 class DecisionTreeClassifierNode(BaseNode):
@@ -29,8 +36,8 @@ class DecisionTreeClassifierNode(BaseNode):
     min_samples_leaf: int = Field(
         default=1, description="Minimum samples required at a leaf node"
     )
-    criterion: str = Field(
-        default="gini",
+    criterion: DecisionTreeCriterion = Field(
+        default=DecisionTreeCriterion.GINI,
         description="Function to measure quality of split ('gini' or 'entropy')",
     )
     random_state: Optional[int] = Field(
@@ -49,7 +56,7 @@ class DecisionTreeClassifierNode(BaseNode):
             max_depth=self.max_depth,
             min_samples_split=self.min_samples_split,
             min_samples_leaf=self.min_samples_leaf,
-            criterion=self.criterion,
+            criterion=self.criterion.value,
             random_state=self.random_state,
         )
         model.fit(self.X_train.to_numpy(), self.y_train.to_numpy())
@@ -57,6 +64,12 @@ class DecisionTreeClassifierNode(BaseNode):
             "model": SKLearnModel(model=pickle.dumps(model)),
             "feature_importances": NPArray.from_numpy(model.feature_importances_),
         }
+
+
+class DecisionTreeRegressorCriterion(str, Enum):
+    SQUARED_ERROR = "squared_error"
+    ABSOLUTE_ERROR = "absolute_error"
+    POISSON = "poisson"
 
 
 class DecisionTreeRegressorNode(BaseNode):
@@ -81,8 +94,8 @@ class DecisionTreeRegressorNode(BaseNode):
     min_samples_leaf: int = Field(
         default=1, description="Minimum samples required at a leaf node"
     )
-    criterion: str = Field(
-        default="squared_error",
+    criterion: DecisionTreeRegressorCriterion = Field(
+        default=DecisionTreeRegressorCriterion.SQUARED_ERROR,
         description="Function to measure quality of split ('squared_error', 'friedman_mse', 'absolute_error', 'poisson')",
     )
     random_state: Optional[int] = Field(
@@ -101,7 +114,7 @@ class DecisionTreeRegressorNode(BaseNode):
             max_depth=self.max_depth,
             min_samples_split=self.min_samples_split,
             min_samples_leaf=self.min_samples_leaf,
-            criterion=self.criterion,
+            criterion=self.criterion.value,
             random_state=self.random_state,
         )
         model.fit(self.X_train.to_numpy(), self.y_train.to_numpy())

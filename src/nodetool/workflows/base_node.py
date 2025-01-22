@@ -20,6 +20,7 @@ from nodetool.metadata.types import (
     ComfyData,
     ComfyModel,
     HuggingFaceModel,
+    NPArray,
     NameToType,
     TypeToName,
 )
@@ -518,6 +519,8 @@ class BaseNode(BaseModel):
                 res_for_update[o.name] = value.serialize()
             elif isinstance(value, BaseModel):
                 res_for_update[o.name] = value.model_dump()
+            elif isinstance(value, NPArray):
+                res_for_update[o.name] = value.to_numpy().tolist()
             else:
                 res_for_update[o.name] = value
 

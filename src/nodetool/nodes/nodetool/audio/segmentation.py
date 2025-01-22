@@ -3,7 +3,7 @@
 from pydantic import Field
 from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
-from nodetool.metadata.types import AudioRef, Tensor, FolderRef
+from nodetool.metadata.types import AudioRef, NPArray, FolderRef
 import librosa
 import numpy as np
 
@@ -26,7 +26,7 @@ class DetectOnsets(BaseNode):
         default=512, description="Number of samples between successive frames."
     )
 
-    async def process(self, context: ProcessingContext) -> Tensor:
+    async def process(self, context: ProcessingContext) -> NPArray:
         # Load the audio file
         audio, sr, _ = await context.audio_to_numpy(self.audio)
 
@@ -45,7 +45,7 @@ class DetectOnsets(BaseNode):
         # Convert frame indices to time
         onset_times = librosa.frames_to_time(onsets, sr=sr, hop_length=self.hop_length)
 
-        return Tensor.from_numpy(onset_times)
+        return NPArray.from_numpy(onset_times)
 
 
 class SegmentAudioByOnsets(BaseNode):
@@ -62,8 +62,8 @@ class SegmentAudioByOnsets(BaseNode):
     audio: AudioRef = Field(
         default=AudioRef(), description="The input audio file to segment."
     )
-    onsets: Tensor = Field(
-        default=Tensor(), description="The onset times detected in the audio."
+    onsets: NPArray = Field(
+        default=NPArray(), description="The onset times detected in the audio."
     )
     min_segment_length: float = Field(
         default=0.1, description="Minimum length of a segment in seconds."

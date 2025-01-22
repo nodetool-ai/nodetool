@@ -410,9 +410,8 @@ class ControlNetApplyAdvanced(ComfyNode):
         return "Apply ControlNet (Advanced)"
 
     @classmethod
-    def return_types(cls):
-        # Since there are two return values, a tuple of ConditioningRef should be provided with appropriate names matching RETURN_NAMES.
-        return (Conditioning, Conditioning)
+    def return_type(cls):
+        return {"conditioning": Conditioning}
 
 
 class unCLIPConditioning(ComfyNode):

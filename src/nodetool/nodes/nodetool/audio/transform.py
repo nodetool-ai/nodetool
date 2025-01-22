@@ -1,6 +1,6 @@
 from pydantic import Field
 from nodetool.metadata.types import AudioRef
-from nodetool.metadata.types import Tensor
+from nodetool.metadata.types import NPArray
 from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
 
@@ -207,7 +207,7 @@ class Tone(BaseNode):
         default=0.0, description="Initial phase of the waveform in radians."
     )
 
-    async def process(self, context: ProcessingContext) -> Tensor:
+    async def process(self, context: ProcessingContext) -> NPArray:
         import librosa
 
         tone_signal = librosa.tone(
@@ -216,7 +216,7 @@ class Tone(BaseNode):
             length=int((self.sampling_rate * self.duration)),
             phi=self.phi,
         )
-        return Tensor.from_numpy(tone_signal)
+        return NPArray.from_numpy(tone_signal)
 
 
 class MonoToStereo(BaseNode):

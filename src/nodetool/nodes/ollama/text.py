@@ -9,7 +9,7 @@ from nodetool.metadata.types import (
     MessageImageContent,
     MessageTextContent,
     Provider,
-    Tensor,
+    NPArray,
     TextRef,
 )
 from nodetool.workflows.base_node import BaseNode
@@ -197,7 +197,7 @@ class Embedding(BaseNode):
     def get_basic_fields(cls) -> list[str]:
         return ["model", "input"]
 
-    async def process(self, context: ProcessingContext) -> Tensor:
+    async def process(self, context: ProcessingContext) -> NPArray:
         import numpy as np
 
         # chunk the input into smaller pieces
@@ -216,4 +216,4 @@ class Embedding(BaseNode):
             embeddings.append(res["embedding"])
 
         avg = np.mean(embeddings, axis=0)
-        return Tensor.from_numpy(avg)
+        return NPArray.from_numpy(avg)

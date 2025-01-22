@@ -39,6 +39,8 @@ def load_example(name: str) -> Workflow:
 
 def load_examples() -> List[Workflow]:
     global examples
+    # no commit
+    examples = None
     if examples is None:
         examples = [
             load_example(name) for name in os.listdir(examples_folder) if name[0] != "_"

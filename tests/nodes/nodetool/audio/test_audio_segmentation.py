@@ -3,7 +3,7 @@ import numpy as np
 from io import BytesIO
 from pydub import AudioSegment
 from nodetool.workflows.processing_context import ProcessingContext
-from nodetool.metadata.types import AudioRef, Tensor, FolderRef
+from nodetool.metadata.types import AudioRef, NPArray, FolderRef
 from nodetool.nodes.nodetool.audio.segmentation import (
     DetectOnsets,
     SegmentAudioByOnsets,
@@ -16,7 +16,7 @@ AudioSegment.silent(duration=5000, frame_rate=44100).export(buffer, format="wav"
 dummy_audio = AudioRef(data=buffer.getvalue())
 
 # Create a dummy Tensor for onsets
-dummy_onsets = Tensor.from_numpy(np.array([0.5, 1.0, 1.5, 2.0]))
+dummy_onsets = NPArray.from_numpy(np.array([0.5, 1.0, 1.5, 2.0]))
 
 
 @pytest.mark.asyncio
@@ -24,7 +24,7 @@ async def test_detect_onsets(context: ProcessingContext):
     node = DetectOnsets(audio=dummy_audio)
     result = await node.process(context)
 
-    assert isinstance(result, Tensor)
+    assert isinstance(result, NPArray)
 
 
 @pytest.mark.asyncio

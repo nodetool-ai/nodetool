@@ -123,10 +123,10 @@ def is_number_type(t):
     Returns:
         True if the type is a number, False otherwise.
     """
-    from nodetool.metadata.types import Tensor
+    from nodetool.metadata.types import NPArray
 
     return is_union_type(t) and all(
-        [arg in [int, float, Tensor] for arg in get_args(t)]
+        [arg in [int, float, NPArray] for arg in get_args(t)]
     )
 
 

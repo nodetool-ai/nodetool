@@ -8,7 +8,7 @@ from io import StringIO
 from pydantic import Field
 from sklearn.datasets import load_iris
 from sklearn.utils import Bunch
-from nodetool.metadata.types import Tensor
+from nodetool.metadata.types import NPArray
 from nodetool.metadata.types import FolderRef
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.metadata.types import DataframeRef
@@ -321,9 +321,9 @@ class ConvertToTensor(BaseNode):
         default=DataframeRef(), description="The input dataframe."
     )
 
-    async def process(self, context: ProcessingContext) -> Tensor:
+    async def process(self, context: ProcessingContext) -> NPArray:
         df = await context.dataframe_to_pandas(self.dataframe)
-        return Tensor.from_numpy(df.to_numpy())
+        return NPArray.from_numpy(df.to_numpy())
 
 
 class Chart(BaseNode):
@@ -629,7 +629,7 @@ class ToList(BaseNode):
 
     async def process(self, context: ProcessingContext) -> list[dict]:
         df = await context.dataframe_to_pandas(self.dataframe)
-        return df.to_dict('records')
+        return df.to_dict("records")
 
 
 class MapTemplate(BaseNode):
@@ -641,7 +641,7 @@ class MapTemplate(BaseNode):
     - Format each row into a custom string representation
     - Generate text summaries from structured data
     - Create formatted output from dataframe records
-    
+
     Example:
     Template: "Name: {name}, Age: {age}"
     Row: {"name": "Alice", "age": 30}
@@ -653,7 +653,7 @@ class MapTemplate(BaseNode):
     )
     template: str = Field(
         default="",
-        description="Template string with placeholders matching column names (e.g., {column_name})."
+        description="Template string with placeholders matching column names (e.g., {column_name}).",
     )
 
     async def process(self, context: ProcessingContext) -> list[str]:

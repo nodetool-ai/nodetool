@@ -1,10 +1,10 @@
 {
-  "id": "sklearn_clustering",
+  "id": "sklearn_model_selection",
   "access": "public",
-  "created_at": "2025-01-22T22:50:55.179458",
-  "updated_at": "2025-01-22T22:50:55.179472",
-  "name": "SKLearn Clustering",
-  "description": "Example clustering workflow using scikit-learn",
+  "created_at": "2025-01-22T23:59:02.328672",
+  "updated_at": "2025-01-22T23:59:02.328685",
+  "name": "SKLearn Model Selection",
+  "description": "Example model selection workflow using scikit-learn",
   "tags": [
     "sklearn"
   ],
@@ -15,18 +15,13 @@
       {
         "id": "1",
         "parent_id": null,
-        "type": "sklearn.datasets.MakeBlobsDataset",
-        "data": {
-          "n_samples": 300,
-          "n_features": 2,
-          "centers": 3,
-          "cluster_std": 1,
-          "random_state": 42
-        },
+        "type": "sklearn.datasets.MakeClassificationDataset",
+        "data": {},
         "ui_properties": {
+          "selected": false,
           "position": {
             "x": 50,
-            "y": 92
+            "y": 216
           },
           "zIndex": 0,
           "width": 200,
@@ -37,12 +32,13 @@
       {
         "id": "2",
         "parent_id": null,
-        "type": "sklearn.preprocessing.StandardScaler",
+        "type": "sklearn.model_selection.TrainTestSplit",
         "data": {},
         "ui_properties": {
+          "selected": false,
           "position": {
-            "x": 280,
-            "y": 101
+            "x": 310,
+            "y": 210
           },
           "zIndex": 0,
           "width": 200,
@@ -53,16 +49,13 @@
       {
         "id": "3",
         "parent_id": null,
-        "type": "sklearn.cluster.KMeans",
-        "data": {
-          "n_clusters": 3,
-          "random_state": 42,
-          "max_iter": 300
-        },
+        "type": "sklearn.svm.SVMClassifier",
+        "data": {},
         "ui_properties": {
+          "selected": false,
           "position": {
-            "x": 540,
-            "y": 96
+            "x": 580,
+            "y": 50
           },
           "zIndex": 0,
           "width": 200,
@@ -73,12 +66,13 @@
       {
         "id": "4",
         "parent_id": null,
-        "type": "sklearn.metrics.SilhouetteScore",
+        "type": "sklearn.model_selection.GridSearch",
         "data": {},
         "ui_properties": {
+          "selected": false,
           "position": {
-            "x": 800,
-            "y": 50
+            "x": 840,
+            "y": 107
           },
           "zIndex": 0,
           "width": 200,
@@ -89,15 +83,20 @@
       {
         "id": "5",
         "parent_id": null,
-        "type": "sklearn.visualization.ClusterVisualization",
-        "data": {},
+        "type": "sklearn.visualization.DecisionBoundaryPlot",
+        "data": {
+          "mesh_step_size": 0.02,
+          "dim1": 0,
+          "dim2": 1
+        },
         "ui_properties": {
+          "selected": false,
           "position": {
-            "x": 809.25,
-            "y": 210
+            "x": 1100,
+            "y": 311
           },
           "zIndex": 0,
-          "width": 163,
+          "width": 176,
           "selectable": true
         },
         "dynamic_properties": {}
@@ -111,12 +110,12 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1030,
-            "y": 73
+            "x": 1306,
+            "y": 338
           },
           "zIndex": 0,
-          "width": 407,
-          "height": 405,
+          "width": 160,
+          "height": 160,
           "selectable": true
         },
         "dynamic_properties": {}
@@ -124,7 +123,7 @@
     ],
     "edges": [
       {
-        "id": "e1-2",
+        "id": "e1-2a",
         "source": "1",
         "sourceHandle": "data",
         "target": "2",
@@ -132,25 +131,53 @@
         "ui_properties": null
       },
       {
-        "id": "e2-3",
-        "source": "2",
-        "sourceHandle": "transformed",
-        "target": "3",
-        "targetHandle": "X",
+        "id": "e1-2b",
+        "source": "1",
+        "sourceHandle": "target",
+        "target": "2",
+        "targetHandle": "y",
         "ui_properties": null
       },
       {
-        "id": "e2-4",
+        "id": "e2-4b",
         "source": "2",
-        "sourceHandle": "transformed",
+        "sourceHandle": "y_train",
+        "target": "4",
+        "targetHandle": "y",
+        "ui_properties": null
+      },
+      {
+        "id": "e2-4a",
+        "source": "2",
+        "sourceHandle": "X_train",
         "target": "4",
         "targetHandle": "X",
         "ui_properties": null
       },
       {
-        "id": "66ee2f55-67f5-436e-98d1-f016d4cd4faf",
+        "id": "fe6b37ab-78d5-4244-acdd-04d4e69c67e2",
         "source": "2",
-        "sourceHandle": "transformed",
+        "sourceHandle": "X_train",
+        "target": "3",
+        "targetHandle": "X_train",
+        "ui_properties": {
+          "className": "np_array"
+        }
+      },
+      {
+        "id": "88261ce1-3076-4a27-a594-5f43e377007c",
+        "source": "2",
+        "sourceHandle": "y_train",
+        "target": "3",
+        "targetHandle": "y_train",
+        "ui_properties": {
+          "className": "np_array"
+        }
+      },
+      {
+        "id": "2c346bb7-0dbb-4bbe-ad91-854560e823f9",
+        "source": "2",
+        "sourceHandle": "X_test",
         "target": "5",
         "targetHandle": "X",
         "ui_properties": {
@@ -158,27 +185,17 @@
         }
       },
       {
-        "id": "1b1ccac5-14cb-46ec-a59e-965185e8dc4e",
-        "source": "3",
-        "sourceHandle": "labels",
+        "id": "5f610ebb-9c48-49a7-94af-b4dfa62c66f5",
+        "source": "2",
+        "sourceHandle": "y_test",
         "target": "5",
-        "targetHandle": "labels",
+        "targetHandle": "y",
         "ui_properties": {
           "className": "np_array"
         }
       },
       {
-        "id": "c608ac43-9347-465a-87d0-8ed86bacc53d",
-        "source": "3",
-        "sourceHandle": "centroids",
-        "target": "5",
-        "targetHandle": "centers",
-        "ui_properties": {
-          "className": "np_array"
-        }
-      },
-      {
-        "id": "67",
+        "id": "88262",
         "source": "5",
         "sourceHandle": "output",
         "target": "6",
@@ -188,11 +205,21 @@
         }
       },
       {
+        "id": "e8bb3945-9f1b-47bb-9fb3-89ba1fe31299",
+        "source": "4",
+        "sourceHandle": "best_model",
+        "target": "5",
+        "targetHandle": "model",
+        "ui_properties": {
+          "className": "sklearn_model"
+        }
+      },
+      {
         "id": "e3-4",
         "source": "3",
-        "sourceHandle": "labels",
+        "sourceHandle": "model",
         "target": "4",
-        "targetHandle": "labels",
+        "targetHandle": "model",
         "ui_properties": null
       }
     ]

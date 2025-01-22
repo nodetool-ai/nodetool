@@ -20,8 +20,8 @@ class SplitSigmas(ComfyNode):
     )
 
     @classmethod
-    def return_types(cls):
-        return {"sigmas": Sigmas}, Sigmas
+    def return_type(cls):
+        return {"sigmas": Sigmas}
 
 
 class FlipSigmas(ComfyNode):

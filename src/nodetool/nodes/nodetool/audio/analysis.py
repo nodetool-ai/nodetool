@@ -3,7 +3,7 @@ import librosa
 from matplotlib import pyplot as plt
 import numpy as np
 from pydantic import Field
-from nodetool.metadata.types import AudioRef, Tensor
+from nodetool.metadata.types import AudioRef, NPArray
 from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
 import numpy as np
@@ -11,7 +11,7 @@ import numpy as np
 from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
 import librosa
-from nodetool.metadata.types import Tensor
+from nodetool.metadata.types import NPArray
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.nodes.nodetool.audio.audio_helpers import (
     convert_to_float,
@@ -33,14 +33,14 @@ class AmplitudeToDB(BaseNode):
     - Preparing input for audio models that expect dB-scaled data
     """
 
-    tensor: Tensor = Field(
-        default=Tensor(),
+    tensor: NPArray = Field(
+        default=NPArray(),
         description="The amplitude tensor to be converted to dB scale.",
     )
 
-    async def process(self, context: ProcessingContext) -> Tensor:
+    async def process(self, context: ProcessingContext) -> NPArray:
         db_tensor = librosa.amplitude_to_db(self.tensor.to_numpy(), ref=np.max)
-        return Tensor.from_numpy(db_tensor)
+        return NPArray.from_numpy(db_tensor)
 
 
 class ChromaSTFT(BaseNode):
@@ -63,13 +63,13 @@ class ChromaSTFT(BaseNode):
         default=512, ge=0, description="The number of samples between frames."
     )
 
-    async def process(self, context: ProcessingContext) -> Tensor:
+    async def process(self, context: ProcessingContext) -> NPArray:
         samples, sample_rate, num_channels = await context.audio_to_numpy(self.audio)
         samples = convert_to_float(samples)
         chromagram = librosa.feature.chroma_stft(
             y=samples, sr=sample_rate, n_fft=self.n_fft, hop_length=self.hop_length
         )
-        return Tensor.from_numpy(chromagram)
+        return NPArray.from_numpy(chromagram)
 
 
 class DBToAmplitude(BaseNode):
@@ -81,14 +81,14 @@ class DBToAmplitude(BaseNode):
     - Preparing data for models that expect linear amplitude scaling
     """
 
-    tensor: Tensor = Field(
-        default=Tensor(),
+    tensor: NPArray = Field(
+        default=NPArray(),
         description="The dB-scaled tensor to be converted to amplitude scale.",
     )
 
-    async def process(self, context: ProcessingContext) -> Tensor:
+    async def process(self, context: ProcessingContext) -> NPArray:
         amplitude_tensor = librosa.db_to_amplitude(self.tensor.to_numpy())
-        return Tensor.from_numpy(amplitude_tensor)
+        return NPArray.from_numpy(amplitude_tensor)
 
 
 class DBToPower(BaseNode):
@@ -101,13 +101,13 @@ class DBToPower(BaseNode):
     - Preparing data for models that expect power-scaled data
     """
 
-    tensor: Tensor = Field(
-        default=Tensor(), description="The tensor containing the decibel spectrogram."
+    tensor: NPArray = Field(
+        default=NPArray(), description="The tensor containing the decibel spectrogram."
     )
 
-    async def process(self, context: ProcessingContext) -> Tensor:
+    async def process(self, context: ProcessingContext) -> NPArray:
         db_spec = self.tensor.to_numpy()
-        return Tensor.from_numpy(librosa.db_to_power(db_spec))
+        return NPArray.from_numpy(librosa.db_to_power(db_spec))
 
 
 class GriffinLim(BaseNode):
@@ -120,8 +120,8 @@ class GriffinLim(BaseNode):
     - Phase reconstruction in audio processing pipelines
     """
 
-    magnitude_spectrogram: Tensor = Field(
-        default=Tensor(),
+    magnitude_spectrogram: NPArray = Field(
+        default=NPArray(),
         description="Magnitude spectrogram input for phase reconstruction.",
     )
     n_iter: int = Field(
@@ -147,7 +147,7 @@ class GriffinLim(BaseNode):
         description="If given, the resulting signal will be zero-padded or clipped to this length.",
     )
 
-    async def process(self, context: ProcessingContext) -> Tensor:
+    async def process(self, context: ProcessingContext) -> NPArray:
         reconstructed_audio = librosa.griffinlim(
             S=self.magnitude_spectrogram.to_numpy(),
             n_iter=self.n_iter,
@@ -157,7 +157,7 @@ class GriffinLim(BaseNode):
             center=self.center,
             length=self.length,
         )
-        return Tensor.from_numpy(reconstructed_audio)
+        return NPArray.from_numpy(reconstructed_audio)
 
 
 class MelSpectrogram(BaseNode):
@@ -185,7 +185,7 @@ class MelSpectrogram(BaseNode):
     fmin: int = Field(default=0, ge=0, description="The lowest frequency (in Hz).")
     fmax: int = Field(default=8000, ge=0, description="The highest frequency (in Hz).")
 
-    async def process(self, context: ProcessingContext) -> Tensor:
+    async def process(self, context: ProcessingContext) -> NPArray:
         samples, sample_rate, num_channels = await context.audio_to_numpy(self.audio)
         samples = convert_to_float(samples)
         melspectrogram = librosa.feature.melspectrogram(
@@ -197,7 +197,7 @@ class MelSpectrogram(BaseNode):
             fmin=self.fmin,
             fmax=self.fmax,
         )
-        return Tensor.from_numpy(melspectrogram)
+        return NPArray.from_numpy(melspectrogram)
 
     @classmethod
     def get_basic_fields(cls) -> list[str]:
@@ -223,7 +223,7 @@ class MFCC(BaseNode):
     fmin: int = Field(default=0, ge=0, description="The lowest frequency (in Hz).")
     fmax: int = Field(default=8000, ge=0, description="The highest frequency (in Hz).")
 
-    async def process(self, context: ProcessingContext) -> Tensor:
+    async def process(self, context: ProcessingContext) -> NPArray:
         samples, sample_rate, num_channels = await context.audio_to_numpy(self.audio)
         samples = convert_to_float(samples)
         mfccs = librosa.feature.mfcc(
@@ -235,7 +235,7 @@ class MFCC(BaseNode):
             fmin=self.fmin,
             fmax=self.fmax,
         )
-        return Tensor.from_numpy(mfccs)
+        return NPArray.from_numpy(mfccs)
 
     @classmethod
     def get_basic_fields(cls) -> list[str]:
@@ -253,8 +253,8 @@ class PlotSpectrogram(BaseNode):
     - Sound engineering: Helps in identifying specific tones or frequencies in a music piece or a sound bite.
     """
 
-    tensor: Tensor = Field(
-        default=Tensor(), description="The tensor containing the mel spectrogram."
+    tensor: NPArray = Field(
+        default=NPArray(), description="The tensor containing the mel spectrogram."
     )
     fmax: int = Field(default=8000, ge=0, description="The highest frequency (in Hz).")
 
@@ -280,13 +280,13 @@ class PowertToDB(BaseNode):
     audio, analysis, decibel, spectrogram
     """
 
-    tensor: Tensor = Field(
-        default=Tensor(), description="The tensor containing the power spectrogram."
+    tensor: NPArray = Field(
+        default=NPArray(), description="The tensor containing the power spectrogram."
     )
 
-    async def process(self, context: ProcessingContext) -> Tensor:
+    async def process(self, context: ProcessingContext) -> NPArray:
         power_spec = self.tensor.to_numpy()
-        return Tensor.from_numpy(librosa.power_to_db(power_spec, ref=np.max))
+        return NPArray.from_numpy(librosa.power_to_db(power_spec, ref=np.max))
 
 
 class SpectralContrast(BaseNode):
@@ -313,13 +313,13 @@ class SpectralContrast(BaseNode):
         default=512, ge=0, description="The number of samples between frames."
     )
 
-    async def process(self, context: ProcessingContext) -> Tensor:
+    async def process(self, context: ProcessingContext) -> NPArray:
         samples, sample_rate, num_channels = await context.audio_to_numpy(self.audio)
         samples = convert_to_float(samples)
         spectral_contrast = librosa.feature.spectral_contrast(
             y=samples, sr=sample_rate, n_fft=self.n_fft, hop_length=self.hop_length
         )
-        return Tensor.from_numpy(spectral_contrast)
+        return NPArray.from_numpy(spectral_contrast)
 
 
 class STFT(BaseNode):
@@ -352,7 +352,7 @@ class STFT(BaseNode):
         description="If True, input signal is padded so that frame D[:, t] is centered at y[t * hop_length].",
     )
 
-    async def process(self, context: ProcessingContext) -> Tensor:
+    async def process(self, context: ProcessingContext) -> NPArray:
         samples, sample_rate, num_channels = await context.audio_to_numpy(self.audio)
         samples = convert_to_float(samples)
         stft_matrix = librosa.stft(
@@ -363,7 +363,7 @@ class STFT(BaseNode):
             window=self.window,
             center=self.center,
         )
-        return Tensor.from_numpy(np.abs(stft_matrix))
+        return NPArray.from_numpy(np.abs(stft_matrix))
 
     @classmethod
     def get_basic_fields(cls) -> list[str]:
@@ -398,7 +398,7 @@ class SpectralCentroid(BaseNode):
         description="Number of samples between successive frames.",
     )
 
-    async def process(self, context: ProcessingContext) -> Tensor:
+    async def process(self, context: ProcessingContext) -> NPArray:
         import librosa
         import numpy as np
 
@@ -413,4 +413,4 @@ class SpectralCentroid(BaseNode):
         # Convert to Hz and flatten
         centroids_hz = centroids[0]
 
-        return Tensor.from_numpy(centroids_hz)
+        return NPArray.from_numpy(centroids_hz)

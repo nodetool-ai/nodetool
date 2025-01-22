@@ -213,7 +213,7 @@ class WebSocketRunner:
                     async for msg in process_workflow_messages(
                         context=context,
                         runner=self.runner,
-                        explicit_types=req.explicit_types,
+                        explicit_types=req.explicit_types or False,
                     ):
                         await self.send_message(msg)
                 except Exception as e:

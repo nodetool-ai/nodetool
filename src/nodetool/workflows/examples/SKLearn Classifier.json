@@ -1,8 +1,8 @@
 {
   "id": "sklearn_classifier",
   "access": "public",
-  "created_at": "2025-01-22T00:54:50.898246",
-  "updated_at": "2025-01-22T00:54:50.898258",
+  "created_at": "2025-01-22T22:50:33.085383",
+  "updated_at": "2025-01-22T22:50:33.085390",
   "name": "SKLearn Classifier",
   "description": "",
   "tags": [
@@ -112,23 +112,6 @@
         "dynamic_properties": {}
       },
       {
-        "id": "9",
-        "parent_id": null,
-        "type": "sklearn.linear_model.Predict",
-        "data": {},
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 967,
-            "y": 455
-          },
-          "zIndex": 0,
-          "width": 163,
-          "selectable": true
-        },
-        "dynamic_properties": {}
-      },
-      {
         "id": "14",
         "parent_id": null,
         "type": "sklearn.metrics.Accuracy",
@@ -153,6 +136,7 @@
           "name": "float_output_2025-01-22"
         },
         "ui_properties": {
+          "selected": false,
           "position": {
             "x": 1354,
             "y": 498
@@ -160,6 +144,64 @@
           "zIndex": 0,
           "width": 160,
           "height": 160,
+          "selectable": true
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "16",
+        "parent_id": null,
+        "type": "sklearn.visualization.DecisionBoundaryPlot",
+        "data": {
+          "mesh_step_size": 0.02,
+          "dim1": 0,
+          "dim2": 2
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1166,
+            "y": 265
+          },
+          "zIndex": 0,
+          "width": 176,
+          "selectable": true
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "17",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "image_output_2025-01-22"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1362,
+            "y": 213
+          },
+          "zIndex": 0,
+          "width": 336,
+          "height": 256,
+          "selectable": true
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "18",
+        "parent_id": null,
+        "type": "sklearn.Predict",
+        "data": {},
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 997,
+            "y": 405
+          },
+          "zIndex": 0,
+          "width": 92,
           "selectable": true
         },
         "dynamic_properties": {}
@@ -187,51 +229,11 @@
         }
       },
       {
-        "id": "f3cde8ae-ac3f-4a41-8c14-aff284f71ab7",
-        "source": "4",
-        "sourceHandle": "X_train",
-        "target": "5",
-        "targetHandle": "X",
-        "ui_properties": {
-          "className": "np_array"
-        }
-      },
-      {
         "id": "082d76f6-3770-43ea-a49d-d05e31b33407",
         "source": "4",
         "sourceHandle": "X_test",
         "target": "6",
         "targetHandle": "X",
-        "ui_properties": {
-          "className": "np_array"
-        }
-      },
-      {
-        "id": "c8d5591d-71df-4359-9583-035986467736",
-        "source": "5",
-        "sourceHandle": "model",
-        "target": "6",
-        "targetHandle": "model",
-        "ui_properties": {
-          "className": "sklearn_model"
-        }
-      },
-      {
-        "id": "2773f997-fab9-4a6c-8e76-478a70c99b68",
-        "source": "6",
-        "sourceHandle": "transformed",
-        "target": "9",
-        "targetHandle": "X",
-        "ui_properties": {
-          "className": "np_array"
-        }
-      },
-      {
-        "id": "1c06570e-a761-4da0-ad52-3323fb3e4ec0",
-        "source": "9",
-        "sourceHandle": "output",
-        "target": "14",
-        "targetHandle": "y_pred",
         "ui_properties": {
           "className": "np_array"
         }
@@ -247,23 +249,43 @@
         }
       },
       {
-        "id": "a7b6ab40-db75-413b-94e4-5820841bf8bb",
+        "id": "c8d5591d-71df-4359-9583-035986467736",
         "source": "5",
-        "sourceHandle": "transformed",
-        "target": "7",
-        "targetHandle": "X_train",
+        "sourceHandle": "model",
+        "target": "6",
+        "targetHandle": "model",
+        "ui_properties": {
+          "className": "sklearn_model"
+        }
+      },
+      {
+        "id": "9294",
+        "source": "16",
+        "sourceHandle": "output",
+        "target": "17",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "f3cde8ae-ac3f-4a41-8c14-aff284f71ab7",
+        "source": "4",
+        "sourceHandle": "X_train",
+        "target": "5",
+        "targetHandle": "X",
         "ui_properties": {
           "className": "np_array"
         }
       },
       {
-        "id": "f8c5f677-cd64-423f-b422-31d191d23d2f",
-        "source": "7",
-        "sourceHandle": "model",
-        "target": "9",
-        "targetHandle": "model",
+        "id": "25f26ec5-eb4b-41fc-99bc-f27cd0fa7f54",
+        "source": "4",
+        "sourceHandle": "y_train",
+        "target": "7",
+        "targetHandle": "y_train",
         "ui_properties": {
-          "className": "sklearn_model"
+          "className": "np_array"
         }
       },
       {
@@ -277,13 +299,73 @@
         }
       },
       {
-        "id": "25f26ec5-eb4b-41fc-99bc-f27cd0fa7f54",
-        "source": "4",
-        "sourceHandle": "y_train",
+        "id": "a7b6ab40-db75-413b-94e4-5820841bf8bb",
+        "source": "5",
+        "sourceHandle": "transformed",
         "target": "7",
-        "targetHandle": "y_train",
+        "targetHandle": "X_train",
         "ui_properties": {
           "className": "np_array"
+        }
+      },
+      {
+        "id": "a6dfa1bf-8239-4647-9ab9-7870261662aa",
+        "source": "6",
+        "sourceHandle": "transformed",
+        "target": "16",
+        "targetHandle": "X",
+        "ui_properties": {
+          "className": "np_array"
+        }
+      },
+      {
+        "id": "6db27450-73cc-4829-aa42-11c66feb419c",
+        "source": "6",
+        "sourceHandle": "transformed",
+        "target": "18",
+        "targetHandle": "X",
+        "ui_properties": {
+          "className": "np_array"
+        }
+      },
+      {
+        "id": "8eed30c2-1e62-4a71-8e20-12477bc2f929",
+        "source": "7",
+        "sourceHandle": "model",
+        "target": "18",
+        "targetHandle": "model",
+        "ui_properties": {
+          "className": "sklearn_model"
+        }
+      },
+      {
+        "id": "6d2b08c3-6f02-4033-b841-8b44457fa03b",
+        "source": "18",
+        "sourceHandle": "output",
+        "target": "16",
+        "targetHandle": "y",
+        "ui_properties": {
+          "className": "np_array"
+        }
+      },
+      {
+        "id": "315af1fb-58f5-4918-80a2-68669c0e4190",
+        "source": "18",
+        "sourceHandle": "output",
+        "target": "14",
+        "targetHandle": "y_pred",
+        "ui_properties": {
+          "className": "np_array"
+        }
+      },
+      {
+        "id": "c5ac171c-40b4-40a9-ac83-04392742f900",
+        "source": "7",
+        "sourceHandle": "model",
+        "target": "16",
+        "targetHandle": "model",
+        "ui_properties": {
+          "className": "sklearn_model"
         }
       }
     ]

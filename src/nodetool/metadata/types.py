@@ -204,7 +204,7 @@ class AssetRef(BaseType):
 class FilePath(BaseType):
     type: Literal["file_path"] = "file_path"
     path: str = ""
-    
+
 
 class FolderPath(BaseType):
     type: Literal["folder_path"] = "folder_path"
@@ -984,38 +984,40 @@ class Task(BaseType):
         )
 
 
-class Tensor(BaseType):
-    type: Literal["tensor"] = "tensor"
-    value: list[Any] = []
-    dtype: Optional[str] = None
+class NPArray(BaseType):
+    type: Literal["np_array"] = "np_array"
+    value: bytes | None = None
+    dtype: str = "<i8"
+    shape: tuple[int, ...] = (1,)
+
+    def is_set(self) -> bool:
+        return self.value is not None
 
     def is_empty(self):
-        return len(self.value) == 0
+        return self.value is None or len(self.value) == 0
 
     def to_numpy(self) -> np.ndarray:
-        if self.value is None:
-            raise ValueError("Tensor is empty")
-        if type(self.value) != list:
-            raise ValueError("Tensor value is not a list")
-        tensor = np.array(self.value, dtype=self.dtype)
-        return tensor
+        assert self.value is not None
+        return np.frombuffer(self.value, dtype=np.dtype(self.dtype)).reshape(self.shape)
 
     def to_list(self) -> list:
         return self.to_numpy().tolist()
 
     @staticmethod
-    def from_numpy(tensor: np.ndarray, **kwargs):
-        return Tensor(value=tensor.tolist(), dtype=str(tensor.dtype), **kwargs)
+    def from_numpy(arr: np.ndarray, **kwargs):
+        return NPArray(
+            value=arr.tobytes(), dtype=arr.dtype.str, shape=arr.shape, **kwargs
+        )
 
     @staticmethod
-    def from_list(tensor: list, **kwargs):
-        return Tensor(value=tensor, **kwargs)
+    def from_list(arr: list, **kwargs):
+        return NPArray.from_numpy(np.array(arr))
 
 
-def to_numpy(num: float | int | Tensor) -> np.ndarray:
+def to_numpy(num: float | int | NPArray) -> np.ndarray:
     if type(num) in (float, int, list):
         return np.array(num)
-    elif type(num) == Tensor:
+    elif type(num) == NPArray:
         return num.to_numpy()
     else:
         raise ValueError()
@@ -1075,6 +1077,11 @@ class DataframeRef(AssetRef):
     type: Literal["dataframe"] = "dataframe"
     columns: list[ColumnDef] | None = None
     data: list[list[Any]] | None = None
+
+
+class SKLearnModel(BaseType):
+    type: Literal["sklearn_model"] = "sklearn_model"
+    model: bytes | None = None
 
 
 class ExcelRef(AssetRef):
@@ -1625,7 +1632,7 @@ class RSSEntry(BaseType):
     published: Datetime = Datetime()
     summary: str = ""
     author: str = ""
-    
+
 
 class LoraWeight(BaseType):
     """A weight for a LoRA model."""

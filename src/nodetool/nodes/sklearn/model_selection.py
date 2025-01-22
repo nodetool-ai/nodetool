@@ -20,7 +20,7 @@ class TrainTestSplitNode(BaseNode):
     """
 
     X: NPArray = Field(default=NPArray(), description="Features to split")
-    y: NPArray = Field(default=None, description="Target values to split")
+    y: NPArray = Field(default=NPArray(), description="Target values to split")
     test_size: float = Field(
         default=0.25,
         description="Proportion of the dataset to include in the test split",
@@ -66,7 +66,9 @@ class KFoldCrossValidationNode(BaseNode):
     - Assessing model stability
     """
 
-    model: SKLearnModel = Field(description="Sklearn model to evaluate")
+    model: SKLearnModel = Field(
+        default=SKLearnModel(), description="Sklearn model to evaluate"
+    )
     X: NPArray = Field(default=NPArray(), description="Features for cross validation")
     y: NPArray = Field(default=NPArray(), description="Target values")
     n_splits: int = Field(default=5, description="Number of folds")
@@ -84,6 +86,10 @@ class KFoldCrossValidationNode(BaseNode):
         }
 
     async def process(self, context: ProcessingContext):
+        assert self.model.model is not None, "Model is not set"
+        assert self.X.is_set(), "X is not set"
+        assert self.y.is_set(), "y is not set"
+
         model = pickle.loads(self.model.model)
         kf = KFold(
             n_splits=self.n_splits,
@@ -120,11 +126,14 @@ class GridSearchNode(BaseNode):
     - Automated model tuning
     """
 
-    model: SKLearnModel = Field(description="Base sklearn model")
+    model: SKLearnModel = Field(
+        default=SKLearnModel(), description="Base sklearn model"
+    )
     X: NPArray = Field(default=NPArray(), description="Training features")
     y: NPArray = Field(default=NPArray(), description="Training target values")
     param_grid: Dict[str, List[Any]] = Field(
-        description="Dictionary with parameters names (string) as keys and lists of parameter settings to try"
+        default={},
+        description="Dictionary with parameters names (string) as keys and lists of parameter settings to try",
     )
     cv: int = Field(default=5, description="Number of folds for cross-validation")
     scoring: Optional[str] = Field(
@@ -141,6 +150,10 @@ class GridSearchNode(BaseNode):
         }
 
     async def process(self, context: ProcessingContext):
+        assert self.model.model is not None, "Model is not set"
+        assert self.X.is_set(), "X is not set"
+        assert self.y.is_set(), "y is not set"
+
         base_model = pickle.loads(self.model.model)
         grid_search = GridSearchCV(
             base_model,
