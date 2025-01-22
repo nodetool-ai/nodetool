@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import pytest
 import os
-from nodetool.metadata.types import AudioRef, DataframeRef, Tensor
+from nodetool.metadata.types import AudioRef, DataframeRef, NPArray
 from nodetool.metadata.types import FolderRef
 from nodetool.common.environment import Environment
 
@@ -23,7 +23,7 @@ from nodetool.nodes.nodetool.image.enhance import (
     Sharpness,
     UnsharpMask,
 )
-from nodetool.nodes.nodetool.tensor import SaveTensor
+from nodetool.nodes.numpy import SaveArray
 from nodetool.workflows.graph import Graph
 from nodetool.metadata.types import ImageRef
 from nodetool.workflows.processing_context import ProcessingContext
@@ -312,11 +312,11 @@ async def test_save_image_node(context: ProcessingContext, user: User, http_clie
 
 
 @pytest.mark.asyncio
-async def test_save_tensor_node(context: ProcessingContext, user: User):
+async def test_save_array_node(context: ProcessingContext, user: User):
     folder = Asset.create(user.id, "test", "folder")
-    node = SaveTensor(
-        name="TestTensor",
-        tensor=Tensor.from_numpy(np.array([1, 2, 3], dtype=np.float32)),
+    node = SaveArray(
+        name="TestArray",
+        array=NPArray.from_numpy(np.array([1, 2, 3], dtype=np.float32)),
         folder=FolderRef(asset_id=folder.id),
     )
     result = await node.process(context)

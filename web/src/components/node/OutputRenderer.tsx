@@ -9,7 +9,7 @@ import React, {
 } from "react";
 import { css } from "@emotion/react";
 
-import { Asset, DataframeRef, Message, Tensor } from "../../stores/ApiTypes";
+import { Asset, DataframeRef, Message, NPArray } from "../../stores/ApiTypes";
 import MarkdownRenderer from "../../utils/MarkdownRenderer";
 import AudioPlayer from "../audio/AudioPlayer";
 import DataTable from "./DataTable/DataTable";
@@ -23,7 +23,7 @@ import TaskTable from "./DataTable/TaskTable";
 import ImageView from "./ImageView";
 import AssetGridContent from "../assets/AssetGridContent";
 import { uint8ArrayToDataUri } from "../../utils/binary";
-import TensorView from "./TensorView"; // We'll create this component
+import ArrayView from "./ArrayView"; // We'll create this component
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { isEqual } from "lodash";
@@ -263,8 +263,8 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
   }, [type, value]);
 
   const renderContent = useMemo(() => {
-    function renderTensorPreview(tensor: Tensor): React.ReactNode {
-      return <TensorView tensor={tensor} />;
+    function renderArrayPreview(array: NPArray): React.ReactNode {
+      return <ArrayView array={array} />;
     }
     switch (type) {
       case "image":
@@ -289,10 +289,10 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
         return <video ref={videoRef} controls style={{ width: "100%" }} />;
       case "dataframe":
         return <DataTable dataframe={value as DataframeRef} editable={false} />;
-      case "tensor":
+      case "np_array":
         return (
           <div className="tensor nodrag nowheel">
-            {renderTensorPreview(value)}
+            {renderArrayPreview(value as NPArray)}
           </div>
         );
       case "object":

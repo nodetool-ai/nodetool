@@ -71,7 +71,7 @@
             },
             {
                 "id": "6",
-                "type": "sklearn.predict.Predict",
+                "type": "sklearn.Predict.Predict",
                 "position": {
                     "x": 700,
                     "y": 300

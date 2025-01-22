@@ -3,7 +3,7 @@ import pytest
 from pydub import AudioSegment
 from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
-from nodetool.metadata.types import AudioRef, Tensor
+from nodetool.metadata.types import AudioRef, NPArray
 from nodetool.nodes.nodetool.audio.conversion import (
     Trim,
     ConvertToTensor,
@@ -20,7 +20,7 @@ dummy_audio = AudioRef(data=buffer.getvalue())
     "node, expected_type",
     [
         (Trim(audio=dummy_audio, start=0.0, end=1.0), AudioRef),
-        (ConvertToTensor(audio=dummy_audio), Tensor),
+        (ConvertToTensor(audio=dummy_audio), NPArray),
         (CreateSilence(duration=1.0), AudioRef),
     ],
 )

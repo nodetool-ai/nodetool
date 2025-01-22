@@ -37,7 +37,6 @@ import nodetool.nodes.nodetool.network.imap
 import nodetool.nodes.nodetool.network.rss
 import nodetool.nodes.nodetool.os
 import nodetool.nodes.nodetool.output
-import nodetool.nodes.nodetool.tensor
 import nodetool.nodes.nodetool.text
 import nodetool.nodes.nodetool.ui.tk
 import nodetool.nodes.nodetool.video

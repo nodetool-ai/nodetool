@@ -1,6 +1,6 @@
 import numpy as np
 from pydub import AudioSegment
-from nodetool.metadata.types import Tensor
+from nodetool.metadata.types import NPArray
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.nodes.nodetool.audio.audio_helpers import (
     numpy_to_audio_segment,
@@ -52,10 +52,10 @@ class ConvertToTensor(BaseNode):
         default=AudioRef(), description="The audio file to convert to a tensor."
     )
 
-    async def process(self, context: ProcessingContext) -> Tensor:
+    async def process(self, context: ProcessingContext) -> NPArray:
         audio = await context.audio_to_audio_segment(self.audio)
         samples = np.array(audio.get_array_of_samples().tolist())
-        return Tensor.from_numpy(samples)
+        return NPArray.from_numpy(samples)
 
 
 class CreateSilence(BaseNode):

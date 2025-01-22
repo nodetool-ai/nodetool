@@ -1,7 +1,7 @@
 from enum import Enum
 from pydantic import Field
 import numpy as np
-from nodetool.metadata.types import AudioRef, Tensor
+from nodetool.metadata.types import AudioRef, NPArray
 from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.nodes.nodetool.audio.audio_helpers import numpy_to_audio_segment

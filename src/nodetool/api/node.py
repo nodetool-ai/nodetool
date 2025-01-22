@@ -22,7 +22,7 @@ from nodetool.metadata.types import (
     FolderRef,
     ImageRef,
     ModelRef,
-    Tensor,
+    NPArray,
     TextRef,
     VideoRef,
     HFImageTextToText,
@@ -87,7 +87,7 @@ UnionType = (
     | FilePath
     | FolderRef
     | ImageRef
-    | Tensor
+    | NPArray
     | VideoRef
     | ModelRef
     | DocumentRef

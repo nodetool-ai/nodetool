@@ -3,7 +3,7 @@ import numpy as np
 from io import BytesIO
 from PIL import Image
 from nodetool.workflows.processing_context import ProcessingContext
-from nodetool.metadata.types import ImageRef, Tensor, FolderRef
+from nodetool.metadata.types import ImageRef, NPArray, FolderRef
 from nodetool.nodes.nodetool.image import (
     SaveImage,
     GetMetadata,
@@ -39,7 +39,7 @@ dummy_image = ImageRef(data=buffer.getvalue())
             ),
             list,
         ),
-        (ConvertToTensor(image=dummy_image), Tensor),
+        (ConvertToTensor(image=dummy_image), NPArray),
         (Paste(image=dummy_image, paste=dummy_image, left=0, top=0), ImageRef),
         (Blend(image1=dummy_image, image2=dummy_image, alpha=0.5), ImageRef),
         (Composite(image1=dummy_image, image2=dummy_image, mask=dummy_image), ImageRef),

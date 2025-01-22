@@ -3,7 +3,7 @@ import numpy as np
 from io import BytesIO
 from pydub import AudioSegment
 from nodetool.workflows.processing_context import ProcessingContext
-from nodetool.metadata.types import AudioRef, Tensor
+from nodetool.metadata.types import AudioRef, NPArray
 from nodetool.nodes.nodetool.audio.transform import (
     Concat,
     Normalize,
@@ -40,7 +40,7 @@ dummy_audio_2 = AudioRef(data=buffer.getvalue())
             AudioRef,
         ),
         (SliceAudio(audio=dummy_audio, start=0.0, end=1.0), AudioRef),
-        (Tone(frequency=440.0, duration=1.0), Tensor),
+        (Tone(frequency=440.0, duration=1.0), NPArray),
         (MonoToStereo(audio=dummy_audio), AudioRef),
         (StereoToMono(audio=dummy_audio, method="average"), AudioRef),
         (Reverse(audio=dummy_audio), AudioRef),

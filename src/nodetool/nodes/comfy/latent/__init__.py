@@ -7,7 +7,7 @@ from nodetool.metadata.types import (
     ImageRef,
     Latent,
     Mask,
-    Tensor,
+    NPArray,
 )
 from nodetool.common.comfy_node import MAX_RESOLUTION
 from nodetool.common.comfy_node import ComfyNode

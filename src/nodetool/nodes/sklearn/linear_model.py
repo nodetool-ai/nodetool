@@ -152,27 +152,3 @@ class LassoRegressionNode(BaseNode):
             "intercept": float(model.intercept_),
             "model": SKLearnModel(model=pickle.dumps(model)),
         }
-
-
-class PredictNode(BaseNode):
-    """
-    Makes predictions using a fitted sklearn model.
-    machine learning, prediction, inference
-
-    Use cases:
-    - Make predictions on new data
-    - Score model performance
-    """
-
-    model: SKLearnModel = Field(
-        default=SKLearnModel(), description="Fitted sklearn model"
-    )
-
-    X: NPArray = Field(default=NPArray(), description="Features to predict on")
-
-    async def process(self, context: ProcessingContext) -> NPArray:
-        assert self.model.model, "Model is not connected"
-        model = pickle.loads(self.model.model)
-        predictions = model.predict(self.X.to_numpy())
-
-        return NPArray.from_numpy(predictions)

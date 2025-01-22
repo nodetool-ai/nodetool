@@ -1,4 +1,4 @@
-from nodetool.metadata.types import HFSentenceSimilarity, Tensor
+from nodetool.metadata.types import HFSentenceSimilarity, NPArray
 from nodetool.nodes.huggingface.huggingface_pipeline import HuggingFacePipelineNode
 from nodetool.workflows.processing_context import ProcessingContext
 
@@ -59,7 +59,7 @@ class SentenceSimilarity(HuggingFacePipelineNode):
     async def move_to_device(self, device: str):
         self._pipeline.model.to(device)  # type: ignore
 
-    async def process(self, context: ProcessingContext) -> Tensor:
+    async def process(self, context: ProcessingContext) -> NPArray:
         # The result is typically a list of lists, where each inner list represents the features for a token
         # We'll return the mean of these features to get a single vector for the entire input
         import numpy as np
@@ -70,4 +70,4 @@ class SentenceSimilarity(HuggingFacePipelineNode):
 
         assert isinstance(result, list)
 
-        return Tensor.from_numpy(np.mean(result[0], axis=0))
+        return NPArray.from_numpy(np.mean(result[0], axis=0))

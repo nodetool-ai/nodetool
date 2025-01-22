@@ -5,7 +5,7 @@ import PIL.ImageEnhance
 import PIL.ImageFilter
 import PIL.ImageFont
 import PIL.ImageOps
-from nodetool.metadata.types import FolderRef, Tensor
+from nodetool.metadata.types import FolderRef, NPArray
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.metadata.types import ImageRef
 from nodetool.workflows.base_node import BaseNode
@@ -146,7 +146,7 @@ class ConvertToTensor(BaseNode):
         description="The input image to convert to a tensor. The image should have either 1 (grayscale), 3 (RGB), or 4 (RGBA) channels.",
     )
 
-    async def process(self, context: ProcessingContext) -> Tensor:
+    async def process(self, context: ProcessingContext) -> NPArray:
         if self.image.is_empty():
             raise ValueError("The input image is not connected.")
 
@@ -155,7 +155,7 @@ class ConvertToTensor(BaseNode):
         tensor_data = image_data / 255.0
         if len(tensor_data.shape) == 2:
             tensor_data = tensor_data[:, :, np.newaxis]
-        return Tensor.from_numpy(tensor_data)
+        return NPArray.from_numpy(tensor_data)
 
 
 class Paste(BaseNode):

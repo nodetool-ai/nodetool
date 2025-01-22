@@ -2,7 +2,7 @@ from enum import Enum
 from nodetool.metadata.types import ImageRef, NameToType
 
 from nodetool.metadata.type_metadata import TypeMetadata
-from nodetool.metadata.types import Tensor
+from nodetool.metadata.types import NPArray
 from typing import Any
 
 
@@ -66,7 +66,7 @@ def is_assignable(type_meta: TypeMetadata, value: Any) -> bool:
             return "type" in value and value["type"] == asset_type
         else:
             return isinstance(value, python_class)
-    if type_meta.type == "tensor" and python_type == Tensor:
+    if type_meta.type == "tensor" and python_type == NPArray:
         t = type_meta.type_args[0]
         return all(is_assignable(t, v) for v in value)
     if type_meta.type == "union":

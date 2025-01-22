@@ -13,7 +13,7 @@ from enum import Enum
 
 from pydantic import ConfigDict
 from nodetool.common.environment import Environment
-from nodetool.metadata.types import AudioRef, ImageRef, Provider, Tensor, VideoRef
+from nodetool.metadata.types import AudioRef, ImageRef, Provider, NPArray, VideoRef
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
@@ -76,8 +76,8 @@ async def convert_output_value(
             return "".join(str(i) for i in value)
         else:
             return str(value)
-    elif t == Tensor:
-        return Tensor.from_list(value).model_dump()
+    elif t == NPArray:
+        return NPArray.from_list(value).model_dump()
     elif get_origin(t) == list:
         if type(value) != list:
             raise TypeError(f"value is not list: {value}")

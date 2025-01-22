@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 from io import BytesIO
 from PIL import Image
 import seaborn as sns
+from sklearn.manifold import TSNE
 from sklearn.metrics import (
     roc_curve,
     auc,
@@ -34,7 +35,13 @@ class ROCCurveNode(BaseNode):
     )
 
     async def process(self, context: ProcessingContext) -> ImageRef:
-        fpr, tpr, _ = roc_curve(self.y_true.to_numpy(), self.y_score.to_numpy())
+        if self.y_true.is_set() and self.y_score.is_set():
+            y_true = self.y_true.to_numpy()
+            y_score = self.y_score.to_numpy()
+        else:
+            raise ValueError("y_true or y_score is not set")
+
+        fpr, tpr, _ = roc_curve(y_true, y_score)
         roc_auc = auc(fpr, tpr)
 
         fig, ax = plt.subplots()
@@ -73,9 +80,15 @@ class ConfusionMatrixPlotNode(BaseNode):
     )
 
     async def process(self, context: ProcessingContext) -> ImageRef:
+        if self.y_true.is_set() and self.y_pred.is_set():
+            y_true = self.y_true.to_numpy()
+            y_pred = self.y_pred.to_numpy()
+        else:
+            raise ValueError("y_true or y_pred is not set")
+
         cm = confusion_matrix(
-            self.y_true.to_numpy(),
-            self.y_pred.to_numpy(),
+            y_true,
+            y_pred,
             normalize="true" if self.normalize else None,
         )
 
@@ -122,6 +135,13 @@ class LearningCurveNode(BaseNode):
         if self.model.model is None:
             raise ValueError("Model is not set")
         estimator = pickle.loads(self.model.model)
+
+        if self.X.is_set() and self.y.is_set():
+            X_data = self.X.to_numpy()
+            y_data = self.y.to_numpy()
+        else:
+            raise ValueError("X or y is not set")
+
         train_sizes, train_scores, val_scores = learning_curve(  # type: ignore
             estimator,
             self.X.to_numpy(),
@@ -176,7 +196,11 @@ class ClusterVisualizationNode(BaseNode):
     )
 
     async def process(self, context: ProcessingContext) -> ImageRef:
-        X_data = self.X.to_numpy()
+        if self.X.is_set():
+            X_data = self.X.to_numpy()
+        else:
+            raise ValueError("X is not set")
+
         if X_data.shape[1] != 2:
             raise ValueError("Input features must be 2-dimensional for visualization")
 
@@ -228,8 +252,14 @@ class ElbowCurvePlotNode(BaseNode):
     k_values: NPArray = Field(default=NPArray(), description="K values tested")
 
     async def process(self, context: ProcessingContext) -> ImageRef:
+        if self.inertias.is_set() and self.k_values.is_set():
+            inertias = self.inertias.to_numpy()
+            k_values = self.k_values.to_numpy()
+        else:
+            raise ValueError("inertias or k_values is not set")
+
         fig, ax = plt.subplots(figsize=(10, 6))
-        ax.plot(self.k_values.to_numpy(), self.inertias.to_numpy(), "bo-")
+        ax.plot(k_values, inertias, "bo-")
         ax.set_xlabel("Number of Clusters (k)")
         ax.set_ylabel("Inertia")
         ax.set_title("Elbow Curve")
@@ -258,6 +288,12 @@ class RegressionPredictionPlotNode(BaseNode):
     y_pred: NPArray = Field(default=NPArray(), description="Predicted values")
 
     async def process(self, context: ProcessingContext) -> ImageRef:
+        if self.y_true.is_set() and self.y_pred.is_set():
+            y_true = self.y_true.to_numpy()
+            y_pred = self.y_pred.to_numpy()
+        else:
+            raise ValueError("y_true or y_pred is not set")
+
         fig, ax = plt.subplots(figsize=(8, 8))
 
         # Plot the scatter of actual vs predicted
@@ -299,7 +335,10 @@ class RegressionResidualPlotNode(BaseNode):
     y_pred: NPArray = Field(default=NPArray(), description="Predicted values")
 
     async def process(self, context: ProcessingContext) -> ImageRef:
-        residuals = self.y_true.to_numpy() - self.y_pred.to_numpy()
+        if self.y_true.is_set() and self.y_pred.is_set():
+            residuals = self.y_true.to_numpy() - self.y_pred.to_numpy()
+        else:
+            raise ValueError("y_true or y_pred is not set")
 
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
 
@@ -357,7 +396,15 @@ class DecisionBoundaryPlot(BaseNode):
     )
 
     async def process(self, context: ProcessingContext) -> ImageRef:
-        X_data = self.X.to_numpy()
+        if self.model.model is None:
+            raise ValueError("Model is not set")
+        if self.y.is_empty():
+            raise ValueError("y is not set")
+
+        if self.X.is_set():
+            X_data = self.X.to_numpy()
+        else:
+            raise ValueError("X is not set")
 
         if X_data.shape[1] < 2:
             raise ValueError("Input features must have at least 2 dimensions")
@@ -479,9 +526,6 @@ class NMFComponentsPlotNode(BaseNode):
         default=NPArray(),
         description="NMF components matrix (from components_ attribute)",
     )
-    feature_names: Optional[List[str]] = Field(
-        default=None, description="Names of the features (optional)"
-    )
 
     async def process(self, context: ProcessingContext) -> ImageRef:
         components_data = self.components.to_numpy()
@@ -491,7 +535,7 @@ class NMFComponentsPlotNode(BaseNode):
             components_data,
             cmap="YlOrRd",
             ax=ax,
-            xticklabels=self.feature_names if self.feature_names else "auto",
+            xticklabels=[f"Feature {i+1}" for i in range(components_data.shape[1])],
             yticklabels=[f"Component {i+1}" for i in range(components_data.shape[0])],
         )
 
