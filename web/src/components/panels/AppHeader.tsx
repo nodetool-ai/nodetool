@@ -358,7 +358,7 @@ const AppHeader: React.FC = React.memo(() => {
             enterDelay={TOOLTIP_ENTER_DELAY}
             title={
               <div style={{ textAlign: "center" }}>
-                <Typography variant="inherit">NodeTool</Typography>
+                <Typography variant="inherit">Open Welcome Screen</Typography>
               </div>
             }
           >
