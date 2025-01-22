@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import ReactDOM from "react-dom/client";
 import { ReactFlowProvider, useStore } from "@xyflow/react";
 
@@ -18,7 +18,7 @@ import initiateEditor from "./core/initiateEditor";
 import PanelLeft from "./components/panels/PanelLeft";
 
 import { ThemeProvider } from "@emotion/react";
-import { CssBaseline } from "@mui/material";
+import { CircularProgress, CssBaseline } from "@mui/material";
 import ThemeNodetool from "./components/themes/ThemeNodetool";
 import ThemeNodes from "./components/themes/ThemeNodes";
 
@@ -46,7 +46,11 @@ import useRemoteSettingsStore from "./stores/RemoteSettingStore";
 import ModelsManager from "./components/hugging_face/ModelsManager";
 import useModelStore from "./stores/ModelStore";
 import { MIN_ZOOM } from "./config/constants";
-import { metadataQuery } from "./serverState/useMetadata";
+import {
+  loadMetadata,
+  metadataQuery,
+  useMetadata
+} from "./serverState/useMetadata";
 import useMetadataStore from "./stores/MetadataStore";
 import { useNodeStore } from "./stores/NodeStore";
 import { createConnectabilityMatrix } from "./components/node_menu/typeFilterUtils";
@@ -54,22 +58,6 @@ import { createConnectabilityMatrix } from "./components/node_menu/typeFilterUti
 if (!isProduction) {
   useRemoteSettingsStore.getState().fetchSettings();
 }
-
-const queryClient = new QueryClient();
-useAssetStore.getState().setQueryClient(queryClient);
-useWorkflowStore.getState().setQueryClient(queryClient);
-useModelStore.getState().setQueryClient(queryClient);
-
-metadataQuery()
-  .then((metadata) => {
-    queryClient.setQueryData(["metadata"], metadata);
-    useMetadataStore.getState().setMetadata(metadata.metadataByType);
-    createConnectabilityMatrix(Object.values(metadata.metadataByType));
-    useNodeStore.getState().startAutoSave();
-  })
-  .catch((error) => {
-    console.error("Failed to fetch metadata:", error);
-  });
 
 const NavigateToStart = () => {
   const { state } = useAuth();
@@ -173,8 +161,13 @@ function getRoutes() {
           </ThemeProvider>
         </ProtectedRoute>
       ),
-      loader: async ({ params }: LoaderFunctionArgs) =>
-        await initiateEditor(params.workflow)
+      loader: async ({ params }: LoaderFunctionArgs) => {
+        const nodeTypes = useMetadataStore.getState().nodeTypes;
+        if (Object.keys(nodeTypes).length > 0) {
+          await initiateEditor(params.workflow);
+        }
+        return null;
+      }
     },
     {
       path: "editor/start",
@@ -198,20 +191,62 @@ function getRoutes() {
   return routes;
 }
 
+const queryClient = new QueryClient();
+useAssetStore.getState().setQueryClient(queryClient);
+useWorkflowStore.getState().setQueryClient(queryClient);
+useModelStore.getState().setQueryClient(queryClient);
+
 const router = createBrowserRouter(getRoutes());
 const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement
 );
 
-useAuth.getState().initialize();
-initKeyListeners();
+const AppWrapper = () => {
+  const [status, setStatus] = useState<string>("pending");
 
-root.render(
-  <React.StrictMode>
-    <ReactFlowProvider>
-      <QueryClientProvider client={queryClient}>
-        <RouterProvider router={router} />
-      </QueryClientProvider>
-    </ReactFlowProvider>
-  </React.StrictMode>
-);
+  useEffect(() => {
+    loadMetadata().then((data) => {
+      setStatus(data);
+    });
+  }, []);
+
+  if (status === "pending") {
+    return (
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "100vh"
+        }}
+      >
+        <CircularProgress />
+      </div>
+    );
+  }
+
+  if (status === "error") {
+    return <div>Error loading metadata</div>;
+  }
+
+  return (
+    <React.StrictMode>
+      <ReactFlowProvider>
+        <QueryClientProvider client={queryClient}>
+          <RouterProvider router={router} />
+        </QueryClientProvider>
+      </ReactFlowProvider>
+    </React.StrictMode>
+  );
+};
+
+// We need to make the initialization async
+const initialize = async () => {
+  useAuth.getState().initialize();
+  initKeyListeners();
+
+  // Render after initialization and prefetching
+  root.render(<AppWrapper />);
+};
+
+initialize().catch(console.error);

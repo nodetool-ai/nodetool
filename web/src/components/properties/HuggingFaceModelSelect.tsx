@@ -6,6 +6,7 @@ import { tryCacheFiles } from "../../serverState/tryCacheFiles";
 import { useMetadata } from "../../serverState/useMetadata";
 import { isEqual } from "lodash";
 import Select from "../inputs/Select";
+import useMetadataStore from "../../stores/MetadataStore";
 
 interface HuggingFaceModelSelectProps {
   modelType: string;
@@ -18,7 +19,9 @@ const HuggingFaceModelSelect = ({
   onChange,
   value
 }: HuggingFaceModelSelectProps) => {
-  const { data: metadata } = useMetadata();
+  const recommendedModels = useMetadataStore(
+    (state) => state.recommendedModels
+  );
   const loadHuggingFaceModels = useModelStore(
     (state) => state.loadHuggingFaceModels
   );
@@ -32,7 +35,7 @@ const HuggingFaceModelSelect = ({
     queryKey: ["models", modelType],
     queryFn: async () => {
       if (modelType.startsWith("hf.lora_sd")) {
-        const loras = metadata?.recommendedModels.filter(
+        const loras = recommendedModels.filter(
           (model) => model.type === modelType
         );
         const loraPaths = loras?.map((lora) => ({
@@ -49,9 +52,9 @@ const HuggingFaceModelSelect = ({
             path: lora.path
           }));
       } else {
-        const recommendedModels =
+        const recommended =
           modelType === "hf.checkpoint_model"
-            ? metadata?.recommendedModels.filter(
+            ? recommendedModels.filter(
                 (model) =>
                   model.type === "hf.stable_diffusion" ||
                   model.type === "hf.stable_diffusion_xl" ||
@@ -59,12 +62,10 @@ const HuggingFaceModelSelect = ({
                   model.type === "hf.flux" ||
                   model.type === "hf.ltxv"
               )
-            : metadata?.recommendedModels.filter(
-                (model) => model.type === modelType
-              );
+            : recommendedModels.filter((model) => model.type === modelType);
         const models = await loadHuggingFaceModels();
         return (
-          recommendedModels?.reduce((acc, recommendedModel) => {
+          recommended?.reduce((acc, recommendedModel) => {
             const model = models.find(
               (m) => m.repo_id === recommendedModel.repo_id
             );

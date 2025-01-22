@@ -1,6 +1,5 @@
 import { NodeMetadata, TypeMetadata, TypeName } from "../../stores/ApiTypes";
 import { isConnectable } from "../../utils/TypeHandler";
-import { DATA_TYPES } from "../../config/data_types";
 
 export type ConnectabilityMatrix = Record<TypeName, Record<TypeName, boolean>>;
 
@@ -14,6 +13,9 @@ const hashType = (type: TypeMetadata) => {
 let connectabilityMatrix: ConnectabilityMatrix | null = null;
 
 export function createConnectabilityMatrix(metadata: NodeMetadata[]) {
+  if (connectabilityMatrix) {
+    return;
+  }
   const allTypes = metadata.flatMap((node) =>
     node.properties.map((prop) => prop.type)
   );

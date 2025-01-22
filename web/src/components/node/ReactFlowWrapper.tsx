@@ -34,7 +34,6 @@ import LoopNode from "../node/LoopNode";
 //utils
 
 //hooks
-import { useNodeTypes } from "../../serverState/useMetadata";
 import { useDropHandler } from "../../hooks/handlers/useDropHandler";
 import { useCopyPaste } from "../../hooks/handlers/useCopyPaste";
 import { useDuplicateNodes } from "../../hooks/useDuplicate";
@@ -54,6 +53,7 @@ import ConnectionLine from "../node_editor/ConnectionLine";
 import NodeTitleEditor from "./NodeTitleEditor";
 import useSelect from "../../hooks/nodes/useSelect";
 import ConnectableNodes from "../context_menus/ConnectableNodes";
+import useMetadataStore from "../../stores/MetadataStore";
 
 declare global {
   interface Window {
@@ -120,7 +120,6 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   const reactFlowInstance = useReactFlow();
 
   /* USE STORE */
-  const nodeTypes = useNodeTypes();
   const nodeHistory: HistoryManager = useTemporalStore((state) => state);
   const { shouldFitToScreen, setShouldFitToScreen, setExplicitSave } =
     useNodeStore((state) => ({
@@ -131,6 +130,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   const { close: closeSelect } = useSelect();
 
   /* DEFINE NODE TYPES */
+  const nodeTypes = useMetadataStore((state) => state.nodeTypes);
   nodeTypes["nodetool.group.Loop"] = LoopNode;
   nodeTypes["nodetool.workflows.base_node.Group"] = GroupNode;
   nodeTypes["nodetool.workflows.base_node.Comment"] = CommentNode;

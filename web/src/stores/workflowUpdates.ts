@@ -32,7 +32,6 @@ export const handleUpdate = (
 
   if (data.type === "job_update") {
     const job = data as JobUpdate;
-    console.log(job);
     useWorkflowRunner.setState({
       state:
         job.status === "running" || job.status === "queued" ? "running" : "idle"

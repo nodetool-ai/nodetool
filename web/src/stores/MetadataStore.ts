@@ -1,15 +1,28 @@
 import { create } from "zustand";
-import { NodeMetadata } from "./ApiTypes";
+import { HuggingFaceModel, NodeMetadata } from "./ApiTypes";
 import { useSettingsStore } from "./SettingsStore";
+import { NodeTypes } from "@xyflow/react";
 
 type MetadataStore = {
   metadata: Record<string, NodeMetadata>;
   setMetadata: (metadata: Record<string, NodeMetadata>) => void;
   getMetadata: (nodeType: string) => NodeMetadata | undefined;
   getAllMetadata: () => NodeMetadata[];
+  recommendedModels: HuggingFaceModel[];
+  setRecommendedModels: (models: HuggingFaceModel[]) => void;
+  nodeTypes: NodeTypes;
+  setNodeTypes: (nodeTypes: NodeTypes) => void;
+  addNodeType: (nodeType: string, nodeTypeComponent: any) => void;
 };
 const useMetadataStore = create<MetadataStore>((set, get) => ({
   metadata: {},
+  recommendedModels: [],
+  nodeTypes: {},
+  setNodeTypes: (nodeTypes) => set({ nodeTypes }),
+  addNodeType: (nodeType: string, nodeTypeComponent: any) =>
+    set((state) => ({
+      nodeTypes: { ...state.nodeTypes, [nodeType]: nodeTypeComponent }
+    })),
   setMetadata: (metadata) => set({ metadata }),
   getMetadata: (nodeType) => {
     return get().metadata[nodeType];
@@ -22,7 +35,8 @@ const useMetadataStore = create<MetadataStore>((set, get) => ({
       );
     }
     return Object.values(get().metadata);
-  }
+  },
+  setRecommendedModels: (models) => set({ recommendedModels: models })
 }));
 
 export default useMetadataStore;
