@@ -108,7 +108,7 @@ const ThemeNodetool: Theme = createTheme({
     c_gray5: "#BDBDBD",
     c_gray6: "#D9D9D9",
     c_background: "#424854",
-    c_node_menu: "#252525",
+    c_node_menu: "#232323",
     /* Highlights */
     c_hl1: "#76e5b8",
     c_hl1_1: "#325954",
@@ -153,7 +153,7 @@ const ThemeNodetool: Theme = createTheme({
     },
     background: {
       default: "#202020",
-      paper: "#252525"
+      paper: "#232323"
     }
   } as any,
   typography: {
@@ -252,9 +252,10 @@ ThemeNodetool.components = {
       root: {
         textTransform: "capitalize",
         fontSize: ThemeNodetool.fontSizeSmall,
+        fontWeight: "lighter",
         lineHeight: "1em",
         padding: ThemeNodetool.spacing(0, 0, 2, 0),
-        color: ThemeNodetool.palette.c_hl1,
+        color: ThemeNodetool.palette.c_white,
         "&.Mui-focused": {
           color: ThemeNodetool.palette.primary.main
         }
