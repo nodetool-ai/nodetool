@@ -100,7 +100,7 @@ const ThemeNodes: Theme = createTheme({
     c_gray5: "#bdbdbd",
     c_gray6: "#d9d9d9",
     c_background: "#424854",
-    c_node_menu: "#252525",
+    c_node_menu: "#232323",
     c_hl1: "#76e5b8",
     c_hl1_1: "#bdf0e9",
     c_hl2: "#1ec7c7",
@@ -143,7 +143,7 @@ const ThemeNodes: Theme = createTheme({
     },
     background: {
       default: "#202020",
-      paper: "#252525"
+      paper: "#232323"
     }
   } as any,
   typography: {
