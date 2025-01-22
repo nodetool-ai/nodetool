@@ -1,0 +1,157 @@
+{
+    "id": "sklearn_knn",
+    "access": "public",
+    "created_at": "2024-03-19T10:00:00.000000",
+    "updated_at": "2024-03-19T10:00:00.000000",
+    "name": "SKLearn KNN",
+    "description": "Example K-Nearest Neighbors workflow using scikit-learn",
+    "tags": [
+        "sklearn",
+        "classification"
+    ],
+    "graph": {
+        "nodes": [
+            {
+                "id": "1",
+                "type": "sklearn.datasets.LoadIrisDataset",
+                "data": {},
+                "ui_properties": {
+                    "position": {
+                        "x": 100,
+                        "y": 100
+                    }
+                }
+            },
+            {
+                "id": "2",
+                "type": "sklearn.model_selection.TrainTestSplit",
+                "data": {
+                    "test_size": 0.2,
+                    "random_state": 42,
+                    "shuffle": true
+                },
+                "ui_properties": {
+                    "position": {
+                        "x": 300,
+                        "y": 100
+                    }
+                }
+            },
+            {
+                "id": "3",
+                "type": "sklearn.preprocessing.StandardScaler",
+                "data": {
+                    "with_mean": true,
+                    "with_std": true
+                },
+                "ui_properties": {
+                    "position": {
+                        "x": 500,
+                        "y": 100
+                    }
+                }
+            },
+            {
+                "id": "4",
+                "type": "sklearn.neighbors.KNNClassifier",
+                "data": {
+                    "n_neighbors": 5,
+                    "weights": "uniform",
+                    "metric": "minkowski",
+                    "p": 2
+                },
+                "ui_properties": {
+                    "position": {
+                        "x": 700,
+                        "y": 100
+                    }
+                }
+            },
+            {
+                "id": "5",
+                "type": "sklearn.metrics.Accuracy",
+                "data": {},
+                "ui_properties": {
+                    "position": {
+                        "x": 900,
+                        "y": 100
+                    }
+                }
+            }
+        ],
+        "edges": [
+            {
+                "id": "e1-2",
+                "source": "1",
+                "sourceHandle": "data",
+                "target": "2",
+                "targetHandle": "X",
+                "ui_properties": {
+                    "className": "np_array"
+                }
+            },
+            {
+                "id": "e1-2b",
+                "source": "1",
+                "sourceHandle": "target",
+                "target": "2",
+                "targetHandle": "y",
+                "ui_properties": {
+                    "className": "np_array"
+                }
+            },
+            {
+                "id": "e2-3",
+                "source": "2",
+                "sourceHandle": "X_train",
+                "target": "3",
+                "targetHandle": "X",
+                "ui_properties": {
+                    "className": "np_array"
+                }
+            },
+            {
+                "id": "e3-4",
+                "source": "3",
+                "sourceHandle": "transformed",
+                "target": "4",
+                "targetHandle": "X_train",
+                "ui_properties": {
+                    "className": "np_array"
+                }
+            },
+            {
+                "id": "e2-4",
+                "source": "2",
+                "sourceHandle": "y_train",
+                "target": "4",
+                "targetHandle": "y_train",
+                "ui_properties": {
+                    "className": "np_array"
+                }
+            },
+            {
+                "id": "e2-5",
+                "source": "2",
+                "sourceHandle": "y_test",
+                "target": "5",
+                "targetHandle": "y_true",
+                "ui_properties": {
+                    "className": "np_array"
+                }
+            },
+            {
+                "id": "e4-5",
+                "source": "4",
+                "sourceHandle": "predictions",
+                "target": "5",
+                "targetHandle": "y_pred",
+                "ui_properties": {
+                    "className": "np_array"
+                }
+            }
+        ]
+    },
+    "input_schema": null,
+    "output_schema": null
+}

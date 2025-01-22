@@ -1,0 +1,77 @@
+{
+    "id": "sklearn_clustering",
+    "access": "public",
+    "created_at": "2024-03-19T10:00:00.000000",
+    "updated_at": "2024-03-19T10:00:00.000000",
+    "name": "SKLearn Clustering",
+    "description": "Example clustering workflow using scikit-learn",
+    "tags": [
+        "sklearn"
+    ],
+    "graph": {
+        "nodes": [
+            {
+                "id": "1",
+                "type": "sklearn.datasets.MakeBlobsDataset",
+                "data": {
+                    "n_samples": 300,
+                    "n_features": 2,
+                    "centers": 3,
+                    "cluster_std": 1.0,
+                    "random_state": 42
+                }
+            },
+            {
+                "id": "2",
+                "type": "sklearn.preprocessing.StandardScaler",
+                "data": {}
+            },
+            {
+                "id": "3",
+                "type": "sklearn.cluster.KMeans",
+                "data": {
+                    "n_clusters": 3,
+                    "random_state": 42,
+                    "max_iter": 300
+                }
+            },
+            {
+                "id": "4",
+                "type": "sklearn.metrics.SilhouetteScore",
+                "data": {}
+            }
+        ],
+        "edges": [
+            {
+                "source": "1",
+                "sourceHandle": "data",
+                "target": "2",
+                "targetHandle": "X",
+                "id": "e1-2"
+            },
+            {
+                "source": "2",
+                "sourceHandle": "transformed",
+                "target": "3",
+                "targetHandle": "X",
+                "id": "e2-3"
+            },
+            {
+                "source": "2",
+                "sourceHandle": "transformed",
+                "target": "4",
+                "targetHandle": "X",
+                "id": "e2-4"
+            },
+            {
+                "source": "3",
+                "sourceHandle": "labels",
+                "target": "4",
+                "targetHandle": "labels",
+                "id": "e3-4"
+            }
+        ]
+    },
+    "input_schema": null,
+    "output_schema": null
+}

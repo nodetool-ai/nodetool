@@ -1,0 +1,293 @@
+{
+  "id": "sklearn_classifier",
+  "access": "public",
+  "created_at": "2025-01-22T00:54:50.898246",
+  "updated_at": "2025-01-22T00:54:50.898258",
+  "name": "SKLearn Classifier",
+  "description": "",
+  "tags": [
+    "sklearn"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "3",
+        "parent_id": null,
+        "type": "sklearn.datasets.LoadIrisDataset",
+        "data": {},
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 50,
+            "y": 474
+          },
+          "zIndex": 0,
+          "width": 140,
+          "selectable": true
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "4",
+        "parent_id": null,
+        "type": "sklearn.model_selection.TrainTestSplit",
+        "data": {
+          "test_size": 0.25,
+          "random_state": null,
+          "shuffle": true
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 250,
+            "y": 346
+          },
+          "zIndex": 0,
+          "width": 182,
+          "selectable": true
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "5",
+        "parent_id": null,
+        "type": "sklearn.preprocessing.StandardScaler",
+        "data": {
+          "with_mean": true,
+          "with_std": true
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 492,
+            "y": 301
+          },
+          "zIndex": 0,
+          "width": 170,
+          "selectable": true
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "6",
+        "parent_id": null,
+        "type": "sklearn.preprocessing.Transform",
+        "data": {},
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 727,
+            "y": 473
+          },
+          "zIndex": 0,
+          "width": 170,
+          "selectable": true
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "7",
+        "parent_id": null,
+        "type": "sklearn.ensemble.RandomForestClassifier",
+        "data": {
+          "n_estimators": 100,
+          "max_depth": null,
+          "min_samples_split": 2,
+          "min_samples_leaf": 1,
+          "criterion": "entropy",
+          "random_state": 32
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 722,
+            "y": 50
+          },
+          "zIndex": 0,
+          "width": 185,
+          "selectable": true
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "9",
+        "parent_id": null,
+        "type": "sklearn.linear_model.Predict",
+        "data": {},
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 967,
+            "y": 455
+          },
+          "zIndex": 0,
+          "width": 163,
+          "selectable": true
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "14",
+        "parent_id": null,
+        "type": "sklearn.metrics.Accuracy",
+        "data": {},
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1190,
+            "y": 521
+          },
+          "zIndex": 0,
+          "width": 134,
+          "selectable": true
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "15",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "float_output_2025-01-22"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1354,
+            "y": 498
+          },
+          "zIndex": 0,
+          "width": 160,
+          "height": 160,
+          "selectable": true
+        },
+        "dynamic_properties": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "84ddcea4-77a2-4aa2-92ac-4cddb96406b5",
+        "source": "3",
+        "sourceHandle": "data",
+        "target": "4",
+        "targetHandle": "X",
+        "ui_properties": {
+          "className": "np_array"
+        }
+      },
+      {
+        "id": "f274168c-f442-49d5-bc3b-5ba3ad9f85c7",
+        "source": "3",
+        "sourceHandle": "target",
+        "target": "4",
+        "targetHandle": "y",
+        "ui_properties": {
+          "className": "np_array"
+        }
+      },
+      {
+        "id": "f3cde8ae-ac3f-4a41-8c14-aff284f71ab7",
+        "source": "4",
+        "sourceHandle": "X_train",
+        "target": "5",
+        "targetHandle": "X",
+        "ui_properties": {
+          "className": "np_array"
+        }
+      },
+      {
+        "id": "082d76f6-3770-43ea-a49d-d05e31b33407",
+        "source": "4",
+        "sourceHandle": "X_test",
+        "target": "6",
+        "targetHandle": "X",
+        "ui_properties": {
+          "className": "np_array"
+        }
+      },
+      {
+        "id": "c8d5591d-71df-4359-9583-035986467736",
+        "source": "5",
+        "sourceHandle": "model",
+        "target": "6",
+        "targetHandle": "model",
+        "ui_properties": {
+          "className": "sklearn_model"
+        }
+      },
+      {
+        "id": "2773f997-fab9-4a6c-8e76-478a70c99b68",
+        "source": "6",
+        "sourceHandle": "transformed",
+        "target": "9",
+        "targetHandle": "X",
+        "ui_properties": {
+          "className": "np_array"
+        }
+      },
+      {
+        "id": "1c06570e-a761-4da0-ad52-3323fb3e4ec0",
+        "source": "9",
+        "sourceHandle": "output",
+        "target": "14",
+        "targetHandle": "y_pred",
+        "ui_properties": {
+          "className": "np_array"
+        }
+      },
+      {
+        "id": "9293",
+        "source": "14",
+        "sourceHandle": "output",
+        "target": "15",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "float"
+        }
+      },
+      {
+        "id": "a7b6ab40-db75-413b-94e4-5820841bf8bb",
+        "source": "5",
+        "sourceHandle": "transformed",
+        "target": "7",
+        "targetHandle": "X_train",
+        "ui_properties": {
+          "className": "np_array"
+        }
+      },
+      {
+        "id": "f8c5f677-cd64-423f-b422-31d191d23d2f",
+        "source": "7",
+        "sourceHandle": "model",
+        "target": "9",
+        "targetHandle": "model",
+        "ui_properties": {
+          "className": "sklearn_model"
+        }
+      },
+      {
+        "id": "9292e1f6-31ba-4172-8628-b5fd0c03e4e4",
+        "source": "4",
+        "sourceHandle": "y_test",
+        "target": "14",
+        "targetHandle": "y_true",
+        "ui_properties": {
+          "className": "np_array"
+        }
+      },
+      {
+        "id": "25f26ec5-eb4b-41fc-99bc-f27cd0fa7f54",
+        "source": "4",
+        "sourceHandle": "y_train",
+        "target": "7",
+        "targetHandle": "y_train",
+        "ui_properties": {
+          "className": "np_array"
+        }
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null
+}
