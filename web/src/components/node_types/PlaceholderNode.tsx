@@ -141,15 +141,15 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
           Missing Node
         </Typography>
       </Tooltip>
-      {mockProperties.length > 0 && (
+      {/* {mockProperties.length > 0 && (
         <NodeInputs
           id={props.id}
           nodeType={nodeType || ""}
           properties={mockProperties}
           data={nodeData}
         />
-      )}
-      <NodeOutputs id={props.id} outputs={mockMetadata.outputs} />
+      )} */}
+      {/* <NodeOutputs id={props.id} outputs={mockMetadata.outputs} /> */}
       <NodeFooter
         nodeNamespace={nodeNamespace || ""}
         metadata={mockMetadata}

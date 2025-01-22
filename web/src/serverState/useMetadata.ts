@@ -1,9 +1,10 @@
-import { useQuery } from "@tanstack/react-query";
 import { NodeTypes } from "@xyflow/react";
 import { HuggingFaceModel, NodeMetadata } from "../stores/ApiTypes";
 import BaseNode from "../components/node/BaseNode";
 import { client } from "../stores/ApiClient";
 import useMetadataStore from "../stores/MetadataStore";
+import { createConnectabilityMatrix } from "../components/node_menu/typeFilterUtils";
+import { useNodeStore } from "../stores/NodeStore";
 
 const defaultMetadata: Record<string, NodeMetadata> = {
   "nodetool.workflows.base_node.Preview": {
@@ -30,16 +31,19 @@ const defaultMetadata: Record<string, NodeMetadata> = {
   }
 };
 
-export const metadataQuery = async () => {
+export const loadMetadata = async () => {
   const { data, error } = await client.GET("/api/nodes/metadata", {});
   if (error) {
-    throw error;
+    console.error(error);
+    return "error";
   }
 
   const nodeTypes = data.reduce((prev: NodeTypes, md: NodeMetadata) => {
     prev[md.node_type] = BaseNode;
     return prev;
   }, {});
+
+  useMetadataStore.getState().setNodeTypes(nodeTypes);
 
   const metadataByType = data.reduce<Record<string, NodeMetadata>>(
     (result, md) => ({
@@ -67,25 +71,13 @@ export const metadataQuery = async () => {
   );
 
   useMetadataStore.getState().setMetadata(metadataByType);
+  useMetadataStore.getState().setRecommendedModels(uniqueRecommendedModels);
+  useMetadataStore.getState().setNodeTypes(nodeTypes);
+  useNodeStore.getState().startAutoSave();
 
-  return {
-    metadata: data,
-    nodeTypes,
-    metadataByType,
-    recommendedModels: uniqueRecommendedModels
-  };
-};
+  createConnectabilityMatrix(Object.values(metadataByType));
 
-export const useMetadata = () =>
-  useQuery({
-    queryKey: ["metadata"],
-    queryFn: metadataQuery,
-    staleTime: 1000 * 60 * 60 * 24
-  });
-
-export const useNodeTypes = (): Record<string, any> => {
-  const { data } = useMetadata();
-  return data?.nodeTypes || [];
+  return "success";
 };
 
 // export const useNodeDefaultProperties = (nodeType: string) => {

@@ -42,7 +42,7 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
     return !type.optional && type.type !== "readonly";
   });
   const dynamicProperties: { [key: string]: Property } =
-    data.dynamic_properties || {};
+    data?.dynamic_properties || {};
 
   return (
     <div className={`node-inputs node-${id}`}>

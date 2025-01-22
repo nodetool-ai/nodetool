@@ -39,6 +39,7 @@ import useMetadataStore from "./MetadataStore";
 import useErrorStore from "./ErrorStore";
 import useResultsStore from "./ResultsStore";
 import { tryCacheFiles, tryCacheRepos } from "../serverState/tryCacheFiles";
+import PlaceholderNode from "../components/node_types/PlaceholderNode";
 
 type NodeUIProperties = {
   selected?: boolean;
@@ -476,6 +477,9 @@ export const useNodeStore = create<NodeStore>()(
        * Set the current workflow.
        */
       setWorkflow: (workflow: Workflow) => {
+        debugger;
+        const nodeTypes = useMetadataStore.getState().nodeTypes;
+        const addNodeType = useMetadataStore.getState().addNodeType;
         get().syncWithWorkflowStore();
 
         const modelFiles = extractModelFiles(workflow.graph.nodes);
@@ -510,6 +514,14 @@ export const useNodeStore = create<NodeStore>()(
 
         const { nodes: sanitizedNodes, edges: sanitizedEdges } =
           get().sanitizeGraph(unsanitizedNodes, unsanitizedEdges, metadata);
+
+        // add missing node typesV
+        for (const node of sanitizedNodes) {
+          console.log(node.type, nodeTypes);
+          if (node.type && !nodeTypes[node.type]) {
+            addNodeType(node.type, PlaceholderNode);
+          }
+        }
 
         set({
           workflow: workflow,
