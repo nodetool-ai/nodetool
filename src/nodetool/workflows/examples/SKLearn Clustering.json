@@ -3,10 +3,10 @@
   "access": "public",
   "created_at": "2025-01-22T22:50:55.179458",
   "updated_at": "2025-01-22T22:50:55.179472",
-  "name": "lib.ml.sklearn Clustering",
+  "name": "Sklearn Clustering",
   "description": "Example clustering workflow using scikit-learn",
   "tags": [
-    "lib.ml.sklearn"
+    "sklearn"
   ],
   "thumbnail": null,
   "thumbnail_url": null,
