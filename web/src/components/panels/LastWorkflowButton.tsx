@@ -18,6 +18,7 @@ import { useNodeStore } from "../../stores/NodeStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useLocation, useNavigate } from "react-router-dom";
 import ThemeNodetool from "../themes/ThemeNodetool";
+import { useWorkflowStore } from "../../stores/WorkflowStore";
 
 const styles = (theme: any) =>
   css({
@@ -150,6 +151,9 @@ const LastWorkflowButton = React.memo(() => {
       []
     )
   );
+  const createNewWorkflow = useWorkflowStore(
+    useCallback((state) => state.createNew, [])
+  );
   const addNotification = useNotificationStore(
     useCallback((state) => state.addNotification, [])
   );
@@ -206,6 +210,11 @@ const LastWorkflowButton = React.memo(() => {
     }
   }, [isEditing]);
 
+  const handleCreateWorkflow = useCallback(async () => {
+    const workflow = await createNewWorkflow();
+    navigate(`/editor/${workflow.id}`);
+  }, [navigate, createNewWorkflow]);
+
   const pathIsEditor = pathname.startsWith("/editor");
   const memoizedButton = useMemo(
     () => (
@@ -232,7 +241,22 @@ const LastWorkflowButton = React.memo(() => {
     ]
   );
 
-  if (!workflow) return null;
+  console.log("workflow", workflow);
+
+  if (workflow?.id === "") {
+    return (
+      <div className="last-workflow" css={styles}>
+        <Button
+          onClick={handleCreateWorkflow}
+          sx={{
+            backgroundColor: ThemeNodetool.palette.c_gray2
+          }}
+        >
+          Create New Workflow
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="last-workflow" css={styles}>
