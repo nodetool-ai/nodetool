@@ -40,6 +40,7 @@ const styles = (theme: any) =>
     },
     ".missing-node-text": {
       fontWeight: "bold",
+      textAlign: "center",
       color: theme.palette.c_error,
       padding: 0,
       margin: ".5em 0 0"
