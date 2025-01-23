@@ -1786,64 +1786,6 @@
     "is_dynamic": false
   },
   {
-    "title": "Index Texts",
-    "description": "Index a list of text assets or files.\n    chroma, embedding, collection, RAG, index, text, batch",
-    "namespace": "chroma.index",
-    "node_type": "chroma.index.IndexTexts",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "collection",
-        "type": {
-          "type": "collection",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": {
-          "type": "collection",
-          "name": ""
-        },
-        "title": "Collection",
-        "description": "The collection to index",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "docs",
-        "type": {
-          "type": "list",
-          "optional": false,
-          "values": null,
-          "type_args": [
-            {
-              "type": "text",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
-          "type_name": null
-        },
-        "default": [],
-        "title": "Docs",
-        "description": "Dictionary of ID to text content pairs to index",
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [
-      "collection",
-      "docs"
-    ],
-    "is_dynamic": false
-  },
-  {
     "title": "Index Image",
     "description": "Index a single image asset.\n    chroma, embedding, collection, RAG, index, image",
     "namespace": "chroma.index",
@@ -1899,10 +1841,10 @@
     "is_dynamic": false
   },
   {
-    "title": "Index Text",
-    "description": "Index a single text asset.\n    chroma, embedding, collection, RAG, index, text",
+    "title": "Index Document",
+    "description": "Index a single document asset.\n    chroma, embedding, collection, RAG, index, text",
     "namespace": "chroma.index",
-    "node_type": "chroma.index.IndexText",
+    "node_type": "chroma.index.IndexDocument",
     "layout": "default",
     "properties": [
       {
@@ -1924,22 +1866,22 @@
         "max": null
       },
       {
-        "name": "text",
+        "name": "document",
         "type": {
-          "type": "text",
+          "type": "document",
           "optional": false,
           "values": null,
           "type_args": [],
           "type_name": null
         },
         "default": {
-          "type": "text",
+          "type": "document",
           "uri": "",
           "asset_id": null,
           "data": null
         },
-        "title": "Text",
-        "description": "Text asset to index",
+        "title": "Document",
+        "description": "Document asset to index",
         "min": null,
         "max": null
       }
@@ -1949,7 +1891,7 @@
     "recommended_models": [],
     "basic_fields": [
       "collection",
-      "text"
+      "document"
     ],
     "is_dynamic": false
   },
@@ -16830,10 +16772,10 @@
           "year": 2025,
           "month": 1,
           "day": 23,
-          "hour": 6,
-          "minute": 48,
-          "second": 44,
-          "microsecond": 543935,
+          "hour": 23,
+          "minute": 47,
+          "second": 42,
+          "microsecond": 119106,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -17887,10 +17829,10 @@
           "year": 2025,
           "month": 1,
           "day": 23,
-          "hour": 6,
-          "minute": 48,
-          "second": 44,
-          "microsecond": 548056,
+          "hour": 23,
+          "minute": 47,
+          "second": 42,
+          "microsecond": 123193,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -17941,10 +17883,10 @@
           "year": 2025,
           "month": 1,
           "day": 23,
-          "hour": 6,
-          "minute": 48,
-          "second": 44,
-          "microsecond": 548284,
+          "hour": 23,
+          "minute": 47,
+          "second": 42,
+          "microsecond": 123440,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -17995,10 +17937,10 @@
           "year": 2025,
           "month": 1,
           "day": 23,
-          "hour": 6,
-          "minute": 48,
-          "second": 44,
-          "microsecond": 548547,
+          "hour": 23,
+          "minute": 47,
+          "second": 42,
+          "microsecond": 123980,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -18049,10 +17991,10 @@
           "year": 2025,
           "month": 1,
           "day": 23,
-          "hour": 6,
-          "minute": 48,
-          "second": 44,
-          "microsecond": 548777,
+          "hour": 23,
+          "minute": 47,
+          "second": 42,
+          "microsecond": 124234,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -18103,10 +18045,10 @@
           "year": 2025,
           "month": 1,
           "day": 23,
-          "hour": 6,
-          "minute": 48,
-          "second": 44,
-          "microsecond": 549006,
+          "hour": 23,
+          "minute": 47,
+          "second": 42,
+          "microsecond": 124475,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -18157,10 +18099,10 @@
           "year": 2025,
           "month": 1,
           "day": 23,
-          "hour": 6,
-          "minute": 48,
-          "second": 44,
-          "microsecond": 549237,
+          "hour": 23,
+          "minute": 47,
+          "second": 42,
+          "microsecond": 124710,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -18211,10 +18153,10 @@
           "year": 2025,
           "month": 1,
           "day": 23,
-          "hour": 6,
-          "minute": 48,
-          "second": 44,
-          "microsecond": 549507,
+          "hour": 23,
+          "minute": 47,
+          "second": 42,
+          "microsecond": 124982,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -18281,10 +18223,10 @@
           "year": 2025,
           "month": 1,
           "day": 23,
-          "hour": 6,
-          "minute": 48,
-          "second": 44,
-          "microsecond": 549782,
+          "hour": 23,
+          "minute": 47,
+          "second": 42,
+          "microsecond": 125265,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -74200,42 +74142,6 @@
     "is_dynamic": false
   },
   {
-    "title": "Load Iris Dataset",
-    "description": "Load Iris dataset as dataframe.\n    iris, dataset, machine learning\n\n    Use cases:\n    - Practice machine learning techniques\n    - Benchmark classification algorithms\n    - Demonstrate data analysis workflows",
-    "namespace": "lib.data.pandas.dataframe",
-    "node_type": "lib.data.pandas.dataframe.LoadIrisDataset",
-    "layout": "default",
-    "properties": [],
-    "outputs": [
-      {
-        "type": {
-          "type": "dataframe",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "name": "data",
-        "stream": false
-      },
-      {
-        "type": {
-          "type": "dataframe",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "name": "target",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [],
-    "is_dynamic": false
-  },
-  {
     "title": "Slice",
     "description": "Slice a dataframe by rows using start and end indices.\n    slice, subset, rows\n\n    Use cases:\n    - Extract a specific range of rows from a large dataset\n    - Create training and testing subsets for machine learning\n    - Analyze data in smaller chunks",
     "namespace": "lib.data.pandas.dataframe",
@@ -86416,6 +86322,609 @@
       }
     ],
     "outputs": [],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "n_samples",
+      "noise",
+      "factor",
+      "random_state"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Load Iris Dataset DF",
+    "description": "Loads the classic Iris flower dataset as a dataframe.\n    dataset, machine learning, classification\n\n    Use cases:\n    - Practice classification tasks\n    - Learn machine learning basics",
+    "namespace": "lib.ml.sklearn.datasets",
+    "node_type": "lib.ml.sklearn.datasets.LoadIrisDatasetDF",
+    "layout": "default",
+    "properties": [],
+    "outputs": [
+      {
+        "type": {
+          "type": "dataframe",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [],
+    "is_dynamic": false
+  },
+  {
+    "title": "Load Breast Cancer Dataset DF",
+    "description": "Loads the Breast Cancer Wisconsin dataset as a dataframe.\n    dataset, machine learning, classification, medical\n\n    Use cases:\n    - Binary classification practice\n    - Medical data analysis",
+    "namespace": "lib.ml.sklearn.datasets",
+    "node_type": "lib.ml.sklearn.datasets.LoadBreastCancerDatasetDF",
+    "layout": "default",
+    "properties": [],
+    "outputs": [
+      {
+        "type": {
+          "type": "dataframe",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [],
+    "is_dynamic": false
+  },
+  {
+    "title": "Load Diabetes Dataset DF",
+    "description": "Loads the Diabetes dataset for regression as a dataframe.\n    dataset, machine learning, regression, medical\n\n    Use cases:\n    - Regression analysis practice\n    - Medical outcome prediction",
+    "namespace": "lib.ml.sklearn.datasets",
+    "node_type": "lib.ml.sklearn.datasets.LoadDiabetesDatasetDF",
+    "layout": "default",
+    "properties": [],
+    "outputs": [
+      {
+        "type": {
+          "type": "dataframe",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [],
+    "is_dynamic": false
+  },
+  {
+    "title": "Load Boston Dataset DF",
+    "description": "Loads the Boston Housing dataset as a dataframe.\n    dataset, machine learning, regression, housing\n\n    Use cases:\n    - House price prediction\n    - Regression analysis practice",
+    "namespace": "lib.ml.sklearn.datasets",
+    "node_type": "lib.ml.sklearn.datasets.LoadBostonDatasetDF",
+    "layout": "default",
+    "properties": [],
+    "outputs": [
+      {
+        "type": {
+          "type": "dataframe",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [],
+    "is_dynamic": false
+  },
+  {
+    "title": "Make Classification Dataset DF",
+    "description": "Generates a random n-class classification problem as a dataframe.\n    dataset, machine learning, classification, synthetic\n\n    Use cases:\n    - Testing classification algorithms\n    - Generating controlled test data",
+    "namespace": "lib.ml.sklearn.datasets",
+    "node_type": "lib.ml.sklearn.datasets.MakeClassificationDatasetDF",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "n_samples",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 100,
+        "title": "N Samples",
+        "description": "Number of samples to generate",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "n_features",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 20,
+        "title": "N Features",
+        "description": "Number of features",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "n_classes",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 2,
+        "title": "N Classes",
+        "description": "Number of classes",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "n_informative",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 2,
+        "title": "N Informative",
+        "description": "Number of informative features",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "n_redundant",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 2,
+        "title": "N Redundant",
+        "description": "Number of redundant features",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "random_state",
+        "type": {
+          "type": "int",
+          "optional": true,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Random State",
+        "description": "Random state for reproducibility",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "dataframe",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "n_samples",
+      "n_features",
+      "n_classes",
+      "n_informative",
+      "n_redundant",
+      "random_state"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Make Regression Dataset DF",
+    "description": "Generates a random regression problem as a dataframe.\n    dataset, machine learning, regression, synthetic\n\n    Use cases:\n    - Testing regression algorithms\n    - Generating controlled test data",
+    "namespace": "lib.ml.sklearn.datasets",
+    "node_type": "lib.ml.sklearn.datasets.MakeRegressionDatasetDF",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "n_samples",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 100,
+        "title": "N Samples",
+        "description": "Number of samples to generate",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "n_features",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 100,
+        "title": "N Features",
+        "description": "Number of features",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "n_informative",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 10,
+        "title": "N Informative",
+        "description": "Number of informative features",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "noise",
+        "type": {
+          "type": "float",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 0.1,
+        "title": "Noise",
+        "description": "Standard deviation of gaussian noise",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "random_state",
+        "type": {
+          "type": "int",
+          "optional": true,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Random State",
+        "description": "Random state for reproducibility",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "dataframe",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "n_samples",
+      "n_features",
+      "n_informative",
+      "noise",
+      "random_state"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Make Blobs Dataset DF",
+    "description": "Generates isotropic Gaussian blobs for clustering as a dataframe.\n    dataset, machine learning, clustering, synthetic\n\n    Use cases:\n    - Testing clustering algorithms\n    - Visualizing cluster separation",
+    "namespace": "lib.ml.sklearn.datasets",
+    "node_type": "lib.ml.sklearn.datasets.MakeBlobsDatasetDF",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "n_samples",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 100,
+        "title": "N Samples",
+        "description": "Number of samples to generate",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "n_features",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 2,
+        "title": "N Features",
+        "description": "Number of features",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "centers",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 3,
+        "title": "Centers",
+        "description": "Number of centers/clusters",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "cluster_std",
+        "type": {
+          "type": "float",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 1.0,
+        "title": "Cluster Std",
+        "description": "Standard deviation of clusters",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "random_state",
+        "type": {
+          "type": "int",
+          "optional": true,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Random State",
+        "description": "Random state for reproducibility",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "dataframe",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "n_samples",
+      "n_features",
+      "centers",
+      "cluster_std",
+      "random_state"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Make Moons Dataset DF",
+    "description": "Generates two interleaving half circles as a dataframe.\n    dataset, machine learning, classification, synthetic\n\n    Use cases:\n    - Testing nonlinear classification\n    - Demonstrating decision boundaries",
+    "namespace": "lib.ml.sklearn.datasets",
+    "node_type": "lib.ml.sklearn.datasets.MakeMoonsDatasetDF",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "n_samples",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 100,
+        "title": "N Samples",
+        "description": "Number of samples to generate",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "noise",
+        "type": {
+          "type": "float",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 0.1,
+        "title": "Noise",
+        "description": "Standard deviation of gaussian noise",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "random_state",
+        "type": {
+          "type": "int",
+          "optional": true,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Random State",
+        "description": "Random state for reproducibility",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "dataframe",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "n_samples",
+      "noise",
+      "random_state"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Make Circles Dataset DF",
+    "description": "Generates a large circle containing a smaller circle as a dataframe.\n    dataset, machine learning, classification, synthetic\n\n    Use cases:\n    - Testing nonlinear classification\n    - Demonstrating circular decision boundaries",
+    "namespace": "lib.ml.sklearn.datasets",
+    "node_type": "lib.ml.sklearn.datasets.MakeCirclesDatasetDF",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "n_samples",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 100,
+        "title": "N Samples",
+        "description": "Number of samples to generate",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "noise",
+        "type": {
+          "type": "float",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 0.1,
+        "title": "Noise",
+        "description": "Standard deviation of gaussian noise",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "factor",
+        "type": {
+          "type": "float",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 0.8,
+        "title": "Factor",
+        "description": "Scale factor between inner and outer circle",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "random_state",
+        "type": {
+          "type": "int",
+          "optional": true,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Random State",
+        "description": "Random state for reproducibility",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "dataframe",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
@@ -124120,6 +124629,170 @@
       "model",
       "text",
       "prompt"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Regression Analyst",
+    "description": "Agent that performs regression analysis on a given dataframe and provides insights.\n    llm, regression analysis, statistics\n\n    Use cases:\n    - Performing linear regression on datasets\n    - Interpreting regression results like a data scientist\n    - Providing statistical summaries and insights",
+    "namespace": "ollama.agents",
+    "node_type": "ollama.agents.RegressionAnalyst",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "model",
+        "type": {
+          "type": "llama_model",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "llama_model",
+          "name": "",
+          "repo_id": "",
+          "modified_at": "",
+          "size": 0,
+          "digest": "",
+          "details": {}
+        },
+        "title": "Model",
+        "description": "The Llama model to use for regression analysis.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "context_window",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 4096,
+        "title": "Context Window",
+        "description": "The context window size to use for the model.",
+        "min": 1.0,
+        "max": 8192.0
+      },
+      {
+        "name": "prompt",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Prompt",
+        "description": "The user prompt or question regarding the data analysis.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "data",
+        "type": {
+          "type": "dataframe",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "dataframe",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "columns": null
+        },
+        "title": "Data",
+        "description": "The dataframe to perform regression on.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "temperature",
+        "type": {
+          "type": "float",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 0.0,
+        "title": "Temperature",
+        "description": "The temperature to use for sampling.",
+        "min": 0.0,
+        "max": 2.0
+      },
+      {
+        "name": "top_k",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 50,
+        "title": "Top K",
+        "description": "The number of highest probability tokens to keep for top-k sampling.",
+        "min": 1.0,
+        "max": 100.0
+      },
+      {
+        "name": "top_p",
+        "type": {
+          "type": "float",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 0.95,
+        "title": "Top P",
+        "description": "The cumulative probability cutoff for nucleus/top-p sampling.",
+        "min": 0.0,
+        "max": 1.0
+      },
+      {
+        "name": "keep_alive",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 300,
+        "title": "Keep Alive",
+        "description": "The number of seconds to keep the model alive.",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "model",
+      "prompt",
+      "data"
     ],
     "is_dynamic": false
   },
