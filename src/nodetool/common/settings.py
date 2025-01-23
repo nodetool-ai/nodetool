@@ -12,6 +12,7 @@ NOT_GIVEN = object()
 
 
 class SettingsModel(BaseModel):
+    FONT_PATH: str | None = Field(default=None, description="Location of font folder")
     COMFY_FOLDER: str | None = Field(
         default=None, description="Location of ComfyUI folder"
     )

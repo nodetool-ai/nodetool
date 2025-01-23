@@ -3,7 +3,7 @@ from io import BytesIO
 from PIL import Image
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.metadata.types import ImageRef
-from nodetool.nodes.nodetool.image.enhance import (
+from nodetool.nodes.lib.image.pillow.enhance import (
     AutoContrast,
     Sharpness,
     Equalize,

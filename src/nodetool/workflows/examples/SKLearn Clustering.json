@@ -1,12 +1,12 @@
 {
-  "id": "sklearn_clustering",
+  "id": "lib.ml.sklearn_clustering",
   "access": "public",
   "created_at": "2025-01-22T22:50:55.179458",
   "updated_at": "2025-01-22T22:50:55.179472",
-  "name": "SKLearn Clustering",
+  "name": "lib.ml.sklearn Clustering",
   "description": "Example clustering workflow using scikit-learn",
   "tags": [
-    "sklearn"
+    "lib.ml.sklearn"
   ],
   "thumbnail": null,
   "thumbnail_url": null,
@@ -15,7 +15,7 @@
       {
         "id": "1",
         "parent_id": null,
-        "type": "sklearn.datasets.MakeBlobsDataset",
+        "type": "lib.ml.sklearn.datasets.MakeBlobsDataset",
         "data": {
           "n_samples": 300,
           "n_features": 2,
@@ -37,7 +37,7 @@
       {
         "id": "2",
         "parent_id": null,
-        "type": "sklearn.preprocessing.StandardScaler",
+        "type": "lib.ml.sklearn.preprocessing.StandardScaler",
         "data": {},
         "ui_properties": {
           "position": {
@@ -53,7 +53,7 @@
       {
         "id": "3",
         "parent_id": null,
-        "type": "sklearn.cluster.KMeans",
+        "type": "lib.ml.sklearn.cluster.KMeans",
         "data": {
           "n_clusters": 3,
           "random_state": 42,
@@ -73,7 +73,7 @@
       {
         "id": "4",
         "parent_id": null,
-        "type": "sklearn.metrics.SilhouetteScore",
+        "type": "lib.ml.sklearn.metrics.SilhouetteScore",
         "data": {},
         "ui_properties": {
           "position": {
@@ -89,7 +89,7 @@
       {
         "id": "5",
         "parent_id": null,
-        "type": "sklearn.visualization.ClusterVisualization",
+        "type": "lib.ml.sklearn.visualization.ClusterVisualization",
         "data": {},
         "ui_properties": {
           "position": {

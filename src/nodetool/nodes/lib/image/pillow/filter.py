@@ -7,7 +7,7 @@ import PIL.ImageFilter
 import PIL.ImageFont
 import PIL.ImageOps
 from nodetool.workflows.processing_context import ProcessingContext
-from nodetool.nodes.nodetool.image.enhance import (
+from nodetool.nodes.lib.image.pillow.enhance import (
     canny_edge_detection,
 )
 from nodetool.metadata.types import ImageRef

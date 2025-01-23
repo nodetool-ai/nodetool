@@ -6,6 +6,23 @@ from nodetool.workflows.base_node import BaseNode
 from nodetool.metadata.types import to_numpy
 from nodetool.metadata.types import NPArray
 
+from datetime import datetime
+from enum import Enum
+from io import BytesIO
+import PIL.Image
+from matplotlib import pyplot as plt
+from sklearn.manifold import TSNE
+import seaborn as sns
+import numpy as np
+from pydantic import Field
+from typing import Any, Literal
+from nodetool.nodes.lib.audio.audio_helpers import numpy_to_audio_segment
+from nodetool.workflows.processing_context import ProcessingContext
+from nodetool.metadata.types import AudioRef, FolderRef, ImageRef
+from nodetool.workflows.base_node import BaseNode
+from nodetool.metadata.types import to_numpy
+from nodetool.metadata.types import NPArray
+
 
 def pad_arrays(a: np.ndarray, b: np.ndarray) -> Tuple[(np.ndarray, np.ndarray)]:
     """
@@ -189,24 +206,6 @@ class Sqrt(BaseNode):
         )
 
 
-from datetime import datetime
-from enum import Enum
-from io import BytesIO
-import PIL.Image
-from matplotlib import pyplot as plt
-from sklearn.manifold import TSNE
-import seaborn as sns
-import numpy as np
-from pydantic import Field
-from typing import Any, Literal
-from nodetool.nodes.nodetool.audio.audio_helpers import numpy_to_audio_segment
-from nodetool.workflows.processing_context import ProcessingContext
-from nodetool.metadata.types import AudioRef, FolderRef, ImageRef
-from nodetool.workflows.base_node import BaseNode
-from nodetool.metadata.types import to_numpy
-from nodetool.metadata.types import NPArray
-
-
 class SaveArray(BaseNode):
     """
     Save a numpy array to a file in the specified folder.
@@ -255,6 +254,34 @@ class SaveArray(BaseNode):
             uri=asset.get_url,
             asset_id=asset.id,
         )
+
+
+class ConvertToArray(BaseNode):
+    """
+    Convert PIL Image to normalized tensor representation.
+    image, tensor, conversion, normalization
+
+    Use cases:
+    - Prepare images for machine learning models
+    - Convert between image formats for processing
+    - Normalize image data for consistent calculations
+    """
+
+    image: ImageRef = Field(
+        default=ImageRef(),
+        description="The input image to convert to a tensor. The image should have either 1 (grayscale), 3 (RGB), or 4 (RGBA) channels.",
+    )
+
+    async def process(self, context: ProcessingContext) -> NPArray:
+        if self.image.is_empty():
+            raise ValueError("The input image is not connected.")
+
+        image = await context.image_to_pil(self.image)
+        image_data = np.array(image)
+        tensor_data = image_data / 255.0
+        if len(tensor_data.shape) == 2:
+            tensor_data = tensor_data[:, :, np.newaxis]
+        return NPArray.from_numpy(tensor_data)
 
 
 class ConvertToImage(BaseNode):

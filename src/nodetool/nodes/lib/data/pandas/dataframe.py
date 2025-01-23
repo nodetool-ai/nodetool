@@ -1,6 +1,7 @@
 from datetime import datetime
 import io
 from enum import Enum
+import json
 from matplotlib import pyplot as plt
 import pandas as pd
 import seaborn as sns
@@ -659,3 +660,26 @@ class MapTemplate(BaseNode):
     async def process(self, context: ProcessingContext) -> list[str]:
         df = await context.dataframe_to_pandas(self.dataframe)
         return [self.template.format(**row) for _, row in df.iterrows()]
+
+
+class JSONToDataframe(BaseNode):
+    """
+    Transforms a JSON string into a pandas DataFrame.
+    json, dataframe, conversion
+
+    Use cases:
+    - Converting API responses to tabular format
+    - Preparing JSON data for analysis or visualization
+    - Structuring unstructured JSON data for further processing
+    """
+
+    text: str = Field(title="JSON", default="")
+
+    @classmethod
+    def get_title(cls):
+        return "Convert JSON to DataFrame"
+
+    async def process(self, context: ProcessingContext) -> DataframeRef:
+        rows = json.loads(self.text)
+        df = pd.DataFrame(rows)
+        return await context.dataframe_from_pandas(df)

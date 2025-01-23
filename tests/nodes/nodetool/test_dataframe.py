@@ -8,7 +8,7 @@ from nodetool.metadata.types import (
     DataframeRef,
     FolderRef,
 )
-from nodetool.nodes.nodetool.dataframe import (
+from nodetool.nodes.lib.data.pandas.dataframe import (
     SaveDataframe,
     SelectColumn,
     ExtractColumn,

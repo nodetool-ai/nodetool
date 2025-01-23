@@ -68,6 +68,7 @@ from typing import IO, Any, AsyncGenerator, Literal, Union
 from chromadb.api import ClientAPI
 from pickle import dumps, loads
 from chromadb.config import Settings
+import platform
 
 
 log = Environment.get_logger()
@@ -1658,3 +1659,62 @@ class ProcessingContext:
             return tuple(items)
         else:
             return value
+
+    def get_system_font_path(self, font_name: str = "Arial.ttf") -> str:
+        """
+        Get the system path for a font file based on the operating system.
+
+        Args:
+            font_name (str): Name of the font file to find. Defaults to "Arial.ttf"
+
+        Returns:
+            str: Full path to the font file
+
+        Raises:
+            FileNotFoundError: If the font file cannot be found in system locations
+        """
+        # First check FONT_PATH environment variable if it exists
+        if "FONT_PATH" in self.environment:
+            font_path = self.environment["FONT_PATH"]
+            if os.path.exists(font_path):
+                # If FONT_PATH points directly to a file
+                if os.path.isfile(font_path):
+                    return font_path
+                # If FONT_PATH is a directory, search for the font file
+                for root, _, files in os.walk(font_path):
+                    if font_name.lower() in [f.lower() for f in files]:
+                        return os.path.join(root, font_name)
+
+        # Common font locations by OS
+        font_locations = {
+            "Windows": [
+                "C:\\Windows\\Fonts",
+            ],
+            "Darwin": [  # macOS
+                "/System/Library/Fonts",
+                "/Library/Fonts",
+                f"/Users/{os.getenv('USER')}/Library/Fonts",
+            ],
+            "Linux": [
+                "/usr/share/fonts",
+                "/usr/local/share/fonts",
+                f"/home/{os.getenv('USER')}/.fonts",
+                f"/home/{os.getenv('USER')}/.local/share/fonts",
+            ],
+        }
+
+        # Get paths for current OS
+        current_os = platform.system()
+        search_paths = font_locations.get(current_os, [])
+
+        # Search for the font file
+        for base_path in search_paths:
+            if os.path.exists(base_path):
+                # Walk through all subdirectories
+                for root, _, files in os.walk(base_path):
+                    if font_name.lower() in [f.lower() for f in files]:
+                        return os.path.join(root, font_name)
+
+        raise FileNotFoundError(
+            f"Could not find font '{font_name}' in system locations"
+        )

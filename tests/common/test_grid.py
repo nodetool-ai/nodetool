@@ -3,7 +3,7 @@ from typing import List, Tuple
 from PIL import Image
 import numpy as np
 
-from nodetool.nodes.nodetool.image.grid import Tile, combine_grid, make_grid
+from nodetool.nodes.lib.image.grid import Tile, combine_grid, make_grid
 
 
 def create_dummy_tile(

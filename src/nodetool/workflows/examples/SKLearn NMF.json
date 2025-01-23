@@ -1,12 +1,12 @@
 {
-  "id": "sklearn_nmf",
+  "id": "lib.ml.sklearn_nmf",
   "access": "public",
   "created_at": "2025-01-22T22:55:18.691877",
   "updated_at": "2025-01-22T22:55:18.691885",
-  "name": "SKLearn NMF",
+  "name": "lib.ml.sklearn NMF",
   "description": "Example Non-negative Matrix Factorization workflow using scikit-learn",
   "tags": [
-    "sklearn"
+    "lib.ml.sklearn"
   ],
   "thumbnail": null,
   "thumbnail_url": null,
@@ -15,7 +15,7 @@
       {
         "id": "1",
         "parent_id": null,
-        "type": "sklearn.datasets.MakeClassificationDataset",
+        "type": "lib.ml.sklearn.datasets.MakeClassificationDataset",
         "data": {
           "n_samples": 100,
           "n_features": 20,
@@ -37,7 +37,7 @@
       {
         "id": "2",
         "parent_id": null,
-        "type": "sklearn.preprocessing.MinMaxScaler",
+        "type": "lib.ml.sklearn.preprocessing.MinMaxScaler",
         "data": {
           "feature_range": [
             0,
@@ -58,7 +58,7 @@
       {
         "id": "3",
         "parent_id": null,
-        "type": "sklearn.decomposition.NMF",
+        "type": "lib.ml.sklearn.decomposition.NMF",
         "data": {
           "n_components": 10,
           "init": "random",
@@ -79,7 +79,7 @@
       {
         "id": "4",
         "parent_id": null,
-        "type": "sklearn.visualization.NMFComponentsPlot",
+        "type": "lib.ml.sklearn.visualization.NMFComponentsPlot",
         "data": {},
         "ui_properties": {
           "position": {
