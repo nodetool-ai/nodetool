@@ -3,10 +3,10 @@
     "access": "public",
     "created_at": "2024-01-22T00:54:50.898246",
     "updated_at": "2024-01-22T00:54:50.898258",
-    "name": "lib.ml.sklearn Regression",
+    "name": "Sklearn Regression",
     "description": "Example regression workflow using scikit-learn",
     "tags": [
-        "lib.ml.sklearn"
+        "sklearn"
     ],
     "graph": {
         "nodes": [

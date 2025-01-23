@@ -3,10 +3,10 @@
   "access": "public",
   "created_at": "2025-01-22T22:50:33.085383",
   "updated_at": "2025-01-22T22:50:33.085390",
-  "name": "lib.ml.sklearn Classifier",
+  "name": "Sklearn Classifier",
   "description": "",
   "tags": [
-    "lib.ml.sklearn"
+    "sklearn"
   ],
   "thumbnail": null,
   "thumbnail_url": null,
