@@ -18,7 +18,6 @@ from pydantic import Field
 from nodetool.metadata.types import AudioChunk, AudioRef, ColorRef, FolderRef, TextRef
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.metadata.types import ImageRef
-from nodetool.nodes.nodetool.image.source import fonts_dir
 from nodetool.workflows.base_node import BaseNode
 from nodetool.metadata.types import VideoRef
 import tempfile
@@ -568,7 +567,9 @@ class SetSpeed(BaseNode):
                 )
 
                 # Apply speed adjustment to video
-                adjusted_video = input_stream.filter("setpts", f"{1/self.speed_factor}*PTS")
+                adjusted_video = input_stream.filter(
+                    "setpts", f"{1/self.speed_factor}*PTS"
+                )
 
                 if has_audio:
                     # Apply speed adjustment to audio
@@ -583,19 +584,18 @@ class SetSpeed(BaseNode):
                         adjusted_audio = adjusted_audio.filter("atempo", 0.5)
                         remaining_tempo *= 2.0
                     if remaining_tempo != 1.0:
-                        adjusted_audio = adjusted_audio.filter("atempo", remaining_tempo)
+                        adjusted_audio = adjusted_audio.filter(
+                            "atempo", remaining_tempo
+                        )
 
                     # Output with adjusted audio
                     ffmpeg.output(
-                        adjusted_video, 
-                        adjusted_audio, 
-                        output_temp.name
+                        adjusted_video, adjusted_audio, output_temp.name
                     ).overwrite_output().run(quiet=False)
                 else:
                     # Output video only
                     ffmpeg.output(
-                        adjusted_video, 
-                        output_temp.name
+                        adjusted_video, output_temp.name
                     ).overwrite_output().run(quiet=False)
 
                 # Read the speed-adjusted video and create a VideoRef
@@ -791,7 +791,7 @@ class ColorBalance(BaseNode):
                         input_stream.audio,
                         temp_output.name,
                         vcodec="libx264",
-                        acodec="copy"
+                        acodec="copy",
                     )
                 else:
                     # Video only output
@@ -863,7 +863,9 @@ class Denoise(BaseNode):
                 # Get input stream and check for audio
                 input_stream = ffmpeg.input(temp_input.name)
                 probe = ffmpeg.probe(temp_input.name)
-                has_audio = any(stream["codec_type"] == "audio" for stream in probe["streams"])
+                has_audio = any(
+                    stream["codec_type"] == "audio" for stream in probe["streams"]
+                )
 
                 # Apply denoising filter to video stream only
                 denoised = input_stream.video.filter("nlmeans", s=self.strength)
@@ -874,7 +876,7 @@ class Denoise(BaseNode):
                         denoised,
                         input_stream.audio,
                         temp_output.name,
-                        acodec="copy"  # Copy audio without re-encoding
+                        acodec="copy",  # Copy audio without re-encoding
                     )
                 else:
                     output = ffmpeg.output(denoised, temp_output.name)
@@ -945,7 +947,9 @@ class Stabilize(BaseNode):
                 # Get input stream and check for audio
                 input_stream = ffmpeg.input(temp_input.name)
                 probe = ffmpeg.probe(temp_input.name)
-                has_audio = any(stream["codec_type"] == "audio" for stream in probe["streams"])
+                has_audio = any(
+                    stream["codec_type"] == "audio" for stream in probe["streams"]
+                )
 
                 # Apply stabilization to video stream only
                 stabilized = input_stream.video.filter("deshake", smooth=self.smoothing)
@@ -955,10 +959,7 @@ class Stabilize(BaseNode):
                 if has_audio:
                     # Combine stabilized video with original audio
                     output = ffmpeg.output(
-                        stabilized,
-                        input_stream.audio,
-                        temp_output.name,
-                        acodec="copy"
+                        stabilized, input_stream.audio, temp_output.name, acodec="copy"
                     )
                 else:
                     output = ffmpeg.output(stabilized, temp_output.name)
@@ -1031,7 +1032,9 @@ class Sharpness(BaseNode):
                 # Get input stream and check for audio
                 input_stream = ffmpeg.input(temp_input.name)
                 probe = ffmpeg.probe(temp_input.name)
-                has_audio = any(stream["codec_type"] == "audio" for stream in probe["streams"])
+                has_audio = any(
+                    stream["codec_type"] == "audio" for stream in probe["streams"]
+                )
 
                 # Apply sharpening to video stream only
                 sharpened = input_stream.video.filter(
@@ -1047,10 +1050,7 @@ class Sharpness(BaseNode):
                 if has_audio:
                     # Combine sharpened video with original audio
                     output = ffmpeg.output(
-                        sharpened,
-                        input_stream.audio,
-                        temp_output.name,
-                        acodec="copy"
+                        sharpened, input_stream.audio, temp_output.name, acodec="copy"
                     )
                 else:
                     output = ffmpeg.output(sharpened, temp_output.name)
@@ -1117,18 +1117,19 @@ class Blur(BaseNode):
                 # Get input stream and check for audio
                 input_stream = ffmpeg.input(temp_input.name)
                 probe = ffmpeg.probe(temp_input.name)
-                has_audio = any(stream["codec_type"] == "audio" for stream in probe["streams"])
+                has_audio = any(
+                    stream["codec_type"] == "audio" for stream in probe["streams"]
+                )
 
                 # Apply blur to video stream only
-                blurred = input_stream.video.filter("boxblur", luma_radius=self.strength)
+                blurred = input_stream.video.filter(
+                    "boxblur", luma_radius=self.strength
+                )
 
                 if has_audio:
                     # Combine blurred video with original audio
                     output = ffmpeg.output(
-                        blurred,
-                        input_stream.audio,
-                        temp_output.name,
-                        acodec="copy"
+                        blurred, input_stream.audio, temp_output.name, acodec="copy"
                     )
                 else:
                     output = ffmpeg.output(blurred, temp_output.name)
@@ -1195,7 +1196,9 @@ class Saturation(BaseNode):
                 # Get input stream and check for audio
                 input_stream = ffmpeg.input(temp_input.name)
                 probe = ffmpeg.probe(temp_input.name)
-                has_audio = any(stream["codec_type"] == "audio" for stream in probe["streams"])
+                has_audio = any(
+                    stream["codec_type"] == "audio" for stream in probe["streams"]
+                )
 
                 # Apply saturation adjustment to video stream only
                 saturated = input_stream.video.filter("eq", saturation=self.saturation)
@@ -1203,10 +1206,7 @@ class Saturation(BaseNode):
                 if has_audio:
                     # Combine saturated video with original audio
                     output = ffmpeg.output(
-                        saturated,
-                        input_stream.audio,
-                        temp_output.name,
-                        acodec="copy"
+                        saturated, input_stream.audio, temp_output.name, acodec="copy"
                     )
                 else:
                     output = ffmpeg.output(saturated, temp_output.name)
@@ -1265,7 +1265,7 @@ class AddSubtitles(BaseNode):
     font_color: ColorRef = Field(
         default=ColorRef(value="#FFFFFF"), description="The font color."
     )
-    
+
     async def process(self, context: ProcessingContext) -> VideoRef:
         if self.video.is_empty():
             raise ValueError("Input video must be connected.")
@@ -1295,7 +1295,7 @@ class AddSubtitles(BaseNode):
                 out = cv2.VideoWriter(temp_output.name, fourcc, fps, (width, height))
 
                 # Load font
-                font_path = os.path.join(fonts_dir, self.font.value)
+                font_path = context.get_system_font_path(self.font.value)
                 font = PIL.ImageFont.truetype(font_path, self.font_size)
 
                 def wrap_text(

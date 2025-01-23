@@ -2,7 +2,7 @@ from io import BytesIO
 import pytest
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.metadata.types import ImageRef, NPArray
-from nodetool.nodes.nodetool.image.source import Background, RenderText, GaussianNoise
+from nodetool.nodes.lib.image.pillow.draw import Background, RenderText, GaussianNoise
 import PIL.Image
 
 # Create a dummy ImageRef for testing

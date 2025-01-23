@@ -5,7 +5,7 @@ from pydub import AudioSegment
 from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.metadata.types import AudioRef, NPArray, ImageRef
-from nodetool.nodes.nodetool.audio.analysis import (
+from nodetool.nodes.lib.audio.librosa.analysis import (
     AmplitudeToDB,
     ChromaSTFT,
     DBToAmplitude,

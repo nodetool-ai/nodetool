@@ -19,7 +19,7 @@ from nodetool.metadata.types import (
     SeabornPlotType,
     SeabornStatistic,
 )
-from nodetool.nodes.nodetool.audio.synthesis import (
+from nodetool.nodes.lib.audio.synthesis import (
     Envelope,
     FM_Synthesis,
     Oscillator,

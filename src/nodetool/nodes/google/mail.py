@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from enum import Enum
 from typing import List, Optional
 from pydantic import Field
-from nodetool.nodes.nodetool.network.imap import search_emails
+from nodetool.nodes.lib.network.imap import search_emails
 from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.metadata.types import (

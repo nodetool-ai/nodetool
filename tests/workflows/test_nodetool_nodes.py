@@ -10,7 +10,7 @@ from nodetool.metadata.types import FolderRef
 from nodetool.common.environment import Environment
 
 from nodetool.nodes.nodetool.audio import SaveAudio
-from nodetool.nodes.nodetool.image.enhance import (
+from nodetool.nodes.lib.image.pillow.enhance import (
     AutoContrast,
     Brightness,
     Color,
@@ -34,9 +34,9 @@ from nodetool.models.asset import (
 
 from nodetool.models.user import User
 from nodetool.nodes.nodetool.constant import Image
-from nodetool.nodes.nodetool.dataframe import SaveDataframe
+from nodetool.nodes.lib.data.pandas.dataframe import SaveDataframe
 from nodetool.nodes.nodetool.image import Blend, Composite, SaveImage
-from nodetool.nodes.nodetool.image.source import Background
+from nodetool.nodes.lib.image.pillow.draw import Background
 from nodetool.nodes.nodetool.image.transform import (
     Blur,
     Contour,

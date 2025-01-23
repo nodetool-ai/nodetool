@@ -4,7 +4,7 @@ from io import BytesIO
 from pydub import AudioSegment
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.metadata.types import AudioRef, NPArray
-from nodetool.nodes.nodetool.audio.transform import (
+from nodetool.nodes.lib.audio.transform import (
     Concat,
     Normalize,
     OverlayAudio,

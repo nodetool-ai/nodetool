@@ -1,16 +1,9 @@
 from typing import Any
-import PIL.Image
-import PIL.ImageDraw
-import PIL.ImageEnhance
-import PIL.ImageFilter
-import PIL.ImageFont
-import PIL.ImageOps
 from nodetool.metadata.types import FolderRef, NPArray
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.metadata.types import ImageRef
 from nodetool.workflows.base_node import BaseNode
 from datetime import datetime
-import numpy as np
 from pydantic import Field
 
 
@@ -130,34 +123,6 @@ class BatchToList(BaseNode):
         return [ImageRef(data=data) for data in self.batch.data]
 
 
-class ConvertToTensor(BaseNode):
-    """
-    Convert PIL Image to normalized tensor representation.
-    image, tensor, conversion, normalization
-
-    Use cases:
-    - Prepare images for machine learning models
-    - Convert between image formats for processing
-    - Normalize image data for consistent calculations
-    """
-
-    image: ImageRef = Field(
-        default=ImageRef(),
-        description="The input image to convert to a tensor. The image should have either 1 (grayscale), 3 (RGB), or 4 (RGBA) channels.",
-    )
-
-    async def process(self, context: ProcessingContext) -> NPArray:
-        if self.image.is_empty():
-            raise ValueError("The input image is not connected.")
-
-        image = await context.image_to_pil(self.image)
-        image_data = np.array(image)
-        tensor_data = image_data / 255.0
-        if len(tensor_data.shape) == 2:
-            tensor_data = tensor_data[:, :, np.newaxis]
-        return NPArray.from_numpy(tensor_data)
-
-
 class Paste(BaseNode):
     """
     Paste one image onto another at specified coordinates.
@@ -183,80 +148,4 @@ class Paste(BaseNode):
         image = await context.image_to_pil(self.image)
         paste = await context.image_to_pil(self.paste)
         image.paste(paste, (self.left, self.top))
-        return await context.image_from_pil(image)
-
-
-class Blend(BaseNode):
-    """
-    Blend two images with adjustable alpha mixing.
-    blend, mix, fade, transition
-
-    Use cases:
-    - Create smooth transitions between images
-    - Adjust opacity of overlays
-    - Combine multiple exposures or effects
-    """
-
-    image1: ImageRef = Field(
-        default=ImageRef(), description="The first image to blend."
-    )
-    image2: ImageRef = Field(
-        default=ImageRef(), description="The second image to blend."
-    )
-    alpha: float = Field(default=0.5, ge=0.0, le=1.0, description="The mix ratio.")
-
-    async def process(self, context: ProcessingContext) -> ImageRef:
-        if self.image1.is_empty():
-            raise ValueError("The first image is not connected.")
-
-        if self.image2.is_empty():
-            raise ValueError("The second image is not connected.")
-
-        image1 = await context.image_to_pil(self.image1)
-        image2 = await context.image_to_pil(self.image2)
-        if image1.size != image2.size:
-            image2 = PIL.ImageOps.fit(image2, image1.size)
-        image = PIL.Image.blend(image1, image2, self.alpha)
-        return await context.image_from_pil(image)
-
-
-class Composite(BaseNode):
-    """
-    Combine two images using a mask for advanced compositing.
-    composite, mask, blend, layering
-
-    Use cases:
-    - Create complex image compositions
-    - Apply selective blending or effects
-    - Implement advanced photo editing techniques
-    """
-
-    image1: ImageRef = Field(
-        default=ImageRef(), description="The first image to composite."
-    )
-    image2: ImageRef = Field(
-        default=ImageRef(), description="The second image to composite."
-    )
-    mask: ImageRef = Field(
-        default=ImageRef(), description="The mask to composite with."
-    )
-
-    async def process(self, context: ProcessingContext) -> ImageRef:
-        if self.image1.is_empty():
-            raise ValueError("The first image is not connected.")
-
-        if self.image2.is_empty():
-            raise ValueError("The second image is not connected.")
-
-        image1 = await context.image_to_pil(self.image1)
-        image2 = await context.image_to_pil(self.image2)
-        mask = await context.image_to_pil(self.mask)
-        image1 = image1.convert("RGBA")
-        image2 = image2.convert("RGBA")
-        mask = mask.convert("RGBA")
-        if image1.size != image2.size:
-            image2 = PIL.ImageOps.fit(image2, image1.size)
-        if image1.size != mask.size:
-            mask = PIL.ImageOps.fit(mask, image1.size)
-        image = PIL.Image.composite(image1, image2, mask)
         return await context.image_from_pil(image)

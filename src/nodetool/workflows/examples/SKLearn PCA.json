@@ -1,12 +1,12 @@
 {
-  "id": "sklearn_pca",
+  "id": "lib.ml.sklearn_pca",
   "access": "public",
   "created_at": "2025-01-22T22:41:30.347323",
   "updated_at": "2025-01-22T22:41:30.347335",
-  "name": "SKLearn PCA",
+  "name": "lib.ml.sklearn PCA",
   "description": "Example PCA workflow using scikit-learn for dimensionality reduction",
   "tags": [
-    "sklearn"
+    "lib.ml.sklearn"
   ],
   "thumbnail": null,
   "thumbnail_url": null,
@@ -15,7 +15,7 @@
       {
         "id": "1",
         "parent_id": null,
-        "type": "sklearn.datasets.LoadIrisDataset",
+        "type": "lib.ml.sklearn.datasets.LoadIrisDataset",
         "data": {},
         "ui_properties": {
           "position": {
@@ -31,7 +31,7 @@
       {
         "id": "2",
         "parent_id": null,
-        "type": "sklearn.preprocessing.StandardScaler",
+        "type": "lib.ml.sklearn.preprocessing.StandardScaler",
         "data": {},
         "ui_properties": {
           "position": {
@@ -47,7 +47,7 @@
       {
         "id": "3",
         "parent_id": null,
-        "type": "sklearn.decomposition.PCA",
+        "type": "lib.ml.sklearn.decomposition.PCA",
         "data": {
           "n_components": 2
         },
@@ -65,7 +65,7 @@
       {
         "id": "4",
         "parent_id": null,
-        "type": "sklearn.visualization.ClusterVisualization",
+        "type": "lib.ml.sklearn.visualization.ClusterVisualization",
         "data": {},
         "ui_properties": {
           "position": {

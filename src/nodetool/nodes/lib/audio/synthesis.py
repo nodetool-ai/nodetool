@@ -4,7 +4,7 @@ import numpy as np
 from nodetool.metadata.types import AudioRef, NPArray
 from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
-from nodetool.nodes.nodetool.audio.audio_helpers import numpy_to_audio_segment
+from nodetool.nodes.lib.audio.audio_helpers import numpy_to_audio_segment
 
 
 class PitchEnvelopeCurve(Enum):

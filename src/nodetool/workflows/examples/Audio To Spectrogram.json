@@ -101,7 +101,7 @@
       {
         "id": "6",
         "parent_id": null,
-        "type": "nodetool.tensor.ConvertToImage",
+        "type": "lib.data.numpy.ConvertToImage",
         "data": {},
         "ui_properties": {
           "selected": false,

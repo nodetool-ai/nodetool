@@ -13,7 +13,7 @@ from nodetool.workflows.processing_context import ProcessingContext
 import librosa
 from nodetool.metadata.types import NPArray
 from nodetool.workflows.processing_context import ProcessingContext
-from nodetool.nodes.nodetool.audio.audio_helpers import (
+from nodetool.nodes.lib.audio.audio_helpers import (
     convert_to_float,
 )
 from nodetool.metadata.types import AudioRef

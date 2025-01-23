@@ -1,12 +1,12 @@
 {
-  "id": "sklearn_knn",
+  "id": "lib.ml.sklearn_knn",
   "access": "public",
   "created_at": "2025-01-22T22:42:03.475854",
   "updated_at": "2025-01-22T22:42:03.475917",
-  "name": "SKLearn KNN",
+  "name": "lib.ml.sklearn KNN",
   "description": "Example K-Nearest Neighbors workflow using scikit-learn",
   "tags": [
-    "sklearn"
+    "lib.ml.sklearn"
   ],
   "thumbnail": null,
   "thumbnail_url": null,
@@ -15,7 +15,7 @@
       {
         "id": "1",
         "parent_id": null,
-        "type": "sklearn.datasets.LoadIrisDataset",
+        "type": "lib.ml.sklearn.datasets.LoadIrisDataset",
         "data": {},
         "ui_properties": {
           "position": {
@@ -31,7 +31,7 @@
       {
         "id": "2",
         "parent_id": null,
-        "type": "sklearn.model_selection.TrainTestSplit",
+        "type": "lib.ml.sklearn.model_selection.TrainTestSplit",
         "data": {
           "test_size": 0.2,
           "random_state": 42,
@@ -51,7 +51,7 @@
       {
         "id": "3",
         "parent_id": null,
-        "type": "sklearn.preprocessing.StandardScaler",
+        "type": "lib.ml.sklearn.preprocessing.StandardScaler",
         "data": {
           "with_mean": true,
           "with_std": true
@@ -70,7 +70,7 @@
       {
         "id": "4",
         "parent_id": null,
-        "type": "sklearn.neighbors.KNNClassifier",
+        "type": "lib.ml.sklearn.neighbors.KNNClassifier",
         "data": {
           "n_neighbors": 5,
           "weights": "uniform",
@@ -91,7 +91,7 @@
       {
         "id": "5",
         "parent_id": null,
-        "type": "sklearn.metrics.Accuracy",
+        "type": "lib.ml.sklearn.metrics.Accuracy",
         "data": {},
         "ui_properties": {
           "position": {
@@ -107,7 +107,7 @@
       {
         "id": "6",
         "parent_id": null,
-        "type": "sklearn.Predict",
+        "type": "lib.ml.sklearn.Predict",
         "data": {},
         "ui_properties": {
           "position": {
@@ -161,7 +161,7 @@
       {
         "id": "12",
         "parent_id": null,
-        "type": "sklearn.visualization.DecisionBoundaryPlot",
+        "type": "lib.ml.sklearn.visualization.DecisionBoundaryPlot",
         "data": {
           "mesh_step_size": 0.02,
           "dim1": 1,
@@ -247,7 +247,7 @@
         "target": "6",
         "targetHandle": "model",
         "ui_properties": {
-          "className": "sklearn_model"
+          "className": "lib.ml.sklearn_model"
         }
       },
       {
@@ -307,7 +307,7 @@
         "target": "12",
         "targetHandle": "model",
         "ui_properties": {
-          "className": "sklearn_model"
+          "className": "lib.ml.sklearn_model"
         }
       },
       {

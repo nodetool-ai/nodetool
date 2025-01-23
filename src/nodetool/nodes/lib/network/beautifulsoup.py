@@ -31,9 +31,7 @@ class BaseUrl(BaseNode):
     """
 
     url: str = Field(
-        title="URL",
-        description="The URL to extract the base from",
-        default=""
+        title="URL", description="The URL to extract the base from", default=""
     )
 
     @classmethod
@@ -302,3 +300,66 @@ class WebsiteContentExtractor(BaseNode):
 
     async def process(self, context: ProcessingContext) -> str:
         return extract_content(self.html_content)
+
+
+def convert_html_to_text(html: str, preserve_linebreaks: bool = True) -> str:
+    """
+    Converts HTML to plain text while preserving structure and handling whitespace.
+
+    Args:
+        html: HTML string to convert
+        preserve_linebreaks: Whether to preserve line breaks from block elements
+
+    Returns:
+        Cleaned plain text string
+    """
+    # Parse HTML with BeautifulSoup
+    soup = BeautifulSoup(html, "html.parser")
+
+    # Handle line breaks if preserve_linebreaks is True
+    if preserve_linebreaks:
+        # Replace <br> tags with newlines
+        for br in soup.find_all("br"):
+            br.replace_with("\n")
+
+        # Add newlines after block-level elements
+        for tag in soup.find_all(
+            ["p", "div", "h1", "h2", "h3", "h4", "h5", "h6", "li"]
+        ):
+            tag.append("\n")
+
+    # Get text content
+    text = soup.get_text()
+
+    # Clean up whitespace
+    text = re.sub(
+        r"\n\s*\n", "\n\n", text
+    )  # Convert multiple blank lines to double line breaks
+    text = re.sub(r" +", " ", text)  # Remove multiple spaces
+    return text.strip()
+
+
+class HTMLToText(BaseNode):
+    """
+    Converts HTML to plain text by removing tags and decoding entities using BeautifulSoup.
+    html, text, convert
+
+    Use cases:
+    - Cleaning HTML content for text analysis
+    - Extracting readable content from web pages
+    - Preparing HTML data for natural language processing
+    """
+
+    text: str = Field(title="HTML", default="")
+    preserve_linebreaks: bool = Field(
+        title="Preserve Line Breaks",
+        default=True,
+        description="Convert block-level elements to newlines",
+    )
+
+    @classmethod
+    def get_title(cls):
+        return "Convert HTML to Text"
+
+    async def process(self, context: ProcessingContext) -> str:
+        return convert_html_to_text(self.text, self.preserve_linebreaks)

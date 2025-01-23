@@ -2,7 +2,7 @@ import numpy as np
 from pydub import AudioSegment
 from nodetool.metadata.types import NPArray
 from nodetool.workflows.processing_context import ProcessingContext
-from nodetool.nodes.nodetool.audio.audio_helpers import (
+from nodetool.nodes.lib.audio.audio_helpers import (
     numpy_to_audio_segment,
 )
 from nodetool.metadata.types import AudioRef
@@ -37,9 +37,9 @@ class Trim(BaseNode):
         return await context.audio_from_segment(audio)  # type: ignore
 
 
-class ConvertToTensor(BaseNode):
+class ConvertToArray(BaseNode):
     """
-    Converts an audio file to a tensor for further processing.
+    Converts an audio file to a Array for further processing.
     audio, conversion, tensor
 
     Use cases:

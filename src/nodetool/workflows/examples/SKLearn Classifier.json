@@ -1,12 +1,12 @@
 {
-  "id": "sklearn_classifier",
+  "id": "lib.ml.sklearn_classifier",
   "access": "public",
   "created_at": "2025-01-22T22:50:33.085383",
   "updated_at": "2025-01-22T22:50:33.085390",
-  "name": "SKLearn Classifier",
+  "name": "lib.ml.sklearn Classifier",
   "description": "",
   "tags": [
-    "sklearn"
+    "lib.ml.sklearn"
   ],
   "thumbnail": null,
   "thumbnail_url": null,
@@ -15,7 +15,7 @@
       {
         "id": "3",
         "parent_id": null,
-        "type": "sklearn.datasets.LoadIrisDataset",
+        "type": "lib.ml.sklearn.datasets.LoadIrisDataset",
         "data": {},
         "ui_properties": {
           "selected": false,
@@ -32,7 +32,7 @@
       {
         "id": "4",
         "parent_id": null,
-        "type": "sklearn.model_selection.TrainTestSplit",
+        "type": "lib.ml.sklearn.model_selection.TrainTestSplit",
         "data": {
           "test_size": 0.25,
           "random_state": null,
@@ -53,7 +53,7 @@
       {
         "id": "5",
         "parent_id": null,
-        "type": "sklearn.preprocessing.StandardScaler",
+        "type": "lib.ml.sklearn.preprocessing.StandardScaler",
         "data": {
           "with_mean": true,
           "with_std": true
@@ -73,7 +73,7 @@
       {
         "id": "6",
         "parent_id": null,
-        "type": "sklearn.preprocessing.Transform",
+        "type": "lib.ml.sklearn.preprocessing.Transform",
         "data": {},
         "ui_properties": {
           "selected": false,
@@ -90,7 +90,7 @@
       {
         "id": "7",
         "parent_id": null,
-        "type": "sklearn.ensemble.RandomForestClassifier",
+        "type": "lib.ml.sklearn.ensemble.RandomForestClassifier",
         "data": {
           "n_estimators": 100,
           "max_depth": null,
@@ -114,7 +114,7 @@
       {
         "id": "14",
         "parent_id": null,
-        "type": "sklearn.metrics.Accuracy",
+        "type": "lib.ml.sklearn.metrics.Accuracy",
         "data": {},
         "ui_properties": {
           "selected": false,
@@ -151,7 +151,7 @@
       {
         "id": "16",
         "parent_id": null,
-        "type": "sklearn.visualization.DecisionBoundaryPlot",
+        "type": "lib.ml.sklearn.visualization.DecisionBoundaryPlot",
         "data": {
           "mesh_step_size": 0.02,
           "dim1": 0,
@@ -192,7 +192,7 @@
       {
         "id": "18",
         "parent_id": null,
-        "type": "sklearn.Predict",
+        "type": "lib.ml.sklearn.Predict",
         "data": {},
         "ui_properties": {
           "selected": false,
@@ -255,7 +255,7 @@
         "target": "6",
         "targetHandle": "model",
         "ui_properties": {
-          "className": "sklearn_model"
+          "className": "lib.ml.sklearn_model"
         }
       },
       {
@@ -335,7 +335,7 @@
         "target": "18",
         "targetHandle": "model",
         "ui_properties": {
-          "className": "sklearn_model"
+          "className": "lib.ml.sklearn_model"
         }
       },
       {
@@ -365,7 +365,7 @@
         "target": "16",
         "targetHandle": "model",
         "ui_properties": {
-          "className": "sklearn_model"
+          "className": "lib.ml.sklearn_model"
         }
       }
     ]

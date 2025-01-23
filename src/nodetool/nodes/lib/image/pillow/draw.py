@@ -11,10 +11,6 @@ from nodetool.metadata.types import ImageRef, ColorRef
 from nodetool.workflows.base_node import BaseNode
 import numpy as np
 from pydantic import Field
-from typing import Literal
-
-current_dir = os.path.dirname(os.path.realpath(__file__))
-fonts_dir = os.path.join(current_dir, "fonts")
 
 
 class Background(BaseNode):
@@ -62,6 +58,22 @@ class RenderText(BaseNode):
         DejaVuSansBold = "DejaVuSans-Bold.ttf"
         DejaVuSans = "DejaVuSans.ttf"
         FreeSans = "FreeSans.ttf"
+        Arial = "Arial.ttf"
+        # Common Windows & Mac Fonts
+        TimesNewRoman = "Times New Roman.ttf"
+        Helvetica = "Helvetica.ttf"
+        Calibri = "Calibri.ttf"
+        Verdana = "Verdana.ttf"
+        Georgia = "Georgia.ttf"
+        CourierNew = "Courier New.ttf"
+        Impact = "Impact.ttf"
+        ComicSansMS = "Comic Sans MS.ttf"
+        Tahoma = "Tahoma.ttf"
+        SegoeUI = "Segoe UI.ttf"
+        # Mac-specific fonts
+        SFPro = "SF Pro.ttf"
+        Menlo = "Menlo.ttf"
+        Monaco = "Monaco.ttf"
 
     text: str = Field(default="", description="The text to render.")
     font: TextFont = Field(default=TextFont.DejaVuSans, description="The font to use.")
@@ -79,7 +91,8 @@ class RenderText(BaseNode):
         x = int((image.width * self.x))
         y = int((image.height * self.y))
         draw = PIL.ImageDraw.Draw(image)
-        font = PIL.ImageFont.truetype(os.path.join(fonts_dir, self.font), self.size)
+        font_path = context.get_system_font_path(self.font.value)
+        font = PIL.ImageFont.truetype(font_path, self.size)
         draw.text(
             (x, y), self.text, font=font, fill=self.color.value, align=self.align.value
         )
@@ -90,7 +103,7 @@ class GaussianNoise(BaseNode):
     """
     This node creates and adds Gaussian noise to an image.
     image, noise, gaussian, distortion, artifact
-    
+
     The Gaussian Noise Node is designed to simulate realistic distortions that can occur in a photographic image. It generates a noise-filled image using the Gaussian (normal) distribution. The noise level can be adjusted using the mean and standard deviation parameters.
 
     #### Applications

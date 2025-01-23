@@ -7,7 +7,6 @@ from pydantic import Field
 from nodetool.metadata.types import ImageRef
 from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
-from PIL import Image
 import io
 import shlex
 import subprocess

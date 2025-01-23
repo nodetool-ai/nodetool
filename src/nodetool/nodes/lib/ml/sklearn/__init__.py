@@ -3,22 +3,22 @@ from pydantic import Field
 from nodetool.metadata.types import NPArray, SKLearnModel
 from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
-import nodetool.nodes.sklearn.feature_selection
-import nodetool.nodes.sklearn.preprocessing
-import nodetool.nodes.sklearn.neighbors
-import nodetool.nodes.sklearn.linear_model
-import nodetool.nodes.sklearn.datasets
-import nodetool.nodes.sklearn.decomposition
-import nodetool.nodes.sklearn.cluster
-import nodetool.nodes.sklearn.svm
-import nodetool.nodes.sklearn.tree
-import nodetool.nodes.sklearn.ensemble
-import nodetool.nodes.sklearn.naive_bayes
-import nodetool.nodes.sklearn.model_selection
-import nodetool.nodes.sklearn.impute
-import nodetool.nodes.sklearn.metrics
-import nodetool.nodes.sklearn.inspection
-import nodetool.nodes.sklearn.visualization
+import nodetool.nodes.lib.ml.sklearn.feature_selection
+import nodetool.nodes.lib.ml.sklearn.preprocessing
+import nodetool.nodes.lib.ml.sklearn.neighbors
+import nodetool.nodes.lib.ml.sklearn.linear_model
+import nodetool.nodes.lib.ml.sklearn.datasets
+import nodetool.nodes.lib.ml.sklearn.decomposition
+import nodetool.nodes.lib.ml.sklearn.cluster
+import nodetool.nodes.lib.ml.sklearn.svm
+import nodetool.nodes.lib.ml.sklearn.tree
+import nodetool.nodes.lib.ml.sklearn.ensemble
+import nodetool.nodes.lib.ml.sklearn.naive_bayes
+import nodetool.nodes.lib.ml.sklearn.model_selection
+import nodetool.nodes.lib.ml.sklearn.impute
+import nodetool.nodes.lib.ml.sklearn.metrics
+import nodetool.nodes.lib.ml.sklearn.inspection
+import nodetool.nodes.lib.ml.sklearn.visualization
 
 
 class PredictNode(BaseNode):

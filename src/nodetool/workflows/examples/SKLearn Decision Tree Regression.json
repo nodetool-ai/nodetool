@@ -1,12 +1,12 @@
 {
-    "id": "sklearn_decision_tree_regression",
+    "id": "lib.ml.sklearn_decision_tree_regression",
     "access": "public",
     "created_at": "2025-01-22T23:05:00.000000",
     "updated_at": "2025-01-22T23:05:00.000000",
-    "name": "SKLearn Decision Tree Regression",
+    "name": "lib.ml.sklearn Decision Tree Regression",
     "description": "Example Decision Tree Regressor workflow using scikit-learn",
     "tags": [
-        "sklearn"
+        "lib.ml.sklearn"
     ],
     "thumbnail": null,
     "thumbnail_url": null,
@@ -15,7 +15,7 @@
             {
                 "id": "1",
                 "parent_id": null,
-                "type": "sklearn.datasets.MakeRegressionDataset",
+                "type": "lib.ml.sklearn.datasets.MakeRegressionDataset",
                 "data": {
                     "n_samples": 100,
                     "n_features": 1,
@@ -32,7 +32,7 @@
             {
                 "id": "2",
                 "parent_id": null,
-                "type": "sklearn.model_selection.TrainTestSplit",
+                "type": "lib.ml.sklearn.model_selection.TrainTestSplit",
                 "data": {
                     "test_size": 0.2,
                     "random_state": 42,
@@ -48,7 +48,7 @@
             {
                 "id": "3",
                 "parent_id": null,
-                "type": "sklearn.preprocessing.StandardScaler",
+                "type": "lib.ml.sklearn.preprocessing.StandardScaler",
                 "data": {
                     "with_mean": true,
                     "with_std": true
@@ -63,7 +63,7 @@
             {
                 "id": "4",
                 "parent_id": null,
-                "type": "sklearn.tree.DecisionTreeRegressor",
+                "type": "lib.ml.sklearn.tree.DecisionTreeRegressor",
                 "data": {
                     "max_depth": 3,
                     "min_samples_split": 2,
@@ -81,7 +81,7 @@
             {
                 "id": "5",
                 "parent_id": null,
-                "type": "sklearn.Predict",
+                "type": "lib.ml.sklearn.Predict",
                 "data": {},
                 "ui_properties": {
                     "position": {
@@ -93,7 +93,7 @@
             {
                 "id": "6",
                 "parent_id": null,
-                "type": "sklearn.metrics.R2",
+                "type": "lib.ml.sklearn.metrics.R2",
                 "data": {},
                 "ui_properties": {
                     "position": {
@@ -105,7 +105,7 @@
             {
                 "id": "7",
                 "parent_id": null,
-                "type": "sklearn.visualization.RegressionPlot",
+                "type": "lib.ml.sklearn.visualization.RegressionPlot",
                 "data": {},
                 "ui_properties": {
                     "position": {
@@ -173,7 +173,7 @@
                 "target": "5",
                 "targetHandle": "model",
                 "ui_properties": {
-                    "className": "sklearn_model"
+                    "className": "lib.ml.sklearn_model"
                 }
             },
             {

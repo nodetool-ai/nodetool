@@ -15,8 +15,7 @@ import nodetool.nodes.replicate
 import nodetool.nodes.ollama
 import nodetool.nodes.google
 import nodetool.nodes.elevenlabs
-import nodetool.nodes.sklearn
-import nodetool.nodes.numpy
+import nodetool.nodes.lib
 
 
 class EnumEncoder(json.JSONEncoder):
