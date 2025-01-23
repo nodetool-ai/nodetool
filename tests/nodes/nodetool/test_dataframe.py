@@ -28,7 +28,6 @@ from nodetool.nodes.lib.data.pandas.dataframe import (
     SortByColumn,
     RemoveDuplicates,
     RemoveIncompleteRows,
-    LoadIrisDataset,
 )
 
 
@@ -68,7 +67,6 @@ df = DataframeRef(
         SortByColumn(df=df, column="a"),
         RemoveDuplicates(df=df),
         RemoveIncompleteRows(df=df),
-        LoadIrisDataset(),
     ],
 )
 async def test_dataframe_node(context: ProcessingContext, node: BaseNode):
