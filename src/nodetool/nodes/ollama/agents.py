@@ -2672,3 +2672,223 @@ class Summarizer(BaseNode):
                 )
 
         return "".join(parts)
+
+
+class RegressionAnalyst(BaseNode):
+    """
+    Agent that performs regression analysis on a given dataframe and provides insights.
+    llm, regression analysis, statistics
+
+    Use cases:
+    - Performing linear regression on datasets
+    - Interpreting regression results like a data scientist
+    - Providing statistical summaries and insights
+    """
+
+    model: LlamaModel = Field(
+        default=LlamaModel(),
+        description="The Llama model to use for regression analysis.",
+    )
+    context_window: int = Field(
+        default=4096,
+        ge=1,
+        le=4096 * 2,
+        description="The context window size to use for the model.",
+    )
+    prompt: str = Field(
+        default="",
+        description="The user prompt or question regarding the data analysis.",
+    )
+    data: DataframeRef = Field(
+        default=DataframeRef(),
+        description="The dataframe to perform regression on.",
+    )
+    temperature: float = Field(
+        default=0.0,
+        ge=0.0,
+        le=2.0,
+        description="The temperature to use for sampling.",
+    )
+    top_k: int = Field(
+        default=50,
+        ge=1,
+        le=100,
+        description="The number of highest probability tokens to keep for top-k sampling.",
+    )
+    top_p: float = Field(
+        default=0.95,
+        ge=0.0,
+        le=1.0,
+        description="The cumulative probability cutoff for nucleus/top-p sampling.",
+    )
+    keep_alive: int = Field(
+        default=300,
+        description="The number of seconds to keep the model alive.",
+    )
+
+    @classmethod
+    def get_basic_fields(cls) -> list[str]:
+        return ["model", "prompt", "data"]
+
+    async def process(self, context: ProcessingContext) -> str:
+        assert self.data.data is not None, "Data is required"
+        assert self.data.columns is not None, "Columns are required"
+
+        # Convert data to pandas DataFrame
+        df = pd.DataFrame(
+            self.data.data, columns=[col.name for col in self.data.columns]
+        )
+
+        # First, use LLM to determine regression parameters
+        parameter_schema = {
+            "type": "object",
+            "properties": {
+                "target_variable": {"type": "string"},
+                "feature_variables": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                },
+            },
+            "required": ["target_variable", "feature_variables"],
+            "additionalProperties": False,
+        }
+
+        parameter_res = await context.run_prediction(
+            node_id=self._id,
+            provider=Provider.Ollama,
+            model=self.model.repo_id,
+            params={
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": "You are an expert data scientist who helps set up regression analyses.",
+                    },
+                    {
+                        "role": "user",
+                        "content": f"""Given the following columns in the dataset:
+{[col.model_dump() for col in self.data.columns]}
+
+And the user's analysis request:
+{self.prompt}
+
+Please specify:
+1. Which variable should be the target (dependent) variable
+2. Which variables should be used as features (independent variables)
+3. Any specific regression parameters or considerations
+
+Provide your response in JSON format.""",
+                    },
+                ],
+                "format": parameter_schema,
+                "options": {
+                    "temperature": self.temperature,
+                    "top_k": self.top_k,
+                    "top_p": self.top_p,
+                    "keep_alive": self.keep_alive,
+                    "stream": False,
+                    "num_predict": 4096,
+                    "num_ctx": self.context_window,
+                },
+            },
+        )
+
+        content = str(parameter_res["message"]["content"])
+        start = content.find("{")
+        end = content.rfind("}")
+        if start == -1 or end == -1:
+            raise ValueError(f"No valid JSON found in response: {content[:1000]}")
+
+        regression_params = json.loads(content[start : end + 1])
+        target_variable = regression_params["target_variable"]
+        feature_variables = regression_params["feature_variables"]
+
+        # Validate variables exist in dataframe
+        if target_variable not in df.columns:
+            raise ValueError(f"Target variable {target_variable} not found in data")
+
+        missing_features = [col for col in feature_variables if col not in df.columns]
+        if missing_features:
+            raise ValueError(f"Feature variables not found in data: {missing_features}")
+
+        # Identify categorical columns
+        categorical_columns = (
+            df[feature_variables].select_dtypes(include=["object"]).columns
+        )
+        numeric_columns = (
+            df[feature_variables].select_dtypes(exclude=["object"]).columns
+        )
+
+        # Create dummy variables for categorical columns
+        X = df[numeric_columns].copy()
+        if len(categorical_columns) > 0:
+            X = pd.concat(
+                [
+                    X,
+                    pd.get_dummies(
+                        df[categorical_columns], drop_first=True, dtype=float
+                    ),
+                ],
+                axis=1,
+            )
+
+        # Add constant term for intercept
+        X = sm.add_constant(X)
+        y = df[target_variable]
+
+        # Perform OLS regression
+        model = sm.OLS(y, X).fit()
+        summary = model.summary().as_text()
+
+        # Add information about categorical variables to the prompt
+        categorical_info = ""
+        if len(categorical_columns) > 0:
+            categorical_info = f"""
+Note: The following categorical variables were converted to dummy variables:
+{', '.join(categorical_columns)}
+Each categorical variable was encoded using dummy variables (one-hot encoding), with one category dropped to avoid multicollinearity.
+"""
+
+        # Get interpretation from LLM
+        interpretation_res = await context.run_prediction(
+            node_id=self._id,
+            provider=Provider.Ollama,
+            model=self.model.repo_id,
+            params={
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": "You are an expert data scientist who provides detailed interpretations of regression analysis results.",
+                    },
+                    {
+                        "role": "user",
+                        "content": f"""The following is the output from an OLS regression analysis:
+
+Target Variable: {target_variable}
+Feature Variables: {', '.join(feature_variables)}
+
+{summary}
+
+{categorical_info}
+
+Please provide an interpretation of these results as a data scientist would, focusing on:
+1. The significance of the coefficients
+2. R-squared value and model fit
+3. Any potential issues or insights
+4. Interpretation of dummy variables (if present)
+
+User's original question: {self.prompt}""",
+                    },
+                ],
+                "options": {
+                    "temperature": self.temperature,
+                    "top_k": self.top_k,
+                    "top_p": self.top_p,
+                    "keep_alive": self.keep_alive,
+                    "stream": False,
+                    "num_predict": 4096,
+                    "num_ctx": self.context_window,
+                },
+            },
+        )
+
+        return str(interpretation_res["message"]["content"])

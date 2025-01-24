@@ -3,10 +3,10 @@
   "access": "public",
   "created_at": "2025-01-22T22:55:18.691877",
   "updated_at": "2025-01-22T22:55:18.691885",
-  "name": "lib.ml.sklearn NMF",
+  "name": "Sklearn NMF",
   "description": "Example Non-negative Matrix Factorization workflow using scikit-learn",
   "tags": [
-    "lib.ml.sklearn"
+    "sklearn"
   ],
   "thumbnail": null,
   "thumbnail_url": null,

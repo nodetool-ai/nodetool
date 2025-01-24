@@ -561,26 +561,6 @@ class RemoveIncompleteRows(BaseNode):
         return await context.dataframe_from_pandas(res)
 
 
-class LoadIrisDataset(BaseNode):
-    """
-    Load Iris dataset as dataframe.
-    iris, dataset, machine learning
-
-    Use cases:
-    - Practice machine learning techniques
-    - Benchmark classification algorithms
-    - Demonstrate data analysis workflows
-    """
-
-    async def process(self, context: ProcessingContext) -> Dataset:
-        data = load_iris(as_frame=True)
-        assert isinstance(data, Bunch)
-        return Dataset(
-            data=await context.dataframe_from_pandas(data.data),
-            target=await context.dataframe_from_pandas(pd.DataFrame(data.target)),
-        )
-
-
 class Slice(BaseNode):
     """
     Slice a dataframe by rows using start and end indices.

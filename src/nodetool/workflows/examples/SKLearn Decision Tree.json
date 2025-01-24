@@ -1,12 +1,12 @@
 {
-    "id": "lib.ml.sklearn_decision_tree",
+    "id": "sklearn_decision_tree",
     "access": "public",
     "created_at": "2025-01-22T23:18:32.669202",
     "updated_at": "2025-01-22T23:18:32.669208",
-    "name": "lib.ml.sklearn Decision Tree",
+    "name": "Sklearn Decision Tree",
     "description": "Example Decision Tree Classifier workflow using scikit-learn",
     "tags": [
-        "lib.ml.sklearn"
+        "sklearn"
     ],
     "thumbnail": null,
     "thumbnail_url": null,
