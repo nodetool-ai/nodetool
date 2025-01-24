@@ -3,7 +3,6 @@ import { HuggingFaceModel } from "../../stores/ApiTypes";
 import useModelStore from "../../stores/ModelStore";
 import { useQuery } from "@tanstack/react-query";
 import { tryCacheFiles } from "../../serverState/tryCacheFiles";
-import { useMetadata } from "../../serverState/useMetadata";
 import { isEqual } from "lodash";
 import Select from "../inputs/Select";
 import useMetadataStore from "../../stores/MetadataStore";

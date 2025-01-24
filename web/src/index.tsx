@@ -46,14 +46,8 @@ import useRemoteSettingsStore from "./stores/RemoteSettingStore";
 import ModelsManager from "./components/hugging_face/ModelsManager";
 import useModelStore from "./stores/ModelStore";
 import { MIN_ZOOM } from "./config/constants";
-import {
-  loadMetadata,
-  metadataQuery,
-  useMetadata
-} from "./serverState/useMetadata";
+import { loadMetadata } from "./serverState/useMetadata";
 import useMetadataStore from "./stores/MetadataStore";
-import { useNodeStore } from "./stores/NodeStore";
-import { createConnectabilityMatrix } from "./components/node_menu/typeFilterUtils";
 
 if (!isProduction) {
   useRemoteSettingsStore.getState().fetchSettings();
