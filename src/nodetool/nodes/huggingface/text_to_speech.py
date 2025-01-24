@@ -151,7 +151,7 @@ class Bark(HuggingFacePipelineNode):
 class TextToSpeech(HuggingFacePipelineNode):
     """
     A generic Text-to-Speech node that can work with various Hugging Face TTS models.
-    tts, audio, speech, huggingface
+    tts, audio, speech, huggingface, speak, voice
 
     Use cases:
     - Generate speech from text for various applications

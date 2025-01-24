@@ -381,7 +381,7 @@ class Repeat(BaseNode):
 class AudioMixer(BaseNode):
     """
     Mix up to 5 audio tracks together with individual volume controls.
-    audio, mix, volume, combine
+    audio, mix, volume, combine, blend, layer, add, overlay
 
     Use cases:
     - Mix multiple audio tracks into a single output
