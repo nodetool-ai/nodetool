@@ -477,7 +477,6 @@ export const useNodeStore = create<NodeStore>()(
        * Set the current workflow.
        */
       setWorkflow: (workflow: Workflow) => {
-        debugger;
         const nodeTypes = useMetadataStore.getState().nodeTypes;
         const addNodeType = useMetadataStore.getState().addNodeType;
         get().syncWithWorkflowStore();

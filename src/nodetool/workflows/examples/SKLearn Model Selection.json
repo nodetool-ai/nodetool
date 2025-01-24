@@ -3,10 +3,10 @@
     "access": "public",
     "created_at": "2025-01-22T23:59:02.328672",
     "updated_at": "2025-01-22T23:59:02.328685",
-    "name": "lib.ml.sklearn Model Selection",
+    "name": "Sklearn Model Selection",
     "description": "Example model selection workflow using scikit-learn",
     "tags": [
-        "lib.ml.sklearn"
+        "sklearn"
     ],
     "thumbnail": null,
     "thumbnail_url": null,

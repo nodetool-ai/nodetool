@@ -3,6 +3,7 @@ import os
 from nodetool.common.chroma_client import get_collection
 from nodetool.metadata.types import (
     Collection,
+    DocumentRef,
     ImageRef,
     TextChunk,
     TextRef,
@@ -127,43 +128,6 @@ class IndexImages(ChromaNode):
             collection.add(ids=image_ids, images=image_arrays)
 
 
-class IndexTexts(ChromaNode):
-    """
-    Index a list of text assets or files.
-    chroma, embedding, collection, RAG, index, text, batch
-    """
-
-    collection: Collection = Field(
-        default=Collection(), description="The collection to index"
-    )
-    docs: list[TextRef] = Field(
-        default=[],
-        description="Dictionary of ID to text content pairs to index",
-    )
-
-    @classmethod
-    def required_inputs(cls):
-        return ["collection"]
-
-    async def process(self, context: ProcessingContext):
-        if any(doc.document_id is None for doc in self.docs):
-            raise ValueError("document_id cannot be None for any text document")
-
-        collection = get_collection(self.collection.name)
-
-        # Validate all docs have asset_ids or uris
-        invalid_docs = [doc for doc in self.docs if doc.asset_id or doc.uri]
-        if invalid_docs:
-            raise ValueError("All texts need to have asset IDs or URIs")
-
-        # Get document IDs and texts in parallel
-        document_ids = [doc.document_id for doc in self.docs]
-        texts = await asyncio.gather(*[context.text_to_str(doc) for doc in self.docs])
-
-        # Add all documents in one call
-        collection.add(ids=document_ids, documents=texts)
-
-
 class IndexImage(ChromaNode):
     """
     Index a single image asset.
@@ -192,32 +156,28 @@ class IndexImage(ChromaNode):
         collection.add(ids=[document_id], images=[np.array(image)])
 
 
-class IndexText(ChromaNode):
+class IndexDocument(ChromaNode):
     """
-    Index a single text asset.
+    Index a single document asset.
     chroma, embedding, collection, RAG, index, text
     """
 
     collection: Collection = Field(
         default=Collection(), description="The collection to index"
     )
-    text: TextRef = Field(default=TextRef(), description="Text asset to index")
+    document: DocumentRef = Field(
+        default=DocumentRef(), description="Document asset to index"
+    )
 
     @classmethod
     def required_inputs(cls):
         return ["collection"]
 
     async def process(self, context: ProcessingContext):
-        if self.text.document_id is None:
-            raise ValueError("document_id cannot be None")
-
-        if not self.text.asset_id:
-            raise ValueError("The text needs to be an asset that is saved to a folder")
+        if self.document.document_id is None:
+            raise ValueError("The document needs to be an asset or a local file")
 
         collection = get_collection(self.collection.name)
-
-        text = await context.text_to_str(self.text)
-        collection.add(ids=[self.text.document_id], documents=[text])
 
 
 class IndexTextChunk(ChromaNode):
