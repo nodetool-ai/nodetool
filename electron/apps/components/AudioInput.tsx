@@ -6,8 +6,9 @@ import { Box, HStack, Text } from "@chakra-ui/react";
 import { FaMicrophone, FaStop, FaPlay, FaPause, FaCog } from "react-icons/fa";
 import { Alert } from "./ui/alert";
 
-const AudioInput: React.FC = () => {
-  const defaultFileType = "webm";
+const AudioInput: React.FC<{ onChange: (data: any) => void }> = ({
+  onChange,
+}) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const wavesurferRef = useRef<WaveSurfer | null>(null);
   const recordRef = useRef<Record | null>(null);
@@ -98,7 +99,9 @@ const AudioInput: React.FC = () => {
     });
 
     // Initialize Record plugin
-    const record = wavesurfer.registerPlugin(Record.create());
+    const record = wavesurfer.registerPlugin(
+      Record.create({ mimeType: "audio/webm" })
+    );
 
     wavesurferRef.current = wavesurfer;
     recordRef.current = record;
@@ -113,8 +116,10 @@ const AudioInput: React.FC = () => {
       const reader = new FileReader();
       reader.readAsDataURL(blob);
       reader.onloadend = () => {
-        const base64data = reader.result;
-        console.log(base64data); // You can pass this data to parent component
+        onChange({
+          type: "audio",
+          uri: reader.result,
+        });
       };
     });
 

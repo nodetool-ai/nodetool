@@ -93,7 +93,7 @@ export const SchemaInput: React.FC<SchemaInputProps> = ({
 
       case "object":
         if (schema.properties?.type.enum?.includes("audio")) {
-          return <AudioInput />;
+          return <AudioInput onChange={onChange} />;
         }
         if (schema.properties?.uri) {
           return (
