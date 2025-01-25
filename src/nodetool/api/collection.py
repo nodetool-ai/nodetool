@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from enum import Enum
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Sequence, Union
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from nodetool.api.utils import current_user, User
@@ -13,8 +13,17 @@ from nodetool.common.chroma_client import (
 import chromadb
 from markitdown import MarkItDown
 
+from llama_index.core.node_parser import (
+    SemanticSplitterNodeParser,
+)
+from llama_index.core.schema import Document, TextNode
+from llama_index.embeddings.ollama import OllamaEmbedding
 
 router = APIRouter(prefix="/api/collections", tags=["collections"])
+
+DEFAULT_BUFFER_SIZE = 10
+DEFAULT_BREAKPOINT_THRESHOLD = 95
+DEFAULT_EMBEDDING_MODEL = "all-minilm:latest"
 
 
 class IndexFile(BaseModel):
@@ -22,19 +31,19 @@ class IndexFile(BaseModel):
     mime_type: str
 
 
-class IndexRequest(BaseModel):
-    files: List[IndexFile]
-
-
 class CollectionCreate(BaseModel):
     name: str
     embedding_model: str
+    buffer_size: int = DEFAULT_BUFFER_SIZE
+    breakpoint_percentile_threshold: int = DEFAULT_BREAKPOINT_THRESHOLD
 
 
 class CollectionResponse(BaseModel):
     name: str
     count: int
     metadata: chromadb.CollectionMetadata
+    breakpoint_percentile_threshold: int
+    buffer_size: int
 
 
 class CollectionList(BaseModel):
@@ -54,10 +63,18 @@ async def create_collection(
     """Create a new collection"""
     try:
         client = get_chroma_client()
-        metadata = {"embedding_model": req.embedding_model}
+        metadata = {
+            "embedding_model": req.embedding_model,
+            "breakpoint_percentile_threshold": req.breakpoint_percentile_threshold,
+            "buffer_size": req.buffer_size,
+        }
         collection = client.create_collection(name=req.name, metadata=metadata)
         return CollectionResponse(
-            name=collection.name, metadata=collection.metadata, count=0
+            name=collection.name,
+            metadata=collection.metadata,
+            count=0,
+            breakpoint_percentile_threshold=req.breakpoint_percentile_threshold,
+            buffer_size=req.buffer_size,
         )
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -76,7 +93,13 @@ async def list_collections(
         return CollectionList(
             collections=[
                 CollectionResponse(
-                    name=col.name, metadata=col.metadata or {}, count=col.count()
+                    name=col.name,
+                    metadata=col.metadata or {},
+                    count=col.count(),
+                    breakpoint_percentile_threshold=col.metadata.get(
+                        "breakpoint_percentile_threshold", DEFAULT_BREAKPOINT_THRESHOLD
+                    ),
+                    buffer_size=col.metadata.get("buffer_size", DEFAULT_BUFFER_SIZE),
                 )
                 for col in collections
             ],
@@ -94,7 +117,13 @@ async def get(name: str, user: User = Depends(current_user)) -> CollectionRespon
         collection = client.get_collection(name=name)
         count = collection.count()
         return CollectionResponse(
-            name=collection.name, metadata=collection.metadata, count=count
+            name=collection.name,
+            metadata=collection.metadata,
+            count=count,
+            breakpoint_percentile_threshold=collection.metadata.get(
+                "breakpoint_percentile_threshold", DEFAULT_BREAKPOINT_THRESHOLD
+            ),
+            buffer_size=collection.metadata.get("buffer_size", DEFAULT_BUFFER_SIZE),
         )
     except Exception as e:
         raise HTTPException(status_code=404, detail=f"Collection {name} not found")
@@ -116,38 +145,54 @@ class IndexResponse(BaseModel):
     error: Optional[str] = None
 
 
-@router.post("/{name}/index", response_model=List[IndexResponse])
+def recursive_text_chunking(content: Sequence[tuple[str, str, bool]]):
+    chunks = []
+    results = []
+    for path, text, success in content:
+        if success:
+            chunks.extend(split_document(text, path))
+            results.append(IndexResponse(path=path, error=None))
+        else:
+            results.append(IndexResponse(path=path, error=text))
+
+    return [chunk for chunk in chunks if chunk.text], results
+
+
+@router.post("/{name}/index", response_model=IndexResponse)
 async def index(
-    name: str, req: IndexRequest, user: User = Depends(current_user)
-) -> List[IndexResponse]:
+    name: str, file: IndexFile, user: User = Depends(current_user)
+) -> IndexResponse:
     try:
         collection = get_collection(name)
         md = MarkItDown()
-        results = []
+        splitter = SemanticSplitterNodeParser(
+            embed_model=OllamaEmbedding(
+                model_name=collection.metadata.get(
+                    "embed_model", DEFAULT_EMBEDDING_MODEL
+                )
+            ),
+            buffer_size=collection.metadata.get("buffer_size", DEFAULT_BUFFER_SIZE),
+            breakpoint_percentile_threshold=collection.metadata.get(
+                "breakpoint_percentile_threshold", DEFAULT_BREAKPOINT_THRESHOLD
+            ),
+        )
 
-        def convert_file(file: IndexFile):
-            try:
-                return (file.path, md.convert(file.path).text_content, True)
-            except Exception as e:
-                print(e)
-                return (file.path, str(e), False)
+        try:
+            document = Document(
+                text=md.convert(file.path).text_content, doc_id=file.path
+            )
+            nodes = splitter.build_semantic_nodes_from_documents([document])
+            ids_docs = {
+                f"{file.path}:{i}": node.text
+                for i, node in enumerate(nodes)
+                if isinstance(node, TextNode)
+            }
+            collection.upsert(
+                documents=list(ids_docs.values()), ids=list(ids_docs.keys())
+            )
+        except Exception as e:
+            return IndexResponse(path=file.path, error=str(e))
 
-        converted = [convert_file(file) for file in req.files]
-        chunks = []
-        for path, text, success in converted:
-            if success:
-                chunks.extend(split_document(text, path))
-                results.append(IndexResponse(path=path, error=None))
-            else:
-                results.append(IndexResponse(path=path, error=text))
-
-        chunks = [chunk for chunk in chunks if chunk.text]
-
-        ids = [chunk.get_document_id() for chunk in chunks]
-        docs = [chunk.text for chunk in chunks]
-
-        collection.upsert(documents=docs, ids=ids)
-
-        return results
+        return IndexResponse(path=file.path, error=None)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
