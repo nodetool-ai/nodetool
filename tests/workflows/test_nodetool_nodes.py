@@ -24,6 +24,7 @@ from nodetool.nodes.lib.image.pillow.enhance import (
     Sharpness,
     UnsharpMask,
 )
+from nodetool.nodes.nodetool.image import Resize, Scale, Fit
 from nodetool.nodes.lib.data.numpy import SaveArray
 from nodetool.workflows.graph import Graph
 from nodetool.metadata.types import ImageRef
@@ -44,12 +45,9 @@ from nodetool.nodes.lib.image.pillow.filter import (
     Emboss,
     Expand,
     FindEdges,
-    Fit,
     GetChannel,
     Invert,
     Posterize,
-    Resize,
-    Scale,
     Smooth,
     Solarize,
 )
