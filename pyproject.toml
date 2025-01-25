@@ -66,6 +66,7 @@ jwt = "*"
 kornia = "0.7.4"
 langchain-text-splitters = "0.3.4"
 llama-index = "0.12.13"
+llama-index-embeddings-ollama = "0.5.0"
 librosa = "0.10.2.post1"
 markitdown = "0.0.1a3"
 matplotlib = "3.9.2"
@@ -131,13 +132,6 @@ wheel = "0.44.0"
 yacs = "0.1.8"
 yapf = "0.40.2"
 zipp = "3.21.0"
-
-[tool.poetry.dev-dependencies]
-pytest = "*"
-pytest-mock = "*"
-pytest-asyncio = "*"
-pytest-env = "*"
-pytest-xdist = "*"
 
 [tool.poetry.scripts]
 nodetool = "nodetool.cli:cli"
