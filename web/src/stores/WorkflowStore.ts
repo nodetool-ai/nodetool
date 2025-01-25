@@ -108,8 +108,16 @@ export const useWorkflowStore = create<WorkflowStore>()((set, get) => ({
     if (error) {
       throw createErrorMessage(error, "Failed to create workflow");
     }
+
+    const workflowWithTags = {
+      ...data,
+      tags: workflow.tags || []
+    };
+
+    get().add(workflowWithTags);
     get().invalidateQueries(["workflows"]);
-    return data;
+
+    return workflowWithTags;
   },
 
   load: async (cursor?: string, limit?: number) => {
