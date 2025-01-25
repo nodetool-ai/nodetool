@@ -395,26 +395,78 @@ const ChatView = ({
   }, []);
 
   const MessageView = useCallback((msg: Message) => {
-    let messageClass = "chat-message";
+    const [showThoughts, setShowThoughts] = useState(false);
 
+    let messageClass = "chat-message";
     if (msg.role === "user") {
       messageClass += " user";
     } else if (msg.role === "assistant") {
       messageClass += " assistant";
     }
 
+    const renderContent = (content: string) => {
+      // Extract think blocks and remaining content
+      const thinkMatch = content.match(/<think>([\s\S]*?)<\/think>/);
+      const thoughts = thinkMatch ? thinkMatch[1].trim() : null;
+      const mainContent = content
+        .replace(/<think>[\s\S]*?<\/think>/, "")
+        .trim();
+
+      return (
+        <>
+          <MarkdownRenderer content={mainContent} />
+          {thoughts && (
+            <div
+              css={css`
+                margin-top: 0.5em;
+                border-top: 1px dashed
+                  ${msg.role === "assistant"
+                    ? "rgba(255,255,255,0.2)"
+                    : "rgba(0,0,0,0.2)"};
+                padding-top: 0.5em;
+              `}
+            >
+              <Button
+                size="small"
+                onClick={() => setShowThoughts(!showThoughts)}
+                css={css`
+                  text-transform: none;
+                  color: inherit;
+                  opacity: 0.7;
+                  &:hover {
+                    opacity: 1;
+                  }
+                `}
+              >
+                {showThoughts ? "Hide thoughts" : "Show thoughts"}
+              </Button>
+              {showThoughts && (
+                <div
+                  css={css`
+                    margin-top: 0.5em;
+                    font-style: italic;
+                    opacity: 0.8;
+                  `}
+                >
+                  <MarkdownRenderer content={thoughts} />
+                </div>
+              )}
+            </div>
+          )}
+        </>
+      );
+    };
+
     const content = msg.content as
       | Array<MessageTextContent | MessageImageContent>
       | string;
     return (
       <li className={messageClass} key={msg.id}>
-        {typeof msg.content === "string" && (
-          <MarkdownRenderer key={msg.id} content={msg.content || ""} />
-        )}
+        {typeof msg.content === "string" && renderContent(msg.content)}
         {Array.isArray(content) &&
           content.map((c: MessageContent, i: number) => {
             if (c.type === "text") {
-              return <MarkdownRenderer key={msg.id} content={c.text || ""} />;
+              return renderContent(c.text || "");
             } else if (c.type === "image_url") {
               return <OutputRenderer key={i} value={c.image} />;
             } else if (c.type === "audio") {
