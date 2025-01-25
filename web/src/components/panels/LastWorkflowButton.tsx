@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import React, { useState, useCallback, useMemo, useEffect } from "react";
+import React, { useState, useCallback, useMemo, useEffect, memo } from "react";
 import {
   Button,
   IconButton,
@@ -130,7 +130,7 @@ const styles = (theme: any) =>
     }
   });
 
-const LastWorkflowButton = React.memo(() => {
+const LastWorkflowButton = () => {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const {
@@ -241,8 +241,6 @@ const LastWorkflowButton = React.memo(() => {
     ]
   );
 
-  console.log("workflow", workflow);
-
   if (workflow?.id === "") {
     return (
       <div className="last-workflow" css={styles}>
@@ -312,6 +310,6 @@ const LastWorkflowButton = React.memo(() => {
       )}
     </div>
   );
-});
+};
 
-export default LastWorkflowButton;
+export default memo(LastWorkflowButton);

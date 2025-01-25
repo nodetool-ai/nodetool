@@ -47,6 +47,7 @@ export const useWorkflowStore = create<WorkflowStore>()((set, get) => ({
     if (!queryClient) return;
 
     queryClient.setQueryData(["workflows", workflow.id], workflow);
+    get().invalidateQueries(["workflows"]);
   },
 
   get: async (id: string) => {
@@ -171,6 +172,7 @@ export const useWorkflowStore = create<WorkflowStore>()((set, get) => ({
       throw createErrorMessage(error, "Failed to update workflow");
     }
     get().add(data);
+    get().invalidateQueries(["workflows"]);
     return data;
   },
 
@@ -179,7 +181,7 @@ export const useWorkflowStore = create<WorkflowStore>()((set, get) => ({
     if (!workflow) {
       throw new Error("Workflow not found");
     }
-    return {
+    const copiedWorkflow = {
       id: uuidv4(),
       name: workflow.name,
       description: workflow.description,
@@ -191,6 +193,8 @@ export const useWorkflowStore = create<WorkflowStore>()((set, get) => ({
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
+    get().invalidateQueries(["workflows"]);
+    return copiedWorkflow;
   },
 
   delete: async (id: string) => {

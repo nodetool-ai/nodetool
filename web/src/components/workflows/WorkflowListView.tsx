@@ -10,6 +10,7 @@ import Checkbox from "@mui/material/Checkbox";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { useNodeStore } from "../../stores/NodeStore";
 import { usePanelStore } from "../../stores/PanelStore";
+import DeleteIcon from "@mui/icons-material/Delete";
 
 interface WorkflowListViewProps {
   workflows: Workflow[];
@@ -83,11 +84,11 @@ const listStyles = (theme: any) =>
       userSelect: "none",
       textAlign: "right"
     },
-    ".duplicate-button": {
+    ".duplicate-button, .delete-button": {
       opacity: 0,
       padding: "0"
     },
-    ".workflow:hover .duplicate-button": {
+    ".workflow:hover .duplicate-button, .workflow:hover .delete-button": {
       opacity: 1
     },
     ".duplicate-button svg": {
@@ -112,6 +113,7 @@ export const WorkflowListView: React.FC<WorkflowListViewProps> = ({
   onOpenWorkflow,
   onDuplicateWorkflow,
   onSelect,
+  onDelete,
   onScroll,
   selectedWorkflows,
   showCheckboxes
@@ -200,6 +202,22 @@ export const WorkflowListView: React.FC<WorkflowListViewProps> = ({
                   }}
                 >
                   <ContentCopyIcon />
+                </Button>
+              </Tooltip>
+              <Tooltip
+                title="Delete this workflow"
+                placement="bottom"
+                enterDelay={TOOLTIP_ENTER_DELAY}
+              >
+                <Button
+                  size="small"
+                  className="delete-button"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    onDelete(event, workflow);
+                  }}
+                >
+                  <DeleteIcon />
                 </Button>
               </Tooltip>
             </div>
