@@ -1084,29 +1084,6 @@ class MapField(BaseNode):
         return [get_value(item) for item in self.values]
 
 
-class JoinStrings(BaseNode):
-    """
-    Joins a list of strings using a specified delimiter.
-    list, join, concatenate, strings, +
-
-    Use cases:
-    - Combine strings with a separator
-    - Create CSV-like strings
-    - Format text for display or output
-    """
-
-    values: list[str] = Field(
-        default_factory=list, description="The list of strings to join"
-    )
-    delimiter: str = Field(
-        default="", description="The string to use as a separator between elements"
-    )
-
-    async def process(self, context: ProcessingContext) -> str:
-        values = [str(x) for x in self.values]
-        return self.delimiter.join(values)
-
-
 class MapTemplate(BaseNode):
     """
     Maps a template string over a list of dictionaries or objects.
@@ -1182,19 +1159,18 @@ class Flatten(BaseNode):
     """
 
     values: list[Any] = Field(
-        default_factory=list,
-        description="The nested list structure to flatten"
+        default_factory=list, description="The nested list structure to flatten"
     )
     max_depth: int = Field(
-        default=-1,
-        description="Maximum depth to flatten (-1 for unlimited)",
-        ge=-1
+        default=-1, description="Maximum depth to flatten (-1 for unlimited)", ge=-1
     )
 
     def _flatten(self, lst: list[Any], current_depth: int = 0) -> list[Any]:
         result = []
         for item in lst:
-            if isinstance(item, list) and (self.max_depth == -1 or current_depth < self.max_depth):
+            if isinstance(item, list) and (
+                self.max_depth == -1 or current_depth < self.max_depth
+            ):
                 result.extend(self._flatten(item, current_depth + 1))
             else:
                 result.append(item)
