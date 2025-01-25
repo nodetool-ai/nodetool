@@ -1,8 +1,8 @@
 {
   "id": "simple-chat",
   "access": "public",
-  "created_at": "2025-01-18T08:43:18.828508",
-  "updated_at": "2025-01-18T08:43:18.828523",
+  "created_at": "2025-01-26T00:18:27.954303",
+  "updated_at": "2025-01-26T00:18:27.954328",
   "name": "Simple Chat",
   "description": "Basic chat interface using Gemma 2B model",
   "tags": [
@@ -120,7 +120,7 @@
         "data": {
           "model": {
             "type": "llama_model",
-            "repo_id": "llama3.2:3b"
+            "repo_id": "deepseek-r1:7b"
           },
           "system_prompt": "You are an assistant.",
           "image": {
@@ -149,6 +149,16 @@
     ],
     "edges": [
       {
+        "id": "6455bc39-8451-47de-af1a-84840124deee",
+        "source": "1",
+        "sourceHandle": "text",
+        "target": "5",
+        "targetHandle": "prompt",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
         "id": "a617f28c-ba10-4493-bacf-4911fe9e1621",
         "source": "1",
         "sourceHandle": "history",
@@ -164,16 +174,6 @@
         "sourceHandle": "output",
         "target": "3",
         "targetHandle": "value",
-        "ui_properties": {
-          "className": "str"
-        }
-      },
-      {
-        "id": "6455bc39-8451-47de-af1a-84840124deee",
-        "source": "1",
-        "sourceHandle": "text",
-        "target": "5",
-        "targetHandle": "prompt",
         "ui_properties": {
           "className": "str"
         }
