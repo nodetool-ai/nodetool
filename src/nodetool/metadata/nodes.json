@@ -16772,10 +16772,10 @@
           "year": 2025,
           "month": 1,
           "day": 25,
-          "hour": 19,
-          "minute": 10,
-          "second": 17,
-          "microsecond": 631464,
+          "hour": 23,
+          "minute": 9,
+          "second": 49,
+          "microsecond": 16409,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -17829,10 +17829,10 @@
           "year": 2025,
           "month": 1,
           "day": 25,
-          "hour": 19,
-          "minute": 10,
-          "second": 17,
-          "microsecond": 635537,
+          "hour": 23,
+          "minute": 9,
+          "second": 49,
+          "microsecond": 20333,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -17883,10 +17883,10 @@
           "year": 2025,
           "month": 1,
           "day": 25,
-          "hour": 19,
-          "minute": 10,
-          "second": 17,
-          "microsecond": 635769,
+          "hour": 23,
+          "minute": 9,
+          "second": 49,
+          "microsecond": 20546,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -17937,10 +17937,10 @@
           "year": 2025,
           "month": 1,
           "day": 25,
-          "hour": 19,
-          "minute": 10,
-          "second": 17,
-          "microsecond": 636031,
+          "hour": 23,
+          "minute": 9,
+          "second": 49,
+          "microsecond": 20820,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -17991,10 +17991,10 @@
           "year": 2025,
           "month": 1,
           "day": 25,
-          "hour": 19,
-          "minute": 10,
-          "second": 17,
-          "microsecond": 636259,
+          "hour": 23,
+          "minute": 9,
+          "second": 49,
+          "microsecond": 21057,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -18045,10 +18045,10 @@
           "year": 2025,
           "month": 1,
           "day": 25,
-          "hour": 19,
-          "minute": 10,
-          "second": 17,
-          "microsecond": 636492,
+          "hour": 23,
+          "minute": 9,
+          "second": 49,
+          "microsecond": 21268,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -18099,10 +18099,10 @@
           "year": 2025,
           "month": 1,
           "day": 25,
-          "hour": 19,
-          "minute": 10,
-          "second": 17,
-          "microsecond": 636715,
+          "hour": 23,
+          "minute": 9,
+          "second": 49,
+          "microsecond": 21482,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -18153,10 +18153,10 @@
           "year": 2025,
           "month": 1,
           "day": 25,
-          "hour": 19,
-          "minute": 10,
-          "second": 17,
-          "microsecond": 636979,
+          "hour": 23,
+          "minute": 9,
+          "second": 49,
+          "microsecond": 21750,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -18223,10 +18223,10 @@
           "year": 2025,
           "month": 1,
           "day": 25,
-          "hour": 19,
-          "minute": 10,
-          "second": 17,
-          "microsecond": 637248,
+          "hour": 23,
+          "minute": 9,
+          "second": 49,
+          "microsecond": 22007,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -19524,6 +19524,342 @@
       "paste",
       "left",
       "top"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Scale",
+    "description": "Enlarge or shrink an image by a scale factor.\n    image, resize, scale\n\n    - Adjust image dimensions for display galleries\n    - Standardize image sizes for machine learning datasets\n    - Create thumbnail versions of images",
+    "namespace": "nodetool.image",
+    "node_type": "nodetool.image.Scale",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "image",
+        "type": {
+          "type": "image",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null
+        },
+        "title": "Image",
+        "description": "The image to scale.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "scale",
+        "type": {
+          "type": "float",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 1.0,
+        "title": "Scale",
+        "description": "The scale factor.",
+        "min": 0.0,
+        "max": 10.0
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "image",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "image",
+      "scale"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Resize",
+    "description": "Change image dimensions to specified width and height.\n    image, resize\n\n    - Preprocess images for machine learning model inputs\n    - Optimize images for faster web page loading\n    - Create uniform image sizes for layouts",
+    "namespace": "nodetool.image",
+    "node_type": "nodetool.image.Resize",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "image",
+        "type": {
+          "type": "image",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null
+        },
+        "title": "Image",
+        "description": "The image to resize.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "width",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 512,
+        "title": "Width",
+        "description": "The target width.",
+        "min": 0.0,
+        "max": 4096.0
+      },
+      {
+        "name": "height",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 512,
+        "title": "Height",
+        "description": "The target height.",
+        "min": 0.0,
+        "max": 4096.0
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "image",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "image",
+      "width",
+      "height"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Crop",
+    "description": "Crop an image to specified coordinates.\n    image, crop\n\n    - Remove unwanted borders from images\n    - Focus on particular subjects within an image\n    - Simplify images by removing distractions",
+    "namespace": "nodetool.image",
+    "node_type": "nodetool.image.Crop",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "image",
+        "type": {
+          "type": "image",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null
+        },
+        "title": "Image",
+        "description": "The image to crop.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "left",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 0,
+        "title": "Left",
+        "description": "The left coordinate.",
+        "min": 0.0,
+        "max": 4096.0
+      },
+      {
+        "name": "top",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 0,
+        "title": "Top",
+        "description": "The top coordinate.",
+        "min": 0.0,
+        "max": 4096.0
+      },
+      {
+        "name": "right",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 512,
+        "title": "Right",
+        "description": "The right coordinate.",
+        "min": 0.0,
+        "max": 4096.0
+      },
+      {
+        "name": "bottom",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 512,
+        "title": "Bottom",
+        "description": "The bottom coordinate.",
+        "min": 0.0,
+        "max": 4096.0
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "image",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "image",
+      "left",
+      "top",
+      "right",
+      "bottom"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Fit",
+    "description": "Resize an image to fit within specified dimensions while preserving aspect ratio.\n    image, resize, fit\n\n    - Resize images for online publishing requirements\n    - Preprocess images to uniform sizes for machine learning\n    - Control image display sizes for web development",
+    "namespace": "nodetool.image",
+    "node_type": "nodetool.image.Fit",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "image",
+        "type": {
+          "type": "image",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null
+        },
+        "title": "Image",
+        "description": "The image to fit.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "width",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 512,
+        "title": "Width",
+        "description": "Width to fit to.",
+        "min": 1.0,
+        "max": 4096.0
+      },
+      {
+        "name": "height",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 512,
+        "title": "Height",
+        "description": "Height to fit to.",
+        "min": 1.0,
+        "max": 4096.0
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "image",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "image",
+      "width",
+      "height"
     ],
     "is_dynamic": false
   },
@@ -80820,86 +81156,6 @@
     "is_dynamic": false
   },
   {
-    "title": "Fit",
-    "description": "Resize an image to fit within specified dimensions while preserving aspect ratio.\n    image, resize, fit\n\n    - Resize images for online publishing requirements\n    - Preprocess images to uniform sizes for machine learning\n    - Control image display sizes for web development",
-    "namespace": "lib.image.pillow.filter",
-    "node_type": "lib.image.pillow.filter.Fit",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "image",
-        "type": {
-          "type": "image",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": {
-          "type": "image",
-          "uri": "",
-          "asset_id": null,
-          "data": null
-        },
-        "title": "Image",
-        "description": "The image to fit.",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "width",
-        "type": {
-          "type": "int",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": 512,
-        "title": "Width",
-        "description": "Width to fit to.",
-        "min": 1.0,
-        "max": 4096.0
-      },
-      {
-        "name": "height",
-        "type": {
-          "type": "int",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": 512,
-        "title": "Height",
-        "description": "Height to fit to.",
-        "min": 1.0,
-        "max": 4096.0
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "image",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [
-      "image",
-      "width",
-      "height"
-    ],
-    "is_dynamic": false
-  },
-  {
     "title": "Expand",
     "description": "Add a border around an image to increase its size.\n    image, border, expand\n\n    - Make images stand out by adding a colored border\n    - Create framed photo effects\n    - Separate image content from surroundings",
     "namespace": "lib.image.pillow.filter",
@@ -81312,262 +81568,6 @@
       "image",
       "low_threshold",
       "high_threshold"
-    ],
-    "is_dynamic": false
-  },
-  {
-    "title": "Scale",
-    "description": "Enlarge or shrink an image by a scale factor.\n    image, resize, scale\n\n    - Adjust image dimensions for display galleries\n    - Standardize image sizes for machine learning datasets\n    - Create thumbnail versions of images",
-    "namespace": "lib.image.pillow.filter",
-    "node_type": "lib.image.pillow.filter.Scale",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "image",
-        "type": {
-          "type": "image",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": {
-          "type": "image",
-          "uri": "",
-          "asset_id": null,
-          "data": null
-        },
-        "title": "Image",
-        "description": "The image to scale.",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "scale",
-        "type": {
-          "type": "float",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": 1.0,
-        "title": "Scale",
-        "description": "The scale factor.",
-        "min": 0.0,
-        "max": 10.0
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "image",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [
-      "image",
-      "scale"
-    ],
-    "is_dynamic": false
-  },
-  {
-    "title": "Resize",
-    "description": "Change image dimensions to specified width and height.\n    image, resize\n\n    - Preprocess images for machine learning model inputs\n    - Optimize images for faster web page loading\n    - Create uniform image sizes for layouts",
-    "namespace": "lib.image.pillow.filter",
-    "node_type": "lib.image.pillow.filter.Resize",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "image",
-        "type": {
-          "type": "image",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": {
-          "type": "image",
-          "uri": "",
-          "asset_id": null,
-          "data": null
-        },
-        "title": "Image",
-        "description": "The image to resize.",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "width",
-        "type": {
-          "type": "int",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": 512,
-        "title": "Width",
-        "description": "The target width.",
-        "min": 0.0,
-        "max": 4096.0
-      },
-      {
-        "name": "height",
-        "type": {
-          "type": "int",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": 512,
-        "title": "Height",
-        "description": "The target height.",
-        "min": 0.0,
-        "max": 4096.0
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "image",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [
-      "image",
-      "width",
-      "height"
-    ],
-    "is_dynamic": false
-  },
-  {
-    "title": "Crop",
-    "description": "Crop an image to specified coordinates.\n    image, crop\n\n    - Remove unwanted borders from images\n    - Focus on particular subjects within an image\n    - Simplify images by removing distractions",
-    "namespace": "lib.image.pillow.filter",
-    "node_type": "lib.image.pillow.filter.Crop",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "image",
-        "type": {
-          "type": "image",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": {
-          "type": "image",
-          "uri": "",
-          "asset_id": null,
-          "data": null
-        },
-        "title": "Image",
-        "description": "The image to crop.",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "left",
-        "type": {
-          "type": "int",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": 0,
-        "title": "Left",
-        "description": "The left coordinate.",
-        "min": 0.0,
-        "max": 4096.0
-      },
-      {
-        "name": "top",
-        "type": {
-          "type": "int",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": 0,
-        "title": "Top",
-        "description": "The top coordinate.",
-        "min": 0.0,
-        "max": 4096.0
-      },
-      {
-        "name": "right",
-        "type": {
-          "type": "int",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": 512,
-        "title": "Right",
-        "description": "The right coordinate.",
-        "min": 0.0,
-        "max": 4096.0
-      },
-      {
-        "name": "bottom",
-        "type": {
-          "type": "int",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": 512,
-        "title": "Bottom",
-        "description": "The bottom coordinate.",
-        "min": 0.0,
-        "max": 4096.0
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "image",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [
-      "image",
-      "left",
-      "top",
-      "right",
-      "bottom"
     ],
     "is_dynamic": false
   },

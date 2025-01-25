@@ -78,26 +78,6 @@ class Posterize(BaseNode):
         return await context.image_from_pil(res)
 
 
-class Fit(BaseNode):
-    """
-    Resize an image to fit within specified dimensions while preserving aspect ratio.
-    image, resize, fit
-
-    - Resize images for online publishing requirements
-    - Preprocess images to uniform sizes for machine learning
-    - Control image display sizes for web development
-    """
-
-    image: ImageRef = Field(default=ImageRef(), description="The image to fit.")
-    width: int = Field(default=512, ge=1, le=4096, description="Width to fit to.")
-    height: int = Field(default=512, ge=1, le=4096, description="Height to fit to.")
-
-    async def process(self, context: ProcessingContext) -> ImageRef:
-        image = await context.image_to_pil(self.image)
-        res = PIL.ImageOps.fit(image, (self.width, self.height), PIL.Image.LANCZOS)  # type: ignore
-        return await context.image_from_pil(res)
-
-
 class Expand(BaseNode):
     """
     Add a border around an image to increase its size.
@@ -224,71 +204,6 @@ class Canny(BaseNode):
     async def process(self, context: ProcessingContext) -> ImageRef:
         image = await context.image_to_pil(self.image)
         res = canny_edge_detection(image, self.low_threshold, self.high_threshold)
-        return await context.image_from_pil(res)
-
-
-class Scale(BaseNode):
-    """
-    Enlarge or shrink an image by a scale factor.
-    image, resize, scale
-
-    - Adjust image dimensions for display galleries
-    - Standardize image sizes for machine learning datasets
-    - Create thumbnail versions of images
-    """
-
-    image: ImageRef = Field(default=ImageRef(), description="The image to scale.")
-    scale: float = Field(default=1.0, ge=0.0, le=10.0, description="The scale factor.")
-
-    async def process(self, context: ProcessingContext) -> ImageRef:
-        image = await context.image_to_pil(self.image)
-        width = int((image.width * self.scale))
-        height = int((image.height * self.scale))
-        image = image.resize((width, height), PIL.Image.Resampling.LANCZOS)
-        return await context.image_from_pil(image)
-
-
-class Resize(BaseNode):
-    """
-    Change image dimensions to specified width and height.
-    image, resize
-
-    - Preprocess images for machine learning model inputs
-    - Optimize images for faster web page loading
-    - Create uniform image sizes for layouts
-    """
-
-    image: ImageRef = Field(default=ImageRef(), description="The image to resize.")
-    width: int = Field(default=512, ge=0, le=4096, description="The target width.")
-    height: int = Field(default=512, ge=0, le=4096, description="The target height.")
-
-    async def process(self, context: ProcessingContext) -> ImageRef:
-        image = await context.image_to_pil(self.image)
-        res = image.resize((self.width, self.height), PIL.Image.LANCZOS)  # type: ignore
-        return await context.image_from_pil(res)
-
-
-class Crop(BaseNode):
-    """
-    Crop an image to specified coordinates.
-    image, crop
-
-    - Remove unwanted borders from images
-    - Focus on particular subjects within an image
-    - Simplify images by removing distractions
-    """
-
-    image: ImageRef = Field(default=ImageRef(), description="The image to crop.")
-    left: int = Field(default=0, ge=0, le=4096, description="The left coordinate.")
-    top: int = Field(default=0, ge=0, le=4096, description="The top coordinate.")
-    right: int = Field(default=512, ge=0, le=4096, description="The right coordinate.")
-    bottom: int = Field(
-        default=512, ge=0, le=4096, description="The bottom coordinate."
-    )
-
-    async def process(self, context: ProcessingContext) -> ImageRef:
-        image = await context.image_to_pil(self.image)
-        res = image.crop((self.left, self.top, self.right, self.bottom))
         return await context.image_from_pil(res)
 
 
