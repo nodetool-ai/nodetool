@@ -89,7 +89,9 @@ const CollectionForm = ({ onClose }: CollectionFormProps) => {
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState<CollectionCreate>({
     name: "",
-    embedding_model: ""
+    embedding_model: "",
+    buffer_size: 10,
+    breakpoint_percentile_threshold: 95
   });
 
   const createMutation = useMutation({
@@ -102,7 +104,12 @@ const CollectionForm = ({ onClose }: CollectionFormProps) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["collections"] });
-      setFormData({ name: "", embedding_model: "" });
+      setFormData({
+        name: "",
+        embedding_model: "",
+        buffer_size: 10,
+        breakpoint_percentile_threshold: 95
+      });
       onClose();
     }
   });
