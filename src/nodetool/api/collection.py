@@ -34,16 +34,12 @@ class IndexFile(BaseModel):
 class CollectionCreate(BaseModel):
     name: str
     embedding_model: str
-    buffer_size: int = DEFAULT_BUFFER_SIZE
-    breakpoint_percentile_threshold: int = DEFAULT_BREAKPOINT_THRESHOLD
 
 
 class CollectionResponse(BaseModel):
     name: str
     count: int
     metadata: chromadb.CollectionMetadata
-    breakpoint_percentile_threshold: int
-    buffer_size: int
 
 
 class CollectionList(BaseModel):
@@ -65,16 +61,14 @@ async def create_collection(
         client = get_chroma_client()
         metadata = {
             "embedding_model": req.embedding_model,
-            "breakpoint_percentile_threshold": req.breakpoint_percentile_threshold,
-            "buffer_size": req.buffer_size,
+            "breakpoint_percentile_threshold": DEFAULT_BREAKPOINT_THRESHOLD,
+            "buffer_size": DEFAULT_BUFFER_SIZE,
         }
         collection = client.create_collection(name=req.name, metadata=metadata)
         return CollectionResponse(
             name=collection.name,
             metadata=collection.metadata,
             count=0,
-            breakpoint_percentile_threshold=req.breakpoint_percentile_threshold,
-            buffer_size=req.buffer_size,
         )
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -96,10 +90,6 @@ async def list_collections(
                     name=col.name,
                     metadata=col.metadata or {},
                     count=col.count(),
-                    breakpoint_percentile_threshold=col.metadata.get(
-                        "breakpoint_percentile_threshold", DEFAULT_BREAKPOINT_THRESHOLD
-                    ),
-                    buffer_size=col.metadata.get("buffer_size", DEFAULT_BUFFER_SIZE),
                 )
                 for col in collections
             ],
@@ -120,10 +110,6 @@ async def get(name: str, user: User = Depends(current_user)) -> CollectionRespon
             name=collection.name,
             metadata=collection.metadata,
             count=count,
-            breakpoint_percentile_threshold=collection.metadata.get(
-                "breakpoint_percentile_threshold", DEFAULT_BREAKPOINT_THRESHOLD
-            ),
-            buffer_size=collection.metadata.get("buffer_size", DEFAULT_BUFFER_SIZE),
         )
     except Exception as e:
         raise HTTPException(status_code=404, detail=f"Collection {name} not found")
