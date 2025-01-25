@@ -20,7 +20,7 @@ electron/dist/
 electron/dist-electron/
 # Temporary build files
 .tmp/
-// ... existing code ...
+__notebooks/
 package/
 postgres_data/
 .ipynb_checkpoints
