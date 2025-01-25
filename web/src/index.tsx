@@ -156,11 +156,7 @@ function getRoutes() {
         </ProtectedRoute>
       ),
       loader: async ({ params }: LoaderFunctionArgs) => {
-        const nodeTypes = useMetadataStore.getState().nodeTypes;
-        if (Object.keys(nodeTypes).length > 0) {
-          await initiateEditor(params.workflow);
-        }
-        return null;
+        await initiateEditor(params.workflow);
       }
     },
     {
