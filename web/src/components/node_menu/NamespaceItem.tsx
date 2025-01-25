@@ -37,7 +37,7 @@ const NamespaceItem: React.FC<NamespaceItemProps> = ({
         } ${isHighlighted ? "highlighted" : "no-highlight"}`}
         onClick={handleClick}
       >
-        <div className="namespace-item">{namespace}</div>
+        <div className="namespace-item">{namespace.replaceAll("_", " ")}</div>
       </ListItem>
       {hasChildren && isExpanded && (
         <div className="sublist">
