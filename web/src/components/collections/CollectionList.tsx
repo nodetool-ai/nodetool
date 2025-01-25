@@ -117,7 +117,7 @@ const CollectionList = () => {
         const errors: { file: string; error: string }[] = [];
         let completed = 0;
 
-        const chunkSize = 10;
+        const chunkSize = 2;
         for (let i = 0; i < files.length; i += chunkSize) {
           const chunk = files.slice(i, i + chunkSize);
           console.log("Indexing chunk", chunk);
