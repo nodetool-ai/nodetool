@@ -27,7 +27,7 @@ const mapTypeToSeverity = (type: Notification["type"]): AlertColor => {
 
 const styles = css({
   position: "fixed",
-  bottom: "0px",
+  top: "60px",
   right: "2em",
   zIndex: 100000,
   display: "flex",
