@@ -5,6 +5,7 @@ from nodetool.metadata.types import ImageRef
 from nodetool.workflows.base_node import BaseNode
 from datetime import datetime
 from pydantic import Field
+import PIL.Image
 
 
 class SaveImage(BaseNode):
