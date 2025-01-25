@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -12,6 +12,7 @@ import AnnouncementIcon from "@mui/icons-material/Announcement";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { DownloadProgress } from "./DownloadProgress";
 import ThemeNodetool from "../themes/ThemeNodetool";
+import { isEqual } from "lodash";
 
 const HuggingFaceDownloadDialog: React.FC = () => {
   const { isDialogOpen, closeDialog, downloads } = useModelDownloadStore();
@@ -120,4 +121,4 @@ const HuggingFaceDownloadDialog: React.FC = () => {
   );
 };
 
-export default HuggingFaceDownloadDialog;
+export default memo(HuggingFaceDownloadDialog, isEqual);
