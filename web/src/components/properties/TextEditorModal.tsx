@@ -118,14 +118,14 @@ const modalStyles = (
 ): CSSObject => ({
   ".modal-overlay": {
     position: "fixed",
-    top: "50px",
+    top: 0,
     left: 0,
-    width: "40vw",
-    height: "calc(100vh - 50px)",
+    width: "100vw",
+    height: "100vh",
     backgroundColor: "rgba(0, 0, 0, 0.1)",
     zIndex: 10000,
     display: "flex",
-    justifyContent: "flex-start",
+    justifyContent: "center",
     alignItems: "center"
   },
   ".modal-content": {
@@ -191,7 +191,7 @@ const modalStyles = (
     },
     ["& textarea"]: {
       whiteSpace: "pre !important",
-      overflowWrap: "normal",
+      overflowWrap: "break-word",
       height: `${textareaHeight}px !important`,
       width: `${textareaWidth}px !important`
     }
@@ -239,7 +239,7 @@ const TextEditorModal = ({
   const { writeClipboard } = useClipboard();
 
   const [textareaHeight, setTextareaHeight] = useState(window.innerHeight);
-  const [textareaWidth, setTextareaWidth] = useState(window.innerWidth * 0.4);
+  const [textareaWidth, setTextareaWidth] = useState(window.innerWidth);
 
   useEffect(() => {
     if (textareaRef.current && !isLoading) {
