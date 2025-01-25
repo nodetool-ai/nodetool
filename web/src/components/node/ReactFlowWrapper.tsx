@@ -73,6 +73,60 @@ interface ReactFlowWrapperProps {
   reactFlowWrapper: React.RefObject<HTMLDivElement>;
 }
 
+// Create a new component for context menus
+const ContextMenus = memo(() => {
+  const openMenuType = useContextMenuStore((state) => state.openMenuType);
+
+  return (
+    <>
+      {openMenuType === "node-context-menu" && <NodeContextMenu />}
+      {openMenuType === "pane-context-menu" && <PaneContextMenu />}
+      {openMenuType === "property-context-menu" && <PropertyContextMenu />}
+      {openMenuType === "selection-context-menu" && <SelectionContextMenu />}
+      {openMenuType === "output-context-menu" && <OutputContextMenu />}
+      {openMenuType === "input-context-menu" && <InputContextMenu />}
+    </>
+  );
+});
+
+// Create a new component for the ReactFlow background
+const FlowBackground = memo(() => (
+  <Background
+    id="1"
+    gap={100}
+    offset={4}
+    size={8}
+    color={ThemeNodes.palette.c_editor_grid_color}
+    lineWidth={1}
+    style={{
+      backgroundColor: ThemeNodes.palette.c_editor_bg_color
+    }}
+    variant={BackgroundVariant.Cross}
+  />
+));
+
+// Extract node title editor into a component
+const NodeTitleEditorWrapper = memo(
+  ({
+    editNodeTitle,
+    anchorEl,
+    onClose
+  }: {
+    editNodeTitle: string | undefined;
+    anchorEl: HTMLElement | null;
+    onClose: () => void;
+  }) => {
+    if (!editNodeTitle || !anchorEl) return null;
+    return (
+      <NodeTitleEditor
+        nodeId={editNodeTitle}
+        onClose={onClose}
+        anchorEl={anchorEl}
+      />
+    );
+  }
+);
+
 const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   isMinZoom,
   reactFlowWrapper
@@ -196,7 +250,6 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
 
   /* CONTEXT MENUS */
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
-  const openMenuType = useContextMenuStore((state) => state.openMenuType);
   const handleNodeContextMenu = useCallback(
     (event: React.MouseEvent, node: Node) => {
       event.preventDefault();
@@ -354,36 +407,53 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     }, 10);
   }, [fitScreen]);
 
-  // Use the custom hook to log render triggers
-  useRenderLogger("NodeEditor", {
-    nodes,
-    edges,
-    onConnect,
-    onNodesChange,
-    onEdgesChange,
-    onEdgeUpdate,
-    updateNodeData,
-    handleOnConnect,
-    onConnectStart,
-    onConnectEnd,
-    connecting,
-    nodeTypes,
-    nodeHistory,
-    shouldFitToScreen,
-    setShouldFitToScreen,
-    settings,
-    isMenuOpen,
-    openMenuType,
-    handleCopy,
-    handlePaste,
-    handleCut,
-    duplicateNodes,
-    surroundWithGroup,
-    getSelectedNodeIds,
-    openNodeMenu,
-    closeNodeMenu,
-    fitScreen
-  });
+  // Memoize handlers with useCallback
+  const handlers = useMemo(
+    () => ({
+      handleClick,
+      handleDoubleClick,
+      handleNodeContextMenu,
+      handlePaneContextMenu,
+      handleSelectionContextMenu,
+      handleOnMoveStart,
+      handleNodesChange,
+      onNodeDoubleClick
+    }),
+    [
+      handleClick,
+      handleDoubleClick,
+      handleNodeContextMenu,
+      handlePaneContextMenu,
+      handleSelectionContextMenu,
+      handleOnMoveStart,
+      handleNodesChange,
+      onNodeDoubleClick
+    ]
+  );
+
+  // Memoize options
+  const flowOptions = useMemo(
+    () => ({
+      minZoom: MIN_ZOOM,
+      maxZoom: MAX_ZOOM,
+      zoomOnDoubleClick: false,
+      autoPanOnNodeDrag: true,
+      autoPanOnConnect: true,
+      autoPanSpeed: 50,
+      fitView: true,
+      fitViewOptions,
+      snapToGrid: true,
+      snapGrid: [settings.gridSnap, settings.gridSnap],
+      defaultViewport,
+      connectionRadius: settings.connectionSnap,
+      selectNodesOnDrag: settings.selectNodesOnDrag,
+      selectionMode: settings.selectionMode as SelectionMode,
+      connectionMode: ConnectionMode.Strict,
+      deleteKeyCode: ["Delete", "Backspace"],
+      proOptions
+    }),
+    [settings, defaultViewport]
+  );
 
   return (
     <div className="reactflow-wrapper" ref={reactFlowWrapper}>
@@ -470,17 +540,13 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
             anchorEl={anchorEl}
           />
         )}
-        {<AxisMarker />}
-        {openMenuType === "node-context-menu" && <NodeContextMenu />}
-        {openMenuType === "pane-context-menu" && <PaneContextMenu />}
-        {openMenuType === "property-context-menu" && <PropertyContextMenu />}
-        {openMenuType === "selection-context-menu" && <SelectionContextMenu />}
-        {openMenuType === "output-context-menu" && <OutputContextMenu />}
-        {openMenuType === "input-context-menu" && <InputContextMenu />}
+        <AxisMarker />
+        <ContextMenus />
         <ConnectableNodes />
         <HuggingFaceDownloadDialog />
       </ReactFlow>
     </div>
   );
 };
+
 export default memo(ReactFlowWrapper, isEqual);
