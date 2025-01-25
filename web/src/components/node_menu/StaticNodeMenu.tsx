@@ -1,8 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { useMemo, useRef } from "react";
+import { memo, useMemo, useRef } from "react";
 import { IconButton, Box } from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close";
 
 // components
 import TypeFilter from "./TypeFilter";
@@ -32,7 +31,7 @@ type StaticNodeMenuProps = {
   className?: string;
 };
 
-export default function StaticNodeMenu({ className }: StaticNodeMenuProps) {
+function StaticNodeMenu({ className }: StaticNodeMenuProps) {
   const containerRef = useRef(null);
   const namespaceTree = useNamespaceTree();
 
@@ -75,3 +74,5 @@ export default function StaticNodeMenu({ className }: StaticNodeMenuProps) {
     </Box>
   );
 }
+
+export default memo(StaticNodeMenu);
