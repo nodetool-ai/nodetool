@@ -5,6 +5,8 @@ import nodetool.nodes.lib.audio.librosa.segmentation
 import nodetool.nodes.lib.audio.pedalboard
 import nodetool.nodes.lib.audio.synthesis
 import nodetool.nodes.lib.audio.transform
+import nodetool.nodes.lib.data.llama_index
+import nodetool.nodes.lib.data.langchain
 import nodetool.nodes.lib.data.numpy
 import nodetool.nodes.lib.data.pandas.dataframe
 import nodetool.nodes.lib.data.seaborn
