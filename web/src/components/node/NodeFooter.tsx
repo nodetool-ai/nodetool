@@ -8,7 +8,7 @@ import ThemeNodes from "../themes/ThemeNodes";
 import { isEqual } from "lodash";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
-import SettingsIcon from "@mui/icons-material/Settings";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 
 const PrettyNamespace = memo<{ namespace: string }>(({ namespace }) => {
   const parts = namespace.split(".");
@@ -102,15 +102,18 @@ export const footerStyles = (theme: any) =>
       backgroundColor: "transparent",
       border: "none",
       cursor: "pointer",
+      transition: "transform 0.2s ease",
+      transformOrigin: "center center",
       "&:hover": {
         color: theme.palette.c_white
       },
-      "&.active": {
-        color: theme.palette.c_hl1
+      "&.active svg": {
+        color: theme.palette.c_hl1,
+        transform: "rotate(180deg)"
       }
     },
     ".advanced-fields-button svg": {
-      scale: "0.5"
+      scale: "0.7"
     }
   });
 
@@ -190,7 +193,7 @@ export const NodeFooter: React.FC<NodeFooterProps> = ({
             tabIndex={-1}
             onClick={onToggleAdvancedFields}
           >
-            <SettingsIcon />
+            <ExpandMoreIcon />
           </Button>
         </Tooltip>
       )}
