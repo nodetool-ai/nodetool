@@ -24,8 +24,8 @@
                 "serve",
                 "--host",
                 "0.0.0.0",
-                // "--worker-url",
-                // "http://localhost:8001"
+                "--static-folder",
+                "${workspaceFolder}/web/dist", // required for electron
             ],
             "console": "integratedTerminal"
         },
