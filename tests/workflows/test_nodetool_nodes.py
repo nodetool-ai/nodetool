@@ -9,6 +9,7 @@ from nodetool.metadata.types import AudioRef, DataframeRef, NPArray
 from nodetool.metadata.types import FolderRef
 from nodetool.common.environment import Environment
 
+from nodetool.nodes.lib.image.pillow import Blend, Composite
 from nodetool.nodes.nodetool.audio import SaveAudio
 from nodetool.nodes.lib.image.pillow.enhance import (
     AutoContrast,
@@ -23,7 +24,7 @@ from nodetool.nodes.lib.image.pillow.enhance import (
     Sharpness,
     UnsharpMask,
 )
-from nodetool.nodes.numpy import SaveArray
+from nodetool.nodes.lib.data.numpy import SaveArray
 from nodetool.workflows.graph import Graph
 from nodetool.metadata.types import ImageRef
 from nodetool.workflows.processing_context import ProcessingContext
@@ -35,9 +36,9 @@ from nodetool.models.asset import (
 from nodetool.models.user import User
 from nodetool.nodes.nodetool.constant import Image
 from nodetool.nodes.lib.data.pandas.dataframe import SaveDataframe
-from nodetool.nodes.nodetool.image import Blend, Composite, SaveImage
+from nodetool.nodes.nodetool.image import SaveImage
 from nodetool.nodes.lib.image.pillow.draw import Background
-from nodetool.nodes.nodetool.image.transform import (
+from nodetool.nodes.lib.image.pillow.filter import (
     Blur,
     Contour,
     Emboss,

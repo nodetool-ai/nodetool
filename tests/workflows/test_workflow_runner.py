@@ -1,6 +1,7 @@
 import PIL.Image
 import PIL.ImageChops
 import pytest
+from nodetool.nodes.lib.image.pillow import Blend
 from nodetool.types.graph import Node, Edge
 from nodetool.types.job import JobUpdate
 from nodetool.models.job import Job
@@ -16,7 +17,6 @@ from nodetool.types.graph import (
     Graph as APIGraph,
 )
 from nodetool.nodes.nodetool.constant import Float, List, String
-from nodetool.nodes.nodetool.image import Blend
 from nodetool.nodes.nodetool.input import (
     FloatInput,
     GroupInput,

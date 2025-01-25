@@ -3,7 +3,7 @@ from io import BytesIO
 from PIL import Image
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.metadata.types import ImageRef, NPArray
-from nodetool.nodes.nodetool.image.transform import (
+from nodetool.nodes.lib.image.pillow.filter import (
     Invert,
     Solarize,
     Posterize,

@@ -2,8 +2,9 @@ import pytest
 import numpy as np
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.metadata.types import NPArray
-from nodetool.nodes.numpy import (
+from nodetool.nodes.lib.data.numpy import (
     Add,
+    ListToArray,
     Subtract,
     Multiply,
     Divide,
@@ -25,11 +26,6 @@ from nodetool.nodes.numpy import (
     ArgMin,
     Abs,
     arrayToScalar,
-    ScalarToarray,
-    ListToarray,
-    Plotarray,
-    PlotTSNE,
-    arrayToList,
     Exp,
     Log,
 )
@@ -172,11 +168,6 @@ dummy_folder = FolderRef(asset_id="dummy_folder_id")
         (ArgMin(array=dummy_array), int),
         (Abs(input_array=dummy_array), NPArray),
         (arrayToScalar(array=NPArray.from_numpy(np.array([5]))), int),
-        (ScalarToarray(value=5), NPArray),
-        (ListToarray(values=[1, 2, 3]), NPArray),
-        (Plotarray(array=dummy_array, plot_type=Plotarray.PlotType.LINE), ImageRef),
-        (PlotTSNE(array=dummy_array, color_indices=[0, 1], perplexity=1), ImageRef),
-        (arrayToList(array=dummy_array), list),
         (Exp(x=dummy_array), NPArray),
         (Log(x=dummy_array), NPArray),
     ],
@@ -222,7 +213,7 @@ async def test_array_to_scalar(context: ProcessingContext):
 
 @pytest.mark.asyncio
 async def test_list_to_array(context: ProcessingContext):
-    node = ListToarray(values=[1, 2, 3, 4, 5])
+    node = ListToArray(values=[1, 2, 3, 4, 5])
     result = await node.process(context)
     np.testing.assert_array_equal(result.to_numpy(), np.array([1, 2, 3, 4, 5]))
 

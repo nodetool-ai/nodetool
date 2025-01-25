@@ -1,4 +1,5 @@
 from io import BytesIO
+import os
 import pytest
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.metadata.types import ImageRef, NPArray
@@ -32,6 +33,7 @@ dummy_image = ImageRef(data=buffer.getvalue())
     ],
 )
 async def test_image_source_nodes(context: ProcessingContext, node, expected_type):
+    context.environment["FONT_PATH"] = os.path.dirname(__file__)
     try:
         result = await node.process(context)
         assert isinstance(result, expected_type)
