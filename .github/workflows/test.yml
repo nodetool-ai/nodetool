@@ -7,6 +7,8 @@ on:
     paths:
       - "src/**"
       - "tests/**"
+      - "requirements.txt"
+      - "requirements.dev.txt"
 
 jobs:
   test:
