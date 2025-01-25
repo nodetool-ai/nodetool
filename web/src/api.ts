@@ -1078,6 +1078,16 @@ export interface components {
             name: string;
             /** Embedding Model */
             embedding_model: string;
+            /**
+             * Buffer Size
+             * @default 10
+             */
+            buffer_size: number;
+            /**
+             * Breakpoint Percentile Threshold
+             * @default 95
+             */
+            breakpoint_percentile_threshold: number;
         };
         /** CollectionList */
         CollectionList: {
@@ -1094,6 +1104,10 @@ export interface components {
             count: number;
             /** Metadata */
             metadata: Record<string, never>;
+            /** Breakpoint Percentile Threshold */
+            breakpoint_percentile_threshold: number;
+            /** Buffer Size */
+            buffer_size: number;
         };
         /** ColumnDef */
         ColumnDef: {
@@ -1256,11 +1270,11 @@ export interface components {
              *       "type": "datetime",
              *       "year": 2025,
              *       "month": 1,
-             *       "day": 22,
-             *       "hour": 0,
-             *       "minute": 28,
-             *       "second": 36,
-             *       "microsecond": 720967,
+             *       "day": 25,
+             *       "hour": 9,
+             *       "minute": 5,
+             *       "second": 55,
+             *       "microsecond": 576538,
              *       "tzinfo": "UTC",
              *       "utc_offset": 0
              *     }
@@ -2327,11 +2341,6 @@ export interface components {
             /** Mime Type */
             mime_type: string;
         };
-        /** IndexRequest */
-        IndexRequest: {
-            /** Files */
-            files: components["schemas"]["IndexFile"][];
-        };
         /** IndexResponse */
         IndexResponse: {
             /** Path */
@@ -3117,6 +3126,11 @@ export interface components {
         };
         /** SettingsModel */
         SettingsModel: {
+            /**
+             * Font Path
+             * @description Location of font folder
+             */
+            FONT_PATH?: string | null;
             /**
              * Comfy Folder
              * @description Location of ComfyUI folder
@@ -5781,7 +5795,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["IndexRequest"];
+                "application/json": components["schemas"]["IndexFile"];
             };
         };
         responses: {
@@ -5791,7 +5805,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["IndexResponse"][];
+                    "application/json": components["schemas"]["IndexResponse"];
                 };
             };
             /** @description Validation Error */
