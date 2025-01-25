@@ -1676,7 +1676,7 @@ class ProcessingContext:
         # First check FONT_PATH environment variable if it exists
         if "FONT_PATH" in self.environment:
             font_path = self.environment["FONT_PATH"]
-            if os.path.exists(font_path):
+            if font_path and os.path.exists(font_path):
                 # If FONT_PATH points directly to a file
                 if os.path.isfile(font_path):
                     return font_path
@@ -1684,6 +1684,8 @@ class ProcessingContext:
                 for root, _, files in os.walk(font_path):
                     if font_name.lower() in [f.lower() for f in files]:
                         return os.path.join(root, font_name)
+
+        home_dir = os.path.expanduser("~")
 
         # Common font locations by OS
         font_locations = {
@@ -1693,19 +1695,21 @@ class ProcessingContext:
             "Darwin": [  # macOS
                 "/System/Library/Fonts",
                 "/Library/Fonts",
-                f"/Users/{os.getenv('USER')}/Library/Fonts",
+                f"{home_dir}/Library/Fonts",
             ],
             "Linux": [
                 "/usr/share/fonts",
                 "/usr/local/share/fonts",
-                f"/home/{os.getenv('USER')}/.fonts",
-                f"/home/{os.getenv('USER')}/.local/share/fonts",
+                f"{home_dir}/.fonts",
+                f"{home_dir}/.local/share/fonts",
             ],
         }
 
         # Get paths for current OS
         current_os = platform.system()
         search_paths = font_locations.get(current_os, [])
+
+        log.info(f"Searching for font {font_name} in {search_paths}")
 
         # Search for the font file
         for base_path in search_paths:

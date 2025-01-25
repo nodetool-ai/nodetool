@@ -28,6 +28,7 @@ from nodetool.nodes.lib.data.pandas.dataframe import (
     SortByColumn,
     RemoveDuplicates,
     RemoveIncompleteRows,
+    JSONToDataframe,
 )
 
 
@@ -67,6 +68,7 @@ df = DataframeRef(
         SortByColumn(df=df, column="a"),
         RemoveDuplicates(df=df),
         RemoveIncompleteRows(df=df),
+        JSONToDataframe(text='[{"a": 1, "b": 2}, {"a": 3, "b": 4}]'),
     ],
 )
 async def test_dataframe_node(context: ProcessingContext, node: BaseNode):
