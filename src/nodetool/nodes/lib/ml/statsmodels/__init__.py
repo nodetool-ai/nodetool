@@ -1,22 +1,23 @@
 import pickle
 from pydantic import Field
-from nodetool.metadata.types import NPArray, SKLearnModel
+from nodetool.metadata.types import NPArray, StatsModelsModel
 from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
 
 
 class PredictNode(BaseNode):
     """
-    Makes predictions using a fitted sklearn model.
-    machine learning, prediction, inference
+    Make predictions using a fitted statsmodels model.
+    machine learning, prediction, regression
 
     Use cases:
-    - Make predictions on new data
-    - Score model performance
+    - Making predictions with fitted models
+    - Model inference
+    - Out-of-sample prediction
     """
 
-    model: SKLearnModel = Field(
-        default=SKLearnModel(), description="Fitted sklearn model"
+    model: StatsModelsModel = Field(
+        default=StatsModelsModel(), description="Fitted statsmodels model"
     )
 
     X: NPArray = Field(default=NPArray(), description="Features to predict on")

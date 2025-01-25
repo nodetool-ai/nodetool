@@ -44,6 +44,13 @@ class LoadBreastCancerDataset(BaseNode):
     - Medical data analysis
     """
 
+    @classmethod
+    def return_type(cls):
+        return {
+            "data": NPArray,
+            "target": NPArray,
+        }
+
     async def process(self, context: ProcessingContext):
         data: Bunch = datasets.load_breast_cancer()  # type: ignore
         return {
@@ -61,6 +68,13 @@ class LoadDiabetesDataset(BaseNode):
     - Regression analysis practice
     - Medical outcome prediction
     """
+
+    @classmethod
+    def return_type(cls):
+        return {
+            "data": NPArray,
+            "target": NPArray,
+        }
 
     async def process(self, context: ProcessingContext):
         data: Bunch = datasets.load_diabetes()  # type: ignore
@@ -80,6 +94,13 @@ class LoadBostonDataset(BaseNode):
     - Regression analysis practice
     """
 
+    @classmethod
+    def return_type(cls):
+        return {
+            "data": NPArray,
+            "target": NPArray,
+        }
+
     async def process(self, context: ProcessingContext):
         data: Bunch = datasets.load_boston()  # type: ignore
         return {
@@ -98,13 +119,19 @@ class LoadDigitsDataset(BaseNode):
     - Image classification basics
     """
 
-    flatten: bool = Field(default=True, description="Whether to flatten the image data")
+    @classmethod
+    def return_type(cls):
+        return {
+            "data": NPArray,
+            "target": NPArray,
+        }
 
-    async def process(self, context: ProcessingContext) -> DataframeRef:
-        data: Bunch = datasets.load_digits(as_frame=True)  # type: ignore
-        df = data.data
-        df["target"] = data["target"]
-        return await context.dataframe_from_pandas(df)
+    async def process(self, context: ProcessingContext):
+        data: Bunch = datasets.load_digits()  # type: ignore
+        return {
+            "data": NPArray.from_numpy(data.data),
+            "target": NPArray.from_numpy(data.target),
+        }
 
 
 class MakeClassificationDataset(BaseNode):

@@ -1084,6 +1084,11 @@ class SKLearnModel(BaseType):
     model: bytes | None = None
 
 
+class StatsModelsModel(BaseType):
+    type: Literal["statsmodels_model"] = "statsmodels_model"
+    model: bytes | None = None
+
+
 class ExcelRef(AssetRef):
     type: Literal["excel"] = "excel"
 

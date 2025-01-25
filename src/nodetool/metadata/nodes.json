@@ -1933,8 +1933,7 @@
           "type": "text_chunk",
           "text": "",
           "source_id": "",
-          "start_index": 0,
-          "end_index": 0
+          "start_index": 0
         },
         "title": "Text Chunk",
         "description": "Text chunk to index",
@@ -2072,206 +2071,6 @@
       "collection",
       "text",
       "document_id"
-    ],
-    "is_dynamic": false
-  },
-  {
-    "title": "Index Documents",
-    "description": "Index multiple document assets at once.\n    chroma, embedding, collection, RAG, index, text, batch",
-    "namespace": "chroma.index",
-    "node_type": "chroma.index.IndexDocuments",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "collection",
-        "type": {
-          "type": "collection",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": {
-          "type": "collection",
-          "name": ""
-        },
-        "title": "Collection",
-        "description": "The collection to index",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "documents",
-        "type": {
-          "type": "list",
-          "optional": false,
-          "values": null,
-          "type_args": [
-            {
-              "type": "document",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
-          "type_name": null
-        },
-        "default": null,
-        "title": "Documents",
-        "description": "List of document assets to index",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "upsert",
-        "type": {
-          "type": "bool",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": false,
-        "title": "Upsert",
-        "description": "Whether to upsert the documents",
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [
-      "collection",
-      "documents",
-      "upsert"
-    ],
-    "is_dynamic": false
-  },
-  {
-    "title": "Index Email",
-    "description": "Index an email's content into a Chroma collection.\n    chroma, embedding, collection, RAG, index, email",
-    "namespace": "chroma.index",
-    "node_type": "chroma.index.IndexEmail",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "collection",
-        "type": {
-          "type": "collection",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": {
-          "type": "collection",
-          "name": ""
-        },
-        "title": "Collection",
-        "description": "The collection to index",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "email",
-        "type": {
-          "type": "email",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": {
-          "type": "email",
-          "id": "",
-          "sender": "",
-          "subject": "",
-          "date": {
-            "type": "datetime",
-            "year": 2025,
-            "month": 1,
-            "day": 25,
-            "hour": 10,
-            "minute": 17,
-            "second": 54,
-            "microsecond": 553423,
-            "tzinfo": "UTC",
-            "utc_offset": 0.0
-          },
-          "body": ""
-        },
-        "title": "Email",
-        "description": "Email to index",
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [
-      "collection",
-      "email"
-    ],
-    "is_dynamic": false
-  },
-  {
-    "title": "Index Emails",
-    "description": "Index multiple emails at once into a Chroma collection.\n    chroma, embedding, collection, RAG, index, email, batch",
-    "namespace": "chroma.index",
-    "node_type": "chroma.index.IndexEmails",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "collection",
-        "type": {
-          "type": "collection",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": {
-          "type": "collection",
-          "name": ""
-        },
-        "title": "Collection",
-        "description": "The collection to index",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "emails",
-        "type": {
-          "type": "list",
-          "optional": false,
-          "values": null,
-          "type_args": [
-            {
-              "type": "email",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
-          "type_name": null
-        },
-        "default": null,
-        "title": "Emails",
-        "description": "List of emails to index",
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [
-      "collection",
-      "emails"
     ],
     "is_dynamic": false
   },
@@ -16973,10 +16772,10 @@
           "year": 2025,
           "month": 1,
           "day": 25,
-          "hour": 10,
-          "minute": 17,
-          "second": 57,
-          "microsecond": 225286,
+          "hour": 19,
+          "minute": 10,
+          "second": 17,
+          "microsecond": 631464,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -18030,10 +17829,10 @@
           "year": 2025,
           "month": 1,
           "day": 25,
-          "hour": 10,
-          "minute": 17,
-          "second": 57,
-          "microsecond": 229048,
+          "hour": 19,
+          "minute": 10,
+          "second": 17,
+          "microsecond": 635537,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -18084,10 +17883,10 @@
           "year": 2025,
           "month": 1,
           "day": 25,
-          "hour": 10,
-          "minute": 17,
-          "second": 57,
-          "microsecond": 229306,
+          "hour": 19,
+          "minute": 10,
+          "second": 17,
+          "microsecond": 635769,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -18138,10 +17937,10 @@
           "year": 2025,
           "month": 1,
           "day": 25,
-          "hour": 10,
-          "minute": 17,
-          "second": 57,
-          "microsecond": 229561,
+          "hour": 19,
+          "minute": 10,
+          "second": 17,
+          "microsecond": 636031,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -18192,10 +17991,10 @@
           "year": 2025,
           "month": 1,
           "day": 25,
-          "hour": 10,
-          "minute": 17,
-          "second": 57,
-          "microsecond": 229824,
+          "hour": 19,
+          "minute": 10,
+          "second": 17,
+          "microsecond": 636259,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -18246,10 +18045,10 @@
           "year": 2025,
           "month": 1,
           "day": 25,
-          "hour": 10,
-          "minute": 17,
-          "second": 57,
-          "microsecond": 230099,
+          "hour": 19,
+          "minute": 10,
+          "second": 17,
+          "microsecond": 636492,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -18300,10 +18099,10 @@
           "year": 2025,
           "month": 1,
           "day": 25,
-          "hour": 10,
-          "minute": 17,
-          "second": 57,
-          "microsecond": 230381,
+          "hour": 19,
+          "minute": 10,
+          "second": 17,
+          "microsecond": 636715,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -18354,10 +18153,10 @@
           "year": 2025,
           "month": 1,
           "day": 25,
-          "hour": 10,
-          "minute": 17,
-          "second": 57,
-          "microsecond": 230594,
+          "hour": 19,
+          "minute": 10,
+          "second": 17,
+          "microsecond": 636979,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -18424,10 +18223,10 @@
           "year": 2025,
           "month": 1,
           "day": 25,
-          "hour": 10,
-          "minute": 17,
-          "second": 57,
-          "microsecond": 230843,
+          "hour": 19,
+          "minute": 10,
+          "second": 17,
+          "microsecond": 637248,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -41286,7 +41085,7 @@
   },
   {
     "title": "Text To Speech",
-    "description": "A generic Text-to-Speech node that can work with various Hugging Face TTS models.\n    tts, audio, speech, huggingface\n\n    Use cases:\n    - Generate speech from text for various applications\n    - Create voice content for apps, websites, or virtual assistants\n    - Produce audio narrations for videos, presentations, or e-learning content",
+    "description": "A generic Text-to-Speech node that can work with various Hugging Face TTS models.\n    tts, audio, speech, huggingface, speak, voice\n\n    Use cases:\n    - Generate speech from text for various applications\n    - Create voice content for apps, websites, or virtual assistants\n    - Produce audio narrations for videos, presentations, or e-learning content",
     "namespace": "huggingface.text_to_speech",
     "node_type": "huggingface.text_to_speech.TextToSpeech",
     "layout": "default",
@@ -69069,7 +68868,7 @@
   },
   {
     "title": "Audio Mixer",
-    "description": "Mix up to 5 audio tracks together with individual volume controls.\n    audio, mix, volume, combine\n\n    Use cases:\n    - Mix multiple audio tracks into a single output\n    - Create layered soundscapes\n    - Combine music, voice, and sound effects\n    - Adjust individual track volumes",
+    "description": "Mix up to 5 audio tracks together with individual volume controls.\n    audio, mix, volume, combine, blend, layer, add, overlay\n\n    Use cases:\n    - Mix multiple audio tracks into a single output\n    - Create layered soundscapes\n    - Combine music, voice, and sound effects\n    - Adjust individual track volumes",
     "namespace": "lib.audio.transform",
     "node_type": "lib.audio.transform.AudioMixer",
     "layout": "default",
@@ -84433,6 +84232,75 @@
     "is_dynamic": false
   },
   {
+    "title": "Predict",
+    "description": "Makes predictions using a fitted sklearn model.\n    machine learning, prediction, inference\n\n    Use cases:\n    - Make predictions on new data\n    - Score model performance",
+    "namespace": "lib.ml.sklearn",
+    "node_type": "lib.ml.sklearn.Predict",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "model",
+        "type": {
+          "type": "sklearn_model",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "sklearn_model",
+          "model": null
+        },
+        "title": "Model",
+        "description": "Fitted sklearn model",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "X",
+        "type": {
+          "type": "np_array",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "np_array",
+          "value": null,
+          "dtype": "<i8",
+          "shape": [
+            1
+          ]
+        },
+        "title": "X",
+        "description": "Features to predict on",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "np_array",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "model",
+      "X"
+    ],
+    "is_dynamic": false
+  },
+  {
     "title": "Select KBest",
     "description": "Select features according to k highest scores.\n    machine learning, feature selection, statistical tests\n\n    Use cases:\n    - Dimensionality reduction\n    - Feature importance ranking\n    - Removing irrelevant features",
     "namespace": "lib.ml.sklearn.feature_selection",
@@ -86168,7 +86036,30 @@
     "node_type": "lib.ml.sklearn.datasets.LoadBreastCancerDataset",
     "layout": "default",
     "properties": [],
-    "outputs": [],
+    "outputs": [
+      {
+        "type": {
+          "type": "np_array",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "data",
+        "stream": false
+      },
+      {
+        "type": {
+          "type": "np_array",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "target",
+        "stream": false
+      }
+    ],
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [],
@@ -86181,7 +86072,30 @@
     "node_type": "lib.ml.sklearn.datasets.LoadDiabetesDataset",
     "layout": "default",
     "properties": [],
-    "outputs": [],
+    "outputs": [
+      {
+        "type": {
+          "type": "np_array",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "data",
+        "stream": false
+      },
+      {
+        "type": {
+          "type": "np_array",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "target",
+        "stream": false
+      }
+    ],
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [],
@@ -86194,7 +86108,30 @@
     "node_type": "lib.ml.sklearn.datasets.LoadBostonDataset",
     "layout": "default",
     "properties": [],
-    "outputs": [],
+    "outputs": [
+      {
+        "type": {
+          "type": "np_array",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "data",
+        "stream": false
+      },
+      {
+        "type": {
+          "type": "np_array",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "target",
+        "stream": false
+      }
+    ],
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [],
@@ -86206,41 +86143,34 @@
     "namespace": "lib.ml.sklearn.datasets",
     "node_type": "lib.ml.sklearn.datasets.LoadDigitsDataset",
     "layout": "default",
-    "properties": [
-      {
-        "name": "flatten",
-        "type": {
-          "type": "bool",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": true,
-        "title": "Flatten",
-        "description": "Whether to flatten the image data",
-        "min": null,
-        "max": null
-      }
-    ],
+    "properties": [],
     "outputs": [
       {
         "type": {
-          "type": "dataframe",
+          "type": "np_array",
           "optional": false,
           "values": null,
           "type_args": [],
           "type_name": null
         },
-        "name": "output",
+        "name": "data",
+        "stream": false
+      },
+      {
+        "type": {
+          "type": "np_array",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "target",
         "stream": false
       }
     ],
     "the_model_info": {},
     "recommended_models": [],
-    "basic_fields": [
-      "flatten"
-    ],
+    "basic_fields": [],
     "is_dynamic": false
   },
   {
@@ -93323,26 +93253,26 @@
   },
   {
     "title": "Predict",
-    "description": "Makes predictions using a fitted sklearn model.\n    machine learning, prediction, inference\n\n    Use cases:\n    - Make predictions on new data\n    - Score model performance",
-    "namespace": "lib.ml.sklearn",
-    "node_type": "lib.ml.sklearn.Predict",
+    "description": "Make predictions using a fitted statsmodels model.\n    machine learning, prediction, regression\n\n    Use cases:\n    - Making predictions with fitted models\n    - Model inference\n    - Out-of-sample prediction",
+    "namespace": "lib.ml.statsmodels",
+    "node_type": "lib.ml.statsmodels.Predict",
     "layout": "default",
     "properties": [
       {
         "name": "model",
         "type": {
-          "type": "sklearn_model",
+          "type": "statsmodels_model",
           "optional": false,
           "values": null,
           "type_args": [],
           "type_name": null
         },
         "default": {
-          "type": "sklearn_model",
+          "type": "statsmodels_model",
           "model": null
         },
         "title": "Model",
-        "description": "Fitted sklearn model",
+        "description": "Fitted statsmodels model",
         "min": null,
         "max": null
       },
@@ -93387,6 +93317,1612 @@
     "basic_fields": [
       "model",
       "X"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Logit",
+    "description": "Logistic Regression using statsmodels.\n    statistics, regression, classification, logistic\n\n    Use cases:\n    - Binary classification\n    - Probability estimation\n    - Statistical inference for classification",
+    "namespace": "lib.ml.statsmodels.discrete",
+    "node_type": "lib.ml.statsmodels.discrete.Logit",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "X",
+        "type": {
+          "type": "np_array",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "np_array",
+          "value": null,
+          "dtype": "<i8",
+          "shape": [
+            1
+          ]
+        },
+        "title": "X",
+        "description": "Features/independent variables",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "y",
+        "type": {
+          "type": "np_array",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "np_array",
+          "value": null,
+          "dtype": "<i8",
+          "shape": [
+            1
+          ]
+        },
+        "title": "Y",
+        "description": "Binary target variable (0/1)",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "statsmodels_model",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "model",
+        "stream": false
+      },
+      {
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "summary",
+        "stream": false
+      },
+      {
+        "type": {
+          "type": "np_array",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "params",
+        "stream": false
+      },
+      {
+        "type": {
+          "type": "np_array",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "pvalues",
+        "stream": false
+      },
+      {
+        "type": {
+          "type": "float",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "pseudo_rsquared",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "X",
+      "y"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Poisson",
+    "description": "Poisson Regression for count data.\n    statistics, regression, count-data, poisson\n\n    Use cases:\n    - Modeling count data\n    - Rate data analysis\n    - Event frequency prediction",
+    "namespace": "lib.ml.statsmodels.discrete",
+    "node_type": "lib.ml.statsmodels.discrete.Poisson",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "X",
+        "type": {
+          "type": "np_array",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "np_array",
+          "value": null,
+          "dtype": "<i8",
+          "shape": [
+            1
+          ]
+        },
+        "title": "X",
+        "description": "Features/independent variables",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "y",
+        "type": {
+          "type": "np_array",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "np_array",
+          "value": null,
+          "dtype": "<i8",
+          "shape": [
+            1
+          ]
+        },
+        "title": "Y",
+        "description": "Count data target variable",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "exposure",
+        "type": {
+          "type": "np_array",
+          "optional": true,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Exposure",
+        "description": "Optional exposure variable",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "offset",
+        "type": {
+          "type": "np_array",
+          "optional": true,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Offset",
+        "description": "Optional offset term",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "statsmodels_model",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "model",
+        "stream": false
+      },
+      {
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "summary",
+        "stream": false
+      },
+      {
+        "type": {
+          "type": "np_array",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "params",
+        "stream": false
+      },
+      {
+        "type": {
+          "type": "np_array",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "pvalues",
+        "stream": false
+      },
+      {
+        "type": {
+          "type": "np_array",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "predicted_counts",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "X",
+      "y",
+      "exposure",
+      "offset"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Negative Binomial",
+    "description": "Negative Binomial Regression for overdispersed count data.\n    statistics, regression, count-data, negative-binomial\n\n    Use cases:\n    - Overdispersed count data\n    - When variance exceeds mean\n    - More flexible than Poisson",
+    "namespace": "lib.ml.statsmodels.discrete",
+    "node_type": "lib.ml.statsmodels.discrete.NegativeBinomial",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "X",
+        "type": {
+          "type": "np_array",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "np_array",
+          "value": null,
+          "dtype": "<i8",
+          "shape": [
+            1
+          ]
+        },
+        "title": "X",
+        "description": "Features/independent variables",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "y",
+        "type": {
+          "type": "np_array",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "np_array",
+          "value": null,
+          "dtype": "<i8",
+          "shape": [
+            1
+          ]
+        },
+        "title": "Y",
+        "description": "Count data target variable",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "exposure",
+        "type": {
+          "type": "np_array",
+          "optional": true,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Exposure",
+        "description": "Optional exposure variable",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "offset",
+        "type": {
+          "type": "np_array",
+          "optional": true,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Offset",
+        "description": "Optional offset term",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "statsmodels_model",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "model",
+        "stream": false
+      },
+      {
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "summary",
+        "stream": false
+      },
+      {
+        "type": {
+          "type": "np_array",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "params",
+        "stream": false
+      },
+      {
+        "type": {
+          "type": "np_array",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "pvalues",
+        "stream": false
+      },
+      {
+        "type": {
+          "type": "np_array",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "predicted_counts",
+        "stream": false
+      },
+      {
+        "type": {
+          "type": "float",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "alpha",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "X",
+      "y",
+      "exposure",
+      "offset"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Multinomial Logit",
+    "description": "Multinomial Logistic Regression for nominal outcomes.\n    statistics, regression, multinomial, classification\n\n    Use cases:\n    - Multiple category classification\n    - Nominal categorical outcomes\n    - Choice modeling",
+    "namespace": "lib.ml.statsmodels.discrete",
+    "node_type": "lib.ml.statsmodels.discrete.MultinomialLogit",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "X",
+        "type": {
+          "type": "np_array",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "np_array",
+          "value": null,
+          "dtype": "<i8",
+          "shape": [
+            1
+          ]
+        },
+        "title": "X",
+        "description": "Features/independent variables",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "y",
+        "type": {
+          "type": "np_array",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "np_array",
+          "value": null,
+          "dtype": "<i8",
+          "shape": [
+            1
+          ]
+        },
+        "title": "Y",
+        "description": "Categorical target variable",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "statsmodels_model",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "model",
+        "stream": false
+      },
+      {
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "summary",
+        "stream": false
+      },
+      {
+        "type": {
+          "type": "np_array",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "params",
+        "stream": false
+      },
+      {
+        "type": {
+          "type": "np_array",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "pvalues",
+        "stream": false
+      },
+      {
+        "type": {
+          "type": "np_array",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "predicted_probs",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "X",
+      "y"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "GLM",
+    "description": "Generalized Linear Models using statsmodels.\n    machine learning, regression, generalized linear models\n\n    Use cases:\n    - Various types of regression (linear, logistic, poisson, etc.)\n    - Handling non-normal error distributions\n    - Complex regression analysis",
+    "namespace": "lib.ml.statsmodels.glm",
+    "node_type": "lib.ml.statsmodels.glm.GLM",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "X_train",
+        "type": {
+          "type": "np_array",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "np_array",
+          "value": null,
+          "dtype": "<i8",
+          "shape": [
+            1
+          ]
+        },
+        "title": "X Train",
+        "description": "Training features",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "y_train",
+        "type": {
+          "type": "np_array",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "np_array",
+          "value": null,
+          "dtype": "<i8",
+          "shape": [
+            1
+          ]
+        },
+        "title": "Y Train",
+        "description": "Training target values",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "family",
+        "type": {
+          "type": "enum",
+          "optional": false,
+          "values": [
+            "gaussian",
+            "binomial",
+            "poisson",
+            "gamma",
+            "inverse_gaussian"
+          ],
+          "type_args": [],
+          "type_name": "nodetool.nodes.lib.ml.statsmodels.glm.GLMFamily"
+        },
+        "default": "gaussian",
+        "title": "Family",
+        "description": "Error distribution family",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "link",
+        "type": {
+          "type": "enum",
+          "optional": true,
+          "values": [
+            "identity",
+            "log",
+            "logit",
+            "probit",
+            "sqrt"
+          ],
+          "type_args": [],
+          "type_name": "nodetool.nodes.lib.ml.statsmodels.glm.GLMLink"
+        },
+        "default": null,
+        "title": "Link",
+        "description": "Link function (if None, uses canonical link)",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "alpha",
+        "type": {
+          "type": "float",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 0.0,
+        "title": "Alpha",
+        "description": "L2 regularization parameter",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "max_iter",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 100,
+        "title": "Max Iter",
+        "description": "Maximum number of iterations",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "sklearn_model",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "model",
+        "stream": false
+      },
+      {
+        "type": {
+          "type": "np_array",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "params",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "X_train",
+      "y_train",
+      "family",
+      "link",
+      "alpha",
+      "max_iter"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "GLMPredict",
+    "description": "Make predictions using a fitted GLM model.\n    machine learning, regression, prediction, generalized linear models\n\n    Use cases:\n    - Prediction with GLM models\n    - Out-of-sample prediction\n    - Model evaluation",
+    "namespace": "lib.ml.statsmodels.glm",
+    "node_type": "lib.ml.statsmodels.glm.GLMPredict",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "model",
+        "type": {
+          "type": "sklearn_model",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "sklearn_model",
+          "model": null
+        },
+        "title": "Model",
+        "description": "Fitted GLM model",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "X",
+        "type": {
+          "type": "np_array",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "np_array",
+          "value": null,
+          "dtype": "<i8",
+          "shape": [
+            1
+          ]
+        },
+        "title": "X",
+        "description": "Features to predict on",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "np_array",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "predictions",
+        "stream": false
+      },
+      {
+        "type": {
+          "type": "np_array",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "standard_errors",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "model",
+      "X"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Mixed LM",
+    "description": "Linear Mixed Effects Model.\n    statistics, regression, mixed effects, hierarchical model\n\n    Use cases:\n    - Hierarchical/nested data\n    - Repeated measures analysis\n    - Longitudinal data analysis\n    - Clustered data",
+    "namespace": "lib.ml.statsmodels.mixed",
+    "node_type": "lib.ml.statsmodels.mixed.MixedLM",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "X",
+        "type": {
+          "type": "np_array",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "np_array",
+          "value": null,
+          "dtype": "<i8",
+          "shape": [
+            1
+          ]
+        },
+        "title": "X",
+        "description": "Features/independent variables",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "y",
+        "type": {
+          "type": "np_array",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "np_array",
+          "value": null,
+          "dtype": "<i8",
+          "shape": [
+            1
+          ]
+        },
+        "title": "Y",
+        "description": "Target/dependent variable",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "groups",
+        "type": {
+          "type": "np_array",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "np_array",
+          "value": null,
+          "dtype": "<i8",
+          "shape": [
+            1
+          ]
+        },
+        "title": "Groups",
+        "description": "Group labels for random effects",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "use_reml",
+        "type": {
+          "type": "bool",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": true,
+        "title": "Use Reml",
+        "description": "Use REML estimation",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "maxiter",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 50,
+        "title": "Maxiter",
+        "description": "Maximum number of iterations",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "statsmodels_model",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "model",
+        "stream": false
+      },
+      {
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "summary",
+        "stream": false
+      },
+      {
+        "type": {
+          "type": "np_array",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "params",
+        "stream": false
+      },
+      {
+        "type": {
+          "type": "dict",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "random_effects",
+        "stream": false
+      },
+      {
+        "type": {
+          "type": "float",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "aic",
+        "stream": false
+      },
+      {
+        "type": {
+          "type": "float",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "bic",
+        "stream": false
+      },
+      {
+        "type": {
+          "type": "float",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "llf",
+        "stream": false
+      },
+      {
+        "type": {
+          "type": "np_array",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "fe_params",
+        "stream": false
+      },
+      {
+        "type": {
+          "type": "np_array",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "bse_fe",
+        "stream": false
+      },
+      {
+        "type": {
+          "type": "np_array",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "cov_re",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "X",
+      "y",
+      "groups",
+      "use_reml",
+      "maxiter"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Mixed LMPredict",
+    "description": "Make predictions using a fitted Mixed Linear Model.\n    statistics, regression, prediction, mixed effects\n\n    Use cases:\n    - Prediction with mixed effects models\n    - Out-of-sample prediction\n    - Model evaluation",
+    "namespace": "lib.ml.statsmodels.mixed",
+    "node_type": "lib.ml.statsmodels.mixed.MixedLMPredict",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "model",
+        "type": {
+          "type": "statsmodels_model",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "statsmodels_model",
+          "model": null
+        },
+        "title": "Model",
+        "description": "Fitted Mixed LM model",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "X",
+        "type": {
+          "type": "np_array",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "np_array",
+          "value": null,
+          "dtype": "<i8",
+          "shape": [
+            1
+          ]
+        },
+        "title": "X",
+        "description": "Features for prediction",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "groups",
+        "type": {
+          "type": "np_array",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "np_array",
+          "value": null,
+          "dtype": "<i8",
+          "shape": [
+            1
+          ]
+        },
+        "title": "Groups",
+        "description": "Group labels for prediction",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "confidence_level",
+        "type": {
+          "type": "float",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 0.95,
+        "title": "Confidence Level",
+        "description": "Confidence level for prediction intervals (between 0 and 1)",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "np_array",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "predictions",
+        "stream": false
+      },
+      {
+        "type": {
+          "type": "np_array",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "standard_errors",
+        "stream": false
+      },
+      {
+        "type": {
+          "type": "np_array",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "conf_intervals_lower",
+        "stream": false
+      },
+      {
+        "type": {
+          "type": "np_array",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "conf_intervals_upper",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "model",
+      "X",
+      "groups",
+      "confidence_level"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "OLS",
+    "description": "Ordinary Least Squares Regression.\n    statistics, regression, linear model\n\n    Use cases:\n    - Linear regression analysis\n    - Statistical inference\n    - Hypothesis testing",
+    "namespace": "lib.ml.statsmodels.regression",
+    "node_type": "lib.ml.statsmodels.regression.OLS",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "X",
+        "type": {
+          "type": "np_array",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "np_array",
+          "value": null,
+          "dtype": "<i8",
+          "shape": [
+            1
+          ]
+        },
+        "title": "X",
+        "description": "Features/independent variables",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "y",
+        "type": {
+          "type": "np_array",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "np_array",
+          "value": null,
+          "dtype": "<i8",
+          "shape": [
+            1
+          ]
+        },
+        "title": "Y",
+        "description": "Target/dependent variable",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "add_constant",
+        "type": {
+          "type": "bool",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": true,
+        "title": "Add Constant",
+        "description": "Add a constant term to the model",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "statsmodels_model",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "model",
+        "stream": false
+      },
+      {
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "summary",
+        "stream": false
+      },
+      {
+        "type": {
+          "type": "np_array",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "params",
+        "stream": false
+      },
+      {
+        "type": {
+          "type": "float",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "rsquared",
+        "stream": false
+      },
+      {
+        "type": {
+          "type": "float",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "rsquared_adj",
+        "stream": false
+      },
+      {
+        "type": {
+          "type": "float",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "fvalue",
+        "stream": false
+      },
+      {
+        "type": {
+          "type": "float",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "f_pvalue",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "X",
+      "y",
+      "add_constant"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "WLS",
+    "description": "Weighted Least Squares Regression.\n    statistics, regression, linear model, weighted\n\n    Use cases:\n    - Heteroscedastic data\n    - Varying observation reliability\n    - Weighted regression analysis",
+    "namespace": "lib.ml.statsmodels.regression",
+    "node_type": "lib.ml.statsmodels.regression.WLS",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "X",
+        "type": {
+          "type": "np_array",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "np_array",
+          "value": null,
+          "dtype": "<i8",
+          "shape": [
+            1
+          ]
+        },
+        "title": "X",
+        "description": "Features/independent variables",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "y",
+        "type": {
+          "type": "np_array",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "np_array",
+          "value": null,
+          "dtype": "<i8",
+          "shape": [
+            1
+          ]
+        },
+        "title": "Y",
+        "description": "Target/dependent variable",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "weights",
+        "type": {
+          "type": "float",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 1.0,
+        "title": "Weights",
+        "description": "Weights for observations",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "add_constant",
+        "type": {
+          "type": "bool",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": true,
+        "title": "Add Constant",
+        "description": "Add a constant term to the model",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "statsmodels_model",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "model",
+        "stream": false
+      },
+      {
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "summary",
+        "stream": false
+      },
+      {
+        "type": {
+          "type": "np_array",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "params",
+        "stream": false
+      },
+      {
+        "type": {
+          "type": "float",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "rsquared",
+        "stream": false
+      },
+      {
+        "type": {
+          "type": "float",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "rsquared_adj",
+        "stream": false
+      },
+      {
+        "type": {
+          "type": "float",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "fvalue",
+        "stream": false
+      },
+      {
+        "type": {
+          "type": "float",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "f_pvalue",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "X",
+      "y",
+      "weights",
+      "add_constant"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "RLM",
+    "description": "Robust Linear Model Regression.\n    statistics, regression, robust, outliers\n\n    Use cases:\n    - Regression with outliers\n    - Robust parameter estimation\n    - Non-normal error distributions",
+    "namespace": "lib.ml.statsmodels.robust",
+    "node_type": "lib.ml.statsmodels.robust.RLM",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "X",
+        "type": {
+          "type": "np_array",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "np_array",
+          "value": null,
+          "dtype": "<i8",
+          "shape": [
+            1
+          ]
+        },
+        "title": "X",
+        "description": "Features/independent variables",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "y",
+        "type": {
+          "type": "np_array",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "np_array",
+          "value": null,
+          "dtype": "<i8",
+          "shape": [
+            1
+          ]
+        },
+        "title": "Y",
+        "description": "Target/dependent variable",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "M",
+        "type": {
+          "type": "enum",
+          "optional": false,
+          "values": [
+            "huber",
+            "least_squares",
+            "andrew_wave",
+            "hampel",
+            "trimmed_mean",
+            "tukey_biweight"
+          ],
+          "type_args": [],
+          "type_name": "nodetool.nodes.lib.ml.statsmodels.robust.MEstimator"
+        },
+        "default": "huber",
+        "title": "M",
+        "description": "M-estimator ('huber', 'bisquare', etc.)",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "statsmodels_model",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "model",
+        "stream": false
+      },
+      {
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "summary",
+        "stream": false
+      },
+      {
+        "type": {
+          "type": "np_array",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "params",
+        "stream": false
+      },
+      {
+        "type": {
+          "type": "float",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "rsquared",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "X",
+      "y",
+      "M"
     ],
     "is_dynamic": false
   },
