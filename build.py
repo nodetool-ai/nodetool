@@ -51,7 +51,6 @@ class Build:
         self,
         clean_build: bool = False,
         python_version: str = "3.11",
-        publish: bool = False,
     ):
         """Initialize Build configuration."""
         platform = system().lower()
@@ -69,7 +68,6 @@ class Build:
         self.platform = platform
         self.arch = arch
         self.python_version = python_version
-        self.publish = publish
 
         self.BUILD_DIR = PROJECT_ROOT / "build"
         self.ENV_DIR = self.BUILD_DIR / "env"
@@ -484,7 +482,6 @@ def main() -> None:
     build = Build(
         clean_build=args.clean,
         python_version=args.python_version,
-        publish=args.publish,
     )
 
     step_method = getattr(build, args.step, None)
