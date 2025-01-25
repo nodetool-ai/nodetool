@@ -69,7 +69,6 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ isMinZoom }) => {
   const duplicateNodes = useDuplicateNodes();
   const duplicateNodesVertical = useDuplicateNodes(true);
   const surroundWithGroup = useSurroundWithGroup();
-  const nodes = useNodeStore((state) => state.nodes);
   const missingModelFiles = useNodeStore((state) => state.missingModelFiles);
   const missingModelRepos = useNodeStore((state) => state.missingModelRepos);
   const clearMissingModels = useNodeStore((state) => state.clearMissingModels);
@@ -94,6 +93,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ isMinZoom }) => {
 
   useCombo(["f"], () => {
     // fit view bounds to selected nodes, fitView when no nodes are selected
+    const nodes = useNodeStore.getState().nodes;
     if (selectedNodes.length) {
       setTimeout(() => {
         setSelectedNodes([]);
