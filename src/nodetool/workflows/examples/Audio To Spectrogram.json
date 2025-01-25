@@ -1,118 +1,33 @@
 {
   "id": "audio_to_spectrogram",
   "access": "public",
-  "created_at": "2024-10-19T16:02:10.139706",
-  "updated_at": "2024-10-19T16:02:10.139726",
+  "created_at": "2025-01-25T23:47:01.592778",
+  "updated_at": "2025-01-25T23:47:01.592790",
   "name": "Audio To Spectrogram",
   "description": "Ceate a spectrogram from an audio file and use creative upscaling, then hang it on your wall.",
   "tags": [
     "multimodal",
     "start"
   ],
-  "thumbnail": "",
+  "thumbnail": null,
   "thumbnail_url": "/examples/audio_to_spectrogram.jpg",
   "graph": {
     "nodes": [
-      {
-        "id": "1",
-        "parent_id": null,
-        "type": "nodetool.constant.Audio",
-        "data": {
-          "value": {
-            "type": "audio",
-            "uri": "https://upload.wikimedia.org/wikipedia/commons/transcoded/4/4f/An_address_by_Opposition_Leader_Anthony_Albanese.ogg/An_address_by_Opposition_Leader_Anthony_Albanese.ogg.mp3?download",
-            "asset_id": null,
-            "temp_id": null
-          }
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 50,
-            "y": 375
-          },
-          "zIndex": 0,
-          "width": 200,
-          "title": "Input",
-          "color": "#d33682",
-          "selectable": true
-        }
-      },
-      {
-        "id": "2",
-        "parent_id": null,
-        "type": "nodetool.audio.analysis.MelSpectrogram",
-        "data": {
-          "n_fft": 2048,
-          "hop_length": 512,
-          "n_mels": 256,
-          "fmin": 0,
-          "fmax": 1000
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 510,
-            "y": 351
-          },
-          "zIndex": 0,
-          "width": 200,
-          "selectable": true
-        }
-      },
-      {
-        "id": "4",
-        "parent_id": null,
-        "type": "nodetool.workflows.base_node.Preview",
-        "data": {
-          "name": "image_output"
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 1000,
-            "y": 50
-          },
-          "zIndex": 0,
-          "width": 285,
-          "height": 306,
-          "selectable": true
-        }
-      },
-      {
-        "id": "5",
-        "parent_id": null,
-        "type": "nodetool.audio.transform.SliceAudio",
-        "data": {
-          "start": 0,
-          "end": 5
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 280,
-            "y": 392
-          },
-          "zIndex": 0,
-          "width": 200,
-          "selectable": true
-        }
-      },
       {
         "id": "6",
         "parent_id": null,
         "type": "lib.data.numpy.ConvertToImage",
         "data": {},
         "ui_properties": {
-          "selected": false,
           "position": {
-            "x": 740,
-            "y": 419
+            "x": 428,
+            "y": 132
           },
           "zIndex": 0,
-          "width": 200,
+          "width": 108,
           "selectable": true
-        }
+        },
+        "dynamic_properties": {}
       },
       {
         "id": "9",
@@ -172,7 +87,6 @@
           ]
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 23,
             "y": -170
@@ -181,7 +95,8 @@
           "width": 602,
           "height": 156,
           "selectable": true
-        }
+        },
+        "dynamic_properties": {}
       },
       {
         "id": "10",
@@ -217,121 +132,152 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 1315,
-            "y": 200
+            "x": 690,
+            "y": 50
           },
           "zIndex": 0,
           "width": 200,
+          "title": "Generate an image that resembles a nigh skyline",
           "color": "#cb4b16",
           "selectable": true
-        }
+        },
+        "dynamic_properties": {}
       },
       {
-        "id": "12",
+        "id": "31",
         "parent_id": null,
-        "type": "nodetool.image.transform.Resize",
+        "type": "lib.audio.librosa.analysis.MelSpectrogram",
         "data": {
-          "width": 1024,
-          "height": 1024
+          "n_fft": 2048,
+          "hop_length": 512,
+          "n_mels": 128,
+          "fmin": 0,
+          "fmax": 8000
         },
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 1042.5,
-            "y": 406
+            "x": 238,
+            "y": 111
           },
           "zIndex": 0,
-          "width": 200,
+          "width": 160,
+          "title": "Turn the audoi file into a Spectrogram",
           "selectable": true
-        }
+        },
+        "dynamic_properties": {}
       },
       {
-        "id": "30",
+        "id": "32",
         "parent_id": null,
-        "type": "nodetool.workflows.base_node.Preview",
+        "type": "nodetool.input.AudioInput",
         "data": {
-          "name": "image_output_2024-09-23"
+          "name": "",
+          "description": "",
+          "value": {
+            "type": "audio",
+            "uri": "",
+            "asset_id": null,
+            "data": null
+          }
         },
         "ui_properties": {
-          "selected": false,
           "position": {
-            "x": 1545,
-            "y": 247
+            "x": 50,
+            "y": 128
           },
           "zIndex": 0,
-          "width": 460,
-          "height": 456,
+          "width": 158,
           "selectable": true
-        }
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "33",
+        "parent_id": null,
+        "type": "nodetool.image.Resize",
+        "data": {
+          "width": 512,
+          "height": 512
+        },
+        "ui_properties": {
+          "position": {
+            "x": 566,
+            "y": 111
+          },
+          "zIndex": 0,
+          "width": 94,
+          "selectable": true
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "34",
+        "parent_id": null,
+        "type": "nodetool.output.ImageOutput",
+        "data": {
+          "name": "output",
+          "description": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 920,
+            "y": 114
+          },
+          "zIndex": 0,
+          "width": 159,
+          "selectable": true
+        },
+        "dynamic_properties": {}
       }
     ],
     "edges": [
       {
-        "id": "10838350-8991-4ac5-94ba-4fabccf77279",
-        "source": "2",
+        "id": "fdb9ee90-95f1-4f3d-9f6f-0d8f08346858",
+        "source": "32",
+        "sourceHandle": "output",
+        "target": "31",
+        "targetHandle": "audio",
+        "ui_properties": {
+          "className": "audio"
+        }
+      },
+      {
+        "id": "4889859f-e029-4ca5-8e67-8d1b219791c1",
+        "source": "31",
         "sourceHandle": "output",
         "target": "6",
-        "targetHandle": "tensor",
+        "targetHandle": "array",
         "ui_properties": {
-          "className": "tensor"
+          "className": "np_array"
         }
       },
       {
-        "id": "0047f77f-0fb1-4c3c-aeb1-b64246646e1b",
-        "source": "5",
-        "sourceHandle": "output",
-        "target": "2",
-        "targetHandle": "audio",
-        "ui_properties": {
-          "className": "audio"
-        }
-      },
-      {
-        "id": "600c4f11-db49-4e41-a376-c36455132bbd",
-        "source": "10",
-        "sourceHandle": "output",
-        "target": "30",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "image"
-        }
-      },
-      {
-        "id": "6a3890ca-beaf-4d63-90d5-5cb2b64d97ae",
-        "source": "1",
-        "sourceHandle": "output",
-        "target": "5",
-        "targetHandle": "audio",
-        "ui_properties": {
-          "className": "audio"
-        }
-      },
-      {
-        "id": "f49fa87f-6a65-4ddb-a873-24c845f0af81",
-        "source": "6",
-        "sourceHandle": "output",
-        "target": "4",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "image"
-        }
-      },
-      {
-        "id": "8a1c37a3-bcb9-4323-8305-1c3e8496c7f4",
-        "source": "6",
-        "sourceHandle": "output",
-        "target": "12",
-        "targetHandle": "image",
-        "ui_properties": {
-          "className": "image"
-        }
-      },
-      {
-        "id": "4c2e0fa7-3866-46b7-b44f-ba37eb30d15d",
-        "source": "12",
+        "id": "e73c9d8d-331c-4378-a41c-c37405e66445",
+        "source": "33",
         "sourceHandle": "output",
         "target": "10",
         "targetHandle": "init_image",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "4889860",
+        "source": "10",
+        "sourceHandle": "output",
+        "target": "34",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "d46b225c-2fac-4dc0-ac15-0644dbbe38e4",
+        "source": "6",
+        "sourceHandle": "output",
+        "target": "33",
+        "targetHandle": "image",
         "ui_properties": {
           "className": "image"
         }
