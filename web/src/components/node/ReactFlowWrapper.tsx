@@ -105,28 +105,6 @@ const FlowBackground = memo(() => (
   />
 ));
 
-// Extract node title editor into a component
-const NodeTitleEditorWrapper = memo(
-  ({
-    editNodeTitle,
-    anchorEl,
-    onClose
-  }: {
-    editNodeTitle: string | undefined;
-    anchorEl: HTMLElement | null;
-    onClose: () => void;
-  }) => {
-    if (!editNodeTitle || !anchorEl) return null;
-    return (
-      <NodeTitleEditor
-        nodeId={editNodeTitle}
-        onClose={onClose}
-        anchorEl={anchorEl}
-      />
-    );
-  }
-);
-
 const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   isMinZoom,
   reactFlowWrapper
@@ -137,18 +115,14 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     onConnect,
     onNodesChange,
     onEdgesChange,
-    onEdgeUpdate,
-    updateNodeData,
-    findNode
+    onEdgeUpdate
   } = useNodeStore((state) => ({
     nodes: state.nodes,
     edges: state.edges,
     onConnect: state.onConnect,
     onNodesChange: state.onNodesChange,
     onEdgesChange: state.onEdgesChange,
-    onEdgeUpdate: state.onEdgeUpdate,
-    updateNodeData: state.updateNodeData,
-    findNode: state.findNode
+    onEdgeUpdate: state.onEdgeUpdate
   }));
 
   const { handleOnConnect, onConnectStart, onConnectEnd } =
@@ -341,7 +315,6 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     onSelectionDrag,
     onSelectionDragStop,
     onSelectionStart,
-    onSelectionEnd,
     onNodeDragStart,
     onNodeDragStop,
     panOnDrag,
@@ -406,54 +379,6 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
       fitScreen();
     }, 10);
   }, [fitScreen]);
-
-  // Memoize handlers with useCallback
-  const handlers = useMemo(
-    () => ({
-      handleClick,
-      handleDoubleClick,
-      handleNodeContextMenu,
-      handlePaneContextMenu,
-      handleSelectionContextMenu,
-      handleOnMoveStart,
-      handleNodesChange,
-      onNodeDoubleClick
-    }),
-    [
-      handleClick,
-      handleDoubleClick,
-      handleNodeContextMenu,
-      handlePaneContextMenu,
-      handleSelectionContextMenu,
-      handleOnMoveStart,
-      handleNodesChange,
-      onNodeDoubleClick
-    ]
-  );
-
-  // Memoize options
-  const flowOptions = useMemo(
-    () => ({
-      minZoom: MIN_ZOOM,
-      maxZoom: MAX_ZOOM,
-      zoomOnDoubleClick: false,
-      autoPanOnNodeDrag: true,
-      autoPanOnConnect: true,
-      autoPanSpeed: 50,
-      fitView: true,
-      fitViewOptions,
-      snapToGrid: true,
-      snapGrid: [settings.gridSnap, settings.gridSnap],
-      defaultViewport,
-      connectionRadius: settings.connectionSnap,
-      selectNodesOnDrag: settings.selectNodesOnDrag,
-      selectionMode: settings.selectionMode as SelectionMode,
-      connectionMode: ConnectionMode.Strict,
-      deleteKeyCode: ["Delete", "Backspace"],
-      proOptions
-    }),
-    [settings, defaultViewport]
-  );
 
   return (
     <div className="reactflow-wrapper" ref={reactFlowWrapper}>
@@ -521,18 +446,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
         // onNodeClick={onNodeClick}
         deleteKeyCode={["Delete", "Backspace"]}
       >
-        <Background
-          id="1"
-          gap={100}
-          offset={4}
-          size={8}
-          color={ThemeNodes.palette.c_editor_grid_color}
-          lineWidth={1}
-          style={{
-            backgroundColor: ThemeNodes.palette.c_editor_bg_color
-          }}
-          variant={BackgroundVariant.Cross}
-        />
+        <FlowBackground />
         {editNodeTitle && anchorEl && (
           <NodeTitleEditor
             nodeId={editNodeTitle}
