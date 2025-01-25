@@ -7,7 +7,6 @@ from nodetool.nodes.lib.image.pillow.filter import (
     Invert,
     Solarize,
     Posterize,
-    Fit,
     Expand,
     Blur,
     Contour,
@@ -15,12 +14,10 @@ from nodetool.nodes.lib.image.pillow.filter import (
     FindEdges,
     Smooth,
     Canny,
-    Scale,
-    Resize,
-    Crop,
     ConvertToGrayscale,
     GetChannel,
 )
+from nodetool.nodes.nodetool.image import Fit, Scale, Resize, Crop
 
 # Create a dummy ImageRef for testing
 buffer = BytesIO()
