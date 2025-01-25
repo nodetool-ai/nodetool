@@ -222,6 +222,9 @@ type NodeMenuStore = {
   clickPosition: { x: number; y: number };
 
   groupedSearchResults: SearchResultGroup[];
+
+  filterNodes: (nodes: NodeMetadata[]) => NodeMetadata[];
+  getCurrentNodes: () => NodeMetadata[];
 };
 
 const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
@@ -375,6 +378,57 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
         nodes: descriptionResults
       }
     ].filter((group) => group.nodes.length > 0);
+  };
+
+  const filterNodes = (nodes: NodeMetadata[]) => {
+    if (!nodes) return [];
+
+    const minSearchTermLength =
+      get().searchTerm.includes("+") ||
+      get().searchTerm.includes("-") ||
+      get().searchTerm.includes("*") ||
+      get().searchTerm.includes("/")
+        ? 0
+        : 1;
+
+    const filteredNodes = nodes
+      .filter((node) => {
+        // When searching or filtering by types, show all matching nodes
+        if (
+          get().searchTerm.length > minSearchTermLength ||
+          get().selectedInputType ||
+          get().selectedOutputType
+        ) {
+          return get().searchResults.some(
+            (result) =>
+              result.title === node.title && result.namespace === node.namespace
+          );
+        }
+
+        // Otherwise filter by namespace selection
+        const selectedPathString = get().selectedPath.join(".");
+        const isExactMatch = node.namespace === selectedPathString;
+        const isDirectChild =
+          node.namespace.startsWith(selectedPathString + ".") &&
+          node.namespace.split(".").length ===
+            selectedPathString.split(".").length + 1;
+        const isRootNamespace = !selectedPathString.includes(".");
+        const isDescendant = node.namespace.startsWith(
+          selectedPathString + "."
+        );
+
+        return (
+          isExactMatch || isDirectChild || (isRootNamespace && isDescendant)
+        );
+      })
+      .sort((a, b) => {
+        const namespaceComparison = a.namespace.localeCompare(b.namespace);
+        return namespaceComparison !== 0
+          ? namespaceComparison
+          : a.title.localeCompare(b.title);
+      });
+
+    return filteredNodes;
   };
 
   return {
@@ -704,6 +758,12 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
       }
 
       set({ highlightedNamespaces: [...newHighlightedNamespaces] });
+    },
+
+    filterNodes,
+    getCurrentNodes: () => {
+      const metadata = useMetadataStore.getState().getAllMetadata();
+      return filterNodes(metadata);
     }
   };
 });

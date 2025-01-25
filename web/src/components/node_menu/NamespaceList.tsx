@@ -274,6 +274,9 @@ const namespaceStyles = (theme: any, inPanel: boolean) =>
     ".namespace-item": {
       color: theme.palette.c_white,
       textTransform: "capitalize",
+      whiteSpace: "nowrap",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
       userSelect: "none"
     },
     ".disabled .namespace-item": {
@@ -368,7 +371,8 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
     hoveredNode,
     setHoveredNode,
     selectedInputType,
-    selectedOutputType
+    selectedOutputType,
+    getCurrentNodes
   } = useNodeMenuStore((state) => ({
     searchTerm: state.searchTerm,
     highlightedNamespaces: state.highlightedNamespaces,
@@ -378,7 +382,8 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
     hoveredNode: state.hoveredNode,
     setHoveredNode: state.setHoveredNode,
     selectedInputType: state.selectedInputType,
-    selectedOutputType: state.selectedOutputType
+    selectedOutputType: state.selectedOutputType,
+    getCurrentNodes: state.getCurrentNodes
   }));
 
   const selectedPathString = useMemo(
@@ -415,62 +420,10 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
     return { enabledTree: enabled, disabledTree: disabled };
   }, [namespaceTree]);
 
-  const filterNodes = useCallback(
-    (nodes: NodeMetadata[]) => {
-      if (!nodes) return [];
-
-      const filteredNodes = nodes
-        .filter((node) => {
-          // When searching or filtering by types, show all matching nodes
-          if (
-            searchTerm.length > minSearchTermLength ||
-            selectedInputType ||
-            selectedOutputType
-          ) {
-            return searchResults.some(
-              (result) =>
-                result.title === node.title &&
-                result.namespace === node.namespace
-            );
-          }
-
-          // Otherwise filter by namespace selection
-          const isExactMatch = node.namespace === selectedPathString;
-          const isDirectChild =
-            node.namespace.startsWith(selectedPathString + ".") &&
-            node.namespace.split(".").length ===
-              selectedPathString.split(".").length + 1;
-          const isRootNamespace = !selectedPathString.includes(".");
-          const isDescendant = node.namespace.startsWith(
-            selectedPathString + "."
-          );
-
-          return (
-            isExactMatch || isDirectChild || (isRootNamespace && isDescendant)
-          );
-        })
-        .sort((a, b) => {
-          const namespaceComparison = a.namespace.localeCompare(b.namespace);
-          return namespaceComparison !== 0
-            ? namespaceComparison
-            : a.title.localeCompare(b.title);
-        });
-
-      return filteredNodes;
-    },
-    [
-      selectedPathString,
-      searchTerm.length,
-      selectedInputType,
-      selectedOutputType,
-      searchResults
-    ]
+  const currentNodes = useMemo(
+    () => getCurrentNodes(),
+    [metadata, getCurrentNodes]
   );
-
-  const currentNodes = useMemo(() => {
-    const nodes = filterNodes(metadata);
-    return nodes;
-  }, [metadata, filterNodes]);
 
   const renderNamespaces = useMemo(
     () => (
@@ -508,7 +461,6 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
   );
 
   const totalNodes = useMetadataStore((state) => state.getAllMetadata()).length;
-  const currentPath = useNodeMenuStore((state) => state.selectedPath.join("."));
 
   return (
     <div
