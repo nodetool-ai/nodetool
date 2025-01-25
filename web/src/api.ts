@@ -1078,16 +1078,6 @@ export interface components {
             name: string;
             /** Embedding Model */
             embedding_model: string;
-            /**
-             * Buffer Size
-             * @default 10
-             */
-            buffer_size: number;
-            /**
-             * Breakpoint Percentile Threshold
-             * @default 95
-             */
-            breakpoint_percentile_threshold: number;
         };
         /** CollectionList */
         CollectionList: {
@@ -1104,10 +1094,6 @@ export interface components {
             count: number;
             /** Metadata */
             metadata: Record<string, never>;
-            /** Breakpoint Percentile Threshold */
-            breakpoint_percentile_threshold: number;
-            /** Buffer Size */
-            buffer_size: number;
         };
         /** ColumnDef */
         ColumnDef: {
@@ -1271,10 +1257,10 @@ export interface components {
              *       "year": 2025,
              *       "month": 1,
              *       "day": 25,
-             *       "hour": 9,
-             *       "minute": 5,
-             *       "second": 55,
-             *       "microsecond": 576538,
+             *       "hour": 17,
+             *       "minute": 25,
+             *       "second": 49,
+             *       "microsecond": 110135,
              *       "tzinfo": "UTC",
              *       "utc_offset": 0
              *     }
