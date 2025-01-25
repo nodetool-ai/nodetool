@@ -38,43 +38,43 @@ const NodeItem = memo(
       const outputType =
         node.outputs.length > 0 ? node.outputs[0].type.type : "";
       const searchTerm = useNodeMenuStore((state) => state.searchTerm);
-      const selectedPath = useNodeMenuStore((state) => state.selectedPath);
+      // const selectedPath = useNodeMenuStore((state) => state.selectedPath);
 
-      const getMatchReason = () => {
-        if (searchTerm) {
-          if (!node.searchInfo) {
-            return "Warning: No search info available";
-          }
+      // const getMatchReason = () => {
+      //   if (searchTerm) {
+      //     if (!node.searchInfo) {
+      //       return "Warning: No search info available";
+      //     }
 
-          const { score, matches } = node.searchInfo;
-          const matchDetails =
-            matches?.map(
-              (match) =>
-                `${match.key}: "${match.value.substring(
-                  match.indices[0][0],
-                  match.indices[0][1]
-                )}"`
-            ) || [];
+      //     const { score, matches } = node.searchInfo;
+      //     const matchDetails =
+      //       matches?.map(
+      //         (match) =>
+      //           `${match.key}: "${match.value.substring(
+      //             match.indices[0][0],
+      //             match.indices[0][1]
+      //           )}"`
+      //       ) || [];
 
-          return (
-            <div style={{ fontSize: "1.1em", padding: "4px" }}>
-              <div>Search: "{searchTerm}"</div>
-              <div style={{ color: "#aaa", marginTop: "4px" }}>
-                Score: {score?.toFixed(3)}
-              </div>
-              {matchDetails.length > 0 && (
-                <div style={{ color: "#aaa", marginTop: "4px" }}>
-                  Matches: {matchDetails.join(", ")}
-                </div>
-              )}
-            </div>
-          );
-        }
-        if (selectedPath.length > 0) {
-          return `In namespace: ${selectedPath.join(".")}`;
-        }
-        return "All nodes";
-      };
+      //     return (
+      //       <div style={{ fontSize: "1.1em", padding: "4px" }}>
+      //         <div>Search: "{searchTerm}"</div>
+      //         <div style={{ color: "#aaa", marginTop: "4px" }}>
+      //           Score: {score?.toFixed(3)}
+      //         </div>
+      //         {matchDetails.length > 0 && (
+      //           <div style={{ color: "#aaa", marginTop: "4px" }}>
+      //             Matches: {matchDetails.join(", ")}
+      //           </div>
+      //         )}
+      //       </div>
+      //     );
+      //   }
+      //   if (selectedPath.length > 0) {
+      //     return `In namespace: ${selectedPath.join(".")}`;
+      //   }
+      //   return "All nodes";
+      // };
 
       const highlightNodeTitle = useCallback(
         (title: string): string => {
