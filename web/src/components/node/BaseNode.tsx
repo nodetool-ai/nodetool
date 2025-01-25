@@ -9,6 +9,7 @@ import {
   NodeProps,
   NodeResizer,
   NodeToolbar,
+  NodeToolbarProps,
   Position,
   ResizeParams
 } from "@xyflow/react";
@@ -56,6 +57,16 @@ const resizer = (
     </div>
   </div>
 );
+
+const Toolbar = memo(({ id }: { id: string }) => {
+  const { activeSelect } = useSelect();
+  if (activeSelect) return null;
+  return (
+    <NodeToolbar position={Position.Bottom} offset={0}>
+      <NodeToolButtons nodeId={id} />
+    </NodeToolbar>
+  );
+});
 
 /**
  * BaseNode renders a single node in the workflow
@@ -136,7 +147,6 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   // Node-specific data and relationships
   const parentId = props.parentId;
   const hasParent = Boolean(parentId);
-  const { activeSelect } = useSelect();
   const [showAdvancedFields, setShowAdvancedFields] = useState(false);
 
   // Workflow and status
@@ -274,34 +284,6 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     [metadata]
   );
 
-  useRenderLogger(props.type || "", {
-    metadata,
-    className,
-    props,
-    ThemeNodes,
-    nodeColors,
-    minHeight,
-    workflowId,
-    status,
-    isProduction,
-    nodeNamespace,
-    isConstantNode,
-    isOutputNode,
-    renderedResult,
-    resizer,
-    nodeBasicFields,
-    memoizedStyles,
-    result,
-    hasParent,
-    isLoading,
-    showAdvancedFields,
-    hasAdvancedFields,
-    activeSelect,
-    headerColor,
-    footerColor,
-    description
-  });
-
   return (
     <Container
       css={memoizedStyles}
@@ -315,11 +297,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           : ThemeNodes.palette.c_node_bg
       }}
     >
-      {props.selected && !activeSelect && (
-        <NodeToolbar position={Position.Bottom} offset={0}>
-          <NodeToolButtons nodeId={props.id} />
-        </NodeToolbar>
-      )}
+      {props.selected && <Toolbar id={props.id} />}
       <NodeHeader
         id={props.id}
         data={props.data}
