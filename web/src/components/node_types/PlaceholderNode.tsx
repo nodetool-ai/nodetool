@@ -29,7 +29,7 @@ const styles = (theme: any) =>
       outline: "2px solid" + theme.palette.c_error
     },
     ".node-header ": {
-      minWidth: "150px",
+      minWidth: "50px",
       backgroundColor: theme.palette.c_error
     },
     ".node-property": {
