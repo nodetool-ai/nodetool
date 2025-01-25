@@ -42,17 +42,14 @@ const CommandMenu: React.FC<CommandMenuProps> = ({
   redo,
   reactFlowWrapper
 }) => {
-  const saveWorkflow = useNodeStore((state) => state.saveWorkflow);
-  const newWorkflow = useNodeStore((state) => state.newWorkflow);
-  const runWorkflow = useWorkflowRunnner((state) => state.run);
-  const cancelWorkflow = useWorkflowRunnner((state) => state.cancel);
-  const saveExample = useWorkflowStore((state) => state.saveExample);
-  const autoLayout = useNodeStore((state) => state.autoLayout);
-  const workflowJSON = useNodeStore((state) => state.workflowJSON);
-  const workflow = useNodeStore((state) => state.workflow);
-  const addNotification = useNotificationStore(
-    (state) => state.addNotification
-  );
+  const [pastePosition, setPastePosition] = useState({ x: 0, y: 0 });
+  const input = useRef<HTMLInputElement>(null);
+  const navigate = useNavigate();
+
+  const { data: examples } = useQuery({
+    queryKey: ["examples"],
+    queryFn: useWorkflowStore.getState().loadExamples
+  });
 
   const { width: reactFlowWidth, height: reactFlowHeight } = useMemo(
     () =>
@@ -68,11 +65,9 @@ const CommandMenu: React.FC<CommandMenuProps> = ({
     y: reactFlowHeight / 2
   });
 
-  const [pastePosition, setPastePosition] = useState({ x: 0, y: 0 });
   const alignNodes = useAlignNodes();
-  const input = useRef<HTMLInputElement>(null);
   const { writeClipboard } = useClipboard();
-  const metadata = useMetadataStore((state) => state.getAllMetadata());
+
   useEffect(() => {
     const focusInput = () => {
       const inputElement = document.querySelector("input[cmdk-input]");
@@ -91,12 +86,14 @@ const CommandMenu: React.FC<CommandMenuProps> = ({
   }, [open, pastePosition]);
 
   const groupedByCategory = useMemo(
-    () =>
-      metadata.reduce<Record<string, NodeMetadata[]>>((acc, curr) => {
+    () => {
+      const metadata = useMetadataStore.getState().getAllMetadata();
+      return metadata.reduce<Record<string, NodeMetadata[]>>((acc, curr) => {
         (acc[curr.namespace] = acc[curr.namespace] || []).push(curr);
         return acc;
-      }, {}),
-    [metadata]
+      }, {});
+    },
+    [] // removed metadata dependency since we're getting it fresh each time
   );
 
   const close = useCallback(() => {
@@ -104,23 +101,25 @@ const CommandMenu: React.FC<CommandMenuProps> = ({
   }, [setOpen]);
 
   const downloadWorkflow = useCallback(() => {
-    const json = workflowJSON();
-    const blob = new Blob([json], { type: "application/json" });
+    const workflowJSON = useNodeStore.getState().workflowJSON();
+    const workflow = useNodeStore.getState().workflow;
+    const blob = new Blob([workflowJSON], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.download = `${workflow.name}.json`;
     link.href = url;
     link.click();
-  }, [workflow.name, workflowJSON]);
+  }, []);
 
   const copyWorkflow = useCallback(() => {
+    const workflow = useNodeStore.getState().workflow;
     writeClipboard(JSON.stringify(workflow), true, true);
-    addNotification({
+    useNotificationStore.getState().addNotification({
       type: "info",
       alert: true,
       content: "Copied workflow JSON to Clipboard!"
     });
-  }, [addNotification, workflow, writeClipboard]);
+  }, [writeClipboard]);
 
   const executeAndClose = useCallback(
     (action: () => void) => {
@@ -129,31 +128,29 @@ const CommandMenu: React.FC<CommandMenuProps> = ({
     },
     [close]
   );
-  const navigate = useNavigate();
-  const copy = useWorkflowStore((state) => state.copy);
-  const loadExamples = useWorkflowStore((state) => state.loadExamples);
-  const { data: examples } = useQuery({
-    queryKey: ["examples"],
-    queryFn: loadExamples
-  });
 
   const loadExample = useCallback(
     (workflow: Workflow) => {
-      copy(workflow).then((workflow) => {
-        navigate("/editor/" + workflow.id);
-      });
+      useWorkflowStore
+        .getState()
+        .copy(workflow)
+        .then((workflow) => {
+          navigate("/editor/" + workflow.id);
+        });
     },
-    [copy, navigate]
+    [navigate]
   );
 
   const saveAsExample = useCallback(() => {
     const currentWorkflow = useNodeStore.getState().getWorkflow();
+    const saveExample = useWorkflowStore.getState().saveExample;
+    const addNotification = useNotificationStore.getState().addNotification;
+
     const existingExample = examples?.workflows.find(
       (w) => w.name === currentWorkflow.name
     );
 
     if (existingExample) {
-      // Ask for confirmation before overwriting
       if (
         window.confirm(
           `An example with the name "${currentWorkflow.name}" already exists. Do you want to overwrite it?`
@@ -167,7 +164,6 @@ const CommandMenu: React.FC<CommandMenuProps> = ({
         });
       }
     } else {
-      // Save as a new example
       saveExample(currentWorkflow.id, currentWorkflow);
       addNotification({
         type: "info",
@@ -175,7 +171,7 @@ const CommandMenu: React.FC<CommandMenuProps> = ({
         content: "Saved workflow as a new example!"
       });
     }
-  }, [addNotification, saveExample, examples]);
+  }, [examples]);
 
   return (
     <Dialog
@@ -189,7 +185,11 @@ const CommandMenu: React.FC<CommandMenuProps> = ({
         <Command.List>
           <Command.Empty>No results found.</Command.Empty>
           <Command.Group heading="Workflow">
-            <Command.Item onSelect={() => executeAndClose(runWorkflow)}>
+            <Command.Item
+              onSelect={() =>
+                executeAndClose(useWorkflowRunnner.getState().run)
+              }
+            >
               Run Workflow
             </Command.Item>
             <Command.Item onSelect={() => executeAndClose(downloadWorkflow)}>
@@ -198,16 +198,32 @@ const CommandMenu: React.FC<CommandMenuProps> = ({
             <Command.Item onSelect={() => executeAndClose(copyWorkflow)}>
               Copy Workflow as JSON
             </Command.Item>
-            <Command.Item onSelect={() => executeAndClose(saveWorkflow)}>
+            <Command.Item
+              onSelect={() =>
+                executeAndClose(useNodeStore.getState().saveWorkflow)
+              }
+            >
               Save Workflow
             </Command.Item>
-            <Command.Item onSelect={() => executeAndClose(newWorkflow)}>
+            <Command.Item
+              onSelect={() =>
+                executeAndClose(useNodeStore.getState().newWorkflow)
+              }
+            >
               New Workflow
             </Command.Item>
-            <Command.Item onSelect={() => executeAndClose(cancelWorkflow)}>
+            <Command.Item
+              onSelect={() =>
+                executeAndClose(useWorkflowRunnner.getState().cancel)
+              }
+            >
               Cancel Workflow
             </Command.Item>
-            <Command.Item onSelect={() => executeAndClose(autoLayout)}>
+            <Command.Item
+              onSelect={() =>
+                executeAndClose(useNodeStore.getState().autoLayout)
+              }
+            >
               Auto Layout
             </Command.Item>
             {process.env.NODE_ENV === "development" && (

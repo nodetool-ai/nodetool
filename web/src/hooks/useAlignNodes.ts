@@ -11,14 +11,13 @@ type AlignNodesOptions = {
 const useAlignNodes = () => {
   const VERTICAL_SPACING = 20;
   const HORIZONTAL_SPACING = 40;
-  const setNodes = useNodeStore((state) => state.setNodes);
   const setExplicitSave = useNodeStore((state) => state.setExplicitSave);
-  const selectedNodes = useNodeStore((state) => state.getSelectedNodes());
-  const nodes = useNodeStore((state) => state.nodes);
+  const getSelectedNodes = useNodeStore((state) => state.getSelectedNodes);
   const reactFlow = useReactFlow();
 
   const alignNodes = useCallback(
     ({ arrangeSpacing, collapsed }: AlignNodesOptions) => {
+      const selectedNodes = getSelectedNodes();
       if (selectedNodes.length < 2) return;
       setExplicitSave(true);
 
@@ -68,12 +67,6 @@ const useAlignNodes = () => {
           node.data.collapsed = collapsed;
         });
       }
-      const updatedNodes = nodes.map(
-        (node) =>
-          arrangedNodes.find((arrangedNode) => arrangedNode.id === node.id) ||
-          node
-      );
-      setNodes(updatedNodes, true);
 
       // HACK: Force React Flow to update node internals
       // otherwise the nodes were only updated after deselecting
@@ -87,7 +80,7 @@ const useAlignNodes = () => {
 
       setExplicitSave(false);
     },
-    [selectedNodes, setExplicitSave, setNodes, nodes, reactFlow]
+    [getSelectedNodes, setExplicitSave]
   );
 
   return alignNodes;
