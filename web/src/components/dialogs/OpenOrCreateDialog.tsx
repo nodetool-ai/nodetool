@@ -337,7 +337,18 @@ const OpenOrCreateDialog = () => {
             </ToggleButtonGroup>
           </div>
           <div className="items">
-            {isLoading && <CircularProgress />}
+            {isLoading && (
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "center",
+                  width: "100%",
+                  mt: 2
+                }}
+              >
+                <CircularProgress />
+              </Box>
+            )}
             {isError && (
               <ErrorOutlineRounded>
                 ERROR
