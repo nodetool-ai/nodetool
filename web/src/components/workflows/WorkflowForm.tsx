@@ -22,6 +22,7 @@ import { WorkflowAttributes } from "../../stores/ApiTypes";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { prettyDate, relativeTime } from "../../utils/formatDateAndTime";
 import { useSettingsStore } from "../../stores/SettingsStore";
+import { useWorkflowStore } from "../../stores/WorkflowStore";
 
 const AVAILABLE_TAGS = [
   "image",
@@ -31,7 +32,8 @@ const AVAILABLE_TAGS = [
   "chat",
   "docs",
   "mail",
-  "rag"
+  "rag",
+  "example"
 ];
 
 const styles = (theme: any) =>
@@ -155,7 +157,14 @@ const WorkflowForm = () => {
   const [localWorkflow, setLocalWorkflow] = useState(workflow);
   const [updatedAt, setUpdatedAt] = useState(workflow.updated_at);
 
+  useEffect(() => {
+    console.log("6. WorkflowForm initial workflow:", workflow);
+    setLocalWorkflow(workflow);
+  }, [workflow]);
+
   const handleSaveWorkflow = async () => {
+    console.log("8. WorkflowForm saving workflow:", localWorkflow);
+    setWorkflowAttributes(localWorkflow);
     await saveWorkflow();
     setUpdatedAt(new Date().toISOString());
     addNotification({
@@ -165,9 +174,6 @@ const WorkflowForm = () => {
       dismissable: true
     });
   };
-  useEffect(() => {
-    setLocalWorkflow(workflow);
-  }, [workflow]);
 
   const handleChange = (
     event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -239,11 +245,15 @@ const WorkflowForm = () => {
     : {};
 
   const handleTagChange = (_event: React.SyntheticEvent, newTags: string[]) => {
-    setLocalWorkflow((prev: WorkflowAttributes) => ({
-      ...prev,
+    console.log("9. WorkflowForm changing tags to:", newTags);
+    const updatedWorkflow = {
+      ...workflow,
+      ...localWorkflow,
       tags: newTags
-    }));
-    setWorkflowAttributes({ ...localWorkflow, tags: newTags });
+    };
+    console.log("10. WorkflowForm workflow with new tags:", updatedWorkflow);
+    setLocalWorkflow(updatedWorkflow);
+    setWorkflowAttributes(updatedWorkflow);
     handleSaveWorkflow();
   };
 

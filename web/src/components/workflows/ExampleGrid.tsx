@@ -249,28 +249,35 @@ const ExampleGrid = () => {
 
   const copyExampleWorkflow = useCallback(
     async (workflow: Workflow) => {
+      const tags = workflow.tags || [];
+      if (!tags.includes("example")) {
+        tags.push("example");
+      }
       const req = {
-        name: workflow.name,
+        name: "#" + workflow.name,
         description: workflow.description,
         thumbnail: workflow.thumbnail,
         thumbnail_url: workflow.thumbnail_url,
-        tags: workflow.tags,
+        tags: tags,
         access: "private",
         graph: JSON.parse(JSON.stringify(workflow.graph)),
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
-      return await createWorkflow(req);
+      const newWorkflow = await createWorkflow(req);
+      return newWorkflow;
     },
     [createWorkflow]
   );
 
   const onClickWorkflow = useCallback(
     async (workflow: Workflow) => {
+      console.log("0. Example workflow clicked:", workflow);
       const newWorkflow = await copyExampleWorkflow(workflow);
+      console.log("5. Final workflow before navigation:", newWorkflow);
       navigate("/editor/" + newWorkflow.id);
     },
-    [copyExampleWorkflow, navigate, createWorkflow]
+    [copyExampleWorkflow, navigate]
   );
 
   const groupedWorkflows = useMemo(() => {
