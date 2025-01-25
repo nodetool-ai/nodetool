@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import useWorkflowChatStore from "../../stores/WorkflowChatStore";
 import { Message } from "../../stores/ApiTypes";
 import ChatView from "./ChatView";
@@ -58,8 +58,9 @@ const WorkflowChat: React.FC<WorkflowChatProps> = ({
     setIsMinimized((prev) => !prev);
   }, []);
 
-  const hasChatInput = nodes.some(
-    (node) => node.type === "nodetool.input.ChatInput"
+  const hasChatInput = useMemo(
+    () => nodes.some((node) => node.type === "nodetool.input.ChatInput"),
+    [nodes]
   );
 
   if (!hasChatInput) {

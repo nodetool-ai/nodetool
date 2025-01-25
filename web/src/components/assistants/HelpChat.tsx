@@ -19,7 +19,6 @@ const HelpChat: React.FC = () => {
   const { isInTutorial, getStep, nextStep } = useTutorialStore();
   const { state } = useWorkflowRunnner();
   const step = getStep();
-  const { nodes, edges } = useNodeStore();
   const { startTutorial } = useTutorialStore();
   const loadHuggingFaceModels = useModelStore(
     (state) => state.loadHuggingFaceModels
@@ -69,6 +68,8 @@ const HelpChat: React.FC = () => {
 
   useEffect(() => {
     if (isInTutorial) {
+      const nodes = useNodeStore.getState().nodes;
+      const edges = useNodeStore.getState().edges;
       if (
         step?.isCompleted({
           nodes,
@@ -81,16 +82,7 @@ const HelpChat: React.FC = () => {
         nextStep();
       }
     }
-  }, [
-    step,
-    isInTutorial,
-    nextStep,
-    nodes,
-    edges,
-    state,
-    huggingfaceModels,
-    llamaModels
-  ]);
+  }, [step, isInTutorial, nextStep, state, huggingfaceModels, llamaModels]);
 
   return (
     <div
