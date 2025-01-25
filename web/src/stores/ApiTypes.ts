@@ -84,7 +84,6 @@ export type FileInfo = components["schemas"]["FileInfo"];
 export type CollectionResponse = components["schemas"]["CollectionResponse"];
 export type CollectionList = components["schemas"]["CollectionList"];
 export type CollectionCreate = components["schemas"]["CollectionCreate"];
-export type IndexRequest = components["schemas"]["IndexRequest"];
 export interface UnifiedModel {
   id: string;
   type?: string;
