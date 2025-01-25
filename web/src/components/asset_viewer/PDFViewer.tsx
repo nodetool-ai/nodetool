@@ -167,39 +167,52 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ asset, url }) => {
 
   const pdfUrl = asset?.get_url || url;
 
-  function onDocumentLoadSuccess({ numPages }: { numPages: number }) {
-    setNumPages(numPages);
-    setPageNumber(1);
-  }
+  // Memoize callbacks to prevent unnecessary re-renders
+  const onDocumentLoadSuccess = React.useCallback(
+    ({ numPages }: { numPages: number }) => {
+      setNumPages(numPages);
+      setPageNumber(1);
+    },
+    []
+  );
 
-  function onDocumentLoadError(error: Error) {
+  const onDocumentLoadError = React.useCallback((error: Error) => {
     setError(error);
-  }
+  }, []);
 
-  const goToPrevPage = () => {
+  const goToPrevPage = React.useCallback(() => {
     setPageNumber((prev) => Math.max(1, prev - 1));
-  };
+  }, []);
 
-  const goToNextPage = () => {
+  const goToNextPage = React.useCallback(() => {
     setPageNumber((prev) => Math.min(numPages || prev, prev + 1));
-  };
+  }, [numPages]);
 
-  const handleSliderChange = (_event: Event, newValue: number | number[]) => {
-    const actualPage = numPages ? numPages - (newValue as number) + 1 : 1;
-    setPageNumber(actualPage);
-  };
+  const handleSliderChange = React.useCallback(
+    (_event: Event, newValue: number | number[]) => {
+      const actualPage = numPages ? numPages - (newValue as number) + 1 : 1;
+      setPageNumber(actualPage);
+    },
+    [numPages]
+  );
 
-  const zoomIn = () => {
+  const zoomIn = React.useCallback(() => {
     setScale((prev) => Math.min(prev + 0.2, 3));
-  };
+  }, []);
 
-  const zoomOut = () => {
-    setScale((prev) => Math.max(prev - 0.2, 1.0));
-  };
+  const zoomOut = React.useCallback(() => {
+    setScale((prev) => Math.max(prev - 0.2, 0.2));
+  }, []);
 
-  const resetZoom = () => {
-    setScale(1.4);
-  };
+  const resetZoom = React.useCallback(() => {
+    setScale(1);
+  }, []);
+
+  // Memoize the Page component to prevent unnecessary re-renders
+  const pageComponent = React.useMemo(
+    () => <Page pageNumber={pageNumber} scale={scale} />,
+    [pageNumber, scale]
+  );
 
   return (
     <div className="pdf-viewer" css={styles}>
@@ -217,7 +230,7 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ asset, url }) => {
           loading={<CircularProgress />}
           error={<Typography color="error">Failed to load PDF</Typography>}
         >
-          <Page pageNumber={pageNumber} scale={scale} />
+          {pageComponent}
         </Document>
         <div className="page-controls">
           <IconButton
