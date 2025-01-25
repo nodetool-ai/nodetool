@@ -57,26 +57,6 @@ const CollectionList = () => {
       queryClient.invalidateQueries({ queryKey: ["collections"] });
     }
   });
-  const indexMutation = useMutation({
-    mutationFn: async (req: IndexMutation) => {
-      const { data, error } = await client.POST(
-        "/api/collections/{name}/index",
-        {
-          params: {
-            path: { name: req.name }
-          },
-          body: {
-            files: [req.file]
-          }
-        }
-      );
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["collections"] });
-    }
-  });
 
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [dragOverCollection, setDragOverCollection] = useState<string | null>(
@@ -135,36 +115,63 @@ const CollectionList = () => {
         });
 
         const errors: { file: string; error: string }[] = [];
+        let completed = 0;
 
-        try {
-          for (let i = 0; i < files.length; i++) {
-            try {
-              const res = await indexMutation.mutateAsync({
-                name: collectionName,
-                file: files[i]
-              });
-              if (res[0].error) {
-                errors.push({ file: files[i].path, error: res[0].error });
-              }
-            } catch (error) {
-              console.error("Failed to index file:", error);
-              errors.push({ file: files[i].path, error: error as string });
-            }
-            setIndexProgress((prev) =>
-              prev
-                ? {
-                    ...prev,
-                    current: i + 1
+        const chunkSize = 10;
+        for (let i = 0; i < files.length; i += chunkSize) {
+          const chunk = files.slice(i, i + chunkSize);
+          console.log("Indexing chunk", chunk);
+          try {
+            await Promise.all(
+              chunk.map(async (file) => {
+                try {
+                  const { data, error } = await client.POST(
+                    "/api/collections/{name}/index",
+                    {
+                      params: {
+                        path: { name: collectionName }
+                      },
+                      body: file
+                    }
+                  );
+                  if (error || data?.error) {
+                    errors.push({
+                      file: file.path,
+                      error:
+                        error?.detail?.[0]?.msg ||
+                        data?.error ||
+                        "Unknown error"
+                    });
                   }
-                : null
+                } catch (error: any) {
+                  console.error("Failed to index file:", error);
+                  errors.push({
+                    file: file.path,
+                    error: String(error)
+                  });
+                } finally {
+                  completed++;
+                  queryClient.invalidateQueries({ queryKey: ["collections"] });
+                  setIndexProgress((prev) =>
+                    prev
+                      ? {
+                          ...prev,
+                          current: completed
+                        }
+                      : null
+                  );
+                }
+              })
             );
+          } catch (error) {
+            console.error("Chunk processing error:", error);
           }
-        } finally {
-          setIndexProgress(null);
-          setIndexErrors(errors);
         }
+
+        setIndexProgress(null);
+        setIndexErrors(errors);
       },
-    [indexMutation, isElectron]
+    [isElectron, queryClient]
   );
 
   const handleDragOver = useCallback(
