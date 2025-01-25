@@ -1933,7 +1933,8 @@
           "type": "text_chunk",
           "text": "",
           "source_id": "",
-          "start_index": 0
+          "start_index": 0,
+          "end_index": 0
         },
         "title": "Text Chunk",
         "description": "Text chunk to index",
@@ -2071,6 +2072,206 @@
       "collection",
       "text",
       "document_id"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Index Documents",
+    "description": "Index multiple document assets at once.\n    chroma, embedding, collection, RAG, index, text, batch",
+    "namespace": "chroma.index",
+    "node_type": "chroma.index.IndexDocuments",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "collection",
+        "type": {
+          "type": "collection",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "collection",
+          "name": ""
+        },
+        "title": "Collection",
+        "description": "The collection to index",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "documents",
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "document",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Documents",
+        "description": "List of document assets to index",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "upsert",
+        "type": {
+          "type": "bool",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": false,
+        "title": "Upsert",
+        "description": "Whether to upsert the documents",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "collection",
+      "documents",
+      "upsert"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Index Email",
+    "description": "Index an email's content into a Chroma collection.\n    chroma, embedding, collection, RAG, index, email",
+    "namespace": "chroma.index",
+    "node_type": "chroma.index.IndexEmail",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "collection",
+        "type": {
+          "type": "collection",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "collection",
+          "name": ""
+        },
+        "title": "Collection",
+        "description": "The collection to index",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "email",
+        "type": {
+          "type": "email",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "email",
+          "id": "",
+          "sender": "",
+          "subject": "",
+          "date": {
+            "type": "datetime",
+            "year": 2025,
+            "month": 1,
+            "day": 25,
+            "hour": 10,
+            "minute": 17,
+            "second": 54,
+            "microsecond": 553423,
+            "tzinfo": "UTC",
+            "utc_offset": 0.0
+          },
+          "body": ""
+        },
+        "title": "Email",
+        "description": "Email to index",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "collection",
+      "email"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Index Emails",
+    "description": "Index multiple emails at once into a Chroma collection.\n    chroma, embedding, collection, RAG, index, email, batch",
+    "namespace": "chroma.index",
+    "node_type": "chroma.index.IndexEmails",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "collection",
+        "type": {
+          "type": "collection",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "collection",
+          "name": ""
+        },
+        "title": "Collection",
+        "description": "The collection to index",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "emails",
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "email",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Emails",
+        "description": "List of emails to index",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "collection",
+      "emails"
     ],
     "is_dynamic": false
   },
@@ -16293,7 +16494,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": 23,
+        "default": 25,
         "title": "Day",
         "description": "Day of the date",
         "min": null,
@@ -16368,7 +16569,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": 23,
+        "default": 25,
         "title": "Day",
         "description": "Day of the datetime",
         "min": null,
@@ -16771,11 +16972,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 23,
-          "hour": 23,
-          "minute": 47,
-          "second": 42,
-          "microsecond": 119106,
+          "day": 25,
+          "hour": 10,
+          "minute": 17,
+          "second": 57,
+          "microsecond": 225286,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -17828,11 +18029,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 23,
-          "hour": 23,
-          "minute": 47,
-          "second": 42,
-          "microsecond": 123193,
+          "day": 25,
+          "hour": 10,
+          "minute": 17,
+          "second": 57,
+          "microsecond": 229048,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -17882,11 +18083,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 23,
-          "hour": 23,
-          "minute": 47,
-          "second": 42,
-          "microsecond": 123440,
+          "day": 25,
+          "hour": 10,
+          "minute": 17,
+          "second": 57,
+          "microsecond": 229306,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -17936,11 +18137,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 23,
-          "hour": 23,
-          "minute": 47,
-          "second": 42,
-          "microsecond": 123980,
+          "day": 25,
+          "hour": 10,
+          "minute": 17,
+          "second": 57,
+          "microsecond": 229561,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -17990,11 +18191,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 23,
-          "hour": 23,
-          "minute": 47,
-          "second": 42,
-          "microsecond": 124234,
+          "day": 25,
+          "hour": 10,
+          "minute": 17,
+          "second": 57,
+          "microsecond": 229824,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -18044,11 +18245,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 23,
-          "hour": 23,
-          "minute": 47,
-          "second": 42,
-          "microsecond": 124475,
+          "day": 25,
+          "hour": 10,
+          "minute": 17,
+          "second": 57,
+          "microsecond": 230099,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -18098,11 +18299,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 23,
-          "hour": 23,
-          "minute": 47,
-          "second": 42,
-          "microsecond": 124710,
+          "day": 25,
+          "hour": 10,
+          "minute": 17,
+          "second": 57,
+          "microsecond": 230381,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -18152,11 +18353,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 23,
-          "hour": 23,
-          "minute": 47,
-          "second": 42,
-          "microsecond": 124982,
+          "day": 25,
+          "hour": 10,
+          "minute": 17,
+          "second": 57,
+          "microsecond": 230594,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -18222,11 +18423,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 23,
-          "hour": 23,
-          "minute": 47,
-          "second": 42,
-          "microsecond": 125265,
+          "day": 25,
+          "hour": 10,
+          "minute": 17,
+          "second": 57,
+          "microsecond": 230843,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23271,73 +23472,6 @@
     "is_dynamic": false
   },
   {
-    "title": "Join Strings",
-    "description": "Joins a list of strings using a specified delimiter.\n    list, join, concatenate, strings, +\n\n    Use cases:\n    - Combine strings with a separator\n    - Create CSV-like strings\n    - Format text for display or output",
-    "namespace": "nodetool.list",
-    "node_type": "nodetool.list.JoinStrings",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "values",
-        "type": {
-          "type": "list",
-          "optional": false,
-          "values": null,
-          "type_args": [
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
-          "type_name": null
-        },
-        "default": null,
-        "title": "Values",
-        "description": "The list of strings to join",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "delimiter",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Delimiter",
-        "description": "The string to use as a separator between elements",
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [
-      "values",
-      "delimiter"
-    ],
-    "is_dynamic": false
-  },
-  {
     "title": "Map Template",
     "description": "Maps a template string over a list of dictionaries or objects.\n    list, template, map, formatting\n\n    Use cases:\n    - Formatting multiple records into strings\n    - Generating text from structured data\n    - Creating text representations of data collections\n\n    Examples:\n    - template: \"Name: {name}, Age: {age}\"\n      values: [{\"name\": \"Alice\", \"age\": 30}, {\"name\": \"Bob\", \"age\": 25}]\n      -> [\"Name: Alice, Age: 30\", \"Name: Bob, Age: 25\"]\n\n    - template: \"Hello, {0} {1}!\"\n      values: [[\"Alice\", \"Smith\"], [\"Bob\", \"Jones\"]]\n      -> [\"Hello, Alice Smith!\", \"Hello, Bob Jones!\"]",
     "namespace": "nodetool.list",
@@ -26944,121 +27078,6 @@
     "is_dynamic": false
   },
   {
-    "title": "Split Sentences",
-    "description": "Splits text into chunks of a minimum length.\n    text, split, sentences\n\n    Use cases:\n    - Splitting text into manageable chunks for processing\n    - Creating traceable units for analysis or storage\n    - Preparing text for language model processing",
-    "namespace": "nodetool.text",
-    "node_type": "nodetool.text.SentenceSplitter",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "text",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Text",
-        "description": null,
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "min_length",
-        "type": {
-          "type": "int",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": 10,
-        "title": "Minimum Length",
-        "description": null,
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "source_id",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Source ID",
-        "description": null,
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "chunk_size",
-        "type": {
-          "type": "int",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": 1000,
-        "title": "Chunk Size",
-        "description": null,
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "chunk_overlap",
-        "type": {
-          "type": "int",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": 200,
-        "title": "Chunk Overlap",
-        "description": null,
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "list",
-          "optional": false,
-          "values": null,
-          "type_args": [
-            {
-              "type": "text_chunk",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [
-      "text",
-      "min_length",
-      "source_id",
-      "chunk_size",
-      "chunk_overlap"
-    ],
-    "is_dynamic": false
-  },
-  {
     "title": "Find Regex Matches",
     "description": "Find all matches of a regex pattern in text.\n    regex, search, pattern, match\n\n    Use cases:\n    - Extract specific patterns from text\n    - Validate text against patterns\n    - Find all occurrences of a pattern",
     "namespace": "nodetool.text",
@@ -27507,331 +27526,6 @@
       "start",
       "stop",
       "step"
-    ],
-    "is_dynamic": false
-  },
-  {
-    "title": "Split Recursively",
-    "description": "Splits text recursively using LangChain's RecursiveCharacterTextSplitter.\n    text, split, chunks\n\n    Use cases:\n    - Splitting documents while preserving semantic relationships\n    - Creating chunks for language model processing\n    - Handling text in languages with/without word boundaries",
-    "namespace": "nodetool.text",
-    "node_type": "nodetool.text.RecursiveTextSplitter",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "text",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Text",
-        "description": null,
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "source_id",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Document ID",
-        "description": null,
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "chunk_size",
-        "type": {
-          "type": "int",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": 1000,
-        "title": "Chunk Size",
-        "description": "Maximum size of each chunk in characters",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "chunk_overlap",
-        "type": {
-          "type": "int",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": 200,
-        "title": "Chunk Overlap",
-        "description": "Number of characters to overlap between chunks",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "separators",
-        "type": {
-          "type": "list",
-          "optional": false,
-          "values": null,
-          "type_args": [
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
-          "type_name": null
-        },
-        "default": [
-          "\n\n",
-          "\n",
-          "."
-        ],
-        "title": "Separators",
-        "description": "List of separators to use for splitting, in order of preference",
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "list",
-          "optional": false,
-          "values": null,
-          "type_args": [
-            {
-              "type": "text_chunk",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [
-      "text",
-      "source_id",
-      "chunk_size",
-      "chunk_overlap",
-      "separators"
-    ],
-    "is_dynamic": false
-  },
-  {
-    "title": "Split Markdown",
-    "description": "Splits markdown text by headers while preserving header hierarchy in metadata.\n    markdown, split, headers\n\n    Use cases:\n    - Splitting markdown documentation while preserving structure\n    - Processing markdown files for semantic search\n    - Creating context-aware chunks from markdown content",
-    "namespace": "nodetool.text",
-    "node_type": "nodetool.text.MarkdownSplitter",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "text",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Markdown Text",
-        "description": null,
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "source_id",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Document ID",
-        "description": null,
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "headers_to_split_on",
-        "type": {
-          "type": "list",
-          "optional": false,
-          "values": null,
-          "type_args": [
-            {
-              "type": "tuple",
-              "optional": false,
-              "values": null,
-              "type_args": [
-                {
-                  "type": "str",
-                  "optional": false,
-                  "values": null,
-                  "type_args": [],
-                  "type_name": null
-                },
-                {
-                  "type": "str",
-                  "optional": false,
-                  "values": null,
-                  "type_args": [],
-                  "type_name": null
-                }
-              ],
-              "type_name": null
-            }
-          ],
-          "type_name": null
-        },
-        "default": [
-          [
-            "#",
-            "Header 1"
-          ],
-          [
-            "##",
-            "Header 2"
-          ],
-          [
-            "###",
-            "Header 3"
-          ]
-        ],
-        "title": "Headers To Split On",
-        "description": "List of tuples containing (header_symbol, header_name)",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "strip_headers",
-        "type": {
-          "type": "bool",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": true,
-        "title": "Strip Headers",
-        "description": "Whether to remove headers from the output content",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "return_each_line",
-        "type": {
-          "type": "bool",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": false,
-        "title": "Return Each Line",
-        "description": "Whether to split into individual lines instead of header sections",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "chunk_size",
-        "type": {
-          "type": "union",
-          "optional": false,
-          "values": null,
-          "type_args": [
-            {
-              "type": "int",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            },
-            {
-              "type": "none",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
-          "type_name": null
-        },
-        "default": null,
-        "title": "Chunk Size",
-        "description": "Optional maximum chunk size for further splitting",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "chunk_overlap",
-        "type": {
-          "type": "int",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": 30,
-        "title": "Chunk Overlap",
-        "description": "Overlap size when using chunk_size",
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "list",
-          "optional": false,
-          "values": null,
-          "type_args": [
-            {
-              "type": "text_chunk",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [
-      "text",
-      "source_id",
-      "headers_to_split_on",
-      "strip_headers",
-      "return_each_line",
-      "chunk_size",
-      "chunk_overlap"
     ],
     "is_dynamic": false
   },
@@ -69582,6 +69276,735 @@
       "volume3",
       "volume4",
       "volume5"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Split Sentences",
+    "description": "Splits text into chunks of a minimum length.\n    text, split, sentences\n\n    Use cases:\n    - Splitting text into manageable chunks for processing\n    - Creating traceable units for analysis or storage\n    - Preparing text for language model processing",
+    "namespace": "lib.data.llama_index",
+    "node_type": "lib.data.llama_index.SentenceSplitter",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "text",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Text",
+        "description": null,
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "min_length",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 10,
+        "title": "Minimum Length",
+        "description": null,
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "source_id",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Source ID",
+        "description": null,
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "chunk_size",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 1000,
+        "title": "Chunk Size",
+        "description": null,
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "chunk_overlap",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 200,
+        "title": "Chunk Overlap",
+        "description": null,
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "text_chunk",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "text",
+      "min_length",
+      "source_id",
+      "chunk_size",
+      "chunk_overlap"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Semantic Splitter",
+    "description": "Split text semantically.\n    chroma, embedding, collection, RAG, index, text, markdown, semantic",
+    "namespace": "lib.data.llama_index",
+    "node_type": "lib.data.llama_index.SemanticSplitter",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "embed_model",
+        "type": {
+          "type": "llama_model",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "llama_model",
+          "name": "",
+          "repo_id": "",
+          "modified_at": "",
+          "size": 0,
+          "digest": "",
+          "details": {}
+        },
+        "title": "Embed Model",
+        "description": "Embedding model to use",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "document_id",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Document Id",
+        "description": "Document ID to associate with the text content",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "text",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Text",
+        "description": "Text content to split",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "buffer_size",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 1,
+        "title": "Buffer Size",
+        "description": "Buffer size for semantic splitting",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "threshold",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 5,
+        "title": "Threshold",
+        "description": "Breakpoint percentile threshold for semantic splitting",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "text_chunk",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "embed_model",
+      "document_id",
+      "text",
+      "buffer_size",
+      "threshold"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "HTMLSplitter",
+    "description": "Split HTML content into semantic chunks based on HTML tags.\n    html, text, semantic, tags, parsing",
+    "namespace": "lib.data.llama_index",
+    "node_type": "lib.data.llama_index.HTMLSplitter",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "document_id",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Document Id",
+        "description": "Document ID to associate with the HTML content",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "text",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Text",
+        "description": "HTML content to split",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "text_chunk",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "document_id",
+      "text"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "JSONSplitter",
+    "description": "Split JSON content into semantic chunks.\n    json, parsing, semantic, structured",
+    "namespace": "lib.data.llama_index",
+    "node_type": "lib.data.llama_index.JSONSplitter",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "document_id",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Document Id",
+        "description": "Document ID to associate with the JSON content",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "text",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Text",
+        "description": "JSON content to split",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "include_metadata",
+        "type": {
+          "type": "bool",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": true,
+        "title": "Include Metadata",
+        "description": "Whether to include metadata in nodes",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "include_prev_next_rel",
+        "type": {
+          "type": "bool",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": true,
+        "title": "Include Prev Next Rel",
+        "description": "Whether to include prev/next relationships",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "text_chunk",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "document_id",
+      "text",
+      "include_metadata",
+      "include_prev_next_rel"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Split Recursively",
+    "description": "Splits text recursively using LangChain's RecursiveCharacterTextSplitter.\n    text, split, chunks\n\n    Use cases:\n    - Splitting documents while preserving semantic relationships\n    - Creating chunks for language model processing\n    - Handling text in languages with/without word boundaries",
+    "namespace": "lib.data.langchain",
+    "node_type": "lib.data.langchain.RecursiveTextSplitter",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "text",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Text",
+        "description": null,
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "source_id",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Document ID",
+        "description": null,
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "chunk_size",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 1000,
+        "title": "Chunk Size",
+        "description": "Maximum size of each chunk in characters",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "chunk_overlap",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 200,
+        "title": "Chunk Overlap",
+        "description": "Number of characters to overlap between chunks",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "separators",
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "str",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": [
+          "\n\n",
+          "\n",
+          "."
+        ],
+        "title": "Separators",
+        "description": "List of separators to use for splitting, in order of preference",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "text_chunk",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "text",
+      "source_id",
+      "chunk_size",
+      "chunk_overlap",
+      "separators"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Split Markdown",
+    "description": "Splits markdown text by headers while preserving header hierarchy in metadata.\n    markdown, split, headers\n\n    Use cases:\n    - Splitting markdown documentation while preserving structure\n    - Processing markdown files for semantic search\n    - Creating context-aware chunks from markdown content",
+    "namespace": "lib.data.langchain",
+    "node_type": "lib.data.langchain.MarkdownSplitter",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "text",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Markdown Text",
+        "description": null,
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "source_id",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Document ID",
+        "description": null,
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "headers_to_split_on",
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "tuple",
+              "optional": false,
+              "values": null,
+              "type_args": [
+                {
+                  "type": "str",
+                  "optional": false,
+                  "values": null,
+                  "type_args": [],
+                  "type_name": null
+                },
+                {
+                  "type": "str",
+                  "optional": false,
+                  "values": null,
+                  "type_args": [],
+                  "type_name": null
+                }
+              ],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": [
+          [
+            "#",
+            "Header 1"
+          ],
+          [
+            "##",
+            "Header 2"
+          ],
+          [
+            "###",
+            "Header 3"
+          ]
+        ],
+        "title": "Headers To Split On",
+        "description": "List of tuples containing (header_symbol, header_name)",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "strip_headers",
+        "type": {
+          "type": "bool",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": true,
+        "title": "Strip Headers",
+        "description": "Whether to remove headers from the output content",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "return_each_line",
+        "type": {
+          "type": "bool",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": false,
+        "title": "Return Each Line",
+        "description": "Whether to split into individual lines instead of header sections",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "chunk_size",
+        "type": {
+          "type": "union",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "int",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            },
+            {
+              "type": "none",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Chunk Size",
+        "description": "Optional maximum chunk size for further splitting",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "chunk_overlap",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 30,
+        "title": "Chunk Overlap",
+        "description": "Overlap size when using chunk_size",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "text_chunk",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "text",
+      "source_id",
+      "headers_to_split_on",
+      "strip_headers",
+      "return_each_line",
+      "chunk_size",
+      "chunk_overlap"
     ],
     "is_dynamic": false
   },
@@ -123779,171 +124202,6 @@
       "prompt",
       "data",
       "plot_type"
-    ],
-    "is_dynamic": false
-  },
-  {
-    "title": "Question Answer Agent",
-    "description": "LLM Agent to generate answers based on a question and context from RAG results.\n    llm, question-answering, RAG\n\n    Use cases:\n    - Answering questions using retrieved context\n    - Generating coherent responses from multiple text sources\n    - Knowledge-based Q&A systems",
-    "namespace": "ollama.agents",
-    "node_type": "ollama.agents.QuestionAnswerAgent",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "model",
-        "type": {
-          "type": "llama_model",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": {
-          "type": "llama_model",
-          "name": "",
-          "repo_id": "",
-          "modified_at": "",
-          "size": 0,
-          "digest": "",
-          "details": {}
-        },
-        "title": "Model",
-        "description": "The Llama model to use for answer generation.",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "context_window",
-        "type": {
-          "type": "int",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": 4096,
-        "title": "Context Window",
-        "description": "The context window size to use for the model.",
-        "min": 1.0,
-        "max": 8192.0
-      },
-      {
-        "name": "question",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Question",
-        "description": "The question to answer",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "context",
-        "type": {
-          "type": "list",
-          "optional": false,
-          "values": null,
-          "type_args": [
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
-          "type_name": null
-        },
-        "default": null,
-        "title": "Context",
-        "description": "List of context strings from RAG retrieval",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "temperature",
-        "type": {
-          "type": "float",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": 0.7,
-        "title": "Temperature",
-        "description": "The temperature to use for sampling.",
-        "min": 0.0,
-        "max": 2.0
-      },
-      {
-        "name": "top_k",
-        "type": {
-          "type": "int",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": 50,
-        "title": "Top K",
-        "description": "The number of highest probability tokens to keep for top-k sampling.",
-        "min": 1.0,
-        "max": 100.0
-      },
-      {
-        "name": "top_p",
-        "type": {
-          "type": "float",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": 0.95,
-        "title": "Top P",
-        "description": "The cumulative probability cutoff for nucleus/top-p sampling.",
-        "min": 0.0,
-        "max": 1.0
-      },
-      {
-        "name": "keep_alive",
-        "type": {
-          "type": "int",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "300",
-        "title": "Keep Alive",
-        "description": "The number of seconds to keep the model alive.",
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [
-      "model",
-      "prompt"
     ],
     "is_dynamic": false
   },
