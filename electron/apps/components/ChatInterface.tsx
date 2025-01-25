@@ -145,11 +145,64 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ workflowId, token }) => {
     [droppedFiles]
   );
 
-  const renderMessageContent = (content: MessageContent) => {
+  // Add state for tracking expanded thoughts
+  const [expandedThoughts, setExpandedThoughts] = useState<{
+    [key: string]: boolean;
+  }>({});
+
+  const toggleThought = (messageIndex: number, thoughtIndex: number) => {
+    const key = `${messageIndex}-${thoughtIndex}`;
+    setExpandedThoughts((prev) => ({
+      ...prev,
+      [key]: !prev[key],
+    }));
+  };
+
+  const renderMessageContent = (
+    content: MessageContent,
+    messageIndex: number,
+    contentIndex: number
+  ) => {
     console.log("content", content);
     switch (content.type) {
-      case "text":
+      case "text": {
+        // Process single think tag
+        const thoughtMatch = content.text.match(/<think>(.*?)<\/think>/s);
+        if (thoughtMatch) {
+          const key = `${messageIndex}-${contentIndex}`;
+          const isExpanded = expandedThoughts[key];
+          const textBeforeThought = content.text.split("<think>")[0];
+          const textAfterThought = content.text.split("</think>")[1];
+
+          return (
+            <>
+              {textBeforeThought && (
+                <ReactMarkdown>{textBeforeThought}</ReactMarkdown>
+              )}
+              <Box>
+                <Text
+                  as="span"
+                  color="blue.500"
+                  cursor="pointer"
+                  onClick={() => toggleThought(messageIndex, contentIndex)}
+                  _hover={{ textDecoration: "underline" }}
+                >
+                  [{isExpanded ? "Hide thought" : "Show thought"}]
+                </Text>
+                {isExpanded && (
+                  <Box ml={4} mt={2} p={2} bg="gray.700" borderRadius="md">
+                    <ReactMarkdown>{thoughtMatch[1]}</ReactMarkdown>
+                  </Box>
+                )}
+              </Box>
+              {textAfterThought && (
+                <ReactMarkdown>{textAfterThought}</ReactMarkdown>
+              )}
+            </>
+          );
+        }
         return <ReactMarkdown>{content.text}</ReactMarkdown>;
+      }
       case "image_url":
         return (
           <div className="media-content">
@@ -205,13 +258,17 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ workflowId, token }) => {
               {Array.isArray(msg.content)
                 ? msg.content.map((content, i) => (
                     <Box key={i} mt={i > 0 ? 2 : 0}>
-                      {renderMessageContent(content)}
+                      {renderMessageContent(content, index, i)}
                     </Box>
                   ))
-                : renderMessageContent({
-                    type: "text",
-                    text: msg.content as string,
-                  })}
+                : renderMessageContent(
+                    {
+                      type: "text",
+                      text: msg.content as string,
+                    },
+                    index,
+                    0
+                  )}
             </Box>
           ))}
           {streamingMessage && (
