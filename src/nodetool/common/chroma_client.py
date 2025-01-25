@@ -1,6 +1,8 @@
 import chromadb
 from chromadb.config import Settings, DEFAULT_DATABASE, DEFAULT_TENANT
 from urllib.parse import urlparse
+
+import httpx
 from nodetool.common.environment import Environment
 from chromadb.utils.embedding_functions.ollama_embedding_function import (
     OllamaEmbeddingFunction,
@@ -91,6 +93,9 @@ def get_collection(name: str) -> chromadb.Collection:
     embedding_function = OllamaEmbeddingFunction(
         url=f"{ollama_url}/api/embeddings",
         model_name=collection.metadata["embedding_model"],
+    )
+    embedding_function._session = httpx.Client(
+        timeout=httpx.Timeout(300),
     )
 
     return client.get_collection(
