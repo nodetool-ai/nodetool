@@ -1,10 +1,10 @@
 {
   "id": "44a8e720ca1811efa79a00000be9010f",
   "access": "public",
-  "created_at": "2025-01-04T12:04:19.422605",
-  "updated_at": "2025-01-04T12:04:19.422619",
+  "created_at": "2025-01-25T10:16:37.526970",
+  "updated_at": "2025-01-25T10:16:37.526982",
   "name": "Simple RAG",
-  "description": "Question answering over documents using retrieval augmented generation",
+  "description": "",
   "tags": null,
   "thumbnail": null,
   "thumbnail_url": null,
@@ -17,37 +17,38 @@
         "data": {
           "collection": {
             "type": "collection",
-            "name": "Papers"
+            "name": "papers"
           },
           "n_results": 10
         },
         "ui_properties": {
           "position": {
-            "x": 269,
-            "y": 253
+            "x": 251,
+            "y": 221
           },
           "zIndex": 0,
-          "width": 159,
+          "width": 124,
           "selectable": true
-        }
+        },
+        "dynamic_properties": {}
       },
       {
         "id": "2",
         "parent_id": null,
-        "type": "nodetool.workflows.base_node.Preview",
+        "type": "nodetool.text.Join",
         "data": {
-          "name": "list_documents_2025-01-04"
+          "separator": "--------------\n"
         },
         "ui_properties": {
           "position": {
-            "x": 477,
-            "y": 542
+            "x": 422,
+            "y": 296
           },
           "zIndex": 0,
-          "width": 607,
-          "height": 194,
+          "width": 159,
           "selectable": true
-        }
+        },
+        "dynamic_properties": {}
       },
       {
         "id": "3",
@@ -56,10 +57,8 @@
         "data": {
           "model": {
             "type": "llama_model",
-            "repo_id": "qwen2.5:7b"
+            "repo_id": "deepseek-r1:7b"
           },
-          "system_prompt": "You answer use questions based on search results.\n\nIgnore sections that look like appendix. \n\nFocus on explanations.",
-          "messages": [],
           "image": {
             "type": "image",
             "uri": "",
@@ -67,139 +66,118 @@
             "data": null
           },
           "context_window": 4096,
-          "temperature": 0.3,
+          "temperature": 0.7,
           "top_k": 50,
           "top_p": 0.95,
-          "keep_alive": 600
+          "keep_alive": "300"
         },
         "ui_properties": {
+          "selected": false,
           "position": {
-            "x": 1110,
-            "y": 205
+            "x": 651,
+            "y": 170
           },
           "zIndex": 0,
-          "width": 158,
+          "width": 248,
           "selectable": true
-        }
-      },
-      {
-        "id": "4",
-        "parent_id": null,
-        "type": "nodetool.text.Join",
-        "data": {
-          "separator": "."
         },
-        "ui_properties": {
-          "position": {
-            "x": 500.5,
-            "y": 372
-          },
-          "zIndex": 0,
-          "width": 159,
-          "selectable": true
-        }
+        "dynamic_properties": {}
       },
       {
-        "id": "6",
+        "id": "5",
         "parent_id": null,
         "type": "nodetool.input.ChatInput",
         "data": {
-          "label": "msg",
-          "name": "msg",
+          "name": "chat",
+          "description": "",
           "value": []
         },
         "ui_properties": {
           "position": {
-            "x": 53,
-            "y": 142
+            "x": 50,
+            "y": 50
+          },
+          "zIndex": 0,
+          "width": 158,
+          "selectable": true
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "6",
+        "parent_id": null,
+        "type": "nodetool.text.FormatText",
+        "data": {
+          "template": "You are an advanced reasoning and summarizationmodel tasked with creating concise, insightful, \nand top-quality summaries from a list of RAG results. \nYour goal is to distill key information from the provided results while eliminating redundancy, \nensuring accuracy, and prioritizing the most relevant insights.\n\nInstructions:\n1. Understand the Context: Analyze the provided list of RAG results and consider the user question: {query}\n2. Prioritize Key Insights: Focus on the most critical, informative, and frequently mentioned points across the results that directly address the user\u2019s question.\n3. Eliminate Redundancy: Combine similar ideas and avoid repeating information unnecessarily.\n4. Summarize Clearly: Use professional, clear, and coherent language to convey the main points.\n\t"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 422,
+            "y": 91
           },
           "zIndex": 0,
           "width": 159,
           "selectable": true
+        },
+        "dynamic_properties": {
+          "query": ""
         }
       },
       {
         "id": "7",
         "parent_id": null,
-        "type": "nodetool.text.Concat",
-        "data": {
-          "a": "Phrase an answer to following question:"
-        },
-        "ui_properties": {
-          "position": {
-            "x": 694,
-            "y": 156
-          },
-          "zIndex": 0,
-          "width": 159,
-          "selectable": true
-        }
-      },
-      {
-        "id": "8",
-        "parent_id": null,
-        "type": "nodetool.text.Concat",
-        "data": {
-          "a": "=================\n\nFollowing a list of search results retrieved from the database:\n"
-        },
-        "ui_properties": {
-          "position": {
-            "x": 702,
-            "y": 362
-          },
-          "zIndex": 0,
-          "width": 159,
-          "selectable": true
-        }
-      },
-      {
-        "id": "8678b1eb-0a66-4b8c-a8c3-4ac87c711f00",
-        "parent_id": null,
-        "type": "nodetool.text.Concat",
-        "data": {},
-        "ui_properties": {
-          "position": {
-            "x": 921,
-            "y": 336
-          },
-          "zIndex": 0,
-          "width": 159,
-          "selectable": true
-        }
-      },
-      {
-        "id": "8679",
-        "parent_id": null,
         "type": "nodetool.output.StringOutput",
         "data": {
-          "label": "Output Label",
-          "name": "str_output_2025-01-04"
+          "name": "answer",
+          "description": ""
         },
         "ui_properties": {
+          "selected": false,
           "position": {
-            "x": 1298,
-            "y": 210
+            "x": 930,
+            "y": 196
           },
           "zIndex": 0,
-          "width": 186,
+          "width": 232,
           "selectable": true
-        }
+        },
+        "dynamic_properties": {}
       }
     ],
     "edges": [
       {
-        "id": "81757fd9-aedb-4263-8556-d51fa1a459c8",
-        "source": "4",
+        "id": "66d6a382-0c85-4e73-9f2b-31f5946be535",
+        "source": "2",
         "sourceHandle": "output",
-        "target": "8",
-        "targetHandle": "b",
+        "target": "3",
+        "targetHandle": "prompt",
         "ui_properties": {
-          "className": "union"
+          "className": "str"
         }
       },
       {
-        "id": "12b2d857-ebec-4109-afd0-231d57fb2954",
+        "id": "9e505a10-eade-4a1c-abd0-e3133e0bdc09",
         "source": "6",
+        "sourceHandle": "output",
+        "target": "3",
+        "targetHandle": "system_prompt",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "67",
+        "source": "3",
+        "sourceHandle": "output",
+        "target": "7",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "ef1c4fee-5919-4adb-b90f-5f2e66cc1dbe",
+        "source": "5",
         "sourceHandle": "text",
         "target": "1",
         "targetHandle": "text",
@@ -208,71 +186,31 @@
         }
       },
       {
-        "id": "896c04aa-c600-461a-ada9-f84fab25bfda",
-        "source": "1",
-        "sourceHandle": "documents",
-        "target": "4",
-        "targetHandle": "strings",
+        "id": "20eef9ad-7c28-4906-a2d2-2ee76f63995e",
+        "source": "5",
+        "sourceHandle": "text",
+        "target": "6",
+        "targetHandle": "query",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "5b810753-37d8-4b25-a95b-f3dba8a96ee4",
+        "source": "5",
+        "sourceHandle": "history",
+        "target": "3",
+        "targetHandle": "messages",
         "ui_properties": {
           "className": "list"
         }
       },
       {
-        "id": "311ff345-c317-4127-ac05-dae9dec6aa0c",
-        "source": "6",
-        "sourceHandle": "text",
-        "target": "7",
-        "targetHandle": "b",
-        "ui_properties": {
-          "className": "str"
-        }
-      },
-      {
-        "id": "ea8dfcd0-b417-4a83-b2c2-77600c2fb3cb",
-        "source": "8678b1eb-0a66-4b8c-a8c3-4ac87c711f00",
-        "sourceHandle": "output",
-        "target": "3",
-        "targetHandle": "prompt",
-        "ui_properties": {
-          "className": "union"
-        }
-      },
-      {
-        "id": "8fecd508-6afc-4f54-9e45-b96930f40600",
-        "source": "8",
-        "sourceHandle": "output",
-        "target": "8678b1eb-0a66-4b8c-a8c3-4ac87c711f00",
-        "targetHandle": "b",
-        "ui_properties": {
-          "className": "union"
-        }
-      },
-      {
-        "id": "53dbad28-c072-426e-aa48-57ec1f763cb7",
-        "source": "7",
-        "sourceHandle": "output",
-        "target": "8678b1eb-0a66-4b8c-a8c3-4ac87c711f00",
-        "targetHandle": "a",
-        "ui_properties": {
-          "className": "union"
-        }
-      },
-      {
-        "id": "81758",
-        "source": "3",
-        "sourceHandle": "output",
-        "target": "8679",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "str"
-        }
-      },
-      {
-        "id": "1",
+        "id": "24c3cb4d-d899-44ef-92ac-ec8514e9bdb1",
         "source": "1",
         "sourceHandle": "documents",
         "target": "2",
-        "targetHandle": "value",
+        "targetHandle": "strings",
         "ui_properties": {
           "className": "list"
         }
