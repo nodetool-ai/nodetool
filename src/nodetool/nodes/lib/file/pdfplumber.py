@@ -5,7 +5,7 @@ from typing import List, Optional, Any
 from pydantic import Field
 from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
-from nodetool.metadata.types import DocumentRef, ImageRef
+from nodetool.metadata.types import DocumentRef, ImageRef, DataframeRef, ColumnDef
 
 
 class ExtractText(BaseNode):
@@ -145,3 +145,93 @@ class ExtractPageMetadata(BaseNode):
                 )
 
         return metadata
+
+
+class ExtractTables(BaseNode):
+    """
+    Extract tables from a PDF file into dataframes.
+    pdf, tables, dataframe, extract
+
+    Use cases:
+    - Extract tabular data from PDF documents
+    - Convert PDF tables to structured data formats
+    - Process PDF tables for analysis
+    - Import PDF reports into data analysis pipelines
+    """
+
+    pdf: DocumentRef = Field(
+        default=DocumentRef(), description="The PDF document to extract tables from"
+    )
+
+    pages: Optional[List[int]] = Field(
+        default=None,
+        description="Specific pages to extract tables from (None for all pages)",
+    )
+
+    table_settings: dict = Field(
+        default={
+            "vertical_strategy": "text",
+            "horizontal_strategy": "text",
+            "snap_tolerance": 3,
+            "join_tolerance": 3,
+            "edge_min_length": 3,
+            "min_words_vertical": 3,
+            "min_words_horizontal": 1,
+            "keep_blank_chars": False,
+            "text_tolerance": 3,
+            "text_x_tolerance": 3,
+            "text_y_tolerance": 3,
+        },
+        description="Settings for table extraction algorithm",
+    )
+
+    async def process(self, context: ProcessingContext) -> List[DataframeRef]:
+        """
+        Extract tables from PDF and convert them to dataframes.
+
+        Returns:
+            List[DataframeRef]: List of dataframes containing extracted tables
+        """
+        import pandas as pd
+
+        pdf_data = await context.asset_to_bytes(self.pdf)
+        dataframes = []
+
+        with pdfplumber.open(BytesIO(pdf_data)) as pdf:
+            # Determine pages to process
+            if self.pages is None:
+                pages_to_process = range(len(pdf.pages))
+            else:
+                pages_to_process = [i for i in self.pages if 0 <= i < len(pdf.pages)]
+
+            # Process each page
+            for page_num in pages_to_process:
+                page = pdf.pages[page_num]
+
+                # Extract tables from the page
+                tables = page.extract_tables(table_settings=self.table_settings)
+
+                # Convert each table to a dataframe
+                for table in tables:
+                    if not table:  # Skip empty tables
+                        continue
+
+                    # Convert table to dataframe
+                    df = pd.DataFrame(table[1:], columns=table[0])
+
+                    # Clean up the dataframe
+                    df = df.replace("", None)  # Replace empty strings with None
+                    df = df.dropna(how="all")  # Drop rows that are all NA
+                    df = df.dropna(axis=1, how="all")  # Drop columns that are all NA
+
+                    # Create column definitions
+                    columns = [
+                        ColumnDef(name=str(col), data_type="string")
+                        for col in df.columns
+                    ]
+
+                    # Convert to DataframeRef
+                    df_ref = await context.dataframe_from_pandas(df)
+                    dataframes.append(df_ref)
+
+        return dataframes
