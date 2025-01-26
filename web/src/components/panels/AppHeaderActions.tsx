@@ -179,7 +179,7 @@ const AppHeaderActions: React.FC = () => {
       } else {
         // In web, we can open a new window
         window.open(
-          BASE_URL + "/apps/index.html?workflow_id=" + workflowId,
+          "http://localhost:5173/index.html?workflow_id=" + workflowId,
           "_blank"
         );
       }
