@@ -16,7 +16,8 @@ import nodetool.nodes.lib.file.excel
 import nodetool.nodes.lib.file.markdown
 import nodetool.nodes.lib.file.markitdown
 import nodetool.nodes.lib.file.pandoc
-import nodetool.nodes.lib.file.pdf
+import nodetool.nodes.lib.file.pdfplumber
+import nodetool.nodes.lib.file.pymupdf
 import nodetool.nodes.lib.image.grid
 import nodetool.nodes.lib.image.pillow
 import nodetool.nodes.lib.image.pillow.draw

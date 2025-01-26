@@ -1,56 +1,18 @@
 {
   "id": "transcribe_audio",
   "access": "public",
-  "created_at": "2024-10-19T16:06:21.898274",
-  "updated_at": "2024-10-19T16:06:21.898293",
+  "created_at": "2025-01-26T18:27:06.589798",
+  "updated_at": "2025-01-26T18:27:06.589809",
   "name": "Transcribe Audio",
   "description": "Convert speech to text using Whisper model with word-level timestamps",
-  "tags": ["start", "audio"],
-  "thumbnail": "",
+  "tags": [
+    "start",
+    "audio"
+  ],
+  "thumbnail": null,
   "thumbnail_url": "/examples/transcribe_audio.jpg",
   "graph": {
     "nodes": [
-      {
-        "id": "2",
-        "parent_id": null,
-        "type": "nodetool.workflows.base_node.Preview",
-        "data": {
-          "name": "image_output_2024-07-03"
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 538,
-            "y": 61
-          },
-          "zIndex": 0,
-          "width": 350,
-          "height": 230,
-          "selectable": true
-        }
-      },
-      {
-        "id": "4",
-        "parent_id": null,
-        "type": "nodetool.constant.Audio",
-        "data": {
-          "value": {
-            "uri": "https://upload.wikimedia.org/wikipedia/commons/transcoded/4/4f/An_address_by_Opposition_Leader_Anthony_Albanese.ogg/An_address_by_Opposition_Leader_Anthony_Albanese.ogg.mp3?download",
-            "type": "audio"
-          }
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 50,
-            "y": 114
-          },
-          "zIndex": 0,
-          "width": 200,
-          "color": "#d33682",
-          "selectable": true
-        }
-      },
       {
         "id": "5",
         "parent_id": null,
@@ -93,7 +55,8 @@
           "width": 306,
           "height": 136,
           "selectable": true
-        }
+        },
+        "dynamic_properties": {}
       },
       {
         "id": "6",
@@ -112,48 +75,66 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 280,
+            "x": 244,
             "y": 50
           },
           "zIndex": 0,
           "width": 198,
           "selectable": true
-        }
+        },
+        "dynamic_properties": {}
       },
       {
         "id": "7",
         "parent_id": null,
-        "type": "nodetool.workflows.base_node.Preview",
+        "type": "nodetool.input.AudioInput",
         "data": {
-          "name": "list_chunks_2024-10-19"
+          "name": "audio",
+          "description": "",
+          "value": {
+            "type": "audio",
+            "uri": "",
+            "asset_id": null,
+            "data": null
+          }
         },
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 538,
-            "y": 341
+            "x": 50,
+            "y": 112
           },
           "zIndex": 0,
-          "width": 345,
-          "height": 309,
+          "width": 164,
           "selectable": true
-        }
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "8",
+        "parent_id": null,
+        "type": "nodetool.output.StringOutput",
+        "data": {
+          "name": "transciption",
+          "description": ""
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 472,
+            "y": 98
+          },
+          "zIndex": 0,
+          "width": 159,
+          "selectable": true
+        },
+        "dynamic_properties": {}
       }
     ],
     "edges": [
       {
-        "id": "9",
-        "source": "6",
-        "sourceHandle": "chunks",
-        "target": "7",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "list"
-        }
-      },
-      {
-        "id": "fb7a4a72-6fb6-4126-a4e7-1870258a5ad1",
-        "source": "4",
+        "id": "1",
+        "source": "7",
         "sourceHandle": "output",
         "target": "6",
         "targetHandle": "audio",
@@ -162,10 +143,10 @@
         }
       },
       {
-        "id": "8c8eef9d-7ad3-4d00-9d12-f345df63ded6",
+        "id": "2",
         "source": "6",
         "sourceHandle": "text",
-        "target": "2",
+        "target": "8",
         "targetHandle": "value",
         "ui_properties": {
           "className": "str"

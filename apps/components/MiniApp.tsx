@@ -24,8 +24,16 @@ interface MiniAppProps {
 
 export const MiniApp: React.FC<MiniAppProps> = ({ workflowId, schema }) => {
   const [formData, setFormData] = useState<Record<string, any>>({});
-  const { run, state, results, progress, notifications, statusMessage } =
-    useWorkflowRunner();
+  const [showThoughts, setShowThoughts] = useState(false);
+  const {
+    run,
+    state,
+    results,
+    progress,
+    notifications,
+    statusMessage,
+    chunks,
+  } = useWorkflowRunner();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,21 +66,41 @@ export const MiniApp: React.FC<MiniAppProps> = ({ workflowId, schema }) => {
       }
     }
     if (typeof result === "string") {
+      const hasThoughts = result.includes("<think>");
+
+      // Remove think tags when hidden
+      const processedText = showThoughts
+        ? result
+        : result.replace(/<think>.*?<\/think>/gs, "");
+
       return (
-        <div style={{ margin: 0 }}>
-          <Markdown
-            components={{
-              ul: ({ children }) => (
-                <ul style={{ paddingLeft: "2em" }}>{children}</ul>
-              ),
-              ol: ({ children }) => (
-                <ol style={{ paddingLeft: "2em" }}>{children}</ol>
-              ),
-            }}
-          >
-            {result}
-          </Markdown>
-        </div>
+        <Box>
+          {hasThoughts && (
+            <Button
+              size="sm"
+              mb={2}
+              onClick={() => setShowThoughts(!showThoughts)}
+              variant="outline"
+              colorScheme="blue"
+            >
+              {showThoughts ? "Hide Thoughts" : "Show Thoughts"}
+            </Button>
+          )}
+          <div style={{ margin: 0 }}>
+            <Markdown
+              components={{
+                ul: ({ children }) => (
+                  <ul style={{ paddingLeft: "2em" }}>{children}</ul>
+                ),
+                ol: ({ children }) => (
+                  <ol style={{ paddingLeft: "2em" }}>{children}</ol>
+                ),
+              }}
+            >
+              {processedText}
+            </Markdown>
+          </div>
+        </Box>
       );
     }
     return <pre>{JSON.stringify(result, null, 2)}</pre>;
@@ -109,7 +137,13 @@ export const MiniApp: React.FC<MiniAppProps> = ({ workflowId, schema }) => {
                 {state === "error" && (statusMessage || "An error occurred")}
               </Text>
 
-              {progress && (
+              {chunks.length > 0 && (
+                <Text fontSize="sm" color="gray.500">
+                  {chunks.join("\n")}
+                </Text>
+              )}
+
+              {progress && progress.total > 0 && (
                 <ProgressRoot
                   value={(progress.current * 100.0) / progress.total}
                   size="xs"

@@ -1,8 +1,8 @@
 {
   "id": "style_transfer",
   "access": "public",
-  "created_at": "2025-01-18T08:50:58.172851",
-  "updated_at": "2025-01-18T08:50:58.172870",
+  "created_at": "2025-01-26T18:32:54.146022",
+  "updated_at": "2025-01-26T18:32:54.146030",
   "name": "Style Transfer",
   "description": "Apply the style of an image to another image",
   "tags": [
@@ -88,6 +88,7 @@
           ]
         },
         "ui_properties": {
+          "selected": false,
           "position": {
             "x": 56,
             "y": -159
@@ -95,25 +96,6 @@
           "zIndex": 0,
           "width": 450,
           "height": 184,
-          "selectable": true
-        },
-        "dynamic_properties": {}
-      },
-      {
-        "id": "13",
-        "parent_id": null,
-        "type": "nodetool.image.transform.Canny",
-        "data": {
-          "low_threshold": 84,
-          "high_threshold": 203
-        },
-        "ui_properties": {
-          "position": {
-            "x": 269,
-            "y": 352
-          },
-          "zIndex": 0,
-          "width": 200,
           "selectable": true
         },
         "dynamic_properties": {}
@@ -153,9 +135,10 @@
           "upscaler": "None"
         },
         "ui_properties": {
+          "selected": false,
           "position": {
-            "x": 539,
-            "y": 61
+            "x": 492,
+            "y": 131
           },
           "zIndex": 0,
           "width": 200,
@@ -170,7 +153,7 @@
         "data": {
           "model": {
             "type": "llama_model",
-            "repo_id": "llama3.2:3b"
+            "repo_id": "llama3.2-vision:11b"
           },
           "system_prompt": "You are an artist.",
           "prompt": "Describe the image",
@@ -182,9 +165,10 @@
           "keep_alive": "300"
         },
         "ui_properties": {
+          "selected": false,
           "position": {
-            "x": 289.5,
-            "y": 94
+            "x": 271,
+            "y": 50
           },
           "zIndex": 0,
           "width": 159,
@@ -207,9 +191,10 @@
           }
         },
         "ui_properties": {
+          "selected": false,
           "position": {
             "x": 50,
-            "y": 429
+            "y": 303
           },
           "zIndex": 0,
           "width": 159,
@@ -232,9 +217,10 @@
           }
         },
         "ui_properties": {
+          "selected": false,
           "position": {
-            "x": 50,
-            "y": 50
+            "x": 59,
+            "y": 136
           },
           "zIndex": 0,
           "width": 159,
@@ -251,12 +237,33 @@
           "description": ""
         },
         "ui_properties": {
+          "selected": false,
           "position": {
-            "x": 769,
-            "y": 169
+            "x": 722,
+            "y": 239
           },
           "zIndex": 0,
           "width": 159,
+          "selectable": true
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "20",
+        "parent_id": null,
+        "type": "lib.image.pillow.filter.Canny",
+        "data": {
+          "low_threshold": 100,
+          "high_threshold": 200
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 269,
+            "y": 347
+          },
+          "zIndex": 0,
+          "width": 163,
           "selectable": true
         },
         "dynamic_properties": {}
@@ -274,8 +281,28 @@
         }
       },
       {
-        "id": "852829a8-6978-496b-bf56-21112fb510b2",
-        "source": "13",
+        "id": "852831",
+        "source": "14",
+        "sourceHandle": "output",
+        "target": "19",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "3381275f-a05f-4978-9bdf-e8b8649fe58d",
+        "source": "18",
+        "sourceHandle": "output",
+        "target": "16",
+        "targetHandle": "image",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "624fb4c7-c2dd-4365-a768-8f65df6a6f6f",
+        "source": "20",
         "sourceHandle": "output",
         "target": "14",
         "targetHandle": "control_image",
@@ -294,20 +321,10 @@
         }
       },
       {
-        "id": "852831",
-        "source": "14",
-        "sourceHandle": "output",
-        "target": "19",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "image"
-        }
-      },
-      {
-        "id": "d6e96385-7bb3-4c31-b0de-cb83f903f62a",
+        "id": "11b7b2ca-1f87-4bb5-a8ba-a2f099c468d3",
         "source": "17",
         "sourceHandle": "output",
-        "target": "13",
+        "target": "20",
         "targetHandle": "image",
         "ui_properties": {
           "className": "image"
@@ -319,16 +336,6 @@
         "sourceHandle": "output",
         "target": "14",
         "targetHandle": "ip_adapter_image",
-        "ui_properties": {
-          "className": "image"
-        }
-      },
-      {
-        "id": "3381275f-a05f-4978-9bdf-e8b8649fe58d",
-        "source": "18",
-        "sourceHandle": "output",
-        "target": "16",
-        "targetHandle": "image",
         "ui_properties": {
           "className": "image"
         }
