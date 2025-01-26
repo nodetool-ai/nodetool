@@ -16293,7 +16293,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": 25,
+        "default": 26,
         "title": "Day",
         "description": "Day of the date",
         "min": null,
@@ -16368,7 +16368,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": 25,
+        "default": 26,
         "title": "Day",
         "description": "Day of the datetime",
         "min": null,
@@ -16771,11 +16771,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 25,
-          "hour": 23,
-          "minute": 9,
-          "second": 49,
-          "microsecond": 16409,
+          "day": 26,
+          "hour": 18,
+          "minute": 2,
+          "second": 5,
+          "microsecond": 836057,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -17828,11 +17828,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 25,
-          "hour": 23,
-          "minute": 9,
-          "second": 49,
-          "microsecond": 20333,
+          "day": 26,
+          "hour": 18,
+          "minute": 2,
+          "second": 5,
+          "microsecond": 840641,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -17882,11 +17882,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 25,
-          "hour": 23,
-          "minute": 9,
-          "second": 49,
-          "microsecond": 20546,
+          "day": 26,
+          "hour": 18,
+          "minute": 2,
+          "second": 5,
+          "microsecond": 840905,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -17936,11 +17936,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 25,
-          "hour": 23,
-          "minute": 9,
-          "second": 49,
-          "microsecond": 20820,
+          "day": 26,
+          "hour": 18,
+          "minute": 2,
+          "second": 5,
+          "microsecond": 841200,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -17990,11 +17990,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 25,
-          "hour": 23,
-          "minute": 9,
-          "second": 49,
-          "microsecond": 21057,
+          "day": 26,
+          "hour": 18,
+          "minute": 2,
+          "second": 5,
+          "microsecond": 841455,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -18044,11 +18044,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 25,
-          "hour": 23,
-          "minute": 9,
-          "second": 49,
-          "microsecond": 21268,
+          "day": 26,
+          "hour": 18,
+          "minute": 2,
+          "second": 5,
+          "microsecond": 841705,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -18098,11 +18098,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 25,
-          "hour": 23,
-          "minute": 9,
-          "second": 49,
-          "microsecond": 21482,
+          "day": 26,
+          "hour": 18,
+          "minute": 2,
+          "second": 5,
+          "microsecond": 841955,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -18152,11 +18152,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 25,
-          "hour": 23,
-          "minute": 9,
-          "second": 49,
-          "microsecond": 21750,
+          "day": 26,
+          "hour": 18,
+          "minute": 2,
+          "second": 5,
+          "microsecond": 842244,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -18222,11 +18222,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 25,
-          "hour": 23,
-          "minute": 9,
-          "second": 49,
-          "microsecond": 22007,
+          "day": 26,
+          "hour": 18,
+          "minute": 2,
+          "second": 5,
+          "microsecond": 842546,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -79226,8 +79226,8 @@
   {
     "title": "Extract Text",
     "description": "Extract text content from a PDF file.\n    pdf, text, extract\n\n    Use cases:\n    - Convert PDF documents to plain text\n    - Extract content for analysis\n    - Enable text search in PDF documents",
-    "namespace": "lib.file.pdf",
-    "node_type": "lib.file.pdf.ExtractText",
+    "namespace": "lib.file.pdfplumber",
+    "node_type": "lib.file.pdfplumber.ExtractText",
     "layout": "default",
     "properties": [
       {
@@ -79306,8 +79306,8 @@
   {
     "title": "Extract Images",
     "description": "Extract images from a PDF file.\n    pdf, image, extract\n\n    Use cases:\n    - Extract embedded images from PDF documents\n    - Save PDF images as separate files\n    - Process PDF images for analysis",
-    "namespace": "lib.file.pdf",
-    "node_type": "lib.file.pdf.ExtractImages",
+    "namespace": "lib.file.pdfplumber",
+    "node_type": "lib.file.pdfplumber.ExtractImages",
     "layout": "default",
     "properties": [
       {
@@ -79389,8 +79389,8 @@
   {
     "title": "Get Page Count",
     "description": "Get the total number of pages in a PDF file.\n    pdf, pages, count\n\n    Use cases:\n    - Check document length\n    - Plan batch processing",
-    "namespace": "lib.file.pdf",
-    "node_type": "lib.file.pdf.GetPageCount",
+    "namespace": "lib.file.pdfplumber",
+    "node_type": "lib.file.pdfplumber.GetPageCount",
     "layout": "default",
     "properties": [
       {
@@ -79432,8 +79432,8 @@
   {
     "title": "Extract Page Metadata",
     "description": "Extract metadata from PDF pages like dimensions, rotation, etc.\n    pdf, metadata, pages\n\n    Use cases:\n    - Analyze page layouts\n    - Get page dimensions\n    - Check page orientations",
-    "namespace": "lib.file.pdf",
-    "node_type": "lib.file.pdf.ExtractPageMetadata",
+    "namespace": "lib.file.pdfplumber",
+    "node_type": "lib.file.pdfplumber.ExtractPageMetadata",
     "layout": "default",
     "properties": [
       {
@@ -79478,6 +79478,458 @@
         "default": 4,
         "title": "End Page",
         "description": "The end page to extract. -1 for all pages",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "dict",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "pdf",
+      "start_page",
+      "end_page"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Extract Tables",
+    "description": "Extract tables from a PDF file into dataframes.\n    pdf, tables, dataframe, extract\n\n    Use cases:\n    - Extract tabular data from PDF documents\n    - Convert PDF tables to structured data formats\n    - Process PDF tables for analysis\n    - Import PDF reports into data analysis pipelines",
+    "namespace": "lib.file.pdfplumber",
+    "node_type": "lib.file.pdfplumber.ExtractTables",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "pdf",
+        "type": {
+          "type": "document",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "document",
+          "uri": "",
+          "asset_id": null,
+          "data": null
+        },
+        "title": "Pdf",
+        "description": "The PDF document to extract tables from",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "pages",
+        "type": {
+          "type": "list",
+          "optional": true,
+          "values": null,
+          "type_args": [
+            {
+              "type": "int",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Pages",
+        "description": "Specific pages to extract tables from (None for all pages)",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "table_settings",
+        "type": {
+          "type": "dict",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "vertical_strategy": "text",
+          "horizontal_strategy": "text",
+          "snap_tolerance": 3,
+          "join_tolerance": 3,
+          "edge_min_length": 3,
+          "min_words_vertical": 3,
+          "min_words_horizontal": 1,
+          "keep_blank_chars": false,
+          "text_tolerance": 3,
+          "text_x_tolerance": 3,
+          "text_y_tolerance": 3
+        },
+        "title": "Table Settings",
+        "description": "Settings for table extraction algorithm",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "dataframe",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "pdf",
+      "pages",
+      "table_settings"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Extract Plain Text",
+    "description": "Extract plain text from a PDF document using PyMuPDF.\n    pdf, text, extract\n\n    Use cases:\n    - Extract raw text content from PDFs\n    - Convert PDF documents to plain text\n    - Prepare text for further processing",
+    "namespace": "lib.file.pymupdf",
+    "node_type": "lib.file.pymupdf.ExtractPlainText",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "pdf",
+        "type": {
+          "type": "document",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "document",
+          "uri": "",
+          "asset_id": null,
+          "data": null
+        },
+        "title": "Pdf",
+        "description": "The PDF document to extract text from",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "start_page",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 0,
+        "title": "Start Page",
+        "description": "First page to extract (0-based index)",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "end_page",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": -1,
+        "title": "End Page",
+        "description": "Last page to extract (-1 for last page)",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "pdf",
+      "start_page",
+      "end_page"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Extract Text Blocks",
+    "description": "Extract text blocks with their bounding boxes from a PDF.\n    pdf, text, blocks, layout\n\n    Use cases:\n    - Analyze text layout and structure\n    - Extract text while preserving block-level formatting\n    - Get text position information",
+    "namespace": "lib.file.pymupdf",
+    "node_type": "lib.file.pymupdf.ExtractTextBlocks",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "pdf",
+        "type": {
+          "type": "document",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "document",
+          "uri": "",
+          "asset_id": null,
+          "data": null
+        },
+        "title": "Pdf",
+        "description": "The PDF document to extract text blocks from",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "start_page",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 0,
+        "title": "Start Page",
+        "description": "First page to extract (0-based index)",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "end_page",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": -1,
+        "title": "End Page",
+        "description": "Last page to extract (-1 for last page)",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "dict",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "pdf",
+      "start_page",
+      "end_page"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Extract Text With Style",
+    "description": "Extract text with style information (font, size, color) from a PDF.\n    pdf, text, style, formatting\n\n    Use cases:\n    - Preserve text formatting during extraction\n    - Analyze document styling\n    - Extract text with font information",
+    "namespace": "lib.file.pymupdf",
+    "node_type": "lib.file.pymupdf.ExtractTextWithStyle",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "pdf",
+        "type": {
+          "type": "document",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "document",
+          "uri": "",
+          "asset_id": null,
+          "data": null
+        },
+        "title": "Pdf",
+        "description": "The PDF document to extract styled text from",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "start_page",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 0,
+        "title": "Start Page",
+        "description": "First page to extract (0-based index)",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "end_page",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": -1,
+        "title": "End Page",
+        "description": "Last page to extract (-1 for last page)",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "dict",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "pdf",
+      "start_page",
+      "end_page"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Extract Tables",
+    "description": "Extract tables from a PDF document using PyMuPDF.\n    pdf, tables, extract, structured\n\n    Use cases:\n    - Extract tabular data from PDFs\n    - Convert PDF tables to structured formats\n    - Analyze table layouts and content",
+    "namespace": "lib.file.pymupdf",
+    "node_type": "lib.file.pymupdf.ExtractTables",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "pdf",
+        "type": {
+          "type": "document",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "document",
+          "uri": "",
+          "asset_id": null,
+          "data": null
+        },
+        "title": "Pdf",
+        "description": "The PDF document to extract tables from",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "start_page",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 0,
+        "title": "Start Page",
+        "description": "First page to extract (0-based index)",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "end_page",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": -1,
+        "title": "End Page",
+        "description": "Last page to extract (-1 for last page)",
         "min": null,
         "max": null
       }
