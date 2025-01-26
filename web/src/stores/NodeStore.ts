@@ -965,7 +965,6 @@ export const useNodeStore = create<NodeStore>()(
         srcNode: Node<NodeData>,
         targetNode: Node<NodeData>
       ) => {
-        debugger;
         const srcMetadata = useMetadataStore
           .getState()
           .getMetadata(srcNode.type as string);
