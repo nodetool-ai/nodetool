@@ -16,6 +16,7 @@ import AudioInput from "./AudioInput";
 import { createListCollection } from "@chakra-ui/react";
 import ImageInput from "./ImageInput";
 import VideoInput from "./VideoInput";
+import DocumentInput from "./DocumentInput";
 
 interface SchemaInputProps {
   name: string;
@@ -102,6 +103,9 @@ export const SchemaInput: React.FC<SchemaInputProps> = ({
         }
         if (schema.properties?.type.enum?.includes("video")) {
           return <VideoInput onChange={onChange} />;
+        }
+        if (schema.properties?.type.enum?.includes("document")) {
+          return <DocumentInput onChange={onChange} />;
         }
         return null;
 
