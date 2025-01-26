@@ -4,10 +4,14 @@ import {
   List,
   ToggleButton,
   ToggleButtonGroup,
-  Typography
+  Typography,
+  Box,
+  TextField,
+  InputAdornment
 } from "@mui/material";
 import ViewListIcon from "@mui/icons-material/ViewList";
 import ViewModuleIcon from "@mui/icons-material/ViewModule";
+import SearchIcon from "@mui/icons-material/Search";
 import { UnifiedModel } from "../../stores/ApiTypes";
 import ModelCard from "./ModelCard";
 import ModelListItem from "./ModelListItem";
@@ -30,6 +34,7 @@ const RecommendedModels: React.FC<RecommendedModelsProps> = ({
   compactView = false
 }) => {
   const [viewMode, setViewMode] = useState<"grid" | "list">(initialViewMode);
+  const [searchQuery, setSearchQuery] = useState("");
   const modelsWithSize = useModelsWithSize(recommendedModels);
   const startDownload = useModelDownloadStore((state) => state.startDownload);
 
@@ -42,28 +47,64 @@ const RecommendedModels: React.FC<RecommendedModelsProps> = ({
     }
   };
 
+  const filteredModels = useMemo(() => {
+    if (!searchQuery) return modelsWithSize;
+    const query = searchQuery.toLowerCase();
+    return modelsWithSize.filter(
+      (model) =>
+        model.name.toLowerCase().includes(query) ||
+        model.id.toLowerCase().includes(query)
+    );
+  }, [modelsWithSize, searchQuery]);
+
   return (
     <>
-      {showViewModeToggle && (
-        <ToggleButtonGroup
-          value={viewMode}
-          exclusive
-          onChange={handleViewModeChange}
-          aria-label="view mode"
-          sx={{ marginBottom: 2 }}
-        >
-          <ToggleButton value="grid" aria-label="grid view">
-            <ViewModuleIcon />
-          </ToggleButton>
-          <ToggleButton value="list" aria-label="list view">
-            <ViewListIcon />
-          </ToggleButton>
-        </ToggleButtonGroup>
-      )}
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          gap: 2,
+          marginBottom: 2
+        }}
+      >
+        <TextField
+          placeholder="Search models..."
+          variant="outlined"
+          size="small"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          sx={{ flex: 1 }}
+          slotProps={{
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon />
+                </InputAdornment>
+              )
+            }
+          }}
+        />
+        {showViewModeToggle && (
+          <ToggleButtonGroup
+            value={viewMode}
+            exclusive
+            onChange={handleViewModeChange}
+            aria-label="view mode"
+            size="small"
+          >
+            <ToggleButton value="grid" aria-label="grid view">
+              <ViewModuleIcon />
+            </ToggleButton>
+            <ToggleButton value="list" aria-label="list view">
+              <ViewListIcon />
+            </ToggleButton>
+          </ToggleButtonGroup>
+        )}
+      </Box>
 
       {viewMode === "grid" ? (
         <Grid container spacing={3} className="recommended-models-grid">
-          {modelsWithSize.map((model) => {
+          {filteredModels.map((model) => {
             return (
               <Grid item xs={12} sm={6} md={4} key={model.id}>
                 <ModelCard
@@ -84,7 +125,7 @@ const RecommendedModels: React.FC<RecommendedModelsProps> = ({
         </Grid>
       ) : (
         <List>
-          {modelsWithSize.map((model) => {
+          {filteredModels.map((model) => {
             return (
               <ModelListItem
                 compactView={compactView}
