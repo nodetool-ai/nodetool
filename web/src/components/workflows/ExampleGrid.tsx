@@ -254,7 +254,7 @@ const ExampleGrid = () => {
         tags.push("example");
       }
       const req = {
-        name: "#" + workflow.name,
+        name: workflow.name,
         description: workflow.description,
         thumbnail: workflow.thumbnail,
         thumbnail_url: workflow.thumbnail_url,
