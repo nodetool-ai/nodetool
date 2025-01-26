@@ -45,6 +45,7 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     env:
+      DEBUG: electron-builder
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_TOKEN }}
       AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
