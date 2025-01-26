@@ -15,6 +15,7 @@ import { JSONSchema } from "../types/workflow";
 import AudioInput from "./AudioInput";
 import { createListCollection } from "@chakra-ui/react";
 import ImageInput from "./ImageInput";
+import VideoInput from "./VideoInput";
 
 interface SchemaInputProps {
   name: string;
@@ -98,6 +99,9 @@ export const SchemaInput: React.FC<SchemaInputProps> = ({
         }
         if (schema.properties?.type.enum?.includes("image")) {
           return <ImageInput onChange={onChange} />;
+        }
+        if (schema.properties?.type.enum?.includes("video")) {
+          return <VideoInput onChange={onChange} />;
         }
         return null;
 
