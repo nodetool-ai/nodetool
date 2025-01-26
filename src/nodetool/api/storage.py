@@ -60,7 +60,7 @@ async def get(key: str, request: Request):
         if if_modified_since >= last_modified:
             raise HTTPException(status_code=304)
 
-    ext = os.path.splitext(key)[-1]
+    ext = os.path.splitext(key)[-1][1:]
     media_type = EXTENSION_TO_CONTENT_TYPE.get(ext, "application/octet-stream")
     headers = {
         "Last-Modified": last_modified.strftime("%a, %d %b %Y %H:%M:%S GMT"),
