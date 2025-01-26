@@ -1,8 +1,8 @@
 {
   "id": "summarize_audio",
   "access": "public",
-  "created_at": "2025-01-09T21:17:35.583788",
-  "updated_at": "2025-01-09T21:17:35.583808",
+  "created_at": "2025-01-26T18:25:00.274365",
+  "updated_at": "2025-01-26T18:25:00.274411",
   "name": "Summarize Audio",
   "description": "Transcribe an audio file and summarize the text.",
   "tags": [
@@ -13,28 +13,6 @@
   "thumbnail_url": "/examples/summarize_audio.jpg",
   "graph": {
     "nodes": [
-      {
-        "id": "6",
-        "parent_id": null,
-        "type": "nodetool.constant.Audio",
-        "data": {
-          "value": {
-            "uri": "",
-            "type": "audio"
-          }
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 50,
-            "y": 109
-          },
-          "zIndex": 0,
-          "width": 200,
-          "color": "#d33682",
-          "selectable": true
-        }
-      },
       {
         "id": "8",
         "parent_id": null,
@@ -69,7 +47,6 @@
           ]
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 350,
             "y": -97
@@ -78,7 +55,8 @@
           "width": 307,
           "height": 110,
           "selectable": true
-        }
+        },
+        "dynamic_properties": {}
       },
       {
         "id": "9",
@@ -87,9 +65,9 @@
         "data": {
           "model": {
             "type": "llama_model",
-            "repo_id": "llama3.2:3b"
+            "repo_id": "deepseek-r1:7b"
           },
-          "system_prompt": "Summarize",
+          "system_prompt": "Summarize the given text by identifying the main points, key arguments, and relevant details, \nwhile maintaining clarity and conciseness. Focus on preserving the core meaning and \nlogical structure without unnecessary elaboration or repetition.\nYou are a condident expert.",
           "context_window": 4096,
           "image": {
             "type": "image",
@@ -111,7 +89,8 @@
           "zIndex": 0,
           "width": 187,
           "selectable": true
-        }
+        },
+        "dynamic_properties": {}
       },
       {
         "id": "10",
@@ -128,7 +107,6 @@
           "timestamps": "none"
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 280,
             "y": 50
@@ -136,32 +114,58 @@
           "zIndex": 0,
           "width": 198,
           "selectable": true
-        }
+        },
+        "dynamic_properties": {}
       },
       {
-        "id": "11",
+        "id": "12",
         "parent_id": null,
-        "type": "nodetool.workflows.base_node.Preview",
+        "type": "nodetool.input.AudioInput",
         "data": {
-          "name": "str_output_2025-01-05"
+          "name": "audio",
+          "description": "",
+          "value": {
+            "type": "audio",
+            "uri": "",
+            "asset_id": null,
+            "data": null
+          }
         },
         "ui_properties": {
-          "selected": false,
           "position": {
-            "x": 725,
-            "y": 66
+            "x": 90,
+            "y": 70
           },
           "zIndex": 0,
-          "width": 196,
-          "height": 219,
+          "width": 159,
           "selectable": true
-        }
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "13",
+        "parent_id": null,
+        "type": "nodetool.output.StringOutput",
+        "data": {
+          "name": "summary",
+          "description": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 749,
+            "y": 69
+          },
+          "zIndex": 0,
+          "width": 159,
+          "selectable": true
+        },
+        "dynamic_properties": {}
       }
     ],
     "edges": [
       {
-        "id": "b8f67e58-b6b2-430c-a347-957595a826e7",
-        "source": "6",
+        "id": "7",
+        "source": "12",
         "sourceHandle": "output",
         "target": "10",
         "targetHandle": "audio",
@@ -170,21 +174,21 @@
         }
       },
       {
-        "id": "6",
-        "source": "9",
-        "sourceHandle": "output",
-        "target": "11",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "str"
-        }
-      },
-      {
         "id": "5ba168f7-a973-4d1b-96ff-f48ce6239acb",
         "source": "10",
         "sourceHandle": "text",
         "target": "9",
         "targetHandle": "prompt",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "8",
+        "source": "9",
+        "sourceHandle": "output",
+        "target": "13",
+        "targetHandle": "value",
         "ui_properties": {
           "className": "str"
         }

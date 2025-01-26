@@ -8,6 +8,7 @@ interface WorkflowRunnerState {
   socket: WebSocket | null;
   state: "idle" | "connecting" | "connected" | "running" | "error";
   progress: { current: number; total: number } | null;
+  chunks: string[];
   results: any[];
   notifications: {
     type: "error" | "info";
@@ -33,6 +34,7 @@ export const useWorkflowRunner = create<WorkflowRunnerState>((set, get) => ({
   socket: null,
   state: "idle",
   progress: null,
+  chunks: [],
   error: null,
   nodeUpdate: null,
   jobUpdate: null,
@@ -112,6 +114,9 @@ export const useWorkflowRunner = create<WorkflowRunnerState>((set, get) => ({
           set({
             progress: { current: data.progress, total: data.total },
           });
+          if (data.chunk) {
+            set({ chunks: [...get().chunks, data.chunk] });
+          }
         } else if (data.type === "node_update") {
           if (data.error) {
             set({ state: "error" });
@@ -150,6 +155,14 @@ export const useWorkflowRunner = create<WorkflowRunnerState>((set, get) => ({
     if (!get().socket || get().state !== "connected") {
       await get().connect();
     }
+
+    set({
+      chunks: [],
+      results: [],
+      progress: null,
+      statusMessage: null,
+      notifications: [],
+    });
 
     const request = {
       type: "run_job_request",
