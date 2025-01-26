@@ -16,8 +16,16 @@ import RecommendedModels from "./RecommendedModels";
 
 const styles = (theme: any) =>
   css({
+    ".MuiDialog-paper": {
+      height: "calc(100% - 200px)"
+    },
+    ".MuiDialogContent-root": {
+      height: "calc(100% - 64px)",
+      display: "flex",
+      flexDirection: "column"
+    },
     ".recommended-models-grid": {
-      maxHeight: "650px",
+      flex: 1,
       overflow: "auto",
       paddingRight: "1em"
     },
@@ -81,7 +89,7 @@ const RecommendedModelsDialog: React.FC<RecommendedModelsDialogProps> = ({
       <DialogContent sx={{ paddingBottom: "3em" }}>
         <RecommendedModels
           recommendedModels={recommendedModels}
-          initialViewMode="grid"
+          initialViewMode="list"
         />
       </DialogContent>
     </Dialog>
