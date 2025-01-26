@@ -35,6 +35,8 @@ async def create(
                 name=workflow_request.name,
                 description=workflow_request.description,
                 thumbnail=workflow_request.thumbnail,
+                thumbnail_url=workflow_request.thumbnail_url,
+                tags=workflow_request.tags,
                 access=workflow_request.access,
                 graph=remove_connected_slots(workflow_request.graph).model_dump(),
                 user_id=user.id,
@@ -50,6 +52,8 @@ async def create(
                 name=workflow_request.name,
                 description=workflow_request.description,
                 thumbnail=workflow_request.thumbnail,
+                thumbnail_url=workflow_request.thumbnail_url,
+                tags=workflow_request.tags,
                 access=workflow_request.access,
                 user_id=user.id,
                 graph={
