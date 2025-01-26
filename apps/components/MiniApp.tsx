@@ -17,6 +17,8 @@ import { VideoPlayer } from "./VideoPlayer";
 import { SchemaInput } from "./SchemaInput";
 import { Alert } from "./ui/alert";
 import Markdown from "react-markdown";
+import { motion, AnimatePresence } from "framer-motion";
+
 interface MiniAppProps {
   workflowId: string;
   schema: JSONSchema;
@@ -137,12 +139,6 @@ export const MiniApp: React.FC<MiniAppProps> = ({ workflowId, schema }) => {
                 {state === "error" && (statusMessage || "An error occurred")}
               </Text>
 
-              {chunks.length > 0 && (
-                <Text fontSize="sm" color="gray.500">
-                  {chunks.join("\n")}
-                </Text>
-              )}
-
               {progress && progress.total > 0 && (
                 <ProgressRoot
                   value={(progress.current * 100.0) / progress.total}
@@ -195,14 +191,30 @@ export const MiniApp: React.FC<MiniAppProps> = ({ workflowId, schema }) => {
 
         {notifications.length > 0 && (
           <VStack mt={4}>
-            {notifications.map((notification, index) => (
-              <Alert key={index} variant="subtle">
-                {notification.content}
-              </Alert>
-            ))}
+            <AnimatePresence>
+              {notifications.map((notification, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.2 }}
+                  style={{ width: "100%" }}
+                >
+                  <Alert variant="subtle">{notification.content}</Alert>
+                </motion.div>
+              ))}
+            </AnimatePresence>
           </VStack>
         )}
 
+        <Box mt={4}>
+          {chunks.length > 0 && (
+            <Text fontSize="sm" color="gray.500">
+              {chunks.join("\n")}
+            </Text>
+          )}
+        </Box>
         {results.length > 0 && (
           <VStack mt={4}>
             {results.map((result, index) => (
