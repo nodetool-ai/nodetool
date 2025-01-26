@@ -7,29 +7,66 @@ export const contentTypeToNodeType = (contentType: string): TypeName | null => {
   switch (contentType) {
     case "application/json":
     case "text/plain":
+    case "text/html":
+    case "text/markdown":
+    case "text/xml":
+    case "application/xml":
+    case "text/javascript":
+    case "application/javascript":
+    case "text/css":
       return "text";
     case "text/csv":
+    case "application/vnd.ms-excel.sheet.macroEnabled.12":
+    case "application/x-yaml":
+    case "text/x-yaml":
+    case "application/x-parquet":
+    case "application/x-hdf5":
       return "dataframe";
     case "image/png":
     case "image/jpeg":
     case "image/gif":
     case "image/webp":
+    case "image/svg+xml":
+    case "image/tiff":
+    case "image/bmp":
+    case "image/x-icon":
+    case "image/heic":
+    case "image/heif":
       return "image";
     case "video/mp4":
     case "video/mpeg":
     case "video/ogg":
     case "video/webm":
+    case "video/quicktime":
+    case "video/x-msvideo":
+    case "video/x-matroska":
+    case "video/3gpp":
+    case "video/3gpp2":
       return "video";
     case "audio/mpeg":
     case "audio/ogg":
     case "audio/wav":
     case "audio/webm":
     case "audio/mp3":
+    case "audio/aac":
+    case "audio/midi":
+    case "audio/x-midi":
+    case "audio/flac":
+    case "audio/x-m4a":
       return "audio";
     case "application/pdf":
     case "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+    case "application/msword":
     case "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
+    case "application/vnd.ms-excel":
     case "application/vnd.openxmlformats-officedocument.presentationml.presentation":
+    case "application/vnd.ms-powerpoint":
+    case "application/vnd.oasis.opendocument.text":
+    case "application/vnd.oasis.opendocument.spreadsheet":
+    case "application/vnd.oasis.opendocument.presentation":
+    case "application/rtf":
+    case "application/x-tex":
+    case "application/epub+zip":
       return "document";
     // internal asset types
     case "folder":
