@@ -72,6 +72,7 @@ def log_stream(stream: IO[bytes], prefix: str):
     help="Path to the static folder to serve.",
     type=click.Path(exists=True, resolve_path=True, file_okay=False, dir_okay=True),
 )
+@click.option("--apps-folder", default=None, help="Path to the apps folder.")
 @click.option("--force-fp16", is_flag=True, help="Force FP16.")
 @click.option("--reload", is_flag=True, help="Reload the server on changes.")
 @click.option(
@@ -88,6 +89,7 @@ def serve(
     force_fp16: bool = False,
     remote_auth: bool = False,
     worker_url: str | None = None,
+    apps_folder: str | None = None,
     with_ui: bool = False,
 ):
     """Serve the Nodetool API server."""
@@ -106,10 +108,12 @@ def serve(
         Environment.set_nodetool_api_url(f"http://127.0.0.1:{port}")
 
     if not reload:
-        app = create_app(static_folder=static_folder)
+        app = create_app(static_folder=static_folder, apps_folder=apps_folder)
     else:
         if static_folder:
             raise Exception("static folder and reload are exclusive options")
+        if apps_folder:
+            raise Exception("apps folder and reload are exclusive options")
         app = "nodetool.api.app:app"
 
     vite_process = None

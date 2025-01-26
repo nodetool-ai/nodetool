@@ -5,34 +5,6 @@ import { Box, Heading, Text, Flex } from "@chakra-ui/react";
 import ChatInterface from "./ChatInterface";
 import { MiniApp } from "./MiniApp";
 
-declare global {
-  interface Window {
-    api: {
-      onWorkflow: (listener: (workflow: Workflow) => void) => void;
-    };
-    windowControls: {
-      close: () => void;
-      minimize: () => void;
-      maximize: () => void;
-    };
-    process: {
-      type: string;
-      platform: string;
-      versions: {
-        node: string;
-        electron: string;
-        chrome: string;
-      };
-    };
-    electron: {
-      ipcRenderer: {
-        send: (channel: string, ...args: any[]) => void;
-        on: (channel: string, listener: (...args: any[]) => void) => void;
-        invoke: (channel: string, ...args: any[]) => Promise<any>;
-      };
-    };
-  }
-}
 interface AppProps {
   initialWorkflowId?: string;
 }
@@ -51,6 +23,7 @@ export const App: React.FC<AppProps> = ({ initialWorkflowId }) => {
   const [workflow, setWorkflow] = React.useState<Workflow | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
+  const isMac = window.navigator.platform.toLowerCase().includes("mac");
 
   useEffect(() => {
     const fetchWorkflow = async (workflowId: string) => {
@@ -77,12 +50,6 @@ export const App: React.FC<AppProps> = ({ initialWorkflowId }) => {
     if (initialWorkflowId) {
       fetchWorkflow(initialWorkflowId);
     }
-
-    // Listen for workflow updates from the main process
-    window.api?.onWorkflow((newWorkflow: Workflow) => {
-      setWorkflow(newWorkflow);
-      setError(null);
-    });
   }, [initialWorkflowId]);
 
   return (
@@ -93,7 +60,7 @@ export const App: React.FC<AppProps> = ({ initialWorkflowId }) => {
       color="var(--text-color)"
       className="app"
     >
-      <WindowControls />
+      {!isMac && <WindowControls />}
 
       {workflow && (
         <Box

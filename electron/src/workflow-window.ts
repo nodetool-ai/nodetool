@@ -1,16 +1,15 @@
 import { BrowserWindow, app } from "electron";
 import path from "path";
-import { Workflow } from "./types.d";
 
 // Map to store workflow windows
 const workflowWindows = new Map<number, BrowserWindow>();
 
 /**
  * Creates a new frameless workflow window
- * @param workflow - The workflow to create a window for
+ * @param workflowId - The workflow ID to create a window for
  * @returns The created window
  */
-function createWorkflowWindow(workflow: Workflow): BrowserWindow {
+function createWorkflowWindow(workflowId: string): BrowserWindow {
   const workflowWindow = new BrowserWindow({
     frame: false,
     titleBarStyle: "hidden",
@@ -30,13 +29,10 @@ function createWorkflowWindow(workflow: Workflow): BrowserWindow {
     workflowWindows.delete(windowId);
   });
 
-  workflowWindow.loadFile(
-    path.join(__dirname, "..", "apps", "build", "index.html")
+  workflowWindow.loadURL(
+    `http://127.0.0.1:8000/apps/index.html?workflow_id=${workflowId}`
   );
 
-  workflowWindow.webContents.on("did-finish-load", () => {
-    workflowWindow.webContents.send("workflow", workflow);
-  });
   return workflowWindow;
 }
 
@@ -49,39 +45,4 @@ function isWorkflowWindow(window: BrowserWindow): boolean {
   return workflowWindows.has(window.id);
 }
 
-/**
- * Fetches a workflow from the local API
- * @param workflowId - The workflow ID to fetch
- * @returns The fetched workflow
- * @throws {Error} When the API request fails
- */
-async function fetchWorkflow(workflowId: string): Promise<Workflow> {
-  try {
-    const response = await fetch(
-      `http://127.0.0.1:8000/api/workflows/${workflowId}`,
-      {
-        method: "GET",
-        headers: {
-          Accept: "application/json",
-        },
-      }
-    );
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    return await response.json();
-  } catch (error) {
-    throw new Error(`Failed to fetch workflows: ${(error as Error).message}`);
-  }
-}
-
-/**
- * Runs a workflow by fetching it and creating a new window for it
- * @param workflowId - The workflow ID to run
- */
-async function runWorkflow(workflowId: string): Promise<void> {
-  const workflow = await fetchWorkflow(workflowId);
-  createWorkflowWindow(workflow);
-}
-
-export { createWorkflowWindow, isWorkflowWindow, runWorkflow };
+export { createWorkflowWindow, isWorkflowWindow };
