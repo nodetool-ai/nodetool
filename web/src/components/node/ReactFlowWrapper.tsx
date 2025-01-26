@@ -441,6 +441,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
         onDoubleClick={handleDoubleClick}
         proOptions={proOptions}
         onInit={handleOnInit}
+        panActivationKeyCode=""
         // onSelectionChange={onSelectionChange}
         // edgeTypes={edgeTypes}
         // onNodeClick={onNodeClick}
