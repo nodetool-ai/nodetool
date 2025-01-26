@@ -77,13 +77,6 @@ if not Environment.is_production():
     DEFAULT_ROUTERS.append(collection.router)
 
 
-class PermissionsPolicyMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next):
-        response = await call_next(request)
-        response.headers["Permissions-Policy"] = "microphone=self"
-        return response
-
-
 def create_app(
     origins: list[str] = ["*"],
     routers: list[APIRouter] = DEFAULT_ROUTERS,
@@ -106,9 +99,6 @@ def create_app(
         expose_headers=["*"],
         max_age=3600,
     )
-
-    # Add the PermissionsPolicyMiddleware
-    app.add_middleware(PermissionsPolicyMiddleware)
 
     for router in routers:
         app.include_router(router)
