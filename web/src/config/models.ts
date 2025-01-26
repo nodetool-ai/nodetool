@@ -37,6 +37,36 @@ export const llama_models: UnifiedModel[] = [
     type: "llama_model"
   },
   {
+    id: "deepseek-r1:1.5b",
+    name: "Deepseek R1 - 1.5B",
+    type: "llama_model"
+  },
+  {
+    id: "deepseek-r1:7b",
+    name: "Deepseek R1 - 7B",
+    type: "llama_model"
+  },
+  {
+    id: "deepseek-r1:8b",
+    name: "Deepseek R1 - 8B",
+    type: "llama_model"
+  },
+  {
+    id: "deepseek-r1:14b",
+    name: "Deepseek R1 - 14B",
+    type: "llama_model"
+  },
+  {
+    id: "deepseek-r1:32b",
+    name: "Deepseek R1 - 32B",
+    type: "llama_model"
+  },
+  {
+    id: "deepseek-r1:70b",
+    name: "Deepseek R1 - 70B",
+    type: "llama_model"
+  },
+  {
     id: "granite3.1-moe:1b",
     name: "Granite 3.1 MOE - 1B",
     type: "llama_model"
@@ -52,7 +82,7 @@ export const llama_models: UnifiedModel[] = [
     type: "llama_model"
   },
   {
-    id: "llama3.2:3b",
+    id: "gemma2:2b",
     name: "Gemma2 - 2B",
     type: "llama_model"
   },
