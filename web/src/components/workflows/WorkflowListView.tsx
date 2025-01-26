@@ -36,14 +36,13 @@ const listStyles = (theme: any) =>
       overflow: "hidden auto"
     },
     ".workflow": {
-      padding: "1em .1em 0.5em 1em",
+      padding: "0.25em .1em 0.25em 1em",
       display: "flex",
       flexDirection: "row",
       alignItems: "flex-start",
       margin: "0",
       width: "100%",
       cursor: "pointer",
-      borderBottom: "1px solid black",
       transition: "background 0.2s",
       "& .MuiCheckbox-root": {
         margin: "0 1em 0.5em 0",
@@ -127,102 +126,73 @@ export const WorkflowListView: React.FC<WorkflowListViewProps> = ({
   return (
     <Box className="container list" css={listStyles} onScroll={onScroll}>
       {workflows.map((workflow: Workflow) => (
-        <Tooltip
+        <Box
           key={workflow.id}
-          title="Click to open workflow"
-          placement="bottom-start"
-          enterDelay={TOOLTIP_ENTER_DELAY * 2}
-          enterNextDelay={2000}
-        >
-          <Box
-            className={
-              "workflow list" +
-              (selectedWorkflows?.includes(workflow.id) ? " selected" : "") +
-              (currentWorkflow?.id === workflow.id ? " current" : "")
+          className={
+            "workflow list" +
+            (selectedWorkflows?.includes(workflow.id) ? " selected" : "") +
+            (currentWorkflow?.id === workflow.id ? " current" : "")
+          }
+          onContextMenu={(e) => {
+            e.preventDefault();
+          }}
+          onClick={(e) => {
+            if (!e.defaultPrevented) {
+              onOpenWorkflow(workflow);
             }
-            onContextMenu={(e) => {
-              e.preventDefault();
-            }}
-            onClick={(e) => {
-              if (!e.defaultPrevented) {
-                onOpenWorkflow(workflow);
-              }
-            }}
-          >
-            {showCheckboxes && (
-              <Tooltip
-                title="Select workflow"
-                placement="top"
-                enterDelay={TOOLTIP_ENTER_DELAY}
+          }}
+        >
+          {showCheckboxes && (
+            <Checkbox
+              className="checkbox"
+              size="small"
+              checked={selectedWorkflows?.includes(workflow.id) || false}
+              onClick={(e) => {
+                e.preventDefault();
+                onSelect(workflow);
+              }}
+            />
+          )}
+          <div
+            className="name"
+            dangerouslySetInnerHTML={{ __html: addBreaks(workflow.name) }}
+          ></div>
+          <div className="actions">
+            {panelSize >= 400 && (
+              <Typography
+                className="date"
+                data-microtip-position="top"
+                aria-label="Last modified"
+                role="tooltip"
               >
-                <Checkbox
-                  className="checkbox"
-                  size="small"
-                  checked={selectedWorkflows?.includes(workflow.id) || false}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    onSelect(workflow);
-                  }}
-                />
-              </Tooltip>
+                {relativeTime(workflow.updated_at)} <br />
+              </Typography>
             )}
-            <Tooltip
-              title={workflow.description}
-              placement="top"
-              enterDelay={TOOLTIP_ENTER_DELAY}
+            <Button
+              size="small"
+              className="duplicate-button"
+              onClick={(event) => {
+                event.preventDefault();
+                onDuplicateWorkflow(event, workflow);
+              }}
+              data-microtip-position="bottom"
+              aria-label="Duplicate"
+              role="tooltip"
             >
-              <div
-                className="name"
-                dangerouslySetInnerHTML={{ __html: addBreaks(workflow.name) }}
-              ></div>
-            </Tooltip>
-            <div className="actions">
-              {panelSize >= 400 && (
-                <Tooltip
-                  title="Last modified"
-                  placement="top"
-                  enterDelay={TOOLTIP_ENTER_DELAY}
-                >
-                  <Typography className="date">
-                    {relativeTime(workflow.updated_at)} <br />
-                  </Typography>
-                </Tooltip>
-              )}
-              <Tooltip
-                title="Make a copy of this workflow"
-                placement="bottom"
-                enterDelay={TOOLTIP_ENTER_DELAY}
-              >
-                <Button
-                  size="small"
-                  className="duplicate-button"
-                  onClick={(event) => {
-                    event.preventDefault();
-                    onDuplicateWorkflow(event, workflow);
-                  }}
-                >
-                  <ContentCopyIcon />
-                </Button>
-              </Tooltip>
-              <Tooltip
-                title="Delete this workflow"
-                placement="bottom"
-                enterDelay={TOOLTIP_ENTER_DELAY}
-              >
-                <Button
-                  size="small"
-                  className="delete-button"
-                  onClick={(event) => {
-                    event.preventDefault();
-                    onDelete(event, workflow);
-                  }}
-                >
-                  <DeleteIcon />
-                </Button>
-              </Tooltip>
-            </div>
-          </Box>
-        </Tooltip>
+              <ContentCopyIcon />
+            </Button>
+            <Button
+              size="small"
+              className="delete-button"
+              onClick={(event) => {
+                event.preventDefault();
+                onDelete(event, workflow);
+              }}
+            >
+              <DeleteIcon />
+            </Button>
+          </div>
+        </Box>
       ))}
     </Box>
   );

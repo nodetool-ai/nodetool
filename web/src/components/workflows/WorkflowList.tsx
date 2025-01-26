@@ -5,7 +5,16 @@ import SearchInput from "../search/SearchInput";
 import ConfirmDialog from "../dialogs/ConfirmDialog";
 import { WorkflowListView } from "./WorkflowListView";
 
-import { Typography, CircularProgress, Button, Tooltip } from "@mui/material";
+import {
+  Typography,
+  CircularProgress,
+  Button,
+  Tooltip,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem
+} from "@mui/material";
 
 import { useWorkflowStore } from "../../stores/WorkflowStore";
 import { useCallback, useEffect, useState, useMemo } from "react";
@@ -139,7 +148,7 @@ const loadWorkflows = async (cursor?: string, limit?: number) => {
   cursor = cursor || "";
   const { data, error } = await client.GET("/api/workflows/", {
     params: {
-      query: { cursor, limit, columns: "name,id,updated_at,description" }
+      query: { cursor, limit, columns: "name,id,updated_at,description,tags" }
     }
   });
   if (error) {
@@ -182,6 +191,20 @@ const WorkflowList = () => {
   const [workflowsToDelete, setWorkflowsToDelete] = useState<Workflow[]>([]);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false);
   const [showCheckboxes, setShowCheckboxes] = useState(false);
+
+  const [selectedTag, setSelectedTag] = useState<string>("");
+  const uniqueTags = useMemo(() => {
+    if (!workflows) return [];
+    const tagSet = new Set<string>();
+    workflows.forEach((wf) => wf.tags?.forEach((tag) => tagSet.add(tag)));
+    return Array.from(tagSet);
+  }, [workflows]);
+  const finalWorkflows = useMemo(() => {
+    if (!selectedTag) {
+      return workflows;
+    }
+    return workflows.filter((wf) => wf.tags?.includes(selectedTag));
+  }, [workflows, selectedTag]);
 
   // OPEN WORKFLOW
   const onDoubleClickWorkflow = useCallback(
@@ -373,7 +396,7 @@ const WorkflowList = () => {
     () => (
       <div className="workflow-items" ref={gridRef}>
         <WorkflowListView
-          workflows={filteredWorkflows}
+          workflows={finalWorkflows}
           onOpenWorkflow={onDoubleClickWorkflow}
           onDuplicateWorkflow={duplicateWorkflow}
           onDelete={onDelete}
@@ -386,7 +409,7 @@ const WorkflowList = () => {
     ),
     [
       gridRef,
-      filteredWorkflows,
+      finalWorkflows,
       onClickOpen,
       onDoubleClickWorkflow,
       duplicateWorkflow,
@@ -424,6 +447,29 @@ const WorkflowList = () => {
               <SearchInput onSearchChange={handleSearchChange} />
             </div>
           </Tooltip>
+          <FormControl
+            size="small"
+            sx={{ minWidth: 120, height: "36px", marginTop: "18px" }}
+          >
+            <InputLabel id="tag-filter-label">Filter by Tag</InputLabel>
+            <Select
+              labelId="tag-filter-label"
+              id="tag-filter"
+              value={selectedTag}
+              label="Filter by Tag"
+              sx={{ height: "36px" }}
+              onChange={(e) => setSelectedTag(e.target.value)}
+            >
+              <MenuItem value="">
+                <em>All</em>
+              </MenuItem>
+              {uniqueTags.map((tag) => (
+                <MenuItem key={tag} value={tag}>
+                  {tag}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
           <Tooltip
             title={`${showCheckboxes ? "Hide" : "Show"} selection checkboxes`}
             placement="top"
@@ -485,7 +531,9 @@ const WorkflowList = () => {
       isLoading,
       isError,
       error?.message,
-      workflows
+      workflows,
+      selectedTag,
+      uniqueTags
     ]
   );
 
