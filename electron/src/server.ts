@@ -18,7 +18,7 @@ import fs from "fs/promises";
 import net from "net";
 import { updateTrayMenu } from "./tray";
 import { LOG_FILE } from "./logger";
-import { runWorkflow } from "./workflow-window";
+import { createWorkflowWindow } from "./workflow-window";
 
 interface ServerState {
   initialURL: string;
@@ -512,7 +512,7 @@ export function openLogFile() {
 
 export async function runApp(workflowId: string) {
   logMessage(`Running app with workflow ID: ${workflowId}`);
-  return runWorkflow(workflowId);
+  createWorkflowWindow(workflowId);
 }
 
 export {

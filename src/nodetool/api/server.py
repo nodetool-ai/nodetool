@@ -88,6 +88,7 @@ def create_app(
     origins: list[str] = ["*"],
     routers: list[APIRouter] = DEFAULT_ROUTERS,
     static_folder: str | None = None,
+    apps_folder: str | None = None,
 ):
     env_file = dotenv.find_dotenv(usecwd=True)
 
@@ -120,6 +121,10 @@ def create_app(
         ):
             print(f"Request validation error: {exc}")
             return JSONResponse({"detail": exc.errors()}, status_code=422)
+
+    if apps_folder:
+        print(f"Mounting apps folder: {apps_folder}")
+        app.mount("/apps", StaticFiles(directory=apps_folder, html=True), name="apps")
 
     @app.get("/health")
     async def health_check() -> str:

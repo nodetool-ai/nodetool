@@ -14,6 +14,7 @@ import {
 import { JSONSchema } from "../types/workflow";
 import AudioInput from "./AudioInput";
 import { createListCollection } from "@chakra-ui/react";
+import ImageInput from "./ImageInput";
 
 interface SchemaInputProps {
   name: string;
@@ -95,25 +96,8 @@ export const SchemaInput: React.FC<SchemaInputProps> = ({
         if (schema.properties?.type.enum?.includes("audio")) {
           return <AudioInput onChange={onChange} />;
         }
-        if (schema.properties?.uri) {
-          return (
-            <Box
-              border="2px dashed"
-              borderColor={dropzoneBorder}
-              borderRadius="md"
-              p={4}
-              bg={dropzoneBg}
-              textAlign="center"
-              cursor="pointer"
-              _hover={{ borderColor: "blue.500" }}
-              onClick={() => {
-                /* Implement file input click handler */
-              }}
-            >
-              <Text>Drop files here or click to upload</Text>
-              {value?.uri && <Text mt={2}>Selected: {value.uri}</Text>}
-            </Box>
-          );
+        if (schema.properties?.type.enum?.includes("image")) {
+          return <ImageInput onChange={onChange} />;
         }
         return null;
 

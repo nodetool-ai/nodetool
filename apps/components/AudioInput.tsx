@@ -5,10 +5,25 @@ import { Button } from "./ui/button";
 import { Box, HStack, Text } from "@chakra-ui/react";
 import { FaMicrophone, FaStop, FaPlay, FaPause, FaCog } from "react-icons/fa";
 import { Alert } from "./ui/alert";
+import {
+  FileUploadDropzone,
+  FileUploadList,
+  FileUploadRoot,
+  FileUploadTrigger,
+} from "./ui/file-upload";
+import { HiUpload } from "react-icons/hi";
+import { LuX } from "react-icons/lu";
 
-const AudioInput: React.FC<{ onChange: (data: any) => void }> = ({
-  onChange,
-}) => {
+interface AudioRef {
+  type: "audio";
+  data: Uint8Array;
+}
+
+interface AudioInputProps {
+  onChange: (data: AudioRef | null) => void;
+}
+
+const AudioInput: React.FC<AudioInputProps> = ({ onChange }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const wavesurferRef = useRef<WaveSurfer | null>(null);
   const recordRef = useRef<Record | null>(null);
@@ -21,6 +36,7 @@ const AudioInput: React.FC<{ onChange: (data: any) => void }> = ({
   const [audioDeviceNames, setAudioDeviceNames] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [audioFile, setAudioFile] = useState<File | null>(null);
 
   const fetchAudioDevices = useCallback(async () => {
     if (!navigator.mediaDevices) {
@@ -84,6 +100,38 @@ const AudioInput: React.FC<{ onChange: (data: any) => void }> = ({
     }
   }, [isRecording]);
 
+  const handleFileChange = useCallback(
+    async (changes: any) => {
+      const selectedFile = changes.acceptedFiles[0] || null;
+      setAudioFile(selectedFile);
+
+      if (selectedFile && wavesurferRef.current) {
+        const url = URL.createObjectURL(selectedFile);
+        await wavesurferRef.current.load(url);
+        setHasRecording(true);
+
+        const reader = new FileReader();
+        reader.readAsArrayBuffer(selectedFile);
+        reader.onloadend = () => {
+          onChange({
+            type: "audio",
+            data: new Uint8Array(reader.result as ArrayBuffer),
+          });
+        };
+      }
+    },
+    [onChange]
+  );
+
+  const handleClear = useCallback(() => {
+    setAudioFile(null);
+    setHasRecording(false);
+    if (wavesurferRef.current) {
+      wavesurferRef.current.empty();
+    }
+    onChange(null);
+  }, [onChange]);
+
   useEffect(() => {
     if (!containerRef.current) return;
 
@@ -114,11 +162,11 @@ const AudioInput: React.FC<{ onChange: (data: any) => void }> = ({
       // Here you can handle the blob data
       // For example, convert to base64 or send to server
       const reader = new FileReader();
-      reader.readAsDataURL(blob);
+      reader.readAsArrayBuffer(blob);
       reader.onloadend = () => {
         onChange({
           type: "audio",
-          uri: reader.result,
+          data: new Uint8Array(reader.result as ArrayBuffer),
         });
       };
     });
@@ -167,8 +215,30 @@ const AudioInput: React.FC<{ onChange: (data: any) => void }> = ({
   };
 
   return (
-    <Box>
+    <Box width="100%">
+      <FileUploadRoot
+        width="100%"
+        onFileChange={handleFileChange}
+        maxFiles={1}
+        accept={{ "audio/*": [".mp3", ".wav", ".ogg", ".m4a"] }}
+      >
+        <HStack width="100%" mb={4}>
+          <FileUploadTrigger asChild>
+            <Button size="sm" variant="ghost" colorScheme="gray">
+              <HiUpload />
+            </Button>
+          </FileUploadTrigger>
+          {!audioFile && !hasRecording && (
+            <FileUploadDropzone
+              width="100%"
+              label="Drop your audio file here"
+            />
+          )}
+        </HStack>
+      </FileUploadRoot>
+
       <div ref={containerRef} />
+
       <HStack mt={4}>
         <Button
           colorScheme={isRecording ? "red" : "blue"}
@@ -180,6 +250,22 @@ const AudioInput: React.FC<{ onChange: (data: any) => void }> = ({
           {isLoading && <Text ml={2}>Loading...</Text>}
         </Button>
 
+        {hasRecording && (
+          <>
+            <Button size="sm" variant="ghost" onClick={handlePlayPause}>
+              {isPlaying ? <FaPause /> : <FaPlay />}
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              colorScheme="red"
+              onClick={handleClear}
+            >
+              <LuX />
+            </Button>
+          </>
+        )}
+
         <Button
           onClick={toggleDeviceListVisibility}
           size="sm"
@@ -188,12 +274,6 @@ const AudioInput: React.FC<{ onChange: (data: any) => void }> = ({
         >
           <FaCog />
         </Button>
-
-        {hasRecording && (
-          <Button onClick={handlePlayPause} size="sm">
-            {isPlaying ? <FaPause /> : <FaPlay />}
-          </Button>
-        )}
       </HStack>
 
       {error && (

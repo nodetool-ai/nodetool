@@ -23,7 +23,7 @@ import { LOG_FILE } from "./logger";
 import { emitBootMessage } from "./events";
 import fs from "fs";
 import { createTray } from "./tray";
-import { isWorkflowWindow, runWorkflow } from "./workflow-window";
+import { createWorkflowWindow } from "./workflow-window";
 import { initializeIpcHandlers } from "./ipc";
 
 /**
@@ -146,7 +146,7 @@ app.on("ready", async () => {
   if (runIndex > -1 && process.argv[runIndex + 1]) {
     const workflowId = process.argv[runIndex + 1];
     logMessage(`Running workflow from command line: ${workflowId}`);
-    runWorkflow(workflowId);
+    createWorkflowWindow(workflowId);
     return;
   }
 });

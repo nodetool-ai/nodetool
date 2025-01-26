@@ -284,7 +284,7 @@ async function updateTrayMenu(): Promise<void> {
         workflows.length > 0
           ? workflows.map((workflow) => ({
               label: workflow.name,
-              click: () => createWorkflowWindow(workflow),
+              click: () => createWorkflowWindow(workflow.id),
             }))
           : [{ label: "No workflows available", enabled: false }],
     },
