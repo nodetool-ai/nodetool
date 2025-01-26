@@ -476,7 +476,6 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
     setSelectedPath: (path: string[]) => {
       const currentPath = get().selectedPath;
       const newPath = currentPath.join(".") === path.join(".") ? [] : path;
-
       set({
         selectedPath: newPath
       });
@@ -710,7 +709,6 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
 
     closeNodeMenu: () => {
       if (get().isMenuOpen) {
-        console.log("closeNodeMenu");
         if (get().dragToCreate) {
           set({ dragToCreate: false });
           return;
@@ -728,7 +726,11 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
           isMenuOpen: false,
           menuPosition: { x: 100, y: 100 },
           searchResults: [],
-          groupedSearchResults: []
+          groupedSearchResults: [],
+          selectedPath: [],
+          highlightedNamespaces: [],
+          selectedInputType: "",
+          selectedOutputType: ""
         });
       }
     },

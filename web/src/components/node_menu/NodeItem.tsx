@@ -100,7 +100,9 @@ const NodeItem = memo(
             isFocused ? "focused" : ""
           }`}
           draggable
-          onDragStart={onDragStart}
+          onDragStart={(e) => {
+            onDragStart(e);
+          }}
           ref={ref}
         >
           <IconForType
@@ -126,7 +128,9 @@ const NodeItem = memo(
           />
           <div
             className="node-button"
-            onClick={onClick}
+            onClick={(e) => {
+              onClick();
+            }}
             style={{
               cursor: "pointer",
               padding: ".4em ",

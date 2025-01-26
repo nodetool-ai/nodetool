@@ -27,7 +27,6 @@ import { useSettingsStore } from "../../stores/SettingsStore";
 import { useWorkflowStore } from "../../stores/WorkflowStore";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { isEqual } from "lodash";
-import { BASE_URL } from "../../stores/ApiClient";
 
 const actionsStyles = (
   theme: any,
