@@ -27,6 +27,7 @@ import { useSettingsStore } from "../../stores/SettingsStore";
 import { useWorkflowStore } from "../../stores/WorkflowStore";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { isEqual } from "lodash";
+import { BASE_URL } from "../../stores/ApiClient";
 
 const actionsStyles = (
   theme: any,
@@ -172,7 +173,16 @@ const AppHeaderActions: React.FC = () => {
 
   const handleRunAsApp = useCallback(() => {
     if (workflowId) {
-      window.parent.api.runApp(workflowId);
+      // In electron, we can use the api to run the app
+      if (window.api) {
+        window.api.runApp(workflowId);
+      } else {
+        // In web, we can open a new window
+        window.open(
+          BASE_URL + "/apps/index.html?workflow_id=" + workflowId,
+          "_blank"
+        );
+      }
     }
   }, [workflowId]);
 
