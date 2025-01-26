@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import { memo, useCallback, useState } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 import { Asset } from "../../stores/ApiTypes";
 import { useFileDrop } from "../../hooks/handlers/useFileDrop";
 import { Box, Button, TextField } from "@mui/material";
@@ -11,6 +11,7 @@ import AudioPlayer from "../audio/AudioPlayer";
 import { PropertyProps } from "../node/PropertyInput";
 import { isEqual } from "lodash";
 import PDFViewer from "../asset_viewer/PDFViewer";
+import { basename } from "path";
 
 interface PropertyDropzoneProps {
   asset: Asset | undefined;
@@ -134,8 +135,7 @@ const PropertyDropzone = ({
     [onDrop]
   );
 
-  const renderViewer = () => {
-    console.log("contentType", contentType);
+  const renderViewer = useMemo(() => {
     switch (contentType.split("/")[0]) {
       case "image":
         return (
@@ -208,24 +208,36 @@ const PropertyDropzone = ({
           </>
         );
       case "document":
-        return (
-          <>
-            <AssetViewer
-              contentType="document"
-              asset={asset ? asset : undefined}
-              url={uri ? uri : undefined}
-              open={openViewer}
-              onClose={() => setOpenViewer(false)}
+        // Check file extension
+        const fileExtension = uri?.toLowerCase().split(".").pop();
+
+        if (fileExtension === "pdf") {
+          return (
+            <iframe
+              src={uri}
+              style={{ width: "100%", height: "400px", border: "none" }}
+              allow="fullscreen; clipboard-write"
+              title="PDF viewer"
             />
-            <Box sx={{ width: "100%", height: "800px", display: "flex" }}>
-              <PDFViewer url={uri} asset={asset} />
-            </Box>
-          </>
-        );
+          );
+        }
+
+        if (fileExtension === "txt" || fileExtension === "html") {
+          return (
+            <iframe
+              src={uri}
+              style={{ width: "100%", height: "400px", border: "none" }}
+              allow="fullscreen"
+              title="Text viewer"
+            />
+          );
+        }
+
+        return <pre>{asset?.name}</pre>;
       default:
         return null;
     }
-  };
+  }, [asset, uri, contentType]);
 
   return (
     <div css={styles}>
@@ -267,7 +279,7 @@ const PropertyDropzone = ({
           onDrop={handleDrop}
         >
           {uri || contentType.split("/")[0] === "audio" ? (
-            renderViewer()
+            renderViewer
           ) : (
             <p className="prop-drop centered uppercase">Drop {contentType}</p>
           )}
