@@ -2,7 +2,7 @@ import React from "react";
 import { UnifiedModel } from "../../stores/ApiTypes";
 import { Box, Button, Tooltip, Typography } from "@mui/material";
 import DeleteButton from "../buttons/DeleteButton";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import { Check } from "@mui/icons-material";
 import { client, isProduction } from "../../stores/ApiClient";
 import ModelIcon from "../../icons/model.svg";
 import DownloadIcon from "@mui/icons-material/Download";
@@ -123,7 +123,7 @@ export const ModelDownloadButton: React.FC<{ onClick: () => void }> = ({
     onClick={onClick}
     variant="outlined"
   >
-    <DownloadIcon />
+    <DownloadIcon sx={{ marginRight: "0.5em", fontSize: "1.25em" }} />
     Download
   </Button>
 );
@@ -214,25 +214,14 @@ export const renderModelActions = (
       <ModelDownloadButton onClick={props.onDownload} />
     )}
     {downloaded && (
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          gap: ".5em",
-          marginRight: "1em",
-          padding: "0 0 0 1em",
-          fontFamily: ThemeNodetool.fontFamily2,
-          color: ThemeNodetool.palette.c_gray5
-        }}
+      <Button
+        variant="outlined"
+        disabled
+        sx={{ fontSize: "0.8em", padding: "0.5em 1.25e" }}
       >
-        <CheckCircleIcon
-          className="model-downloaded-icon"
-          fontSize="small"
-          color="success"
-        />
-
-        <Typography sx={{ fontSize: "0.8em" }}>DOWNLOADED</Typography>
-      </Box>
+        <Check sx={{ marginRight: "0.5em", fontSize: "1.25em" }} />
+        DOWNLOADED
+      </Button>
     )}
     {props.handleDelete && (
       <ModelDeleteButton onClick={() => props.handleDelete!(props.model.id)} />

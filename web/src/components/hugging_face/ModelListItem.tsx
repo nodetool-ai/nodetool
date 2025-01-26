@@ -32,12 +32,12 @@ import { DownloadProgress } from "./DownloadProgress";
 const styles = (theme: any) =>
   css({
     "&.model-list-item": {
-      padding: "0 0 1em 1em",
-      marginBottom: ".5em",
+      padding: "0.5em 0.5em",
+      marginBottom: "0",
       backgroundColor: theme.palette.c_gray1,
       boxSizing: "border-box",
-      border: "1px solid transparent",
-      borderRadius: ".25em",
+      borderBottom: "1px solid " + theme.palette.c_gray2,
+      // borderRadius: ".25em",
       transition: "border 0.125s ease-in",
       wordBreak: "break-word",
 
@@ -56,20 +56,20 @@ const styles = (theme: any) =>
         alignItems: "flex-start",
         gap: "1em",
         width: "100%",
-        padding: "1em"
+        padding: "0em 0.5em"
       },
 
       "& .model-info-container": {
         flex: 1,
+        display: "flex",
+        alignItems: "center",
+        gap: "1em",
+        lineHeight: "2.5em",
         minWidth: 0 // Prevents flex item from overflowing
       },
 
       "& .model-header": {
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "flex-start",
-        gap: "0.5em",
-        marginBottom: "0.5em"
+        flex: 2
       },
 
       "& .model-name": {
@@ -81,10 +81,11 @@ const styles = (theme: any) =>
       },
 
       "& .model-details": {
-        display: "flex",
-        flexWrap: "wrap",
+        flex: 1,
         gap: "0.5em",
-        alignItems: "center"
+        display: "flex",
+        alignItems: "center",
+        flexWrap: "wrap"
       },
 
       "& .model-info": {
