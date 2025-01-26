@@ -370,8 +370,6 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
     allSearchMatches,
     hoveredNode,
     setHoveredNode,
-    selectedInputType,
-    selectedOutputType,
     getCurrentNodes
   } = useNodeMenuStore((state) => ({
     searchTerm: state.searchTerm,
@@ -408,7 +406,6 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
     const disabled: NamespaceTree = {};
 
     Object.entries(namespaceTree).forEach(([key, value]) => {
-      // Check if the root namespace is disabled
       const isRootDisabled = value.disabled;
       if (isRootDisabled) {
         disabled[key] = value;
@@ -420,13 +417,13 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
     return { enabledTree: enabled, disabledTree: disabled };
   }, [namespaceTree]);
 
-  const currentNodes = useMemo(
-    () => getCurrentNodes(),
-    [metadata, getCurrentNodes]
-  );
+  const currentNodes = useMemo(() => {
+    const nodes = getCurrentNodes();
+    return nodes;
+  }, [metadata, getCurrentNodes]);
 
-  const renderNamespaces = useMemo(
-    () => (
+  const renderNamespaces = useMemo(() => {
+    return (
       <>
         <div className="namespace-list-enabled">
           <RenderNamespaces tree={enabledTree} />
@@ -435,9 +432,8 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
           <RenderNamespaces tree={disabledTree} />
         </div>
       </>
-    ),
-    [enabledTree, disabledTree]
-  );
+    );
+  }, [enabledTree, disabledTree]);
 
   const renderNodes = useMemo(
     () => <RenderNodes nodes={currentNodes} />,

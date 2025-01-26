@@ -141,9 +141,13 @@ export const NodeFooter: React.FC<NodeFooterProps> = ({
   }));
 
   const handleOpenNodeMenu = useCallback(() => {
-    setSelectedPath(metadata.namespace.split("."));
+    const namespaceParts = metadata.namespace.split(".");
+    // Set up all required state before opening menu
+    setSelectedPath(namespaceParts);
     setHoveredNode(metadata);
-    setHighlightedNamespaces(metadata.namespace.split("."));
+    setHighlightedNamespaces(namespaceParts);
+
+    // Open menu after state is set
     requestAnimationFrame(() => {
       openNodeMenu(500, 200, false, metadata.namespace);
     });
