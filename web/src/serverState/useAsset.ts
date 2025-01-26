@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import { Asset, Video, Audio, Image, Document } from "../stores/ApiTypes";
 import { useAssetStore } from "../stores/AssetStore";
 import { useQuery } from "@tanstack/react-query";
@@ -30,13 +31,13 @@ export function useAsset(props: UseAssetProps): {
   const getAsset = useAssetStore((state) => state.get);
   const assetResource = assetResourceFromType(props);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     if (assetResource?.asset_id) {
       return await getAsset(assetResource.asset_id);
     } else {
       return undefined;
     }
-  };
+  }, [assetResource?.asset_id]);
 
   const { data: asset } = useQuery({
     queryKey: ["asset", assetResource?.asset_id],
@@ -44,11 +45,5 @@ export function useAsset(props: UseAssetProps): {
     enabled: !!assetResource?.asset_id
   });
 
-  if (assetResource?.uri) {
-    return {
-      uri: assetResource.uri
-    };
-  } else {
-    return { asset, uri: asset?.get_url || undefined };
-  }
+  return { asset, uri: assetResource?.uri || asset?.get_url || undefined };
 }
