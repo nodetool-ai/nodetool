@@ -49,7 +49,7 @@ const styles = (theme: any) =>
       flexWrap: "wrap",
       alignItems: "flex-start",
       overflowY: "auto",
-      padding: "1em .5em",
+      padding: "15px",
       gap: "1.5em"
     },
     ".workflow": {
