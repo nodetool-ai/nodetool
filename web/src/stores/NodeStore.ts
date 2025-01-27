@@ -482,20 +482,22 @@ export const useNodeStore = create<NodeStore>()(
         get().syncWithWorkflowStore();
 
         const modelFiles = extractModelFiles(workflow.graph.nodes);
-        tryCacheFiles(modelFiles).then((paths) => {
-          set({
-            missingModelFiles: paths.filter((m) => !m.downloaded)
+        setTimeout(() => {
+          tryCacheFiles(modelFiles).then((paths) => {
+            set({
+              missingModelFiles: paths.filter((m) => !m.downloaded)
+            });
           });
-        });
 
-        const modelRepos = extractModelRepos(workflow.graph.nodes);
-        tryCacheRepos(modelRepos).then((repos) => {
-          set({
-            missingModelRepos: repos
-              .filter((r) => !r.downloaded)
-              .map((r) => r.repo_id)
+          const modelRepos = extractModelRepos(workflow.graph.nodes);
+          tryCacheRepos(modelRepos).then((repos) => {
+            set({
+              missingModelRepos: repos
+                .filter((r) => !r.downloaded)
+                .map((r) => r.repo_id)
+            });
           });
-        });
+        }, 1000);
 
         const shouldAutoLayout = get().shouldAutoLayout;
         const metadata = useMetadataStore.getState().metadata;
@@ -516,7 +518,6 @@ export const useNodeStore = create<NodeStore>()(
 
         // add missing node typesV
         for (const node of sanitizedNodes) {
-          console.log(node.type, nodeTypes);
           if (node.type && !nodeTypes[node.type]) {
             addNodeType(node.type, PlaceholderNode);
           }
@@ -903,7 +904,7 @@ export const useNodeStore = create<NodeStore>()(
       onNodesChange: (changes: NodeChange<Node<NodeData>>[]) => {
         const nodes = applyNodeChanges(changes, get().nodes);
         set({ nodes });
-        get().setWorkflowDirty(true);
+        // get().setWorkflowDirty(true);
       },
 
       /**
