@@ -26,6 +26,7 @@ import {
   TOOLTIP_LEAVE_DELAY
 } from "../../config/constants";
 import ThemeNodetool from "../themes/ThemeNodetool";
+import { usePanelStore } from "../../stores/PanelStore";
 
 const styles = (theme: any) =>
   css({
@@ -232,6 +233,11 @@ const ExampleGrid = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [nodesOnlySearch, setNodesOnlySearch] = useState(false);
+  const closePanel = usePanelStore((state) => state.closePanel);
+
+  useEffect(() => {
+    closePanel();
+  }, [closePanel]);
 
   useEffect(() => {
     const nodeParam = searchParams.get("node");
