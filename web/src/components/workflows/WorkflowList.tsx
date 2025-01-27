@@ -183,7 +183,10 @@ const WorkflowList = () => {
     {
       queryKey: ["workflows"],
       queryFn: () => loadWorkflows("", pageSize),
-      staleTime: 1000 * 60 * 15 // 15 minutes
+      staleTime: 1000 * 60 * 15, // 15 minutes
+      refetchOnWindowFocus: false,
+      refetchOnMount: false,
+      refetchOnReconnect: false
     }
   );
   const workflows = useMemo(() => data?.workflows || [], [data?.workflows]);
@@ -207,22 +210,12 @@ const WorkflowList = () => {
   }, [workflows, selectedTag]);
 
   // OPEN WORKFLOW
-  const onDoubleClickWorkflow = useCallback(
+  const handleOpenWorkflow = useCallback(
     (workflow: Workflow) => {
       setShouldAutoLayout(false);
       navigate("/editor/" + workflow.id);
     },
     [navigate, setShouldAutoLayout]
-  );
-  const onClickOpen = useCallback(
-    (workflow: Workflow) => {
-      if (controlKeyPressed || shiftKeyPressed) {
-        return;
-      }
-      setShouldAutoLayout(false);
-      navigate("/editor/" + workflow.id);
-    },
-    [navigate, setShouldAutoLayout, controlKeyPressed, shiftKeyPressed]
   );
 
   // SELECT WORKFLOW
@@ -397,7 +390,7 @@ const WorkflowList = () => {
       <div className="workflow-items" ref={gridRef}>
         <WorkflowListView
           workflows={finalWorkflows}
-          onOpenWorkflow={onDoubleClickWorkflow}
+          onOpenWorkflow={handleOpenWorkflow}
           onDuplicateWorkflow={duplicateWorkflow}
           onDelete={onDelete}
           onSelect={onSelect}
@@ -410,8 +403,7 @@ const WorkflowList = () => {
     [
       gridRef,
       finalWorkflows,
-      onClickOpen,
-      onDoubleClickWorkflow,
+      handleOpenWorkflow,
       duplicateWorkflow,
       onDelete,
       onSelect,

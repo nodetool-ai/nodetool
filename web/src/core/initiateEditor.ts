@@ -6,6 +6,7 @@ const initiateEditor = async (workflowId: string | undefined) => {
   const currentWorkflow = useNodeStore.getState().workflow;
   const saveWorkflow = useNodeStore.getState().saveWorkflow;
   const setWorkflow = useNodeStore.getState().setWorkflow;
+  const getWorkflowIsDirty = useNodeStore.getState().getWorkflowIsDirty;
 
   if (!workflowId) {
     return { workflow: null };
@@ -17,7 +18,9 @@ const initiateEditor = async (workflowId: string | undefined) => {
       return { workflow: currentWorkflow };
     } else {
       // Save current workflow before switching
-      saveWorkflow();
+      if (getWorkflowIsDirty()) {
+        saveWorkflow();
+      }
     }
   }
 
