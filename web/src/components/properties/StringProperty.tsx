@@ -34,7 +34,9 @@ const StringProperty = ({
 
   const showTextEditor =
     nodeType === "nodetool.constant.String" ||
-    nodeType === "nodetool.input.StringInput";
+    nodeType === "nodetool.input.StringInput" ||
+    (nodeType === "nodetool.text.FormatText" && property.name === "template") ||
+    (nodeType === "nodetool.list.MapTemplate" && property.name === "template");
 
   if (showTextEditor) {
     return (
@@ -52,6 +54,11 @@ const StringProperty = ({
             autoCorrect="off"
             autoCapitalize="off"
             spellCheck="false"
+            onInput={(e) => {
+              const target = e.target as HTMLTextAreaElement;
+              target.style.height = "auto";
+              target.style.height = `${target.scrollHeight}px`;
+            }}
           />
         )}
         {isExpanded && (
