@@ -173,22 +173,6 @@ class String(Constant):
         return self.value
 
 
-class Text(Constant):
-    """Represents a text document constant in the workflow.
-    document, markdown, content
-
-    Use cases:
-    - Provide larger text inputs for natural language processing
-    - Store formatted content or documentation
-    - Set default text documents for analysis
-    """
-
-    value: TextRef = TextRef()
-
-    async def process(self, context: ProcessingContext) -> TextRef:
-        return self.value
-
-
 class Video(Constant):
     """Represents a video file constant in the workflow.
     video, movie, mp4, file
