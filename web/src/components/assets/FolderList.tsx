@@ -19,7 +19,7 @@ const MIN_FOLDER_LIST_HEIGHT = 100;
 const MAX_FOLDER_LIST_HEIGHT = 1500;
 const RESIZE_HANDLE_HEIGHT = 20;
 const ROW_HEIGHT = 1.75;
-const LIST_MIN_WIDTH = "300px";
+const LIST_MIN_WIDTH = "200aaaaapx";
 const LEVEL_PADDING = 0.7;
 
 const styles = (theme: any) =>
@@ -270,8 +270,7 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
       style={{
         height: `${folderListHeight}px`,
         minHeight: isHorizontal ? "100%" : "auto",
-        minWidth: isHorizontal ? LIST_MIN_WIDTH : "auto",
-        marginRight: isHorizontal ? "1em" : "0"
+        minWidth: isHorizontal ? LIST_MIN_WIDTH : "auto"
       }}
       ref={containerRef}
     >
@@ -281,11 +280,13 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
           renderFolder(rootFolder)
         )}
       </div>
-      <div
-        className={`resize-handle ${isResizing ? "resizing" : ""}`}
-        onMouseDown={handleResizeStart}
-        ref={resizeRef}
-      />
+      {!isHorizontal && (
+        <div
+          className={`resize-handle ${isResizing ? "resizing" : ""}`}
+          onMouseDown={handleResizeStart}
+          ref={resizeRef}
+        />
+      )}
     </div>
   );
 };

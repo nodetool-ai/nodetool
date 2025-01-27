@@ -22,6 +22,7 @@ import {
   DIVIDER_HEIGHT
 } from "./assetGridUtils";
 import { useAssetSelection } from "../../hooks/assets/useAssetSelection";
+import ThemeNodetool from "../themes/ThemeNodetool";
 
 const styles = (theme: any) =>
   css({
@@ -38,7 +39,7 @@ const styles = (theme: any) =>
       overflow: "hidden"
     },
     ".autosizer-list": {
-      paddingBottom: "10em"
+      paddingBottom: "14em"
     },
     ".content-type-header": {
       width: "100%",
@@ -63,12 +64,14 @@ const styles = (theme: any) =>
 interface AssetGridContentProps {
   itemSpacing?: number;
   assets?: Asset[];
+  isHorizontal?: boolean;
   onDoubleClick?: (asset: Asset) => void;
 }
 
 const AssetGridContent: React.FC<AssetGridContentProps> = ({
   itemSpacing = 2,
   assets: propAssets,
+  isHorizontal,
   onDoubleClick
 }) => {
   const { folderFilesFiltered } = useAssets();
@@ -238,7 +241,14 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
       className="asset-grid-content"
       css={styles}
       ref={containerRef}
-      style={{ width: "100%", height: "100%" }}
+      style={{
+        width: "100%",
+        height: "100%",
+        borderLeft: isHorizontal
+          ? "1px solid" + ThemeNodetool.palette.c_gray2
+          : "none",
+        paddingLeft: isHorizontal ? ".5em" : "0"
+      }}
     >
       <div className="asset-list">
         <AutoSizer>

@@ -24,18 +24,25 @@ const styles = (theme: any) =>
     },
     ".file-upload-button": {
       position: "absolute",
-      width: "1em",
+      zIndex: 1,
+      height: "fit-content",
       display: "flex",
       justifyContent: "center",
       alignItems: "center",
-      top: ".5em",
-      left: "0.1em",
-      background: theme.palette.c_gray1,
+      top: "-32px",
+      left: "1em",
+      padding: "0 .5em",
+      margin: ".5em 0",
       border: "none",
       outline: "none",
-      zIndex: 1
+      borderRadius: "5px",
+      transition: "background 0.2s"
+    },
+    ".file-upload-button:hover": {
+      background: theme.palette.c_gray0
     },
     ".file-upload-button button": {
+      fontSize: theme.fontSizeSmaller,
       border: "none"
     }
   });

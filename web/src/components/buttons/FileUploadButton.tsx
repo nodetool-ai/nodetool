@@ -46,7 +46,7 @@ const FileUploadButton = (props: FileUploadButtonProps): JSX.Element => {
               <li>Click to select files</li>
               <li>
                 Drop any file from a file explorer
-                <br /> onto the assets area below
+                <br /> onto the assets area
               </li>
             </ul>
           </>
@@ -64,7 +64,7 @@ const FileUploadButton = (props: FileUploadButtonProps): JSX.Element => {
             variant="inherit"
             // style={{ position: "relative", }}
           >
-            {/* Upload */}
+            Upload Files
           </Typography>
         </Button>
       </Tooltip>
