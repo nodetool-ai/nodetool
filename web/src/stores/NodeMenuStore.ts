@@ -137,7 +137,7 @@ type NodeMenuStore = {
   setSearchTerm: (term: string) => void;
   selectedPath: string[];
   setSelectedPath: (path: string[]) => void;
-  performSearch: (term: string) => void;
+  performSearch: (term: string, searchId?: number) => void;
   updateHighlightedNamespaces: (results: NodeMetadata[]) => void;
 
   openNodeMenu: (
@@ -179,6 +179,10 @@ type NodeMenuStore = {
 
   filterNodes: (nodes: NodeMetadata[]) => NodeMetadata[];
   getCurrentNodes: () => NodeMetadata[];
+
+  // Add new properties for search cancellation
+  currentSearchId: number;
+  setCurrentSearchId: (id: number) => void;
 };
 
 const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
@@ -435,7 +439,12 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
       get().performSearch(get().searchTerm);
     },
 
-    performSearch: (term: string) => {
+    performSearch: (term: string, searchId?: number) => {
+      // If a searchId is provided and it doesn't match current, cancel the search
+      if (searchId !== undefined && searchId !== get().currentSearchId) {
+        return;
+      }
+
       const metadata = useMetadataStore.getState().getAllMetadata();
       const secrets = useRemoteSettingsStore.getState().secrets;
 
@@ -718,7 +727,11 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
     getCurrentNodes: () => {
       const metadata = useMetadataStore.getState().getAllMetadata();
       return filterNodes(metadata);
-    }
+    },
+
+    // Add new properties for search cancellation
+    currentSearchId: 0,
+    setCurrentSearchId: (id) => set({ currentSearchId: id })
   };
 });
 
