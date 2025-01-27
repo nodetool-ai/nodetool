@@ -24,9 +24,9 @@ class ConditionalSwitch(BaseNode):
     - Implement decision points in workflows
     """
 
-    condition: bool = Field(description="The condition to check")
-    if_true: Any = Field(description="The value to return if the condition is true")
-    if_false: Any = Field(description="The value to return if the condition is false")
+    condition: bool = Field(default=None, description="The condition to check")
+    if_true: Any = Field(default=None, description="The value to return if the condition is true")
+    if_false: Any = Field(default=None, description="The value to return if the condition is false")
 
     async def process(self, context: ProcessingContext) -> Any:
         return self.if_true if self.condition else self.if_false
@@ -97,12 +97,12 @@ class Compare(BaseNode):
 
     Use cases:
     - Implement decision points in workflows
-    - Filter data based on specific criteria
+    - Filter data based on specific criteria    
     - Create dynamic thresholds or limits
     """
 
-    a: Any = Field(description="First value to compare")
-    b: Any = Field(description="Second value to compare")
+    a: Any = Field(default=None, description="First value to compare")
+    b: Any = Field(default=None, description="Second value to compare")
     comparison: Comparison = Field(
         default=Comparison.EQUAL, description="Comparison operator to use"
     )
@@ -135,7 +135,7 @@ class IsNone(BaseNode):
     - Implement null checks in data processing
     """
 
-    value: Any = Field(description="The value to check for None")
+    value: Any = Field(default=None, description="The value to check for None")
 
     async def process(self, context: ProcessingContext) -> bool:
         return self.value is None
@@ -173,7 +173,7 @@ class All(BaseNode):
     - Validate multiple criteria simultaneously
     """
 
-    values: list[bool] = Field(description="List of boolean values to check")
+    values: list[bool] = Field(default_factory=list, description="List of boolean values to check")
 
     async def process(self, context: ProcessingContext) -> bool:
         return all(self.values)
@@ -190,7 +190,7 @@ class Some(BaseNode):
     - Create flexible validation rules
     """
 
-    values: list[bool] = Field(description="List of boolean values to check")
+    values: list[bool] = Field(default_factory=list, description="List of boolean values to check")
 
     async def process(self, context: ProcessingContext) -> bool:
         return any(self.values)
