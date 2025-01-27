@@ -4,6 +4,7 @@ import { PropertyProps } from "../node/PropertyInput";
 import TextEditorModal from "./TextEditorModal";
 import { isEqual } from "lodash";
 import { useFocusPan } from "../../hooks/useFocusPan";
+import { TextField } from "@mui/material";
 
 const StringProperty = ({
   property,
@@ -12,7 +13,8 @@ const StringProperty = ({
   onChange,
   tabIndex,
   nodeId,
-  isConnected
+  isConnected,
+  nodeType
 }: PropertyProps) => {
   const id = `textfield-${property.name}-${propertyIndex}`;
   const [isExpanded, setIsExpanded] = useState(false);
@@ -29,6 +31,41 @@ const StringProperty = ({
     },
     [onChange]
   );
+
+  const showTextEditor =
+    nodeType === "nodetool.constant.String" ||
+    nodeType === "nodetool.input.StringInput";
+
+  if (showTextEditor) {
+    return (
+      <div className="string-property">
+        {!isConnected && (
+          <textarea
+            value={value || ""}
+            onChange={(e) => onChange(e.target.value)}
+            onFocus={handleFocus}
+            className="nodrag"
+            rows={2}
+            style={{ width: "100%", minHeight: "48px", maxHeight: "160px" }}
+            tabIndex={tabIndex}
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck="false"
+          />
+        )}
+        {isExpanded && (
+          <TextEditorModal
+            value={value || ""}
+            onChange={onChange}
+            onClose={toggleExpand}
+            propertyName={property.name}
+            propertyDescription={property.description || ""}
+          />
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="string-property">
@@ -55,25 +92,8 @@ const StringProperty = ({
               spellCheck="false"
               tabIndex={tabIndex}
             />
-            <button
-              className="expand-button"
-              onClick={toggleExpand}
-              tabIndex={-1}
-              aria-label="Open Editor"
-            >
-              {isExpanded ? "↙" : "↗"}
-            </button>
           </div>
         </>
-      )}
-      {isExpanded && (
-        <TextEditorModal
-          value={value || ""}
-          onChange={onChange}
-          onClose={toggleExpand}
-          propertyName={property.name}
-          propertyDescription={property.description || ""}
-        />
       )}
     </div>
   );
