@@ -1,11 +1,12 @@
+import { console } from "node:inspector/promises";
 import { NodeMetadata, TypeMetadata, TypeName } from "../../stores/ApiTypes";
 import { isConnectable } from "../../utils/TypeHandler";
 
 export type ConnectabilityMatrix = Record<TypeName, Record<TypeName, boolean>>;
 
-const hashType = (type: TypeMetadata) => {
+const hashType = (type: TypeMetadata): string => {
   if (type) {
-    return `${type.type}_${type.type_args.join("_")}`;
+    return `${type.type}_${type.type_args.map((t) => hashType(t)).join("_")}`;
   }
   return "";
 };
@@ -16,9 +17,15 @@ export function createConnectabilityMatrix(metadata: NodeMetadata[]) {
   if (connectabilityMatrix) {
     return;
   }
-  const allTypes = metadata.flatMap((node) =>
-    node.properties.map((prop) => prop.type)
-  );
+
+  // Get unique types by using a Map with hashType as key
+  const typeMap = new Map<string, TypeMetadata>();
+  metadata
+    .flatMap((node) => node.properties.map((prop) => prop.type))
+    .forEach((type) => {
+      typeMap.set(hashType(type), type);
+    });
+  const allTypes = Array.from(typeMap.values());
 
   const matrix: ConnectabilityMatrix = {};
 
