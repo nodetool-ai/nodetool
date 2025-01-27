@@ -29,6 +29,7 @@ interface NamespaceListProps {
   namespaceTree: NamespaceTree;
   metadata: NodeMetadata[];
   inPanel?: boolean;
+  showNamespaceTree?: boolean;
 }
 
 const namespaceStyles = (theme: any, inPanel: boolean) =>
@@ -361,7 +362,8 @@ const namespaceStyles = (theme: any, inPanel: boolean) =>
 const NamespaceList: React.FC<NamespaceListProps> = ({
   namespaceTree,
   metadata,
-  inPanel = false
+  inPanel = false,
+  showNamespaceTree = true
 }) => {
   const {
     searchTerm,
@@ -433,7 +435,7 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
         </div>
       </>
     );
-  }, [enabledTree, disabledTree]);
+  }, [enabledTree, disabledTree, showNamespaceTree]);
 
   const renderNodes = useMemo(
     () => <RenderNodes nodes={currentNodes} />,
@@ -530,7 +532,9 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
         </Tooltip>
       </Box>
       <Box className="list-box">
-        <List className="namespace-list">{renderNamespaces}</List>
+        {showNamespaceTree && (
+          <List className="namespace-list">{renderNamespaces}</List>
+        )}
         {currentNodes && currentNodes.length > 0 ? (
           <>
             <List className="node-list">{renderNodes}</List>
@@ -614,12 +618,14 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
         ) : (
           <div className="no-selection">
             <div className="explanation">
-              <h5>Browse & Add Nodes</h5>
+              <h5>Node Search</h5>
               <ul>
-                <li>
-                  Browse through available nodes by selecting namespaces from
-                  the menu on the left
-                </li>
+                {showNamespaceTree && (
+                  <li>
+                    Browse through available nodes by selecting namespaces from
+                    the menu on the left
+                  </li>
+                )}
                 <li>
                   Add nodes to your workflow by:
                   <ul>

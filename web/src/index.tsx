@@ -151,7 +151,7 @@ function getRoutes() {
           </ThemeProvider>
           <ThemeProvider theme={ThemeNodetool}>
             <CssBaseline />
-            <NodeMenu focusSearchInput={true} />
+            <NodeMenu focusSearchInput={true} showNamespaceTree={false} />
           </ThemeProvider>
         </ProtectedRoute>
       ),
