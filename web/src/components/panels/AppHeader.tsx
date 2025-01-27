@@ -262,6 +262,33 @@ const AppHeader: React.FC = React.memo(() => {
             Assets
           </Button>
         </Tooltip>
+        <Tooltip title="Model Manager" enterDelay={TOOLTIP_ENTER_DELAY}>
+          <Button
+            className="command-icon"
+            onClick={() => navigate("/models")}
+            tabIndex={-1}
+            style={{
+              color: path.startsWith("/models")
+                ? ThemeNodetool.palette.c_hl1
+                : ThemeNodetool.palette.c_white
+            }}
+          >
+            <IconForType
+              iconName="model"
+              showTooltip={false}
+              svgProps={{
+                fill: path.startsWith("/models")
+                  ? ThemeNodetool.palette.c_hl1
+                  : "#fff"
+              }}
+              bgStyle={{
+                backgroundColor: "transparent",
+                width: "28px"
+              }}
+            />
+            Models
+          </Button>
+        </Tooltip>
       </Box>
     ),
     [path, buttonAppearance, navigate, panelLeftCollapsed, handlePanelToggle]
@@ -274,32 +301,6 @@ const AppHeader: React.FC = React.memo(() => {
           <>
             <SystemStatsDisplay />
             <OverallDownloadProgress />
-            <Tooltip title="Model Manager" enterDelay={TOOLTIP_ENTER_DELAY}>
-              <Button
-                className="command-icon"
-                onClick={() => navigate("/models")}
-                tabIndex={-1}
-                style={{
-                  color: path.startsWith("/models")
-                    ? ThemeNodetool.palette.c_hl1
-                    : ThemeNodetool.palette.c_white
-                }}
-              >
-                <IconForType
-                  iconName="model"
-                  showTooltip={false}
-                  svgProps={{
-                    fill: path.startsWith("/models")
-                      ? ThemeNodetool.palette.c_hl1
-                      : "#fff"
-                  }}
-                  bgStyle={{
-                    backgroundColor: "transparent",
-                    width: "28px"
-                  }}
-                />
-              </Button>
-            </Tooltip>
           </>
         )}
         <NotificationButton />
