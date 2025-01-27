@@ -33,7 +33,7 @@ class FileExists(BaseNode):
         default=FilePath(), description="Path to check for existence"
     )
 
-    async def process(self, context: ProcessingContext):
+    async def process(self, context: ProcessingContext) -> bool:
         if not self.path or not self.path.path:
             raise ValueError("'path' field cannot be empty")
         expanded_path = os.path.expanduser(self.path.path)
@@ -296,7 +296,8 @@ class SaveDocument(BaseNode):
         default=FolderPath(), description="Folder where the file will be saved"
     )
     filename: str = Field(
-        default="", description="Name of the file to save. Supports strftime format codes."
+        default="",
+        description="Name of the file to save. Supports strftime format codes.",
     )
 
     async def process(self, context: ProcessingContext):
@@ -304,11 +305,11 @@ class SaveDocument(BaseNode):
             raise ValueError("folder cannot be empty")
         if not self.filename:
             raise ValueError("filename cannot be empty")
-            
+
         expanded_folder = os.path.expanduser(self.folder.path)
         if not os.path.exists(expanded_folder):
             raise ValueError(f"Folder does not exist: {expanded_folder}")
-            
+
         filename = datetime.now().strftime(self.filename)
         expanded_path = os.path.join(expanded_folder, filename)
         data = await context.asset_to_bytes(self.document)
@@ -352,7 +353,8 @@ class SaveCSV(BaseNode):
         default=FolderPath(), description="Folder where the file will be saved"
     )
     filename: str = Field(
-        default="", description="Name of the CSV file to save. Supports strftime format codes."
+        default="",
+        description="Name of the CSV file to save. Supports strftime format codes.",
     )
 
     async def process(self, context: ProcessingContext):
@@ -362,11 +364,11 @@ class SaveCSV(BaseNode):
             raise ValueError("folder cannot be empty")
         if not self.filename:
             raise ValueError("filename cannot be empty")
-            
+
         expanded_folder = os.path.expanduser(self.folder.path)
         if not os.path.exists(expanded_folder):
             raise ValueError(f"Folder does not exist: {expanded_folder}")
-            
+
         filename = datetime.now().strftime(self.filename)
         expanded_path = os.path.join(expanded_folder, filename)
         with open(expanded_path, "w") as f:
@@ -393,7 +395,8 @@ class SaveCSVDataframe(BaseNode):
         default=FolderPath(), description="Folder where the file will be saved"
     )
     filename: str = Field(
-        default="", description="Name of the CSV file to save. Supports strftime format codes."
+        default="",
+        description="Name of the CSV file to save. Supports strftime format codes.",
     )
 
     async def process(self, context: ProcessingContext):
@@ -401,11 +404,11 @@ class SaveCSVDataframe(BaseNode):
             raise ValueError("folder cannot be empty")
         if not self.filename:
             raise ValueError("filename cannot be empty")
-            
+
         expanded_folder = os.path.expanduser(self.folder.path)
         if not os.path.exists(expanded_folder):
             raise ValueError(f"Folder does not exist: {expanded_folder}")
-            
+
         filename = datetime.now().strftime(self.filename)
         expanded_path = os.path.join(expanded_folder, filename)
         df = pd.DataFrame(self.dataframe.data, columns=self.dataframe.columns)
@@ -447,7 +450,8 @@ class SaveBytes(BaseNode):
         default=FolderPath(), description="Folder where the file will be saved"
     )
     filename: str = Field(
-        default="", description="Name of the file to save. Supports strftime format codes."
+        default="",
+        description="Name of the file to save. Supports strftime format codes.",
     )
 
     async def process(self, context: ProcessingContext):
@@ -457,11 +461,11 @@ class SaveBytes(BaseNode):
             raise ValueError("folder cannot be empty")
         if not self.filename:
             raise ValueError("filename cannot be empty")
-            
+
         expanded_folder = os.path.expanduser(self.folder.path)
         if not os.path.exists(expanded_folder):
             raise ValueError(f"Folder does not exist: {expanded_folder}")
-            
+
         filename = datetime.now().strftime(self.filename)
         expanded_path = os.path.join(expanded_folder, filename)
         os.makedirs(os.path.dirname(expanded_path), exist_ok=True)
@@ -516,7 +520,8 @@ class SaveImage(BaseNode):
         default=FolderPath(), description="Folder where the file will be saved"
     )
     filename: str = Field(
-        default="", description="""
+        default="",
+        description="""
         The name of the image file.
         You can use time and date variables to create unique names:
         %Y - Year
@@ -525,7 +530,7 @@ class SaveImage(BaseNode):
         %H - Hour
         %M - Minute
         %S - Second
-        """
+        """,
     )
 
     async def process(self, context: ProcessingContext) -> ImageRef:
@@ -533,13 +538,13 @@ class SaveImage(BaseNode):
             raise ValueError("folder cannot be empty")
         if not self.filename:
             raise ValueError("filename cannot be empty")
-            
+
         expanded_folder = os.path.expanduser(self.folder.path)
         if not os.path.exists(expanded_folder):
             raise ValueError(f"Folder does not exist: {expanded_folder}")
-        
+
         filename = datetime.now().strftime(self.filename)
-            
+
         expanded_path = os.path.join(expanded_folder, filename)
         os.makedirs(os.path.dirname(expanded_path), exist_ok=True)
 
@@ -593,7 +598,8 @@ class SaveAudio(BaseNode):
         default=FolderPath(), description="Folder where the file will be saved"
     )
     filename: str = Field(
-        default="", description="""
+        default="",
+        description="""
         Name of the file to save.
         You can use time and date variables to create unique names:
         %Y - Year
@@ -602,7 +608,7 @@ class SaveAudio(BaseNode):
         %H - Hour
         %M - Minute
         %S - Second
-        """
+        """,
     )
 
     async def process(self, context: ProcessingContext) -> AudioRef:
@@ -610,11 +616,11 @@ class SaveAudio(BaseNode):
             raise ValueError("folder cannot be empty")
         if not self.filename:
             raise ValueError("filename cannot be empty")
-            
+
         expanded_folder = os.path.expanduser(self.folder.path)
         if not os.path.exists(expanded_folder):
             raise ValueError(f"Folder does not exist: {expanded_folder}")
-            
+
         filename = datetime.now().strftime(self.filename)
         expanded_path = os.path.join(expanded_folder, filename)
         os.makedirs(os.path.dirname(expanded_path), exist_ok=True)
@@ -666,7 +672,8 @@ class SaveVideo(BaseNode):
         default=FolderPath(), description="Folder where the file will be saved"
     )
     filename: str = Field(
-        default="", description="""
+        default="",
+        description="""
         Name of the file to save.
         You can use time and date variables to create unique names:
         %Y - Year
@@ -675,7 +682,7 @@ class SaveVideo(BaseNode):
         %H - Hour
         %M - Minute
         %S - Second
-        """
+        """,
     )
 
     async def process(self, context: ProcessingContext) -> VideoRef:
@@ -683,11 +690,11 @@ class SaveVideo(BaseNode):
             raise ValueError("folder cannot be empty")
         if not self.filename:
             raise ValueError("filename cannot be empty")
-            
+
         expanded_folder = os.path.expanduser(self.folder.path)
         if not os.path.exists(expanded_folder):
             raise ValueError(f"Folder does not exist: {expanded_folder}")
-            
+
         filename = datetime.now().strftime(self.filename)
         expanded_path = os.path.join(expanded_folder, filename)
         os.makedirs(os.path.dirname(expanded_path), exist_ok=True)

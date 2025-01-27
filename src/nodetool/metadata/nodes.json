@@ -15187,7 +15187,7 @@
   },
   {
     "title": "Compare",
-    "description": "Compares two values using a specified comparison operator.\n    compare, condition, logic\n\n    Use cases:\n    - Implement decision points in workflows\n    - Filter data based on specific criteria\n    - Create dynamic thresholds or limits",
+    "description": "Compares two values using a specified comparison operator.\n    compare, condition, logic\n\n    Use cases:\n    - Implement decision points in workflows\n    - Filter data based on specific criteria    \n    - Create dynamic thresholds or limits",
     "namespace": "nodetool.boolean",
     "node_type": "nodetool.boolean.Compare",
     "layout": "default",
@@ -16150,54 +16150,6 @@
     "is_dynamic": false
   },
   {
-    "title": "Text",
-    "description": "Represents a text document constant in the workflow.\n    document, markdown, content\n\n    Use cases:\n    - Provide larger text inputs for natural language processing\n    - Store formatted content or documentation\n    - Set default text documents for analysis",
-    "namespace": "nodetool.constant",
-    "node_type": "nodetool.constant.Text",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "value",
-        "type": {
-          "type": "text",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": {
-          "type": "text",
-          "uri": "",
-          "asset_id": null,
-          "data": null
-        },
-        "title": "Value",
-        "description": null,
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "text",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [
-      "value"
-    ],
-    "is_dynamic": false
-  },
-  {
     "title": "Video",
     "description": "Represents a video file constant in the workflow.\n    video, movie, mp4, file\n\n    Use cases:\n    - Provide a fixed video input for video processing nodes\n    - Reference a specific video file in the workflow\n    - Set default video for testing or demonstration purposes",
     "namespace": "nodetool.constant",
@@ -16293,7 +16245,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": 26,
+        "default": 28,
         "title": "Day",
         "description": "Day of the date",
         "min": null,
@@ -16368,7 +16320,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": 26,
+        "default": 28,
         "title": "Day",
         "description": "Day of the datetime",
         "min": null,
@@ -16771,11 +16723,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 26,
-          "hour": 18,
-          "minute": 2,
-          "second": 5,
-          "microsecond": 836057,
+          "day": 28,
+          "hour": 0,
+          "minute": 31,
+          "second": 57,
+          "microsecond": 46145,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -17828,11 +17780,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 26,
-          "hour": 18,
-          "minute": 2,
-          "second": 5,
-          "microsecond": 840641,
+          "day": 28,
+          "hour": 0,
+          "minute": 31,
+          "second": 57,
+          "microsecond": 50236,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -17882,11 +17834,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 26,
-          "hour": 18,
-          "minute": 2,
-          "second": 5,
-          "microsecond": 840905,
+          "day": 28,
+          "hour": 0,
+          "minute": 31,
+          "second": 57,
+          "microsecond": 50473,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -17936,11 +17888,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 26,
-          "hour": 18,
-          "minute": 2,
-          "second": 5,
-          "microsecond": 841200,
+          "day": 28,
+          "hour": 0,
+          "minute": 31,
+          "second": 57,
+          "microsecond": 50703,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -17990,11 +17942,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 26,
-          "hour": 18,
-          "minute": 2,
-          "second": 5,
-          "microsecond": 841455,
+          "day": 28,
+          "hour": 0,
+          "minute": 31,
+          "second": 57,
+          "microsecond": 50960,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -18044,11 +17996,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 26,
-          "hour": 18,
-          "minute": 2,
-          "second": 5,
-          "microsecond": 841705,
+          "day": 28,
+          "hour": 0,
+          "minute": 31,
+          "second": 57,
+          "microsecond": 51174,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -18098,11 +18050,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 26,
-          "hour": 18,
-          "minute": 2,
-          "second": 5,
-          "microsecond": 841955,
+          "day": 28,
+          "hour": 0,
+          "minute": 31,
+          "second": 57,
+          "microsecond": 51401,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -18152,11 +18104,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 26,
-          "hour": 18,
-          "minute": 2,
-          "second": 5,
-          "microsecond": 842244,
+          "day": 28,
+          "hour": 0,
+          "minute": 31,
+          "second": 57,
+          "microsecond": 51632,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -18222,11 +18174,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 26,
-          "hour": 18,
-          "minute": 2,
-          "second": 5,
-          "microsecond": 842546,
+          "day": 28,
+          "hour": 0,
+          "minute": 31,
+          "second": 57,
+          "microsecond": 51937,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -75139,7 +75091,19 @@
         "max": null
       }
     ],
-    "outputs": [],
+    "outputs": [
+      {
+        "type": {
+          "type": "bool",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
