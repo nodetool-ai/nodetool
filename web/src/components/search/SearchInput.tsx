@@ -109,15 +109,39 @@ const SearchInput: React.FC<SearchInputProps> = ({
     (state) => state.isKeyPressed("control") || state.isKeyPressed("meta")
   );
 
+  // Counter to generate unique IDs for each search request
+  // This helps prevent race conditions with debounced searches
+  const searchIdCounter = useRef(0);
+
+  const { setCurrentSearchId } = useNodeMenuStore((state) => ({
+    setCurrentSearchId: state.setCurrentSearchId
+  }));
+
+  // Debounced search implementation:
+  // - Waits for user to stop typing for [debounceTime] ms
+  // - Cancels pending searches if user types again
+  // - Assigns unique ID to each search request
   const debouncedSetSearchTerm = useDebouncedCallback((value: string) => {
+    // Increment counter to get new unique search ID
+    const searchId = ++searchIdCounter.current;
+    // Update store with current search ID
+    setCurrentSearchId(searchId);
+    // Trigger search with new term
     onSearchChange(value);
   }, debounceTime);
 
+  // Reset search state and cancel any pending searches
   const resetSearch = useCallback(() => {
+    // Clear local input state
     setLocalSearchTerm("");
-    debouncedSetSearchTerm("");
+    // Generate new search ID to cancel any pending searches
+    const searchId = ++searchIdCounter.current;
+    setCurrentSearchId(searchId);
+    // Cancel any pending debounced searches
+    debouncedSetSearchTerm.cancel();
+    // Trigger immediate search with empty term
     onSearchChange("");
-  }, [debouncedSetSearchTerm, onSearchChange]);
+  }, [debouncedSetSearchTerm, onSearchChange, setCurrentSearchId]);
 
   const { focusedNodeIndex, setFocusedNodeIndex, closeNodeMenu } =
     useNodeMenuStore((state) => ({
@@ -126,11 +150,15 @@ const SearchInput: React.FC<SearchInputProps> = ({
       closeNodeMenu: state.closeNodeMenu
     }));
 
+  // Handle input changes with debouncing
   const handleInputChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
       const newValue = event.target.value;
+      // Update local state immediately for UI responsiveness
       setLocalSearchTerm(newValue);
+      // Schedule debounced search
       debouncedSetSearchTerm(newValue);
+      // Reset focused node when search term changes
       setFocusedNodeIndex(-1);
     },
     [debouncedSetSearchTerm, setFocusedNodeIndex]
