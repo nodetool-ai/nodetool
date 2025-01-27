@@ -47,15 +47,21 @@ const styles = (theme: any) =>
     },
     ".audio-controls-container": {
       position: "absolute",
+      width: "calc(100% - 90px)",
+      left: "80px",
+      bottom: "25px",
+
       display: "flex",
       flexDirection: "column",
       gap: "0.25em",
       zIndex: 5000,
-      bottom: "0",
-      left: "0",
-      width: "100%",
       padding: "0.5em",
+      borderTop: `2px solid ${theme.palette.divider}`,
       backgroundColor: theme.palette.c_gray1
+    },
+    ".controls .zoom": {
+      maxWidth: "200px",
+      paddingBottom: "0.5em"
     },
     ".current-folder": {
       display: "block",
@@ -322,8 +328,16 @@ const AssetGrid: React.FC<AssetGridProps> = ({
                 <FolderList isHorizontal={isHorizontal} />
               </div>
             )}
-            <div style={{ flexGrow: 1, minHeight: 0, overflow: "auto" }}>
+            <div
+              style={{
+                flexGrow: 1,
+                minHeight: 0,
+                overflow: "auto",
+                paddingLeft: isHorizontal ? "1em" : ""
+              }}
+            >
               <AssetGridContent
+                isHorizontal={isHorizontal}
                 itemSpacing={itemSpacing}
                 onDoubleClick={handleDoubleClick}
               />

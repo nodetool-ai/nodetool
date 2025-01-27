@@ -11,10 +11,10 @@ const styles = (theme: any) =>
     "&": {
       position: "relative",
       display: "flex",
-      width: "calc(100% - 50px)",
+      width: "calc(100% - 80px)",
       height: "calc(-120px + 100vh)",
-      padding: "2em",
-      left: "50px"
+      padding: "1em 2em 1em 1em",
+      left: "80px"
     },
     ".asset-explorer": {
       width: "100%"
@@ -24,7 +24,7 @@ const styles = (theme: any) =>
     },
     ".current-folder": {
       position: "absolute",
-      top: "2em",
+      top: "3.5em",
       right: "2em",
       textAlign: "right",
       margin: "0",
@@ -47,6 +47,19 @@ const styles = (theme: any) =>
     },
     ".infinite-scroll-component": {
       border: 0
+    },
+    ".asset-explorer .file-upload-button": {
+      position: "absolute",
+      top: "-15px !important",
+      left: "0 !important",
+      right: "0 !important",
+      margin: "0 auto ",
+      height: "fit-content ",
+      width: "fit-content"
+    },
+    ".asset-explorer .file-upload-button button": {
+      padding: "1em .5em",
+      fontSize: theme.fontSizeNormal
     }
   });
 

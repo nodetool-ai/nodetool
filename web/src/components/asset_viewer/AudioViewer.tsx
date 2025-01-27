@@ -36,6 +36,10 @@ const styles = (theme: any) =>
       display: "flex",
       flexDirection: "column"
     },
+    ".controls .zoom": {
+      maxWidth: "200px"
+    },
+
     ".audio-viewer #waveform": {
       height: "50px !important"
     },
