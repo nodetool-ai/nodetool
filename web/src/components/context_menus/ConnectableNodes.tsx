@@ -342,6 +342,7 @@ const ConnectableNodes: React.FC<ConnectableNodesProps> = ({
                     }
                   }
                 }}
+                TransitionProps={{ timeout: 0 }}
                 placement="left"
                 title={
                   <NodeInfo
@@ -374,26 +375,7 @@ const ConnectableNodes: React.FC<ConnectableNodesProps> = ({
                     showInfo={false}
                   />
                 </div>
-                {/* <Button 
-                  sx={{ width: "100%", color: "white" }}
-                  onClick={(e) => createConnectableNode(e, nodeMetadata)}
-                >
-                  {nodeMetadata.title}
-                </Button> */}
               </Tooltip>
-
-              //       createConnectableNode(e, nodeMetadata);
-              //     }
-              //     hideMenu();
-              //   }}
-              //   label={nodeMetadata.title}
-              //   tooltip={
-              //     <NodeInfo
-              //       nodeMetadata={nodeMetadata}
-              //       showConnections={false}
-              //     />
-              //   }
-              // />
             ))}
           </React.Fragment>
         ))}
