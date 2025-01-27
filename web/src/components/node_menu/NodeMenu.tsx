@@ -111,13 +111,15 @@ const treeStyles = (theme: any) =>
 
 type NodeMenuProps = {
   focusSearchInput?: boolean;
+  showNamespaceTree?: boolean;
 };
 
 // Add performance timing
 let menuOpenRequestTime: number | null = null;
 
 const NodeMenu = memo(function NodeMenu({
-  focusSearchInput = false
+  focusSearchInput = false,
+  showNamespaceTree = true
 }: NodeMenuProps) {
   const nodeRef = useRef<HTMLDivElement>(null);
 
@@ -286,6 +288,7 @@ const NodeMenu = memo(function NodeMenu({
           <NamespaceList
             namespaceTree={namespaceTree}
             metadata={searchResults}
+            showNamespaceTree={showNamespaceTree}
           />
         </Box>
       </Box>
