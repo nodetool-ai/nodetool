@@ -15,10 +15,6 @@ export interface SplitNodeDescription {
     raw: string;
     html: string;
   };
-  recommendedModels: {
-    raw: string;
-    html: string;
-  };
 }
 
 export const formatNodeDocumentation = (
@@ -38,16 +34,12 @@ export const formatNodeDocumentation = (
   const useCasesIndex = lines.findIndex((line) =>
     line.startsWith("Use cases:")
   );
-  const recommendedModelsIndex = lines.findIndex((line) =>
-    line.startsWith("Recommended models:")
-  );
 
   // Extract use cases if present
   let useCasesRaw = "";
   let useCasesHtml = "";
   if (useCasesIndex !== -1) {
-    const endIndex =
-      recommendedModelsIndex !== -1 ? recommendedModelsIndex : lines.length;
+    const endIndex = lines.length;
     const useCaseLines = lines
       .slice(useCasesIndex + 1, endIndex)
       .filter((line) => line.trim());
@@ -81,50 +73,12 @@ export const formatNodeDocumentation = (
     }
   }
 
-  // Extract recommended models if present
-  let recommendedModelsRaw = "";
-  let recommendedModelsHtml = "";
-  if (recommendedModelsIndex !== -1) {
-    const modelLines = lines
-      .slice(recommendedModelsIndex + 1)
-      .filter((line) => line.trim().startsWith("-"))
-      .map((line) => {
-        const content = line.replace(/^-\s*/, "").trim();
-        if (searchTerm && searchInfo) {
-          const highlighted = highlightTextUtil(
-            content,
-            "description",
-            searchTerm,
-            searchInfo
-          );
-          return highlighted.html;
-        }
-        return content;
-      })
-      .filter((line) => line.length > 0);
-
-    // Store raw text version
-    recommendedModelsRaw = modelLines.join("\n");
-
-    // Format HTML version
-    if (modelLines.length > 0) {
-      recommendedModelsHtml = modelLines
-        .map((line) => `<li>${line}</li>`)
-        .join("\n");
-      recommendedModelsHtml = `<ul>${recommendedModelsHtml}</ul>`;
-    }
-  }
-
   return {
     description,
     tags,
     useCases: {
       raw: useCasesRaw,
       html: useCasesHtml
-    },
-    recommendedModels: {
-      raw: recommendedModelsRaw,
-      html: recommendedModelsHtml
     }
   };
 };
@@ -296,8 +250,7 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
       minMatchCharLength: 3,
       keys: [
         { name: "description", weight: 0.95 },
-        { name: "use_cases", weight: 0.9 },
-        { name: "recommended_models", weight: 0.7 }
+        { name: "use_cases", weight: 0.9 }
       ],
       tokenize: true,
       tokenSeparator: /[\s\.,\-_]+/,
@@ -516,8 +469,9 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
       let searchMatchedNodes = typeFilteredMetadata;
       if (term.trim()) {
         const allEntries = typeFilteredMetadata.map((node: NodeMetadata) => {
-          const { description, tags, useCases, recommendedModels } =
-            formatNodeDocumentation(node.description);
+          const { description, tags, useCases } = formatNodeDocumentation(
+            node.description
+          );
 
           return {
             title: node.title,
@@ -525,7 +479,6 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
             namespace: node.namespace,
             description: description,
             use_cases: useCases.raw,
-            recommended_models: recommendedModels.raw,
             tags: tags.join(", "),
             metadata: node
           };
@@ -579,15 +532,15 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
             ]
           : performGroupedSearch(
               filteredResults.map((node) => {
-                const { description, tags, useCases, recommendedModels } =
-                  formatNodeDocumentation(node.description);
+                const { description, tags, useCases } = formatNodeDocumentation(
+                  node.description
+                );
                 return {
                   title: node.title,
                   node_type: node.node_type,
                   namespace: node.namespace,
                   description: description,
                   use_cases: useCases.raw,
-                  recommended_models: recommendedModels.raw,
                   tags: tags.join(", "),
                   metadata: node
                 };
