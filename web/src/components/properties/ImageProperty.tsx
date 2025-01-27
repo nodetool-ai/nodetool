@@ -11,7 +11,7 @@ const ImageProperty = (props: PropertyProps) => {
   const { asset, uri } = useAsset({ image: props.value });
   const showDropzone =
     props.nodeType === "nodetool.constant.Image" ||
-    props.nodeType === "nodetool.input.Image" ||
+    props.nodeType === "nodetool.input.ImageInput" ||
     props.nodeType === "comfy.image.LoadImage";
 
   return (
