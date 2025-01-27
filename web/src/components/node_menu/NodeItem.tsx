@@ -100,6 +100,8 @@ const NodeItem = memo(
             isFocused ? "focused" : ""
           }`}
           draggable
+          onMouseEnter={onMouseEnter}
+          onMouseLeave={onMouseLeave}
           onDragStart={(e) => {
             onDragStart(e);
           }}
@@ -151,13 +153,7 @@ const NodeItem = memo(
             </Typography>
           </div>
           {showInfo && (
-            <span
-              style={infoStyle}
-              onMouseEnter={onMouseEnter}
-              onMouseLeave={onMouseLeave}
-              onClick={onInfoClick}
-              className="node-info"
-            >
+            <span style={infoStyle} onClick={onInfoClick} className="node-info">
               <InfoOutlined />
             </span>
           )}

@@ -425,7 +425,8 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
     setSearchTerm: (term) => {
       set({
         searchTerm: term,
-        selectedPath: []
+        selectedPath: [],
+        hoveredNode: null
       });
       get().performSearch(term);
     },
