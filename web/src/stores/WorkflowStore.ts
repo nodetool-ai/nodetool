@@ -47,7 +47,7 @@ export const useWorkflowStore = create<WorkflowStore>()((set, get) => ({
     if (!queryClient) return;
 
     queryClient.setQueryData(["workflows", workflow.id], workflow);
-    get().invalidateQueries(["workflows"]);
+    // get().invalidateQueries(["workflows"]);
   },
 
   get: async (id: string) => {
@@ -180,7 +180,6 @@ export const useWorkflowStore = create<WorkflowStore>()((set, get) => ({
       throw createErrorMessage(error, "Failed to update workflow");
     }
     get().add(data);
-    get().invalidateQueries(["workflows"]);
     return data;
   },
 
