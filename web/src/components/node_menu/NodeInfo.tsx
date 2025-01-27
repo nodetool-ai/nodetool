@@ -293,16 +293,7 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
           </>
         )}
       </Typography>
-      {description.recommendedModels.html && (
-        <Typography component="div" className="recommended-models">
-          <h4>Recommended models</h4>
-          <div
-            dangerouslySetInnerHTML={{
-              __html: description.recommendedModels.html
-            }}
-          />
-        </Typography>
-      )}
+
       {nodeMetadata.the_model_info.cover_image_url ? (
         isLoading ? (
           <div className="preview-image loading"></div>
