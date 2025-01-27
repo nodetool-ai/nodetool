@@ -55,32 +55,25 @@ const InputContextMenu: React.FC = () => {
     setConnectableType: state.setTypeMetadata,
     setSourceHandle: state.setSourceHandle
   }));
-
-  const handleOpenNodeMenu = (event?: React.MouseEvent<HTMLElement>) => {
-    if (event) {
-      event.preventDefault();
-      event.stopPropagation();
-    }
-    openNodeMenu(
-      getMousePosition().x,
-      getMousePosition().y,
-      true,
-      type?.type || "",
-      "target"
-    );
-    closeContextMenu();
-  };
-
-  const handleCreateConstantNode = (event?: React.MouseEvent<HTMLElement>) => {
-    if (event) {
-      event.preventDefault();
-      event.stopPropagation();
-      createConstantNode(event);
-    }
-    devLog("Create Constant Node");
-    closeContextMenu();
-  };
-
+  const setSearchTerm = useNodeMenuStore((state) => state.setSearchTerm);
+  const handleOpenNodeMenu = useCallback(
+    (event?: React.MouseEvent<HTMLElement>) => {
+      if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+      openNodeMenu(
+        getMousePosition().x,
+        getMousePosition().y,
+        true,
+        type?.type || "",
+        "target",
+        ""
+      );
+      closeContextMenu();
+    },
+    [setSearchTerm]
+  );
   const createConstantNode = useCallback(
     (event: React.MouseEvent) => {
       if (!constantNodeMetadata) return;
@@ -123,6 +116,19 @@ const InputContextMenu: React.FC = () => {
       type,
       setEdges
     ]
+  );
+
+  const handleCreateConstantNode = useCallback(
+    (event?: React.MouseEvent<HTMLElement>) => {
+      if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        createConstantNode(event);
+      }
+      devLog("Create Constant Node");
+      closeContextMenu();
+    },
+    [createConstantNode, closeContextMenu]
   );
 
   const createInputNode = useCallback(

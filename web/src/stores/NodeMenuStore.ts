@@ -660,7 +660,12 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
         menuPosition: { x: constrainedX, y: constrainedY },
         openedByDrop: openedByDrop || false,
         dropType: dropType || "",
-        connectDirection: connectDirection || null
+        connectDirection: connectDirection || null,
+        selectedPath: [],
+        selectedInputType:
+          dropType && connectDirection === "target" ? dropType : "",
+        selectedOutputType:
+          dropType && connectDirection === "source" ? dropType : ""
       });
 
       setTimeout(() => {
