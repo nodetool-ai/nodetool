@@ -68,7 +68,7 @@ const renderGroupTitle = (title: string) => {
 
 const RenderNodes: React.FC<RenderNodesProps> = ({
   nodes,
-  hoverDelay = 400
+  hoverDelay = 20
 }) => {
   const {
     focusedNodeIndex,
