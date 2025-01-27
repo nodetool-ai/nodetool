@@ -56,7 +56,7 @@ function StaticNodeMenu({ className }: StaticNodeMenuProps) {
           focusSearchInput={false}
           focusOnTyping={false}
           placeholder="Search for nodes..."
-          debounceTime={20}
+          debounceTime={30}
           maxWidth={"400px"}
           width={200}
           searchTerm={searchTerm}
