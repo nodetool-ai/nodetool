@@ -688,7 +688,6 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
       const menuOffset = 20;
       const constrainedY = Math.min(Math.max(y + menuOffset, minPosY), maxPosY);
 
-      // Close the left panel if it's showing nodes
       const panelStore = usePanelStore.getState();
       if (panelStore.panel.activeView === "nodes") {
         panelStore.closePanel();
