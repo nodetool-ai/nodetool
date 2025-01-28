@@ -1256,11 +1256,11 @@ export interface components {
              *       "type": "datetime",
              *       "year": 2025,
              *       "month": 1,
-             *       "day": 25,
-             *       "hour": 17,
-             *       "minute": 25,
-             *       "second": 49,
-             *       "microsecond": 110135,
+             *       "day": 29,
+             *       "hour": 0,
+             *       "minute": 1,
+             *       "second": 20,
+             *       "microsecond": 473059,
              *       "tzinfo": "UTC",
              *       "utc_offset": 0
              *     }
@@ -4179,7 +4179,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Message-Output"][];
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */

@@ -1,4 +1,8 @@
+import asyncio
+import base64
 import os
+from typing import AsyncGenerator, Mapping
+import PIL
 import ollama
 
 import chromadb
@@ -6,7 +10,12 @@ import chromadb
 from nodetool.providers.ollama.ollama_service import get_ollama_client
 from nodetool.chat.tools import Tool, sanitize_node_name
 from nodetool.common.environment import Environment
-from nodetool.metadata.types import Message
+from nodetool.metadata.types import (
+    ImageRef,
+    Message,
+    MessageImageContent,
+    MessageTextContent,
+)
 from nodetool.workflows.base_node import (
     BaseNode,
     get_node_class,
@@ -208,14 +217,22 @@ def index_documentation(collection: chromadb.Collection):
     """
     Index the documentation if it doesn't exist yet.
     """
+    import nodetool.nodes.aime
     import nodetool.nodes.anthropic
-    import nodetool.nodes.chroma
     import nodetool.nodes.comfy
+    import nodetool.nodes.elevenlabs
+    import nodetool.nodes.fal
+    import nodetool.nodes.google
     import nodetool.nodes.huggingface
+    import nodetool.nodes.lib
     import nodetool.nodes.nodetool
+    import nodetool.nodes.ollama
     import nodetool.nodes.openai
     import nodetool.nodes.replicate
-    import nodetool.nodes.ollama
+
+    if not Environment.is_production():
+        import nodetool.nodes.chroma
+        import nodetool.nodes.apple
 
     print("Indexing documentation")
 
@@ -337,7 +354,8 @@ def prompt_for_help(
     available_tutorials: list[str],
 ) -> str:
     docs_str = "\n".join([f"{name}: {doc}" for name, doc in docs.items()])
-    examples_str = "\n".join(examples)
+    print(docs_str)
+
     return f"""
 You're an AI assistant for Nodetool, a no-code AI workflow platform. 
 
@@ -369,6 +387,7 @@ Local Models:
 
 Remote Models:
 - Remote API Providers require an account and API keys
+- Fal.ai gives access to a wide range of image and video models
 - Replicate gives access to a wide range of models
 - OpenAI and Anthropic models give access to worlds' most powerful language models
 
@@ -477,9 +496,30 @@ Node links are clickable and will open the corresponding node documentation page
 """
 
 
+import PIL.Image
+from io import BytesIO
+
+
+async def create_message(message: Message) -> Mapping[str, str | list[str]]:
+    ollama_message: dict[str, str | list[str]] = {
+        "role": message.role,
+    }
+
+    if isinstance(message.content, list):
+        ollama_message["content"] = "\n".join(
+            content.text
+            for content in message.content
+            if isinstance(content, MessageTextContent)
+        )
+    else:
+        ollama_message["content"] = str(message.content)
+
+    return ollama_message
+
+
 async def create_help_answer(
     messages: list[Message], available_tutorials: list[str]
-) -> list[Message]:
+) -> AsyncGenerator[str, None]:
     assert len(messages) > 0
 
     client = get_ollama_client()
@@ -497,52 +537,55 @@ async def create_help_answer(
         ),
     )
 
-    ollama_messages = [ollama.Message(role=m.role, content=m.content) for m in messages]  # type: ignore
+    ollama_messages = [await create_message(m) for m in messages]
 
-    completion = await client.chat(
-        model="qwen2.5:1.5b",
+    res = await client.chat(
+        model="deepseek-r1:1.5b",
         messages=[system_message] + ollama_messages,
         options={"num_ctx": 4096},
+        stream=True,
     )
-    message = completion["message"]
-    return [Message(role=message["role"], content=message["content"])]
+    async for part in res:
+        yield part.message.content or ""
 
     # system_message = Message(
-    #     role="system",
-    #     content=system_prompt_for(prompt, docs_dict, examples, available_tutorials),
-    # )
-    # tools: list[Tool] = []
-    # classes = [
-    #     c for c in get_registered_node_classes() if c.get_node_type() in node_types
-    # ]
-    # model = FunctionModel(
-    #     provider=Provider.OpenAI,
-    #     name="gpt-4o-mini",
-    # )
-    # tools.append(TutorialTool(available_tutorials))
 
-    # for node_class in classes[:10]:
-    #     try:
-    #         if node_class.get_node_type().startswith("replicate"):
-    #             continue
-    #         tools.append(AddNodeTool(node_class))
-    #     except Exception as e:
-    #         log.error(f"Error creating node tool: {e}")
-    #         log.exception(e)
 
-    # context = ProcessingContext("", "notoken")
-    # answer = await process_messages(
-    #     context=context,
-    #     messages=[system_message] + messages,
-    #     model=model,
-    #     node_id="",
-    #     tools=tools,
-    # )
+#     role="system",
+#     content=system_prompt_for(prompt, docs_dict, examples, available_tutorials),
+# )
+# tools: list[Tool] = []
+# classes = [
+#     c for c in get_registered_node_classes() if c.get_node_type() in node_types
+# ]
+# model = FunctionModel(
+#     provider=Provider.OpenAI,
+#     name="gpt-4o-mini",
+# )
+# tools.append(TutorialTool(available_tutorials))
 
-    # if answer.tool_calls:
-    #     answer.tool_calls = await process_tool_calls(context, answer.tool_calls, tools)
+# for node_class in classes[:10]:
+#     try:
+#         if node_class.get_node_type().startswith("replicate"):
+#             continue
+#         tools.append(AddNodeTool(node_class))
+#     except Exception as e:
+#         log.error(f"Error creating node tool: {e}")
+#         log.exception(e)
 
-    # return [answer]
+# context = ProcessingContext("", "notoken")
+# answer = await process_messages(
+#     context=context,
+#     messages=[system_message] + messages,
+#     model=model,
+#     node_id="",
+#     tools=tools,
+# )
+
+# if answer.tool_calls:
+#     answer.tool_calls = await process_tool_calls(context, answer.tool_calls, tools)
+
+# return [answer]
 
 
 if __name__ == "__main__":

@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
 from datetime import datetime
-from typing import Optional
+from typing import AsyncGenerator, Optional
+from ollama import ChatResponse
 from pydantic import BaseModel
 from fastapi import APIRouter, Depends, HTTPException
 from nodetool.api.utils import current_user, User
@@ -18,6 +19,8 @@ import os
 
 from nodetool.workflows.processing_context import ProcessingContext
 
+from fastapi.responses import StreamingResponse
+import json
 
 log = Environment.get_logger()
 router = APIRouter(prefix="/api/messages", tags=["messages"])
@@ -61,9 +64,13 @@ class HelpRequest(BaseModel):
 
 
 @router.post("/help")
-async def help(req: HelpRequest) -> list[Message]:
-    messages = ensure_alternating_roles(req.messages)
-    return await create_help_answer(messages, req.available_tutorials)
+async def help(req: HelpRequest) -> StreamingResponse:
+    async def generate():
+        messages = ensure_alternating_roles(req.messages)
+        async for part in create_help_answer(messages, req.available_tutorials):
+            yield part
+
+    return StreamingResponse(generate(), media_type="text/plain")
 
 
 @router.get("/{message_id}")

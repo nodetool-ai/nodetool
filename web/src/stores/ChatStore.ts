@@ -24,6 +24,15 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     set({ isLoading: true });
     const messages = get().messages.concat(message);
     get().addMessages([message]);
+
+    const assistantMessage = {
+      role: "assistant",
+      content: "",
+      type: "assistant",
+      name: "assistant"
+    };
+    get().addMessages([assistantMessage]);
+
     try {
       const response = await fetch(BASE_URL + "/api/messages/help", {
         method: "POST",
@@ -40,24 +49,29 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error("Response body is null");
+
+      while (true) {
+        const result = await reader.read();
+        if (result.done) break;
+        const chunk = new TextDecoder().decode(result.value);
+
+        // Update the last assistant message with the new chunk
+        set((state) => {
+          const updatedMessages = [...state.messages];
+          const lastMessage = updatedMessages[updatedMessages.length - 1];
+          lastMessage.content += chunk;
+          return { messages: updatedMessages };
+        });
+      }
+
       const data = await response.json();
 
-      get().addMessages(
-        data.filter(
-          (msg: Message) =>
-            msg.tool_calls === undefined ||
-            msg.tool_calls === null ||
-            msg.tool_calls.length === 0
-        )
-      );
-
-      // Check for workflow tool calls
+      // Handle tool calls
       data.forEach((response: Message) => {
         if (response.tool_calls) {
           response.tool_calls.forEach((toolCall: ToolCall) => {
-            // if (toolCall.name === 'workflow_tool') {
-            //     get().handleWorkflowTool(toolCall.result as Workflow);
-            // }
             if (toolCall.name === "start_tutorial") {
               const result = toolCall.result as { [key: string]: any };
               useTutorialStore
