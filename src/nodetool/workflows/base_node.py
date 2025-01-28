@@ -61,14 +61,6 @@ This module is essential for constructing and managing complex computational gra
 NODE_BY_TYPE: dict[str, type["BaseNode"]] = {}
 COMFY_NODE_CLASSES: dict[str, type["BaseNode"]] = {}
 
-# Node classes that only run on the local machine
-LOCAL_NODE_MODULES = {
-    "nodetool.nodes.apple",
-    "nodetool.nodes.chroma",
-    "nodetool.nodes.nodetool.code",
-    "nodetool.nodes.nodetool.os",
-}
-
 log = Environment.get_logger()
 
 
@@ -210,7 +202,6 @@ class SecurityScope(Enum):
 MODULE_SECURITY = {
     "nodetool.nodes.apple": SecurityScope.LOCAL_ONLY,
     "nodetool.nodes.chroma": SecurityScope.LOCAL_ONLY,
-    "nodetool.nodes.lib.file": SecurityScope.LOCAL_ONLY,
     "nodetool.nodes.nodetool.code": SecurityScope.LOCAL_ONLY,
     "nodetool.nodes.nodetool.os": SecurityScope.LOCAL_ONLY,
 }
