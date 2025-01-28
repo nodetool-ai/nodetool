@@ -65,7 +65,6 @@ COMFY_NODE_CLASSES: dict[str, type["BaseNode"]] = {}
 LOCAL_NODE_MODULES = {
     "nodetool.nodes.apple",
     "nodetool.nodes.chroma",
-    "nodetool.nodes.lib.file",
     "nodetool.nodes.nodetool.code",
     "nodetool.nodes.nodetool.os",
 }
