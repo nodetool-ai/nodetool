@@ -2,6 +2,7 @@ from typing import Any
 import json
 import os
 from functools import lru_cache
+from nodetool.common.environment import Environment
 from nodetool.workflows.property import Property
 from nodetool.metadata.types import OutputSlot, HuggingFaceModel
 from pydantic import BaseModel
@@ -25,6 +26,11 @@ class NodeMetadata(BaseModel):
     is_dynamic: bool
 
 
+NODE_METADATA_PATH = (
+    "nodes.json" if Environment.is_production() else "nodes_production.json"
+)
+
+
 @lru_cache(maxsize=1)
 def load_node_metadata() -> list[NodeMetadata]:
     """
@@ -32,7 +38,7 @@ def load_node_metadata() -> list[NodeMetadata]:
     Returns the same instance on subsequent calls until cache is cleared.
     """
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    json_path = os.path.join(current_dir, "nodes.json")
+    json_path = os.path.join(current_dir, NODE_METADATA_PATH)
 
     with open(json_path, "r") as f:
         return [NodeMetadata(**node) for node in json.load(f)]

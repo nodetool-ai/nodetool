@@ -6,14 +6,11 @@ from nodetool.metadata.types import (
     DocumentRef,
     ImageRef,
     TextChunk,
-    TextRef,
 )
-from nodetool.models.asset import Asset as AssetModel
 from nodetool.nodes.chroma.chroma_node import ChromaNode
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.workflows.types import NodeProgress
 
-import PIL.Image
 import numpy as np
 from pydantic import Field
 from typing import List
