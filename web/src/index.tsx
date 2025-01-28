@@ -47,7 +47,6 @@ import ModelsManager from "./components/hugging_face/ModelsManager";
 import useModelStore from "./stores/ModelStore";
 import { MIN_ZOOM } from "./config/constants";
 import { loadMetadata } from "./serverState/useMetadata";
-import useMetadataStore from "./stores/MetadataStore";
 
 if (!isProduction) {
   useRemoteSettingsStore.getState().fetchSettings();

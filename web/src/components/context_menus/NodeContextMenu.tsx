@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback } from "react";
 import { useReactFlow } from "@xyflow/react";
 //mui
 import { Divider, Menu, MenuItem, Typography } from "@mui/material";
@@ -14,7 +14,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 //store
 import useContextMenuStore from "../../stores/ContextMenuStore";
-import { useNodeStore, NodeStore } from "../../stores/NodeStore";
+import { useNodeStore } from "../../stores/NodeStore";
 import { NodeData } from "../../stores/NodeData";
 import { useNotificationStore } from "../../stores/NotificationStore";
 //behaviours
@@ -40,7 +40,7 @@ const NodeContextMenu: React.FC = () => {
     (state) => state.openDocumentation
   );
   const { getNode } = useReactFlow();
-  const deleteNode = useNodeStore((state: NodeStore) => state.deleteNode);
+  const deleteNode = useNodeStore((state) => state.deleteNode);
   const node = nodeId !== null ? getNode(nodeId) : null;
   const nodeData = node?.data as NodeData;
   const removeFromGroup = useRemoveFromGroup();

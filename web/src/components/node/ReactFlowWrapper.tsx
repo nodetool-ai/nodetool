@@ -14,7 +14,6 @@ import {
 
 // store
 import { useNodeStore, useTemporalStore } from "../../stores/NodeStore";
-import { HistoryManager } from "../../HistoryManager";
 // store
 import useConnectionStore from "../../stores/ConnectionStore";
 import { useSettingsStore } from "../../stores/SettingsStore";
@@ -47,7 +46,6 @@ import GroupNode from "../node/GroupNode";
 import { useSurroundWithGroup } from "../../hooks/nodes/useSurroundWithGroup";
 import { isEqual } from "lodash";
 import ThemeNodes from "../themes/ThemeNodes";
-import { useRenderLogger } from "../../hooks/useRenderLogger";
 import AxisMarker from "../node_editor/AxisMarker";
 import ConnectionLine from "../node_editor/ConnectionLine";
 import NodeTitleEditor from "./NodeTitleEditor";
@@ -148,7 +146,6 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   const reactFlowInstance = useReactFlow();
 
   /* USE STORE */
-  const nodeHistory: HistoryManager = useTemporalStore((state) => state);
   const { shouldFitToScreen, setShouldFitToScreen, setExplicitSave } =
     useNodeStore((state) => ({
       shouldFitToScreen: state.shouldFitToScreen,
@@ -176,9 +173,6 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
 
   /* ON DROP*/
   const { onDrop } = useDropHandler();
-
-  /* HISTORY */
-  const history: HistoryManager = useTemporalStore((state) => state);
 
   // OPEN NODE MENU
   const { openNodeMenu, closeNodeMenu, isMenuOpen } = useNodeMenuStore(
@@ -293,13 +287,6 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   //   spaceKeyPressed: state.isKeyPressed(" ")
   // }));
 
-  // RESUME HISTORY
-  const resumeHistoryAndSave = useCallback(() => {
-    setExplicitSave(true);
-    history.resume();
-    setExplicitSave(false);
-  }, [history, setExplicitSave]);
-
   // EDGE HANDLER
   const {
     onEdgeMouseEnter,
@@ -307,7 +294,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     onEdgeContextMenu,
     onEdgeUpdateEnd,
     onEdgeUpdateStart
-  } = useEdgeHandlers(resumeHistoryAndSave);
+  } = useEdgeHandlers();
 
   // DRAG HANDLER
   const {
@@ -320,7 +307,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     panOnDrag,
     onNodeDrag,
     onDragOver
-  } = useDragHandlers(resumeHistoryAndSave);
+  } = useDragHandlers();
 
   const [editNodeTitle, setEditNodeTitle] = useState<string | undefined>(
     undefined

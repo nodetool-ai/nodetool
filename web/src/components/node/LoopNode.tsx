@@ -13,7 +13,7 @@ import NodeResizer from "./NodeResizer";
 // utils
 import { getMousePosition } from "../../utils/MousePosition";
 // store
-import { NodeStore, useNodeStore } from "../../stores/NodeStore";
+import { useNodeStore } from "../../stores/NodeStore";
 import { NodeData } from "../../stores/NodeData";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
@@ -103,7 +103,7 @@ const styles = (theme: any) =>
 const LoopNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const nodeRef = useRef<HTMLDivElement>(null);
   const getMetadata = useMetadataStore((state) => state.getMetadata);
-  const updateNode = useNodeStore((state: NodeStore) => state.updateNode);
+  const updateNode = useNodeStore((state) => state.updateNode);
   const { spaceKeyPressed } = useKeyPressedStore((state) => ({
     spaceKeyPressed: state.isKeyPressed(" ")
   }));

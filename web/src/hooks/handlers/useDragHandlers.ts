@@ -1,6 +1,5 @@
 import { useCallback, useState, MouseEvent } from "react";
 import { useSettingsStore } from "../../stores/SettingsStore";
-import { HistoryManager } from "../../HistoryManager";
 import { useNodeStore, useTemporalStore } from "../../stores/NodeStore";
 import { getMousePosition } from "../../utils/MousePosition";
 import { useReactFlow, Node } from "@xyflow/react";
@@ -10,9 +9,7 @@ import { useAddToGroup } from "../nodes/useAddToGroup";
 import { useRemoveFromGroup } from "../nodes/useRemoveFromGroup";
 import { useIsGroupable } from "../nodes/useIsGroupable";
 
-export default function useDragHandlers(resumeHistoryAndSave: () => void) {
-  const createNode = useNodeStore((state) => state.createNode);
-  const addNode = useNodeStore((state) => state.addNode);
+export default function useDragHandlers() {
   const addToGroup = useAddToGroup();
   const removeFromGroup = useRemoveFromGroup();
   const { isGroup } = useIsGroupable();
@@ -22,10 +19,14 @@ export default function useDragHandlers(resumeHistoryAndSave: () => void) {
   const reactFlow = useReactFlow();
   const [startPos, setStartPos] = useState({ x: 0, y: 0 });
   const [lastParentNode, setLastParentNode] = useState<Node | undefined>();
-  const setHoveredNodes = useNodeStore((state) => state.setHoveredNodes);
   const { settings } = useSettingsStore((state) => state);
-  const history: HistoryManager = useTemporalStore((state) => state);
-  const findNode = useNodeStore((state) => state.findNode);
+  const history = useTemporalStore((state) => state);
+
+  const resumeHistoryAndSave = useCallback(() => {
+    useNodeStore.getState().setExplicitSave(true);
+    history.resume();
+    useNodeStore.getState().setExplicitSave(false);
+  }, [history]);
 
   const createCommentNode = useCallback(
     (width: number, height: number) => {
@@ -46,7 +47,7 @@ export default function useDragHandlers(resumeHistoryAndSave: () => void) {
           recommended_models: [],
           is_dynamic: false
         };
-        const newNode = createNode(metadata, {
+        const newNode = useNodeStore.getState().createNode(metadata, {
           x: startPos.x,
           y: startPos.y - 20
         });
@@ -56,10 +57,10 @@ export default function useDragHandlers(resumeHistoryAndSave: () => void) {
           width: Math.max(width, 150),
           height: Math.max(height, 100)
         };
-        addNode(newNode);
+        useNodeStore.getState().addNode(newNode);
       }
     },
-    [addNode, createNode, CKeyPressed, startPos]
+    [CKeyPressed, startPos]
   );
 
   /* NODE DRAG START */
@@ -152,23 +153,16 @@ export default function useDragHandlers(resumeHistoryAndSave: () => void) {
         // .filter((n) => isGroupable(n as Node<NodeData>))
         .filter((n) => isGroup(n as Node<NodeData>))
         .map((n) => n.id);
-      setHoveredNodes(intersections);
+      useNodeStore.getState().setHoveredNodes(intersections);
       if (intersections.length > 0) {
-        const lastParent = findNode(intersections[0]);
+        const lastParent = useNodeStore.getState().findNode(intersections[0]);
         setLastParentNode(lastParent);
       }
       if (spaceKeyPressed) {
         removeFromGroup([node]);
       }
     },
-    [
-      reactFlow,
-      setHoveredNodes,
-      spaceKeyPressed,
-      isGroup,
-      findNode,
-      removeFromGroup
-    ]
+    [reactFlow, spaceKeyPressed, removeFromGroup]
   );
 
   return {

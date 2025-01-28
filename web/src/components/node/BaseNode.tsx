@@ -2,19 +2,20 @@
 import { css, keyframes } from "@emotion/react";
 import { colorForType } from "../../config/data_types";
 
+import { MIN_ZOOM } from "../../config/constants";
 import ThemeNodes from "../themes/ThemeNodes";
-import { memo, useMemo, useState, useCallback } from "react";
+import { memo, useMemo, useState } from "react";
 import {
   Node,
   NodeProps,
   NodeResizer,
   NodeToolbar,
-  NodeToolbarProps,
   Position,
-  ResizeParams
+  ResizeParams,
+  useStore
 } from "@xyflow/react";
 import { isEqual } from "lodash";
-import { Container, TextField } from "@mui/material";
+import { Container } from "@mui/material";
 import { NodeData } from "../../stores/NodeData";
 import { NodeHeader } from "./NodeHeader";
 import { NodeErrors } from "./NodeErrors";
@@ -27,7 +28,6 @@ import ApiKeyValidation from "./ApiKeyValidation";
 import NodeStatus from "./NodeStatus";
 import NodeContent from "./NodeContent";
 import NodeToolButtons from "./NodeToolButtons";
-import { useRenderLogger } from "../../hooks/useRenderLogger";
 import { darkenHexColor, simulateOpacity } from "../../utils/ColorUtils";
 import useMetadataStore from "../../stores/MetadataStore";
 import NodeFooter from "./NodeFooter";

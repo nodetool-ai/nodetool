@@ -3,7 +3,6 @@ import { NodeMetadata } from "../../stores/ApiTypes";
 import { useNodeStore } from "../../stores/NodeStore";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import { HistoryManager } from "../../HistoryManager";
 import { useTemporalStore } from "../../stores/NodeStore";
 import ThemeNodes from "../../components/themes/ThemeNodes";
 const GROUP_NODE_TYPE = "nodetool.workflows.base_node.Group";
@@ -14,7 +13,7 @@ export const useSurroundWithGroup = () => {
   const getMetadata = useMetadataStore.getState().getMetadata;
   const updateNode = useNodeStore((state) => state.updateNode);
   const findNode = useNodeStore((state) => state.findNode);
-  const history: HistoryManager = useTemporalStore((state) => state);
+  const history = useTemporalStore((state) => state);
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );

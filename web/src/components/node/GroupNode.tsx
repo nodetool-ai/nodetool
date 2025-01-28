@@ -9,7 +9,7 @@ import { Node, NodeProps, ResizeDragEvent } from "@xyflow/react";
 import { getMousePosition } from "../../utils/MousePosition";
 
 // store
-import { NodeStore, useNodeStore } from "../../stores/NodeStore";
+import { useNodeStore } from "../../stores/NodeStore";
 import { NodeData } from "../../stores/NodeData";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
@@ -125,7 +125,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const headerInputRef = useRef<HTMLInputElement>(null);
   const updateNodeData = useNodeStore((state) => state.updateNodeData);
   const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
-  const updateNode = useNodeStore((state: NodeStore) => state.updateNode);
+  const updateNode = useNodeStore((state) => state.updateNode);
   const isWorkflowRunning = useWorkflowRunner(
     (state) => state.state === "running"
   );
