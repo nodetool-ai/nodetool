@@ -1,6 +1,9 @@
 import json
 from enum import Enum
-from nodetool.workflows.base_node import get_registered_node_classes
+from nodetool.workflows.base_node import (
+    get_registered_node_classes,
+    node_allowed_in_production,
+)
 
 import nodetool.nodes.aime
 import nodetool.nodes.apple
@@ -28,12 +31,23 @@ class EnumEncoder(json.JSONEncoder):
             raise TypeError(f"Error encoding {obj}: {e}")
 
 
+node_classes = get_registered_node_classes()
+
 # write metadata to src/nodetool/metadata/nodes.json
 with open("src/nodetool/metadata/nodes.json", "w") as f:
     json.dump(
+        [node_class.metadata().model_dump() for node_class in node_classes],
+        f,
+        cls=EnumEncoder,
+        indent=2,
+    )
+
+with open("src/nodetool/metadata/nodes_production.json", "w") as f:
+    json.dump(
         [
             node_class.metadata().model_dump()
-            for node_class in get_registered_node_classes()
+            for node_class in node_classes
+            if node_allowed_in_production(node_class)
         ],
         f,
         cls=EnumEncoder,

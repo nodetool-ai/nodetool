@@ -545,6 +545,11 @@ class Environment(object):
         """
         from authlib.integrations.requests_client import OAuth2Session
 
+        client_id = cls.get_google_client_id()
+        client_secret = cls.get_google_client_secret()
+        if client_id is None or client_secret is None:
+            raise Exception("Google client ID or secret is not set")
+
         return OAuth2Session(
             client_id=cls.get_google_client_id(),
             client_secret=cls.get_google_client_secret(),

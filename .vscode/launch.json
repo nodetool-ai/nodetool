@@ -18,7 +18,8 @@
             "module": "nodetool.cli",
             "justMyCode": false,
             "env": {
-                "PYTHONPATH": "${workspaceFolder}/src"
+                "PYTHONPATH": "${workspaceFolder}/src",
+                "ENV": "production"
             },
             "args": [
                 "serve",

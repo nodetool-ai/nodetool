@@ -1,5 +1,6 @@
 import base64
-from enum import EnumMeta
+from enum import EnumMeta, Enum
+from typing import Set
 import functools
 import importlib
 import re
@@ -59,6 +60,15 @@ This module is essential for constructing and managing complex computational gra
 
 NODE_BY_TYPE: dict[str, type["BaseNode"]] = {}
 COMFY_NODE_CLASSES: dict[str, type["BaseNode"]] = {}
+
+# Node classes that only run on the local machine
+LOCAL_NODE_MODULES = {
+    "nodetool.nodes.apple",
+    "nodetool.nodes.chroma",
+    "nodetool.nodes.lib.file",
+    "nodetool.nodes.nodetool.code",
+    "nodetool.nodes.nodetool.os",
+}
 
 log = Environment.get_logger()
 
@@ -184,6 +194,47 @@ def memoized_class_method(func: Callable[..., T]):
     return classmethod(wrapper)
 
 
+class SecurityError(Exception):
+    """Exception raised for security errors"""
+
+    def __init__(self, message: str):
+        self.message = message
+        super().__init__(self.message)
+
+
+class SecurityScope(Enum):
+    LOCAL_ONLY = "local_only"  # Never allowed in production/server
+    STANDARD = "standard"  # Normal nodes
+
+
+# Define security scopes for different modules
+MODULE_SECURITY = {
+    "nodetool.nodes.apple": SecurityScope.LOCAL_ONLY,
+    "nodetool.nodes.chroma": SecurityScope.LOCAL_ONLY,
+    "nodetool.nodes.lib.file": SecurityScope.LOCAL_ONLY,
+    "nodetool.nodes.nodetool.code": SecurityScope.LOCAL_ONLY,
+    "nodetool.nodes.nodetool.os": SecurityScope.LOCAL_ONLY,
+}
+
+
+def node_allowed_in_production(node_class: type["BaseNode"]) -> bool:
+    """Validate if a node class is allowed in production"""
+    module_path = node_class.__module__
+
+    # Find most specific matching module prefix
+    matching_prefixes = [
+        prefix for prefix in MODULE_SECURITY.keys() if module_path.startswith(prefix)
+    ]
+
+    if not matching_prefixes:
+        return True
+
+    prefix = max(matching_prefixes, key=len)
+    security_scope = MODULE_SECURITY[prefix]
+
+    return security_scope != SecurityScope.LOCAL_ONLY
+
+
 class BaseNode(BaseModel):
     """
     The foundational class for all nodes in the workflow graph.
@@ -258,11 +309,17 @@ class BaseNode(BaseModel):
 
     @classmethod
     def __init_subclass__(cls):
-        """
-        This method is called when a subclass of this class is created.
-        We remember the mapping of the subclass to its type name,
-        so that we can use it later to create instances of the subclass from the type name.
-        """
+        """Enhanced security validation during node registration"""
+        if Environment.is_production():
+            if not node_allowed_in_production(cls):
+                log.error(
+                    f"Security violation: Node class {cls.__name__} from module {cls.__module__} "
+                    f"is not allowed in current security context"
+                )
+                raise SecurityError(
+                    f"Node class {cls.__name__} is not allowed in current security context"
+                )
+
         super().__init_subclass__()
         add_node_type(cls)
         for field_type in cls.__annotations__.values():
