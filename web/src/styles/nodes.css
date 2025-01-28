@@ -27,8 +27,126 @@
 
 /* Node header */
 .react-flow__node .node-header {
-  cursor: grabbing !important;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0;
+  width: 100%;
+  min-height: 24px;
+  background-color: var(--c_node_header_bg);
+  color: var(--c_white);
+  margin: 0;
+  border-radius: 0.3em 0.3em 0 0;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.node-drag-handle {
+  cursor: grabbing !important;
+}
+
+.react-flow__node .node-header.has-parent {
+  background-color: var(--c_node_header_bg_group);
+}
+
+.react-flow__node .node-header:hover {
+  transition: opacity 0.15s;
+  color: var(--c_gray6);
+}
+
+.react-flow__node .node-header svg.MuiSvgIcon-root {
+  scale: 0.8;
+  opacity: 1;
+}
+
+.react-flow__node .node-header .node-title {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  flex-grow: 1;
+  text-align: left;
+  max-width: 170px;
+  word-wrap: break-word;
+  line-height: 1em;
+  color: var(--c_white);
+  font-family: var(--font-family-1);
+  font-size: var(--font-size-normal);
+  font-feature-settings: "smcp";
+  padding: 0.5em 0 0.5em 0.7em;
+}
+
+.react-flow__node .node-header .title-container {
+  position: absolute;
+  top: -1.2em;
+  left: 0.5em;
+  width: 100%;
+  min-height: 1em;
+  background-color: transparent;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.react-flow__node .node-header .title {
+  pointer-events: none;
+  position: absolute;
+  bottom: 0;
+  left: 0.2em;
+  width: 100%;
+  color: var(--c_white);
+  font-size: var(--font-size-normal);
+  line-height: 1.1em;
+  font-weight: 300;
+  font-style: italic;
+  margin: 0;
+  padding: 0;
+}
+
+.react-flow__node .node-header .type {
+  pointer-events: none;
+}
+
+.react-flow__node .node-header .menu-button {
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 0.2em;
+  margin-right: 0.2em;
+  padding: 0;
+  color: var(--c_gray6);
+  background-color: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.react-flow__node .node-header .menu-button:hover {
+  color: var(--c_white);
+}
+
+.react-flow__node .node-header .menu-button svg {
+  scale: 0.5;
+}
+
+.react-flow__node .node-header .color-picker-button {
+  position: absolute;
+  right: 0.5em;
+  pointer-events: all;
+  margin: 5px;
+  height: 1.1em;
+  z-index: 10000;
+  background-color: transparent;
+  border-radius: 0;
+}
+
+.react-flow__node .node-header .color-picker-button svg {
+  color: var(--c_gray5);
+  width: 0.5em;
+  height: 0.5em;
+  rotate: -86deg;
+}
+
+.react-flow__node .node-header .color-picker-button:hover svg {
+  color: var(--c_hl1);
 }
 
 .react-flow__node .node-status {
@@ -203,4 +321,86 @@
 }
 .react-flow__node-toolbar button:hover {
   opacity: 1;
+}
+
+/* Node Footer Styles */
+.node-footer {
+  display: flex;
+  height: 18px;
+  align-items: flex-start;
+  background: var(--c_node_header_bg);
+  border-radius: 0 0 0.3em 0.3em;
+  overflow: hidden;
+}
+
+.node-footer .namespace-button {
+  display: block;
+  margin: 0 0 0 0;
+  padding: 2px 10px;
+  border-radius: 0;
+  background-color: transparent;
+  color: var(--c_gray5);
+  font-family: var(--font-family-1);
+  font-size: var(--font-size-small);
+  text-transform: uppercase;
+  text-align: left;
+  flex-grow: 1;
+  overflow: hidden;
+}
+
+.node-footer .namespace-button:hover {
+  background-color: transparent;
+  color: var(--c_hl1);
+}
+
+.node-footer .namespace-button:hover .pretty-namespace span {
+  color: var(--c_hl1) !important;
+}
+
+.node-footer .help-button {
+  display: block;
+  padding: 0;
+  margin: 0 2px;
+  min-width: 18px;
+  top: -4px;
+  color: var(--c_gray6);
+  background-color: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.node-footer .help-button:hover {
+  color: var(--c_white);
+}
+
+.node-footer .help-button svg {
+  scale: 0.5;
+}
+
+.node-footer .advanced-fields-button {
+  display: block;
+  padding: 0;
+  margin: 0 2px;
+  min-width: 18px;
+  top: -4px;
+  right: -7px;
+  color: var(--c_gray6);
+  background-color: transparent;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+  transform-origin: center center;
+}
+
+.node-footer .advanced-fields-button:hover {
+  color: var(--c_white);
+}
+
+.node-footer .advanced-fields-button.active svg {
+  color: var(--c_hl1);
+  transform: rotate(180deg);
+}
+
+.node-footer .advanced-fields-button svg {
+  scale: 0.7;
 }
