@@ -114,8 +114,6 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
     [setDragToCreate]
   );
 
-  const groupedNodes = useMemo(() => groupNodes(nodes), [nodes]);
-
   const focusedNodeRef = useRef<HTMLDivElement>(null);
 
   const renderNode = useCallback(
@@ -164,7 +162,7 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
   }, [focusedNodeIndex]);
 
   const renderGroup = useCallback(
-    (group: SearchResultGroup) => {
+    (group: SearchResultGroup, globalIndex: number) => {
       const groupedNodes = groupNodes(group.nodes);
 
       return (
@@ -221,7 +219,11 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
                   >
                     {namespace}
                   </Typography>
-                  {nodesInNamespace.map((node, idx) => renderNode(node, idx))}
+                  {nodesInNamespace.map((node) => {
+                    const element = renderNode(node, globalIndex);
+                    globalIndex += 1;
+                    return element;
+                  })}
                 </div>
               )
             )}
@@ -235,7 +237,12 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
   const elements = useMemo(() => {
     // If we're searching, use the grouped results
     if (searchTerm) {
-      return groupedSearchResults.map((group) => renderGroup(group));
+      let globalIndex = 0;
+      return groupedSearchResults.map((group) => {
+        const element = renderGroup(group, globalIndex);
+        globalIndex += group.nodes.length;
+        return element;
+      });
     }
 
     // Otherwise use the original namespace-based grouping
