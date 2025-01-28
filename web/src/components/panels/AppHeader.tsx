@@ -43,7 +43,7 @@ import { useAppHeaderStore } from "../../stores/AppHeaderStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { useEffect, useState } from "react";
 import SystemStatsDisplay from "./SystemStats";
-import { isProduction } from "../../stores/ApiClient";
+import { isDevelopment, isProduction } from "../../stores/ApiClient";
 
 const styles = (theme: any, buttonAppearance: "text" | "icon" | "both") =>
   css({
@@ -385,38 +385,40 @@ const AppHeader: React.FC = React.memo(() => {
               />
             </Button>
           </Tooltip>
-          <Popover
-            open={welcomeOpen}
-            onClose={handleCloseWelcome}
-            anchorReference="none"
-            style={{
-              position: "fixed",
-              width: "100%",
-              height: "100%",
-              top: "50%"
-            }}
-            slotProps={{
-              root: {
-                sx: {
-                  top: "60px !important",
-                  "& .MuiBackdrop-root": {
+          {isDevelopment && (
+            <Popover
+              open={welcomeOpen}
+              onClose={handleCloseWelcome}
+              anchorReference="none"
+              style={{
+                position: "fixed",
+                width: "100%",
+                height: "100%",
+                top: "50%"
+              }}
+              slotProps={{
+                root: {
+                  sx: {
                     top: "60px !important",
-                    position: "fixed"
+                    "& .MuiBackdrop-root": {
+                      top: "60px !important",
+                      position: "fixed"
+                    }
+                  }
+                },
+                paper: {
+                  sx: {
+                    position: "absolute",
+                    top: "60px",
+                    left: "50%",
+                    transform: "translate(-50%, 0)"
                   }
                 }
-              },
-              paper: {
-                sx: {
-                  position: "absolute",
-                  top: "60px",
-                  left: "50%",
-                  transform: "translate(-50%, 0)"
-                }
-              }
-            }}
-          >
-            <Welcome handleClose={handleCloseWelcome} />
-          </Popover>
+              }}
+            >
+              <Welcome handleClose={handleCloseWelcome} />
+            </Popover>
+          )}
 
           <div className="navigate">
             <Box sx={{ flexGrow: 0.02 }} />
