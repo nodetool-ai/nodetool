@@ -6,17 +6,15 @@ import { NodeData } from "../../stores/NodeData";
 import { useIsGroupable } from "./useIsGroupable";
 
 export function useAddToGroup() {
-  const updateNode = useNodeStore((state) => state.updateNode);
-  const findNode = useNodeStore((state) => state.findNode);
-  const setHoveredNodes = useNodeStore((state) => state.setHoveredNodes);
-  const hoveredNodes = useNodeStore((state) => state.hoveredNodes);
   const { isKeyPressed } = useKeyPressedStore();
   const spaceKeyPressed = isKeyPressed(" ");
   const { isGroupable, isGroup } = useIsGroupable();
   const addToGroup = useCallback(
     (nodes: Node<NodeData>[], lastParentNode?: Node | undefined) => {
+      const hoveredNodes = useNodeStore.getState().hoveredNodes;
+      const updateNode = useNodeStore.getState().updateNode;
       const parentId = hoveredNodes[0];
-      const parentNode = findNode(parentId);
+      const parentNode = useNodeStore.getState().findNode(parentId);
       nodes.forEach((node) => {
         if (
           parentNode &&
@@ -56,17 +54,9 @@ export function useAddToGroup() {
         }
       });
 
-      setHoveredNodes([]);
+      useNodeStore.getState().setHoveredNodes([]);
     },
-    [
-      hoveredNodes,
-      findNode,
-      setHoveredNodes,
-      isGroupable,
-      isGroup,
-      spaceKeyPressed,
-      updateNode
-    ]
+    [isGroupable, isGroup, spaceKeyPressed]
   );
 
   return addToGroup;

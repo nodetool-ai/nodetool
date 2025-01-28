@@ -4,6 +4,8 @@ import PropertyField from "./PropertyField";
 import { Property } from "../../stores/ApiTypes";
 import { NodeData } from "../../stores/NodeData";
 import { isEqual } from "lodash";
+import { useStore } from "@xyflow/react";
+import { MIN_ZOOM } from "../../config/constants";
 
 export interface NodeInputsProps {
   id: string;
@@ -44,8 +46,15 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
   const dynamicProperties: { [key: string]: Property } =
     data?.dynamic_properties || {};
 
+  const currentZoom = useStore((state) => state.transform[2]);
+  const isMinZoom = currentZoom <= MIN_ZOOM;
+
   return (
-    <div className={`node-inputs node-${id}`}>
+    <div
+      className={`node-inputs node-${id} ${
+        isMinZoom ? "node-drag-handle" : ""
+      }`}
+    >
       {properties.map((property, index) => {
         const tabIndex = tabableProperties.findIndex(
           (p) => p.name === property.name

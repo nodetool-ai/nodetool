@@ -6,16 +6,15 @@ import { NodeData } from "../stores/NodeData";
 import { DUPLICATE_SPACING } from "../config/constants";
 
 export const useDuplicateNodes = (vertical: boolean = false) => {
-  const nodes = useNodeStore((state) => state.nodes);
-  const edges = useNodeStore((state) => state.edges);
-  const setNodes = useNodeStore((state) => state.setNodes);
-  const setEdges = useNodeStore((state) => state.setEdges);
-  const getSelectedNodes = useNodeStore((state) => state.getSelectedNodes);
-  const generateNodeIds = useNodeStore((state) => state.generateNodeIds);
   const reactFlow = useReactFlow();
-  const getNodesBounds = reactFlow.getNodesBounds;
   return useCallback(() => {
-    const selectedNodes = getSelectedNodes();
+    const nodes = useNodeStore.getState().nodes;
+    const edges = useNodeStore.getState().edges;
+    const setNodes = useNodeStore.getState().setNodes;
+    const setEdges = useNodeStore.getState().setEdges;
+    const selectedNodes = useNodeStore.getState().getSelectedNodes();
+    const getNodesBounds = reactFlow.getNodesBounds;
+    const generateNodeIds = useNodeStore.getState().generateNodeIds;
 
     if (selectedNodes.length === 0) {
       return;
@@ -108,14 +107,5 @@ export const useDuplicateNodes = (vertical: boolean = false) => {
 
     setNodes([...updatedNodes, ...newNodes]);
     setEdges([...edges, ...newEdges]);
-  }, [
-    getSelectedNodes,
-    getNodesBounds,
-    vertical,
-    edges,
-    nodes,
-    setNodes,
-    setEdges,
-    generateNodeIds
-  ]);
+  }, [vertical]);
 };

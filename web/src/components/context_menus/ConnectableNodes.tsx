@@ -13,7 +13,7 @@ import {
 import { css } from "@emotion/react";
 import useConnectableNodesStore from "../../stores/ConnectableNodesStore";
 import { useNodeStore } from "../../stores/NodeStore";
-import { useReactFlow } from "@xyflow/react";
+import { addEdge, useReactFlow } from "@xyflow/react";
 import { isConnectable, Slugify } from "../../utils/TypeHandler";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import { isEqual } from "lodash";
@@ -130,14 +130,6 @@ const ConnectableNodes: React.FC<ConnectableNodesProps> = ({
   handleMouseLeave = () => {}
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
-  const { createNode, addNode, addEdge, generateEdgeId } = useNodeStore(
-    (state) => ({
-      createNode: state.createNode,
-      addNode: state.addNode,
-      addEdge: state.addEdge,
-      generateEdgeId: state.generateEdgeId
-    })
-  );
   const reactFlowInstance = useReactFlow();
   const {
     connectableNodes,
@@ -184,7 +176,7 @@ const ConnectableNodes: React.FC<ConnectableNodesProps> = ({
     (metadata: NodeMetadata) => {
       if (!metadata) return;
 
-      const newNode = createNode(
+      const newNode = useNodeStore.getState().createNode(
         metadata,
         reactFlowInstance.screenToFlowPosition({
           x:
@@ -197,7 +189,7 @@ const ConnectableNodes: React.FC<ConnectableNodesProps> = ({
       newNode.width = 200;
       newNode.height = 200;
 
-      addNode(newNode);
+      useNodeStore.getState().addNode(newNode);
 
       if (nodeId) {
         // When filterType is "input", we're looking at nodes with compatible inputs
@@ -209,7 +201,7 @@ const ConnectableNodes: React.FC<ConnectableNodesProps> = ({
           );
           if (!property) return;
           const edge = {
-            id: generateEdgeId(),
+            id: useNodeStore.getState().generateEdgeId(),
             source: nodeId, // FROM existing node
             target: newNode.id, // TO new node
             sourceHandle: sourceHandle,
@@ -217,7 +209,7 @@ const ConnectableNodes: React.FC<ConnectableNodesProps> = ({
             type: "default",
             className: Slugify(typeMetadata?.type || "")
           };
-          addEdge(edge);
+          useNodeStore.getState().addEdge(edge);
         }
 
         // When filterType is "output", we're looking at nodes with compatible outputs
@@ -227,7 +219,7 @@ const ConnectableNodes: React.FC<ConnectableNodesProps> = ({
             metadata.outputs.length > 0 ? metadata.outputs[0] : null;
           if (!output) return;
           const edge = {
-            id: generateEdgeId(),
+            id: useNodeStore.getState().generateEdgeId(),
             source: newNode.id, // FROM new node
             target: nodeId, // TO existing node
             sourceHandle: output.name,
@@ -235,16 +227,12 @@ const ConnectableNodes: React.FC<ConnectableNodesProps> = ({
             type: "default",
             className: Slugify(typeMetadata?.type || "")
           };
-          addEdge(edge);
+          useNodeStore.getState().addEdge(edge);
         }
       }
     },
     [
-      createNode,
       reactFlowInstance,
-      addNode,
-      addEdge,
-      generateEdgeId,
       nodeId,
       typeMetadata,
       filterType,

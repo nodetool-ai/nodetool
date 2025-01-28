@@ -1,6 +1,6 @@
 import { temporal } from "zundo";
 import type { TemporalState } from "zundo";
-import { create, useStore } from "zustand";
+import { create } from "zustand";
 import {
   NodeMetadata,
   OutputSlot,
@@ -40,6 +40,7 @@ import useErrorStore from "./ErrorStore";
 import useResultsStore from "./ResultsStore";
 import { tryCacheFiles, tryCacheRepos } from "../serverState/tryCacheFiles";
 import PlaceholderNode from "../components/node_types/PlaceholderNode";
+import { useStoreWithEqualityFn } from "zustand/traditional";
 
 type NodeUIProperties = {
   selected?: boolean;
@@ -79,7 +80,7 @@ export function graphNodeToReactFlowNode(
     type: node.type,
     id: node.id,
     parentId: node.parent_id || undefined,
-    dragHandle: ".node-header",
+    dragHandle: ".node-drag-handle",
     expandParent: !(
       node.type === "nodetool.group.Loop" ||
       node.type === "nodetool.workflows.base_node.Comment" ||
@@ -161,7 +162,7 @@ export function reactFlowEdgeToGraphEdge(edge: Edge): GraphEdge {
 const undo_limit = 1000;
 const AUTO_SAVE_INTERVAL = 60000; // 1 minute
 
-export interface NodeStore {
+interface NodeStoreState {
   explicitSave: boolean;
   shouldAutoLayout: boolean;
   setExplicitSave: (value: boolean) => void;
@@ -245,12 +246,17 @@ export interface NodeStore {
   setShouldFitToScreen: (value: boolean) => void;
 }
 
-export const useTemporalStore = <T>(
-  selector: (state: TemporalState<NodeStore>) => T,
-  equality?: (a: T, b: T) => boolean
-) => useStore(useNodeStore.temporal, selector, equality);
+export type PartializedNodeStore = Pick<
+  NodeStoreState,
+  "workflow" | "nodes" | "edges" | "explicitSave"
+>;
 
-export const useNodeStore = create<NodeStore>()(
+export const useTemporalStore = <T>(
+  selector: (state: TemporalState<PartializedNodeStore>) => T,
+  equality?: (a: T, b: T) => boolean
+) => useStoreWithEqualityFn(useNodeStore.temporal, selector, equality);
+
+export const useNodeStore = create<NodeStoreState>()(
   temporal(
     (set, get) => ({
       explicitSave: false as boolean,
@@ -516,7 +522,7 @@ export const useNodeStore = create<NodeStore>()(
         const { nodes: sanitizedNodes, edges: sanitizedEdges } =
           get().sanitizeGraph(unsanitizedNodes, unsanitizedEdges, metadata);
 
-        // add missing node typesV
+        console.log(sanitizedNodes);
         for (const node of sanitizedNodes) {
           if (node.type && !nodeTypes[node.type]) {
             addNodeType(node.type, PlaceholderNode);
@@ -930,7 +936,6 @@ export const useNodeStore = create<NodeStore>()(
       onEdgeUpdate: (oldEdge: Edge, connection: Connection) => {
         const edges = get().edges;
         const findNode = get().findNode;
-        const getMetadata = useMetadataStore.getState().getMetadata;
         if (!connection.source || !connection.target) {
           return false;
         }
@@ -1162,7 +1167,11 @@ export const useNodeStore = create<NodeStore>()(
     }),
     {
       limit: undo_limit,
-      equality: customEquality
+      equality: customEquality,
+      partialize: (state): PartializedNodeStore => {
+        const { workflow, nodes, edges, explicitSave, ...rest } = state;
+        return { workflow, nodes, edges, explicitSave };
+      }
     }
   )
 );

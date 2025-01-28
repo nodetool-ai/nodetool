@@ -1,5 +1,5 @@
 import { shallow } from "zustand/shallow";
-import { NodeStore } from "./NodeStore";
+import { PartializedNodeStore } from "./NodeStore";
 import { Edge, Node } from "@xyflow/react";
 import { NodeData } from "./NodeData";
 
@@ -24,12 +24,9 @@ function compareNode(a: Node<NodeData>, b: Node<NodeData>) {
   );
 }
 
-// undo_debounce: dampens frequency of history updates.
-// beware: causes edge creation event to be missed in history.
-//const undo_debounce = 10;
 export function customEquality(
-  previous: NodeStore,
-  current: NodeStore
+  previous: PartializedNodeStore,
+  current: PartializedNodeStore
 ): boolean {
   /*
   customEquality:
@@ -37,10 +34,9 @@ export function customEquality(
   - allows explicit creation of a history item using explicitSave
   - omits some fields to prevent unnecessary history items being created
   */
-  if (previous.explicitSave === true) {
+  if (current.explicitSave) {
     return false;
   }
-
   if (previous.nodes.length !== current.nodes.length) {
     return false;
   }
@@ -59,18 +55,6 @@ export function customEquality(
       return false;
     }
   }
-  for (const key in previous) {
-    if (key === "nodes" || key === "edges") continue;
-    if (typeof (previous as any)[key] === "function") continue;
-    if (!shallow((previous as any)[key], (current as any)[key])) {
-      return false;
-    }
-  }
 
-  for (const key in current) {
-    if (!(key in previous)) {
-      return false;
-    }
-  }
-  return true;
+  return shallow(previous.workflow, current.workflow);
 }

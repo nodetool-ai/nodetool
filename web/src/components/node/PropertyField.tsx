@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { memo, useCallback, useMemo } from "react";
 import { Handle, Position } from "@xyflow/react";
-import { css, Tooltip, Zoom } from "@mui/material";
+import { Tooltip, Zoom } from "@mui/material";
 import useConnectionStore from "../../stores/ConnectionStore";
 import { Property } from "../../stores/ApiTypes";
 import PropertyInput from "./PropertyInput";
@@ -16,9 +16,7 @@ import { colorForType, textColorForType } from "../../config/data_types";
 import ThemeNodetool from "../themes/ThemeNodetool";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { isEqual } from "lodash";
-import { useNodeStore } from "../../stores/NodeStore";
 import { isConnectableCached } from "../node_menu/typeFilterUtils";
-import { Close } from "@mui/icons-material";
 
 export type PropertyFieldProps = {
   id: string;
@@ -60,7 +58,6 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
   onDeleteProperty,
   onUpdatePropertyName
 }) => {
-  const edges = useNodeStore((state) => state.edges);
   const controlKeyPressed = useKeyPressedStore((state) =>
     state.isKeyPressed("Control")
   );
@@ -68,14 +65,8 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
     state.isKeyPressed("Meta")
   );
   const { connectType, connectDirection, connectNodeId } = useConnectionStore();
-  const isConnected = useMemo(() => {
-    return edges.some(
-      (edge) => edge.target === id && edge.targetHandle === property.name
-    );
-  }, [id, property.name, edges]);
 
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
-  const hideField = !isConnected && !isBasicField && !showAdvancedFields;
   const classConnectable = useMemo(() => {
     return connectType &&
       isConnectableCached(connectType, property.type) &&
@@ -135,9 +126,6 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
     }),
     [tooltipTitle, classConnectable, property.type.type]
   );
-  if (hideField) {
-    return null;
-  }
 
   return (
     <div className={`node-property ${Slugify(property.type.type)}`}>
@@ -166,7 +154,6 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
             property={property}
             controlKeyPressed={controlKeyPressed || metaKeyPressed}
             isInspector={isInspector}
-            isConnected={isConnected}
             tabIndex={tabIndex}
             isDynamicProperty={isDynamicProperty}
             onUpdatePropertyName={onUpdatePropertyName}

@@ -21,10 +21,6 @@ const InputContextMenu: React.FC = () => {
   const getMetadata = useMetadataStore((state) => state.getMetadata);
   const createNode = useNodeStore((state) => state.createNode);
   const addNode = useNodeStore((state) => state.addNode);
-  const [edges, setEdges] = useNodeStore((state) => [
-    state.edges,
-    state.setEdges
-  ]) as [Edge[], (edges: Edge[]) => void];
   const generateEdgeId = useNodeStore((state) => state.generateEdgeId);
   const reactFlowInstance = useReactFlow();
 
@@ -77,6 +73,8 @@ const InputContextMenu: React.FC = () => {
   const createConstantNode = useCallback(
     (event: React.MouseEvent) => {
       if (!constantNodeMetadata) return;
+      const edges = useNodeStore.getState().edges;
+      const setEdges = useNodeStore.getState().setEdges;
       const newNode = createNode(
         constantNodeMetadata,
         reactFlowInstance.screenToFlowPosition({
@@ -109,12 +107,10 @@ const InputContextMenu: React.FC = () => {
       createNode,
       reactFlowInstance,
       addNode,
-      edges,
       generateEdgeId,
       nodeId,
       handleId,
-      type,
-      setEdges
+      type
     ]
   );
 
@@ -134,6 +130,8 @@ const InputContextMenu: React.FC = () => {
   const createInputNode = useCallback(
     (event: React.MouseEvent) => {
       if (!inputNodeMetadata) return;
+      const edges = useNodeStore.getState().edges;
+      const setEdges = useNodeStore.getState().setEdges;
       const newNode = createNode(
         inputNodeMetadata,
         reactFlowInstance.screenToFlowPosition({
@@ -166,12 +164,10 @@ const InputContextMenu: React.FC = () => {
       createNode,
       reactFlowInstance,
       addNode,
-      edges,
       generateEdgeId,
       nodeId,
       handleId,
-      type,
-      setEdges
+      type
     ]
   );
 

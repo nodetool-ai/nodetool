@@ -4,7 +4,6 @@ import { useCallback, useState, useRef, memo } from "react";
 import { CircularProgress, Grid } from "@mui/material";
 // store
 import { useNodeStore, useTemporalStore } from "../../stores/NodeStore";
-import { HistoryManager } from "../../HistoryManager";
 // store
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 // components
@@ -55,7 +54,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ isMinZoom }) => {
 
   /* USE STORE */
   const { isUploading } = useAssetUpload();
-  const nodeHistory: HistoryManager = useTemporalStore((state) => state);
+  const nodeHistory = useTemporalStore((state) => state);
   const setSelectedNodes = useNodeStore((state) => state.setSelectedNodes);
 
   /* STATE */

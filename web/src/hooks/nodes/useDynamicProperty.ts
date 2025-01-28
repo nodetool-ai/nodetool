@@ -5,21 +5,16 @@ export const useDynamicProperty = (
   nodeId: string,
   dynamicProperties: Record<string, any>
 ) => {
-  const { updateNodeData, updateEdgeHandle } = useNodeStore((state) => ({
-    updateNodeData: state.updateNodeData,
-    updateEdgeHandle: state.updateEdgeHandle
-  }));
-
   const handleDeleteProperty = useCallback(
     (propertyName: string) => {
       const updatedDynamicProperties = { ...dynamicProperties };
       delete updatedDynamicProperties[propertyName];
 
-      updateNodeData(nodeId, {
+      useNodeStore.getState().updateNodeData(nodeId, {
         dynamic_properties: updatedDynamicProperties
       });
     },
-    [dynamicProperties, nodeId, updateNodeData]
+    [dynamicProperties, nodeId]
   );
 
   const handleAddProperty = useCallback(
@@ -29,11 +24,11 @@ export const useDynamicProperty = (
         [propertyName]: ""
       };
 
-      updateNodeData(nodeId, {
+      useNodeStore.getState().updateNodeData(nodeId, {
         dynamic_properties: updatedDynamicProperties
       });
     },
-    [dynamicProperties, nodeId, updateNodeData]
+    [dynamicProperties, nodeId]
   );
 
   const handleUpdatePropertyName = useCallback(
@@ -45,11 +40,11 @@ export const useDynamicProperty = (
 
       //   updateEdgeHandle(nodeId, oldPropertyName, newPropertyName);
 
-      updateNodeData(nodeId, {
+      useNodeStore.getState().updateNodeData(nodeId, {
         dynamic_properties: updatedDynamicProperties
       });
     },
-    [dynamicProperties, nodeId, updateNodeData, updateEdgeHandle]
+    [dynamicProperties, nodeId]
   );
 
   return {

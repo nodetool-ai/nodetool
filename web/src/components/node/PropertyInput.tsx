@@ -44,7 +44,6 @@ export type PropertyProps = {
   hideLabel?: boolean;
   propertyIndex: string;
   isInspector?: boolean;
-  isConnected?: boolean;
   onChange: (value: any) => void;
   tabIndex?: number;
 };
@@ -207,7 +206,6 @@ export type PropertyInputProps = {
   propertyIndex?: string;
   controlKeyPressed?: boolean;
   isInspector?: boolean;
-  isConnected?: boolean;
   tabIndex?: number;
   isDynamicProperty?: boolean;
   onUpdateProperty?: (property: string, value: any) => void;
@@ -223,7 +221,6 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
   propertyIndex,
   controlKeyPressed,
   tabIndex,
-  isConnected,
   isDynamicProperty,
   onDeleteProperty,
   onUpdateProperty,
@@ -262,8 +259,7 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
     nodeType: nodeType,
     nodeId: id,
     onChange: onChange,
-    tabIndex: tabIndex,
-    isConnected: isConnected
+    tabIndex: tabIndex
   };
 
   // Property Context Menu
