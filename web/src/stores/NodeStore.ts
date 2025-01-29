@@ -427,7 +427,6 @@ export const useNodeStore = create<NodeStoreState>()(
         const { nodes: sanitizedNodes, edges: sanitizedEdges } =
           get().sanitizeGraph(unsanitizedNodes, unsanitizedEdges, metadata);
 
-        console.log(sanitizedNodes);
         for (const node of sanitizedNodes) {
           if (node.type && !nodeTypes[node.type]) {
             addNodeType(node.type, PlaceholderNode);

@@ -1,6 +1,5 @@
 import { Edge } from "@xyflow/react";
 import { Edge as GraphEdge } from "./ApiTypes";
-import { undefined } from "./NodeStore";
 
 export function reactFlowEdgeToGraphEdge(edge: Edge): GraphEdge {
   const ui_properties = edge.className
