@@ -3,11 +3,9 @@ import { NodeData } from "./NodeData";
 import { BASE_URL, WORKER_URL } from "./ApiClient";
 import useResultsStore from "./ResultsStore";
 import { Edge, Node } from "@xyflow/react";
-import {
-  reactFlowEdgeToGraphEdge,
-  reactFlowNodeToGraphNode,
-  useNodeStore
-} from "./NodeStore";
+import { useNodeStore } from "./NodeStore";
+import { reactFlowEdgeToGraphEdge } from "./reactFlowEdgeToGraphEdge";
+import { reactFlowNodeToGraphNode } from "./reactFlowNodeToGraphNode";
 import { devError, devLog } from "../utils/DevLog";
 import {
   Prediction,

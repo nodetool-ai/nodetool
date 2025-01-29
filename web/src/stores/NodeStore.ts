@@ -41,8 +41,12 @@ import useResultsStore from "./ResultsStore";
 import { tryCacheFiles, tryCacheRepos } from "../serverState/tryCacheFiles";
 import PlaceholderNode from "../components/node_types/PlaceholderNode";
 import { useStoreWithEqualityFn } from "zustand/traditional";
+import { graphEdgeToReactFlowEdge } from "./graphEdgeToReactFlowEdge";
+import { graphNodeToReactFlowNode } from "./graphNodeToReactFlowNode";
+import { reactFlowNodeToGraphNode } from "./reactFlowNodeToGraphNode";
+import { reactFlowEdgeToGraphEdge } from "./reactFlowEdgeToGraphEdge";
 
-type NodeUIProperties = {
+export type NodeUIProperties = {
   selected?: boolean;
   selectable?: boolean;
   position: XYPosition;
@@ -58,106 +62,7 @@ type NodeSelection = {
   edges: Edge[];
 };
 
-const DEFAULT_NODE_WIDTH = 200;
-
-const graphEdgeToReactFlowEdge = (edge: GraphEdge): Edge => {
-  return {
-    id: edge.id || uuidv4(),
-    source: edge.source,
-    sourceHandle: edge.sourceHandle,
-    target: edge.target,
-    targetHandle: edge.targetHandle,
-    className: edge.ui_properties?.className
-  };
-};
-
-export function graphNodeToReactFlowNode(
-  workflow: Workflow,
-  node: GraphNode
-): Node<NodeData> {
-  const ui_properties = node.ui_properties as NodeUIProperties;
-  return {
-    type: node.type,
-    id: node.id,
-    parentId: node.parent_id || undefined,
-    dragHandle: ".node-drag-handle",
-    expandParent: !(
-      node.type === "nodetool.group.Loop" ||
-      node.type === "nodetool.workflows.base_node.Comment" ||
-      node.type === "nodetool.workflows.base_node.Group"
-    ),
-    selectable: ui_properties?.selectable,
-    data: {
-      properties: node.data || {},
-      dynamic_properties: node.dynamic_properties || {},
-      selectable: ui_properties?.selectable,
-      dirty: true,
-      collapsed: false,
-      workflow_id: workflow.id,
-      title: ui_properties?.title,
-      color: ui_properties?.color
-    },
-    position: ui_properties?.position || { x: 0, y: 0 },
-    style: {
-      width: ui_properties?.width || DEFAULT_NODE_WIDTH,
-      height: ui_properties?.height
-    },
-    zIndex:
-      node.type == "nodetool.group.Loop" ||
-      node.type == "nodetool.workflows.base_node.Group"
-        ? -10
-        : ui_properties?.zIndex
-  };
-}
-
-export function reactFlowNodeToGraphNode(node: Node<NodeData>): GraphNode {
-  const ui_properties: NodeUIProperties = {
-    selected: node.selected,
-    position: node.position,
-    zIndex: node.zIndex || 0,
-    width: node.measured?.width || DEFAULT_NODE_WIDTH,
-    height: undefined,
-    title: node.data.title,
-    color: node.data.color,
-    selectable: true
-  };
-
-  if (node.type === "nodetool.group.Loop") {
-    ui_properties.selectable = false;
-    ui_properties.height = node.measured?.height;
-  }
-
-  if (
-    node.type === "nodetool.workflows.base_node.Comment" ||
-    node.type === "nodetool.workflows.base_node.Group" ||
-    node.type === "nodetool.workflows.base_node.Preview"
-  ) {
-    ui_properties.height = node.measured?.height;
-  }
-
-  return {
-    id: node.id,
-    type: node.type || "",
-    data: node.data?.properties,
-    parent_id: node.parentId,
-    ui_properties: ui_properties,
-    dynamic_properties: node.data?.dynamic_properties || {}
-  };
-}
-
-export function reactFlowEdgeToGraphEdge(edge: Edge): GraphEdge {
-  const ui_properties = edge.className
-    ? { className: edge.className }
-    : undefined;
-  return {
-    id: edge.id,
-    source: edge.source,
-    sourceHandle: edge.sourceHandle || "",
-    target: edge.target,
-    targetHandle: edge.targetHandle || "",
-    ui_properties: ui_properties
-  };
-}
+export const DEFAULT_NODE_WIDTH = 200;
 
 const undo_limit = 1000;
 const AUTO_SAVE_INTERVAL = 60000; // 1 minute
