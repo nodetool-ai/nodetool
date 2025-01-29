@@ -47,6 +47,7 @@ import ModelsManager from "./components/hugging_face/ModelsManager";
 import useModelStore from "./stores/ModelStore";
 import { MIN_ZOOM } from "./config/constants";
 import { loadMetadata } from "./serverState/useMetadata";
+import { NodeProvider } from "./contexts/NodeContext";
 
 if (!isProduction) {
   useRemoteSettingsStore.getState().fetchSettings();
@@ -71,7 +72,11 @@ const NavigateToStart = () => {
 const NodeEditorWrapper = () => {
   const currentZoom = useStore((state) => state.transform[2]);
   const isMinZoom = currentZoom <= MIN_ZOOM;
-  return <NodeEditor isMinZoom={isMinZoom} />;
+  return (
+    <NodeProvider>
+      <NodeEditor isMinZoom={isMinZoom} />
+    </NodeProvider>
+  );
 };
 
 function getRoutes() {
@@ -156,6 +161,7 @@ function getRoutes() {
       ),
       loader: async ({ params }: LoaderFunctionArgs) => {
         await initiateEditor(params.workflow);
+        return { workflowId: params.workflow };
       }
     },
     {

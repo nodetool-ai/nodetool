@@ -67,7 +67,7 @@ export const DEFAULT_NODE_WIDTH = 200;
 const undo_limit = 1000;
 const AUTO_SAVE_INTERVAL = 60000; // 1 minute
 
-interface NodeStoreState {
+export interface NodeStoreState {
   explicitSave: boolean;
   shouldAutoLayout: boolean;
   setExplicitSave: (value: boolean) => void;
