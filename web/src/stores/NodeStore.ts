@@ -156,7 +156,7 @@ export type PartializedNodeStore = Pick<
   "workflow" | "nodes" | "edges" | "explicitSave"
 >;
 
-export const useTemporalStore = <T>(
+export const useTemporalNodeStore = <T>(
   selector: (state: TemporalState<PartializedNodeStore>) => T,
   equality?: (a: T, b: T) => boolean
 ) => useStoreWithEqualityFn(useNodeStore.temporal, selector, equality);
