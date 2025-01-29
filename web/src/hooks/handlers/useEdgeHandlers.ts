@@ -1,5 +1,5 @@
 import { useCallback, MouseEvent as ReactMouseEvent } from "react";
-import { useNodeStore, useTemporalStore } from "../../stores/NodeStore";
+import { useNodeStore, useTemporalNodeStore } from "../../stores/NodeStore";
 import { Edge } from "@xyflow/react";
 
 export default function useEdgeHandlers() {

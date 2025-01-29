@@ -1,6 +1,6 @@
 import { useCallback, useState, MouseEvent } from "react";
 import { useSettingsStore } from "../../stores/SettingsStore";
-import { useNodeStore, useTemporalStore } from "../../stores/NodeStore";
+import { useNodeStore, useTemporalNodeStore } from "../../stores/NodeStore";
 import { getMousePosition } from "../../utils/MousePosition";
 import { useReactFlow, Node } from "@xyflow/react";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
@@ -20,7 +20,7 @@ export default function useDragHandlers() {
   const [startPos, setStartPos] = useState({ x: 0, y: 0 });
   const [lastParentNode, setLastParentNode] = useState<Node | undefined>();
   const { settings } = useSettingsStore((state) => state);
-  const history = useTemporalStore((state) => state);
+  const history = useTemporalNodeStore((state) => state);
 
   const resumeHistoryAndSave = useCallback(() => {
     useNodeStore.getState().setExplicitSave(true);

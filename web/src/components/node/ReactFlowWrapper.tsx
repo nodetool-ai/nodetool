@@ -13,7 +13,7 @@ import {
 } from "@xyflow/react";
 
 // store
-import { useNodeStore, useTemporalStore } from "../../stores/NodeStore";
+import { useNodeStore } from "../../stores/NodeStore";
 // store
 import useConnectionStore from "../../stores/ConnectionStore";
 import { useSettingsStore } from "../../stores/SettingsStore";
