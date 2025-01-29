@@ -1,7 +1,7 @@
 import { Node } from "@xyflow/react";
 import { Node as GraphNode } from "./ApiTypes";
 import { NodeData } from "./NodeData";
-import { NodeUIProperties, DEFAULT_NODE_WIDTH, undefined } from "./NodeStore";
+import { NodeUIProperties, DEFAULT_NODE_WIDTH } from "./NodeStore";
 
 export function reactFlowNodeToGraphNode(node: Node<NodeData>): GraphNode {
   const ui_properties: NodeUIProperties = {
