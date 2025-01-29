@@ -66,7 +66,6 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
   );
   const { connectType, connectDirection, connectNodeId } = useConnectionStore();
 
-  const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
   const classConnectable = useMemo(() => {
     return connectType &&
       isConnectableCached(connectType, property.type) &&
@@ -79,18 +78,20 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
   const handleContextMenu = useCallback(
     (event: React.MouseEvent) => {
       event.preventDefault();
-      openContextMenu(
-        "input-context-menu",
-        id,
-        event.clientX - 260,
-        event.clientY - 50,
-        "react-flow__pane",
-        property.type,
-        property.name,
-        property.description || undefined
-      );
+      useContextMenuStore
+        .getState()
+        .openContextMenu(
+          "input-context-menu",
+          id,
+          event.clientX - 260,
+          event.clientY - 50,
+          "react-flow__pane",
+          property.type,
+          property.name,
+          property.description || undefined
+        );
     },
-    [id, openContextMenu, property.name, property.type.type]
+    [id, property.name, property.type.type]
   );
 
   const tooltipTitle = useMemo(

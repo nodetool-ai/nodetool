@@ -3,14 +3,6 @@ import { useNodeStore, useTemporalStore } from "../../stores/NodeStore";
 import { Edge } from "@xyflow/react";
 
 export default function useEdgeHandlers() {
-  const history = useTemporalStore((state) => state);
-  // RESUME HISTORY
-  const resumeHistoryAndSave = useCallback(() => {
-    useNodeStore.getState().setExplicitSave(true);
-    history.resume();
-    useNodeStore.getState().setExplicitSave(false);
-  }, [history]);
-
   /* EDGE HOVER */
   const onEdgeMouseEnter = useCallback((event: React.MouseEvent, edge: any) => {
     const hovered_edge = useNodeStore.getState().findEdge(edge.id);
@@ -57,7 +49,6 @@ export default function useEdgeHandlers() {
 
   const onEdgeUpdateStart = useCallback(() => {
     useNodeStore.getState().setEdgeUpdateSuccessful(false);
-    history.pause();
   }, [history]);
 
   // change edge connection
@@ -67,10 +58,9 @@ export default function useEdgeHandlers() {
       if (!useNodeStore.getState().edgeUpdateSuccessful) {
         useNodeStore.getState().deleteEdge(edge.id);
       }
-      resumeHistoryAndSave();
       useNodeStore.getState().setEdgeUpdateSuccessful(true);
     },
-    [useNodeStore.getState().edgeUpdateSuccessful, resumeHistoryAndSave]
+    [useNodeStore.getState().edgeUpdateSuccessful]
   );
 
   return {
