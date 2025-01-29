@@ -12,7 +12,7 @@ import { titleizeString } from "../../utils/titleizeString";
 import CloseIcon from "@mui/icons-material/Close";
 import ThemeNodetool from "../themes/ThemeNodetool";
 import { highlightText as highlightTextUtil } from "../../utils/highlightText";
-import { formatNodeDocumentation } from "../../stores/NodeMenuStore";
+import { formatNodeDocumentation } from "../../stores/formatNodeDocumentation";
 
 interface NodeInfoProps {
   nodeMetadata: NodeMetadata;

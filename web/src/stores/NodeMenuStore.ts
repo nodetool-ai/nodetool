@@ -5,8 +5,9 @@ import Fuse, { IFuseOptions } from "fuse.js";
 import { filterDataByType } from "../components/node_menu/typeFilterUtils";
 import useMetadataStore from "./MetadataStore";
 import useRemoteSettingsStore from "./RemoteSettingStore";
-import { highlightText as highlightTextUtil } from "../utils/highlightText";
 import { usePanelStore } from "./PanelStore";
+import { formatNodeDocumentation } from "./formatNodeDocumentation";
+import { fuseOptions, ExtendedFuseOptions } from "./fuseOptions";
 
 export interface SplitNodeDescription {
   description: string;
@@ -16,101 +17,6 @@ export interface SplitNodeDescription {
     html: string;
   };
 }
-
-export const formatNodeDocumentation = (
-  fullDocumentation: string,
-  searchTerm?: string,
-  searchInfo?: any
-): SplitNodeDescription => {
-  const lines = fullDocumentation.split("\n").map((line) => line.trim());
-  const description = lines[0] || "";
-  const tags =
-    lines[1]
-      ?.split(",")
-      .map((t) => t.trim())
-      .filter(Boolean) || [];
-
-  // Find section indices
-  const useCasesIndex = lines.findIndex((line) =>
-    line.startsWith("Use cases:")
-  );
-
-  // Extract use cases if present
-  let useCasesRaw = "";
-  let useCasesHtml = "";
-  if (useCasesIndex !== -1) {
-    const endIndex = lines.length;
-    const useCaseLines = lines
-      .slice(useCasesIndex + 1, endIndex)
-      .filter((line) => line.trim());
-
-    // Check if we have bullet points
-    const hasBullets = useCaseLines.some((line) => line.trim().startsWith("-"));
-
-    if (hasBullets) {
-      // Clean bullet points but keep as separate lines
-      useCasesRaw = useCaseLines
-        .filter((line) => line.trim().startsWith("-"))
-        .map((line) => line.replace(/^-\s*/, "").trim())
-        .join("\n");
-    } else {
-      // Join without bullets
-      useCasesRaw = useCaseLines.join(" ");
-    }
-
-    // Highlight the text
-    if (searchTerm && searchInfo) {
-      const highlighted = highlightTextUtil(
-        useCasesRaw,
-        "use_cases",
-        searchTerm,
-        searchInfo,
-        hasBullets // Pass this flag to highlightText
-      );
-      useCasesHtml = highlighted.html;
-    } else {
-      useCasesHtml = useCasesRaw;
-    }
-  }
-
-  return {
-    description,
-    tags,
-    useCases: {
-      raw: useCasesRaw,
-      html: useCasesHtml
-    }
-  };
-};
-
-// Extend Fuse options type
-interface ExtendedFuseOptions<T> extends Omit<IFuseOptions<T>, "keys"> {
-  keys?: Array<{ name: string; weight: number }>;
-  tokenize?: boolean;
-  matchAllTokens?: boolean;
-  findAllMatches?: boolean;
-}
-
-const fuseOptions: ExtendedFuseOptions<any> = {
-  keys: [
-    // Relative importance
-    { name: "title", weight: 0.8 },
-    { name: "namespace", weight: 0.4 },
-    { name: "tags", weight: 0.4 },
-    { name: "description", weight: 0.3 }
-  ],
-  includeMatches: true,
-  ignoreLocation: true,
-  threshold: 0.3,
-  distance: 2,
-  includeScore: true,
-  shouldSort: true,
-  minMatchCharLength: 3,
-  useExtendedSearch: true,
-  tokenize: false,
-  matchAllTokens: false,
-  findAllMatches: true
-};
 
 export type SearchResultGroup = {
   title: string;
