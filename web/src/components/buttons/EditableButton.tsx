@@ -2,9 +2,9 @@ import { useCallback, useRef, useEffect, useState } from "react";
 import TextField from "@mui/material/TextField";
 import { Workflow } from "../../stores/ApiTypes";
 import { useWorkflowStore } from "../../stores/WorkflowStore";
-import { useNodeStore } from "../../stores/NodeStore";
 import { devLog } from "../../utils/DevLog";
 import { MenuItem } from "@mui/material";
+import { useNodes } from "../../contexts/NodeContext";
 
 type EditWorkflowButtonProps = {
   workflow: Workflow;
@@ -20,9 +20,9 @@ function EditWorkflowButton({
   const [isEditing, setIsEditing] = useState(false);
   const [workflowName, setWorkflowName] = useState(workflow.name);
   const updateWorkflow = useWorkflowStore((state) => state.update);
-  const updateFromWorkflowStore = useNodeStore(
-    (state) => state.updateFromWorkflowStore
-  );
+  const { updateFromWorkflowStore } = useNodes((state) => ({
+    updateFromWorkflowStore: state.updateFromWorkflowStore
+  }));
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {

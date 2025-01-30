@@ -11,13 +11,13 @@ import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { getMousePosition } from "../../utils/MousePosition";
 import { devLog } from "../../utils/DevLog";
 import LogoutIcon from "@mui/icons-material/Logout";
-import { useNodeStore } from "../../stores/NodeStore";
 import { useReactFlow } from "@xyflow/react";
 import useMetadataStore from "../../stores/MetadataStore";
 import { labelForType } from "../../config/data_types";
 import { Slugify } from "../../utils/TypeHandler";
 import { getTimestampForFilename } from "../../utils/formatDateAndTime";
 import useConnectableNodesStore from "../../stores/ConnectableNodesStore";
+import { useNodes } from "../../contexts/NodeContext";
 
 const OutputContextMenu: React.FC = () => {
   const {
@@ -34,7 +34,14 @@ const OutputContextMenu: React.FC = () => {
     handleId: state.handleId
   }));
   const { openNodeMenu } = useNodeMenuStore();
-  const { createNode, addNode, addEdge, generateEdgeId } = useNodeStore();
+  const { createNode, addNode, addEdge, generateEdgeId } = useNodes(
+    (state) => ({
+      createNode: state.createNode,
+      addNode: state.addNode,
+      addEdge: state.addEdge,
+      generateEdgeId: state.generateEdgeId
+    })
+  );
   const reactFlowInstance = useReactFlow();
   const { getMetadata } = useMetadataStore((state) => ({
     getMetadata: state.getMetadata

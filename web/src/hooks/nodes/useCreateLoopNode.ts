@@ -1,14 +1,16 @@
 import { useCallback } from "react";
 import { NodeMetadata } from "../../stores/ApiTypes";
-import { useNodeStore } from "../../stores/NodeStore";
 import useMetadataStore from "../../stores/MetadataStore";
+import { useNodes } from "../../contexts/NodeContext";
 
 const GROUP_INPUT_NODE_TYPE = "nodetool.input.GroupInput";
 const GROUP_OUTPUT_NODE_TYPE = "nodetool.output.GroupOutput";
 
 export const useCreateLoopNode = () => {
-  const addNode = useNodeStore((state) => state.addNode);
-  const createNode = useNodeStore((state) => state.createNode);
+  const { addNode, createNode } = useNodes((state) => ({
+    addNode: state.addNode,
+    createNode: state.createNode
+  }));
   const getMetadata = useMetadataStore.getState().getMetadata;
 
   const createLoopNode = useCallback(

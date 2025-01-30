@@ -1,20 +1,23 @@
 import { useCallback } from "react";
 import { Node } from "@xyflow/react";
-import { useNodeStore } from "../../stores/NodeStore";
-import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 import { NodeData } from "../../stores/NodeData";
 import { useIsGroupable } from "./useIsGroupable";
+import { useNodes } from "../../contexts/NodeContext";
 
 export function useAddToGroup() {
-  const { isKeyPressed } = useKeyPressedStore();
-  const spaceKeyPressed = isKeyPressed(" ");
   const { isGroupable, isGroup } = useIsGroupable();
+  const { hoveredNodes, updateNode, setHoveredNodes, findNode } = useNodes(
+    (state) => ({
+      hoveredNodes: state.hoveredNodes,
+      updateNode: state.updateNode,
+      setHoveredNodes: state.setHoveredNodes,
+      findNode: state.findNode
+    })
+  );
   const addToGroup = useCallback(
     (nodes: Node<NodeData>[], lastParentNode?: Node | undefined) => {
-      const hoveredNodes = useNodeStore.getState().hoveredNodes;
-      const updateNode = useNodeStore.getState().updateNode;
       const parentId = hoveredNodes[0];
-      const parentNode = useNodeStore.getState().findNode(parentId);
+      const parentNode = findNode(parentId);
       nodes.forEach((node) => {
         if (
           parentNode &&
@@ -22,7 +25,7 @@ export function useAddToGroup() {
           isGroupable(node) &&
           isGroup(parentNode)
         ) {
-          if (!node.parentId && !spaceKeyPressed) {
+          if (!node.parentId) {
             updateNode(node.id, {
               position: {
                 x: node.position.x - parentNode.position.x,
@@ -32,7 +35,7 @@ export function useAddToGroup() {
               expandParent: true
             });
           }
-          if (node.parentId && !spaceKeyPressed) {
+          if (node.parentId) {
             // already in group
             updateNode(node.id, {
               expandParent: true
@@ -54,9 +57,9 @@ export function useAddToGroup() {
         }
       });
 
-      useNodeStore.getState().setHoveredNodes([]);
+      setHoveredNodes([]);
     },
-    [isGroupable, isGroup, spaceKeyPressed]
+    [isGroupable, isGroup]
   );
 
   return addToGroup;

@@ -2,9 +2,9 @@ import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import WaveSurfer from "wavesurfer.js";
 import Record from "wavesurfer.js/dist/plugins/record";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
-import { useNodeStore } from "../../stores/NodeStore";
 import { Asset } from "../../stores/ApiTypes";
 import { devLog } from "../../utils/DevLog";
+import { useNodes } from "../../contexts/NodeContext";
 
 export type WaveRecorderProps = {
   onChange: (asset: Asset) => void;
@@ -13,7 +13,7 @@ export type WaveRecorderProps = {
 export function useWaveRecorder({ onChange }: WaveRecorderProps) {
   const defaultFileType = "webm";
   const { uploadAsset } = useAssetUpload();
-  const workflow = useNodeStore((state) => state.workflow);
+  const workflow = useNodes((state) => state.workflow);
   const micRef = useRef<HTMLDivElement | null>(null);
   const waveSurferRef = useRef<WaveSurfer | null>(null);
   const recordRef = useRef<any | null>(null);

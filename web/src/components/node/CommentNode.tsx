@@ -6,7 +6,6 @@ import { NodeProps, NodeResizeControl, Node } from "@xyflow/react";
 import { debounce, isEqual } from "lodash";
 import { Container } from "@mui/material";
 import { NodeData } from "../../stores/NodeData";
-import { useNodeStore } from "../../stores/NodeStore";
 import { createEditor } from "slate";
 import { Slate, Editable, withReact, ReactEditor } from "slate-react";
 import { BaseEditor, Descendant } from "slate";
@@ -15,6 +14,7 @@ import { hexToRgba } from "../../utils/ColorUtils";
 import ThemeNodes from "../../components/themes/ThemeNodes";
 import ColorPicker from "../inputs/ColorPicker";
 import NodeResizeHandle from "./NodeResizeHandle";
+import { useNodes } from "../../contexts/NodeContext";
 type CustomElement = { type: "paragraph"; children: CustomText[] };
 type CustomText = { text: string };
 
@@ -131,7 +131,9 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const className = `comment-node ${props.data.collapsed ? "collapsed " : ""}${
     props.selected ? "selected" : ""
   }`.trim();
-  const updateNodeData = useNodeStore((state) => state.updateNodeData);
+  const { updateNodeData } = useNodes((state) => ({
+    updateNodeData: state.updateNodeData
+  }));
   const [editor] = useState(() => withReact(createEditor()));
   const [color, setColor] = useState(
     props.data.properties.comment_color || ThemeNodes.palette.c_bg_comment

@@ -1,15 +1,13 @@
 /** @jsxImportSource @emotion/react */
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { MoreHoriz } from "@mui/icons-material";
-import { css } from "@emotion/react";
-import { useNodeStore } from "../../stores/NodeStore";
 import { memo, useCallback, useMemo } from "react";
-import ThemeNodes from "../themes/ThemeNodes";
 import { isEqual } from "lodash";
 import { titleizeString } from "../../utils/titleizeString";
 import { NodeData } from "../../stores/NodeData";
 import { Tooltip } from "@mui/material";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { useNodes } from "../../contexts/NodeContext";
 
 export interface NodeHeaderProps {
   id: string;
@@ -36,6 +34,7 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
     () => (metadataTitle ? titleizeString(metadataTitle) : ""),
     [metadataTitle]
   );
+  const updateNode = useNodes((state) => state.updateNode);
 
   const handleOpenContextMenu = useCallback(
     (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -52,8 +51,8 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
   );
 
   const handleHeaderClick = useCallback(() => {
-    useNodeStore.getState().updateNode(id, { selected: true });
-  }, [id]);
+    updateNode(id, { selected: true });
+  }, [id, updateNode]);
 
   return (
     <Tooltip

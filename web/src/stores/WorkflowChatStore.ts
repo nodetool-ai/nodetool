@@ -4,25 +4,25 @@ import {
   Message,
   NodeProgress,
   NodeUpdate,
-  Prediction
+  Prediction,
+  WorkflowAttributes
 } from "./ApiTypes";
 import { CHAT_URL } from "./ApiClient";
 import { useAuth } from "./useAuth";
 import { devError, devLog } from "../utils/DevLog";
 import { decode, encode } from "@msgpack/msgpack";
-import { useNodeStore } from "./NodeStore";
 import { handleUpdate } from "./workflowUpdates";
 
 type WorkflowChatState = {
   socket: WebSocket | null;
+  workflow: WorkflowAttributes | null;
   status: "disconnected" | "connecting" | "connected" | "loading" | "error";
   messages: Message[];
   currentNodeName: string | null;
   progress: number;
   total: number;
   error: string | null;
-  workflow_id: string | null;
-  connect: (workflow_id: string) => Promise<void>;
+  connect: (workflow: WorkflowAttributes) => Promise<void>;
   disconnect: () => void;
   sendMessage: (message: Message) => Promise<void>;
   resetMessages: () => void;
@@ -34,19 +34,19 @@ const useWorkflowChatStore = create<WorkflowChatState>((set, get) => ({
   socket: null,
   messages: [],
   currentNodeName: null,
+  workflow: null,
   status: "disconnected",
   error: null,
   progress: 0,
   total: 0,
-  workflow_id: null,
-  connect: async (workflow_id: string) => {
+  connect: async (workflow: WorkflowAttributes) => {
     const user = useAuth.getState().getUser();
     if (!user) {
       throw new Error("User is not logged in");
     }
-    devLog("Connecting to workflow chat", workflow_id);
+    devLog("Connecting to workflow chat", workflow.id);
 
-    set({ workflow_id });
+    set({ workflow });
 
     if (get().socket) {
       get().disconnect();
@@ -73,7 +73,10 @@ const useWorkflowChatStore = create<WorkflowChatState>((set, get) => ({
           total: 0
         }));
       } else {
-        const workflow = useNodeStore.getState().getWorkflow();
+        const workflow = get().workflow;
+        if (!workflow) {
+          throw new Error("Workflow is not connected");
+        }
         handleUpdate(workflow, data);
 
         // Update local state based on the data type
@@ -140,7 +143,6 @@ const useWorkflowChatStore = create<WorkflowChatState>((set, get) => ({
   sendMessage: async (message: Message) => {
     const { socket } = get();
     const user = useAuth.getState().getUser();
-    const workflow = useNodeStore.getState().getWorkflow();
 
     if (!user) {
       throw new Error("User is not logged in");
@@ -149,14 +151,13 @@ const useWorkflowChatStore = create<WorkflowChatState>((set, get) => ({
     set({ error: null });
 
     message.auth_token = user.auth_token;
-    message.graph = workflow.graph;
 
     if (!message.workflow_id) {
       throw new Error("Workflow ID is required");
     }
 
     if (!socket || socket.readyState !== WebSocket.OPEN) {
-      await get().connect(message.workflow_id);
+      return;
     }
 
     set((state) => ({

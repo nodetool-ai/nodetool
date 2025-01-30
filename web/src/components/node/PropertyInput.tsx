@@ -1,7 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { useCallback, createElement, memo } from "react";
 import { Property } from "../../stores/ApiTypes";
-import { useNodeStore } from "../../stores/NodeStore";
 import PropertyLabel from "./PropertyLabel";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import reduceUnionType from "../../hooks/reduceUnionType";
@@ -35,6 +34,7 @@ import DocumentProperty from "../properties/DocumentProperty";
 import Close from "@mui/icons-material/Close";
 import Edit from "@mui/icons-material/Edit";
 import { css } from "@emotion/react";
+import { useNodes } from "../../contexts/NodeContext";
 
 export type PropertyProps = {
   property: Property;
@@ -226,7 +226,7 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
   onUpdateProperty,
   onUpdatePropertyName
 }: PropertyInputProps) => {
-  const { updateNodeProperties, findNode, updateNodeData } = useNodeStore(
+  const { updateNodeProperties, findNode, updateNodeData } = useNodes(
     (state) => ({
       updateNodeProperties: state.updateNodeProperties,
       updateNodeData: state.updateNodeData,

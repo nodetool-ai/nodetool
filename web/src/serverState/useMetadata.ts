@@ -4,7 +4,6 @@ import BaseNode from "../components/node/BaseNode";
 import { client } from "../stores/ApiClient";
 import useMetadataStore from "../stores/MetadataStore";
 import { createConnectabilityMatrix } from "../components/node_menu/typeFilterUtils";
-import { useNodeStore } from "../stores/NodeStore";
 
 const defaultMetadata: Record<string, NodeMetadata> = {
   "nodetool.workflows.base_node.Preview": {
@@ -73,7 +72,6 @@ export const loadMetadata = async () => {
   useMetadataStore.getState().setMetadata(metadataByType);
   useMetadataStore.getState().setRecommendedModels(uniqueRecommendedModels);
   useMetadataStore.getState().setNodeTypes(nodeTypes);
-  useNodeStore.getState().startAutoSave();
 
   createConnectabilityMatrix(Object.values(metadataByType));
 

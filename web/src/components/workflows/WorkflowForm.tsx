@@ -14,7 +14,6 @@ import {
   TextField
 } from "@mui/material";
 import { useEffect, useState } from "react";
-import { useNodeStore } from "../../stores/NodeStore";
 import ThemeNodetool from "../themes/ThemeNodetool";
 import DeleteButton from "../buttons/DeleteButton";
 import { useFileDrop } from "../../hooks/handlers/useFileDrop";
@@ -23,6 +22,7 @@ import { useNotificationStore } from "../../stores/NotificationStore";
 import { prettyDate, relativeTime } from "../../utils/formatDateAndTime";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { useWorkflowStore } from "../../stores/WorkflowStore";
+import { useNodes } from "../../contexts/NodeContext";
 
 const AVAILABLE_TAGS = [
   "image",
@@ -143,7 +143,7 @@ const styles = (theme: any) =>
   });
 
 const WorkflowForm = () => {
-  const { workflow, setWorkflowAttributes, saveWorkflow } = useNodeStore(
+  const { workflow, setWorkflowAttributes, saveWorkflow } = useNodes(
     (state) => ({
       workflow: state.workflow,
       setWorkflowAttributes: state.setWorkflowAttributes,

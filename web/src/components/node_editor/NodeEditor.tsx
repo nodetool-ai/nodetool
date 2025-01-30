@@ -3,8 +3,6 @@ import { useCallback, useState, useRef, memo } from "react";
 
 import { CircularProgress, Grid } from "@mui/material";
 // store
-import { useNodeStore, useTemporalNodeStore } from "../../stores/NodeStore";
-// store
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 // components
 import CommandMenu from "../menus/CommandMenu";
@@ -34,6 +32,8 @@ import ReactFlowWrapper from "../node/ReactFlowWrapper";
 import { useReactFlow, XYPosition } from "@xyflow/react";
 import WorkflowChat from "../assistants/WorkflowChat";
 import ModelDownloadDialog from "../hugging_face/ModelDownloadDialog";
+import { useNodes, useTemporalNodes } from "../../contexts/NodeContext";
+import { shallow } from "zustand/shallow";
 
 declare global {
   interface Window {
@@ -54,24 +54,32 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ isMinZoom }) => {
 
   /* USE STORE */
   const { isUploading } = useAssetUpload();
-  const nodeHistory = useTemporalNodeStore((state) => state);
-  const setSelectedNodes = useNodeStore((state) => state.setSelectedNodes);
+  const nodeHistory = useTemporalNodes((state) => state);
+  const {
+    nodes,
+    selectedNodes,
+    setSelectedNodes,
+    missingModelFiles,
+    missingModelRepos,
+    clearMissingModels
+  } = useNodes((state) => ({
+    nodes: state.nodes,
+    setSelectedNodes: state.setSelectedNodes,
+    selectedNodes: state.getSelectedNodes(),
+    missingModelFiles: state.missingModelFiles,
+    missingModelRepos: state.missingModelRepos,
+    clearMissingModels: state.clearMissingModels
+  }));
 
   /* STATE */
   const [openCommandMenu, setOpenCommandMenu] = useState(false);
-  const selectedNodes = useNodeStore((state) => state.getSelectedNodes());
 
   /* UTILS */
   const { handleCopy, handlePaste, handleCut } = useCopyPaste();
   const alignNodes = useAlignNodes();
-  const getSelectedNodeIds = useNodeStore((state) => state.getSelectedNodeIds);
   const duplicateNodes = useDuplicateNodes();
   const duplicateNodesVertical = useDuplicateNodes(true);
   const surroundWithGroup = useSurroundWithGroup();
-  const missingModelFiles = useNodeStore((state) => state.missingModelFiles);
-  const missingModelRepos = useNodeStore((state) => state.missingModelRepos);
-  const clearMissingModels = useNodeStore((state) => state.clearMissingModels);
-  const clearMissingRepos = useNodeStore((state) => state.clearMissingRepos);
 
   // OPEN NODE MENU
   const {
@@ -92,7 +100,6 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ isMinZoom }) => {
 
   useCombo(["f"], () => {
     // fit view bounds to selected nodes, fitView when no nodes are selected
-    const nodes = useNodeStore.getState().nodes;
     if (selectedNodes.length) {
       setTimeout(() => {
         setSelectedNodes([]);
@@ -172,20 +179,18 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ isMinZoom }) => {
   useCombo(
     ["Control", "g"],
     useCallback(() => {
-      const selectedNodeIds = getSelectedNodeIds();
-      if (selectedNodeIds.length) {
-        surroundWithGroup({ selectedNodeIds });
+      if (selectedNodes.length) {
+        surroundWithGroup({ selectedNodes });
       }
-    }, [surroundWithGroup, getSelectedNodeIds])
+    }, [surroundWithGroup, selectedNodes])
   );
   useCombo(
     ["Meta", "g"],
     useCallback(() => {
-      const selectedNodeIds = getSelectedNodeIds();
-      if (selectedNodeIds.length) {
-        surroundWithGroup({ selectedNodeIds });
+      if (selectedNodes.length) {
+        surroundWithGroup({ selectedNodes });
       }
-    }, [surroundWithGroup, getSelectedNodeIds])
+    }, [surroundWithGroup, selectedNodes])
   );
 
   useCombo(["Control", "z"], nodeHistory.undo);

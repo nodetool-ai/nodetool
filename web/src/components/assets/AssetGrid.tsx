@@ -18,7 +18,6 @@ import FolderList from "./FolderList";
 
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
-import { useNodeStore } from "../../stores/NodeStore";
 import useAssets from "../../serverState/useAssets";
 import { Asset } from "../../stores/ApiTypes";
 import AssetViewer from "./AssetViewer";
@@ -263,11 +262,9 @@ const AssetGrid: React.FC<AssetGridProps> = ({
 
   const uploadFiles = useCallback(
     (files: File[]) => {
-      const workflow = useNodeStore.getState().workflow;
       files.forEach((file: File) => {
         uploadAsset({
           file: file,
-          workflow_id: workflow.id,
           parent_id: currentFolderId || undefined
         });
       });

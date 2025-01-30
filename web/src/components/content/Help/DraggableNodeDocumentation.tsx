@@ -4,12 +4,12 @@ import NodeInfo from "../../node_menu/NodeInfo";
 import { css } from "@emotion/react";
 import Draggable from "react-draggable";
 import { Button } from "@mui/material";
-import { useNodeStore } from "../../../stores/NodeStore";
 import { useReactFlow } from "@xyflow/react";
 import useNodeMenuStore from "../../../stores/NodeMenuStore";
 import ThemeNodetool from "../../themes/ThemeNodetool";
 import useMetadataStore from "../../../stores/MetadataStore";
 import { usePanelStore } from "../../../stores/PanelStore";
+import { useNodes } from "../../../contexts/NodeContext";
 
 const styles = (theme: any) => css`
   position: absolute;
@@ -82,7 +82,10 @@ const DraggableNodeDocumentation: React.FC<DraggableNodeDocumentationProps> = ({
     state.getMetadata(nodeType ?? "")
   );
   const nodeRef = useRef<HTMLDivElement>(null);
-  const { createNode, addNode } = useNodeStore();
+  const { createNode, addNode } = useNodes((state) => ({
+    createNode: state.createNode,
+    addNode: state.addNode
+  }));
   const reactFlowInstance = useReactFlow();
   const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
   const { panel } = usePanelStore();
