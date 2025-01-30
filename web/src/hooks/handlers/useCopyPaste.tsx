@@ -1,61 +1,69 @@
-import { useNodeStore } from "../../stores/NodeStore";
 import { getMousePosition } from "../../utils/MousePosition";
 import { useReactFlow, Edge, Node } from "@xyflow/react";
 import { uuidv4 } from "../../stores/uuidv4";
 import { devWarn } from "../../utils/DevLog";
 import { NodeData } from "../../stores/NodeData";
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
+import { useNodes } from "../../contexts/NodeContext";
 
 export const useCopyPaste = () => {
   const reactFlow = useReactFlow();
-  const generateNodeIds = useNodeStore((state) => state.generateNodeIds);
+  const generateNodeIds = useNodes((state) => state.generateNodeIds);
 
-  const handleCopy = useCallback(async (nodeId?: string) => {
-    const nodes = useNodeStore.getState().nodes;
-    const edges = useNodeStore.getState().edges;
-    const selectedNodes = useNodeStore.getState().getSelectedNodes();
-    const focusedElement = document.activeElement as HTMLElement;
-    if (
-      (focusedElement.classList.contains("MuiInput-input") &&
-        !focusedElement.classList.contains("action")) ||
-      focusedElement.tagName === "TEXTAREA"
-    ) {
-      return { nodesToCopy: [], connectedEdges: [] };
-    }
+  const { nodes, edges, setNodes, setEdges } = useNodes((state) => ({
+    nodes: state.nodes,
+    edges: state.edges,
+    setNodes: state.setNodes,
+    setEdges: state.setEdges
+  }));
 
-    let nodesToCopy: Node[];
-    if (nodeId && nodeId !== "") {
-      // Find the node with the given nodeId
-      const node = nodes.find((node: any) => node.id === nodeId);
-      nodesToCopy = node ? [node] : [];
-    } else {
-      nodesToCopy = selectedNodes;
-    }
-    if (nodesToCopy.length === 0) {
-      return { nodesToCopy: [], connectedEdges: [] };
-    }
-    const nodesToCopyIds = nodesToCopy.map((node) => node.id);
-    const connectedEdges = edges.filter(
-      (edge) =>
-        nodesToCopyIds.includes(edge.source) ||
-        nodesToCopyIds.includes(edge.target)
-    );
-    const serializedData = JSON.stringify({
-      nodes: nodesToCopy,
-      edges: connectedEdges
-    });
+  const selectedNodes = useMemo(() => {
+    return nodes.filter((node) => node.selected);
+  }, [nodes]);
 
-    localStorage.setItem("copiedNodesData", serializedData);
+  const handleCopy = useCallback(
+    async (nodeId?: string) => {
+      // const focusedElement = document.activeElement as HTMLElement;
+      // if (
+      //   (focusedElement.classList.contains("MuiInput-input") &&
+      //     !focusedElement.classList.contains("action")) ||
+      //   focusedElement.tagName === "TEXTAREA"
+      // ) {
+      //   return { nodesToCopy: [], connectedEdges: [] };
+      // }
+      console.log("handleCopy", selectedNodes);
 
-    return { nodesToCopy, connectedEdges };
-  }, []);
+      let nodesToCopy: Node[];
+      if (nodeId && nodeId !== "") {
+        // Find the node with the given nodeId
+        const node = nodes.find((node: any) => node.id === nodeId);
+        nodesToCopy = node ? [node] : [];
+      } else {
+        nodesToCopy = selectedNodes;
+      }
+      if (nodesToCopy.length === 0) {
+        return { nodesToCopy: [], connectedEdges: [] };
+      }
+      const nodesToCopyIds = nodesToCopy.map((node) => node.id);
+      const connectedEdges = edges.filter(
+        (edge) =>
+          nodesToCopyIds.includes(edge.source) ||
+          nodesToCopyIds.includes(edge.target)
+      );
+      const serializedData = JSON.stringify({
+        nodes: nodesToCopy,
+        edges: connectedEdges
+      });
+
+      localStorage.setItem("copiedNodesData", serializedData);
+
+      return { nodesToCopy, connectedEdges };
+    },
+    [nodes, edges, setNodes, setEdges]
+  );
 
   const handleCut = useCallback(
     async (nodeId?: string) => {
-      const nodes = useNodeStore.getState().nodes;
-      const edges = useNodeStore.getState().edges;
-      const setNodes = useNodeStore.getState().setNodes;
-      const setEdges = useNodeStore.getState().setEdges;
       const { nodesToCopy, connectedEdges } = await handleCopy(nodeId);
 
       if (nodesToCopy.length === 0) {
@@ -72,17 +80,15 @@ export const useCopyPaste = () => {
       );
       setEdges(filteredEdges);
     },
-    [handleCopy]
+    [handleCopy, nodes, edges, setNodes, setEdges]
   );
 
   const handlePaste = useCallback(async () => {
     let clipboardData: string | null = null;
-    const nodes = useNodeStore.getState().nodes;
-    const edges = useNodeStore.getState().edges;
-    const setNodes = useNodeStore.getState().setNodes;
-    const setEdges = useNodeStore.getState().setEdges;
 
     clipboardData = localStorage.getItem("copiedNodesData");
+
+    console.log("clipboardData", clipboardData);
 
     if (!clipboardData) {
       console.warn("No valid data found in clipboard or localStorage");
@@ -186,7 +192,7 @@ export const useCopyPaste = () => {
       setNodes([...nodes, ...newNodes]);
       setEdges([...edges, ...newEdges]);
     }
-  }, [generateNodeIds, reactFlow]);
+  }, [generateNodeIds, reactFlow, nodes, edges, setNodes, setEdges]);
 
   return { handleCopy, handleCut, handlePaste };
 };

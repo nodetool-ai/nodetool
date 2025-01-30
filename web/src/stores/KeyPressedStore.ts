@@ -1,5 +1,7 @@
 import { create } from "zustand";
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
+import { useStoreWithEqualityFn } from "zustand/traditional";
+import { shallow } from "zustand/shallow";
 
 interface ComboOptions {
   preventDefault?: boolean;
@@ -48,7 +50,7 @@ type KeyPressedState = {
   isComboPressed: (combo: string[]) => boolean;
 };
 
-const useKeyPressedStore = create<KeyPressedState>((set, get) => ({
+const useKeyPressedStore = create<KeyPressedState>()((set, get) => ({
   pressedKeys: new Set(),
   lastPressedKey: null,
   keyPressCount: {},
@@ -176,7 +178,10 @@ const initKeyListeners = () => {
   };
 };
 
-// Modify the useCombo hook to use useCallback and useMemo
+export const useKeyPressed = (selector: (state: KeyPressedState) => any) =>
+  useStoreWithEqualityFn(useKeyPressedStore, selector, shallow);
+
+// Fix the useCombo hook
 const useCombo = (
   combo: string[],
   callback: () => void,
@@ -192,7 +197,7 @@ const useCombo = (
     [combo]
   );
 
-  useMemo(() => {
+  useEffect(() => {
     registerComboCallback(memoizedCombo, { callback, preventDefault, active });
     return () => unregisterComboCallback(memoizedCombo);
   }, [memoizedCombo, callback, preventDefault, active]);

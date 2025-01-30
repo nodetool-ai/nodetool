@@ -3,9 +3,9 @@ export const APP_NAME = "nodetool";
 export const VERSION = "0.6.0";
 
 // TOOLTIPS
-export const TOOLTIP_ENTER_DELAY = 650;
-export const TOOLTIP_LEAVE_DELAY = 200;
-export const TOOLTIP_ENTER_NEXT_DELAY = 350;
+export const TOOLTIP_ENTER_DELAY = 200;
+export const TOOLTIP_LEAVE_DELAY = 0;
+export const TOOLTIP_ENTER_NEXT_DELAY = 0;
 
 // DEVLOG
 export const DEVLOG_NOTIFICATION_VERBOSITY: ("error" | "info" | "warn")[] = [

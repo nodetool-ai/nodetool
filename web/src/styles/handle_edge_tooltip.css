@@ -2,14 +2,15 @@
 .MuiTooltip-popper {
   background: transparent;
   pointer-events: none !important;
-  z-index: 999999 !important;
+  z-index: 99999999 !important;
   border-radius: 0;
 }
 
 .MuiTooltip-popper .MuiTooltip-tooltip {
   padding: 0.3em 0.5em;
-  background: var(--c_gray2);
-
+  background: var(--c_black);
+  color: var(--c_white);
+  font-size: var(--font-size-normal);
   /*border: 1px solid var(--c_gray0);*/
   /*box-shadow: 1px 1px 4px rgba(0, 0, 0, 0.2);*/
   box-shadow: none !important;
@@ -24,10 +25,10 @@
   margin-left: 4px !important;
 }
 .MuiTooltip-tooltipPlacementTop {
-  margin-bottom: .5em !important;
+  margin-bottom: 0.5em !important;
   max-width: 300px !important;
-  margin-left: -.2em !important;
-  padding: 0.6em .75em !important;
+  margin-left: -0.2em !important;
+  padding: 0.6em 0.75em !important;
   box-shadow: 2px 2px 6px white !important;
   border: 1px solid var(--c_gray1) !important;
 }
@@ -44,13 +45,13 @@
 
 /* HANDLE TOOLTIP */
 /* input and output handles */
- .tooltip-handle {
-   background-color: transparent !important;
- }
- .tooltip-handle span {
-   padding: .1em .5em;
-   color: var(--c_black);
- }
+.tooltip-handle {
+  background-color: transparent !important;
+}
+.tooltip-handle span {
+  padding: 0.1em 0.5em;
+  color: var(--c_black);
+}
 
 /* CONNECTABLE  */
 .react-flow.is-connecting .react-flow__node .react-flow__handle {
@@ -144,20 +145,20 @@
 
 /* multiple outputs */
 .multi-outputs .react-flow__handle-right {
-  top: .4em;
+  top: 0.4em;
 }
 
 ul.multi-outputs {
   position: relative;
-  padding: 1.5em 0 0 .5em;
+  padding: 1.5em 0 0 0.5em;
   border-top: 1px solid var(--c_gray2);
   background-color: var(--c_gray1);
-  margin: .5em 0 0;
+  margin: 0.5em 0 0;
   width: 100%;
 }
 ul.multi-outputs li {
   position: relative;
-  padding: 0 .75em .75em 0;
+  padding: 0 0.75em 0.75em 0;
   color: var(--c_gray5);
   text-transform: uppercase;
   text-align: right;

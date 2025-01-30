@@ -1,5 +1,4 @@
 import { create } from "zustand";
-import { useNodeStore } from "./NodeStore";
 
 type ResultsStore = {
   results: Record<string, any>;
@@ -76,12 +75,12 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
    * @param result The result to set.
    */
   setResult: (workflowId: string, nodeId: string, result: any) => {
-    const findNode = useNodeStore.getState().findNode;
-    const nodeData = findNode(nodeId)?.data;
-    const updateNode = useNodeStore.getState().updateNodeData;
-    if (nodeData) {
-      updateNode(nodeId, { ...nodeData, dirty: false });
-    }
+    // const findNode = useNodeStore.getState().findNode;
+    // const nodeData = findNode(nodeId)?.data;
+    // const updateNode = useNodeStore.getState().updateNodeData;
+    // if (nodeData) {
+    //   updateNode(nodeId, { ...nodeData, dirty: false });
+    // }
     const key = hashKey(workflowId, nodeId);
     set({ results: { ...get().results, [key]: result } });
   },

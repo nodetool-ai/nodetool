@@ -1,20 +1,30 @@
 import { useCallback } from "react";
-import { useNodeStore } from "../stores/NodeStore";
 import { v4 as uuidv4 } from "uuid";
 import { Node, Edge, useReactFlow } from "@xyflow/react";
 import { NodeData } from "../stores/NodeData";
 import { DUPLICATE_SPACING } from "../config/constants";
+import { useNodes } from "../contexts/NodeContext";
 
 export const useDuplicateNodes = (vertical: boolean = false) => {
   const reactFlow = useReactFlow();
+  const {
+    nodes,
+    edges,
+    setNodes,
+    setEdges,
+    generateNodeIds,
+    getSelectedNodes
+  } = useNodes((state) => ({
+    nodes: state.nodes,
+    edges: state.edges,
+    setNodes: state.setNodes,
+    setEdges: state.setEdges,
+    getSelectedNodes: state.getSelectedNodes,
+    generateNodeIds: state.generateNodeIds
+  }));
   return useCallback(() => {
-    const nodes = useNodeStore.getState().nodes;
-    const edges = useNodeStore.getState().edges;
-    const setNodes = useNodeStore.getState().setNodes;
-    const setEdges = useNodeStore.getState().setEdges;
-    const selectedNodes = useNodeStore.getState().getSelectedNodes();
     const getNodesBounds = reactFlow.getNodesBounds;
-    const generateNodeIds = useNodeStore.getState().generateNodeIds;
+    const selectedNodes = getSelectedNodes();
 
     if (selectedNodes.length === 0) {
       return;

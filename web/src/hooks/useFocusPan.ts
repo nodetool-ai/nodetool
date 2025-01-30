@@ -1,12 +1,12 @@
 import { useCallback, useRef, useEffect } from "react";
-import { useNodeStore } from "../stores/NodeStore";
 import { useReactFlow } from "@xyflow/react";
+import { useNodes } from "../contexts/NodeContext";
 
 /** pans to a node when focused via tab navigation */
 
 export const useFocusPan = (nodeId: string) => {
   const wasTabPressedRef = useRef(false);
-  const findNode = useNodeStore((state) => state.findNode);
+  const findNode = useNodes((state) => state.findNode);
   const reactFlowInstance = useReactFlow();
   const PAN_DURATION = 200;
 

@@ -4,12 +4,11 @@ import { Divider, Menu, MenuItem, Typography } from "@mui/material";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import ThemeNodes from "../themes/ThemeNodes";
 import ContextMenuItem from "./ContextMenuItem";
-import { useNodeStore } from "../../stores/NodeStore";
 import DeleteIcon from "@mui/icons-material/Delete";
+import { useNodes } from "../../contexts/NodeContext";
 
 // TODO: WIP: reset property value to default, already implemented using the shortcut ctrl right-click in components/node/PropertyInput.tsx
 // import { useReactFlow } from "@xyflow/react";
-// import { useNodeStore, NodeStore } from "../../stores/NodeStore";
 // import { NodeData } from "../../stores/NodeData";
 // import { useMetadata } from "../../serverState/useMetadata";
 // import { useCopyPaste } from "../../hooks/handlers/useCopyPaste";
@@ -32,7 +31,10 @@ const PropertyContextMenu: React.FC = () => {
       isDynamicProperty: state.isDynamicProperty
     };
   });
-  const { findNode, updateNodeData } = useNodeStore();
+  const { findNode, updateNodeData } = useNodes((state) => ({
+    findNode: state.findNode,
+    updateNodeData: state.updateNodeData
+  }));
   if (!menuPosition) return null;
 
   const handleRemoveDynamicProperty = (

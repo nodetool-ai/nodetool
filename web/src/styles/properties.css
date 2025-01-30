@@ -490,3 +490,64 @@
   border-color: var(--c_hl);
   box-shadow: 0 0 0 2px var(--c_hl25);
 }
+
+/* Property Input Container */
+.property-input-container {
+  position: relative;
+  gap: 0.5em;
+}
+
+.property-input-container .action-icons {
+  position: absolute;
+  right: 0;
+  top: 25%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  opacity: 0;
+  transition: opacity 0.2s;
+  background-color: var(--background-color);
+  padding: 0 4px;
+}
+
+.property-input-container:hover .action-icons {
+  opacity: 1;
+}
+
+.property-input-container .action-icon:hover {
+  opacity: 1;
+}
+
+.property-input-container .action-icon {
+  font-size: 1.2em;
+  cursor: pointer;
+  margin: 0.2em 0.2em 0.2em 0.5em;
+}
+
+.property-input-container .action-icon.close {
+  margin: 0.2em 0.5em 0.2em 0;
+}
+
+/* Property Name Edit Input */
+.property-name-edit {
+  padding: 2px 4px;
+  border: 1px solid #666;
+  border-radius: 3px;
+  background: transparent;
+  color: inherit;
+  font-size: inherit;
+}
+
+/* Property Input Form */
+.property-input-form {
+  display: inline;
+}
+
+.property-input-form input {
+  padding: 2px 4px;
+  border: 1px solid #666;
+  border-radius: 3px;
+  background: transparent;
+  color: inherit;
+  font-size: inherit;
+}

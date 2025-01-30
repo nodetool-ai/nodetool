@@ -3,7 +3,6 @@ import ChatView from "./ChatView";
 import { useChatStore } from "../../stores/ChatStore";
 import { Box, Typography, Button, Tooltip } from "@mui/material";
 import { useTutorialStore } from "../../stores/TutorialStore";
-import { useNodeStore } from "../../stores/NodeStore";
 import useWorkflowRunnner from "../../stores/WorkflowRunner";
 import { tutorials } from "../../stores/TutorialStore";
 import useModelStore from "../../stores/ModelStore";
@@ -13,6 +12,7 @@ import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { isProduction } from "../../stores/ApiClient";
 import { ChatHeader } from "./chat/ChatHeader";
 import { DEFAULT_MODEL } from "../../config/constants";
+import { useNodes } from "../../contexts/NodeContext";
 
 const HelpChat: React.FC = () => {
   const { messages, isLoading, sendMessage, setMessages } = useChatStore();
@@ -54,6 +54,10 @@ const HelpChat: React.FC = () => {
   const isModelAvailable = isProduction || Boolean(ollamaModelInfo);
   const { downloads } = useModelDownloadStore();
   const isDownloading = downloads[DEFAULT_MODEL]?.status === "running";
+  const { nodes, edges } = useNodes((state) => ({
+    nodes: state.nodes,
+    edges: state.edges
+  }));
 
   const queryClient = useQueryClient();
 
@@ -68,8 +72,6 @@ const HelpChat: React.FC = () => {
 
   useEffect(() => {
     if (isInTutorial) {
-      const nodes = useNodeStore.getState().nodes;
-      const edges = useNodeStore.getState().edges;
       if (
         step?.isCompleted({
           nodes,
@@ -190,7 +192,7 @@ const HelpChat: React.FC = () => {
       ) : !isModelAvailable ? (
         <Box sx={{ mb: 2 }}>
           <Typography>
-            You need to download the Gemma2 model to use the Help Chat.
+            You need to download the {DEFAULT_MODEL} model to use the Help Chat.
           </Typography>
           <Tooltip
             title="Download the AI model to enable chat assistance features"
@@ -202,7 +204,7 @@ const HelpChat: React.FC = () => {
               sx={{ mt: 1 }}
               tabIndex={-1}
             >
-              Download Gemma2 2B Model
+              Download {DEFAULT_MODEL} Model
             </Button>
           </Tooltip>
         </Box>

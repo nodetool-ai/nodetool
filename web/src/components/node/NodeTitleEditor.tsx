@@ -9,7 +9,7 @@ import {
   Button,
   Popover
 } from "@mui/material";
-import { useNodeStore } from "../../stores/NodeStore";
+import { useNodes } from "../../contexts/NodeContext";
 
 interface NodeTitleEditorProps {
   nodeId?: string;
@@ -45,7 +45,7 @@ const NodeTitleEditor: React.FC<NodeTitleEditorProps> = ({
   onClose,
   anchorEl
 }) => {
-  const updateNodeData = useNodeStore((state) => state.updateNodeData);
+  const updateNodeData = useNodes((state) => state.updateNodeData);
 
   const [title, setTitle] = useState("");
 

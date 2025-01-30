@@ -1,17 +1,19 @@
 import { useCallback } from "react";
 import { NodeMetadata } from "../stores/ApiTypes";
 import useNodeMenuStore from "../stores/NodeMenuStore";
-import { useNodeStore } from "../stores/NodeStore";
 import { useReactFlow } from "@xyflow/react";
 import { useCreateLoopNode } from "./nodes/useCreateLoopNode";
+import { useNodes } from "../contexts/NodeContext";
 
 export const useCreateNode = (
   centerPosition: { x: number; y: number } | undefined = undefined
 ) => {
   const clickPosition = useNodeMenuStore((state) => state.clickPosition);
   const reactFlowInstance = useReactFlow();
-  const addNode = useNodeStore((state) => state.addNode);
-  const createNode = useNodeStore((state) => state.createNode);
+  const { addNode, createNode } = useNodes((state) => ({
+    addNode: state.addNode,
+    createNode: state.createNode
+  }));
 
   const LOOP_NODE_TYPE = "nodetool.group.Loop";
 

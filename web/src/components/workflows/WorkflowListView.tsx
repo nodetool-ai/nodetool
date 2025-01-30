@@ -5,12 +5,11 @@ import React from "react";
 import { Box, Button, Tooltip, Typography } from "@mui/material";
 import { Workflow } from "../../stores/ApiTypes";
 import { relativeTime } from "../../utils/formatDateAndTime";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import Checkbox from "@mui/material/Checkbox";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import { useNodeStore } from "../../stores/NodeStore";
 import { usePanelStore } from "../../stores/PanelStore";
 import DeleteIcon from "@mui/icons-material/Delete";
+import { useNodes } from "../../contexts/NodeContext";
 
 interface WorkflowListViewProps {
   workflows: Workflow[];
@@ -117,7 +116,7 @@ export const WorkflowListView: React.FC<WorkflowListViewProps> = ({
   selectedWorkflows,
   showCheckboxes
 }) => {
-  const currentWorkflow = useNodeStore((state) => state.workflow);
+  // const currentWorkflow = useNodes((state) => state.workflow);
   const panelSize = usePanelStore((state) => state.panel.panelSize);
   const addBreaks = (text: string) => {
     return text.replace(/([-_.])/g, "$1<wbr>");
@@ -130,8 +129,8 @@ export const WorkflowListView: React.FC<WorkflowListViewProps> = ({
           key={workflow.id}
           className={
             "workflow list" +
-            (selectedWorkflows?.includes(workflow.id) ? " selected" : "") +
-            (currentWorkflow?.id === workflow.id ? " current" : "")
+            (selectedWorkflows?.includes(workflow.id) ? " selected" : "")
+            // (currentWorkflow?.id === workflow.id ? " current" : "")
           }
           onContextMenu={(e) => {
             e.preventDefault();

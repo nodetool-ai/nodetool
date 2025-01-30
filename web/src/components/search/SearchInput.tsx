@@ -163,7 +163,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
     },
     [debouncedSetSearchTerm, setFocusedNodeIndex]
   );
-  const handleCreateNode = useCreateNode();
+  // const handleCreateNode = useCreateNode();
   const clearSearch = useCallback(() => {
     resetSearch();
     inputRef.current?.focus();
@@ -210,36 +210,36 @@ const SearchInput: React.FC<SearchInputProps> = ({
         }
       }
 
-      if (searchResults.length > 0) {
-        switch (event.key) {
-          case "ArrowDown":
-            event.preventDefault();
-            setFocusedNodeIndex(
-              focusedNodeIndex < searchResults.length - 1
-                ? focusedNodeIndex + 1
-                : focusedNodeIndex
-            );
-            break;
+      // if (searchResults.length > 0) {
+      //   switch (event.key) {
+      //     case "ArrowDown":
+      //       event.preventDefault();
+      //       setFocusedNodeIndex(
+      //         focusedNodeIndex < searchResults.length - 1
+      //           ? focusedNodeIndex + 1
+      //           : focusedNodeIndex
+      //       );
+      //       break;
 
-          case "ArrowUp":
-            event.preventDefault();
-            setFocusedNodeIndex(
-              focusedNodeIndex > 0 ? focusedNodeIndex - 1 : focusedNodeIndex
-            );
-            break;
+      //     case "ArrowUp":
+      //       event.preventDefault();
+      //       setFocusedNodeIndex(
+      //         focusedNodeIndex > 0 ? focusedNodeIndex - 1 : focusedNodeIndex
+      //       );
+      //       break;
 
-          case "Enter":
-            event.preventDefault();
-            if (
-              focusedNodeIndex >= 0 &&
-              focusedNodeIndex < (searchResults?.length ?? 0)
-            ) {
-              handleCreateNode?.(searchResults[focusedNodeIndex]);
-              closeNodeMenu();
-            }
-            break;
-        }
-      }
+      //     case "Enter":
+      //       event.preventDefault();
+      //       if (
+      //         focusedNodeIndex >= 0 &&
+      //         focusedNodeIndex < (searchResults?.length ?? 0)
+      //       ) {
+      //         handleCreateNode?.(searchResults[focusedNodeIndex]);
+      //         closeNodeMenu();
+      //       }
+      //       break;
+      //   }
+      // }
     };
 
     window.addEventListener("keydown", handleKeyDown);
@@ -253,8 +253,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
     setFocusedNodeIndex,
     focusedNodeIndex,
     closeNodeMenu,
-    searchResults,
-    handleCreateNode
+    searchResults
   ]);
 
   React.useEffect(() => {

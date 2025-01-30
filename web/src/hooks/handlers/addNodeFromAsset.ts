@@ -3,7 +3,6 @@
 import { useCallback } from "react";
 import { XYPosition } from "@xyflow/react";
 import { Asset, NodeMetadata } from "../../stores/ApiTypes";
-import { useNodeStore } from "../../stores/NodeStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import axios from "axios";
 import {
@@ -13,14 +12,17 @@ import {
 import { devError } from "../../utils/DevLog";
 import Papa from "papaparse";
 import useMetadataStore from "../../stores/MetadataStore";
+import { useNodes } from "../../contexts/NodeContext";
 interface ParsedCSV {
   data: string[][];
   errors: Papa.ParseError[];
   meta: Papa.ParseMeta;
 }
 export const useAddNodeFromAsset = () => {
-  const addNode = useNodeStore((state) => state.addNode);
-  const createNode = useNodeStore((state) => state.createNode);
+  const { addNode, createNode } = useNodes((state) => ({
+    addNode: state.addNode,
+    createNode: state.createNode
+  }));
   const getMetadata = useMetadataStore((state) => state.getMetadata);
   const addNotification = useNotificationStore(
     (state) => state.addNotification

@@ -14,12 +14,12 @@ import LoopIcon from "@mui/icons-material/Loop";
 //behaviours
 import { useCopyPaste } from "../../hooks/handlers/useCopyPaste";
 import { useClipboard } from "../../hooks/browser/useClipboard";
-import { useNodeStore } from "../../stores/NodeStore";
 import ThemeNodetool from "../themes/ThemeNodetool";
 import { useCallback } from "react";
 import { useCreateLoopNode } from "../../hooks/nodes/useCreateLoopNode";
 import useMetadataStore from "../../stores/MetadataStore";
 import { NodeMetadata } from "../../stores/ApiTypes";
+import { useNodes } from "../../contexts/NodeContext";
 
 interface PaneContextMenuProps {
   top?: number;
@@ -36,8 +36,10 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
     (state) => state.closeContextMenu
   );
 
-  const createNode = useNodeStore.getState().createNode;
-  const addNode = useNodeStore.getState().addNode;
+  const { createNode, addNode } = useNodes((state) => ({
+    createNode: state.createNode,
+    addNode: state.addNode
+  }));
 
   // fit screen
   const fitScreen = useCallback(() => {

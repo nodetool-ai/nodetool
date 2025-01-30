@@ -7,7 +7,6 @@ import RemoveCircleIcon from "@mui/icons-material/RemoveCircle";
 import GroupRemoveIcon from "@mui/icons-material/GroupRemove";
 import HelpIcon from "@mui/icons-material/Help";
 
-import { useNodeStore } from "../../stores/NodeStore";
 import { useDuplicateNodes } from "../../hooks/useDuplicate";
 import { useCopyPaste } from "../../hooks/handlers/useCopyPaste";
 import { useRemoveFromGroup } from "../../hooks/nodes/useRemoveFromGroup";
@@ -16,13 +15,14 @@ import { Node } from "@xyflow/react";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { getMousePosition } from "../../utils/MousePosition";
 import { isEqual } from "lodash";
+import { useNodes } from "../../contexts/NodeContext";
 interface NodeToolbarProps {
   nodeId: string | null;
 }
 
 const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
   const { getNode } = useReactFlow();
-  const deleteNode = useNodeStore((state) => state.deleteNode);
+  const deleteNode = useNodes((state) => state.deleteNode);
   const node = nodeId !== null ? getNode(nodeId) : null;
   const removeFromGroup = useRemoveFromGroup();
   const { handleCopy } = useCopyPaste();

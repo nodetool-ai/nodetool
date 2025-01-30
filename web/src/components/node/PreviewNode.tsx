@@ -136,11 +136,11 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
     (state) => state.addNotification
   );
   const createAsset = useAssetStore((state) => state.createAsset);
-  // const node = useNodeStore(
+  // const node = useNodes(
   //   useCallback((state) => state.findNode(props.id), [props.id])
   // );
   const hasParent = props.parentId !== undefined;
-  // const parentNode = useNodeStore(
+  // const parentNode = useNodes(
   //   useCallback(
   //     (state) => (hasParent ? state.findNode(node?.parentId || "") : null),
   //     [hasParent, node?.parentId]

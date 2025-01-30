@@ -25,7 +25,6 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { ErrorOutlineRounded } from "@mui/icons-material";
-import { useNodeStore } from "../../stores/NodeStore";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 import AddIcon from "@mui/icons-material/Add";
 import { useResizeObserver } from "@mantine/hooks";
@@ -171,11 +170,6 @@ const WorkflowList = () => {
   const copyWorkflow = useWorkflowStore((state) => state.copy);
   const updateWorkflow = useWorkflowStore((state) => state.update);
   const queryClient = useQueryClient();
-
-  const setShouldAutoLayout = useNodeStore(
-    (state) => state.setShouldAutoLayout
-  );
-
   const [selectedWorkflows, setSelectedWorkflows] = useState<string[]>([]);
   const pageSize = 200;
 
@@ -212,10 +206,9 @@ const WorkflowList = () => {
   // OPEN WORKFLOW
   const handleOpenWorkflow = useCallback(
     (workflow: Workflow) => {
-      setShouldAutoLayout(false);
       navigate("/editor/" + workflow.id);
     },
-    [navigate, setShouldAutoLayout]
+    [navigate]
   );
 
   // SELECT WORKFLOW
