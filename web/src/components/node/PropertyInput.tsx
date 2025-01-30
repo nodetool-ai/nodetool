@@ -284,17 +284,17 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
   );
 
   // Reset property to default value
-  const onContextMenu = useCallback(
-    (event: React.MouseEvent<HTMLDivElement>) => {
-      event.preventDefault();
-      if (controlKeyPressed) {
-        onChange(property.default);
-      } else {
-        handlePropertyContextMenu(event, property);
-      }
-    },
-    [controlKeyPressed, onChange, property, handlePropertyContextMenu]
-  );
+  // const onContextMenu = useCallback(
+  //   (event: React.MouseEvent<HTMLDivElement>) => {
+  //     event.preventDefault();
+  //     if (controlKeyPressed) {
+  //       onChange(property.default);
+  //     } else {
+  //       handlePropertyContextMenu(event, property);
+  //     }
+  //   },
+  //   [controlKeyPressed, onChange, property, handlePropertyContextMenu]
+  // );
 
   const className =
     value === property.default ? "value-default" : "value-changed";
@@ -316,20 +316,12 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
   if (componentType) {
     if (isDynamicProperty && isEditingName) {
       inputField = (
-        <form onSubmit={handleNameSubmit} css={{ display: "inline" }}>
+        <form onSubmit={handleNameSubmit} className="property-input-form">
           <input
             value={editedName}
             onChange={(e) => setEditedName(e.target.value)}
             onBlur={handleNameSubmit}
             autoFocus
-            css={css({
-              padding: "2px 4px",
-              border: "1px solid #666",
-              borderRadius: "3px",
-              background: "transparent",
-              color: "inherit",
-              fontSize: "inherit"
-            })}
           />
         </form>
       );
@@ -342,30 +334,8 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
 
   return (
     <div
-      className={className}
-      onContextMenu={onContextMenu}
-      css={css({
-        position: "relative",
-        gap: "0.5em",
-        "& .action-icons": {
-          position: "absolute",
-          right: 0,
-          top: "25%",
-          transform: "translateY(-50%)",
-          display: "flex",
-          alignItems: "center",
-          opacity: 0,
-          transition: "opacity 0.2s",
-          backgroundColor: "var(--background-color)",
-          padding: "0 4px"
-        },
-        "&:hover .action-icons": {
-          opacity: 1
-        },
-        "& .action-icon:hover": {
-          opacity: 1
-        }
-      })}
+      className={`${className} property-input-container`}
+      // onContextMenu={onContextMenu}
     >
       {inputField}
       {(isDynamicProperty || onDeleteProperty) && !isEditingName && (
@@ -373,22 +343,12 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
           {isDynamicProperty && (
             <Edit
               className="action-icon"
-              css={css({
-                fontSize: "1.2em",
-                cursor: "pointer",
-                margin: "0.2em 0.2em 0.2em 0.5em"
-              })}
               onClick={() => setIsEditingName(true)}
             />
           )}
           {onDeleteProperty && (
             <Close
-              className="action-icon"
-              css={css({
-                fontSize: "1.2em",
-                cursor: "pointer",
-                margin: "0.2em 0.5em 0.2em 0em"
-              })}
+              className="action-icon close"
               onClick={() => onDeleteProperty(property.name)}
             />
           )}
