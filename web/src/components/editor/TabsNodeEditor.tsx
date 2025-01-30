@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { useLoaderData, useNavigate } from "react-router-dom";
 import CloseIcon from "@mui/icons-material/Close";
 import { MIN_ZOOM } from "../../config/constants";
-import { useWorkflows } from "../../contexts/NodeContext";
+import { useWorkflowManager } from "../../contexts/NodeContext";
 import { Workflow } from "../../stores/ApiTypes";
 import NodeEditor from "../node_editor/NodeEditor";
 import { DragEvent } from "react";
@@ -121,7 +121,7 @@ const TabsNodeEditor = () => {
     addWorkflow,
     removeWorkflow,
     reorderWorkflows
-  } = useWorkflows();
+  } = useWorkflowManager();
   const { workflow: currentWorkflow } = useLoaderData() as {
     workflow: Workflow;
   };

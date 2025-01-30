@@ -45,7 +45,7 @@ import useRemoteSettingsStore from "./stores/RemoteSettingStore";
 import ModelsManager from "./components/hugging_face/ModelsManager";
 import useModelStore from "./stores/ModelStore";
 import { loadMetadata } from "./serverState/useMetadata";
-import { NodeProvider, useWorkflows } from "./contexts/NodeContext";
+import { NodeProvider } from "./contexts/NodeContext";
 import TabsNodeEditor from "./components/editor/TabsNodeEditor";
 if (!isProduction) {
   useRemoteSettingsStore.getState().fetchSettings();
