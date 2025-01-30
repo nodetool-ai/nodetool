@@ -1,105 +1,93 @@
 /** @jsxImportSource @emotion/react */
-import { memo, useState } from "react";
+import { memo } from "react";
 import { css } from "@emotion/react";
-import {
-  useFloating,
-  offset,
-  autoUpdate,
-  FloatingPortal
-} from "@floating-ui/react";
 import { colorForType, textColorForType } from "../config/data_types";
 import ThemeNodetool from "./themes/ThemeNodetool";
 import { typeToString, Slugify } from "../utils/TypeHandler";
-import React from "react";
 
-// Shared tooltip content component to reduce rerenders
-const TooltipContent = memo(({ type }: { type: string }) => (
-  <span
-    style={{
-      backgroundColor: colorForType(type),
-      color: textColorForType(type),
-      borderRadius: ".5em",
-      fontSize: ThemeNodetool.fontSizeSmall,
-      padding: "4px 8px",
-      display: "block",
-      whiteSpace: "nowrap",
-      transform: "translateX(-20px) translateY(50%)"
-    }}
-  >
-    {typeToString({
-      type,
-      optional: false,
-      type_args: []
-    })}
-  </span>
-));
+// Global state for the shared tooltip
+let tooltipElement: HTMLDivElement | null = null;
+let currentType: string | null = null;
+
+const tooltipStyles = css`
+  position: fixed;
+  transform: translateX(-100%);
+  pointer-events: none;
+  opacity: 0;a
+  transition: opacity 150ms ease-in-out;
+  z-index: 999999;
+
+  &[data-show="true"] {
+    opacity: 1;
+  }
+`;
+
+function getTooltip() {
+  if (!tooltipElement) {
+    tooltipElement = document.createElement("div");
+    tooltipElement.className = "handle-tooltip";
+    tooltipElement.style.position = "fixed";
+    tooltipElement.style.zIndex = "999999";
+    tooltipElement.style.pointerEvents = "none";
+    document.body.appendChild(tooltipElement);
+  }
+  return tooltipElement;
+}
+
+function updateTooltip(type: string, show: boolean, x?: number, y?: number) {
+  const tooltip = getTooltip();
+
+  if (show && type !== currentType) {
+    currentType = type;
+    tooltip.innerHTML = `
+      <span style="
+        background-color: ${colorForType(type)};
+        color: ${textColorForType(type)};
+        border-radius: .5em;
+        font-size: ${ThemeNodetool.fontSizeSmall};
+        padding: 4px 8px;
+        display: block;
+        visibility: visible;
+        white-space: nowrap;
+      ">
+        ${typeToString({ type, optional: false, type_args: [] })}
+      </span>
+    `;
+  }
+
+  tooltip.style.opacity = show ? "1" : "0";
+  if (x !== undefined && y !== undefined) {
+    tooltip.style.left = `${x - 20}px`;
+    tooltip.style.top = `${y - 8}px`;
+    tooltip.style.transform = "translateX(-100%)";
+  }
+}
 
 type HandleTooltipProps = {
   type: string;
   className?: string;
-  placement?: "left" | "right";
   children: React.ReactNode;
 };
 
-const tooltipStyles = css`
-  pointer-events: none;
-  &:hover {
-    opacity: 1;
-  }
-  transition: opacity 0.2s;
-`;
-
 const HandleTooltip = memo(
-  ({
-    type,
-    className = "",
-    placement = "left",
-    children
-  }: HandleTooltipProps) => {
-    const [isHovered, setIsHovered] = useState(false);
+  ({ type, className = "", children }: HandleTooltipProps) => {
+    const handleMouseEnter = (e: React.MouseEvent) => {
+      const rect = (e.target as HTMLElement).getBoundingClientRect();
+      updateTooltip(type, true, rect.left, rect.top);
+    };
 
-    const { refs, floatingStyles } = useFloating({
-      placement,
-      whileElementsMounted: autoUpdate,
-      strategy: "fixed",
-      middleware: [
-        offset({
-          mainAxis: 0,
-          crossAxis: 0
-        })
-      ]
-    });
-
-    const child = React.Children.only(children);
-    const enhancedChild = React.cloneElement(child as React.ReactElement, {
-      ref: refs.setReference,
-      onMouseEnter: () => setIsHovered(true),
-      onMouseLeave: () => setIsHovered(false)
-    });
+    const handleMouseLeave = () => {
+      updateTooltip(type, false);
+    };
 
     return (
-      <>
-        {enhancedChild}
-        {isHovered && (
-          <FloatingPortal>
-            <div
-              ref={refs.setFloating}
-              css={tooltipStyles}
-              style={{
-                ...floatingStyles,
-                transformOrigin: "left bottom",
-                top: "-15px",
-                left: "6px",
-                position: "fixed",
-                zIndex: 999999
-              }}
-              className={`tooltip-handle ${className} ${Slugify(type)}`}
-            >
-              <TooltipContent type={type} />
-            </div>
-          </FloatingPortal>
-        )}
-      </>
+      <div
+        className="handle-tooltip-wrapper"
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+      >
+        {children}
+      </div>
     );
   }
 );
