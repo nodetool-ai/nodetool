@@ -7,6 +7,7 @@
     "@emotion/babel-plugin": "^11.13.5",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.13.5",
+    "@floating-ui/react": "^0.27.3",
     "@fontsource/inter": "^5.1.0",
     "@fontsource/jetbrains-mono": "^5.1.1",
     "@mantine/hooks": "^7.14.3",

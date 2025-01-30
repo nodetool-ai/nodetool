@@ -1,22 +1,15 @@
 /** @jsxImportSource @emotion/react */
 import { memo, useCallback, useMemo } from "react";
 import { Handle, Position } from "@xyflow/react";
-import { Tooltip, Zoom } from "@mui/material";
 import useConnectionStore from "../../stores/ConnectionStore";
 import { Property } from "../../stores/ApiTypes";
 import PropertyInput from "./PropertyInput";
-import { typeToString, Slugify } from "../../utils/TypeHandler";
-import {
-  TOOLTIP_ENTER_DELAY,
-  TOOLTIP_LEAVE_DELAY,
-  TOOLTIP_ENTER_NEXT_DELAY
-} from "../../config/constants";
+import { Slugify } from "../../utils/TypeHandler";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
-import { colorForType, textColorForType } from "../../config/data_types";
-import ThemeNodetool from "../themes/ThemeNodetool";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { isEqual } from "lodash";
 import { isConnectableCached } from "../node_menu/typeFilterUtils";
+import HandleTooltip from "../HandleTooltip";
 
 export type PropertyFieldProps = {
   id: string;
@@ -94,54 +87,23 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
     [id, property.name, property.type.type]
   );
 
-  const tooltipTitle = useMemo(
-    () => (
-      <span
-        style={{
-          backgroundColor: colorForType(property.type.type),
-          color: textColorForType(property.type.type),
-          borderRadius: ".5em",
-          fontSize: ThemeNodetool.fontSizeBig
-        }}
-      >
-        {typeToString(property.type)}
-      </span>
-    ),
-    [property.type]
-  );
-
-  const tooltipProps = useMemo(
-    () => ({
-      slotProps: {
-        transition: Zoom,
-        tooltip: {
-          className: "tooltip-handle"
-        }
-      },
-      title: tooltipTitle,
-      enterDelay: TOOLTIP_ENTER_DELAY,
-      leaveDelay: TOOLTIP_LEAVE_DELAY,
-      enterNextDelay: TOOLTIP_ENTER_NEXT_DELAY,
-      placement: "left" as const,
-      className: `${classConnectable} ${Slugify(property.type.type)}`
-    }),
-    [tooltipTitle, classConnectable, property.type.type]
-  );
-
   return (
     <div className={`node-property ${Slugify(property.type.type)}`}>
       {showHandle && (
-        <div className="handle-popup">
-          <Tooltip {...tooltipProps}>
+        <div
+          className="handle-popup"
+          style={{ position: "absolute", left: "0" }}
+        >
+          <HandleTooltip type={property.type.type} className={classConnectable}>
             <Handle
               type="target"
               id={property.name}
               position={Position.Left}
               isConnectable={true}
-              className={Slugify(property.type.type)}
+              className={`${Slugify(property.type.type)} ${classConnectable}`}
               onContextMenu={handleContextMenu}
             />
-          </Tooltip>
+          </HandleTooltip>
         </div>
       )}
 
