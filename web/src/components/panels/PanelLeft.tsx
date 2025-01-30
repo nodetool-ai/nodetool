@@ -23,7 +23,9 @@ import CollectionList from "../collections/CollectionList";
 const styles = (theme: any) =>
   css({
     ".MuiDrawer-paper": {
-      boxShadow: "4px 0 6px -1px rgba(0, 0, 0, 0.2)"
+      boxShadow: "0 0 20px rgba(0, 0, 0, 0.3)",
+      background: `linear-gradient(145deg, ${theme.palette.background.paper} 0%, ${theme.palette.background.default} 100%)`,
+      borderRight: `1px solid ${theme.palette.divider}`
     },
     ".panel-tabs ": {
       minHeight: "2em"
@@ -40,22 +42,49 @@ const styles = (theme: any) =>
     ".vertical-toolbar": {
       display: "flex",
       flexDirection: "column",
-      backgroundColor: theme.palette.background.paper,
+      backgroundColor: "transparent",
+      borderRight: `1px solid ${theme.palette.divider}`,
       "& .MuiIconButton-root, .MuiButton-root": {
         padding: "12px",
-        borderRadius: "6px",
+        borderRadius: "2px",
+        position: "relative",
+        margin: "4px 10px 4px 0",
+        transition: "all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)",
+
         "&.active": {
-          backgroundColor: theme.palette.action.selected
+          backgroundColor: `${theme.palette.action.selected}88`,
+          "&::before": {
+            content: '""',
+            position: "absolute",
+            left: 0,
+            top: 0,
+            bottom: 0,
+            width: "3px",
+            backgroundColor: theme.palette.primary.main,
+            boxShadow: `0 0 10px ${theme.palette.primary.main}`
+          }
         },
         "&:hover": {
-          backgroundColor: theme.palette.action.hover
+          backgroundColor: `${theme.palette.action.hover}88`,
+          boxShadow: `0 0 15px ${theme.palette.action.hover}40`,
+          "&::after": {
+            content: '""',
+            position: "absolute",
+            left: 0,
+            top: 0,
+            right: 0,
+            bottom: 0,
+            background: `linear-gradient(135deg, ${theme.palette.primary.main}20, transparent)`,
+            borderRadius: "2px"
+          }
         }
       }
     },
     ".panel-content": {
       display: "flex",
       flex: 1,
-      height: "100%"
+      height: "100%",
+      backdropFilter: "blur(8px)"
     }
   });
 
@@ -180,6 +209,13 @@ const PanelLeft: React.FC = () => {
                 className={activeView === "chat" ? "active" : ""}
               >
                 <ChatIcon />
+              </IconButton>
+            </Tooltip>
+
+            <div style={{ flexGrow: 1 }} />
+            <Tooltip title="Close Panel" placement="right">
+              <IconButton onClick={handlePanelToggle}>
+                <CodeIcon />
               </IconButton>
             </Tooltip>
           </div>
