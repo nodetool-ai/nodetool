@@ -214,3 +214,32 @@ ul.multi-outputs li::marker {
   height: 15px;
   border: 1px solid var(--c_gray2);
 }
+
+.handle-tooltip-wrapper {
+  position: relative;
+  padding: 0;
+}
+
+.handle-tooltip {
+  position: fixed;
+  transform: translateX(-100%);
+  opacity: 0;
+  /* visibility: hidden; */
+  pointer-events: none;
+  transition: opacity 100ms ease-in-out, visibility 0ms linear 150ms;
+  /* Debug */
+  /* outline: 1px solid red; */
+}
+
+/* Debug - add direct hover first */
+.handle-tooltip-wrapper:hover ~ .handle-tooltip {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Original hover */
+.handle-tooltip-wrapper:hover + .tooltip-container .handle-tooltip {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 100ms ease-in-out 100ms, visibility 0ms linear;
+}
