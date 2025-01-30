@@ -1,7 +1,7 @@
 import { useCallback } from "react";
-import { useNodeStore } from "../stores/NodeStore";
 import { Node, useReactFlow } from "@xyflow/react";
 import { NodeData } from "../stores/NodeData";
+import { useNodes } from "../contexts/NodeContext";
 
 type AlignNodesOptions = {
   arrangeSpacing: boolean;
@@ -11,15 +11,13 @@ type AlignNodesOptions = {
 const useAlignNodes = () => {
   const VERTICAL_SPACING = 20;
   const HORIZONTAL_SPACING = 40;
-  const setExplicitSave = useNodeStore((state) => state.setExplicitSave);
-  const getSelectedNodes = useNodeStore((state) => state.getSelectedNodes);
+  const getSelectedNodes = useNodes((state) => state.getSelectedNodes);
   const reactFlow = useReactFlow();
 
   const alignNodes = useCallback(
     ({ arrangeSpacing, collapsed }: AlignNodesOptions) => {
       const selectedNodes = getSelectedNodes();
       if (selectedNodes.length < 2) return;
-      setExplicitSave(true);
 
       const xCoordinates = selectedNodes.map((node) => node.position.x);
       const yCoordinates = selectedNodes.map((node) => node.position.y);
@@ -77,10 +75,8 @@ const useAlignNodes = () => {
           )
         );
       });
-
-      setExplicitSave(false);
     },
-    [getSelectedNodes, setExplicitSave]
+    [getSelectedNodes]
   );
 
   return alignNodes;

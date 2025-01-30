@@ -1,7 +1,6 @@
 import { useCallback } from "react";
 import { useReactFlow } from "@xyflow/react";
 import { Asset, NodeMetadata } from "../../stores/ApiTypes";
-import { useNodeStore } from "../../stores/NodeStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useAssetStore } from "../../stores/AssetStore";
 import { useFileHandlers } from "./dropHandlerUtils";
@@ -9,6 +8,7 @@ import useAuth from "../../stores/useAuth";
 import { useAddNodeFromAsset } from "./addNodeFromAsset";
 import { FileHandlerResult } from "./dropHandlerUtils";
 import { useCreateLoopNode } from "../nodes/useCreateLoopNode";
+import { useNodes } from "../../contexts/NodeContext";
 
 // File type detection
 function detectFileType(file: File): string {
@@ -36,8 +36,10 @@ export const useDropHandler = () => {
   const { handlePngFile, handleJsonFile, handleCsvFile, handleGenericFile } =
     useFileHandlers();
   const reactFlow = useReactFlow();
-  const addNode = useNodeStore((state) => state.addNode);
-  const createNode = useNodeStore((state) => state.createNode);
+  const { addNode, createNode } = useNodes((state) => ({
+    addNode: state.addNode,
+    createNode: state.createNode
+  }));
   const getAsset = useAssetStore((state) => state.get);
   const { user } = useAuth();
   const addNotification = useNotificationStore(

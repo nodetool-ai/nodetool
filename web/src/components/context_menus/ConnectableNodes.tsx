@@ -12,8 +12,7 @@ import {
 } from "@mui/material";
 import { css } from "@emotion/react";
 import useConnectableNodesStore from "../../stores/ConnectableNodesStore";
-import { useNodeStore } from "../../stores/NodeStore";
-import { addEdge, useReactFlow } from "@xyflow/react";
+import { useReactFlow } from "@xyflow/react";
 import { isConnectable, Slugify } from "../../utils/TypeHandler";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import { isEqual } from "lodash";
@@ -21,6 +20,7 @@ import ClearIcon from "@mui/icons-material/Clear";
 import ThemeNodetool from "../themes/ThemeNodetool";
 import NodeInfo from "../node_menu/NodeInfo";
 import NodeItem from "../node_menu/NodeItem";
+import { useNodes } from "../../contexts/NodeContext";
 
 interface GroupedNodes {
   [namespace: string]: NodeMetadata[];
@@ -172,11 +172,20 @@ const ConnectableNodes: React.FC<ConnectableNodesProps> = ({
 
   const groupedNodes = groupNodesByNamespace(filteredNodes);
 
+  const { createNode, addNode, addEdge, generateEdgeId } = useNodes(
+    (state) => ({
+      createNode: state.createNode,
+      addNode: state.addNode,
+      addEdge: state.addEdge,
+      generateEdgeId: state.generateEdgeId
+    })
+  );
+
   const createConnectableNode = useCallback(
     (metadata: NodeMetadata) => {
       if (!metadata) return;
 
-      const newNode = useNodeStore.getState().createNode(
+      const newNode = createNode(
         metadata,
         reactFlowInstance.screenToFlowPosition({
           x:
@@ -189,7 +198,7 @@ const ConnectableNodes: React.FC<ConnectableNodesProps> = ({
       newNode.width = 200;
       newNode.height = 200;
 
-      useNodeStore.getState().addNode(newNode);
+      addNode(newNode);
 
       if (nodeId) {
         // When filterType is "input", we're looking at nodes with compatible inputs
@@ -201,7 +210,7 @@ const ConnectableNodes: React.FC<ConnectableNodesProps> = ({
           );
           if (!property) return;
           const edge = {
-            id: useNodeStore.getState().generateEdgeId(),
+            id: generateEdgeId(),
             source: nodeId, // FROM existing node
             target: newNode.id, // TO new node
             sourceHandle: sourceHandle,
@@ -209,7 +218,7 @@ const ConnectableNodes: React.FC<ConnectableNodesProps> = ({
             type: "default",
             className: Slugify(typeMetadata?.type || "")
           };
-          useNodeStore.getState().addEdge(edge);
+          addEdge(edge);
         }
 
         // When filterType is "output", we're looking at nodes with compatible outputs
@@ -219,7 +228,7 @@ const ConnectableNodes: React.FC<ConnectableNodesProps> = ({
             metadata.outputs.length > 0 ? metadata.outputs[0] : null;
           if (!output) return;
           const edge = {
-            id: useNodeStore.getState().generateEdgeId(),
+            id: generateEdgeId(),
             source: newNode.id, // FROM new node
             target: nodeId, // TO existing node
             sourceHandle: output.name,
@@ -227,7 +236,7 @@ const ConnectableNodes: React.FC<ConnectableNodesProps> = ({
             type: "default",
             className: Slugify(typeMetadata?.type || "")
           };
-          useNodeStore.getState().addEdge(edge);
+          addEdge(edge);
         }
       }
     },

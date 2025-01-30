@@ -1,20 +1,24 @@
 import { useCallback } from "react";
-import { useNodeStore } from "../../stores/NodeStore";
+import { useNodes } from "../../contexts/NodeContext";
 
 export const useDynamicProperty = (
   nodeId: string,
   dynamicProperties: Record<string, any>
 ) => {
+  const { updateNodeData } = useNodes((state) => ({
+    updateNodeData: state.updateNodeData
+  }));
+
   const handleDeleteProperty = useCallback(
     (propertyName: string) => {
       const updatedDynamicProperties = { ...dynamicProperties };
       delete updatedDynamicProperties[propertyName];
 
-      useNodeStore.getState().updateNodeData(nodeId, {
+      updateNodeData(nodeId, {
         dynamic_properties: updatedDynamicProperties
       });
     },
-    [dynamicProperties, nodeId]
+    [dynamicProperties, nodeId, updateNodeData]
   );
 
   const handleAddProperty = useCallback(
@@ -24,11 +28,11 @@ export const useDynamicProperty = (
         [propertyName]: ""
       };
 
-      useNodeStore.getState().updateNodeData(nodeId, {
+      updateNodeData(nodeId, {
         dynamic_properties: updatedDynamicProperties
       });
     },
-    [dynamicProperties, nodeId]
+    [dynamicProperties, nodeId, updateNodeData]
   );
 
   const handleUpdatePropertyName = useCallback(
@@ -40,11 +44,11 @@ export const useDynamicProperty = (
 
       //   updateEdgeHandle(nodeId, oldPropertyName, newPropertyName);
 
-      useNodeStore.getState().updateNodeData(nodeId, {
+      updateNodeData(nodeId, {
         dynamic_properties: updatedDynamicProperties
       });
     },
-    [dynamicProperties, nodeId]
+    [dynamicProperties, nodeId, updateNodeData]
   );
 
   return {

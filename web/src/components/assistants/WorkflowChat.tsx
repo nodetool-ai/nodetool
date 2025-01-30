@@ -2,10 +2,12 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import useWorkflowChatStore from "../../stores/WorkflowChatStore";
 import { Message } from "../../stores/ApiTypes";
 import ChatView from "./ChatView";
-import { useNodeStore } from "../../stores/NodeStore";
 import { Alert, Box, Fade } from "@mui/material";
 import { ChatHeader } from "./chat/ChatHeader";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
+import { useNodes } from "../../contexts/NodeContext";
+import { reactFlowEdgeToGraphEdge } from "../../stores/reactFlowEdgeToGraphEdge";
+import { reactFlowNodeToGraphNode } from "../../stores/reactFlowNodeToGraphNode";
 
 interface WorkflowChatProps {
   workflow_id: string;
@@ -19,7 +21,11 @@ const WorkflowChat: React.FC<WorkflowChatProps> = ({
   isOpen = true
 }) => {
   const [isMinimized, setIsMinimized] = React.useState(true);
-  const { nodes } = useNodeStore();
+  const { nodes, edges, workflow } = useNodes((state) => ({
+    nodes: state.nodes,
+    edges: state.edges,
+    workflow: state.workflow
+  }));
 
   const {
     messages,
@@ -34,13 +40,17 @@ const WorkflowChat: React.FC<WorkflowChatProps> = ({
   } = useWorkflowChatStore();
 
   useEffect(() => {
-    connect(workflow_id);
-  }, [connect, workflow_id]);
+    connect(workflow);
+  }, [connect, workflow]);
 
   const handleSendMessage = useCallback(
     async (message: Message) => {
       if (workflow_id) {
         message.workflow_id = workflow_id;
+        message.graph = {
+          nodes: nodes.map(reactFlowNodeToGraphNode),
+          edges: edges.map(reactFlowEdgeToGraphEdge)
+        };
         await sendMessage(message);
       } else {
         console.error("Workflow ID is not set");
@@ -51,8 +61,8 @@ const WorkflowChat: React.FC<WorkflowChatProps> = ({
 
   const handleReset = useCallback(() => {
     resetMessages();
-    connect(workflow_id);
-  }, [resetMessages, connect, workflow_id]);
+    connect(workflow);
+  }, [resetMessages, connect, workflow]);
 
   const handleMinimize = useCallback(() => {
     setIsMinimized((prev) => !prev);

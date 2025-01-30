@@ -140,300 +140,306 @@ const styles = (theme: any, buttonAppearance: "text" | "icon" | "both") =>
     }
   });
 
-const AppHeader: React.FC = React.memo(() => {
-  const navigate = useNavigate();
-  const path = useLocation().pathname;
+interface AppHeaderProps {
+  showActions?: boolean;
+}
 
-  const globalButtonAppearance = useSettingsStore(
-    (state) => state.settings.buttonAppearance
-  );
+const AppHeader: React.FC<AppHeaderProps> = React.memo(
+  (props: AppHeaderProps) => {
+    const navigate = useNavigate();
+    const path = useLocation().pathname;
 
-  const [buttonAppearance, setButtonAppearance] = useState(
-    globalButtonAppearance
-  );
+    const globalButtonAppearance = useSettingsStore(
+      (state) => state.settings.buttonAppearance
+    );
 
-  const {
-    helpOpen,
-    welcomeOpen,
-    handleCloseHelp,
-    handleOpenHelp,
-    handleCloseWelcome,
-    handleOpenWelcome
-  } = useAppHeaderStore();
+    const [buttonAppearance, setButtonAppearance] = useState(
+      globalButtonAppearance
+    );
 
-  const showWelcomeOnStartup = useSettingsStore(
-    (state) => state.settings.showWelcomeOnStartup
-  );
+    const {
+      helpOpen,
+      welcomeOpen,
+      handleCloseHelp,
+      handleOpenHelp,
+      handleCloseWelcome,
+      handleOpenWelcome
+    } = useAppHeaderStore();
 
-  const { handlePanelToggle, collapsed: panelLeftCollapsed } =
-    useResizePanel("left");
+    const showWelcomeOnStartup = useSettingsStore(
+      (state) => state.settings.showWelcomeOnStartup
+    );
 
-  const handleResize = useCallback(() => {
-    if (window.innerWidth <= 1200) {
-      setButtonAppearance("icon");
-    } else {
-      setButtonAppearance(globalButtonAppearance);
-    }
-  }, [globalButtonAppearance]);
+    const { handlePanelToggle, collapsed: panelLeftCollapsed } =
+      useResizePanel("left");
 
-  useEffect(() => {
-    handleResize();
-    window.addEventListener("resize", handleResize);
-    return () => {
-      window.removeEventListener("resize", handleResize);
-    };
-  }, [handleResize]);
+    const handleResize = useCallback(() => {
+      if (window.innerWidth <= 1200) {
+        setButtonAppearance("icon");
+      } else {
+        setButtonAppearance(globalButtonAppearance);
+      }
+    }, [globalButtonAppearance]);
 
-  useEffect(() => {
-    if (showWelcomeOnStartup) {
-      handleOpenWelcome();
-    }
-  }, [handleOpenWelcome, showWelcomeOnStartup]);
+    useEffect(() => {
+      handleResize();
+      window.addEventListener("resize", handleResize);
+      return () => {
+        window.removeEventListener("resize", handleResize);
+      };
+    }, [handleResize]);
 
-  const memoizedStyles = useMemo(
-    () => styles(ThemeNodetool, buttonAppearance),
-    [buttonAppearance]
-  );
+    useEffect(() => {
+      if (showWelcomeOnStartup) {
+        handleOpenWelcome();
+      }
+    }, [handleOpenWelcome, showWelcomeOnStartup]);
 
-  const NavigationButtons = useMemo(
-    () => (
-      <Box className="nav-buttons">
-        <Tooltip title="Explore Examples" enterDelay={TOOLTIP_ENTER_DELAY}>
-          <Button
-            className={`nav-button ${path === "/examples" ? "active" : ""}`}
-            onClick={() => {
-              navigate("/examples");
-              if (!panelLeftCollapsed) {
-                handlePanelToggle();
-              }
-            }}
-            tabIndex={-1}
-            style={{
-              color: path.startsWith("/examples")
-                ? ThemeNodetool.palette.c_hl1
-                : ThemeNodetool.palette.c_white
-            }}
+    const memoizedStyles = useMemo(
+      () => styles(ThemeNodetool, buttonAppearance),
+      [buttonAppearance]
+    );
+
+    const NavigationButtons = useMemo(
+      () => (
+        <Box className="nav-buttons">
+          <Tooltip title="Explore Examples" enterDelay={TOOLTIP_ENTER_DELAY}>
+            <Button
+              className={`nav-button ${path === "/examples" ? "active" : ""}`}
+              onClick={() => {
+                navigate("/examples");
+                if (!panelLeftCollapsed) {
+                  handlePanelToggle();
+                }
+              }}
+              tabIndex={-1}
+              style={{
+                color: path.startsWith("/examples")
+                  ? ThemeNodetool.palette.c_hl1
+                  : ThemeNodetool.palette.c_white
+              }}
+            >
+              {buttonAppearance !== "text" && <ExamplesIcon />}
+              Examples
+            </Button>
+          </Tooltip>
+
+          <Tooltip
+            title="View and manage Assets"
+            enterDelay={TOOLTIP_ENTER_DELAY}
           >
-            {buttonAppearance !== "text" && <ExamplesIcon />}
-            Examples
-          </Button>
-        </Tooltip>
-
-        <Tooltip
-          title="View and manage Assets"
-          enterDelay={TOOLTIP_ENTER_DELAY}
-        >
-          <Button
-            className={`nav-button ${path === "/assets" ? "active" : ""}`}
-            onClick={() => {
-              navigate("/assets");
-              if (!panelLeftCollapsed) {
-                handlePanelToggle();
-              }
-            }}
-            tabIndex={-1}
-            style={{
-              color: path.startsWith("/assets")
-                ? ThemeNodetool.palette.c_hl1
-                : ThemeNodetool.palette.c_white
-            }}
-          >
-            {buttonAppearance !== "text" && (
+            <Button
+              className={`nav-button ${path === "/assets" ? "active" : ""}`}
+              onClick={() => {
+                navigate("/assets");
+                if (!panelLeftCollapsed) {
+                  handlePanelToggle();
+                }
+              }}
+              tabIndex={-1}
+              style={{
+                color: path.startsWith("/assets")
+                  ? ThemeNodetool.palette.c_hl1
+                  : ThemeNodetool.palette.c_white
+              }}
+            >
+              {buttonAppearance !== "text" && (
+                <IconForType
+                  iconName="asset"
+                  showTooltip={false}
+                  svgProps={{
+                    fill: path.startsWith("/assets")
+                      ? ThemeNodetool.palette.c_hl1
+                      : ThemeNodetool.palette.c_white
+                  }}
+                  containerStyle={{
+                    borderRadius: "0 0 3px 0",
+                    marginLeft: "0.1em",
+                    marginTop: "0"
+                  }}
+                  bgStyle={{
+                    backgroundColor: "transparent",
+                    width: "30px",
+                    height: "20px"
+                  }}
+                />
+              )}
+              Assets
+            </Button>
+          </Tooltip>
+          <Tooltip title="Model Manager" enterDelay={TOOLTIP_ENTER_DELAY}>
+            <Button
+              className="command-icon"
+              onClick={() => navigate("/models")}
+              tabIndex={-1}
+              style={{
+                color: path.startsWith("/models")
+                  ? ThemeNodetool.palette.c_hl1
+                  : ThemeNodetool.palette.c_white
+              }}
+            >
               <IconForType
-                iconName="asset"
+                iconName="model"
                 showTooltip={false}
                 svgProps={{
-                  fill: path.startsWith("/assets")
+                  fill: path.startsWith("/models")
                     ? ThemeNodetool.palette.c_hl1
-                    : ThemeNodetool.palette.c_white
-                }}
-                containerStyle={{
-                  borderRadius: "0 0 3px 0",
-                  marginLeft: "0.1em",
-                  marginTop: "0"
+                    : "#fff"
                 }}
                 bgStyle={{
                   backgroundColor: "transparent",
-                  width: "30px",
-                  height: "20px"
+                  width: "28px"
                 }}
               />
-            )}
-            Assets
-          </Button>
-        </Tooltip>
-        <Tooltip title="Model Manager" enterDelay={TOOLTIP_ENTER_DELAY}>
-          <Button
-            className="command-icon"
-            onClick={() => navigate("/models")}
-            tabIndex={-1}
+              Models
+            </Button>
+          </Tooltip>
+        </Box>
+      ),
+      [path, buttonAppearance, navigate, panelLeftCollapsed, handlePanelToggle]
+    );
+
+    const RightSideButtons = useMemo(
+      () => (
+        <Box className="buttons-right">
+          {!isProduction && (
+            <>
+              <SystemStatsDisplay />
+              <OverallDownloadProgress />
+            </>
+          )}
+          <NotificationButton />
+          <Popover
+            open={helpOpen}
+            onClose={handleCloseHelp}
+            anchorReference="none"
             style={{
-              color: path.startsWith("/models")
-                ? ThemeNodetool.palette.c_hl1
-                : ThemeNodetool.palette.c_white
+              position: "fixed",
+              width: "100%",
+              height: "100%",
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)"
             }}
           >
-            <IconForType
-              iconName="model"
-              showTooltip={false}
-              svgProps={{
-                fill: path.startsWith("/models")
-                  ? ThemeNodetool.palette.c_hl1
-                  : "#fff"
-              }}
-              bgStyle={{
-                backgroundColor: "transparent",
-                width: "28px"
-              }}
-            />
-            Models
-          </Button>
-        </Tooltip>
-      </Box>
-    ),
-    [path, buttonAppearance, navigate, panelLeftCollapsed, handlePanelToggle]
-  );
-
-  const RightSideButtons = useMemo(
-    () => (
-      <Box className="buttons-right">
-        {!isProduction && (
-          <>
-            <SystemStatsDisplay />
-            <OverallDownloadProgress />
-          </>
-        )}
-        <NotificationButton />
-        <Popover
-          open={helpOpen}
-          onClose={handleCloseHelp}
-          anchorReference="none"
-          style={{
-            position: "fixed",
-            width: "100%",
-            height: "100%",
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -50%)"
-          }}
-        >
-          <Help handleClose={handleCloseHelp} />
-        </Popover>
-        <Tooltip
-          enterDelay={TOOLTIP_ENTER_DELAY}
-          title={
-            <div style={{ textAlign: "center" }}>
-              <Typography variant="inherit">Help</Typography>
-            </div>
-          }
-        >
-          <Button
-            className="command-icon"
-            onClick={(e) => {
-              e.preventDefault();
-              handleOpenHelp();
-            }}
-            tabIndex={-1}
-          >
-            <QuestionMarkIcon />
-          </Button>
-        </Tooltip>
-        <SettingsMenu />
-      </Box>
-    ),
-    [
-      path,
-      buttonAppearance,
-      helpOpen,
-      handleCloseHelp,
-      navigate,
-      handleOpenHelp
-    ]
-  );
-
-  return (
-    <div css={memoizedStyles} className="app-header">
-      <AppBar position="static" className="app-bar">
-        <Toolbar variant="dense" className="toolbar">
+            <Help handleClose={handleCloseHelp} />
+          </Popover>
           <Tooltip
             enterDelay={TOOLTIP_ENTER_DELAY}
             title={
               <div style={{ textAlign: "center" }}>
-                <Typography variant="inherit">Open Welcome Screen</Typography>
+                <Typography variant="inherit">Help</Typography>
               </div>
             }
           >
             <Button
-              className="logo"
-              tabIndex={-1}
+              className="command-icon"
               onClick={(e) => {
                 e.preventDefault();
-                handleOpenWelcome();
+                handleOpenHelp();
               }}
-              sx={{
-                lineHeight: "1em",
-                display: { xs: "none", sm: "block" }
-              }}
+              tabIndex={-1}
             >
-              <Logo
-                width="80px"
-                height="24px"
-                fontSize="1em"
-                borderRadius="20px"
-                small={true}
-                singleLine={true}
-              />
+              <QuestionMarkIcon />
             </Button>
           </Tooltip>
-          {isDevelopment && (
-            <Popover
-              open={welcomeOpen}
-              onClose={handleCloseWelcome}
-              anchorReference="none"
-              style={{
-                position: "fixed",
-                width: "100%",
-                height: "100%",
-                top: "50%"
-              }}
-              slotProps={{
-                root: {
-                  sx: {
-                    top: "60px !important",
-                    "& .MuiBackdrop-root": {
+          <SettingsMenu />
+        </Box>
+      ),
+      [
+        path,
+        buttonAppearance,
+        helpOpen,
+        handleCloseHelp,
+        navigate,
+        handleOpenHelp
+      ]
+    );
+
+    return (
+      <div css={memoizedStyles} className="app-header">
+        <AppBar position="static" className="app-bar">
+          <Toolbar variant="dense" className="toolbar">
+            <Tooltip
+              enterDelay={TOOLTIP_ENTER_DELAY}
+              title={
+                <div style={{ textAlign: "center" }}>
+                  <Typography variant="inherit">Open Welcome Screen</Typography>
+                </div>
+              }
+            >
+              <Button
+                className="logo"
+                tabIndex={-1}
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleOpenWelcome();
+                }}
+                sx={{
+                  lineHeight: "1em",
+                  display: { xs: "none", sm: "block" }
+                }}
+              >
+                <Logo
+                  width="80px"
+                  height="24px"
+                  fontSize="1em"
+                  borderRadius="20px"
+                  small={true}
+                  singleLine={true}
+                />
+              </Button>
+            </Tooltip>
+            {isDevelopment && (
+              <Popover
+                open={welcomeOpen}
+                onClose={handleCloseWelcome}
+                anchorReference="none"
+                style={{
+                  position: "fixed",
+                  width: "100%",
+                  height: "100%",
+                  top: "50%"
+                }}
+                slotProps={{
+                  root: {
+                    sx: {
                       top: "60px !important",
-                      position: "fixed"
+                      "& .MuiBackdrop-root": {
+                        top: "60px !important",
+                        position: "fixed"
+                      }
+                    }
+                  },
+                  paper: {
+                    sx: {
+                      position: "absolute",
+                      top: "60px",
+                      left: "50%",
+                      transform: "translate(-50%, 0)"
                     }
                   }
-                },
-                paper: {
-                  sx: {
-                    position: "absolute",
-                    top: "60px",
-                    left: "50%",
-                    transform: "translate(-50%, 0)"
-                  }
-                }
-              }}
-            >
-              <Welcome handleClose={handleCloseWelcome} />
-            </Popover>
-          )}
+                }}
+              >
+                <Welcome handleClose={handleCloseWelcome} />
+              </Popover>
+            )}
 
-          <div className="navigate">
-            <Box sx={{ flexGrow: 0.02 }} />
-            {NavigationButtons}
-          </div>
+            <div className="navigate">
+              <Box sx={{ flexGrow: 0.02 }} />
+              {NavigationButtons}
+            </div>
 
-          <AppHeaderActions />
-          <LastWorkflowButton />
-          <Alert />
-          {RightSideButtons}
-        </Toolbar>
-      </AppBar>
-    </div>
-  );
-});
+            {props.showActions && <AppHeaderActions />}
+            {/* <LastWorkflowButton /> */}
+            <Alert />
+            {RightSideButtons}
+          </Toolbar>
+        </AppBar>
+      </div>
+    );
+  }
+);
 
 AppHeader.displayName = "AppHeader";
 

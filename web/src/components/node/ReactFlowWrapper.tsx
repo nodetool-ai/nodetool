@@ -13,8 +13,6 @@ import {
 } from "@xyflow/react";
 
 // store
-import { useNodeStore } from "../../stores/NodeStore";
-// store
 import useConnectionStore from "../../stores/ConnectionStore";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
@@ -52,6 +50,7 @@ import NodeTitleEditor from "./NodeTitleEditor";
 import useSelect from "../../hooks/nodes/useSelect";
 import ConnectableNodes from "../context_menus/ConnectableNodes";
 import useMetadataStore from "../../stores/MetadataStore";
+import { useNodes } from "../../contexts/NodeContext";
 
 declare global {
   interface Window {
@@ -113,14 +112,18 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     onConnect,
     onNodesChange,
     onEdgesChange,
-    onEdgeUpdate
-  } = useNodeStore((state) => ({
+    onEdgeUpdate,
+    shouldFitToScreen,
+    setShouldFitToScreen
+  } = useNodes((state) => ({
     nodes: state.nodes,
     edges: state.edges,
     onConnect: state.onConnect,
     onNodesChange: state.onNodesChange,
     onEdgesChange: state.onEdgesChange,
-    onEdgeUpdate: state.onEdgeUpdate
+    onEdgeUpdate: state.onEdgeUpdate,
+    shouldFitToScreen: state.shouldFitToScreen,
+    setShouldFitToScreen: state.setShouldFitToScreen
   }));
 
   const { handleOnConnect, onConnectStart, onConnectEnd } =
@@ -146,12 +149,6 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   const reactFlowInstance = useReactFlow();
 
   /* USE STORE */
-  const { shouldFitToScreen, setShouldFitToScreen, setExplicitSave } =
-    useNodeStore((state) => ({
-      shouldFitToScreen: state.shouldFitToScreen,
-      setShouldFitToScreen: state.setShouldFitToScreen,
-      setExplicitSave: state.setExplicitSave
-    }));
   const { close: closeSelect } = useSelect();
 
   /* DEFINE NODE TYPES */
@@ -161,12 +158,6 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   nodeTypes["nodetool.workflows.base_node.Comment"] = CommentNode;
   nodeTypes["nodetool.workflows.base_node.Preview"] = PreviewNode;
   nodeTypes["default"] = PlaceholderNode;
-
-  /* UTILS */
-  const { handleCopy, handlePaste, handleCut } = useCopyPaste();
-  const getSelectedNodeIds = useNodeStore((state) => state.getSelectedNodeIds);
-  const duplicateNodes = useDuplicateNodes();
-  const surroundWithGroup = useSurroundWithGroup();
 
   /* SETTINGS */
   const settings = useSettingsStore((state) => state.settings);

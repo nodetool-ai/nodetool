@@ -17,7 +17,6 @@ import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { css } from "@emotion/react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { memo, useCallback, useEffect } from "react";
-import { useNodeStore } from "../../stores/NodeStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { Workflow } from "../../stores/ApiTypes";
 import useWorkflowRunner from "../../stores/WorkflowRunner";
@@ -27,6 +26,7 @@ import { useSettingsStore } from "../../stores/SettingsStore";
 import { useWorkflowStore } from "../../stores/WorkflowStore";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { isEqual } from "lodash";
+import { useNodes } from "../../contexts/NodeContext";
 
 const actionsStyles = (
   theme: any,
@@ -135,14 +135,24 @@ const useGlobalHotkeys = (callback: () => void) => {
 
 const AppHeaderActions: React.FC = () => {
   const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
-  const autoLayout = useNodeStore((state) => state.autoLayout);
-  const saveWorkflow = useNodeStore((state) => state.saveWorkflow);
+  const { autoLayout, saveWorkflow } = useNodes((state) => ({
+    autoLayout: state.autoLayout,
+    saveWorkflow: state.saveWorkflow
+  }));
   const createNewWorkflow = useWorkflowStore((state) => state.createNew);
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
   const navigate = useNavigate();
-  const runWorkflow = useWorkflowRunner((state) => state.run);
+  const run = useWorkflowRunner((state) => state.run);
+  const { nodes, edges, workflow } = useNodes((state) => ({
+    nodes: state.nodes,
+    edges: state.edges,
+    workflow: state.workflow
+  }));
+  const runWorkflow = useCallback(() => {
+    run({}, workflow, nodes, edges);
+  }, [run, workflow, nodes, edges]);
   const cancelWorkflow = useWorkflowRunner((state) => state.cancel);
   const state = useWorkflowRunner((state) => state.state);
   const path = useLocation().pathname;

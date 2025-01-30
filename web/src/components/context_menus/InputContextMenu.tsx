@@ -12,16 +12,13 @@ import { devLog } from "../../utils/DevLog";
 import LoginIcon from "@mui/icons-material/Login";
 import { labelForType } from "../../config/data_types";
 import useMetadataStore from "../../stores/MetadataStore";
-import { useNodeStore } from "../../stores/NodeStore";
 import { Edge, useReactFlow } from "@xyflow/react";
 import { Slugify } from "../../utils/TypeHandler";
 import useConnectableNodesStore from "../../stores/ConnectableNodesStore";
+import { useNodes } from "../../contexts/NodeContext";
 
 const InputContextMenu: React.FC = () => {
   const getMetadata = useMetadataStore((state) => state.getMetadata);
-  const createNode = useNodeStore((state) => state.createNode);
-  const addNode = useNodeStore((state) => state.addNode);
-  const generateEdgeId = useNodeStore((state) => state.generateEdgeId);
   const reactFlowInstance = useReactFlow();
 
   const { type, nodeId, handleId, menuPosition, closeContextMenu } =
@@ -70,11 +67,18 @@ const InputContextMenu: React.FC = () => {
     },
     [setSearchTerm]
   );
+  const { createNode, addNode, edges, setEdges, generateEdgeId } = useNodes(
+    (state) => ({
+      createNode: state.createNode,
+      addNode: state.addNode,
+      edges: state.edges,
+      setEdges: state.setEdges,
+      generateEdgeId: state.generateEdgeId
+    })
+  );
   const createConstantNode = useCallback(
     (event: React.MouseEvent) => {
       if (!constantNodeMetadata) return;
-      const edges = useNodeStore.getState().edges;
-      const setEdges = useNodeStore.getState().setEdges;
       const newNode = createNode(
         constantNodeMetadata,
         reactFlowInstance.screenToFlowPosition({
@@ -130,8 +134,6 @@ const InputContextMenu: React.FC = () => {
   const createInputNode = useCallback(
     (event: React.MouseEvent) => {
       if (!inputNodeMetadata) return;
-      const edges = useNodeStore.getState().edges;
-      const setEdges = useNodeStore.getState().setEdges;
       const newNode = createNode(
         inputNodeMetadata,
         reactFlowInstance.screenToFlowPosition({

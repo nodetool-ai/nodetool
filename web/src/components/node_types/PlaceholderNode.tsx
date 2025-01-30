@@ -7,13 +7,11 @@ import { isEqual } from "lodash";
 import { Container, Tooltip } from "@mui/material";
 import { NodeData } from "../../stores/NodeData";
 import { useWorkflowStore } from "../../stores/WorkflowStore";
-import { useNodeStore } from "../../stores/NodeStore";
 import { NodeHeader } from "../node/NodeHeader";
-import { NodeInputs } from "../node/NodeInputs";
-import { NodeOutputs } from "../node/NodeOutputs";
 import { NodeFooter } from "../node/NodeFooter";
 import { Typography } from "@mui/material";
 import { NodeMetadata } from "../../stores/ApiTypes";
+import { useNodes } from "../../contexts/NodeContext";
 
 interface PlaceholderNodeData extends Node<NodeData> {
   data: NodeData & {
@@ -54,9 +52,7 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
   const [hasParent, setHasParent] = useState<boolean>(false);
   const [nodeNamespace, setNodeNamespace] = useState<string | null>(null);
   const getWorkflow = useWorkflowStore((state) => state.get);
-  const edges = useNodeStore(
-    useCallback((state) => state.getInputEdges(props.id), [props.id])
-  );
+  const edges = useNodes((state) => state.getInputEdges(props.id));
 
   useEffect(() => {
     if (props.data?.workflow_id) {
