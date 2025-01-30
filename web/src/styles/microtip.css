@@ -38,7 +38,6 @@
     var(--microtip-transition-easing) var(--microtip-transition-delay);
   position: absolute;
   box-sizing: border-box;
-  z-index: 10;
   transform-origin: top;
 }
 
@@ -56,11 +55,10 @@
   font-weight: var(--microtip-font-weight);
   text-transform: var(--microtip-text-transform);
   padding: 0.5em 1em;
-  white-space: nowrap;
+  white-space: normal;
   box-sizing: content-box;
-    max-width: 100px;
-      display: block;
-      word-wrap: break-word;
+  word-wrap: break-word;
+  line-height: 1.3;
 }
 
 /* ------------------------------------------------
@@ -240,17 +238,17 @@
 
 [role~="tooltip"][data-microtip-size="small"]::after {
   white-space: initial;
-  width: 80px;
+  width: 160px;
 }
 
 [role~="tooltip"][data-microtip-size="medium"]::after {
   white-space: initial;
-  width: 150px;
+  width: 250px;
 }
 
 [role~="tooltip"][data-microtip-size="large"]::after {
   white-space: initial;
-  width: 260px;
+  width: 350px;
 }
 
 [aria-label][role~="tooltip"]:hover::before,
@@ -447,15 +445,15 @@
 -------------------------------------------------*/
 [role~="tooltip"][data-microtip-size="small"]::after {
   white-space: initial;
-  width: 80px;
+  width: 160px;
 }
 
 [role~="tooltip"][data-microtip-size="medium"]::after {
   white-space: initial;
-  width: 150px;
+  width: 250px;
 }
 
 [role~="tooltip"][data-microtip-size="large"]::after {
   white-space: initial;
-  width: 260px;
+  width: 350px;
 }
