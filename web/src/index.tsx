@@ -1,3 +1,4 @@
+/** @jsxImportSource @emotion/react */
 import React, { useEffect, useState } from "react";
 import ReactDOM from "react-dom/client";
 import { ReactFlowProvider, useStore } from "@xyflow/react";
@@ -12,8 +13,6 @@ import {
 } from "react-router-dom";
 
 import ErrorBoundary from "./ErrorBoundary";
-
-import NodeEditor from "./components/node_editor/NodeEditor";
 
 import PanelLeft from "./components/panels/PanelLeft";
 
@@ -45,10 +44,9 @@ import { initKeyListeners } from "./stores/KeyPressedStore";
 import useRemoteSettingsStore from "./stores/RemoteSettingStore";
 import ModelsManager from "./components/hugging_face/ModelsManager";
 import useModelStore from "./stores/ModelStore";
-import { MIN_ZOOM } from "./config/constants";
 import { loadMetadata } from "./serverState/useMetadata";
-import { NodeProvider } from "./contexts/NodeContext";
-
+import { NodeProvider, useWorkflows } from "./contexts/NodeContext";
+import TabsNodeEditor from "./components/editor/TabsNodeEditor";
 if (!isProduction) {
   useRemoteSettingsStore.getState().fetchSettings();
 }
@@ -67,12 +65,6 @@ const NavigateToStart = () => {
     return <Navigate to={"/login"} replace={true} />;
   }
   return <div>Error!</div>;
-};
-
-const NodeEditorWrapper = () => {
-  const currentZoom = useStore((state) => state.transform[2]);
-  const isMinZoom = currentZoom <= MIN_ZOOM;
-  return <NodeEditor isMinZoom={isMinZoom} />;
 };
 
 function getRoutes() {
@@ -146,10 +138,9 @@ function getRoutes() {
               <CssBaseline />
               <AppHeader showActions={true} />
               <PanelLeft />
-              {/* <AppFooter /> */}
             </ThemeProvider>
             <ThemeProvider theme={ThemeNodes}>
-              <NodeEditorWrapper />
+              <TabsNodeEditor />
             </ThemeProvider>
             <ThemeProvider theme={ThemeNodetool}>
               <CssBaseline />

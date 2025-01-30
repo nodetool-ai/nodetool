@@ -10,8 +10,9 @@ import { shallow } from "zustand/shallow";
 import { TemporalState } from "zundo";
 import { useStoreWithEqualityFn } from "zustand/traditional";
 import { useLoaderData } from "react-router-dom";
+import { Workflow } from "../stores/ApiTypes";
+import { create } from "zustand";
 
-// Update the context type to hold the full store
 const NodeContext = createContext<NodeStore | null>(null);
 
 export const useNodes = <T,>(
@@ -24,6 +25,47 @@ export const useNodes = <T,>(
   }
   return useStoreWithEqualityFn(context, selector, equalityFn ?? shallow);
 };
+
+type WorkflowManagerStore = {
+  nodeStores: Record<string, NodeStore>;
+  addWorkflow: (workflow: Workflow) => void;
+  removeWorkflow: (workflowId: string) => void;
+  getWorkflow: (workflowId: string) => NodeStore | undefined;
+  workflows: Workflow[];
+  reorderWorkflows: (sourceIndex: number, targetIndex: number) => void;
+};
+
+export const useWorkflowManager = create<WorkflowManagerStore>((set, get) => ({
+  nodeStores: {},
+  workflows: [],
+  addWorkflow: (workflow: Workflow) => {
+    set((state) => ({
+      nodeStores: {
+        ...state.nodeStores,
+        [workflow.id]: createNodeStore(workflow)
+      },
+      workflows: [...state.workflows, workflow]
+    }));
+  },
+  removeWorkflow: (workflowId: string) => {
+    set((state) => {
+      const { [workflowId]: removed, ...remaining } = state.nodeStores;
+      return {
+        nodeStores: remaining,
+        workflows: state.workflows.filter((w) => w.id !== workflowId)
+      };
+    });
+  },
+  getWorkflow: (workflowId: string) => get().nodeStores[workflowId],
+  reorderWorkflows: (sourceIndex: number, targetIndex: number) => {
+    set((state) => {
+      const newWorkflows = [...state.workflows];
+      const [removed] = newWorkflows.splice(sourceIndex, 1);
+      newWorkflows.splice(targetIndex, 0, removed);
+      return { ...state, workflows: newWorkflows };
+    });
+  }
+}));
 
 export const useTemporalNodes = <T,>(
   selector: (state: TemporalState<PartializedNodeStore>) => T,
@@ -43,25 +85,19 @@ export const useTemporalNodes = <T,>(
 export const NodeProvider: React.FC<{ children: React.ReactNode }> = ({
   children
 }) => {
-  const [nodeStores, setNodeStores] = React.useState<Record<string, NodeStore>>(
-    {}
-  );
-
+  const { addWorkflow, getWorkflow } = useWorkflowManager();
   const data = useLoaderData();
 
   React.useEffect(() => {
-    if (!nodeStores[data.workflow.id]) {
-      setNodeStores((prev) => ({
-        ...prev,
-        [data.workflow.id]: createNodeStore(data.workflow)
-      }));
+    if (!getWorkflow(data.workflow.id)) {
+      addWorkflow(data.workflow);
     }
   }, [data.workflow.id, data.workflow]);
 
-  const store = nodeStores[data.workflow.id];
+  const store = getWorkflow(data.workflow.id);
 
   if (!store) {
-    return null; // or a loading indicator
+    return <div>Loading...</div>;
   }
 
   return <NodeContext.Provider value={store}>{children}</NodeContext.Provider>;
