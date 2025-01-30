@@ -49,17 +49,32 @@ const styles = (theme: any, buttonAppearance: "text" | "icon" | "both") =>
   css({
     "&": {
       width: "100%",
-      backgroundColor: theme.palette.c_gray0,
-      overflow: "visible"
+      backgroundColor: "rgba(18, 18, 24, 0.95)",
+      backdropFilter: "blur(8px)",
+      borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+      overflow: "visible",
+      background:
+        "linear-gradient(180deg, rgba(24, 24, 32, 0.98) 0%, rgba(18, 18, 24, 0.95) 100%)",
+      boxShadow: "0 2px 8px rgba(0, 0, 0, 0.2), 0 1px 3px rgba(0, 0, 0, 0.1)"
     },
     ".app-bar": {
-      overflow: "visible"
+      overflow: "visible",
+      boxShadow: "none",
+      "&::after": {
+        content: '""',
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        height: "1px",
+        background: "rgba(255, 255, 255, 0.05)"
+      }
     },
     ".toolbar": {
       overflow: "visible"
     },
     ".nodetool-logo": {
-      margin: "0 1em 0 0em"
+      margin: "0 1.5em 0 0.5em"
     },
     button: {
       fontSize:
@@ -68,7 +83,9 @@ const styles = (theme: any, buttonAppearance: "text" | "icon" | "both") =>
           : "0",
       color: theme.palette.c_white,
       "&:hover": {
-        backgroundColor: theme.palette.c_gray2
+        backgroundColor: "rgba(255, 255, 255, 0.1)",
+        transform: "translateY(-1px)",
+        boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)"
       }
     },
     ".icon-container svg": {
@@ -114,7 +131,6 @@ const styles = (theme: any, buttonAppearance: "text" | "icon" | "both") =>
         color: theme.palette.c_hl1
       }
     },
-
     ".status-message": {
       margin: "auto",
       flexGrow: 0,
@@ -126,7 +142,10 @@ const styles = (theme: any, buttonAppearance: "text" | "icon" | "both") =>
       position: "absolute",
       top: "91px",
       zIndex: 1000,
-      backgroundColor: "#6f6f6fb5",
+      backgroundColor: "rgba(18, 18, 24, 0.9)",
+      backdropFilter: "blur(8px)",
+      borderRadius: "8px",
+      boxShadow: "0 4px 12px rgba(0, 0, 0, 0.2)",
       padding: ".2em 1em",
       color: "black",
       fontSize: theme.fontSizeSmall
@@ -136,7 +155,13 @@ const styles = (theme: any, buttonAppearance: "text" | "icon" | "both") =>
       flexDirection: "row",
       justifyContent: "flex-end",
       alignItems: "center",
-      gap: "0"
+      gap: "0.3em",
+      background: theme.palette.c_gray1,
+      borderRadius: "12px",
+      paddingLeft: "1em",
+      backgroundImage: `linear-gradient(180deg, ${theme.palette.c_gray1} 0%, rgba(${theme.palette.c_gray1}, 0.95) 100%)`,
+      boxShadow:
+        "inset 0 1px 1px rgba(255, 255, 255, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1)"
     }
   });
 
