@@ -6,11 +6,11 @@ import {
   isNodetoolWorkflowJson
 } from "./dropHandlerUtils";
 import { useWorkflowStore } from "../../stores/WorkflowStore";
-import { useNodeStore } from "../../stores/NodeStore";
+import { useNodes } from "../../contexts/NodeContext";
 
 export const useCreateWorkflowFromFiles = () => {
   const createWorkflow = useWorkflowStore((state) => state.create);
-  const setWorkflow = useNodeStore((state) => state.setWorkflow);
+  const setWorkflow = useNodes((state) => state.setWorkflow);
 
   return useCallback(
     async (files: File[]) => {

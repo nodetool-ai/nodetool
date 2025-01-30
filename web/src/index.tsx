@@ -7,13 +7,13 @@ import {
   Navigate,
   RouteObject,
   RouterProvider,
-  createBrowserRouter
+  createBrowserRouter,
+  redirect
 } from "react-router-dom";
 
 import ErrorBoundary from "./ErrorBoundary";
 
 import NodeEditor from "./components/node_editor/NodeEditor";
-import initiateEditor from "./core/initiateEditor";
 
 import PanelLeft from "./components/panels/PanelLeft";
 
@@ -47,6 +47,7 @@ import ModelsManager from "./components/hugging_face/ModelsManager";
 import useModelStore from "./stores/ModelStore";
 import { MIN_ZOOM } from "./config/constants";
 import { loadMetadata } from "./serverState/useMetadata";
+import { NodeProvider } from "./contexts/NodeContext";
 
 if (!isProduction) {
   useRemoteSettingsStore.getState().fetchSettings();
@@ -103,7 +104,7 @@ function getRoutes() {
         <ProtectedRoute>
           <ThemeProvider theme={ThemeNodetool}>
             <CssBaseline />
-            <AppHeader />
+            <AppHeader showActions={false} />
             <PanelLeft />
             <AssetExplorer />
           </ThemeProvider>
@@ -116,7 +117,7 @@ function getRoutes() {
         <ProtectedRoute>
           <ThemeProvider theme={ThemeNodetool}>
             <CssBaseline />
-            <AppHeader />
+            <AppHeader showActions={false} />
             <PanelLeft />
             <ExampleGrid />
           </ThemeProvider>
@@ -129,7 +130,8 @@ function getRoutes() {
         <ProtectedRoute>
           <ThemeProvider theme={ThemeNodetool}>
             <CssBaseline />
-            <AppHeader />
+            <AppHeader showActions={false} />
+            <PanelLeft />
             <ModelsManager />
           </ThemeProvider>
         </ProtectedRoute>
@@ -139,23 +141,29 @@ function getRoutes() {
       path: "editor/:workflow",
       element: (
         <ProtectedRoute>
-          <ThemeProvider theme={ThemeNodetool}>
-            <CssBaseline />
-            <AppHeader />
-            <PanelLeft />
-            {/* <AppFooter /> */}
-          </ThemeProvider>
-          <ThemeProvider theme={ThemeNodes}>
-            <NodeEditorWrapper />
-          </ThemeProvider>
-          <ThemeProvider theme={ThemeNodetool}>
-            <CssBaseline />
-            <NodeMenu focusSearchInput={true} showNamespaceTree={false} />
-          </ThemeProvider>
+          <NodeProvider>
+            <ThemeProvider theme={ThemeNodetool}>
+              <CssBaseline />
+              <AppHeader showActions={true} />
+              <PanelLeft />
+              {/* <AppFooter /> */}
+            </ThemeProvider>
+            <ThemeProvider theme={ThemeNodes}>
+              <NodeEditorWrapper />
+            </ThemeProvider>
+            <ThemeProvider theme={ThemeNodetool}>
+              <CssBaseline />
+              <NodeMenu focusSearchInput={true} showNamespaceTree={false} />
+            </ThemeProvider>
+          </NodeProvider>
         </ProtectedRoute>
       ),
       loader: async ({ params }: LoaderFunctionArgs) => {
-        await initiateEditor(params.workflow);
+        const getWorkflow = useWorkflowStore.getState().get;
+        if (!params.workflow) {
+          return redirect("/editor/start");
+        }
+        return { workflow: await getWorkflow(params.workflow) };
       }
     },
     {
@@ -164,7 +172,7 @@ function getRoutes() {
         <ProtectedRoute>
           <ThemeProvider theme={ThemeNodetool}>
             <CssBaseline />
-            <AppHeader />
+            <AppHeader showActions={false} />
             <PanelLeft />
             <OpenOrCreateDialog />
           </ThemeProvider>

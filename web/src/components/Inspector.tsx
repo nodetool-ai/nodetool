@@ -3,9 +3,9 @@ import { css } from "@emotion/react";
 import React from "react";
 import PropertyField from "./node/PropertyField";
 import { Button, Tooltip, Typography } from "@mui/material";
-import { useNodeStore } from "../stores/NodeStore";
 import useNodeMenuStore from "../stores/NodeMenuStore";
 import useMetadataStore from "../stores/MetadataStore";
+import { useNodes } from "../contexts/NodeContext";
 
 const styles = (theme: any) =>
   css({
@@ -128,8 +128,10 @@ const styles = (theme: any) =>
   });
 
 const Inspector: React.FC = () => {
-  const selectedNodes = useNodeStore((state) => state.getSelectedNodes());
-  const getNode = useNodeStore((state) => state.findNode);
+  const { getSelectedNodes, findNode } = useNodes((state) => ({
+    getSelectedNodes: state.getSelectedNodes,
+    findNode: state.findNode
+  }));
   const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
   const setHighlightedNamespaces = useNodeMenuStore(
     (state) => state.setHighlightedNamespaces
@@ -137,8 +139,7 @@ const Inspector: React.FC = () => {
   const setSelectedPath = useNodeMenuStore((state) => state.setSelectedPath);
   const setHoveredNode = useNodeMenuStore((state) => state.setHoveredNode);
 
-  const selectedNodeId = selectedNodes[0]?.id;
-  const selectedNode = selectedNodeId ? getNode(selectedNodeId) : null;
+  const selectedNode = getSelectedNodes()[0];
   const metadata = useMetadataStore((state) =>
     state.getMetadata(selectedNode?.type ?? "")
   );
@@ -164,8 +165,8 @@ const Inspector: React.FC = () => {
         </div>
         {metadata.properties.map((property, index) => (
           <PropertyField
-            key={`inspector-${property.name}-${selectedNodeId}`}
-            id={selectedNodeId}
+            key={`inspector-${property.name}-${selectedNode.id}`}
+            id={selectedNode.id}
             value={selectedNode.data}
             property={property}
             propertyIndex={index.toString()}

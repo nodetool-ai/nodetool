@@ -9,7 +9,6 @@ import { Node, NodeProps, ResizeDragEvent } from "@xyflow/react";
 import { getMousePosition } from "../../utils/MousePosition";
 
 // store
-import { useNodeStore } from "../../stores/NodeStore";
 import { NodeData } from "../../stores/NodeData";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
@@ -22,6 +21,7 @@ import { PlayArrow } from "@mui/icons-material";
 import ColorPicker from "../inputs/ColorPicker";
 import NodeResizer from "./NodeResizer";
 import NodeResizeHandle from "./NodeResizeHandle";
+import { useNodes } from "../../contexts/NodeContext";
 
 // constants
 const MIN_WIDTH = 200;
@@ -123,20 +123,39 @@ const styles = (theme: any, minWidth: number, minHeight: number) =>
 const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const nodeRef = useRef<HTMLDivElement>(null);
   const headerInputRef = useRef<HTMLInputElement>(null);
-  const updateNodeData = useNodeStore((state) => state.updateNodeData);
+  const { workflow, updateNodeData, updateNode } = useNodes((state) => ({
+    updateNodeData: state.updateNodeData,
+    updateNode: state.updateNode,
+    workflow: state.workflow
+  }));
   const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
-  const updateNode = useNodeStore((state) => state.updateNode);
+  const state = useWorkflowRunner((state) => state.state);
   const isWorkflowRunning = useWorkflowRunner(
     (state) => state.state === "running"
   );
-  const runWorkflow = useWorkflowRunner((state) => state.run);
-  const state = useWorkflowRunner((state) => state.state);
-  const nodeHovered = useNodeStore((state) =>
+  const { nodes, edges } = useNodes((state) => ({
+    nodes: state.nodes,
+    edges: state.edges
+  }));
+  const run = useWorkflowRunner((state) => state.run);
+  const runWorkflow = useCallback(() => {
+    // Filter nodes that belong to this group
+    const groupNodes = nodes.filter(
+      (node) => node.id === props.id || node.parentId === props.id
+    );
+
+    // Filter edges that connect nodes within this group
+    const groupEdges = edges.filter(
+      (edge) =>
+        groupNodes.find((node) => node.id === edge.source) &&
+        groupNodes.find((node) => node.id === edge.target)
+    );
+
+    run({}, workflow, groupNodes, groupEdges);
+  }, [run, nodes, edges, props.id]);
+  const nodeHovered = useNodes((state) =>
     state.hoveredNodes.includes(props.id)
   );
-  const { spaceKeyPressed } = useKeyPressedStore((state) => ({
-    spaceKeyPressed: state.isKeyPressed(" ")
-  }));
 
   const [headline, setHeadline] = useState(
     props.data.properties.headline || "Group"
@@ -232,20 +251,16 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   useEffect(() => {
     // Selectable group nodes when spacekey is pressed
     // (enables the use of the selection rectangle inside group nodes)
-    if (spaceKeyPressed) {
-      updateNode(props.id, { selectable: true });
-    } else {
-      updateNode(props.id, { selectable: false });
-    }
-  }, [updateNode, props.id, spaceKeyPressed]);
+    updateNode(props.id, { selectable: false });
+  }, [updateNode, props.id]);
 
   return (
     <div
       css={styles(ThemeNodes, MIN_WIDTH, MIN_HEIGHT)}
       ref={nodeRef}
       className={`group-node ${nodeHovered ? "hovered" : ""} ${
-        spaceKeyPressed ? "space-pressed" : ""
-      } ${props.data.collapsed ? "collapsed" : ""}`}
+        props.data.collapsed ? "collapsed" : ""
+      }`}
       onDoubleClick={(e) => {
         handleDoubleClick(e, props.id);
       }}
@@ -300,7 +315,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
               className={`action-button run-stop-button run-workflow ${
                 isWorkflowRunning ? "disabled" : ""
               }`}
-              onClick={() => !isWorkflowRunning && runWorkflow({}, props.id)}
+              onClick={() => !isWorkflowRunning && runWorkflow()}
             >
               {state === "connecting" || state === "connected" ? (
                 <>

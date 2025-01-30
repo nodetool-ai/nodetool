@@ -13,7 +13,6 @@ import NodeResizer from "./NodeResizer";
 // utils
 import { getMousePosition } from "../../utils/MousePosition";
 // store
-import { useNodeStore } from "../../stores/NodeStore";
 import { NodeData } from "../../stores/NodeData";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
@@ -26,6 +25,7 @@ import {
 import { isEqual } from "lodash";
 import useMetadataStore from "../../stores/MetadataStore";
 import NodeResizeHandle from "./NodeResizeHandle";
+import { useNodes } from "../../contexts/NodeContext";
 
 const styles = (theme: any) =>
   css({
@@ -103,15 +103,11 @@ const styles = (theme: any) =>
 const LoopNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const nodeRef = useRef<HTMLDivElement>(null);
   const getMetadata = useMetadataStore((state) => state.getMetadata);
-  const updateNode = useNodeStore((state) => state.updateNode);
-  const { spaceKeyPressed } = useKeyPressedStore((state) => ({
-    spaceKeyPressed: state.isKeyPressed(" ")
+  const { updateNode, updateNodeData } = useNodes((state) => ({
+    updateNode: state.updateNode,
+    updateNodeData: state.updateNodeData
   }));
-  const updateNodeData = useNodeStore((state) => state.updateNodeData);
   const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
-  const nodeHovered = useNodeStore((state) =>
-    state.hoveredNodes.includes(props.id)
-  );
   const handleResize = useCallback(
     (event: ResizeDragEvent) => {
       const newWidth = event.x;
@@ -183,24 +179,22 @@ const LoopNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   useEffect(() => {
     // Selectable loop nodes when spacekey is pressed
     // (enables the use of the selection rectangle inside group nodes)
-    if (spaceKeyPressed) {
-      updateNode(props.id, { selectable: true });
-    } else {
-      updateNode(props.id, { selectable: false });
-    }
-  }, [updateNode, props.id, spaceKeyPressed]);
+    updateNode(props.id, { selectable: false });
+  }, [updateNode, props.id]);
 
   const nodeMetadata = getMetadata(props.type);
   if (!nodeMetadata) {
     throw new Error("No metadata for node type: " + props.type);
   }
 
+  const nodeHovered = useNodes((state) =>
+    state.hoveredNodes.includes(props.id)
+  );
+
   return (
     <div
       ref={nodeRef}
-      className={`loop-node ${nodeHovered ? "hovered" : ""} ${
-        spaceKeyPressed ? "space-pressed" : ""
-      } ${props.data.collapsed ? "collapsed" : ""}`}
+      className={`loop-node ${props.data.collapsed ? "collapsed" : ""}`}
       onDoubleClick={(e) => {
         handleDoubleClick(e, props.id);
       }}

@@ -11,7 +11,8 @@ const styles = (theme: any) =>
     "&.models-manager": {
       display: "flex",
       gap: "1em",
-      padding: "1em"
+      padding: "1em",
+      marginLeft: "3em"
     },
     ".download-models-section": {
       display: "flex",

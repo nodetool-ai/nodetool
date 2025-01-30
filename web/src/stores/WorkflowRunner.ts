@@ -3,9 +3,6 @@ import { NodeData } from "./NodeData";
 import { BASE_URL, WORKER_URL } from "./ApiClient";
 import useResultsStore from "./ResultsStore";
 import { Edge, Node } from "@xyflow/react";
-import { useNodeStore } from "./NodeStore";
-import { reactFlowEdgeToGraphEdge } from "./reactFlowEdgeToGraphEdge";
-import { reactFlowNodeToGraphNode } from "./reactFlowNodeToGraphNode";
 import { devError, devLog } from "../utils/DevLog";
 import {
   Prediction,
@@ -13,7 +10,8 @@ import {
   NodeUpdate,
   JobUpdate,
   RunJobRequest,
-  WorkflowAttributes
+  WorkflowAttributes,
+  Workflow
 } from "./ApiTypes";
 import { Omit } from "lodash";
 import { uuidv4 } from "./uuidv4";
@@ -24,6 +22,8 @@ import useLogsStore from "./LogStore";
 import useErrorStore from "./ErrorStore";
 import { decode, encode } from "@msgpack/msgpack";
 import { handleUpdate } from "./workflowUpdates";
+import { reactFlowEdgeToGraphEdge } from "./reactFlowEdgeToGraphEdge";
+import { reactFlowNodeToGraphNode } from "./reactFlowNodeToGraphNode";
 
 export type ProcessingContext = {
   edges: Edge[];
@@ -37,6 +37,9 @@ export type NodeState = {
 };
 
 export type WorkflowRunner = {
+  workflow: WorkflowAttributes | null;
+  nodes: Node<NodeData>[];
+  edges: Edge[];
   socket: WebSocket | null;
   job_id: string | null;
   current_url: string;
@@ -58,7 +61,12 @@ export type WorkflowRunner = {
     notification: Omit<Notification, "id" | "timestamp">
   ) => void;
   cancel: () => Promise<void>;
-  run: (params?: any, groupId?: string) => Promise<void>;
+  run: (
+    params: any,
+    workflow: WorkflowAttributes,
+    nodes: Node<NodeData>[],
+    edges: Edge[]
+  ) => Promise<void>;
   connect: (url: string) => Promise<void>;
   disconnect: () => void;
 };
@@ -67,6 +75,9 @@ type MsgpackData = JobUpdate | Prediction | NodeProgress | NodeUpdate;
 
 const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
   socket: null,
+  workflow: null,
+  nodes: [],
+  edges: [],
   current_url: "",
   job_id: null,
   state: "idle",
@@ -97,10 +108,12 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
 
     socket.onmessage = async (event) => {
       // TODO: this needs to be part of the payload
-      const workflow = useNodeStore.getState().workflow;
+      const workflow = get().workflow;
       const arrayBuffer = await event.data.arrayBuffer();
       const data = decode(new Uint8Array(arrayBuffer)) as MsgpackData;
-      get().readMessage(workflow, data);
+      if (workflow) {
+        get().readMessage(workflow, data);
+      }
     };
 
     socket.onerror = (error) => {
@@ -149,28 +162,16 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
    * Run the current workflow.
    *
    * @param params - The parameters to run the workflow with.
-   * @param groupId - Only run the workflow on the specified group.
    *
    * @returns The results of the workflow.
    */
-  run: async (params?: any, groupId?: string) => {
-    const nodes = groupId
-      ? useNodeStore
-          .getState()
-          .nodes.filter(
-            (node) => node.id === groupId || node.parentId === groupId
-          )
-      : useNodeStore.getState().nodes;
-    const edges = groupId
-      ? useNodeStore
-          .getState()
-          .edges.filter(
-            (edge) =>
-              nodes.find((node) => node.id === edge.source) &&
-              nodes.find((node) => node.id === edge.target)
-          )
-      : useNodeStore.getState().edges;
-    const workflow = useNodeStore.getState().workflow;
+  run: async (
+    params: any,
+    workflow: WorkflowAttributes,
+    nodes: Node<NodeData>[],
+    edges: Edge[]
+  ) => {
+    set({ workflow, nodes, edges });
     const getUser = useAuth.getState().getUser;
     const clearStatuses = useStatusStore.getState().clearStatuses;
     const clearLogs = useLogsStore.getState().clearLogs;
@@ -241,16 +242,6 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
   },
 
   /**
-   * Run the selected nodes in the workflow.
-   *
-   * This will run the nodes in topological order.
-   */
-  runSelected: async () => {
-    const { edges, nodes } = useNodeStore.getState().getSelection();
-    throw new Error("Not implemented");
-  },
-
-  /**
    * Add a notification to the notification store
    */
   addNotification: (notification: Omit<Notification, "id" | "timestamp">) => {
@@ -267,13 +258,14 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
    * Cancel the current workflow run.
    */
   cancel: async () => {
-    const { socket, job_id } = get();
+    const { socket, job_id, workflow } = get();
     console.log("Cancelling job", job_id);
 
-    const workflow = useNodeStore.getState().workflow;
     const clearStatuses = useStatusStore.getState().clearStatuses;
 
-    clearStatuses(workflow.id);
+    if (workflow) {
+      clearStatuses(workflow.id);
+    }
 
     if (!socket || !job_id) {
       return;

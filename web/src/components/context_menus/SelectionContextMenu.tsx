@@ -3,7 +3,6 @@ import { Divider, Typography, MenuItem, Menu } from "@mui/material";
 import ContextMenuItem from "./ContextMenuItem";
 //store
 import useContextMenuStore from "../../stores/ContextMenuStore";
-import { useNodeStore } from "../../stores/NodeStore";
 //behaviours
 import { useCopyPaste } from "../../hooks/handlers/useCopyPaste";
 import { useDuplicateNodes } from "../../hooks/useDuplicate";
@@ -18,6 +17,7 @@ import CopyAllIcon from "@mui/icons-material/CopyAll";
 import FormatAlignLeftIcon from "@mui/icons-material/FormatAlignLeft";
 import RemoveCircleIcon from "@mui/icons-material/RemoveCircle";
 import GroupWorkIcon from "@mui/icons-material/GroupWork";
+import { useNodes } from "../../contexts/NodeContext";
 
 interface SelectionContextMenuProps {
   top?: number;
@@ -26,23 +26,23 @@ interface SelectionContextMenuProps {
 
 const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
   const { handleCopy } = useCopyPaste();
-  const deleteNode = useNodeStore((state) => state.deleteNode);
-  // const updateNodeData = useNodeStore((state) => state.updateNodeData);
-  const findNode = useNodeStore((state) => state.findNode);
+  const { findNode, deleteNode } = useNodes((state) => ({
+    findNode: state.findNode,
+    deleteNode: state.deleteNode
+  }));
   const duplicateNodes = useDuplicateNodes();
   const alignNodes = useAlignNodes();
   const surroundWithGroup = useSurroundWithGroup();
   const removeFromGroup = useRemoveFromGroup();
   const menuPosition = useContextMenuStore((state) => state.menuPosition);
-  const selectedNodes = useNodeStore((state) => state.getSelectedNodes());
-  const selectedNodeIds = useNodeStore((state) =>
-    state.getSelectedNodes().map((node) => node.id)
-  );
+  const { selectedNodes } = useNodes((state) => ({
+    selectedNodes: state.getSelectedNodes()
+  }));
 
   // any has parent
   const anyHasParent = useMemo(() => {
-    return selectedNodeIds.some((id: string) => findNode(id)?.parentId);
-  }, [selectedNodeIds, findNode]);
+    return selectedNodes.some((node) => node.parentId);
+  }, [selectedNodes, findNode]);
 
   //duplicate
   const handleDuplicateNodes = useCallback(() => {
@@ -51,12 +51,12 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
 
   //delete
   const handleDelete = useCallback(() => {
-    if (selectedNodeIds?.length) {
-      selectedNodeIds.forEach((nodeId) => {
-        deleteNode(nodeId);
+    if (selectedNodes?.length) {
+      selectedNodes.forEach((node) => {
+        deleteNode(node.id);
       });
     }
-  }, [deleteNode, selectedNodeIds]);
+  }, [deleteNode, selectedNodes]);
 
   //collapse
   // const handleCollapseAll = useCallback(
@@ -164,7 +164,7 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
         IconComponent={<FormatAlignLeftIcon />}
         tooltip={<span className="tooltip-1">A</span>}
         addButtonClassName={`action ${
-          (selectedNodeIds?.length || 0) <= 1 ? "disabled" : ""
+          (selectedNodes?.length || 0) <= 1 ? "disabled" : ""
         }`}
       />
       <ContextMenuItem
@@ -175,20 +175,20 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
         IconComponent={<FormatAlignLeftIcon />}
         tooltip={<span className="tooltip-1">Space+A</span>}
         addButtonClassName={`action ${
-          (selectedNodeIds?.length || 0) <= 1 ? "disabled" : ""
+          (selectedNodes?.length || 0) <= 1 ? "disabled" : ""
         }`}
       />
 
       {!anyHasParent && (
         <ContextMenuItem
           onClick={() => {
-            surroundWithGroup({ selectedNodeIds: selectedNodeIds });
+            surroundWithGroup({ selectedNodes });
           }}
           label="Surrround With Group"
           IconComponent={<GroupWorkIcon />}
           tooltip={<span className="tooltip-1">Space+G</span>}
           addButtonClassName={`action ${
-            selectedNodeIds.length < 1 ? "disabled" : ""
+            selectedNodes.length < 1 ? "disabled" : ""
           }`}
         />
       )}
@@ -204,7 +204,7 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
             <span className="tooltip-1">Right Click Node or Selection</span>
           }
           addButtonClassName={`action ${
-            selectedNodeIds.length < 1 ? "disabled" : ""
+            selectedNodes.length < 1 ? "disabled" : ""
           }`}
         />
       )}

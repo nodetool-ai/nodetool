@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { NodeMetadata, OutputSlot, Property, TypeMetadata } from "./ApiTypes";
-import { useNodeStore } from "./NodeStore";
-
+import { NodeData } from "./NodeData";
+import { Node } from "@xyflow/react";
 export type ConnectDirection = "target" | "source" | "" | null;
 
 type ConnectionStore = {
@@ -11,7 +11,7 @@ type ConnectionStore = {
   connectNodeId: string | null;
   connectHandleId: string | null;
   startConnecting: (
-    nodeId: string,
+    node: Node<NodeData>,
     handleId: string,
     handleType: string,
     metadata: NodeMetadata
@@ -44,13 +44,13 @@ const useConnectionStore = create<ConnectionStore>((set) => ({
    * Handle the start of a connection between two nodes.
    * This is used to set the type and direction of the node to connect.
    *
-   * @param nodeId The id of the node to connect.
+   * @param node The node to connect.j
    * @param handleId The id of the handle to connect.
    * @param handleType The type of the handle to connect.
    * @param metadata The metadata of the node to connect.
    */
   startConnecting: (
-    nodeId: string,
+    node: Node<NodeData>,
     handleId: string,
     handleType: string,
     metadata: NodeMetadata
@@ -62,13 +62,12 @@ const useConnectionStore = create<ConnectionStore>((set) => ({
       set({
         connecting: true,
         connectType,
-        connectNodeId: nodeId,
+        connectNodeId: node.id,
         connectDirection: "source",
         connectHandleId: handleId
       });
     }
     if (handleType === "target") {
-      const node = useNodeStore.getState().findNode(nodeId);
       let connectType = metadata.properties.find(
         (input: Property) => input.name === handleId
       )?.type as TypeMetadata;
@@ -82,7 +81,7 @@ const useConnectionStore = create<ConnectionStore>((set) => ({
       set({
         connecting: true,
         connectType,
-        connectNodeId: nodeId,
+        connectNodeId: node.id,
         connectDirection: "target",
         connectHandleId: handleId
       });

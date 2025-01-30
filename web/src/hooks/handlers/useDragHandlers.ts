@@ -1,36 +1,45 @@
 import { useCallback, useState, MouseEvent } from "react";
 import { useSettingsStore } from "../../stores/SettingsStore";
-import { useNodeStore, useTemporalNodeStore } from "../../stores/NodeStore";
 import { getMousePosition } from "../../utils/MousePosition";
 import { useReactFlow, Node } from "@xyflow/react";
-import { useKeyPressedStore } from "../../stores/KeyPressedStore";
+import { useKeyPressed } from "../../stores/KeyPressedStore";
 import { NodeData } from "../../stores/NodeData";
 import { useAddToGroup } from "../nodes/useAddToGroup";
 import { useRemoveFromGroup } from "../nodes/useRemoveFromGroup";
 import { useIsGroupable } from "../nodes/useIsGroupable";
+import { useNodes, useTemporalNodes } from "../../contexts/NodeContext";
 
 export default function useDragHandlers() {
   const addToGroup = useAddToGroup();
   const removeFromGroup = useRemoveFromGroup();
   const { isGroup } = useIsGroupable();
-  const { isKeyPressed } = useKeyPressedStore();
-  const CKeyPressed = isKeyPressed("c");
-  const spaceKeyPressed = isKeyPressed(" ");
+  const { cKeyPressed } = useKeyPressed((state) => ({
+    cKeyPressed: state.isKeyPressed("c")
+  }));
   const reactFlow = useReactFlow();
   const [startPos, setStartPos] = useState({ x: 0, y: 0 });
   const [lastParentNode, setLastParentNode] = useState<Node | undefined>();
   const { settings } = useSettingsStore((state) => state);
-  const history = useTemporalNodeStore((state) => state);
+  const [draggedNodes, setDraggedNodes] = useState<Set<Node<NodeData>>>(
+    new Set()
+  );
+  const { pause, resume } = useTemporalNodes((state) => ({
+    pause: state.pause,
+    resume: state.resume
+  }));
 
-  const resumeHistoryAndSave = useCallback(() => {
-    useNodeStore.getState().setExplicitSave(true);
-    history.resume();
-    useNodeStore.getState().setExplicitSave(false);
-  }, [history]);
+  const { createNode, addNode, setHoveredNodes, findNode, updateNode } =
+    useNodes((state) => ({
+      createNode: state.createNode,
+      addNode: state.addNode,
+      setHoveredNodes: state.setHoveredNodes,
+      findNode: state.findNode,
+      updateNode: state.updateNode
+    }));
 
   const createCommentNode = useCallback(
     (width: number, height: number) => {
-      if (CKeyPressed) {
+      if (cKeyPressed) {
         // Fake metadata for comments
         const metadata = {
           namespace: "default",
@@ -47,7 +56,7 @@ export default function useDragHandlers() {
           recommended_models: [],
           is_dynamic: false
         };
-        const newNode = useNodeStore.getState().createNode(metadata, {
+        const newNode = createNode(metadata, {
           x: startPos.x,
           y: startPos.y - 20
         });
@@ -57,54 +66,60 @@ export default function useDragHandlers() {
           width: Math.max(width, 150),
           height: Math.max(height, 100)
         };
-        useNodeStore.getState().addNode(newNode);
+        addNode(newNode);
       }
     },
-    [CKeyPressed, startPos]
+    [cKeyPressed, startPos]
   );
 
   /* NODE DRAG START */
   const onNodeDragStart = useCallback(
     (_event: any) => {
-      history.pause();
+      console.log("onNodeDragStart");
+      // pause();
     },
-    [history]
+    [pause]
   );
 
   /* NODE DRAG STOP */
   const onNodeDragStop = useCallback(
     (_event: any, node: Node<NodeData>) => {
       addToGroup([node], lastParentNode);
-      resumeHistoryAndSave();
+      resume();
+      draggedNodes.forEach((node) => {
+        updateNode(node.id, {
+          position: {
+            x: node.position.x,
+            y: node.position.y
+          }
+        });
+      });
+      setDraggedNodes(new Set());
+      console.log("onNodeDragStop");
     },
-    [resumeHistoryAndSave, addToGroup, lastParentNode]
+    [addToGroup, lastParentNode, resume, draggedNodes, updateNode]
   );
 
   /* SELECTION DRAG START */
-  const onSelectionDragStart = useCallback(
-    (_event: any) => {
-      history.pause();
-    },
-    [history]
-  );
+  const onSelectionDragStart = useCallback((_event: any) => {}, [pause]);
 
   /* SELECTION DRAG */
   const onSelectionDrag = useCallback(
     (event: MouseEvent, nodes: Node<NodeData>[]) => {
-      if (spaceKeyPressed) {
-        removeFromGroup(nodes);
-      }
+      pause();
+      setDraggedNodes(new Set(nodes));
     },
-    [spaceKeyPressed, removeFromGroup]
+    [pause, setDraggedNodes]
   );
 
   /* SELECTION DRAG STOP */
   const onSelectionDragStop = useCallback(
     (_event: any, nodes: Node<NodeData>[]) => {
       addToGroup(nodes, lastParentNode);
-      resumeHistoryAndSave();
+      resume();
+      setDraggedNodes(new Set());
     },
-    [addToGroup, lastParentNode, resumeHistoryAndSave]
+    [addToGroup, lastParentNode, resume, setDraggedNodes]
   );
 
   /* SELECTION START */
@@ -120,7 +135,8 @@ export default function useDragHandlers() {
 
   /* SELECTION END */
   const onSelectionEnd = useCallback(() => {
-    if (CKeyPressed) {
+    if (cKeyPressed) {
+      console.log("onSelectionEnd");
       // create comment node
       const mousePos = getMousePosition();
       const projectedEndPos = reactFlow.screenToFlowPosition({
@@ -131,7 +147,7 @@ export default function useDragHandlers() {
       const height = Math.abs(projectedEndPos.y - startPos.y);
       createCommentNode(width, height);
     }
-  }, [createCommentNode, startPos, reactFlow, CKeyPressed]);
+  }, [createCommentNode, startPos, reactFlow, cKeyPressed]);
 
   // enables pan on drag. accepts boolean or array of mouse buttons
   let panOnDrag: number[] = [0];
@@ -148,21 +164,20 @@ export default function useDragHandlers() {
   /* NODE DRAG */
   const onNodeDrag = useCallback(
     (event: MouseEvent, node: Node<NodeData>) => {
+      pause();
+      setDraggedNodes(new Set([node]));
       const intersections = reactFlow
         .getIntersectingNodes(node)
         // .filter((n) => isGroupable(n as Node<NodeData>))
         .filter((n) => isGroup(n as Node<NodeData>))
         .map((n) => n.id);
-      useNodeStore.getState().setHoveredNodes(intersections);
+      setHoveredNodes(intersections);
       if (intersections.length > 0) {
-        const lastParent = useNodeStore.getState().findNode(intersections[0]);
+        const lastParent = findNode(intersections[0]);
         setLastParentNode(lastParent);
       }
-      if (spaceKeyPressed) {
-        removeFromGroup([node]);
-      }
     },
-    [reactFlow, spaceKeyPressed, removeFromGroup]
+    [reactFlow, removeFromGroup, pause, draggedNodes, setDraggedNodes]
   );
 
   return {

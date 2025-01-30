@@ -3,7 +3,6 @@ import { XYPosition } from "@xyflow/react";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useWorkflowStore } from "../../stores/WorkflowStore";
-import { useNodeStore } from "../../stores/NodeStore";
 import { useCreateDataframe } from "./useCreateDataframe";
 import {
   constantForType,
@@ -13,6 +12,7 @@ import { useNotificationStore } from "../../stores/NotificationStore";
 import useAuth from "../../stores/useAuth";
 import { Asset } from "../../stores/ApiTypes";
 import useMetadataStore from "../../stores/MetadataStore";
+import { useNodes } from "../../contexts/NodeContext";
 
 export type FileHandlerResult = {
   success: boolean;
@@ -100,12 +100,15 @@ export const isNodetoolWorkflowJson = (json: any): boolean => {
 };
 
 export const useFileHandlers = () => {
-  const workflow = useNodeStore((state) => state.workflow);
   const currentFolderId = useAssetGridStore((state) => state.currentFolderId);
   const { uploadAsset } = useAssetUpload();
   const createWorkflow = useWorkflowStore((state) => state.create);
-  const setWorkflow = useNodeStore((state) => state.setWorkflow);
-  const { createNode, addNode } = useNodeStore();
+  const setWorkflow = useNodes((state) => state.setWorkflow);
+  const { createNode, addNode, workflow } = useNodes((state) => ({
+    createNode: state.createNode,
+    addNode: state.addNode,
+    workflow: state.workflow
+  }));
   const { addNotification } = useNotificationStore();
   const { user } = useAuth();
   const createDataframe = useCreateDataframe(createNode, addNode);

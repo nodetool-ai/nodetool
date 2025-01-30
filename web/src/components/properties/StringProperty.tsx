@@ -13,7 +13,6 @@ const StringProperty = ({
   onChange,
   tabIndex,
   nodeId,
-  isConnected,
   nodeType
 }: PropertyProps) => {
   const id = `textfield-${property.name}-${propertyIndex}`;
@@ -41,26 +40,24 @@ const StringProperty = ({
   if (showTextEditor) {
     return (
       <div className="string-property">
-        {!isConnected && (
-          <textarea
-            value={value || ""}
-            onChange={(e) => onChange(e.target.value)}
-            onFocus={handleFocus}
-            className="nodrag"
-            rows={2}
-            style={{ width: "100%", minHeight: "48px", maxHeight: "160px" }}
-            tabIndex={tabIndex}
-            autoComplete="off"
-            autoCorrect="off"
-            autoCapitalize="off"
-            spellCheck="false"
-            onInput={(e) => {
-              const target = e.target as HTMLTextAreaElement;
-              target.style.height = "auto";
-              target.style.height = `${target.scrollHeight}px`;
-            }}
-          />
-        )}
+        <textarea
+          value={value || ""}
+          onChange={(e) => onChange(e.target.value)}
+          onFocus={handleFocus}
+          className="nodrag"
+          rows={2}
+          style={{ width: "100%", minHeight: "48px", maxHeight: "160px" }}
+          tabIndex={tabIndex}
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck="false"
+          onInput={(e) => {
+            const target = e.target as HTMLTextAreaElement;
+            target.style.height = "auto";
+            target.style.height = `${target.scrollHeight}px`;
+          }}
+        />
         {isExpanded && (
           <TextEditorModal
             value={value || ""}
@@ -81,27 +78,25 @@ const StringProperty = ({
         description={property.description}
         id={id}
       />
-      {!isConnected && (
-        <>
-          <div className="container">
-            <input
-              ref={inputRef}
-              type="text"
-              id={id}
-              name={property.name}
-              className="nodrag"
-              value={value || ""}
-              onChange={handleChange}
-              onFocus={handleFocus}
-              autoComplete="off"
-              autoCorrect="off"
-              autoCapitalize="off"
-              spellCheck="false"
-              tabIndex={tabIndex}
-            />
-          </div>
-        </>
-      )}
+      <>
+        <div className="container">
+          <input
+            ref={inputRef}
+            type="text"
+            id={id}
+            name={property.name}
+            className="nodrag"
+            value={value || ""}
+            onChange={handleChange}
+            onFocus={handleFocus}
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck="false"
+            tabIndex={tabIndex}
+          />
+        </div>
+      </>
     </div>
   );
 };

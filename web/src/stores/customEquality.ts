@@ -31,12 +31,8 @@ export function customEquality(
   /*
   customEquality:
   - results in a history item being created if the return value is false
-  - allows explicit creation of a history item using explicitSave
   - omits some fields to prevent unnecessary history items being created
   */
-  if (current.explicitSave) {
-    return false;
-  }
   if (previous.nodes.length !== current.nodes.length) {
     return false;
   }

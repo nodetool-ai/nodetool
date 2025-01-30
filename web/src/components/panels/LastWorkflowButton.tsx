@@ -14,11 +14,11 @@ import EditIcon from "@mui/icons-material/Edit";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
-import { useNodeStore } from "../../stores/NodeStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useLocation, useNavigate } from "react-router-dom";
 import ThemeNodetool from "../themes/ThemeNodetool";
 import { useWorkflowStore } from "../../stores/WorkflowStore";
+import { useNodes } from "../../contexts/NodeContext";
 
 const styles = (theme: any) =>
   css({
@@ -139,7 +139,7 @@ const LastWorkflowButton = () => {
     saveWorkflow,
     workflowDirty,
     lastWorkflow
-  } = useNodeStore(
+  } = useNodes(
     useCallback(
       (state) => ({
         workflow: state.workflow,

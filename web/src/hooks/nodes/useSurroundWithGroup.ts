@@ -1,26 +1,31 @@
 import { useCallback, useMemo } from "react";
 import { NodeMetadata } from "../../stores/ApiTypes";
-import { useNodeStore } from "../../stores/NodeStore";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import { useTemporalNodeStore } from "../../stores/NodeStore";
 import ThemeNodes from "../../components/themes/ThemeNodes";
+import { useNodes, useTemporalNodes } from "../../contexts/NodeContext";
+import { NodeData } from "../../stores/NodeData";
+import { Node } from "@xyflow/react";
 const GROUP_NODE_TYPE = "nodetool.workflows.base_node.Group";
 
 export const useSurroundWithGroup = () => {
-  const addNode = useNodeStore((state) => state.addNode);
-  const createNode = useNodeStore((state) => state.createNode);
+  const { addNode, createNode, updateNode, findNode } = useNodes((state) => ({
+    addNode: state.addNode,
+    createNode: state.createNode,
+    updateNode: state.updateNode,
+    findNode: state.findNode
+  }));
   const getMetadata = useMetadataStore.getState().getMetadata;
-  const updateNode = useNodeStore((state) => state.updateNode);
-  const findNode = useNodeStore((state) => state.findNode);
-  const history = useTemporalNodeStore((state) => state);
+  const { pause, resume } = useTemporalNodes((state) => ({
+    pause: state.pause,
+    resume: state.resume
+  }));
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
 
   const getBounds = useMemo(() => {
-    return (selectedNodeIds: string[]) => {
-      const nodes = selectedNodeIds.map((id) => findNode(id)).filter(Boolean);
+    return (nodes: Node<NodeData>[]) => {
       return nodes.reduce(
         (bounds, node) => {
           if (!node) return bounds;
@@ -43,22 +48,10 @@ export const useSurroundWithGroup = () => {
   }, [findNode]);
 
   const surroundWithGroup = useCallback(
-    ({ selectedNodeIds }: { selectedNodeIds: string[] }) => {
-      const canAddToGroup = selectedNodeIds.every((id) => {
-        const node = findNode(id);
-        return node && !node.parentId;
-      });
-      if (!canAddToGroup) {
-        addNotification({
-          type: "warning",
-          alert: true,
-          content: "Nodes already in a group cannot be added."
-        });
-        return;
-      }
-      history.pause();
+    ({ selectedNodes }: { selectedNodes: Node<NodeData>[] }) => {
+      pause();
       const groupMetadata = getMetadata(GROUP_NODE_TYPE) as NodeMetadata;
-      const bounds = getBounds(selectedNodeIds);
+      const bounds = getBounds(selectedNodes);
 
       const groupNode = createNode(groupMetadata, {
         x: bounds.x - 20,
@@ -74,10 +67,9 @@ export const useSurroundWithGroup = () => {
 
       addNode(groupNode);
 
-      selectedNodeIds.forEach((nodeId) => {
-        const node = findNode(nodeId);
+      selectedNodes.forEach((node) => {
         if (node) {
-          updateNode(nodeId, {
+          updateNode(node.id, {
             parentId: groupNode.id,
             expandParent: true,
             position: {
@@ -87,7 +79,7 @@ export const useSurroundWithGroup = () => {
           });
         }
       });
-      history.resume();
+      resume();
     },
     [
       history,

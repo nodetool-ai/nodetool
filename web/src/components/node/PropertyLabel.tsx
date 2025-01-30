@@ -1,15 +1,8 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useMemo } from "react";
-import { css } from "@emotion/react";
-import InputLabel from "@mui/material/InputLabel";
 import { titleizeString } from "../../utils/titleizeString";
 import { isEqual } from "lodash";
-// import Tooltip from "@mui/material/Tooltip";
-// import {
-//   TOOLTIP_ENTER_DELAY,
-//   TOOLTIP_LEAVE_DELAY,
-//   TOOLTIP_ENTER_NEXT_DELAY
-// } from "./BaseNode";
+import Tooltip from "@mui/material/Tooltip";
 
 interface PropertyLabelProps {
   id: string;
@@ -28,9 +21,11 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
 
   return (
     <div className="property-label">
-      <label draggable={false} htmlFor={id} title={description ?? ""}>
-        {formattedName}
-      </label>
+      <Tooltip title={description || ""} enterDelay={300} placement="left">
+        <label draggable={false} htmlFor={id}>
+          {formattedName}
+        </label>
+      </Tooltip>
     </div>
   );
 };

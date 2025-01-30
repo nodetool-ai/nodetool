@@ -8,7 +8,6 @@ import {
   Message
 } from "./ApiTypes";
 import useResultsStore from "./ResultsStore";
-import { useNodeStore } from "./NodeStore";
 import { useAssetStore } from "./AssetStore";
 import useStatusStore from "./StatusStore";
 import useLogsStore from "./LogStore";
@@ -23,8 +22,6 @@ export const handleUpdate = (
   const runner = useWorkflowRunner.getState();
   const getAsset = useAssetStore.getState().get;
   const setResult = useResultsStore.getState().setResult;
-  const findNode = useNodeStore.getState().findNode;
-  const updateNode = useNodeStore.getState().updateNodeData;
   const setStatus = useStatusStore.getState().setStatus;
   const setLogs = useLogsStore.getState().setLogs;
   const setError = useErrorStore.getState().setError;
@@ -94,11 +91,11 @@ export const handleUpdate = (
 
   if (data.type === "node_update") {
     const update = data as NodeUpdate;
-    const node = findNode(update.node_id);
-    if (!node) {
-      devError("received message for deleted node", update.node_id);
-      return;
-    }
+    // const node = findNode(update.node_id);
+    // if (!node) {
+    //   devError("received message for deleted node", update.node_id);
+    //   return;
+    // }
 
     if (update.error) {
       devError("WorkflowRunner update error", update.error);
@@ -112,7 +109,7 @@ export const handleUpdate = (
       setError(workflow.id, update.node_id, update.error);
     } else {
       useWorkflowRunner.setState({
-        statusMessage: `${node.type} ${update.status}`
+        statusMessage: `${update.node_name} ${update.status}`
       });
       setLogs(workflow.id, update.node_id, update.logs || "");
       setStatus(workflow.id, update.node_id, update.status);
@@ -143,14 +140,14 @@ export const handleUpdate = (
       }
     }
 
-    if (update.properties) {
-      const nodeData = findNode(update.node_id)?.data;
-      if (nodeData) {
-        updateNode(update.node_id, {
-          ...nodeData,
-          properties: { ...nodeData.properties, ...update.properties }
-        });
-      }
-    }
+    // if (update.properties) {
+    //   const nodeData = findNode(update.node_id)?.data;
+    //   if (nodeData) {
+    //     updateNode(update.node_id, {
+    //       ...nodeData,
+    //       properties: { ...nodeData.properties, ...update.properties }
+    //     });
+    //   }
+    // }
   }
 };

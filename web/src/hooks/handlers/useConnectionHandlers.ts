@@ -1,13 +1,13 @@
 import { useCallback, useRef } from "react";
 import { OnConnectStartParams, Connection } from "@xyflow/react";
 import useConnectionStore from "../../stores/ConnectionStore";
-import { useNodeStore } from "../../stores/NodeStore";
 import { TypeName } from "../../stores/ApiTypes";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { devLog } from "../../utils/DevLog";
 import { isConnectable } from "../../utils/TypeHandler";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import useMetadataStore from "../../stores/MetadataStore";
+import { useNodes } from "../../contexts/NodeContext";
 
 /**
  * Find if an element or any of its parents has a class name
@@ -39,9 +39,13 @@ export default function useConnectionHandlers() {
     })
   );
 
-  const findNode = useNodeStore((state) => state.findNode);
-  const setConnectionAttempted = useNodeStore(
-    (state) => state.setConnectionAttempted
+  const { findNode, onConnect, edges, setConnectionAttempted } = useNodes(
+    (state) => ({
+      findNode: state.findNode,
+      onConnect: state.onConnect,
+      edges: state.edges,
+      setConnectionAttempted: state.setConnectionAttempted
+    })
   );
   const getMetadata = useMetadataStore((state) => state.getMetadata);
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
@@ -69,7 +73,12 @@ export default function useConnectionHandlers() {
       connectionCreated.current = false;
 
       try {
-        startConnecting(nodeId, handleId, handleType, nodeMetadata);
+        const node = findNode(nodeId);
+        if (!node) {
+          console.warn(`Node with id ${nodeId} not found`);
+          return;
+        }
+        startConnecting(node, handleId, handleType, nodeMetadata);
       } catch (error) {
         console.error("Error starting connection:", error);
         endConnecting();
@@ -83,7 +92,7 @@ export default function useConnectionHandlers() {
     (connection: Connection) => {
       connectionCreated.current = true;
       devLog("Connection Created", connection);
-      useNodeStore.getState().onConnect(connection);
+      onConnect(connection);
     },
     [connectionCreated]
   );
@@ -137,7 +146,6 @@ export default function useConnectionHandlers() {
           );
 
           if (possibleInputs.length > 0) {
-            const edges = useNodeStore.getState().edges;
             const unusedInput = possibleInputs.find(
               (input) =>
                 !edges.some(

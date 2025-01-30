@@ -14,7 +14,6 @@ import SearchIcon from "@mui/icons-material/Search";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 //store
 import useContextMenuStore from "../../stores/ContextMenuStore";
-import { useNodeStore } from "../../stores/NodeStore";
 import { NodeData } from "../../stores/NodeData";
 import { useNotificationStore } from "../../stores/NotificationStore";
 //behaviours
@@ -29,6 +28,7 @@ import { useRemoveFromGroup } from "../../hooks/nodes/useRemoveFromGroup";
 import { Node } from "@xyflow/react";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useNavigate } from "react-router-dom";
+import { useNodes } from "../../contexts/NodeContext";
 
 const NodeContextMenu: React.FC = () => {
   const menuPosition = useContextMenuStore((state) => state.menuPosition);
@@ -40,7 +40,7 @@ const NodeContextMenu: React.FC = () => {
     (state) => state.openDocumentation
   );
   const { getNode } = useReactFlow();
-  const deleteNode = useNodeStore((state) => state.deleteNode);
+  const deleteNode = useNodes((state) => state.deleteNode);
   const node = nodeId !== null ? getNode(nodeId) : null;
   const nodeData = node?.data as NodeData;
   const removeFromGroup = useRemoveFromGroup();
