@@ -40,7 +40,6 @@ import useErrorStore from "./ErrorStore";
 import useResultsStore from "./ResultsStore";
 import { tryCacheFiles, tryCacheRepos } from "../serverState/tryCacheFiles";
 import PlaceholderNode from "../components/node_types/PlaceholderNode";
-import { useStoreWithEqualityFn } from "zustand/traditional";
 import { graphEdgeToReactFlowEdge } from "./graphEdgeToReactFlowEdge";
 import { graphNodeToReactFlowNode } from "./graphNodeToReactFlowNode";
 import { reactFlowNodeToGraphNode } from "./reactFlowNodeToGraphNode";
@@ -282,6 +281,7 @@ export const createNodeStore = (workflow?: Workflow) =>
           if (selectedNodes.length <= 1) {
             selectedNodes = allNodes;
           }
+          console.log("autoLayout", edges, selectedNodes);
           const layoutedNodes = await autoLayout(edges, selectedNodes);
 
           // Update nodes with new positions while preserving other properties
@@ -590,8 +590,7 @@ export const createNodeStore = (workflow?: Workflow) =>
             updatedNodes = [...get().nodes, node];
           }
 
-          set({ nodes: updatedNodes });
-          get().setWorkflowDirty(true);
+          set({ nodes: updatedNodes, workflowIsDirty: true });
         },
 
         /**

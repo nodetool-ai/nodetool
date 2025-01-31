@@ -18,7 +18,9 @@ export default function useDragHandlers() {
   }));
   const reactFlow = useReactFlow();
   const [startPos, setStartPos] = useState({ x: 0, y: 0 });
-  const [lastParentNode, setLastParentNode] = useState<Node | undefined>();
+  const [lastParentNode, setLastParentNode] = useState<
+    Node<NodeData> | undefined
+  >();
   const { settings } = useSettingsStore((state) => state);
   const [draggedNodes, setDraggedNodes] = useState<Set<Node<NodeData>>>(
     new Set()
@@ -95,6 +97,7 @@ export default function useDragHandlers() {
         });
       });
       setDraggedNodes(new Set());
+      setHoveredNodes([]);
       console.log("onNodeDragStop");
     },
     [addToGroup, lastParentNode, resume, draggedNodes, updateNode]
@@ -155,12 +158,6 @@ export default function useDragHandlers() {
     panOnDrag = [1, 2];
   }
 
-  /* DRAG OVER */
-  const onDragOver = useCallback((event: any) => {
-    event.preventDefault();
-    event.dataTransfer.dropEffect = "move";
-  }, []);
-
   /* NODE DRAG */
   const onNodeDrag = useCallback(
     (event: MouseEvent, node: Node<NodeData>) => {
@@ -168,7 +165,6 @@ export default function useDragHandlers() {
       setDraggedNodes(new Set([node]));
       const intersections = reactFlow
         .getIntersectingNodes(node)
-        // .filter((n) => isGroupable(n as Node<NodeData>))
         .filter((n) => isGroup(n as Node<NodeData>))
         .map((n) => n.id);
       setHoveredNodes(intersections);
@@ -188,7 +184,6 @@ export default function useDragHandlers() {
     onSelectionDragStop,
     onSelectionStart,
     onSelectionEnd,
-    onDragOver,
     onNodeDrag,
     panOnDrag
   };

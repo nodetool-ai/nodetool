@@ -15,23 +15,16 @@ export function useAddToGroup() {
     })
   );
   const addToGroup = useCallback(
-    (nodes: Node<NodeData>[], lastParentNode?: Node | undefined) => {
-      const parentId = hoveredNodes[0];
-      const parentNode = findNode(parentId);
+    (nodes: Node<NodeData>[], parentNode?: Node<NodeData> | undefined) => {
       nodes.forEach((node) => {
-        if (
-          parentNode &&
-          hoveredNodes.length > 0 &&
-          isGroupable(node) &&
-          isGroup(parentNode)
-        ) {
+        if (parentNode && isGroupable(node) && isGroup(parentNode)) {
           if (!node.parentId) {
             updateNode(node.id, {
               position: {
                 x: node.position.x - parentNode.position.x,
                 y: node.position.y - parentNode.position.y
               },
-              parentId: parentId,
+              parentId: parentNode.id,
               expandParent: true
             });
           }
@@ -47,8 +40,8 @@ export function useAddToGroup() {
             // remove from group and adjust position
             updateNode(node.id, {
               position: {
-                x: node.position.x + (lastParentNode?.position.x || 0),
-                y: node.position.y + (lastParentNode?.position.y || 0)
+                x: node.position.x + (parentNode?.position.x || 0),
+                y: node.position.y + (parentNode?.position.y || 0)
               },
               parentId: undefined,
               expandParent: false
@@ -56,10 +49,8 @@ export function useAddToGroup() {
           }
         }
       });
-
-      setHoveredNodes([]);
     },
-    [isGroupable, isGroup]
+    [isGroupable, isGroup, updateNode]
   );
 
   return addToGroup;

@@ -9,7 +9,10 @@ import { useAddNodeFromAsset } from "./addNodeFromAsset";
 import { FileHandlerResult } from "./dropHandlerUtils";
 import { useCreateLoopNode } from "../nodes/useCreateLoopNode";
 import { useNodes } from "../../contexts/NodeContext";
-
+import { useIsGroupable } from "../nodes/useIsGroupable";
+import { NodeData } from "../../stores/NodeData";
+import { Node } from "@xyflow/react";
+import { useAddToGroup } from "../nodes/useAddToGroup";
 // File type detection
 function detectFileType(file: File): string {
   switch (file.type) {
@@ -47,6 +50,11 @@ export const useDropHandler = () => {
   );
   const addNodeFromAsset = useAddNodeFromAsset();
   const createLoopNode = useCreateLoopNode();
+  const { isGroup } = useIsGroupable();
+  const { findNode } = useNodes((state) => ({
+    findNode: state.findNode,
+    updateNode: state.updateNode
+  }));
 
   const onDrop = useCallback(
     async (event: React.DragEvent<HTMLDivElement>) => {
@@ -68,6 +76,20 @@ export const useDropHandler = () => {
           createLoopNode(node, position);
         } else {
           const newNode = createNode(node, position);
+          const intersections = reactFlow
+            .getIntersectingNodes(newNode)
+            .filter((n) => isGroup(n as Node<NodeData>))
+            .map((n) => n.id);
+          if (intersections.length > 0) {
+            const parentNode = findNode(intersections[0]);
+            if (parentNode) {
+              newNode.parentId = parentNode.id;
+              newNode.position = {
+                x: newNode.position.x - parentNode.position.x,
+                y: newNode.position.y - parentNode.position.y
+              };
+            }
+          }
           addNode(newNode);
         }
         return;
@@ -133,7 +155,13 @@ export const useDropHandler = () => {
     ]
   );
 
-  return { onDrop };
+  /* DRAG OVER */
+  const onDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+  }, []);
+
+  return { onDrop, onDragOver };
 };
 
 export default useDropHandler;
