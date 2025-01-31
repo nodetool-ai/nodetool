@@ -22,7 +22,7 @@ const logoStyles = (
   css({
     display: "flex",
     alignItems: "center",
-    gap: "8px",
+    gap: "20px",
     ".nt": {
       fontFamily: theme.fontFamily1,
       fontWeight: 600,

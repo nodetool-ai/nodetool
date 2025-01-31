@@ -12,7 +12,6 @@ import Alert from "../node_editor/Alert";
 import Logo from "../Logo";
 import Welcome from "../content/Welcome/Welcome";
 import AppHeaderActions from "./AppHeaderActions";
-import LastWorkflowButton from "./LastWorkflowButton";
 import OverallDownloadProgress from "../hugging_face/OverallDownloadProgress";
 import NotificationButton from "./NotificationButton";
 
@@ -49,13 +48,10 @@ const styles = (theme: any, buttonAppearance: "text" | "icon" | "both") =>
   css({
     "&": {
       width: "100%",
-      backgroundColor: "rgba(18, 18, 24, 0.95)",
-      backdropFilter: "blur(8px)",
-      borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
-      overflow: "visible",
-      background:
-        "linear-gradient(180deg, rgba(24, 24, 32, 0.98) 0%, rgba(18, 18, 24, 0.95) 100%)",
-      boxShadow: "0 2px 8px rgba(0, 0, 0, 0.2), 0 1px 3px rgba(0, 0, 0, 0.1)"
+      height: "40px",
+      // backgroundColor: "rgba(18, 18, 24, 0.95)",
+      backgroundColor: theme.palette.c_gray1,
+      overflow: "visible"
     },
     ".app-bar": {
       overflow: "visible",
@@ -74,7 +70,7 @@ const styles = (theme: any, buttonAppearance: "text" | "icon" | "both") =>
       overflow: "visible"
     },
     ".nodetool-logo": {
-      margin: "0 1.5em 0 0.5em"
+      margin: "1px 1.5em 0 0"
     },
     button: {
       fontSize:

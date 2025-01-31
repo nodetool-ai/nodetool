@@ -15,14 +15,21 @@ const styles = (theme: any) =>
     display: "flex",
     flexDirection: "column",
     height: "100%",
-    background: theme.palette.background.default,
+    background: "transparent",
 
     "& .tabs": {
+      position: "absolute",
+      top: "45px",
+      left: "6px",
+      zIndex: 1000,
       display: "flex",
+      flexWrap: "wrap",
       marginLeft: "4em",
-      background: theme.palette.background.paper,
-      borderBottom: `1px solid ${theme.palette.divider}`,
-      height: "35px",
+      gap: "5px",
+      background: "transparent",
+      // overflow: "hidden",
+      minHeight: "30px",
+      maxHeight: "100px",
       overflowX: "auto",
 
       "&::-webkit-scrollbar": {
@@ -31,49 +38,33 @@ const styles = (theme: any) =>
     },
 
     "& .tab": {
-      padding: "0 16px",
-      height: "35px",
+      padding: "0 5px 0 15px",
+      height: "30px",
       display: "flex",
+      flexWrap: "nowrap",
+      lineHeight: "1.1em",
       alignItems: "center",
       gap: "8px",
       minWidth: "100px",
       cursor: "pointer",
-      borderRight: `1px solid ${theme.palette.divider}`,
       color: theme.palette.c_gray5,
-      position: "relative",
-      transition: "all 0.2s ease-in-out",
+      background: theme.palette.c_gray2,
+      borderRadius: "5px",
+      fontSize: theme.fontSizeNormal,
+      transition: "all 0.1s ease-in-out",
 
       "&:hover": {
-        background: `${theme.palette.c_gray2}33`,
-        "&::before": {
-          content: '""',
-          position: "absolute",
-          bottom: 0,
-          left: 0,
-          right: 0,
-          height: "2px",
-          background: `linear-gradient(90deg, transparent, ${theme.palette.c_hl1}, transparent)`
-        }
+        color: theme.palette.c_gray6
       },
 
       "&.active": {
-        background: theme.palette.c_gray2,
-        color: theme.palette.c_hl1,
-        "&::after": {
-          content: '""',
-          position: "absolute",
-          bottom: 0,
-          left: 0,
-          right: 0,
-          height: "2px",
-          background: theme.palette.c_hl1,
-          boxShadow: `0 0 8px ${theme.palette.c_hl1}`
-        }
+        color: theme.palette.c_white,
+        backgroundColor: theme.palette.c_gray1
       },
 
       "& .close-icon": {
-        opacity: 0,
-        transition: "all 0.2s ease-in-out",
+        opacity: 0.4,
+        transition: "all 0.1s ease-in-out",
         "&:hover": {
           opacity: 1,
           transform: "rotate(90deg)",

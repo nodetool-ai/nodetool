@@ -191,8 +191,8 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   };
 
   const handleHeaderClick = () => {
-    headerInputRef.current?.focus();
-    headerInputRef.current?.select();
+    // headerInputRef.current?.focus();
+    // headerInputRef.current?.select();
   };
 
   const handleColorChange = useCallback(

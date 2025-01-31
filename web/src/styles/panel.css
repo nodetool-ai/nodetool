@@ -24,12 +24,13 @@ img {
 /* PANEL LEFT */
 #root .panel-left {
   direction: ltr;
+  top: 80px;
   position: absolute;
   overflow-x: hidden;
   overflow-y: auto;
   width: 100%;
   padding: 0.5em;
-  height: calc(-51px + 100vh);
+  height: calc(-90px + 100vh);
   transition: left 0.25s ease-out;
 }
 
@@ -65,11 +66,11 @@ img {
   left: unset;
   right: unset;
   width: 40px;
-  height: calc(100vh - 64px);
+  height: calc(100vh - 90px);
   background-color: transparent;
   border: 0;
   border-radius: 0;
-  top: 50px;
+  top: 80px;
   cursor: e-resize;
   transition: background-color 0.3s ease;
 }
