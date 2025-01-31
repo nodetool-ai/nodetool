@@ -16,6 +16,7 @@ import NodeInfo from "./NodeInfo";
 import { isEqual } from "lodash";
 import ThemeNodetool from "../themes/ThemeNodetool";
 import useMetadataStore from "../../stores/MetadataStore";
+import { ArrowBack } from "@mui/icons-material";
 
 type NamespaceTree = {
   [key: string]: {
@@ -29,24 +30,23 @@ interface NamespaceListProps {
   namespaceTree: NamespaceTree;
   metadata: NodeMetadata[];
   inPanel?: boolean;
-  showNamespaceTree?: boolean;
 }
 
 const namespaceStyles = (theme: any, inPanel: boolean) =>
   css({
     "&": {
-      margin: "1em 0 0 1em",
+      margin: "1em 0",
       height: inPanel ? "100%" : "60vh",
       display: "flex",
       flexDirection: "column",
-      marginTop: inPanel ? "-32px" : "0"
+      marginTop: "20px"
     },
     ".header": {
       display: "flex",
       minHeight: "30px",
       alignItems: "center",
       flexDirection: "row",
-      margin: "0 1em .5em 1em",
+      margin: "0 1em .5em ",
       justifyContent: "flex-end"
     },
     ".clear-namespace": {
@@ -59,7 +59,7 @@ const namespaceStyles = (theme: any, inPanel: boolean) =>
       display: "flex",
       flexDirection: "row",
       alignItems: "stretch",
-      marginLeft: "0",
+      margin: "0",
       width: "100%",
       flex: "1 1 auto",
       minHeight: 0
@@ -74,7 +74,8 @@ const namespaceStyles = (theme: any, inPanel: boolean) =>
       maxHeight: inPanel ? "85vh" : "calc(min(750px, 50vh))",
 
       paddingRight: inPanel ? ".5em" : "1em",
-      paddingBottom: "3em",
+      paddingLeft: inPanel ? ".5em" : "1em",
+      // paddingBottom: "3em",
       marginRight: ".5em",
       minWidth: inPanel ? "120px" : "100px",
       boxShadow: "inset 0 0 10px rgba(0, 0, 0, 0.4)",
@@ -356,14 +357,47 @@ const namespaceStyles = (theme: any, inPanel: boolean) =>
       },
     "&.has-search-results .no-highlight": {
       pointerEvents: "none"
+    },
+    ".namespace-panel-container": {
+      position: "relative",
+      transition: "margin-left 0.3s ease-in-out",
+      marginLeft: "1em",
+      "&.collapsed": {
+        marginLeft: "-135px"
+      }
+    },
+    ".toggle-panel-button": {
+      position: "absolute",
+      right: "10px",
+      top: "0",
+      height: "100%",
+      width: "10px",
+      zIndex: 1,
+      backgroundColor: theme.palette.c_gray2,
+      border: "none",
+      borderRadius: "0 4px 4px 0",
+      padding: "1em 0.5em",
+      cursor: "pointer",
+      color: theme.palette.c_white,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      "&:hover": {
+        backgroundColor: theme.palette.c_gray3
+      },
+      "& svg": {
+        transition: "transform 0.3s ease-in-out"
+      },
+      "&.collapsed svg": {
+        transform: "rotate(180deg)"
+      }
     }
   });
 
 const NamespaceList: React.FC<NamespaceListProps> = ({
   namespaceTree,
   metadata,
-  inPanel = false,
-  showNamespaceTree = true
+  inPanel = false
 }) => {
   const {
     searchTerm,
@@ -435,7 +469,7 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
         </div>
       </>
     );
-  }, [enabledTree, disabledTree, showNamespaceTree]);
+  }, [enabledTree, disabledTree]);
 
   const renderNodes = useMemo(
     () => <RenderNodes nodes={currentNodes} />,
@@ -460,6 +494,12 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
 
   const totalNodes = useMetadataStore((state) => state.getAllMetadata()).length;
 
+  const [isPanelCollapsed, setIsPanelCollapsed] = React.useState(false);
+
+  const togglePanel = useCallback(() => {
+    setIsPanelCollapsed((prev) => !prev);
+  }, []);
+
   return (
     <div
       css={memoizedStyles}
@@ -469,72 +509,21 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
           : "no-search-results"
       }
     >
-      <Box className="header">
-        <Tooltip
-          title={
-            <div style={{ color: "#eee", fontSize: "1.25em" }}>
-              {selectedPathString && (
-                <div>Current namespace: {currentNodes?.length} nodes</div>
-              )}
-              {searchTerm.length > minSearchTermLength ? (
-                <>
-                  <div>Total search matches: {allSearchMatches.length}</div>
-                  <div
-                    style={{
-                      fontSize: "0.8em",
-                      color: "#aaa",
-                      marginTop: "0.5em"
-                    }}
-                  ></div>
-                </>
-              ) : (
-                <>
-                  <div>Total available: {totalNodes} nodes</div>
-                  <div
-                    style={{
-                      fontSize: "0.8em",
-                      color: "#aaa",
-                      marginTop: "0.5em"
-                    }}
-                  ></div>
-                </>
-              )}
-            </div>
-          }
-          enterDelay={TOOLTIP_ENTER_DELAY}
-          leaveDelay={TOOLTIP_LEAVE_DELAY}
-          enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
-          placement="bottom"
-        >
-          <Typography className="result-info">
-            {searchTerm.length > minSearchTermLength ? (
-              <>
-                <span>
-                  {searchTerm.length > minSearchTermLength
-                    ? searchResults.length
-                    : currentNodes?.length}
-                </span>{" "}
-                /{" "}
-                <span>
-                  {searchTerm.length > minSearchTermLength
-                    ? allSearchMatches.length
-                    : metadata.length}
-                </span>
-              </>
-            ) : (
-              // no search term
-              <span>
-                {selectedPathString ? currentNodes.length : totalNodes}
-              </span>
-            )}
-            <span className="result-label">nodes</span>
-          </Typography>
-        </Tooltip>
-      </Box>
       <Box className="list-box">
-        {showNamespaceTree && (
+        <div
+          className={`namespace-panel-container ${
+            isPanelCollapsed ? "collapsed" : ""
+          }`}
+        >
+          <button
+            className={`toggle-panel-button ${
+              isPanelCollapsed ? "collapsed" : ""
+            }`}
+            onClick={togglePanel}
+            title={isPanelCollapsed ? "Show namespaces" : "Hide namespaces"}
+          ></button>
           <List className="namespace-list">{renderNamespaces}</List>
-        )}
+        </div>
         {currentNodes && currentNodes.length > 0 ? (
           <>
             <List className="node-list">{renderNodes}</List>
@@ -620,12 +609,10 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
             <div className="explanation">
               <h5>Node Search</h5>
               <ul>
-                {showNamespaceTree && (
-                  <li>
-                    Browse through available nodes by selecting namespaces from
-                    the menu on the left
-                  </li>
-                )}
+                <li>
+                  Browse through available nodes by selecting namespaces from
+                  the menu on the left
+                </li>
                 <li>
                   Add nodes to your workflow by:
                   <ul>
@@ -637,6 +624,68 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
             </div>
           </div>
         )}
+      </Box>
+      <Box className="header">
+        <Tooltip
+          title={
+            <div style={{ color: "#eee", fontSize: "1.25em" }}>
+              {selectedPathString && (
+                <div>Current namespace: {currentNodes?.length} nodes</div>
+              )}
+              {searchTerm.length > minSearchTermLength ? (
+                <>
+                  <div>Total search matches: {allSearchMatches.length}</div>
+                  <div
+                    style={{
+                      fontSize: "0.8em",
+                      color: "#aaa",
+                      marginTop: "0.5em"
+                    }}
+                  ></div>
+                </>
+              ) : (
+                <>
+                  <div>Total available: {totalNodes} nodes</div>
+                  <div
+                    style={{
+                      fontSize: "0.8em",
+                      color: "#aaa",
+                      marginTop: "0.5em"
+                    }}
+                  ></div>
+                </>
+              )}
+            </div>
+          }
+          enterDelay={TOOLTIP_ENTER_DELAY}
+          leaveDelay={TOOLTIP_LEAVE_DELAY}
+          enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
+          placement="bottom"
+        >
+          <Typography className="result-info">
+            {searchTerm.length > minSearchTermLength ? (
+              <>
+                <span>
+                  {searchTerm.length > minSearchTermLength
+                    ? searchResults.length
+                    : currentNodes?.length}
+                </span>{" "}
+                /{" "}
+                <span>
+                  {searchTerm.length > minSearchTermLength
+                    ? allSearchMatches.length
+                    : metadata.length}
+                </span>
+              </>
+            ) : (
+              // no search term
+              <span>
+                {selectedPathString ? currentNodes.length : totalNodes}
+              </span>
+            )}
+            <span className="result-label">nodes</span>
+          </Typography>
+        </Tooltip>
       </Box>
     </div>
   );
