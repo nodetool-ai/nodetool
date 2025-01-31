@@ -51,6 +51,12 @@ class Ollama(BaseNode):
         le=4096 * 16,
         description="The context window size to use for the model.",
     )
+    num_predict: int = Field(
+        default=128,
+        ge=1,
+        le=10000,
+        description="The number of tokens to predict.",
+    )
     temperature: float = Field(
         default=0.7,
         ge=0.0,
@@ -146,6 +152,7 @@ class Ollama(BaseNode):
                     "top_p": self.top_p,
                     "keep_alive": self.keep_alive,
                     "num_ctx": self.context_window,
+                    "num_predict": self.num_predict,
                 },
             },
         ):
