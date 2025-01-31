@@ -16097,7 +16097,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": 28,
+        "default": 31,
         "title": "Day",
         "description": "Day of the date",
         "min": null,
@@ -16172,7 +16172,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": 28,
+        "default": 31,
         "title": "Day",
         "description": "Day of the datetime",
         "min": null,
@@ -16575,11 +16575,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 28,
-          "hour": 22,
+          "day": 31,
+          "hour": 17,
           "minute": 54,
-          "second": 21,
-          "microsecond": 457079,
+          "second": 37,
+          "microsecond": 985901,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -17632,11 +17632,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 28,
-          "hour": 22,
+          "day": 31,
+          "hour": 17,
           "minute": 54,
-          "second": 21,
-          "microsecond": 460967,
+          "second": 37,
+          "microsecond": 990313,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -17686,11 +17686,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 28,
-          "hour": 22,
+          "day": 31,
+          "hour": 17,
           "minute": 54,
-          "second": 21,
-          "microsecond": 461176,
+          "second": 37,
+          "microsecond": 990560,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -17740,11 +17740,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 28,
-          "hour": 22,
+          "day": 31,
+          "hour": 17,
           "minute": 54,
-          "second": 21,
-          "microsecond": 461419,
+          "second": 37,
+          "microsecond": 990804,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -17794,11 +17794,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 28,
-          "hour": 22,
+          "day": 31,
+          "hour": 17,
           "minute": 54,
-          "second": 21,
-          "microsecond": 461636,
+          "second": 37,
+          "microsecond": 991045,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -17848,11 +17848,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 28,
-          "hour": 22,
+          "day": 31,
+          "hour": 17,
           "minute": 54,
-          "second": 21,
-          "microsecond": 461875,
+          "second": 37,
+          "microsecond": 991301,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -17902,11 +17902,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 28,
-          "hour": 22,
+          "day": 31,
+          "hour": 17,
           "minute": 54,
-          "second": 21,
-          "microsecond": 462090,
+          "second": 37,
+          "microsecond": 991518,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -17956,11 +17956,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 28,
-          "hour": 22,
+          "day": 31,
+          "hour": 17,
           "minute": 54,
-          "second": 21,
-          "microsecond": 462321,
+          "second": 37,
+          "microsecond": 991733,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -18026,11 +18026,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 28,
-          "hour": 22,
+          "day": 31,
+          "hour": 17,
           "minute": 54,
-          "second": 21,
-          "microsecond": 462587,
+          "second": 37,
+          "microsecond": 992019,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -29941,6 +29941,2156 @@
     "recommended_models": [],
     "basic_fields": [
       "image"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "File Exists",
+    "description": "Check if a file or directory exists at the specified path.\n    files, check, exists\n\n    Use cases:\n    - Validate file presence before processing\n    - Implement conditional logic based on file existence",
+    "namespace": "nodetool.os",
+    "node_type": "nodetool.os.FileExists",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "path",
+        "type": {
+          "type": "file_path",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "file_path",
+          "path": ""
+        },
+        "title": "Path",
+        "description": "Path to check for existence",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "bool",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "path"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "List Files",
+    "description": "list files in a directory matching a pattern.\n    files, list, directory\n\n    Use cases:\n    - Get files for batch processing\n    - Filter files by extension or pattern",
+    "namespace": "nodetool.os",
+    "node_type": "nodetool.os.ListFiles",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "directory",
+        "type": {
+          "type": "file_path",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "file_path",
+          "path": "~"
+        },
+        "title": "Directory",
+        "description": "Directory to scan",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "pattern",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "*",
+        "title": "Pattern",
+        "description": "File pattern to match (e.g. *.txt)",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "recursive",
+        "type": {
+          "type": "bool",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": false,
+        "title": "Recursive",
+        "description": "Search subdirectories",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "file_path",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "directory",
+      "pattern",
+      "recursive"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Copy File",
+    "description": "Copy a file from source to destination path.\n    files, copy, manage\n\n    Use cases:\n    - Create file backups\n    - Duplicate files for processing\n    - Copy files to new locations",
+    "namespace": "nodetool.os",
+    "node_type": "nodetool.os.CopyFile",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "source_path",
+        "type": {
+          "type": "file_path",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "file_path",
+          "path": ""
+        },
+        "title": "Source Path",
+        "description": "Source file path",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "destination_path",
+        "type": {
+          "type": "file_path",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "file_path",
+          "path": ""
+        },
+        "title": "Destination Path",
+        "description": "Destination file path",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "source_path",
+      "destination_path"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Move File",
+    "description": "Move a file from source to destination path.\n    files, move, manage\n\n    Use cases:\n    - Organize files into directories\n    - Process and archive files\n    - Relocate completed files",
+    "namespace": "nodetool.os",
+    "node_type": "nodetool.os.MoveFile",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "source_path",
+        "type": {
+          "type": "file_path",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "file_path",
+          "path": ""
+        },
+        "title": "Source Path",
+        "description": "Source file path",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "destination_path",
+        "type": {
+          "type": "file_path",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "file_path",
+          "path": ""
+        },
+        "title": "Destination Path",
+        "description": "Destination file path",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "source_path",
+      "destination_path"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Create Directory",
+    "description": "Create a new directory at specified path.\n    files, directory, create\n\n    Use cases:\n    - Set up directory structure for file organization\n    - Create output directories for processed files",
+    "namespace": "nodetool.os",
+    "node_type": "nodetool.os.CreateDirectory",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "path",
+        "type": {
+          "type": "file_path",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "file_path",
+          "path": ""
+        },
+        "title": "Path",
+        "description": "Directory path to create",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "exist_ok",
+        "type": {
+          "type": "bool",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": true,
+        "title": "Exist Ok",
+        "description": "Don't error if directory already exists",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "path",
+      "exist_ok"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Get File Size",
+    "description": "Get file size in bytes.\n    files, metadata, size",
+    "namespace": "nodetool.os",
+    "node_type": "nodetool.os.GetFileSize",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "path",
+        "type": {
+          "type": "file_path",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "file_path",
+          "path": ""
+        },
+        "title": "Path",
+        "description": "Path to file",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "path"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Created Time",
+    "description": "Get file creation timestamp.\n    files, metadata, created, time",
+    "namespace": "nodetool.os",
+    "node_type": "nodetool.os.CreatedTime",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "path",
+        "type": {
+          "type": "file_path",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "file_path",
+          "path": ""
+        },
+        "title": "Path",
+        "description": "Path to file",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "datetime",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "path"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Modified Time",
+    "description": "Get file last modified timestamp.\n    files, metadata, modified, time",
+    "namespace": "nodetool.os",
+    "node_type": "nodetool.os.ModifiedTime",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "path",
+        "type": {
+          "type": "file_path",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "file_path",
+          "path": ""
+        },
+        "title": "Path",
+        "description": "Path to file",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "datetime",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "path"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Accessed Time",
+    "description": "Get file last accessed timestamp.\n    files, metadata, accessed, time",
+    "namespace": "nodetool.os",
+    "node_type": "nodetool.os.AccessedTime",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "path",
+        "type": {
+          "type": "file_path",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "file_path",
+          "path": ""
+        },
+        "title": "Path",
+        "description": "Path to file",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "datetime",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "path"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Is File",
+    "description": "Check if path is a file.\n    files, metadata, type",
+    "namespace": "nodetool.os",
+    "node_type": "nodetool.os.IsFile",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "path",
+        "type": {
+          "type": "file_path",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "file_path",
+          "path": ""
+        },
+        "title": "Path",
+        "description": "Path to check",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "bool",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "path"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Is Directory",
+    "description": "Check if path is a directory.\n    files, metadata, type",
+    "namespace": "nodetool.os",
+    "node_type": "nodetool.os.IsDirectory",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "path",
+        "type": {
+          "type": "file_path",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "file_path",
+          "path": ""
+        },
+        "title": "Path",
+        "description": "Path to check",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "bool",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "path"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "File Extension",
+    "description": "Get file extension.\n    files, metadata, extension",
+    "namespace": "nodetool.os",
+    "node_type": "nodetool.os.FileExtension",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "path",
+        "type": {
+          "type": "file_path",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "file_path",
+          "path": ""
+        },
+        "title": "Path",
+        "description": "Path to file",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "path"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "File Name",
+    "description": "Get file name without path.\n    files, metadata, name",
+    "namespace": "nodetool.os",
+    "node_type": "nodetool.os.FileName",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "path",
+        "type": {
+          "type": "file_path",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "file_path",
+          "path": ""
+        },
+        "title": "Path",
+        "description": "Path to file",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "path"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Get Directory",
+    "description": "Get directory containing the file.\n    files, metadata, directory",
+    "namespace": "nodetool.os",
+    "node_type": "nodetool.os.GetDirectory",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "path",
+        "type": {
+          "type": "file_path",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "file_path",
+          "path": ""
+        },
+        "title": "Path",
+        "description": "Path to file",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "path"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Load Document File",
+    "description": "Read a document from disk.\n    files, document, read, input, load, file",
+    "namespace": "nodetool.os",
+    "node_type": "nodetool.os.LoadDocumentFile",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "path",
+        "type": {
+          "type": "file_path",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "file_path",
+          "path": ""
+        },
+        "title": "Path",
+        "description": "Path to the document to read",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "document",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "path"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Save Document File",
+    "description": "Write a document to disk.\n    files, document, write, output, save, file\n\n    The filename can include time and date variables:\n    %Y - Year, %m - Month, %d - Day\n    %H - Hour, %M - Minute, %S - Second",
+    "namespace": "nodetool.os",
+    "node_type": "nodetool.os.SaveDocumentFile",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "document",
+        "type": {
+          "type": "document",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "document",
+          "uri": "",
+          "asset_id": null,
+          "data": null
+        },
+        "title": "Document",
+        "description": "The document to save",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "folder",
+        "type": {
+          "type": "folder_path",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "folder_path",
+          "path": ""
+        },
+        "title": "Folder",
+        "description": "Folder where the file will be saved",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "filename",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Filename",
+        "description": "Name of the file to save. Supports strftime format codes.",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "document",
+      "folder",
+      "filename"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Load CSVFile",
+    "description": "Read a CSV file from disk.\n    files, csv, read, input, load, file",
+    "namespace": "nodetool.os",
+    "node_type": "nodetool.os.LoadCSVFile",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "path",
+        "type": {
+          "type": "file_path",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "file_path",
+          "path": ""
+        },
+        "title": "Path",
+        "description": "Path to the CSV file to read",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "dict",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "path"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Save CSVFile",
+    "description": "Write a list of dictionaries to a CSV file.\n    files, csv, write, output, save, file\n\n    The filename can include time and date variables:\n    %Y - Year, %m - Month, %d - Day\n    %H - Hour, %M - Minute, %S - Second",
+    "namespace": "nodetool.os",
+    "node_type": "nodetool.os.SaveCSVFile",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "data",
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "dict",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Data",
+        "description": "list of dictionaries to write to CSV",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "folder",
+        "type": {
+          "type": "folder_path",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "folder_path",
+          "path": ""
+        },
+        "title": "Folder",
+        "description": "Folder where the file will be saved",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "filename",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Filename",
+        "description": "Name of the CSV file to save. Supports strftime format codes.",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "data",
+      "folder",
+      "filename"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Save CSVDataframe File",
+    "description": "Write a pandas DataFrame to a CSV file.\n    files, csv, write, output, save, file\n\n    The filename can include time and date variables:\n    %Y - Year, %m - Month, %d - Day\n    %H - Hour, %M - Minute, %S - Second",
+    "namespace": "nodetool.os",
+    "node_type": "nodetool.os.SaveCSVDataframeFile",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "dataframe",
+        "type": {
+          "type": "dataframe",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Dataframe",
+        "description": "DataFrame to write to CSV",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "folder",
+        "type": {
+          "type": "folder_path",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "folder_path",
+          "path": ""
+        },
+        "title": "Folder",
+        "description": "Folder where the file will be saved",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "filename",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Filename",
+        "description": "Name of the CSV file to save. Supports strftime format codes.",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "dataframe",
+      "folder",
+      "filename"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Load Bytes File",
+    "description": "Read raw bytes from a file on disk.\n    files, bytes, read, input, load, file\n\n    Use cases:\n    - Load binary data for processing\n    - Read binary files for a workflow",
+    "namespace": "nodetool.os",
+    "node_type": "nodetool.os.LoadBytesFile",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "path",
+        "type": {
+          "type": "file_path",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "file_path",
+          "path": ""
+        },
+        "title": "Path",
+        "description": "Path to the file to read",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "bytes",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "path"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Save Bytes File",
+    "description": "Write raw bytes to a file on disk.\n    files, bytes, save, output\n\n    The filename can include time and date variables:\n    %Y - Year, %m - Month, %d - Day\n    %H - Hour, %M - Minute, %S - Second",
+    "namespace": "nodetool.os",
+    "node_type": "nodetool.os.SaveBytesFile",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "data",
+        "type": {
+          "type": "bytes",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Data",
+        "description": "The bytes to write to file",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "folder",
+        "type": {
+          "type": "folder_path",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "folder_path",
+          "path": ""
+        },
+        "title": "Folder",
+        "description": "Folder where the file will be saved",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "filename",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Filename",
+        "description": "Name of the file to save. Supports strftime format codes.",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "data",
+      "folder",
+      "filename"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Load Image File",
+    "description": "Read an image file from disk.\n    image, input, load, file\n\n    Use cases:\n    - Load images for processing\n    - Import photos for editing\n    - Read image assets for a workflow",
+    "namespace": "nodetool.os",
+    "node_type": "nodetool.os.LoadImageFile",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "path",
+        "type": {
+          "type": "file_path",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "file_path",
+          "path": ""
+        },
+        "title": "Path",
+        "description": "Path to the image file to read",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "image",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "path"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Save Image File",
+    "description": "Write an image to disk.\n    image, output, save, file\n\n    Use cases:\n    - Save processed images\n    - Export edited photos\n    - Archive image results",
+    "namespace": "nodetool.os",
+    "node_type": "nodetool.os.SaveImageFile",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "image",
+        "type": {
+          "type": "image",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null
+        },
+        "title": "Image",
+        "description": "The image to save",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "folder",
+        "type": {
+          "type": "folder_path",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "folder_path",
+          "path": ""
+        },
+        "title": "Folder",
+        "description": "Folder where the file will be saved",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "filename",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Filename",
+        "description": "\n        The name of the image file.\n        You can use time and date variables to create unique names:\n        %Y - Year\n        %m - Month\n        %d - Day\n        %H - Hour\n        %M - Minute\n        %S - Second\n        ",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "image",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "image",
+      "folder",
+      "filename"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Load Audio File",
+    "description": "Read an audio file from disk.\n    audio, input, load, file\n\n    Use cases:\n    - Load audio for processing\n    - Import sound files for editing\n    - Read audio assets for a workflow",
+    "namespace": "nodetool.os",
+    "node_type": "nodetool.os.LoadAudioFile",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "path",
+        "type": {
+          "type": "file_path",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "file_path",
+          "path": ""
+        },
+        "title": "Path",
+        "description": "Path to the audio file to read",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "audio",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "path"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Save Audio File",
+    "description": "Write an audio file to disk.\n    audio, output, save, file\n\n    The filename can include time and date variables:\n    %Y - Year, %m - Month, %d - Day\n    %H - Hour, %M - Minute, %S - Second",
+    "namespace": "nodetool.os",
+    "node_type": "nodetool.os.SaveAudioFile",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "audio",
+        "type": {
+          "type": "audio",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "audio",
+          "uri": "",
+          "asset_id": null,
+          "data": null
+        },
+        "title": "Audio",
+        "description": "The audio to save",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "folder",
+        "type": {
+          "type": "folder_path",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "folder_path",
+          "path": ""
+        },
+        "title": "Folder",
+        "description": "Folder where the file will be saved",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "filename",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Filename",
+        "description": "\n        Name of the file to save.\n        You can use time and date variables to create unique names:\n        %Y - Year\n        %m - Month\n        %d - Day\n        %H - Hour\n        %M - Minute\n        %S - Second\n        ",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "audio",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "audio",
+      "folder",
+      "filename"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Load Video File",
+    "description": "Read a video file from disk.\n    video, input, load, file\n\n    Use cases:\n    - Load videos for processing\n    - Import video files for editing\n    - Read video assets for a workflow",
+    "namespace": "nodetool.os",
+    "node_type": "nodetool.os.LoadVideoFile",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "path",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Path",
+        "description": "Path to the video file to read",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "video",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "path"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Save Video File",
+    "description": "Write a video file to disk.\n    video, output, save, file\n\n    The filename can include time and date variables:\n    %Y - Year, %m - Month, %d - Day\n    %H - Hour, %M - Minute, %S - Second",
+    "namespace": "nodetool.os",
+    "node_type": "nodetool.os.SaveVideoFile",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "video",
+        "type": {
+          "type": "video",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "video",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "duration": null,
+          "format": null
+        },
+        "title": "Video",
+        "description": "The video to save",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "folder",
+        "type": {
+          "type": "folder_path",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "folder_path",
+          "path": ""
+        },
+        "title": "Folder",
+        "description": "Folder where the file will be saved",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "filename",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Filename",
+        "description": "\n        Name of the file to save.\n        You can use time and date variables to create unique names:\n        %Y - Year\n        %m - Month\n        %d - Day\n        %H - Hour\n        %M - Minute\n        %S - Second\n        ",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "video",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "video",
+      "folder",
+      "filename"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "File Name Match",
+    "description": "Match a filename against a pattern using Unix shell-style wildcards.\n    files, pattern, match, filter\n\n    Use cases:\n    - Filter files by name pattern\n    - Validate file naming conventions\n    - Match file extensions",
+    "namespace": "nodetool.os",
+    "node_type": "nodetool.os.FileNameMatch",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "filename",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Filename",
+        "description": "Filename to check",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "pattern",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "*",
+        "title": "Pattern",
+        "description": "Pattern to match against (e.g. *.txt, data_*.csv)",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "case_sensitive",
+        "type": {
+          "type": "bool",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": true,
+        "title": "Case Sensitive",
+        "description": "Whether the pattern matching should be case-sensitive",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "bool",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "filename",
+      "pattern",
+      "case_sensitive"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Filter File Names",
+    "description": "Filter a list of filenames using Unix shell-style wildcards.\n    files, pattern, filter, list\n\n    Use cases:\n    - Filter multiple files by pattern\n    - Batch process files matching criteria\n    - Select files by extension",
+    "namespace": "nodetool.os",
+    "node_type": "nodetool.os.FilterFileNames",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "filenames",
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "str",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Filenames",
+        "description": "list of filenames to filter",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "pattern",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "*",
+        "title": "Pattern",
+        "description": "Pattern to filter by (e.g. *.txt, data_*.csv)",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "case_sensitive",
+        "type": {
+          "type": "bool",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": true,
+        "title": "Case Sensitive",
+        "description": "Whether the pattern matching should be case-sensitive",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "str",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "filenames",
+      "pattern",
+      "case_sensitive"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Basename",
+    "description": "Get the base name component of a file path.\n    files, path, basename\n\n    Use cases:\n    - Extract filename from full path\n    - Get file name without directory\n    - Process file names independently",
+    "namespace": "nodetool.os",
+    "node_type": "nodetool.os.Basename",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "path",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Path",
+        "description": "File path to get basename from",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "remove_extension",
+        "type": {
+          "type": "bool",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": false,
+        "title": "Remove Extension",
+        "description": "Remove file extension from basename",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "path",
+      "remove_extension"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Dirname",
+    "description": "Get the directory name component of a file path.\n    files, path, dirname\n\n    Use cases:\n    - Extract directory path from full path\n    - Get parent directory\n    - Process directory paths",
+    "namespace": "nodetool.os",
+    "node_type": "nodetool.os.Dirname",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "path",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Path",
+        "description": "File path to get dirname from",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "path"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Join Paths",
+    "description": "Joins path components.\n    path, join, combine\n\n    Use cases:\n    - Build file paths\n    - Create cross-platform paths",
+    "namespace": "nodetool.os",
+    "node_type": "nodetool.os.JoinPaths",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "paths",
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "str",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Paths",
+        "description": "Path components to join",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "file_path",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "paths"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Normalize Path",
+    "description": "Normalizes a path.\n    path, normalize, clean\n\n    Use cases:\n    - Standardize paths\n    - Remove redundant separators",
+    "namespace": "nodetool.os",
+    "node_type": "nodetool.os.NormalizePath",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "path",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Path",
+        "description": "Path to normalize",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "file_path",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "path"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Get Path Info",
+    "description": "Gets information about a path.\n    path, info, metadata\n\n    Use cases:\n    - Extract path components\n    - Parse file paths",
+    "namespace": "nodetool.os",
+    "node_type": "nodetool.os.GetPathInfo",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "path",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Path",
+        "description": "Path to analyze",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "dict",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "path"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Absolute Path",
+    "description": "Return the absolute path of a file or directory.\n    files, path, absolute\n\n    Use cases:\n    - Convert relative paths to absolute\n    - Get full system path\n    - Resolve path references",
+    "namespace": "nodetool.os",
+    "node_type": "nodetool.os.AbsolutePath",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "path",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Path",
+        "description": "Path to convert to absolute",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "file_path",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "path"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Split Path",
+    "description": "Split a path into directory and file components.\n    files, path, split\n\n    Use cases:\n    - Separate directory from filename\n    - Process path components separately\n    - Extract path parts",
+    "namespace": "nodetool.os",
+    "node_type": "nodetool.os.SplitPath",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "path",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Path",
+        "description": "Path to split",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "dict",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "path"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Split Extension",
+    "description": "Split a path into root and extension components.\n    files, path, extension, split\n\n    Use cases:\n    - Extract file extension\n    - Process filename without extension\n    - Handle file types",
+    "namespace": "nodetool.os",
+    "node_type": "nodetool.os.SplitExtension",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "path",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Path",
+        "description": "Path to split",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "dict",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "path"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Relative Path",
+    "description": "Return a relative path to a target from a start directory.\n    files, path, relative\n\n    Use cases:\n    - Create relative path references\n    - Generate portable paths\n    - Compare file locations",
+    "namespace": "nodetool.os",
+    "node_type": "nodetool.os.RelativePath",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "target_path",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Target Path",
+        "description": "Target path to convert to relative",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "start_path",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": ".",
+        "title": "Start Path",
+        "description": "Start path for relative conversion",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "file_path",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "target_path",
+      "start_path"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Path To String",
+    "description": "Convert a FilePath object to a string.\n    files, path, string, convert\n\n    Use cases:\n    - Get raw string path from FilePath object\n    - Convert FilePath for string operations\n    - Extract path string for external use",
+    "namespace": "nodetool.os",
+    "node_type": "nodetool.os.PathToString",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "file_path",
+        "type": {
+          "type": "file_path",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "file_path",
+          "path": ""
+        },
+        "title": "File Path",
+        "description": "FilePath object to convert to string",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "file_path"
     ],
     "is_dynamic": false
   },
@@ -75062,2156 +77212,6 @@
       "data",
       "despine",
       "trim_margins"
-    ],
-    "is_dynamic": false
-  },
-  {
-    "title": "File Exists",
-    "description": "Check if a file or directory exists at the specified path.\n    files, check, exists\n\n    Use cases:\n    - Validate file presence before processing\n    - Implement conditional logic based on file existence",
-    "namespace": "lib.file",
-    "node_type": "lib.file.FileExists",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "path",
-        "type": {
-          "type": "file_path",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": {
-          "type": "file_path",
-          "path": ""
-        },
-        "title": "Path",
-        "description": "Path to check for existence",
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "bool",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [
-      "path"
-    ],
-    "is_dynamic": false
-  },
-  {
-    "title": "List Files",
-    "description": "list files in a directory matching a pattern.\n    files, list, directory\n\n    Use cases:\n    - Get files for batch processing\n    - Filter files by extension or pattern",
-    "namespace": "lib.file",
-    "node_type": "lib.file.ListFiles",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "directory",
-        "type": {
-          "type": "file_path",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": {
-          "type": "file_path",
-          "path": "~"
-        },
-        "title": "Directory",
-        "description": "Directory to scan",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "pattern",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "*",
-        "title": "Pattern",
-        "description": "File pattern to match (e.g. *.txt)",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "recursive",
-        "type": {
-          "type": "bool",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": false,
-        "title": "Recursive",
-        "description": "Search subdirectories",
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "list",
-          "optional": false,
-          "values": null,
-          "type_args": [
-            {
-              "type": "file_path",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [
-      "directory",
-      "pattern",
-      "recursive"
-    ],
-    "is_dynamic": false
-  },
-  {
-    "title": "Copy File",
-    "description": "Copy a file from source to destination path.\n    files, copy, manage\n\n    Use cases:\n    - Create file backups\n    - Duplicate files for processing\n    - Copy files to new locations",
-    "namespace": "lib.file",
-    "node_type": "lib.file.CopyFile",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "source_path",
-        "type": {
-          "type": "file_path",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": {
-          "type": "file_path",
-          "path": ""
-        },
-        "title": "Source Path",
-        "description": "Source file path",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "destination_path",
-        "type": {
-          "type": "file_path",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": {
-          "type": "file_path",
-          "path": ""
-        },
-        "title": "Destination Path",
-        "description": "Destination file path",
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [
-      "source_path",
-      "destination_path"
-    ],
-    "is_dynamic": false
-  },
-  {
-    "title": "Move File",
-    "description": "Move a file from source to destination path.\n    files, move, manage\n\n    Use cases:\n    - Organize files into directories\n    - Process and archive files\n    - Relocate completed files",
-    "namespace": "lib.file",
-    "node_type": "lib.file.MoveFile",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "source_path",
-        "type": {
-          "type": "file_path",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": {
-          "type": "file_path",
-          "path": ""
-        },
-        "title": "Source Path",
-        "description": "Source file path",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "destination_path",
-        "type": {
-          "type": "file_path",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": {
-          "type": "file_path",
-          "path": ""
-        },
-        "title": "Destination Path",
-        "description": "Destination file path",
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [
-      "source_path",
-      "destination_path"
-    ],
-    "is_dynamic": false
-  },
-  {
-    "title": "Create Directory",
-    "description": "Create a new directory at specified path.\n    files, directory, create\n\n    Use cases:\n    - Set up directory structure for file organization\n    - Create output directories for processed files",
-    "namespace": "lib.file",
-    "node_type": "lib.file.CreateDirectory",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "path",
-        "type": {
-          "type": "file_path",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": {
-          "type": "file_path",
-          "path": ""
-        },
-        "title": "Path",
-        "description": "Directory path to create",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "exist_ok",
-        "type": {
-          "type": "bool",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": true,
-        "title": "Exist Ok",
-        "description": "Don't error if directory already exists",
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [
-      "path",
-      "exist_ok"
-    ],
-    "is_dynamic": false
-  },
-  {
-    "title": "Get File Size",
-    "description": "Get file size in bytes.\n    files, metadata, size",
-    "namespace": "lib.file",
-    "node_type": "lib.file.GetFileSize",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "path",
-        "type": {
-          "type": "file_path",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": {
-          "type": "file_path",
-          "path": ""
-        },
-        "title": "Path",
-        "description": "Path to file",
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "int",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [
-      "path"
-    ],
-    "is_dynamic": false
-  },
-  {
-    "title": "Created Time",
-    "description": "Get file creation timestamp.\n    files, metadata, created, time",
-    "namespace": "lib.file",
-    "node_type": "lib.file.CreatedTime",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "path",
-        "type": {
-          "type": "file_path",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": {
-          "type": "file_path",
-          "path": ""
-        },
-        "title": "Path",
-        "description": "Path to file",
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "datetime",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [
-      "path"
-    ],
-    "is_dynamic": false
-  },
-  {
-    "title": "Modified Time",
-    "description": "Get file last modified timestamp.\n    files, metadata, modified, time",
-    "namespace": "lib.file",
-    "node_type": "lib.file.ModifiedTime",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "path",
-        "type": {
-          "type": "file_path",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": {
-          "type": "file_path",
-          "path": ""
-        },
-        "title": "Path",
-        "description": "Path to file",
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "datetime",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [
-      "path"
-    ],
-    "is_dynamic": false
-  },
-  {
-    "title": "Accessed Time",
-    "description": "Get file last accessed timestamp.\n    files, metadata, accessed, time",
-    "namespace": "lib.file",
-    "node_type": "lib.file.AccessedTime",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "path",
-        "type": {
-          "type": "file_path",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": {
-          "type": "file_path",
-          "path": ""
-        },
-        "title": "Path",
-        "description": "Path to file",
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "datetime",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [
-      "path"
-    ],
-    "is_dynamic": false
-  },
-  {
-    "title": "Is File",
-    "description": "Check if path is a file.\n    files, metadata, type",
-    "namespace": "lib.file",
-    "node_type": "lib.file.IsFile",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "path",
-        "type": {
-          "type": "file_path",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": {
-          "type": "file_path",
-          "path": ""
-        },
-        "title": "Path",
-        "description": "Path to check",
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "bool",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [
-      "path"
-    ],
-    "is_dynamic": false
-  },
-  {
-    "title": "Is Directory",
-    "description": "Check if path is a directory.\n    files, metadata, type",
-    "namespace": "lib.file",
-    "node_type": "lib.file.IsDirectory",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "path",
-        "type": {
-          "type": "file_path",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": {
-          "type": "file_path",
-          "path": ""
-        },
-        "title": "Path",
-        "description": "Path to check",
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "bool",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [
-      "path"
-    ],
-    "is_dynamic": false
-  },
-  {
-    "title": "File Extension",
-    "description": "Get file extension.\n    files, metadata, extension",
-    "namespace": "lib.file",
-    "node_type": "lib.file.FileExtension",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "path",
-        "type": {
-          "type": "file_path",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": {
-          "type": "file_path",
-          "path": ""
-        },
-        "title": "Path",
-        "description": "Path to file",
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [
-      "path"
-    ],
-    "is_dynamic": false
-  },
-  {
-    "title": "File Name",
-    "description": "Get file name without path.\n    files, metadata, name",
-    "namespace": "lib.file",
-    "node_type": "lib.file.FileName",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "path",
-        "type": {
-          "type": "file_path",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": {
-          "type": "file_path",
-          "path": ""
-        },
-        "title": "Path",
-        "description": "Path to file",
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [
-      "path"
-    ],
-    "is_dynamic": false
-  },
-  {
-    "title": "Get Directory",
-    "description": "Get directory containing the file.\n    files, metadata, directory",
-    "namespace": "lib.file",
-    "node_type": "lib.file.GetDirectory",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "path",
-        "type": {
-          "type": "file_path",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": {
-          "type": "file_path",
-          "path": ""
-        },
-        "title": "Path",
-        "description": "Path to file",
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [
-      "path"
-    ],
-    "is_dynamic": false
-  },
-  {
-    "title": "Load Document",
-    "description": "Read a document from disk.\n    files, document, read, input, load, file",
-    "namespace": "lib.file",
-    "node_type": "lib.file.LoadDocument",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "path",
-        "type": {
-          "type": "file_path",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": {
-          "type": "file_path",
-          "path": ""
-        },
-        "title": "Path",
-        "description": "Path to the document to read",
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "document",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [
-      "path"
-    ],
-    "is_dynamic": false
-  },
-  {
-    "title": "Save Document",
-    "description": "Write a document to disk.\n    files, document, write, output, save, file\n\n    The filename can include time and date variables:\n    %Y - Year, %m - Month, %d - Day\n    %H - Hour, %M - Minute, %S - Second",
-    "namespace": "lib.file",
-    "node_type": "lib.file.SaveDocument",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "document",
-        "type": {
-          "type": "document",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": {
-          "type": "document",
-          "uri": "",
-          "asset_id": null,
-          "data": null
-        },
-        "title": "Document",
-        "description": "The document to save",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "folder",
-        "type": {
-          "type": "folder_path",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": {
-          "type": "folder_path",
-          "path": ""
-        },
-        "title": "Folder",
-        "description": "Folder where the file will be saved",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "filename",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Filename",
-        "description": "Name of the file to save. Supports strftime format codes.",
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [
-      "document",
-      "folder",
-      "filename"
-    ],
-    "is_dynamic": false
-  },
-  {
-    "title": "Load CSV",
-    "description": "Read a CSV file from disk.\n    files, csv, read, input, load, file",
-    "namespace": "lib.file",
-    "node_type": "lib.file.LoadCSV",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "path",
-        "type": {
-          "type": "file_path",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": {
-          "type": "file_path",
-          "path": ""
-        },
-        "title": "Path",
-        "description": "Path to the CSV file to read",
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "list",
-          "optional": false,
-          "values": null,
-          "type_args": [
-            {
-              "type": "dict",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [
-      "path"
-    ],
-    "is_dynamic": false
-  },
-  {
-    "title": "Save CSV",
-    "description": "Write a list of dictionaries to a CSV file.\n    files, csv, write, output, save, file\n\n    The filename can include time and date variables:\n    %Y - Year, %m - Month, %d - Day\n    %H - Hour, %M - Minute, %S - Second",
-    "namespace": "lib.file",
-    "node_type": "lib.file.SaveCSV",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "data",
-        "type": {
-          "type": "list",
-          "optional": false,
-          "values": null,
-          "type_args": [
-            {
-              "type": "dict",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
-          "type_name": null
-        },
-        "default": null,
-        "title": "Data",
-        "description": "list of dictionaries to write to CSV",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "folder",
-        "type": {
-          "type": "folder_path",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": {
-          "type": "folder_path",
-          "path": ""
-        },
-        "title": "Folder",
-        "description": "Folder where the file will be saved",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "filename",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Filename",
-        "description": "Name of the CSV file to save. Supports strftime format codes.",
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [
-      "data",
-      "folder",
-      "filename"
-    ],
-    "is_dynamic": false
-  },
-  {
-    "title": "Save CSVDataframe",
-    "description": "Write a pandas DataFrame to a CSV file.\n    files, csv, write, output, save, file\n\n    The filename can include time and date variables:\n    %Y - Year, %m - Month, %d - Day\n    %H - Hour, %M - Minute, %S - Second",
-    "namespace": "lib.file",
-    "node_type": "lib.file.SaveCSVDataframe",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "dataframe",
-        "type": {
-          "type": "dataframe",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": null,
-        "title": "Dataframe",
-        "description": "DataFrame to write to CSV",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "folder",
-        "type": {
-          "type": "folder_path",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": {
-          "type": "folder_path",
-          "path": ""
-        },
-        "title": "Folder",
-        "description": "Folder where the file will be saved",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "filename",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Filename",
-        "description": "Name of the CSV file to save. Supports strftime format codes.",
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [
-      "dataframe",
-      "folder",
-      "filename"
-    ],
-    "is_dynamic": false
-  },
-  {
-    "title": "Load Bytes",
-    "description": "Read raw bytes from a file on disk.\n    files, bytes, read, input, load, file\n\n    Use cases:\n    - Load binary data for processing\n    - Read binary files for a workflow",
-    "namespace": "lib.file",
-    "node_type": "lib.file.LoadBytes",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "path",
-        "type": {
-          "type": "file_path",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": {
-          "type": "file_path",
-          "path": ""
-        },
-        "title": "Path",
-        "description": "Path to the file to read",
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "bytes",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [
-      "path"
-    ],
-    "is_dynamic": false
-  },
-  {
-    "title": "Save Bytes",
-    "description": "Write raw bytes to a file on disk.\n    files, bytes, save, output\n\n    The filename can include time and date variables:\n    %Y - Year, %m - Month, %d - Day\n    %H - Hour, %M - Minute, %S - Second",
-    "namespace": "lib.file",
-    "node_type": "lib.file.SaveBytes",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "data",
-        "type": {
-          "type": "bytes",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": null,
-        "title": "Data",
-        "description": "The bytes to write to file",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "folder",
-        "type": {
-          "type": "folder_path",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": {
-          "type": "folder_path",
-          "path": ""
-        },
-        "title": "Folder",
-        "description": "Folder where the file will be saved",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "filename",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Filename",
-        "description": "Name of the file to save. Supports strftime format codes.",
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [
-      "data",
-      "folder",
-      "filename"
-    ],
-    "is_dynamic": false
-  },
-  {
-    "title": "Load Image",
-    "description": "Read an image file from disk.\n    image, input, load, file\n\n    Use cases:\n    - Load images for processing\n    - Import photos for editing\n    - Read image assets for a workflow",
-    "namespace": "lib.file",
-    "node_type": "lib.file.LoadImage",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "path",
-        "type": {
-          "type": "file_path",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": {
-          "type": "file_path",
-          "path": ""
-        },
-        "title": "Path",
-        "description": "Path to the image file to read",
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "image",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [
-      "path"
-    ],
-    "is_dynamic": false
-  },
-  {
-    "title": "Save Image",
-    "description": "Write an image to disk.\n    image, output, save, file\n\n    Use cases:\n    - Save processed images\n    - Export edited photos\n    - Archive image results",
-    "namespace": "lib.file",
-    "node_type": "lib.file.SaveImage",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "image",
-        "type": {
-          "type": "image",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": {
-          "type": "image",
-          "uri": "",
-          "asset_id": null,
-          "data": null
-        },
-        "title": "Image",
-        "description": "The image to save",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "folder",
-        "type": {
-          "type": "folder_path",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": {
-          "type": "folder_path",
-          "path": ""
-        },
-        "title": "Folder",
-        "description": "Folder where the file will be saved",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "filename",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Filename",
-        "description": "\n        The name of the image file.\n        You can use time and date variables to create unique names:\n        %Y - Year\n        %m - Month\n        %d - Day\n        %H - Hour\n        %M - Minute\n        %S - Second\n        ",
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "image",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [
-      "image",
-      "folder",
-      "filename"
-    ],
-    "is_dynamic": false
-  },
-  {
-    "title": "Load Audio",
-    "description": "Read an audio file from disk.\n    audio, input, load, file\n\n    Use cases:\n    - Load audio for processing\n    - Import sound files for editing\n    - Read audio assets for a workflow",
-    "namespace": "lib.file",
-    "node_type": "lib.file.LoadAudio",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "path",
-        "type": {
-          "type": "file_path",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": {
-          "type": "file_path",
-          "path": ""
-        },
-        "title": "Path",
-        "description": "Path to the audio file to read",
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "audio",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [
-      "path"
-    ],
-    "is_dynamic": false
-  },
-  {
-    "title": "Save Audio",
-    "description": "Write an audio file to disk.\n    audio, output, save, file\n\n    The filename can include time and date variables:\n    %Y - Year, %m - Month, %d - Day\n    %H - Hour, %M - Minute, %S - Second",
-    "namespace": "lib.file",
-    "node_type": "lib.file.SaveAudio",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "audio",
-        "type": {
-          "type": "audio",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": {
-          "type": "audio",
-          "uri": "",
-          "asset_id": null,
-          "data": null
-        },
-        "title": "Audio",
-        "description": "The audio to save",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "folder",
-        "type": {
-          "type": "folder_path",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": {
-          "type": "folder_path",
-          "path": ""
-        },
-        "title": "Folder",
-        "description": "Folder where the file will be saved",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "filename",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Filename",
-        "description": "\n        Name of the file to save.\n        You can use time and date variables to create unique names:\n        %Y - Year\n        %m - Month\n        %d - Day\n        %H - Hour\n        %M - Minute\n        %S - Second\n        ",
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "audio",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [
-      "audio",
-      "folder",
-      "filename"
-    ],
-    "is_dynamic": false
-  },
-  {
-    "title": "Load Video",
-    "description": "Read a video file from disk.\n    video, input, load, file\n\n    Use cases:\n    - Load videos for processing\n    - Import video files for editing\n    - Read video assets for a workflow",
-    "namespace": "lib.file",
-    "node_type": "lib.file.LoadVideo",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "path",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Path",
-        "description": "Path to the video file to read",
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "video",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [
-      "path"
-    ],
-    "is_dynamic": false
-  },
-  {
-    "title": "Save Video",
-    "description": "Write a video file to disk.\n    video, output, save, file\n\n    The filename can include time and date variables:\n    %Y - Year, %m - Month, %d - Day\n    %H - Hour, %M - Minute, %S - Second",
-    "namespace": "lib.file",
-    "node_type": "lib.file.SaveVideo",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "video",
-        "type": {
-          "type": "video",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": {
-          "type": "video",
-          "uri": "",
-          "asset_id": null,
-          "data": null,
-          "duration": null,
-          "format": null
-        },
-        "title": "Video",
-        "description": "The video to save",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "folder",
-        "type": {
-          "type": "folder_path",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": {
-          "type": "folder_path",
-          "path": ""
-        },
-        "title": "Folder",
-        "description": "Folder where the file will be saved",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "filename",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Filename",
-        "description": "\n        Name of the file to save.\n        You can use time and date variables to create unique names:\n        %Y - Year\n        %m - Month\n        %d - Day\n        %H - Hour\n        %M - Minute\n        %S - Second\n        ",
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "video",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [
-      "video",
-      "folder",
-      "filename"
-    ],
-    "is_dynamic": false
-  },
-  {
-    "title": "File Name Match",
-    "description": "Match a filename against a pattern using Unix shell-style wildcards.\n    files, pattern, match, filter\n\n    Use cases:\n    - Filter files by name pattern\n    - Validate file naming conventions\n    - Match file extensions",
-    "namespace": "lib.file",
-    "node_type": "lib.file.FileNameMatch",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "filename",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Filename",
-        "description": "Filename to check",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "pattern",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "*",
-        "title": "Pattern",
-        "description": "Pattern to match against (e.g. *.txt, data_*.csv)",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "case_sensitive",
-        "type": {
-          "type": "bool",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": true,
-        "title": "Case Sensitive",
-        "description": "Whether the pattern matching should be case-sensitive",
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "bool",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [
-      "filename",
-      "pattern",
-      "case_sensitive"
-    ],
-    "is_dynamic": false
-  },
-  {
-    "title": "Filter File Names",
-    "description": "Filter a list of filenames using Unix shell-style wildcards.\n    files, pattern, filter, list\n\n    Use cases:\n    - Filter multiple files by pattern\n    - Batch process files matching criteria\n    - Select files by extension",
-    "namespace": "lib.file",
-    "node_type": "lib.file.FilterFileNames",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "filenames",
-        "type": {
-          "type": "list",
-          "optional": false,
-          "values": null,
-          "type_args": [
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
-          "type_name": null
-        },
-        "default": null,
-        "title": "Filenames",
-        "description": "list of filenames to filter",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "pattern",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "*",
-        "title": "Pattern",
-        "description": "Pattern to filter by (e.g. *.txt, data_*.csv)",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "case_sensitive",
-        "type": {
-          "type": "bool",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": true,
-        "title": "Case Sensitive",
-        "description": "Whether the pattern matching should be case-sensitive",
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "list",
-          "optional": false,
-          "values": null,
-          "type_args": [
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [
-      "filenames",
-      "pattern",
-      "case_sensitive"
-    ],
-    "is_dynamic": false
-  },
-  {
-    "title": "Basename",
-    "description": "Get the base name component of a file path.\n    files, path, basename\n\n    Use cases:\n    - Extract filename from full path\n    - Get file name without directory\n    - Process file names independently",
-    "namespace": "lib.file",
-    "node_type": "lib.file.Basename",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "path",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Path",
-        "description": "File path to get basename from",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "remove_extension",
-        "type": {
-          "type": "bool",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": false,
-        "title": "Remove Extension",
-        "description": "Remove file extension from basename",
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [
-      "path",
-      "remove_extension"
-    ],
-    "is_dynamic": false
-  },
-  {
-    "title": "Dirname",
-    "description": "Get the directory name component of a file path.\n    files, path, dirname\n\n    Use cases:\n    - Extract directory path from full path\n    - Get parent directory\n    - Process directory paths",
-    "namespace": "lib.file",
-    "node_type": "lib.file.Dirname",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "path",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Path",
-        "description": "File path to get dirname from",
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [
-      "path"
-    ],
-    "is_dynamic": false
-  },
-  {
-    "title": "Join Paths",
-    "description": "Joins path components.\n    path, join, combine\n\n    Use cases:\n    - Build file paths\n    - Create cross-platform paths",
-    "namespace": "lib.file",
-    "node_type": "lib.file.JoinPaths",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "paths",
-        "type": {
-          "type": "list",
-          "optional": false,
-          "values": null,
-          "type_args": [
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
-          "type_name": null
-        },
-        "default": null,
-        "title": "Paths",
-        "description": "Path components to join",
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "file_path",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [
-      "paths"
-    ],
-    "is_dynamic": false
-  },
-  {
-    "title": "Normalize Path",
-    "description": "Normalizes a path.\n    path, normalize, clean\n\n    Use cases:\n    - Standardize paths\n    - Remove redundant separators",
-    "namespace": "lib.file",
-    "node_type": "lib.file.NormalizePath",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "path",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Path",
-        "description": "Path to normalize",
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "file_path",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [
-      "path"
-    ],
-    "is_dynamic": false
-  },
-  {
-    "title": "Get Path Info",
-    "description": "Gets information about a path.\n    path, info, metadata\n\n    Use cases:\n    - Extract path components\n    - Parse file paths",
-    "namespace": "lib.file",
-    "node_type": "lib.file.GetPathInfo",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "path",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Path",
-        "description": "Path to analyze",
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "dict",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [
-      "path"
-    ],
-    "is_dynamic": false
-  },
-  {
-    "title": "Absolute Path",
-    "description": "Return the absolute path of a file or directory.\n    files, path, absolute\n\n    Use cases:\n    - Convert relative paths to absolute\n    - Get full system path\n    - Resolve path references",
-    "namespace": "lib.file",
-    "node_type": "lib.file.AbsolutePath",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "path",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Path",
-        "description": "Path to convert to absolute",
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "file_path",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [
-      "path"
-    ],
-    "is_dynamic": false
-  },
-  {
-    "title": "Split Path",
-    "description": "Split a path into directory and file components.\n    files, path, split\n\n    Use cases:\n    - Separate directory from filename\n    - Process path components separately\n    - Extract path parts",
-    "namespace": "lib.file",
-    "node_type": "lib.file.SplitPath",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "path",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Path",
-        "description": "Path to split",
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "dict",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [
-      "path"
-    ],
-    "is_dynamic": false
-  },
-  {
-    "title": "Split Extension",
-    "description": "Split a path into root and extension components.\n    files, path, extension, split\n\n    Use cases:\n    - Extract file extension\n    - Process filename without extension\n    - Handle file types",
-    "namespace": "lib.file",
-    "node_type": "lib.file.SplitExtension",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "path",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Path",
-        "description": "Path to split",
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "dict",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [
-      "path"
-    ],
-    "is_dynamic": false
-  },
-  {
-    "title": "Relative Path",
-    "description": "Return a relative path to a target from a start directory.\n    files, path, relative\n\n    Use cases:\n    - Create relative path references\n    - Generate portable paths\n    - Compare file locations",
-    "namespace": "lib.file",
-    "node_type": "lib.file.RelativePath",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "target_path",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Target Path",
-        "description": "Target path to convert to relative",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "start_path",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": ".",
-        "title": "Start Path",
-        "description": "Start path for relative conversion",
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "file_path",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [
-      "target_path",
-      "start_path"
-    ],
-    "is_dynamic": false
-  },
-  {
-    "title": "Path To String",
-    "description": "Convert a FilePath object to a string.\n    files, path, string, convert\n\n    Use cases:\n    - Get raw string path from FilePath object\n    - Convert FilePath for string operations\n    - Extract path string for external use",
-    "namespace": "lib.file",
-    "node_type": "lib.file.PathToString",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "file_path",
-        "type": {
-          "type": "file_path",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": {
-          "type": "file_path",
-          "path": ""
-        },
-        "title": "File Path",
-        "description": "FilePath object to convert to string",
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [
-      "file_path"
     ],
     "is_dynamic": false
   },
@@ -125444,6 +125444,21 @@
         "max": 65536.0
       },
       {
+        "name": "num_predict",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 128,
+        "title": "Num Predict",
+        "description": "The number of tokens to predict.",
+        "min": 1.0,
+        "max": 10000.0
+      },
+      {
         "name": "temperature",
         "type": {
           "type": "float",
@@ -127332,6 +127347,65 @@
       "keywords",
       "folder",
       "text"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Add Label",
+    "description": "Adds a label to a Gmail message.\n    email, gmail, label",
+    "namespace": "google.mail",
+    "node_type": "google.mail.AddLabel",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "email",
+        "type": {
+          "type": "email",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Email",
+        "description": "Email message to label",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "label",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Label",
+        "description": "Label to add to the message",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "email",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "email",
+      "label"
     ],
     "is_dynamic": false
   },
