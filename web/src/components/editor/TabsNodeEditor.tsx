@@ -39,7 +39,7 @@ const styles = (theme: any) =>
 
     "& .tab": {
       padding: "0 5px 0 15px",
-      height: "30px",
+      height: "25px",
       display: "flex",
       flexWrap: "nowrap",
       lineHeight: "1.1em",
@@ -70,10 +70,6 @@ const styles = (theme: any) =>
           transform: "rotate(90deg)",
           color: theme.palette.c_hl1
         }
-      },
-
-      "&:hover .close-icon": {
-        opacity: 0.7
       },
 
       "&.drop-target::before": {
@@ -137,6 +133,8 @@ const TabsNodeEditor = () => {
       );
       if (remaining.length > 0) {
         navigate(`/editor/${remaining[remaining.length - 1].id}`);
+      } else {
+        navigate("/editor");
       }
     }
   };

@@ -23,15 +23,10 @@ import CollectionList from "../collections/CollectionList";
 const styles = (theme: any) =>
   css({
     ".MuiDrawer-paper": {
-      boxShadow: "0 0 20px rgba(0, 0, 0, 0.3)",
-      background: `linear-gradient(145deg, ${theme.palette.background.paper} 0%, ${theme.palette.background.default} 100%)`,
-      borderRight: `1px solid ${theme.palette.divider}`
+      boxShadow: "0 0 10px rgba(0, 0, 0, 0.3)"
     },
     ".panel-tabs ": {
       minHeight: "2em"
-    },
-    ".vertical-toolbar button": {
-      marginRight: "10px"
     },
     ".panel-tabs button:hover:not(.Mui-selected)": {
       color: theme.palette.c_gray6
@@ -43,7 +38,10 @@ const styles = (theme: any) =>
       display: "flex",
       flexDirection: "column",
       backgroundColor: "transparent",
-      borderRight: `1px solid ${theme.palette.divider}`,
+      // borderRight: `1px solid ${theme.palette.divider}`,
+      "& button": {
+        marginRight: "10px"
+      },
       "& .MuiIconButton-root, .MuiButton-root": {
         padding: "12px",
         borderRadius: "2px",
@@ -84,7 +82,7 @@ const styles = (theme: any) =>
       display: "flex",
       flex: 1,
       height: "100%",
-      backdropFilter: "blur(8px)"
+      border: "0"
     }
   });
 
@@ -127,7 +125,7 @@ const PanelLeft: React.FC = () => {
           e.stopPropagation();
           handleMouseDown(e);
         }}
-        style={{ left: `${Math.max(panelSize + 10, 25)}px` }}
+        style={{ left: `${Math.max(panelSize + 14, 25)}px` }}
       >
         <CodeIcon />
       </IconButton>

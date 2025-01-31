@@ -79,9 +79,7 @@ const styles = (theme: any, buttonAppearance: "text" | "icon" | "both") =>
           : "0",
       color: theme.palette.c_white,
       "&:hover": {
-        backgroundColor: "rgba(255, 255, 255, 0.1)",
-        transform: "translateY(-1px)",
-        boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)"
+        backgroundColor: "rgba(255, 255, 255, 0.1)"
       }
     },
     ".icon-container svg": {
@@ -104,8 +102,7 @@ const styles = (theme: any, buttonAppearance: "text" | "icon" | "both") =>
         ".command-icon svg"
           ? "block"
           : "none",
-      padding: "0.1em",
-      marginRight: "0.2em"
+      padding: "0.1em"
     },
     ".command-icon svg": {
       display: "block !important"
@@ -151,13 +148,10 @@ const styles = (theme: any, buttonAppearance: "text" | "icon" | "both") =>
       flexDirection: "row",
       justifyContent: "flex-end",
       alignItems: "center",
-      gap: "0.3em",
+      gap: 0,
       background: theme.palette.c_gray1,
       borderRadius: "12px",
-      paddingLeft: "1em",
-      backgroundImage: `linear-gradient(180deg, ${theme.palette.c_gray1} 0%, rgba(${theme.palette.c_gray1}, 0.95) 100%)`,
-      boxShadow:
-        "inset 0 1px 1px rgba(255, 255, 255, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1)"
+      paddingLeft: "1em"
     }
   });
 
