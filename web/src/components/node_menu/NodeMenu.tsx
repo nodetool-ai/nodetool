@@ -31,7 +31,7 @@ const treeStyles = (theme: any) =>
       height: "auto",
       maxHeight: "70vh",
       minHeight: "35vh",
-      top: 0,
+      top: 50,
       left: 0,
       position: "absolute",
       overflow: "hidden",
@@ -74,12 +74,6 @@ const treeStyles = (theme: any) =>
       ".search-input-container": {
         minWidth: "240px"
       }
-    },
-    ".toggle-tree": {
-      minWidth: "30px",
-      height: "25px",
-      margin: "0 0 0 -.5em",
-      backgroundColor: theme.palette.c_gray1
     },
     ".close-button": {
       position: "absolute",
@@ -235,7 +229,7 @@ const NodeMenu = memo(function NodeMenu({
     >
       <Box
         ref={nodeRef}
-        sx={{ minWidth: "400px", maxHeight: menuHeight }}
+        sx={{ minWidth: "600px", maxHeight: menuHeight }}
         className="floating-node-menu"
         css={memoizedStyles}
       >
@@ -264,32 +258,33 @@ const NodeMenu = memo(function NodeMenu({
           </IconButton>
         </div>
         <Box className="node-menu-container">
-          <Box className="search-toolbar">
-            <SearchInput
-              focusSearchInput={focusSearchInput}
-              focusOnTyping={true}
-              placeholder="Search for nodes..."
-              debounceTime={30}
-              width={200}
-              maxWidth={"400px"}
-              searchTerm={searchTerm}
-              onSearchChange={setSearchTerm}
-              onPressEscape={closeNodeMenu}
-              searchResults={searchResults}
-            />
+          <div className="main-content">
+            <Box className="search-toolbar">
+              <SearchInput
+                focusSearchInput={focusSearchInput}
+                focusOnTyping={true}
+                placeholder="Search for nodes..."
+                debounceTime={30}
+                width={200}
+                maxWidth={"400px"}
+                searchTerm={searchTerm}
+                onSearchChange={setSearchTerm}
+                onPressEscape={closeNodeMenu}
+                searchResults={searchResults}
+              />
 
-            <TypeFilter
-              selectedInputType={selectedInputType}
-              selectedOutputType={selectedOutputType}
-              setSelectedInputType={setSelectedInputType}
-              setSelectedOutputType={setSelectedOutputType}
+              <TypeFilter
+                selectedInputType={selectedInputType}
+                selectedOutputType={selectedOutputType}
+                setSelectedInputType={setSelectedInputType}
+                setSelectedOutputType={setSelectedOutputType}
+              />
+            </Box>
+            <NamespaceList
+              namespaceTree={namespaceTree}
+              metadata={searchResults}
             />
-          </Box>
-          <NamespaceList
-            namespaceTree={namespaceTree}
-            metadata={searchResults}
-            showNamespaceTree={showNamespaceTree}
-          />
+          </div>
         </Box>
       </Box>
     </Draggable>
