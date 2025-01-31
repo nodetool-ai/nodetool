@@ -50,7 +50,7 @@ const OverallDownloadProgress: React.FC = () => {
       <Box
         className="overall-download-progress"
         sx={{
-          padding: "10px 0",
+          padding: "5px 0",
           cursor: "pointer"
         }}
         onClick={() => {
