@@ -163,7 +163,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   const settings = useSettingsStore((state) => state.settings);
 
   /* ON DROP*/
-  const { onDrop } = useDropHandler();
+  const { onDrop, onDragOver } = useDropHandler();
 
   // OPEN NODE MENU
   const { openNodeMenu, closeNodeMenu, isMenuOpen } = useNodeMenuStore(
@@ -296,8 +296,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     onNodeDragStart,
     onNodeDragStop,
     panOnDrag,
-    onNodeDrag,
-    onDragOver
+    onNodeDrag
   } = useDragHandlers();
 
   const [editNodeTitle, setEditNodeTitle] = useState<string | undefined>(
