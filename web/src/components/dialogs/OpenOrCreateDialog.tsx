@@ -137,10 +137,13 @@ const listStyles = (theme: any) =>
       fontSize: theme.fontSizeNormal,
       margin: "0",
       lineHeight: "1em",
-      color: theme.palette.c_hl1
+      color: theme.palette.c_white
     },
     ".description": {
-      margin: "0.1em 0 .1em"
+      margin: "0.1em 0 .1em",
+      color: theme.palette.c_gray5,
+      fontSize: theme.fontSizeSmaller,
+      paddingTop: "0.5em"
     },
     ".right": {
       display: "flex",
