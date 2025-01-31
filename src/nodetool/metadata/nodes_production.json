@@ -14834,7 +14834,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": 28,
+        "default": 31,
         "title": "Day",
         "description": "Day of the date",
         "min": null,
@@ -14909,7 +14909,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": 28,
+        "default": 31,
         "title": "Day",
         "description": "Day of the datetime",
         "min": null,
@@ -15312,11 +15312,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 28,
-          "hour": 22,
+          "day": 31,
+          "hour": 17,
           "minute": 54,
-          "second": 21,
-          "microsecond": 457079,
+          "second": 37,
+          "microsecond": 985901,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -16369,11 +16369,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 28,
-          "hour": 22,
+          "day": 31,
+          "hour": 17,
           "minute": 54,
-          "second": 21,
-          "microsecond": 460967,
+          "second": 37,
+          "microsecond": 990313,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -16423,11 +16423,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 28,
-          "hour": 22,
+          "day": 31,
+          "hour": 17,
           "minute": 54,
-          "second": 21,
-          "microsecond": 461176,
+          "second": 37,
+          "microsecond": 990560,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -16477,11 +16477,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 28,
-          "hour": 22,
+          "day": 31,
+          "hour": 17,
           "minute": 54,
-          "second": 21,
-          "microsecond": 461419,
+          "second": 37,
+          "microsecond": 990804,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -16531,11 +16531,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 28,
-          "hour": 22,
+          "day": 31,
+          "hour": 17,
           "minute": 54,
-          "second": 21,
-          "microsecond": 461636,
+          "second": 37,
+          "microsecond": 991045,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -16585,11 +16585,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 28,
-          "hour": 22,
+          "day": 31,
+          "hour": 17,
           "minute": 54,
-          "second": 21,
-          "microsecond": 461875,
+          "second": 37,
+          "microsecond": 991301,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -16639,11 +16639,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 28,
-          "hour": 22,
+          "day": 31,
+          "hour": 17,
           "minute": 54,
-          "second": 21,
-          "microsecond": 462090,
+          "second": 37,
+          "microsecond": 991518,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -16693,11 +16693,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 28,
-          "hour": 22,
+          "day": 31,
+          "hour": 17,
           "minute": 54,
-          "second": 21,
-          "microsecond": 462321,
+          "second": 37,
+          "microsecond": 991733,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -16763,11 +16763,11 @@
           "type": "datetime",
           "year": 2025,
           "month": 1,
-          "day": 28,
-          "hour": 22,
+          "day": 31,
+          "hour": 17,
           "minute": 54,
-          "second": 21,
-          "microsecond": 462587,
+          "second": 37,
+          "microsecond": 992019,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -73437,6 +73437,2719 @@
     "is_dynamic": false
   },
   {
+    "title": "Create Document",
+    "description": "Creates a new Word document\n    document, docx, file, create",
+    "namespace": "lib.file.docx",
+    "node_type": "lib.file.docx.CreateDocument",
+    "layout": "default",
+    "properties": [],
+    "outputs": [
+      {
+        "type": {
+          "type": "document",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [],
+    "is_dynamic": false
+  },
+  {
+    "title": "Load Word Document",
+    "description": "Loads a Word document from disk\n    document, docx, file, load, input",
+    "namespace": "lib.file.docx",
+    "node_type": "lib.file.docx.LoadWordDocument",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "path",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Path",
+        "description": "Path to the document to load",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "document",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "path"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Add Heading",
+    "description": "Adds a heading to the document\n    document, docx, heading, format",
+    "namespace": "lib.file.docx",
+    "node_type": "lib.file.docx.AddHeading",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "document",
+        "type": {
+          "type": "document",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "document",
+          "uri": "",
+          "asset_id": null,
+          "data": null
+        },
+        "title": "Document",
+        "description": "The document to add the heading to",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "text",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Text",
+        "description": "The heading text",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "level",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 1,
+        "title": "Level",
+        "description": "Heading level (1-9)",
+        "min": 1.0,
+        "max": 9.0
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "document",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "document",
+      "text",
+      "level"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Add Paragraph",
+    "description": "Adds a paragraph of text to the document\n    document, docx, text, format",
+    "namespace": "lib.file.docx",
+    "node_type": "lib.file.docx.AddParagraph",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "document",
+        "type": {
+          "type": "document",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "document",
+          "uri": "",
+          "asset_id": null,
+          "data": null
+        },
+        "title": "Document",
+        "description": "The document to add the paragraph to",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "text",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Text",
+        "description": "The paragraph text",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "alignment",
+        "type": {
+          "type": "enum",
+          "optional": false,
+          "values": [
+            "LEFT",
+            "CENTER",
+            "RIGHT",
+            "JUSTIFY"
+          ],
+          "type_args": [],
+          "type_name": "nodetool.nodes.lib.file.docx.ParagraphAlignment"
+        },
+        "default": "LEFT",
+        "title": "Alignment",
+        "description": "Text alignment",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "bold",
+        "type": {
+          "type": "bool",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": false,
+        "title": "Bold",
+        "description": "Make text bold",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "italic",
+        "type": {
+          "type": "bool",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": false,
+        "title": "Italic",
+        "description": "Make text italic",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "font_size",
+        "type": {
+          "type": "int",
+          "optional": true,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Font Size",
+        "description": "Font size in points",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "document",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "document",
+      "text",
+      "alignment",
+      "bold",
+      "italic",
+      "font_size"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Add Table",
+    "description": "Adds a table to the document\n    document, docx, table, format",
+    "namespace": "lib.file.docx",
+    "node_type": "lib.file.docx.AddTable",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "document",
+        "type": {
+          "type": "document",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "document",
+          "uri": "",
+          "asset_id": null,
+          "data": null
+        },
+        "title": "Document",
+        "description": "The document to add the table to",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "rows",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Rows",
+        "description": "Number of rows",
+        "min": 1.0,
+        "max": null
+      },
+      {
+        "name": "cols",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Cols",
+        "description": "Number of columns",
+        "min": 1.0,
+        "max": null
+      },
+      {
+        "name": "data",
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "list",
+              "optional": false,
+              "values": null,
+              "type_args": [
+                {
+                  "type": "str",
+                  "optional": false,
+                  "values": null,
+                  "type_args": [],
+                  "type_name": null
+                }
+              ],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Data",
+        "description": "Table data as nested lists",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "document",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "document",
+      "rows",
+      "cols",
+      "data"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Add Image",
+    "description": "Adds an image to the document\n    document, docx, image, format",
+    "namespace": "lib.file.docx",
+    "node_type": "lib.file.docx.AddImage",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "document",
+        "type": {
+          "type": "document",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "document",
+          "uri": "",
+          "asset_id": null,
+          "data": null
+        },
+        "title": "Document",
+        "description": "The document to add the image to",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "image",
+        "type": {
+          "type": "image",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null
+        },
+        "title": "Image",
+        "description": "The image to add",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "width",
+        "type": {
+          "type": "float",
+          "optional": true,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Width",
+        "description": "Image width in inches",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "height",
+        "type": {
+          "type": "float",
+          "optional": true,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Height",
+        "description": "Image height in inches",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "document",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "document",
+      "image",
+      "width",
+      "height"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Add Page Break",
+    "description": "Adds a page break to the document\n    document, docx, format, layout",
+    "namespace": "lib.file.docx",
+    "node_type": "lib.file.docx.AddPageBreak",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "document",
+        "type": {
+          "type": "document",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "document",
+          "uri": "",
+          "asset_id": null,
+          "data": null
+        },
+        "title": "Document",
+        "description": "The document to add the page break to",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "document",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "document"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Set Document Properties",
+    "description": "Sets document metadata properties\n    document, docx, metadata, properties",
+    "namespace": "lib.file.docx",
+    "node_type": "lib.file.docx.SetDocumentProperties",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "document",
+        "type": {
+          "type": "document",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "document",
+          "uri": "",
+          "asset_id": null,
+          "data": null
+        },
+        "title": "Document",
+        "description": "The document to modify",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "title",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Title",
+        "description": "Document title",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "author",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Author",
+        "description": "Document author",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "subject",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Subject",
+        "description": "Document subject",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "keywords",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Keywords",
+        "description": "Document keywords",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "document",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "document",
+      "title",
+      "author",
+      "subject",
+      "keywords"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Save Document",
+    "description": "Writes the document to a file\n    document, docx, file, save, output",
+    "namespace": "lib.file.docx",
+    "node_type": "lib.file.docx.SaveDocument",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "document",
+        "type": {
+          "type": "document",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "document",
+          "uri": "",
+          "asset_id": null,
+          "data": null
+        },
+        "title": "Document",
+        "description": "The document to write",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "path",
+        "type": {
+          "type": "file_path",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "file_path",
+          "path": ""
+        },
+        "title": "Path",
+        "description": "\n        The path to write the document to.\n        You can use time and date variables to create unique names:\n        %Y - Year\n        %m - Month\n        %d - Day\n        %H - Hour\n        %M - Minute\n        %S - Second\n        ",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "document",
+      "path"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Create Workbook",
+    "description": "Creates a new Excel workbook.\n    excel, workbook, create\n\n    Use cases:\n    - Initialize new Excel files\n    - Start spreadsheet creation workflows",
+    "namespace": "lib.file.excel",
+    "node_type": "lib.file.excel.CreateWorkbook",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "sheet_name",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "Sheet1",
+        "title": "Sheet Name",
+        "description": "Name for the first worksheet",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "excel",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "sheet_name"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Data Frame To Excel",
+    "description": "Writes a DataFrame to an Excel worksheet.\n    excel, dataframe, export\n\n    Use cases:\n    - Export data analysis results\n    - Create reports from data",
+    "namespace": "lib.file.excel",
+    "node_type": "lib.file.excel.DataFrameToExcel",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "workbook",
+        "type": {
+          "type": "excel",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "excel",
+          "uri": "",
+          "asset_id": null,
+          "data": null
+        },
+        "title": "Workbook",
+        "description": "The Excel workbook to write to",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "dataframe",
+        "type": {
+          "type": "dataframe",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "dataframe",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "columns": null
+        },
+        "title": "Dataframe",
+        "description": "DataFrame to write",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "sheet_name",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "Sheet1",
+        "title": "Sheet Name",
+        "description": "Target worksheet name",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "start_cell",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "A1",
+        "title": "Start Cell",
+        "description": "Starting cell for data",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "include_header",
+        "type": {
+          "type": "bool",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": true,
+        "title": "Include Header",
+        "description": "Include column headers",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "any",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "workbook",
+      "dataframe",
+      "sheet_name",
+      "start_cell",
+      "include_header"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Excel To Data Frame",
+    "description": "Reads an Excel worksheet into a pandas DataFrame.\n    excel, dataframe, import\n\n    Use cases:\n    - Import Excel data for analysis\n    - Process spreadsheet contents",
+    "namespace": "lib.file.excel",
+    "node_type": "lib.file.excel.ExcelToDataFrame",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "workbook",
+        "type": {
+          "type": "excel",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "excel",
+          "uri": "",
+          "asset_id": null,
+          "data": null
+        },
+        "title": "Workbook",
+        "description": "The Excel workbook to read from",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "sheet_name",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "Sheet1",
+        "title": "Sheet Name",
+        "description": "Source worksheet name",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "has_header",
+        "type": {
+          "type": "bool",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": true,
+        "title": "Has Header",
+        "description": "First row contains headers",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "dataframe",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "workbook",
+      "sheet_name",
+      "has_header"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Format Cells",
+    "description": "Applies formatting to a range of cells.\n    excel, format, style\n\n    Use cases:\n    - Highlight important data\n    - Create professional looking reports",
+    "namespace": "lib.file.excel",
+    "node_type": "lib.file.excel.FormatCells",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "workbook",
+        "type": {
+          "type": "excel",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "excel",
+          "uri": "",
+          "asset_id": null,
+          "data": null
+        },
+        "title": "Workbook",
+        "description": "The Excel workbook to format",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "sheet_name",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "Sheet1",
+        "title": "Sheet Name",
+        "description": "Target worksheet name",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "cell_range",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "A1:B10",
+        "title": "Cell Range",
+        "description": "Cell range to format (e.g. 'A1:B10')",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "bold",
+        "type": {
+          "type": "bool",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": false,
+        "title": "Bold",
+        "description": "Make text bold",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "background_color",
+        "type": {
+          "type": "str",
+          "optional": true,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Background Color",
+        "description": "Background color in hex format (e.g. 'FFFF00' for yellow)",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "text_color",
+        "type": {
+          "type": "str",
+          "optional": true,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Text Color",
+        "description": "Text color in hex format",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "any",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "workbook",
+      "sheet_name",
+      "cell_range",
+      "bold",
+      "background_color",
+      "text_color"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Save Workbook",
+    "description": "Saves an Excel workbook to disk.\n    excel, save, export\n\n    Use cases:\n    - Export final spreadsheet\n    - Save work in progress",
+    "namespace": "lib.file.excel",
+    "node_type": "lib.file.excel.SaveWorkbook",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "workbook",
+        "type": {
+          "type": "excel",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "excel",
+          "uri": "",
+          "asset_id": null,
+          "data": null
+        },
+        "title": "Workbook",
+        "description": "The Excel workbook to save",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "filepath",
+        "type": {
+          "type": "file_path",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "file_path",
+          "path": ""
+        },
+        "title": "Filepath",
+        "description": "\n        Path where to save the file.\n        You can use time and date variables to create unique names:\n        %Y - Year\n        %m - Month\n        %d - Day\n        %H - Hour\n        %M - Minute\n        %S - Second\n        ",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "workbook",
+      "filepath"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Auto Fit Columns",
+    "description": "Automatically adjusts column widths to fit content.\n    excel, format, columns\n\n    Use cases:\n    - Improve spreadsheet readability\n    - Professional presentation",
+    "namespace": "lib.file.excel",
+    "node_type": "lib.file.excel.AutoFitColumns",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "workbook",
+        "type": {
+          "type": "excel",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "excel",
+          "uri": "",
+          "asset_id": null,
+          "data": null
+        },
+        "title": "Workbook",
+        "description": "The Excel workbook to format",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "sheet_name",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "Sheet1",
+        "title": "Sheet Name",
+        "description": "Target worksheet name",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "any",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "workbook",
+      "sheet_name"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Extract Links",
+    "description": "Extracts all links from markdown text.\n    markdown, links, extraction\n\n    Use cases:\n    - Extract references and citations from academic documents\n    - Build link graphs from markdown documentation\n    - Analyze external resources referenced in markdown files",
+    "namespace": "lib.file.markdown",
+    "node_type": "lib.file.markdown.ExtractLinks",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "markdown",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Markdown",
+        "description": "The markdown text to analyze",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "include_titles",
+        "type": {
+          "type": "bool",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": true,
+        "title": "Include Titles",
+        "description": "Whether to include link titles in output",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "dict",
+              "optional": false,
+              "values": null,
+              "type_args": [
+                {
+                  "type": "str",
+                  "optional": false,
+                  "values": null,
+                  "type_args": [],
+                  "type_name": null
+                },
+                {
+                  "type": "str",
+                  "optional": false,
+                  "values": null,
+                  "type_args": [],
+                  "type_name": null
+                }
+              ],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "markdown",
+      "include_titles"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Extract Headers",
+    "description": "Extracts headers and creates a document structure/outline.\n    markdown, headers, structure\n\n    Use cases:\n    - Generate table of contents\n    - Analyze document structure\n    - Extract main topics from documents",
+    "namespace": "lib.file.markdown",
+    "node_type": "lib.file.markdown.ExtractHeaders",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "markdown",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Markdown",
+        "description": "The markdown text to analyze",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "max_level",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 6,
+        "title": "Max Level",
+        "description": "Maximum header level to extract (1-6)",
+        "min": 1.0,
+        "max": 6.0
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "dict",
+              "optional": false,
+              "values": null,
+              "type_args": [
+                {
+                  "type": "str",
+                  "optional": false,
+                  "values": null,
+                  "type_args": [],
+                  "type_name": null
+                },
+                {
+                  "type": "any",
+                  "optional": false,
+                  "values": null,
+                  "type_args": [],
+                  "type_name": null
+                }
+              ],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "markdown",
+      "max_level"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Extract Bullet Lists",
+    "description": "Extracts bulleted lists from markdown.\n    markdown, lists, bullets, extraction\n\n    Use cases:\n    - Extract unordered list items\n    - Analyze bullet point structures\n    - Convert bullet lists to structured data",
+    "namespace": "lib.file.markdown",
+    "node_type": "lib.file.markdown.ExtractBulletLists",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "markdown",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Markdown",
+        "description": "The markdown text to analyze",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "dict",
+              "optional": false,
+              "values": null,
+              "type_args": [
+                {
+                  "type": "str",
+                  "optional": false,
+                  "values": null,
+                  "type_args": [],
+                  "type_name": null
+                },
+                {
+                  "type": "any",
+                  "optional": false,
+                  "values": null,
+                  "type_args": [],
+                  "type_name": null
+                }
+              ],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "markdown"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Extract Numbered Lists",
+    "description": "Extracts numbered lists from markdown.\n    markdown, lists, numbered, extraction\n\n    Use cases:\n    - Extract ordered list items\n    - Analyze enumerated structures\n    - Convert numbered lists to structured data",
+    "namespace": "lib.file.markdown",
+    "node_type": "lib.file.markdown.ExtractNumberedLists",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "markdown",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Markdown",
+        "description": "The markdown text to analyze",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "str",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "markdown"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Extract Code Blocks",
+    "description": "Extracts code blocks and their languages from markdown.\n    markdown, code, extraction\n\n    Use cases:\n    - Extract code samples for analysis\n    - Collect programming examples\n    - Analyze code snippets in documentation",
+    "namespace": "lib.file.markdown",
+    "node_type": "lib.file.markdown.ExtractCodeBlocks",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "markdown",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Markdown",
+        "description": "The markdown text to analyze",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "dict",
+              "optional": false,
+              "values": null,
+              "type_args": [
+                {
+                  "type": "str",
+                  "optional": false,
+                  "values": null,
+                  "type_args": [],
+                  "type_name": null
+                },
+                {
+                  "type": "str",
+                  "optional": false,
+                  "values": null,
+                  "type_args": [],
+                  "type_name": null
+                }
+              ],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "markdown"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Extract Tables",
+    "description": "Extracts tables from markdown and converts them to structured data.\n    markdown, tables, data\n\n    Use cases:\n    - Extract tabular data from markdown\n    - Convert markdown tables to structured formats\n    - Analyze tabulated information",
+    "namespace": "lib.file.markdown",
+    "node_type": "lib.file.markdown.ExtractTables",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "markdown",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Markdown",
+        "description": "The markdown text to analyze",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "dataframe",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "markdown"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Convert To Markdown",
+    "description": "Converts various document formats to markdown using MarkItDown.\n    markdown, convert, document\n\n    Use cases:\n    - Convert Word documents to markdown\n    - Convert Excel files to markdown tables\n    - Convert PowerPoint to markdown content",
+    "namespace": "lib.file.markitdown",
+    "node_type": "lib.file.markitdown.ConvertToMarkdown",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "document",
+        "type": {
+          "type": "document",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "document",
+          "uri": "",
+          "asset_id": null,
+          "data": null
+        },
+        "title": "Document",
+        "description": "The document to convert to markdown",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "document"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Convert File",
+    "description": "Converts between different document formats using pandoc.\n    convert, document, format, pandoc\n\n    Use cases:\n    - Convert between various document formats (Markdown, HTML, LaTeX, etc.)\n    - Generate documentation in different formats\n    - Create publication-ready documents",
+    "namespace": "lib.file.pandoc",
+    "node_type": "lib.file.pandoc.ConvertFile",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "input_path",
+        "type": {
+          "type": "file_path",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "file_path",
+          "path": ""
+        },
+        "title": "Input Path",
+        "description": "Path to the input file",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "input_format",
+        "type": {
+          "type": "enum",
+          "optional": false,
+          "values": [
+            "biblatex",
+            "bibtex",
+            "bits",
+            "commonmark",
+            "commonmark_x",
+            "creole",
+            "csljson",
+            "csv",
+            "djot",
+            "docbook",
+            "docx",
+            "dokuwiki",
+            "endnotexml",
+            "epub",
+            "fb2",
+            "gfm",
+            "haddock",
+            "html",
+            "ipynb",
+            "jats",
+            "jira",
+            "json",
+            "latex",
+            "man",
+            "markdown",
+            "markdown_github",
+            "markdown_mmd",
+            "markdown_phpextra",
+            "markdown_strict",
+            "mdoc",
+            "mediawiki",
+            "muse",
+            "native",
+            "odt",
+            "opml",
+            "org",
+            "ris",
+            "rst",
+            "rtf",
+            "t2t",
+            "textile",
+            "tikiwiki",
+            "tsv",
+            "twiki",
+            "typst",
+            "vimwiki"
+          ],
+          "type_args": [],
+          "type_name": "nodetool.nodes.lib.file.pandoc.InputFormat"
+        },
+        "default": "markdown",
+        "title": "Input Format",
+        "description": "Input format",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "output_format",
+        "type": {
+          "type": "enum",
+          "optional": false,
+          "values": [
+            "asciidoc",
+            "asciidoctor",
+            "beamer",
+            "context",
+            "docbook4",
+            "docbook5",
+            "docx",
+            "epub2",
+            "epub3",
+            "pdf",
+            "plain",
+            "pptx",
+            "slideous",
+            "slidy",
+            "dzslides",
+            "revealjs",
+            "s5",
+            "tei",
+            "texinfo",
+            "zimwiki"
+          ],
+          "type_args": [],
+          "type_name": "nodetool.nodes.lib.file.pandoc.OutputFormat"
+        },
+        "default": "pdf",
+        "title": "Output Format",
+        "description": "Output format",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "extra_args",
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "str",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Extra Args",
+        "description": "Additional pandoc arguments",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "input_path",
+      "input_format",
+      "output_format",
+      "extra_args"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Convert Text",
+    "description": "Converts text content between different document formats using pandoc.\n    convert, text, format, pandoc\n\n    Use cases:\n    - Convert text content between various formats (Markdown, HTML, LaTeX, etc.)\n    - Transform content without saving to disk\n    - Process text snippets in different formats",
+    "namespace": "lib.file.pandoc",
+    "node_type": "lib.file.pandoc.ConvertText",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "content",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Content",
+        "description": "Text content to convert",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "input_format",
+        "type": {
+          "type": "enum",
+          "optional": false,
+          "values": [
+            "biblatex",
+            "bibtex",
+            "bits",
+            "commonmark",
+            "commonmark_x",
+            "creole",
+            "csljson",
+            "csv",
+            "djot",
+            "docbook",
+            "docx",
+            "dokuwiki",
+            "endnotexml",
+            "epub",
+            "fb2",
+            "gfm",
+            "haddock",
+            "html",
+            "ipynb",
+            "jats",
+            "jira",
+            "json",
+            "latex",
+            "man",
+            "markdown",
+            "markdown_github",
+            "markdown_mmd",
+            "markdown_phpextra",
+            "markdown_strict",
+            "mdoc",
+            "mediawiki",
+            "muse",
+            "native",
+            "odt",
+            "opml",
+            "org",
+            "ris",
+            "rst",
+            "rtf",
+            "t2t",
+            "textile",
+            "tikiwiki",
+            "tsv",
+            "twiki",
+            "typst",
+            "vimwiki"
+          ],
+          "type_args": [],
+          "type_name": "nodetool.nodes.lib.file.pandoc.InputFormat"
+        },
+        "default": null,
+        "title": "Input Format",
+        "description": "Input format",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "output_format",
+        "type": {
+          "type": "enum",
+          "optional": false,
+          "values": [
+            "asciidoc",
+            "asciidoctor",
+            "beamer",
+            "context",
+            "docbook4",
+            "docbook5",
+            "docx",
+            "epub2",
+            "epub3",
+            "pdf",
+            "plain",
+            "pptx",
+            "slideous",
+            "slidy",
+            "dzslides",
+            "revealjs",
+            "s5",
+            "tei",
+            "texinfo",
+            "zimwiki"
+          ],
+          "type_args": [],
+          "type_name": "nodetool.nodes.lib.file.pandoc.OutputFormat"
+        },
+        "default": null,
+        "title": "Output Format",
+        "description": "Output format",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "extra_args",
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "str",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Extra Args",
+        "description": "Additional pandoc arguments",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "content",
+      "input_format",
+      "output_format",
+      "extra_args"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Extract Text",
+    "description": "Extract text content from a PDF file.\n    pdf, text, extract\n\n    Use cases:\n    - Convert PDF documents to plain text\n    - Extract content for analysis\n    - Enable text search in PDF documents",
+    "namespace": "lib.file.pdfplumber",
+    "node_type": "lib.file.pdfplumber.ExtractText",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "pdf",
+        "type": {
+          "type": "document",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "document",
+          "uri": "",
+          "asset_id": null,
+          "data": null
+        },
+        "title": "Pdf",
+        "description": "The PDF file to extract text from",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "start_page",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 0,
+        "title": "Start Page",
+        "description": "The start page to extract. 0-based indexing",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "end_page",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 4,
+        "title": "End Page",
+        "description": "The end page to extract. -1 for all pages",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "pdf",
+      "start_page",
+      "end_page"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Extract Images",
+    "description": "Extract images from a PDF file.\n    pdf, image, extract\n\n    Use cases:\n    - Extract embedded images from PDF documents\n    - Save PDF images as separate files\n    - Process PDF images for analysis",
+    "namespace": "lib.file.pdfplumber",
+    "node_type": "lib.file.pdfplumber.ExtractImages",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "pdf",
+        "type": {
+          "type": "document",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Pdf",
+        "description": "The PDF file to extract images from",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "start_page",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 0,
+        "title": "Start Page",
+        "description": "The start page to extract",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "end_page",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 4,
+        "title": "End Page",
+        "description": "The end page to extract",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "image",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "pdf",
+      "start_page",
+      "end_page"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Get Page Count",
+    "description": "Get the total number of pages in a PDF file.\n    pdf, pages, count\n\n    Use cases:\n    - Check document length\n    - Plan batch processing",
+    "namespace": "lib.file.pdfplumber",
+    "node_type": "lib.file.pdfplumber.GetPageCount",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "pdf",
+        "type": {
+          "type": "document",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Pdf",
+        "description": "The PDF file to analyze",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "pdf"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Extract Page Metadata",
+    "description": "Extract metadata from PDF pages like dimensions, rotation, etc.\n    pdf, metadata, pages\n\n    Use cases:\n    - Analyze page layouts\n    - Get page dimensions\n    - Check page orientations",
+    "namespace": "lib.file.pdfplumber",
+    "node_type": "lib.file.pdfplumber.ExtractPageMetadata",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "pdf",
+        "type": {
+          "type": "document",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Pdf",
+        "description": "The PDF file to analyze",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "start_page",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 0,
+        "title": "Start Page",
+        "description": "The start page to extract. 0-based indexing",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "end_page",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 4,
+        "title": "End Page",
+        "description": "The end page to extract. -1 for all pages",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "dict",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "pdf",
+      "start_page",
+      "end_page"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Extract Tables",
+    "description": "Extract tables from a PDF file into dataframes.\n    pdf, tables, dataframe, extract\n\n    Use cases:\n    - Extract tabular data from PDF documents\n    - Convert PDF tables to structured data formats\n    - Process PDF tables for analysis\n    - Import PDF reports into data analysis pipelines",
+    "namespace": "lib.file.pdfplumber",
+    "node_type": "lib.file.pdfplumber.ExtractTables",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "pdf",
+        "type": {
+          "type": "document",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "document",
+          "uri": "",
+          "asset_id": null,
+          "data": null
+        },
+        "title": "Pdf",
+        "description": "The PDF document to extract tables from",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "pages",
+        "type": {
+          "type": "list",
+          "optional": true,
+          "values": null,
+          "type_args": [
+            {
+              "type": "int",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Pages",
+        "description": "Specific pages to extract tables from (None for all pages)",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "table_settings",
+        "type": {
+          "type": "dict",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "vertical_strategy": "text",
+          "horizontal_strategy": "text",
+          "snap_tolerance": 3,
+          "join_tolerance": 3,
+          "edge_min_length": 3,
+          "min_words_vertical": 3,
+          "min_words_horizontal": 1,
+          "keep_blank_chars": false,
+          "text_tolerance": 3,
+          "text_x_tolerance": 3,
+          "text_y_tolerance": 3
+        },
+        "title": "Table Settings",
+        "description": "Settings for table extraction algorithm",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "dataframe",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "pdf",
+      "pages",
+      "table_settings"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Extract Plain Text",
+    "description": "Extract plain text from a PDF document using PyMuPDF.\n    pdf, text, extract\n\n    Use cases:\n    - Extract raw text content from PDFs\n    - Convert PDF documents to plain text\n    - Prepare text for further processing",
+    "namespace": "lib.file.pymupdf",
+    "node_type": "lib.file.pymupdf.ExtractPlainText",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "pdf",
+        "type": {
+          "type": "document",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "document",
+          "uri": "",
+          "asset_id": null,
+          "data": null
+        },
+        "title": "Pdf",
+        "description": "The PDF document to extract text from",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "start_page",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 0,
+        "title": "Start Page",
+        "description": "First page to extract (0-based index)",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "end_page",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": -1,
+        "title": "End Page",
+        "description": "Last page to extract (-1 for last page)",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "pdf",
+      "start_page",
+      "end_page"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Extract Text Blocks",
+    "description": "Extract text blocks with their bounding boxes from a PDF.\n    pdf, text, blocks, layout\n\n    Use cases:\n    - Analyze text layout and structure\n    - Extract text while preserving block-level formatting\n    - Get text position information",
+    "namespace": "lib.file.pymupdf",
+    "node_type": "lib.file.pymupdf.ExtractTextBlocks",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "pdf",
+        "type": {
+          "type": "document",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "document",
+          "uri": "",
+          "asset_id": null,
+          "data": null
+        },
+        "title": "Pdf",
+        "description": "The PDF document to extract text blocks from",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "start_page",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 0,
+        "title": "Start Page",
+        "description": "First page to extract (0-based index)",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "end_page",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": -1,
+        "title": "End Page",
+        "description": "Last page to extract (-1 for last page)",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "dict",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "pdf",
+      "start_page",
+      "end_page"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Extract Text With Style",
+    "description": "Extract text with style information (font, size, color) from a PDF.\n    pdf, text, style, formatting\n\n    Use cases:\n    - Preserve text formatting during extraction\n    - Analyze document styling\n    - Extract text with font information",
+    "namespace": "lib.file.pymupdf",
+    "node_type": "lib.file.pymupdf.ExtractTextWithStyle",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "pdf",
+        "type": {
+          "type": "document",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "document",
+          "uri": "",
+          "asset_id": null,
+          "data": null
+        },
+        "title": "Pdf",
+        "description": "The PDF document to extract styled text from",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "start_page",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 0,
+        "title": "Start Page",
+        "description": "First page to extract (0-based index)",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "end_page",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": -1,
+        "title": "End Page",
+        "description": "Last page to extract (-1 for last page)",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "dict",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "pdf",
+      "start_page",
+      "end_page"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Extract Tables",
+    "description": "Extract tables from a PDF document using PyMuPDF.\n    pdf, tables, extract, structured\n\n    Use cases:\n    - Extract tabular data from PDFs\n    - Convert PDF tables to structured formats\n    - Analyze table layouts and content",
+    "namespace": "lib.file.pymupdf",
+    "node_type": "lib.file.pymupdf.ExtractTables",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "pdf",
+        "type": {
+          "type": "document",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "document",
+          "uri": "",
+          "asset_id": null,
+          "data": null
+        },
+        "title": "Pdf",
+        "description": "The PDF document to extract tables from",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "start_page",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 0,
+        "title": "Start Page",
+        "description": "First page to extract (0-based index)",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "end_page",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": -1,
+        "title": "End Page",
+        "description": "Last page to extract (-1 for last page)",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "dict",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "pdf",
+      "start_page",
+      "end_page"
+    ],
+    "is_dynamic": false
+  },
+  {
     "title": "Slice Image Grid",
     "description": "Slice an image into a grid of tiles.\n    image, grid, slice, tiles\n\n    Use cases:\n    - Prepare large images for processing in smaller chunks\n    - Create image puzzles or mosaic effects\n    - Distribute image processing tasks across multiple workers",
     "namespace": "lib.image.grid",
@@ -118952,6 +121665,21 @@
         "max": 65536.0
       },
       {
+        "name": "num_predict",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 128,
+        "title": "Num Predict",
+        "description": "The number of tokens to predict.",
+        "min": 1.0,
+        "max": 10000.0
+      },
+      {
         "name": "temperature",
         "type": {
           "type": "float",
@@ -120840,6 +123568,65 @@
       "keywords",
       "folder",
       "text"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Add Label",
+    "description": "Adds a label to a Gmail message.\n    email, gmail, label",
+    "namespace": "google.mail",
+    "node_type": "google.mail.AddLabel",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "email",
+        "type": {
+          "type": "email",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Email",
+        "description": "Email message to label",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "label",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Label",
+        "description": "Label to add to the message",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "email",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "email",
+      "label"
     ],
     "is_dynamic": false
   },
