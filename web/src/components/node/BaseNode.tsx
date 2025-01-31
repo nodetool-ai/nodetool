@@ -284,6 +284,11 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     [metadata]
   );
 
+  const showFooter = useMemo(() => {
+    if (metadata.namespace === "nodetool.constant") return false;
+    return true;
+  }, [metadata]);
+
   return (
     <Container
       css={memoizedStyles}
@@ -329,17 +334,19 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         <NodePropertyForm onAddProperty={handleAddProperty} />
       )}
       {props.selected && resizer}
-      <NodeFooter
-        nodeNamespace={metadata.namespace}
-        metadata={metadata}
-        backgroundColor={footerColor}
-        nodeType={props.type}
-        hasAdvancedFields={hasAdvancedFields}
-        showAdvancedFields={showAdvancedFields}
-        onToggleAdvancedFields={() =>
-          setShowAdvancedFields(!showAdvancedFields)
-        }
-      />
+      {showFooter && (
+        <NodeFooter
+          nodeNamespace={metadata.namespace}
+          metadata={metadata}
+          backgroundColor={footerColor}
+          nodeType={props.type}
+          hasAdvancedFields={hasAdvancedFields}
+          showAdvancedFields={showAdvancedFields}
+          onToggleAdvancedFields={() =>
+            setShowAdvancedFields(!showAdvancedFields)
+          }
+        />
+      )}
     </Container>
   );
 };

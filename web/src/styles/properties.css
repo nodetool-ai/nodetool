@@ -17,6 +17,10 @@
   line-height: 18px;
 }
 
+.node-property:last-child {
+  margin-bottom: 0;
+}
+
 .node-property .react-flow__handle {
   margin-top: 1px;
 }
