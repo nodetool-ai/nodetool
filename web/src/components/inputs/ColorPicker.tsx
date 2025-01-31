@@ -17,18 +17,16 @@ const ColorCircle = styled.div<{ color: string | null }>`
   border: 1px solid rgba(0, 0, 0, 0.2);
 `;
 
-const styles = (theme: any, isNodeProperty?: boolean) =>
+const styles = (theme: any) =>
   css({
     "&": {
       background: "transparent",
-      position: isNodeProperty ? "relative" : "absolute",
-      ...(isNodeProperty && {
-        zIndex: 100,
-        width: isNodeProperty ? "16px" : "12px",
-        height: isNodeProperty ? "16px" : "12px",
-        left: isNodeProperty ? 0 : 5,
-        bottom: isNodeProperty ? 0 : 5
-      }),
+      position: "relative",
+      zIndex: 100,
+      width: "16px",
+      height: "16px",
+      left: 0,
+      bottom: 0,
       padding: 0,
       margin: 0,
       display: "flex",
@@ -48,7 +46,7 @@ const styles = (theme: any, isNodeProperty?: boolean) =>
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      opacity: isNodeProperty ? 1 : 0.6,
+      opacity: 1,
       transition: "all 0.2s ease",
       "&:hover": {
         opacity: 1,
@@ -125,7 +123,7 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
   );
 
   return (
-    <div className="color-picker" css={styles(ThemeNodes, isNodeProperty)}>
+    <div className="color-picker" css={styles}>
       <Tooltip
         title="Set color"
         placement="bottom"
