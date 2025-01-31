@@ -21,7 +21,7 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
 
   return (
     <div className="property-label">
-      <Tooltip title={description || ""} enterDelay={300} placement="left">
+      <Tooltip title={description || ""} enterDelay={400} placement="left">
         <label draggable={false} htmlFor={id}>
           {formattedName}
         </label>
