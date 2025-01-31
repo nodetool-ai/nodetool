@@ -140,6 +140,15 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
       anchorPosition={
         menuPosition ? { top: menuPosition.y, left: menuPosition.x } : undefined
       }
+      slotProps={{
+        paper: {
+          sx: {
+            "& .MuiList-root": {
+              padding: "0"
+            }
+          }
+        }
+      }}
     >
       <ContextMenuItem
         onClick={() => {
