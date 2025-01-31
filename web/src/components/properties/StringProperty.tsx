@@ -1,4 +1,4 @@
-import { useState, useCallback, memo, useRef } from "react";
+import { useState, useCallback, memo, useRef, useMemo } from "react";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import TextEditorModal from "./TextEditorModal";
@@ -45,17 +45,23 @@ const StringProperty = ({
           onChange={(e) => onChange(e.target.value)}
           onFocus={handleFocus}
           className="nodrag"
-          rows={2}
-          style={{ width: "100%", minHeight: "48px", maxHeight: "160px" }}
+          style={{
+            width: "100%",
+            minHeight: "48px",
+            maxHeight: "400px",
+            borderRadius: "4px",
+            fontSize: "12px"
+          }}
           tabIndex={tabIndex}
           autoComplete="off"
           autoCorrect="off"
           autoCapitalize="off"
           spellCheck="false"
-          onInput={(e) => {
-            const target = e.target as HTMLTextAreaElement;
-            target.style.height = "auto";
-            target.style.height = `${target.scrollHeight}px`;
+          ref={(textarea) => {
+            if (textarea) {
+              textarea.style.height = "auto";
+              textarea.style.height = `${textarea.scrollHeight}px`;
+            }
           }}
         />
         {isExpanded && (
