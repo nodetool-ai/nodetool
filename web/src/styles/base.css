@@ -16,10 +16,11 @@ ul li {
 }
 
 #root .node-editor {
+  background: var(--c_gray1 );
   margin: 0;
   padding: 0;
   width: 100%;
-  height: calc(-50px + 100vh);
+  height: calc(-34px + 100vh);
   overflow: hidden;
   position: relative;
   display: block;
@@ -40,6 +41,10 @@ ul li {
   top: 0;
 }
 .reactflow-wrapper .react-flow {
+  /*
+  possible hack to prevent overflow
+  width: 500% !important;
+  height: 500% !important; */
   overflow: visible !important;
 }
 

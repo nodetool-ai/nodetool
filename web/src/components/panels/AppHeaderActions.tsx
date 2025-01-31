@@ -35,8 +35,10 @@ const actionsStyles = (
   css({
     "&.actions": {
       position: "relative",
+
       zIndex: 1000,
-      height: "48px",
+      top: "-1px",
+      height: "35px",
       display: "flex",
       flexDirection: "row",
       justifyContent: "flex-start",
@@ -49,37 +51,18 @@ const actionsStyles = (
     ".action-button": {
       flexShrink: 0,
       minWidth: "2.4em",
-      height: "2.4em",
-      padding: "0.8em",
-      backgroundColor: `${theme.palette.c_gray2}99`,
+      height: "25px",
+      padding: "0.5em",
       color: theme.palette.c_gray6,
-      transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
       position: "relative",
-      borderRadius: "8px",
-      "&:before": {
-        content: '""',
-        position: "absolute",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        borderRadius: "8px",
-        opacity: 0,
-        transition: "opacity 0.2s ease-in-out",
-        background: `radial-gradient(circle at center, ${theme.palette.c_hl1}40 0%, transparent 70%)`,
-        pointerEvents: "none"
-      },
+      borderRadius: "5px",
       "&:hover": {
-        backgroundColor: theme.palette.c_gray2,
-        transform: "translateY(-2px)",
-        boxShadow: `0 4px 15px ${theme.palette.c_hl1}33`,
-        "&:before": {
-          opacity: 1
-        }
+        backgroundColor: theme.palette.c_gray2
       },
       "& svg": {
         fontSize: "2.2em",
-        transition: "transform 0.2s ease"
+        marginRight: "0",
+        transition: "transform 0.1s ease"
       },
       "&:hover svg": {
         transform: "scale(1.1)"
@@ -88,11 +71,7 @@ const actionsStyles = (
     ".action-button.disabled": {
       color: theme.palette.c_gray4,
       "&:hover": {
-        transform: "none",
-        boxShadow: "none",
-        "&:before": {
-          opacity: 0
-        }
+        boxShadow: "none"
       }
     },
     ".run-stop-button": {
@@ -102,19 +81,21 @@ const actionsStyles = (
       minWidth: "6em",
       transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
       "&:hover": {
-        transform: "translateY(-2px)",
-        boxShadow: `0 4px 20px ${theme.palette.c_hl1}40`
+        // boxShadow: `0 4px 20px ${theme.palette.c_hl1}40`
       },
       "&.disabled": {
         opacity: 0.5
       }
+    },
+    ".stop-workflow": {
+      marginRight: "0.7em"
     },
     ".run-status": {
       position: "absolute",
       top: "-22px",
       fontSize: theme.fontSizeSmaller,
       padding: "0.2em 0.8em",
-      borderRadius: "6px",
+      borderRadius: "5px",
       color: theme.palette.c_gray6,
       backgroundColor: `${theme.palette.c_gray1}ee`,
       backdropFilter: "blur(4px)",

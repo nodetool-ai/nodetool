@@ -285,8 +285,7 @@ ThemeNodetool.components = {
     styleOverrides: {
       dense: {
         backgroundColor: ThemeNodetool.palette.c_gray1,
-        minHeight: "50px",
-        height: "50px",
+        height: "100%",
         display: "flex",
         justifyContent: "space-between"
       }

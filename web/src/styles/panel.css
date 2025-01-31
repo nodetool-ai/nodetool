@@ -24,36 +24,14 @@ img {
 /* PANEL LEFT */
 #root .panel-left {
   direction: ltr;
-  top: 80px;
+  top: 75px;
   position: absolute;
   overflow-x: hidden;
   overflow-y: auto;
   width: 100%;
   padding: 0.5em;
-  height: calc(-90px + 100vh);
+  height: calc(-75px + 100vh);
   transition: left 0.25s ease-out;
-}
-
-/* PANEL RIGHT */
-#root .panel-right {
-  position: fixed;
-  overflow-x: hidden;
-  overflow-y: auto;
-  right: 0;
-  left: unset;
-  padding: 0.5em;
-  bottom: 0;
-  min-width: 0px;
-  z-index: 1000;
-  height: calc(-51px + 100vh);
-}
-
-.tab-content {
-  direction: ltr;
-}
-
-.panel-right {
-  overflow: hidden !important;
 }
 
 .panel-right .MuiBox-root {
@@ -66,19 +44,20 @@ img {
   left: unset;
   right: unset;
   width: 40px;
-  height: calc(100vh - 90px);
+  height: calc(100vh - 75px);
   background-color: transparent;
   border: 0;
   border-radius: 0;
-  top: 80px;
+  top: 75px;
   cursor: e-resize;
   transition: background-color 0.3s ease;
 }
 
 #root .panel-button svg {
   font-size: 0.8em !important;
-  color: var(--c_white);
+  color: var(--c_gray5);
   opacity: 0;
+  margin-left: 1px;
   transition: all 0.5s ease;
 }
 
