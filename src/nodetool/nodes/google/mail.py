@@ -274,3 +274,45 @@ class EmailSearchCriteriaNode(BaseNode):
             folder=self.folder.value if self.folder else None,
             text=self.text.strip() if self.text and self.text.strip() else None,
         )
+
+
+class AddLabel(BaseNode):
+    """
+    Adds a label to a Gmail message.
+    email, gmail, label
+    """
+
+    email: Email = Field(
+        default=Email(),
+        description="Email message to label",
+    )
+
+    label: str = Field(
+        default="",
+        description="Label to add to the message",
+    )
+
+    async def process(self, context: ProcessingContext) -> Email:
+        email_address = context.environment.get("GOOGLE_MAIL_USER")
+        app_password = context.environment.get("GOOGLE_APP_PASSWORD")
+        if not email_address:
+            raise ValueError("GOOGLE_MAIL_USER is not set")
+        if not app_password:
+            raise ValueError("GOOGLE_APP_PASSWORD is not set")
+
+        connection = create_gmail_connection(email_address, app_password)
+
+        imap = imaplib.IMAP4_SSL(connection.host, connection.port)
+        try:
+            imap.login(connection.username, connection.password)
+            imap.select("INBOX")
+
+            result = imap.store(self.email.id, "+X-GM-LABELS", self.label)
+            if result[0] != "OK":
+                raise ValueError(
+                    f"Failed to add label {self.label} to message {self.email.id}: {result}"
+                )
+
+            return self.email
+        finally:
+            imap.logout()
