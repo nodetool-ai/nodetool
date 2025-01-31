@@ -4,19 +4,28 @@ import { css } from "@emotion/react";
 import { memo, useState, useCallback, useRef } from "react";
 import { NodeProps, NodeResizeControl, Node } from "@xyflow/react";
 import { debounce, isEqual } from "lodash";
-import { Container } from "@mui/material";
+import { Container, Icon, IconButton } from "@mui/material";
 import { NodeData } from "../../stores/NodeData";
-import { createEditor } from "slate";
+import { createEditor, Editor, Element, Transforms } from "slate";
 import { Slate, Editable, withReact, ReactEditor } from "slate-react";
 import { BaseEditor, Descendant } from "slate";
-import SouthEastIcon from "@mui/icons-material/SouthEast";
 import { hexToRgba } from "../../utils/ColorUtils";
 import ThemeNodes from "../../components/themes/ThemeNodes";
 import ColorPicker from "../inputs/ColorPicker";
 import NodeResizeHandle from "./NodeResizeHandle";
 import { useNodes } from "../../contexts/NodeContext";
-type CustomElement = { type: "paragraph"; children: CustomText[] };
-type CustomText = { text: string };
+
+type CustomElement = {
+  type: "paragraph";
+  children: CustomText[];
+};
+
+type CustomText = {
+  text: string;
+  bold?: boolean;
+  italic?: boolean;
+  size?: "-" | "+";
+};
 
 const styles = (theme: any) =>
   css({
@@ -24,7 +33,7 @@ const styles = (theme: any) =>
       width: "100%",
       height: "100%",
       margin: 0,
-      padding: 0,
+      padding: "2em 1em",
       // border: `1px solid ${hexToRgba(theme.palette.c_white, 0.3)}`,
       boxShadow: `0 0 8px ${hexToRgba(theme.palette.c_white, 0.1)}`,
       backgroundColor: "transparent",
@@ -40,38 +49,14 @@ const styles = (theme: any) =>
         display: "none"
       }
     },
-    ".node-header": {
-      width: "100%",
-      height: "20px",
-      minHeight: "unset",
-      margin: 0,
-      padding: "0 0.5em",
-      left: "0px",
-      backgroundColor: "transparent",
-      border: 0,
-      position: "absolute",
-      top: 0,
-      display: "flex",
-      alignItems: "center",
-      input: {
-        wordSpacing: "-3px",
-        fontSize: theme.fontSizeBigger,
-        fontWeight: "bold",
-        fontFamily: theme.fontFamily2,
-        pointerEvents: "none"
-      }
-    },
     ".text-editor": {
       width: "100%",
       color: theme.palette.c_black,
-      height: "calc(100% - 40px)",
       fontSize: theme.fontSizeBigger,
       fontFamily: theme.fontFamily1,
       lineHeight: "1.2em",
-      position: "absolute",
       overflowX: "hidden",
       overflowY: "auto",
-      top: "40px",
       left: 0,
       padding: "0 1em",
       "& [data-slate-placeholder='true']": {
@@ -85,38 +70,51 @@ const styles = (theme: any) =>
       outlineOffset: "0px",
       cursor: "auto"
     },
-    "&:hover .color-picker-button": {
-      opacity: 1
+    "&:hover .color-picker-container": {
+      opacity: 0.5
     },
     ".MuiTouchRipple-root": {
       width: 0,
       height: 0
+    },
+    ".format-buttons": {
+      position: "absolute",
+      top: "1em",
+      right: "4em",
+      display: "flex",
+      gap: "4px",
+      zIndex: 1,
+      opacity: 0,
+      transition: "opacity 0.2s ease",
+      "& button": {
+        padding: "2px 6px",
+        fontSize: "12px",
+        backgroundColor: hexToRgba(theme.palette.c_white, 0.1),
+        border: `1px solid ${hexToRgba(theme.palette.c_white, 0.2)}`,
+        borderRadius: "3px",
+        color: theme.palette.c_black,
+        cursor: "pointer",
+        "&:hover": {
+          backgroundColor: hexToRgba(theme.palette.c_white, 0.2)
+        },
+        "&.active": {
+          backgroundColor: hexToRgba(theme.palette.c_white, 0.3),
+          borderColor: hexToRgba(theme.palette.c_white, 0.4)
+        }
+      }
+    },
+    "&:hover .format-buttons": {
+      opacity: 1
+    },
+    ".color-picker-container": {
+      position: "absolute",
+      top: "1em",
+      right: "1em",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      opacity: 0
     }
-    // ".color-picker-button": {
-    //   pointerEvents: "all",
-    //   opacity: 0,
-    //   position: "absolute",
-    //   bottom: "0",
-    //   margin: "0",
-    //   padding: "0",
-    //   right: "1em",
-    //   left: "unset",
-    //   width: "0em",
-    //   height: "1.1em",
-    //   zIndex: 10000,
-    //   backgroundColor: theme.palette.c_gray2,
-    //   borderRadius: "0",
-    //   "& svg": {
-    //     color: theme.palette.c_gray5,
-    //     width: ".5em",
-    //     height: ".5em",
-    //     // scale: ".5",
-    //     rotate: "-86deg"
-    //   },
-    //   "&:hover svg": {
-    //     color: theme.palette.c_hl1
-    //   }
-    // }
   });
 
 declare module "slate" {
@@ -186,14 +184,9 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     [props.data, props.id, updateNodeData]
   );
 
-  const handleClick = () => {
+  const handleClick = useCallback(() => {
     ReactEditor.focus(editor);
-  };
-
-  const handleHeaderClick = () => {
-    // headerInputRef.current?.focus();
-    // headerInputRef.current?.select();
-  };
+  }, [editor]);
 
   const handleColorChange = useCallback(
     (newColor: string | null) => {
@@ -209,36 +202,100 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     [props.id, props.data, updateNodeData]
   );
 
+  const isMarkActive = (format: keyof Omit<CustomText, "text">) => {
+    const marks = Editor.marks(editor);
+    return marks ? marks[format] === true : false;
+  };
+
+  const toggleMark = (format: keyof Omit<CustomText, "text">, value?: any) => {
+    const isActive = isMarkActive(format);
+    if (isActive) {
+      Editor.removeMark(editor, format);
+    } else {
+      Editor.addMark(editor, format, value ?? true);
+    }
+  };
+
+  const onKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLDivElement>) => {
+      if (
+        !(navigator.userAgent.includes("Mac") ? event.metaKey : event.ctrlKey)
+      )
+        return;
+
+      switch (event.key) {
+        case "b": {
+          event.preventDefault();
+          toggleMark("bold");
+          break;
+        }
+        case "i": {
+          event.preventDefault();
+          toggleMark("italic");
+          break;
+        }
+      }
+    },
+    [editor, toggleMark]
+  );
+
+  const renderLeaf = useCallback((props: any) => {
+    let style = { ...props.attributes.style };
+
+    if (props.leaf.bold) {
+      style.fontWeight = "bold";
+    }
+
+    if (props.leaf.size) {
+      switch (props.leaf.size) {
+        case "-":
+          style.fontSize = "1em";
+          break;
+        case "+":
+          style.fontSize = "1.5em";
+          break;
+      }
+    }
+
+    return (
+      <span {...props.attributes} style={style}>
+        {props.children}
+      </span>
+    );
+  }, []);
+
+  const FormatButton = ({
+    format,
+    label
+  }: {
+    format: keyof Omit<CustomText, "text">;
+    label: string;
+  }) => {
+    const active = isMarkActive(format);
+    return (
+      <button
+        className={`nodrag ${active ? "active" : ""}`}
+        onMouseDown={(event) => {
+          event.preventDefault();
+          toggleMark(format, label);
+        }}
+      >
+        {label}
+      </button>
+    );
+  };
+
   return (
     <Container
       style={{ backgroundColor: hexToRgba(color, 0.5) }}
       className={className}
       css={styles}
     >
-      <div
-        className="node-header"
-        onClick={handleHeaderClick}
-        style={{
-          backgroundColor: hexToRgba(color, 0.2),
-          padding: "1.25em .5em"
-        }}
-      >
-        <input
-          ref={headerInputRef}
-          spellCheck={false}
-          className="nodrag"
-          type="text"
-          value={headline}
-          onChange={handleHeadlineChange}
-          placeholder=""
-          style={{
-            backgroundColor: "transparent",
-            color: "rgba(0, 0, 0, 0.87)",
-            border: 0,
-            outline: "none",
-            width: "90%"
-          }}
-        />
+      <div className="format-buttons">
+        <FormatButton format="bold" label="B" />
+        <FormatButton format="italic" label="I" />
+        <FormatButton format="size" label="-" />
+        <FormatButton format="size" label="+" />
       </div>
       <div className="text-editor" onClick={handleClick}>
         <Slate editor={editor} onChange={handleChange} initialValue={value}>
@@ -246,14 +303,18 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
             placeholder="//"
             spellCheck={false}
             className="editable nodrag nowheel"
+            onKeyDown={onKeyDown}
+            renderLeaf={renderLeaf}
           />
         </Slate>
       </div>
-      <ColorPicker
-        color={color}
-        onColorChange={handleColorChange}
-        showCustom={false}
-      />
+      <div className="color-picker-container">
+        <ColorPicker
+          color={color}
+          onColorChange={handleColorChange}
+          showCustom={false}
+        />
+      </div>
       <NodeResizeHandle minWidth={30} minHeight={40} />
     </Container>
   );
