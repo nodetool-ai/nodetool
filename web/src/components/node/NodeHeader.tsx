@@ -55,11 +55,7 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
   }, [id, updateNode]);
 
   return (
-    <Tooltip
-      title={description}
-      placement="top"
-      enterDelay={TOOLTIP_ENTER_DELAY}
-    >
+    <Tooltip title={description} placement="top" enterDelay={400}>
       <div
         className={`node-drag-handle node-header ${
           hasParent ? "has-parent" : ""
