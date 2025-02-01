@@ -161,12 +161,8 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "system_prompt",
       "messages",
       "prompt",
-      "temperature",
-      "top_k",
-      "top_p",
       "max_tokens"
     ],
     "is_dynamic": false
@@ -308,12 +304,8 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "system_prompt",
       "messages",
       "prompt",
-      "temperature",
-      "top_k",
-      "top_p",
       "max_tokens"
     ],
     "is_dynamic": false
@@ -16082,7 +16074,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": 1,
+        "default": 2,
         "title": "Month",
         "description": "Month of the date",
         "min": null,
@@ -16097,7 +16089,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": 31,
+        "default": 1,
         "title": "Day",
         "description": "Day of the date",
         "min": null,
@@ -16157,7 +16149,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": 1,
+        "default": 2,
         "title": "Month",
         "description": "Month of the datetime",
         "min": null,
@@ -16172,7 +16164,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": 31,
+        "default": 1,
         "title": "Day",
         "description": "Day of the datetime",
         "min": null,
@@ -16574,12 +16566,12 @@
         "default": {
           "type": "datetime",
           "year": 2025,
-          "month": 1,
-          "day": 31,
-          "hour": 17,
-          "minute": 54,
-          "second": 37,
-          "microsecond": 985901,
+          "month": 2,
+          "day": 1,
+          "hour": 11,
+          "minute": 27,
+          "second": 18,
+          "microsecond": 897991,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -17631,12 +17623,12 @@
         "default": {
           "type": "datetime",
           "year": 2025,
-          "month": 1,
-          "day": 31,
-          "hour": 17,
-          "minute": 54,
-          "second": 37,
-          "microsecond": 990313,
+          "month": 2,
+          "day": 1,
+          "hour": 11,
+          "minute": 27,
+          "second": 18,
+          "microsecond": 902270,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -17685,12 +17677,12 @@
         "default": {
           "type": "datetime",
           "year": 2025,
-          "month": 1,
-          "day": 31,
-          "hour": 17,
-          "minute": 54,
-          "second": 37,
-          "microsecond": 990560,
+          "month": 2,
+          "day": 1,
+          "hour": 11,
+          "minute": 27,
+          "second": 18,
+          "microsecond": 902511,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -17739,12 +17731,12 @@
         "default": {
           "type": "datetime",
           "year": 2025,
-          "month": 1,
-          "day": 31,
-          "hour": 17,
-          "minute": 54,
-          "second": 37,
-          "microsecond": 990804,
+          "month": 2,
+          "day": 1,
+          "hour": 11,
+          "minute": 27,
+          "second": 18,
+          "microsecond": 902745,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -17793,12 +17785,12 @@
         "default": {
           "type": "datetime",
           "year": 2025,
-          "month": 1,
-          "day": 31,
-          "hour": 17,
-          "minute": 54,
-          "second": 37,
-          "microsecond": 991045,
+          "month": 2,
+          "day": 1,
+          "hour": 11,
+          "minute": 27,
+          "second": 18,
+          "microsecond": 902980,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -17847,12 +17839,12 @@
         "default": {
           "type": "datetime",
           "year": 2025,
-          "month": 1,
-          "day": 31,
-          "hour": 17,
-          "minute": 54,
-          "second": 37,
-          "microsecond": 991301,
+          "month": 2,
+          "day": 1,
+          "hour": 11,
+          "minute": 27,
+          "second": 18,
+          "microsecond": 903244,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -17901,12 +17893,12 @@
         "default": {
           "type": "datetime",
           "year": 2025,
-          "month": 1,
-          "day": 31,
-          "hour": 17,
-          "minute": 54,
-          "second": 37,
-          "microsecond": 991518,
+          "month": 2,
+          "day": 1,
+          "hour": 11,
+          "minute": 27,
+          "second": 18,
+          "microsecond": 903477,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -17955,12 +17947,12 @@
         "default": {
           "type": "datetime",
           "year": 2025,
-          "month": 1,
-          "day": 31,
-          "hour": 17,
-          "minute": 54,
-          "second": 37,
-          "microsecond": 991733,
+          "month": 2,
+          "day": 1,
+          "hour": 11,
+          "minute": 27,
+          "second": 18,
+          "microsecond": 903711,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -18025,12 +18017,12 @@
         "default": {
           "type": "datetime",
           "year": 2025,
-          "month": 1,
-          "day": 31,
-          "hour": 17,
-          "minute": 54,
-          "second": 37,
-          "microsecond": 992019,
+          "month": 2,
+          "day": 1,
+          "hour": 11,
+          "minute": 27,
+          "second": 18,
+          "microsecond": 904020,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -67096,6 +67088,217 @@
     "is_dynamic": false
   },
   {
+    "title": "Speech To Text",
+    "description": "Converts speech to text using OpenAI's speech-to-text API.\n    audio, transcription, speech-to-text, stt, whisper\n\n    Use cases:\n    - Generate accurate transcriptions of audio content\n    - Create searchable text from audio recordings\n    - Support multiple languages for transcription\n    - Enable automated subtitling and captioning",
+    "namespace": "openai.audio",
+    "node_type": "openai.audio.SpeechToText",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "audio",
+        "type": {
+          "type": "audio",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "audio",
+          "uri": "",
+          "asset_id": null,
+          "data": null
+        },
+        "title": "Audio",
+        "description": "The audio file to transcribe (max 25 MB).",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "language",
+        "type": {
+          "type": "enum",
+          "optional": false,
+          "values": [
+            "auto_detect",
+            "spanish",
+            "italian",
+            "korean",
+            "portuguese",
+            "english",
+            "japanese",
+            "german",
+            "russian",
+            "dutch",
+            "polish",
+            "catalan",
+            "french",
+            "indonesian",
+            "ukrainian",
+            "turkish",
+            "malay",
+            "swedish",
+            "mandarin",
+            "finnish",
+            "norwegian",
+            "romanian",
+            "thai",
+            "vietnamese",
+            "slovak",
+            "arabic",
+            "czech",
+            "croatian",
+            "greek",
+            "serbian",
+            "danish",
+            "bulgarian",
+            "hungarian",
+            "filipino",
+            "bosnian",
+            "galician",
+            "macedonian",
+            "hindi",
+            "estonian",
+            "slovenian",
+            "tamil",
+            "latvian",
+            "azerbaijani",
+            "urdu",
+            "lithuanian",
+            "hebrew",
+            "welsh",
+            "persian",
+            "icelandic",
+            "kazakh",
+            "afrikaans",
+            "kannada",
+            "marathi",
+            "swahili",
+            "telugu",
+            "maori",
+            "nepali",
+            "armenian",
+            "belarusian",
+            "gujarati",
+            "punjabi",
+            "bengali"
+          ],
+          "type_args": [],
+          "type_name": "nodetool.nodes.openai.audio.TTSLanguage"
+        },
+        "default": "auto_detect",
+        "title": "Language",
+        "description": "The language of the input audio",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "timestamps",
+        "type": {
+          "type": "bool",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": false,
+        "title": "Timestamps",
+        "description": "Whether to return timestamps for the generated text.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "prompt",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Prompt",
+        "description": "Optional text to guide the model's style or continue a previous audio segment.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "temperature",
+        "type": {
+          "type": "float",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 0,
+        "title": "Temperature",
+        "description": "The sampling temperature between 0 and 1. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic.",
+        "min": 0.0,
+        "max": 1.0
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "text",
+        "stream": false
+      },
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "audio_chunk",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "words",
+        "stream": false
+      },
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "audio_chunk",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "segments",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "audio",
+      "language",
+      "timestamps"
+    ],
+    "is_dynamic": false
+  },
+  {
     "title": "Trim",
     "description": "Trim an audio file to a specified duration.\n    audio, trim, cut\n\n    Use cases:\n    - Remove silence from the beginning or end of audio files\n    - Extract specific segments from audio files\n    - Prepare audio data for machine learning models",
     "namespace": "lib.audio.conversion",
@@ -98390,40 +98593,25 @@
         "default": 4096,
         "title": "Max Tokens",
         "description": "The maximum number of tokens to generate.",
-        "min": null,
-        "max": null
+        "min": 1.0,
+        "max": 100000.0
       },
       {
-        "name": "temperature",
+        "name": "model",
         "type": {
-          "type": "float",
+          "type": "openai_model",
           "optional": false,
           "values": null,
           "type_args": [],
           "type_name": null
         },
-        "default": 0.0,
-        "title": "Temperature",
-        "description": "The temperature to use for sampling.",
-        "min": 0.0,
-        "max": 2.0
-      },
-      {
-        "name": "model",
-        "type": {
-          "type": "enum",
-          "optional": false,
-          "values": [
-            "gpt-3.5-turbo-0125",
-            "gpt-4o",
-            "gpt-4o-mini",
-            "o1-preview",
-            "o1-mini"
-          ],
-          "type_args": [],
-          "type_name": "nodetool.metadata.types.GPTModel"
+        "default": {
+          "type": "openai_model",
+          "id": "gpt-4o",
+          "object": "",
+          "created": 0,
+          "owned_by": ""
         },
-        "default": "gpt-4o-mini",
         "title": "Model",
         "description": "The GPT model to use for generating tasks.",
         "min": null,
@@ -98455,8 +98643,7 @@
     "recommended_models": [],
     "basic_fields": [
       "goal",
-      "model",
-      "temperature"
+      "model"
     ],
     "is_dynamic": false
   },
@@ -98525,40 +98712,25 @@
         "default": 1000,
         "title": "Max Tokens",
         "description": "The maximum number of tokens to generate.",
-        "min": null,
-        "max": null
+        "min": 1.0,
+        "max": 100000.0
       },
       {
-        "name": "temperature",
+        "name": "model",
         "type": {
-          "type": "float",
+          "type": "openai_model",
           "optional": false,
           "values": null,
           "type_args": [],
           "type_name": null
         },
-        "default": 0.0,
-        "title": "Temperature",
-        "description": "The temperature to use for sampling.",
-        "min": 0.0,
-        "max": 2.0
-      },
-      {
-        "name": "model",
-        "type": {
-          "type": "enum",
-          "optional": false,
-          "values": [
-            "gpt-3.5-turbo-0125",
-            "gpt-4o",
-            "gpt-4o-mini",
-            "o1-preview",
-            "o1-mini"
-          ],
-          "type_args": [],
-          "type_name": "nodetool.metadata.types.GPTModel"
+        "default": {
+          "type": "openai_model",
+          "id": "o3-mini",
+          "object": "",
+          "created": 0,
+          "owned_by": ""
         },
-        "default": "gpt-4o-mini",
         "title": "Model",
         "description": "The GPT model to use for processing tasks.",
         "min": null,
@@ -98590,8 +98762,7 @@
     "recommended_models": [],
     "basic_fields": [
       "tasks",
-      "model",
-      "temperature"
+      "model"
     ],
     "is_dynamic": false
   },
@@ -98602,6 +98773,27 @@
     "node_type": "openai.agents.DataGenerator",
     "layout": "default",
     "properties": [
+      {
+        "name": "model",
+        "type": {
+          "type": "openai_model",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "openai_model",
+          "id": "o3-mini",
+          "object": "",
+          "created": 0,
+          "owned_by": ""
+        },
+        "title": "Model",
+        "description": "The GPT model to use for data generation.",
+        "min": null,
+        "max": null
+      },
       {
         "name": "prompt",
         "type": {
@@ -98664,23 +98856,8 @@
         "default": 4096,
         "title": "Max Tokens",
         "description": "The maximum number of tokens to generate.",
-        "min": 0.0,
-        "max": 10000.0
-      },
-      {
-        "name": "temperature",
-        "type": {
-          "type": "float",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": 1.0,
-        "title": "Temperature",
-        "description": "The temperature to use for sampling.",
-        "min": 0.0,
-        "max": 2.0
+        "min": 1.0,
+        "max": 100000.0
       },
       {
         "name": "columns",
@@ -98697,27 +98874,6 @@
         },
         "title": "Columns",
         "description": "The columns to use in the dataframe.",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "model",
-        "type": {
-          "type": "enum",
-          "optional": false,
-          "values": [
-            "gpt-3.5-turbo-0125",
-            "gpt-4o",
-            "gpt-4o-mini",
-            "o1-preview",
-            "o1-mini"
-          ],
-          "type_args": [],
-          "type_name": "nodetool.metadata.types.GPTModel"
-        },
-        "default": "gpt-4o-mini",
-        "title": "Model",
-        "description": "The GPT model to use for data generation.",
         "min": null,
         "max": null
       }
@@ -98740,7 +98896,7 @@
     "basic_fields": [
       "prompt",
       "model",
-      "temperature"
+      "columns"
     ],
     "is_dynamic": false
   },
@@ -98786,40 +98942,25 @@
         "default": 4096,
         "title": "Max Tokens",
         "description": "The maximum number of tokens to generate.",
-        "min": null,
-        "max": null
+        "min": 1.0,
+        "max": 100000.0
       },
       {
-        "name": "temperature",
+        "name": "model",
         "type": {
-          "type": "float",
+          "type": "openai_model",
           "optional": false,
           "values": null,
           "type_args": [],
           "type_name": null
         },
-        "default": 0.0,
-        "title": "Temperature",
-        "description": "The temperature to use for sampling.",
-        "min": 0.0,
-        "max": 2.0
-      },
-      {
-        "name": "model",
-        "type": {
-          "type": "enum",
-          "optional": false,
-          "values": [
-            "gpt-3.5-turbo-0125",
-            "gpt-4o",
-            "gpt-4o-mini",
-            "o1-preview",
-            "o1-mini"
-          ],
-          "type_args": [],
-          "type_name": "nodetool.metadata.types.GPTModel"
+        "default": {
+          "type": "openai_model",
+          "id": "gpt-4o",
+          "object": "",
+          "created": 0,
+          "owned_by": ""
         },
-        "default": "gpt-4o-mini",
         "title": "Model",
         "description": "The GPT model to use for chain of thought reasoning.",
         "min": null,
@@ -98862,8 +99003,7 @@
     "recommended_models": [],
     "basic_fields": [
       "messages",
-      "model",
-      "temperature"
+      "model"
     ],
     "is_dynamic": false
   },
@@ -98907,40 +99047,25 @@
         "default": 4096,
         "title": "Max Tokens",
         "description": "The maximum number of tokens to generate",
-        "min": null,
-        "max": null
+        "min": 1.0,
+        "max": 100000.0
       },
       {
-        "name": "temperature",
+        "name": "model",
         "type": {
-          "type": "float",
+          "type": "openai_model",
           "optional": false,
           "values": null,
           "type_args": [],
           "type_name": null
         },
-        "default": 0.0,
-        "title": "Temperature",
-        "description": "The temperature to use for sampling",
-        "min": 0.0,
-        "max": 2.0
-      },
-      {
-        "name": "model",
-        "type": {
-          "type": "enum",
-          "optional": false,
-          "values": [
-            "gpt-3.5-turbo-0125",
-            "gpt-4o",
-            "gpt-4o-mini",
-            "o1-preview",
-            "o1-mini"
-          ],
-          "type_args": [],
-          "type_name": "nodetool.metadata.types.GPTModel"
+        "default": {
+          "type": "openai_model",
+          "id": "o3-mini",
+          "object": "",
+          "created": 0,
+          "owned_by": ""
         },
-        "default": "gpt-4o-mini",
         "title": "Model",
         "description": "The GPT model to use for processing chain of thought steps.",
         "min": null,
@@ -98975,8 +99100,7 @@
     "recommended_models": [],
     "basic_fields": [
       "current_step",
-      "model",
-      "temperature"
+      "model"
     ],
     "is_dynamic": false
   },
@@ -98990,19 +99114,19 @@
       {
         "name": "model",
         "type": {
-          "type": "enum",
+          "type": "openai_model",
           "optional": false,
-          "values": [
-            "gpt-3.5-turbo-0125",
-            "gpt-4o",
-            "gpt-4o-mini",
-            "o1-preview",
-            "o1-mini"
-          ],
+          "values": null,
           "type_args": [],
-          "type_name": "nodetool.metadata.types.GPTModel"
+          "type_name": null
         },
-        "default": "gpt-4o-mini",
+        "default": {
+          "type": "openai_model",
+          "id": "o3-mini",
+          "object": "",
+          "created": 0,
+          "owned_by": ""
+        },
         "title": "Model",
         "description": "The GPT model to use for chart generation.",
         "min": null,
@@ -99056,23 +99180,8 @@
         "default": 4096,
         "title": "Max Tokens",
         "description": "The maximum number of tokens to generate.",
-        "min": 0.0,
-        "max": 10000.0
-      },
-      {
-        "name": "temperature",
-        "type": {
-          "type": "float",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": 0.7,
-        "title": "Temperature",
-        "description": "The temperature to use for sampling.",
-        "min": 0.0,
-        "max": 2.0
+        "min": 1.0,
+        "max": 100000.0
       },
       {
         "name": "columns",
@@ -99170,40 +99279,25 @@
         "default": 1000,
         "title": "Max Tokens",
         "description": "The maximum number of tokens to generate.",
-        "min": 0.0,
-        "max": 10000.0
+        "min": 1.0,
+        "max": 100000.0
       },
       {
-        "name": "temperature",
+        "name": "model",
         "type": {
-          "type": "float",
+          "type": "openai_model",
           "optional": false,
           "values": null,
           "type_args": [],
           "type_name": null
         },
-        "default": 0.0,
-        "title": "Temperature",
-        "description": "The temperature to use for sampling.",
-        "min": 0.0,
-        "max": 2.0
-      },
-      {
-        "name": "model",
-        "type": {
-          "type": "enum",
-          "optional": false,
-          "values": [
-            "gpt-3.5-turbo-0125",
-            "gpt-4o",
-            "gpt-4o-mini",
-            "o1-preview",
-            "o1-mini"
-          ],
-          "type_args": [],
-          "type_name": "nodetool.metadata.types.GPTModel"
+        "default": {
+          "type": "openai_model",
+          "id": "o3-mini",
+          "object": "",
+          "created": 0,
+          "owned_by": ""
         },
-        "default": "gpt-4o-mini",
         "title": "Model",
         "description": "The GPT model to use for regression analysis.",
         "min": null,
@@ -99266,23 +99360,8 @@
         "default": 1000,
         "title": "Max Tokens",
         "description": "The maximum number of tokens to generate.",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "temperature",
-        "type": {
-          "type": "float",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": 0.0,
-        "title": "Temperature",
-        "description": "The temperature to use for sampling.",
-        "min": 0.0,
-        "max": 2.0
+        "min": 1.0,
+        "max": 100000.0
       },
       {
         "name": "duration",
@@ -99302,19 +99381,19 @@
       {
         "name": "model",
         "type": {
-          "type": "enum",
+          "type": "openai_model",
           "optional": false,
-          "values": [
-            "gpt-3.5-turbo-0125",
-            "gpt-4o",
-            "gpt-4o-mini",
-            "o1-preview",
-            "o1-mini"
-          ],
+          "values": null,
           "type_args": [],
-          "type_name": "nodetool.metadata.types.GPTModel"
+          "type_name": null
         },
-        "default": "gpt-4o-mini",
+        "default": {
+          "type": "openai_model",
+          "id": "o3-mini",
+          "object": "",
+          "created": 0,
+          "owned_by": ""
+        },
         "title": "Model",
         "description": "The GPT model to use for sound synthesis.",
         "min": null,
@@ -99408,40 +99487,25 @@
         "default": 1000,
         "title": "Max Tokens",
         "description": "The maximum number of tokens to generate",
-        "min": null,
-        "max": null
+        "min": 1.0,
+        "max": 100000.0
       },
       {
-        "name": "temperature",
+        "name": "model",
         "type": {
-          "type": "float",
+          "type": "openai_model",
           "optional": false,
           "values": null,
           "type_args": [],
           "type_name": null
         },
-        "default": 0.0,
-        "title": "Temperature",
-        "description": "The temperature to use for sampling",
-        "min": 0.0,
-        "max": 2.0
-      },
-      {
-        "name": "model",
-        "type": {
-          "type": "enum",
-          "optional": false,
-          "values": [
-            "gpt-3.5-turbo-0125",
-            "gpt-4o",
-            "gpt-4o-mini",
-            "o1-preview",
-            "o1-mini"
-          ],
-          "type_args": [],
-          "type_name": "nodetool.metadata.types.GPTModel"
+        "default": {
+          "type": "openai_model",
+          "id": "o3-mini",
+          "object": "",
+          "created": 0,
+          "owned_by": ""
         },
-        "default": "gpt-4o-mini",
         "title": "Model",
         "description": "The GPT model to use for summarizing chain of thought results.",
         "min": null,
@@ -99699,28 +99763,28 @@
     "is_dynamic": false
   },
   {
-    "title": "GPT",
-    "description": "Generate natural language responses using GPT models.\n    llm, text-generation, chatbot, question-answering\n\n    Leverages OpenAI's GPT models to:\n    - Generate human-like text responses\n    - Answer questions\n    - Complete prompts\n    - Engage in conversational interactions\n    - Assist with writing and editing tasks\n    - Perform text analysis and summarization",
+    "title": "OpenAI Text",
+    "description": "Generate natural language responses using OpenAI models.\n    llm, text-generation, chatbot, question-answering\n\n    Leverages OpenAI's GPT models to:\n    - Generate human-like text responses\n    - Answer questions\n    - Complete prompts\n    - Engage in conversational interactions\n    - Assist with writing and editing tasks\n    - Perform text analysis and summarization",
     "namespace": "openai.text",
-    "node_type": "openai.text.GPT",
+    "node_type": "openai.text.OpenAIText",
     "layout": "default",
     "properties": [
       {
         "name": "model",
         "type": {
-          "type": "enum",
+          "type": "openai_model",
           "optional": false,
-          "values": [
-            "gpt-3.5-turbo-0125",
-            "gpt-4o",
-            "gpt-4o-mini",
-            "o1-preview",
-            "o1-mini"
-          ],
+          "values": null,
           "type_args": [],
-          "type_name": "nodetool.metadata.types.GPTModel"
+          "type_name": null
         },
-        "default": "gpt-3.5-turbo-0125",
+        "default": {
+          "type": "openai_model",
+          "id": "o3-mini",
+          "object": "",
+          "created": 0,
+          "owned_by": ""
+        },
         "title": "Model",
         "description": null,
         "min": null,
@@ -99807,21 +99871,6 @@
         "max": 2.0
       },
       {
-        "name": "temperature",
-        "type": {
-          "type": "float",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": 1.0,
-        "title": "Temperature",
-        "description": null,
-        "min": 0.0,
-        "max": 2.0
-      },
-      {
         "name": "max_tokens",
         "type": {
           "type": "int",
@@ -99830,11 +99879,11 @@
           "type_args": [],
           "type_name": null
         },
-        "default": 100,
+        "default": 4096,
         "title": "Max Tokens",
         "description": null,
         "min": 1.0,
-        "max": 2048.0
+        "max": 100000.0
       },
       {
         "name": "top_p",
@@ -127366,7 +127415,25 @@
           "type_args": [],
           "type_name": null
         },
-        "default": null,
+        "default": {
+          "type": "email",
+          "id": "",
+          "sender": "",
+          "subject": "",
+          "date": {
+            "type": "datetime",
+            "year": 2025,
+            "month": 2,
+            "day": 1,
+            "hour": 11,
+            "minute": 27,
+            "second": 16,
+            "microsecond": 938682,
+            "tzinfo": "UTC",
+            "utc_offset": 0.0
+          },
+          "body": ""
+        },
         "title": "Email",
         "description": "Email message to label",
         "min": null,
@@ -127381,7 +127448,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": null,
+        "default": "",
         "title": "Label",
         "description": "Label to add to the message",
         "min": null,

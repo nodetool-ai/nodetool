@@ -1,5 +1,3 @@
-from matplotlib import pyplot as plt
-from matplotlib.figure import Figure
 from nodetool.chat.chat import json_schema_for_dataframe, process_messages
 from nodetool.metadata.types import (
     AudioRef,
@@ -7,17 +5,20 @@ from nodetool.metadata.types import (
     ChartConfig,
     ChartConfigSchema,
     ChartData,
-    DataSeries,
     DataframeRef,
+    DataSeries,
     FunctionModel,
-    GPTModel,
     ImageRef,
     Message,
+    NodeRef,
+    OpenAIModel,
+    Provider,
     Provider,
     RecordType,
     SeabornEstimator,
     SeabornPlotType,
     SeabornStatistic,
+    Task,
 )
 from nodetool.nodes.lib.audio.synthesis import (
     Envelope,
@@ -49,15 +50,6 @@ from nodetool.chat.chat import (
     process_tool_calls,
 )
 from nodetool.chat.tools import ProcessNodeTool
-from nodetool.metadata.types import (
-    DataframeRef,
-    FunctionModel,
-    GPTModel,
-    ImageRef,
-    NodeRef,
-    Provider,
-    Task,
-)
 from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.metadata.types import Message
@@ -85,16 +77,12 @@ class Agent(BaseNode):
     )
     max_tokens: int = Field(
         default=4096,
+        ge=1,
+        le=100000,
         description="The maximum number of tokens to generate.",
     )
-    temperature: float = Field(
-        default=0.0,
-        ge=0.0,
-        le=2.0,
-        description="The temperature to use for sampling.",
-    )
-    model: GPTModel = Field(
-        default=GPTModel.GPT4Mini,
+    model: OpenAIModel = Field(
+        default=OpenAIModel(id="gpt-4o"),
         description="The GPT model to use for generating tasks.",
     )
 
@@ -102,43 +90,16 @@ class Agent(BaseNode):
         self, messages: list[Message], context: ProcessingContext, **kwargs
     ) -> Message:
         """Helper method to process messages based on model type"""
-        if self.model in [GPTModel.O1Mini, GPTModel.O1]:
-            # Convert system messages to user messages
-            converted_messages = []
-            for msg in messages:
-                if msg.role == "system":
-                    converted_messages.append(
-                        Message(
-                            role="user",
-                            content=f"Instructions: {msg.content}",
-                            thread_id=msg.thread_id,
-                        )
-                    )
-                else:
-                    converted_messages.append(msg)
-            return await process_messages(
-                context=context,
-                node_id=self._id,
-                model=FunctionModel(provider=Provider.OpenAI, name=self.model.value),
-                messages=converted_messages,
-                **kwargs,
-            )
-        else:
-            return await process_messages(
-                context=context,
-                node_id=self._id,
-                model=FunctionModel(provider=Provider.OpenAI, name=self.model.value),
-                messages=messages,
-                **kwargs,
-            )
+        return await process_messages(
+            context=context,
+            node_id=self._id,
+            model=FunctionModel(provider=Provider.OpenAI, name=self.model.id),
+            messages=messages,
+            **kwargs,
+        )
 
     async def process(self, context: ProcessingContext) -> list[Task]:
         # Validate model compatibility
-        if self.model in [GPTModel.O1Mini, GPTModel.O1]:
-            raise ValueError(
-                "O1 models do not support JSON output format. Please use GPT-4 or GPT-3.5."
-            )
-
         thread_id = uuid.uuid4().hex
         input_messages = [
             Message(
@@ -164,8 +125,7 @@ class Agent(BaseNode):
         assistant_message = await self.process_messages_with_model(
             messages=input_messages,
             context=context,
-            max_tokens=self.max_tokens,
-            temperature=self.temperature,
+            max_completion_tokens=self.max_tokens,
             response_format={
                 "type": "json_schema",
                 "json_schema": {
@@ -223,7 +183,7 @@ class Agent(BaseNode):
 
     @classmethod
     def get_basic_fields(cls) -> list[str]:
-        return ["goal", "model", "temperature"]
+        return ["goal", "model"]
 
 
 class RunTasks(BaseNode):
@@ -247,16 +207,12 @@ class RunTasks(BaseNode):
     )
     max_tokens: int = Field(
         default=1000,
+        ge=1,
+        le=100000,
         description="The maximum number of tokens to generate.",
     )
-    temperature: float = Field(
-        default=0.0,
-        ge=0.0,
-        le=2.0,
-        description="The temperature to use for sampling.",
-    )
-    model: GPTModel = Field(
-        default=GPTModel.GPT4Mini,
+    model: OpenAIModel = Field(
+        default=OpenAIModel(id="o3-mini"),
         description="The GPT model to use for processing tasks.",
     )
 
@@ -321,11 +277,10 @@ class RunTasks(BaseNode):
         assistant_message = await process_messages(
             context=context,
             node_id=self._id,
-            model=FunctionModel(provider=Provider.OpenAI, name=self.model.value),
+            model=FunctionModel(provider=Provider.OpenAI, name=self.model.id),
             tools=tools,
             messages=input_messages,
-            temperature=self.temperature,
-            max_tokens=self.max_tokens,
+            max_completion_tokens=self.max_tokens,
         )
 
         if (
@@ -355,7 +310,7 @@ class RunTasks(BaseNode):
 
     @classmethod
     def get_basic_fields(cls) -> list[str]:
-        return ["tasks", "model", "temperature"]
+        return ["tasks", "model"]
 
 
 class DataGenerator(BaseNode):
@@ -369,6 +324,10 @@ class DataGenerator(BaseNode):
     - Converting unstructured text into tabular format
     """
 
+    model: OpenAIModel = Field(
+        default=OpenAIModel(id="o3-mini"),
+        description="The GPT model to use for data generation.",
+    )
     prompt: str = Field(
         default="",
         description="The user prompt",
@@ -383,32 +342,16 @@ class DataGenerator(BaseNode):
     )
     max_tokens: int = Field(
         default=4096,
-        ge=0,
-        le=10000,
+        ge=1,
+        le=100000,
         description="The maximum number of tokens to generate.",
-    )
-    temperature: float = Field(
-        default=1.0,
-        ge=0.0,
-        le=2.0,
-        description="The temperature to use for sampling.",
     )
     columns: RecordType = Field(
         default=RecordType(),
         description="The columns to use in the dataframe.",
     )
-    model: GPTModel = Field(
-        default=GPTModel.GPT4Mini,
-        description="The GPT model to use for data generation.",
-    )
 
     async def process(self, context: ProcessingContext) -> DataframeRef:
-        # Validate model compatibility
-        if self.model in [GPTModel.O1Mini, GPTModel.O1]:
-            raise ValueError(
-                "O1 models do not support JSON output format. Please use GPT-4 or GPT-3.5."
-            )
-
         system_message = Message(
             role="system",
             content="You are an assistant with access to tools.",
@@ -423,10 +366,9 @@ class DataGenerator(BaseNode):
         assistant_message = await process_messages(
             context=context,
             node_id=self._id,
-            model=FunctionModel(provider=Provider.OpenAI, name=self.model.value),
+            model=FunctionModel(provider=Provider.OpenAI, name=self.model.id),
             messages=messages,
-            max_tokens=self.max_tokens,
-            temperature=self.temperature,
+            max_completion_tokens=self.max_tokens,
             response_format={
                 "type": "json_schema",
                 "json_schema": {
@@ -447,7 +389,7 @@ class DataGenerator(BaseNode):
 
     @classmethod
     def get_basic_fields(cls) -> list[str]:
-        return ["prompt", "model", "temperature"]
+        return ["prompt", "model", "columns"]
 
 
 class ThoughtStep(BaseType):
@@ -480,16 +422,12 @@ class ChainOfThought(BaseNode):
     )
     max_tokens: int = Field(
         default=4096,
+        ge=1,
+        le=100000,
         description="The maximum number of tokens to generate.",
     )
-    temperature: float = Field(
-        default=0.0,
-        ge=0.0,
-        le=2.0,
-        description="The temperature to use for sampling.",
-    )
-    model: GPTModel = Field(
-        default=GPTModel.GPT4Mini,
+    model: OpenAIModel = Field(
+        default=OpenAIModel(id="gpt-4o"),
         description="The GPT model to use for chain of thought reasoning.",
     )
 
@@ -502,9 +440,9 @@ class ChainOfThought(BaseNode):
 
     async def process(self, context: ProcessingContext) -> dict:
         # Validate model compatibility
-        if self.model in [GPTModel.O1Mini, GPTModel.O1]:
+        if self.model.id.startswith("o1") or self.model.id.startswith("o3"):
             raise ValueError(
-                "O1 models do not support JSON output format. Please use GPT-4 or GPT-3.5."
+                "O1 and O3 models do not support JSON output format. Please use GPT-4 or GPT-3.5."
             )
 
         input_messages = [
@@ -530,10 +468,9 @@ class ChainOfThought(BaseNode):
         assistant_message = await process_messages(
             context=context,
             node_id=self._id,
-            model=FunctionModel(provider=Provider.OpenAI, name=self.model.value),
+            model=FunctionModel(provider=Provider.OpenAI, name=self.model.id),
             messages=input_messages,
-            max_tokens=self.max_tokens,
-            temperature=self.temperature,
+            max_completion_tokens=self.max_tokens,
             response_format={
                 "type": "json_schema",
                 "json_schema": {
@@ -574,7 +511,7 @@ class ChainOfThought(BaseNode):
 
     @classmethod
     def get_basic_fields(cls) -> list[str]:
-        return ["messages", "model", "temperature"]
+        return ["messages", "model"]
 
 
 class ProcessThought(BaseNode):
@@ -595,16 +532,12 @@ class ProcessThought(BaseNode):
     )
     max_tokens: int = Field(
         default=4096,
+        ge=1,
+        le=100000,
         description="The maximum number of tokens to generate",
     )
-    temperature: float = Field(
-        default=0.0,
-        ge=0.0,
-        le=2.0,
-        description="The temperature to use for sampling",
-    )
-    model: GPTModel = Field(
-        default=GPTModel.GPT4Mini,
+    model: OpenAIModel = Field(
+        default=OpenAIModel(id="o3-mini"),
         description="The GPT model to use for processing chain of thought steps.",
     )
 
@@ -645,10 +578,9 @@ class ProcessThought(BaseNode):
         assistant_message = await process_messages(
             context=context,
             node_id=self._id,
-            model=FunctionModel(provider=Provider.OpenAI, name=self.model.value),
+            model=FunctionModel(provider=Provider.OpenAI, name=self.model.id),
             messages=messages,
-            max_tokens=self.max_tokens,
-            temperature=self.temperature,
+            max_completion_tokens=self.max_tokens,
             response_format={
                 "type": "json_schema",
                 "json_schema": {
@@ -693,7 +625,7 @@ class ProcessThought(BaseNode):
 
     @classmethod
     def get_basic_fields(cls) -> list[str]:
-        return ["current_step", "model", "temperature"]
+        return ["current_step", "model"]
 
 
 class ChartGenerator(BaseNode):
@@ -707,8 +639,8 @@ class ChartGenerator(BaseNode):
     - Converting data analysis requirements into visual representations
     """
 
-    model: GPTModel = Field(
-        default=GPTModel.GPT4Mini,
+    model: OpenAIModel = Field(
+        default=OpenAIModel(id="o3-mini"),
         description="The GPT model to use for chart generation.",
     )
     prompt: str = Field(
@@ -721,15 +653,9 @@ class ChartGenerator(BaseNode):
     )
     max_tokens: int = Field(
         default=4096,
-        ge=0,
-        le=10000,
+        ge=1,
+        le=100000,
         description="The maximum number of tokens to generate.",
-    )
-    temperature: float = Field(
-        default=0.7,
-        ge=0.0,
-        le=2.0,
-        description="The temperature to use for sampling.",
     )
     columns: RecordType = Field(
         default=RecordType(),
@@ -799,10 +725,9 @@ class ChartGenerator(BaseNode):
         assistant_message = await process_messages(
             context=context,
             node_id=self._id,
-            model=FunctionModel(provider=Provider.OpenAI, name=self.model.value),
+            model=FunctionModel(provider=Provider.OpenAI, name=self.model.id),
             messages=messages,
-            max_tokens=self.max_tokens,
-            temperature=self.temperature,
+            max_completion_tokens=self.max_tokens,
             response_format={
                 "type": "json_schema",
                 "json_schema": {
@@ -1094,18 +1019,12 @@ class RegressionAnalyst(BaseNode):
     )
     max_tokens: int = Field(
         default=1000,
-        ge=0,
-        le=10000,
+        ge=1,
+        le=100000,
         description="The maximum number of tokens to generate.",
     )
-    temperature: float = Field(
-        default=0.0,
-        ge=0.0,
-        le=2.0,
-        description="The temperature to use for sampling.",
-    )
-    model: GPTModel = Field(
-        default=GPTModel.GPT4Mini,
+    model: OpenAIModel = Field(
+        default=OpenAIModel(id="o3-mini"),
         description="The GPT model to use for regression analysis.",
     )
 
@@ -1137,7 +1056,7 @@ Provide your response in JSON format.
         parameter_message = await process_messages(
             context=context,
             node_id=self._id,
-            model=FunctionModel(provider=Provider.OpenAI, name=self.model.value),
+            model=FunctionModel(provider=Provider.OpenAI, name=self.model.id),
             messages=[
                 Message(
                     role="system",
@@ -1145,8 +1064,7 @@ Provide your response in JSON format.
                 ),
                 Message(role="user", content=parameter_prompt),
             ],
-            max_tokens=self.max_tokens,
-            temperature=self.temperature,
+            max_completion_tokens=self.max_tokens,
             response_format={
                 "type": "json_schema",
                 "json_schema": {
@@ -1240,7 +1158,7 @@ User's original question: {self.prompt}
         interpretation_message = await process_messages(
             context=context,
             node_id=self._id,
-            model=FunctionModel(provider=Provider.OpenAI, name=self.model.value),
+            model=FunctionModel(provider=Provider.OpenAI, name=self.model.id),
             messages=[
                 Message(
                     role="system",
@@ -1249,7 +1167,6 @@ User's original question: {self.prompt}
                 Message(role="user", content=interpretation_prompt),
             ],
             max_tokens=self.max_tokens,
-            temperature=self.temperature,
         )
 
         return str(interpretation_message.content)
@@ -1276,13 +1193,9 @@ class SynthesizerAgent(BaseNode):
     )
     max_tokens: int = Field(
         default=1000,
+        ge=1,
+        le=100000,
         description="The maximum number of tokens to generate.",
-    )
-    temperature: float = Field(
-        default=0.0,
-        ge=0.0,
-        le=2.0,
-        description="The temperature to use for sampling.",
     )
     duration: float = Field(
         default=1.0,
@@ -1290,8 +1203,8 @@ class SynthesizerAgent(BaseNode):
         le=30.0,
         description="Duration of the sound in seconds.",
     )
-    model: GPTModel = Field(
-        default=GPTModel.GPT4Mini,
+    model: OpenAIModel = Field(
+        default=OpenAIModel(id="o3-mini"),
         description="The GPT model to use for sound synthesis.",
     )
 
@@ -1317,10 +1230,9 @@ class SynthesizerAgent(BaseNode):
         assistant_message = await process_messages(
             context=context,
             node_id=self._id,
-            model=FunctionModel(provider=Provider.OpenAI, name=self.model.value),
+            model=FunctionModel(provider=Provider.OpenAI, name=self.model.id),
             messages=messages,
-            max_tokens=self.max_tokens,
-            temperature=self.temperature,
+            max_completion_tokens=self.max_tokens,
             response_format={
                 "type": "json_schema",
                 "json_schema": {
@@ -1527,26 +1439,16 @@ class ChainOfThoughtSummarizer(BaseNode):
     )
     max_tokens: int = Field(
         default=1000,
+        ge=1,
+        le=100000,
         description="The maximum number of tokens to generate",
     )
-    temperature: float = Field(
-        default=0.0,
-        ge=0.0,
-        le=2.0,
-        description="The temperature to use for sampling",
-    )
-    model: GPTModel = Field(
-        default=GPTModel.GPT4Mini,
+    model: OpenAIModel = Field(
+        default=OpenAIModel(id="o3-mini"),
         description="The GPT model to use for summarizing chain of thought results.",
     )
 
     async def process(self, context: ProcessingContext) -> dict:
-        # Validate model compatibility
-        if self.model in [GPTModel.O1Mini, GPTModel.O1]:
-            raise ValueError(
-                "O1 models do not support JSON output format. Please use GPT-4 or GPT-3.5."
-            )
-
         messages = [
             Message(
                 role="system",
@@ -1577,10 +1479,9 @@ Extract the key insights and result from each step and synthesize them into a fi
         assistant_message = await process_messages(
             context=context,
             node_id=self._id,
-            model=FunctionModel(provider=Provider.OpenAI, name=self.model.value),
+            model=FunctionModel(provider=Provider.OpenAI, name=self.model.id),
             messages=messages,
-            max_tokens=self.max_tokens,
-            temperature=self.temperature,
+            max_completion_tokens=self.max_tokens,
             response_format={
                 "type": "json_schema",
                 "json_schema": {
