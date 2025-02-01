@@ -23,6 +23,29 @@ def DBField(hash_key: bool = False, **kwargs: Any):
     return Field(json_schema_extra={"hash_key": hash_key, "persist": True}, **kwargs)  # type: ignore
 
 
+def DBIndex(columns: list[str], unique: bool = False, name: str | None = None):
+    """
+    Decorator to define an index on a model.
+
+    Args:
+        columns: List of column names to include in the index
+        unique: Whether the index should enforce uniqueness
+        name: Optional custom name for the index. If not provided, one will be generated.
+    """
+
+    def decorator(cls):
+        if not hasattr(cls, "_indexes"):
+            cls._indexes = []
+
+        # Generate index name if not provided
+        index_name = name or f"idx_{cls.get_table_name()}_{'_'.join(columns)}"
+
+        cls._indexes.append({"name": index_name, "columns": columns, "unique": unique})
+        return cls
+
+    return decorator
+
+
 class DBModel(BaseModel):
     @classmethod
     def get_table_schema(cls) -> dict[str, Any]:
@@ -44,21 +67,69 @@ class DBModel(BaseModel):
             cls.__adapter = Environment.get_database_adapter(
                 fields=cls.db_fields(),
                 table_schema=cls.get_table_schema(),
+                indexes=cls.get_indexes(),
             )
         return cls.__adapter
 
     @classmethod
+    def has_indexes(cls) -> bool:
+        """
+        Check if the model has any defined indexes.
+        """
+        return hasattr(cls, "_indexes")
+
+    @classmethod
+    def get_indexes(cls) -> list[dict[str, Any]]:
+        """
+        Get the list of defined indexes for the model.
+        Returns an empty list if no indexes are defined.
+        """
+        return cls._indexes if cls.has_indexes() else []  # type: ignore
+
+    @classmethod
     def create_table(cls):
         """
-        Create the DB table for the model.
+        Create the DB table for the model and its indexes.
         """
         cls.adapter().create_table()
+
+        # Create any defined indexes
+        for index in cls.get_indexes():
+            cls.adapter().create_index(
+                index_name=index["name"],
+                columns=index["columns"],
+                unique=index["unique"],
+            )
+
+    @classmethod
+    def create_indexes(cls):
+        """
+        Create all defined indexes for the model.
+        """
+        for index in cls.get_indexes():
+            cls.adapter().create_index(
+                index_name=index["name"],
+                columns=index["columns"],
+                unique=index["unique"],
+            )
+
+    @classmethod
+    def drop_indexes(cls):
+        """
+        Drop all defined indexes for the model.
+        """
+        for index in cls.get_indexes():
+            cls.adapter().drop_index(index["name"])
 
     @classmethod
     def drop_table(cls):
         """
-        Drop the DB table for the model.
+        Drop the DB table for the model and its indexes.
         """
+        # Drop any defined indexes first
+        for index in cls.get_indexes():
+            cls.adapter().drop_index(index["name"])
+
         cls.adapter().drop_table()
 
     @classmethod
@@ -157,3 +228,10 @@ class DBModel(BaseModel):
         for key, value in kwargs.items():
             setattr(self, key, value)
         return self.save()
+
+    @classmethod
+    def list_indexes(cls) -> list[dict[str, Any]]:
+        """
+        List all indexes defined on the model's table.
+        """
+        return cls.adapter().list_indexes()

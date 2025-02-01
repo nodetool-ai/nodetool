@@ -259,7 +259,10 @@ class Environment(object):
 
     @classmethod
     def get_database_adapter(
-        cls, fields: dict[str, Any], table_schema: dict[str, Any]
+        cls,
+        fields: dict[str, Any],
+        table_schema: dict[str, Any],
+        indexes: list[dict[str, Any]],
     ) -> DatabaseAdapter:
         """
         The database adapter is the adapter that we use to connect to the database.
@@ -271,6 +274,7 @@ class Environment(object):
                 db_params=cls.get_postgres_params(),
                 fields=fields,
                 table_schema=table_schema,
+                indexes=indexes,
             )
         elif cls.get_db_path() is not None:
             from nodetool.models.sqlite_adapter import SQLiteAdapter
@@ -282,6 +286,7 @@ class Environment(object):
                 db_path=cls.get_db_path(),
                 fields=fields,
                 table_schema=table_schema,
+                indexes=indexes,
             )
         else:
             raise Exception("No database adapter configured")
