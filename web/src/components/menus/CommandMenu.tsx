@@ -2,7 +2,7 @@
 import { Command, CommandInput } from "cmdk";
 import { NodeMetadata, Workflow } from "../../stores/ApiTypes";
 import { useCallback, useEffect, useState, useRef, memo, useMemo } from "react";
-import { css, Dialog } from "@mui/material";
+import { css, Dialog, Tooltip } from "@mui/material";
 import { getMousePosition } from "../../utils/MousePosition";
 import useAlignNodes from "../../hooks/useAlignNodes";
 import useWorkflowRunnner from "../../stores/WorkflowRunner";
@@ -17,6 +17,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { useNodes } from "../../contexts/NodeContext";
 import { create } from "zustand";
+import NodeInfo from "../node_menu/NodeInfo";
 
 type CommandMenuProps = {
   open: boolean;
@@ -169,7 +170,7 @@ const LayoutCommands = memo(() => {
 const NodeCommands = memo(() => {
   const executeAndClose = useCommandMenu((state) => state.executeAndClose);
   const reactFlowWrapper = useCommandMenu((state) => state.reactFlowWrapper);
-
+  // const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const { width: reactFlowWidth, height: reactFlowHeight } = useMemo(
     () =>
       reactFlowWrapper.current?.getBoundingClientRect() ?? {
@@ -197,12 +198,25 @@ const NodeCommands = memo(() => {
       {Object.entries(groupedByCategory).map(([category, metadata], idx) => (
         <Command.Group key={idx} heading={category}>
           {metadata.map((meta, idx) => (
-            <Command.Item
-              key={idx}
-              onSelect={() => executeAndClose(() => handleCreateNode(meta))}
+            <Tooltip
+              title={<NodeInfo nodeMetadata={meta} />}
+              placement="right"
+              enterDelay={0}
+              leaveDelay={0}
+              TransitionProps={{ timeout: 0 }}
+              // open={hoveredItem === meta.title}
             >
-              {meta.title}
-            </Command.Item>
+              <Command.Item
+                key={idx}
+                onSelect={() => executeAndClose(() => handleCreateNode(meta))}
+                // onMouseEnter={() => setHoveredItem(meta.title)}
+                // onMouseLeave={() => setHoveredItem(null)}
+                // onFocus={() => setHoveredItem(meta.title)}
+                // onBlur={() => setHoveredItem(null)}
+              >
+                {meta.title}
+              </Command.Item>
+            </Tooltip>
           ))}
         </Command.Group>
       ))}
@@ -265,50 +279,6 @@ const CommandMenu: React.FC<CommandMenuProps> = ({
 }) => {
   const [pastePosition, setPastePosition] = useState({ x: 0, y: 0 });
   const input = useRef<HTMLInputElement>(null);
-  const navigate = useNavigate();
-
-  const { data: examples } = useQuery({
-    queryKey: ["examples"],
-    queryFn: useWorkflowStore.getState().loadExamples
-  });
-
-  const { width: reactFlowWidth, height: reactFlowHeight } = useMemo(
-    () =>
-      reactFlowWrapper.current?.getBoundingClientRect() ?? {
-        width: 800,
-        height: 600
-      },
-    [reactFlowWrapper]
-  );
-
-  const { saveExample } = useWorkflowStore((state) => ({
-    saveExample: state.saveExample
-  }));
-
-  const { addNotification } = useNotificationStore((state) => ({
-    addNotification: state.addNotification
-  }));
-
-  const {
-    nodes,
-    edges,
-    currentWorkflow,
-    getWorkflow,
-    workflowJSON,
-    saveWorkflow,
-    newWorkflow,
-    autoLayout
-  } = useNodes((state) => ({
-    nodes: state.nodes,
-    edges: state.edges,
-    currentWorkflow: state.workflow,
-    getWorkflow: state.getWorkflow,
-    workflowJSON: state.workflowJSON,
-    saveWorkflow: state.saveWorkflow,
-    newWorkflow: state.newWorkflow,
-    autoLayout: state.autoLayout
-  }));
-  const run = useWorkflowRunnner((state) => state.run);
 
   const executeAndClose = useCallback(
     (action: () => void) => {
