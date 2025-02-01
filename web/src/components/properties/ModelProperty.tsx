@@ -12,7 +12,6 @@ const ModelProperty = (props: PropertyProps) => {
   const modelType = props.property.type.type;
 
   const renderModelSelect = () => {
-    console.log(modelType);
     if (modelType.startsWith("comfy.")) {
       if (props.nodeType.startsWith("comfy.loaders.")) {
         return (
