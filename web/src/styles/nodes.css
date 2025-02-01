@@ -336,7 +336,7 @@
 .node-footer .namespace-button {
   display: block;
   margin: 0 0 0 0;
-  padding: 2px 10px;
+  padding: 0px 10px;
   border-radius: 0;
   background-color: transparent;
   color: var(--c_gray5);

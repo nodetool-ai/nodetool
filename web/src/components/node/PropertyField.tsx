@@ -10,6 +10,7 @@ import useContextMenuStore from "../../stores/ContextMenuStore";
 import { isEqual } from "lodash";
 import { isConnectableCached } from "../node_menu/typeFilterUtils";
 import HandleTooltip from "../HandleTooltip";
+import { useNodes } from "../../contexts/NodeContext";
 
 export type PropertyFieldProps = {
   id: string;
@@ -22,8 +23,6 @@ export type PropertyFieldProps = {
   showHandle?: boolean;
   isInspector?: boolean;
   tabIndex?: number;
-  isBasicField?: boolean;
-  showAdvancedFields?: boolean;
   isDynamicProperty?: boolean;
   onDeleteProperty?: (propertyName: string) => void;
   onUpdatePropertyName?: (
@@ -45,8 +44,6 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
   showHandle = true,
   isInspector,
   tabIndex,
-  showAdvancedFields,
-  isBasicField,
   isDynamicProperty,
   onDeleteProperty,
   onUpdatePropertyName
