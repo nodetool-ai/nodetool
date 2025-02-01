@@ -16,20 +16,36 @@ const styles = (theme: any) =>
     display: "flex",
     flexDirection: "column",
     height: "100%",
+    overflow: "hidden",
 
     "& .tabs": {
       zIndex: 1000,
       display: "flex",
-      flexWrap: "wrap",
+      flexWrap: "nowrap",
       marginLeft: "4em",
       minHeight: "30px",
       maxHeight: "100px",
       overflowX: "auto",
+      overflowY: "hidden",
       padding: "0 10px",
       paddingTop: "5px",
+      whiteSpace: "nowrap",
+      width: "calc(100% - 4em)",
+      maxWidth: "100%",
 
       "&::-webkit-scrollbar": {
-        height: "3px"
+        display: "block",
+        height: "2px",
+        color: theme.palette.c_gray3
+      },
+
+      "&::-webkit-scrollbar-track": {
+        background: theme.palette.background.default
+      },
+
+      "&::-webkit-scrollbar-thumb": {
+        background: theme.palette.c_gray3,
+        borderRadius: "3px"
       }
     },
 
@@ -54,6 +70,7 @@ const styles = (theme: any) =>
       alignItems: "center",
       gap: "8px",
       minWidth: "100px",
+      flex: "0 0 auto",
       cursor: "pointer",
       color: theme.palette.c_gray5,
       background: theme.palette.background.default,
@@ -64,6 +81,7 @@ const styles = (theme: any) =>
       marginRight: "2px",
       border: `1px solid ${theme.palette.c_gray1}`,
       borderBottom: "none",
+      boxSizing: "border-box",
 
       "& .close-icon": {
         opacity: 0.4,
