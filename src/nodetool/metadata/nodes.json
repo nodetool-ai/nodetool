@@ -16557,9 +16557,9 @@
           "month": 2,
           "day": 1,
           "hour": 12,
-          "minute": 23,
-          "second": 57,
-          "microsecond": 205055,
+          "minute": 42,
+          "second": 36,
+          "microsecond": 190294,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -17614,9 +17614,9 @@
           "month": 2,
           "day": 1,
           "hour": 12,
-          "minute": 23,
-          "second": 57,
-          "microsecond": 209194,
+          "minute": 42,
+          "second": 36,
+          "microsecond": 194250,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -17668,9 +17668,9 @@
           "month": 2,
           "day": 1,
           "hour": 12,
-          "minute": 23,
-          "second": 57,
-          "microsecond": 209431,
+          "minute": 42,
+          "second": 36,
+          "microsecond": 194471,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -17722,9 +17722,9 @@
           "month": 2,
           "day": 1,
           "hour": 12,
-          "minute": 23,
-          "second": 57,
-          "microsecond": 209664,
+          "minute": 42,
+          "second": 36,
+          "microsecond": 194696,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -17776,9 +17776,9 @@
           "month": 2,
           "day": 1,
           "hour": 12,
-          "minute": 23,
-          "second": 57,
-          "microsecond": 209892,
+          "minute": 42,
+          "second": 36,
+          "microsecond": 194926,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -17830,9 +17830,9 @@
           "month": 2,
           "day": 1,
           "hour": 12,
-          "minute": 23,
-          "second": 57,
-          "microsecond": 210156,
+          "minute": 42,
+          "second": 36,
+          "microsecond": 195164,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -17884,9 +17884,9 @@
           "month": 2,
           "day": 1,
           "hour": 12,
-          "minute": 23,
-          "second": 57,
-          "microsecond": 210387,
+          "minute": 42,
+          "second": 36,
+          "microsecond": 195387,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -17938,9 +17938,9 @@
           "month": 2,
           "day": 1,
           "hour": 12,
-          "minute": 23,
-          "second": 57,
-          "microsecond": 210621,
+          "minute": 42,
+          "second": 36,
+          "microsecond": 195600,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -18008,9 +18008,9 @@
           "month": 2,
           "day": 1,
           "hour": 12,
-          "minute": 23,
-          "second": 57,
-          "microsecond": 210928,
+          "minute": 42,
+          "second": 36,
+          "microsecond": 195915,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -23392,7 +23392,7 @@
   },
   {
     "title": "Map Template",
-    "description": "Maps a template string over a list of dictionaries or objects.\n    list, template, map, formatting\n\n    Use cases:\n    - Formatting multiple records into strings\n    - Generating text from structured data\n    - Creating text representations of data collections\n\n    Examples:\n    - template: \"Name: {name}, Age: {age}\"\n      values: [{\"name\": \"Alice\", \"age\": 30}, {\"name\": \"Bob\", \"age\": 25}]\n      -> [\"Name: Alice, Age: 30\", \"Name: Bob, Age: 25\"]\n\n    - template: \"Hello, {0} {1}!\"\n      values: [[\"Alice\", \"Smith\"], [\"Bob\", \"Jones\"]]\n      -> [\"Hello, Alice Smith!\", \"Hello, Bob Jones!\"]",
+    "description": "Maps a template string over a list of dictionaries or objects using Jinja2 templating.\n    list, template, map, formatting\n\n    Use cases:\n    - Formatting multiple records into strings\n    - Generating text from structured data\n    - Creating text representations of data collections\n\n    Examples:\n    - template: \"Name: {{ name }}, Age: {{ age }}\"\n      values: [{\"name\": \"Alice\", \"age\": 30}, {\"name\": \"Bob\", \"age\": 25}]\n      -> [\"Name: Alice, Age: 30\", \"Name: Bob, Age: 25\"]\n\n    Available filters:\n    - truncate(length): Truncates text to given length\n    - upper: Converts text to uppercase\n    - lower: Converts text to lowercase\n    - title: Converts text to title case\n    - trim: Removes whitespace from start/end\n    - replace(old, new): Replaces substring\n    - default(value): Sets default if value is undefined\n    - first: Gets first character/item\n    - last: Gets last character/item\n    - length: Gets length of string/list\n    - sort: Sorts list\n    - join(delimiter): Joins list with delimiter",
     "namespace": "nodetool.list",
     "node_type": "nodetool.list.MapTemplate",
     "layout": "default",
@@ -23408,7 +23408,7 @@
         },
         "default": "",
         "title": "Template",
-        "description": "\n        Template string with placeholders for formatting\n        - Placeholders can be indexed (e.g., {0}, {1}, etc.) for lists\n        - Placeholders can be named (e.g., {name}, {age}, etc.) for dictionaries\n        - Placeholders can be named (e.g., {name}, {age}, etc.) for objects\n        ",
+        "description": "\n        Template string with Jinja2 placeholders for formatting\n        Examples:\n        - \"Name: {{ name }}, Age: {{ age }}\"\n        - \"{{ title|truncate(20) }}\"\n        - \"{{ name|upper }}\"\n        ",
         "min": null,
         "max": null
       },
@@ -23444,13 +23444,6 @@
                       "type_name": null
                     }
                   ],
-                  "type_name": null
-                },
-                {
-                  "type": "list",
-                  "optional": false,
-                  "values": null,
-                  "type_args": [],
                   "type_name": null
                 },
                 {
@@ -77132,7 +77125,7 @@
   },
   {
     "title": "Map Template",
-    "description": "Maps a template string over dataframe rows.\n    dataframe, template, format, string\n\n    Use cases:\n    - Format each row into a custom string representation\n    - Generate text summaries from structured data\n    - Create formatted output from dataframe records\n\n    Example:\n    Template: \"Name: {name}, Age: {age}\"\n    Row: {\"name\": \"Alice\", \"age\": 30}\n    Output: \"Name: Alice, Age: 30\"",
+    "description": "Maps a template string over dataframe rows using Jinja2 templating.\n    dataframe, template, format, string\n\n    Use cases:\n    - Format each row into a custom string representation\n    - Generate text summaries from structured data\n    - Create formatted output from dataframe records\n\n    Example:\n    Template: \"Name: {{ name }}, Age: {{ age|default('unknown') }}\"\n    Row: {\"name\": \"Alice\", \"age\": 30}\n    Output: \"Name: Alice, Age: 30\"\n\n    Available filters:\n    - truncate(length): Truncates text to given length\n    - upper: Converts text to uppercase\n    - lower: Converts text to lowercase\n    - title: Converts text to title case\n    - trim: Removes whitespace from start/end\n    - replace(old, new): Replaces substring\n    - default(value): Sets default if value is undefined\n    - first: Gets first character/item\n    - last: Gets last character/item\n    - length: Gets length of string/list\n    - sort: Sorts list\n    - join(delimiter): Joins list with delimiter",
     "namespace": "lib.data.pandas.dataframe",
     "node_type": "lib.data.pandas.dataframe.MapTemplate",
     "layout": "default",
@@ -77169,7 +77162,7 @@
         },
         "default": "",
         "title": "Template",
-        "description": "Template string with placeholders matching column names (e.g., {column_name}).",
+        "description": "Template string with Jinja2 placeholders matching column names \n        (e.g., {{ column_name }}). Supports filters like {{ value|upper }}, {{ value|truncate(20) }}.",
         "min": null,
         "max": null
       }
@@ -127261,7 +127254,8 @@
     "basic_fields": [
       "subject",
       "body",
-      "date_filter"
+      "date_filter",
+      "max_results"
     ],
     "is_dynamic": false
   },
@@ -127351,9 +127345,9 @@
             "month": 2,
             "day": 1,
             "hour": 12,
-            "minute": 23,
-            "second": 55,
-            "microsecond": 236947,
+            "minute": 42,
+            "second": 33,
+            "microsecond": 775378,
             "tzinfo": "UTC",
             "utc_offset": 0.0
           },
