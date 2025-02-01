@@ -23,9 +23,6 @@ class ObjectDetection(HuggingFacePipelineNode):
     - Locate specific items in complex scenes
     - Assist in autonomous vehicle vision systems
     - Enhance security camera footage analysis
-
-    Recommended models:
-    - facebook/detr-resnet-50
     """
 
     model: HFObjectDetection = Field(
@@ -214,14 +211,6 @@ class ZeroShotObjectDetection(HuggingFacePipelineNode):
     - Quickly detect objects in images without training data
     - Identify objects in images without predefined labels
     - Automate object detection for large datasets
-
-    Recommended models:
-    - google/owlvit-base-patch32
-    - google/owlvit-large-patch14
-    - google/owlvit-base-patch16
-    - google/owlv2-base-patch16
-    - google/owlv2-base-patch16-ensemble
-    - IDEA-Research/grounding-dino-tiny
     """
 
     model: HFZeroShotObjectDetection = Field(

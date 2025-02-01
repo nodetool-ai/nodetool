@@ -90,7 +90,7 @@ class ImageClassifier(HuggingFacePipelineNode):
             pipeline_task="image-classification",
             model_id=self.get_model_id(),
             device=context.device,
-        ) # type: ignore
+        )  # type: ignore
 
     async def process(self, context: ProcessingContext) -> dict[str, float]:
         image = await context.image_to_pil(self.image)
@@ -107,13 +107,6 @@ class ZeroShotImageClassifier(HuggingFacePipelineNode):
     - Quickly categorize images without training data
     - Identify objects in images without predefined labels
     - Automate image tagging for large datasets
-
-    Recommended models:
-    - openai/clip-vit-large-patch14
-    - openai/clip-vit-base-patch16
-    - openai/clip-vit-base-patch32
-    - patrickjohncyh/fashion-clip
-    - laion/CLIP-ViT-H-14-laion2B-s32B-b79K
     """
 
     model: HFZeroShotImageClassification = Field(

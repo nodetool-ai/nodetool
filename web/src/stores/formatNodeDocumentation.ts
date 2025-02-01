@@ -1,4 +1,7 @@
-import { highlightText as highlightTextUtil } from "../utils/highlightText";
+import {
+  highlightText as highlightTextUtil,
+  formatBulletList
+} from "../utils/highlightText";
 import { SplitNodeDescription } from "./NodeMenuStore";
 
 export const formatNodeDocumentation = (
@@ -29,12 +32,12 @@ export const formatNodeDocumentation = (
       .filter((line) => line.trim());
 
     // Check if we have bullet points
-    const hasBullets = useCaseLines.some((line) => line.trim().startsWith("-"));
+    const hasBullets = useCaseLines.some((line) => line.startsWith("-"));
 
     if (hasBullets) {
       // Clean bullet points but keep as separate lines
       useCasesRaw = useCaseLines
-        .filter((line) => line.trim().startsWith("-"))
+        .filter((line) => line.startsWith("-"))
         .map((line) => line.replace(/^-\s*/, "").trim())
         .join("\n");
     } else {
@@ -49,11 +52,11 @@ export const formatNodeDocumentation = (
         "use_cases",
         searchTerm,
         searchInfo,
-        hasBullets // Pass this flag to highlightText
+        hasBullets
       );
       useCasesHtml = highlighted.html;
     } else {
-      useCasesHtml = useCasesRaw;
+      useCasesHtml = formatBulletList(useCasesRaw);
     }
   }
 

@@ -72,6 +72,7 @@ const namespaceStyles = (theme: any, inPanel: boolean) =>
       gap: "0",
       overflowY: "auto",
       minWidth: "150px",
+      maxWidth: "200px",
       width: "fit-content",
       height: "fit-content",
       maxHeight: inPanel ? "85vh" : "calc(min(750px, 50vh))",
@@ -463,17 +464,6 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
     [currentNodes, inPanel]
   );
 
-  const renderNodeInfo = useMemo(
-    () =>
-      hoveredNode && (
-        <NodeInfo
-          nodeMetadata={hoveredNode}
-          onClose={closeNodeInfo}
-          inPanel={inPanel}
-        />
-      ),
-    [hoveredNode]
-  );
   const memoizedStyles = useMemo(
     () => namespaceStyles(ThemeNodetool, inPanel),
     [inPanel]
@@ -525,7 +515,13 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
         {currentNodes && currentNodes.length > 0 ? (
           <>
             <List className="node-list">{renderNodes}</List>
-            {renderNodeInfo}
+            {hoveredNode && !inPanel && (
+              <NodeInfo
+                nodeMetadata={hoveredNode}
+                onClose={closeNodeInfo}
+                inPanel={inPanel}
+              />
+            )}
           </>
         ) : searchTerm.length > minSearchTermLength ? (
           <div className="no-selection">

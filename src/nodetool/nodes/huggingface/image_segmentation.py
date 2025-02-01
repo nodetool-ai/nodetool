@@ -36,10 +36,6 @@ class Segmentation(HuggingFacePipelineNode):
     Use cases:
     - Segmenting objects in images
     - Segmenting facial features in images
-
-    Recommended models:
-    - nvidia/segformer-b3-finetuned-ade-512-512
-    - mattmdjaga/segformer_b2_clothes
     """
 
     model: HFImageSegmentation = Field(

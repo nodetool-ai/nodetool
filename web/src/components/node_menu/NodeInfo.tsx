@@ -102,20 +102,20 @@ const nodeInfoStyles = (theme: any) =>
       cursor: "pointer",
       marginRight: ".5em"
     },
-    ".node-usecases div, .recommended-models div": {
+    ".node-usecases div": {
       fontSize: theme.fontSizeNormal,
       fontWeight: "300",
       color: theme.palette.c_gray6,
       lineHeight: "1.3em",
       ul: {
         margin: "0.5em 0",
-        paddingLeft: "0",
-        listStyleType: "none"
+        paddingLeft: "0"
       },
       li: {
         position: "relative",
         marginBottom: "0.25em",
         paddingLeft: "1.5em",
+        listStyleType: "none",
         "&::before": {
           content: '"•"',
           position: "absolute",
@@ -127,6 +127,10 @@ const nodeInfoStyles = (theme: any) =>
     ".inputs-outputs": {
       paddingBottom: "1em"
     },
+    ".inputs-outputs h4": {
+      fontSize: theme.fontSizeSmall,
+      lineHeight: "2em"
+    },
     ".inputs, .outputs": {
       display: "flex",
       justifyContent: "space-between",
@@ -134,7 +138,7 @@ const nodeInfoStyles = (theme: any) =>
       gap: 0
     },
     ".inputs-outputs .item": {
-      padding: ".25em 0 .25em 0",
+      padding: ".25em 0 .25em 4em",
       display: "flex",
       justifyContent: "space-between",
       fontFamily: theme.fontFamily2,
