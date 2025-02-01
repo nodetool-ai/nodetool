@@ -1,8 +1,7 @@
 import numpy as np
-from nodetool.metadata.types import ImageRef, Provider, NPArray
+from nodetool.metadata.types import ImageRef, OpenAIModel, Provider, NPArray
 from nodetool.metadata.types import TextRef
 from nodetool.workflows.base_node import BaseNode
-from nodetool.metadata.types import GPTModel
 from nodetool.workflows.processing_context import ProcessingContext
 
 from openai.types.chat import ChatCompletion, ChatCompletionMessageParam
@@ -64,9 +63,9 @@ class Embedding(BaseNode):
         return NPArray.from_numpy(avg)
 
 
-class GPT(BaseNode):
+class OpenAIText(BaseNode):
     """
-    Generate natural language responses using GPT models.
+    Generate natural language responses using OpenAI models.
     llm, text-generation, chatbot, question-answering
 
     Leverages OpenAI's GPT models to:
@@ -78,7 +77,11 @@ class GPT(BaseNode):
     - Perform text analysis and summarization
     """
 
-    model: GPTModel = Field(title="Model", default=GPTModel.GPT3)
+    @classmethod
+    def get_title(cls) -> str:
+        return "OpenAI Text"
+
+    model: OpenAIModel = Field(title="Model", default=OpenAIModel(id="o3-mini"))
     system: str = Field(title="System", default="You are a friendly assistant.")
     prompt: str = Field(title="Prompt", default="")
     image: ImageRef = Field(title="Image", default=ImageRef())
@@ -88,8 +91,7 @@ class GPT(BaseNode):
     frequency_penalty: float = Field(
         title="Frequency Penalty", default=0.0, ge=(-2.0), le=2.0
     )
-    temperature: float = Field(title="Temperature", default=1.0, ge=0.0, le=2.0)
-    max_tokens: int = Field(title="Max Tokens", default=100, ge=1, le=2048)
+    max_tokens: int = Field(title="Max Tokens", default=4096, ge=1, le=100000)
     top_p: float = Field(title="Top P", default=1.0, ge=0.0, le=1.0)
 
     async def process(self, context: ProcessingContext) -> str:
@@ -120,13 +122,12 @@ class GPT(BaseNode):
             provider=Provider.OpenAI,
             params={
                 "messages": messages,
-                "max_tokens": self.max_tokens,
-                "temperature": self.temperature,
+                "max_completion_tokens": self.max_tokens,
                 "top_p": self.top_p,
                 "presence_penalty": self.presence_penalty,
                 "frequency_penalty": self.frequency_penalty,
             },
-            model=self.model.value,
+            model=self.model.id,
         )
 
         res = ChatCompletion(**response)
