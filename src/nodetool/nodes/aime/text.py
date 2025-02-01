@@ -56,6 +56,10 @@ class BaseChatNode(BaseNode):
         description="Maximum number of tokens to generate.",
     )
 
+    @classmethod
+    def get_basic_fields(cls) -> list[str]:
+        return ["messages", "prompt", "max_tokens"]
+
     async def predict(self, context: ProcessingContext, model: str) -> str:
         chat_messages = [{"role": "system", "content": self.system_prompt}]
         for msg in self.messages:
