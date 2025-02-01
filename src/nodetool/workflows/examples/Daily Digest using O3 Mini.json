@@ -1,9 +1,9 @@
 {
-  "id": "7f866a0ee09611ef84e6000001a715a4",
+  "id": "3ae3fa90e08e11ef95190000478a5b51",
   "access": "public",
-  "created_at": "2025-02-01T13:58:46.959384",
-  "updated_at": "2025-02-01T13:58:46.959397",
-  "name": "Daily Digest using Gemini",
+  "created_at": "2025-02-01T13:59:45.097503",
+  "updated_at": "2025-02-01T13:59:45.097554",
+  "name": "Daily Digest using O3 Mini",
   "description": "Summarize daily emails and newsletters using Gemini AI",
   "tags": null,
   "thumbnail": null,
@@ -23,8 +23,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 3,
-            "y": 423
+            "x": 29,
+            "y": 410
           },
           "zIndex": 0,
           "width": 200,
@@ -43,8 +43,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 1110,
-            "y": 368
+            "x": 1144,
+            "y": 376
           },
           "zIndex": 0,
           "width": 588,
@@ -62,11 +62,46 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 540,
-            "y": 473
+            "x": 602,
+            "y": 482
           },
           "zIndex": 0,
           "width": 200,
+          "selectable": true
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "40",
+        "parent_id": null,
+        "type": "openai.text.OpenAIText",
+        "data": {
+          "model": {
+            "type": "openai_model",
+            "id": "o3-mini",
+            "object": "",
+            "created": 0,
+            "owned_by": ""
+          },
+          "image": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null
+          },
+          "presence_penalty": 0,
+          "frequency_penalty": 0,
+          "max_tokens": 20000,
+          "top_p": 1
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 939,
+            "y": 436
+          },
+          "zIndex": 0,
+          "width": 148,
           "selectable": true
         },
         "dynamic_properties": {}
@@ -81,8 +116,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 439,
-            "y": 647
+            "x": 486,
+            "y": 695
           },
           "zIndex": 0,
           "width": 401,
@@ -100,8 +135,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 233,
-            "y": 464
+            "x": 314,
+            "y": 473
           },
           "zIndex": 0,
           "width": 176,
@@ -111,45 +146,6 @@
       },
       {
         "id": "43",
-        "parent_id": null,
-        "type": "google.gemini.Gemini",
-        "data": {
-          "model": "gemini-2.0-flash-exp",
-          "messages": [],
-          "image": {
-            "type": "image",
-            "uri": "",
-            "asset_id": null,
-            "data": null
-          },
-          "audio": {
-            "type": "audio",
-            "uri": "",
-            "asset_id": null,
-            "data": null
-          },
-          "code_execution": false,
-          "temperature": 0.5,
-          "top_p": 0.5,
-          "top_k": 40,
-          "max_output_tokens": 4096,
-          "presence_penalty": 0,
-          "frequency_penalty": 0
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 900,
-            "y": 374
-          },
-          "zIndex": 0,
-          "width": 162,
-          "selectable": true
-        },
-        "dynamic_properties": {}
-      },
-      {
-        "id": "44",
         "parent_id": null,
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
@@ -255,11 +251,11 @@
                   "text": "\t5.\t"
                 },
                 {
-                  "text": "Gemini AI: ",
+                  "text": "OpenAI Text: ",
                   "bold": true
                 },
                 {
-                  "text": "Call Gemini API to perform summarization"
+                  "text": "Call OpenAI Model to perform summarization"
                 }
               ]
             },
@@ -308,8 +304,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 5,
-            "y": 7
+            "x": 22,
+            "y": 24
           },
           "zIndex": 0,
           "width": 893,
@@ -341,31 +337,31 @@
         }
       },
       {
-        "id": "678f1b1e-fc6f-4718-a59e-a574cd446af4",
+        "id": "671f6cf0-7d46-42ce-8e62-97efb62e479c",
         "source": "39",
         "sourceHandle": "output",
-        "target": "43",
+        "target": "40",
         "targetHandle": "prompt",
         "ui_properties": {
           "className": "str"
         }
       },
       {
-        "id": "dc1e94e2-faa3-40c8-b0fe-f79ff8f11bc1",
-        "source": "43",
+        "id": "9619",
+        "source": "41",
         "sourceHandle": "output",
-        "target": "38",
-        "targetHandle": "value",
+        "target": "40",
+        "targetHandle": "system",
         "ui_properties": {
           "className": "str"
         }
       },
       {
-        "id": "c619166b-48f3-4271-a1a1-d28da069b6a7",
-        "source": "41",
+        "id": "33af0e8b-d366-499d-b0bc-ce8e9641f733",
+        "source": "40",
         "sourceHandle": "output",
-        "target": "43",
-        "targetHandle": "system_instruction",
+        "target": "38",
+        "targetHandle": "value",
         "ui_properties": {
           "className": "str"
         }
