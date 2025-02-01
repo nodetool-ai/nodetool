@@ -490,15 +490,9 @@
     "recommended_models": [],
     "basic_fields": [
       "prompt",
-      "negative_prompt",
-      "image",
       "height",
       "width",
-      "seed",
-      "num_samples",
-      "steps",
-      "cfg_scale",
-      "denoise"
+      "seed"
     ],
     "is_dynamic": false
   },
@@ -654,11 +648,7 @@
       "prompt",
       "image",
       "height",
-      "width",
-      "seed",
-      "steps",
-      "guidance",
-      "image2image_strength"
+      "width"
     ],
     "is_dynamic": false
   },
@@ -928,8 +918,6 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "voice",
-      "preset",
       "text_input"
     ],
     "is_dynamic": false
@@ -15305,10 +15293,10 @@
           "year": 2025,
           "month": 2,
           "day": 1,
-          "hour": 11,
-          "minute": 27,
-          "second": 18,
-          "microsecond": 897991,
+          "hour": 12,
+          "minute": 23,
+          "second": 57,
+          "microsecond": 205055,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -16362,10 +16350,10 @@
           "year": 2025,
           "month": 2,
           "day": 1,
-          "hour": 11,
-          "minute": 27,
-          "second": 18,
-          "microsecond": 902270,
+          "hour": 12,
+          "minute": 23,
+          "second": 57,
+          "microsecond": 209194,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -16416,10 +16404,10 @@
           "year": 2025,
           "month": 2,
           "day": 1,
-          "hour": 11,
-          "minute": 27,
-          "second": 18,
-          "microsecond": 902511,
+          "hour": 12,
+          "minute": 23,
+          "second": 57,
+          "microsecond": 209431,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -16470,10 +16458,10 @@
           "year": 2025,
           "month": 2,
           "day": 1,
-          "hour": 11,
-          "minute": 27,
-          "second": 18,
-          "microsecond": 902745,
+          "hour": 12,
+          "minute": 23,
+          "second": 57,
+          "microsecond": 209664,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -16524,10 +16512,10 @@
           "year": 2025,
           "month": 2,
           "day": 1,
-          "hour": 11,
-          "minute": 27,
-          "second": 18,
-          "microsecond": 902980,
+          "hour": 12,
+          "minute": 23,
+          "second": 57,
+          "microsecond": 209892,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -16578,10 +16566,10 @@
           "year": 2025,
           "month": 2,
           "day": 1,
-          "hour": 11,
-          "minute": 27,
-          "second": 18,
-          "microsecond": 903244,
+          "hour": 12,
+          "minute": 23,
+          "second": 57,
+          "microsecond": 210156,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -16632,10 +16620,10 @@
           "year": 2025,
           "month": 2,
           "day": 1,
-          "hour": 11,
-          "minute": 27,
-          "second": 18,
-          "microsecond": 903477,
+          "hour": 12,
+          "minute": 23,
+          "second": 57,
+          "microsecond": 210387,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -16686,10 +16674,10 @@
           "year": 2025,
           "month": 2,
           "day": 1,
-          "hour": 11,
-          "minute": 27,
-          "second": 18,
-          "microsecond": 903711,
+          "hour": 12,
+          "minute": 23,
+          "second": 57,
+          "microsecond": 210621,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -16756,10 +16744,10 @@
           "year": 2025,
           "month": 2,
           "day": 1,
-          "hour": 11,
-          "minute": 27,
-          "second": 18,
-          "microsecond": 904020,
+          "hour": 12,
+          "minute": 23,
+          "second": 57,
+          "microsecond": 210928,
           "tzinfo": "UTC",
           "utc_offset": 0.0
         },
@@ -123299,30 +123287,156 @@
     "layout": "default",
     "properties": [
       {
-        "name": "search_criteria",
+        "name": "from_address",
         "type": {
-          "type": "email_search_criteria",
+          "type": "str",
           "optional": false,
           "values": null,
           "type_args": [],
           "type_name": null
         },
-        "default": {
-          "type": "email_search_criteria",
-          "from_address": null,
-          "to_address": null,
-          "subject": null,
-          "body": null,
-          "cc": null,
-          "bcc": null,
-          "date_condition": null,
-          "flags": [],
-          "keywords": [],
-          "folder": null,
-          "text": null
+        "default": "",
+        "title": "From Address",
+        "description": "Sender's email address to search for",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "to_address",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
         },
-        "title": "Search Criteria",
-        "description": "Search criteria",
+        "default": "",
+        "title": "To Address",
+        "description": "Recipient's email address to search for",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "subject",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Subject",
+        "description": "Text to search for in email subject",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "body",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Body",
+        "description": "Text to search for in email body",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "date_filter",
+        "type": {
+          "type": "enum",
+          "optional": false,
+          "values": [
+            "SINCE_ONE_HOUR",
+            "SINCE_ONE_DAY",
+            "SINCE_ONE_WEEK",
+            "SINCE_ONE_MONTH",
+            "SINCE_ONE_YEAR"
+          ],
+          "type_args": [],
+          "type_name": "nodetool.nodes.google.mail.DateFilter"
+        },
+        "default": "SINCE_ONE_DAY",
+        "title": "Date Filter",
+        "description": "Date filter to search for",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "flags",
+        "type": {
+          "type": "enum",
+          "optional": false,
+          "values": [
+            "SEEN",
+            "UNSEEN",
+            "ANSWERED",
+            "UNANSWERED",
+            "FLAGGED",
+            "UNFLAGGED"
+          ],
+          "type_args": [],
+          "type_name": "nodetool.metadata.types.EmailFlag"
+        },
+        "default": null,
+        "title": "Flags",
+        "description": "Email status flags to search for",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "keywords",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Keywords",
+        "description": "Custom keywords or labels to search for",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "folder",
+        "type": {
+          "type": "enum",
+          "optional": false,
+          "values": [
+            "INBOX",
+            "[Gmail]/Sent Mail",
+            "[Gmail]/Drafts",
+            "[Gmail]/Spam",
+            "[Gmail]/Trash"
+          ],
+          "type_args": [],
+          "type_name": "nodetool.nodes.google.mail.GmailFolder"
+        },
+        "default": "INBOX",
+        "title": "Folder",
+        "description": "Email folder to search in",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "text",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Text",
+        "description": "General text to search for anywhere in the email",
         "min": null,
         "max": null
       },
@@ -123366,8 +123480,9 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "search_criteria",
-      "max_results"
+      "subject",
+      "body",
+      "date_filter"
     ],
     "is_dynamic": false
   },
@@ -123431,196 +123546,6 @@
     "is_dynamic": false
   },
   {
-    "title": "Email Search Criteria",
-    "description": "Comprehensive Email search criteria using IMAP search operators.\n    email, gmail, search",
-    "namespace": "google.mail",
-    "node_type": "google.mail.EmailSearchCriteria",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "from_address",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "From Address",
-        "description": "Sender's email address to search for.\n        - Case-insensitive\n        - Partial matches work (e.g., \"@company.com\")\n        - Use quotes for addresses with spaces\n        - Multiple addresses can be combined with OR operator\n        ",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "to_address",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "To Address",
-        "description": "Recipient's email address to search for.\n        - Case-insensitive\n        - Partial matches work (e.g., \"@company.com\")\n        - Use quotes for addresses with spaces\n        - Includes primary recipients only (not CC/BCC)\n        ",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "subject",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Subject",
-        "description": "Text to search for in email subject.\n        - Case-insensitive\n        - Partial word matches work\n        - Use quotes for phrases with spaces\n        - Special characters should be escaped\n        ",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "body",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Body",
-        "description": "Text to search for in email body.\n        - Case-insensitive\n        - Searches message body only\n        - Use quotes for phrases with spaces\n        - HTML and plain text content are searched\n        ",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "date_filter",
-        "type": {
-          "type": "enum",
-          "optional": false,
-          "values": [
-            "SINCE_ONE_HOUR",
-            "SINCE_ONE_DAY",
-            "SINCE_ONE_WEEK",
-            "SINCE_ONE_MONTH",
-            "SINCE_ONE_YEAR"
-          ],
-          "type_args": [],
-          "type_name": "nodetool.nodes.google.mail.DateFilter"
-        },
-        "default": "SINCE_ONE_DAY",
-        "title": "Date Filter",
-        "description": "Date filter to search for.",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "flags",
-        "type": {
-          "type": "enum",
-          "optional": false,
-          "values": [
-            "SEEN",
-            "UNSEEN",
-            "ANSWERED",
-            "UNANSWERED",
-            "FLAGGED",
-            "UNFLAGGED"
-          ],
-          "type_args": [],
-          "type_name": "nodetool.metadata.types.EmailFlag"
-        },
-        "default": null,
-        "title": "Flags",
-        "description": "Email status flag to search for.\n        - SEEN/UNSEEN: Read/unread messages\n        - ANSWERED/UNANSWERED: Replied/unreplied messages\n        - FLAGGED/UNFLAGGED: Starred/unstarred messages\n        ",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "keywords",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Keywords",
-        "description": "Custom keywords or labels to search for.\n        - Case-sensitive\n        - Gmail labels are treated as keywords\n        - Custom labels are used as-is\n        ",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "folder",
-        "type": {
-          "type": "enum",
-          "optional": false,
-          "values": [
-            "INBOX",
-            "[Gmail]/Sent Mail",
-            "[Gmail]/Drafts",
-            "[Gmail]/Spam",
-            "[Gmail]/Trash"
-          ],
-          "type_args": [],
-          "type_name": "nodetool.nodes.google.mail.GmailFolder"
-        },
-        "default": "INBOX",
-        "title": "Folder",
-        "description": "Email folder to search in.",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "text",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": null,
-        "title": "Text",
-        "description": "General text to search for anywhere in the email.\n        - Searches all text fields (subject, body, addresses)\n        - Case-insensitive\n        - Partial matches work\n        - Use quotes for phrases with spaces\n        - Most flexible but slower than specific field searches\n        ",
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "email_search_criteria",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [
-      "from_address",
-      "to_address",
-      "subject",
-      "body",
-      "date_filter",
-      "flags",
-      "keywords",
-      "folder",
-      "text"
-    ],
-    "is_dynamic": false
-  },
-  {
     "title": "Add Label",
     "description": "Adds a label to a Gmail message.\n    email, gmail, label",
     "namespace": "google.mail",
@@ -123646,10 +123571,10 @@
             "year": 2025,
             "month": 2,
             "day": 1,
-            "hour": 11,
-            "minute": 27,
-            "second": 16,
-            "microsecond": 938682,
+            "hour": 12,
+            "minute": 23,
+            "second": 55,
+            "microsecond": 236947,
             "tzinfo": "UTC",
             "utc_offset": 0.0
           },

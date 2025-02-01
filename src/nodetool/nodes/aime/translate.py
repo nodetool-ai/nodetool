@@ -73,8 +73,6 @@ class SeamlessCommunication(BaseNode):
             "text_input": self.text_input,
         }
 
-        print(f"Running AIME prediction with payload {payload}")
-
         def progress_callback(progress: Progress):
             context.post_message(
                 NodeProgress(

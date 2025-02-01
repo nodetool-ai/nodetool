@@ -72,6 +72,15 @@ class StableDiffusion3(BaseNode):
         description="Denoising strength.",
     )
 
+    @classmethod
+    def get_basic_fields(cls) -> list[str]:
+        return [
+            "prompt",
+            "height",
+            "width",
+            "seed",
+        ]
+
     async def process(self, context: ProcessingContext) -> ImageRef:
         def progress_callback(progress: Progress):
             context.post_message(
@@ -170,6 +179,15 @@ class Flux(BaseNode):
         le=1.0,
         description="Strength of image-to-image transformation.",
     )
+
+    @classmethod
+    def get_basic_fields(cls) -> list[str]:
+        return [
+            "prompt",
+            "image",
+            "height",
+            "width",
+        ]
 
     async def process(self, context: ProcessingContext) -> ImageRef:
         def progress_callback(progress: Progress):

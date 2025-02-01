@@ -56,6 +56,10 @@ class TortoiseTTS(BaseNode):
     def get_title(cls) -> str:
         return "Tortoise TTS"
 
+    @classmethod
+    def get_basic_fields(cls) -> list[str]:
+        return ["text_input"]
+
     async def process(self, context: ProcessingContext) -> AudioRef:
         payload = {
             "language": "eng",
