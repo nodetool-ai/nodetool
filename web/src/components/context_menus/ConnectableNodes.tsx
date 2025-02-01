@@ -328,17 +328,6 @@ const ConnectableNodes: React.FC<ConnectableNodesProps> = ({
             </MenuItem>
             {nodes.map((nodeMetadata: NodeMetadata) => (
               <Tooltip
-                slotProps={{
-                  tooltip: {
-                    className: "connectable-node-info",
-                    sx: {
-                      backgroundColor: "black",
-                      color: "white",
-                      fontSize: "1rem",
-                      maxWidth: "none"
-                    }
-                  }
-                }}
                 TransitionProps={{ timeout: 0 }}
                 placement="left"
                 title={
@@ -369,7 +358,6 @@ const ConnectableNodes: React.FC<ConnectableNodesProps> = ({
                       createConnectableNode(nodeMetadata);
                       hideMenu();
                     }}
-                    showInfo={false}
                   />
                 </div>
               </Tooltip>

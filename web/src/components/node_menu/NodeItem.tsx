@@ -16,7 +16,6 @@ interface NodeItemProps {
   onDragStart: (event: React.DragEvent<HTMLDivElement>) => void;
   onClick: () => void;
   isFocused: boolean;
-  showInfo?: boolean;
 }
 
 const NodeItem = memo(
@@ -29,9 +28,7 @@ const NodeItem = memo(
         onMouseEnter,
         onMouseLeave,
         onDragStart,
-        onInfoClick,
-        onClick,
-        showInfo = true
+        onClick
       },
       ref
     ) => {
@@ -152,11 +149,6 @@ const NodeItem = memo(
               )}
             </Typography>
           </div>
-          {showInfo && (
-            <span style={infoStyle} onClick={onInfoClick} className="node-info">
-              <InfoOutlined />
-            </span>
-          )}
         </div>
         // </Tooltip>
       );
