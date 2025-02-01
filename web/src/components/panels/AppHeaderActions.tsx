@@ -130,36 +130,33 @@ const useGlobalHotkeys = (callback: () => void) => {
   }, [handleKeyDown]);
 };
 
-const AppHeaderActions: React.FC = () => {
-  const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
-  const { autoLayout, saveWorkflow } = useNodes((state) => ({
-    autoLayout: state.autoLayout,
+// Create individual button components
+const CreateWorkflowButton = memo(() => {
+  const createNewWorkflow = useWorkflowStore((state) => state.createNew);
+  const navigate = useNavigate();
+
+  const handleCreate = useCallback(async () => {
+    const workflow = await createNewWorkflow();
+    navigate(`/editor/${workflow.id}`);
+  }, [createNewWorkflow, navigate]);
+
+  return (
+    <Tooltip title="Create new workflow" enterDelay={TOOLTIP_ENTER_DELAY}>
+      <Button className="action-button" onClick={handleCreate} tabIndex={-1}>
+        <NoteAddIcon />
+      </Button>
+    </Tooltip>
+  );
+});
+
+const SaveWorkflowButton = memo(() => {
+  const { saveWorkflow } = useNodes((state) => ({
     saveWorkflow: state.saveWorkflow
   }));
-  const createNewWorkflow = useWorkflowStore((state) => state.createNew);
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
-  const navigate = useNavigate();
-  const run = useWorkflowRunner((state) => state.run);
-  const { nodes, edges, workflow } = useNodes((state) => ({
-    nodes: state.nodes,
-    edges: state.edges,
-    workflow: state.workflow
-  }));
-  const runWorkflow = useCallback(() => {
-    run({}, workflow, nodes, edges);
-  }, [run, workflow, nodes, edges]);
-  const cancelWorkflow = useWorkflowRunner((state) => state.cancel);
-  const state = useWorkflowRunner((state) => state.state);
-  const path = useLocation().pathname;
-  const statusMessage = useWorkflowRunner((state) => state.statusMessage);
-  const isWorkflowRunning = useWorkflowRunner(
-    (state) => state.state === "running"
-  );
-  const buttonAppearance = useSettingsStore(
-    (state) => state.settings.buttonAppearance
-  );
+
   const onWorkflowSaved = useCallback(
     (workflow: Workflow) => {
       addNotification({
@@ -170,27 +167,6 @@ const AppHeaderActions: React.FC = () => {
     },
     [addNotification]
   );
-  const workflowId = path.split("/").pop();
-
-  const handleCreateWorkflow = useCallback(async () => {
-    const workflow = await createNewWorkflow();
-    navigate(`/editor/${workflow.id}`);
-  }, [createNewWorkflow, navigate]);
-
-  const handleRunAsApp = useCallback(() => {
-    if (workflowId) {
-      // In electron, we can use the api to run the app
-      if (window.api) {
-        window.api.runApp(workflowId);
-      } else {
-        // In web, we can open a new window
-        window.open(
-          "http://localhost:5173/index.html?workflow_id=" + workflowId,
-          "_blank"
-        );
-      }
-    }
-  }, [workflowId]);
 
   useCombo(
     ["Alt+s"],
@@ -206,9 +182,174 @@ const AppHeaderActions: React.FC = () => {
       [saveWorkflow, onWorkflowSaved]
     )
   );
-  useCombo(["Ctrl+Space"], () => openNodeMenu(400, 200));
 
-  useGlobalHotkeys(runWorkflow);
+  return (
+    <Tooltip title="Save workflow" enterDelay={TOOLTIP_ENTER_DELAY}>
+      <Button
+        className="action-button"
+        onClick={() => saveWorkflow().then(onWorkflowSaved)}
+        tabIndex={-1}
+      >
+        <SaveIcon />
+      </Button>
+    </Tooltip>
+  );
+});
+
+const AutoLayoutButton = memo(({ autoLayout }: { autoLayout: () => void }) => (
+  <Tooltip
+    title="Arranges all nodes or selected nodes"
+    enterDelay={TOOLTIP_ENTER_DELAY}
+  >
+    <Button className="action-button" onClick={autoLayout} tabIndex={-1}>
+      <LayoutIcon />
+    </Button>
+  </Tooltip>
+));
+
+const RunWorkflowButton = memo(() => {
+  const { workflow, nodes, edges } = useNodes((state) => ({
+    workflow: state.workflow,
+    nodes: state.nodes,
+    edges: state.edges
+  }));
+  const { run, state, isWorkflowRunning } = useWorkflowRunner((state) => ({
+    run: state.run,
+    state: state.state,
+    isWorkflowRunning: state.state === "running"
+  }));
+
+  useGlobalHotkeys(() => run({}, workflow, nodes, edges));
+
+  return (
+    <Tooltip
+      title={
+        <div
+          className="tooltip-span"
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "0.1em"
+          }}
+        >
+          <span style={{ fontSize: "1.2em", color: "white" }}>
+            Run Workflow
+          </span>
+          <span style={{ fontSize: ".9em", color: "white" }}>CTRL+Enter</span>
+        </div>
+      }
+      enterDelay={TOOLTIP_ENTER_DELAY}
+    >
+      <Button
+        size="large"
+        className={`action-button run-stop-button run-workflow ${
+          isWorkflowRunning ? "disabled" : ""
+        }`}
+        onClick={() => !isWorkflowRunning && run({}, workflow, nodes, edges)}
+        tabIndex={-1}
+      >
+        {state === "connecting" || state === "connected" ? (
+          <>
+            <span
+              className={`run-status ${
+                state === "connecting" ? "connecting-status" : ""
+              }`}
+            >
+              {state === "connecting" ? "Connecting" : "Connected"}
+            </span>
+            <PlayArrow />
+          </>
+        ) : state === "running" ? (
+          <CircularProgress size={10} />
+        ) : (
+          <PlayArrow />
+        )}
+      </Button>
+    </Tooltip>
+  );
+});
+
+const StopWorkflowButton = memo(() => {
+  const { isWorkflowRunning, cancel } = useWorkflowRunner((state) => ({
+    isWorkflowRunning: state.state === "running",
+    cancel: state.cancel
+  }));
+  return (
+    <Tooltip
+      title={
+        <div
+          className="tooltip-span"
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "0.1em"
+          }}
+        >
+          <span style={{ fontSize: "1.2em", color: "white" }}>
+            Stop Workflow
+          </span>
+          <span style={{ fontSize: "1em", color: "white" }}>ESC</span>
+        </div>
+      }
+      enterDelay={TOOLTIP_ENTER_DELAY}
+    >
+      <Button
+        size="large"
+        className={`action-button run-stop-button stop-workflow ${
+          !isWorkflowRunning ? "disabled" : ""
+        }`}
+        onClick={() => cancel()}
+        tabIndex={-1}
+      >
+        <StopIcon />
+      </Button>
+    </Tooltip>
+  );
+});
+
+const RunAsAppButton = memo(() => {
+  const location = useLocation();
+  const workflowId = location.pathname.split("/").pop();
+
+  const handleRunAsApp = useCallback(() => {
+    if (workflowId) {
+      if (window.api) {
+        window.api.runApp(workflowId);
+      } else {
+        window.open(
+          "http://localhost:5173/index.html?workflow_id=" + workflowId,
+          "_blank"
+        );
+      }
+    }
+  }, [workflowId]);
+
+  return (
+    <Tooltip title="Run as App" enterDelay={TOOLTIP_ENTER_DELAY}>
+      <Button className="action-button" onClick={handleRunAsApp} tabIndex={-1}>
+        <RocketLaunchIcon />
+      </Button>
+    </Tooltip>
+  );
+});
+
+const AppHeaderActions: React.FC = () => {
+  const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
+  const path = useLocation().pathname;
+  const buttonAppearance = useSettingsStore(
+    (state) => state.settings.buttonAppearance
+  );
+  const { autoLayout } = useNodes((state) => ({
+    autoLayout: state.autoLayout
+  }));
+  const { statusMessage, isWorkflowRunning } = useWorkflowRunner((state) => ({
+    statusMessage: state.statusMessage,
+    isWorkflowRunning: state.state === "running"
+  }));
+
+  useCombo(["Ctrl+Space"], () => openNodeMenu(400, 200));
 
   return (
     <>
@@ -228,130 +369,12 @@ const AppHeaderActions: React.FC = () => {
           css={actionsStyles(ThemeNodetool, buttonAppearance)}
         >
           <>
-            <Tooltip
-              title="Create new workflow"
-              enterDelay={TOOLTIP_ENTER_DELAY}
-            >
-              <Button
-                className="action-button"
-                onClick={handleCreateWorkflow}
-                tabIndex={-1}
-              >
-                <NoteAddIcon />
-              </Button>
-            </Tooltip>
-
-            <Tooltip title="Save workflow" enterDelay={TOOLTIP_ENTER_DELAY}>
-              <Button
-                className="action-button"
-                onClick={() => saveWorkflow().then(onWorkflowSaved)}
-                tabIndex={-1}
-              >
-                <SaveIcon />
-              </Button>
-            </Tooltip>
-
-            <Tooltip
-              title="Arranges all nodes or selected nodes"
-              enterDelay={TOOLTIP_ENTER_DELAY}
-            >
-              <Button
-                className="action-button"
-                onClick={autoLayout}
-                tabIndex={-1}
-              >
-                <LayoutIcon />
-              </Button>
-            </Tooltip>
-
-            <Tooltip
-              title={
-                <div
-                  className="tooltip-span"
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    gap: "0.1em"
-                  }}
-                >
-                  <span style={{ fontSize: "1.2em", color: "white" }}>
-                    Run Workflow
-                  </span>
-                  <span style={{ fontSize: ".9em", color: "white" }}>
-                    CTRL+Enter
-                  </span>
-                </div>
-              }
-              enterDelay={TOOLTIP_ENTER_DELAY}
-            >
-              <Button
-                size="large"
-                className={`action-button run-stop-button run-workflow ${
-                  isWorkflowRunning ? "disabled" : ""
-                }`}
-                onClick={() => !isWorkflowRunning && runWorkflow()}
-                tabIndex={-1}
-              >
-                {state === "connecting" || state === "connected" ? (
-                  <>
-                    <span
-                      className={`run-status ${
-                        state === "connecting" ? "connecting-status" : ""
-                      }`}
-                    >
-                      {state === "connecting" ? "Connecting" : "Connected"}
-                    </span>
-                    <PlayArrow />
-                  </>
-                ) : state === "running" ? (
-                  <CircularProgress />
-                ) : (
-                  <PlayArrow />
-                )}
-              </Button>
-            </Tooltip>
-
-            <Tooltip
-              title={
-                <div
-                  className="tooltip-span"
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    gap: "0.1em"
-                  }}
-                >
-                  <span style={{ fontSize: "1.2em", color: "white" }}>
-                    Stop Workflow
-                  </span>
-                  <span style={{ fontSize: "1em", color: "white" }}>ESC</span>
-                </div>
-              }
-              enterDelay={TOOLTIP_ENTER_DELAY}
-            >
-              <Button
-                size="large"
-                className={`action-button run-stop-button stop-workflow ${
-                  !isWorkflowRunning ? "disabled" : ""
-                }`}
-                onClick={() => cancelWorkflow()}
-                tabIndex={-1}
-              >
-                <StopIcon />
-              </Button>
-            </Tooltip>
-
-            <Tooltip title="Run as App" enterDelay={TOOLTIP_ENTER_DELAY}>
-              <Button
-                className="action-button"
-                onClick={handleRunAsApp}
-                tabIndex={-1}
-              >
-                <RocketLaunchIcon />
-              </Button>
-            </Tooltip>
+            <CreateWorkflowButton />
+            <SaveWorkflowButton />
+            <AutoLayoutButton autoLayout={autoLayout} />
+            <RunWorkflowButton />
+            <StopWorkflowButton />
+            <RunAsAppButton />
           </>
         </div>
       )}
