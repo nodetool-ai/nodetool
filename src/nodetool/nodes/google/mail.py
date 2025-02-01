@@ -150,7 +150,7 @@ class GmailSearch(BaseNode):
 
     @classmethod
     def get_basic_fields(cls) -> list[str]:
-        return ["subject", "body", "date_filter"]
+        return ["subject", "body", "date_filter", "max_results"]
 
     async def process(self, context: ProcessingContext) -> list[Email]:
         email_address = context.environment.get("GOOGLE_MAIL_USER")
