@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from fastapi.responses import StreamingResponse
+import openai
 from nodetool.common.huggingface_cache import has_cached_files
 from nodetool.common.huggingface_file import (
     HFFileInfo,
@@ -12,6 +13,7 @@ from nodetool.metadata.types import (
     ModelFile,
     HuggingFaceModel,
     LlamaModel,
+    OpenAIModel,
     comfy_model_to_folder,
 )
 from huggingface_hub import try_to_load_from_cache
@@ -45,6 +47,7 @@ class RepoPath(BaseModel):
     repo_id: str
     path: str
     downloaded: bool = False
+
 
 class CachedRepo(BaseModel):
     repo_id: str
@@ -88,6 +91,27 @@ async def get_ollama_models_endpoint(
     return await get_ollama_models()
 
 
+@router.get("/openai_models")
+async def get_openai_models_endpoint(
+    user: User = Depends(current_user),
+) -> list[OpenAIModel]:
+    env = Environment.get_environment()
+    api_key = env.get("OPENAI_API_KEY")
+    assert api_key, "OPENAI_API_KEY is not set"
+
+    client = openai.AsyncClient(api_key=api_key)
+    res = await client.models.list()
+    return [
+        OpenAIModel(
+            id=model.id,
+            object=model.object,
+            created=model.created,
+            owned_by=model.owned_by,
+        )
+        for model in res.data
+    ]
+
+
 @router.get("/ollama_model_info")
 async def get_ollama_model_info_endpoint(
     model_name: str, user: User = Depends(current_user)
@@ -107,7 +131,7 @@ async def try_cache_files(
         RepoPath(repo_id=path.repo_id, path=path.path, downloaded=check_path(path))
         for path in paths
     ]
-    
+
 
 @router.post("/huggingface/try_cache_repos")
 async def try_cache_repos(
@@ -118,10 +142,8 @@ async def try_cache_repos(
         return has_cached_files(repo_id)
 
     return [
-        CachedRepo(repo_id=repo_id, downloaded=check_repo(repo_id))
-        for repo_id in repos
+        CachedRepo(repo_id=repo_id, downloaded=check_repo(repo_id)) for repo_id in repos
     ]
-
 
 
 if not Environment.is_production():

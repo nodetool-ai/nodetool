@@ -330,6 +330,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/models/openai_models": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Openai Models Endpoint */
+        get: operations["get_openai_models_endpoint_api_models_openai_models_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/models/ollama_model_info": {
         parameters: {
             query?: never;
@@ -1255,12 +1272,12 @@ export interface components {
              * @default {
              *       "type": "datetime",
              *       "year": 2025,
-             *       "month": 1,
-             *       "day": 29,
-             *       "hour": 0,
-             *       "minute": 1,
-             *       "second": 20,
-             *       "microsecond": 473059,
+             *       "month": 2,
+             *       "day": 1,
+             *       "hour": 9,
+             *       "minute": 32,
+             *       "second": 18,
+             *       "microsecond": 60573,
              *       "tzinfo": "UTC",
              *       "utc_offset": 0
              *     }
@@ -2850,6 +2867,36 @@ export interface components {
          * @enum {string}
          */
         OAuthProvider: "google" | "facebook";
+        /** OpenAIModel */
+        OpenAIModel: {
+            /**
+             * Type
+             * @default openai_model
+             * @constant
+             * @enum {string}
+             */
+            type: "openai_model";
+            /**
+             * Id
+             * @default
+             */
+            id: string;
+            /**
+             * Object
+             * @default
+             */
+            object: string;
+            /**
+             * Created
+             * @default 0
+             */
+            created: number;
+            /**
+             * Owned By
+             * @default
+             */
+            owned_by: string;
+        };
         /**
          * OutputSlot
          * @description An output slot is a slot that can be connected to an input slot.
@@ -4345,6 +4392,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LlamaModel"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_openai_models_endpoint_api_models_openai_models_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: {
+                auth_cookie?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OpenAIModel"][];
                 };
             };
             /** @description Validation Error */
