@@ -16,10 +16,6 @@ class DepthEstimation(HuggingFacePipelineNode):
     - Assist in augmented reality applications
     - Enhance computer vision systems for robotics
     - Improve scene understanding in autonomous vehicles
-
-    Recommended models:
-    - LiheYoung/depth-anything-base-hf
-    - Intel/dpt-large
     """
 
     model: HFDepthEstimation = Field(

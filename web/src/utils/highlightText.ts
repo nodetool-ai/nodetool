@@ -1,15 +1,14 @@
 import { NodeMetadata } from "../stores/ApiTypes";
 import ThemeNodetool from "../components/themes/ThemeNodetool";
-import { devLog } from "../utils/DevLog";
 
-const escapeHtml = (text: string): string => {
+export const escapeHtml = (text: string): string => {
   const div = document.createElement("div");
   div.textContent = text;
   return div.innerHTML;
 };
 
 // Convert hex color to RGB values
-const hexToRgb = (hex: string) => {
+export const hexToRgb = (hex: string) => {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
   if (!result) return null;
   return `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(
@@ -167,7 +166,7 @@ export const highlightText = (
 };
 
 // Helper function for bullet list formatting
-const formatBulletList = (text: string): string => {
+export const formatBulletList = (text: string): string => {
   const lines = text.split("\n").filter((line) => line.trim());
   return `<ul>${lines.map((line) => `<li>${line}</li>`).join("\n")}</ul>`;
 };

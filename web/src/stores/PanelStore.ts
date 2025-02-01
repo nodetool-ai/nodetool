@@ -34,7 +34,7 @@ interface ResizePanelState {
   handleViewChange: (view: PanelView) => void;
 }
 
-const DEFAULT_PANEL_SIZE = 450;
+const DEFAULT_PANEL_SIZE = 500;
 const MIN_DRAG_SIZE = 60;
 const MIN_PANEL_SIZE = DEFAULT_PANEL_SIZE - 100;
 const MAX_PANEL_SIZE = 800;

@@ -94,13 +94,6 @@ class GmailSearch(BaseNode):
     Searches Gmail using Gmail-specific search operators.
     email, gmail, search
 
-    Returns emails with following fields:
-    - id: Message ID
-    - subject: Email subject
-    - from: Sender address
-    - date: Datetime of email
-    - body: Email body content
-
     Use cases:
     - Search for emails based on specific criteria
     - Retrieve emails from a specific sender
