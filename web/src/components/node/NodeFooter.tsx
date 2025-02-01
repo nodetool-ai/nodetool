@@ -9,6 +9,7 @@ import { isEqual } from "lodash";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import NodeInfo from "../node_menu/NodeInfo";
 
 const PrettyNamespace = memo<{ namespace: string }>(({ namespace }) => {
   const parts = namespace.split(".");
@@ -131,17 +132,11 @@ export const NodeFooter: React.FC<NodeFooterProps> = ({
         </Tooltip>
       )}
       <Tooltip
-        title="Click to show documentation"
         placement="bottom-start"
-        enterDelay={TOOLTIP_ENTER_DELAY}
+        enterDelay={600}
+        title={<NodeInfo nodeMetadata={metadata} />}
       >
-        <Button
-          className="help-button"
-          tabIndex={-1}
-          onClick={handleOpenDocumentation}
-        >
-          <HelpOutlineIcon />
-        </Button>
+        <HelpOutlineIcon />
       </Tooltip>
     </div>
   );

@@ -331,6 +331,8 @@
   background: var(--c_node_header_bg);
   border-radius: 0 0 0.3em 0.3em;
   overflow: hidden;
+  justify-content: flex-start;
+  align-items: center;
 }
 
 .node-footer .namespace-button {
@@ -357,23 +359,7 @@
   color: var(--c_hl1) !important;
 }
 
-.node-footer .help-button {
-  display: block;
-  padding: 0;
-  margin: 0 2px;
-  min-width: 18px;
-  top: -4px;
-  color: var(--c_gray6);
-  background-color: transparent;
-  border: none;
-  cursor: pointer;
-}
-
-.node-footer .help-button:hover {
-  color: var(--c_white);
-}
-
-.node-footer .help-button svg {
+.node-footer svg {
   scale: 0.5;
 }
 
