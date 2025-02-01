@@ -30,7 +30,7 @@ const nodeInfoStyles = (theme: any) =>
     gap: ".5em",
     padding: "1em",
     maxHeight: "55vh",
-    maxWidth: "400px",
+    width: "400px",
     position: "relative",
     ".node-title": {
       fontSize: theme.fontSizeNormal,
