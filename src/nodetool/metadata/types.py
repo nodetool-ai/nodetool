@@ -337,14 +337,6 @@ class Provider(str, enum.Enum):
     Empty = "empty"
 
 
-class GPTModel(str, enum.Enum):
-    GPT3 = "gpt-3.5-turbo-0125"
-    GPT4 = "gpt-4o"
-    GPT4Mini = "gpt-4o-mini"
-    O1 = "o1-preview"
-    O1Mini = "o1-mini"
-
-
 class OpenAIEmbeddingModel(str, enum.Enum):
     ADA_002 = "text-embedding-ada-002"
     SMALL = "text-embedding-3-small"
@@ -377,6 +369,14 @@ class LlamaModel(BaseType):
 
     def is_set(self) -> bool:
         return self.repo_id != ""
+
+
+class OpenAIModel(BaseType):
+    type: Literal["openai_model"] = "openai_model"
+    id: str = ""
+    object: str = ""
+    created: int = 0
+    owned_by: str = ""
 
 
 class HuggingFaceModel(BaseType):
