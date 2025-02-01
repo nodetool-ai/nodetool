@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { client } from "./ApiClient";
-import { CachedModel, LlamaModel, ModelFile } from "./ApiTypes";
+import { CachedModel, LlamaModel, ModelFile, OpenAIModel } from "./ApiTypes";
 import { QueryClient } from "@tanstack/react-query";
 import { createErrorMessage } from "../utils/errorHandling";
 
@@ -10,6 +10,7 @@ type ModelStore = {
   invalidate: () => void;
   loadLlamaModels: () => Promise<LlamaModel[]>;
   loadHuggingFaceModels: () => Promise<CachedModel[]>;
+  loadOpenAIModels: () => Promise<OpenAIModel[]>;
   loadComfyModels: (modelType: string) => Promise<ModelFile[]>;
 };
 
@@ -20,6 +21,13 @@ const useModelStore = create<ModelStore>((set, get) => ({
   },
   invalidate: () => {
     get().queryClient?.invalidateQueries();
+  },
+  loadOpenAIModels: async () => {
+    const { error, data } = await client.GET("/api/models/openai_models", {});
+    if (error) {
+      throw createErrorMessage(error, "Failed to fetch models");
+    }
+    return data;
   },
   loadHuggingFaceModels: async () => {
     const { error, data } = await client.GET(

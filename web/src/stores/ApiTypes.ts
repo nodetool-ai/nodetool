@@ -59,6 +59,7 @@ export type NodeUpdate = components["schemas"]["NodeUpdate"];
 export type NodeProgress = components["schemas"]["NodeProgress"];
 export type JobUpdate = components["schemas"]["JobUpdate"];
 export type LlamaModel = components["schemas"]["LlamaModel"];
+export type OpenAIModel = components["schemas"]["OpenAIModel"];
 export type Task = components["schemas"]["Task"];
 export type CachedModel = components["schemas"]["CachedModel"];
 export type ModelFile = components["schemas"]["ModelFile"];
