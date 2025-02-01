@@ -16,7 +16,7 @@ import NodeInfo from "./NodeInfo";
 import { isEqual } from "lodash";
 import ThemeNodetool from "../themes/ThemeNodetool";
 import useMetadataStore from "../../stores/MetadataStore";
-import { ArrowBack } from "@mui/icons-material";
+import { KeyboardDoubleArrowLeft } from "@mui/icons-material";
 
 type NamespaceTree = {
   [key: string]: {
@@ -41,8 +41,10 @@ const namespaceStyles = (theme: any, inPanel: boolean) =>
       flexDirection: "column",
       marginTop: "20px"
     },
-    ".header": {
-      display: "flex",
+    ".info-box": {
+      position: "absolute",
+      right: "0",
+      bottom: "0",
       minHeight: "30px",
       alignItems: "center",
       flexDirection: "row",
@@ -69,16 +71,15 @@ const namespaceStyles = (theme: any, inPanel: boolean) =>
       flexDirection: "column",
       gap: "0",
       overflowY: "auto",
+      minWidth: "150px",
       width: "fit-content",
       height: "fit-content",
       maxHeight: inPanel ? "85vh" : "calc(min(750px, 50vh))",
-
       paddingRight: inPanel ? ".5em" : "1em",
-      paddingLeft: inPanel ? ".5em" : "1em",
+      paddingLeft: inPanel ? "0em" : "1em",
       // paddingBottom: "3em",
       marginRight: ".5em",
-      minWidth: inPanel ? "120px" : "100px",
-      boxShadow: "inset 0 0 10px rgba(0, 0, 0, 0.4)",
+      boxShadow: "inset 0 0 4px rgba(0, 0, 0, 0.2)",
       borderRadius: "8px"
     },
     ".namespace-list-enabled": {
@@ -288,7 +289,7 @@ const namespaceStyles = (theme: any, inPanel: boolean) =>
       cursor: "pointer",
       padding: ".3em .75em",
       backgroundColor: "transparent",
-      borderLeft: `3px solid ${theme.palette.c_gray3}`,
+      borderLeft: `3px solid ${theme.palette.c_gray1}`,
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeSmall,
       fontWeight: "300",
@@ -361,31 +362,30 @@ const namespaceStyles = (theme: any, inPanel: boolean) =>
     ".namespace-panel-container": {
       position: "relative",
       transition: "margin-left 0.3s ease-in-out",
-      marginLeft: "1em",
       "&.collapsed": {
         marginLeft: "-135px"
       }
     },
     ".toggle-panel-button": {
       position: "absolute",
-      right: "10px",
+      left: "0",
       top: "0",
       height: "100%",
-      width: "10px",
       zIndex: 1,
-      backgroundColor: theme.palette.c_gray2,
+      backgroundColor: "transparent",
       border: "none",
       borderRadius: "0 4px 4px 0",
-      padding: "1em 0.5em",
+      padding: "0",
       cursor: "pointer",
       color: theme.palette.c_white,
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
       "&:hover": {
-        backgroundColor: theme.palette.c_gray3
+        backgroundColor: "rgba(255, 255, 255, 0.05)"
       },
       "& svg": {
+        color: "rgba(255, 255, 255, 0.5)",
         transition: "transform 0.3s ease-in-out"
       },
       "&.collapsed svg": {
@@ -458,22 +458,9 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
     return nodes;
   }, [metadata, getCurrentNodes]);
 
-  const renderNamespaces = useMemo(() => {
-    return (
-      <>
-        <div className="namespace-list-enabled">
-          <RenderNamespaces tree={enabledTree} />
-        </div>
-        <div className="namespace-list-disabled">
-          <RenderNamespaces tree={disabledTree} />
-        </div>
-      </>
-    );
-  }, [enabledTree, disabledTree]);
-
   const renderNodes = useMemo(
-    () => <RenderNodes nodes={currentNodes} />,
-    [currentNodes]
+    () => <RenderNodes nodes={currentNodes} showTooltips={inPanel} />,
+    [currentNodes, inPanel]
   );
 
   const renderNodeInfo = useMemo(
@@ -509,22 +496,31 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
           : "no-search-results"
       }
     >
+      {!inPanel && (
+        <button
+          className={`toggle-panel-button ${
+            isPanelCollapsed ? "collapsed" : ""
+          }`}
+          onClick={togglePanel}
+          title={isPanelCollapsed ? "Show namespaces" : "Hide namespaces"}
+        >
+          <KeyboardDoubleArrowLeft />
+        </button>
+      )}
       <Box className="list-box">
         <div
           className={`namespace-panel-container ${
             isPanelCollapsed ? "collapsed" : ""
           }`}
         >
-          {!inPanel && (
-            <button
-              className={`toggle-panel-button ${
-                isPanelCollapsed ? "collapsed" : ""
-              }`}
-              onClick={togglePanel}
-              title={isPanelCollapsed ? "Show namespaces" : "Hide namespaces"}
-            ></button>
-          )}
-          <List className="namespace-list">{renderNamespaces}</List>
+          <List className="namespace-list">
+            <div className="namespace-list-enabled">
+              <RenderNamespaces tree={enabledTree} />
+            </div>
+            <div className="namespace-list-disabled">
+              <RenderNamespaces tree={disabledTree} />
+            </div>
+          </List>
         </div>
         {currentNodes && currentNodes.length > 0 ? (
           <>
@@ -627,7 +623,7 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
           </div>
         )}
       </Box>
-      <Box className="header">
+      <Box className="info-box">
         <Tooltip
           title={
             <div style={{ color: "#eee", fontSize: "1.25em" }}>

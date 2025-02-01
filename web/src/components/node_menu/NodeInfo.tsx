@@ -21,19 +21,19 @@ interface NodeInfoProps {
   showConnections?: boolean;
 }
 
-const nodeInfoStyles = (theme: any, inPanel: boolean) =>
+const nodeInfoStyles = (theme: any) =>
   css({
     display: "flex",
     flexDirection: "column",
-    width: inPanel ? "250px" : "400px",
+    backgroundColor: theme.palette.c_node_menu,
     overflowY: "auto",
     gap: ".5em",
-    paddingRight: "1em",
-    paddingLeft: ".5em",
+    padding: "1em",
     maxHeight: "55vh",
+    maxWidth: "400px",
     position: "relative",
     ".node-title": {
-      fontSize: theme.fontSizeSmall,
+      fontSize: theme.fontSizeNormal,
       fontWeight: "600",
       lineHeight: "1.5em",
       minHeight: "1.5em",
@@ -52,7 +52,6 @@ const nodeInfoStyles = (theme: any, inPanel: boolean) =>
       alignItems: "center"
     },
     h4: {
-      fontSize: theme.fontSizeSmaller,
       fontFamily: theme.fontFamily2,
       textTransform: "uppercase",
       padding: "0",
@@ -60,7 +59,6 @@ const nodeInfoStyles = (theme: any, inPanel: boolean) =>
       color: theme.palette.c_gray6
     },
     ".replicate-status": {
-      fontSize: theme.fontSizeSmall,
       fontWeight: "400",
       width: "fit-content",
       color: theme.palette.c_white,
@@ -77,8 +75,8 @@ const nodeInfoStyles = (theme: any, inPanel: boolean) =>
       backgroundColor: "#ff4500"
     },
     ".node-description": {
-      fontSize: theme.fontSizeSmall,
       fontWeight: "400",
+      fontSize: theme.fontSizeNormal,
       color: theme.palette.c_white,
       // wordBreak: "break-word",
       whiteSpace: "pre-wrap",
@@ -92,27 +90,20 @@ const nodeInfoStyles = (theme: any, inPanel: boolean) =>
         lineHeight: "1.2em"
       }
     },
-    ".node-tags": {
-      fontSize: theme.fontSizeSmall,
-      color: theme.palette.c_gray4,
-      display: "flex",
-      flexWrap: "wrap",
-      gap: ".5em",
-      maxWidth: "500px"
-    },
-    ".node-tags .tag": {
-      fontSize: theme.fontSizeSmall,
+    ".node-tags span": {
       fontWeight: "600",
+      fontSize: theme.fontSizeSmaller,
       color: theme.palette.c_black,
       backgroundColor: theme.palette.c_gray4,
       borderRadius: "0.5em",
       padding: "0.2em 0.5em",
       textTransform: "uppercase",
       display: "inline-block",
-      cursor: "pointer"
+      cursor: "pointer",
+      marginRight: ".5em"
     },
     ".node-usecases div, .recommended-models div": {
-      fontSize: theme.fontSizeSmall,
+      fontSize: theme.fontSizeNormal,
       fontWeight: "300",
       color: theme.palette.c_gray6,
       lineHeight: "1.3em",
@@ -147,7 +138,6 @@ const nodeInfoStyles = (theme: any, inPanel: boolean) =>
       display: "flex",
       justifyContent: "space-between",
       fontFamily: theme.fontFamily2,
-      fontSize: theme.fontSizeSmaller,
       flexDirection: "row",
       gap: ".5em",
       cursor: "default"
@@ -244,7 +234,7 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
   ).html;
 
   return (
-    <div css={nodeInfoStyles(ThemeNodetool, inPanel)}>
+    <div css={nodeInfoStyles}>
       <div className="title-container">
         <Typography className="node-title">
           {titleizeString(nodeMetadata.title)}

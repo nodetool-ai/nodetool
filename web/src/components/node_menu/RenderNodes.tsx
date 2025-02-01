@@ -20,10 +20,12 @@ import ApiKeyValidation from "../node/ApiKeyValidation";
 import ThemeNodes from "../themes/ThemeNodes";
 import { SearchResultGroup } from "../../stores/NodeMenuStore";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import NodeInfo from "./NodeInfo";
 
 interface RenderNodesProps {
   nodes: NodeMetadata[];
   hoverDelay?: number;
+  showTooltips?: boolean;
 }
 
 const groupNodes = (nodes: NodeMetadata[]) => {
@@ -68,7 +70,8 @@ const renderGroupTitle = (title: string) => {
 
 const RenderNodes: React.FC<RenderNodesProps> = ({
   nodes,
-  hoverDelay = 20
+  hoverDelay = 20,
+  showTooltips = true
 }) => {
   const {
     focusedNodeIndex,
@@ -121,25 +124,41 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
       const isHovered = hoveredNode?.node_type === node.node_type;
       const isFocused = index === focusedNodeIndex;
 
-      return (
-        <NodeItem
-          key={node.node_type}
-          ref={isFocused ? focusedNodeRef : undefined}
-          node={node}
-          isHovered={isHovered}
-          isFocused={isFocused}
-          onInfoClick={onInfoClick}
-          onMouseEnter={() => {
-            currentHoveredNodeRef.current = node;
-            handleMouseEnter();
-          }}
-          onMouseLeave={() => {
-            currentHoveredNodeRef.current = null;
-            handleMouseLeave();
-          }}
-          onDragStart={handleDragStart(node)}
-          onClick={() => handleCreateNode(node)}
-        />
+      const nodeElement = (
+        <div>
+          <NodeItem
+            key={node.node_type}
+            ref={isFocused ? focusedNodeRef : undefined}
+            node={node}
+            isHovered={isHovered}
+            isFocused={isFocused}
+            onInfoClick={onInfoClick}
+            onMouseEnter={() => {
+              currentHoveredNodeRef.current = node;
+              handleMouseEnter();
+            }}
+            onMouseLeave={() => {
+              currentHoveredNodeRef.current = null;
+              handleMouseLeave();
+            }}
+            onDragStart={handleDragStart(node)}
+            onClick={() => handleCreateNode(node)}
+          />
+        </div>
+      );
+
+      return showTooltips ? (
+        <Tooltip
+          title={<NodeInfo nodeMetadata={node} />}
+          placement="right"
+          enterDelay={0}
+          leaveDelay={0}
+          TransitionProps={{ timeout: 0 }}
+        >
+          {nodeElement}
+        </Tooltip>
+      ) : (
+        nodeElement
       );
     },
     [
@@ -149,7 +168,8 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
       handleMouseLeave,
       onInfoClick,
       handleDragStart,
-      handleCreateNode
+      handleCreateNode,
+      showTooltips
     ]
   );
 
