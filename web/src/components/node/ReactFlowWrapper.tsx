@@ -397,8 +397,11 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
         onSelectionContextMenu={handleSelectionContextMenu}
         selectionMode={settings.selectionMode as SelectionMode}
         onEdgesChange={onEdgesChange}
-        onEdgeMouseEnter={onEdgeMouseEnter}
-        onEdgeMouseLeave={onEdgeMouseLeave}
+        // TODO: fix edge mouse enter and leave
+        // Performance issue when hovering over edges
+        // triggering edge changes
+        // onEdgeMouseEnter={onEdgeMouseEnter}
+        // onEdgeMouseLeave={onEdgeMouseLeave}
         onEdgeContextMenu={onEdgeContextMenu}
         connectionMode={ConnectionMode.Strict}
         onConnect={triggerOnConnect}
