@@ -1,38 +1,23 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-
-import SearchInput from "../search/SearchInput";
-import ConfirmDialog from "../dialogs/ConfirmDialog";
-import { WorkflowListView } from "./WorkflowListView";
-
-import {
-  Typography,
-  CircularProgress,
-  Button,
-  Tooltip,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem
-} from "@mui/material";
-
-import { useWorkflowStore } from "../../stores/WorkflowStore";
-import { useCallback, useEffect, useState, useMemo } from "react";
-import {
-  Workflow,
-  WorkflowList as WorkflowListType
-} from "../../stores/ApiTypes";
+import { Typography, CircularProgress } from "@mui/material";
+import { useCallback, useEffect, useState, useMemo, memo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { ErrorOutlineRounded } from "@mui/icons-material";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
-import AddIcon from "@mui/icons-material/Add";
-import { useResizeObserver } from "@mantine/hooks";
-import VisibilityIcon from "@mui/icons-material/Visibility";
-import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
-import { createErrorMessage } from "../../utils/errorHandling";
+import { useWorkflowStore } from "../../stores/WorkflowStore";
+import WorkflowToolbar from "./WorkflowToolbar";
+import WorkflowGrid from "./WorkflowGrid";
+import WorkflowDeleteDialog from "./WorkflowDeleteDialog";
+import {
+  Workflow,
+  WorkflowList as WorkflowListType
+} from "../../stores/ApiTypes";
 import { client } from "../../stores/ApiClient";
+import { createErrorMessage } from "../../utils/errorHandling";
+import { isEqual } from "lodash";
+import { useNodes, useWorkflowManager } from "../../contexts/NodeContext";
 
 const tile_width = "200px";
 const tile_height = "200px";
@@ -158,18 +143,20 @@ const loadWorkflows = async (cursor?: string, limit?: number) => {
 
 const WorkflowList = () => {
   const [filterValue, setFilterValue] = useState("");
-  const navigate = useNavigate();
+  const [workflowsToDelete, setWorkflowsToDelete] = useState<Workflow[]>([]);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false);
+  const [showCheckboxes, setShowCheckboxes] = useState(false);
+  const [selectedTag, setSelectedTag] = useState<string>("");
+  const currentWorkflow = useNodes((state) => state.workflow);
+  const { removeWorkflow } = useWorkflowManager((state) => ({
+    removeWorkflow: state.removeWorkflow
+  }));
   const { shiftKeyPressed, controlKeyPressed } = useKeyPressedStore(
     (state) => ({
       shiftKeyPressed: state.isKeyPressed("Shift"),
       controlKeyPressed: state.isKeyPressed("Control")
     })
   );
-  const createNewWorkflow = useWorkflowStore((state) => state.createNew);
-  const createWorkflow = useWorkflowStore((state) => state.create);
-  const copyWorkflow = useWorkflowStore((state) => state.copy);
-  const updateWorkflow = useWorkflowStore((state) => state.update);
-  const queryClient = useQueryClient();
   const [selectedWorkflows, setSelectedWorkflows] = useState<string[]>([]);
   const pageSize = 200;
 
@@ -177,45 +164,17 @@ const WorkflowList = () => {
     {
       queryKey: ["workflows"],
       queryFn: () => loadWorkflows("", pageSize),
-      staleTime: 1000 * 60 * 15, // 15 minutes
+      staleTime: 15 * 60 * 1000,
       refetchOnWindowFocus: false,
       refetchOnMount: false,
       refetchOnReconnect: false
     }
   );
   const workflows = useMemo(() => data?.workflows || [], [data?.workflows]);
-  const deleteWorkflow = useWorkflowStore((state) => state.delete);
-  const [workflowsToDelete, setWorkflowsToDelete] = useState<Workflow[]>([]);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false);
-  const [showCheckboxes, setShowCheckboxes] = useState(false);
+  const openWorkflows = useWorkflowManager((state) => state.workflows);
 
-  const [selectedTag, setSelectedTag] = useState<string>("");
-  const uniqueTags = useMemo(() => {
-    if (!workflows) return [];
-    const tagSet = new Set<string>();
-    workflows.forEach((wf) => wf.tags?.forEach((tag) => tagSet.add(tag)));
-    return Array.from(tagSet);
-  }, [workflows]);
-  const finalWorkflows = useMemo(() => {
-    if (!selectedTag) {
-      return workflows;
-    }
-    return workflows.filter((wf) => wf.tags?.includes(selectedTag));
-  }, [workflows, selectedTag]);
-
-  // OPEN WORKFLOW
-  const handleOpenWorkflow = useCallback(
-    (workflow: Workflow) => {
-      navigate("/editor/" + workflow.id);
-    },
-    [navigate]
-  );
-
-  // SELECT WORKFLOW
   const filteredWorkflows = useMemo(() => {
-    if (filterValue === "") {
-      return workflows;
-    }
+    if (filterValue === "") return workflows;
     return workflows.filter((workflow) =>
       workflow.name.toLowerCase().includes(filterValue.toLowerCase())
     );
@@ -224,7 +183,6 @@ const WorkflowList = () => {
   const onSelect = useCallback(
     (workflow: Workflow) => {
       const sortedWorkflows = [...filteredWorkflows];
-
       if (shiftKeyPressed) {
         if (selectedWorkflows.length > 0) {
           const lastSelected = selectedWorkflows[selectedWorkflows.length - 1];
@@ -261,10 +219,7 @@ const WorkflowList = () => {
   const onDeselect = useCallback(
     (event: MouseEvent) => {
       const target = event.target as HTMLElement;
-      if (controlKeyPressed || shiftKeyPressed) {
-        return;
-      }
-
+      if (controlKeyPressed || shiftKeyPressed) return;
       if (
         !target.closest(".workflow") &&
         !target.closest(".MuiDialog-root") &&
@@ -276,56 +231,9 @@ const WorkflowList = () => {
     [controlKeyPressed, shiftKeyPressed]
   );
 
-  useEffect(() => {
-    document.addEventListener("click", onDeselect);
-    return () => {
-      document.removeEventListener("click", onDeselect);
-    };
-  }, [onDeselect]);
-
-  // CREATE NEW WORKFLOW
-  const handleCreateWorkflow = useCallback(async () => {
-    const workflow = await createNewWorkflow();
-    queryClient.invalidateQueries({ queryKey: ["workflows"] });
-    navigate(`/editor/${workflow.id}`);
-  }, [navigate, createNewWorkflow, queryClient]);
-
-  // DUPLICATE WORKFLOW
-  const duplicateWorkflow = useCallback(
-    async (event: React.MouseEvent<Element>, workflow: Workflow) => {
-      event.stopPropagation();
-      const workflowRequest = await copyWorkflow(workflow);
-      const baseName = workflow.name.replace(/ \(\d+\)$/, "");
-      const existingNames = workflows
-        .filter((w) => w.name.startsWith(baseName))
-        .map((w) => w.name);
-
-      let highestNumber = 0;
-      const regex = new RegExp(`^${baseName} \\((\\d+)\\)$`);
-      existingNames.forEach((name) => {
-        const match = name.match(regex);
-        if (match && match[1]) {
-          const number = parseInt(match[1], 10);
-          if (number > highestNumber) {
-            highestNumber = number;
-          }
-        }
-      });
-
-      const newName = `${baseName} (${highestNumber + 1})`;
-      workflowRequest.name = newName.substring(0, 50);
-
-      const newWorkflow = await createWorkflow(workflowRequest);
-      queryClient.invalidateQueries({ queryKey: ["workflows"] });
-      navigate(`/editor/${newWorkflow.id}`);
-    },
-    [copyWorkflow, updateWorkflow, queryClient, workflows]
-  );
-
   // DELETE WORKFLOW
   const onDelete = useCallback(
-    (e: any, workflow: Workflow) => {
-      e.stopPropagation();
+    (workflow: Workflow) => {
       let workflowsToDelete;
       if (selectedWorkflows.includes(workflow.id)) {
         // delete all selected workflows if the delete button is clicked on a selected workflow
@@ -339,157 +247,43 @@ const WorkflowList = () => {
       setWorkflowsToDelete(workflowsToDelete);
       setIsDeleteDialogOpen(true);
     },
-    [selectedWorkflows, workflows]
-  );
-
-  const handleDelete = useCallback(() => {
-    Promise.all(
-      workflowsToDelete.map((workflow) => deleteWorkflow(workflow.id))
-    )
-      .then(() => {
-        setIsDeleteDialogOpen(false);
-        setWorkflowsToDelete([]);
-        setSelectedWorkflows([]);
-        queryClient.invalidateQueries({ queryKey: ["workflows"] });
-      })
-      .catch((error) => {
-        console.error("Error deleting workflows:", error);
-      });
-  }, [deleteWorkflow, workflowsToDelete, queryClient]);
-
-  const handleSearchChange = useCallback(
-    (newSearchTerm: string) => {
-      setFilterValue(newSearchTerm);
-    },
-    [setFilterValue]
-  );
-
-  const workflowsToDeleteList = useMemo(
-    () => (
-      <ul className="asset-names">
-        {workflowsToDelete.map((workflow) => (
-          <li key={workflow.id}>{workflow.name}</li>
-        ))}
-      </ul>
-    ),
-    [workflowsToDelete]
-  );
-
-  // Add resize observer to handle responsive layout
-  const [gridRef] = useResizeObserver();
-
-  const workflowItems = useMemo(
-    () => (
-      <div className="workflow-items" ref={gridRef}>
-        <WorkflowListView
-          workflows={finalWorkflows}
-          onOpenWorkflow={handleOpenWorkflow}
-          onDuplicateWorkflow={duplicateWorkflow}
-          onDelete={onDelete}
-          onSelect={onSelect}
-          selectedWorkflows={selectedWorkflows}
-          workflowCategory="user"
-          showCheckboxes={showCheckboxes}
-        />
-      </div>
-    ),
     [
-      gridRef,
-      finalWorkflows,
-      handleOpenWorkflow,
-      duplicateWorkflow,
-      onDelete,
-      onSelect,
       selectedWorkflows,
-      showCheckboxes
+      workflows,
+      removeWorkflow,
+      currentWorkflow,
+      openWorkflows
     ]
   );
 
-  const tools = useMemo(
-    () => (
-      <>
-        <div className="workflow-header">
-          <Typography variant="h3">Workflows</Typography>
-        </div>
-        <div className="tools">
-          <Tooltip title="Create a new workflow">
-            <Button
-              variant="outlined"
-              onClick={handleCreateWorkflow}
-              sx={{
-                fontWeight: "bold",
-                textTransform: "uppercase",
-                letterSpacing: "0.05em",
-                height: "36px",
-                padding: "6px 1a6px"
-              }}
-            >
-              <AddIcon />
-            </Button>
-          </Tooltip>
-          <Tooltip title="Search workflows by name">
-            <div>
-              <SearchInput onSearchChange={handleSearchChange} />
-            </div>
-          </Tooltip>
-          <FormControl
-            size="small"
-            sx={{ minWidth: 120, height: "36px", marginTop: "18px" }}
-          >
-            <InputLabel id="tag-filter-label">Filter by Tag</InputLabel>
-            <Select
-              labelId="tag-filter-label"
-              id="tag-filter"
-              value={selectedTag}
-              label="Filter by Tag"
-              sx={{ height: "36px" }}
-              onChange={(e) => setSelectedTag(e.target.value)}
-            >
-              <MenuItem value="">
-                <em>All</em>
-              </MenuItem>
-              {uniqueTags.map((tag) => (
-                <MenuItem key={tag} value={tag}>
-                  {tag}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          <Tooltip
-            title={`${showCheckboxes ? "Hide" : "Show"} selection checkboxes`}
-            placement="top"
-            enterDelay={TOOLTIP_ENTER_DELAY}
-          >
-            <Button
-              size="small"
-              onClick={() => setShowCheckboxes(!showCheckboxes)}
-              sx={{ height: "36px" }}
-            >
-              {showCheckboxes ? <VisibilityOffIcon /> : <VisibilityIcon />}
-            </Button>
-          </Tooltip>
-          {selectedWorkflows.length > 0 && (
-            <Tooltip
-              title={`Delete ${selectedWorkflows.length} selected workflow${
-                selectedWorkflows.length > 1 ? "s" : ""
-              }`}
-            >
-              <Button
-                className="delete-selected-button"
-                onClick={() => {
-                  setWorkflowsToDelete(
-                    workflows.filter((w) => selectedWorkflows.includes(w.id))
-                  );
-                  setIsDeleteDialogOpen(true);
-                }}
-                sx={{ height: "36px" }}
-              >
-                Delete Selected
-              </Button>
-            </Tooltip>
-          )}
-        </div>
+  useEffect(() => {
+    document.addEventListener("click", onDeselect);
+    return () => document.removeEventListener("click", onDeselect);
+  }, [onDeselect]);
 
+  return (
+    <>
+      <WorkflowDeleteDialog
+        open={isDeleteDialogOpen}
+        onClose={() => setIsDeleteDialogOpen(false)}
+        workflowsToDelete={workflowsToDelete}
+      />
+      <div css={styles}>
+        <WorkflowToolbar
+          workflows={workflows}
+          setFilterValue={setFilterValue}
+          selectedTag={selectedTag}
+          setSelectedTag={setSelectedTag}
+          showCheckboxes={showCheckboxes}
+          toggleCheckboxes={() => setShowCheckboxes((prev) => !prev)}
+          selectedWorkflowsCount={selectedWorkflows.length}
+          onBulkDelete={() => {
+            setWorkflowsToDelete(
+              workflows.filter((w) => selectedWorkflows.includes(w.id))
+            );
+            setIsDeleteDialogOpen(true);
+          }}
+        />
         <div className="status">
           {isLoading && (
             <div className="loading-indicator">
@@ -499,53 +293,23 @@ const WorkflowList = () => {
           )}
           {isError && (
             <div style={{ display: "flex", gap: "1em", alignItems: "center" }}>
-              <ErrorOutlineRounded>
-                <Typography>{error?.message}</Typography>
-              </ErrorOutlineRounded>
+              <ErrorOutlineRounded />
+              <Typography>{error?.message}</Typography>
               <Typography>No workflows found.</Typography>
             </div>
           )}
         </div>
-      </>
-    ),
-    [
-      handleCreateWorkflow,
-      handleSearchChange,
-      selectedWorkflows,
-      showCheckboxes,
-      isLoading,
-      isError,
-      error?.message,
-      workflows,
-      selectedTag,
-      uniqueTags
-    ]
-  );
-
-  return (
-    <>
-      <ConfirmDialog
-        open={isDeleteDialogOpen}
-        onClose={() => setIsDeleteDialogOpen(false)}
-        onConfirm={handleDelete}
-        confirmText="Delete"
-        cancelText="Cancel"
-        title="Delete Workflows"
-        notificationMessage={`Workflows deleted`}
-        notificationType="success"
-        content={
-          <>
-            <p>Are you sure you want to delete the following workflows?</p>
-            {workflowsToDeleteList}
-          </>
-        }
-      />
-      <div css={styles}>
-        {tools}
-        {workflowItems}
+        <WorkflowGrid
+          selectedTag={selectedTag}
+          workflows={workflows}
+          onSelect={onSelect}
+          selectedWorkflows={selectedWorkflows}
+          showCheckboxes={showCheckboxes}
+          onDelete={onDelete}
+        />
       </div>
     </>
   );
 };
 
-export default WorkflowList;
+export default memo(WorkflowList, isEqual);
