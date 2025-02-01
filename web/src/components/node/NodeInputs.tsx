@@ -1,11 +1,10 @@
 /** @jsxImportSource @emotion/react */
-import { memo } from "react";
+import { memo, useMemo } from "react";
 import PropertyField from "./PropertyField";
 import { Property } from "../../stores/ApiTypes";
 import { NodeData } from "../../stores/NodeData";
 import { isEqual } from "lodash";
-import { useStore } from "@xyflow/react";
-import { MIN_ZOOM } from "../../config/constants";
+import { useNodes } from "../../contexts/NodeContext";
 
 export interface NodeInputsProps {
   id: string;
@@ -46,6 +45,10 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
   const dynamicProperties: { [key: string]: Property } =
     data?.dynamic_properties || {};
 
+  const { edges } = useNodes((state) => ({
+    edges: state.edges
+  }));
+
   return (
     <div className={`node-inputs node-drag-handle node-${id}`}>
       {properties.map((property, index) => {
@@ -56,6 +59,20 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
         const finalTabIndex = isTabable ? nodeOffset + tabIndex + 1 : -1;
         const isConstantNode =
           property.type.type.startsWith("nodetool.constant");
+        const isConnected = useMemo(() => {
+          return edges.some(
+            (edge) => edge.target === id && edge.targetHandle === property.name
+          );
+        }, [edges, id, property.name]);
+
+        const isBasicField = useMemo(() => {
+          return basicFields?.includes(property.name);
+        }, [basicFields, property.name]);
+        const isAdvancedField = !isBasicField;
+
+        if (isAdvancedField && !isConnected && !showAdvancedFields) {
+          return null;
+        }
 
         return (
           <PropertyField
@@ -69,8 +86,6 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
             showFields={showFields}
             showHandle={showHandle && !isConstantNode}
             tabIndex={finalTabIndex}
-            isBasicField={basicFields?.includes(property.name)}
-            showAdvancedFields={showAdvancedFields}
           />
         );
       })}
@@ -94,9 +109,7 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
           showFields={true}
           showHandle={true}
           tabIndex={-1}
-          isBasicField={true}
           isDynamicProperty={true}
-          showAdvancedFields={showAdvancedFields}
           onDeleteProperty={onDeleteProperty}
           onUpdatePropertyName={onUpdatePropertyName}
         />
