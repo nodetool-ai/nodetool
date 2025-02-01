@@ -515,13 +515,15 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
             isPanelCollapsed ? "collapsed" : ""
           }`}
         >
-          <button
-            className={`toggle-panel-button ${
-              isPanelCollapsed ? "collapsed" : ""
-            }`}
-            onClick={togglePanel}
-            title={isPanelCollapsed ? "Show namespaces" : "Hide namespaces"}
-          ></button>
+          {!inPanel && (
+            <button
+              className={`toggle-panel-button ${
+                isPanelCollapsed ? "collapsed" : ""
+              }`}
+              onClick={togglePanel}
+              title={isPanelCollapsed ? "Show namespaces" : "Hide namespaces"}
+            ></button>
+          )}
           <List className="namespace-list">{renderNamespaces}</List>
         </div>
         {currentNodes && currentNodes.length > 0 ? (
