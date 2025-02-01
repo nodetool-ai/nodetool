@@ -125,7 +125,7 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
       const isFocused = index === focusedNodeIndex;
 
       const nodeElement = (
-        <div>
+        <div key={node.node_type}>
           <NodeItem
             key={node.node_type}
             ref={isFocused ? focusedNodeRef : undefined}
@@ -149,6 +149,7 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
 
       return showTooltips ? (
         <Tooltip
+          key={`tooltip-${node.node_type}`}
           title={<NodeInfo nodeMetadata={node} />}
           placement="right"
           enterDelay={0}
@@ -270,7 +271,7 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
     const seenServices = new Set<string>();
 
     return Object.entries(groupNodes(nodes)).flatMap(
-      ([namespace, nodesInNamespace]) => {
+      ([namespace, nodesInNamespace], namespaceIndex) => {
         const service = getServiceFromNamespace(namespace);
         const isFirstNamespaceForService = !seenServices.has(service);
         seenServices.add(service);
@@ -280,7 +281,7 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
         if (isFirstNamespaceForService) {
           elements.push(
             <ApiKeyValidation
-              key={`api-key-${service}`}
+              key={`api-key-${service}-${namespaceIndex}`}
               nodeNamespace={namespace}
             />
           );
@@ -288,7 +289,7 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
 
         elements.push(
           <Typography
-            key={`namespace-${namespace}`}
+            key={`namespace-${namespace}-${namespaceIndex}`}
             variant="h5"
             component="div"
             className="namespace-text"
