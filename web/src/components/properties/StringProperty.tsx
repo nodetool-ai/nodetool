@@ -35,6 +35,7 @@ const StringProperty = ({
     nodeType === "nodetool.constant.String" ||
     nodeType === "nodetool.input.StringInput" ||
     (nodeType === "nodetool.text.FormatText" && property.name === "template") ||
+    (nodeType === "nodetool.text.Template" && property.name === "string") ||
     (nodeType === "nodetool.list.MapTemplate" && property.name === "template");
 
   if (showTextEditor) {
