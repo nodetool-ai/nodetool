@@ -17,6 +17,25 @@ from nodetool.metadata.types import (
 import imaplib
 
 
+KEYWORD_SEPARATOR_REGEX = r"\s+|,|;"
+
+
+class DateFilter(Enum):
+    SINCE_ONE_HOUR = "SINCE_ONE_HOUR"
+    SINCE_ONE_DAY = "SINCE_ONE_DAY"
+    SINCE_ONE_WEEK = "SINCE_ONE_WEEK"
+    SINCE_ONE_MONTH = "SINCE_ONE_MONTH"
+    SINCE_ONE_YEAR = "SINCE_ONE_YEAR"
+
+
+class GmailFolder(Enum):
+    INBOX = "INBOX"
+    SENT_MAIL = "[Gmail]/Sent Mail"
+    DRAFTS = "[Gmail]/Drafts"
+    SPAM = "[Gmail]/Spam"
+    TRASH = "[Gmail]/Trash"
+
+
 def create_gmail_connection(email_address: str, app_password: str) -> IMAPConnection:
     """
     Creates a Gmail connection configuration.
@@ -45,6 +64,31 @@ def create_gmail_connection(email_address: str, app_password: str) -> IMAPConnec
     )
 
 
+def get_date_condition(date_filter: DateFilter) -> DateSearchCondition:
+    """
+    Creates a DateSearchCondition based on the specified DateFilter.
+
+    Args:
+        date_filter: The DateFilter enum value to convert
+
+    Returns:
+        DateSearchCondition configured for the specified filter
+    """
+    date_deltas = {
+        DateFilter.SINCE_ONE_HOUR: timedelta(hours=1),
+        DateFilter.SINCE_ONE_DAY: timedelta(days=1),
+        DateFilter.SINCE_ONE_WEEK: timedelta(weeks=1),
+        DateFilter.SINCE_ONE_MONTH: timedelta(days=30),
+        DateFilter.SINCE_ONE_YEAR: timedelta(days=365),
+    }
+
+    delta = date_deltas[date_filter]
+    return DateSearchCondition(
+        criteria=DateCriteria.SINCE,
+        date=Datetime.from_datetime(datetime.now() - delta),
+    )
+
+
 class GmailSearch(BaseNode):
     """
     Searches Gmail using Gmail-specific search operators.
@@ -63,13 +107,50 @@ class GmailSearch(BaseNode):
     - Filter emails by subject, sender, or date
     """
 
-    search_criteria: EmailSearchCriteria = Field(
-        default=EmailSearchCriteria(), description="Search criteria"
+    from_address: str = Field(
+        default="",
+        description="Sender's email address to search for",
+    )
+    to_address: str = Field(
+        default="",
+        description="Recipient's email address to search for",
+    )
+    subject: str = Field(
+        default="",
+        description="Text to search for in email subject",
+    )
+    body: str = Field(
+        default="",
+        description="Text to search for in email body",
+    )
+    date_filter: DateFilter = Field(
+        default=DateFilter.SINCE_ONE_DAY,
+        description="Date filter to search for",
+    )
+    flags: EmailFlag = Field(
+        default_factory=list,
+        description="Email status flags to search for",
+    )
+    keywords: str = Field(
+        default="",
+        description="Custom keywords or labels to search for",
+    )
+    folder: GmailFolder = Field(
+        default=GmailFolder.INBOX,
+        description="Email folder to search in",
+    )
+    text: str = Field(
+        default=None,
+        description="General text to search for anywhere in the email",
     )
     max_results: int = Field(
         default=50,
         description="Maximum number of emails to return",
     )
+
+    @classmethod
+    def get_basic_fields(cls) -> list[str]:
+        return ["subject", "body", "date_filter"]
 
     async def process(self, context: ProcessingContext) -> list[Email]:
         email_address = context.environment.get("GOOGLE_MAIL_USER")
@@ -79,9 +160,30 @@ class GmailSearch(BaseNode):
         if not app_password:
             raise ValueError("GOOGLE_APP_PASSWORD is not set")
 
-        connection = create_gmail_connection(email_address, app_password)
+        search_criteria = EmailSearchCriteria(
+            from_address=(
+                self.from_address.strip() if self.from_address.strip() else None
+            ),
+            to_address=self.to_address.strip() if self.to_address.strip() else None,
+            subject=self.subject.strip() if self.subject.strip() else None,
+            body=self.body.strip() if self.body.strip() else None,
+            date_condition=get_date_condition(self.date_filter),
+            flags=[self.flags] if self.flags else [],
+            keywords=(
+                [
+                    k.strip()
+                    for k in self.keywords.split(KEYWORD_SEPARATOR_REGEX)
+                    if k.strip()
+                ]
+                if self.keywords and self.keywords.strip()
+                else []
+            ),
+            folder=self.folder.value if self.folder else None,
+            text=self.text.strip() if self.text and self.text.strip() else None,
+        )
 
-        return search_emails(connection, self.search_criteria, self.max_results)
+        connection = create_gmail_connection(email_address, app_password)
+        return search_emails(connection, search_criteria, self.max_results)
 
 
 class MoveToArchive(BaseNode):
@@ -121,159 +223,6 @@ class MoveToArchive(BaseNode):
             return self.message_ids
         finally:
             imap.logout()
-
-
-KEYWORD_SEPARATOR_REGEX = r"\s+|,|;"
-
-
-class DateFilter(Enum):
-    SINCE_ONE_HOUR = "SINCE_ONE_HOUR"
-    SINCE_ONE_DAY = "SINCE_ONE_DAY"
-    SINCE_ONE_WEEK = "SINCE_ONE_WEEK"
-    SINCE_ONE_MONTH = "SINCE_ONE_MONTH"
-    SINCE_ONE_YEAR = "SINCE_ONE_YEAR"
-
-
-class GmailFolder(Enum):
-    INBOX = "INBOX"
-    SENT_MAIL = "[Gmail]/Sent Mail"
-    DRAFTS = "[Gmail]/Drafts"
-    SPAM = "[Gmail]/Spam"
-    TRASH = "[Gmail]/Trash"
-
-
-class EmailSearchCriteriaNode(BaseNode):
-    """
-    Comprehensive Email search criteria using IMAP search operators.
-    email, gmail, search
-    """
-
-    from_address: str = Field(
-        default="",
-        description="""Sender's email address to search for.
-        - Case-insensitive
-        - Partial matches work (e.g., "@company.com")
-        - Use quotes for addresses with spaces
-        - Multiple addresses can be combined with OR operator
-        """,
-    )
-
-    to_address: str = Field(
-        default="",
-        description="""Recipient's email address to search for.
-        - Case-insensitive
-        - Partial matches work (e.g., "@company.com")
-        - Use quotes for addresses with spaces
-        - Includes primary recipients only (not CC/BCC)
-        """,
-    )
-
-    subject: str = Field(
-        default="",
-        description="""Text to search for in email subject.
-        - Case-insensitive
-        - Partial word matches work
-        - Use quotes for phrases with spaces
-        - Special characters should be escaped
-        """,
-    )
-
-    body: str = Field(
-        default="",
-        description="""Text to search for in email body.
-        - Case-insensitive
-        - Searches message body only
-        - Use quotes for phrases with spaces
-        - HTML and plain text content are searched
-        """,
-    )
-
-    date_filter: DateFilter = Field(
-        default=DateFilter.SINCE_ONE_DAY,
-        description="""Date filter to search for.""",
-    )
-
-    flags: EmailFlag = Field(
-        default_factory=list,
-        description="""Email status flag to search for.
-        - SEEN/UNSEEN: Read/unread messages
-        - ANSWERED/UNANSWERED: Replied/unreplied messages
-        - FLAGGED/UNFLAGGED: Starred/unstarred messages
-        """,
-    )
-
-    keywords: str = Field(
-        default="",
-        description="""Custom keywords or labels to search for.
-        - Case-sensitive
-        - Gmail labels are treated as keywords
-        - Custom labels are used as-is
-        """,
-    )
-    folder: GmailFolder = Field(
-        default=GmailFolder.INBOX,
-        description="""Email folder to search in.""",
-    )
-
-    text: str = Field(
-        default=None,
-        description="""General text to search for anywhere in the email.
-        - Searches all text fields (subject, body, addresses)
-        - Case-insensitive
-        - Partial matches work
-        - Use quotes for phrases with spaces
-        - Most flexible but slower than specific field searches
-        """,
-    )
-
-    async def process(self, context: ProcessingContext) -> EmailSearchCriteria:
-        if self.date_filter == DateFilter.SINCE_ONE_HOUR:
-            date_condition = DateSearchCondition(
-                criteria=DateCriteria.SINCE,
-                date=Datetime.from_datetime(datetime.now() - timedelta(hours=1)),
-            )
-        elif self.date_filter == DateFilter.SINCE_ONE_DAY:
-            date_condition = DateSearchCondition(
-                criteria=DateCriteria.SINCE,
-                date=Datetime.from_datetime(datetime.now() - timedelta(days=1)),
-            )
-        elif self.date_filter == DateFilter.SINCE_ONE_WEEK:
-            date_condition = DateSearchCondition(
-                criteria=DateCriteria.SINCE,
-                date=Datetime.from_datetime(datetime.now() - timedelta(weeks=1)),
-            )
-        elif self.date_filter == DateFilter.SINCE_ONE_MONTH:
-            date_condition = DateSearchCondition(
-                criteria=DateCriteria.SINCE,
-                date=Datetime.from_datetime(datetime.now() - timedelta(days=30)),
-            )
-        elif self.date_filter == DateFilter.SINCE_ONE_YEAR:
-            date_condition = DateSearchCondition(
-                criteria=DateCriteria.SINCE,
-                date=Datetime.from_datetime(datetime.now() - timedelta(days=365)),
-            )
-
-        return EmailSearchCriteria(
-            from_address=(
-                self.from_address.strip() if self.from_address.strip() else None
-            ),
-            to_address=(self.to_address.strip() if self.to_address.strip() else None),
-            subject=(self.subject.strip() if self.subject.strip() else None),
-            body=(self.body.strip() if self.body.strip() else None),
-            date_condition=date_condition,
-            flags=[self.flags] if self.flags else [],
-            keywords=(
-                [
-                    k.strip()
-                    for k in self.keywords.split(KEYWORD_SEPARATOR_REGEX)
-                    if k.strip()
-                ]
-                if self.keywords and self.keywords.strip()
-                else []
-            ),
-            folder=self.folder.value if self.folder else None,
-            text=self.text.strip() if self.text and self.text.strip() else None,
-        )
 
 
 class AddLabel(BaseNode):
