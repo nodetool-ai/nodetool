@@ -125,11 +125,12 @@ const TabsNodeEditor = () => {
   const currentZoom = useStore((state) => state.transform[2]);
   const isMinZoom = currentZoom <= MIN_ZOOM;
   const {
-    workflows,
+    listWorkflows,
     getWorkflow,
     addWorkflow,
     removeWorkflow,
-    reorderWorkflows
+    reorderWorkflows,
+    updateWorkflow
   } = useWorkflowManager();
   const { workflow: currentWorkflow } = useLoaderData() as {
     workflow: Workflow;
@@ -139,6 +140,9 @@ const TabsNodeEditor = () => {
     id: string;
     position: "left" | "right";
   } | null>(null);
+  const [editingWorkflowId, setEditingWorkflowId] = useState<string | null>(
+    null
+  );
 
   useEffect(() => {
     if (!getWorkflow(currentWorkflow.id)) {
@@ -150,7 +154,7 @@ const TabsNodeEditor = () => {
     removeWorkflow(workflowId);
     if (currentWorkflow.id === workflowId) {
       // Switch to the last remaining tab
-      const remaining = workflows.filter(
+      const remaining = listWorkflows().filter(
         (workflow) => workflow.id !== workflowId
       );
       if (remaining.length > 0) {
@@ -185,6 +189,7 @@ const TabsNodeEditor = () => {
     e.preventDefault();
     const sourceId = e.dataTransfer.getData("text/plain");
     if (sourceId !== targetId && dropTarget) {
+      const workflows = listWorkflows();
       const sourceIndex = workflows.findIndex((w) => w.id === sourceId);
       const targetIndex = workflows.findIndex((w) => w.id === targetId);
       const finalTargetIndex =
@@ -193,6 +198,31 @@ const TabsNodeEditor = () => {
     }
     setDropTarget(null);
   };
+
+  const handleDoubleClick = (workflowId: string) => {
+    setEditingWorkflowId(workflowId);
+  };
+
+  const handleNameChange = (workflowId: string, newName: string) => {
+    const workflow = getWorkflow(workflowId);
+    if (workflow) {
+      updateWorkflow({ ...workflow, name: newName });
+    }
+    setEditingWorkflowId(null);
+  };
+
+  const handleKeyDown = (
+    e: React.KeyboardEvent,
+    workflowId: string,
+    newName: string
+  ) => {
+    if (e.key === "Enter") {
+      handleNameChange(workflowId, newName);
+    } else if (e.key === "Escape") {
+      setEditingWorkflowId(null);
+    }
+  };
+
   const { collapsed: panelLeftCollapsed, size: panelSize } =
     useResizePanel("left");
 
@@ -202,7 +232,7 @@ const TabsNodeEditor = () => {
       style={{ marginLeft: panelLeftCollapsed ? "0" : panelSize - 65 }}
     >
       <div className="tabs">
-        {workflows.map((workflow) => (
+        {listWorkflows().map((workflow) => (
           <div
             key={workflow.id}
             className={`tab ${
@@ -215,13 +245,36 @@ const TabsNodeEditor = () => {
                 : ""
             }`}
             onClick={() => navigate(`/editor/${workflow.id}`)}
-            draggable
+            onDoubleClick={() => handleDoubleClick(workflow.id)}
+            draggable={editingWorkflowId !== workflow.id}
             onDragStart={(e) => handleDragStart(e, workflow.id)}
             onDragOver={(e) => handleDragOver(e, workflow.id)}
             onDragLeave={handleDragLeave}
             onDrop={(e) => handleDrop(e, workflow.id)}
           >
-            <span>{workflow.name}</span>
+            {editingWorkflowId === workflow.id ? (
+              <input
+                type="text"
+                defaultValue={workflow.name}
+                autoFocus
+                onBlur={(e) => handleNameChange(workflow.id, e.target.value)}
+                onKeyDown={(e) =>
+                  handleKeyDown(e, workflow.id, e.currentTarget.value)
+                }
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  color: "inherit",
+                  padding: 0,
+                  fontSize: "inherit",
+                  width: "100%",
+                  outline: "none"
+                }}
+              />
+            ) : (
+              <span>{workflow.name}</span>
+            )}
             <CloseIcon
               className="close-icon"
               sx={{ fontSize: 16 }}

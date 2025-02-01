@@ -10,7 +10,7 @@ import { shallow } from "zustand/shallow";
 import { TemporalState } from "zundo";
 import { useStoreWithEqualityFn } from "zustand/traditional";
 import { useLoaderData } from "react-router-dom";
-import { Workflow } from "../stores/ApiTypes";
+import { Workflow, WorkflowAttributes } from "../stores/ApiTypes";
 import { create } from "zustand";
 
 const NodeContext = createContext<NodeStore | null>(null);
@@ -28,42 +28,69 @@ export const useNodes = <T,>(
 
 type WorkflowManagerStore = {
   nodeStores: Record<string, NodeStore>;
+  getWorkflow: (workflowId: string) => WorkflowAttributes | undefined;
   addWorkflow: (workflow: Workflow) => void;
   removeWorkflow: (workflowId: string) => void;
-  getWorkflow: (workflowId: string) => NodeStore | undefined;
-  workflows: Workflow[];
+  getNodeStore: (workflowId: string) => NodeStore | undefined;
+  listWorkflows: () => WorkflowAttributes[];
   reorderWorkflows: (sourceIndex: number, targetIndex: number) => void;
+  updateWorkflow: (workflow: WorkflowAttributes) => void;
 };
 
 export const useWorkflowManager = create<WorkflowManagerStore>((set, get) => ({
   nodeStores: {},
-  workflows: [],
+  listWorkflows: () => {
+    return Object.values(get().nodeStores).map(
+      (store) => store.getState().workflow
+    );
+  },
+  getWorkflow: (workflowId: string) => {
+    const workflow = get().nodeStores[workflowId];
+    if (!workflow) {
+      return undefined;
+    }
+    return workflow.getState().workflow;
+  },
   addWorkflow: (workflow: Workflow) => {
     set((state) => ({
       nodeStores: {
         ...state.nodeStores,
         [workflow.id]: createNodeStore(workflow)
-      },
-      workflows: [...state.workflows, workflow]
+      }
     }));
   },
   removeWorkflow: (workflowId: string) => {
     set((state) => {
       const { [workflowId]: removed, ...remaining } = state.nodeStores;
       return {
-        nodeStores: remaining,
-        workflows: state.workflows.filter((w) => w.id !== workflowId)
+        nodeStores: remaining
       };
     });
   },
-  getWorkflow: (workflowId: string) => get().nodeStores[workflowId],
+  getNodeStore: (workflowId: string) => get().nodeStores[workflowId],
   reorderWorkflows: (sourceIndex: number, targetIndex: number) => {
     set((state) => {
-      const newWorkflows = [...state.workflows];
-      const [removed] = newWorkflows.splice(sourceIndex, 1);
-      newWorkflows.splice(targetIndex, 0, removed);
-      return { ...state, workflows: newWorkflows };
+      // Convert Record to array of [id, store] pairs
+      const entries = Object.entries(state.nodeStores);
+
+      // Perform the reorder
+      const [moved] = entries.splice(sourceIndex, 1);
+      entries.splice(targetIndex, 0, moved);
+
+      // Convert back to Record
+      const reorderedStores = Object.fromEntries(entries);
+
+      return {
+        nodeStores: reorderedStores
+      };
     });
+  },
+  updateWorkflow: (workflow: WorkflowAttributes) => {
+    const nodeStore = get().nodeStores[workflow.id];
+    if (!nodeStore) {
+      return;
+    }
+    nodeStore.getState().setWorkflowAttributes(workflow);
   }
 }));
 
@@ -85,7 +112,7 @@ export const useTemporalNodes = <T,>(
 export const NodeProvider: React.FC<{ children: React.ReactNode }> = ({
   children
 }) => {
-  const { addWorkflow, getWorkflow } = useWorkflowManager();
+  const { addWorkflow, getNodeStore: getWorkflow } = useWorkflowManager();
   const data = useLoaderData();
 
   React.useEffect(() => {

@@ -2,22 +2,21 @@
 import { css } from "@emotion/react";
 import { Typography, CircularProgress } from "@mui/material";
 import { useCallback, useEffect, useState, useMemo, memo } from "react";
-import { useNavigate } from "react-router-dom";
-import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { ErrorOutlineRounded } from "@mui/icons-material";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
-import { useWorkflowStore } from "../../stores/WorkflowStore";
 import WorkflowToolbar from "./WorkflowToolbar";
 import WorkflowGrid from "./WorkflowGrid";
 import WorkflowDeleteDialog from "./WorkflowDeleteDialog";
 import {
   Workflow,
+  WorkflowAttributes,
   WorkflowList as WorkflowListType
 } from "../../stores/ApiTypes";
 import { client } from "../../stores/ApiClient";
 import { createErrorMessage } from "../../utils/errorHandling";
 import { isEqual } from "lodash";
 import { useNodes, useWorkflowManager } from "../../contexts/NodeContext";
+import { useQuery } from "@tanstack/react-query";
 
 const tile_width = "200px";
 const tile_height = "200px";
@@ -143,7 +142,9 @@ const loadWorkflows = async (cursor?: string, limit?: number) => {
 
 const WorkflowList = () => {
   const [filterValue, setFilterValue] = useState("");
-  const [workflowsToDelete, setWorkflowsToDelete] = useState<Workflow[]>([]);
+  const [workflowsToDelete, setWorkflowsToDelete] = useState<
+    WorkflowAttributes[]
+  >([]);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false);
   const [showCheckboxes, setShowCheckboxes] = useState(false);
   const [selectedTag, setSelectedTag] = useState<string>("");
@@ -171,14 +172,14 @@ const WorkflowList = () => {
     }
   );
   const workflows = useMemo(() => data?.workflows || [], [data?.workflows]);
-  const openWorkflows = useWorkflowManager((state) => state.workflows);
+  const listWorkflows = useWorkflowManager((state) => state.listWorkflows);
 
   const filteredWorkflows = useMemo(() => {
-    if (filterValue === "") return workflows;
-    return workflows.filter((workflow) =>
+    if (filterValue === "") return listWorkflows();
+    return listWorkflows().filter((workflow) =>
       workflow.name.toLowerCase().includes(filterValue.toLowerCase())
     );
-  }, [workflows, filterValue]);
+  }, [listWorkflows, filterValue]);
 
   const onSelect = useCallback(
     (workflow: Workflow) => {
@@ -252,7 +253,7 @@ const WorkflowList = () => {
       workflows,
       removeWorkflow,
       currentWorkflow,
-      openWorkflows
+      listWorkflows
     ]
   );
 
@@ -279,7 +280,7 @@ const WorkflowList = () => {
           selectedWorkflowsCount={selectedWorkflows.length}
           onBulkDelete={() => {
             setWorkflowsToDelete(
-              workflows.filter((w) => selectedWorkflows.includes(w.id))
+              listWorkflows().filter((w) => selectedWorkflows.includes(w.id))
             );
             setIsDeleteDialogOpen(true);
           }}

@@ -1,6 +1,6 @@
 import { FC, useCallback } from "react";
 import ConfirmDialog from "../dialogs/ConfirmDialog";
-import { Workflow } from "../../stores/ApiTypes";
+import { Workflow, WorkflowAttributes } from "../../stores/ApiTypes";
 import { useQueryClient } from "@tanstack/react-query";
 import { useWorkflowStore } from "../../stores/WorkflowStore";
 import { useNodes, useWorkflowManager } from "../../contexts/NodeContext";
@@ -9,7 +9,7 @@ import { useNavigate } from "react-router-dom";
 interface WorkflowDeleteDialogProps {
   open: boolean;
   onClose: () => void;
-  workflowsToDelete: Workflow[];
+  workflowsToDelete: WorkflowAttributes[];
 }
 
 const WorkflowDeleteDialog: FC<WorkflowDeleteDialogProps> = ({
@@ -17,9 +17,9 @@ const WorkflowDeleteDialog: FC<WorkflowDeleteDialogProps> = ({
   onClose,
   workflowsToDelete
 }) => {
-  const { removeWorkflow, openWorkflows } = useWorkflowManager((state) => ({
+  const { removeWorkflow, listWorkflows } = useWorkflowManager((state) => ({
     removeWorkflow: state.removeWorkflow,
-    openWorkflows: state.workflows
+    listWorkflows: state.listWorkflows
   }));
   const currentWorkflow = useNodes((state) => state.workflow);
   const deleteWorkflow = useWorkflowStore((state) => state.delete);
@@ -38,9 +38,7 @@ const WorkflowDeleteDialog: FC<WorkflowDeleteDialogProps> = ({
           currentWorkflow &&
           workflowsToDelete.some((w) => w.id === currentWorkflow.id)
         ) {
-          console.log("currentWorkflow", currentWorkflow);
-          console.log("openWorkflows", openWorkflows);
-          const nextWorkflow = openWorkflows.find(
+          const nextWorkflow = listWorkflows().find(
             (w) => !workflowsToDelete.some((y) => y.id === w.id)
           );
           if (nextWorkflow) {
@@ -58,7 +56,7 @@ const WorkflowDeleteDialog: FC<WorkflowDeleteDialogProps> = ({
     workflowsToDelete,
     queryClient,
     currentWorkflow,
-    openWorkflows,
+    listWorkflows,
     navigate
   ]);
 
