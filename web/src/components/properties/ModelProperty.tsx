@@ -5,12 +5,14 @@ import LlamaModelSelect from "./LlamaModelSelect";
 import HuggingFaceModelSelect from "./HuggingFaceModelSelect";
 import { isEqual } from "lodash";
 import { memo } from "react";
+import OpenAIModelSelect from "./OpenAIModelSelect";
 
 const ModelProperty = (props: PropertyProps) => {
   const id = `folder-${props.property.name}-${props.propertyIndex}`;
   const modelType = props.property.type.type;
 
   const renderModelSelect = () => {
+    console.log(modelType);
     if (modelType.startsWith("comfy.")) {
       if (props.nodeType.startsWith("comfy.loaders.")) {
         return (
@@ -21,6 +23,13 @@ const ModelProperty = (props: PropertyProps) => {
           />
         );
       }
+    } else if (modelType === "openai_model") {
+      return (
+        <OpenAIModelSelect
+          onChange={props.onChange}
+          value={props.value?.id || ""}
+        />
+      );
     } else if (modelType === "llama_model") {
       return (
         <LlamaModelSelect

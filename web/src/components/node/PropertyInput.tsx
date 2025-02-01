@@ -166,6 +166,7 @@ function handleListType(
 function handleModelTypes(type: string): React.ComponentType<PropertyProps> {
   const modelPrefixes = [
     "function_model",
+    "openai_model",
     "language_model",
     "llama_model",
     "comfy.",
