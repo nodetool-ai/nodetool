@@ -48,7 +48,7 @@ const styles = (theme: any, buttonAppearance: "text" | "icon" | "both") =>
   css({
     "&": {
       width: "100%",
-      height: "40px",
+      // height: "40px",
       // backgroundColor: "rgba(18, 18, 24, 0.95)",
       backgroundColor: theme.palette.c_gray1,
       overflow: "visible"
