@@ -24,13 +24,13 @@ img {
 /* PANEL LEFT */
 #root .panel-left {
   direction: ltr;
-  top: 75px;
   position: absolute;
   overflow-x: hidden;
   overflow-y: auto;
   width: 100%;
   padding: 0.5em;
-  height: calc(-75px + 100vh);
+  top: 45px;
+  height: calc(-45px + 100vh);
   transition: left 0.25s ease-out;
 }
 
