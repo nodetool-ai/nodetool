@@ -615,7 +615,7 @@ class ToList(BaseNode):
 
 class MapTemplate(BaseNode):
     """
-    Maps a template string over dataframe rows.
+    Maps a template string over dataframe rows using Jinja2 templating.
     dataframe, template, format, string
 
     Use cases:
@@ -624,9 +624,23 @@ class MapTemplate(BaseNode):
     - Create formatted output from dataframe records
 
     Example:
-    Template: "Name: {name}, Age: {age}"
+    Template: "Name: {{ name }}, Age: {{ age|default('unknown') }}"
     Row: {"name": "Alice", "age": 30}
     Output: "Name: Alice, Age: 30"
+
+    Available filters:
+    - truncate(length): Truncates text to given length
+    - upper: Converts text to uppercase
+    - lower: Converts text to lowercase
+    - title: Converts text to title case
+    - trim: Removes whitespace from start/end
+    - replace(old, new): Replaces substring
+    - default(value): Sets default if value is undefined
+    - first: Gets first character/item
+    - last: Gets last character/item
+    - length: Gets length of string/list
+    - sort: Sorts list
+    - join(delimiter): Joins list with delimiter
     """
 
     dataframe: DataframeRef = Field(
@@ -634,12 +648,28 @@ class MapTemplate(BaseNode):
     )
     template: str = Field(
         default="",
-        description="Template string with placeholders matching column names (e.g., {column_name}).",
+        description="""Template string with Jinja2 placeholders matching column names 
+        (e.g., {{ column_name }}). Supports filters like {{ value|upper }}, {{ value|truncate(20) }}.""",
     )
 
     async def process(self, context: ProcessingContext) -> list[str]:
+        from jinja2 import Environment, BaseLoader
+
         df = await context.dataframe_to_pandas(self.dataframe)
-        return [self.template.format(**row) for _, row in df.iterrows()]
+
+        # Create Jinja2 environment
+        env = Environment(loader=BaseLoader())
+        template = env.from_string(self.template)
+
+        results = []
+        for _, row in df.iterrows():
+            try:
+                results.append(template.render(**row.to_dict()))
+            except Exception:
+                # Skip rows that don't match the template
+                continue
+
+        return results
 
 
 class JSONToDataframe(BaseNode):
