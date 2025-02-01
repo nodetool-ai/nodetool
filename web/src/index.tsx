@@ -164,7 +164,6 @@ function getRoutes() {
           <ThemeProvider theme={ThemeNodetool}>
             <CssBaseline />
             <AppHeader showActions={false} />
-            <PanelLeft />
             <OpenOrCreateDialog />
           </ThemeProvider>
         </ProtectedRoute>
