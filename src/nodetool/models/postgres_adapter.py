@@ -207,21 +207,31 @@ def translate_postgres_params(
 
 class PostgresAdapter(DatabaseAdapter):
     db_params: Dict[str, str]
+    table_name: str
+    table_schema: Dict[str, Any]
+    fields: Dict[str, FieldInfo]
+    indexes: List[Dict[str, Any]]
 
     def __init__(
         self,
         db_params: Dict[str, str],
         fields: Dict[str, FieldInfo],
         table_schema: Dict[str, Any],
+        indexes: List[Dict[str, Any]],
     ):
         self.db_params = db_params
         self.table_name = table_schema["table_name"]
         self.table_schema = table_schema
         self.fields = fields
+        self.indexes = indexes
         if self.table_exists():
             self.migrate_table()
+            for index in self.indexes:
+                self.create_index(index["name"], index["columns"], index["unique"])
         else:
             self.create_table()
+            for index in self.indexes:
+                self.create_index(index["name"], index["columns"], index["unique"])
 
     @property
     def connection(self):
@@ -300,6 +310,9 @@ class PostgresAdapter(DatabaseAdapter):
         fields_to_add = desired_schema - current_schema
         fields_to_remove = current_schema - desired_schema
 
+        if len(fields_to_remove) == 0 and len(fields_to_add) == 0:
+            return
+
         with self.connection.cursor() as cursor:
             # Alter table to add new fields
             for field_name in fields_to_add:
@@ -315,6 +328,12 @@ class PostgresAdapter(DatabaseAdapter):
                 )
 
         self.connection.commit()
+
+        # Only create indexes for new fields
+        for field_name in fields_to_add:
+            for index in self.indexes:
+                if field_name in index["columns"]:
+                    self.create_index(index["name"], index["columns"], index["unique"])
 
     def save(self, item: Dict[str, Any]) -> None:
         valid_keys = [key for key in item if key in self.fields]
@@ -472,6 +491,74 @@ class PostgresAdapter(DatabaseAdapter):
                     for row in cursor.fetchall()
                 ]
             return []
+
+    def create_index(
+        self, index_name: str, columns: List[str], unique: bool = False
+    ) -> None:
+        unique_str = "UNIQUE" if unique else ""
+        columns_str = ", ".join(columns)
+        sql = f"CREATE {unique_str} INDEX IF NOT EXISTS {index_name} ON {self.table_name} ({columns_str})"
+
+        try:
+            with self.connection.cursor() as cursor:
+                cursor.execute(sql)
+            self.connection.commit()
+        except psycopg2.Error as e:
+            print(f"PostgreSQL error during index creation: {e}")
+            raise e
+
+    def drop_index(self, index_name: str) -> None:
+        sql = f"DROP INDEX IF EXISTS {index_name}"
+
+        try:
+            with self.connection.cursor() as cursor:
+                cursor.execute(sql)
+            self.connection.commit()
+        except psycopg2.Error as e:
+            print(f"PostgreSQL error during index deletion: {e}")
+            raise e
+
+    def list_indexes(self) -> List[Dict[str, Any]]:
+        sql = """
+            SELECT 
+                i.relname as index_name,
+                array_agg(a.attname) as column_names,
+                ix.indisunique as is_unique
+            FROM 
+                pg_class t,
+                pg_class i,
+                pg_index ix,
+                pg_attribute a
+            WHERE 
+                t.oid = ix.indrelid
+                AND i.oid = ix.indexrelid
+                AND a.attrelid = t.oid
+                AND a.attnum = ANY(ix.indkey)
+                AND t.relkind = 'r'
+                AND t.relname = %s
+            GROUP BY 
+                i.relname,
+                ix.indisunique
+            ORDER BY 
+                i.relname;
+        """
+
+        try:
+            with self.connection.cursor(cursor_factory=RealDictCursor) as cursor:
+                cursor.execute(sql, (self.table_name,))
+                indexes = []
+                for row in cursor.fetchall():
+                    indexes.append(
+                        {
+                            "name": row["index_name"],
+                            "columns": row["column_names"],
+                            "unique": row["is_unique"],
+                        }
+                    )
+                return indexes
+        except psycopg2.Error as e:
+            print(f"PostgreSQL error during index listing: {e}")
+            raise e
 
     def __del__(self):
         if hasattr(self, "_connection") and self._connection:

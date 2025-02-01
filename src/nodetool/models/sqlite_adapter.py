@@ -113,7 +113,7 @@ def convert_from_sqlite_attributes(
     """
     return {
         key: (
-            convert_from_sqlite_format(attributes[key], fields[key].annotation)
+            convert_from_sqlite_format(attributes[key], fields[key].annotation)  # type: ignore
             if key in fields
             else attributes[key]
         )
@@ -129,7 +129,7 @@ def convert_to_sqlite_attributes(
     """
     return {
         key: (
-            convert_to_sqlite_format(attributes[key], fields[key].annotation)
+            convert_to_sqlite_format(attributes[key], fields[key].annotation)  # type: ignore
             if key in fields
             else attributes[key]
         )
@@ -200,21 +200,26 @@ class SQLiteAdapter(DatabaseAdapter):
     db_path: str
     table_name: str
     table_schema: Dict[str, Any]
+    indexes: List[Dict[str, Any]]
 
     def __init__(
         self,
         db_path: str,
         fields: Dict[str, FieldInfo],
         table_schema: Dict[str, Any],
+        indexes: List[Dict[str, Any]],
     ):
         self.db_path = db_path
         self.table_name = table_schema["table_name"]
         self.table_schema = table_schema
         self.fields = fields
+        self.indexes = indexes
         if self.table_exists():
             self.migrate_table()
         else:
             self.create_table()
+            for index in self.indexes:
+                self.create_index(index["name"], index["columns"], index["unique"])
 
     @property
     def connection(self):
@@ -274,7 +279,7 @@ class SQLiteAdapter(DatabaseAdapter):
 
     def migrate_table(self) -> None:
         """
-        Inspects the current schema of the database and migrates the table to the desired schema.
+        Inspects the current schema and indexes of the database and migrates them to the desired state.
         """
         current_schema = self.get_current_schema()
         desired_schema = self.get_desired_schema()
@@ -283,30 +288,69 @@ class SQLiteAdapter(DatabaseAdapter):
         fields_to_add = desired_schema - current_schema
         fields_to_remove = current_schema - desired_schema
 
-        # Alter table to add new fields
-        for field_name in fields_to_add:
-            field_type = get_sqlite_type(self.fields[field_name].annotation)
-            self.connection.execute(
-                f"ALTER TABLE {self.table_name} ADD COLUMN {field_name} {field_type}"
-            )
+        # Get current indexes
+        current_indexes = {index["name"]: index for index in self.list_indexes()}
+        desired_indexes = {index["name"]: index for index in self.indexes}
 
-        # Alter table to remove fields (SQLite doesn't support dropping columns directly)
+        # Compare indexes
+        indexes_to_add = set(desired_indexes.keys()) - set(current_indexes.keys())
+        indexes_to_update = []
+
+        # Check if existing indexes need updates
+        for name in set(current_indexes.keys()) & set(desired_indexes.keys()):
+            current = current_indexes[name]
+            desired = desired_indexes[name]
+            if (
+                current["columns"] != desired["columns"]
+                or current["unique"] != desired["unique"]
+            ):
+                indexes_to_update.append(name)
+
+        # If no changes needed, return early
+        if not (
+            fields_to_add or fields_to_remove or indexes_to_add or indexes_to_update
+        ):
+            return
+
+        # Drop affected indexes before table modifications
         if fields_to_remove:
-            # Create a new table with the desired schema
+            for index in self.list_indexes():
+                self.drop_index(index["name"])
+        else:
+            for index_name in indexes_to_update:
+                self.drop_index(index_name)
+
+        # Handle table schema changes
+        if fields_to_add:
+            for field_name in fields_to_add:
+                field_type = get_sqlite_type(self.fields[field_name].annotation)
+                self.connection.execute(
+                    f"ALTER TABLE {self.table_name} ADD COLUMN {field_name} {field_type}"
+                )
+
+        if fields_to_remove:
+            # Create new table with desired schema
             self.create_table(suffix="_new")
 
-            # Copy data from the old table to the new table
+            # Copy data
             columns = ", ".join(desired_schema)
             self.connection.execute(
                 f"INSERT INTO {self.table_name}_new ({columns}) SELECT {columns} FROM {self.table_name}"
             )
 
             self.connection.execute(f"DROP TABLE {self.table_name}")
-
-            # Rename the new table to the original table name
             self.connection.execute(
                 f"ALTER TABLE {self.table_name}_new RENAME TO {self.table_name}"
             )
+
+            # Recreate all indexes
+            for index in self.indexes:
+                self.create_index(index["name"], index["columns"], index["unique"])
+        else:
+            # Create new indexes and update modified ones
+            for index_name in indexes_to_add | set(indexes_to_update):
+                index = desired_indexes[index_name]
+                self.create_index(index_name, index["columns"], index["unique"])
 
         self.connection.commit()
 
@@ -426,3 +470,59 @@ class SQLiteAdapter(DatabaseAdapter):
                 for row in cursor.fetchall()
             ]
         return []
+
+    def create_index(
+        self, index_name: str, columns: List[str], unique: bool = False
+    ) -> None:
+        unique_str = "UNIQUE" if unique else ""
+        columns_str = ", ".join(columns)
+        sql = f"CREATE {unique_str} INDEX IF NOT EXISTS {index_name} ON {self.table_name} ({columns_str})"
+
+        try:
+            self.connection.execute(sql)
+            self.connection.commit()
+        except sqlite3.Error as e:
+            print(f"SQLite error during index creation: {e}")
+            raise e
+
+    def drop_index(self, index_name: str) -> None:
+        sql = f"DROP INDEX IF EXISTS {index_name}"
+
+        try:
+            self.connection.execute(sql)
+            self.connection.commit()
+        except sqlite3.Error as e:
+            print(f"SQLite error during index deletion: {e}")
+            raise e
+
+    def list_indexes(self) -> List[Dict[str, Any]]:
+        sql = f"SELECT * FROM sqlite_master WHERE type='index' AND tbl_name=?"
+
+        try:
+            cursor = self.connection.execute(sql, (self.table_name,))
+            indexes = []
+            for row in cursor.fetchall():
+                # Skip system indexes (those starting with sqlite_)
+                if row["name"].startswith("sqlite_"):
+                    continue
+
+                # Parse the CREATE INDEX statement to extract column names
+                create_stmt = row["sql"]
+                if not create_stmt:  # Add check for None or empty string
+                    continue
+
+                columns = create_stmt.split("(")[-1].split(")")[0].split(",")
+                columns = [col.strip() for col in columns]
+
+                indexes.append(
+                    {
+                        "name": row["name"],
+                        "columns": columns,
+                        "unique": "UNIQUE" in create_stmt.upper(),
+                        "sql": create_stmt,
+                    }
+                )
+            return indexes
+        except sqlite3.Error as e:
+            print(f"SQLite error during index listing: {e}")
+            raise e
