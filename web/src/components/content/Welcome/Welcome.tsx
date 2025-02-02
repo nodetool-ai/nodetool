@@ -36,6 +36,7 @@ import { UnifiedModel } from "../../../stores/ApiTypes";
 import { useModelDownloadStore } from "../../../stores/ModelDownloadStore";
 import ModelDownloadList from "../../hugging_face/ModelDownloadList";
 import { DEFAULT_MODEL } from "../../../config/constants";
+import { useNavigate } from "react-router-dom";
 
 enum TabValue {
   Overview = 0,
@@ -365,14 +366,14 @@ const extractText = (node: ReactNode): string => {
   return "";
 };
 
-const Welcome = ({ handleClose }: { handleClose: () => void }) => {
+const Welcome = () => {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [tabValue, setTabValue] = useState<TabValue>(TabValue.Overview);
   const sections: Section[] = overviewContents.map((section) => ({
     ...section,
     originalContent: section.content
   }));
-  const { downloads } = useModelDownloadStore();
   const { settings, updateSettings } = useSettingsStore();
   const { secrets } = useRemoteSettingsStore();
 
@@ -508,7 +509,7 @@ const Welcome = ({ handleClose }: { handleClose: () => void }) => {
           </div>
           <Button
             onClick={() => {
-              handleClose();
+              navigate("/editor/start");
             }}
             className="start-button"
           >

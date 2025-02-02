@@ -12,7 +12,6 @@ import { useStoreWithEqualityFn } from "zustand/traditional";
 import { useLoaderData } from "react-router-dom";
 import { Workflow, WorkflowAttributes } from "../stores/ApiTypes";
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
 
 const NodeContext = createContext<NodeStore | null>(null);
 
@@ -42,83 +41,74 @@ type WorkflowManagerStore = {
 };
 
 export const useWorkflowManager = create<WorkflowManagerStore>()(
-  persist(
-    (set, get) => ({
-      nodeStores: {},
-      currentWorkflowId: null,
-      setCurrentWorkflowId: (workflowId: string) => {
-        set({ currentWorkflowId: workflowId });
-      },
-      getCurrentWorkflow: () => {
-        const workflow = get().nodeStores[get().currentWorkflowId!];
-        if (!workflow) {
-          return undefined;
-        }
-        return workflow.getState().workflow;
-      },
-      listWorkflows: () => {
-        console.log(get().nodeStores);
-        return Object.values(get().nodeStores).map(
-          (store) => store.getState().workflow
-        );
-      },
-      getWorkflow: (workflowId: string) => {
-        const workflow = get().nodeStores[workflowId];
-        if (!workflow) {
-          return undefined;
-        }
-        return workflow.getState().workflow;
-      },
-      addWorkflow: (workflow: Workflow) => {
-        set((state) => ({
-          nodeStores: {
-            ...state.nodeStores,
-            [workflow.id]: createNodeStore(workflow)
-          }
-        }));
-      },
-      removeWorkflow: (workflowId: string) => {
-        set((state) => {
-          const { [workflowId]: removed, ...remaining } = state.nodeStores;
-          return {
-            nodeStores: remaining
-          };
-        });
-      },
-      getNodeStore: (workflowId: string) => get().nodeStores[workflowId],
-      reorderWorkflows: (sourceIndex: number, targetIndex: number) => {
-        set((state) => {
-          // Convert Record to array of [id, store] pairs
-          const entries = Object.entries(state.nodeStores);
-
-          // Perform the reorder
-          const [moved] = entries.splice(sourceIndex, 1);
-          entries.splice(targetIndex, 0, moved);
-
-          // Convert back to Record
-          const reorderedStores = Object.fromEntries(entries);
-
-          return {
-            nodeStores: reorderedStores
-          };
-        });
-      },
-      updateWorkflow: (workflow: WorkflowAttributes) => {
-        const nodeStore = get().nodeStores[workflow.id];
-        if (!nodeStore) {
-          return;
-        }
-        nodeStore.getState().setWorkflowAttributes(workflow);
+  (set, get) => ({
+    nodeStores: {},
+    currentWorkflowId: null,
+    setCurrentWorkflowId: (workflowId: string) => {
+      set({ currentWorkflowId: workflowId });
+    },
+    getCurrentWorkflow: () => {
+      const workflow = get().nodeStores[get().currentWorkflowId!];
+      if (!workflow) {
+        return undefined;
       }
-    }),
-    {
-      name: "workflow-manager",
-      partialize: (state) => ({
-        currentWorkflowId: state.currentWorkflowId,
-        nodeStores: state.nodeStores
-      })
+      return workflow.getState().workflow;
+    },
+    listWorkflows: () => {
+      console.log(get().nodeStores);
+      return Object.values(get().nodeStores).map(
+        (store) => store.getState().workflow
+      );
+    },
+    getWorkflow: (workflowId: string) => {
+      const workflow = get().nodeStores[workflowId];
+      if (!workflow) {
+        return undefined;
+      }
+      return workflow.getState().workflow;
+    },
+    addWorkflow: (workflow: Workflow) => {
+      set((state) => ({
+        nodeStores: {
+          ...state.nodeStores,
+          [workflow.id]: createNodeStore(workflow)
+        }
+      }));
+    },
+    removeWorkflow: (workflowId: string) => {
+      set((state) => {
+        const { [workflowId]: removed, ...remaining } = state.nodeStores;
+        return {
+          nodeStores: remaining
+        };
+      });
+    },
+    getNodeStore: (workflowId: string) => get().nodeStores[workflowId],
+    reorderWorkflows: (sourceIndex: number, targetIndex: number) => {
+      set((state) => {
+        // Convert Record to array of [id, store] pairs
+        const entries = Object.entries(state.nodeStores);
+
+        // Perform the reorder
+        const [moved] = entries.splice(sourceIndex, 1);
+        entries.splice(targetIndex, 0, moved);
+
+        // Convert back to Record
+        const reorderedStores = Object.fromEntries(entries);
+
+        return {
+          nodeStores: reorderedStores
+        };
+      });
+    },
+    updateWorkflow: (workflow: WorkflowAttributes) => {
+      const nodeStore = get().nodeStores[workflow.id];
+      if (!nodeStore) {
+        return;
+      }
+      nodeStore.getState().setWorkflowAttributes(workflow);
     }
-  )
+  })
 );
 
 export const useTemporalNodes = <T,>(
@@ -139,14 +129,16 @@ export const useTemporalNodes = <T,>(
 export const NodeProvider: React.FC<{ children: React.ReactNode }> = ({
   children
 }) => {
-  const { addWorkflow, getNodeStore } = useWorkflowManager();
+  const { addWorkflow, getNodeStore, setCurrentWorkflowId } =
+    useWorkflowManager();
   const data = useLoaderData();
 
   React.useEffect(() => {
     if (!getNodeStore(data.workflow.id)) {
       addWorkflow(data.workflow);
     }
-  }, [data.workflow.id, data.workflow]);
+    setCurrentWorkflowId(data.workflow.id);
+  }, [data.workflow.id, data.workflow, addWorkflow, setCurrentWorkflowId]);
 
   const store = getNodeStore(data.workflow.id);
 

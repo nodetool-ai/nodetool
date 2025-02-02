@@ -47,22 +47,36 @@ import useModelStore from "./stores/ModelStore";
 import { loadMetadata } from "./serverState/useMetadata";
 import { NodeProvider } from "./contexts/NodeContext";
 import TabsNodeEditor from "./components/editor/TabsNodeEditor";
+import Welcome from "./components/content/Welcome/Welcome";
+import { useSettingsStore } from "./stores/SettingsStore";
 if (!isProduction) {
   useRemoteSettingsStore.getState().fetchSettings();
 }
 
 const NavigateToStart = () => {
   const { state } = useAuth();
+  const showWelcomeOnStartup = useSettingsStore(
+    (state) => state.settings.showWelcomeOnStartup
+  );
+
   if (useRemoteAuth === false) {
-    return <Navigate to={"/editor/start"} replace={true} />;
+    return showWelcomeOnStartup ? (
+      <Navigate to="/welcome" replace={true} />
+    ) : (
+      <Navigate to="/editor/start" replace={true} />
+    );
   } else if (state === "init") {
     return <div>Loading...</div>;
   } else if (state === "logged_in") {
-    return <Navigate to={"/editor/start"} replace={true} />;
+    return showWelcomeOnStartup ? (
+      <Navigate to="/welcome" replace={true} />
+    ) : (
+      <Navigate to="/editor/start" replace={true} />
+    );
   } else if (state === "logged_out") {
-    return <Navigate to={"/login"} replace={true} />;
+    return <Navigate to="/login" replace={true} />;
   } else if (state === "error") {
-    return <Navigate to={"/login"} replace={true} />;
+    return <Navigate to="/login" replace={true} />;
   }
   return <div>Error!</div>;
 };
@@ -72,6 +86,15 @@ function getRoutes() {
     {
       path: "/",
       element: <NavigateToStart />
+    },
+    {
+      path: "/welcome",
+      element: (
+        <ThemeProvider theme={ThemeNodetool}>
+          <CssBaseline />
+          <Welcome />
+        </ThemeProvider>
+      )
     },
     {
       path: "/oauth/callback",
@@ -179,6 +202,9 @@ const queryClient = new QueryClient();
 useAssetStore.getState().setQueryClient(queryClient);
 useWorkflowStore.getState().setQueryClient(queryClient);
 useModelStore.getState().setQueryClient(queryClient);
+
+const showWelcomeOnStartup =
+  useSettingsStore.getState().settings.showWelcomeOnStartup;
 
 const router = createBrowserRouter(getRoutes());
 const root = ReactDOM.createRoot(
