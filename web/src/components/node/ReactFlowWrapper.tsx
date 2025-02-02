@@ -32,8 +32,6 @@ import LoopNode from "../node/LoopNode";
 
 //hooks
 import { useDropHandler } from "../../hooks/handlers/useDropHandler";
-import { useCopyPaste } from "../../hooks/handlers/useCopyPaste";
-import { useDuplicateNodes } from "../../hooks/useDuplicate";
 import useConnectionHandlers from "../../hooks/handlers/useConnectionHandlers";
 import useEdgeHandlers from "../../hooks/handlers/useEdgeHandlers";
 import useDragHandlers from "../../hooks/handlers/useDragHandlers";
@@ -41,7 +39,6 @@ import useDragHandlers from "../../hooks/handlers/useDragHandlers";
 import { MAX_ZOOM, MIN_ZOOM } from "../../config/constants";
 import HuggingFaceDownloadDialog from "../hugging_face/HuggingFaceDownloadDialog";
 import GroupNode from "../node/GroupNode";
-import { useSurroundWithGroup } from "../../hooks/nodes/useSurroundWithGroup";
 import { isEqual } from "lodash";
 import ThemeNodes from "../themes/ThemeNodes";
 import AxisMarker from "../node_editor/AxisMarker";

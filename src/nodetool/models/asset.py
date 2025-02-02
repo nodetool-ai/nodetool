@@ -3,13 +3,18 @@ from datetime import datetime
 from nodetool.common.content_types import CONTENT_TYPE_TO_EXTENSION
 from nodetool.common.environment import Environment
 
-from nodetool.models.base_model import DBModel, DBField, create_time_ordered_uuid
+from nodetool.models.base_model import (
+    DBModel,
+    DBField,
+    create_time_ordered_uuid,
+    DBIndex,
+)
 from nodetool.models.condition_builder import ConditionBuilder, Field
 
 log = Environment.get_logger()
 
 
-# Asset Pydantic Model
+@DBIndex(["user_id", "parent_id"])
 class Asset(DBModel):
     @classmethod
     def get_table_schema(cls):
@@ -153,18 +158,21 @@ class Asset(DBModel):
         """
         Fetch all assets recursively for a given folder_id.
         """
+
         def recursive_fetch(current_folder_id):
-            assets, _ = cls.paginate(user_id=user_id, parent_id=current_folder_id, limit=10000)
+            assets, _ = cls.paginate(
+                user_id=user_id, parent_id=current_folder_id, limit=10000
+            )
             result = []
             for asset in assets:
                 if asset.user_id != user_id:
                     continue
-                
+
                 asset_dict = asset.dict()
                 if asset.content_type == "folder":
                     asset_dict["children"] = recursive_fetch(asset.id)
                 result.append(asset_dict)
-            
+
             return result
 
         folder = cls.find(user_id, folder_id)
@@ -174,5 +182,5 @@ class Asset(DBModel):
 
         folder_dict = folder.model_dump()
         folder_dict["children"] = recursive_fetch(folder_id)
-        
+
         return {"assets": [folder_dict]}
