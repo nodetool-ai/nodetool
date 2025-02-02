@@ -1,5 +1,17 @@
 import React from "react";
 
+interface WindowControls {
+  minimize: () => void;
+  maximize: () => void;
+  close: () => void;
+}
+
+declare global {
+  interface Window {
+    windowControls?: WindowControls;
+  }
+}
+
 export const WindowControls: React.FC = () => {
   const handleMinimize = () => {
     window.windowControls?.minimize();
