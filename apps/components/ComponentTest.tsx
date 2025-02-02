@@ -133,19 +133,24 @@ export function ComponentTest({ className }: ComponentTestProps) {
           <Box
             flex="1"
             overflow="auto"
+            paddingRight="4"
             css={{
+              scrollbarWidth: "thin",
+              scrollbarColor:
+                "var(--chakra-colors-gray-400) var(--chakra-colors-gray-200)",
               "&::-webkit-scrollbar": {
                 width: "8px",
               },
               "&::-webkit-scrollbar-track": {
-                background: "var(--nt-colors-border)",
+                background: "var(--chakra-colors-gray-200)",
+                borderRadius: "2px",
               },
               "&::-webkit-scrollbar-thumb": {
-                background: "var(--nt-colors-primary)",
+                background: "var(--chakra-colors-gray-400)",
                 borderRadius: "2px",
               },
               "&::-webkit-scrollbar-thumb:hover": {
-                background: "var(--nt-colors-border)",
+                background: "var(--chakra-colors-gray-500)",
               },
             }}
           >
@@ -155,7 +160,7 @@ export function ComponentTest({ className }: ComponentTestProps) {
                   <Alert
                     status="info"
                     title="Alert Component"
-                    bg="bg3"
+                    bg="success"
                     color="text"
                     borderColor="border"
                   >
