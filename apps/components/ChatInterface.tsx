@@ -183,10 +183,16 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ workflowId, token }) => {
           const key = `${messageIndex}-${contentIndex}`;
           const isExpanded = expandedThoughts[key];
           const hasClosingTag = thoughtMatch[2] === "</think>";
-          const textAfterThought = content.text.split("</think>").pop() || "";
+          const textBeforeThought = content.text.split("<think>")[0];
+          const textAfterThought = hasClosingTag
+            ? content.text.split("</think>").pop() || ""
+            : "";
 
           return (
             <>
+              {textBeforeThought && (
+                <ReactMarkdown>{textBeforeThought}</ReactMarkdown>
+              )}
               <Box>
                 <Button
                   variant="outline"
@@ -212,9 +218,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ workflowId, token }) => {
                   </Box>
                 )}
                 {textAfterThought && (
-                  <Box ml={4} mt={2} p={2} bg="gray.700" borderRadius="md">
-                    <ReactMarkdown>{textAfterThought}</ReactMarkdown>
-                  </Box>
+                  <ReactMarkdown>{textAfterThought}</ReactMarkdown>
                 )}
               </Box>
             </>
