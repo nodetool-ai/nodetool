@@ -37,9 +37,8 @@ const styles = (theme: any) =>
     },
     "&": {
       position: "relative",
-      width: "calc(100% - 70px)",
+      width: "100%",
       height: "calc(100vh - 64px)",
-      left: "65px",
       overflow: "hidden",
       display: "flex",
       flexDirection: "column"

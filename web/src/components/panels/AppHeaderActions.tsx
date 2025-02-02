@@ -26,7 +26,7 @@ import { useSettingsStore } from "../../stores/SettingsStore";
 import { useWorkflowStore } from "../../stores/WorkflowStore";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { isEqual } from "lodash";
-import { useNodes } from "../../contexts/NodeContext";
+import { useNodes, useWorkflowManager } from "../../contexts/NodeContext";
 
 const actionsStyles = (
   theme: any,
@@ -217,6 +217,9 @@ const RunWorkflowButton = memo(() => {
     run: state.run,
     state: state.state,
     isWorkflowRunning: state.state === "running"
+  }));
+  const { getWorkflow } = useWorkflowManager((state) => ({
+    getWorkflow: state.getWorkflow
   }));
 
   useGlobalHotkeys(() => run({}, workflow, nodes, edges));
