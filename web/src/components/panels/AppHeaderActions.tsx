@@ -1,11 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import {
-  Button,
-  Tooltip,
-  CircularProgress,
-  Box,
-  Typography
-} from "@mui/material";
+import { Button, Tooltip, CircularProgress, Box } from "@mui/material";
 import LayoutIcon from "@mui/icons-material/ViewModule";
 import SaveIcon from "@mui/icons-material/Save";
 import NoteAddIcon from "@mui/icons-material/NoteAdd";
@@ -264,7 +258,7 @@ const RunWorkflowButton = memo(() => {
             <PlayArrow />
           </>
         ) : state === "running" ? (
-          <CircularProgress size={10} />
+          <CircularProgress size={20} />
         ) : (
           <PlayArrow />
         )}
@@ -347,10 +341,6 @@ const AppHeaderActions: React.FC = () => {
   const { autoLayout } = useNodes((state) => ({
     autoLayout: state.autoLayout
   }));
-  const { statusMessage, isWorkflowRunning } = useWorkflowRunner((state) => ({
-    statusMessage: state.statusMessage,
-    isWorkflowRunning: state.state === "running"
-  }));
 
   useCombo(["Ctrl+Space"], () =>
     openNodeMenu({
@@ -362,15 +352,6 @@ const AppHeaderActions: React.FC = () => {
   return (
     <>
       <Box sx={{ flexGrow: 1 }} />
-      {isWorkflowRunning && (
-        <Typography
-          className="status-message"
-          variant="caption"
-          color="inherit"
-        >
-          {statusMessage || ""}
-        </Typography>
-      )}
       {path.startsWith("/editor") && (
         <div
           className="actions"
