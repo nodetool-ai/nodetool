@@ -43,9 +43,8 @@ import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { useEffect, useState } from "react";
 import SystemStatsDisplay from "./SystemStats";
 import { isDevelopment, isProduction } from "../../stores/ApiClient";
-import { useWorkflowManager } from "../../contexts/NodeContext";
-import Welcome from "../content/Welcome/Welcome";
 import StatusMessage from "./StatusMessage";
+import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 
 const styles = (theme: any, buttonAppearance: "text" | "icon" | "both") =>
   css({
@@ -144,18 +143,6 @@ const styles = (theme: any, buttonAppearance: "text" | "icon" | "both") =>
       display: "flex",
       alignItems: "center",
       width: "100%"
-    },
-    ".actions-container": {
-      position: "absolute",
-      left: "50%",
-      transform: "translateX(-50%)",
-      display: "flex",
-      alignItems: "center",
-      zIndex: 1
-    },
-    ".status-message-container": {
-      alignItems: "center",
-      width: "300px"
     },
     ".buttons-right": {
       display: "flex",
@@ -443,18 +430,6 @@ const AppHeader: React.FC<AppHeaderProps> = React.memo(
               <Box sx={{ flexGrow: 0.02 }} />
               {NavigationButtons}
             </div>
-
-            {props.showActions && (
-              <>
-                <div className="actions-container">
-                  <AppHeaderActions />
-                </div>
-                <div className="status-message-container">
-                  <StatusMessage />
-                </div>
-              </>
-            )}
-
             <Alert />
             {RightSideButtons}
           </Toolbar>

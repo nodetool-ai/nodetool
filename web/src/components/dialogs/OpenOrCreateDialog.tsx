@@ -189,7 +189,6 @@ const OpenOrCreateDialog = () => {
     return text.replace(/([-_.])/g, "$1<wbr>");
   }
   const loadWorkflows = async (cursor?: string, limit?: number) => {
-    console.log("loadWorkflows", cursor, limit);
     cursor = cursor || "";
     const { data, error } = await client.GET("/api/workflows/", {
       params: {

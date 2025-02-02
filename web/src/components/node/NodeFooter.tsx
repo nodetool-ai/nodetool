@@ -1,5 +1,4 @@
 /** @jsxImportSource @emotion/react */
-import { css } from "@emotion/react";
 import { Button, Tooltip, Typography } from "@mui/material";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { NodeMetadata } from "../../stores/ApiTypes";
@@ -56,9 +55,8 @@ export const NodeFooter: React.FC<NodeFooterProps> = ({
   showAdvancedFields,
   onToggleAdvancedFields
 }) => {
-  const { openNodeMenu, openDocumentation } = useNodeMenuStore((state) => ({
-    openNodeMenu: state.openNodeMenu,
-    openDocumentation: state.openDocumentation
+  const { openNodeMenu } = useNodeMenuStore((state) => ({
+    openNodeMenu: state.openNodeMenu
   }));
 
   const handleOpenNodeMenu = useCallback(() => {

@@ -292,9 +292,7 @@ const ExampleGrid = () => {
 
   const onClickWorkflow = useCallback(
     async (workflow: Workflow) => {
-      console.log("0. Example workflow clicked:", workflow);
       const newWorkflow = await copyExampleWorkflow(workflow);
-      console.log("5. Final workflow before navigation:", newWorkflow);
       navigate("/editor/" + newWorkflow.id);
     },
     [copyExampleWorkflow, navigate]

@@ -1,9 +1,9 @@
 import { FC, useCallback } from "react";
 import ConfirmDialog from "../dialogs/ConfirmDialog";
-import { Workflow, WorkflowAttributes } from "../../stores/ApiTypes";
+import { WorkflowAttributes } from "../../stores/ApiTypes";
 import { useQueryClient } from "@tanstack/react-query";
 import { useWorkflowStore } from "../../stores/WorkflowStore";
-import { useNodes, useWorkflowManager } from "../../contexts/NodeContext";
+import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useNavigate } from "react-router-dom";
 
 interface WorkflowDeleteDialogProps {
@@ -21,7 +21,9 @@ const WorkflowDeleteDialog: FC<WorkflowDeleteDialogProps> = ({
     removeWorkflow: state.removeWorkflow,
     listWorkflows: state.listWorkflows
   }));
-  const currentWorkflow = useNodes((state) => state.workflow);
+  const currentWorkflowId = useWorkflowManager(
+    (state) => state.currentWorkflowId
+  );
   const deleteWorkflow = useWorkflowStore((state) => state.delete);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -35,8 +37,8 @@ const WorkflowDeleteDialog: FC<WorkflowDeleteDialogProps> = ({
         Promise.all(workflowsToDelete.map((w) => removeWorkflow(w.id)));
         // If we delete the current workflow, we need to navigate to the next available workflow
         if (
-          currentWorkflow &&
-          workflowsToDelete.some((w) => w.id === currentWorkflow.id)
+          currentWorkflowId &&
+          workflowsToDelete.some((w) => w.id === currentWorkflowId)
         ) {
           const nextWorkflow = listWorkflows().find(
             (w) => !workflowsToDelete.some((y) => y.id === w.id)
@@ -55,7 +57,7 @@ const WorkflowDeleteDialog: FC<WorkflowDeleteDialogProps> = ({
     deleteWorkflow,
     workflowsToDelete,
     queryClient,
-    currentWorkflow,
+    currentWorkflowId,
     listWorkflows,
     navigate
   ]);

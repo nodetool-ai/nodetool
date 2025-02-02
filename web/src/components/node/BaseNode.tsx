@@ -4,7 +4,7 @@ import { colorForType } from "../../config/data_types";
 
 import { MIN_ZOOM } from "../../config/constants";
 import ThemeNodes from "../themes/ThemeNodes";
-import { memo, useMemo, useState } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 import {
   Node,
   NodeProps,
@@ -289,6 +289,10 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     return true;
   }, [metadata]);
 
+  const onToggleAdvancedFields = useCallback(() => {
+    setShowAdvancedFields(!showAdvancedFields);
+  }, [showAdvancedFields]);
+
   return (
     <Container
       css={memoizedStyles}
@@ -342,9 +346,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           nodeType={props.type}
           hasAdvancedFields={hasAdvancedFields}
           showAdvancedFields={showAdvancedFields}
-          onToggleAdvancedFields={() =>
-            setShowAdvancedFields(!showAdvancedFields)
-          }
+          onToggleAdvancedFields={onToggleAdvancedFields}
         />
       )}
     </Container>

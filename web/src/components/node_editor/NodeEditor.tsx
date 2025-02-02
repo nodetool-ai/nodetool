@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { useCallback, useState, useRef, memo } from "react";
 
-import { CircularProgress, Grid } from "@mui/material";
+import { CircularProgress, Grid, Typography } from "@mui/material";
 // store
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 // components
@@ -43,10 +43,10 @@ declare global {
 // FIT SCREEN
 
 interface NodeEditorProps {
-  isMinZoom?: boolean;
+  workflowId: string;
 }
 
-const NodeEditor: React.FC<NodeEditorProps> = ({ isMinZoom }) => {
+const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId }) => {
   /* REACTFLOW */
   const reactFlowWrapper = useRef<HTMLDivElement | null>(null);
   const reactFlowInstance = useReactFlow();
@@ -245,11 +245,11 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ isMinZoom }) => {
         <>
           {isUploading && (
             <div className="loading-overlay">
-              <CircularProgress />
+              <CircularProgress /> Uploading assets...
             </div>
           )}
           <ReactFlowWrapper
-            isMinZoom={isMinZoom}
+            workflowId={workflowId}
             reactFlowWrapper={reactFlowWrapper}
           />
 
