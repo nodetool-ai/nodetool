@@ -12,7 +12,6 @@ export interface WorkflowStore {
   queryClient: QueryClient | null;
   setQueryClient: (queryClient: QueryClient) => void;
   newWorkflow: () => Workflow;
-  add: (workflow: Workflow) => void;
   create: (workflow: WorkflowRequest) => Promise<Workflow>;
   createNew: () => Promise<Workflow>;
   load: (cursor?: string, limit?: number) => Promise<WorkflowList>;
@@ -42,29 +41,21 @@ export const useWorkflowStore = create<WorkflowStore>()((set, get) => ({
     get().queryClient?.invalidateQueries({ queryKey: queryKey });
   },
 
-  add: (workflow: Workflow) => {
-    const queryClient = get().queryClient;
-    if (!queryClient) return;
-
-    queryClient.setQueryData(["workflows", workflow.id], workflow);
-    // get().invalidateQueries(["workflows"]);
-  },
-
   get: async (id: string) => {
-    const cachedWorkflow = get().queryClient?.getQueryData([
-      "workflows",
-      id
-    ]) as Workflow | undefined;
+    // const cachedWorkflow = get().queryClient?.getQueryData([
+    //   "workflows",
+    //   id
+    // ]) as Workflow | undefined;
 
-    // If we have a cached workflow, check if it's recent (within 15 minutes)
-    if (cachedWorkflow) {
-      const lastUpdateTime = new Date(cachedWorkflow.updated_at);
-      const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
+    // // If we have a cached workflow, check if it's recent (within 15 minutes)
+    // if (cachedWorkflow) {
+    //   const lastUpdateTime = new Date(cachedWorkflow.updated_at);
+    //   const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
 
-      if (lastUpdateTime > fifteenMinutesAgo) {
-        return cachedWorkflow;
-      }
-    }
+    //   if (lastUpdateTime > fifteenMinutesAgo) {
+    //     return cachedWorkflow;
+    //   }
+    // }
 
     // If older than 15 minutes, fetch from server
     const { data, error } = await client.GET("/api/workflows/{id}", {
@@ -72,11 +63,6 @@ export const useWorkflowStore = create<WorkflowStore>()((set, get) => ({
     });
 
     // Return undefined for 404 errors, throw other errors
-    if (error) {
-      return cachedWorkflow;
-    }
-
-    get().add(data);
     return data;
   },
 
@@ -114,7 +100,6 @@ export const useWorkflowStore = create<WorkflowStore>()((set, get) => ({
       tags: workflow.tags || []
     };
 
-    get().add(workflowWithTags);
     get().invalidateQueries(["workflows"]);
 
     return workflowWithTags;
@@ -128,9 +113,6 @@ export const useWorkflowStore = create<WorkflowStore>()((set, get) => ({
     if (error) {
       throw createErrorMessage(error, "Failed to load workflows");
     }
-    for (const workflow of data.workflows) {
-      get().add(workflow);
-    }
     return data;
   },
 
@@ -138,11 +120,6 @@ export const useWorkflowStore = create<WorkflowStore>()((set, get) => ({
     const getWorkflow = get().get;
     const promises = workflowIds.map((id) => getWorkflow(id));
     const workflows = await Promise.all(promises);
-    for (const workflow of workflows) {
-      if (workflow) {
-        get().add(workflow);
-      }
-    }
     return workflows.filter((w) => w !== undefined) as Workflow[];
   },
 
@@ -179,7 +156,6 @@ export const useWorkflowStore = create<WorkflowStore>()((set, get) => ({
     if (error) {
       throw createErrorMessage(error, "Failed to update workflow");
     }
-    get().add(data);
     return data;
   },
 

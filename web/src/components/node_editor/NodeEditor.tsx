@@ -33,7 +33,6 @@ import { useReactFlow, XYPosition } from "@xyflow/react";
 import WorkflowChat from "../assistants/WorkflowChat";
 import ModelDownloadDialog from "../hugging_face/ModelDownloadDialog";
 import { useNodes, useTemporalNodes } from "../../contexts/NodeContext";
-import { shallow } from "zustand/shallow";
 
 declare global {
   interface Window {
