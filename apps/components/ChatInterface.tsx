@@ -4,7 +4,7 @@ import { ProgressRoot, ProgressBar, ProgressValueText } from "./ui/progress";
 import styled from "@emotion/styled";
 import ReactMarkdown from "react-markdown";
 
-import { useColorModeValue } from "./ui/color-mode";
+// import { useColorModeValue } from "./ui/color-mode";
 import useChatStore from "../stores/ChatStore";
 import { Button } from "./ui/button";
 import { MessageContent } from "../types/workflow";
@@ -52,8 +52,8 @@ const LoadingDots = styled.div`
 `;
 
 const ChatInterface: React.FC<ChatInterfaceProps> = ({ workflowId, token }) => {
-  const userBgColor = useColorModeValue("gray.100", "gray.900");
-  const assistantBgColor = useColorModeValue("gray.200", "gray.800");
+  // const userBgColor = useColorModeValue("gray.100", "gray.900");
+  // const assistantBgColor = useColorModeValue("gray.200", "gray.800");
 
   const {
     connect,
@@ -268,9 +268,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ workflowId, token }) => {
               maxW="80%"
               bg={
                 msg.role === "user"
-                  ? userBgColor
+                  ? "bg1"
                   : msg.role === "assistant"
-                    ? assistantBgColor
+                    ? "bg2"
                     : "transparent"
               }
               ml={msg.role === "user" ? "auto" : undefined}
@@ -295,14 +295,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ workflowId, token }) => {
             </Box>
           ))}
           {streamingMessage && (
-            <Box
-              mb="4"
-              p="3"
-              borderRadius="md"
-              maxW="80%"
-              bg={assistantBgColor}
-              mr="auto"
-            >
+            <Box mb="4" p="3" borderRadius="md" maxW="80%" bg="bg2" mr="auto">
               {renderMessageContent(
                 {
                   type: "text",
