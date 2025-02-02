@@ -92,6 +92,7 @@ const HelpChat: React.FC = () => {
       style={{
         margin: ".5em",
         height: "calc(100% - 4em)",
+        width: "100%",
         display: "flex",
         flexDirection: "column"
       }}
