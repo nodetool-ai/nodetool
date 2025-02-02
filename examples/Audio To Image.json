@@ -5,11 +5,7 @@
   "updated_at": "2025-01-09T09:19:22.110537",
   "name": "Audio To Image",
   "description": "Generate images from spoken descriptions using speech recognition",
-  "tags": [
-    "huggingface",
-    "multimodal",
-    "start"
-  ],
+  "tags": ["huggingface", "multimodal", "start"],
   "thumbnail": null,
   "thumbnail_url": "/examples/audio_to_image.jpg",
   "graph": {
