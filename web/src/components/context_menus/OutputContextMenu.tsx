@@ -229,13 +229,12 @@ const OutputContextMenu: React.FC = () => {
       event.preventDefault();
       event.stopPropagation();
     }
-    openNodeMenu(
-      getMousePosition().x,
-      getMousePosition().y,
-      true,
-      sourceType?.type || "",
-      "source"
-    );
+    openNodeMenu({
+      x: getMousePosition().x,
+      y: getMousePosition().y,
+      dropType: sourceType?.type || "",
+      connectDirection: "source"
+    });
     closeContextMenu();
   };
 

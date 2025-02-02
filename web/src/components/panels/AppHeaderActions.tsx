@@ -352,7 +352,12 @@ const AppHeaderActions: React.FC = () => {
     isWorkflowRunning: state.state === "running"
   }));
 
-  useCombo(["Ctrl+Space"], () => openNodeMenu(400, 200));
+  useCombo(["Ctrl+Space"], () =>
+    openNodeMenu({
+      x: 400,
+      y: 200
+    })
+  );
 
   return (
     <>
