@@ -3,6 +3,7 @@ import { Box, Flex, Text } from "@chakra-ui/react";
 import { ProgressRoot, ProgressBar, ProgressValueText } from "./ui/progress";
 import styled from "@emotion/styled";
 import ReactMarkdown from "react-markdown";
+import "./ChatInterface.css";
 
 // import { useColorModeValue } from "./ui/color-mode";
 import useChatStore from "../stores/ChatStore";

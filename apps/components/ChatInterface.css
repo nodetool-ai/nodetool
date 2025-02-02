@@ -1,0 +1,36 @@
+/* Chat interface semantic classes */
+.chat-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: red;
+}
+
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--chakra-space-4);
+}
+
+.chat-message {
+  max-width: 80%;
+  margin-bottom: var(--chakra-space-4);
+  border-radius: var(--chakra-radii-lg);
+  padding: var(--chakra-space-4);
+}
+
+.chat-message--user {
+  margin-left: auto;
+  background: var(--chakra-colors-chat-user-msg);
+}
+
+.chat-message--assistant {
+  margin-right: auto;
+  background: var(--chakra-colors-chat-assistant-msg);
+}
+
+.chat-input-area {
+  border-top: 1px solid var(--chakra-colors-border-color);
+  background: var(--chakra-colors-bg-color);
+  padding: var(--chakra-space-4);
+} 
