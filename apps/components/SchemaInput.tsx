@@ -35,7 +35,12 @@ export const SchemaInput: React.FC<SchemaInputProps> = ({
   const dropzoneBorder = useColorModeValue("gray.200", "gray.600");
 
   const renderInput = () => {
-    if (schema.enum) {
+    if (!schema || typeof schema !== "object") {
+      console.warn("Invalid schema provided to SchemaInput");
+      return null;
+    }
+
+    if (schema.enum && Array.isArray(schema.enum)) {
       const options = createListCollection({
         items: schema.enum.map((option) => ({
           label: String(option),
@@ -95,17 +100,20 @@ export const SchemaInput: React.FC<SchemaInputProps> = ({
         );
 
       case "object":
-        if (schema.properties?.type.enum?.includes("audio")) {
-          return <AudioInput onChange={onChange} />;
-        }
-        if (schema.properties?.type.enum?.includes("image")) {
-          return <ImageInput onChange={onChange} />;
-        }
-        if (schema.properties?.type.enum?.includes("video")) {
-          return <VideoInput onChange={onChange} />;
-        }
-        if (schema.properties?.type.enum?.includes("document")) {
-          return <DocumentInput onChange={onChange} />;
+        const typeEnum = schema.properties?.type?.enum;
+        if (Array.isArray(typeEnum)) {
+          if (typeEnum.includes("audio")) {
+            return <AudioInput onChange={onChange} />;
+          }
+          if (typeEnum.includes("image")) {
+            return <ImageInput onChange={onChange} />;
+          }
+          if (typeEnum.includes("video")) {
+            return <VideoInput onChange={onChange} />;
+          }
+          if (typeEnum.includes("document")) {
+            return <DocumentInput onChange={onChange} />;
+          }
         }
         return null;
 
