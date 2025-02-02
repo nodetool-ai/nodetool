@@ -45,6 +45,7 @@ import SystemStatsDisplay from "./SystemStats";
 import { isDevelopment, isProduction } from "../../stores/ApiClient";
 import { useWorkflowManager } from "../../contexts/NodeContext";
 import Welcome from "../content/Welcome/Welcome";
+import StatusMessage from "./StatusMessage";
 
 const styles = (theme: any, buttonAppearance: "text" | "icon" | "both") =>
   css({
@@ -139,25 +140,6 @@ const styles = (theme: any, buttonAppearance: "text" | "icon" | "both") =>
       marginLeft: "100px",
       marginRight: "auto"
     },
-    ".status-message": {
-      margin: "auto",
-      flexGrow: 0,
-      flexShrink: 1,
-      lineHeight: "1.1em",
-      textAlign: "center",
-      transform: "translateX(-50%)",
-      left: "50%",
-      position: "absolute",
-      top: "91px",
-      zIndex: 1000,
-      backgroundColor: "rgba(18, 18, 24, 0.9)",
-      backdropFilter: "blur(8px)",
-      borderRadius: "8px",
-      boxShadow: "0 4px 12px rgba(0, 0, 0, 0.2)",
-      padding: ".2em 1em",
-      color: "black",
-      fontSize: theme.fontSizeSmall
-    },
     ".navigate": {
       display: "flex",
       alignItems: "center",
@@ -170,6 +152,10 @@ const styles = (theme: any, buttonAppearance: "text" | "icon" | "both") =>
       display: "flex",
       alignItems: "center",
       zIndex: 1
+    },
+    ".status-message-container": {
+      alignItems: "center",
+      width: "300px"
     },
     ".buttons-right": {
       display: "flex",
@@ -459,9 +445,14 @@ const AppHeader: React.FC<AppHeaderProps> = React.memo(
             </div>
 
             {props.showActions && (
-              <div className="actions-container">
-                <AppHeaderActions />
-              </div>
+              <>
+                <div className="actions-container">
+                  <AppHeaderActions />
+                </div>
+                <div className="status-message-container">
+                  <StatusMessage />
+                </div>
+              </>
             )}
 
             <Alert />
