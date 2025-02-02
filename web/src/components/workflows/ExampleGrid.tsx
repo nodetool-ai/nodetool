@@ -143,11 +143,13 @@ const styles = (theme: any) =>
       letterSpacing: "1px",
       fontWeight: "bold",
       color: theme.palette.text.primary,
+      border: `1px solid ${theme.palette.c_gray2}`,
       "&:hover": {
-        background: `linear-gradient(45deg, ${theme.palette.c_hl1}, ${theme.palette.c_hl2})`,
+        border: `1px solid ${theme.palette.c_hl1}`,
         transform: "translateY(-2px)",
         boxShadow: `0 4px 8px rgba(0, 0, 0, 0.2)`,
-        color: theme.palette.common.white
+        color: theme.palette.common.white,
+        animation: "glowPulse 1.5s infinite"
       },
       fontSize: "0.8rem",
       padding: "6px 12px",
@@ -157,15 +159,28 @@ const styles = (theme: any) =>
       }
     },
     ".tag-menu .selected": {
-      background: `linear-gradient(45deg, 
-        ${theme.palette.c_hl1}dd, 
-        ${theme.palette.c_hl2}dd
+      background: `linear-gradient(0deg, 
+        ${theme.palette.c_hl2}dd, 
+        ${theme.palette.c_hl1}dd
       )`,
       boxShadow: `0 2px 4px rgba(0, 0, 0, 0.3)`,
-      color: theme.palette.common.white,
+      color: theme.palette.c_black,
+      animation: "glowPulse 1.5s infinite",
       "&:hover": {
         transform: "none",
-        boxShadow: `0 2px 4px rgba(0, 0, 0, 0.3)`
+        boxShadow: `0 2px 4px rgba(0, 0, 0, 0.3)`,
+        color: theme.palette.c_black
+      }
+    },
+    "@keyframes glowPulse": {
+      "0%": {
+        boxShadow: `0 0 5px ${theme.palette.c_hl1}50`
+      },
+      "50%": {
+        boxShadow: `0 0 15px ${theme.palette.c_hl1}90`
+      },
+      "100%": {
+        boxShadow: `0 0 5px ${theme.palette.c_hl1}50`
       }
     },
     ".search-container": {
@@ -362,19 +377,6 @@ const ExampleGrid = () => {
       <Box className="tag-menu">
         <div className="button-row">
           <Tooltip
-            title="Show all example workflows"
-            enterDelay={TOOLTIP_ENTER_DELAY}
-            leaveDelay={TOOLTIP_LEAVE_DELAY}
-          >
-            <Button
-              onClick={() => setSelectedTag(null)}
-              variant="outlined"
-              className={selectedTag === null ? "selected" : ""}
-            >
-              All
-            </Button>
-          </Tooltip>
-          <Tooltip
             title="Basic examples to get started"
             enterDelay={TOOLTIP_ENTER_DELAY}
             leaveDelay={TOOLTIP_LEAVE_DELAY}
@@ -389,6 +391,7 @@ const ExampleGrid = () => {
           </Tooltip>
           {Object.keys(groupedWorkflows)
             .filter((tag) => tag !== "start")
+            .sort((a, b) => a.localeCompare(b))
             .map((tag) => (
               <Tooltip
                 key={tag}
@@ -405,6 +408,18 @@ const ExampleGrid = () => {
                 </Button>
               </Tooltip>
             ))}
+          <Tooltip
+            title="Show all example workflows"
+            enterDelay={TOOLTIP_ENTER_DELAY}
+            leaveDelay={TOOLTIP_LEAVE_DELAY}
+          >
+            <Button
+              onClick={() => setSelectedTag(null)}
+              className={selectedTag === null ? "selected" : ""}
+            >
+              SHOW ALL
+            </Button>
+          </Tooltip>
         </div>
       </Box>
       <Box className="search-container">
