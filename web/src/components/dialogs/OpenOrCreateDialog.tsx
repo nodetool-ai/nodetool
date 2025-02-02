@@ -236,7 +236,7 @@ const OpenOrCreateDialog = () => {
     }
   };
 
-  const { handleOpenWelcome, handleOpenHelp } = useAppHeaderStore();
+  const { handleOpenHelp } = useAppHeaderStore();
 
   const sortedWorkflows = data?.workflows.sort((a, b) => {
     if (settings.workflowOrder === "name") {
@@ -312,9 +312,6 @@ const OpenOrCreateDialog = () => {
           </Button>
           <Button color="primary" onClick={handleNavigateExampleWorkflows}>
             Examples
-          </Button>
-          <Button color="primary" onClick={handleOpenWelcome}>
-            Getting Started
           </Button>
           <Button color="primary" onClick={handleOpenHelp}>
             Shortcuts
