@@ -42,13 +42,6 @@ Use cases:
 - Identify objects in images without predefined labels
 - Automate image tagging for large datasets
 
-Recommended models:
-- openai/clip-vit-large-patch14
-- openai/clip-vit-base-patch16
-- openai/clip-vit-base-patch32
-- patrickjohncyh/fashion-clip
-- laion/CLIP-ViT-H-14-laion2B-s32B-b79K
-
 **Tags:** image, classification, labeling, categorization
 
 **Fields:**

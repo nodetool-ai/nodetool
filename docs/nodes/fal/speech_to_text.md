@@ -2,15 +2,9 @@
 
 ## ChunkLevelEnum
 
-An enumeration.
-
 ## LanguageEnum
 
-An enumeration.
-
 ## TaskEnum
-
-An enumeration.
 
 ## Whisper
 

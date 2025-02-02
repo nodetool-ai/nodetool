@@ -22,5 +22,3 @@ Use cases:
 
 ## ModelEnum
 
-An enumeration.
-

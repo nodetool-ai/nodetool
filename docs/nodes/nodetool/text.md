@@ -157,33 +157,55 @@ Use cases:
 
 ## FormatText
 
-Replaces placeholders in a string with dynamic inputs.
+Replaces placeholders in a string with dynamic inputs using Jinja2 templating.
 
 Use cases:
 - Generating personalized messages with dynamic content
 - Creating parameterized queries or commands
-- Formatting text output based on variable inputs
+- Formatting and filtering text output based on variable inputs
+
+Examples:
+- text: "Hello, {{ name }}!"
+- text: "Title: {{ title|truncate(20) }}"
+- text: "Name: {{ name|upper }}"
+
+Available filters:
+- truncate(length): Truncates text to given length
+- upper: Converts text to uppercase
+- lower: Converts text to lowercase
+- title: Converts text to title case
+- trim: Removes whitespace from start/end
+- replace(old, new): Replaces substring
+- default(value): Sets default if value is undefined
+- first: Gets first character/item
+- last: Gets last character/item
+- length: Gets length of string/list
+- sort: Sorts list
+- join(delimiter): Joins list with delimiter
 
 **Tags:** text, template, formatting
 
 **Fields:**
-- **template** (str)
+- **template**: 
+    Examples:
+    - text: "Hello, {{ name }}!"
+    - text: "Title: {{ title|truncate(20) }}"
+    - text: "Name: {{ name|upper }}" 
 
-
-## HTMLToText
-
-Converts HTML to plain text by removing tags and decoding entities using BeautifulSoup.
-
-Use cases:
-- Cleaning HTML content for text analysis
-- Extracting readable content from web pages
-- Preparing HTML data for natural language processing
-
-**Tags:** html, text, convert
-
-**Fields:**
-- **text** (str)
-- **preserve_linebreaks**: Convert block-level elements to newlines (bool)
+    Available filters:
+    - truncate(length): Truncates text to given length
+    - upper: Converts text to uppercase
+    - lower: Converts text to lowercase
+    - title: Converts text to title case
+    - trim: Removes whitespace from start/end
+    - replace(old, new): Replaces substring
+    - default(value): Sets default if value is undefined
+    - first: Gets first character/item
+    - last: Gets last character/item
+    - length: Gets length of string/list
+    - sort: Sorts list
+    - join(delimiter): Joins list with delimiter
+ (str)
 
 
 ## HasLength
@@ -220,21 +242,6 @@ Use cases:
 - **trim_whitespace** (bool)
 
 
-## JSONToDataframe
-
-Transforms a JSON string into a pandas DataFrame.
-
-Use cases:
-- Converting API responses to tabular format
-- Preparing JSON data for analysis or visualization
-- Structuring unstructured JSON data for further processing
-
-**Tags:** json, dataframe, conversion
-
-**Fields:**
-- **text** (str)
-
-
 ## Join
 
 Joins a list of strings into a single string using a specified separator.
@@ -247,29 +254,8 @@ Use cases:
 **Tags:** text, join, combine, +, add, concatenate
 
 **Fields:**
-- **strings** (list)
+- **strings** (list[str])
 - **separator** (str)
-
-
-## MarkdownSplitter
-
-Splits markdown text by headers while preserving header hierarchy in metadata.
-
-Use cases:
-- Splitting markdown documentation while preserving structure
-- Processing markdown files for semantic search
-- Creating context-aware chunks from markdown content
-
-**Tags:** markdown, split, headers
-
-**Fields:**
-- **text** (str)
-- **source_id** (str)
-- **headers_to_split_on**: List of tuples containing (header_symbol, header_name) (list)
-- **strip_headers**: Whether to remove headers from the output content (bool)
-- **return_each_line**: Whether to split into individual lines instead of header sections (bool)
-- **chunk_size**: Optional maximum chunk size for further splitting (int | None)
-- **chunk_overlap**: Overlap size when using chunk_size (int)
 
 
 ## ParseJSON
@@ -285,25 +271,6 @@ Use cases:
 
 **Fields:**
 - **text** (str)
-
-
-## RecursiveTextSplitter
-
-Splits text recursively using LangChain's RecursiveCharacterTextSplitter.
-
-Use cases:
-- Splitting documents while preserving semantic relationships
-- Creating chunks for language model processing
-- Handling text in languages with/without word boundaries
-
-**Tags:** text, split, chunks
-
-**Fields:**
-- **text** (str)
-- **source_id** (str)
-- **chunk_size**: Maximum size of each chunk in characters (int)
-- **chunk_overlap**: Number of characters to overlap between chunks (int)
-- **separators**: List of separators to use for splitting, in order of preference (list)
 
 
 ## RegexMatch
@@ -421,25 +388,6 @@ Use cases:
 **Args:**
 
 
-## SentenceSplitter
-
-Splits text into chunks of a minimum length.
-
-Use cases:
-- Splitting text into manageable chunks for processing
-- Creating traceable units for analysis or storage
-- Preparing text for language model processing
-
-**Tags:** text, split, sentences
-
-**Fields:**
-- **text** (str)
-- **min_length** (int)
-- **source_id** (str)
-- **chunk_size** (int)
-- **chunk_overlap** (int)
-
-
 ## Slice
 
 Slices text using Python's slice notation (start:stop:step).
@@ -498,62 +446,65 @@ Use cases:
 
 ## Template
 
-Replaces placeholders in a string with provided values.
+Uses Jinja2 templating to format strings with variables and filters.
 
 Use cases:
 - Generating personalized messages with dynamic content
 - Creating parameterized queries or commands
-- Formatting text output based on variable inputs
+- Formatting and filtering text output based on variable inputs
 
 Examples:
-- text: "Hello, {name}!" values: {"name": "Alice"} -> "Hello, Alice!"
-- text: "Hello, {0} {1}!" values: ["Alice", "Meyer"] -> "Hello, Alice Meyer!"
-- text: "Hello, {0}!" values: "Alice" -> "Hello, Alice!"
+- text: "Hello, {{ name }}!"
+- text: "Title: {{ title|truncate(20) }}"
+- text: "Name: {{ name|upper }}"
 
-**Tags:** text, template, formatting, format, combine, concatenate, +, add, variable, replace
+Available filters:
+- truncate(length): Truncates text to given length
+- upper: Converts text to uppercase
+- lower: Converts text to lowercase
+- title: Converts text to title case
+- trim: Removes whitespace from start/end
+- replace(old, new): Replaces substring
+- default(value): Sets default if value is undefined
+- first: Gets first character/item
+- last: Gets last character/item
+- length: Gets length of string/list
+- sort: Sorts list
+- join(delimiter): Joins list with delimiter
+
+**Tags:** text, template, formatting, format, combine, concatenate, +, add, variable, replace, filter
 
 **Fields:**
-- **string** (str)
+- **string**: 
+    Examples:
+    - text: "Hello, {{ name }}!"
+    - text: "Title: {{ title|truncate(20) }}"
+    - text: "Name: {{ name|upper }}"
+
+    Available filters:
+    - truncate(length): Truncates text to given length
+    - upper: Converts text to uppercase
+    - lower: Converts text to lowercase
+    - title: Converts text to title case
+    - trim: Removes whitespace from start/end
+    - replace(old, new): Replaces substring
+    - default(value): Sets default if value is undefined
+    - first: Gets first character/item
+    - last: Gets last character/item
+    - length: Gets length of string/list
+    - sort: Sorts list
+    - join(delimiter): Joins list with delimiter
+ (str)
 - **values**: 
         The values to replace in the string.
         - If a string, it will be used as the format string.
         - If a list, it will be used as the format arguments.
-        - If a dictionary, it will be used as the format keyword arguments.
+        - If a dictionary, it will be used as the template variables.
         - If an object, it will be converted to a dictionary using the object's __dict__ method.
          (str | list | dict[str, typing.Any] | object)
-
-
-## TextID
-
-Returns the asset id.
-
-**Tags:** index, asset, identifier
-
-**Fields:**
-- **text** (str)
 
 
 ## TiktokenEncoding
 
 Available tiktoken encodings
-
-### convert_html_to_text
-
-Converts HTML to plain text while preserving structure and handling whitespace.
-
-
-**Args:**
-
-- **html**: HTML string to convert
-- **preserve_linebreaks**: Whether to preserve line breaks from block elements
-
-
-**Returns:**
-
-Cleaned plain text string
-**Args:**
-- **html (str)**
-- **preserve_linebreaks (bool) (default: True)**
-
-**Returns:** str
 

@@ -10,10 +10,6 @@ Use cases:
 - Enhance computer vision systems for robotics
 - Improve scene understanding in autonomous vehicles
 
-Recommended models:
-- LiheYoung/depth-anything-base-hf
-- Intel/dpt-large
-
 **Tags:** image, depth estimation, 3D, huggingface
 
 **Fields:**

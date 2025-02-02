@@ -10,9 +10,6 @@ Use cases:
 - Assist in autonomous vehicle vision systems
 - Enhance security camera footage analysis
 
-Recommended models:
-- facebook/detr-resnet-50
-
 **Tags:** image, object detection, bounding boxes, huggingface
 
 **Fields:**
@@ -48,7 +45,7 @@ Visualizes object detection results on images.
 
 **Fields:**
 - **image**: The input image to visualize (ImageRef)
-- **objects**: The detected objects to visualize (list)
+- **objects**: The detected objects to visualize (list[nodetool.metadata.types.ObjectDetectionResult])
 
 ### required_inputs
 
@@ -63,14 +60,6 @@ Use cases:
 - Quickly detect objects in images without training data
 - Identify objects in images without predefined labels
 - Automate object detection for large datasets
-
-Recommended models:
-- google/owlvit-base-patch32
-- google/owlvit-large-patch14
-- google/owlvit-base-patch16
-- google/owlv2-base-patch16
-- google/owlv2-base-patch16-ensemble
-- IDEA-Research/grounding-dino-tiny
 
 **Tags:** image, object detection, bounding boxes, zero-shot, mask
 

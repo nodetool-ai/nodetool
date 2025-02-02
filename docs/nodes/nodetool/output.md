@@ -26,7 +26,7 @@ Use cases:
 - Controlling conditional logic in workflows
 - Indicating success/failure of operations
 
-**Tags:** boolean, true/false, flag
+**Tags:** boolean, true, false, flag, condition, flow-control, branch, else, true, false, switch, toggle
 
 **Fields:**
 - **name**: The parameter name for the workflow. (str)
@@ -65,7 +65,7 @@ Use cases:
 **Fields:**
 - **name**: The parameter name for the workflow. (str)
 - **description**: The description for this output node. (str)
-- **value** (dict)
+- **value** (dict[str, typing.Any])
 
 
 ## DocumentOutput
@@ -114,7 +114,7 @@ Use cases:
 **Tags:** group, composite, multi-output
 
 **Fields:**
-- **input** (typing.Any)
+- **input** (Any)
 
 
 ## ImageListOutput
@@ -130,7 +130,7 @@ Use cases:
 **Fields:**
 - **name**: The parameter name for the workflow. (str)
 - **description**: The description for this output node. (str)
-- **value**: The images to display. (list)
+- **value**: The images to display. (list[nodetool.metadata.types.ImageRef])
 
 
 ## ImageOutput
@@ -180,7 +180,7 @@ Use cases:
 **Fields:**
 - **name**: The parameter name for the workflow. (str)
 - **description**: The description for this output node. (str)
-- **value** (list)
+- **value** (list[typing.Any])
 
 
 ## ModelOutput
@@ -231,7 +231,7 @@ Use cases:
 **Fields:**
 - **name**: The parameter name for the workflow. (str)
 - **description**: The description for this output node. (str)
-- **value** (Tensor)
+- **value** (NPArray)
 
 
 ## TextOutput

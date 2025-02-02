@@ -18,7 +18,7 @@ Get documents from a chroma collection.
 
 **Fields:**
 - **collection**: The collection to get (Collection)
-- **ids**: The ids of the documents to get (list)
+- **ids**: The ids of the documents to get (list[str])
 - **limit**: The limit of the documents to get (int)
 - **offset**: The offset of the documents to get (int)
 

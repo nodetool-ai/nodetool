@@ -1,5 +1,16 @@
 # nodetool.nodes.chroma.index
 
+## IndexDocument
+
+Index a single document asset.
+
+**Tags:** chroma, embedding, collection, RAG, index, text
+
+**Fields:**
+- **collection**: The collection to index (Collection)
+- **document**: Document asset to index (DocumentRef)
+
+
 ## IndexImage
 
 Index a single image asset.
@@ -19,7 +30,7 @@ Index a list of image assets or files.
 
 **Fields:**
 - **collection**: The collection to index (Collection)
-- **images**: List of image assets to index (list)
+- **images**: List of image assets to index (list[nodetool.metadata.types.ImageRef])
 - **upsert**: Whether to upsert the images (bool)
 
 
@@ -36,17 +47,6 @@ Use cases:
 - **collection**: The collection to index (Collection)
 - **text**: Text content to index (str)
 - **document_id**: Document ID to associate with the text content (str)
-
-
-## IndexText
-
-Index a single text asset.
-
-**Tags:** chroma, embedding, collection, RAG, index, text
-
-**Fields:**
-- **collection**: The collection to index (Collection)
-- **text**: Text asset to index (TextRef)
 
 
 ## IndexTextChunk
@@ -69,16 +69,5 @@ Index multiple text chunks at once.
 **Fields:**
 - **collection**: The collection to index (Collection)
 - **text_chunks**: List of text chunks to index (typing.List[nodetool.metadata.types.TextChunk])
-
-
-## IndexTexts
-
-Index a list of text assets or files.
-
-**Tags:** chroma, embedding, collection, RAG, index, text, batch
-
-**Fields:**
-- **collection**: The collection to index (Collection)
-- **docs**: Dictionary of ID to text content pairs to index (list)
 
 

@@ -34,8 +34,6 @@ Use cases:
 
 ## DateFormat
 
-An enumeration.
-
 ## DateRange
 
 Generate a list of dates between start and end dates.

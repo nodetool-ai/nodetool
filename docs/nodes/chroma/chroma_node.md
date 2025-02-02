@@ -8,8 +8,8 @@
 
 **Args:**
 - **context (ProcessingContext)**
-- **ids (list)**
+- **ids (list[str])**
 
-**Returns:** list
+**Returns:** list[nodetool.metadata.types.AssetRef]
 
 

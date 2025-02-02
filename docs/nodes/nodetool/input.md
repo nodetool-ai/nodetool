@@ -48,7 +48,7 @@ Use cases:
 **Fields:**
 - **name**: The parameter name for the workflow. (str)
 - **description**: The description for this input node. (str)
-- **value**: The chat message to use as input. (list)
+- **value**: The chat message to use as input. (list[nodetool.metadata.types.Message])
 
 
 ## DocumentInput

@@ -9,6 +9,7 @@
 - **REPLICATE_API_TOKEN**: Replicate API Token (str | None)
 - **AIME_USER**: Aime user (str | None)
 - **AIME_API_KEY**: Aime API key (str | None)
+- **GOOGLE_MAIL_USER**: Google mail user (str | None)
 - **GOOGLE_APP_PASSWORD**: Google app password (str | None)
 - **GEMINI_API_KEY**: Gemini API key (str | None)
 - **ELEVENLABS_API_KEY**: ElevenLabs API key (str | None)
@@ -18,6 +19,7 @@
 ## SettingsModel
 
 **Fields:**
+- **FONT_PATH**: Location of font folder (str | None)
 - **COMFY_FOLDER**: Location of ComfyUI folder (str | None)
 - **CHROMA_PATH**: Location of ChromaDB folder (str | None)
 
@@ -49,9 +51,9 @@ default values, raise an exception.
 - **settings (SettingsModel)**
 - **secrets (SecretsModel)**
 - **default_env (typing.Dict[str, typing.Any])**
-- **default (typing.Any) (default: <object object at 0x0000024AA75A4710>)**
+- **default (Any) (default: <object object at 0x15ed8b7c0>)**
 
-**Returns:** typing.Any
+**Returns:** Any
 
 ### load_settings
 

@@ -53,7 +53,7 @@ A message to run a function in the main thread.
 **Fields:**
 - **type** (typing.Literal['run_function'])
 - **function** (typing.Callable)
-- **args** (list)
-- **kwargs** (dict)
+- **args** (list[typing.Any])
+- **kwargs** (dict[str, typing.Any])
 
 

@@ -2,11 +2,7 @@
 
 ## IPAdapter_SD15_Model
 
-An enumeration.
-
 ## IPAdapter_SDXL_Model
-
-An enumeration.
 
 ## StableDiffusionBaseNode
 
@@ -18,7 +14,7 @@ An enumeration.
 - **num_inference_steps**: Number of denoising steps. (int)
 - **guidance_scale**: Guidance scale for generation. (float)
 - **scheduler**: The scheduler to use for the diffusion process. (StableDiffusionScheduler)
-- **loras**: The LoRA models to use for image processing (list)
+- **loras**: The LoRA models to use for image processing (list[nodetool.metadata.types.HFLoraSDConfig])
 - **ip_adapter_model**: The IP adapter model to use for image processing (HFIPAdapter)
 - **ip_adapter_image**: When provided the image will be fed into the IP adapter (ImageRef)
 - **ip_adapter_scale**: The strength of the IP adapter (float)
@@ -59,15 +55,9 @@ An enumeration.
 
 ## StableDiffusionDetailLevel
 
-An enumeration.
-
 ## StableDiffusionScheduler
 
-An enumeration.
-
 ## StableDiffusionUpscaler
-
-An enumeration.
 
 ## StableDiffusionXLBase
 
@@ -81,7 +71,7 @@ An enumeration.
 - **width**: Width of the generated image. (int)
 - **height**: Height of the generated image (int)
 - **scheduler**: The scheduler to use for the diffusion process. (StableDiffusionScheduler)
-- **loras**: The LoRA models to use for image processing (list)
+- **loras**: The LoRA models to use for image processing (list[nodetool.metadata.types.HFLoraSDXLConfig])
 - **lora_scale**: Strength of the LoRAs (float)
 - **ip_adapter_model**: The IP adapter model to use for image processing (HFIPAdapter)
 - **ip_adapter_image**: When provided the image will be fed into the IP adapter (ImageRef)
@@ -125,7 +115,7 @@ An enumeration.
 ### load_loras
 
 **Args:**
-- **pipeline (typing.Any)**
+- **pipeline (Any)**
 - **loras (list[nodetool.metadata.types.HFLoraSDConfig] | list[nodetool.metadata.types.HFLoraSDXLConfig])**
 
 ### quantize_to_multiple_of_64
