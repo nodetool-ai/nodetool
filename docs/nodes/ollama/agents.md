@@ -69,22 +69,22 @@ Use cases:
 - **columns**: The columns to use in the dataframe. (RecordType)
 
 
-## QuestionAnswerAgent
+## RegressionAnalyst
 
-LLM Agent to generate answers based on a question and context from RAG results.
+Agent that performs regression analysis on a given dataframe and provides insights.
 
 Use cases:
-- Answering questions using retrieved context
-- Generating coherent responses from multiple text sources
-- Knowledge-based Q&A systems
+- Performing linear regression on datasets
+- Interpreting regression results like a data scientist
+- Providing statistical summaries and insights
 
-**Tags:** llm, question-answering, RAG
+**Tags:** llm, regression analysis, statistics
 
 **Fields:**
-- **model**: The Llama model to use for answer generation. (LlamaModel)
+- **model**: The Llama model to use for regression analysis. (LlamaModel)
 - **context_window**: The context window size to use for the model. (int)
-- **question**: The question to answer (str)
-- **context**: List of context strings from RAG retrieval (list)
+- **prompt**: The user prompt or question regarding the data analysis. (str)
+- **data**: The dataframe to perform regression on. (DataframeRef)
 - **temperature**: The temperature to use for sampling. (float)
 - **top_k**: The number of highest probability tokens to keep for top-k sampling. (int)
 - **top_p**: The cumulative probability cutoff for nucleus/top-p sampling. (float)

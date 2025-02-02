@@ -121,12 +121,13 @@ const LoopNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   );
 
   const handleOpenNodeMenu = useCallback(
-    (event?: React.MouseEvent<HTMLElement>) => {
-      if (event) {
-        event.preventDefault();
-        event.stopPropagation();
-      }
-      openNodeMenu(getMousePosition().x, getMousePosition().y, false, "", "");
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      e.preventDefault();
+      openNodeMenu({
+        x: getMousePosition().x,
+        y: getMousePosition().y
+      });
     },
     [openNodeMenu]
   );

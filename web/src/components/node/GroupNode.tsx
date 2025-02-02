@@ -177,12 +177,13 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   );
 
   const handleOpenNodeMenu = useCallback(
-    (event?: React.MouseEvent<HTMLElement>) => {
-      if (event) {
-        event.preventDefault();
-        event.stopPropagation();
-      }
-      openNodeMenu(getMousePosition().x, getMousePosition().y, false, "", "");
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      e.preventDefault();
+      openNodeMenu({
+        x: getMousePosition().x,
+        y: getMousePosition().y
+      });
     },
     [openNodeMenu]
   );
@@ -198,7 +199,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       ) {
         updateNodeData(id, { collapsed: !props.data.collapsed });
       } else {
-        handleOpenNodeMenu();
+        handleOpenNodeMenu(e);
       }
     },
     [props.data.collapsed, updateNodeData, handleOpenNodeMenu]

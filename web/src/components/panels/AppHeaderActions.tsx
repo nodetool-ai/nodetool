@@ -1,11 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import {
-  Button,
-  Tooltip,
-  CircularProgress,
-  Box,
-  Typography
-} from "@mui/material";
+import { Button, Tooltip, CircularProgress, Box } from "@mui/material";
 import LayoutIcon from "@mui/icons-material/ViewModule";
 import SaveIcon from "@mui/icons-material/Save";
 import NoteAddIcon from "@mui/icons-material/NoteAdd";
@@ -26,41 +20,48 @@ import { useSettingsStore } from "../../stores/SettingsStore";
 import { useWorkflowStore } from "../../stores/WorkflowStore";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { isEqual } from "lodash";
-import { useNodes, useWorkflowManager } from "../../contexts/NodeContext";
+import { useNodes } from "../../contexts/NodeContext";
 
 const actionsStyles = (
   theme: any,
   buttonAppearance: "text" | "icon" | "both"
 ) =>
   css({
+    "&": {
+      position: "absolute",
+      top: "-70px",
+      zIndex: 10000
+    },
     "&.actions": {
-      position: "relative",
-
-      zIndex: 1000,
-      top: "-1px",
-      height: "35px",
+      fontSize: "12px",
       display: "flex",
       flexDirection: "row",
-      justifyContent: "flex-start",
       alignItems: "center",
-      gap: "0.5em",
+      justifyContent: "center",
+      gap: "0.25em",
       backgroundColor: "transparent",
       margin: "0",
-      padding: "0 2em"
+      padding: "0 1em",
+      width: "100%"
+    },
+    ".status-message-container": {
+      alignItems: "center",
+      width: "300px"
     },
     ".action-button": {
       flexShrink: 0,
-      minWidth: "2.4em",
-      height: "25px",
-      padding: "0.5em",
+      height: "32px",
+      width: "32px",
+      minWidth: "32px",
+      padding: "4px",
       color: theme.palette.c_gray6,
       position: "relative",
-      borderRadius: "5px",
+      borderRadius: "4px",
       "&:hover": {
         backgroundColor: theme.palette.c_gray2
       },
       "& svg": {
-        fontSize: "2.2em",
+        fontSize: "20px",
         marginRight: "0",
         transition: "transform 0.1s ease"
       },
@@ -77,8 +78,8 @@ const actionsStyles = (
     ".run-stop-button": {
       backgroundColor: `${theme.palette.c_gray2}cc`,
       color: theme.palette.c_hl1,
-      padding: "1em",
-      minWidth: "6em",
+      minWidth: "40px",
+      height: "24px",
       transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
       "&:hover": {
         // boxShadow: `0 4px 20px ${theme.palette.c_hl1}40`
@@ -218,9 +219,6 @@ const RunWorkflowButton = memo(() => {
     state: state.state,
     isWorkflowRunning: state.state === "running"
   }));
-  const { getWorkflow } = useWorkflowManager((state) => ({
-    getWorkflow: state.getWorkflow
-  }));
 
   useGlobalHotkeys(() => run({}, workflow, nodes, edges));
 
@@ -264,7 +262,7 @@ const RunWorkflowButton = memo(() => {
             <PlayArrow />
           </>
         ) : state === "running" ? (
-          <CircularProgress size={10} />
+          <CircularProgress size={20} />
         ) : (
           <PlayArrow />
         )}
@@ -347,25 +345,17 @@ const AppHeaderActions: React.FC = () => {
   const { autoLayout } = useNodes((state) => ({
     autoLayout: state.autoLayout
   }));
-  const { statusMessage, isWorkflowRunning } = useWorkflowRunner((state) => ({
-    statusMessage: state.statusMessage,
-    isWorkflowRunning: state.state === "running"
-  }));
 
-  useCombo(["Ctrl+Space"], () => openNodeMenu(400, 200));
+  useCombo(["Ctrl+Space"], () =>
+    openNodeMenu({
+      x: 400,
+      y: 200
+    })
+  );
 
   return (
     <>
       <Box sx={{ flexGrow: 1 }} />
-      {isWorkflowRunning && (
-        <Typography
-          className="status-message"
-          variant="caption"
-          color="inherit"
-        >
-          {statusMessage || ""}
-        </Typography>
-      )}
       {path.startsWith("/editor") && (
         <div
           className="actions"

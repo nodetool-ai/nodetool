@@ -14,14 +14,13 @@ Use cases:
 **Fields:**
 - **goal**: The user prompt (str)
 - **max_tokens**: The maximum number of tokens to generate. (int)
-- **temperature**: The temperature to use for sampling. (float)
-- **model**: The GPT model to use for generating tasks. (GPTModel)
+- **model**: The GPT model to use for generating tasks. (OpenAIModel)
 
 ### process_messages_with_model
 
 Helper method to process messages based on model type
 **Args:**
-- **messages (list)**
+- **messages (list[nodetool.metadata.types.Message])**
 - **context (ProcessingContext)**
 - **kwargs**
 
@@ -41,10 +40,9 @@ Use cases:
 **Tags:** into step-by-step solutions.
 
 **Fields:**
-- **messages**: The messages to use in the prompt. (list)
+- **messages**: The messages to use in the prompt. (list[nodetool.metadata.types.Message])
 - **max_tokens**: The maximum number of tokens to generate. (int)
-- **temperature**: The temperature to use for sampling. (float)
-- **model**: The GPT model to use for chain of thought reasoning. (GPTModel)
+- **model**: The GPT model to use for chain of thought reasoning. (OpenAIModel)
 
 
 ## ChainOfThoughtSummarizer
@@ -60,11 +58,10 @@ Use cases:
 **Tags:** into a final, coherent conclusion.
 
 **Fields:**
-- **steps**: The completed chain of thought steps with their results (list)
-- **messages**: The messages used to generate the chain of thought steps (list)
+- **steps**: The completed chain of thought steps with their results (list[nodetool.nodes.openai.agents.ThoughtStep])
+- **messages**: The messages used to generate the chain of thought steps (list[nodetool.metadata.types.Message])
 - **max_tokens**: The maximum number of tokens to generate (int)
-- **temperature**: The temperature to use for sampling (float)
-- **model**: The GPT model to use for summarizing chain of thought results. (GPTModel)
+- **model**: The GPT model to use for summarizing chain of thought results. (OpenAIModel)
 
 
 ## ChartGenerator
@@ -79,11 +76,10 @@ Use cases:
 **Tags:** llm, data visualization, charts
 
 **Fields:**
-- **model**: The GPT model to use for chart generation. (GPTModel)
+- **model**: The GPT model to use for chart generation. (OpenAIModel)
 - **prompt**: Natural language description of the desired chart (str)
 - **data**: The data to visualize (DataframeRef)
 - **max_tokens**: The maximum number of tokens to generate. (int)
-- **temperature**: The temperature to use for sampling. (float)
 - **columns**: The columns available in the data. (RecordType)
 
 
@@ -99,13 +95,12 @@ Use cases:
 **Tags:** llm, dataframe creation, data structuring
 
 **Fields:**
+- **model**: The GPT model to use for data generation. (OpenAIModel)
 - **prompt**: The user prompt (str)
 - **input_text**: The input text to be analyzed by the agent. (str)
 - **image**: The image to use in the prompt. (ImageRef)
 - **max_tokens**: The maximum number of tokens to generate. (int)
-- **temperature**: The temperature to use for sampling. (float)
 - **columns**: The columns to use in the dataframe. (RecordType)
-- **model**: The GPT model to use for data generation. (GPTModel)
 
 
 ## ProcessThought
@@ -123,8 +118,7 @@ Use cases:
 **Fields:**
 - **current_step**: The current step or question to analyze (ThoughtStep)
 - **max_tokens**: The maximum number of tokens to generate (int)
-- **temperature**: The temperature to use for sampling (float)
-- **model**: The GPT model to use for processing chain of thought steps. (GPTModel)
+- **model**: The GPT model to use for processing chain of thought steps. (OpenAIModel)
 
 
 ## RegressionAnalyst
@@ -141,8 +135,7 @@ Use cases:
 - **prompt**: The user prompt or question regarding the data analysis. (str)
 - **data**: The dataframe to perform regression on. (DataframeRef)
 - **max_tokens**: The maximum number of tokens to generate. (int)
-- **temperature**: The temperature to use for sampling. (float)
-- **model**: The GPT model to use for regression analysis. (GPTModel)
+- **model**: The GPT model to use for regression analysis. (OpenAIModel)
 
 
 ## RunTasks
@@ -157,18 +150,17 @@ Use cases:
 **Tags:** task execution, model integration, tool coordination
 
 **Fields:**
-- **tasks**: The task to process. (list)
-- **image_nodes**: The image generation nodes to use. (list)
+- **tasks**: The task to process. (list[nodetool.metadata.types.Task])
+- **image_nodes**: The image generation nodes to use. (list[nodetool.metadata.types.NodeRef])
 - **max_tokens**: The maximum number of tokens to generate. (int)
-- **temperature**: The temperature to use for sampling. (float)
-- **model**: The GPT model to use for processing tasks. (GPTModel)
+- **model**: The GPT model to use for processing tasks. (OpenAIModel)
 
 ### process_task
 
 **Args:**
 - **thread_id (str)**
 - **task (Task)**
-- **tasks_by_name (dict)**
+- **tasks_by_name (dict[str, nodetool.metadata.types.Task])**
 - **context (ProcessingContext)**
 
 **Returns:** str
@@ -177,9 +169,9 @@ Use cases:
 
 Perform a topological sort on the tasks to determine the order of execution.
 **Args:**
-- **tasks (list)**
+- **tasks (list[nodetool.metadata.types.Task])**
 
-**Returns:** list
+**Returns:** list[nodetool.metadata.types.Task]
 
 
 ## SynthesizerAgent
@@ -196,9 +188,8 @@ Use cases:
 **Fields:**
 - **prompt**: Natural language description of the desired sound (str)
 - **max_tokens**: The maximum number of tokens to generate. (int)
-- **temperature**: The temperature to use for sampling. (float)
 - **duration**: Duration of the sound in seconds. (float)
-- **model**: The GPT model to use for sound synthesis. (GPTModel)
+- **model**: The GPT model to use for sound synthesis. (OpenAIModel)
 
 
 ## ThoughtStep

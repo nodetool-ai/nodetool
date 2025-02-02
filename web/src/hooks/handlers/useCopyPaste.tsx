@@ -31,8 +31,6 @@ export const useCopyPaste = () => {
       // ) {
       //   return { nodesToCopy: [], connectedEdges: [] };
       // }
-      console.log("handleCopy", selectedNodes);
-
       let nodesToCopy: Node[];
       if (nodeId && nodeId !== "") {
         // Find the node with the given nodeId
@@ -87,8 +85,6 @@ export const useCopyPaste = () => {
     let clipboardData: string | null = null;
 
     clipboardData = localStorage.getItem("copiedNodesData");
-
-    console.log("clipboardData", clipboardData);
 
     if (!clipboardData) {
       console.warn("No valid data found in clipboard or localStorage");

@@ -33,6 +33,7 @@ const styles = (theme: any) =>
       flexDirection: "column"
     },
     ".messages": {
+      width: "100%",
       flexGrow: 1,
       overflowY: "auto",
       listStyleType: "none",
@@ -40,6 +41,7 @@ const styles = (theme: any) =>
       margin: "0"
     },
     ".messages li.chat-message": {
+      width: "100%",
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeNormal,
       listStyleType: "none",
@@ -78,6 +80,7 @@ const styles = (theme: any) =>
       color: `${theme.c_gray4} !important`
     },
     ".chat-window .chat-header": {
+      width: "100%",
       display: "flex",
       justifyContent: "space-between",
       alignItems: "center",
@@ -198,6 +201,12 @@ const styles = (theme: any) =>
 const bounce = keyframes`
   0%, 80%, 100% { transform: scale(0); }
   40% { transform: scale(1); }
+`;
+
+const pulse = keyframes`
+  0% { transform: scale(0.8); opacity: 0.5; }
+  50% { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(0.8); opacity: 0.5; }
 `;
 
 type ChatViewProps = {
@@ -395,7 +404,12 @@ const ChatView = ({
   }, []);
 
   const MessageView = useCallback((msg: Message) => {
-    const [showThoughts, setShowThoughts] = useState(false);
+    const [expandedThoughts, setExpandedThoughts] = useState<{
+      [key: string]: boolean;
+    }>({});
+    const [loadingThoughts, setLoadingThoughts] = useState<{
+      [key: string]: boolean;
+    }>({});
 
     let messageClass = "chat-message";
     if (msg.role === "user") {
@@ -404,31 +418,38 @@ const ChatView = ({
       messageClass += " assistant";
     }
 
-    const renderContent = (content: string) => {
-      // Extract think blocks and remaining content
-      const thinkMatch = content.match(/<think>([\s\S]*?)<\/think>/);
-      const thoughts = thinkMatch ? thinkMatch[1].trim() : null;
-      const mainContent = content
-        .replace(/<think>[\s\S]*?<\/think>/, "")
-        .trim();
+    const toggleThought = (key: string) => {
+      setLoadingThoughts((prev) => ({ ...prev, [key]: true }));
 
-      return (
-        <>
-          <MarkdownRenderer content={mainContent} />
-          {thoughts && (
-            <div
-              css={css`
-                margin-top: 0.5em;
-                border-top: 1px dashed
-                  ${msg.role === "assistant"
-                    ? "rgba(255,255,255,0.2)"
-                    : "rgba(0,0,0,0.2)"};
-                padding-top: 0.5em;
-              `}
-            >
+      setTimeout(() => {
+        setExpandedThoughts((prev) => ({
+          ...prev,
+          [key]: !prev[key]
+        }));
+        setLoadingThoughts((prev) => ({ ...prev, [key]: false }));
+      }, 500);
+    };
+
+    const renderContent = (content: string, index: number) => {
+      const thoughtMatch = content.match(/<think>([\s\S]*?)(<\/think>|$)/s);
+      if (thoughtMatch) {
+        const key = `thought-${index}`;
+        const isExpanded = expandedThoughts[key];
+        const hasClosingTag = thoughtMatch[2] === "</think>";
+        const textBeforeThought = content.split("<think>")[0];
+        const textAfterThought = hasClosingTag
+          ? content.split("</think>").pop() || ""
+          : "";
+
+        return (
+          <>
+            {textBeforeThought && (
+              <MarkdownRenderer content={textBeforeThought} />
+            )}
+            <div>
               <Button
                 size="small"
-                onClick={() => setShowThoughts(!showThoughts)}
+                onClick={() => toggleThought(key)}
                 css={css`
                   text-transform: none;
                   color: inherit;
@@ -436,25 +457,49 @@ const ChatView = ({
                   &:hover {
                     opacity: 1;
                   }
+                  display: flex;
+                  align-items: center;
+                  gap: 8px;
                 `}
               >
-                {showThoughts ? "Hide thoughts" : "Show thoughts"}
+                {!hasClosingTag ? (
+                  <>
+                    <div
+                      css={css`
+                        width: 8px;
+                        height: 8px;
+                        border-radius: 50%;
+                        background-color: currentColor;
+                        animation: ${pulse} 1.5s ease-in-out infinite;
+                      `}
+                    />
+                    Show thought
+                  </>
+                ) : (
+                  `${isExpanded ? "Hide thought" : "Show thought"}`
+                )}
               </Button>
-              {showThoughts && (
+              {isExpanded && (
                 <div
                   css={css`
+                    margin-left: 1em;
                     margin-top: 0.5em;
-                    font-style: italic;
-                    opacity: 0.8;
+                    padding: 0.5em;
+                    background: rgba(0, 0, 0, 0.2);
+                    border-radius: 4px;
                   `}
                 >
-                  <MarkdownRenderer content={thoughts} />
+                  <MarkdownRenderer content={thoughtMatch[1]} />
                 </div>
               )}
+              {textAfterThought && (
+                <MarkdownRenderer content={textAfterThought} />
+              )}
             </div>
-          )}
-        </>
-      );
+          </>
+        );
+      }
+      return <MarkdownRenderer content={content} />;
     };
 
     const content = msg.content as
@@ -462,11 +507,12 @@ const ChatView = ({
       | string;
     return (
       <li className={messageClass} key={msg.id}>
-        {typeof msg.content === "string" && renderContent(msg.content)}
+        {typeof msg.content === "string" &&
+          renderContent(msg.content, msg.id as string)}
         {Array.isArray(content) &&
           content.map((c: MessageContent, i: number) => {
             if (c.type === "text") {
-              return renderContent(c.text || "");
+              return renderContent(c.text || "", i);
             } else if (c.type === "image_url") {
               return <OutputRenderer key={i} value={c.image} />;
             } else if (c.type === "audio") {

@@ -9,7 +9,7 @@ import Checkbox from "@mui/material/Checkbox";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { usePanelStore } from "../../stores/PanelStore";
 import DeleteIcon from "@mui/icons-material/Delete";
-import { useNodes } from "../../contexts/NodeContext";
+import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 
 interface WorkflowListViewProps {
   workflows: Workflow[];
@@ -121,7 +121,9 @@ export const WorkflowListView: React.FC<WorkflowListViewProps> = ({
   const addBreaks = (text: string) => {
     return text.replace(/([-_.])/g, "$1<wbr>");
   };
-  const currentWorkflow = useNodes((state) => state.workflow);
+  const currentWorkflowId = useWorkflowManager(
+    (state) => state.currentWorkflowId
+  );
 
   return (
     <Box className="container list" css={listStyles} onScroll={onScroll}>
@@ -131,7 +133,7 @@ export const WorkflowListView: React.FC<WorkflowListViewProps> = ({
           className={
             "workflow list" +
             (selectedWorkflows?.includes(workflow.id) ? " selected" : "") +
-            (currentWorkflow?.id === workflow.id ? " current" : "")
+            (currentWorkflowId === workflow.id ? " current" : "")
           }
           onContextMenu={(e) => {
             e.preventDefault();

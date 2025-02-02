@@ -158,12 +158,10 @@ const WorkflowForm = () => {
   const [updatedAt, setUpdatedAt] = useState(workflow.updated_at);
 
   useEffect(() => {
-    console.log("6. WorkflowForm initial workflow:", workflow);
     setLocalWorkflow(workflow);
   }, [workflow]);
 
   const handleSaveWorkflow = async () => {
-    console.log("8. WorkflowForm saving workflow:", localWorkflow);
     setWorkflowAttributes(localWorkflow);
     await saveWorkflow();
     setUpdatedAt(new Date().toISOString());
@@ -245,13 +243,11 @@ const WorkflowForm = () => {
     : {};
 
   const handleTagChange = (_event: React.SyntheticEvent, newTags: string[]) => {
-    console.log("9. WorkflowForm changing tags to:", newTags);
     const updatedWorkflow = {
       ...workflow,
       ...localWorkflow,
       tags: newTags
     };
-    console.log("10. WorkflowForm workflow with new tags:", updatedWorkflow);
     setLocalWorkflow(updatedWorkflow);
     setWorkflowAttributes(updatedWorkflow);
     handleSaveWorkflow();

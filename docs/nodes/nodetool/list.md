@@ -12,8 +12,8 @@ Use cases:
 **Tags:** list, add, insert, extend
 
 **Fields:**
-- **values** (list)
-- **value** (typing.Any)
+- **values** (list[typing.Any])
+- **value** (Any)
 
 
 ## Average
@@ -27,7 +27,7 @@ Use cases:
 **Tags:** list, average, mean, aggregate, math
 
 **Fields:**
-- **values** (list)
+- **values** (list[float])
 
 
 ## Chunk
@@ -42,7 +42,7 @@ Use cases:
 **Tags:** list, chunk, split, group
 
 **Fields:**
-- **values** (list)
+- **values** (list[typing.Any])
 - **chunk_size** (int)
 
 
@@ -58,7 +58,7 @@ Use cases:
 **Tags:** list, unique, distinct, deduplicate
 
 **Fields:**
-- **values** (list)
+- **values** (list[typing.Any])
 
 
 ## Difference
@@ -73,8 +73,8 @@ Use cases:
 **Tags:** list, set, difference, subtract
 
 **Fields:**
-- **list1** (list)
-- **list2** (list)
+- **list1** (list[typing.Any])
+- **list2** (list[typing.Any])
 
 
 ## Extend
@@ -88,8 +88,8 @@ Use cases:
 **Tags:** list, merge, concatenate, combine
 
 **Fields:**
-- **values** (list)
-- **other_values** (list)
+- **values** (list[typing.Any])
+- **other_values** (list[typing.Any])
 
 
 ## FilterDicts
@@ -148,7 +148,7 @@ Use cases:
 **Tags:** list, filter, query, condition
 
 **Fields:**
-- **values**: The list of dictionaries to filter. (list)
+- **values**: The list of dictionaries to filter. (list[dict])
 - **condition**: 
         The filtering condition using pandas query syntax.
 
@@ -179,7 +179,7 @@ Use cases:
 **Tags:** list, filter, dictionary, numbers, numeric
 
 **Fields:**
-- **values** (list)
+- **values** (list[dict])
 - **key** (str)
 - **filter_type** (FilterType)
 - **value** (float | None)
@@ -197,7 +197,7 @@ Use cases:
 **Tags:** list, filter, dictionary, range, between
 
 **Fields:**
-- **values**: The list of dictionaries to filter. (list)
+- **values**: The list of dictionaries to filter. (list[dict])
 - **key**: The dictionary key to check for the range (str)
 - **min_value**: The minimum value (inclusive) of the range (float)
 - **max_value**: The maximum value (inclusive) of the range (float)
@@ -216,7 +216,7 @@ Use cases:
 **Tags:** list, filter, dictionary, values
 
 **Fields:**
-- **values**: The list of dictionaries to filter. (list)
+- **values**: The list of dictionaries to filter. (list[dict])
 - **key**: The dictionary key to check (str)
 - **filter_type**: The type of filter to apply (FilterType)
 - **criteria**: The filtering criteria (text to match, type name, or length as string) (str)
@@ -234,7 +234,7 @@ Use cases:
 **Tags:** list, filter, regex, dictionary, pattern
 
 **Fields:**
-- **values** (list)
+- **values** (list[dict])
 - **key** (str)
 - **pattern** (str)
 - **full_match** (bool)
@@ -252,7 +252,7 @@ Use cases:
 **Tags:** list, filter, none, null
 
 **Fields:**
-- **values**: The list to filter None values from. (list)
+- **values**: The list to filter None values from. (list[typing.Any])
 
 
 ## FilterNumberRange
@@ -267,7 +267,7 @@ Use cases:
 **Tags:** list, filter, numbers, range, between
 
 **Fields:**
-- **values** (list)
+- **values** (list[float])
 - **min_value** (float)
 - **max_value** (float)
 - **inclusive** (bool)
@@ -285,7 +285,7 @@ Use cases:
 **Tags:** list, filter, numbers, numeric
 
 **Fields:**
-- **values**: The list of numbers to filter. (list)
+- **values**: The list of numbers to filter. (list[float])
 - **filter_type**: The type of filter to apply (FilterType)
 - **value**: The comparison value (for greater_than, less_than, equal_to) (float | None)
 
@@ -302,7 +302,7 @@ Use cases:
 **Tags:** list, filter, regex, pattern, text
 
 **Fields:**
-- **values**: The list of strings to filter. (list)
+- **values**: The list of strings to filter. (list[str])
 - **pattern**: The regular expression pattern to match against. (str)
 - **full_match**: Whether to match the entire string or find pattern anywhere in string (bool)
 
@@ -320,7 +320,7 @@ Use cases:
 **Tags:** list, filter, strings, text
 
 **Fields:**
-- **values**: The list of strings to filter. (list)
+- **values**: The list of strings to filter. (list[str])
 - **filter_type**: The type of filter to apply (FilterType)
 - **criteria**: The filtering criteria (text to match or length as string) (str)
 
@@ -341,7 +341,7 @@ Examples:
 **Tags:** list, flatten, nested, structure
 
 **Fields:**
-- **values**: The nested list structure to flatten (list)
+- **values**: The nested list structure to flatten (list[typing.Any])
 - **max_depth**: Maximum depth to flatten (-1 for unlimited) (int)
 
 
@@ -374,7 +374,7 @@ Use cases:
 **Tags:** list, get, extract, value
 
 **Fields:**
-- **values** (list)
+- **values** (list[typing.Any])
 - **index** (int)
 
 
@@ -390,24 +390,8 @@ Use cases:
 **Tags:** list, set, intersection, common
 
 **Fields:**
-- **list1** (list)
-- **list2** (list)
-
-
-## JoinStrings
-
-Joins a list of strings using a specified delimiter.
-
-Use cases:
-- Combine strings with a separator
-- Create CSV-like strings
-- Format text for display or output
-
-**Tags:** list, join, concatenate, strings, +
-
-**Fields:**
-- **values**: The list of strings to join (list)
-- **delimiter**: The string to use as a separator between elements (str)
+- **list1** (list[typing.Any])
+- **list2** (list[typing.Any])
 
 
 ## Length
@@ -422,7 +406,7 @@ Use cases:
 **Tags:** list, count, size
 
 **Fields:**
-- **values** (list)
+- **values** (list[typing.Any])
 
 
 ## MapField
@@ -437,14 +421,14 @@ Use cases:
 **Tags:** list, map, field, extract, pluck
 
 **Fields:**
-- **values**: The list of dictionaries or objects to extract from (list)
+- **values**: The list of dictionaries or objects to extract from (list[dict | object])
 - **field**: The dictionary key or object field to extract (str)
-- **default**: Default value if field is missing (None if not specified) (typing.Any)
+- **default**: Default value if field is missing (None if not specified) (Any)
 
 
 ## MapTemplate
 
-Maps a template string over a list of dictionaries or objects.
+Maps a template string over a list of dictionaries or objects using Jinja2 templating.
 
 Use cases:
 - Formatting multiple records into strings
@@ -452,24 +436,35 @@ Use cases:
 - Creating text representations of data collections
 
 Examples:
-- template: "Name: {name}, Age: {age}"
+- template: "Name: {{ name }}, Age: {{ age }}"
 values: [{"name": "Alice", "age": 30}, {"name": "Bob", "age": 25}]
 -> ["Name: Alice, Age: 30", "Name: Bob, Age: 25"]
 
-- template: "Hello, {0} {1}!"
-values: [["Alice", "Smith"], ["Bob", "Jones"]]
--> ["Hello, Alice Smith!", "Hello, Bob Jones!"]
+Available filters:
+- truncate(length): Truncates text to given length
+- upper: Converts text to uppercase
+- lower: Converts text to lowercase
+- title: Converts text to title case
+- trim: Removes whitespace from start/end
+- replace(old, new): Replaces substring
+- default(value): Sets default if value is undefined
+- first: Gets first character/item
+- last: Gets last character/item
+- length: Gets length of string/list
+- sort: Sorts list
+- join(delimiter): Joins list with delimiter
 
 **Tags:** list, template, map, formatting
 
 **Fields:**
 - **template**: 
-        Template string with placeholders for formatting
-        - Placeholders can be indexed (e.g., {0}, {1}, etc.) for lists
-        - Placeholders can be named (e.g., {name}, {age}, etc.) for dictionaries
-        - Placeholders can be named (e.g., {name}, {age}, etc.) for objects
+        Template string with Jinja2 placeholders for formatting
+        Examples:
+        - "Name: {{ name }}, Age: {{ age }}"
+        - "{{ title|truncate(20) }}"
+        - "{{ name|upper }}"
          (str)
-- **values**: List of values to format the template with (list)
+- **values**: List of values to format the template with (list[dict[str, typing.Any] | object])
 
 
 ## Maximum
@@ -483,7 +478,7 @@ Use cases:
 **Tags:** list, max, maximum, aggregate, math
 
 **Fields:**
-- **values** (list)
+- **values** (list[float])
 
 
 ## Minimum
@@ -497,7 +492,7 @@ Use cases:
 **Tags:** list, min, minimum, aggregate, math
 
 **Fields:**
-- **values** (list)
+- **values** (list[float])
 
 
 ## Product
@@ -511,7 +506,7 @@ Use cases:
 **Tags:** list, product, multiply, aggregate, math
 
 **Fields:**
-- **values** (list)
+- **values** (list[float])
 
 
 ## Randomize
@@ -526,7 +521,7 @@ Use cases:
 **Tags:** list, shuffle, random, order
 
 **Fields:**
-- **values** (list)
+- **values** (list[typing.Any])
 
 
 ## Reverse
@@ -539,7 +534,7 @@ Use cases:
 **Tags:** list, reverse, invert, flip
 
 **Fields:**
-- **values** (list)
+- **values** (list[typing.Any])
 
 
 ## SaveList
@@ -554,7 +549,7 @@ Use cases:
 **Tags:** list, save, file, serialize
 
 **Fields:**
-- **values**: The list to save. (list)
+- **values**: The list to save. (list[typing.Any])
 - **name**: 
         Name of the output file.
         You can use time and date variables to create unique names:
@@ -583,8 +578,8 @@ Use cases:
 **Tags:** list, select, index, extract
 
 **Fields:**
-- **values** (list)
-- **indices** (list)
+- **values** (list[typing.Any])
+- **indices** (list[int])
 
 
 ## Slice
@@ -599,7 +594,7 @@ Use cases:
 **Tags:** list, slice, subset, extract
 
 **Fields:**
-- **values** (list)
+- **values** (list[typing.Any])
 - **start** (int)
 - **stop** (int)
 - **step** (int)
@@ -617,7 +612,7 @@ Use cases:
 **Tags:** list, sort, order, arrange
 
 **Fields:**
-- **values** (list)
+- **values** (list[typing.Any])
 - **order** (SortOrder)
 
 
@@ -632,7 +627,7 @@ Use cases:
 **Tags:** list, sum, aggregate, math
 
 **Fields:**
-- **values** (list)
+- **values** (list[float])
 
 
 ## Transform
@@ -647,7 +642,7 @@ Use cases:
 **Tags:** list, transform, map, convert
 
 **Fields:**
-- **values**: The list of values to transform (list)
+- **values**: The list of values to transform (list[typing.Any])
 - **transform_type** (TransformType)
 
 
@@ -663,7 +658,7 @@ Use cases:
 **Tags:** list, set, union, combine
 
 **Fields:**
-- **list1** (list)
-- **list2** (list)
+- **list1** (list[typing.Any])
+- **list2** (list[typing.Any])
 
 

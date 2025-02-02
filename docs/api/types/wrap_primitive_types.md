@@ -3,7 +3,7 @@
 ### wrap_primitive_types
 
 **Args:**
-- **value (typing.Any)**
+- **value (Any)**
 
 **Returns:** typing.Union[typing.Dict[str, typing.Any], typing.List[typing.Any], typing.Any]
 

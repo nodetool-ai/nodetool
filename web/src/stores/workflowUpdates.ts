@@ -27,8 +27,6 @@ export const handleUpdate = (
   const setError = useErrorStore.getState().setError;
   const setProgress = useResultsStore.getState().setProgress;
 
-  console.log(data);
-
   if (data.type === "job_update") {
     const job = data as JobUpdate;
     useWorkflowRunner.setState({

@@ -92,7 +92,7 @@ Use cases:
 **Tags:** dictionary, key-value, mapping
 
 **Fields:**
-- **value** (dict)
+- **value** (dict[str, typing.Any])
 
 
 ## Document
@@ -162,7 +162,7 @@ Use cases:
 **Tags:** array, sequence, collection
 
 **Fields:**
-- **value** (list)
+- **value** (list[typing.Any])
 
 
 ## String
@@ -178,21 +178,6 @@ Use cases:
 
 **Fields:**
 - **value** (str)
-
-
-## Text
-
-Represents a text document constant in the workflow.
-
-Use cases:
-- Provide larger text inputs for natural language processing
-- Store formatted content or documentation
-- Set default text documents for analysis
-
-**Tags:** document, markdown, content
-
-**Fields:**
-- **value** (TextRef)
 
 
 ## Video

@@ -1,39 +1,29 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { useStore } from "@xyflow/react";
-import { useEffect, useState, useRef } from "react";
+import { ReactFlowProvider, useStore } from "@xyflow/react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLoaderData, useNavigate } from "react-router-dom";
 import CloseIcon from "@mui/icons-material/Close";
 import { MIN_ZOOM } from "../../config/constants";
-import { useWorkflowManager } from "../../contexts/NodeContext";
-import { Workflow } from "../../stores/ApiTypes";
 import NodeEditor from "../node_editor/NodeEditor";
-import { DragEvent, WheelEvent } from "react";
+import { DragEvent } from "react";
 import { useResizePanel } from "../../hooks/handlers/useResizePanel";
-import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
-import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+import { NodeProvider } from "../../contexts/NodeContext";
+import StatusMessage from "../panels/StatusMessage";
+import AppHeaderActions from "../panels/AppHeaderActions";
+import { Workflow } from "../../stores/ApiTypes";
 
 const styles = (theme: any) =>
   css({
     display: "flex",
     flexDirection: "column",
     height: "100%",
-    overflow: "hidden",
-
-    "& .tabs-container": {
-      display: "flex",
-      alignItems: "center",
-      position: "relative",
-      marginLeft: "4em",
-      width: "calc(100% - 4em)"
-    },
-
     "& .tabs": {
-      marginLeft: "0",
-      width: "100%",
       zIndex: 1000,
       display: "flex",
       flexWrap: "nowrap",
+      marginLeft: "4em",
       minHeight: "30px",
       maxHeight: "100px",
       overflowX: "auto",
@@ -41,20 +31,22 @@ const styles = (theme: any) =>
       padding: "0 10px",
       paddingTop: "5px",
       whiteSpace: "nowrap",
+      width: "calc(100% - 4em)",
       maxWidth: "100%",
-      scrollbarWidth: "none",
-      msOverflowStyle: "none",
 
       "&::-webkit-scrollbar": {
-        display: "none"
+        display: "block",
+        height: "2px",
+        color: theme.palette.c_gray3
       },
 
       "&::-webkit-scrollbar-track": {
-        display: "none"
+        background: theme.palette.background.default
       },
 
       "&::-webkit-scrollbar-thumb": {
-        display: "none"
+        background: theme.palette.c_gray3,
+        borderRadius: "3px"
       }
     },
 
@@ -65,6 +57,7 @@ const styles = (theme: any) =>
 
     "& .tab.active": {
       color: theme.palette.c_white,
+      textShadow: "0 0 2px rgba(0, 0, 0, 0.5)",
       backgroundColor: theme.palette.c_editor_bg_color,
       borderBottom: "none",
       zIndex: 1
@@ -129,54 +122,34 @@ const styles = (theme: any) =>
       borderTop: "none"
     },
 
-    "& .scroll-button": {
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      width: "24px",
-      height: "30px",
-      background: theme.palette.background.default,
-      border: "none",
-      cursor: "pointer",
-      color: theme.palette.c_gray5,
-      transition: "all 0.1s ease-in-out",
-      padding: 0,
-      flexShrink: 0,
-      visibility: "visible",
-
-      "&[data-hidden='true']": {
-        visibility: "hidden"
-      },
-
-      "&:hover": {
-        color: theme.palette.c_white,
-        background: theme.palette.c_gray1
-      },
-
-      "&:disabled": {
-        opacity: 0.3,
-        "&:hover": {
-          color: theme.palette.c_gray5,
-          background: theme.palette.background.default
-        }
-      }
+    ".status-message-container": {
+      position: "absolute",
+      top: "-70px",
+      right: "300px",
+      zIndex: 10000
     }
   });
 
 const TabsNodeEditor = () => {
-  const currentZoom = useStore((state) => state.transform[2]);
-  const isMinZoom = currentZoom <= MIN_ZOOM;
+  // const currentZoom = useStore((state) => state.transform[2]);
+  // const isMinZoom = currentZoom <= MIN_ZOOM;
   const {
     listWorkflows,
     getWorkflow,
-    addWorkflow,
     removeWorkflow,
     reorderWorkflows,
-    updateWorkflow
-  } = useWorkflowManager();
-  const { workflow: currentWorkflow } = useLoaderData() as {
-    workflow: Workflow;
-  };
+    updateWorkflow,
+    currentWorkflowId,
+    loadingStates
+  } = useWorkflowManager((state) => ({
+    listWorkflows: state.listWorkflows,
+    getWorkflow: state.getWorkflow,
+    removeWorkflow: state.removeWorkflow,
+    reorderWorkflows: state.reorderWorkflows,
+    updateWorkflow: state.updateWorkflow,
+    currentWorkflowId: state.currentWorkflowId,
+    loadingStates: state.loadingStates
+  }));
   const navigate = useNavigate();
   const [dropTarget, setDropTarget] = useState<{
     id: string;
@@ -185,31 +158,24 @@ const TabsNodeEditor = () => {
   const [editingWorkflowId, setEditingWorkflowId] = useState<string | null>(
     null
   );
-  const tabsRef = useRef<HTMLDivElement>(null);
-  const [showScrollButtons, setShowScrollButtons] = useState(false);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(false);
 
-  useEffect(() => {
-    if (!getWorkflow(currentWorkflow.id)) {
-      addWorkflow(currentWorkflow);
-    }
-  }, [currentWorkflow.id]);
-
-  const handleClose = (workflowId: string) => {
-    removeWorkflow(workflowId);
-    if (currentWorkflow.id === workflowId) {
-      // Switch to the last remaining tab
-      const remaining = listWorkflows().filter(
-        (workflow) => workflow.id !== workflowId
-      );
-      if (remaining.length > 0) {
-        navigate(`/editor/${remaining[remaining.length - 1].id}`);
-      } else {
-        navigate("/editor");
+  const handleClose = useCallback(
+    (workflowId: string) => {
+      removeWorkflow(workflowId);
+      if (currentWorkflowId === workflowId) {
+        // Switch to the last remaining tab
+        const remaining = listWorkflows().filter(
+          (workflow) => workflow.id !== workflowId
+        );
+        if (remaining.length > 0) {
+          navigate(`/editor/${remaining[remaining.length - 1].id}`);
+        } else {
+          navigate("/editor");
+        }
       }
-    }
-  };
+    },
+    [currentWorkflowId, listWorkflows, navigate, removeWorkflow]
+  );
 
   const handleDragStart = (
     e: DragEvent<HTMLDivElement>,
@@ -272,137 +238,109 @@ const TabsNodeEditor = () => {
   const { collapsed: panelLeftCollapsed, size: panelSize } =
     useResizePanel("left");
 
-  const handleWheel = (e: WheelEvent<HTMLDivElement>) => {
-    const tabsContainer = e.currentTarget;
-    tabsContainer.scrollLeft += e.deltaY;
-    e.preventDefault();
-  };
-
-  const checkScrollability = () => {
-    if (tabsRef.current) {
-      const { scrollLeft, scrollWidth, clientWidth } = tabsRef.current;
-      setCanScrollLeft(scrollLeft > 0);
-      setCanScrollRight(scrollLeft < scrollWidth - clientWidth);
-      setShowScrollButtons(scrollWidth > clientWidth);
-    }
-  };
-
-  useEffect(() => {
-    checkScrollability();
-    window.addEventListener("resize", checkScrollability);
-    return () => window.removeEventListener("resize", checkScrollability);
-  }, [listWorkflows()]);
-
-  const handleScroll = (direction: "left" | "right") => {
-    if (tabsRef.current) {
-      const scrollAmount = 180;
-      const newScrollLeft =
-        tabsRef.current.scrollLeft +
-        (direction === "left" ? -scrollAmount : scrollAmount);
-      tabsRef.current.scrollTo({
-        left: newScrollLeft,
-        behavior: "smooth"
-      });
-      setTimeout(checkScrollability, 300);
-    }
-  };
-
-  useEffect(() => {
-    const tabsElement = tabsRef.current;
-    if (tabsElement) {
-      tabsElement.addEventListener("scroll", checkScrollability);
-      return () =>
-        tabsElement.removeEventListener("scroll", checkScrollability);
-    }
-  }, []);
+  const workflows = useMemo(() => {
+    const workflows = listWorkflows();
+    const loadingWorkflows = Object.keys(loadingStates).map(
+      (id) =>
+        ({
+          id,
+          name: "Loading...",
+          thumbnail: "",
+          access: "private",
+          description: "",
+          updated_at: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+          graph: { nodes: [], edges: [] }
+        } as Workflow)
+    );
+    return [...workflows, ...loadingWorkflows];
+  }, [listWorkflows, loadingStates]);
 
   return (
     <div
       css={styles}
       style={{ marginLeft: panelLeftCollapsed ? "0" : panelSize - 65 }}
     >
-      <div className="tabs-container">
-        <button
-          className="scroll-button"
-          onClick={() => handleScroll("left")}
-          disabled={!canScrollLeft}
-          data-hidden={!showScrollButtons}
-        >
-          <ChevronLeftIcon />
-        </button>
-        <div
-          className="tabs"
-          ref={tabsRef}
-          onWheel={(e) => {
-            handleWheel(e);
-            checkScrollability();
-          }}
-        >
-          {listWorkflows().map((workflow) => (
-            <div
-              key={workflow.id}
-              className={`tab ${
-                workflow.id === currentWorkflow.id ? "active" : ""
-              } ${
-                dropTarget?.id === workflow.id
-                  ? dropTarget.position === "left"
-                    ? "drop-target"
-                    : "drop-target-right"
-                  : ""
-              }`}
-              onClick={() => navigate(`/editor/${workflow.id}`)}
-              onDoubleClick={() => handleDoubleClick(workflow.id)}
-              draggable={editingWorkflowId !== workflow.id}
-              onDragStart={(e) => handleDragStart(e, workflow.id)}
-              onDragOver={(e) => handleDragOver(e, workflow.id)}
-              onDragLeave={handleDragLeave}
-              onDrop={(e) => handleDrop(e, workflow.id)}
-            >
-              {editingWorkflowId === workflow.id ? (
-                <input
-                  type="text"
-                  defaultValue={workflow.name}
-                  autoFocus
-                  onBlur={(e) => handleNameChange(workflow.id, e.target.value)}
-                  onKeyDown={(e) =>
-                    handleKeyDown(e, workflow.id, e.currentTarget.value)
-                  }
-                  onClick={(e) => e.stopPropagation()}
-                  style={{
-                    background: "transparent",
-                    border: "none",
-                    color: "inherit",
-                    padding: 0,
-                    fontSize: "inherit",
-                    width: "100%",
-                    outline: "none"
-                  }}
-                />
-              ) : (
-                <span>{workflow.name}</span>
-              )}
-              <CloseIcon
-                className="close-icon"
-                sx={{ fontSize: 16 }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleClose(workflow.id);
+      <div className="tabs">
+        {listWorkflows().map((workflow) => (
+          <div
+            key={workflow.id}
+            className={`tab ${
+              workflow.id === currentWorkflowId ? "active" : ""
+            } ${
+              dropTarget?.id === workflow.id
+                ? dropTarget.position === "left"
+                  ? "drop-target"
+                  : "drop-target-right"
+                : ""
+            }`}
+            onClick={() => navigate(`/editor/${workflow.id}`)}
+            onDoubleClick={() => handleDoubleClick(workflow.id)}
+            draggable={editingWorkflowId !== workflow.id}
+            onDragStart={(e) => handleDragStart(e, workflow.id)}
+            onDragOver={(e) => handleDragOver(e, workflow.id)}
+            onDragLeave={handleDragLeave}
+            onDrop={(e) => handleDrop(e, workflow.id)}
+          >
+            {editingWorkflowId === workflow.id ? (
+              <input
+                type="text"
+                defaultValue={workflow.name}
+                autoFocus
+                onBlur={(e) => handleNameChange(workflow.id, e.target.value)}
+                onKeyDown={(e) =>
+                  handleKeyDown(e, workflow.id, e.currentTarget.value)
+                }
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  color: "inherit",
+                  padding: 0,
+                  fontSize: "inherit",
+                  width: "100%",
+                  outline: "none"
                 }}
               />
-            </div>
-          ))}
-        </div>
-        <button
-          className="scroll-button"
-          onClick={() => handleScroll("right")}
-          disabled={!canScrollRight}
-          data-hidden={!showScrollButtons}
-        >
-          <ChevronRightIcon />
-        </button>
+            ) : (
+              <span>{workflow.name}</span>
+            )}
+            <CloseIcon
+              className="close-icon"
+              sx={{ fontSize: 16 }}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleClose(workflow.id);
+              }}
+            />
+          </div>
+        ))}
       </div>
       <div className="editor-container">
-        <NodeEditor isMinZoom={isMinZoom} />
+        {workflows.map((workflow) => (
+          <div
+            key={workflow.id}
+            style={{
+              visibility:
+                workflow.id === currentWorkflowId ? "visible" : "hidden",
+              position:
+                workflow.id === currentWorkflowId ? "relative" : "absolute",
+              height: "100%"
+            }}
+          >
+            <ReactFlowProvider>
+              <NodeProvider workflowId={workflow.id}>
+                <div className="actions-container">
+                  <AppHeaderActions />
+                </div>
+                <div className="status-message-container">
+                  <StatusMessage />
+                </div>
+                <NodeEditor workflowId={workflow.id} />
+              </NodeProvider>
+            </ReactFlowProvider>
+          </div>
+        ))}
       </div>
     </div>
   );

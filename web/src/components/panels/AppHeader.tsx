@@ -10,11 +10,10 @@ import SettingsMenu from "../menus/SettingsMenu";
 import Help from "../content/Help/Help";
 import Alert from "../node_editor/Alert";
 import Logo from "../Logo";
-import Welcome from "../content/Welcome/Welcome";
 import AppHeaderActions from "./AppHeaderActions";
 import OverallDownloadProgress from "../hugging_face/OverallDownloadProgress";
 import NotificationButton from "./NotificationButton";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import KeyboardBackspaceIcon from "@mui/icons-material/KeyboardBackspace";
 
 // mui icons
 import QuestionMarkIcon from "@mui/icons-material/QuestionMark";
@@ -44,7 +43,8 @@ import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { useEffect, useState } from "react";
 import SystemStatsDisplay from "./SystemStats";
 import { isDevelopment, isProduction } from "../../stores/ApiClient";
-import { useWorkflowManager } from "../../contexts/NodeContext";
+import StatusMessage from "./StatusMessage";
+import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 
 const styles = (theme: any, buttonAppearance: "text" | "icon" | "both") =>
   css({
@@ -69,7 +69,11 @@ const styles = (theme: any, buttonAppearance: "text" | "icon" | "both") =>
       }
     },
     ".toolbar": {
-      overflow: "visible"
+      overflow: "visible",
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      position: "relative"
     },
     ".nodetool-logo": {
       margin: "1px 1.5em 0 0"
@@ -113,6 +117,7 @@ const styles = (theme: any, buttonAppearance: "text" | "icon" | "both") =>
       backgroundColor: "transparent"
     },
     ".nav-buttons": {
+      width: "100%",
       display: "flex",
       flexDirection: "row",
       justifyContent: "flex-start",
@@ -122,6 +127,10 @@ const styles = (theme: any, buttonAppearance: "text" | "icon" | "both") =>
         lineHeight: "1.1em"
       }
     },
+    ".nav-button svg": {
+      fill: theme.palette.c_hl2,
+      marginRight: "0.2em"
+    },
     "nav-button": {
       flexShrink: 0,
       minWidth: "5em",
@@ -129,24 +138,14 @@ const styles = (theme: any, buttonAppearance: "text" | "icon" | "both") =>
         color: theme.palette.c_hl1
       }
     },
-    ".status-message": {
-      margin: "auto",
-      flexGrow: 0,
-      flexShrink: 1,
-      lineHeight: "1.1em",
-      textAlign: "center",
-      transform: "translateX(-50%)",
-      left: "50%",
-      position: "absolute",
-      top: "91px",
-      zIndex: 1000,
-      backgroundColor: "rgba(18, 18, 24, 0.9)",
-      backdropFilter: "blur(8px)",
-      borderRadius: "8px",
-      boxShadow: "0 4px 12px rgba(0, 0, 0, 0.2)",
-      padding: ".2em 1em",
-      color: "black",
-      fontSize: theme.fontSizeSmall
+    ".back-to-editor": {
+      marginLeft: "100px",
+      marginRight: "auto"
+    },
+    ".navigate": {
+      display: "flex",
+      alignItems: "center",
+      width: "100%"
     },
     ".buttons-right": {
       display: "flex",
@@ -156,7 +155,9 @@ const styles = (theme: any, buttonAppearance: "text" | "icon" | "both") =>
       gap: 0,
       background: theme.palette.c_gray1,
       borderRadius: "12px",
-      paddingLeft: "1em"
+      paddingLeft: "1em",
+      marginLeft: "auto",
+      flexShrink: 0
     }
   });
 
@@ -166,9 +167,24 @@ const BackToEditorButton = memo(() => {
   }));
   const navigate = useNavigate();
   return (
-    <Button onClick={() => navigate(`/editor/${currentWorkflowId || ""}`)}>
-      <ArrowBackIcon />
-      Back to Editor
+    <Button
+      className="nav-button back-to-editor"
+      onClick={() => navigate(`/editor/${currentWorkflowId || ""}`)}
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: "4px",
+        backgroundColor: "rgba(255, 255, 255, 0.05)",
+        "&:hover": {
+          backgroundColor: "rgba(255, 255, 255, 0.1)"
+        },
+        borderRadius: "4px",
+        padding: "6px 12px"
+      }}
+    >
+      <KeyboardBackspaceIcon sx={{ fontSize: "20px" }} />
+      <span>Back to Editor</span>
     </Button>
   );
 });
@@ -190,18 +206,7 @@ const AppHeader: React.FC<AppHeaderProps> = React.memo(
       globalButtonAppearance
     );
 
-    const {
-      helpOpen,
-      welcomeOpen,
-      handleCloseHelp,
-      handleOpenHelp,
-      handleCloseWelcome,
-      handleOpenWelcome
-    } = useAppHeaderStore();
-
-    const showWelcomeOnStartup = useSettingsStore(
-      (state) => state.settings.showWelcomeOnStartup
-    );
+    const { helpOpen, handleCloseHelp, handleOpenHelp } = useAppHeaderStore();
 
     const { handlePanelToggle, collapsed: panelLeftCollapsed } =
       useResizePanel("left");
@@ -222,12 +227,6 @@ const AppHeader: React.FC<AppHeaderProps> = React.memo(
       };
     }, [handleResize]);
 
-    useEffect(() => {
-      if (showWelcomeOnStartup) {
-        handleOpenWelcome();
-      }
-    }, [handleOpenWelcome, showWelcomeOnStartup]);
-
     const memoizedStyles = useMemo(
       () => styles(ThemeNodetool, buttonAppearance),
       [buttonAppearance]
@@ -236,9 +235,6 @@ const AppHeader: React.FC<AppHeaderProps> = React.memo(
     const NavigationButtons = useMemo(
       () => (
         <Box className="nav-buttons">
-          <Tooltip title="Back to Editor" enterDelay={TOOLTIP_ENTER_DELAY}>
-            <BackToEditorButton />
-          </Tooltip>
           <Tooltip title="Explore Examples" enterDelay={TOOLTIP_ENTER_DELAY}>
             <Button
               className={`nav-button ${path === "/examples" ? "active" : ""}`}
@@ -330,6 +326,11 @@ const AppHeader: React.FC<AppHeaderProps> = React.memo(
               Models
             </Button>
           </Tooltip>
+          {!path.startsWith("/editor") && (
+            <Tooltip title="Back to Editor" enterDelay={TOOLTIP_ENTER_DELAY}>
+              <BackToEditorButton />
+            </Tooltip>
+          )}
         </Box>
       ),
       [path, buttonAppearance, navigate, panelLeftCollapsed, handlePanelToggle]
@@ -396,78 +397,42 @@ const AppHeader: React.FC<AppHeaderProps> = React.memo(
       <div css={memoizedStyles} className="app-header">
         <AppBar position="static" className="app-bar">
           <Toolbar variant="dense" className="toolbar">
-            <Tooltip
-              enterDelay={TOOLTIP_ENTER_DELAY}
-              title={
-                <div style={{ textAlign: "center" }}>
-                  <Typography variant="inherit">Open Welcome Screen</Typography>
-                </div>
-              }
-            >
-              <Button
-                className="logo"
-                tabIndex={-1}
-                onClick={(e) => {
-                  e.preventDefault();
-                  handleOpenWelcome();
-                }}
-                sx={{
-                  lineHeight: "1em",
-                  display: { xs: "none", sm: "block" }
-                }}
-              >
-                <Logo
-                  width="80px"
-                  height="24px"
-                  fontSize="1em"
-                  borderRadius="20px"
-                  small={true}
-                  singleLine={true}
-                />
-              </Button>
-            </Tooltip>
-            {isDevelopment && (
-              <Popover
-                open={welcomeOpen}
-                onClose={handleCloseWelcome}
-                anchorReference="none"
-                style={{
-                  position: "fixed",
-                  width: "100%",
-                  height: "100%",
-                  top: "50%"
-                }}
-                slotProps={{
-                  root: {
-                    sx: {
-                      top: "60px !important",
-                      "& .MuiBackdrop-root": {
-                        top: "60px !important",
-                        position: "fixed"
-                      }
-                    }
-                  },
-                  paper: {
-                    sx: {
-                      position: "absolute",
-                      top: "60px",
-                      left: "50%",
-                      transform: "translate(-50%, 0)"
-                    }
-                  }
-                }}
-              >
-                <Welcome handleClose={handleCloseWelcome} />
-              </Popover>
-            )}
-
             <div className="navigate">
+              <Tooltip
+                enterDelay={TOOLTIP_ENTER_DELAY}
+                title={
+                  <div style={{ textAlign: "center" }}>
+                    <Typography variant="inherit">
+                      Open Welcome Screen
+                    </Typography>
+                  </div>
+                }
+              >
+                <Button
+                  className="logo"
+                  tabIndex={-1}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    navigate("/welcome");
+                  }}
+                  sx={{
+                    lineHeight: "1em",
+                    display: { xs: "none", sm: "block" }
+                  }}
+                >
+                  <Logo
+                    width="80px"
+                    height="24px"
+                    fontSize="1em"
+                    borderRadius="20px"
+                    small={true}
+                    singleLine={true}
+                  />
+                </Button>
+              </Tooltip>
               <Box sx={{ flexGrow: 0.02 }} />
               {NavigationButtons}
             </div>
-
-            {props.showActions && <AppHeaderActions />}
-            {/* <LastWorkflowButton /> */}
             <Alert />
             {RightSideButtons}
           </Toolbar>

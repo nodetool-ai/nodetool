@@ -2,15 +2,13 @@
 
 ## AIMEChatModel
 
-An enumeration.
-
 ## BaseChatNode
 
 Base class for AIME chat nodes with common fields
 
 **Fields:**
 - **system_prompt**: System prompt that defines the assistant's behavior. (str)
-- **messages**: History of messages in the conversation. (list)
+- **messages**: History of messages in the conversation. (list[nodetool.metadata.types.Message])
 - **prompt**: Prompt to send to the model. If provided, it will add a new message to the conversation. (str)
 - **temperature**: The temperature to use for response generation. (float)
 - **top_k**: The number of highest probability tokens to consider. (int)
@@ -39,7 +37,7 @@ Use cases:
 
 **Fields:**
 - **system_prompt**: System prompt that defines the assistant's behavior. (str)
-- **messages**: History of messages in the conversation. (list)
+- **messages**: History of messages in the conversation. (list[nodetool.metadata.types.Message])
 - **prompt**: Prompt to send to the model. If provided, it will add a new message to the conversation. (str)
 - **temperature**: The temperature to use for response generation. (float)
 - **top_k**: The number of highest probability tokens to consider. (int)
@@ -60,7 +58,7 @@ Use cases:
 
 **Fields:**
 - **system_prompt**: System prompt that defines the assistant's behavior. (str)
-- **messages**: History of messages in the conversation. (list)
+- **messages**: History of messages in the conversation. (list[nodetool.metadata.types.Message])
 - **prompt**: Prompt to send to the model. If provided, it will add a new message to the conversation. (str)
 - **temperature**: The temperature to use for response generation. (float)
 - **top_k**: The number of highest probability tokens to consider. (int)
