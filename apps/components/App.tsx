@@ -54,16 +54,17 @@ export const App: React.FC<AppProps> = ({ initialWorkflowId }) => {
 
   return (
     <Flex
+      className="app-root"
       h="100vh"
       direction="column"
       bg="var(--bg-color)"
       color="var(--text-color)"
-      className="app"
     >
       {!isMac && <WindowControls />}
 
       {workflow && (
         <Box
+          className="app-header"
           p={4}
           bg="var(--secondary-color)"
           borderBottom="1px solid"
@@ -73,16 +74,27 @@ export const App: React.FC<AppProps> = ({ initialWorkflowId }) => {
             {workflow.name}
           </Heading>
           {workflow.description && (
-            <Text mt={2} fontSize="sm" opacity={0.5}>
+            <Text
+              className="app-header__description"
+              mt={2}
+              fontSize="sm"
+              opacity={0.5}
+            >
               {workflow.description}
             </Text>
           )}
         </Box>
       )}
 
-      <Box flex={1} overflow="hidden" position="relative">
+      <Box
+        className="app-content"
+        flex={1}
+        overflow="hidden"
+        position="relative"
+      >
         {loading && (
           <Box
+            className="app-loader"
             position="absolute"
             top="50%"
             left="50%"
@@ -94,6 +106,7 @@ export const App: React.FC<AppProps> = ({ initialWorkflowId }) => {
 
         {error && (
           <Box
+            className="app-error"
             color="#ff6b6b"
             p={4}
             m={4}
@@ -108,9 +121,16 @@ export const App: React.FC<AppProps> = ({ initialWorkflowId }) => {
           !loading &&
           !error &&
           (isChatWorkflow(workflow.input_schema) ? (
-            <ChatInterface workflowId={workflow.id} token="local_token" />
+            <div className="app-workflow app-workflow--chat">
+              <ChatInterface workflowId={workflow.id} token="local_token" />
+            </div>
           ) : (
-            <MiniApp workflowId={workflow.id} schema={workflow.input_schema} />
+            <div className="app-workflow app-workflow--mini">
+              <MiniApp
+                workflowId={workflow.id}
+                schema={workflow.input_schema}
+              />
+            </div>
           ))}
       </Box>
     </Flex>

@@ -1,22 +1,22 @@
+/* Reset */
 html, body {
-  background-color: #222;
-  color: #ffffff;
+  margin: 0;
+  padding: 0;
+  height: 100vh;
 }
 
 body {
-  /* font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; */
-  margin: 0;
-  padding: 0;
   overflow: hidden;
-  /* -webkit-app-region: drag; */
-  height: 100vh;
   display: flex;
   flex-direction: column;
 }
-h1 {
-  -webkit-app-region: drag;
+
+#root {
+  min-height: 100vh;
+  width: 100%;
 }
 
+/* Only keep window control styles since they're system-specific */
 .window-controls {
   position: fixed;
   top: 0;
@@ -32,25 +32,8 @@ h1 {
   border: none;
   outline: none;
   background: transparent;
-  color: #ffffff;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background-color 0.2s;
-}
-
-.window-control-button:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-}
-
-#close-button:hover {
-  background-color: #e81123;
-}
-
-/* Add a splash screen style */
-#root {
-  background-color: #222;
-  min-height: 100vh;
-  width: 100%;
 }
