@@ -44,6 +44,7 @@ import { SchemaInput } from "./SchemaInput";
 import { Composer } from "./Composer";
 import { Provider } from "./ui/provider";
 import apps_theme from "../styles/theme/apps_theme";
+import ChatInterface from "./ChatInterface";
 
 // Sample schema for SchemaInput
 const sampleSchema = {
@@ -311,7 +312,7 @@ export function ComponentTest({ className }: ComponentTestProps) {
                 </Box>
               </Section>
 
-              <Section title="Chat Components">
+              <Section title="Composer">
                 <Box p={4} borderWidth="1px" borderRadius="md">
                   <Composer
                     onSubmit={console.log}
