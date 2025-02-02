@@ -62,6 +62,9 @@ const tokens = {
 /* -------------------------------------------------------------------------- */
 const semanticTokens = {
   colors: {
+    text: {
+      value: { base: "{colors.textLight}", _dark: "{colors.textDark}" },
+    },
     borderColor: {
       value: { base: "red", _dark: "blue" },
     },
@@ -77,33 +80,43 @@ const semanticTokens = {
     bg3: {
       value: { base: "{colors.gray.400}", _dark: "{colors.gray.600}" },
     },
-    text: {
-      value: { base: "{colors.textLight}", _dark: "{colors.textDark}" },
-    },
+
     textGray: {
       value: {
-        default: "{colors.textGrayLight}",
+        base: "{colors.textGrayLight}",
         _dark: "{colors.textGrayDark}",
       },
     },
     border: {
-      value: { default: "{colors.borderLight}", _dark: "{colors.borderDark}" },
+      value: { base: "{colors.borderLight}", _dark: "{colors.borderDark}" },
     },
     secondary: {
       value: {
-        default: "{colors.secondaryLight}",
+        base: "{colors.secondaryLight}",
         _dark: "{colors.secondaryDark}",
       },
     },
     buttonBg: {
       value: {
-        default: "{colors.buttonBgLight}",
+        base: "{colors.buttonBgLight}",
+        _dark: "{colors.buttonBgDark}",
+      },
+    },
+    buttonHover: {
+      value: {
+        base: "{colors.gray.50}",
+        _dark: "{colors.gray.400}",
+      },
+    },
+    buttonActiveBg: {
+      value: {
+        base: "{colors.buttonBgLight}",
         _dark: "{colors.buttonBgDark}",
       },
     },
     inputBg: {
       value: {
-        default: "{colors.inputBgLight}",
+        base: "{colors.inputBgLight}",
         _dark: "{colors.inputBgDark}",
       },
     },
@@ -112,34 +125,34 @@ const semanticTokens = {
     warning: { value: "{colors.warning}" },
 
     gray50: {
-      value: { default: "{colors.gray.50}", _dark: "{colors.gray.900}" },
+      value: { base: "{colors.gray.50}", _dark: "{colors.gray.900}" },
     },
     gray100: {
-      value: { default: "{colors.gray.100}", _dark: "{colors.gray.800}" },
+      value: { base: "{colors.gray.100}", _dark: "{colors.gray.800}" },
     },
     gray200: {
-      value: { default: "{colors.gray.200}", _dark: "{colors.gray.700}" },
+      value: { base: "{colors.gray.200}", _dark: "{colors.gray.700}" },
     },
     gray300: {
-      value: { default: "{colors.gray.300}", _dark: "{colors.gray.600}" },
+      value: { base: "{colors.gray.300}", _dark: "{colors.gray.600}" },
     },
     gray400: {
-      value: { default: "{colors.gray.400}", _dark: "{colors.gray.500}" },
+      value: { base: "{colors.gray.400}", _dark: "{colors.gray.500}" },
     },
     gray500: {
-      value: { default: "{colors.gray.500}", _dark: "{colors.gray.400}" },
+      value: { base: "{colors.gray.500}", _dark: "{colors.gray.400}" },
     },
     gray600: {
-      value: { default: "{colors.gray.600}", _dark: "{colors.gray.300}" },
+      value: { base: "{colors.gray.600}", _dark: "{colors.gray.300}" },
     },
     gray700: {
-      value: { default: "{colors.gray.700}", _dark: "{colors.gray.200}" },
+      value: { base: "{colors.gray.700}", _dark: "{colors.gray.200}" },
     },
     gray800: {
-      value: { default: "{colors.gray.800}", _dark: "{colors.gray.100}" },
+      value: { base: "{colors.gray.800}", _dark: "{colors.gray.100}" },
     },
     gray900: {
-      value: { default: "{colors.gray.900}", _dark: "{colors.gray.50}" },
+      value: { base: "{colors.gray.900}", _dark: "{colors.gray.50}" },
     },
   },
 };

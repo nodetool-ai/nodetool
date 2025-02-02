@@ -37,7 +37,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           bg: "buttonHover",
         }}
         _active={{
-          bg: "buttonBg",
+          bg: "buttonActiveBg",
         }}
         {...rest}
       >
