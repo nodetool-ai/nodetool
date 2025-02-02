@@ -48,24 +48,20 @@ const InputContextMenu: React.FC = () => {
     setConnectableType: state.setTypeMetadata,
     setSourceHandle: state.setSourceHandle
   }));
-  const setSearchTerm = useNodeMenuStore((state) => state.setSearchTerm);
   const handleOpenNodeMenu = useCallback(
     (event?: React.MouseEvent<HTMLElement>) => {
       if (event) {
         event.preventDefault();
         event.stopPropagation();
       }
-      openNodeMenu(
-        getMousePosition().x,
-        getMousePosition().y,
-        true,
-        type?.type || "",
-        "target",
-        ""
-      );
-      closeContextMenu();
+      openNodeMenu({
+        x: getMousePosition().x,
+        y: getMousePosition().y,
+        connectDirection: "target",
+        dropType: type?.type || ""
+      });
     },
-    [setSearchTerm]
+    [openNodeMenu]
   );
   const { createNode, addNode, edges, setEdges, generateEdgeId } = useNodes(
     (state) => ({

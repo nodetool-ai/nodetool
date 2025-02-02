@@ -133,12 +133,6 @@ const Inspector: React.FC = () => {
     findNode: state.findNode
   }));
   const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
-  const setHighlightedNamespaces = useNodeMenuStore(
-    (state) => state.setHighlightedNamespaces
-  );
-  const setSelectedPath = useNodeMenuStore((state) => state.setSelectedPath);
-  const setHoveredNode = useNodeMenuStore((state) => state.setHoveredNode);
-
   const selectedNode = getSelectedNodes()[0];
   const metadata = useMetadataStore((state) =>
     state.getMetadata(selectedNode?.type ?? "")
@@ -149,11 +143,10 @@ const Inspector: React.FC = () => {
   }
 
   const handleOpenNodeMenu = () => {
-    openNodeMenu(500, 200, false, metadata.namespace);
-    requestAnimationFrame(() => {
-      setSelectedPath(metadata.namespace.split("."));
-      setHoveredNode(metadata);
-      setHighlightedNamespaces(metadata.namespace.split("."));
+    openNodeMenu({
+      x: 500,
+      y: 200,
+      dropType: metadata.namespace
     });
   };
 

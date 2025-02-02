@@ -210,7 +210,10 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ isMinZoom }) => {
     [" "],
     useCallback(() => {
       const mousePos = getMousePosition();
-      openNodeMenu(mousePos.x, mousePos.y);
+      openNodeMenu({
+        x: mousePos.x,
+        y: mousePos.y
+      });
     }, [openNodeMenu])
   );
 

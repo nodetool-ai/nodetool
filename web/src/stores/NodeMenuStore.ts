@@ -23,13 +23,21 @@ export type SearchResultGroup = {
   nodes: NodeMetadata[];
 };
 
+export interface OpenNodeMenuParams {
+  x: number;
+  y: number;
+  dropType?: string;
+  connectDirection?: ConnectDirection;
+  searchTerm?: string;
+  selectedPath?: string[];
+}
+
 type NodeMenuStore = {
   isMenuOpen: boolean;
   dragToCreate: boolean;
   setDragToCreate: (dragToCreate: boolean) => void;
   connectDirection: ConnectDirection;
   setConnectDirection: (direction: ConnectDirection) => void;
-  openedByDrop: boolean;
   dropType: string;
   menuPosition: { x: number; y: number };
   setMenuPosition: (x: number, y: number) => void;
@@ -45,17 +53,8 @@ type NodeMenuStore = {
   setSelectedPath: (path: string[]) => void;
   performSearch: (term: string, searchId?: number) => void;
   updateHighlightedNamespaces: (results: NodeMetadata[]) => void;
-
-  openNodeMenu: (
-    x: number,
-    y: number,
-    openedByDrop?: boolean,
-    dropType?: string,
-    connectDirection?: ConnectDirection,
-    searchTerm?: string
-  ) => void;
+  openNodeMenu: (params: OpenNodeMenuParams) => void;
   closeNodeMenu: () => void;
-
   searchResults: NodeMetadata[];
   allSearchMatches: NodeMetadata[];
   setSearchResults: (results: NodeMetadata[]) => void;
@@ -63,8 +62,6 @@ type NodeMenuStore = {
   setHighlightedNamespaces: (namespaces: string[]) => void;
   hoveredNode: NodeMetadata | null;
   setHoveredNode: (node: NodeMetadata | null) => void;
-
-  // DraggableNodeDocumentation
   selectedNodeType: string | null;
   setSelectedNodeType: (nodeType: string | null) => void;
   documentationPosition: { x: number; y: number };
@@ -297,7 +294,6 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
   return {
     // menu
     isMenuOpen: false,
-    openedByDrop: false,
     dropType: "",
     dragToCreate: false,
     selectedInputType: "",
@@ -540,22 +536,18 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
     // Add back missing required properties
     clickPosition: { x: 0, y: 0 },
 
-    openNodeMenu: (
-      x: number,
-      y: number,
-      openedByDrop?: boolean,
-      dropType?: string,
-      connectDirection?: ConnectDirection,
-      searchTerm?: string
-    ) => {
-      set({ clickPosition: { x, y } });
+    openNodeMenu: (params: OpenNodeMenuParams) => {
+      set({ clickPosition: { x: params.x, y: params.y } });
       const { menuWidth, menuHeight } = get();
       const maxPosX = window.innerWidth - menuWidth;
       const maxPosY = window.innerHeight - menuHeight - 40;
-      const constrainedX = Math.min(Math.max(x, 0), maxPosX);
+      const constrainedX = Math.min(Math.max(params.x, 0), maxPosX);
       const minPosY = 80;
       const menuOffset = 20;
-      const constrainedY = Math.min(Math.max(y + menuOffset, minPosY), maxPosY);
+      const constrainedY = Math.min(
+        Math.max(params.y + menuOffset, minPosY),
+        maxPosY
+      );
 
       const panelStore = usePanelStore.getState();
       if (panelStore.panel.activeView === "nodes") {
@@ -565,18 +557,21 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
       set({
         isMenuOpen: true,
         menuPosition: { x: constrainedX, y: constrainedY },
-        openedByDrop: openedByDrop || false,
-        dropType: dropType || "",
-        connectDirection: connectDirection || null,
-        selectedPath: [],
+        dropType: params.dropType || "",
+        connectDirection: params.connectDirection || null,
+        selectedPath: params.selectedPath || [],
         selectedInputType:
-          dropType && connectDirection === "target" ? dropType : "",
+          params.dropType && params.connectDirection === "target"
+            ? params.dropType
+            : "",
         selectedOutputType:
-          dropType && connectDirection === "source" ? dropType : ""
+          params.dropType && params.connectDirection === "source"
+            ? params.dropType
+            : ""
       });
 
       setTimeout(() => {
-        get().performSearch(searchTerm || "");
+        get().performSearch(params.searchTerm || "");
       }, 0);
     },
 
@@ -586,13 +581,8 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
           set({ dragToCreate: false });
           return;
         }
-        if (get().openedByDrop) {
-          set({ openedByDrop: false });
-          return;
-        }
         set({
           searchTerm: "",
-          openedByDrop: false,
           dropType: "",
           dragToCreate: false,
           connectDirection: null,

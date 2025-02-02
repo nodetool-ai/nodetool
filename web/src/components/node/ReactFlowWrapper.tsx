@@ -182,7 +182,10 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
         if (isMenuOpen) {
           closeNodeMenu();
         } else {
-          openNodeMenu(e.clientX, e.clientY);
+          openNodeMenu({
+            x: e.clientX,
+            y: e.clientY
+          });
         }
       } else {
         closeNodeMenu();

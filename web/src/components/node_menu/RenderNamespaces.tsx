@@ -2,6 +2,7 @@ import React, { useMemo } from "react";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import NamespaceItem from "./NamespaceItem";
 import { NamespaceTree } from "../../hooks/useNamespaceTree";
+import { isEqual } from "lodash";
 
 interface RenderNamespacesProps {
   tree: NamespaceTree;
@@ -90,4 +91,4 @@ const RenderNamespaces: React.FC<RenderNamespacesProps> = ({
   );
 };
 
-export default React.memo(RenderNamespaces);
+export default React.memo(RenderNamespaces, isEqual);
