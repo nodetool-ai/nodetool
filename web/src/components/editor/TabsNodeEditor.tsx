@@ -8,7 +8,7 @@ import { MIN_ZOOM } from "../../config/constants";
 import { useWorkflowManager } from "../../contexts/NodeContext";
 import { Workflow } from "../../stores/ApiTypes";
 import NodeEditor from "../node_editor/NodeEditor";
-import { DragEvent } from "react";
+import { DragEvent, WheelEvent } from "react";
 import { useResizePanel } from "../../hooks/handlers/useResizePanel";
 
 const styles = (theme: any) =>
@@ -226,12 +226,18 @@ const TabsNodeEditor = () => {
   const { collapsed: panelLeftCollapsed, size: panelSize } =
     useResizePanel("left");
 
+  const handleWheel = (e: WheelEvent<HTMLDivElement>) => {
+    const tabsContainer = e.currentTarget;
+    tabsContainer.scrollLeft += e.deltaY;
+    e.preventDefault();
+  };
+
   return (
     <div
       css={styles}
       style={{ marginLeft: panelLeftCollapsed ? "0" : panelSize - 65 }}
     >
-      <div className="tabs">
+      <div className="tabs" onWheel={handleWheel}>
         {listWorkflows().map((workflow) => (
           <div
             key={workflow.id}
