@@ -14,14 +14,12 @@ Use cases:
 **Tags:** video, interpolation, transitions, frames, smoothing, img2vid, image-to-video
 
 **Fields:**
-- **frames**: List of frames to interpolate between (minimum 2 frames required) (list)
+- **frames**: List of frames to interpolate between (minimum 2 frames required) (list[nodetool.metadata.types.ImageRef])
 - **output_fps**: Output frames per second (int)
 - **recursive_interpolation_passes**: Number of recursive interpolation passes (higher = smoother) (int)
 
 
 ## AspectRatio
-
-An enumeration.
 
 ## CogVideoX
 
@@ -49,8 +47,6 @@ Use cases:
 
 
 ## FaceModelResolution
-
-An enumeration.
 
 ## FastSVD
 
@@ -96,8 +92,6 @@ Use cases:
 
 
 ## KlingDuration
-
-An enumeration.
 
 ## KlingVideo
 
@@ -221,8 +215,6 @@ Use cases:
 
 ## PreprocessType
 
-An enumeration.
-
 ## SadTalker
 
 Generate talking face animations from a single image and audio file. Features configurable face model resolution and expression controls.
@@ -268,9 +260,5 @@ Use cases:
 
 ## VideoDuration
 
-An enumeration.
-
 ## VideoSize
-
-An enumeration.
 

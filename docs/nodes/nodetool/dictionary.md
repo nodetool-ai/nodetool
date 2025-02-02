@@ -12,7 +12,7 @@ Use cases:
 **Tags:** dictionary, maximum, label, argmax
 
 **Fields:**
-- **scores**: Dictionary mapping labels to their corresponding scores/values (dict)
+- **scores**: Dictionary mapping labels to their corresponding scores/values (dict[str, float])
 
 
 ## Combine
@@ -27,13 +27,11 @@ Use cases:
 **Tags:** dictionary, merge, update, +, add, concatenate
 
 **Fields:**
-- **dict_a** (dict)
-- **dict_b** (dict)
+- **dict_a** (dict[str, typing.Any])
+- **dict_b** (dict[str, typing.Any])
 
 
 ## ConflictResolution
-
-An enumeration.
 
 ## Filter
 
@@ -47,8 +45,8 @@ Use cases:
 **Tags:** dictionary, filter, select
 
 **Fields:**
-- **dictionary** (dict)
-- **keys** (list)
+- **dictionary** (dict[str, typing.Any])
+- **keys** (list[str])
 
 
 ## GetValue
@@ -63,9 +61,9 @@ Use cases:
 **Tags:** dictionary, get, value, key
 
 **Fields:**
-- **dictionary** (dict)
+- **dictionary** (dict[str, typing.Any])
 - **key** (str)
-- **default** (typing.Any)
+- **default** (Any)
 
 
 ## MakeDictionary
@@ -109,7 +107,7 @@ Use cases:
 **Tags:** dictionary, reduce, aggregate
 
 **Fields:**
-- **dictionaries**: List of dictionaries to be reduced (list)
+- **dictionaries**: List of dictionaries to be reduced (list[dict[str, typing.Any]])
 - **key_field**: The field to use as the key in the resulting dictionary (str)
 - **value_field**: Optional field to use as the value. If not specified, the entire dictionary (minus the key field) will be used as the value. (str | None)
 - **conflict_resolution**: How to handle conflicts when the same key appears multiple times (ConflictResolution)
@@ -127,7 +125,7 @@ Use cases:
 **Tags:** dictionary, remove, delete
 
 **Fields:**
-- **dictionary** (dict)
+- **dictionary** (dict[str, typing.Any])
 - **key** (str)
 
 
@@ -143,8 +141,8 @@ Use cases:
 **Tags:** dictionary, add, update
 
 **Fields:**
-- **dictionary** (dict)
-- **new_pairs** (dict)
+- **dictionary** (dict[str, typing.Any])
+- **new_pairs** (dict[str, typing.Any])
 
 
 ## Zip
@@ -159,7 +157,7 @@ Use cases:
 **Tags:** dictionary, create, zip
 
 **Fields:**
-- **keys** (list)
-- **values** (list)
+- **keys** (list[typing.Any])
+- **values** (list[typing.Any])
 
 

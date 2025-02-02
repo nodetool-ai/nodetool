@@ -2,11 +2,7 @@
 
 ## AspectRatio
 
-An enumeration.
-
 ## AspectRatioLuma
-
-An enumeration.
 
 ## AuraFlowV03
 
@@ -90,8 +86,6 @@ Use cases:
 
 
 ## ControlTypeEnum
-
-An enumeration.
 
 ## DiffusionEdge
 
@@ -450,8 +444,6 @@ Hyper SDXL is a hyper-charged version of SDXL that delivers exceptional performa
 
 ## IdeogramStyle
 
-An enumeration.
-
 ## IdeogramV2
 
 Ideogram V2 is a state-of-the-art image generation model optimized for commercial and creative use, featuring exceptional typography handling and realistic outputs.
@@ -505,8 +497,6 @@ Illusion Diffusion is a model that creates illusions conditioned on an input ima
 
 ## ImageSizePreset
 
-An enumeration.
-
 ## LCMDiffusion
 
 Latent Consistency Models (SDXL & SDv1.5) Text to Image produces high-quality images
@@ -525,8 +515,6 @@ Latent Consistency Models (SDXL & SDv1.5) Text to Image produces high-quality im
 
 
 ## LoraModel
-
-An enumeration.
 
 ## LumaPhoton
 
@@ -552,15 +540,9 @@ Luma Photon Flash is the most creative, personalizable, and intelligent visual m
 
 ## ModelNameEnum
 
-An enumeration.
-
 ## ModelNameFastLCM
 
-An enumeration.
-
 ## ModelNameLCM
-
-An enumeration.
 
 ## OmniGenV1
 
@@ -589,8 +571,6 @@ Use cases:
 
 
 ## PerformanceEnum
-
-An enumeration.
 
 ## PlaygroundV25
 
@@ -644,11 +624,7 @@ Recraft V3 is a text-to-image model with the ability to generate long texts, vec
 
 ## RefinerModelEnum
 
-An enumeration.
-
 ## SafetyCheckerVersion
-
-An enumeration.
 
 ## SanaV1
 
@@ -727,8 +703,6 @@ Stable Diffusion 3 Medium (Text to Image) is a Multimodal Diffusion Transformer 
 
 
 ## StylePreset
-
-An enumeration.
 
 ## Switti
 

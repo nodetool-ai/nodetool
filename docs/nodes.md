@@ -8,6 +8,7 @@
 - [nodetool.nodes.fal](nodes/fal.md)
 - [nodetool.nodes.google](nodes/google.md)
 - [nodetool.nodes.huggingface](nodes/huggingface.md)
+- [nodetool.nodes.lib](nodes/lib.md)
 - [nodetool.nodes.nodetool](nodes/nodetool.md)
 - [nodetool.nodes.ollama](nodes/ollama.md)
 - [nodetool.nodes.openai](nodes/openai.md)

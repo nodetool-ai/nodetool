@@ -8,13 +8,13 @@
 
 **Args:**
 - **context (ProcessingContext)**
-- **model_class (type)**
+- **model_class (type[~T])**
 - **model_id (str)**
 - **variant (str | None) (default: fp16)**
 - **torch_dtype (torch.dtype | None) (default: torch.float16)**
 - **path (str | None) (default: None)**
 - **skip_cache (bool) (default: False)**
-- **kwargs (typing.Any)**
+- **kwargs (Any)**
 
 **Returns:** ~T
 
@@ -23,10 +23,10 @@
 **Args:**
 - **context (ProcessingContext)**
 - **pipeline_task (str)**
-- **model_id (typing.Any)**
+- **model_id (Any)**
 - **device (str | None) (default: None)**
 - **torch_dtype (torch.dtype | None) (default: torch.float16)**
-- **kwargs (typing.Any)**
+- **kwargs (Any)**
 
 ### move_to_device
 

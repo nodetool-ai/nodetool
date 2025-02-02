@@ -40,15 +40,15 @@ If the property is dynamic, it will be added to the _dynamic_properties dictiona
 This method handles type conversion for enums, lists, and objects with 'model_validate' method.
 **Args:**
 - **name (str)**
-- **value (typing.Any)**
+- **value (Any)**
 
 ### convert_output
 
 **Args:**
-- **context (typing.Any)**
-- **output (typing.Any)**
+- **context (Any)**
+- **output (Any)**
 
-**Returns:** typing.Any
+**Returns:** Any
 
 ### finalize
 
@@ -94,7 +94,7 @@ Create a Node object from a dictionary representation.
 
 - **Node**: The created Node object.
 **Args:**
-- **node (dict)**
+- **node (dict[str, typing.Any])**
 - **skip_errors (bool) (default: False)**
 
 **Returns:** BaseNode
@@ -113,7 +113,7 @@ Initialize the node when workflow starts.
 
 Responsible for setting up the node, including loading any necessary GPU models.
 **Args:**
-- **context (typing.Any)**
+- **context (Any)**
 - **skip_cache (bool) (default: False)**
 
 ### is_assignable
@@ -132,7 +132,7 @@ Check if a value can be assigned to a specific property of the node.
 - **bool**: True if the value can be assigned to the property, False otherwise.
 **Args:**
 - **name (str)**
-- **value (typing.Any)**
+- **value (Any)**
 
 **Returns:** bool
 
@@ -157,9 +157,9 @@ Pre-process the node before processing.
 This will be called before cache key is computed.
 Default implementation generates a seed for any field named seed.
 **Args:**
-- **context (typing.Any)**
+- **context (Any)**
 
-**Returns:** typing.Any
+**Returns:** Any
 
 ### process_with_gpu
 
@@ -167,9 +167,9 @@ Process the node with GPU.
 Default implementation calls the process method in inference mode.
 For training nodes, this method should be overridden.
 **Args:**
-- **context (typing.Any)**
+- **context (Any)**
 
-**Returns:** typing.Any
+**Returns:** Any
 
 ### properties_for_client
 
@@ -199,7 +199,7 @@ If the property is dynamic, it will be read from the _dynamic_properties diction
 **Args:**
 - **name (str)**
 
-**Returns:** typing.Any
+**Returns:** Any
 
 ### required_inputs
 
@@ -223,9 +223,9 @@ Prepares the node result for inclusion in a NodeUpdate message.
 
 This method is used when the node is sending updates for all outputs.
 **Args:**
-- **result (dict)**
+- **result (dict[str, typing.Any])**
 
-**Returns:** dict
+**Returns:** dict[str, typing.Any]
 
 ### result_for_client
 
@@ -248,9 +248,9 @@ Prepares the node result for inclusion in a NodeUpdate message.
 - Converts Pydantic models to dictionaries.
 - Serializes binary data to base64.
 **Args:**
-- **result (dict)**
+- **result (dict[str, typing.Any])**
 
-**Returns:** dict
+**Returns:** dict[str, typing.Any]
 
 ### send_update
 
@@ -264,7 +264,7 @@ Send a status update for the node to the client.
 - **result (dict[str, Any], optional)**: The result of the node's processing. Defaults to {}.
 - **properties (list[str], optional)**: The properties to send to the client. Defaults to None.
 **Args:**
-- **context (typing.Any)**
+- **context (Any)**
 - **status (str)**
 - **result (dict[str, typing.Any] | None) (default: None)**
 - **properties (list[str] | None) (default: None)**
@@ -289,14 +289,14 @@ Set multiple node properties at once.
 
 Errors during property assignment are printed regardless of the skip_errors flag.
 **Args:**
-- **properties (dict)**
+- **properties (dict[str, typing.Any])**
 - **skip_errors (bool) (default: False)**
 
 ### to_dict
 
 **Args:**
 
-**Returns:** dict
+**Returns:** dict[str, typing.Any]
 
 ### validate
 
@@ -312,7 +312,7 @@ Validate the node's inputs before processing.
 
 - **ValueError**: If any input is missing or invalid.
 **Args:**
-- **input_edges (list)**
+- **input_edges (list[nodetool.types.graph.Edge])**
 
 
 ## Comment
@@ -325,7 +325,7 @@ comment (list[Any]): The content of the comment, stored as a list of elements.
 
 **Fields:**
 - **headline**: The headline for this comment. (str)
-- **comment**: The comment for this node. (list)
+- **comment**: The comment for this node. (list[typing.Any])
 - **comment_color**: The color for the comment. (str)
 
 
@@ -371,9 +371,9 @@ value (Any): The value of the output.
 ### result_for_client
 
 **Args:**
-- **result (dict)**
+- **result (dict[str, typing.Any])**
 
-**Returns:** dict
+**Returns:** dict[str, typing.Any]
 
 
 ## Preview
@@ -385,16 +385,22 @@ value (Any): The value to be previewed.
 **Tags:** 
 
 **Fields:**
-- **value**: The value to preview. (typing.Any)
+- **value**: The value to preview. (Any)
 - **name**: The name of the preview node. (str)
 
 ### result_for_client
 
 **Args:**
-- **result (dict)**
+- **result (dict[str, typing.Any])**
 
-**Returns:** dict
+**Returns:** dict[str, typing.Any]
 
+
+## SecurityError
+
+Exception raised for security errors
+
+## SecurityScope
 
 ### add_comfy_classname
 
@@ -412,7 +418,7 @@ To avoid name conflicts, we store comfy classes in a separate dictionary.
 If the node class has a 'comfy_class' attribute, it uses that as the class name.
 Otherwise, it uses the actual class name.
 **Args:**
-- **node_class (type)**
+- **node_class (type['BaseNode'])**
 
 **Returns:** None
 
@@ -426,7 +432,7 @@ Add a node type to the registry.
 - **node_type (str)**: The node_type of the node.
 - **node_class (type[Node])**: The class of the node.
 **Args:**
-- **node_class (type)**
+- **node_class (type['BaseNode'])**
 
 **Returns:** None
 
@@ -494,6 +500,14 @@ Retrieve all registered and visible node classes.
 A decorator that implements memoization for class methods using a functional approach.
 **Args:**
 - **func (typing.Callable[..., ~T])**
+
+### node_allowed_in_production
+
+Validate if a node class is allowed in production
+**Args:**
+- **node_class (type['BaseNode'])**
+
+**Returns:** bool
 
 ### split_camel_case
 

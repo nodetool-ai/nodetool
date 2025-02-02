@@ -71,3 +71,5 @@ Convert speech to text
 **Args:**
 
 
+## WhisperLanguage
+

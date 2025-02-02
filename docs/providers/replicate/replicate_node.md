@@ -31,9 +31,9 @@ Convert the output to the specified type.
 The converted output.
 **Args:**
 - **context (ProcessingContext)**
-- **output (typing.Any)**
+- **output (Any)**
 
-**Returns:** typing.Any
+**Returns:** Any
 
 ### get_output_index
 
@@ -70,7 +70,7 @@ Result of the prediction.
 
 **Args:**
 - **model_id (str)**
-- **model_info (dict)**
+- **model_info (dict[str, typing.Any])**
 
 ### capitalize
 
@@ -104,7 +104,7 @@ Converts an enum value to its corresponding value.
 
 - **Any**: The converted value.
 **Args:**
-- **value (typing.Any)**
+- **value (Any)**
 
 ### convert_output_value
 
@@ -128,7 +128,7 @@ Performs automatic conversions using heuristics.
 
 - **TypeError**: If the value is not of the expected type.
 **Args:**
-- **value (typing.Any)**
+- **value (Any)**
 - **t (typing.Type[typing.Any])**
 - **output_index (int) (default: 0)**
 - **output_key (str) (default: output)**

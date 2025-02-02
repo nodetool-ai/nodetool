@@ -31,7 +31,7 @@ Use cases:
 
 **Fields:**
 - **video**: The input video to add subtitles to. (VideoRef)
-- **chunks**: Audio chunks to add as subtitles. (list)
+- **chunks**: Audio chunks to add as subtitles. (list[nodetool.metadata.types.AudioChunk])
 - **font**: The font to use. (SubtitleTextFont)
 - **align**: Vertical alignment of subtitles. (SubtitleTextAlignment)
 - **font_size**: The font size. (int)
@@ -113,7 +113,7 @@ Use cases:
 **Tags:** video, frames, combine, sequence
 
 **Fields:**
-- **frames**: The frames to combine into a video. (list)
+- **frames**: The frames to combine into a video. (list[nodetool.metadata.types.ImageRef])
 - **fps**: The FPS of the output video. (float)
 
 
@@ -162,9 +162,9 @@ Use cases:
 ### result_for_client
 
 **Args:**
-- **result (dict)**
+- **result (dict[str, typing.Any])**
 
-**Returns:** dict
+**Returns:** dict[str, typing.Any]
 
 
 ## Fps

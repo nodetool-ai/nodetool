@@ -64,8 +64,6 @@ Use cases:
 
 ## OCRType
 
-An enumeration.
-
 ## VisualQuestionAnswering
 
 Answers questions about images.

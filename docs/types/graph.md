@@ -24,9 +24,9 @@
 - **id** (str)
 - **parent_id** (str | None)
 - **type** (str)
-- **data** (typing.Any)
-- **ui_properties** (typing.Any)
-- **dynamic_properties** (dict)
+- **data** (Any)
+- **ui_properties** (Any)
+- **dynamic_properties** (dict[str, typing.Any])
 
 
 ### get_input_schema

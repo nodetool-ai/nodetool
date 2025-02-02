@@ -8,9 +8,9 @@
 
 **Args:**
 - **context (ProcessingContext)**
-- **output (typing.Any)**
+- **output (Any)**
 
-**Returns:** typing.Any
+**Returns:** Any
 
 ### extra_params
 
@@ -27,7 +27,7 @@
 - **params (dict[str, typing.Any] | None) (default: None)**
 - **data (bytes | None) (default: None)**
 
-**Returns:** typing.Any
+**Returns:** Any
 
 
 ### progress_callback

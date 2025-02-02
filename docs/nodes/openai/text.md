@@ -23,11 +23,9 @@ These vectors capture semantic meaning, enabling:
 
 ## EmbeddingModel
 
-An enumeration.
+## OpenAIText
 
-## GPT
-
-Generate natural language responses using GPT models.
+Generate natural language responses using OpenAI models.
 
 Leverages OpenAI's GPT models to:
 - Generate human-like text responses
@@ -40,18 +38,15 @@ Leverages OpenAI's GPT models to:
 **Tags:** llm, text-generation, chatbot, question-answering
 
 **Fields:**
-- **model** (GPTModel)
+- **model** (OpenAIModel)
 - **system** (str)
 - **prompt** (str)
 - **image** (ImageRef)
 - **presence_penalty** (float)
 - **frequency_penalty** (float)
-- **temperature** (float)
 - **max_tokens** (int)
 - **top_p** (float)
 
 
 ## ResponseFormat
-
-An enumeration.
 

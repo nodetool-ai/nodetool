@@ -13,12 +13,10 @@ Use cases:
 **Tags:** boolean, all, check, logic, condition, flow-control, branch
 
 **Fields:**
-- **values**: List of boolean values to check (list)
+- **values**: List of boolean values to check (list[bool])
 
 
 ## BooleanOperation
-
-An enumeration.
 
 ## Compare
 
@@ -32,14 +30,29 @@ Use cases:
 **Tags:** compare, condition, logic
 
 **Fields:**
-- **a**: First value to compare (typing.Any)
-- **b**: Second value to compare (typing.Any)
+- **a**: First value to compare (Any)
+- **b**: Second value to compare (Any)
 - **comparison**: Comparison operator to use (Comparison)
 
 
 ## Comparison
 
-An enumeration.
+## ConditionalSwitch
+
+Performs a conditional check on a boolean input and returns a value based on the result.
+
+Use cases:
+- Implement conditional logic in workflows
+- Create dynamic branches in workflows
+- Implement decision points in workflows
+
+**Tags:** if, condition, flow-control, branch, true, false, switch, toggle
+
+**Fields:**
+- **condition**: The condition to check (bool)
+- **if_true**: The value to return if the condition is true (Any)
+- **if_false**: The value to return if the condition is false (Any)
+
 
 ## IsIn
 
@@ -53,8 +66,8 @@ Use cases:
 **Tags:** membership, contains, check
 
 **Fields:**
-- **value**: The value to check for membership (typing.Any)
-- **options**: The list of options to check against (list)
+- **value**: The value to check for membership (Any)
+- **options**: The list of options to check against (list[typing.Any])
 
 
 ## IsNone
@@ -69,7 +82,7 @@ Use cases:
 **Tags:** null, none, check
 
 **Fields:**
-- **value**: The value to check for None (typing.Any)
+- **value**: The value to check for None (Any)
 
 
 ## LogicalOperator
@@ -116,6 +129,6 @@ Use cases:
 **Tags:** boolean, any, check, logic, condition, flow-control, branch
 
 **Fields:**
-- **values**: List of boolean values to check (list)
+- **values**: List of boolean values to check (list[bool])
 
 

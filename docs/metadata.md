@@ -4,7 +4,7 @@
 
 **Args:**
 - **type_meta (TypeMetadata)**
-- **value (typing.Any)**
+- **value (Any)**
 
 **Returns:** bool
 
