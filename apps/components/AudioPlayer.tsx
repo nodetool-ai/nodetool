@@ -3,9 +3,13 @@ import WaveSurfer from "wavesurfer.js";
 
 interface AudioPlayerProps {
   data: Uint8Array | string;
+  className?: string;
 }
 
-export const AudioPlayer: React.FC<AudioPlayerProps> = ({ data }) => {
+export const AudioPlayer: React.FC<AudioPlayerProps> = ({
+  data,
+  className,
+}) => {
   const waveformRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [timeDisplay, setTimeDisplay] = useState("0:00 / 0:00");
@@ -63,14 +67,27 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ data }) => {
   };
 
   return (
-    <div className="audio-controls-container">
-      <div ref={waveformRef} className="waveform" />
-      <div className="audio-controls">
-        <button className="play-button" onClick={togglePlay}>
+    <div
+      className={
+        className ? `audio-player-root ${className}` : "audio-player-root"
+      }
+      role="region"
+      aria-label="Audio player"
+    >
+      <div className="audio-player__waveform" ref={waveformRef} />
+      <div className="audio-player__controls">
+        <button
+          className={`audio-player__play-btn ${isPlaying ? "is-playing" : ""}`}
+          onClick={togglePlay}
+          aria-label={isPlaying ? "Pause" : "Play"}
+          aria-pressed={isPlaying}
+        >
           {isPlaying ? "⏸" : "▶"}
         </button>
       </div>
-      <div className="time-display">{timeDisplay}</div>
+      <div className="audio-player__time" aria-live="polite">
+        {timeDisplay}
+      </div>
     </div>
   );
 };

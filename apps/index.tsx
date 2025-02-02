@@ -1,11 +1,11 @@
 import React from "react";
+import "./index.css";
 import { createRoot } from "react-dom/client";
 import { App } from "./components/App";
 import { ComponentTest } from "./components/ComponentTest";
-import "./index.css";
 import { Provider } from "./components/ui/provider";
-
 const urlParams = new URLSearchParams(window.location.search);
+
 const workflowId = urlParams.get("workflow_id");
 const isTestPage = urlParams.get("test") === "true";
 

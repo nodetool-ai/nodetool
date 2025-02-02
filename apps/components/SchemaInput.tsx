@@ -1,7 +1,6 @@
 import React from "react";
 import { Input, Textarea, Box, Text, FieldLabel } from "@chakra-ui/react";
 import { Checkbox } from "./ui/checkbox";
-import { useColorModeValue } from "./ui/color-mode";
 import { Slider } from "./ui/slider";
 import { Field } from "./ui/field";
 import {
@@ -23,6 +22,7 @@ interface SchemaInputProps {
   schema: JSONSchema;
   value: any;
   onChange: (value: any) => void;
+  className?: string;
 }
 
 export const SchemaInput: React.FC<SchemaInputProps> = ({
@@ -30,10 +30,8 @@ export const SchemaInput: React.FC<SchemaInputProps> = ({
   schema,
   value,
   onChange,
+  className,
 }) => {
-  const dropzoneBg = useColorModeValue("gray.50", "gray.700");
-  const dropzoneBorder = useColorModeValue("gray.200", "gray.600");
-
   const renderInput = () => {
     if (!schema || typeof schema !== "object") {
       console.warn("Invalid schema provided to SchemaInput");
@@ -149,7 +147,12 @@ export const SchemaInput: React.FC<SchemaInputProps> = ({
   };
 
   return (
-    <Field width="100%">
+    <Field
+      className={
+        className ? `schema-input-root ${className}` : "schema-input-root"
+      }
+      width="100%"
+    >
       <FieldLabel>{schema.title || schema.label || name}</FieldLabel>
       {renderInput()}
     </Field>

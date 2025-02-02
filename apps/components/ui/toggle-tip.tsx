@@ -1,12 +1,14 @@
-import { Popover as ChakraPopover, IconButton, Portal } from "@chakra-ui/react"
-import * as React from "react"
-import { HiOutlineInformationCircle } from "react-icons/hi"
+import { Popover as ChakraPopover, IconButton, Portal } from "@chakra-ui/react";
+import * as React from "react";
+import { HiOutlineInformationCircle } from "react-icons/hi";
+import { useTheme } from "next-themes";
 
 export interface ToggleTipProps extends ChakraPopover.RootProps {
-  showArrow?: boolean
-  portalled?: boolean
-  portalRef?: React.RefObject<HTMLElement>
-  content?: React.ReactNode
+  showArrow?: boolean;
+  portalled?: boolean;
+  portalRef?: React.RefObject<HTMLElement>;
+  content?: React.ReactNode;
+  className?: string;
 }
 
 export const ToggleTip = React.forwardRef<HTMLDivElement, ToggleTipProps>(
@@ -17,8 +19,11 @@ export const ToggleTip = React.forwardRef<HTMLDivElement, ToggleTipProps>(
       portalled = true,
       content,
       portalRef,
+      className,
       ...rest
-    } = props
+    } = props;
+    const { resolvedTheme } = useTheme();
+    const currentTheme = resolvedTheme || "light";
 
     return (
       <ChakraPopover.Root
@@ -35,6 +40,14 @@ export const ToggleTip = React.forwardRef<HTMLDivElement, ToggleTipProps>(
               textStyle="xs"
               rounded="sm"
               ref={ref}
+              bg="tooltipBg"
+              color="text"
+              borderColor="border"
+              className={
+                className
+                  ? `toggle-tip-content ${className}`
+                  : "toggle-tip-content"
+              }
             >
               {showArrow && (
                 <ChakraPopover.Arrow>
@@ -46,25 +59,31 @@ export const ToggleTip = React.forwardRef<HTMLDivElement, ToggleTipProps>(
           </ChakraPopover.Positioner>
         </Portal>
       </ChakraPopover.Root>
-    )
-  },
-)
+    );
+  }
+);
 
 export const InfoTip = React.forwardRef<
   HTMLDivElement,
   Partial<ToggleTipProps>
 >(function InfoTip(props, ref) {
-  const { children, ...rest } = props
+  const { children, ...rest } = props;
+  const { resolvedTheme } = useTheme();
+  const currentTheme = resolvedTheme || "light";
+
   return (
     <ToggleTip content={children} {...rest} ref={ref}>
       <IconButton
         variant="ghost"
         aria-label="info"
         size="2xs"
-        colorPalette="gray"
+        color="text"
+        _hover={{
+          bg: "buttonHover",
+        }}
       >
         <HiOutlineInformationCircle />
       </IconButton>
     </ToggleTip>
-  )
-})
+  );
+});

@@ -19,9 +19,10 @@ interface DocumentRef {
 
 interface DocumentInputProps {
   onChange: (file: DocumentRef | null) => void;
+  className?: string;
 }
 
-const DocumentInput = ({ onChange }: DocumentInputProps) => {
+const DocumentInput = ({ onChange, className }: DocumentInputProps) => {
   const [file, setFile] = useState<File | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
 
@@ -69,7 +70,12 @@ const DocumentInput = ({ onChange }: DocumentInputProps) => {
   }, [onChange, pdfUrl]);
 
   return (
-    <Box width="100%">
+    <Box
+      className={
+        className ? `document-input-root ${className}` : "document-input-root"
+      }
+      width="100%"
+    >
       <FileUploadRoot onFileChange={handleFileChange} maxFiles={1} width="100%">
         <HStack width="100%">
           <FileUploadTrigger asChild>
