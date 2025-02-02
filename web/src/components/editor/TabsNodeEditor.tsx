@@ -56,6 +56,7 @@ const styles = (theme: any) =>
 
     "& .tab.active": {
       color: theme.palette.c_white,
+      textShadow: "0 0 2px rgba(0, 0, 0, 0.5)",
       backgroundColor: theme.palette.c_editor_bg_color,
       borderBottom: "none",
       zIndex: 1
