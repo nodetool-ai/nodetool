@@ -117,7 +117,6 @@ export interface NodeStoreState {
   getWorkflow: () => Workflow;
   newWorkflow: () => string;
   saveWorkflow: () => Promise<Workflow>;
-  syncWithWorkflowStore: () => void;
   getWorkflowIsDirty: () => boolean;
   setWorkflowDirty: (dirty: boolean) => void;
   updateFromWorkflowStore: () => Promise<void>;
@@ -400,25 +399,24 @@ export const createNodeStore = (workflow?: Workflow) =>
         setWorkflow: (workflow: Workflow) => {
           const nodeTypes = useMetadataStore.getState().nodeTypes;
           const addNodeType = useMetadataStore.getState().addNodeType;
-          get().syncWithWorkflowStore();
 
-          const modelFiles = extractModelFiles(workflow.graph.nodes);
-          setTimeout(() => {
-            tryCacheFiles(modelFiles).then((paths) => {
-              set({
-                missingModelFiles: paths.filter((m) => !m.downloaded)
-              });
-            });
+          // const modelFiles = extractModelFiles(workflow.graph.nodes);
+          // setTimeout(() => {
+          //   tryCacheFiles(modelFiles).then((paths) => {
+          //     set({
+          //       missingModelFiles: paths.filter((m) => !m.downloaded)
+          //     });
+          //   });
 
-            const modelRepos = extractModelRepos(workflow.graph.nodes);
-            tryCacheRepos(modelRepos).then((repos) => {
-              set({
-                missingModelRepos: repos
-                  .filter((r) => !r.downloaded)
-                  .map((r) => r.repo_id)
-              });
-            });
-          }, 1000);
+          //   const modelRepos = extractModelRepos(workflow.graph.nodes);
+          //   tryCacheRepos(modelRepos).then((repos) => {
+          //     set({
+          //       missingModelRepos: repos
+          //         .filter((r) => !r.downloaded)
+          //         .map((r) => r.repo_id)
+          //     });
+          //   });
+          // }, 1000);
 
           const shouldAutoLayout = get().shouldAutoLayout;
           const metadata = useMetadataStore.getState().metadata;
@@ -471,16 +469,8 @@ export const createNodeStore = (workflow?: Workflow) =>
         newWorkflow: () => {
           const newWorkflow = useWorkflowStore.getState().newWorkflow();
           get().setWorkflow(newWorkflow);
-          get().syncWithWorkflowStore();
           get().saveWorkflow();
           return newWorkflow.id;
-        },
-
-        /**
-         * Sync with workflow store.
-         */
-        syncWithWorkflowStore: () => {
-          useWorkflowStore.getState().add(get().getWorkflow());
         },
 
         /**
