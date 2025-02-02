@@ -48,6 +48,9 @@ import useSelect from "../../hooks/nodes/useSelect";
 import ConnectableNodes from "../context_menus/ConnectableNodes";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useNodes } from "../../contexts/NodeContext";
+import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+import { CircularProgress } from "@mui/material";
+import { Typography } from "@mui/material";
 
 declare global {
   interface Window {
@@ -63,8 +66,8 @@ const fitViewOptions = {
 };
 
 interface ReactFlowWrapperProps {
-  isMinZoom?: boolean;
   reactFlowWrapper: React.RefObject<HTMLDivElement>;
+  workflowId: string;
 }
 
 // Create a new component for context menus
@@ -100,8 +103,8 @@ const FlowBackground = memo(() => (
 ));
 
 const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
-  isMinZoom,
-  reactFlowWrapper
+  reactFlowWrapper,
+  workflowId
 }) => {
   const {
     nodes,
@@ -121,6 +124,9 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     onEdgeUpdate: state.onEdgeUpdate,
     shouldFitToScreen: state.shouldFitToScreen,
     setShouldFitToScreen: state.setShouldFitToScreen
+  }));
+  const { loadingState } = useWorkflowManager((state) => ({
+    loadingState: state.getLoadingState(workflowId)
   }));
 
   const { handleOnConnect, onConnectStart, onConnectEnd } =
@@ -182,7 +188,10 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
         if (isMenuOpen) {
           closeNodeMenu();
         } else {
-          openNodeMenu(e.clientX, e.clientY);
+          openNodeMenu({
+            x: e.clientX,
+            y: e.clientY
+          });
         }
       } else {
         closeNodeMenu();
@@ -326,6 +335,10 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   /* VIEWPORT */
   const defaultViewport = useMemo(() => ({ x: 0, y: 0, zoom: 1.5 }), []);
 
+  const isMinZoom = useMemo(() => {
+    return reactFlowInstance?.getZoom() <= MIN_ZOOM;
+  }, [reactFlowInstance]);
+
   const fitScreen = useCallback(() => {
     const fitOptions: FitViewOptions = {
       maxZoom: 8,
@@ -353,6 +366,23 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
       fitScreen();
     }, 10);
   }, [fitScreen]);
+
+  if (loadingState?.isLoading) {
+    return (
+      <div className="loading-overlay">
+        <CircularProgress /> Loading workflow...
+      </div>
+    );
+  }
+  if (loadingState?.error) {
+    return (
+      <div className="loading-overlay">
+        <Typography variant="body1" color="error">
+          {loadingState.error.message}
+        </Typography>
+      </div>
+    );
+  }
 
   return (
     <div className="reactflow-wrapper" ref={reactFlowWrapper}>

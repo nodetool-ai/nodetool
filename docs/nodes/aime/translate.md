@@ -2,8 +2,6 @@
 
 ## Language
 
-An enumeration.
-
 ## SeamlessCommunication
 
 Translates text from one language to another using the AIME API.

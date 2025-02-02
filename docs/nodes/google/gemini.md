@@ -9,7 +9,7 @@ Generate text using Gemini.
 **Fields:**
 - **model** (GeminiModel)
 - **prompt** (str)
-- **messages**: History of messages to send to the model. (list)
+- **messages**: History of messages to send to the model. (list[nodetool.metadata.types.Message])
 - **image**: Image to use for generation (ImageRef)
 - **audio**: Audio to use for generation (AudioRef)
 - **system_instruction**: Instructions for the model to steer it toward better performance.
@@ -48,6 +48,4 @@ Generate text using Gemini.
 
 
 ## GeminiModel
-
-An enumeration.
 

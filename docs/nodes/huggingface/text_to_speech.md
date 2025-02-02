@@ -39,7 +39,7 @@ Use cases:
 - Create voice content for apps, websites, or virtual assistants
 - Produce audio narrations for videos, presentations, or e-learning content
 
-**Tags:** tts, audio, speech, huggingface
+**Tags:** tts, audio, speech, huggingface, speak, voice
 
 **Fields:**
 - **model**: The model ID to use for text-to-speech generation (HFTextToSpeech)

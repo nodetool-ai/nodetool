@@ -7,31 +7,15 @@ Performs addition on two inputs.
 **Tags:** math, plus, add, addition, sum, +
 
 **Fields:**
-- **a** (int | float | nodetool.metadata.types.Tensor)
-- **b** (int | float | nodetool.metadata.types.Tensor)
-
-### operation
-
-**Args:**
-- **a (ndarray)**
-- **b (ndarray)**
-
-**Returns:** ndarray
+- **a** (int | float)
+- **b** (int | float)
 
 
 ## BinaryOperation
 
 **Fields:**
-- **a** (int | float | nodetool.metadata.types.Tensor)
-- **b** (int | float | nodetool.metadata.types.Tensor)
-
-### operation
-
-**Args:**
-- **a (ndarray)**
-- **b (ndarray)**
-
-**Returns:** ndarray
+- **a** (int | float)
+- **b** (int | float)
 
 
 ## Cosine
@@ -46,7 +30,7 @@ Use cases:
 **Tags:** math, trigonometry, cosine, cos
 
 **Fields:**
-- **angle_rad** (float | int | nodetool.metadata.types.Tensor)
+- **angle_rad** (float | int)
 
 
 ## Divide
@@ -56,16 +40,8 @@ Divides the first input by the second.
 **Tags:** math, division, arithmetic, quotient, /
 
 **Fields:**
-- **a** (int | float | nodetool.metadata.types.Tensor)
-- **b** (int | float | nodetool.metadata.types.Tensor)
-
-### operation
-
-**Args:**
-- **a (ndarray)**
-- **b (ndarray)**
-
-**Returns:** ndarray
+- **a** (int | float)
+- **b** (int | float)
 
 
 ## Modulus
@@ -80,16 +56,8 @@ Use cases:
 **Tags:** math, modulo, remainder, mod, %
 
 **Fields:**
-- **a** (int | float | nodetool.metadata.types.Tensor)
-- **b** (int | float | nodetool.metadata.types.Tensor)
-
-### operation
-
-**Args:**
-- **a (ndarray)**
-- **b (ndarray)**
-
-**Returns:** ndarray
+- **a** (int | float)
+- **b** (int | float)
 
 
 ## Multiply
@@ -99,16 +67,8 @@ Multiplies two inputs.
 **Tags:** math, product, times, *
 
 **Fields:**
-- **a** (int | float | nodetool.metadata.types.Tensor)
-- **b** (int | float | nodetool.metadata.types.Tensor)
-
-### operation
-
-**Args:**
-- **a (ndarray)**
-- **b (ndarray)**
-
-**Returns:** ndarray
+- **a** (int | float)
+- **b** (int | float)
 
 
 ## Power
@@ -123,8 +83,8 @@ Use cases:
 **Tags:** math, exponentiation, power, pow, **
 
 **Fields:**
-- **base** (float | int | nodetool.metadata.types.Tensor)
-- **exponent** (float | int | nodetool.metadata.types.Tensor)
+- **base** (float | int)
+- **exponent** (float | int)
 
 
 ## Sine
@@ -139,7 +99,7 @@ Use cases:
 **Tags:** math, trigonometry, sine, sin
 
 **Fields:**
-- **angle_rad** (float | int | nodetool.metadata.types.Tensor)
+- **angle_rad** (float | int)
 
 
 ## Sqrt
@@ -154,7 +114,7 @@ Use cases:
 **Tags:** math, square root, sqrt, √
 
 **Fields:**
-- **x** (int | float | nodetool.metadata.types.Tensor)
+- **x** (int | float)
 
 
 ## Subtract
@@ -164,34 +124,7 @@ Subtracts the second input from the first.
 **Tags:** math, minus, difference, -
 
 **Fields:**
-- **a** (int | float | nodetool.metadata.types.Tensor)
-- **b** (int | float | nodetool.metadata.types.Tensor)
+- **a** (int | float)
+- **b** (int | float)
 
-### operation
-
-**Args:**
-- **a (ndarray)**
-- **b (ndarray)**
-
-**Returns:** ndarray
-
-
-### convert_output
-
-**Args:**
-- **context (ProcessingContext)**
-- **output (ndarray)**
-
-**Returns:** float | int | nodetool.metadata.types.Tensor
-
-### pad_arrays
-
-If one of the arguments is a scalar, both arguments are returned as is.
-Pads the smaller array with zeros so that both arrays are the same size.
-This is useful for operations like addition and subtraction.
-**Args:**
-- **a (ndarray)**
-- **b (ndarray)**
-
-**Returns:** typing.Tuple[numpy.ndarray, numpy.ndarray]
 

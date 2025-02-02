@@ -12,7 +12,6 @@ import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { isProduction } from "../../stores/ApiClient";
 import { ChatHeader } from "./chat/ChatHeader";
 import { DEFAULT_MODEL } from "../../config/constants";
-import { useNodes } from "../../contexts/NodeContext";
 
 const HelpChat: React.FC = () => {
   const { messages, isLoading, sendMessage, setMessages } = useChatStore();
@@ -54,10 +53,6 @@ const HelpChat: React.FC = () => {
   const isModelAvailable = isProduction || Boolean(ollamaModelInfo);
   const { downloads } = useModelDownloadStore();
   const isDownloading = downloads[DEFAULT_MODEL]?.status === "running";
-  const { nodes, edges } = useNodes((state) => ({
-    nodes: state.nodes,
-    edges: state.edges
-  }));
 
   const queryClient = useQueryClient();
 
@@ -70,21 +65,21 @@ const HelpChat: React.FC = () => {
     }
   }, [downloads, queryClient]);
 
-  useEffect(() => {
-    if (isInTutorial) {
-      if (
-        step?.isCompleted({
-          nodes,
-          edges,
-          workflowState: state,
-          huggingfaceModels: huggingfaceModels || [],
-          llamaModels: llamaModels || []
-        })
-      ) {
-        nextStep();
-      }
-    }
-  }, [step, isInTutorial, nextStep, state, huggingfaceModels, llamaModels]);
+  // useEffect(() => {
+  //   if (isInTutorial) {
+  //     if (
+  //       step?.isCompleted({
+  //         nodes,
+  //         edges,
+  //         workflowState: state,
+  //         huggingfaceModels: huggingfaceModels || [],
+  //         llamaModels: llamaModels || []
+  //       })
+  //     ) {
+  //       nextStep();
+  //     }
+  //   }
+  // }, [step, isInTutorial, nextStep, state, huggingfaceModels, llamaModels]);
 
   return (
     <div
@@ -92,6 +87,7 @@ const HelpChat: React.FC = () => {
       style={{
         margin: ".5em",
         height: "calc(100% - 4em)",
+        width: "100%",
         display: "flex",
         flexDirection: "column"
       }}
@@ -104,7 +100,7 @@ const HelpChat: React.FC = () => {
         description="Help Chat"
       />
 
-      {messages.length === 0 && isModelAvailable && (
+      {/* {messages.length === 0 && isModelAvailable && (
         <Box sx={{ mb: 2, px: 2 }}>
           <Typography
             variant="h4"
@@ -183,7 +179,7 @@ const HelpChat: React.FC = () => {
             ))}
           </Box>
         </Box>
-      )}
+      )} */}
 
       {isLoadingOllamaModel ? (
         <Typography>Checking model availability...</Typography>

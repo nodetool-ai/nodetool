@@ -1,5 +1,27 @@
 # nodetool.nodes.openai.audio
 
+## SpeechToText
+
+Converts speech to text using OpenAI's speech-to-text API.
+
+Use cases:
+- Generate accurate transcriptions of audio content
+- Create searchable text from audio recordings
+- Support multiple languages for transcription
+- Enable automated subtitling and captioning
+
+**Tags:** audio, transcription, speech-to-text, stt, whisper
+
+**Fields:**
+- **audio**: The audio file to transcribe (max 25 MB). (AudioRef)
+- **language**: The language of the input audio (TTSLanguage)
+- **timestamps**: Whether to return timestamps for the generated text. (bool)
+- **prompt**: Optional text to guide the model's style or continue a previous audio segment. (str)
+- **temperature**: The sampling temperature between 0 and 1. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic. (float)
+
+
+## TTSLanguage
+
 ## TextToSpeech
 
 Converts text to speech using OpenAI TTS models.

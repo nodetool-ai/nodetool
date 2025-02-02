@@ -120,7 +120,6 @@ const CollectionList = () => {
         const chunkSize = 2;
         for (let i = 0; i < files.length; i += chunkSize) {
           const chunk = files.slice(i, i + chunkSize);
-          console.log("Indexing chunk", chunk);
           try {
             await Promise.all(
               chunk.map(async (file) => {

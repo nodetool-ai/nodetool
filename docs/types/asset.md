@@ -30,14 +30,14 @@
 ## AssetDownloadRequest
 
 **Fields:**
-- **asset_ids** (list)
+- **asset_ids** (list[str])
 
 
 ## AssetList
 
 **Fields:**
 - **next** (str | None)
-- **assets** (list)
+- **assets** (list[nodetool.types.asset.Asset])
 
 
 ## AssetUpdateRequest

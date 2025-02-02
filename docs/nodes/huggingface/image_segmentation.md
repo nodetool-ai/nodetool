@@ -7,7 +7,7 @@ Extracts a specific segment from a list of segmentation masks.
 **Tags:** image, segmentation, object detection, mask
 
 **Fields:**
-- **segments**: The segmentation masks to search (list)
+- **segments**: The segmentation masks to search (list[nodetool.metadata.types.ImageSegmentationResult])
 - **segment_label**: The label of the segment to extract (str)
 
 ### required_inputs
@@ -53,10 +53,6 @@ Use cases:
 - Segmenting objects in images
 - Segmenting facial features in images
 
-Recommended models:
-- nvidia/segformer-b3-finetuned-ade-512-512
-- mattmdjaga/segformer_b2_clothes
-
 **Tags:** image, segmentation, object detection, scene parsing
 
 **Fields:**
@@ -95,7 +91,7 @@ Use cases:
 
 **Fields:**
 - **image**: The input image to visualize (ImageRef)
-- **segments**: The segmentation masks to visualize (list)
+- **segments**: The segmentation masks to visualize (list[nodetool.metadata.types.ImageSegmentationResult])
 
 ### generate_color_map
 

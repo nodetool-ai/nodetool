@@ -4,7 +4,22 @@
 
 **Args:**
 - **hash_key (bool) (default: False)**
-- **kwargs (typing.Any)**
+- **kwargs (Any)**
+
+### DBIndex
+
+Decorator to define an index on a model.
+
+
+**Args:**
+
+- **columns**: List of column names to include in the index
+- **unique**: Whether the index should enforce uniqueness
+- **name**: Optional custom name for the index. If not provided, one will be generated.
+**Args:**
+- **columns (list[str])**
+- **unique (bool) (default: False)**
+- **name (str | None) (default: None)**
 
 ## DBModel
 

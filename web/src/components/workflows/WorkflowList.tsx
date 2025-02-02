@@ -15,7 +15,8 @@ import {
 import { client } from "../../stores/ApiClient";
 import { createErrorMessage } from "../../utils/errorHandling";
 import { isEqual } from "lodash";
-import { useNodes, useWorkflowManager } from "../../contexts/NodeContext";
+import { useNodes } from "../../contexts/NodeContext";
+import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useQuery } from "@tanstack/react-query";
 
 const tile_width = "200px";
@@ -148,7 +149,6 @@ const WorkflowList = () => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false);
   const [showCheckboxes, setShowCheckboxes] = useState(false);
   const [selectedTag, setSelectedTag] = useState<string>("");
-  const currentWorkflow = useNodes((state) => state.workflow);
   const { removeWorkflow } = useWorkflowManager((state) => ({
     removeWorkflow: state.removeWorkflow
   }));
@@ -248,13 +248,7 @@ const WorkflowList = () => {
       setWorkflowsToDelete(workflowsToDelete);
       setIsDeleteDialogOpen(true);
     },
-    [
-      selectedWorkflows,
-      workflows,
-      removeWorkflow,
-      currentWorkflow,
-      listWorkflows
-    ]
+    [selectedWorkflows, workflows, removeWorkflow, listWorkflows]
   );
 
   useEffect(() => {

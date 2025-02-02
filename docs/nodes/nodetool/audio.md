@@ -30,10 +30,3 @@ Use cases:
 **Args:**
 
 
-- [nodetool.nodes.nodetool.audio.analysis](audio/analysis.md)
-- [nodetool.nodes.nodetool.audio.audio_helpers](audio/audio_helpers.md)
-- [nodetool.nodes.nodetool.audio.conversion](audio/conversion.md)
-- [nodetool.nodes.nodetool.audio.effects](audio/effects.md)
-- [nodetool.nodes.nodetool.audio.segmentation](audio/segmentation.md)
-- [nodetool.nodes.nodetool.audio.synthesis](audio/synthesis.md)
-- [nodetool.nodes.nodetool.audio.transform](audio/transform.md)

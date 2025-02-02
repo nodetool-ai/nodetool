@@ -13,6 +13,6 @@ Use cases:
 
 **Fields:**
 - **condition**: The condition to evaluate (bool)
-- **value**: The value to pass to the next node (typing.Any)
+- **value**: The value to pass to the next node (Any)
 
 

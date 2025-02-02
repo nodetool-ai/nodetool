@@ -11,7 +11,7 @@ Use cases:
 **Tags:** agent, reasoning, analysis, problem-solving
 
 **Fields:**
-- **messages**: The messages to analyze (list)
+- **messages**: The messages to analyze (list[nodetool.metadata.types.Message])
 - **model** (GeminiModel)
 - **temperature** (float)
 
@@ -111,5 +111,5 @@ List of SVGElement objects representing the parsed SVG elements
 **Args:**
 - **content (str)**
 
-**Returns:** list
+**Returns:** list[nodetool.metadata.types.SVGElement]
 

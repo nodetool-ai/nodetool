@@ -15,6 +15,9 @@ const legacyCondaPath: string = path.join(userDataPath, "conda_env");
 const webPath: string = app.isPackaged
   ? path.join(process.resourcesPath, "web")
   : path.join(__dirname, "..", "..", "web", "dist");
+const appsPath: string = app.isPackaged
+  ? path.join(process.resourcesPath, "apps")
+  : path.join(__dirname, "..", "..", "apps", "build");
 
 const PID_FILE_PATH: string = path.join(app.getPath("userData"), "server.pid");
 const LAUNCHD_SERVICE_NAME: string = "ai.nodetool.server";
@@ -127,4 +130,5 @@ export {
   LAUNCHD_SERVICE_NAME,
   PLIST_PATH,
   webPath,
+  appsPath,
 };

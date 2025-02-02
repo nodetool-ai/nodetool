@@ -1,75 +1,23 @@
 # nodetool.nodes.google.mail
 
-## DateFilter
+## AddLabel
 
-An enumeration.
+Adds a label to a Gmail message.
 
-## EmailSearchCriteriaNode
-
-Comprehensive Email search criteria using IMAP search operators.
-
-**Tags:** email, gmail, search
+**Tags:** email, gmail, label
 
 **Fields:**
-- **from_address**: Sender's email address to search for.
-        - Case-insensitive
-        - Partial matches work (e.g., "@company.com")
-        - Use quotes for addresses with spaces
-        - Multiple addresses can be combined with OR operator
-         (str)
-- **to_address**: Recipient's email address to search for.
-        - Case-insensitive
-        - Partial matches work (e.g., "@company.com")
-        - Use quotes for addresses with spaces
-        - Includes primary recipients only (not CC/BCC)
-         (str)
-- **subject**: Text to search for in email subject.
-        - Case-insensitive
-        - Partial word matches work
-        - Use quotes for phrases with spaces
-        - Special characters should be escaped
-         (str)
-- **body**: Text to search for in email body.
-        - Case-insensitive
-        - Searches message body only
-        - Use quotes for phrases with spaces
-        - HTML and plain text content are searched
-         (str)
-- **date_filter**: Date filter to search for. (DateFilter)
-- **flags**: Email status flag to search for.
-        - SEEN/UNSEEN: Read/unread messages
-        - ANSWERED/UNANSWERED: Replied/unreplied messages
-        - FLAGGED/UNFLAGGED: Starred/unstarred messages
-         (EmailFlag)
-- **keywords**: Custom keywords or labels to search for.
-        - Case-sensitive
-        - Gmail labels are treated as keywords
-        - Custom labels are used as-is
-         (str)
-- **folder**: Email folder to search in. (GmailFolder)
-- **text**: General text to search for anywhere in the email.
-        - Searches all text fields (subject, body, addresses)
-        - Case-insensitive
-        - Partial matches work
-        - Use quotes for phrases with spaces
-        - Most flexible but slower than specific field searches
-         (str)
+- **email**: Email message to label (Email)
+- **label**: Label to add to the message (str)
 
+
+## DateFilter
 
 ## GmailFolder
-
-An enumeration.
 
 ## GmailSearch
 
 Searches Gmail using Gmail-specific search operators.
-
-Returns emails with following fields:
-- id: Message ID
-- subject: Email subject
-- from: Sender address
-- date: Datetime of email
-- body: Email body content
 
 Use cases:
 - Search for emails based on specific criteria
@@ -79,8 +27,15 @@ Use cases:
 **Tags:** email, gmail, search
 
 **Fields:**
-- **email_address**: Gmail address to connect to (str)
-- **search_criteria**: Search criteria (EmailSearchCriteria)
+- **from_address**: Sender's email address to search for (str)
+- **to_address**: Recipient's email address to search for (str)
+- **subject**: Text to search for in email subject (str)
+- **body**: Text to search for in email body (str)
+- **date_filter**: Date filter to search for (DateFilter)
+- **flags**: Email status flags to search for (EmailFlag)
+- **keywords**: Custom keywords or labels to search for (str)
+- **folder**: Email folder to search in (GmailFolder)
+- **text**: General text to search for anywhere in the email (str)
 - **max_results**: Maximum number of emails to return (int)
 
 
@@ -91,7 +46,6 @@ Moves specified emails to Gmail archive.
 **Tags:** email, gmail, archive
 
 **Fields:**
-- **email_address**: Gmail address to connect to (str)
 - **message_ids**: List of message IDs to archive (typing.List[str])
 
 
@@ -119,4 +73,22 @@ IMAPConnection configured for Gmail
 - **app_password (str)**
 
 **Returns:** IMAPConnection
+
+### get_date_condition
+
+Creates a DateSearchCondition based on the specified DateFilter.
+
+
+**Args:**
+
+- **date_filter**: The DateFilter enum value to convert
+
+
+**Returns:**
+
+DateSearchCondition configured for the specified filter
+**Args:**
+- **date_filter (DateFilter)**
+
+**Returns:** DateSearchCondition
 

@@ -13,53 +13,38 @@ Use cases:
 - **batch**: The batch of images to convert. (ImageRef)
 
 
-## Blend
+## Crop
 
-Blend two images with adjustable alpha mixing.
+Crop an image to specified coordinates.
 
-Use cases:
-- Create smooth transitions between images
-- Adjust opacity of overlays
-- Combine multiple exposures or effects
+- Remove unwanted borders from images
+- Focus on particular subjects within an image
+- Simplify images by removing distractions
 
-**Tags:** blend, mix, fade, transition
-
-**Fields:**
-- **image1**: The first image to blend. (ImageRef)
-- **image2**: The second image to blend. (ImageRef)
-- **alpha**: The mix ratio. (float)
-
-
-## Composite
-
-Combine two images using a mask for advanced compositing.
-
-Use cases:
-- Create complex image compositions
-- Apply selective blending or effects
-- Implement advanced photo editing techniques
-
-**Tags:** composite, mask, blend, layering
+**Tags:** image, crop
 
 **Fields:**
-- **image1**: The first image to composite. (ImageRef)
-- **image2**: The second image to composite. (ImageRef)
-- **mask**: The mask to composite with. (ImageRef)
+- **image**: The image to crop. (ImageRef)
+- **left**: The left coordinate. (int)
+- **top**: The top coordinate. (int)
+- **right**: The right coordinate. (int)
+- **bottom**: The bottom coordinate. (int)
 
 
-## ConvertToTensor
+## Fit
 
-Convert PIL Image to normalized tensor representation.
+Resize an image to fit within specified dimensions while preserving aspect ratio.
 
-Use cases:
-- Prepare images for machine learning models
-- Convert between image formats for processing
-- Normalize image data for consistent calculations
+- Resize images for online publishing requirements
+- Preprocess images to uniform sizes for machine learning
+- Control image display sizes for web development
 
-**Tags:** image, tensor, conversion, normalization
+**Tags:** image, resize, fit
 
 **Fields:**
-- **image**: The input image to convert to a tensor. The image should have either 1 (grayscale), 3 (RGB), or 4 (RGBA) channels. (ImageRef)
+- **image**: The image to fit. (ImageRef)
+- **width**: Width to fit to. (int)
+- **height**: Height to fit to. (int)
 
 
 ## GetMetadata
@@ -95,6 +80,22 @@ Use cases:
 - **top**: The top coordinate. (int)
 
 
+## Resize
+
+Change image dimensions to specified width and height.
+
+- Preprocess images for machine learning model inputs
+- Optimize images for faster web page loading
+- Create uniform image sizes for layouts
+
+**Tags:** image, resize
+
+**Fields:**
+- **image**: The image to resize. (ImageRef)
+- **width**: The target width. (int)
+- **height**: The target height. (int)
+
+
 ## SaveImage
 
 Save an image to specified folder with customizable name format.
@@ -127,14 +128,23 @@ Use cases:
 ### result_for_client
 
 **Args:**
-- **result (dict)**
+- **result (dict[str, typing.Any])**
 
-**Returns:** dict
+**Returns:** dict[str, typing.Any]
 
 
-- [nodetool.nodes.nodetool.image.chart](image/chart.md)
-- [nodetool.nodes.nodetool.image.enhance](image/enhance.md)
-- [nodetool.nodes.nodetool.image.grid](image/grid.md)
-- [nodetool.nodes.nodetool.image.source](image/source.md)
-- [nodetool.nodes.nodetool.image.svg](image/svg.md)
-- [nodetool.nodes.nodetool.image.transform](image/transform.md)
+## Scale
+
+Enlarge or shrink an image by a scale factor.
+
+- Adjust image dimensions for display galleries
+- Standardize image sizes for machine learning datasets
+- Create thumbnail versions of images
+
+**Tags:** image, resize, scale
+
+**Fields:**
+- **image**: The image to scale. (ImageRef)
+- **scale**: The scale factor. (float)
+
+
