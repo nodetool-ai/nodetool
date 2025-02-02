@@ -117,7 +117,10 @@ const styles = (theme: any, buttonAppearance: "text" | "icon" | "both") =>
       flexDirection: "row",
       justifyContent: "flex-start",
       alignItems: "center",
-      gap: "0.1em"
+      gap: "0.1em",
+      "& button": {
+        lineHeight: "1.1em"
+      }
     },
     "nav-button": {
       flexShrink: 0,
