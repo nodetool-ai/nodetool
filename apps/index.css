@@ -1,3 +1,4 @@
+/* Remove these sections as they're now in the theme */
 /* Reset */
 html, body {
   margin: 0;
@@ -16,24 +17,38 @@ body {
   width: 100%;
 }
 
-/* Only keep window control styles since they're system-specific */
-.window-controls {
-  position: fixed;
-  top: 0;
-  right: 0;
+/* Chat interface semantic classes */
+/* .chat-container {
   display: flex;
-  z-index: 1000;
-  -webkit-app-region: no-drag;
+  flex-direction: column;
+  height: 100%;
 }
 
-.window-control-button {
-  width: 45px;
-  height: 30px;
-  border: none;
-  outline: none;
-  background: transparent;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--chakra-space-4);
 }
+
+.chat-message {
+  max-width: 80%;
+  margin-bottom: var(--chakra-space-4);
+  border-radius: var(--chakra-radii-lg);
+  padding: var(--chakra-space-4);
+}
+
+.chat-message--user {
+  margin-left: auto;
+  background: var(--chakra-colors-chat-user-msg);
+}
+
+.chat-message--assistant {
+  margin-right: auto;
+  background: var(--chakra-colors-chat-assistant-msg);
+}
+
+.chat-input-area {
+  border-top: 1px solid var(--chakra-colors-border-color);
+  background: var(--chakra-colors-bg-color);
+  padding: var(--chakra-space-4);
+} */

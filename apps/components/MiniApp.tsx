@@ -7,6 +7,7 @@ import {
   Container,
   Spinner,
   HStack,
+  StackProps,
 } from "@chakra-ui/react";
 import { ProgressRoot, ProgressValueText, ProgressBar } from "./ui/progress";
 import { useWorkflowRunner } from "../stores/WorkflowRunner";
@@ -22,9 +23,14 @@ import { motion, AnimatePresence } from "framer-motion";
 interface MiniAppProps {
   workflowId: string;
   schema: JSONSchema;
+  className?: string;
 }
 
-export const MiniApp: React.FC<MiniAppProps> = ({ workflowId, schema }) => {
+export const MiniApp: React.FC<MiniAppProps> = ({
+  workflowId,
+  schema,
+  className,
+}) => {
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [showThoughts, setShowThoughts] = useState(false);
   const {
@@ -109,126 +115,88 @@ export const MiniApp: React.FC<MiniAppProps> = ({ workflowId, schema }) => {
   };
 
   return (
-    <Box position="relative" h="100%">
-      {state !== "idle" && (
-        <Box
-          position="absolute"
-          top={0}
-          left={0}
-          right={0}
-          bg="white"
-          _dark={{ bg: "gray.800" }}
-          borderBottom="1px"
-          borderColor="gray.200"
-          zIndex={1}
-          py={2}
-        >
-          <Container maxW="container.xl">
-            <HStack justify="center">
-              {(state === "connecting" || state === "running") && (
-                <Spinner size="sm" color="blue.500" />
-              )}
-              <Text
-                color={state === "error" ? "red.500" : "gray.600"}
-                _dark={{ color: state === "error" ? "red.300" : "gray.400" }}
-              >
-                {state === "connecting" && (statusMessage || "Connecting...")}
-                {state === "connected" && (statusMessage || "Connected")}
-                {state === "running" &&
-                  (statusMessage || "Running workflow...")}
-                {state === "error" && (statusMessage || "An error occurred")}
-              </Text>
-
-              {progress && progress.total > 0 && (
-                <ProgressRoot
-                  value={(progress.current * 100.0) / progress.total}
-                  size="xs"
-                  colorScheme="blue"
-                >
-                  <ProgressBar />
-                  <ProgressValueText>
-                    {progress.current} / {progress.total}
-                  </ProgressValueText>
-                </ProgressRoot>
-              )}
-            </HStack>
-          </Container>
-        </Box>
-      )}
-
-      <Container
-        maxW="container.xl"
-        h="100%"
-        overflowY="auto"
-        py={5}
-        pt={state !== "idle" ? 16 : 5}
-      >
-        {state !== "running" && state !== "connecting" && (
-          <VStack as="form" onSubmit={handleSubmit}>
-            {Object.entries(schema.properties || {}).map(([name, propSchema]) =>
-              renderInput(name, propSchema as JSONSchema)
-            )}
-            <Button
-              type="submit"
-              colorScheme="blue"
-              w="full"
-              size="lg"
-              borderRadius="md"
-              boxShadow="md"
-              _hover={{
-                transform: "translateY(-2px)",
-                boxShadow: "lg",
-              }}
-              _active={{
-                transform: "translateY(0)",
-                boxShadow: "md",
-              }}
-            >
-              Run
-            </Button>
+    <Box
+      className={className ? `mini-app-root ${className}` : "mini-app-root"}
+      bg="bg"
+      color="text"
+    >
+      <Container maxW="800px" py={8}>
+        {state === "connecting" || state === "running" ? (
+          <VStack gap={4} align="center">
+            <Spinner size="xl" color="primary" />
+            <Text color="textGray">{statusMessage}</Text>
           </VStack>
-        )}
-
-        {notifications.length > 0 && (
-          <VStack mt={4}>
-            <AnimatePresence>
-              {notifications.map((notification, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.2 }}
-                  style={{ width: "100%" }}
-                >
-                  <Alert variant="subtle">{notification.content}</Alert>
-                </motion.div>
-              ))}
-            </AnimatePresence>
-          </VStack>
-        )}
-
-        <Box mt={4}>
-          {chunks.length > 0 && (
-            <Text fontSize="sm" color="gray.500">
-              {chunks.join("\n")}
-            </Text>
-          )}
-        </Box>
-        {results.length > 0 && (
-          <VStack mt={4}>
-            {results.map((result, index) => (
-              <Box
-                key={index}
-                p={4}
-                bg="gray.50"
-                _dark={{ bg: "gray.700" }}
-                borderRadius="md"
+        ) : (
+          <VStack as="form" onSubmit={handleSubmit} gap={6}>
+            <Box p={4} bg="secondary" borderRadius="md" w="full">
+              <SchemaInput
+                name="input"
+                schema={schema}
+                value={formData}
+                onChange={setFormData}
+              />
+              <Button
+                type="submit"
+                colorScheme="primary"
                 w="full"
+                size="lg"
+                borderRadius="md"
+                boxShadow="md"
+                _hover={{
+                  boxShadow: "lg",
+                }}
+                _active={{
+                  boxShadow: "md",
+                }}
               >
-                {renderResult(result)}
-              </Box>
-            ))}
+                Run
+              </Button>
+            </Box>
+
+            {notifications.length > 0 && (
+              <VStack mt={4} gap={2}>
+                <AnimatePresence>
+                  {notifications.map((notification, index) => (
+                    <motion.div
+                      key={index}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      transition={{ duration: 0.2 }}
+                      style={{ width: "100%" }}
+                    >
+                      <Alert bg="alertBg" borderColor="border">
+                        {notification.content}
+                      </Alert>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </VStack>
+            )}
+
+            <Box mt={4}>
+              {chunks.length > 0 && (
+                <Text fontSize="sm" color="textGray">
+                  {chunks.join("\n")}
+                </Text>
+              )}
+            </Box>
+
+            {results.length > 0 && (
+              <VStack mt={4} gap={4}>
+                {results.map((result, index) => (
+                  <Box
+                    key={index}
+                    p={4}
+                    bg="secondary"
+                    borderRadius="md"
+                    w="full"
+                  >
+                    {renderResult(result)}
+                  </Box>
+                ))}
+              </VStack>
+            )}
           </VStack>
         )}
       </Container>

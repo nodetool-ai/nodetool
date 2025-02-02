@@ -8,7 +8,6 @@ import {
   HStack,
 } from "@chakra-ui/react";
 import { FileUploadRoot, FileUploadTrigger } from "./ui/file-upload";
-import { useColorModeValue } from "./ui/color-mode";
 import { FileUploadList } from "./ui/file-upload";
 import { HiUpload } from "react-icons/hi";
 
@@ -17,6 +16,7 @@ interface ComposerProps {
   disabled: boolean;
   droppedFiles: File[];
   setDroppedFiles: (files: File[]) => void;
+  className?: string;
 }
 
 const SendIcon = () => (
@@ -33,6 +33,7 @@ export const Composer: React.FC<ComposerProps> = ({
   disabled,
   droppedFiles,
   setDroppedFiles,
+  className,
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -58,7 +59,11 @@ export const Composer: React.FC<ComposerProps> = ({
   }, []);
 
   return (
-    <HStack position="relative" h="auto" p="4" borderTop="1px" width="100%">
+    <HStack
+      className={className ? `composer-root ${className}` : "composer-root"}
+      p={4}
+      gap={4}
+    >
       <Box width={droppedFiles.length > 0 ? "40%" : "10%"}>
         <FileUploadRoot onFileChange={handleFileChange} maxFiles={3}>
           <HStack>
@@ -67,17 +72,18 @@ export const Composer: React.FC<ComposerProps> = ({
                 <HiUpload />
               </Button>
             </FileUploadTrigger>
-            <FileUploadList clearable width="50%" />
+            <FileUploadList />
           </HStack>
         </FileUploadRoot>
       </Box>
+
       <Box
         width="100%"
-        boxShadow="0 0 15px rgba(0,0,0,0.1)"
+        boxShadow="sm"
         borderRadius="lg"
-        bg={useColorModeValue("white", "gray.700")}
+        bg="bg"
         border="1px solid"
-        borderColor={useColorModeValue("gray.200", "gray.600")}
+        borderColor="border"
       >
         <Flex position="relative" alignItems="flex-end">
           <Textarea
@@ -86,18 +92,17 @@ export const Composer: React.FC<ComposerProps> = ({
             flex="1"
             bg="transparent"
             border="none"
-            color={useColorModeValue("gray.800", "gray.100")}
+            color="text"
             fontSize="sm"
             resize="none"
             minH="24px"
             maxH="200px"
-            p="4"
+            p={4}
             _placeholder={{
-              color: useColorModeValue("gray.500", "gray.400"),
+              color: "textGray",
             }}
             onKeyDown={handleKeyDown}
             rows={1}
-            overflow="hidden"
             css={{
               "&::-webkit-scrollbar": {
                 display: "none",
@@ -109,14 +114,14 @@ export const Composer: React.FC<ComposerProps> = ({
             onClick={handleSubmit}
             disabled={disabled}
             variant="ghost"
-            color={useColorModeValue("gray.600", "gray.400")}
+            color="text"
             _hover={{
-              color: useColorModeValue("gray.800", "white"),
-              bg: "transparent",
+              color: "text",
+              bg: "buttonHover",
             }}
             position="absolute"
-            right="2"
-            bottom="2"
+            right={2}
+            bottom={2}
           >
             <SendIcon />
           </IconButton>

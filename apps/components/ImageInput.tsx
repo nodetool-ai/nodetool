@@ -17,9 +17,10 @@ interface ImageRef {
 
 interface ImageInputProps {
   onChange: (file: ImageRef | null) => void;
+  className?: string;
 }
 
-const ImageInput = ({ onChange }: ImageInputProps) => {
+const ImageInput = ({ onChange, className }: ImageInputProps) => {
   const [file, setFile] = useState<File | null>(null);
   const handleFileChange = useCallback(
     (changes: any) => {
@@ -49,7 +50,14 @@ const ImageInput = ({ onChange }: ImageInputProps) => {
   }, [onChange]);
 
   return (
-    <FileUploadRoot onFileChange={handleFileChange} maxFiles={1} width="100%">
+    <FileUploadRoot
+      className={
+        className ? `image-input-root ${className}` : "image-input-root"
+      }
+      onFileChange={handleFileChange}
+      maxFiles={1}
+      width="100%"
+    >
       <HStack width="100%">
         <FileUploadTrigger asChild>
           <Button size="sm" variant="ghost" colorScheme="gray">
@@ -73,7 +81,6 @@ const ImageInput = ({ onChange }: ImageInputProps) => {
             <Button
               size="sm"
               variant="ghost"
-              colorScheme="red"
               onClick={handleClear}
               position="absolute"
               top={0}

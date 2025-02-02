@@ -4,6 +4,7 @@ import { JSONSchema, Workflow } from "../types/workflow";
 import { Box, Heading, Text, Flex } from "@chakra-ui/react";
 import ChatInterface from "./ChatInterface";
 import { MiniApp } from "./MiniApp";
+import { useTheme } from "next-themes";
 
 interface AppProps {
   initialWorkflowId?: string;
@@ -24,6 +25,8 @@ export const App: React.FC<AppProps> = ({ initialWorkflowId }) => {
   const [error, setError] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
   const isMac = window.navigator.platform.toLowerCase().includes("mac");
+  const { theme, resolvedTheme } = useTheme();
+  const displayTheme = resolvedTheme || theme || "light";
 
   useEffect(() => {
     const fetchWorkflow = async (workflowId: string) => {
@@ -53,86 +56,58 @@ export const App: React.FC<AppProps> = ({ initialWorkflowId }) => {
   }, [initialWorkflowId]);
 
   return (
-    <Flex
-      className="app-root"
-      h="100vh"
-      direction="column"
-      bg="var(--bg-color)"
-      color="var(--text-color)"
-    >
-      {!isMac && <WindowControls />}
+    <div data-theme={displayTheme}>
+      <Flex h="100vh" direction="column" color="text">
+        {!isMac && <WindowControls />}
 
-      {workflow && (
-        <Box
-          className="app-header"
-          p={4}
-          bg="var(--secondary-color)"
-          borderBottom="1px solid"
-          borderColor="var(--border-color)"
-        >
-          <Heading as="h1" size="md" m={0}>
-            {workflow.name}
-          </Heading>
-          {workflow.description && (
-            <Text
-              className="app-header__description"
-              mt={2}
-              fontSize="sm"
-              opacity={0.5}
+        {workflow && (
+          <Box p={4} bg="secondary" borderBottom="1px" borderColor="border">
+            <Heading as="h1" size="md" m={0}>
+              {workflow.name}
+            </Heading>
+            {workflow.description && (
+              <Text mt={2} fontSize="sm" opacity={0.5}>
+                {workflow.description}
+              </Text>
+            )}
+          </Box>
+        )}
+
+        <Box flex={1} overflow="hidden" position="relative">
+          {loading && (
+            <Box
+              position="absolute"
+              top="50%"
+              left="50%"
+              transform="translate(-50%, -50%)"
             >
-              {workflow.description}
-            </Text>
+              <Text>Loading...</Text>
+            </Box>
           )}
+
+          {error && (
+            <Box color="error" p={4} m={4} bg="secondary" borderRadius="md">
+              Error: {error}
+            </Box>
+          )}
+
+          {workflow &&
+            !loading &&
+            !error &&
+            (isChatWorkflow(workflow.input_schema) ? (
+              <Box h="100%">
+                <ChatInterface workflowId={workflow.id} token="local_token" />
+              </Box>
+            ) : (
+              <Box h="100%">
+                <MiniApp
+                  workflowId={workflow.id}
+                  schema={workflow.input_schema}
+                />
+              </Box>
+            ))}
         </Box>
-      )}
-
-      <Box
-        className="app-content"
-        flex={1}
-        overflow="hidden"
-        position="relative"
-      >
-        {loading && (
-          <Box
-            className="app-loader"
-            position="absolute"
-            top="50%"
-            left="50%"
-            transform="translate(-50%, -50%)"
-          >
-            <div className="futuristic-loader">Loading...</div>
-          </Box>
-        )}
-
-        {error && (
-          <Box
-            className="app-error"
-            color="#ff6b6b"
-            p={4}
-            m={4}
-            bg="var(--secondary-color)"
-            borderRadius="md"
-          >
-            Error: {error}
-          </Box>
-        )}
-
-        {workflow &&
-          !loading &&
-          !error &&
-          (isChatWorkflow(workflow.input_schema) ? (
-            <div className="app-workflow app-workflow--chat">
-              <ChatInterface workflowId={workflow.id} token="local_token" />
-            </div>
-          ) : (
-            <div className="app-workflow app-workflow--mini">
-              <MiniApp
-                workflowId={workflow.id}
-                schema={workflow.input_schema}
-              />
-            </div>
-          ))}
-      </Box>
-    </Flex>
+      </Flex>
+    </div>
   );
 };

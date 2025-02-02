@@ -21,9 +21,10 @@ interface AudioRef {
 
 interface AudioInputProps {
   onChange: (data: AudioRef | null) => void;
+  className?: string;
 }
 
-const AudioInput: React.FC<AudioInputProps> = ({ onChange }) => {
+const AudioInput: React.FC<AudioInputProps> = ({ onChange, className }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const wavesurferRef = useRef<WaveSurfer | null>(null);
   const recordRef = useRef<Record | null>(null);
@@ -215,50 +216,63 @@ const AudioInput: React.FC<AudioInputProps> = ({ onChange }) => {
   };
 
   return (
-    <Box width="100%">
+    <Box
+      className={
+        className ? `audio-input-root ${className}` : "audio-input-root"
+      }
+    >
       <FileUploadRoot
-        width="100%"
+        className="audio-input__upload"
         onFileChange={handleFileChange}
         maxFiles={1}
         accept={{ "audio/*": [".mp3", ".wav", ".ogg", ".m4a"] }}
       >
-        <HStack width="100%" mb={4}>
+        <HStack className="audio-input__controls">
           <FileUploadTrigger asChild>
-            <Button size="sm" variant="ghost" colorScheme="gray">
+            <Button
+              className="audio-input__upload-btn"
+              size="sm"
+              variant="ghost"
+            >
               <HiUpload />
             </Button>
           </FileUploadTrigger>
           {!audioFile && !hasRecording && (
             <FileUploadDropzone
-              width="100%"
+              className="audio-input__dropzone"
               label="Drop your audio file here"
             />
           )}
         </HStack>
       </FileUploadRoot>
 
-      <div ref={containerRef} />
+      <div className="audio-input__waveform" ref={containerRef} />
 
-      <HStack mt={4}>
+      <HStack className="audio-input__actions">
         <Button
-          colorScheme={isRecording ? "red" : "blue"}
+          className={`audio-input__record-btn ${isRecording ? "is-recording" : ""}`}
           onClick={handleRecord}
           disabled={isLoading}
           size="sm"
         >
           {isRecording ? <FaStop /> : <FaMicrophone />}
-          {isLoading && <Text ml={2}>Loading...</Text>}
+          {isLoading && <Text>Loading...</Text>}
         </Button>
 
         {hasRecording && (
           <>
-            <Button size="sm" variant="ghost" onClick={handlePlayPause}>
+            <Button
+              className="audio-input__playback-btn"
+              size="sm"
+              variant="ghost"
+              onClick={handlePlayPause}
+            >
               {isPlaying ? <FaPause /> : <FaPlay />}
             </Button>
             <Button
+              className="audio-input__clear-btn"
               size="sm"
               variant="ghost"
-              colorScheme="red"
               onClick={handleClear}
             >
               <LuX />
@@ -267,31 +281,31 @@ const AudioInput: React.FC<AudioInputProps> = ({ onChange }) => {
         )}
 
         <Button
+          className={`audio-input__settings-btn ${isDeviceListVisible ? "is-active" : ""}`}
           onClick={toggleDeviceListVisibility}
           size="sm"
           variant="ghost"
-          opacity={isDeviceListVisible ? 1 : 0.6}
         >
           <FaCog />
         </Button>
       </HStack>
 
       {error && (
-        <Alert status="error" mt={2} size="sm">
+        <Alert className="audio-input__error" status="error" mt={2} size="sm">
           {error}
         </Alert>
       )}
 
       {isDeviceListVisible && (
-        <Box mt={2} maxW="200px" fontSize="sm">
+        <Box className="audio-input__device-list">
           {audioDeviceNames.length > 0 ? (
             audioDeviceNames.map((deviceName, index) => (
-              <Text key={index} fontSize="xs" color="gray.600">
+              <Text key={index} className="audio-input__device-name">
                 {deviceName}
               </Text>
             ))
           ) : (
-            <Alert status="info" size="sm">
+            <Alert className="audio-input__no-devices" status="info" size="sm">
               No devices found.
             </Alert>
           )}

@@ -1,33 +1,53 @@
-import { Field as ChakraField } from "@chakra-ui/react"
-import * as React from "react"
+import { Field as ChakraField } from "@chakra-ui/react";
+import * as React from "react";
+import { useTheme } from "next-themes";
 
 export interface FieldProps extends Omit<ChakraField.RootProps, "label"> {
-  label?: React.ReactNode
-  helperText?: React.ReactNode
-  errorText?: React.ReactNode
-  optionalText?: React.ReactNode
+  label?: React.ReactNode;
+  helperText?: React.ReactNode;
+  errorText?: React.ReactNode;
+  optionalText?: React.ReactNode;
+  className?: string;
 }
 
 export const Field = React.forwardRef<HTMLDivElement, FieldProps>(
   function Field(props, ref) {
-    const { label, children, helperText, errorText, optionalText, ...rest } =
-      props
+    const {
+      label,
+      children,
+      helperText,
+      errorText,
+      optionalText,
+      className,
+      ...rest
+    } = props;
+    const { resolvedTheme } = useTheme();
+    const currentTheme = resolvedTheme || "light";
+
     return (
-      <ChakraField.Root ref={ref} {...rest}>
+      <ChakraField.Root
+        className={className ? `field-root ${className}` : "field-root"}
+        ref={ref}
+        {...rest}
+      >
         {label && (
-          <ChakraField.Label>
+          <ChakraField.Label color="text">
             {label}
             <ChakraField.RequiredIndicator fallback={optionalText} />
           </ChakraField.Label>
         )}
         {children}
         {helperText && (
-          <ChakraField.HelperText>{helperText}</ChakraField.HelperText>
+          <ChakraField.HelperText color="textGray">
+            {helperText}
+          </ChakraField.HelperText>
         )}
         {errorText && (
-          <ChakraField.ErrorText>{errorText}</ChakraField.ErrorText>
+          <ChakraField.ErrorText color="error">
+            {errorText}
+          </ChakraField.ErrorText>
         )}
       </ChakraField.Root>
-    )
-  },
-)
+    );
+  }
+);

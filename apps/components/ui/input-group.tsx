@@ -1,53 +1,68 @@
-import type { BoxProps, InputElementProps } from "@chakra-ui/react"
-import { Group, InputElement } from "@chakra-ui/react"
-import * as React from "react"
+import type { BoxProps, InputElementProps } from "@chakra-ui/react";
+import { Group, InputElement } from "@chakra-ui/react";
+import * as React from "react";
+import { useTheme } from "next-themes";
 
 export interface InputGroupProps extends BoxProps {
-  startElementProps?: InputElementProps
-  endElementProps?: InputElementProps
-  startElement?: React.ReactNode
-  endElement?: React.ReactNode
-  children: React.ReactElement<InputElementProps>
-  startOffset?: InputElementProps["paddingStart"]
-  endOffset?: InputElementProps["paddingEnd"]
+  startElementProps?: InputElementProps;
+  endElementProps?: InputElementProps;
+  startElement?: React.ReactNode;
+  endElement?: React.ReactNode;
+  children: React.ReactElement<InputElementProps>;
+  startOffset?: InputElementProps["paddingStart"];
+  endOffset?: InputElementProps["paddingEnd"];
 }
 
 export const InputGroup = React.forwardRef<HTMLDivElement, InputGroupProps>(
   function InputGroup(props, ref) {
     const {
-      startElement,
-      startElementProps,
-      endElement,
-      endElementProps,
       children,
-      startOffset = "6px",
-      endOffset = "6px",
+      startElement,
+      endElement,
+      startElementProps,
+      endElementProps,
+      startOffset,
+      endOffset,
       ...rest
-    } = props
+    } = props;
 
-    const child =
-      React.Children.only<React.ReactElement<InputElementProps>>(children)
+    const { resolvedTheme } = useTheme();
+    const currentTheme = resolvedTheme || "light";
 
     return (
-      <Group ref={ref} {...rest}>
+      <Group
+        className={
+          props.className
+            ? `input-group-root ${props.className}`
+            : "input-group-root"
+        }
+        ref={ref}
+        bg="inputBg"
+        borderColor="border"
+        _hover={{
+          borderColor: "primary",
+        }}
+        _focusWithin={{
+          borderColor: "primary",
+          boxShadow: "0 0 0 2px var(--nt-colors-primary-alpha)",
+        }}
+        {...rest}
+      >
         {startElement && (
-          <InputElement pointerEvents="none" {...startElementProps}>
+          <InputElement placement="start" color="text" {...startElementProps}>
             {startElement}
           </InputElement>
         )}
-        {React.cloneElement(child, {
-          ...(startElement && {
-            ps: `calc(var(--input-height) - ${startOffset})`,
-          }),
-          ...(endElement && { pe: `calc(var(--input-height) - ${endOffset})` }),
-          ...children.props,
+        {React.cloneElement(children, {
+          paddingStart: startElement ? startOffset : undefined,
+          paddingEnd: endElement ? endOffset : undefined,
         })}
         {endElement && (
-          <InputElement placement="end" {...endElementProps}>
+          <InputElement placement="end" color="text" {...endElementProps}>
             {endElement}
           </InputElement>
         )}
       </Group>
-    )
-  },
-)
+    );
+  }
+);

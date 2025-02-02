@@ -19,7 +19,7 @@
     "vite-tsconfig-paths": "^5.1.4"
   },
   "dependencies": {
-    "@chakra-ui/react": "^3.4.0",
+    "@chakra-ui/react": "^3.0.0",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
     "@msgpack/msgpack": "^3.0.0-beta2",
@@ -27,10 +27,10 @@
     "@types/react-dom": "^19.0.3",
     "@vitejs/plugin-react": "^4.3.4",
     "framer-motion": "^12.0.5",
-    "next-themes": "^0.4.4",
+    "next-themes": "^0.2.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "react-icons": "^5.4.0",
+    "react-icons": "^4.0.0",
     "react-markdown": "^9.0.3",
     "wavesurfer.js": "^7.8.16",
     "ws": "^8.18.0",

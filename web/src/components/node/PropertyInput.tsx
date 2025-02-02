@@ -333,6 +333,14 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
     inputField = <div>Unsupported property type</div>;
   }
 
+  const textStyles = (theme: any) =>
+    css({
+      fontFamily: theme.fontFamily1,
+      fontSize: theme.fontSizeNormal,
+      lineHeight: "1.2",
+      color: theme.palette.c_white
+    });
+
   return (
     <div
       className={`${className} property-input-container`}
