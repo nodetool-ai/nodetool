@@ -6,11 +6,11 @@ import ReactMarkdown from "react-markdown";
 
 import { useColorModeValue } from "./ui/color-mode";
 import useChatStore from "../stores/ChatStore";
+import { Button } from "./ui/button";
 import { MessageContent } from "../types/workflow";
 import { ImageDisplay } from "./ImageDisplay";
 import { AudioPlayer } from "./AudioPlayer";
 import { VideoPlayer } from "./VideoPlayer";
-import { FileUploadRoot, FileUploadList } from "./ui/file-upload";
 import { Composer } from "./Composer";
 
 interface ChatInterfaceProps {
@@ -150,12 +150,23 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ workflowId, token }) => {
     [key: string]: boolean;
   }>({});
 
+  // Add state for tracking thoughts that are being loaded
+  const [loadingThoughts, setLoadingThoughts] = useState<{
+    [key: string]: boolean;
+  }>({});
+
   const toggleThought = (messageIndex: number, thoughtIndex: number) => {
     const key = `${messageIndex}-${thoughtIndex}`;
-    setExpandedThoughts((prev) => ({
-      ...prev,
-      [key]: !prev[key],
-    }));
+    setLoadingThoughts((prev) => ({ ...prev, [key]: true }));
+
+    // Simulate loading time (remove this in production and replace with actual loading logic)
+    setTimeout(() => {
+      setExpandedThoughts((prev) => ({
+        ...prev,
+        [key]: !prev[key],
+      }));
+      setLoadingThoughts((prev) => ({ ...prev, [key]: false }));
+    }, 500);
   };
 
   const renderMessageContent = (
@@ -163,41 +174,49 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ workflowId, token }) => {
     messageIndex: number,
     contentIndex: number
   ) => {
-    console.log("content", content);
     switch (content.type) {
       case "text": {
-        // Process single think tag
-        const thoughtMatch = content.text.match(/<think>(.*?)<\/think>/s);
+        const thoughtMatch = content.text.match(
+          /<think>([\s\S]*?)(<\/think>|$)/s
+        );
         if (thoughtMatch) {
           const key = `${messageIndex}-${contentIndex}`;
           const isExpanded = expandedThoughts[key];
-          const textBeforeThought = content.text.split("<think>")[0];
-          const textAfterThought = content.text.split("</think>")[1];
+          const hasClosingTag = thoughtMatch[2] === "</think>";
+          const textAfterThought = content.text.split("</think>").pop() || "";
 
           return (
             <>
-              {textBeforeThought && (
-                <ReactMarkdown>{textBeforeThought}</ReactMarkdown>
-              )}
               <Box>
-                <Text
-                  as="span"
-                  color="blue.500"
-                  cursor="pointer"
+                <Button
+                  variant="outline"
                   onClick={() => toggleThought(messageIndex, contentIndex)}
                   _hover={{ textDecoration: "underline" }}
                 >
-                  [{isExpanded ? "Hide thought" : "Show thought"}]
-                </Text>
+                  {!hasClosingTag ? (
+                    <>
+                      Show thought
+                      <LoadingDots>
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                      </LoadingDots>
+                    </>
+                  ) : (
+                    `${isExpanded ? "Hide thought" : "Show thought"}`
+                  )}
+                </Button>
                 {isExpanded && (
                   <Box ml={4} mt={2} p={2} bg="gray.700" borderRadius="md">
                     <ReactMarkdown>{thoughtMatch[1]}</ReactMarkdown>
                   </Box>
                 )}
+                {textAfterThought && (
+                  <Box ml={4} mt={2} p={2} bg="gray.700" borderRadius="md">
+                    <ReactMarkdown>{textAfterThought}</ReactMarkdown>
+                  </Box>
+                )}
               </Box>
-              {textAfterThought && (
-                <ReactMarkdown>{textAfterThought}</ReactMarkdown>
-              )}
             </>
           );
         }
@@ -280,7 +299,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ workflowId, token }) => {
               bg={assistantBgColor}
               mr="auto"
             >
-              <ReactMarkdown>{streamingMessage}</ReactMarkdown>
+              {renderMessageContent(
+                {
+                  type: "text",
+                  text: streamingMessage,
+                },
+                messages.length,
+                0
+              )}
             </Box>
           )}
           <Box ref={messagesEndRef} />
