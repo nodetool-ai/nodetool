@@ -1,0 +1,269 @@
+{
+  "id": "e5827a0faff611efa02a00006da6d6e7",
+  "access": "public",
+  "created_at": "2024-12-13T23:54:51.675527",
+  "updated_at": "2024-12-13T23:54:51.675527",
+  "name": "Stable Diffusion",
+  "description": "Generate images using Stable Diffusion with Realistic Vision model",
+  "tags": ["image"],
+  "thumbnail": null,
+  "thumbnail_url": "/examples/stable_diffusion.jpg",
+  "graph": {
+    "nodes": [
+      {
+        "id": "1",
+        "parent_id": null,
+        "type": "comfy.basic.StableDiffusion",
+        "data": {
+          "model": {
+            "type": "hf.stable_diffusion",
+            "repo_id": "SG161222/Realistic_Vision_V5.1_noVAE",
+            "path": "Realistic_Vision_V5.1_fp16-no-ema.safetensors"
+          },
+          "negative_prompt": "",
+          "seed": 0,
+          "guidance_scale": 7,
+          "num_inference_steps": 30,
+          "width": 1024,
+          "height": 1024,
+          "scheduler": "simple",
+          "sampler": "euler",
+          "input_image": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null
+          },
+          "mask_image": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null
+          },
+          "grow_mask_by": 6,
+          "denoise": 1,
+          "loras": null
+        },
+        "ui_properties": {
+          "position": {
+            "x": 348,
+            "y": 58
+          },
+          "zIndex": 0,
+          "width": 250,
+          "selectable": true
+        }
+      },
+      {
+        "id": "2",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "image_output_2024-12-01"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 667,
+            "y": 57
+          },
+          "zIndex": 0,
+          "width": 604,
+          "height": 640,
+          "selectable": true
+        }
+      },
+      {
+        "id": "3",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": [
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "Classic Stable Diffusion 1.5"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "Try changing the prompt or the sampler"
+                }
+              ]
+            }
+          ]
+        },
+        "ui_properties": {
+          "position": {
+            "x": 47,
+            "y": -137
+          },
+          "zIndex": 0,
+          "width": 444,
+          "height": 103,
+          "selectable": true
+        }
+      },
+      {
+        "id": "4",
+        "parent_id": null,
+        "type": "comfy.basic.FluxFP8",
+        "data": {
+          "model": {
+            "type": "hf.flux",
+            "repo_id": "Comfy-Org/flux1-schnell",
+            "path": "flux1-schnell-fp8.safetensors"
+          },
+          "negative_prompt": "",
+          "width": 1024,
+          "height": 1024,
+          "batch_size": 1,
+          "steps": 4,
+          "guidance_scale": 1,
+          "seed": 0,
+          "denoise": 1,
+          "scheduler": "simple",
+          "sampler": "euler"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 345,
+            "y": 733
+          },
+          "zIndex": 0,
+          "width": 220,
+          "selectable": true
+        }
+      },
+      {
+        "id": "5",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "image_output_2024-12-13"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 667,
+            "y": 754
+          },
+          "zIndex": 0,
+          "width": 611,
+          "height": 479,
+          "selectable": true
+        }
+      },
+      {
+        "id": "6",
+        "parent_id": null,
+        "type": "nodetool.input.ChatInput",
+        "data": {
+          "label": "Input Label",
+          "name": "chat",
+          "description": "",
+          "value": {
+            "type": "message",
+            "id": null,
+            "auth_token": null,
+            "workflow_id": null,
+            "graph": null,
+            "thread_id": null,
+            "user_id": null,
+            "tool_call_id": null,
+            "role": "",
+            "name": "",
+            "content": null,
+            "tool_calls": null,
+            "created_at": null
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": -65,
+            "y": 460
+          },
+          "zIndex": 0,
+          "width": 220,
+          "selectable": true
+        }
+      },
+      {
+        "id": "7",
+        "parent_id": null,
+        "type": "nodetool.output.ImageOutput",
+        "data": {
+          "label": "Output Label",
+          "name": "image_output_2024-12-13",
+          "description": ""
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1388,
+            "y": 213
+          },
+          "zIndex": 0,
+          "width": 222,
+          "selectable": true
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1a960f7-4e5a-41ac-b66d-f9238d078d03",
+        "source": "6",
+        "sourceHandle": "text",
+        "target": "1",
+        "targetHandle": "prompt",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "d7dbef7c-3d37-4353-8d0d-bd182a56a25d",
+        "source": "6",
+        "sourceHandle": "text",
+        "target": "4",
+        "targetHandle": "prompt",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "0852f54d-12a1-4285-bc14-dcc6d8fff2f6",
+        "source": "4",
+        "sourceHandle": "output",
+        "target": "5",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "a8a88830-cfa6-4467-b5c0-6177fd42131e",
+        "source": "1",
+        "sourceHandle": "output",
+        "target": "2",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "853",
+        "source": "1",
+        "sourceHandle": "output",
+        "target": "7",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "image"
+        }
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null
+}
