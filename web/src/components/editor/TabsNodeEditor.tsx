@@ -142,6 +142,11 @@ const styles = (theme: any) =>
       transition: "all 0.1s ease-in-out",
       padding: 0,
       flexShrink: 0,
+      visibility: "visible",
+
+      "&[data-hidden='true']": {
+        visibility: "hidden"
+      },
 
       "&:hover": {
         color: theme.palette.c_white,
@@ -321,6 +326,7 @@ const TabsNodeEditor = () => {
           className="scroll-button"
           onClick={() => handleScroll("left")}
           disabled={!canScrollLeft}
+          data-hidden={!showScrollButtons}
         >
           <ChevronLeftIcon />
         </button>
@@ -390,6 +396,7 @@ const TabsNodeEditor = () => {
           className="scroll-button"
           onClick={() => handleScroll("right")}
           disabled={!canScrollRight}
+          data-hidden={!showScrollButtons}
         >
           <ChevronRightIcon />
         </button>
