@@ -97,7 +97,6 @@ function getRoutes() {
           <ThemeProvider theme={ThemeNodetool}>
             <CssBaseline />
             <AppHeader showActions={false} />
-            <PanelLeft />
             <AssetExplorer />
           </ThemeProvider>
         </ProtectedRoute>
@@ -110,7 +109,6 @@ function getRoutes() {
           <ThemeProvider theme={ThemeNodetool}>
             <CssBaseline />
             <AppHeader showActions={false} />
-            <PanelLeft />
             <ExampleGrid />
           </ThemeProvider>
         </ProtectedRoute>
@@ -123,7 +121,6 @@ function getRoutes() {
           <ThemeProvider theme={ThemeNodetool}>
             <CssBaseline />
             <AppHeader showActions={false} />
-            <PanelLeft />
             <ModelsManager />
           </ThemeProvider>
         </ProtectedRoute>
@@ -164,7 +161,6 @@ function getRoutes() {
           <ThemeProvider theme={ThemeNodetool}>
             <CssBaseline />
             <AppHeader showActions={false} />
-            <PanelLeft />
             <OpenOrCreateDialog />
           </ThemeProvider>
         </ProtectedRoute>

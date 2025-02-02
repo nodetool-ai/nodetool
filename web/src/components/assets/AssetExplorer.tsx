@@ -11,10 +11,9 @@ const styles = (theme: any) =>
     "&": {
       position: "relative",
       display: "flex",
-      width: "calc(100% - 80px)",
+      width: "100%",
       height: "calc(-120px + 100vh)",
-      padding: "1em 2em 1em 1em",
-      left: "80px"
+      padding: "1em 2em 1em 1em"
     },
     ".asset-explorer": {
       width: "100%"

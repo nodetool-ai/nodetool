@@ -7,9 +7,15 @@ from nodetool.types.graph import Graph as APIGraph
 from nodetool.workflows.graph import Graph
 from nodetool.workflows.base_node import BaseNode
 
-from nodetool.models.base_model import DBModel, DBField, create_time_ordered_uuid
+from nodetool.models.base_model import (
+    DBModel,
+    DBField,
+    DBIndex,
+    create_time_ordered_uuid,
+)
 
 
+@DBIndex(columns=["user_id"])
 class Workflow(DBModel):
     @classmethod
     def get_table_schema(cls):

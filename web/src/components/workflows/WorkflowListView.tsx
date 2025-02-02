@@ -16,7 +16,7 @@ interface WorkflowListViewProps {
   onOpenWorkflow: (workflow: Workflow) => void;
   onDuplicateWorkflow: (event: React.MouseEvent, workflow: Workflow) => void;
   onSelect: (workflow: Workflow) => void;
-  onDelete: (e: any, workflow: Workflow) => void;
+  onDelete: (workflow: Workflow) => void;
   onScroll?: (event: React.UIEvent<HTMLDivElement>) => void;
   selectedWorkflows: string[] | null;
   workflowCategory: string;
@@ -121,6 +121,7 @@ export const WorkflowListView: React.FC<WorkflowListViewProps> = ({
   const addBreaks = (text: string) => {
     return text.replace(/([-_.])/g, "$1<wbr>");
   };
+  const currentWorkflow = useNodes((state) => state.workflow);
 
   return (
     <Box className="container list" css={listStyles} onScroll={onScroll}>
@@ -129,8 +130,8 @@ export const WorkflowListView: React.FC<WorkflowListViewProps> = ({
           key={workflow.id}
           className={
             "workflow list" +
-            (selectedWorkflows?.includes(workflow.id) ? " selected" : "")
-            // (currentWorkflow?.id === workflow.id ? " current" : "")
+            (selectedWorkflows?.includes(workflow.id) ? " selected" : "") +
+            (currentWorkflow?.id === workflow.id ? " current" : "")
           }
           onContextMenu={(e) => {
             e.preventDefault();
@@ -185,7 +186,8 @@ export const WorkflowListView: React.FC<WorkflowListViewProps> = ({
               className="delete-button"
               onClick={(event) => {
                 event.preventDefault();
-                onDelete(event, workflow);
+                event.stopPropagation();
+                onDelete(workflow);
               }}
             >
               <DeleteIcon />
