@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useCallback, useMemo } from "react";
+import React, { memo, useCallback, useMemo } from "react";
 import { css } from "@emotion/react";
 
 import ThemeNodetool from "../themes/ThemeNodetool";
@@ -14,6 +14,7 @@ import Welcome from "../content/Welcome/Welcome";
 import AppHeaderActions from "./AppHeaderActions";
 import OverallDownloadProgress from "../hugging_face/OverallDownloadProgress";
 import NotificationButton from "./NotificationButton";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 
 // mui icons
 import QuestionMarkIcon from "@mui/icons-material/QuestionMark";
@@ -43,6 +44,7 @@ import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { useEffect, useState } from "react";
 import SystemStatsDisplay from "./SystemStats";
 import { isDevelopment, isProduction } from "../../stores/ApiClient";
+import { useWorkflowManager } from "../../contexts/NodeContext";
 
 const styles = (theme: any, buttonAppearance: "text" | "icon" | "both") =>
   css({
@@ -155,6 +157,19 @@ const styles = (theme: any, buttonAppearance: "text" | "icon" | "both") =>
     }
   });
 
+const BackToEditorButton = memo(() => {
+  const { currentWorkflowId } = useWorkflowManager((state) => ({
+    currentWorkflowId: state.currentWorkflowId
+  }));
+  const navigate = useNavigate();
+  return (
+    <Button onClick={() => navigate(`/editor/${currentWorkflowId || ""}`)}>
+      <ArrowBackIcon />
+      Back to Editor
+    </Button>
+  );
+});
+
 interface AppHeaderProps {
   showActions?: boolean;
 }
@@ -218,6 +233,9 @@ const AppHeader: React.FC<AppHeaderProps> = React.memo(
     const NavigationButtons = useMemo(
       () => (
         <Box className="nav-buttons">
+          <Tooltip title="Back to Editor" enterDelay={TOOLTIP_ENTER_DELAY}>
+            <BackToEditorButton />
+          </Tooltip>
           <Tooltip title="Explore Examples" enterDelay={TOOLTIP_ENTER_DELAY}>
             <Button
               className={`nav-button ${path === "/examples" ? "active" : ""}`}
