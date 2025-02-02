@@ -9,6 +9,7 @@ import {
   LAUNCHD_SERVICE_NAME,
   PLIST_PATH,
   webPath,
+  appsPath,
 } from "./config";
 import path from "path";
 import { forceQuit } from "./window";
@@ -122,6 +123,8 @@ async function startServer(): Promise<void> {
     "8000",
     "--static-folder",
     webPath,
+    "--apps-folder",
+    appsPath,
   ];
 
   logMessage(`Using command: ${pythonExecutablePath} ${args.join(" ")}`);
