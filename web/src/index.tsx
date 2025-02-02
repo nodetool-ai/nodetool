@@ -49,6 +49,10 @@ import { NodeProvider } from "./contexts/NodeContext";
 import TabsNodeEditor from "./components/editor/TabsNodeEditor";
 import Welcome from "./components/content/Welcome/Welcome";
 import { useSettingsStore } from "./stores/SettingsStore";
+import {
+  useWorkflowManager,
+  WorkflowManagerProvider
+} from "./contexts/WorkflowManagerContext";
 if (!isProduction) {
   useRemoteSettingsStore.getState().fetchSettings();
 }
@@ -153,7 +157,7 @@ function getRoutes() {
       path: "editor/:workflow",
       element: (
         <ProtectedRoute>
-          <NodeProvider>
+          <WorkflowManagerProvider>
             <ThemeProvider theme={ThemeNodetool}>
               <CssBaseline />
               <AppHeader showActions={true} />
@@ -166,16 +170,9 @@ function getRoutes() {
               <CssBaseline />
               <NodeMenu focusSearchInput={true} showNamespaceTree={false} />
             </ThemeProvider>
-          </NodeProvider>
+          </WorkflowManagerProvider>
         </ProtectedRoute>
-      ),
-      loader: async ({ params }: LoaderFunctionArgs) => {
-        const getWorkflow = useWorkflowStore.getState().get;
-        if (!params.workflow) {
-          return redirect("/editor/start");
-        }
-        return { workflow: await getWorkflow(params.workflow) };
-      }
+      )
     },
     {
       path: "editor/start",
@@ -241,11 +238,9 @@ const AppWrapper = () => {
 
   return (
     <React.StrictMode>
-      <ReactFlowProvider>
-        <QueryClientProvider client={queryClient}>
-          <RouterProvider router={router} />
-        </QueryClientProvider>
-      </ReactFlowProvider>
+      <QueryClientProvider client={queryClient}>
+        <RouterProvider router={router} />
+      </QueryClientProvider>
     </React.StrictMode>
   );
 };

@@ -1,23 +1,24 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { useStore } from "@xyflow/react";
-import { useEffect, useState } from "react";
+import { ReactFlowProvider, useStore } from "@xyflow/react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLoaderData, useNavigate } from "react-router-dom";
 import CloseIcon from "@mui/icons-material/Close";
 import { MIN_ZOOM } from "../../config/constants";
-import { useWorkflowManager } from "../../contexts/NodeContext";
-import { Workflow } from "../../stores/ApiTypes";
 import NodeEditor from "../node_editor/NodeEditor";
 import { DragEvent } from "react";
 import { useResizePanel } from "../../hooks/handlers/useResizePanel";
+import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+import { NodeProvider } from "../../contexts/NodeContext";
+import StatusMessage from "../panels/StatusMessage";
+import AppHeaderActions from "../panels/AppHeaderActions";
+import { Workflow } from "../../stores/ApiTypes";
 
 const styles = (theme: any) =>
   css({
     display: "flex",
     flexDirection: "column",
     height: "100%",
-    overflow: "hidden",
-
     "& .tabs": {
       zIndex: 1000,
       display: "flex",
@@ -119,23 +120,36 @@ const styles = (theme: any) =>
       flex: 1,
       position: "relative",
       borderTop: "none"
+    },
+
+    ".status-message-container": {
+      position: "absolute",
+      top: "-70px",
+      right: "300px",
+      zIndex: 10000
     }
   });
 
 const TabsNodeEditor = () => {
-  const currentZoom = useStore((state) => state.transform[2]);
-  const isMinZoom = currentZoom <= MIN_ZOOM;
+  // const currentZoom = useStore((state) => state.transform[2]);
+  // const isMinZoom = currentZoom <= MIN_ZOOM;
   const {
     listWorkflows,
     getWorkflow,
-    addWorkflow,
     removeWorkflow,
     reorderWorkflows,
-    updateWorkflow
-  } = useWorkflowManager();
-  const { workflow: currentWorkflow } = useLoaderData() as {
-    workflow: Workflow;
-  };
+    updateWorkflow,
+    currentWorkflowId,
+    loadingStates
+  } = useWorkflowManager((state) => ({
+    listWorkflows: state.listWorkflows,
+    getWorkflow: state.getWorkflow,
+    removeWorkflow: state.removeWorkflow,
+    reorderWorkflows: state.reorderWorkflows,
+    updateWorkflow: state.updateWorkflow,
+    currentWorkflowId: state.currentWorkflowId,
+    loadingStates: state.loadingStates
+  }));
   const navigate = useNavigate();
   const [dropTarget, setDropTarget] = useState<{
     id: string;
@@ -145,26 +159,23 @@ const TabsNodeEditor = () => {
     null
   );
 
-  useEffect(() => {
-    if (!getWorkflow(currentWorkflow.id)) {
-      addWorkflow(currentWorkflow);
-    }
-  }, [currentWorkflow.id]);
-
-  const handleClose = (workflowId: string) => {
-    removeWorkflow(workflowId);
-    if (currentWorkflow.id === workflowId) {
-      // Switch to the last remaining tab
-      const remaining = listWorkflows().filter(
-        (workflow) => workflow.id !== workflowId
-      );
-      if (remaining.length > 0) {
-        navigate(`/editor/${remaining[remaining.length - 1].id}`);
-      } else {
-        navigate("/editor");
+  const handleClose = useCallback(
+    (workflowId: string) => {
+      removeWorkflow(workflowId);
+      if (currentWorkflowId === workflowId) {
+        // Switch to the last remaining tab
+        const remaining = listWorkflows().filter(
+          (workflow) => workflow.id !== workflowId
+        );
+        if (remaining.length > 0) {
+          navigate(`/editor/${remaining[remaining.length - 1].id}`);
+        } else {
+          navigate("/editor");
+        }
       }
-    }
-  };
+    },
+    [currentWorkflowId, listWorkflows, navigate, removeWorkflow]
+  );
 
   const handleDragStart = (
     e: DragEvent<HTMLDivElement>,
@@ -227,6 +238,24 @@ const TabsNodeEditor = () => {
   const { collapsed: panelLeftCollapsed, size: panelSize } =
     useResizePanel("left");
 
+  const workflows = useMemo(() => {
+    const workflows = listWorkflows();
+    const loadingWorkflows = Object.keys(loadingStates).map(
+      (id) =>
+        ({
+          id,
+          name: "Loading...",
+          thumbnail: "",
+          access: "private",
+          description: "",
+          updated_at: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+          graph: { nodes: [], edges: [] }
+        } as Workflow)
+    );
+    return [...workflows, ...loadingWorkflows];
+  }, [listWorkflows, loadingStates]);
+
   return (
     <div
       css={styles}
@@ -237,7 +266,7 @@ const TabsNodeEditor = () => {
           <div
             key={workflow.id}
             className={`tab ${
-              workflow.id === currentWorkflow.id ? "active" : ""
+              workflow.id === currentWorkflowId ? "active" : ""
             } ${
               dropTarget?.id === workflow.id
                 ? dropTarget.position === "left"
@@ -288,7 +317,30 @@ const TabsNodeEditor = () => {
         ))}
       </div>
       <div className="editor-container">
-        <NodeEditor isMinZoom={isMinZoom} />
+        {workflows.map((workflow) => (
+          <div
+            key={workflow.id}
+            style={{
+              visibility:
+                workflow.id === currentWorkflowId ? "visible" : "hidden",
+              position:
+                workflow.id === currentWorkflowId ? "relative" : "absolute",
+              height: "100%"
+            }}
+          >
+            <ReactFlowProvider>
+              <NodeProvider workflowId={workflow.id}>
+                <div className="actions-container">
+                  <AppHeaderActions />
+                </div>
+                <div className="status-message-container">
+                  <StatusMessage />
+                </div>
+                <NodeEditor workflowId={workflow.id} />
+              </NodeProvider>
+            </ReactFlowProvider>
+          </div>
+        ))}
       </div>
     </div>
   );

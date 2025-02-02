@@ -169,7 +169,6 @@ const NodeMenu = memo(function NodeMenu({
   useEffect(() => {
     if (isMenuOpen) {
       menuOpenRequestTime = performance.now();
-      console.log("NodeMenu open requested");
     }
   }, [isMenuOpen]);
 

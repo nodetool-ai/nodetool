@@ -98,7 +98,6 @@ export default function useDragHandlers() {
       });
       setDraggedNodes(new Set());
       setHoveredNodes([]);
-      console.log("onNodeDragStop");
     },
     [addToGroup, lastParentNode, resume, draggedNodes, updateNode]
   );
@@ -139,7 +138,6 @@ export default function useDragHandlers() {
   /* SELECTION END */
   const onSelectionEnd = useCallback(() => {
     if (cKeyPressed) {
-      console.log("onSelectionEnd");
       // create comment node
       const mousePos = getMousePosition();
       const projectedEndPos = reactFlow.screenToFlowPosition({
