@@ -440,6 +440,22 @@ export const createNodeStore = (
               addNodeType(node.type, PlaceholderNode);
             }
           }
+          // const modelFiles = extractModelFiles(workflow.graph.nodes);
+          // setTimeout(() => {
+          //   tryCacheFiles(modelFiles).then((paths) => {
+          //     set({
+          //       missingModelFiles: paths.filter((m) => !m.downloaded)
+          //     });
+          //   });
+          //   const modelRepos = extractModelRepos(workflow.graph.nodes);
+          //   tryCacheRepos(modelRepos).then((repos) => {
+          //     set({
+          //       missingModelRepos: repos
+          //         .filter((r) => !r.downloaded)
+          //         .map((r) => r.repo_id)
+          //     });
+          //   });
+          // }, 1000);
 
           set({
             workflow: workflow,
