@@ -331,14 +331,8 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   }, [reactFlowInstance]);
 
   const fitScreen = useCallback(() => {
-    const fitOptions: FitViewOptions = {
-      maxZoom: 8,
-      minZoom: 0.01,
-      padding: 0.6
-    };
-
     if (reactFlowInstance) {
-      reactFlowInstance.fitView(fitOptions);
+      reactFlowInstance.fitView(fitViewOptions);
       setShouldFitToScreen(false);
     }
   }, [reactFlowInstance, setShouldFitToScreen]);
@@ -350,13 +344,6 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
       });
     }
   }, [fitScreen, shouldFitToScreen]);
-
-  // INIT
-  const handleOnInit = useCallback(() => {
-    setTimeout(() => {
-      fitScreen();
-    }, 10);
-  }, [fitScreen]);
 
   if (loadingState?.isLoading) {
     return (
@@ -438,7 +425,6 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
         onMoveStart={handleOnMoveStart}
         onDoubleClick={handleDoubleClick}
         proOptions={proOptions}
-        onInit={handleOnInit}
         panActivationKeyCode=""
         // onSelectionChange={onSelectionChange}
         // edgeTypes={edgeTypes}
