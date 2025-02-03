@@ -22,15 +22,14 @@ import { useCombo } from "../../stores/KeyPressedStore";
 import { isEqual } from "lodash";
 import { useNodes } from "../../contexts/NodeContext";
 
-const actionsStyles = (
-  theme: any,
-  buttonAppearance: "text" | "icon" | "both"
-) =>
+const styles = (theme: any) =>
   css({
     "&": {
       position: "absolute",
-      top: "-70px",
-      zIndex: 10000
+      top: "5px",
+      zIndex: 10000,
+      left: "50%",
+      transform: "translateX(-50%)"
     },
     "&.actions": {
       fontSize: "12px",
@@ -41,8 +40,7 @@ const actionsStyles = (
       gap: "0.25em",
       backgroundColor: "transparent",
       margin: "0",
-      padding: "0 1em",
-      width: "100%"
+      padding: "0 1em"
     },
     ".status-message-container": {
       alignItems: "center",
@@ -357,10 +355,7 @@ const AppHeaderActions: React.FC = () => {
     <>
       <Box sx={{ flexGrow: 1 }} />
       {path.startsWith("/editor") && (
-        <div
-          className="actions"
-          css={actionsStyles(ThemeNodetool, buttonAppearance)}
-        >
+        <div className="actions" css={styles}>
           <>
             <CreateWorkflowButton />
             <SaveWorkflowButton />

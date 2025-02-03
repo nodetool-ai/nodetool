@@ -15,6 +15,7 @@ import { Workflow, WorkflowAttributes } from "../../stores/ApiTypes";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import TabHeader from "./TabHeader";
+import { createPortal } from "react-dom";
 
 const styles = (theme: any) =>
   css({
@@ -423,9 +424,12 @@ const TabsNodeEditor = () => {
           >
             <ReactFlowProvider>
               <NodeProvider workflowId={workflow.id}>
-                <div className="actions-container">
-                  <AppHeaderActions />
-                </div>
+                {createPortal(
+                  <div className="actions-container">
+                    <AppHeaderActions />
+                  </div>,
+                  document.body
+                )}
                 <div className="status-message-container">
                   <StatusMessage />
                 </div>
