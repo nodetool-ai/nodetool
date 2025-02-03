@@ -508,7 +508,10 @@ const ChatView = ({
     return (
       <li className={messageClass} key={msg.id}>
         {typeof msg.content === "string" &&
-          renderContent(msg.content, msg.id as string)}
+          renderContent(
+            msg.content,
+            typeof msg.id === "string" ? parseInt(msg.id) || 0 : 0
+          )}
         {Array.isArray(content) &&
           content.map((c: MessageContent, i: number) => {
             if (c.type === "text") {

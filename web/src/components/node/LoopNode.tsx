@@ -140,7 +140,7 @@ const LoopNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       if (clickedElement.classList.contains("node-header")) {
         updateNodeData(id, { collapsed: !props.data.collapsed });
       } else {
-        handleOpenNodeMenu();
+        handleOpenNodeMenu(e);
       }
     },
     [props.data.collapsed, updateNodeData, handleOpenNodeMenu]
