@@ -32,7 +32,6 @@ import NodeMenu from "./components/node_menu/NodeMenu";
 import AssetExplorer from "./components/assets/AssetExplorer";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useAssetStore } from "./stores/AssetStore";
-import { useWorkflowStore } from "./stores/WorkflowStore";
 import Login from "./components/Login";
 import OAuthCallback from "./components/OauthCallback";
 import ExampleGrid from "./components/workflows/ExampleGrid";
@@ -198,7 +197,6 @@ function getRoutes() {
 
 const queryClient = new QueryClient();
 useAssetStore.getState().setQueryClient(queryClient);
-useWorkflowStore.getState().setQueryClient(queryClient);
 useModelStore.getState().setQueryClient(queryClient);
 
 const showWelcomeOnStartup =

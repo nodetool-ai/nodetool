@@ -13,7 +13,11 @@ interface TabHeaderProps {
   onDoubleClick: (id: string) => void;
   onClose: (id: string) => void;
   onDragStart: (e: DragEvent<HTMLDivElement>, id: string) => void;
-  onDragOver: (e: DragEvent<HTMLDivElement>, id: string) => void;
+  onDragOver: (
+    e: DragEvent<HTMLDivElement>,
+    id: string,
+    position: "left" | "right"
+  ) => void;
   onDragLeave: () => void;
   onDrop: (e: DragEvent<HTMLDivElement>, id: string) => void;
   onNameChange: (id: string, newName: string) => void;
@@ -35,6 +39,23 @@ const TabHeader = ({
   onNameChange,
   onKeyDown
 }: TabHeaderProps) => {
+  const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const boundingRect = (e.target as HTMLElement).getBoundingClientRect();
+    const mouseX = e.clientX;
+    const position =
+      mouseX < boundingRect.left + boundingRect.width / 2 ? "left" : "right";
+    onDragOver(e, workflow.id, position);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      onNameChange(workflow.id, e.currentTarget.value);
+    } else if (e.key === "Escape") {
+      onKeyDown(e, workflow.id, e.currentTarget.value);
+    }
+  };
+
   return (
     <div
       className={`tab ${isActive ? "active" : ""} ${
@@ -48,7 +69,7 @@ const TabHeader = ({
       onDoubleClick={() => onDoubleClick(workflow.id)}
       draggable={!isEditing}
       onDragStart={(e) => onDragStart(e, workflow.id)}
-      onDragOver={(e) => onDragOver(e, workflow.id)}
+      onDragOver={handleDragOver}
       onDragLeave={onDragLeave}
       onDrop={(e) => onDrop(e, workflow.id)}
     >
@@ -58,7 +79,7 @@ const TabHeader = ({
           defaultValue={workflow.name}
           autoFocus
           onBlur={(e) => onNameChange(workflow.id, e.target.value)}
-          onKeyDown={(e) => onKeyDown(e, workflow.id, e.currentTarget.value)}
+          onKeyDown={handleKeyDown}
           onClick={(e) => e.stopPropagation()}
           style={{
             background: "transparent",

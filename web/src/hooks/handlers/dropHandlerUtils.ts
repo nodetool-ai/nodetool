@@ -2,7 +2,6 @@ import { useCallback } from "react";
 import { XYPosition } from "@xyflow/react";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
-import { useWorkflowStore } from "../../stores/WorkflowStore";
 import { useCreateDataframe } from "./useCreateDataframe";
 import {
   constantForType,
@@ -13,6 +12,7 @@ import useAuth from "../../stores/useAuth";
 import { Asset } from "../../stores/ApiTypes";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useNodes } from "../../contexts/NodeContext";
+import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 
 export type FileHandlerResult = {
   success: boolean;
@@ -102,7 +102,7 @@ export const isNodetoolWorkflowJson = (json: any): boolean => {
 export const useFileHandlers = () => {
   const currentFolderId = useAssetGridStore((state) => state.currentFolderId);
   const { uploadAsset } = useAssetUpload();
-  const createWorkflow = useWorkflowStore((state) => state.create);
+  const createWorkflow = useWorkflowManager((state) => state.create);
   const setWorkflow = useNodes((state) => state.setWorkflow);
   const { createNode, addNode, workflow } = useNodes((state) => ({
     createNode: state.createNode,

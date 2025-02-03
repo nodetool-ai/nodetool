@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { Command, CommandInput } from "cmdk";
-import { NodeMetadata, Workflow } from "../../stores/ApiTypes";
+import { NodeMetadata, Workflow, WorkflowList } from "../../stores/ApiTypes";
 import { useCallback, useEffect, useState, useRef, memo, useMemo } from "react";
 import { css, Dialog, Tooltip } from "@mui/material";
 import { getMousePosition } from "../../utils/MousePosition";
@@ -12,7 +12,7 @@ import { useNotificationStore } from "../../stores/NotificationStore";
 import { isEqual } from "lodash";
 import React from "react";
 import useMetadataStore from "../../stores/MetadataStore";
-import { useWorkflowStore } from "../../stores/WorkflowStore";
+import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { useNodes } from "../../contexts/NodeContext";
@@ -46,8 +46,6 @@ const WorkflowCommands = memo(() => {
     currentWorkflow,
     getWorkflow,
     workflowJSON,
-    saveWorkflow,
-    newWorkflow,
     autoLayout
   } = useNodes((state) => ({
     nodes: state.nodes,
@@ -55,8 +53,6 @@ const WorkflowCommands = memo(() => {
     currentWorkflow: state.workflow,
     getWorkflow: state.getWorkflow,
     workflowJSON: state.workflowJSON,
-    saveWorkflow: state.saveWorkflow,
-    newWorkflow: state.newWorkflow,
     autoLayout: state.autoLayout
   }));
   const run = useWorkflowRunnner((state) => state.run);
@@ -69,7 +65,7 @@ const WorkflowCommands = memo(() => {
     run({}, currentWorkflow, nodes, edges);
   }, [run, currentWorkflow, nodes, edges]);
 
-  const saveExample = useWorkflowStore((state) => state.saveExample);
+  const saveExample = useWorkflowManager((state) => state.saveExample);
   const downloadWorkflow = useCallback(() => {
     const blob = new Blob([workflowJSON()], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -98,12 +94,6 @@ const WorkflowCommands = memo(() => {
       </Command.Item>
       <Command.Item onSelect={() => executeAndClose(copyWorkflow)}>
         Copy Workflow as JSON
-      </Command.Item>
-      <Command.Item onSelect={() => executeAndClose(saveWorkflow)}>
-        Save Workflow
-      </Command.Item>
-      <Command.Item onSelect={() => executeAndClose(newWorkflow)}>
-        New Workflow
       </Command.Item>
       <Command.Item
         onSelect={() => executeAndClose(useWorkflowRunnner.getState().cancel)}
@@ -228,20 +218,21 @@ const NodeCommands = memo(() => {
 const ExampleCommands = memo(() => {
   const executeAndClose = useCommandMenu((state) => state.executeAndClose);
   const navigate = useNavigate();
+  const { loadExamples, copy } = useWorkflowManager((state) => ({
+    loadExamples: state.loadExamples,
+    copy: state.copy
+  }));
 
-  const { data: examples } = useQuery({
+  const { data: examples } = useQuery<WorkflowList>({
     queryKey: ["examples"],
-    queryFn: useWorkflowStore.getState().loadExamples
+    queryFn: loadExamples
   });
 
   const loadExample = useCallback(
     (workflow: Workflow) => {
-      useWorkflowStore
-        .getState()
-        .copy(workflow)
-        .then((workflow) => {
-          navigate("/editor/" + workflow.id);
-        });
+      copy(workflow).then((workflow) => {
+        navigate("/editor/" + workflow.id);
+      });
     },
     [navigate]
   );

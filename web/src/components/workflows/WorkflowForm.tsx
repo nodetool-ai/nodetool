@@ -21,7 +21,6 @@ import { Workflow, WorkflowAttributes } from "../../stores/ApiTypes";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
-import { useWorkflowStore } from "../../stores/WorkflowStore";
 
 const AVAILABLE_TAGS = [
   "image",
@@ -160,7 +159,7 @@ const WorkflowForm = () => {
     },
     updateWorkflowInManager: state.updateWorkflow
   }));
-  const { update } = useWorkflowStore((state) => ({
+  const { update } = useWorkflowManager((state) => ({
     update: state.update
   }));
   const addNotification = useNotificationStore(

@@ -15,12 +15,10 @@ import { useNotificationStore } from "../../stores/NotificationStore";
 import { Workflow } from "../../stores/ApiTypes";
 import useWorkflowRunner from "../../stores/WorkflowRunner";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
-import ThemeNodetool from "../themes/ThemeNodetool";
-import { useSettingsStore } from "../../stores/SettingsStore";
-import { useWorkflowStore } from "../../stores/WorkflowStore";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { isEqual } from "lodash";
 import { useNodes } from "../../contexts/NodeContext";
+import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 
 const styles = (theme: any) =>
   css({
@@ -131,7 +129,7 @@ const useGlobalHotkeys = (callback: () => void) => {
 
 // Create individual button components
 const CreateWorkflowButton = memo(() => {
-  const createNewWorkflow = useWorkflowStore((state) => state.createNew);
+  const createNewWorkflow = useWorkflowManager((state) => state.createNew);
   const navigate = useNavigate();
 
   const handleCreate = useCallback(async () => {
@@ -212,13 +210,28 @@ const RunWorkflowButton = memo(() => {
     nodes: state.nodes,
     edges: state.edges
   }));
+
   const { run, state, isWorkflowRunning } = useWorkflowRunner((state) => ({
     run: state.run,
     state: state.state,
     isWorkflowRunning: state.state === "running"
   }));
 
-  useGlobalHotkeys(() => run({}, workflow, nodes, edges));
+  const { getWorkflow, saveWorkflow } = useWorkflowManager((state) => ({
+    getWorkflow: state.getWorkflow,
+    saveWorkflow: state.saveWorkflow
+  }));
+
+  const handleRun = useCallback(() => {
+    if (!isWorkflowRunning) {
+      run({}, workflow, nodes, edges);
+    }
+    setTimeout(() => {
+      saveWorkflow(getWorkflow(workflow.id));
+    }, 100);
+  }, [isWorkflowRunning, run, workflow, nodes, edges]);
+
+  useGlobalHotkeys(handleRun);
 
   return (
     <Tooltip
@@ -245,7 +258,7 @@ const RunWorkflowButton = memo(() => {
         className={`action-button run-stop-button run-workflow ${
           isWorkflowRunning ? "disabled" : ""
         }`}
-        onClick={() => !isWorkflowRunning && run({}, workflow, nodes, edges)}
+        onClick={handleRun}
         tabIndex={-1}
       >
         {state === "connecting" || state === "connected" ? (

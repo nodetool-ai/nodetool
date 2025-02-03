@@ -2,9 +2,9 @@ import { FC, useCallback, useMemo } from "react";
 import { useResizeObserver } from "@mantine/hooks";
 import { WorkflowListView } from "./WorkflowListView";
 import { Workflow } from "../../stores/ApiTypes";
-import { useWorkflowStore } from "../../stores/WorkflowStore";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
+import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 
 interface WorkflowGridProps {
   workflows: Workflow[];
@@ -24,7 +24,7 @@ const WorkflowGrid: FC<WorkflowGridProps> = ({
   showCheckboxes
 }) => {
   const [gridRef] = useResizeObserver();
-  const { copyWorkflow, createWorkflow } = useWorkflowStore((state) => ({
+  const { copyWorkflow, createWorkflow } = useWorkflowManager((state) => ({
     copyWorkflow: state.copy,
     createWorkflow: state.create
   }));
