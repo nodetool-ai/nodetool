@@ -13,14 +13,14 @@ interface WorkflowSelectProps {
 }
 
 const WorkflowSelect = (props: WorkflowSelectProps) => {
-  const { listWorkflows } = useWorkflowManager((state) => ({
-    listWorkflows: state.listWorkflows
+  const { load } = useWorkflowManager((state) => ({
+    load: state.load
   }));
 
   const { data, error, isLoading } = useQuery<WorkflowList, Error>({
     queryKey: ["workflows"],
     queryFn: async () => {
-      return await listWorkflows();
+      return await load();
     }
   });
 
