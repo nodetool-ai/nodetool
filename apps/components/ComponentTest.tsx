@@ -98,236 +98,232 @@ export function ComponentTest({ className }: ComponentTestProps) {
     return null;
   }
   return (
-    <div data-theme={displayTheme}>
-      {/* <Provider> */}
-      <Box
-        className={
-          className ? `component-test-root ${className}` : "component-test-root"
-        }
-        height="100vh"
+    <Box
+      className={
+        className ? `component-test-root ${className}` : "component-test-root"
+      }
+      height="100vh"
+      overflow="hidden"
+      bg="bg"
+      maxW="2xl"
+    >
+      <Container
+        maxW="container.xl"
+        py={8}
+        height="100%"
         overflow="hidden"
-        bg="bg"
-        width="50vw"
+        display="flex"
+        flexDirection="column"
+        color="text"
       >
-        <Container
-          maxW="800px"
-          py={8}
-          height="100%"
-          overflow="hidden"
-          display="flex"
-          flexDirection="column"
-          color="text"
+        <HStack justify="space-between" align="center" mb={4}>
+          <Text fontSize="2xl" fontWeight="normal">
+            Custom Components Demo
+          </Text>
+          <ColorModeButton />
+        </HStack>
+
+        <Box mb={4}>
+          <VStack align="start" gap={1} color="textGray">
+            <Text>Current color mode: {displayTheme}</Text>
+          </VStack>
+        </Box>
+
+        <Box
+          flex="1"
+          overflow="auto"
+          paddingRight="4"
+          css={{
+            scrollbarWidth: "thin",
+            scrollbarColor:
+              "var(--chakra-colors-gray-400) var(--chakra-colors-gray-200)",
+            "&::-webkit-scrollbar": {
+              width: "8px",
+            },
+            "&::-webkit-scrollbar-track": {
+              background: "var(--chakra-colors-gray-200)",
+              borderRadius: "2px",
+            },
+            "&::-webkit-scrollbar-thumb": {
+              background: "var(--chakra-colors-gray-400)",
+              borderRadius: "2px",
+            },
+            "&::-webkit-scrollbar-thumb:hover": {
+              background: "var(--chakra-colors-gray-500)",
+            },
+          }}
         >
-          <HStack justify="space-between" align="center" mb={4}>
-            <Text fontSize="2xl" fontWeight="normal">
-              Custom Components Demo
-            </Text>
-            <ColorModeButton />
-          </HStack>
+          <VStack gap={8} align="stretch">
+            <Section title="Basic Components">
+              <VStack align="stretch" gap={4}>
+                <Alert
+                  status="info"
+                  title="Alert Component"
+                  bg="success"
+                  color="text"
+                  borderColor="border"
+                >
+                  This is a custom alert component with a custom bg color
+                </Alert>
 
-          <Box mb={4}>
-            <VStack align="start" gap={1} color="textGray">
-              <Text>Current color mode: {displayTheme}</Text>
-            </VStack>
-          </Box>
-
-          <Box
-            flex="1"
-            overflow="auto"
-            paddingRight="4"
-            css={{
-              scrollbarWidth: "thin",
-              scrollbarColor:
-                "var(--chakra-colors-gray-400) var(--chakra-colors-gray-200)",
-              "&::-webkit-scrollbar": {
-                width: "8px",
-              },
-              "&::-webkit-scrollbar-track": {
-                background: "var(--chakra-colors-gray-200)",
-                borderRadius: "2px",
-              },
-              "&::-webkit-scrollbar-thumb": {
-                background: "var(--chakra-colors-gray-400)",
-                borderRadius: "2px",
-              },
-              "&::-webkit-scrollbar-thumb:hover": {
-                background: "var(--chakra-colors-gray-500)",
-              },
-            }}
-          >
-            <VStack gap={8} align="stretch">
-              <Section title="Basic Components">
-                <VStack align="stretch" gap={4}>
-                  <Alert
-                    status="info"
-                    title="Alert Component"
-                    bg="success"
-                    color="text"
+                <Field label="Input Field">
+                  <Input
+                    placeholder="Enter text"
+                    bg="inputBg"
+                    color="gray800"
                     borderColor="border"
-                  >
-                    This is a custom alert component with a custom bg color
-                  </Alert>
-
-                  <Field label="Input Field">
-                    <Input
-                      placeholder="Enter text"
-                      bg="inputBg"
-                      color="gray800"
-                      borderColor="border"
-                      _hover={{ borderColor: "primary" }}
-                      _focus={{
-                        borderColor: "primary",
-                        boxShadow: "0 0 0 2px var(--nt-colors-primary-alpha)",
-                      }}
-                    />
-                  </Field>
-
-                  <InputGroup>
-                    <Input
-                      placeholder="Input with group"
-                      bg="inputBg"
-                      borderColor="border"
-                      _hover={{ borderColor: "primary" }}
-                      _focus={{
-                        borderColor: "primary",
-                        boxShadow: "0 0 0 2px var(--nt-colors-primary-alpha)",
-                      }}
-                    />
-                  </InputGroup>
-
-                  <Checkbox>Checkbox Example</Checkbox>
-
-                  <RadioGroup>
-                    <HStack gap={4}>
-                      <Radio value="1">Option 1</Radio>
-                      <Radio value="2">Option 2</Radio>
-                    </HStack>
-                  </RadioGroup>
-
-                  <Slider
-                    defaultValue={[50]}
-                    min={0}
-                    max={100}
-                    label="Slider"
-                    colorScheme="white"
-                    showValue
+                    _hover={{ borderColor: "primary" }}
+                    _focus={{
+                      borderColor: "primary",
+                      boxShadow: "0 0 0 2px var(--nt-colors-primary-alpha)",
+                    }}
                   />
+                </Field>
 
-                  <ProgressRoot value={75}>
-                    <ProgressBar />
-                  </ProgressRoot>
-                </VStack>
-              </Section>
+                <InputGroup>
+                  <Input
+                    placeholder="Input with group"
+                    bg="inputBg"
+                    borderColor="border"
+                    _hover={{ borderColor: "primary" }}
+                    _focus={{
+                      borderColor: "primary",
+                      boxShadow: "0 0 0 2px var(--nt-colors-primary-alpha)",
+                    }}
+                  />
+                </InputGroup>
 
-              <Section title="Interactive Components">
-                <VStack align="stretch" gap={4}>
+                <Checkbox>Checkbox Example</Checkbox>
+
+                <RadioGroup>
                   <HStack gap={4}>
-                    <DialogRoot>
-                      <DialogTrigger asChild>
-                        <Button>Open Dialog</Button>
-                      </DialogTrigger>
-                      <DialogContent>Dialog Content</DialogContent>
-                    </DialogRoot>
-
-                    <DrawerRoot>
-                      <DrawerTrigger asChild>
-                        <Button>Open Drawer</Button>
-                      </DrawerTrigger>
-                      <DrawerContent>Drawer Content</DrawerContent>
-                    </DrawerRoot>
-
-                    <PopoverRoot>
-                      <PopoverTrigger asChild>
-                        <Button>Open Popover</Button>
-                      </PopoverTrigger>
-                      <PopoverContent>Popover Content</PopoverContent>
-                    </PopoverRoot>
+                    <Radio value="1">Option 1</Radio>
+                    <Radio value="2">Option 2</Radio>
                   </HStack>
+                </RadioGroup>
 
-                  <HStack gap={4}>
-                    <Tooltip content="Regular tooltip">
-                      <Button>Hover me</Button>
-                    </Tooltip>
-                    <ToggleTip content="Toggle tooltip">
-                      <Button>Click me</Button>
-                    </ToggleTip>
-                    <InfoTip>Info tooltip</InfoTip>
-                  </HStack>
-                </VStack>
-              </Section>
+                <Slider
+                  defaultValue={[50]}
+                  min={0}
+                  max={100}
+                  label="Slider"
+                  colorScheme="white"
+                  showValue
+                />
 
-              <Section title="File Upload">
-                <Box p={4} borderRadius="md" borderWidth="1px" boxShadow="card">
-                  <FileUploadRoot>
-                    <FileUploadDropzone
-                      label="Drop files here"
-                      description="or click to select"
-                    />
-                    <FileUploadList />
-                  </FileUploadRoot>
-                </Box>
-              </Section>
+                <ProgressRoot value={75}>
+                  <ProgressBar />
+                </ProgressRoot>
+              </VStack>
+            </Section>
 
-              <Section title="Media Components">
-                <VStack align="stretch" gap={4}>
-                  <Box>
-                    <Text mb={2}>Audio Input/Player</Text>
-                    <AudioInput
-                      onChange={(data) => setAudioData(data?.data || null)}
-                    />
-                    {audioData && <AudioPlayer data={audioData} />}
-                  </Box>
+            <Section title="Interactive Components">
+              <VStack align="stretch" gap={4}>
+                <HStack gap={4}>
+                  <DialogRoot>
+                    <DialogTrigger asChild>
+                      <Button>Open Dialog</Button>
+                    </DialogTrigger>
+                    <DialogContent>Dialog Content</DialogContent>
+                  </DialogRoot>
 
-                  <Box>
-                    <Text mb={2}>Image Input/Display</Text>
-                    <ImageInput
-                      onChange={(data) => setImageData(data?.data || null)}
-                    />
-                    {imageData && <ImageDisplay data={imageData} />}
-                  </Box>
+                  <DrawerRoot>
+                    <DrawerTrigger asChild>
+                      <Button>Open Drawer</Button>
+                    </DrawerTrigger>
+                    <DrawerContent>Drawer Content</DrawerContent>
+                  </DrawerRoot>
 
-                  <Box>
-                    <Text mb={2}>Video Input/Player</Text>
-                    <VideoInput
-                      onChange={(data) => setVideoData(data?.data || null)}
-                    />
-                    {videoData && <VideoPlayer data={videoData} />}
-                  </Box>
+                  <PopoverRoot>
+                    <PopoverTrigger asChild>
+                      <Button>Open Popover</Button>
+                    </PopoverTrigger>
+                    <PopoverContent>Popover Content</PopoverContent>
+                  </PopoverRoot>
+                </HStack>
 
-                  <Box>
-                    <Text mb={2}>Document Input</Text>
-                    <DocumentInput onChange={() => {}} />
-                  </Box>
-                </VStack>
-              </Section>
+                <HStack gap={4}>
+                  <Tooltip content="Regular tooltip">
+                    <Button>Hover me</Button>
+                  </Tooltip>
+                  <ToggleTip content="Toggle tooltip">
+                    <Button>Click me</Button>
+                  </ToggleTip>
+                  <InfoTip>Info tooltip</InfoTip>
+                </HStack>
+              </VStack>
+            </Section>
 
-              <Section title="Form Components">
-                <Box p={4} borderRadius="md" borderWidth="1px">
-                  <SchemaInput
-                    name="demo-schema"
-                    schema={sampleSchema}
-                    value={{}}
-                    onChange={console.log}
+            <Section title="File Upload">
+              <Box p={4} borderRadius="md" borderWidth="1px" boxShadow="card">
+                <FileUploadRoot>
+                  <FileUploadDropzone
+                    label="Drop files here"
+                    description="or click to select"
                   />
-                </Box>
-              </Section>
+                  <FileUploadList />
+                </FileUploadRoot>
+              </Box>
+            </Section>
 
-              <Section title="Composer">
-                <Box p={4} borderWidth="1px" borderRadius="md">
-                  <Composer
-                    onSubmit={console.log}
-                    disabled={false}
-                    droppedFiles={[]}
-                    setDroppedFiles={console.log}
+            <Section title="Media Components">
+              <VStack align="stretch" gap={4}>
+                <Box>
+                  <Text mb={2}>Audio Input/Player</Text>
+                  <AudioInput
+                    onChange={(data) => setAudioData(data?.data || null)}
                   />
+                  {audioData && <AudioPlayer data={audioData} />}
                 </Box>
-              </Section>
-            </VStack>
-          </Box>
-        </Container>
-      </Box>
-      {/* </Provider> */}
-    </div>
+
+                <Box>
+                  <Text mb={2}>Image Input/Display</Text>
+                  <ImageInput
+                    onChange={(data) => setImageData(data?.data || null)}
+                  />
+                  {imageData && <ImageDisplay data={imageData} />}
+                </Box>
+
+                <Box>
+                  <Text mb={2}>Video Input/Player</Text>
+                  <VideoInput
+                    onChange={(data) => setVideoData(data?.data || null)}
+                  />
+                  {videoData && <VideoPlayer data={videoData} />}
+                </Box>
+
+                <Box>
+                  <Text mb={2}>Document Input</Text>
+                  <DocumentInput onChange={() => {}} />
+                </Box>
+              </VStack>
+            </Section>
+
+            <Section title="Form Components">
+              <Box p={4} borderRadius="md" borderWidth="1px">
+                <SchemaInput
+                  name="demo-schema"
+                  schema={sampleSchema}
+                  value={{}}
+                  onChange={console.log}
+                />
+              </Box>
+            </Section>
+
+            <Section title="Composer">
+              <Box p={4} borderWidth="1px" borderRadius="md">
+                <Composer
+                  onSubmit={console.log}
+                  disabled={false}
+                  droppedFiles={[]}
+                  setDroppedFiles={console.log}
+                />
+              </Box>
+            </Section>
+          </VStack>
+        </Box>
+      </Container>
+    </Box>
   );
 }
 

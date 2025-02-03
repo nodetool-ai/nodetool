@@ -5,6 +5,7 @@ import { Box, Heading, Text, Flex } from "@chakra-ui/react";
 import ChatInterface from "./ChatInterface";
 import { MiniApp } from "./MiniApp";
 import { useTheme } from "next-themes";
+import { ColorModeButton } from "./ui/color-mode";
 
 interface AppProps {
   initialWorkflowId?: string;
@@ -56,20 +57,31 @@ export const App: React.FC<AppProps> = ({ initialWorkflowId }) => {
   }, [initialWorkflowId]);
 
   return (
-    <div data-theme={displayTheme}>
-      <Flex h="100vh" direction="column" color="text">
+    <div data-theme={displayTheme} className="app-root">
+      <Flex h="100vh" direction="column" color="text" className="app-container">
         {!isMac && <WindowControls />}
 
         {workflow && (
-          <Box p={4} bg="secondary" borderBottom="1px" borderColor="border">
-            <Heading as="h1" size="md" m={0}>
-              {workflow.name}
-            </Heading>
-            {workflow.description && (
-              <Text mt={2} fontSize="sm" opacity={0.5}>
-                {workflow.description}
-              </Text>
-            )}
+          <Box
+            bg="secondary"
+            borderBottom="1px"
+            borderColor="border"
+            className="app-header"
+            padding={"4em 1em 2em 1em"}
+          >
+            <Flex justify="space-between" align="center">
+              <Box>
+                <Heading as="h1" size="md" m={0}>
+                  {workflow.name}
+                </Heading>
+                {workflow.description && (
+                  <Text mt={2} fontSize="sm" opacity={0.5}>
+                    {workflow.description}
+                  </Text>
+                )}
+              </Box>
+              <ColorModeButton />
+            </Flex>
           </Box>
         )}
 
@@ -95,11 +107,11 @@ export const App: React.FC<AppProps> = ({ initialWorkflowId }) => {
             !loading &&
             !error &&
             (isChatWorkflow(workflow.input_schema) ? (
-              <Box h="100%">
+              <Box h="100%" className="chat-interface-container">
                 <ChatInterface workflowId={workflow.id} token="local_token" />
               </Box>
             ) : (
-              <Box h="100%">
+              <Box h="100%" className="mini-app-container">
                 <MiniApp
                   workflowId={workflow.id}
                   schema={workflow.input_schema}
