@@ -177,34 +177,10 @@ const AppHeader: React.FC<AppHeaderProps> = React.memo(() => {
   const navigate = useNavigate();
   const path = useLocation().pathname;
 
-  const globalButtonAppearance = useSettingsStore(
-    (state) => state.settings.buttonAppearance
-  );
-
-  const [buttonAppearance, setButtonAppearance] = useState(
-    globalButtonAppearance
-  );
-
   const { helpOpen, handleCloseHelp, handleOpenHelp } = useAppHeaderStore();
 
   const { handlePanelToggle, collapsed: panelLeftCollapsed } =
     useResizePanel("left");
-
-  const handleResize = useCallback(() => {
-    if (window.innerWidth <= 1200) {
-      setButtonAppearance("icon");
-    } else {
-      setButtonAppearance(globalButtonAppearance);
-    }
-  }, [globalButtonAppearance]);
-
-  useEffect(() => {
-    handleResize();
-    window.addEventListener("resize", handleResize);
-    return () => {
-      window.removeEventListener("resize", handleResize);
-    };
-  }, [handleResize]);
 
   const NavigationButtons = useMemo(
     () => (
@@ -225,7 +201,7 @@ const AppHeader: React.FC<AppHeaderProps> = React.memo(() => {
                 : ThemeNodetool.palette.c_white
             }}
           >
-            {buttonAppearance !== "text" && <ExamplesIcon />}
+            <ExamplesIcon />
             Examples
           </Button>
         </Tooltip>
@@ -249,27 +225,25 @@ const AppHeader: React.FC<AppHeaderProps> = React.memo(() => {
                 : ThemeNodetool.palette.c_white
             }}
           >
-            {buttonAppearance !== "text" && (
-              <IconForType
-                iconName="asset"
-                showTooltip={false}
-                svgProps={{
-                  fill: path.startsWith("/assets")
-                    ? ThemeNodetool.palette.c_hl1
-                    : ThemeNodetool.palette.c_white
-                }}
-                containerStyle={{
-                  borderRadius: "0 0 3px 0",
-                  marginLeft: "0.1em",
-                  marginTop: "0"
-                }}
-                bgStyle={{
-                  backgroundColor: "transparent",
-                  width: "30px",
-                  height: "20px"
-                }}
-              />
-            )}
+            <IconForType
+              iconName="asset"
+              showTooltip={false}
+              svgProps={{
+                fill: path.startsWith("/assets")
+                  ? ThemeNodetool.palette.c_hl1
+                  : ThemeNodetool.palette.c_white
+              }}
+              containerStyle={{
+                borderRadius: "0 0 3px 0",
+                marginLeft: "0.1em",
+                marginTop: "0"
+              }}
+              bgStyle={{
+                backgroundColor: "transparent",
+                width: "30px",
+                height: "20px"
+              }}
+            />
             Assets
           </Button>
         </Tooltip>
@@ -307,7 +281,7 @@ const AppHeader: React.FC<AppHeaderProps> = React.memo(() => {
         )}
       </Box>
     ),
-    [path, buttonAppearance, navigate, panelLeftCollapsed, handlePanelToggle]
+    [path, navigate, panelLeftCollapsed, handlePanelToggle]
   );
 
   const RightSideButtons = useMemo(
@@ -357,14 +331,7 @@ const AppHeader: React.FC<AppHeaderProps> = React.memo(() => {
         <SettingsMenu />
       </Box>
     ),
-    [
-      path,
-      buttonAppearance,
-      helpOpen,
-      handleCloseHelp,
-      navigate,
-      handleOpenHelp
-    ]
+    [path, helpOpen, handleCloseHelp, navigate, handleOpenHelp]
   );
 
   return (

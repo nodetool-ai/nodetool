@@ -337,9 +337,6 @@ const RunAsAppButton = memo(() => {
 const AppHeaderActions: React.FC = () => {
   const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
   const path = useLocation().pathname;
-  const buttonAppearance = useSettingsStore(
-    (state) => state.settings.buttonAppearance
-  );
   const { autoLayout } = useNodes((state) => ({
     autoLayout: state.autoLayout
   }));

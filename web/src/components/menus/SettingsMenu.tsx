@@ -255,7 +255,6 @@ function SettingsMenu() {
     setSelectionMode,
     setWorkflowLayout,
     setTimeFormat,
-    setButtonAppearance,
     setSelectNodesOnDrag,
     setShowWelcomeOnStartup,
     setEnableComfy,
@@ -272,7 +271,6 @@ function SettingsMenu() {
     setSelectionMode: state.setSelectionMode,
     setWorkflowLayout: state.setWorkflowLayout,
     setTimeFormat: state.setTimeFormat,
-    setButtonAppearance: state.setButtonAppearance,
     setSelectNodesOnDrag: state.setSelectNodesOnDrag,
     setShowWelcomeOnStartup: state.setShowWelcomeOnStartup
   }));
@@ -547,30 +545,6 @@ function SettingsMenu() {
                 </FormControl>
                 <Typography className="description">
                   Choose grid or list layout for the Workflow menu.
-                </Typography>
-              </div>
-
-              <div className="settings-item">
-                <FormControl>
-                  <InputLabel htmlFor={id}>Top Panel Button Display</InputLabel>
-                  <Select
-                    id={id}
-                    labelId={id}
-                    value={settings.buttonAppearance || "both"}
-                    variant="standard"
-                    onChange={(e) =>
-                      setButtonAppearance(
-                        e.target.value as "text" | "icon" | "both"
-                      )
-                    }
-                  >
-                    <MenuItem value={"text"}>Show Text only</MenuItem>
-                    <MenuItem value={"icon"}>Show Icon only</MenuItem>
-                    <MenuItem value={"both"}>Show Text and Icon</MenuItem>
-                  </Select>
-                </FormControl>
-                <Typography className="description">
-                  Change the display of the buttons in the top and center panel.
                 </Typography>
               </div>
 
