@@ -5,13 +5,74 @@
 			"type": "npm",
 			"script": "build",
 			"path": "apps",
+			"group": "build",
+			"problemMatcher": [],
+			"label": "build: apps",
+			"detail": "vite build"
+		},
+		{
+			"type": "npm",
+			"script": "typecheck",
+			"path": "apps",
+			"problemMatcher": ["$tsc"],
+			"label": "typecheck: apps",
+			"detail": "tsc --noEmit"
+		},
+		{
+			"type": "npm",
+			"script": "build",
+			"path": "web",
+			"group": "build",
+			"problemMatcher": [],
+			"label": "build: web",
+			"detail": "vite build"
+		},
+		{
+			"type": "npm",
+			"script": "typecheck",
+			"path": "web",
+			"problemMatcher": ["$tsc"],
+			"label": "typecheck: web",
+			"detail": "tsc --noEmit"
+		},
+		{
+			"type": "npm",
+			"script": "vite:build",
+			"path": "electron",
+			"group": "build",
+			"problemMatcher": [],
+			"label": "build: electron (vite)",
+			"detail": "vite build"
+		},
+		{
+			"type": "npm",
+			"script": "build",
+			"path": "electron",
+			"group": "build",
+			"problemMatcher": [],
+			"label": "build: electron (full)",
+			"detail": "electron-builder"
+		},
+		{
+			"type": "npm",
+			"script": "typecheck",
+			"path": "electron",
+			"problemMatcher": ["$tsc"],
+			"label": "typecheck: electron",
+			"detail": "tsc --noEmit"
+		},
+		{
+			"label": "build: all",
+			"dependsOn": ["build: apps", "build: web", "build: electron (full)"],
 			"group": {
 				"kind": "build",
 				"isDefault": true
-			},
-			"problemMatcher": [],
-			"label": "npm: build - apps",
-			"detail": "vite build"
-		}
+			}
+		},
+		{
+			"label": "typecheck: all",
+			"dependsOn": ["typecheck: apps", "typecheck: web", "typecheck: electron"],
+			"group": "test"
+		},
 	]
 }
