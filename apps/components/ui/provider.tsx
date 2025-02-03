@@ -14,7 +14,7 @@ interface ProviderProps {
 export function Provider({ children }: ProviderProps) {
   return (
     <ChakraProvider value={theme}>
-      <NextThemeProvider attribute="class" defaultTheme="light" enableSystem>
+      <NextThemeProvider attribute="class" defaultTheme="system" enableSystem>
         <ColorModeSync />
         {children}
       </NextThemeProvider>

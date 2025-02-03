@@ -41,7 +41,7 @@ const tokens = {
     inputBgDark: { value: "#3e3e3e" },
     // Status colors
     warning: { value: "#ffcc00" },
-    success: { value: "#76e5b8" },
+    success: { value: "#10c0b0" },
     error: { value: "#ff4d4d" },
   },
   fonts: {
