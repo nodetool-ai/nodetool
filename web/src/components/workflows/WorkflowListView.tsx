@@ -2,14 +2,11 @@
 import { css } from "@emotion/react";
 
 import React from "react";
-import { Box, Button, Tooltip, Typography } from "@mui/material";
+import { Box } from "@mui/material";
 import { Workflow } from "../../stores/ApiTypes";
-import { relativeTime } from "../../utils/formatDateAndTime";
-import Checkbox from "@mui/material/Checkbox";
-import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { usePanelStore } from "../../stores/PanelStore";
-import DeleteIcon from "@mui/icons-material/Delete";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+import { WorkflowListItem } from "./WorkflowListItem";
 
 interface WorkflowListViewProps {
   workflows: Workflow[];
@@ -106,97 +103,40 @@ const listStyles = (theme: any) =>
     }
   });
 
-export const WorkflowListView: React.FC<WorkflowListViewProps> = ({
-  workflows,
-  onOpenWorkflow,
-  onDuplicateWorkflow,
-  onSelect,
-  onDelete,
-  onScroll,
-  selectedWorkflows,
-  showCheckboxes
-}) => {
-  // const currentWorkflow = useNodes((state) => state.workflow);
-  const panelSize = usePanelStore((state) => state.panel.panelSize);
-  const addBreaks = (text: string) => {
-    return text.replace(/([-_.])/g, "$1<wbr>");
-  };
-  const currentWorkflowId = useWorkflowManager(
-    (state) => state.currentWorkflowId
-  );
+// Memoize the main WorkflowListView component
+export const WorkflowListView = React.memo<WorkflowListViewProps>(
+  ({
+    workflows,
+    onOpenWorkflow,
+    onDuplicateWorkflow,
+    onSelect,
+    onDelete,
+    onScroll,
+    selectedWorkflows,
+    showCheckboxes
+  }) => {
+    const panelSize = usePanelStore((state) => state.panel.panelSize);
+    const currentWorkflowId = useWorkflowManager(
+      (state) => state.currentWorkflowId
+    );
 
-  return (
-    <Box className="container list" css={listStyles} onScroll={onScroll}>
-      {workflows.map((workflow: Workflow) => (
-        <Box
-          key={workflow.id}
-          className={
-            "workflow list" +
-            (selectedWorkflows?.includes(workflow.id) ? " selected" : "") +
-            (currentWorkflowId === workflow.id ? " current" : "")
-          }
-          onContextMenu={(e) => {
-            e.preventDefault();
-          }}
-          onClick={(e) => {
-            if (!e.defaultPrevented) {
-              onOpenWorkflow(workflow);
-            }
-          }}
-        >
-          {showCheckboxes && (
-            <Checkbox
-              className="checkbox"
-              size="small"
-              checked={selectedWorkflows?.includes(workflow.id) || false}
-              onClick={(e) => {
-                e.preventDefault();
-                onSelect(workflow);
-              }}
-            />
-          )}
-          <div
-            className="name"
-            dangerouslySetInnerHTML={{ __html: addBreaks(workflow.name) }}
-          ></div>
-          <div className="actions">
-            {panelSize >= 400 && (
-              <Typography
-                className="date"
-                data-microtip-position="top"
-                aria-label="Last modified"
-                role="tooltip"
-              >
-                {relativeTime(workflow.updated_at)} <br />
-              </Typography>
-            )}
-            <Button
-              size="small"
-              className="duplicate-button"
-              onClick={(event) => {
-                event.preventDefault();
-                onDuplicateWorkflow(event, workflow);
-              }}
-              data-microtip-position="bottom"
-              aria-label="Duplicate"
-              role="tooltip"
-            >
-              <ContentCopyIcon />
-            </Button>
-            <Button
-              size="small"
-              className="delete-button"
-              onClick={(event) => {
-                event.preventDefault();
-                event.stopPropagation();
-                onDelete(workflow);
-              }}
-            >
-              <DeleteIcon />
-            </Button>
-          </div>
-        </Box>
-      ))}
-    </Box>
-  );
-};
+    return (
+      <Box className="container list" css={listStyles} onScroll={onScroll}>
+        {workflows.map((workflow: Workflow) => (
+          <WorkflowListItem
+            key={workflow.id}
+            workflow={workflow}
+            isSelected={selectedWorkflows?.includes(workflow.id) || false}
+            isCurrent={currentWorkflowId === workflow.id}
+            showCheckboxes={showCheckboxes}
+            panelSize={panelSize}
+            onOpenWorkflow={onOpenWorkflow}
+            onDuplicateWorkflow={onDuplicateWorkflow}
+            onSelect={onSelect}
+            onDelete={onDelete}
+          />
+        ))}
+      </Box>
+    );
+  }
+);
