@@ -147,46 +147,32 @@ const CreateWorkflowButton = memo(() => {
 });
 
 const SaveWorkflowButton = memo(() => {
-  const { saveWorkflow } = useNodes((state) => ({
-    saveWorkflow: state.saveWorkflow
+  const { saveWorkflow, getCurrentWorkflow } = useWorkflowManager((state) => ({
+    saveWorkflow: state.saveWorkflow,
+    getCurrentWorkflow: state.getCurrentWorkflow
   }));
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
 
-  const onWorkflowSaved = useCallback(
-    (workflow: Workflow) => {
+  const handleSave = useCallback(async () => {
+    const workflow = getCurrentWorkflow();
+    if (workflow) {
+      await saveWorkflow(workflow);
       addNotification({
         content: `Workflow ${workflow.name} saved`,
         type: "success",
         alert: true
       });
-    },
-    [addNotification]
-  );
+    }
+  }, [saveWorkflow, getCurrentWorkflow, addNotification]);
 
-  useCombo(
-    ["Alt+s"],
-    useCallback(
-      () => saveWorkflow().then(onWorkflowSaved),
-      [saveWorkflow, onWorkflowSaved]
-    )
-  );
-  useCombo(
-    ["Meta+s"],
-    useCallback(
-      () => saveWorkflow().then(onWorkflowSaved),
-      [saveWorkflow, onWorkflowSaved]
-    )
-  );
+  useCombo(["Alt+s"], handleSave);
+  useCombo(["Meta+s"], handleSave);
 
   return (
     <Tooltip title="Save workflow" enterDelay={TOOLTIP_ENTER_DELAY}>
-      <Button
-        className="action-button"
-        onClick={() => saveWorkflow().then(onWorkflowSaved)}
-        tabIndex={-1}
-      >
+      <Button className="action-button" onClick={handleSave} tabIndex={-1}>
         <SaveIcon />
       </Button>
     </Tooltip>
