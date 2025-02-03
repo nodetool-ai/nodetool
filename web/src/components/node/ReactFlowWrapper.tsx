@@ -51,6 +51,7 @@ import { useNodes } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { CircularProgress } from "@mui/material";
 import { Typography } from "@mui/material";
+import useConnectableNodesStore from "../../stores/ConnectableNodesStore";
 
 declare global {
   interface Window {
@@ -87,21 +88,6 @@ const ContextMenus = memo(() => {
 });
 
 // Create a new component for the ReactFlow background
-const FlowBackground = memo(() => (
-  <Background
-    id="1"
-    gap={100}
-    offset={4}
-    size={8}
-    color={ThemeNodes.palette.c_editor_grid_color}
-    lineWidth={1}
-    style={{
-      backgroundColor: ThemeNodes.palette.c_editor_bg_color
-    }}
-    variant={BackgroundVariant.Cross}
-  />
-));
-
 const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   reactFlowWrapper,
   workflowId
@@ -331,6 +317,11 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     },
     []
   );
+  const { isVisible: isConnectableNodesVisible } = useConnectableNodesStore(
+    (state) => ({
+      isVisible: state.isVisible
+    })
+  );
 
   /* VIEWPORT */
   const defaultViewport = useMemo(() => ({ x: 0, y: 0, zoom: 1.5 }), []);
@@ -454,7 +445,18 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
         // onNodeClick={onNodeClick}
         deleteKeyCode={["Delete", "Backspace"]}
       >
-        <FlowBackground />
+        <Background
+          id={workflowId}
+          gap={100}
+          offset={4}
+          size={8}
+          color={ThemeNodes.palette.c_editor_grid_color}
+          lineWidth={1}
+          style={{
+            backgroundColor: ThemeNodes.palette.c_editor_bg_color
+          }}
+          variant={BackgroundVariant.Cross}
+        />
         {editNodeTitle && anchorEl && (
           <NodeTitleEditor
             nodeId={editNodeTitle}
@@ -464,7 +466,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
         )}
         <AxisMarker />
         <ContextMenus />
-        <ConnectableNodes />
+        {isConnectableNodesVisible && <ConnectableNodes />}
         <HuggingFaceDownloadDialog />
       </ReactFlow>
     </div>
