@@ -27,7 +27,7 @@ type WorkflowManagerState = {
   listWorkflows: () => WorkflowAttributes[];
   reorderWorkflows: (sourceIndex: number, targetIndex: number) => void;
   updateWorkflow: (workflow: WorkflowAttributes) => void;
-  getCurrentWorkflow: () => WorkflowAttributes | undefined;
+  getCurrentWorkflow: () => Workflow | undefined;
   setCurrentWorkflowId: (workflowId: string) => void;
   fetchWorkflow: (workflowId: string) => Promise<void>;
   getLoadingState: (workflowId: string) => LoadingState | undefined;
@@ -74,12 +74,12 @@ export const createWorkflowManagerStore = () =>
       if (!workflow) {
         return undefined;
       }
-      return workflow.getState().workflow;
+      return workflow.getState().getWorkflow();
     },
     listWorkflows: () => {
-      return Object.values(get().nodeStores).map(
-        (store) => store.getState().workflow
-      );
+      return Object.values(get().nodeStores).map((store) => {
+        return store.getState().workflow;
+      });
     },
     getWorkflow: (workflowId: string) => {
       const workflow = get().nodeStores[workflowId];
@@ -92,7 +92,7 @@ export const createWorkflowManagerStore = () =>
       set((state) => ({
         nodeStores: {
           ...state.nodeStores,
-          [workflow.id]: createNodeStore(workflow)
+          [workflow.id]: createNodeStore(workflow, { shouldFitToScreen: true })
         }
       }));
     },

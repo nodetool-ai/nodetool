@@ -18,6 +18,7 @@ import { useNavigate } from "react-router-dom";
 import { useNodes } from "../../contexts/NodeContext";
 import { create } from "zustand";
 import NodeInfo from "../node_menu/NodeInfo";
+import { isDevelopment } from "../../stores/ApiClient";
 
 type CommandMenuProps = {
   open: boolean;
@@ -112,7 +113,7 @@ const WorkflowCommands = memo(() => {
       <Command.Item onSelect={() => executeAndClose(autoLayout)}>
         Auto Layout
       </Command.Item>
-      {process.env.NODE_ENV === "development" && (
+      {isDevelopment && (
         <Command.Item
           onSelect={() =>
             executeAndClose(() =>

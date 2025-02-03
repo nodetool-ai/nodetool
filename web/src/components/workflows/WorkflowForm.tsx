@@ -13,16 +13,15 @@ import {
   Autocomplete,
   TextField
 } from "@mui/material";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import ThemeNodetool from "../themes/ThemeNodetool";
 import DeleteButton from "../buttons/DeleteButton";
 import { useFileDrop } from "../../hooks/handlers/useFileDrop";
-import { WorkflowAttributes } from "../../stores/ApiTypes";
+import { Workflow, WorkflowAttributes } from "../../stores/ApiTypes";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import { prettyDate, relativeTime } from "../../utils/formatDateAndTime";
 import { useSettingsStore } from "../../stores/SettingsStore";
+import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useWorkflowStore } from "../../stores/WorkflowStore";
-import { useNodes } from "../../contexts/NodeContext";
 
 const AVAILABLE_TAGS = [
   "image",
@@ -143,75 +142,79 @@ const styles = (theme: any) =>
   });
 
 const WorkflowForm = () => {
-  const { workflow, setWorkflowAttributes, saveWorkflow } = useNodes(
-    (state) => ({
-      workflow: state.workflow,
-      setWorkflowAttributes: state.setWorkflowAttributes,
-      saveWorkflow: state.saveWorkflow
-    })
-  );
+  const { workflow, updateWorkflowInManager } = useWorkflowManager((state) => ({
+    workflow: state.getCurrentWorkflow() || {
+      id: "",
+      name: "",
+      description: "",
+      thumbnail: "",
+      thumbnail_url: "",
+      access: "private",
+      tags: [],
+      updated_at: "",
+      created_at: "",
+      graph: {
+        nodes: [],
+        edges: []
+      }
+    },
+    updateWorkflowInManager: state.updateWorkflow
+  }));
+  const { update } = useWorkflowStore((state) => ({
+    update: state.update
+  }));
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
   const settings = useSettingsStore((state) => state.settings);
-  const [localWorkflow, setLocalWorkflow] = useState(workflow);
-  const [updatedAt, setUpdatedAt] = useState(workflow.updated_at);
+  const [localWorkflow, setLocalWorkflow] = useState<Workflow>(workflow);
 
   useEffect(() => {
-    setLocalWorkflow(workflow);
+    setLocalWorkflow(workflow || ({} as Workflow));
   }, [workflow]);
 
-  const handleSaveWorkflow = async () => {
-    setWorkflowAttributes(localWorkflow);
-    await saveWorkflow();
-    setUpdatedAt(new Date().toISOString());
+  const handleSaveWorkflow = useCallback(async () => {
+    if (!localWorkflow) return;
+    updateWorkflowInManager(localWorkflow);
+    await update(localWorkflow);
     addNotification({
       type: "info",
       alert: true,
       content: "Workflow saved!",
       dismissable: true
     });
-  };
+  }, [localWorkflow, updateWorkflowInManager, update]);
 
-  const handleChange = (
-    event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value } = event.target;
-    setLocalWorkflow((prev: WorkflowAttributes) => ({
-      ...prev,
-      [name]: value
-    }));
-  };
+  const handleChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      const { name, value } = event.target;
+      setLocalWorkflow((prev: Workflow) => ({
+        ...prev,
+        [name]: value
+      }));
+    },
+    [setLocalWorkflow]
+  );
 
-  const handleSelectChange = (event: SelectChangeEvent) => {
-    const updatedWorkflow = {
-      ...workflow,
-      [event.target.name]: event.target.value
-    };
-    setLocalWorkflow(updatedWorkflow);
-    handleBlur();
-  };
+  const handleSelectChange = useCallback(
+    (event: SelectChangeEvent) => {
+      const updatedWorkflow = {
+        ...workflow,
+        [event.target.name]: event.target.value
+      };
+      setLocalWorkflow(updatedWorkflow);
+    },
+    [setLocalWorkflow]
+  );
 
-  const handleBlur = async () => {
-    if (localWorkflow !== workflow) {
-      setWorkflowAttributes(localWorkflow);
-      await saveWorkflow();
-      setUpdatedAt(new Date().toISOString());
-      addNotification({
-        type: "info",
-        content: "Workflow saved!",
-        alert: true,
-        dismissable: true
-      });
-    }
-  };
-
-  const deleteThumbnail = (event: React.MouseEvent<HTMLButtonElement>) => {
-    event.stopPropagation();
-    const updatedWorkflow = { ...workflow, thumbnail: "", thumbnail_url: "" };
-    setWorkflowAttributes(updatedWorkflow);
-    handleSaveWorkflow();
-  };
+  const deleteThumbnail = useCallback(
+    (event: React.MouseEvent<HTMLButtonElement>) => {
+      event.stopPropagation();
+      const updatedWorkflow = { ...workflow, thumbnail: "", thumbnail_url: "" };
+      setLocalWorkflow(updatedWorkflow);
+    },
+    [setLocalWorkflow]
+  );
 
   const { onDrop, onDragOver } = useFileDrop({
     uploadAsset: true,
@@ -221,17 +224,10 @@ const WorkflowForm = () => {
         thumbnail: asset.id,
         thumbnail_url: asset.get_url
       };
-      setWorkflowAttributes(updatedWorkflow);
-      handleSaveWorkflow();
+      setLocalWorkflow(updatedWorkflow);
     },
     type: "image"
   });
-
-  const handleDropAndSave = (event: React.DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    event.stopPropagation();
-    onDrop(event);
-  };
 
   const tooltipAttributes = !workflow.thumbnail_url
     ? {
@@ -249,7 +245,6 @@ const WorkflowForm = () => {
       tags: newTags
     };
     setLocalWorkflow(updatedWorkflow);
-    setWorkflowAttributes(updatedWorkflow);
     handleSaveWorkflow();
   };
 
@@ -295,7 +290,7 @@ const WorkflowForm = () => {
           <Box
             className="thumbnail-img"
             onDragOver={onDragOver}
-            onDrop={handleDropAndSave}
+            onDrop={onDrop}
             {...tooltipAttributes}
             sx={{
               backgroundImage: `url(${workflow.thumbnail_url})`
@@ -329,7 +324,6 @@ const WorkflowForm = () => {
             name="access"
             value={localWorkflow.access}
             onChange={handleSelectChange}
-            onBlur={handleBlur}
             fullWidth
           >
             <MenuItem value="public">Public</MenuItem>
@@ -339,10 +333,6 @@ const WorkflowForm = () => {
         <Button className="save-button" onClick={() => handleSaveWorkflow()}>
           Save
         </Button>
-        <Typography variant="caption" className="save-text">
-          {prettyDate(updatedAt, "normal", settings)} <br />
-          {relativeTime(updatedAt)}
-        </Typography>
       </Box>
     </div>
   );

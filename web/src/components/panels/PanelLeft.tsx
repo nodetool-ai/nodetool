@@ -17,7 +17,7 @@ import StaticNodeMenu from "../node_menu/StaticNodeMenu";
 import { IconForType } from "../../config/data_types";
 import TuneIcon from "@mui/icons-material/Tune";
 import ControlPointIcon from "@mui/icons-material/ControlPoint";
-import { usePanelStore } from "../../stores/PanelStore";
+import { LeftPanelView, usePanelStore } from "../../stores/PanelStore";
 import CollectionList from "../collections/CollectionList";
 
 const styles = (theme: any) =>
@@ -86,6 +86,135 @@ const styles = (theme: any) =>
     }
   });
 
+const VerticalToolbar = memo(
+  ({
+    activeView,
+    onViewChange,
+    handlePanelToggle
+  }: {
+    activeView: string;
+    onViewChange: (view: LeftPanelView) => void;
+    handlePanelToggle: () => void;
+  }) => (
+    <div className="vertical-toolbar">
+      <Tooltip title="Nodes" placement="right">
+        <IconButton
+          onClick={() => onViewChange("nodes")}
+          className={activeView === "nodes" ? "active" : ""}
+        >
+          <ControlPointIcon />
+        </IconButton>
+      </Tooltip>
+      <Tooltip title="Workflows" placement="right">
+        <IconButton
+          onClick={() => onViewChange("workflowGrid")}
+          className={activeView === "workflowGrid" ? "active" : ""}
+        >
+          <GridViewIcon />
+        </IconButton>
+      </Tooltip>
+      <Tooltip title="Workflow Properties" placement="right">
+        <IconButton
+          onClick={() => onViewChange("workflow")}
+          className={activeView === "workflow" ? "active" : ""}
+        >
+          <TuneIcon />
+        </IconButton>
+      </Tooltip>
+      <Tooltip title="Assets" placement="right">
+        <Button
+          onClick={() => onViewChange("assets")}
+          className={activeView === "assets" ? "active" : ""}
+        >
+          <IconForType
+            iconName="asset"
+            showTooltip={false}
+            containerStyle={{
+              borderRadius: "0 0 3px 0",
+              marginLeft: "0.1em",
+              marginTop: "0",
+              color: "white"
+            }}
+            bgStyle={{
+              backgroundColor: "transparent",
+              width: "20px",
+              height: "20px"
+            }}
+          />
+        </Button>
+      </Tooltip>
+      <Tooltip title="Collections" placement="right">
+        <IconButton
+          onClick={() => onViewChange("collections")}
+          className={activeView === "collections" ? "active" : ""}
+        >
+          <IconForType
+            iconName="database"
+            showTooltip={false}
+            containerStyle={{
+              color: "white"
+            }}
+          />
+        </IconButton>
+      </Tooltip>
+      <Tooltip title="Chat" placement="right">
+        <IconButton
+          onClick={() => onViewChange("chat")}
+          className={activeView === "chat" ? "active" : ""}
+        >
+          <ChatIcon />
+        </IconButton>
+      </Tooltip>
+
+      <div style={{ flexGrow: 1 }} />
+      <Tooltip title="Close Panel" placement="right">
+        <IconButton onClick={handlePanelToggle}>
+          <CodeIcon />
+        </IconButton>
+      </Tooltip>
+    </div>
+  )
+);
+
+const PanelContent = memo(
+  ({ activeView, panelSize }: { activeView: string; panelSize: number }) => (
+    <>
+      {activeView === "chat" && panelSize > 40 && <HelpChat />}
+      {activeView === "assets" && (
+        <Box
+          className="assets-container"
+          sx={{ width: "100%", height: "100%" }}
+        >
+          <AssetGrid maxItemSize={5} />
+        </Box>
+      )}
+      {activeView === "workflow" && <WorkflowForm />}
+      {activeView === "workflowGrid" && (
+        <Box sx={{ width: "100%", height: "100%", overflow: "auto" }}>
+          <WorkflowList />
+        </Box>
+      )}
+      {activeView === "nodes" && (
+        <Box sx={{ width: "100%", height: "100%", overflow: "hidden" }}>
+          <StaticNodeMenu />
+        </Box>
+      )}
+      {activeView === "collections" && (
+        <Box
+          sx={{
+            width: "100%",
+            height: "100%",
+            overflow: "hidden auto",
+            padding: 5
+          }}
+        >
+          <CollectionList />
+        </Box>
+      )}
+    </>
+  )
+);
+
 const PanelLeft: React.FC = () => {
   const {
     ref: panelRef,
@@ -140,116 +269,12 @@ const PanelLeft: React.FC = () => {
         open={true}
       >
         <div className="panel-content">
-          <div className="vertical-toolbar">
-            <Tooltip title="Nodes" placement="right">
-              <IconButton
-                onClick={() => onViewChange("nodes")}
-                className={activeView === "nodes" ? "active" : ""}
-              >
-                <ControlPointIcon />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Workflows" placement="right">
-              <IconButton
-                onClick={() => onViewChange("workflowGrid")}
-                className={activeView === "workflowGrid" ? "active" : ""}
-              >
-                <GridViewIcon />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Workflow Properties" placement="right">
-              <IconButton
-                onClick={() => onViewChange("workflow")}
-                className={activeView === "workflow" ? "active" : ""}
-              >
-                <TuneIcon />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Assets" placement="right">
-              <Button
-                onClick={() => onViewChange("assets")}
-                className={activeView === "assets" ? "active" : ""}
-              >
-                <IconForType
-                  iconName="asset"
-                  showTooltip={false}
-                  containerStyle={{
-                    borderRadius: "0 0 3px 0",
-                    marginLeft: "0.1em",
-                    marginTop: "0",
-                    color: "white"
-                  }}
-                  bgStyle={{
-                    backgroundColor: "transparent",
-                    width: "20px",
-                    height: "20px"
-                  }}
-                />
-              </Button>
-            </Tooltip>
-            <Tooltip title="Collections" placement="right">
-              <IconButton
-                onClick={() => onViewChange("collections")}
-                className={activeView === "collections" ? "active" : ""}
-              >
-                <IconForType
-                  iconName="database"
-                  showTooltip={false}
-                  containerStyle={{
-                    color: "white"
-                  }}
-                />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Chat" placement="right">
-              <IconButton
-                onClick={() => onViewChange("chat")}
-                className={activeView === "chat" ? "active" : ""}
-              >
-                <ChatIcon />
-              </IconButton>
-            </Tooltip>
-
-            <div style={{ flexGrow: 1 }} />
-            <Tooltip title="Close Panel" placement="right">
-              <IconButton onClick={handlePanelToggle}>
-                <CodeIcon />
-              </IconButton>
-            </Tooltip>
-          </div>
-
-          {activeView === "chat" && panelSize > 40 && <HelpChat />}
-          {activeView === "assets" && (
-            <Box
-              className="assets-container"
-              sx={{ width: "100%", height: "100%" }}
-            >
-              <AssetGrid maxItemSize={5} />
-            </Box>
-          )}
-          {activeView === "workflow" && <WorkflowForm />}
-          {activeView === "workflowGrid" && (
-            <Box sx={{ width: "100%", height: "100%", overflow: "auto" }}>
-              <WorkflowList />
-            </Box>
-          )}
-          {activeView === "nodes" && (
-            <Box sx={{ width: "100%", height: "100%", overflow: "hidden" }}>
-              <StaticNodeMenu />
-            </Box>
-          )}
-          {activeView === "collections" && (
-            <Box
-              sx={{
-                width: "100%",
-                height: "100%",
-                overflow: "hidden auto",
-                padding: 5
-              }}
-            >
-              <CollectionList />
-            </Box>
-          )}
+          <VerticalToolbar
+            activeView={activeView}
+            onViewChange={onViewChange}
+            handlePanelToggle={handlePanelToggle}
+          />
+          <PanelContent activeView={activeView} panelSize={panelSize} />
         </div>
       </Drawer>
     </div>

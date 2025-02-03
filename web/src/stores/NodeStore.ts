@@ -159,11 +159,14 @@ export type NodeStore = UseBoundStore<
  * Creates a new node store instance with default values
  * Useful for testing or creating isolated stores
  */
-export const createNodeStore = (workflow?: Workflow) =>
+export const createNodeStore = (
+  workflow?: Workflow,
+  state?: Partial<NodeStoreState>
+) =>
   create<NodeStoreState>()(
     temporal(
       (set, get) => ({
-        shouldAutoLayout: false,
+        shouldAutoLayout: state?.shouldAutoLayout || false,
         missingModelFiles: [],
         missingModelRepos: [],
         workflow: workflow
@@ -199,7 +202,7 @@ export const createNodeStore = (workflow?: Workflow) =>
           : [],
         edgeUpdateSuccessful: false,
         hoveredNodes: [],
-        shouldFitToScreen: false,
+        shouldFitToScreen: state?.shouldFitToScreen || false,
         connectionAttempted: false,
         setConnectionAttempted: (value: boolean) =>
           set({ connectionAttempted: value }),
