@@ -23,14 +23,11 @@ import {
   OnConnect,
   applyNodeChanges,
   applyEdgeChanges,
-  reconnectEdge,
   Position
 } from "@xyflow/react";
 import { customEquality } from "./customEquality";
 
 import { Node as GraphNode, Edge as GraphEdge } from "./ApiTypes";
-import { useWorkflowStore } from "./WorkflowStore";
-import { uuidv4 } from "./uuidv4";
 import { devLog, devWarn } from "../utils/DevLog";
 import { autoLayout } from "../core/graph";
 import { Slugify, isConnectable } from "../utils/TypeHandler";
@@ -70,7 +67,6 @@ export interface NodeStoreState {
   shouldAutoLayout: boolean;
   setShouldAutoLayout: (value: boolean) => void;
   workflow: WorkflowAttributes;
-  lastWorkflow: WorkflowAttributes | null;
   nodes: Node<NodeData>[];
   hoveredNodes: string[];
   setHoveredNodes: (ids: string[]) => void;
@@ -115,11 +111,8 @@ export interface NodeStoreState {
   setWorkflow: (workflow: Workflow) => void;
   setWorkflowAttributes: (attributes: WorkflowAttributes) => void;
   getWorkflow: () => Workflow;
-  newWorkflow: () => string;
-  saveWorkflow: () => Promise<Workflow>;
   getWorkflowIsDirty: () => boolean;
   setWorkflowDirty: (dirty: boolean) => void;
-  updateFromWorkflowStore: () => Promise<void>;
   validateConnection: (
     connection: Connection,
     srcNode: Node<NodeData>,
@@ -188,7 +181,6 @@ export const createNodeStore = (
               updated_at: new Date().toISOString(),
               created_at: new Date().toISOString()
             },
-        lastWorkflow: workflow ?? null,
         workflowIsDirty: false,
         nodes: workflow
           ? workflow.graph.nodes.map((n: GraphNode) =>
@@ -459,7 +451,6 @@ export const createNodeStore = (
 
           set({
             workflow: workflow,
-            lastWorkflow: workflow,
             shouldAutoLayout: false,
             edges: sanitizedEdges,
             nodes: sanitizedNodes,
@@ -474,29 +465,6 @@ export const createNodeStore = (
         },
         setWorkflowAttributes: (attributes: WorkflowAttributes) => {
           set({ workflow: { ...get().workflow, ...attributes } });
-        },
-        newWorkflow: () => {
-          const newWorkflow = useWorkflowStore.getState().newWorkflow();
-          get().setWorkflow(newWorkflow);
-          return newWorkflow.id;
-        },
-        updateFromWorkflowStore: async () => {
-          devLog("update from workflow store");
-          const workflow = get().workflow;
-          if (!workflow) {
-            return;
-          }
-          const updatedWorkflow = await useWorkflowStore
-            .getState()
-            .get(workflow.id);
-          if (updatedWorkflow) {
-            get().setWorkflow(updatedWorkflow);
-          }
-        },
-        saveWorkflow: async () => {
-          const updateWorkflow = useWorkflowStore.getState().update;
-          const workflow = get().getWorkflow();
-          return updateWorkflow(workflow);
         },
         getWorkflow: (): Workflow => {
           const workflow = get().workflow;

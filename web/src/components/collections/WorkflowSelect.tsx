@@ -2,9 +2,9 @@ import { Select } from "@mui/material";
 import MenuItem from "@mui/material/MenuItem";
 import { WorkflowList } from "../../stores/ApiTypes";
 import { useQuery } from "@tanstack/react-query";
-import { useWorkflowStore } from "../../stores/WorkflowStore";
 import { memo } from "react";
 import { isEqual } from "lodash";
+import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 
 interface WorkflowSelectProps {
   id: string;
@@ -13,12 +13,14 @@ interface WorkflowSelectProps {
 }
 
 const WorkflowSelect = (props: WorkflowSelectProps) => {
-  const load = useWorkflowStore((state) => state.load);
+  const { listWorkflows } = useWorkflowManager((state) => ({
+    listWorkflows: state.listWorkflows
+  }));
 
   const { data, error, isLoading } = useQuery<WorkflowList, Error>({
     queryKey: ["workflows"],
     queryFn: async () => {
-      return await load("", 200);
+      return await listWorkflows();
     }
   });
 

@@ -13,10 +13,10 @@ import SearchInput from "../search/SearchInput";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
-import { useWorkflowStore } from "../../stores/WorkflowStore";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Workflow } from "../../stores/ApiTypes";
+import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 
 interface WorkflowToolbarProps {
   workflows: Workflow[];
@@ -39,7 +39,7 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
   selectedWorkflowsCount,
   onBulkDelete
 }) => {
-  const createNewWorkflow = useWorkflowStore((state) => state.createNew);
+  const createNewWorkflow = useWorkflowManager((state) => state.createNew);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const uniqueTags = useMemo(() => {

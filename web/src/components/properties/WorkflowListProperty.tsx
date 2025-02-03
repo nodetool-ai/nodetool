@@ -4,14 +4,14 @@ import MenuItem from "@mui/material/MenuItem";
 import { WorkflowList } from "../../stores/ApiTypes";
 import PropertyLabel from "../node/PropertyLabel";
 import { useQuery } from "@tanstack/react-query";
-import { useWorkflowStore } from "../../stores/WorkflowStore";
 import { PropertyProps } from "../node/PropertyInput";
 import { isEqual } from "lodash";
+import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 
 const WorkflowListProperty = (props: PropertyProps) => {
   const id = `workflow-list-${props.property.name}-${props.propertyIndex}`;
   const workflowIds = props.value?.map((workflow: any) => workflow.id);
-  const load = useWorkflowStore((state) => state.load);
+  const load = useWorkflowManager((state) => state.load);
 
   const { data, error, isLoading } = useQuery<WorkflowList, Error>({
     queryKey: ["workflows"],

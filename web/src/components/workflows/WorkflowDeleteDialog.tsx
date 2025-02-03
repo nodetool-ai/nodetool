@@ -2,7 +2,6 @@ import { FC, useCallback } from "react";
 import ConfirmDialog from "../dialogs/ConfirmDialog";
 import { WorkflowAttributes } from "../../stores/ApiTypes";
 import { useQueryClient } from "@tanstack/react-query";
-import { useWorkflowStore } from "../../stores/WorkflowStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useNavigate } from "react-router-dom";
 
@@ -24,7 +23,7 @@ const WorkflowDeleteDialog: FC<WorkflowDeleteDialogProps> = ({
   const currentWorkflowId = useWorkflowManager(
     (state) => state.currentWorkflowId
   );
-  const deleteWorkflow = useWorkflowStore((state) => state.delete);
+  const deleteWorkflow = useWorkflowManager((state) => state.delete);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const handleDelete = useCallback(() => {

@@ -6,7 +6,6 @@ import Dialog from "@mui/material/Dialog";
 import DialogContent from "@mui/material/DialogContent";
 import Button from "@mui/material/Button";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useWorkflowStore } from "../../stores/WorkflowStore";
 import { Workflow, WorkflowList } from "../../stores/ApiTypes";
 import {
   Box,
@@ -25,7 +24,7 @@ import { VERSION } from "../../config/constants";
 import { useAppHeaderStore } from "../../stores/AppHeaderStore";
 import { client } from "../../stores/ApiClient";
 import { createErrorMessage } from "../../utils/errorHandling";
-
+import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 const styles = (theme: any) =>
   css({
     ".MuiBackdrop-root": { background: "transparent" },
@@ -182,8 +181,8 @@ const OpenOrCreateDialog = () => {
   const settings = useSettingsStore((state) => state.settings);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const createNewWorkflow = useWorkflowStore((state) => state.createNew);
   const setWorkflowOrder = useSettingsStore((state) => state.setWorkflowOrder);
+  const createNewWorkflow = useWorkflowManager((state) => state.createNew);
 
   function addBreaks(text: string) {
     return text.replace(/([-_.])/g, "$1<wbr>");

@@ -6,7 +6,6 @@ import { Node, NodeProps } from "@xyflow/react";
 import { isEqual } from "lodash";
 import { Container, Tooltip } from "@mui/material";
 import { NodeData } from "../../stores/NodeData";
-import { useWorkflowStore } from "../../stores/WorkflowStore";
 import { NodeHeader } from "../node/NodeHeader";
 import { NodeFooter } from "../node/NodeFooter";
 import { Typography } from "@mui/material";
@@ -51,30 +50,30 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
   const [nodeTitle, setNodeTitle] = useState<string | null>(null);
   const [hasParent, setHasParent] = useState<boolean>(false);
   const [nodeNamespace, setNodeNamespace] = useState<string | null>(null);
-  const getWorkflow = useWorkflowStore((state) => state.get);
+  // const getWorkflow = useWorkflowStore((state) => state.get);
   const edges = useNodes((state) => state.getInputEdges(props.id));
 
-  useEffect(() => {
-    if (props.data?.workflow_id) {
-      const fetchWorkflow = async () => {
-        const workflow = await getWorkflow(props.data.workflow_id);
-        if (workflow?.graph?.nodes) {
-          const node = workflow.graph.nodes.find((n) => n.id === props.id);
-          if (node) {
-            setNodeType(node.type || "");
-            setNodeData(node.data);
-            const parts = node.type?.split(".") || [];
-            const title = parts[parts.length - 1] || "";
-            const namespace = parts.slice(0, -1).join(".") || "";
-            setNodeTitle(title);
-            setNodeNamespace(namespace);
-            setHasParent(node.parent_id !== null);
-          }
-        }
-      };
-      fetchWorkflow();
-    }
-  }, [props.id, props.data.workflow_id, getWorkflow]);
+  // useEffect(() => {
+  //   if (props.data?.workflow_id) {
+  //     const fetchWorkflow = async () => {
+  //       const workflow = await getWorkflow(props.data.workflow_id);
+  //       if (workflow?.graph?.nodes) {
+  //         const node = workflow.graph.nodes.find((n) => n.id === props.id);
+  //         if (node) {
+  //           setNodeType(node.type || "");
+  //           setNodeData(node.data);
+  //           const parts = node.type?.split(".") || [];
+  //           const title = parts[parts.length - 1] || "";
+  //           const namespace = parts.slice(0, -1).join(".") || "";
+  //           setNodeTitle(title);
+  //           setNodeNamespace(namespace);
+  //           setHasParent(node.parent_id !== null);
+  //         }
+  //       }
+  //     };
+  //     fetchWorkflow();
+  //   }
+  // }, [props.id, props.data.workflow_id, getWorkflow]);
 
   const relevantEdges = useMemo(() => {
     return edges.filter((edge) => edge.target === props.id);

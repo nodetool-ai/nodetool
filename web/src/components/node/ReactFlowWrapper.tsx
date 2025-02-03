@@ -5,11 +5,11 @@ import {
   Node,
   Background,
   BackgroundVariant,
-  FitViewOptions,
   ReactFlow,
   Connection,
   SelectionMode,
-  ConnectionMode
+  ConnectionMode,
+  useViewport
 } from "@xyflow/react";
 
 // store
@@ -63,7 +63,7 @@ declare global {
 const fitViewOptions = {
   maxZoom: MAX_ZOOM,
   minZoom: MIN_ZOOM,
-  padding: 0.6
+  padding: 0.5
 };
 
 interface ReactFlowWrapperProps {
@@ -135,7 +135,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
 
   /* REACTFLOW */
   const ref = useRef<HTMLDivElement | null>(null);
-  const reactFlowInstance = useReactFlow();
+  const { zoom } = useViewport();
 
   /* USE STORE */
   const { close: closeSelect } = useSelect();
@@ -325,10 +325,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
 
   /* VIEWPORT */
   const defaultViewport = useMemo(() => ({ x: 0, y: 0, zoom: 1.5 }), []);
-
-  const isMinZoom = useMemo(() => {
-    return reactFlowInstance?.getZoom() <= MIN_ZOOM;
-  }, [reactFlowInstance]);
+  const reactFlowInstance = useReactFlow();
 
   const fitScreen = useCallback(() => {
     if (reactFlowInstance) {
@@ -362,13 +359,17 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     );
   }
 
+  console.log("zoom", zoom);
+
   return (
     <div className="reactflow-wrapper" ref={reactFlowWrapper}>
       <ReactFlow
         onlyRenderVisibleElements={false}
         ref={ref}
         className={
-          isMinZoom ? "zoomed-out" : " " + (connecting ? "is-connecting" : "")
+          zoom <= MIN_ZOOM
+            ? "zoomed-out"
+            : " " + (connecting ? "is-connecting" : "")
         }
         minZoom={MIN_ZOOM}
         maxZoom={MAX_ZOOM}

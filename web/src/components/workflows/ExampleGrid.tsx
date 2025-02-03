@@ -12,7 +12,6 @@ import {
   IconButton,
   InputAdornment
 } from "@mui/material";
-import { useWorkflowStore } from "../../stores/WorkflowStore";
 import { useCallback, useMemo, useState, useEffect } from "react";
 import { Workflow, WorkflowList } from "../../stores/ApiTypes";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -27,6 +26,7 @@ import {
 } from "../../config/constants";
 import ThemeNodetool from "../themes/ThemeNodetool";
 import { usePanelStore } from "../../stores/PanelStore";
+import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 
 const styles = (theme: any) =>
   css({
@@ -241,8 +241,8 @@ const styles = (theme: any) =>
 const ExampleGrid = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const loadWorkflows = useWorkflowStore((state) => state.loadExamples);
-  const createWorkflow = useWorkflowStore((state) => state.create);
+  const loadWorkflows = useWorkflowManager((state) => state.loadExamples);
+  const createWorkflow = useWorkflowManager((state) => state.create);
   const [selectedTag, setSelectedTag] = useState<string | null>("start");
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
