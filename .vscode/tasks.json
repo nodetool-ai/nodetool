@@ -63,7 +63,7 @@
 		},
 		{
 			"label": "build: all",
-			"dependsOn": ["build: apps", "build: web", "build: electron (full)"],
+			"dependsOn": ["build: apps", "build: web", "build: electron (vite)"],
 			"group": {
 				"kind": "build",
 				"isDefault": true
