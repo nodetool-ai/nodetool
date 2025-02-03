@@ -160,7 +160,7 @@ export function ComponentTest({ className }: ComponentTestProps) {
                   status="info"
                   title="Alert Component"
                   bg="success"
-                  color="text"
+                  color="bg"
                   borderColor="border"
                 >
                   This is a custom alert component with a custom bg color
