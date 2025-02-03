@@ -10,7 +10,6 @@ import SettingsMenu from "../menus/SettingsMenu";
 import Help from "../content/Help/Help";
 import Alert from "../node_editor/Alert";
 import Logo from "../Logo";
-import AppHeaderActions from "./AppHeaderActions";
 import OverallDownloadProgress from "../hugging_face/OverallDownloadProgress";
 import NotificationButton from "./NotificationButton";
 import KeyboardBackspaceIcon from "@mui/icons-material/KeyboardBackspace";
@@ -42,8 +41,7 @@ import { useAppHeaderStore } from "../../stores/AppHeaderStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { useEffect, useState } from "react";
 import SystemStatsDisplay from "./SystemStats";
-import { isDevelopment, isProduction } from "../../stores/ApiClient";
-import StatusMessage from "./StatusMessage";
+import { isProduction } from "../../stores/ApiClient";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 
 const styles = (theme: any, buttonAppearance: "text" | "icon" | "both") =>

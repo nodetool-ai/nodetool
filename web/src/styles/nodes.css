@@ -390,3 +390,31 @@
 .node-footer .advanced-fields-button svg {
   scale: 0.7;
 }
+
+.node-resizer .react-flow__resize-control.top.line,
+.node-resizer .react-flow__resize-control.bottom.line {
+  display: none;
+}
+
+.node-resizer .react-flow__resize-control.handle {
+  opacity: 0;
+}
+
+.node-resizer .react-flow__resize-control.line {
+  opacity: 0;
+  border-width: 1px;
+  border-color: var(--c_gray2);
+  transition: all 0.15s ease-in-out;
+}
+
+.node-resizer .react-flow__resize-control.line:hover {
+  opacity: 1;
+}
+
+.node-progress pre {
+  margin: 0;
+  padding: 0.25em;
+  background-color: var(--c_gray0);
+  width: 100%;
+  overflow-x: scroll;
+}
