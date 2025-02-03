@@ -179,47 +179,38 @@ export const createWorkflowManagerStore = () =>
     }
   }));
 
+export const FetchCurrentWorkflow: React.FC<{
+  children: React.ReactNode;
+}> = ({ children }) => {
+  const { setCurrentWorkflowId, getNodeStore, fetchWorkflow } =
+    useWorkflowManager((state) => ({
+      setCurrentWorkflowId: state.setCurrentWorkflowId,
+      getNodeStore: state.getNodeStore,
+      fetchWorkflow: state.fetchWorkflow
+    }));
+  const { workflow: workflowId } = useParams();
+  const isWorkflowLoaded = Boolean(workflowId && getNodeStore(workflowId));
+
+  useEffect(() => {
+    if (workflowId) {
+      setCurrentWorkflowId(workflowId);
+    }
+    if (workflowId && !isWorkflowLoaded) {
+      fetchWorkflow(workflowId);
+    }
+  }, [workflowId, fetchWorkflow, isWorkflowLoaded]);
+
+  return children;
+};
+
 export const WorkflowManagerProvider: React.FC<{
   children: React.ReactNode;
 }> = ({ children }) => {
   const [store] = useState(() => createWorkflowManagerStore());
-  const { workflow: workflowId } = useParams();
-  const isWorkflowLoaded = Boolean(
-    workflowId && store.getState().getNodeStore(workflowId)
-  );
-
-  useEffect(() => {
-    if (workflowId) {
-      store.getState().setCurrentWorkflowId(workflowId);
-    }
-    if (workflowId && !isWorkflowLoaded) {
-      store.getState().fetchWorkflow(workflowId);
-    }
-  }, [workflowId, store, isWorkflowLoaded]);
 
   return (
     <WorkflowManagerContext.Provider value={store}>
       {children}
     </WorkflowManagerContext.Provider>
   );
-};
-
-export const useInitializeWorkflow = (workflowId: string) => {
-  const { getNodeStore, setCurrentWorkflowId } = useWorkflowManager(
-    (state) => ({
-      getNodeStore: state.getNodeStore,
-      setCurrentWorkflowId: state.setCurrentWorkflowId
-    })
-  );
-  React.useEffect(() => {
-    if (workflowId && !getNodeStore(workflowId)) {
-      setCurrentWorkflowId(workflowId);
-    }
-  }, [workflowId, getNodeStore, setCurrentWorkflowId]);
-
-  if (!workflowId) {
-    return null;
-  }
-
-  return getNodeStore(workflowId);
 };

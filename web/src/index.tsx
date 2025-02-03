@@ -50,6 +50,7 @@ import TabsNodeEditor from "./components/editor/TabsNodeEditor";
 import Welcome from "./components/content/Welcome/Welcome";
 import { useSettingsStore } from "./stores/SettingsStore";
 import {
+  FetchCurrentWorkflow,
   useWorkflowManager,
   WorkflowManagerProvider
 } from "./contexts/WorkflowManagerContext";
@@ -123,7 +124,7 @@ function getRoutes() {
         <ProtectedRoute>
           <ThemeProvider theme={ThemeNodetool}>
             <CssBaseline />
-            <AppHeader showActions={false} />
+            <AppHeader />
             <AssetExplorer />
           </ThemeProvider>
         </ProtectedRoute>
@@ -133,13 +134,11 @@ function getRoutes() {
       path: "examples",
       element: (
         <ProtectedRoute>
-          <WorkflowManagerProvider>
-            <ThemeProvider theme={ThemeNodetool}>
-              <CssBaseline />
-              <AppHeader showActions={false} />
-              <ExampleGrid />
-            </ThemeProvider>
-          </WorkflowManagerProvider>
+          <ThemeProvider theme={ThemeNodetool}>
+            <CssBaseline />
+            <AppHeader />
+            <ExampleGrid />
+          </ThemeProvider>
         </ProtectedRoute>
       )
     },
@@ -149,7 +148,7 @@ function getRoutes() {
         <ProtectedRoute>
           <ThemeProvider theme={ThemeNodetool}>
             <CssBaseline />
-            <AppHeader showActions={false} />
+            <AppHeader />
             <ModelsManager />
           </ThemeProvider>
         </ProtectedRoute>
@@ -159,10 +158,10 @@ function getRoutes() {
       path: "editor/:workflow",
       element: (
         <ProtectedRoute>
-          <WorkflowManagerProvider>
+          <FetchCurrentWorkflow>
             <ThemeProvider theme={ThemeNodetool}>
               <CssBaseline />
-              <AppHeader showActions={true} />
+              <AppHeader />
               <PanelLeft />
             </ThemeProvider>
             <ThemeProvider theme={ThemeNodes}>
@@ -172,7 +171,7 @@ function getRoutes() {
               <CssBaseline />
               <NodeMenu focusSearchInput={true} showNamespaceTree={false} />
             </ThemeProvider>
-          </WorkflowManagerProvider>
+          </FetchCurrentWorkflow>
         </ProtectedRoute>
       )
     },
@@ -182,7 +181,7 @@ function getRoutes() {
         <ProtectedRoute>
           <ThemeProvider theme={ThemeNodetool}>
             <CssBaseline />
-            <AppHeader showActions={false} />
+            <AppHeader />
             <OpenOrCreateDialog />
           </ThemeProvider>
         </ProtectedRoute>
@@ -241,7 +240,9 @@ const AppWrapper = () => {
   return (
     <React.StrictMode>
       <QueryClientProvider client={queryClient}>
-        <RouterProvider router={router} />
+        <WorkflowManagerProvider>
+          <RouterProvider router={router} />
+        </WorkflowManagerProvider>
       </QueryClientProvider>
     </React.StrictMode>
   );
