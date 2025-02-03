@@ -85,31 +85,6 @@ const gradientAnimationKeyframes = keyframes`
 
 const styles = (colors: string[]) =>
   css({
-    // resizer
-    ".node-resizer .react-flow__resize-control.top.line, .node-resizer .react-flow__resize-control.bottom.line":
-      {
-        display: "none"
-      },
-    ".node-resizer .react-flow__resize-control.handle": {
-      opacity: 0
-    },
-    ".node-resizer .react-flow__resize-control.line": {
-      opacity: 0,
-      borderWidth: "1px",
-      borderColor: ThemeNodes.palette.c_gray2,
-      transition: "all 0.15s ease-in-out"
-    },
-    ".node-resizer .react-flow__resize-control.line:hover": {
-      opacity: 1
-    },
-    ".node-progress pre": {
-      margin: "0",
-      padding: ".25em",
-      backgroundColor: ThemeNodes.palette.c_gray0,
-      width: "100%",
-      overflowX: "scroll"
-    },
-
     "&.loading": {
       position: "relative",
       "--glow-offset": "-4px",
@@ -232,7 +207,6 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     return allColors.slice(0, 5);
   }, [metadata]);
 
-  const memoizedStyles = useMemo(() => styles(nodeColors), [nodeColors]);
   const { headerColor, footerColor } = useMemo(() => {
     const firstOutputColor = metadata?.outputs?.[0]?.type?.type;
     return {
@@ -271,11 +245,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     );
 
   if (!metadata) {
-    return (
-      <Container className={className}>
-        {/* <NodeHeader id={props.id} nodeTitle={nodeTitle} /> */}
-      </Container>
-    );
+    throw new Error("Metadata is not loaded for node " + props.id);
   }
 
   // first line of description
@@ -295,7 +265,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 
   return (
     <Container
-      css={memoizedStyles}
+      css={isLoading ? styles(nodeColors) : undefined}
       className={className}
       style={{
         // display: parentIsCollapsed ? "none" : "flex",
