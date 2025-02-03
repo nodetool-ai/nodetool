@@ -133,11 +133,13 @@ function getRoutes() {
       path: "examples",
       element: (
         <ProtectedRoute>
-          <ThemeProvider theme={ThemeNodetool}>
-            <CssBaseline />
-            <AppHeader showActions={false} />
-            <ExampleGrid />
-          </ThemeProvider>
+          <WorkflowManagerProvider>
+            <ThemeProvider theme={ThemeNodetool}>
+              <CssBaseline />
+              <AppHeader showActions={false} />
+              <ExampleGrid />
+            </ThemeProvider>
+          </WorkflowManagerProvider>
         </ProtectedRoute>
       )
     },
