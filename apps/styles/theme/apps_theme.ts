@@ -13,17 +13,17 @@ const tokens = {
     primaryAlpha: { value: "#76e5b992" },
     // Grays
     gray: {
-      50: { value: "#f7f7f7" },
-      100: { value: "#e0e0e0" },
-      150: { value: "#d0d0d0" },
-      200: { value: "#a2a2a2" },
-      300: { value: "#494949" },
-      400: { value: "#3e3e3e" },
-      500: { value: "#333333" },
-      600: { value: "#2a2a2a" },
-      700: { value: "#1a1a1a" },
-      800: { value: "#111111" },
-      900: { value: "#000000" },
+      50: { value: "#fafafa" },
+      100: { value: "#f0f0f0" },
+      150: { value: "#e0e0e0" },
+      200: { value: "#c0c0c0" },
+      300: { value: "#909090" },
+      400: { value: "#606060" },
+      500: { value: "#454545" },
+      600: { value: "#323232" },
+      700: { value: "#282828" },
+      800: { value: "#141414" },
+      900: { value: "#080808" },
     },
     // Semantic colors for light mode
     textLight: { value: "#1a1a1a" },
@@ -64,6 +64,9 @@ const semanticTokens = {
   colors: {
     text: {
       value: { base: "{colors.textLight}", _dark: "{colors.textDark}" },
+    },
+    contrast: {
+      value: { base: "{colors.gray.800}", _dark: "{colors.gray.200}" },
     },
     borderColor: {
       value: { base: "red", _dark: "blue" },
