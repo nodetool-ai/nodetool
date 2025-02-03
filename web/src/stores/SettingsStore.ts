@@ -12,7 +12,6 @@ export interface Settings {
   assetsOrder: "name" | "date";
   assetItemSize: number;
   timeFormat: "12h" | "24h";
-  buttonAppearance: "text" | "icon" | "both";
   alertBeforeTabClose: boolean;
   selectNodesOnDrag: boolean;
   showWelcomeOnStartup: boolean;
@@ -35,7 +34,6 @@ interface SettingsStore {
   setAssetsOrder: (value: "name" | "date") => void;
   setAssetItemSize: (value: number) => void;
   setTimeFormat: (value: "12h" | "24h") => void;
-  setButtonAppearance: (value: "text" | "icon" | "both") => void;
   setAlertBeforeTabClose: (value: boolean) => void;
   setSelectNodesOnDrag: (value: boolean) => void;
   setShowWelcomeOnStartup: (value: boolean) => void;
@@ -52,7 +50,6 @@ export const defaultSettings: Settings = {
   assetsOrder: "name",
   assetItemSize: 2,
   timeFormat: "12h",
-  buttonAppearance: "both",
   alertBeforeTabClose: true,
   selectNodesOnDrag: false,
   showWelcomeOnStartup: true
@@ -151,14 +148,6 @@ export const useSettingsStore = create<SettingsStore>()(
         })),
 
       resetSettings: () => set({ settings: { ...defaultSettings } }),
-
-      setButtonAppearance: (value: "text" | "icon" | "both") =>
-        set((state) => ({
-          settings: {
-            ...state.settings,
-            buttonAppearance: value || defaultSettings.buttonAppearance
-          }
-        })),
 
       setAlertBeforeTabClose: (value: boolean) =>
         set((state) => ({
