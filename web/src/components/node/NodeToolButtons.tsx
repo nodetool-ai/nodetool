@@ -75,11 +75,6 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
           <QueueIcon />
         </IconButton>
       </Tooltip>
-      <Tooltip title="Documentation">
-        <IconButton onClick={handleOpenDocumentation} tabIndex={-1}>
-          <HelpIcon />
-        </IconButton>
-      </Tooltip>
       <Tooltip title="Copy (CTRL+C | Meta+C)">
         <IconButton onClick={handleCopyClicked} tabIndex={-1}>
           <CopyAllIcon />
