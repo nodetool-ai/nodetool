@@ -71,7 +71,7 @@ interface ReactFlowWrapperProps {
 }
 
 // Create a new component for context menus
-const ContextMenus = memo(() => {
+const ContextMenus = memo(function ContextMenus() {
   const openMenuType = useContextMenuStore((state) => state.openMenuType);
 
   return (
@@ -290,32 +290,8 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     onNodeDrag
   } = useDragHandlers();
 
-  const [editNodeTitle, setEditNodeTitle] = useState<string | undefined>(
-    undefined
-  );
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
 
-  const finishNodeTitle = useCallback(() => setEditNodeTitle(undefined), []);
-
-  // DOUBLE CLICK NODE
-  const onNodeDoubleClick = useCallback(
-    (event: React.MouseEvent, node: Node) => {
-      const clickedElement = event.target as HTMLElement;
-      if (
-        clickedElement.classList.contains("node-title") ||
-        clickedElement.classList.contains("title-container")
-      ) {
-        setEditNodeTitle(node.id);
-        setAnchorEl(clickedElement);
-        // updateNodeData(node.id, {
-        //   properties: node.data.properties ? { ...node.data.properties } : {},
-        //   workflow_id: node.data.workflow_id as any,
-        //   collapsed: !node.data.collapsed
-        // });
-      }
-    },
-    []
-  );
   /* VIEWPORT */
   const defaultViewport = useMemo(() => ({ x: 0, y: 0, zoom: 1.5 }), []);
   const reactFlowInstance = useReactFlow();
@@ -413,7 +389,6 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
         onNodeContextMenu={handleNodeContextMenu}
         onPaneClick={closeSelect}
         onPaneContextMenu={handlePaneContextMenu}
-        onNodeDoubleClick={onNodeDoubleClick}
         onMoveStart={handleOnMoveStart}
         onDoubleClick={handleDoubleClick}
         proOptions={proOptions}
@@ -435,13 +410,6 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
           }}
           variant={BackgroundVariant.Cross}
         />
-        {editNodeTitle && anchorEl && (
-          <NodeTitleEditor
-            nodeId={editNodeTitle}
-            onClose={finishNodeTitle}
-            anchorEl={anchorEl}
-          />
-        )}
         <AxisMarker />
         <ContextMenus />
         <ConnectableNodes />

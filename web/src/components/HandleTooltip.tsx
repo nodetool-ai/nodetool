@@ -69,27 +69,29 @@ type HandleTooltipProps = {
   children: React.ReactNode;
 };
 
-const HandleTooltip = memo(
-  ({ type, className = "", children }: HandleTooltipProps) => {
-    const handleMouseEnter = (e: React.MouseEvent) => {
-      const rect = (e.target as HTMLElement).getBoundingClientRect();
-      updateTooltip(type, true, rect.left, rect.top);
-    };
+const HandleTooltip = memo(function HandleTooltip({
+  type,
+  className = "",
+  children
+}: HandleTooltipProps) {
+  const handleMouseEnter = (e: React.MouseEvent) => {
+    const rect = (e.target as HTMLElement).getBoundingClientRect();
+    updateTooltip(type, true, rect.left, rect.top);
+  };
 
-    const handleMouseLeave = () => {
-      updateTooltip(type, false);
-    };
+  const handleMouseLeave = () => {
+    updateTooltip(type, false);
+  };
 
-    return (
-      <div
-        className="handle-tooltip-wrapper"
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-      >
-        {children}
-      </div>
-    );
-  }
-);
+  return (
+    <div
+      className="handle-tooltip-wrapper"
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
+      {children}
+    </div>
+  );
+});
 
 export default HandleTooltip;

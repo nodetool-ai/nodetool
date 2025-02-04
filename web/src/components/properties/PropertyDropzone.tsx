@@ -118,10 +118,13 @@ const PropertyDropzone = ({
 
   const [isDragOver, setIsDragOver] = useState(false);
 
-  const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
-    onDragOver(e);
-    setIsDragOver(true);
-  }, []);
+  const handleDragOver = useCallback(
+    (e: React.DragEvent<HTMLDivElement>) => {
+      onDragOver(e);
+      setIsDragOver(true);
+    },
+    [onDragOver]
+  );
 
   const handleDragLeave = useCallback(() => {
     setIsDragOver(false);
@@ -207,7 +210,7 @@ const PropertyDropzone = ({
             )}
           </>
         );
-      case "document":
+      case "document": {
         // Check file extension
         const fileExtension = uri?.toLowerCase().split(".").pop();
 
@@ -234,10 +237,11 @@ const PropertyDropzone = ({
         }
 
         return <pre>{asset?.name}</pre>;
+      }
       default:
         return null;
     }
-  }, [asset, uri, contentType]);
+  }, [contentType, uri, openViewer, asset, id, filename]);
 
   return (
     <div css={styles}>

@@ -386,7 +386,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
         );
       case "svg_element":
         return renderSVGDocument([value]);
-      case "boolean":
+      case "boolean": {
         const boolStr = String(value).toUpperCase();
         return (
           <div className="output value nodrag nowheel" css={styles}>
@@ -406,6 +406,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
             <p style={{ padding: "1em", color: "inherit" }}>{boolStr}</p>
           </div>
         );
+      }
       case "email":
         return (
           <div css={styles}>

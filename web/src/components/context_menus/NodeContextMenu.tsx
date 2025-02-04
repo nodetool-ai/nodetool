@@ -1,15 +1,13 @@
 import React, { useCallback } from "react";
 import { useReactFlow } from "@xyflow/react";
 //mui
-import { Divider, Menu, MenuItem, Typography } from "@mui/material";
+import { Menu } from "@mui/material";
 import ContextMenuItem from "./ContextMenuItem";
 //icons
-import QueueIcon from "@mui/icons-material/Queue";
-import CopyAllIcon from "@mui/icons-material/CopyAll";
-import RemoveCircleIcon from "@mui/icons-material/RemoveCircle";
 import DataArrayIcon from "@mui/icons-material/DataArray";
 import GroupRemoveIcon from "@mui/icons-material/GroupRemove";
 import SearchIcon from "@mui/icons-material/Search";
+import EditIcon from "@mui/icons-material/Edit";
 //store
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { NodeData } from "../../stores/NodeData";
@@ -22,7 +20,6 @@ import { useRemoveFromGroup } from "../../hooks/nodes/useRemoveFromGroup";
 import { Node } from "@xyflow/react";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useNavigate } from "react-router-dom";
-import { useNodes } from "../../contexts/NodeContext";
 
 const NodeContextMenu: React.FC = () => {
   const menuPosition = useContextMenuStore((state) => state.menuPosition);
@@ -84,19 +81,16 @@ const NodeContextMenu: React.FC = () => {
       anchorPosition={
         menuPosition ? { top: menuPosition.y, left: menuPosition.x } : undefined
       }
+      slotProps={{
+        paper: {
+          sx: {
+            "& .MuiList-root": {
+              padding: "0"
+            }
+          }
+        }
+      }}
     >
-      <MenuItem disabled>
-        <Typography
-          style={{
-            margin: "0",
-            padding: "0"
-          }}
-          variant="body1"
-        >
-          NODE
-        </Typography>
-      </MenuItem>
-
       {node?.parentId && (
         <ContextMenuItem
           onClick={() => removeFromGroup([node as Node<NodeData>])}
@@ -105,7 +99,14 @@ const NodeContextMenu: React.FC = () => {
           tooltip="Remove this node from the group"
         />
       )}
-
+      <ContextMenuItem
+        onClick={() => {
+          console.log("Edit Comment");
+        }}
+        label="Edit Comment"
+        IconComponent={<EditIcon />}
+        tooltip="Edit this comment"
+      />
       <ContextMenuItem
         onClick={handleFindExamples}
         label="Show Examples"

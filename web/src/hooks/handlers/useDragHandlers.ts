@@ -71,17 +71,14 @@ export default function useDragHandlers() {
         addNode(newNode);
       }
     },
-    [cKeyPressed, startPos]
+    [addNode, cKeyPressed, createNode, startPos.x, startPos.y]
   );
 
   /* NODE DRAG START */
-  const onNodeDragStart = useCallback(
-    (_event: any) => {
-      console.log("onNodeDragStart");
-      // pause();
-    },
-    [pause]
-  );
+  const onNodeDragStart = useCallback((_event: any) => {
+    console.log("onNodeDragStart");
+    // pause();
+  }, []);
 
   /* NODE DRAG STOP */
   const onNodeDragStop = useCallback(
@@ -99,11 +96,19 @@ export default function useDragHandlers() {
       setDraggedNodes(new Set());
       setHoveredNodes([]);
     },
-    [addToGroup, lastParentNode, resume, draggedNodes, updateNode]
+    [
+      addToGroup,
+      lastParentNode,
+      resume,
+      draggedNodes,
+      updateNode,
+      setDraggedNodes,
+      setHoveredNodes
+    ]
   );
 
   /* SELECTION DRAG START */
-  const onSelectionDragStart = useCallback((_event: any) => {}, [pause]);
+  const onSelectionDragStart = useCallback((_event: any) => {}, []);
 
   /* SELECTION DRAG */
   const onSelectionDrag = useCallback(
@@ -171,7 +176,7 @@ export default function useDragHandlers() {
         setLastParentNode(lastParent);
       }
     },
-    [reactFlow, removeFromGroup, pause, draggedNodes, setDraggedNodes]
+    [pause, reactFlow, setHoveredNodes, isGroup, findNode]
   );
 
   return {

@@ -11,7 +11,6 @@ import { getMousePosition } from "../../utils/MousePosition";
 // store
 import { NodeData } from "../../stores/NodeData";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
-import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 import { debounce, isEqual } from "lodash";
 import { hexToRgba } from "../../utils/ColorUtils";
 import { Button, CircularProgress, Tooltip } from "@mui/material";
@@ -152,7 +151,8 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     );
 
     run({}, workflow, groupNodes, groupEdges);
-  }, [run, nodes, edges, props.id]);
+  }, [nodes, edges, run, workflow, props.id]);
+
   const nodeHovered = useNodes((state) =>
     state.hoveredNodes.includes(props.id)
   );

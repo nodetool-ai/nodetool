@@ -120,9 +120,7 @@ const searchNodesHelper = (
   );
 };
 
-interface ConnectableNodesProps {}
-
-const ConnectableNodes: React.FC<ConnectableNodesProps> = ({}) => {
+const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
   const [searchTerm, setSearchTerm] = useState("");
   const reactFlowInstance = useReactFlow();
   const {
@@ -322,6 +320,7 @@ const ConnectableNodes: React.FC<ConnectableNodesProps> = ({}) => {
             </MenuItem>
             {nodes.map((nodeMetadata: NodeMetadata) => (
               <Tooltip
+                key={nodeMetadata.node_type}
                 TransitionProps={{ timeout: 0 }}
                 placement="left"
                 title={
@@ -350,6 +349,6 @@ const ConnectableNodes: React.FC<ConnectableNodesProps> = ({}) => {
       </Box>
     </Menu>
   );
-};
+});
 
 export default memo(ConnectableNodes, isEqual);

@@ -40,7 +40,9 @@ const getServiceFromNamespace = (namespace: string): string => {
   return parts[0];
 };
 
-const GroupTitle: React.FC<{ title: string }> = memo(({ title }) => {
+const GroupTitle: React.FC<{ title: string }> = memo(function GroupTitle({
+  title
+}) {
   const tooltips: Record<string, string> = {
     Name: "Exact matches in node names",
     Namespace: "Matches in node namespaces and tags",
@@ -127,7 +129,7 @@ const RenderNodes: React.FC<RenderNodesProps> = ({ nodes }) => {
         </Accordion>
       );
     },
-    [handleDragStart, handleCreateNode]
+    [selectedPath, handleDragStart, handleCreateNode]
   );
 
   const elements = useMemo(() => {
@@ -179,7 +181,15 @@ const RenderNodes: React.FC<RenderNodesProps> = ({ nodes }) => {
         return elements;
       }
     );
-  }, [nodes, searchTerm, groupedSearchResults, renderGroup]);
+  }, [
+    searchTerm,
+    nodes,
+    groupedSearchResults,
+    renderGroup,
+    selectedPath,
+    handleDragStart,
+    handleCreateNode
+  ]);
 
   return (
     <div className="nodes">

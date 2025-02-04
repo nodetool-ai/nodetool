@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import CloseIcon from "@mui/icons-material/Close";
 import { isEqual } from "lodash";
-import { DragEvent, memo } from "react";
+import { DragEvent, memo, useCallback } from "react";
 import { WorkflowAttributes } from "../../stores/ApiTypes";
 
 interface TabHeaderProps {
@@ -39,22 +39,28 @@ const TabHeader = ({
   onNameChange,
   onKeyDown
 }: TabHeaderProps) => {
-  const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    const boundingRect = (e.target as HTMLElement).getBoundingClientRect();
-    const mouseX = e.clientX;
-    const position =
-      mouseX < boundingRect.left + boundingRect.width / 2 ? "left" : "right";
-    onDragOver(e, workflow.id, position);
-  };
+  const handleDragOver = useCallback(
+    (e: DragEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      const boundingRect = (e.target as HTMLElement).getBoundingClientRect();
+      const mouseX = e.clientX;
+      const position =
+        mouseX < boundingRect.left + boundingRect.width / 2 ? "left" : "right";
+      onDragOver(e, workflow.id, position);
+    },
+    [onDragOver, workflow.id]
+  );
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
-      onNameChange(workflow.id, e.currentTarget.value);
-    } else if (e.key === "Escape") {
-      onKeyDown(e, workflow.id, e.currentTarget.value);
-    }
-  };
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === "Enter") {
+        onNameChange(workflow.id, e.currentTarget.value);
+      } else if (e.key === "Escape") {
+        onKeyDown(e, workflow.id, e.currentTarget.value);
+      }
+    },
+    [onKeyDown, onNameChange, workflow.id]
+  );
 
   return (
     <div

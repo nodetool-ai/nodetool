@@ -425,12 +425,12 @@ const BasePathProperty = (props: BasePathPropertyProps) => {
 
   const handleClear = useCallback(() => {
     props.onChange({ type: props.pathType, path: "" });
-  }, [props.onChange, props.pathType]);
+  }, [props]);
 
   const handleConfirm = useCallback(() => {
     props.onChange({ type: props.pathType, path: selectedPath });
     setIsFileBrowserOpen(false);
-  }, [props.onChange, selectedPath, props.pathType]);
+  }, [props, selectedPath]);
 
   const handleCancel = useCallback(() => {
     setSelectedPath(props.value?.path || "");

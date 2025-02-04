@@ -5,6 +5,7 @@ import TextEditorModal from "./TextEditorModal";
 import { isEqual } from "lodash";
 import { useFocusPan } from "../../hooks/useFocusPan";
 import { TextField } from "@mui/material";
+import { useNodes } from "../../contexts/NodeContext";
 
 const StringProperty = ({
   property,
@@ -17,8 +18,13 @@ const StringProperty = ({
 }: PropertyProps) => {
   const id = `textfield-${property.name}-${propertyIndex}`;
   const [isExpanded, setIsExpanded] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
   const handleFocus = useFocusPan(nodeId);
+  const edges = useNodes((state) => state.edges);
+  const isConnected = useMemo(() => {
+    return edges.some(
+      (edge) => edge.target === nodeId && edge.targetHandle === property.name
+    );
+  }, [edges, nodeId, property.name]);
 
   const toggleExpand = useCallback(() => {
     setIsExpanded((prev) => !prev);
@@ -85,10 +91,9 @@ const StringProperty = ({
         description={property.description}
         id={id}
       />
-      <>
+      {!isConnected && (
         <div className="container">
           <input
-            ref={inputRef}
             type="text"
             id={id}
             name={property.name}
@@ -103,7 +108,7 @@ const StringProperty = ({
             tabIndex={tabIndex}
           />
         </div>
-      </>
+      )}
     </div>
   );
 };

@@ -61,7 +61,7 @@ const InputContextMenu: React.FC = () => {
         dropType: type?.type || ""
       });
     },
-    [openNodeMenu]
+    [openNodeMenu, type?.type]
   );
   const { createNode, addNode, edges, setEdges, generateEdgeId } = useNodes(
     (state) => ({
@@ -107,10 +107,12 @@ const InputContextMenu: React.FC = () => {
       createNode,
       reactFlowInstance,
       addNode,
+      edges,
       generateEdgeId,
       nodeId,
       handleId,
-      type
+      type?.type,
+      setEdges
     ]
   );
 
@@ -162,10 +164,12 @@ const InputContextMenu: React.FC = () => {
       createNode,
       reactFlowInstance,
       addNode,
+      edges,
       generateEdgeId,
       nodeId,
       handleId,
-      type
+      type?.type,
+      setEdges
     ]
   );
 

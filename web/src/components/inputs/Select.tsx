@@ -161,9 +161,12 @@ const Select: React.FC<SelectProps> = ({
   const id = useId();
 
   const [highlightedIndex, setHighlightedIndex] = useState<number>(-1);
-
   const toggleDropdown = useCallback(() => {
-    activeSelect === id ? close() : open(id);
+    if (activeSelect === id) {
+      close();
+    } else {
+      open(id);
+    }
   }, [close, activeSelect, id, open]);
 
   const handleOptionClick = useCallback(

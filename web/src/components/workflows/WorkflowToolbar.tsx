@@ -47,9 +47,12 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
     navigate(`/editor/${workflow.id}`);
   }, [navigate, createNewWorkflow, queryClient]);
 
-  const handleSearchChange = useCallback((newSearchTerm: string) => {
-    setFilterValue(newSearchTerm);
-  }, []);
+  const handleSearchChange = useCallback(
+    (newSearchTerm: string) => {
+      setFilterValue(newSearchTerm);
+    },
+    [setFilterValue]
+  );
 
   return (
     <>

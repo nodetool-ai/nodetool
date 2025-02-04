@@ -29,9 +29,9 @@ export const useAssetActions = (asset: Asset) => {
       isParent?: boolean
     ) => {
       if (isParent) {
-        onClickParent && onClickParent(asset.id);
+        onClickParent?.(asset.id);
       }
-      onSelect && onSelect();
+      onSelect?.();
     },
     [asset.id]
   );
@@ -39,7 +39,7 @@ export const useAssetActions = (asset: Asset) => {
   const handleDoubleClick = useCallback(
     (setOpenAsset?: (asset: Asset | undefined) => void) => {
       if (asset.get_url) {
-        setOpenAsset && setOpenAsset(asset);
+        setOpenAsset?.(asset);
       }
     },
     [asset]

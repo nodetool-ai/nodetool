@@ -202,19 +202,25 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     [props.id, props.data, updateNodeData]
   );
 
-  const isMarkActive = (format: keyof Omit<CustomText, "text">) => {
-    const marks = Editor.marks(editor);
-    return marks ? marks[format] === true : false;
-  };
+  const isMarkActive = useCallback(
+    (format: keyof Omit<CustomText, "text">) => {
+      const marks = Editor.marks(editor);
+      return marks ? marks[format] === true : false;
+    },
+    [editor]
+  );
 
-  const toggleMark = (format: keyof Omit<CustomText, "text">, value?: any) => {
-    const isActive = isMarkActive(format);
-    if (isActive) {
-      Editor.removeMark(editor, format);
-    } else {
-      Editor.addMark(editor, format, value ?? true);
-    }
-  };
+  const toggleMark = useCallback(
+    (format: keyof Omit<CustomText, "text">, value?: any) => {
+      const isActive = isMarkActive(format);
+      if (isActive) {
+        Editor.removeMark(editor, format);
+      } else {
+        Editor.addMark(editor, format, value ?? true);
+      }
+    },
+    [editor, isMarkActive]
+  );
 
   const onKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {
@@ -236,11 +242,11 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         }
       }
     },
-    [editor, toggleMark]
+    [toggleMark]
   );
 
   const renderLeaf = useCallback((props: any) => {
-    let style = { ...props.attributes.style };
+    const style = { ...props.attributes.style };
 
     if (props.leaf.bold) {
       style.fontWeight = "bold";

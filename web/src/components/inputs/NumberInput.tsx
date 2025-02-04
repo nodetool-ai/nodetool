@@ -163,14 +163,18 @@ const useDragHandling = (
       }
     },
     [
-      state,
+      state.isDragging,
+      state.dragStartX,
+      state.dragInitialValue,
+      state.currentDragValue,
+      state.decimalPlaces,
+      calculateStep,
       props,
       controlKeyPressed,
       shiftKeyPressed,
       setState,
-      calculateStep,
-      calculateDecimalPlaces,
-      inputIsFocused
+      setInputIsFocused,
+      calculateDecimalPlaces
     ]
   );
 
@@ -184,7 +188,12 @@ const useDragHandling = (
         setInputIsFocused(true);
       }
     }
-  }, [state.isDragging, state.hasExceededDragThreshold, setInputIsFocused]);
+  }, [
+    state.isDragging,
+    state.hasExceededDragThreshold,
+    setState,
+    setInputIsFocused
+  ]);
 
   return { handleMouseMove, handleMouseUp };
 };
@@ -255,7 +264,7 @@ const NumberInput: React.FC<InputProps> = (props) => {
       setState((prevState) => ({ ...prevState, isFocused: true }));
       handleFocusPan(event);
     },
-    [handleFocusPan, props.nodeId]
+    [handleFocusPan]
   );
 
   const handleBlur = useCallback(

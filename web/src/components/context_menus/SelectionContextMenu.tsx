@@ -42,7 +42,7 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
   // any has parent
   const anyHasParent = useMemo(() => {
     return selectedNodes.some((node) => node.parentId);
-  }, [selectedNodes, findNode]);
+  }, [selectedNodes]);
 
   //duplicate
   const handleDuplicateNodes = useCallback(() => {

@@ -407,7 +407,7 @@ export const FetchCurrentWorkflow: React.FC<{
     if (workflowId && !isWorkflowLoaded) {
       fetchWorkflow(workflowId);
     }
-  }, [workflowId, fetchWorkflow, isWorkflowLoaded]);
+  }, [workflowId, fetchWorkflow, isWorkflowLoaded, setCurrentWorkflowId]);
 
   return children;
 };

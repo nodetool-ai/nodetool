@@ -58,7 +58,9 @@ const WorkflowDeleteDialog: FC<WorkflowDeleteDialogProps> = ({
     queryClient,
     currentWorkflowId,
     listWorkflows,
-    navigate
+    navigate,
+    onClose,
+    removeWorkflow
   ]);
 
   return (

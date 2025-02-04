@@ -195,7 +195,8 @@ export const useAssets = (initialFolderId: string | null = null) => {
       setSelectedFolderId,
       setSelectedFolderIds,
       setCurrentFolder,
-      setSelectedAssetIds
+      setSelectedAssetIds,
+      loadCurrentFolder
     ]
   );
   // Navigate to folder id
@@ -219,7 +220,8 @@ export const useAssets = (initialFolderId: string | null = null) => {
       setCurrentFolderId,
       currentUser?.id,
       setCurrentFolder,
-      setSelectedAssetIds
+      setSelectedAssetIds,
+      loadCurrentFolder
     ]
   );
 

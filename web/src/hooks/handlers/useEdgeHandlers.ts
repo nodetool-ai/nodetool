@@ -75,7 +75,7 @@ export default function useEdgeHandlers() {
 
   const onEdgeUpdateStart = useCallback(() => {
     setEdgeUpdateSuccessful(false);
-  }, [history]);
+  }, [setEdgeUpdateSuccessful]);
 
   // change edge connection
   const onEdgeUpdateEnd = useCallback(
@@ -86,7 +86,7 @@ export default function useEdgeHandlers() {
       }
       setEdgeUpdateSuccessful(true);
     },
-    [edgeUpdateSuccessful, setEdgeUpdateSuccessful]
+    [edgeUpdateSuccessful, setEdgeUpdateSuccessful, deleteEdge]
   );
 
   return {

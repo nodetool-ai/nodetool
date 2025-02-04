@@ -76,7 +76,7 @@ const useAlignNodes = () => {
         );
       });
     },
-    [getSelectedNodes]
+    [getSelectedNodes, reactFlow]
   );
 
   return alignNodes;

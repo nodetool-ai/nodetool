@@ -37,13 +37,6 @@ export const Composer: React.FC<ComposerProps> = ({
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSubmit();
-    }
-  }, []);
-
   const handleSubmit = useCallback(() => {
     if (!textareaRef.current) return;
     const message = textareaRef.current.value.trim();
@@ -51,7 +44,17 @@ export const Composer: React.FC<ComposerProps> = ({
       onSubmit(message);
       textareaRef.current.value = "";
     }
-  }, []);
+  }, [onSubmit, droppedFiles]);
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        handleSubmit();
+      }
+    },
+    [handleSubmit]
+  );
 
   const handleFileChange = useCallback((changes: any) => {
     setDroppedFiles(changes.acceptedFiles);

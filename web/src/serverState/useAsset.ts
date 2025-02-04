@@ -37,7 +37,7 @@ export function useAsset(props: UseAssetProps): {
     } else {
       return undefined;
     }
-  }, [assetResource?.asset_id]);
+  }, [assetResource?.asset_id, getAsset]);
 
   const { data: asset } = useQuery({
     queryKey: ["asset", assetResource?.asset_id],

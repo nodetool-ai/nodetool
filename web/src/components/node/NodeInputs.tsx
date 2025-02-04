@@ -43,63 +43,61 @@ interface NodeInputProps {
   ) => void;
 }
 
-const NodeInput: React.FC<NodeInputProps> = memo(
-  ({
-    id,
-    nodeType,
-    layout,
-    property,
-    propertyIndex,
-    data,
-    showFields,
-    showHandle,
-    tabIndex,
-    showAdvancedFields,
-    basicFields,
-    isDynamicProperty,
-    onDeleteProperty,
-    onUpdatePropertyName
-  }) => {
-    const { edges } = useNodes((state) => ({
-      edges: state.edges
-    }));
+const NodeInput: React.FC<NodeInputProps> = memo(function NodeInput({
+  id,
+  nodeType,
+  layout,
+  property,
+  propertyIndex,
+  data,
+  showFields,
+  showHandle,
+  tabIndex,
+  showAdvancedFields,
+  basicFields,
+  isDynamicProperty,
+  onDeleteProperty,
+  onUpdatePropertyName
+}) {
+  const { edges } = useNodes((state) => ({
+    edges: state.edges
+  }));
 
-    const isConstantNode = property.type.type.startsWith("nodetool.constant");
-    const isConnected = useMemo(() => {
-      return edges.some(
-        (edge) => edge.target === id && edge.targetHandle === property.name
-      );
-    }, [edges, id, property.name]);
-
-    const isBasicField = useMemo(() => {
-      return basicFields?.includes(property.name);
-    }, [basicFields, property.name]);
-    const isAdvancedField = !isBasicField;
-
-    if (isAdvancedField && !isConnected && !showAdvancedFields) {
-      return null;
-    }
-
-    return (
-      <PropertyField
-        key={`${isDynamicProperty ? "dynamic-" : ""}${property.name}-${id}`}
-        id={id}
-        value={data.properties[property.name]}
-        nodeType={nodeType}
-        layout={layout}
-        property={property}
-        propertyIndex={propertyIndex}
-        showFields={showFields}
-        showHandle={showHandle && !isConstantNode}
-        tabIndex={tabIndex}
-        isDynamicProperty={isDynamicProperty}
-        onDeleteProperty={onDeleteProperty}
-        onUpdatePropertyName={onUpdatePropertyName}
-      />
+  const isConstantNode = property.type.type.startsWith("nodetool.constant");
+  const isConnected = useMemo(() => {
+    return edges.some(
+      (edge) => edge.target === id && edge.targetHandle === property.name
     );
-  },
-  isEqual
-);
+  }, [edges, id, property.name]);
+
+  const isBasicField = useMemo(() => {
+    return basicFields?.includes(property.name);
+  }, [basicFields, property.name]);
+  const isAdvancedField = !isBasicField;
+
+  if (isAdvancedField && !isConnected && !showAdvancedFields) {
+    return null;
+  }
+
+  return (
+    <PropertyField
+      key={`${isDynamicProperty ? "dynamic-" : ""}${property.name}-${id}`}
+      id={id}
+      value={data.properties[property.name]}
+      nodeType={nodeType}
+      layout={layout}
+      property={property}
+      propertyIndex={propertyIndex}
+      showFields={showFields}
+      showHandle={showHandle && !isConstantNode}
+      tabIndex={tabIndex}
+      isDynamicProperty={isDynamicProperty}
+      onDeleteProperty={onDeleteProperty}
+      onUpdatePropertyName={onUpdatePropertyName}
+    />
+  );
+},
+isEqual);
 
 export const NodeInputs: React.FC<NodeInputsProps> = ({
   id,
@@ -114,10 +112,6 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
   onDeleteProperty,
   onUpdatePropertyName
 }) => {
-  const { nodes } = useNodes((state) => ({
-    nodes: state.nodes
-  }));
-  const nodeOffset = nodes.findIndex((node) => node.id === id) * 100;
   const tabableProperties = properties.filter((property) => {
     const type = property.type;
     return !type.optional && type.type !== "readonly";
@@ -131,7 +125,7 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
         const tabIndex = tabableProperties.findIndex(
           (p) => p.name === property.name
         );
-        const finalTabIndex = tabIndex !== -1 ? nodeOffset + tabIndex + 1 : -1;
+        const finalTabIndex = tabIndex !== -1 ? tabIndex + 1 : -1;
 
         return (
           <NodeInput

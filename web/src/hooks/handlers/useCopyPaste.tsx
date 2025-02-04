@@ -57,7 +57,7 @@ export const useCopyPaste = () => {
 
       return { nodesToCopy, connectedEdges };
     },
-    [nodes, edges, setNodes, setEdges]
+    [nodes, edges, selectedNodes]
   );
 
   const handleCut = useCallback(

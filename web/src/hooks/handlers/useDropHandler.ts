@@ -52,8 +52,7 @@ export const useDropHandler = () => {
   const createLoopNode = useCreateLoopNode();
   const { isGroup } = useIsGroupable();
   const { findNode } = useNodes((state) => ({
-    findNode: state.findNode,
-    updateNode: state.updateNode
+    findNode: state.findNode
   }));
 
   const onDrop = useCallback(
@@ -142,6 +141,8 @@ export const useDropHandler = () => {
     [
       reactFlow,
       user,
+      findNode,
+      isGroup,
       createNode,
       addNode,
       getAsset,

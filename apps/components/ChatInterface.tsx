@@ -101,7 +101,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ workflowId, token }) => {
             type: "image_url",
             image: {
               type: "image",
-              // @ts-ignore
+              // @ts-expect-error
               uri: "file://" + file.path,
             },
           };
@@ -110,7 +110,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ workflowId, token }) => {
             type: "audio",
             audio: {
               type: "audio",
-              // @ts-ignore
+              // @ts-expect-error
               uri: "file://" + file.path,
             },
           };
