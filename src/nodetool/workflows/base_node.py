@@ -973,7 +973,7 @@ class InputNode(BaseNode):
 
     @classmethod
     def get_basic_fields(cls):
-        return ["name"]
+        return ["name", "value"]
 
     @classmethod
     def is_visible(cls):
