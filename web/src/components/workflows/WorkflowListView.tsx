@@ -1,12 +1,13 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import React from "react";
+import React, { memo } from "react";
 import { Box } from "@mui/material";
 import { Workflow } from "../../stores/ApiTypes";
-import { usePanelStore } from "../../stores/PanelStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
-import { WorkflowListItem } from "./WorkflowListItem";
+import WorkflowListItem from "./WorkflowListItem";
+import { isEqual } from "lodash";
+import { FixedSizeList } from "react-window";
 
 interface WorkflowListViewProps {
   workflows: Workflow[];
@@ -28,7 +29,7 @@ const listStyles = (theme: any) =>
       rowGap: "0px",
       alignItems: "flex-start",
       margin: ".5em .5em 0 0",
-      maxHeight: "calc(100vh - 280px)",
+      maxHeight: "calc(100vh - 230px)",
       overflow: "hidden auto"
     },
     ".workflow": {
@@ -43,7 +44,8 @@ const listStyles = (theme: any) =>
       "& .MuiCheckbox-root": {
         margin: "0 1em 0.5em 0",
         padding: 0
-      }
+      },
+      borderLeft: `2px solid transparent`
     },
     ".workflow.current": {
       backgroundColor: theme.palette.c_gray0,
@@ -52,12 +54,16 @@ const listStyles = (theme: any) =>
     },
     ".workflow:hover": {
       backgroundColor: theme.palette.c_gray2,
-      outline: `0`
+      outline: "1px solid" + theme.palette.c_gray2
     },
     ".workflow.selected": {
-      backgroundColor: theme.palette.c_gray2,
-      borderRight: `2px solid ${theme.palette.c_hl1}`,
-      outline: `0`
+      outline: `0`,
+      backgroundColor: `${theme.palette.c_hl1}33`
+    },
+    ".workflow img": {
+      width: "100%",
+      height: "100%",
+      objectFit: "cover"
     },
     ".name": {
       fontSize: theme.fontSizeNormal,
@@ -104,39 +110,63 @@ const listStyles = (theme: any) =>
   });
 
 // Memoize the main WorkflowListView component
-export const WorkflowListView = React.memo<WorkflowListViewProps>(
-  ({
-    workflows,
-    onOpenWorkflow,
-    onDuplicateWorkflow,
-    onSelect,
-    onDelete,
-    onScroll,
-    selectedWorkflows,
-    showCheckboxes
-  }) => {
-    const panelSize = usePanelStore((state) => state.panel.panelSize);
-    const currentWorkflowId = useWorkflowManager(
-      (state) => state.currentWorkflowId
-    );
+const WorkflowListView: React.FC<WorkflowListViewProps> = ({
+  workflows,
+  onOpenWorkflow,
+  onDuplicateWorkflow,
+  onSelect,
+  onDelete,
+  onScroll,
+  selectedWorkflows,
+  showCheckboxes
+}) => {
+  const currentWorkflowId = useWorkflowManager(
+    (state) => state.currentWorkflowId
+  );
 
+  const ITEM_HEIGHT = 38;
+  const CONTAINER_HEIGHT = window.innerHeight - 230;
+
+  const Row = ({
+    index,
+    style
+  }: {
+    index: number;
+    style: React.CSSProperties;
+  }) => {
+    const workflow = workflows[index];
     return (
-      <Box className="container list" css={listStyles} onScroll={onScroll}>
-        {workflows.map((workflow: Workflow) => (
-          <WorkflowListItem
-            key={workflow.id}
-            workflow={workflow}
-            isSelected={selectedWorkflows?.includes(workflow.id) || false}
-            isCurrent={currentWorkflowId === workflow.id}
-            showCheckboxes={showCheckboxes}
-            panelSize={panelSize}
-            onOpenWorkflow={onOpenWorkflow}
-            onDuplicateWorkflow={onDuplicateWorkflow}
-            onSelect={onSelect}
-            onDelete={onDelete}
-          />
-        ))}
-      </Box>
+      <div style={style}>
+        <WorkflowListItem
+          key={workflow.id}
+          workflow={workflow}
+          isSelected={selectedWorkflows?.includes(workflow.id) || false}
+          isCurrent={currentWorkflowId === workflow.id}
+          showCheckboxes={showCheckboxes}
+          onOpenWorkflow={onOpenWorkflow}
+          onDuplicateWorkflow={onDuplicateWorkflow}
+          onSelect={onSelect}
+          onDelete={onDelete}
+        />
+      </div>
     );
-  }
-);
+  };
+
+  return (
+    <Box className="container list" css={listStyles}>
+      <FixedSizeList
+        height={CONTAINER_HEIGHT}
+        width="100%"
+        itemCount={workflows.length}
+        itemSize={ITEM_HEIGHT}
+        onScroll={({ scrollOffset }) =>
+          onScroll?.({ currentTarget: { scrollTop: scrollOffset } } as any)
+        }
+      >
+        {Row}
+      </FixedSizeList>
+    </Box>
+  );
+};
+
+export default memo(WorkflowListView, isEqual);

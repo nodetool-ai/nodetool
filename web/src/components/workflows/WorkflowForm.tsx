@@ -17,9 +17,7 @@ import { useCallback, useEffect, useState } from "react";
 import ThemeNodetool from "../themes/ThemeNodetool";
 import DeleteButton from "../buttons/DeleteButton";
 import { useFileDrop } from "../../hooks/handlers/useFileDrop";
-import { Workflow, WorkflowAttributes } from "../../stores/ApiTypes";
-import { useNotificationStore } from "../../stores/NotificationStore";
-import { useSettingsStore } from "../../stores/SettingsStore";
+import { Workflow } from "../../stores/ApiTypes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 
 const AVAILABLE_TAGS = [
@@ -140,49 +138,20 @@ const styles = (theme: any) =>
     }
   });
 
-const WorkflowForm = () => {
-  const { workflow, updateWorkflowInManager } = useWorkflowManager((state) => ({
-    workflow: state.getCurrentWorkflow() || {
-      id: "",
-      name: "",
-      description: "",
-      thumbnail: "",
-      thumbnail_url: "",
-      access: "private",
-      tags: [],
-      updated_at: "",
-      created_at: "",
-      graph: {
-        nodes: [],
-        edges: []
-      }
-    },
-    updateWorkflowInManager: state.updateWorkflow
-  }));
+interface WorkflowFormProps {
+  workflow: Workflow;
+  onSave: () => void;
+}
+
+const WorkflowForm = ({ workflow, onSave }: WorkflowFormProps) => {
   const { update } = useWorkflowManager((state) => ({
     update: state.update
   }));
-  const addNotification = useNotificationStore(
-    (state) => state.addNotification
-  );
-  const settings = useSettingsStore((state) => state.settings);
   const [localWorkflow, setLocalWorkflow] = useState<Workflow>(workflow);
 
   useEffect(() => {
     setLocalWorkflow(workflow || ({} as Workflow));
   }, [workflow]);
-
-  const handleSaveWorkflow = useCallback(async () => {
-    if (!localWorkflow) return;
-    updateWorkflowInManager(localWorkflow);
-    await update(localWorkflow);
-    addNotification({
-      type: "info",
-      alert: true,
-      content: "Workflow saved!",
-      dismissable: true
-    });
-  }, [localWorkflow, updateWorkflowInManager, update]);
 
   const handleChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -244,7 +213,6 @@ const WorkflowForm = () => {
       tags: newTags
     };
     setLocalWorkflow(updatedWorkflow);
-    handleSaveWorkflow();
   };
 
   return (
@@ -329,7 +297,7 @@ const WorkflowForm = () => {
             <MenuItem value="private">Private</MenuItem>
           </Select>
         </FormControl>
-        <Button className="save-button" onClick={() => handleSaveWorkflow()}>
+        <Button className="save-button" onClick={onSave}>
           Save
         </Button>
       </Box>

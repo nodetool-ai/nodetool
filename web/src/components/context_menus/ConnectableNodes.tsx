@@ -120,15 +120,9 @@ const searchNodesHelper = (
   );
 };
 
-interface ConnectableNodesProps {
-  handleMouseEnter?: () => void;
-  handleMouseLeave?: () => void;
-}
+interface ConnectableNodesProps {}
 
-const ConnectableNodes: React.FC<ConnectableNodesProps> = ({
-  handleMouseEnter = () => {},
-  handleMouseLeave = () => {}
-}) => {
+const ConnectableNodes: React.FC<ConnectableNodesProps> = ({}) => {
   const [searchTerm, setSearchTerm] = useState("");
   const reactFlowInstance = useReactFlow();
   const {
@@ -342,18 +336,7 @@ const ConnectableNodes: React.FC<ConnectableNodesProps> = ({
                     key={nodeMetadata.node_type}
                     ref={isFocused ? focusedNodeRef : undefined}
                     node={nodeMetadata}
-                    isHovered={false}
-                    isFocused={false}
                     onDragStart={() => {}}
-                    onInfoClick={() => {}}
-                    onMouseEnter={() => {
-                      currentHoveredNodeRef.current = nodeMetadata;
-                      handleMouseEnter();
-                    }}
-                    onMouseLeave={() => {
-                      currentHoveredNodeRef.current = null;
-                      handleMouseLeave();
-                    }}
                     onClick={() => {
                       createConnectableNode(nodeMetadata);
                       hideMenu();

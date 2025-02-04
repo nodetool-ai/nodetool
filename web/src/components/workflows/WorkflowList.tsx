@@ -34,7 +34,32 @@ const styles = (theme: any) =>
       margin: "0"
     },
     ".tools button": {
-      fontSize: "0.7em"
+      fontSize: "0.7em",
+      borderColor: `${theme.palette.c_hl1}33`,
+      width: "3em",
+      height: "3em",
+      "&:hover": {
+        borderColor: theme.palette.c_hl1
+      },
+      "& svg": {
+        color: theme.palette.c_gray4
+      },
+      "&:hover svg": {
+        fill: theme.palette.c_hl1
+      }
+    },
+    ".tools .delete-selected-button": {
+      borderColor: `${theme.palette.c_hl1}33`,
+      color: theme.palette.c_hl1,
+      "&:hover": {
+        borderColor: theme.palette.c_hl1
+      },
+      "& svg": {
+        color: theme.palette.c_hl1
+      }
+    },
+    ".MuiOutlinedInput-root": {
+      fontSize: "20px"
     },
     ".filter": {
       width: "20em"
@@ -60,28 +85,9 @@ const styles = (theme: any) =>
     ".workflow-items": {
       paddingTop: "0.5em"
     },
-    ".workflow": {
-      outline: `0px solid transparent`,
-      outlineOffset: ".4em",
-      transition: "outline 0.2s"
-    },
-    ".workflow:hover": {
-      backgroundColor: theme.palette.c_gray1,
-      outline: "1px solid" + theme.palette.c_gray2
-    },
-    ".workflow.selected": {
-      backgroundColor: theme.palette.c_gray1,
-      outline: "1px solid" + theme.palette.c_hl1
-    },
-    ".workflow img": {
-      width: "100%",
-      height: "100%",
-      objectFit: "cover"
-    },
-    ".description": {
-      lineHeight: "1.2em",
-      fontSize: theme.fontSizeSmall,
-      color: theme.palette.c_gray6
+    ".name": {
+      lineHeight: "1.8em",
+      color: theme.palette.c_gray8
     },
     ".date": {
       fontSize: theme.fontSizeTiny,
@@ -121,7 +127,7 @@ const styles = (theme: any) =>
       padding: theme.spacing(2, 0),
       "& h3": {
         margin: 0,
-        fontSize: "1.5rem",
+        fontSize: "1.2rem",
         color: theme.palette.c_white
       }
     }
@@ -148,9 +154,6 @@ const WorkflowList = () => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false);
   const [showCheckboxes, setShowCheckboxes] = useState(false);
   const [selectedTag, setSelectedTag] = useState<string>("");
-  const { removeWorkflow } = useWorkflowManager((state) => ({
-    removeWorkflow: state.removeWorkflow
-  }));
   const { shiftKeyPressed, controlKeyPressed } = useKeyPressedStore(
     (state) => ({
       shiftKeyPressed: state.isKeyPressed("Shift"),
@@ -170,15 +173,14 @@ const WorkflowList = () => {
       refetchOnReconnect: false
     }
   );
-  const workflows = useMemo(() => data?.workflows || [], [data?.workflows]);
   const listWorkflows = useWorkflowManager((state) => state.listWorkflows);
 
-  const filteredWorkflows = useMemo(() => {
-    if (filterValue === "") return listWorkflows();
-    return listWorkflows().filter((workflow) =>
+  const workflows = useMemo(() => {
+    if (filterValue === "") return data?.workflows || [];
+    return (data?.workflows || []).filter((workflow) =>
       workflow.name.toLowerCase().includes(filterValue.toLowerCase())
     );
-  }, [listWorkflows, filterValue]);
+  }, [data?.workflows, filterValue]);
 
   const onSelect = useCallback((workflow: Workflow) => {
     // const sortedWorkflows = [...filteredWorkflows];

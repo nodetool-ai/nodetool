@@ -143,12 +143,9 @@ const SearchInput: React.FC<SearchInputProps> = ({
     onSearchChange("");
   }, [debouncedSetSearchTerm, onSearchChange, setCurrentSearchId]);
 
-  const { focusedNodeIndex, setFocusedNodeIndex, closeNodeMenu } =
-    useNodeMenuStore((state) => ({
-      focusedNodeIndex: state.focusedNodeIndex,
-      setFocusedNodeIndex: state.setFocusedNodeIndex,
-      closeNodeMenu: state.closeNodeMenu
-    }));
+  const { closeNodeMenu } = useNodeMenuStore((state) => ({
+    closeNodeMenu: state.closeNodeMenu
+  }));
 
   // Handle input changes with debouncing
   const handleInputChange = useCallback(
@@ -158,10 +155,8 @@ const SearchInput: React.FC<SearchInputProps> = ({
       setLocalSearchTerm(newValue);
       // Schedule debounced search
       debouncedSetSearchTerm(newValue);
-      // Reset focused node when search term changes
-      setFocusedNodeIndex(-1);
     },
-    [debouncedSetSearchTerm, setFocusedNodeIndex]
+    [debouncedSetSearchTerm]
   );
   // const handleCreateNode = useCreateNode();
   const clearSearch = useCallback(() => {
@@ -250,8 +245,6 @@ const SearchInput: React.FC<SearchInputProps> = ({
     onPressEscape,
     debouncedSetSearchTerm,
     clearSearch,
-    setFocusedNodeIndex,
-    focusedNodeIndex,
     closeNodeMenu,
     searchResults
   ]);

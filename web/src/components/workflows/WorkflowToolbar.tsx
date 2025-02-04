@@ -1,22 +1,15 @@
 import { FC, useCallback, useMemo } from "react";
-import {
-  Button,
-  Typography,
-  Tooltip,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem
-} from "@mui/material";
+import { Button, Typography, Tooltip, Select, MenuItem } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import SearchInput from "../search/SearchInput";
 import VisibilityIcon from "@mui/icons-material/Visibility";
-import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
+import CheckBoxIcon from "@mui/icons-material/CheckBox";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Workflow } from "../../stores/ApiTypes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+import DeleteIcon from "@mui/icons-material/Delete";
 
 interface WorkflowToolbarProps {
   workflows: Workflow[];
@@ -64,39 +57,34 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
         <Typography variant="h3">Workflows</Typography>
       </div>
       <div className="tools">
+        <Tooltip
+          title={`${showCheckboxes ? "Hide" : "Show"} selection checkboxes`}
+          placement="top"
+          enterDelay={TOOLTIP_ENTER_DELAY}
+        >
+          <Button onClick={toggleCheckboxes}>
+            <CheckBoxIcon />
+          </Button>
+        </Tooltip>
         <Tooltip title="Create a new workflow">
-          <Button
-            variant="outlined"
-            onClick={handleCreateWorkflow}
-            sx={{
-              fontWeight: "bold",
-              textTransform: "uppercase",
-              letterSpacing: "0.05em",
-              height: "36px",
-              padding: "6px 16px"
-            }}
-          >
+          <Button variant="outlined" onClick={handleCreateWorkflow}>
             <AddIcon />
           </Button>
         </Tooltip>
 
         <Tooltip title="Search workflows by name">
           <div>
-            <SearchInput onSearchChange={handleSearchChange} />
+            <SearchInput
+              onSearchChange={handleSearchChange}
+              focusSearchInput={false}
+            />
           </div>
         </Tooltip>
 
-        <FormControl
-          size="small"
-          sx={{ minWidth: 120, height: "36px", marginTop: "18px" }}
-        >
-          <InputLabel id="tag-filter-label">Filter by Tag</InputLabel>
+        <Tooltip title="Filter workflows by tag">
           <Select
-            labelId="tag-filter-label"
             id="tag-filter"
             value={selectedTag}
-            label="Filter by Tag"
-            sx={{ height: "36px" }}
             onChange={(e) => setSelectedTag(e.target.value)}
           >
             <MenuItem value="">
@@ -108,20 +96,6 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
               </MenuItem>
             ))}
           </Select>
-        </FormControl>
-
-        <Tooltip
-          title={`${showCheckboxes ? "Hide" : "Show"} selection checkboxes`}
-          placement="top"
-          enterDelay={TOOLTIP_ENTER_DELAY}
-        >
-          <Button
-            size="small"
-            onClick={toggleCheckboxes}
-            sx={{ height: "36px" }}
-          >
-            {showCheckboxes ? <VisibilityOffIcon /> : <VisibilityIcon />}
-          </Button>
         </Tooltip>
 
         {selectedWorkflowsCount > 0 && (
@@ -131,11 +105,11 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
             }`}
           >
             <Button
+              variant="outlined"
               className="delete-selected-button"
               onClick={onBulkDelete}
-              sx={{ height: "36px" }}
             >
-              Delete Selected
+              <DeleteIcon />
             </Button>
           </Tooltip>
         )}

@@ -8,6 +8,7 @@ import { shallow } from "zustand/shallow";
 import { useStoreWithEqualityFn } from "zustand/traditional";
 import { useWorkflowManager } from "./WorkflowManagerContext";
 import { TemporalState } from "zundo";
+import { Box } from "@mui/material";
 
 interface NodeContextValue {
   store: NodeStore;
@@ -52,7 +53,29 @@ export const NodeProvider: React.FC<{
   const store = getNodeStore(workflowId);
 
   if (!store) {
-    return <div>Loading...</div>;
+    return (
+      <Box
+        sx={{
+          "@keyframes fadeIn": {
+            "0%": {
+              opacity: 0
+            },
+            "100%": {
+              opacity: 0.6
+            }
+          },
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          padding: "1rem",
+          opacity: 0.6,
+          animation: "fadeIn 0.2s ease-in",
+          height: "100%"
+        }}
+      >
+        <div>Loading workflow...</div>
+      </Box>
+    );
   }
 
   return (
