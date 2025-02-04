@@ -71,7 +71,7 @@
     "tabulator-tables": "^6.3.0",
     "use-debounce": "^10.0.4",
     "uuid": "^11.0.3",
-    "vite": "^6.0.3",
+    "vite": "^6.0.11",
     "vite-plugin-svgr": "^4.3.0",
     "vite-tsconfig-paths": "^5.1.4",
     "wavesurfer.js": "^7.8.10",
