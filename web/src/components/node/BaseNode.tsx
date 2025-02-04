@@ -248,12 +248,6 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     throw new Error("Metadata is not loaded for node " + props.id);
   }
 
-  // first line of description
-  const description = useMemo(
-    () => metadata.description?.split("\n")[0],
-    [metadata]
-  );
-
   const showFooter = useMemo(() => {
     if (metadata.namespace === "nodetool.constant") return false;
     return true;
@@ -282,7 +276,6 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         data={props.data}
         backgroundColor={headerColor}
         metadataTitle={metadata.title}
-        description={description}
         hasParent={hasParent}
       />
       <NodeErrors id={props.id} workflow_id={workflowId} />

@@ -8,10 +8,8 @@ import QueueIcon from "@mui/icons-material/Queue";
 import CopyAllIcon from "@mui/icons-material/CopyAll";
 import RemoveCircleIcon from "@mui/icons-material/RemoveCircle";
 import DataArrayIcon from "@mui/icons-material/DataArray";
-import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import GroupRemoveIcon from "@mui/icons-material/GroupRemove";
 import SearchIcon from "@mui/icons-material/Search";
-import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 //store
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { NodeData } from "../../stores/NodeData";
@@ -36,9 +34,6 @@ const NodeContextMenu: React.FC = () => {
     (state) => state.closeContextMenu
   );
   const nodeId = useContextMenuStore((state) => state.nodeId);
-  const openDocumentation = useNodeMenuStore(
-    (state) => state.openDocumentation
-  );
   const { getNode } = useReactFlow();
   const deleteNode = useNodes((state) => state.deleteNode);
   const node = nodeId !== null ? getNode(nodeId) : null;
@@ -107,13 +102,6 @@ const NodeContextMenu: React.FC = () => {
     closeContextMenu();
   }, [closeContextMenu, duplicateNodes]);
 
-  const handleOpenDocumentation = useCallback(() => {
-    openDocumentation(node?.type || "", {
-      x: (menuPosition?.x ?? 0) + 100,
-      y: menuPosition?.y ?? 0
-    });
-  }, [menuPosition?.x, menuPosition?.y, node?.type, openDocumentation]);
-
   const handleFindExamples = () => {
     const nodeType = node?.type || "";
     // Navigate to examples with the node type as a search parameter
@@ -178,12 +166,6 @@ const NodeContextMenu: React.FC = () => {
         label="Copy NodeData"
         IconComponent={<DataArrayIcon />}
         tooltip="Copy node metadata to the clipboard"
-      />
-      <ContextMenuItem
-        onClick={handleOpenDocumentation}
-        label="Documentation"
-        IconComponent={<OpenInNewIcon />}
-        tooltip="Open documentation for this node"
       />
 
       <Divider />

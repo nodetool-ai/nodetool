@@ -5,14 +5,11 @@ import { memo, useCallback, useMemo } from "react";
 import { isEqual } from "lodash";
 import { titleizeString } from "../../utils/titleizeString";
 import { NodeData } from "../../stores/NodeData";
-import { Tooltip } from "@mui/material";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { useNodes } from "../../contexts/NodeContext";
 
 export interface NodeHeaderProps {
   id: string;
   metadataTitle: string;
-  description?: string;
   hasParent?: boolean;
   parentColor?: string;
   showMenu?: boolean;
@@ -26,7 +23,6 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
   hasParent,
   data,
   backgroundColor,
-  description,
   showMenu = true
 }: NodeHeaderProps) => {
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
@@ -55,38 +51,36 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
   }, [id, updateNode]);
 
   return (
-    <Tooltip title={description} placement="top" enterDelay={400}>
-      <div
-        className={`node-drag-handle node-header ${
-          hasParent ? "has-parent" : ""
-        }`}
-        onClick={handleHeaderClick}
-        style={{
-          backgroundColor: backgroundColor
-        }}
-      >
-        {data.title && (
-          <span className="node-title">
-            <span className="title-container">
-              <span className="title">{data.title}</span>
-            </span>
-            <span className="type">{titleizedType}</span>
+    <div
+      className={`node-drag-handle node-header ${
+        hasParent ? "has-parent" : ""
+      }`}
+      onClick={handleHeaderClick}
+      style={{
+        backgroundColor: backgroundColor
+      }}
+    >
+      {data.title && (
+        <span className="node-title">
+          <span className="title-container">
+            <span className="title">{data.title}</span>
           </span>
-        )}
-        {!data.title && <span className="node-title">{titleizedType}</span>}
-        {showMenu && (
-          <div className="menu-button-container" tabIndex={-1}>
-            <button
-              className="menu-button"
-              tabIndex={-1}
-              onClick={handleOpenContextMenu}
-            >
-              <MoreHoriz />
-            </button>
-          </div>
-        )}
-      </div>
-    </Tooltip>
+          <span className="type">{titleizedType}</span>
+        </span>
+      )}
+      {!data.title && <span className="node-title">{titleizedType}</span>}
+      {showMenu && (
+        <div className="menu-button-container" tabIndex={-1}>
+          <button
+            className="menu-button"
+            tabIndex={-1}
+            onClick={handleOpenContextMenu}
+          >
+            <MoreHoriz />
+          </button>
+        </div>
+      )}
+    </div>
   );
 };
 
