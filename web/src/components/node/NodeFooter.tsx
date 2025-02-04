@@ -44,6 +44,7 @@ export interface NodeFooterProps {
   hasAdvancedFields?: boolean;
   showAdvancedFields?: boolean;
   onToggleAdvancedFields?: () => void;
+  title?: string;
 }
 
 export const NodeFooter: React.FC<NodeFooterProps> = ({
@@ -53,7 +54,8 @@ export const NodeFooter: React.FC<NodeFooterProps> = ({
   nodeType,
   hasAdvancedFields,
   showAdvancedFields,
-  onToggleAdvancedFields
+  onToggleAdvancedFields,
+  title
 }) => {
   const { openNodeMenu } = useNodeMenuStore((state) => ({
     openNodeMenu: state.openNodeMenu
@@ -72,6 +74,13 @@ export const NodeFooter: React.FC<NodeFooterProps> = ({
 
   return (
     <div className="node-footer" style={{ backgroundColor }}>
+      {title && (
+        <span className="node-title">
+          <span className="title-container">
+            <span className="title">{title}</span>
+          </span>
+        </span>
+      )}
       <Tooltip
         title="Click to show in NodeMenu"
         placement="bottom-start"

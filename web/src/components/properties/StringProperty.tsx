@@ -33,7 +33,7 @@ const StringProperty = ({
 
   const showTextEditor =
     nodeType === "nodetool.constant.String" ||
-    nodeType === "nodetool.input.StringInput" ||
+    (nodeType === "nodetool.input.StringInput" && property.name == "value") ||
     (nodeType === "nodetool.text.FormatText" && property.name === "template") ||
     (nodeType === "nodetool.text.Template" && property.name === "string") ||
     (nodeType === "nodetool.list.MapTemplate" && property.name === "template");
@@ -49,7 +49,7 @@ const StringProperty = ({
           style={{
             width: "100%",
             minHeight: "48px",
-            maxHeight: "400px",
+            maxHeight: "800px",
             borderRadius: "4px",
             fontSize: "12px"
           }}

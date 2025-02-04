@@ -74,31 +74,31 @@
   padding: 0.5em 0 0.5em 0.7em;
 }
 
-.react-flow__node .node-header .title-container {
+.react-flow__node .node-footer .title-container {
   position: absolute;
-  top: -1.2em;
-  left: 0.5em;
+  bottom: -2.5em;
+  left: 0;
   width: 100%;
-  min-height: 1em;
-  background-color: transparent;
+  min-height: 3em;
+  border-radius: 0em 0em 0.3em 0.3em;
+  background: rgba(0, 0, 0, 0.1);
   display: flex;
   flex-direction: column;
+  padding: 1em;
   gap: 0;
 }
 
-.react-flow__node .node-header .title {
+.react-flow__node .node-footer .title {
   pointer-events: none;
   position: absolute;
   bottom: 0;
-  left: 0.2em;
+  left: 0.5em;
   width: 100%;
   color: var(--c_white);
   font-size: var(--font-size-normal);
-  line-height: 1.1em;
+  line-height: 2em;
   font-weight: 300;
   font-style: italic;
-  margin: 0;
-  padding: 0;
 }
 
 .react-flow__node .node-header .type {

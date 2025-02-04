@@ -60,15 +60,7 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
         backgroundColor: backgroundColor
       }}
     >
-      {data.title && (
-        <span className="node-title">
-          <span className="title-container">
-            <span className="title">{data.title}</span>
-          </span>
-          <span className="type">{titleizedType}</span>
-        </span>
-      )}
-      {!data.title && <span className="node-title">{titleizedType}</span>}
+      <span className="node-title">{titleizedType}</span>
       {showMenu && (
         <div className="menu-button-container" tabIndex={-1}>
           <button
