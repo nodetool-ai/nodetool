@@ -2,7 +2,6 @@
 import { css, keyframes } from "@emotion/react";
 import { colorForType } from "../../config/data_types";
 
-import { MIN_ZOOM } from "../../config/constants";
 import ThemeNodes from "../themes/ThemeNodes";
 import { memo, useCallback, useMemo, useState } from "react";
 import {
@@ -11,8 +10,7 @@ import {
   NodeResizer,
   NodeToolbar,
   Position,
-  ResizeParams,
-  useStore
+  ResizeParams
 } from "@xyflow/react";
 import { isEqual } from "lodash";
 import { Container } from "@mui/material";
@@ -34,6 +32,8 @@ import NodeFooter from "./NodeFooter";
 import useSelect from "../../hooks/nodes/useSelect";
 import NodePropertyForm from "./NodePropertyForm";
 import { useDynamicProperty } from "../../hooks/nodes/useDynamicProperty";
+import EditableTitle from "./EditableTitle";
+import { NodeMetadata } from "../../stores/ApiTypes";
 
 // Node sizing constants
 const BASE_HEIGHT = 0; // Minimum height for the node
@@ -58,9 +58,15 @@ const resizer = (
   </div>
 );
 
-const Toolbar = memo(({ id }: { id: string }) => {
+const Toolbar = memo(function Toolbar({
+  id,
+  selected
+}: {
+  id: string;
+  selected: boolean;
+}) {
   const { activeSelect } = useSelect();
-  if (activeSelect) return null;
+  if (activeSelect || !selected) return null;
   return (
     <NodeToolbar position={Position.Top} offset={0}>
       <NodeToolButtons nodeId={id} />
@@ -83,7 +89,8 @@ const gradientAnimationKeyframes = keyframes`
   }
 `;
 
-const styles = (colors: string[]) =>
+// Move the styles definition outside the component
+const getNodeStyles = (colors: string[]) =>
   css({
     "&.loading": {
       position: "relative",
@@ -98,14 +105,14 @@ const styles = (colors: string[]) =>
         right: "var(--glow-offset)",
         bottom: "var(--glow-offset)",
         background: `conic-gradient(
-              from var(--gradient-angle), 
-              ${colors[0]},
-              ${colors[1]},
-              ${colors[2]},
-              ${colors[3]},
-              ${colors[4]},
-              ${colors[0]}
-          )`,
+        from var(--gradient-angle), 
+        ${colors[0]},
+        ${colors[1]},
+        ${colors[2]},
+        ${colors[3]},
+        ${colors[4]},
+        ${colors[0]}
+      )`,
         borderRadius: "inherit",
         zIndex: -20,
         animation: `${gradientAnimationKeyframes} 5s ease-in-out infinite`,
@@ -118,51 +125,132 @@ const styles = (colors: string[]) =>
     }
   });
 
+// Style helper functions moved outside component
+const getStyleProps = (
+  parentId: string | undefined,
+  nodeType: { isInputNode: boolean; isOutputNode: boolean },
+  isLoading: boolean,
+  metadata: any
+) => {
+  const hasParent = Boolean(parentId);
+  return {
+    className: `node-body 
+      ${hasParent ? "has-parent" : ""}
+      ${nodeType.isInputNode ? " input-node" : ""} 
+      ${nodeType.isOutputNode ? " output-node" : ""}
+      ${isLoading ? " loading is-loading" : " loading "}`
+      .replace(/\s+/g, " ")
+      .trim(),
+    minHeight: metadata
+      ? BASE_HEIGHT + (metadata.outputs?.length || 0) * INCREMENT_PER_OUTPUT
+      : BASE_HEIGHT,
+    backgroundColor: hasParent
+      ? ThemeNodes.palette.c_node_bg_group
+      : ThemeNodes.palette.c_node_bg
+  };
+};
+
+const getNodeColors = (metadata: any): string[] => {
+  const outputColors = [
+    ...new Set(
+      metadata?.outputs?.map((output: any) => colorForType(output.type.type)) ||
+        []
+    )
+  ];
+  const inputColors = [
+    ...new Set(
+      metadata?.properties?.map((input: any) =>
+        colorForType(input.type.type)
+      ) || []
+    )
+  ];
+  const allColors = [...outputColors];
+  for (const color of inputColors) {
+    if (!allColors.includes(color)) {
+      allColors.push(color);
+    }
+  }
+  while (allColors.length < 5) {
+    allColors.push(allColors[allColors.length - 1]);
+  }
+  return allColors.slice(0, 5) as string[];
+};
+
+const getHeaderFooterColors = (metadata: NodeMetadata) => {
+  const firstOutputColor = metadata?.outputs?.[0]?.type?.type;
+  return {
+    headerColor: firstOutputColor
+      ? darkenHexColor(
+          simulateOpacity(
+            colorForType(firstOutputColor),
+            0.5,
+            ThemeNodes.palette.c_node_bg
+          ),
+          20
+        )
+      : "",
+    footerColor: firstOutputColor
+      ? darkenHexColor(
+          simulateOpacity(
+            colorForType(firstOutputColor),
+            0.25,
+            ThemeNodes.palette.c_node_bg
+          ),
+          100
+        )
+      : ""
+  };
+};
+
 const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
+  const { id, type, data, selected, parentId } = props;
+  const { workflow_id, title } = data;
+  const nodeType = useMemo(
+    () => ({
+      isConstantNode: type.startsWith("nodetool.constant"),
+      isInputNode: type.startsWith("nodetool.input"),
+      isOutputNode:
+        type.startsWith("nodetool.output") ||
+        type === "comfy.image.SaveImage" ||
+        type === "comfy.image.PreviewImage"
+    }),
+    [type]
+  );
+
+  // Status
+  const status = useStatusStore((state) => state.getStatus(workflow_id, id));
+  const isLoading = useMemo(
+    () => status === "running" || status === "starting" || status === "booting",
+    [status]
+  );
+
+  // Metadata
+  const metadata = useMetadataStore((state) => state.getMetadata(type));
+  if (!metadata) {
+    throw new Error("Metadata is not loaded for node type " + type);
+  }
+  const meta = useMemo(() => {
+    return {
+      nodeNamespace: metadata.namespace || "",
+      nodeBasicFields: metadata.basic_fields || [],
+      hasAdvancedFields:
+        metadata.properties?.length > metadata.basic_fields?.length,
+      showFooter: metadata.namespace !== "nodetool.constant"
+    };
+  }, [metadata]);
+
+  // Style
+  const styleProps = useMemo(
+    () => getStyleProps(parentId, nodeType, isLoading, metadata),
+    [parentId, nodeType, isLoading, metadata]
+  );
+
   // Node-specific data and relationships
-  const parentId = props.parentId;
   const hasParent = Boolean(parentId);
   const [showAdvancedFields, setShowAdvancedFields] = useState(false);
 
-  // Workflow and status
-  const workflowId = props.data.workflow_id;
-  const status = useStatusStore((state) =>
-    state.getStatus(workflowId, props.id)
-  );
-  const isLoading =
-    status === "running" || status === "starting" || status === "booting";
-
-  // Node type flags
-  const isConstantNode = props.type.startsWith("nodetool.constant");
-  const isInputNode = props.type.startsWith("nodetool.input");
-  const isOutputNode =
-    props.type.startsWith("nodetool.output") ||
-    props.type === "comfy.image.SaveImage" ||
-    props.type === "comfy.image.PreviewImage";
-
-  const className = useMemo(
-    () =>
-      `node-body ${props.data.collapsed ? "collapsed" : ""}
-      ${hasParent ? "has-parent" : ""}
-      ${isInputNode ? " input-node" : ""} ${isOutputNode ? " output-node" : ""}
-      ${props.data.dirty ? "dirty" : ""}
-      ${isLoading ? " loading is-loading" : " loading "}`
-        .replace(/\s+/g, " ")
-        .trim(),
-    [
-      props.data.collapsed,
-      props.data.dirty,
-      hasParent,
-      isInputNode,
-      isOutputNode,
-      isLoading
-    ]
-  );
-
   // Results and rendering
-  const result = useResultsStore((state) =>
-    state.getResult(props.data.workflow_id, props.id)
-  );
+  const result = useResultsStore((state) => state.getResult(workflow_id, id));
   const renderedResult = useMemo(() => {
     if (result && typeof result === "object") {
       return Object.entries(result).map(([key, value]) => (
@@ -171,87 +259,23 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     }
   }, [result]);
 
-  const metadata = useMetadataStore((state) => state.getMetadata(props.type));
-
-  // Node height calculation
-  const minHeight = useMemo(() => {
-    if (!metadata) return BASE_HEIGHT;
-    const outputCount = metadata?.outputs?.length || 0;
-    return BASE_HEIGHT + outputCount * INCREMENT_PER_OUTPUT;
-  }, [metadata]);
-
   // Node metadata and properties
-  const nodeNamespace = metadata?.namespace || "";
-  const nodeBasicFields = metadata?.basic_fields || [];
-  const nodeColors = useMemo(() => {
-    const outputColors = [
-      ...new Set(
-        metadata?.outputs?.map((output) => colorForType(output.type.type)) || []
-      )
-    ];
-    const inputColors = [
-      ...new Set(
-        metadata?.properties?.map((input) => colorForType(input.type.type)) ||
-          []
-      )
-    ];
-    const allColors = [...outputColors];
-    for (const color of inputColors) {
-      if (!allColors.includes(color)) {
-        allColors.push(color);
-      }
-    }
-    while (allColors.length < 5) {
-      allColors.push(allColors[allColors.length % allColors.length]);
-    }
-    return allColors.slice(0, 5);
-  }, [metadata]);
+  const nodeColors = useMemo(() => getNodeColors(metadata), [metadata]);
 
-  const { headerColor, footerColor } = useMemo(() => {
-    const firstOutputColor = metadata?.outputs?.[0]?.type?.type;
-    return {
-      headerColor: firstOutputColor
-        ? darkenHexColor(
-            simulateOpacity(
-              colorForType(firstOutputColor),
-              0.5,
-              ThemeNodes.palette.c_node_bg
-            ),
-            20
-          )
-        : "",
-      footerColor: firstOutputColor
-        ? darkenHexColor(
-            simulateOpacity(
-              colorForType(firstOutputColor),
-              0.25,
-              ThemeNodes.palette.c_node_bg
-            ),
-            100
-          )
-        : ""
-    };
-  }, [metadata]);
+  const { headerColor, footerColor } = useMemo(
+    () => getHeaderFooterColors(metadata),
+    [metadata]
+  );
 
-  const hasAdvancedFields = useMemo(() => {
-    if (!metadata?.properties || !metadata?.basic_fields) return false;
-    return metadata.properties.length > metadata.basic_fields.length;
-  }, [metadata]);
+  // Use useMemo to cache the styles based on nodeColors
+  const styles = useMemo(() => getNodeStyles(nodeColors), [nodeColors]);
 
   const { handleDeleteProperty, handleAddProperty, handleUpdatePropertyName } =
-    useDynamicProperty(
-      props.id,
-      props.data.dynamic_properties as Record<string, any>
-    );
+    useDynamicProperty(id, data.dynamic_properties as Record<string, any>);
 
   if (!metadata) {
-    throw new Error("Metadata is not loaded for node " + props.id);
+    throw new Error("Metadata is not loaded for node " + id);
   }
-
-  const showFooter = useMemo(() => {
-    if (metadata.namespace === "nodetool.constant") return false;
-    return true;
-  }, [metadata]);
 
   const onToggleAdvancedFields = useCallback(() => {
     setShowAdvancedFields(!showAdvancedFields);
@@ -259,40 +283,37 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 
   return (
     <Container
-      css={isLoading ? styles(nodeColors) : undefined}
-      className={className}
+      css={isLoading ? styles : undefined}
+      className={styleProps.className}
       style={{
-        // display: parentIsCollapsed ? "none" : "flex",
         display: "flex",
-        minHeight: `${minHeight}px`,
-        backgroundColor: hasParent
-          ? ThemeNodes.palette.c_node_bg_group
-          : ThemeNodes.palette.c_node_bg
+        minHeight: `${styleProps.minHeight}px`,
+        backgroundColor: styleProps.backgroundColor
       }}
     >
-      {props.selected && <Toolbar id={props.id} />}
+      {selected && <Toolbar id={id} selected={selected} />}
       <NodeHeader
-        id={props.id}
-        data={props.data}
+        id={id}
+        data={data}
         backgroundColor={headerColor}
         metadataTitle={metadata.title}
         hasParent={hasParent}
       />
-      <NodeErrors id={props.id} workflow_id={workflowId} />
+      <NodeErrors id={id} workflow_id={workflow_id} />
       <NodeStatus status={status} />
-      {!isProduction && <ModelRecommendations nodeType={props.type} />}
-      {!isProduction && <ApiKeyValidation nodeNamespace={nodeNamespace} />}
+      {!isProduction && <ModelRecommendations nodeType={type} />}
+      {!isProduction && <ApiKeyValidation nodeNamespace={meta.nodeNamespace} />}
       <NodeContent
-        id={props.id}
-        nodeType={props.type}
+        id={id}
+        nodeType={type}
         nodeMetadata={metadata}
-        isConstantNode={isConstantNode}
-        isOutputNode={isOutputNode}
-        data={props.data}
+        isConstantNode={nodeType.isConstantNode}
+        isOutputNode={nodeType.isOutputNode}
+        data={data}
         showAdvancedFields={showAdvancedFields}
-        basicFields={nodeBasicFields}
+        basicFields={meta.nodeBasicFields}
         status={status}
-        workflowId={workflowId}
+        workflowId={workflow_id}
         renderedResult={renderedResult}
         onUpdatePropertyName={handleUpdatePropertyName}
         onDeleteProperty={handleDeleteProperty}
@@ -300,21 +321,29 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       {metadata?.is_dynamic && (
         <NodePropertyForm onAddProperty={handleAddProperty} />
       )}
-      {props.selected && resizer}
-      {showFooter && (
+      {selected && resizer}
+      {meta.showFooter && (
         <NodeFooter
-          nodeNamespace={metadata.namespace}
+          nodeNamespace={meta.nodeNamespace}
           metadata={metadata}
           backgroundColor={footerColor}
-          nodeType={props.type}
-          hasAdvancedFields={hasAdvancedFields}
+          nodeType={type}
+          hasAdvancedFields={meta.hasAdvancedFields}
           showAdvancedFields={showAdvancedFields}
           onToggleAdvancedFields={onToggleAdvancedFields}
-          title={props.data.title}
         />
       )}
+
+      {title && <EditableTitle nodeId={id} title={title} />}
     </Container>
   );
 };
 
-export default memo(BaseNode, isEqual);
+export default memo(BaseNode, (prevProps, nextProps) => {
+  return (
+    prevProps.id === nextProps.id &&
+    prevProps.type === nextProps.type &&
+    prevProps.selected === nextProps.selected &&
+    isEqual(prevProps.data, nextProps.data)
+  );
+});
