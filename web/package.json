@@ -7,6 +7,7 @@
     "@emotion/babel-plugin": "^11.13.5",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.13.5",
+    "@eslint/compat": "^1.2.6",
     "@floating-ui/react": "^0.27.3",
     "@fontsource/inter": "^5.1.0",
     "@fontsource/jetbrains-mono": "^5.1.1",
@@ -82,20 +83,12 @@
     "build": "vite build",
     "build:staging": "vite build --mode staging",
     "preview": "vite preview",
-    "lint": "eslint .",
+    "lint": "eslint src",
+    "lint:fix": "eslint src --fix",
     "test": "jest",
     "release": "ts-node release.ts",
     "openapi": "openapi-typescript http://127.0.0.1:8000/openapi.json -o ./src/api.ts",
     "typecheck": "tsc --noEmit"
-  },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest"
-    ],
-    "rules": {
-      "@typescript-eslint/no-unused-vars": "off"
-    }
   },
   "browserslist": {
     "production": [

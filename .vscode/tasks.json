@@ -74,5 +74,34 @@
 			"dependsOn": ["typecheck: apps", "typecheck: web", "typecheck: electron"],
 			"group": "test"
 		},
+		{
+			"type": "npm",
+			"script": "lint",
+			"path": "apps",
+			"problemMatcher": ["$eslint-stylish"],
+			"label": "lint: apps",
+			"detail": "eslint ."
+		},
+		{
+			"type": "npm",
+			"script": "lint",
+			"path": "web",
+			"problemMatcher": ["$eslint-stylish"],
+			"label": "lint: web",
+			"detail": "eslint ."
+		},
+		{
+			"type": "npm",
+			"script": "lint",
+			"path": "electron",
+			"problemMatcher": ["$eslint-stylish"],
+			"label": "lint: electron",
+			"detail": "eslint ."
+		},
+		{
+			"label": "lint: all",
+			"dependsOn": ["lint: apps", "lint: web", "lint: electron"],
+			"group": "test"
+		},
 	]
 }
