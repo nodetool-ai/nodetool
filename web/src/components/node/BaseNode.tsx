@@ -310,6 +310,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           hasAdvancedFields={hasAdvancedFields}
           showAdvancedFields={showAdvancedFields}
           onToggleAdvancedFields={onToggleAdvancedFields}
+          title={props.data.title}
         />
       )}
     </Container>
