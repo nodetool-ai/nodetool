@@ -74,9 +74,9 @@
   padding: 0.5em 0 0.5em 0.7em;
 }
 
-.react-flow__node .node-footer .title-container {
+.react-flow__node .title-container {
   position: absolute;
-  bottom: -2.5em;
+  top: 100%;
   left: 0;
   width: 100%;
   min-height: 3em;
@@ -86,17 +86,50 @@
   flex-direction: column;
   padding: 1em;
   gap: 0;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-.react-flow__node .node-footer .title {
-  pointer-events: none;
+.react-flow__node .title-container textarea {
+  width: 100%;
+  height: 100%;
+  border: none;
+  outline: none;
+  resize: none;
+  font-size: var(--font-size-normal);
+  line-height: 1.1em;
+  font-weight: 300;
+  font-family: var(--font-family-1);
+  font-style: italic;
+  color: var(--c_white);
+  background-color: transparent;
+}
+
+.react-flow__node .title-container:hover .remove-title {
+  display: block;
+}
+
+.react-flow__node .title-container .remove-title {
+  display: none;
   position: absolute;
+  right: 0;
+  top: 0;
+  color: var(--c_white);
+  background-color: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 1px 1px;
+  margin: 0;
+  font-size: 12px;
+}
+
+.react-flow__node .title-container .title {
+  pointer-events: none;
+  padding: "1em";
   bottom: 0;
-  left: 0.5em;
   width: 100%;
   color: var(--c_white);
   font-size: var(--font-size-normal);
-  line-height: 2em;
+  line-height: 1.1em;
   font-weight: 300;
   font-style: italic;
 }
