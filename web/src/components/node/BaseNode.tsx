@@ -62,7 +62,7 @@ const Toolbar = memo(({ id }: { id: string }) => {
   const { activeSelect } = useSelect();
   if (activeSelect) return null;
   return (
-    <NodeToolbar position={Position.Bottom} offset={0}>
+    <NodeToolbar position={Position.Top} offset={0}>
       <NodeToolButtons nodeId={id} />
     </NodeToolbar>
   );

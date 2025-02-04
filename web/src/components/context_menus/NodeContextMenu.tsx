@@ -14,13 +14,9 @@ import SearchIcon from "@mui/icons-material/Search";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { NodeData } from "../../stores/NodeData";
 import { useNotificationStore } from "../../stores/NotificationStore";
-//behaviours
-import { useDuplicateNodes } from "../../hooks/useDuplicate";
-import { useCopyPaste } from "../../hooks/handlers/useCopyPaste";
 //utils
 import { useClipboard } from "../../hooks/browser/useClipboard";
 import { devLog } from "../../utils/DevLog";
-import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { useRemoveFromGroup } from "../../hooks/nodes/useRemoveFromGroup";
 //reactflow
 import { Node } from "@xyflow/react";
@@ -35,15 +31,12 @@ const NodeContextMenu: React.FC = () => {
   );
   const nodeId = useContextMenuStore((state) => state.nodeId);
   const { getNode } = useReactFlow();
-  const deleteNode = useNodes((state) => state.deleteNode);
   const node = nodeId !== null ? getNode(nodeId) : null;
   const nodeData = node?.data as NodeData;
   const removeFromGroup = useRemoveFromGroup();
   const metadata = useMetadataStore((state) =>
     state.getMetadata(node?.type ?? "")
   );
-  const { handleCopy } = useCopyPaste();
-  const duplicateNodes = useDuplicateNodes();
   const { writeClipboard } = useClipboard();
   const addNotification = useNotificationStore(
     (state) => state.addNotification
@@ -73,34 +66,6 @@ const NodeContextMenu: React.FC = () => {
     writeClipboard,
     closeContextMenu
   ]);
-
-  //copy
-  const handleCopyClicked = useCallback(
-    (event: React.MouseEvent<HTMLElement>, nodeId: string | null) => {
-      event.stopPropagation();
-      handleCopy(nodeId || "");
-    },
-    [handleCopy]
-  );
-
-  //delete
-  const handleDelete = useCallback(
-    (event?: React.MouseEvent<HTMLElement>) => {
-      event?.preventDefault();
-      event?.stopPropagation();
-      const { nodeId } = useContextMenuStore.getState();
-      if (nodeId !== null) {
-        deleteNode(nodeId);
-        closeContextMenu();
-      }
-    },
-    [closeContextMenu, deleteNode]
-  );
-
-  const handleDuplicateNodes = useCallback(() => {
-    duplicateNodes();
-    closeContextMenu();
-  }, [closeContextMenu, duplicateNodes]);
 
   const handleFindExamples = () => {
     const nodeType = node?.type || "";
@@ -142,20 +107,6 @@ const NodeContextMenu: React.FC = () => {
       )}
 
       <ContextMenuItem
-        onClick={handleDuplicateNodes}
-        label="Duplicate"
-        IconComponent={<QueueIcon />}
-        tooltip="Space+D"
-      />
-      <ContextMenuItem
-        onClick={(event: any) => handleCopyClicked(event, nodeId)}
-        label="Copy"
-        IconComponent={<CopyAllIcon />}
-        tooltip="CTRL+C | Meta+C"
-      />
-
-      <Divider />
-      <ContextMenuItem
         onClick={handleFindExamples}
         label="Show Examples"
         IconComponent={<SearchIcon />}
@@ -166,15 +117,6 @@ const NodeContextMenu: React.FC = () => {
         label="Copy NodeData"
         IconComponent={<DataArrayIcon />}
         tooltip="Copy node metadata to the clipboard"
-      />
-
-      <Divider />
-      <ContextMenuItem
-        onClick={handleDelete}
-        label="Delete"
-        IconComponent={<RemoveCircleIcon />}
-        tooltip="Backspace | Del"
-        addButtonClassName="delete"
       />
     </Menu>
   );
