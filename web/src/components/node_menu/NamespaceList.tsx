@@ -14,9 +14,8 @@ import {
 } from "../../config/constants";
 import NodeInfo from "./NodeInfo";
 import { isEqual } from "lodash";
-import ThemeNodetool from "../themes/ThemeNodetool";
 import useMetadataStore from "../../stores/MetadataStore";
-import { KeyboardDoubleArrowLeft } from "@mui/icons-material";
+import { KeyboardArrowLeft } from "@mui/icons-material";
 
 type NamespaceTree = {
   [key: string]: {
@@ -29,14 +28,13 @@ type NamespaceTree = {
 interface NamespaceListProps {
   namespaceTree: NamespaceTree;
   metadata: NodeMetadata[];
-  inPanel?: boolean;
 }
 
-const namespaceStyles = (theme: any, inPanel: boolean) =>
+const namespaceStyles = (theme: any) =>
   css({
     "&": {
       margin: "1em 0",
-      height: inPanel ? "100%" : "60vh",
+      height: "60vh",
       display: "flex",
       flexDirection: "column",
       marginTop: "20px"
@@ -75,9 +73,9 @@ const namespaceStyles = (theme: any, inPanel: boolean) =>
       maxWidth: "200px",
       width: "fit-content",
       height: "fit-content",
-      maxHeight: inPanel ? "85vh" : "calc(min(750px, 50vh))",
-      paddingRight: inPanel ? ".5em" : "1em",
-      paddingLeft: inPanel ? "0em" : "1em",
+      maxHeight: "calc(min(750px, 50vh))",
+      paddingRight: "1em",
+      paddingLeft: "1em",
       // paddingBottom: "3em",
       marginRight: ".5em",
       boxShadow: "inset 0 0 4px rgba(0, 0, 0, 0.2)",
@@ -100,13 +98,11 @@ const namespaceStyles = (theme: any, inPanel: boolean) =>
       }
     },
     ".node-list": {
-      padding: "0 1em 1em .5em",
-      marginRight: ".5em",
+      // padding: "0 1em 1em .5em",
+      // marginRight: ".5em",
       height: "100%",
-      maxHeight: inPanel ? "85vh" : "750px",
-      width: "fit-content",
-      paddingRight: "1em",
-      minWidth: "220px",
+      maxHeight: "750px",
+      width: "250px",
       flex: "0 1 auto",
       backgroundColor: "transparent",
       transition: "max-width 1s ease-out, width 1s ease-out",
@@ -362,10 +358,17 @@ const namespaceStyles = (theme: any, inPanel: boolean) =>
     },
     ".namespace-panel-container": {
       position: "relative",
-      transition: "margin-left 0.3s ease-in-out",
+      transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
+      width: "200px",
       "&.collapsed": {
-        marginLeft: "-135px"
+        width: 0,
+        opacity: 0,
+        visibility: "hidden",
+        marginRight: "1em"
       }
+    },
+    ".node-info-container": {
+      width: "300px"
     },
     ".toggle-panel-button": {
       position: "absolute",
@@ -395,10 +398,198 @@ const namespaceStyles = (theme: any, inPanel: boolean) =>
     }
   });
 
+const NoSelectionContent = memo(
+  ({
+    searchTerm,
+    selectedPathString,
+    minSearchTermLength
+  }: {
+    searchTerm: string;
+    selectedPathString: string;
+    minSearchTermLength: number;
+  }) => (
+    <div className="no-selection">
+      {searchTerm.length > minSearchTermLength ? (
+        <>
+          <p>
+            {selectedPathString ? (
+              <>
+                Nothing found in this namespace for
+                <strong className="highlighted-text">
+                  {" "}
+                  &quot;{searchTerm}&quot;
+                </strong>
+              </>
+            ) : (
+              <>
+                Nothing found for
+                <strong className="highlighted-text">
+                  {" "}
+                  &quot;{searchTerm}&quot;
+                </strong>
+              </>
+            )}
+          </p>
+          <ul className="no-results">
+            {selectedPathString && (
+              <li>
+                click on <span className="highlighted">highlighted </span>
+                namespaces to find results.
+              </li>
+            )}
+            <li>just start typing to enter a new search term</li>
+            <li>clear search by clicking the clear button</li>
+          </ul>
+        </>
+      ) : (
+        <div className="explanation">
+          <h5>Node Search</h5>
+          <ul>
+            <li>
+              Browse through available nodes by selecting namespaces from the
+              menu on the left
+            </li>
+            <li>
+              Add nodes to your workflow by:
+              <ul>
+                <li>Clicking on the desired node</li>
+                <li>Or dragging it directly onto the canvas</li>
+              </ul>
+            </li>
+          </ul>
+        </div>
+      )}
+      <Typography variant="h4" sx={{ margin: "1em 0 0 0" }}>
+        Let us know what's missing
+      </Typography>
+      <p>
+        We're always looking to improve Nodetool and welcome any suggestions!
+      </p>
+      <ul className="no-results">
+        <li>
+          Join our{" "}
+          <a
+            href="#"
+            onClick={(e) => {
+              e.preventDefault();
+              window.open(
+                "https://discord.gg/WmQTWZRcYE",
+                "_blank",
+                "noopener,noreferrer"
+              );
+            }}
+            style={{ color: "#61dafb" }}
+          >
+            Discord
+          </a>
+        </li>
+        <li>
+          Join the{" "}
+          <a
+            href="#"
+            onClick={(e) => {
+              e.preventDefault();
+              window.open(
+                "https://forum.nodetool.ai",
+                "_blank",
+                "noopener,noreferrer"
+              );
+            }}
+            style={{ color: "#61dafb" }}
+          >
+            Nodetool Forum
+          </a>
+        </li>
+      </ul>
+    </div>
+  )
+);
+
+const InfoBox = memo(
+  ({
+    searchTerm,
+    minSearchTermLength,
+    selectedPathString,
+    currentNodes,
+    searchResults,
+    allSearchMatches,
+    metadata,
+    totalNodes
+  }: {
+    searchTerm: string;
+    minSearchTermLength: number;
+    selectedPathString: string;
+    currentNodes: NodeMetadata[];
+    searchResults: NodeMetadata[];
+    allSearchMatches: NodeMetadata[];
+    metadata: NodeMetadata[];
+    totalNodes: number;
+  }) => (
+    <Box className="info-box">
+      <Tooltip
+        title={
+          <div style={{ color: "#eee", fontSize: "1.25em" }}>
+            {selectedPathString && (
+              <div>Current namespace: {currentNodes?.length} nodes</div>
+            )}
+            {searchTerm.length > minSearchTermLength ? (
+              <>
+                <div>Total search matches: {allSearchMatches.length}</div>
+                <div
+                  style={{
+                    fontSize: "0.8em",
+                    color: "#aaa",
+                    marginTop: "0.5em"
+                  }}
+                ></div>
+              </>
+            ) : (
+              <>
+                <div>Total available: {totalNodes} nodes</div>
+                <div
+                  style={{
+                    fontSize: "0.8em",
+                    color: "#aaa",
+                    marginTop: "0.5em"
+                  }}
+                ></div>
+              </>
+            )}
+          </div>
+        }
+        enterDelay={TOOLTIP_ENTER_DELAY}
+        leaveDelay={TOOLTIP_LEAVE_DELAY}
+        enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
+        placement="bottom"
+      >
+        <Typography className="result-info">
+          {searchTerm.length > minSearchTermLength ? (
+            <>
+              <span>
+                {searchTerm.length > minSearchTermLength
+                  ? searchResults.length
+                  : currentNodes?.length}
+              </span>{" "}
+              /{" "}
+              <span>
+                {searchTerm.length > minSearchTermLength
+                  ? allSearchMatches.length
+                  : metadata.length}
+              </span>
+            </>
+          ) : (
+            <span>{selectedPathString ? currentNodes.length : totalNodes}</span>
+          )}
+          <span className="result-label">nodes</span>
+        </Typography>
+      </Tooltip>
+    </Box>
+  )
+);
+
 const NamespaceList: React.FC<NamespaceListProps> = ({
   namespaceTree,
-  metadata,
-  inPanel = false
+  metadata
 }) => {
   const {
     searchTerm,
@@ -406,7 +597,6 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
     searchResults,
     allSearchMatches,
     hoveredNode,
-    setHoveredNode,
     getCurrentNodes
   } = useNodeMenuStore((state) => ({
     searchTerm: state.searchTerm,
@@ -415,7 +605,6 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
     searchResults: state.searchResults,
     allSearchMatches: state.allSearchMatches,
     hoveredNode: state.hoveredNode,
-    setHoveredNode: state.setHoveredNode,
     selectedInputType: state.selectedInputType,
     selectedOutputType: state.selectedOutputType,
     getCurrentNodes: state.getCurrentNodes
@@ -425,10 +614,6 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
     () => selectedPath.join("."),
     [selectedPath]
   );
-
-  const closeNodeInfo = useCallback(() => {
-    setHoveredNode(null);
-  }, [setHoveredNode]);
 
   const minSearchTermLength =
     searchTerm.includes("+") ||
@@ -459,16 +644,6 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
     return nodes;
   }, [metadata, getCurrentNodes]);
 
-  const renderNodes = useMemo(
-    () => <RenderNodes nodes={currentNodes} showTooltips={inPanel} />,
-    [currentNodes, inPanel]
-  );
-
-  const memoizedStyles = useMemo(
-    () => namespaceStyles(ThemeNodetool, inPanel),
-    [inPanel]
-  );
-
   const totalNodes = useMetadataStore((state) => state.getAllMetadata()).length;
 
   const [isPanelCollapsed, setIsPanelCollapsed] = React.useState(false);
@@ -479,24 +654,20 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
 
   return (
     <div
-      css={memoizedStyles}
+      css={namespaceStyles}
       className={
         searchTerm.length > minSearchTermLength && searchResults.length > 1
           ? "has-search-results"
           : "no-search-results"
       }
     >
-      {!inPanel && (
-        <button
-          className={`toggle-panel-button ${
-            isPanelCollapsed ? "collapsed" : ""
-          }`}
-          onClick={togglePanel}
-          title={isPanelCollapsed ? "Show namespaces" : "Hide namespaces"}
-        >
-          <KeyboardDoubleArrowLeft />
-        </button>
-      )}
+      <button
+        className={`toggle-panel-button ${isPanelCollapsed ? "collapsed" : ""}`}
+        onClick={togglePanel}
+        title={isPanelCollapsed ? "Show namespaces" : "Hide namespaces"}
+      >
+        <KeyboardArrowLeft />
+      </button>
       <Box className="list-box">
         <div
           className={`namespace-panel-container ${
@@ -514,173 +685,31 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
         </div>
         {currentNodes && currentNodes.length > 0 ? (
           <>
-            <List className="node-list">{renderNodes}</List>
-            {hoveredNode && !inPanel && (
-              <NodeInfo
-                nodeMetadata={hoveredNode}
-                onClose={closeNodeInfo}
-                inPanel={inPanel}
-              />
-            )}
-          </>
-        ) : searchTerm.length > minSearchTermLength ? (
-          <div className="no-selection">
-            <p>
-              {selectedPathString ? (
-                <>
-                  Nothing found in this namespace for
-                  <strong className="highlighted-text">
-                    {" "}
-                    &quot;{searchTerm}&quot;
-                  </strong>
-                </>
-              ) : (
-                <>
-                  Nothing found for
-                  <strong className="highlighted-text">
-                    {" "}
-                    &quot;{searchTerm}&quot;
-                  </strong>
-                </>
-              )}
-            </p>
-            <ul className="no-results">
-              {selectedPathString && (
-                <li>
-                  click on <span className="highlighted">highlighted </span>
-                  namespaces to find results.
-                </li>
-              )}
-              <li>just start typing to enter a new search term</li>
-              <li>clear search by clicking the clear button</li>
-            </ul>
-            <Typography variant="h4" sx={{ margin: "1em 0 0 0" }}>
-              Let us know what's missing
-            </Typography>
-            <p>
-              We're always looking to improve Nodetool and welcome any
-              suggestions!
-            </p>
-            <ul className="no-results">
-              <li>
-                Join our{" "}
-                <a
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    window.open(
-                      "https://discord.gg/WmQTWZRcYE",
-                      "_blank",
-                      "noopener,noreferrer"
-                    );
-                  }}
-                  style={{ color: "#61dafb" }}
-                >
-                  Discord
-                </a>
-              </li>
-              <li>
-                Join the{" "}
-                <a
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    window.open(
-                      "https://forum.nodetool.ai",
-                      "_blank",
-                      "noopener,noreferrer"
-                    );
-                  }}
-                  style={{ color: "#61dafb" }}
-                >
-                  Nodetool Forum
-                </a>
-              </li>
-            </ul>
-          </div>
-        ) : (
-          <div className="no-selection">
-            <div className="explanation">
-              <h5>Node Search</h5>
-              <ul>
-                <li>
-                  Browse through available nodes by selecting namespaces from
-                  the menu on the left
-                </li>
-                <li>
-                  Add nodes to your workflow by:
-                  <ul>
-                    <li>Clicking on the desired node</li>
-                    <li>Or dragging it directly onto the canvas</li>
-                  </ul>
-                </li>
-              </ul>
+            <List className="node-list">
+              <RenderNodes nodes={currentNodes} />
+            </List>
+            <div className="node-info-container">
+              {hoveredNode && <NodeInfo nodeMetadata={hoveredNode} />}
             </div>
-          </div>
+          </>
+        ) : (
+          <NoSelectionContent
+            searchTerm={searchTerm}
+            selectedPathString={selectedPathString}
+            minSearchTermLength={minSearchTermLength}
+          />
         )}
       </Box>
-      <Box className="info-box">
-        <Tooltip
-          title={
-            <div style={{ color: "#eee", fontSize: "1.25em" }}>
-              {selectedPathString && (
-                <div>Current namespace: {currentNodes?.length} nodes</div>
-              )}
-              {searchTerm.length > minSearchTermLength ? (
-                <>
-                  <div>Total search matches: {allSearchMatches.length}</div>
-                  <div
-                    style={{
-                      fontSize: "0.8em",
-                      color: "#aaa",
-                      marginTop: "0.5em"
-                    }}
-                  ></div>
-                </>
-              ) : (
-                <>
-                  <div>Total available: {totalNodes} nodes</div>
-                  <div
-                    style={{
-                      fontSize: "0.8em",
-                      color: "#aaa",
-                      marginTop: "0.5em"
-                    }}
-                  ></div>
-                </>
-              )}
-            </div>
-          }
-          enterDelay={TOOLTIP_ENTER_DELAY}
-          leaveDelay={TOOLTIP_LEAVE_DELAY}
-          enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
-          placement="bottom"
-        >
-          <Typography className="result-info">
-            {searchTerm.length > minSearchTermLength ? (
-              <>
-                <span>
-                  {searchTerm.length > minSearchTermLength
-                    ? searchResults.length
-                    : currentNodes?.length}
-                </span>{" "}
-                /{" "}
-                <span>
-                  {searchTerm.length > minSearchTermLength
-                    ? allSearchMatches.length
-                    : metadata.length}
-                </span>
-              </>
-            ) : (
-              // no search term
-              <span>
-                {selectedPathString ? currentNodes.length : totalNodes}
-              </span>
-            )}
-            <span className="result-label">nodes</span>
-          </Typography>
-        </Tooltip>
-      </Box>
+      <InfoBox
+        searchTerm={searchTerm}
+        minSearchTermLength={minSearchTermLength}
+        selectedPathString={selectedPathString}
+        currentNodes={currentNodes}
+        searchResults={searchResults}
+        allSearchMatches={allSearchMatches}
+        metadata={metadata}
+        totalNodes={totalNodes}
+      />
     </div>
   );
 };

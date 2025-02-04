@@ -1,77 +1,30 @@
 import { memo, useCallback, useMemo, forwardRef } from "react";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
-import ThemeNodetool from "../themes/ThemeNodetool";
 import { IconForType } from "../../config/data_types";
 import { Typography, Tooltip } from "@mui/material";
-import { InfoOutlined } from "@mui/icons-material";
 import { highlightText as highlightTextUtil } from "../../utils/highlightText";
 
 interface NodeItemProps {
   node: NodeMetadata;
-  isHovered: boolean;
-  onMouseEnter: () => void;
-  onMouseLeave: () => void;
-  onInfoClick: () => void;
   onDragStart: (event: React.DragEvent<HTMLDivElement>) => void;
   onClick: () => void;
-  isFocused: boolean;
 }
 
 const NodeItem = memo(
   forwardRef<HTMLDivElement, NodeItemProps>(
-    (
-      {
-        node,
-        isHovered,
-        isFocused,
-        onMouseEnter,
-        onMouseLeave,
-        onDragStart,
-        onClick
-      },
-      ref
-    ) => {
+    ({ node, onDragStart, onClick }) => {
       const outputType =
         node.outputs.length > 0 ? node.outputs[0].type.type : "";
       const searchTerm = useNodeMenuStore((state) => state.searchTerm);
-      // const selectedPath = useNodeMenuStore((state) => state.selectedPath);
-
-      // const getMatchReason = () => {
-      //   if (searchTerm) {
-      //     if (!node.searchInfo) {
-      //       return "Warning: No search info available";
-      //     }
-
-      //     const { score, matches } = node.searchInfo;
-      //     const matchDetails =
-      //       matches?.map(
-      //         (match) =>
-      //           `${match.key}: "${match.value.substring(
-      //             match.indices[0][0],
-      //             match.indices[0][1]
-      //           )}"`
-      //       ) || [];
-
-      //     return (
-      //       <div style={{ fontSize: "1.1em", padding: "4px" }}>
-      //         <div>Search: "{searchTerm}"</div>
-      //         <div style={{ color: "#aaa", marginTop: "4px" }}>
-      //           Score: {score?.toFixed(3)}
-      //         </div>
-      //         {matchDetails.length > 0 && (
-      //           <div style={{ color: "#aaa", marginTop: "4px" }}>
-      //             Matches: {matchDetails.join(", ")}
-      //           </div>
-      //         )}
-      //       </div>
-      //     );
-      //   }
-      //   if (selectedPath.length > 0) {
-      //     return `In namespace: ${selectedPath.join(".")}`;
-      //   }
-      //   return "All nodes";
-      // };
+      const { hoveredNode, setHoveredNode } = useNodeMenuStore((state) => ({
+        hoveredNode: state.hoveredNode,
+        setHoveredNode: state.setHoveredNode
+      }));
+      const isHovered = hoveredNode?.node_type === node.node_type;
+      const onMouseEnter = useCallback(() => {
+        setHoveredNode(node);
+      }, [node, setHoveredNode]);
 
       const highlightNodeTitle = useCallback(
         (title: string): string => {
@@ -81,28 +34,14 @@ const NodeItem = memo(
         [searchTerm, node.searchInfo]
       );
 
-      const infoStyle = useMemo(
-        () => ({
-          color: isHovered
-            ? ThemeNodetool.palette.c_hl1
-            : ThemeNodetool.palette.c_gray3
-        }),
-        [isHovered]
-      );
-
       return (
-        // <Tooltip title={getMatchReason()} placement="left">
         <div
-          className={`node ${isHovered ? "hovered" : ""} ${
-            isFocused ? "focused" : ""
-          }`}
+          className={`node ${isHovered ? "hovered" : ""}`}
           draggable
           onMouseEnter={onMouseEnter}
-          onMouseLeave={onMouseLeave}
           onDragStart={(e) => {
             onDragStart(e);
           }}
-          ref={ref}
         >
           <IconForType
             iconName={outputType}
