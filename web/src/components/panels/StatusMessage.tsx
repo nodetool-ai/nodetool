@@ -4,7 +4,7 @@ import { css } from "@emotion/react";
 import { memo } from "react";
 import useWorkflowRunner from "../../stores/WorkflowRunner";
 
-const StatusMessage = memo(() => {
+const StatusMessage = memo(function StatusMessage() {
   const { statusMessage, isWorkflowRunning } = useWorkflowRunner((state) => ({
     statusMessage: state.statusMessage,
     isWorkflowRunning: state.state === "running"

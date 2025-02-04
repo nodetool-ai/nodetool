@@ -87,16 +87,16 @@ const styles = (theme: any) =>
     }
   });
 
-const VerticalToolbar = memo(
-  ({
-    activeView,
-    onViewChange,
-    handlePanelToggle
-  }: {
-    activeView: string;
-    onViewChange: (view: LeftPanelView) => void;
-    handlePanelToggle: () => void;
-  }) => (
+const VerticalToolbar = memo(function VerticalToolbar({
+  activeView,
+  onViewChange,
+  handlePanelToggle
+}: {
+  activeView: string;
+  onViewChange: (view: LeftPanelView) => void;
+  handlePanelToggle: () => void;
+}) {
+  return (
     <div className="vertical-toolbar">
       <Tooltip title="Workflows" placement="right">
         <IconButton
@@ -158,36 +158,45 @@ const VerticalToolbar = memo(
         </IconButton>
       </Tooltip>
     </div>
-  )
-);
+  );
+});
 
-const PanelContent = memo(({ activeView }: { activeView: string }) => (
-  <>
-    {activeView === "chat" && <HelpChat />}
-    {activeView === "assets" && (
-      <Box className="assets-container" sx={{ width: "100%", height: "100%" }}>
-        <AssetGrid maxItemSize={5} />
-      </Box>
-    )}
-    {activeView === "workflowGrid" && (
-      <Box sx={{ width: "100%", height: "100%", overflow: "auto" }}>
-        <WorkflowList />
-      </Box>
-    )}
-    {activeView === "collections" && (
-      <Box
-        sx={{
-          width: "100%",
-          height: "100%",
-          overflow: "hidden auto",
-          padding: 5
-        }}
-      >
-        <CollectionList />
-      </Box>
-    )}
-  </>
-));
+const PanelContent = memo(function PanelContent({
+  activeView
+}: {
+  activeView: string;
+}) {
+  return (
+    <>
+      {activeView === "chat" && <HelpChat />}
+      {activeView === "assets" && (
+        <Box
+          className="assets-container"
+          sx={{ width: "100%", height: "100%" }}
+        >
+          <AssetGrid maxItemSize={5} />
+        </Box>
+      )}
+      {activeView === "workflowGrid" && (
+        <Box sx={{ width: "100%", height: "100%", overflow: "auto" }}>
+          <WorkflowList />
+        </Box>
+      )}
+      {activeView === "collections" && (
+        <Box
+          sx={{
+            width: "100%",
+            height: "100%",
+            overflow: "hidden auto",
+            padding: 5
+          }}
+        >
+          <CollectionList />
+        </Box>
+      )}
+    </>
+  );
+});
 
 const PanelLeft: React.FC = () => {
   const {

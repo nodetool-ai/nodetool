@@ -13,8 +13,6 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 
-interface HuggingFaceModelSearchProps {}
-
 const searchModels = async (query: string) => {
   if (query.length < 2) {
     return [];
@@ -67,7 +65,7 @@ const styles = (theme: any) =>
     }
   });
 
-const HuggingFaceModelSearch: React.FC<HuggingFaceModelSearchProps> = () => {
+const HuggingFaceModelSearch: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [selectedModel, setSelectedModel] = useState<string | null>(null);
   const { startDownload, openDialog } = useModelDownloadStore();

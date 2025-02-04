@@ -402,15 +402,14 @@ const ChatView = ({
       </div>
     );
   }, []);
+  const [expandedThoughts, setExpandedThoughts] = useState<{
+    [key: string]: boolean;
+  }>({});
+  const [loadingThoughts, setLoadingThoughts] = useState<{
+    [key: string]: boolean;
+  }>({});
 
   const MessageView = useCallback((msg: Message) => {
-    const [expandedThoughts, setExpandedThoughts] = useState<{
-      [key: string]: boolean;
-    }>({});
-    const [loadingThoughts, setLoadingThoughts] = useState<{
-      [key: string]: boolean;
-    }>({});
-
     let messageClass = "chat-message";
     if (msg.role === "user") {
       messageClass += " user";

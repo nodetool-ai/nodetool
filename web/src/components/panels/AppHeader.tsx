@@ -143,7 +143,7 @@ const styles = (theme: any) =>
     }
   });
 
-const BackToEditorButton = memo(() => {
+const BackToEditorButton = memo(function BackToEditorButton() {
   const { currentWorkflowId } = useWorkflowManager((state) => ({
     currentWorkflowId: state.currentWorkflowId
   }));
@@ -171,15 +171,11 @@ const BackToEditorButton = memo(() => {
   );
 });
 
-interface AppHeaderProps {}
-
-const AppHeader: React.FC<AppHeaderProps> = React.memo(() => {
+const AppHeader: React.FC = React.memo(function AppHeader() {
   const navigate = useNavigate();
   const path = useLocation().pathname;
 
   const { helpOpen, handleCloseHelp, handleOpenHelp } = useAppHeaderStore();
-
-  const { handlePanelToggle } = useResizePanel("left");
 
   const NavigationButtons = useMemo(
     () => (

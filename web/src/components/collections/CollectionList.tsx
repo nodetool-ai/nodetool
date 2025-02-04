@@ -102,7 +102,7 @@ const CollectionList = () => {
         event.preventDefault();
         setDragOverCollection(null);
         const files = Array.from(event.dataTransfer.files).map((file) => ({
-          // @ts-ignore
+          // @ts-expect-error
           path: file.path,
           mime_type: file.type
         }));
@@ -444,7 +444,8 @@ const CollectionList = () => {
       <Dialog open={Boolean(deleteTarget)} onClose={handleCancelDelete}>
         <DialogTitle>Confirm Deletion</DialogTitle>
         <DialogContent>
-          Are you sure you want to delete the collection "{deleteTarget}"?
+          Are you sure you want to delete the collection &quot;{deleteTarget}
+          &quot;?
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCancelDelete}>Cancel</Button>

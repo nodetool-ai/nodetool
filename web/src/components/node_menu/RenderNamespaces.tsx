@@ -54,14 +54,7 @@ const RenderNamespaces: React.FC<RenderNamespacesProps> = ({
           searchResultCount
         };
       }),
-    [
-      tree,
-      currentPath,
-      highlightedNamespaces,
-      selectedPath,
-      searchResults,
-      allSearchMatches
-    ]
+    [tree, currentPath, highlightedNamespaces, selectedPath, allSearchMatches]
   );
 
   return (

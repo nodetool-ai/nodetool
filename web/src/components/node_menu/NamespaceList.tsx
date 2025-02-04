@@ -398,16 +398,16 @@ const namespaceStyles = (theme: any) =>
     }
   });
 
-const NoSelectionContent = memo(
-  ({
-    searchTerm,
-    selectedPathString,
-    minSearchTermLength
-  }: {
-    searchTerm: string;
-    selectedPathString: string;
-    minSearchTermLength: number;
-  }) => (
+const NoSelectionContent = memo(function NoSelectionContent({
+  searchTerm,
+  selectedPathString,
+  minSearchTermLength
+}: {
+  searchTerm: string;
+  selectedPathString: string;
+  minSearchTermLength: number;
+}) {
+  return (
     <div className="no-selection">
       {searchTerm.length > minSearchTermLength ? (
         <>
@@ -502,29 +502,29 @@ const NoSelectionContent = memo(
         </li>
       </ul>
     </div>
-  )
-);
+  );
+});
 
-const InfoBox = memo(
-  ({
-    searchTerm,
-    minSearchTermLength,
-    selectedPathString,
-    currentNodes,
-    searchResults,
-    allSearchMatches,
-    metadata,
-    totalNodes
-  }: {
-    searchTerm: string;
-    minSearchTermLength: number;
-    selectedPathString: string;
-    currentNodes: NodeMetadata[];
-    searchResults: NodeMetadata[];
-    allSearchMatches: NodeMetadata[];
-    metadata: NodeMetadata[];
-    totalNodes: number;
-  }) => (
+const InfoBox = memo(function InfoBox({
+  searchTerm,
+  minSearchTermLength,
+  selectedPathString,
+  currentNodes,
+  searchResults,
+  allSearchMatches,
+  metadata,
+  totalNodes
+}: {
+  searchTerm: string;
+  minSearchTermLength: number;
+  selectedPathString: string;
+  currentNodes: NodeMetadata[];
+  searchResults: NodeMetadata[];
+  allSearchMatches: NodeMetadata[];
+  metadata: NodeMetadata[];
+  totalNodes: number;
+}) {
+  return (
     <Box className="info-box">
       <Tooltip
         title={
@@ -584,8 +584,8 @@ const InfoBox = memo(
         </Typography>
       </Tooltip>
     </Box>
-  )
-);
+  );
+});
 
 const NamespaceList: React.FC<NamespaceListProps> = ({
   namespaceTree,

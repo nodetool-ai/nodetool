@@ -49,21 +49,17 @@ export const useFileStore = create<FileStore>((set, get) => ({
   isLoadingTree: false,
 
   listFiles: async (path) => {
-    try {
-      const { data, error } = await client.GET("/api/files/list", {
-        params: {
-          query: { path }
-        }
-      });
-
-      if (error) {
-        throw createErrorMessage(error, "Failed to list files");
+    const { data, error } = await client.GET("/api/files/list", {
+      params: {
+        query: { path }
       }
+    });
 
-      return data;
-    } catch (error) {
-      throw error;
+    if (error) {
+      throw createErrorMessage(error, "Failed to list files");
     }
+
+    return data;
   },
 
   fetchFileTree: async (path = "~") => {

@@ -45,7 +45,7 @@ export const useSurroundWithGroup = () => {
         { x: Infinity, y: Infinity, width: -Infinity, height: -Infinity }
       );
     };
-  }, [findNode]);
+  }, []);
 
   const surroundWithGroup = useCallback(
     ({ selectedNodes }: { selectedNodes: Node<NodeData>[] }) => {
@@ -81,16 +81,7 @@ export const useSurroundWithGroup = () => {
       });
       resume();
     },
-    [
-      history,
-      getMetadata,
-      getBounds,
-      createNode,
-      addNode,
-      findNode,
-      addNotification,
-      updateNode
-    ]
+    [getMetadata, getBounds, createNode, addNode, updateNode, pause, resume]
   );
 
   return surroundWithGroup;

@@ -3,8 +3,8 @@ import { Viewport, useOnViewportChange } from "@xyflow/react";
 import ThemeNodes from "../themes/ThemeNodes";
 
 const AxisMarker: React.FC = () => {
-  let horizontalLineRef = React.useRef<HTMLDivElement>(null);
-  let verticalLineRef = React.useRef<HTMLDivElement>(null);
+  const horizontalLineRef = React.useRef<HTMLDivElement>(null);
+  const verticalLineRef = React.useRef<HTMLDivElement>(null);
 
   useOnViewportChange({
     onChange: (viewport: Viewport) => {

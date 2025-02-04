@@ -357,11 +357,11 @@ const RemoteSettings = () => {
                 <br />
                 2. Navigate to Security &gt; 2-Step Verification
                 <br />
-                3. Scroll to the bottom and click on "App passwords"
+                3. Scroll to the bottom and click on &quot;App passwords&quot;
                 <br />
-                4. Select "Mail" and your device
+                4. Select &quot;Mail&quot; and your device
                 <br />
-                5. Click "Generate" and use the 16-character password
+                5. Click &quot;Generate&quot; and use the 16-character password
                 <br />
                 <a
                   href="https://myaccount.google.com/security"
@@ -386,8 +386,8 @@ const RemoteSettings = () => {
             />
             <div className="text-and-button">
               <Typography className="description">
-                Enter your Google Gemini API key to access Google's latest AI
-                models.
+                Enter your Google Gemini API key to access Google&apos;s latest
+                AI models.
                 <br />
                 <a
                   href="https://makersuite.google.com/app/apikey"

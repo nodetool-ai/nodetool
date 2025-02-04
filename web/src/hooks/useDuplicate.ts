@@ -117,5 +117,14 @@ export const useDuplicateNodes = (vertical: boolean = false) => {
 
     setNodes([...updatedNodes, ...newNodes]);
     setEdges([...edges, ...newEdges]);
-  }, [vertical]);
+  }, [
+    vertical,
+    generateNodeIds,
+    getSelectedNodes,
+    reactFlow.getNodesBounds,
+    setNodes,
+    setEdges,
+    edges,
+    nodes
+  ]);
 };

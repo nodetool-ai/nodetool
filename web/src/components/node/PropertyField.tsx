@@ -81,7 +81,7 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
           property.description || undefined
         );
     },
-    [id, property.name, property.type.type]
+    [id, property.description, property.name, property.type]
   );
 
   return (

@@ -250,7 +250,14 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
         updateNodeProperties(id, { [property.name]: value });
       }
     },
-    [id, property.name, isDynamicProperty, findNode, updateNodeProperties]
+    [
+      isDynamicProperty,
+      findNode,
+      id,
+      property.name,
+      updateNodeData,
+      updateNodeProperties
+    ]
   );
 
   const propertyProps = {
@@ -281,7 +288,7 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
         isDynamicProperty
       );
     },
-    [id, openContextMenu]
+    [id, isDynamicProperty, openContextMenu]
   );
 
   // Reset property to default value

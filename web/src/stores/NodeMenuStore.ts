@@ -157,7 +157,7 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
         { name: "use_cases", weight: 0.9 }
       ],
       tokenize: true,
-      tokenSeparator: /[\s\.,\-_]+/,
+      tokenSeparator: /[\s.,\-_]+/,
       findAllMatches: true,
       ignoreLocation: true,
       includeMatches: true,

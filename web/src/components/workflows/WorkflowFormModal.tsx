@@ -32,7 +32,7 @@ const WorkflowFormModal = ({
       dismissable: true
     });
     onClose();
-  }, [update, onClose, workflow]);
+  }, [update, onClose, workflow, addNotification]);
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>

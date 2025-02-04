@@ -56,7 +56,7 @@ const useConnectionStore = create<ConnectionStore>((set) => ({
     metadata: NodeMetadata
   ) => {
     if (handleType === "source") {
-      let connectType = metadata.outputs.find(
+      const connectType = metadata.outputs.find(
         (output: OutputSlot) => output.name === handleId
       )?.type as TypeMetadata;
       set({

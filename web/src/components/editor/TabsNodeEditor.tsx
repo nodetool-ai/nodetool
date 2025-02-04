@@ -314,26 +314,32 @@ const TabsNodeEditor = () => {
     }
   }, []);
 
-  const handleWheel = useCallback((e: WheelEvent<HTMLDivElement>) => {
-    const tabsContainer = e.currentTarget;
-    tabsContainer.scrollLeft += e.deltaY;
-    e.preventDefault();
-    checkScrollability();
-  }, []);
+  const handleWheel = useCallback(
+    (e: WheelEvent<HTMLDivElement>) => {
+      const tabsContainer = e.currentTarget;
+      tabsContainer.scrollLeft += e.deltaY;
+      e.preventDefault();
+      checkScrollability();
+    },
+    [checkScrollability]
+  );
 
-  const handleScroll = useCallback((direction: "left" | "right") => {
-    if (tabsRef.current) {
-      const scrollAmount = 180;
-      const newScrollLeft =
-        tabsRef.current.scrollLeft +
-        (direction === "left" ? -scrollAmount : scrollAmount);
-      tabsRef.current.scrollTo({
-        left: newScrollLeft,
-        behavior: "smooth"
-      });
-      setTimeout(checkScrollability, 300);
-    }
-  }, []);
+  const handleScroll = useCallback(
+    (direction: "left" | "right") => {
+      if (tabsRef.current) {
+        const scrollAmount = 180;
+        const newScrollLeft =
+          tabsRef.current.scrollLeft +
+          (direction === "left" ? -scrollAmount : scrollAmount);
+        tabsRef.current.scrollTo({
+          left: newScrollLeft,
+          behavior: "smooth"
+        });
+        setTimeout(checkScrollability, 300);
+      }
+    },
+    [checkScrollability]
+  );
 
   const handleNavigate = useCallback(
     (id: string) => navigate(`/editor/${id}`),
@@ -351,7 +357,7 @@ const TabsNodeEditor = () => {
     checkScrollability();
     window.addEventListener("resize", checkScrollability);
     return () => window.removeEventListener("resize", checkScrollability);
-  }, [listWorkflows()]);
+  }, [listWorkflows, checkScrollability]);
 
   useEffect(() => {
     const tabsElement = tabsRef.current;
@@ -360,7 +366,7 @@ const TabsNodeEditor = () => {
       return () =>
         tabsElement.removeEventListener("scroll", checkScrollability);
     }
-  }, []);
+  }, [checkScrollability]);
 
   return (
     <div css={styles}>

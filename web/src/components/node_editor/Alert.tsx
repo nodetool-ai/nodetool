@@ -73,7 +73,6 @@ const Alert: React.FC = () => {
     Notification[]
   >([]);
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [show, setShow] = useState<Record<string, boolean>>({});
 
   useEffect(() => {

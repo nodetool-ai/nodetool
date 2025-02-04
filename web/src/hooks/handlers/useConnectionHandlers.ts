@@ -94,7 +94,7 @@ export default function useConnectionHandlers() {
       devLog("Connection Created", connection);
       onConnect(connection);
     },
-    [connectionCreated]
+    [connectionCreated, onConnect]
   );
 
   /* CONNECT END */
@@ -247,6 +247,7 @@ export default function useConnectionHandlers() {
       endConnecting,
       findNode,
       getMetadata,
+      edges,
       handleOnConnect,
       addNotification,
       openContextMenu

@@ -30,9 +30,25 @@ export function useFileDrop(props: FileDropProps): {
     (event: DragEvent) => {
       event.preventDefault();
       event.stopPropagation();
+
+      // Handle text data transfer
+      if (event.dataTransfer.items && !event.dataTransfer.files.length) {
+        const items = event.dataTransfer.items;
+        if (items && items.length > 0) {
+          Array.from(items).forEach((item) => {
+            if (item.kind === "string") {
+              item.getAsString((s) => {
+                props.onChange?.(s);
+              });
+            }
+          });
+        }
+        return;
+      }
+
+      // Handle file transfer
       if (event.dataTransfer.files[0]) {
         const file = event.dataTransfer.files[0];
-        const items = event.dataTransfer.items;
         const isDocument =
           file.type === "application/pdf" ||
           file.type === "application/msword" ||
@@ -74,32 +90,23 @@ export function useFileDrop(props: FileDropProps): {
             content: `Invalid file type. Please drop a ${props.type} file.`
           });
         }
-        if (items && items.length > 0) {
-          Array.from(items).forEach((item) => {
-            item.getAsString((s) => {
-              props.onChange && props.onChange(s);
-            });
+      } else {
+        const assetJSON = event.dataTransfer.getData("asset");
+        const asset = assetJSON ? (JSON.parse(assetJSON) as Asset) : null;
+        if (asset?.content_type?.startsWith(`${props.type}/`)) {
+          if (props.onChangeAsset) {
+            props.onChangeAsset(asset);
+          }
+          if (props.onChange) {
+            props.onChange(asset.get_url as string);
+          }
+        } else {
+          notificationStore.addNotification({
+            type: "error",
+            alert: true,
+            content: `Invalid file type. Please drop a ${props.type} file.`
           });
         }
-
-        return;
-      }
-
-      const assetJSON = event.dataTransfer.getData("asset");
-      const asset = assetJSON ? (JSON.parse(assetJSON) as Asset) : null;
-      if (asset?.content_type?.startsWith(`${props.type}/`)) {
-        if (props.onChangeAsset) {
-          props.onChangeAsset(asset);
-        }
-        if (props.onChange) {
-          props.onChange(asset.get_url as string);
-        }
-      } else {
-        notificationStore.addNotification({
-          type: "error",
-          alert: true,
-          content: `Invalid file type. Please drop a ${props.type} file.`
-        });
       }
     },
     [props, uploadAsset, notificationStore]

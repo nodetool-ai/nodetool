@@ -38,7 +38,7 @@ const styles = (theme: any) =>
     }
   });
 
-const WorkflowCommands = memo(() => {
+const WorkflowCommands = memo(function WorkflowCommands() {
   const executeAndClose = useCommandMenu((state) => state.executeAndClose);
   const {
     nodes,
@@ -123,7 +123,10 @@ interface HistoryActions {
   redo: () => void;
 }
 
-const UndoCommands = memo(({ undo, redo }: HistoryActions) => {
+const UndoCommands = memo(function UndoCommands({
+  undo,
+  redo
+}: HistoryActions) {
   const executeAndClose = useCommandMenu((state) => state.executeAndClose);
 
   return (
@@ -134,7 +137,7 @@ const UndoCommands = memo(({ undo, redo }: HistoryActions) => {
   );
 });
 
-const LayoutCommands = memo(() => {
+const LayoutCommands = memo(function LayoutCommands() {
   const executeAndClose = useCommandMenu((state) => state.executeAndClose);
   const alignNodes = useAlignNodes();
 
@@ -158,7 +161,7 @@ const LayoutCommands = memo(() => {
   );
 });
 
-const NodeCommands = memo(() => {
+const NodeCommands = memo(function NodeCommands() {
   const executeAndClose = useCommandMenu((state) => state.executeAndClose);
   const reactFlowWrapper = useCommandMenu((state) => state.reactFlowWrapper);
   // const [hoveredItem, setHoveredItem] = useState<string | null>(null);
@@ -190,6 +193,7 @@ const NodeCommands = memo(() => {
         <Command.Group key={idx} heading={category}>
           {metadata.map((meta, idx) => (
             <Tooltip
+              key={idx}
               title={<NodeInfo nodeMetadata={meta} />}
               placement="right"
               enterDelay={0}
@@ -215,7 +219,7 @@ const NodeCommands = memo(() => {
   );
 });
 
-const ExampleCommands = memo(() => {
+const ExampleCommands = memo(function ExampleCommands() {
   const executeAndClose = useCommandMenu((state) => state.executeAndClose);
   const navigate = useNavigate();
   const { loadExamples, copy } = useWorkflowManager((state) => ({
@@ -234,7 +238,7 @@ const ExampleCommands = memo(() => {
         navigate("/editor/" + workflow.id);
       });
     },
-    [navigate]
+    [copy, navigate]
   );
 
   if (!examples) return null;

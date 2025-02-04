@@ -312,7 +312,7 @@ const ExampleGrid = () => {
   const filteredWorkflows = useMemo(() => {
     if (!data?.workflows) return [];
 
-    let workflows =
+    const workflows =
       !selectedTag || !groupedWorkflows[selectedTag]
         ? data.workflows
         : groupedWorkflows[selectedTag];
@@ -538,7 +538,7 @@ const ExampleGrid = () => {
               Help us improve the examples
             </Typography>
             <Typography variant="body1" sx={{ marginBottom: "1em" }}>
-              Let us know what you're missing!
+              Let us know what you&apos;re missing!
             </Typography>
             <ul
               style={{

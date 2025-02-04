@@ -175,6 +175,7 @@ export const isConnectable = (
       } else {
         return false;
       }
+      break;
     default:
       // console.log(source.type, target.type, source.type === target.type);
       return source.type === target.type;

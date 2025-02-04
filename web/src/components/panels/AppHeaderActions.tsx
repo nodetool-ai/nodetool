@@ -149,7 +149,7 @@ const useGlobalHotkeys = (callback: () => void) => {
 };
 
 // Create individual button components
-const CreateWorkflowButton = memo(() => {
+const CreateWorkflowButton = memo(function CreateWorkflowButton() {
   const createNewWorkflow = useWorkflowManager((state) => state.createNew);
   const navigate = useNavigate();
 
@@ -167,7 +167,7 @@ const CreateWorkflowButton = memo(() => {
   );
 });
 
-const NodeMenuButton = memo(() => {
+const NodeMenuButton = memo(function NodeMenuButton() {
   const { openNodeMenu, closeNodeMenu, isMenuOpen } = useNodeMenuStore(
     (state) => ({
       openNodeMenu: state.openNodeMenu,
@@ -202,7 +202,7 @@ const NodeMenuButton = memo(() => {
   );
 });
 
-const SaveWorkflowButton = memo(() => {
+const SaveWorkflowButton = memo(function SaveWorkflowButton() {
   const { saveWorkflow, getCurrentWorkflow } = useWorkflowManager((state) => ({
     saveWorkflow: state.saveWorkflow,
     getCurrentWorkflow: state.getCurrentWorkflow
@@ -235,18 +235,24 @@ const SaveWorkflowButton = memo(() => {
   );
 });
 
-const AutoLayoutButton = memo(({ autoLayout }: { autoLayout: () => void }) => (
-  <Tooltip
-    title="Arranges all nodes or selected nodes"
-    enterDelay={TOOLTIP_ENTER_DELAY}
-  >
-    <Button className="action-button" onClick={autoLayout} tabIndex={-1}>
-      <LayoutIcon />
-    </Button>
-  </Tooltip>
-));
+const AutoLayoutButton = memo(function AutoLayoutButton({
+  autoLayout
+}: {
+  autoLayout: () => void;
+}) {
+  return (
+    <Tooltip
+      title="Arranges all nodes or selected nodes"
+      enterDelay={TOOLTIP_ENTER_DELAY}
+    >
+      <Button className="action-button" onClick={autoLayout} tabIndex={-1}>
+        <LayoutIcon />
+      </Button>
+    </Tooltip>
+  );
+});
 
-const RunWorkflowButton = memo(() => {
+const RunWorkflowButton = memo(function RunWorkflowButton() {
   const { workflow, nodes, edges } = useNodes((state) => ({
     workflow: state.workflow,
     nodes: state.nodes,
@@ -274,7 +280,15 @@ const RunWorkflowButton = memo(() => {
         saveWorkflow(w);
       }
     }, 100);
-  }, [isWorkflowRunning, run, workflow, nodes, edges]);
+  }, [
+    isWorkflowRunning,
+    run,
+    workflow,
+    nodes,
+    edges,
+    getWorkflow,
+    saveWorkflow
+  ]);
 
   useGlobalHotkeys(handleRun);
 
@@ -317,7 +331,7 @@ const RunWorkflowButton = memo(() => {
   );
 });
 
-const StopWorkflowButton = memo(() => {
+const StopWorkflowButton = memo(function StopWorkflowButton() {
   const { isWorkflowRunning, cancel } = useWorkflowRunner((state) => ({
     isWorkflowRunning: state.state === "running",
     cancel: state.cancel
@@ -346,7 +360,7 @@ const StopWorkflowButton = memo(() => {
   );
 });
 
-const RunAsAppButton = memo(() => {
+const RunAsAppButton = memo(function RunAsAppButton() {
   const location = useLocation();
   const workflowId = location.pathname.split("/").pop();
 

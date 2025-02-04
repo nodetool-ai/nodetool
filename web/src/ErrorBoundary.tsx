@@ -74,7 +74,6 @@ const errorBoundaryStyles = (theme: any) =>
 
 const ErrorBoundary: React.FC = () => {
   const error = useRouteError();
-  console.error(error);
 
   const errorMessage =
     error instanceof Error ? error.message : "An unknown error occurred";

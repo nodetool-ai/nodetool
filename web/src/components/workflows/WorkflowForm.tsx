@@ -172,7 +172,7 @@ const WorkflowForm = ({ workflow, onSave }: WorkflowFormProps) => {
       };
       setLocalWorkflow(updatedWorkflow);
     },
-    [setLocalWorkflow]
+    [workflow, setLocalWorkflow]
   );
 
   const deleteThumbnail = useCallback(
@@ -181,7 +181,7 @@ const WorkflowForm = ({ workflow, onSave }: WorkflowFormProps) => {
       const updatedWorkflow = { ...workflow, thumbnail: "", thumbnail_url: "" };
       setLocalWorkflow(updatedWorkflow);
     },
-    [setLocalWorkflow]
+    [workflow, setLocalWorkflow]
   );
 
   const { onDrop, onDragOver } = useFileDrop({
