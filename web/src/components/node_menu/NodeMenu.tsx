@@ -29,7 +29,7 @@ const treeStyles = (theme: any) =>
       display: "flex",
       flexDirection: "column",
       height: "auto",
-      maxHeight: "70vh",
+      maxHeight: "90vh",
       minHeight: "35vh",
       top: 50,
       left: 0,
@@ -47,7 +47,13 @@ const treeStyles = (theme: any) =>
       width: "100%",
       minHeight: "30px",
       cursor: "grab",
-      userSelect: "none"
+      userSelect: "none",
+      h4: {
+        margin: "0",
+        padding: "0.3em 0 0 1.25em",
+        fontSize: theme.fontSizeNormal,
+        color: theme.palette.c_gray6
+      }
     },
     ".draggable-header:hover": {
       opacity: 0.95
@@ -100,20 +106,46 @@ const treeStyles = (theme: any) =>
       backgroundColor: theme.palette.c_gray1,
       cursor: "default",
       border: `1px solid ${theme.palette.c_gray2}`
+    },
+    "&.MuiPaper-root.MuiAccordion-root": {
+      backgroundColor: "transparent !important",
+      boxShadow: "none !important",
+      "--Paper-overlay": "0 !important",
+      "&:before": {
+        display: "none"
+      },
+      "& .MuiAccordionDetails-root": {
+        backgroundColor: "transparent !important",
+        padding: "0 0 1em 0"
+      },
+      "&.MuiPaper-elevation, &.MuiPaper-elevation1": {
+        backgroundColor: "transparent !important"
+      },
+      "&.Mui-expanded": {
+        backgroundColor: "transparent !important"
+      },
+      "&.MuiAccordion-rounded": {
+        backgroundColor: "transparent !important"
+      }
+    },
+    ".MuiAccordionSummary-root": {
+      padding: 0,
+      minHeight: "unset",
+      "& .MuiAccordionSummary-content": {
+        margin: 0
+      }
     }
   });
 
 type NodeMenuProps = {
   focusSearchInput?: boolean;
-  showNamespaceTree?: boolean;
 };
 
 // Add performance timing
 let menuOpenRequestTime: number | null = null;
 
 const NodeMenu = memo(function NodeMenu({
-  focusSearchInput = false,
-  showNamespaceTree = true
+  focusSearchInput = false
 }: NodeMenuProps) {
   const nodeRef = useRef<HTMLDivElement>(null);
 
@@ -219,7 +251,7 @@ const NodeMenu = memo(function NodeMenu({
       bounds={{
         left: 0,
         right: window.innerWidth,
-        top: 50,
+        top: 0,
         bottom: window.innerHeight
       }}
       nodeRef={nodeRef}
@@ -233,15 +265,7 @@ const NodeMenu = memo(function NodeMenu({
         css={memoizedStyles}
       >
         <div className="draggable-header">
-          <Typography
-            className="title"
-            variant="h4"
-            sx={{
-              padding: "0 0 0 1.25em",
-              fontSize: ThemeNodetool.fontSizeNormal,
-              color: ThemeNodetool.palette.c_gray6
-            }}
-          >
+          <Typography className="title" variant="h4">
             Node Menu
           </Typography>
 

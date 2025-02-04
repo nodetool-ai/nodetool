@@ -4,7 +4,6 @@ import { memo, useMemo, useRef } from "react";
 import { IconButton, Box } from "@mui/material";
 
 // components
-import TypeFilter from "./TypeFilter";
 import NamespaceList from "./NamespaceList";
 import SearchInput from "../search/SearchInput";
 
@@ -14,7 +13,6 @@ import useNodeMenuStore from "../../stores/NodeMenuStore";
 // theme
 import ThemeNodetool from "../themes/ThemeNodetool";
 import useNamespaceTree from "../../hooks/useNamespaceTree";
-import { useCombo } from "../../stores/KeyPressedStore";
 
 const staticMenuStyles = (theme: any) =>
   css({
@@ -65,11 +63,7 @@ function StaticNodeMenu({ className }: StaticNodeMenuProps) {
         />
       </Box>
       <Box>
-        <NamespaceList
-          namespaceTree={namespaceTree}
-          metadata={searchResults}
-          inPanel={true}
-        />
+        <NamespaceList namespaceTree={namespaceTree} metadata={searchResults} />
       </Box>
     </Box>
   );

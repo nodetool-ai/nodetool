@@ -73,9 +73,6 @@ type NodeMenuStore = {
   ) => void;
   closeDocumentation: () => void;
 
-  focusedNodeIndex: number;
-  setFocusedNodeIndex: (index: number) => void;
-
   clickPosition: { x: number; y: number };
 
   groupedSearchResults: SearchResultGroup[];
@@ -347,6 +344,7 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
       if (searchId !== undefined && searchId !== get().currentSearchId) {
         return;
       }
+      console.log("performSearch", term);
 
       const metadata = useMetadataStore.getState().getAllMetadata();
       const secrets = useRemoteSettingsStore.getState().secrets;
@@ -528,9 +526,6 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
         showDocumentation: false
       }),
 
-    focusedNodeIndex: -1,
-    setFocusedNodeIndex: (index) => set({ focusedNodeIndex: index }),
-
     groupedSearchResults: [],
 
     // Add back missing required properties
@@ -542,17 +537,12 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
       const maxPosX = window.innerWidth - menuWidth;
       const maxPosY = window.innerHeight - menuHeight - 40;
       const constrainedX = Math.min(Math.max(params.x, 0), maxPosX);
-      const minPosY = 80;
+      const minPosY = 0;
       const menuOffset = 20;
       const constrainedY = Math.min(
         Math.max(params.y + menuOffset, minPosY),
         maxPosY
       );
-
-      const panelStore = usePanelStore.getState();
-      if (panelStore.panel.activeView === "nodes") {
-        panelStore.closePanel();
-      }
 
       set({
         isMenuOpen: true,

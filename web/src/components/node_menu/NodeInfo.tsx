@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useCallback, useMemo } from "react";
+import React, { memo, useCallback, useMemo } from "react";
 import { Typography, Divider, Tooltip, IconButton } from "@mui/material";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import { colorForType, descriptionForType } from "../../config/data_types";
@@ -9,15 +9,11 @@ import { useQuery } from "@tanstack/react-query";
 import { client } from "../../stores/ApiClient";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { titleizeString } from "../../utils/titleizeString";
-import CloseIcon from "@mui/icons-material/Close";
-import ThemeNodetool from "../themes/ThemeNodetool";
 import { highlightText as highlightTextUtil } from "../../utils/highlightText";
 import { formatNodeDocumentation } from "../../stores/formatNodeDocumentation";
-
+import { isEqual } from "lodash";
 interface NodeInfoProps {
   nodeMetadata: NodeMetadata;
-  onClose?: () => void;
-  inPanel?: boolean;
   showConnections?: boolean;
 }
 
@@ -25,12 +21,12 @@ const nodeInfoStyles = (theme: any) =>
   css({
     display: "flex",
     flexDirection: "column",
-    backgroundColor: theme.palette.c_node_menu,
+    backgroundColor: "transparent",
     overflowY: "auto",
     gap: ".5em",
     padding: "1em",
     maxHeight: "55vh",
-    width: "400px",
+    width: "300px",
     position: "relative",
     ".node-title": {
       fontSize: theme.fontSizeNormal,
@@ -92,7 +88,7 @@ const nodeInfoStyles = (theme: any) =>
     },
     ".node-tags span": {
       fontWeight: "600",
-      fontSize: theme.fontSizeSmaller,
+      fontSize: theme.fontSizeTiny,
       color: theme.palette.c_black,
       backgroundColor: theme.palette.c_gray4,
       borderRadius: "0.5em",
@@ -101,6 +97,10 @@ const nodeInfoStyles = (theme: any) =>
       display: "inline-block",
       cursor: "pointer",
       marginRight: ".5em"
+    },
+    ".node-usecases h4": {
+      fontSize: theme.fontSizeSmaller,
+      lineHeight: "2em"
     },
     ".node-usecases div": {
       fontSize: theme.fontSizeNormal,
@@ -128,7 +128,8 @@ const nodeInfoStyles = (theme: any) =>
       paddingBottom: "1em"
     },
     ".inputs-outputs h4": {
-      fontSize: theme.fontSizeSmall,
+      fontFamily: theme.fontFamily2,
+      fontSize: theme.fontSizeSmaller,
       lineHeight: "2em"
     },
     ".inputs, .outputs": {
@@ -138,10 +139,11 @@ const nodeInfoStyles = (theme: any) =>
       gap: 0
     },
     ".inputs-outputs .item": {
-      padding: ".25em 0 .25em 4em",
+      padding: ".25em 0 .25em 2em",
       display: "flex",
       justifyContent: "space-between",
       fontFamily: theme.fontFamily2,
+      fontSize: theme.fontSizeSmall,
       flexDirection: "row",
       gap: ".5em",
       cursor: "default"
@@ -172,8 +174,6 @@ const nodeInfoStyles = (theme: any) =>
 
 const NodeInfo: React.FC<NodeInfoProps> = ({
   nodeMetadata,
-  onClose,
-  inPanel = false,
   showConnections = true
 }) => {
   const searchTerm = useNodeMenuStore((state) => state.searchTerm);
@@ -243,20 +243,6 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
         <Typography className="node-title">
           {titleizeString(nodeMetadata.title)}
         </Typography>
-        {onClose && (
-          <IconButton
-            onClick={onClose}
-            size="small"
-            sx={{
-              color: (theme) => theme.palette.c_gray4,
-              "&:hover": {
-                color: (theme) => theme.palette.c_white
-              }
-            }}
-          >
-            <CloseIcon fontSize="small" />
-          </IconButton>
-        )}
       </div>
       <div className="status-container">
         {replicateStatus !== "unknown" && (
@@ -366,4 +352,4 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
   );
 };
 
-export default NodeInfo;
+export default memo(NodeInfo, isEqual);

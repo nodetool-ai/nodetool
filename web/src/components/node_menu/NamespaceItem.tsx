@@ -3,6 +3,7 @@ import { ListItem } from "@mui/material";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import RenderNamespaces from "./RenderNamespaces";
 import { NamespaceTree } from "../../hooks/useNamespaceTree";
+import { isEqual } from "lodash";
 
 interface NamespaceItemProps {
   namespace: string;
@@ -51,4 +52,4 @@ const NamespaceItem: React.FC<NamespaceItemProps> = ({
   );
 };
 
-export default React.memo(NamespaceItem);
+export default React.memo(NamespaceItem, isEqual);
