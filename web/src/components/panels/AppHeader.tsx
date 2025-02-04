@@ -179,8 +179,7 @@ const AppHeader: React.FC<AppHeaderProps> = React.memo(() => {
 
   const { helpOpen, handleCloseHelp, handleOpenHelp } = useAppHeaderStore();
 
-  const { handlePanelToggle, collapsed: panelLeftCollapsed } =
-    useResizePanel("left");
+  const { handlePanelToggle } = useResizePanel("left");
 
   const NavigationButtons = useMemo(
     () => (
@@ -190,9 +189,6 @@ const AppHeader: React.FC<AppHeaderProps> = React.memo(() => {
             className={`nav-button ${path === "/examples" ? "active" : ""}`}
             onClick={() => {
               navigate("/examples");
-              if (!panelLeftCollapsed) {
-                handlePanelToggle();
-              }
             }}
             tabIndex={-1}
             style={{
@@ -214,9 +210,6 @@ const AppHeader: React.FC<AppHeaderProps> = React.memo(() => {
             className={`nav-button ${path === "/assets" ? "active" : ""}`}
             onClick={() => {
               navigate("/assets");
-              if (!panelLeftCollapsed) {
-                handlePanelToggle();
-              }
             }}
             tabIndex={-1}
             style={{
@@ -281,7 +274,7 @@ const AppHeader: React.FC<AppHeaderProps> = React.memo(() => {
         )}
       </Box>
     ),
-    [path, navigate, panelLeftCollapsed, handlePanelToggle]
+    [path, navigate]
   );
 
   const RightSideButtons = useMemo(

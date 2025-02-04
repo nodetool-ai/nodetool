@@ -16,7 +16,7 @@ ul li {
 }
 
 #root .node-editor {
-  background: var(--c_gray1 );
+  background: var(--c_gray1);
   margin: 0;
   padding: 0;
   width: 100%;
@@ -34,18 +34,10 @@ ul li {
 
 /* ReactFlow wrapper */
 .reactflow-wrapper {
-  position: absolute;
-  width: calc(100% - 65px);
+  /* position: absolute; */
+  width: 100%;
   height: 100%;
-  left: 65px;
   top: 0;
-}
-.reactflow-wrapper .react-flow {
-  /*
-  possible hack to prevent overflow
-  width: 500% !important;
-  height: 500% !important; */
-  overflow: visible !important;
 }
 
 /* Loading overlay */

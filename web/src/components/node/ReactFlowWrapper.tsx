@@ -51,7 +51,6 @@ import { useNodes } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { CircularProgress } from "@mui/material";
 import { Typography } from "@mui/material";
-import useConnectableNodesStore from "../../stores/ConnectableNodesStore";
 
 declare global {
   interface Window {
@@ -317,12 +316,6 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     },
     []
   );
-  const { isVisible: isConnectableNodesVisible } = useConnectableNodesStore(
-    (state) => ({
-      isVisible: state.isVisible
-    })
-  );
-
   /* VIEWPORT */
   const defaultViewport = useMemo(() => ({ x: 0, y: 0, zoom: 1.5 }), []);
   const reactFlowInstance = useReactFlow();
@@ -359,10 +352,8 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     );
   }
 
-  console.log("zoom", zoom);
-
   return (
-    <div className="reactflow-wrapper" ref={reactFlowWrapper}>
+    <div className="reactflow-wrapper">
       <ReactFlow
         onlyRenderVisibleElements={false}
         ref={ref}
@@ -453,7 +444,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
         )}
         <AxisMarker />
         <ContextMenus />
-        {isConnectableNodesVisible && <ConnectableNodes />}
+        <ConnectableNodes />
         <HuggingFaceDownloadDialog />
       </ReactFlow>
     </div>

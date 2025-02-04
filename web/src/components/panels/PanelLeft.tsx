@@ -10,20 +10,21 @@ import { useCombo } from "../../stores/KeyPressedStore";
 import { isEqual } from "lodash";
 import { memo, useCallback } from "react";
 import AssetGrid from "../assets/AssetGrid";
-import WorkflowForm from "../workflows/WorkflowForm";
 import GridViewIcon from "@mui/icons-material/GridView";
 import WorkflowList from "../workflows/WorkflowList";
-import StaticNodeMenu from "../node_menu/StaticNodeMenu";
 import { IconForType } from "../../config/data_types";
-import TuneIcon from "@mui/icons-material/Tune";
-import ControlPointIcon from "@mui/icons-material/ControlPoint";
 import { LeftPanelView, usePanelStore } from "../../stores/PanelStore";
 import CollectionList from "../collections/CollectionList";
 
 const styles = (theme: any) =>
   css({
+    ".panel-container": {
+      flexShrink: 0,
+      position: "relative"
+    },
     ".MuiDrawer-paper": {
-      boxShadow: "0 0 10px rgba(0, 0, 0, 0.3)"
+      boxShadow: "0 0 10px rgba(0, 0, 0, 0.3)",
+      width: "auto"
     },
     ".panel-tabs ": {
       minHeight: "2em"
@@ -97,28 +98,12 @@ const VerticalToolbar = memo(
     handlePanelToggle: () => void;
   }) => (
     <div className="vertical-toolbar">
-      <Tooltip title="Nodes" placement="right">
-        <IconButton
-          onClick={() => onViewChange("nodes")}
-          className={activeView === "nodes" ? "active" : ""}
-        >
-          <ControlPointIcon />
-        </IconButton>
-      </Tooltip>
       <Tooltip title="Workflows" placement="right">
         <IconButton
           onClick={() => onViewChange("workflowGrid")}
           className={activeView === "workflowGrid" ? "active" : ""}
         >
           <GridViewIcon />
-        </IconButton>
-      </Tooltip>
-      <Tooltip title="Workflow Properties" placement="right">
-        <IconButton
-          onClick={() => onViewChange("workflow")}
-          className={activeView === "workflow" ? "active" : ""}
-        >
-          <TuneIcon />
         </IconButton>
       </Tooltip>
       <Tooltip title="Assets" placement="right">
@@ -176,59 +161,50 @@ const VerticalToolbar = memo(
   )
 );
 
-const PanelContent = memo(
-  ({ activeView, panelSize }: { activeView: string; panelSize: number }) => (
-    <>
-      {activeView === "chat" && panelSize > 40 && <HelpChat />}
-      {activeView === "assets" && (
-        <Box
-          className="assets-container"
-          sx={{ width: "100%", height: "100%" }}
-        >
-          <AssetGrid maxItemSize={5} />
-        </Box>
-      )}
-      {activeView === "workflow" && <WorkflowForm />}
-      {activeView === "workflowGrid" && (
-        <Box sx={{ width: "100%", height: "100%", overflow: "auto" }}>
-          <WorkflowList />
-        </Box>
-      )}
-      {activeView === "nodes" && (
-        <Box sx={{ width: "100%", height: "100%", overflow: "hidden" }}>
-          <StaticNodeMenu />
-        </Box>
-      )}
-      {activeView === "collections" && (
-        <Box
-          sx={{
-            width: "100%",
-            height: "100%",
-            overflow: "hidden auto",
-            padding: 5
-          }}
-        >
-          <CollectionList />
-        </Box>
-      )}
-    </>
-  )
-);
+const PanelContent = memo(({ activeView }: { activeView: string }) => (
+  <>
+    {activeView === "chat" && <HelpChat />}
+    {activeView === "assets" && (
+      <Box className="assets-container" sx={{ width: "100%", height: "100%" }}>
+        <AssetGrid maxItemSize={5} />
+      </Box>
+    )}
+    {activeView === "workflowGrid" && (
+      <Box sx={{ width: "100%", height: "100%", overflow: "auto" }}>
+        <WorkflowList />
+      </Box>
+    )}
+    {activeView === "collections" && (
+      <Box
+        sx={{
+          width: "100%",
+          height: "100%",
+          overflow: "hidden auto",
+          padding: 5
+        }}
+      >
+        <CollectionList />
+      </Box>
+    )}
+  </>
+));
 
 const PanelLeft: React.FC = () => {
   const {
     ref: panelRef,
     size: panelSize,
-    collapsed,
+    isVisible,
     isDragging,
     handleMouseDown,
     handlePanelToggle
   } = useResizePanel("left");
 
+  console.log("isVisible", isVisible);
+
   useCombo(["1"], handlePanelToggle, false);
 
   const activeView =
-    usePanelStore((state) => state.panel.activeView) || "nodes";
+    usePanelStore((state) => state.panel.activeView) || "workflowGrid";
   const handleViewChange = usePanelStore((state) => state.handleViewChange);
 
   const onViewChange = useCallback(
@@ -241,7 +217,8 @@ const PanelLeft: React.FC = () => {
   return (
     <div
       css={styles}
-      className={`panel-container ${panelSize > 80 ? "open" : "closed"}`}
+      className="panel-container"
+      style={{ width: isVisible ? `${panelSize}px` : "60px" }}
     >
       <IconButton
         disableRipple={true}
@@ -254,7 +231,9 @@ const PanelLeft: React.FC = () => {
           e.stopPropagation();
           handleMouseDown(e);
         }}
-        style={{ left: `${Math.max(panelSize + 14, 25)}px` }}
+        style={{
+          left: isVisible ? `${Math.max(panelSize + 14, 25)}px` : "0px"
+        }}
       >
         <CodeIcon />
       </IconButton>
@@ -262,7 +241,7 @@ const PanelLeft: React.FC = () => {
         PaperProps={{
           ref: panelRef,
           className: `panel panel-left ${isDragging ? "dragging" : ""}`,
-          style: { width: `${panelSize}px` }
+          style: { width: isVisible ? `${panelSize}px` : "60px" }
         }}
         variant="persistent"
         anchor="left"
@@ -274,7 +253,7 @@ const PanelLeft: React.FC = () => {
             onViewChange={onViewChange}
             handlePanelToggle={handlePanelToggle}
           />
-          <PanelContent activeView={activeView} panelSize={panelSize} />
+          {isVisible && <PanelContent activeView={activeView} />}
         </div>
       </Drawer>
     </div>

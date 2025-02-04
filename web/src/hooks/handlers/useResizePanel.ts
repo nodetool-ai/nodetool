@@ -15,6 +15,7 @@ export const useResizePanel = (panelPosition: "left" | "right" = "left") => {
     useCallback(
       (state) => ({
         setSize: state.setSize,
+        setVisibility: state.setVisibility,
         setIsDragging: state.setIsDragging,
         setHasDragged: state.setHasDragged,
         handleViewChange: state.handleViewChange
@@ -94,8 +95,8 @@ export const useResizePanel = (panelPosition: "left" | "right" = "left") => {
 
   return {
     ref,
-    size: Math.max(MIN_DRAG_SIZE, panel.panelSize || DEFAULT_PANEL_SIZE),
-    collapsed: panel.panelSize <= MIN_DRAG_SIZE,
+    size: panel.panelSize,
+    isVisible: panel.isVisible,
     isDragging: panel.isDragging || false,
     handleMouseDown,
     handlePanelToggle: () => actions.handleViewChange(panel.activeView)
