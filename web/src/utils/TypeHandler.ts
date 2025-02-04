@@ -180,4 +180,5 @@ export const isConnectable = (
       // console.log(source.type, target.type, source.type === target.type);
       return source.type === target.type;
   }
+  return false;
 };
