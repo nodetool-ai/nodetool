@@ -161,14 +161,18 @@ function getRoutes() {
             <ThemeProvider theme={ThemeNodetool}>
               <CssBaseline />
               <AppHeader />
-              <PanelLeft />
             </ThemeProvider>
             <ThemeProvider theme={ThemeNodes}>
-              <TabsNodeEditor />
-            </ThemeProvider>
-            <ThemeProvider theme={ThemeNodetool}>
-              <CssBaseline />
-              <NodeMenu focusSearchInput={true} showNamespaceTree={false} />
+              <div
+                style={{
+                  display: "flex",
+                  width: "100%",
+                  height: "calc(100vh - 64px)"
+                }}
+              >
+                <PanelLeft />
+                <TabsNodeEditor />
+              </div>
             </ThemeProvider>
           </FetchCurrentWorkflow>
         </ProtectedRoute>

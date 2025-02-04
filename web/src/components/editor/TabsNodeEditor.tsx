@@ -3,34 +3,32 @@ import { css } from "@emotion/react";
 import { ReactFlowProvider, useStore } from "@xyflow/react";
 import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import CloseIcon from "@mui/icons-material/Close";
 import NodeEditor from "../node_editor/NodeEditor";
 import { DragEvent, WheelEvent } from "react";
-import { useResizePanel } from "../../hooks/handlers/useResizePanel";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { NodeProvider } from "../../contexts/NodeContext";
 import StatusMessage from "../panels/StatusMessage";
 import AppHeaderActions from "../panels/AppHeaderActions";
-import { Workflow, WorkflowAttributes } from "../../stores/ApiTypes";
+import { Workflow } from "../../stores/ApiTypes";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import TabHeader from "./TabHeader";
 import { createPortal } from "react-dom";
+import { generateCSS } from "../themes/GenerateCSS";
 
 const styles = (theme: any) =>
   css({
     display: "flex",
     flexDirection: "column",
     height: "100%",
+    flex: 1,
+    minWidth: 0,
     "& .tabs-container": {
       display: "flex",
       alignItems: "center",
-      position: "relative",
-      marginLeft: "4em",
-      width: "calc(100% - 4em)"
+      position: "relative"
     },
     "& .tabs": {
-      marginLeft: "0",
       width: "100%",
       zIndex: 1000,
       display: "flex",
@@ -307,9 +305,6 @@ const TabsNodeEditor = () => {
     [handleNameChange, setEditingWorkflowId]
   );
 
-  const { collapsed: panelLeftCollapsed, size: panelSize } =
-    useResizePanel("left");
-
   const checkScrollability = useCallback(() => {
     if (tabsRef.current) {
       const { scrollLeft, scrollWidth, clientWidth } = tabsRef.current;
@@ -368,10 +363,7 @@ const TabsNodeEditor = () => {
   }, []);
 
   return (
-    <div
-      css={styles}
-      style={{ marginLeft: panelLeftCollapsed ? "0" : panelSize - 65 }}
-    >
+    <div css={styles}>
       <div className="tabs-container">
         <button
           className="scroll-button"
@@ -410,34 +402,27 @@ const TabsNodeEditor = () => {
           <ChevronRightIcon />
         </button>
       </div>
-      <div className="editor-container">
-        {workflows.map((workflow) => (
-          <div
-            key={workflow.id}
-            style={{
-              visibility:
-                workflow.id === currentWorkflowId ? "visible" : "hidden",
-              position:
-                workflow.id === currentWorkflowId ? "relative" : "absolute",
-              height: "100%"
-            }}
-          >
-            <ReactFlowProvider>
-              <NodeProvider workflowId={workflow.id}>
-                {createPortal(
-                  <div className="actions-container">
-                    <AppHeaderActions />
-                  </div>,
-                  document.body
-                )}
-                <div className="status-message-container">
-                  <StatusMessage />
-                </div>
-                <NodeEditor workflowId={workflow.id} />
-              </NodeProvider>
-            </ReactFlowProvider>
-          </div>
-        ))}
+      <div className="editor-container" css={generateCSS}>
+        {workflows.map((workflow) =>
+          currentWorkflowId === workflow.id ? (
+            <div key={workflow.id}>
+              <ReactFlowProvider>
+                <NodeProvider workflowId={workflow.id}>
+                  {createPortal(
+                    <div className="actions-container">
+                      <AppHeaderActions />
+                    </div>,
+                    document.body
+                  )}
+                  <div className="status-message-container">
+                    <StatusMessage />
+                  </div>
+                  <NodeEditor workflowId={workflow.id} />
+                </NodeProvider>
+              </ReactFlowProvider>
+            </div>
+          ) : null
+        )}
       </div>
     </div>
   );

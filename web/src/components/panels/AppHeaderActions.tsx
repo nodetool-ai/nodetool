@@ -12,14 +12,13 @@ import { css } from "@emotion/react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { memo, useCallback, useEffect } from "react";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import { Workflow } from "../../stores/ApiTypes";
 import useWorkflowRunner from "../../stores/WorkflowRunner";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { isEqual } from "lodash";
 import { useNodes } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
-
+import ControlPointIcon from "@mui/icons-material/ControlPoint";
 const styles = (theme: any) =>
   css({
     "&": {
@@ -65,10 +64,21 @@ const styles = (theme: any) =>
         transform: "scale(1.1)"
       }
     },
+    ".action-button.active": {
+      border: `1px solid ${theme.palette.c_hl1}66`
+    },
     ".action-button.disabled": {
       color: theme.palette.c_gray4,
       "&:hover": {
         boxShadow: "none"
+      }
+    },
+    ".node-menu-button": {
+      "& svg": {
+        fill: `${theme.palette.c_hl1}66`
+      },
+      "&:hover svg": {
+        fill: `${theme.palette.c_hl1}ff`
       }
     },
     ".run-stop-button": {
@@ -76,9 +86,9 @@ const styles = (theme: any) =>
       color: theme.palette.c_hl1,
       minWidth: "40px",
       height: "24px",
-      transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
       "&:hover": {
-        // boxShadow: `0 4px 20px ${theme.palette.c_hl1}40`
+        boxShadow: `0 0 10px ${theme.palette.c_hl1}cc`,
+        transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)"
       },
       "&.disabled": {
         opacity: 0.5
@@ -89,14 +99,25 @@ const styles = (theme: any) =>
     },
     ".run-status": {
       position: "absolute",
-      top: "-22px",
+      top: "25px",
       fontSize: theme.fontSizeSmaller,
       padding: "0.2em 0.8em",
-      borderRadius: "5px",
       color: theme.palette.c_gray6,
-      backgroundColor: `${theme.palette.c_gray1}ee`,
-      backdropFilter: "blur(4px)",
       boxShadow: `0 2px 8px ${theme.palette.c_gray1}40`
+    },
+    ".tooltip-span": {
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      gap: "0.1em"
+    },
+    ".tooltip-title": {
+      fontSize: "1.2em",
+      color: theme.palette.c_gray6
+    },
+    ".tooltip-key": {
+      fontSize: "0.8em",
+      color: theme.palette.c_gray6
     },
     "@keyframes pulse": {
       "0%": { opacity: 0.4 },
@@ -141,6 +162,41 @@ const CreateWorkflowButton = memo(() => {
     <Tooltip title="Create new workflow" enterDelay={TOOLTIP_ENTER_DELAY}>
       <Button className="action-button" onClick={handleCreate} tabIndex={-1}>
         <NoteAddIcon />
+      </Button>
+    </Tooltip>
+  );
+});
+
+const NodeMenuButton = memo(() => {
+  const { openNodeMenu, closeNodeMenu, isMenuOpen } = useNodeMenuStore(
+    (state) => ({
+      openNodeMenu: state.openNodeMenu,
+      closeNodeMenu: state.closeNodeMenu,
+      isMenuOpen: state.isMenuOpen
+    })
+  );
+
+  const handleToggleNodeMenu = useCallback(() => {
+    if (isMenuOpen) {
+      closeNodeMenu();
+    } else {
+      openNodeMenu({
+        x: 400,
+        y: 200
+      });
+    }
+  }, [isMenuOpen, openNodeMenu, closeNodeMenu]);
+
+  return (
+    <Tooltip title="Toggle Node Menu" enterDelay={TOOLTIP_ENTER_DELAY}>
+      <Button
+        className={`action-button node-menu-button ${
+          isMenuOpen ? "active" : ""
+        }`}
+        onClick={handleToggleNodeMenu}
+        tabIndex={-1}
+      >
+        <ControlPointIcon />
       </Button>
     </Tooltip>
   );
@@ -213,7 +269,10 @@ const RunWorkflowButton = memo(() => {
       run({}, workflow, nodes, edges);
     }
     setTimeout(() => {
-      saveWorkflow(getWorkflow(workflow.id));
+      const w = getWorkflow(workflow.id);
+      if (w) {
+        saveWorkflow(w);
+      }
     }, 100);
   }, [isWorkflowRunning, run, workflow, nodes, edges]);
 
@@ -222,19 +281,9 @@ const RunWorkflowButton = memo(() => {
   return (
     <Tooltip
       title={
-        <div
-          className="tooltip-span"
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: "0.1em"
-          }}
-        >
-          <span style={{ fontSize: "1.2em", color: "white" }}>
-            Run Workflow
-          </span>
-          <span style={{ fontSize: ".9em", color: "white" }}>CTRL+Enter</span>
+        <div className="tooltip-span">
+          <div className="tooltip-title">Run Workflow</div>
+          <div className="tooltip-key">CTRL+Enter</div>
         </div>
       }
       enterDelay={TOOLTIP_ENTER_DELAY}
@@ -276,19 +325,9 @@ const StopWorkflowButton = memo(() => {
   return (
     <Tooltip
       title={
-        <div
-          className="tooltip-span"
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: "0.1em"
-          }}
-        >
-          <span style={{ fontSize: "1.2em", color: "white" }}>
-            Stop Workflow
-          </span>
-          <span style={{ fontSize: "1em", color: "white" }}>ESC</span>
+        <div className="tooltip-span">
+          <div className="tooltip-title">Stop Workflow</div>
+          <div className="tooltip-key">ESC</div>
         </div>
       }
       enterDelay={TOOLTIP_ENTER_DELAY}
@@ -353,6 +392,7 @@ const AppHeaderActions: React.FC = () => {
       {path.startsWith("/editor") && (
         <div className="actions" css={styles}>
           <>
+            <NodeMenuButton />
             <CreateWorkflowButton />
             <SaveWorkflowButton />
             <AutoLayoutButton autoLayout={autoLayout} />
