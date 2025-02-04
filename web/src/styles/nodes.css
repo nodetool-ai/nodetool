@@ -343,7 +343,7 @@
   background-color: transparent;
   color: var(--c_gray5);
   font-family: var(--font-family-1);
-  font-size: var(--font-size-small);
+  font-size: var(--font-size-smaller);
   text-transform: uppercase;
   text-align: left;
   flex-grow: 1;
@@ -368,9 +368,9 @@
   padding: 0;
   margin: 0 2px;
   min-width: 18px;
-  top: -4px;
+  top: 4px;
   right: -7px;
-  color: var(--c_gray6);
+  color: var(--c_gray8);
   background-color: transparent;
   border: none;
   cursor: pointer;
