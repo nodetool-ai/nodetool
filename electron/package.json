@@ -8,7 +8,9 @@
     "start": "electron .",
     "build": "electron-builder",
     "vite:build": "vite build",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
+    "lint:fix": "eslint . --ext .js,.jsx,.ts,.tsx --fix"
   },
   "author": "matti.georgi@gmail.com",
   "license": "AGPL-3.0-only",
@@ -18,8 +20,13 @@
     "@types/node": "^20.11.0",
     "@types/tar-fs": "^2.0.4",
     "@types/ws": "^8.5.13",
+    "@typescript-eslint/eslint-plugin": "^7.2.0",
+    "@typescript-eslint/parser": "^7.2.0",
     "electron": "29.4.6",
     "electron-builder": "^25.1.8",
+    "eslint": "^8.57.0",
+    "eslint-plugin-react": "^7.34.0",
+    "eslint-plugin-react-hooks": "^4.6.0",
     "typescript": "^5.3.3",
     "vite": "^6.0.7",
     "vite-plugin-electron": "^0.29.0"
