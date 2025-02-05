@@ -88,26 +88,7 @@ const treeStyles = (theme: any) =>
       zIndex: 150,
       color: ThemeNodetool.palette.c_gray4
     },
-    ".clear-namespace": {
-      backgroundColor: theme.palette.c_gray2,
-      color: theme.palette.c_gray4,
-      margin: "0 0 0 .5em",
-      padding: "0",
-      border: "0",
-      borderRadius: 0,
-      boxShadow: "0 0",
-      cursor: "pointer"
-    },
-    ".clear-namespace:hover": {
-      backgroundColor: theme.palette.c_gray6
-    },
-    ".clear-namespace.disabled": {
-      color: theme.palette.c_gray2,
-      backgroundColor: theme.palette.c_gray1,
-      cursor: "default",
-      border: `1px solid ${theme.palette.c_gray2}`
-    },
-    "&.MuiPaper-root.MuiAccordion-root": {
+    "& .MuiPaper-root.MuiAccordion-root": {
       backgroundColor: "transparent !important",
       boxShadow: "none !important",
       "--Paper-overlay": "0 !important",
@@ -118,13 +99,13 @@ const treeStyles = (theme: any) =>
         backgroundColor: "transparent !important",
         padding: "0 0 1em 0"
       },
-      "&.MuiPaper-elevation, &.MuiPaper-elevation1": {
+      "& .MuiPaper-elevation, .MuiPaper-elevation1": {
         backgroundColor: "transparent !important"
       },
-      "&.Mui-expanded": {
+      "& .Mui-expanded": {
         backgroundColor: "transparent !important"
       },
-      "&.MuiAccordion-rounded": {
+      "& .MuiAccordion-rounded": {
         backgroundColor: "transparent !important"
       }
     },
