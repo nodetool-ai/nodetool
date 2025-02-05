@@ -16,17 +16,12 @@
             "type": "debugpy",
             "request": "launch",
             "module": "nodetool.cli",
-            "justMyCode": false,
+            "justMyCode": true,
             "env": {
                 "PYTHONPATH": "${workspaceFolder}/src",
-                "ENV": "production"
             },
             "args": [
                 "serve",
-                "--host",
-                "0.0.0.0",
-                "--static-folder",
-                "${workspaceFolder}/web/dist", // required for electron
             ],
             "console": "integratedTerminal"
         },
