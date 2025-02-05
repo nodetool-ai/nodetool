@@ -460,10 +460,11 @@ const NoSelectionContent = memo(function NoSelectionContent({
         </div>
       )}
       <Typography variant="h4" sx={{ margin: "1em 0 0 0" }}>
-        Let us know what's missing
+        Let us know what&apos;s missing
       </Typography>
       <p>
-        We're always looking to improve Nodetool and welcome any suggestions!
+        We&apos;re always looking to improve Nodetool and welcome any
+        suggestions!
       </p>
       <ul className="no-results">
         <li>
@@ -642,7 +643,7 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
   const currentNodes = useMemo(() => {
     const nodes = getCurrentNodes();
     return nodes;
-  }, [metadata, getCurrentNodes]);
+  }, [getCurrentNodes]);
 
   const totalNodes = useMetadataStore((state) => state.getAllMetadata()).length;
 

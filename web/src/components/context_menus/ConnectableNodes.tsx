@@ -238,7 +238,12 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
       typeMetadata,
       filterType,
       sourceHandle,
-      targetHandle
+      targetHandle,
+      menuPosition,
+      createNode,
+      addNode,
+      addEdge,
+      generateEdgeId
     ]
   );
 
