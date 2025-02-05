@@ -10,7 +10,7 @@
 ![Docker](https://github.com/nodetool-ai/nodetool/actions/workflows/docker-publish.yaml/badge.svg)
 ![CodeQL](https://github.com/nodetool-ai/nodetool/actions/workflows/github-code-scanning/codeql/badge.svg)
 
-NodeTool enables you to build AI apps visually by creating workflows that run as mini-apps or chatbots.
+NodeTool is a visual development platform that lets you create powerful AI applications that can be deployed as mini-apps or chatbots - no coding required.
 
 With NodeTool, you can:
 
