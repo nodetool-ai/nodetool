@@ -3,17 +3,16 @@ import { useReactFlow, XYPosition } from "@xyflow/react";
 import { useCombo } from "../stores/KeyPressedStore";
 import { getMousePosition } from "../utils/MousePosition";
 import { useNodes, useTemporalNodes } from "../contexts/NodeContext";
-import useAssetUpload from "../serverState/useAssetUpload";
 import { useCopyPaste } from "./handlers/useCopyPaste";
 import useAlignNodes from "./useAlignNodes";
 import { useSurroundWithGroup } from "./nodes/useSurroundWithGroup";
 import { useDuplicateNodes } from "./useDuplicate";
 import useNodeMenuStore from "../stores/NodeMenuStore";
+import { useWorkflowManager } from "../contexts/WorkflowManagerContext";
 
 export const useNodeEditorShortcuts = () => {
   const reactFlowInstance = useReactFlow();
   /* USE STORE */
-  const { isUploading } = useAssetUpload();
   const nodeHistory = useTemporalNodes((state) => state);
   const { nodes, selectedNodes, setSelectedNodes, clearMissingModels } =
     useNodes((state) => ({
@@ -23,8 +22,9 @@ export const useNodeEditorShortcuts = () => {
       clearMissingModels: state.clearMissingModels
     }));
 
+  const saveExample = useWorkflowManager((state) => state.saveExample);
   /* STATE */
-  const [openCommandMenu, setOpenCommandMenu] = useState(false);
+  // const [openCommandMenu, setOpenCommandMenu] = useState(false);
 
   /* UTILS */
   const { handleCopy, handlePaste, handleCut } = useCopyPaste();
@@ -37,8 +37,21 @@ export const useNodeEditorShortcuts = () => {
   const { openNodeMenu } = useNodeMenuStore((state) => ({
     openNodeMenu: state.openNodeMenu
   }));
+  const handleOpenNodeMenu = useCallback(() => {
+    const mousePos = getMousePosition();
+    openNodeMenu({
+      x: mousePos.x,
+      y: mousePos.y
+    });
+  }, [openNodeMenu]);
 
-  useCombo(["f"], () => {
+  const handleGroup = useCallback(() => {
+    if (selectedNodes.length) {
+      surroundWithGroup({ selectedNodes });
+    }
+  }, [surroundWithGroup, selectedNodes]);
+
+  const handleFitView = useCallback(() => {
     if (selectedNodes.length) {
       setTimeout(() => {
         setSelectedNodes([]);
@@ -82,26 +95,21 @@ export const useNodeEditorShortcuts = () => {
     } else {
       reactFlowInstance.fitView({ duration: 1000, padding: 0.1 });
     }
-  });
+  }, [nodes, selectedNodes, setSelectedNodes, reactFlowInstance]);
 
-  useCombo(
-    ["a"],
-    () => {
-      alignNodes({ arrangeSpacing: false });
-    },
-    selectedNodes.length > 0
-  );
+  const handleAlign = useCallback(() => {
+    alignNodes({ arrangeSpacing: false });
+  }, [alignNodes]);
 
-  useCombo(
-    ["Control", "a"],
-    () => alignNodes({ arrangeSpacing: true }),
-    selectedNodes.length > 0
-  );
-  useCombo(
-    ["Meta", "a"],
-    () => alignNodes({ arrangeSpacing: true }),
-    selectedNodes.length > 0
-  );
+  const handleAlignWithSpacing = useCallback(() => {
+    alignNodes({ arrangeSpacing: true });
+  }, [alignNodes]);
+
+  useCombo([" "], handleOpenNodeMenu);
+  useCombo(["f"], handleFitView);
+  useCombo(["a"], handleAlign, selectedNodes.length > 0);
+  useCombo(["Control", "a"], handleAlignWithSpacing, selectedNodes.length > 0);
+  useCombo(["Meta", "a"], handleAlignWithSpacing, selectedNodes.length > 0);
 
   useCombo(["Control", "c"], handleCopy, false);
   useCombo(["Control", "v"], handlePaste, false);
@@ -110,50 +118,28 @@ export const useNodeEditorShortcuts = () => {
   useCombo(["Meta", "v"], handlePaste, false);
   useCombo(["Meta", "x"], handleCut);
 
+  useCombo(["Control", "Shift", "e"], saveExample);
+  useCombo(["Meta", "Shift", "e"], saveExample);
+
   useCombo(["Control", "d"], duplicateNodes);
   useCombo(["Control", "Shift", "d"], duplicateNodesVertical);
   useCombo(["Meta", "d"], duplicateNodes);
   useCombo(["Meta", "Shift", "d"], duplicateNodesVertical);
 
-  useCombo(
-    ["Control", "g"],
-    useCallback(() => {
-      if (selectedNodes.length) {
-        surroundWithGroup({ selectedNodes });
-      }
-    }, [surroundWithGroup, selectedNodes])
-  );
-  useCombo(
-    ["Meta", "g"],
-    useCallback(() => {
-      if (selectedNodes.length) {
-        surroundWithGroup({ selectedNodes });
-      }
-    }, [surroundWithGroup, selectedNodes])
-  );
+  useCombo(["Control", "g"], handleGroup);
+  useCombo(["Meta", "g"], handleGroup);
 
   useCombo(["Control", "z"], nodeHistory.undo);
   useCombo(["Control", "Shift", "z"], nodeHistory.redo);
   useCombo(["Meta", "z"], nodeHistory.undo);
   useCombo(["Meta", "Shift", "z"], nodeHistory.redo);
 
-  useCombo(
-    ["Alt", "k"],
-    useCallback(() => setOpenCommandMenu(true), [setOpenCommandMenu])
-  );
-  useCombo(
-    ["Meta", "k"],
-    useCallback(() => setOpenCommandMenu(true), [setOpenCommandMenu])
-  );
-
-  useCombo(
-    [" "],
-    useCallback(() => {
-      const mousePos = getMousePosition();
-      openNodeMenu({
-        x: mousePos.x,
-        y: mousePos.y
-      });
-    }, [openNodeMenu])
-  );
+  // useCombo(
+  //   ["Alt", "k"],
+  //   useCallback(() => setOpenCommandMenu(true), [setOpenCommandMenu])
+  // );
+  // useCombo(
+  //   ["Meta", "k"],
+  //   useCallback(() => setOpenCommandMenu(true), [setOpenCommandMenu])
+  // );
 };
