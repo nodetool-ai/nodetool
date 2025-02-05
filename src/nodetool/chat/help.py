@@ -1,11 +1,11 @@
 import asyncio
-import base64
 import json
 import os
-from typing import AsyncGenerator, Mapping
+from typing import Any, AsyncGenerator, Mapping
 import PIL
 import ollama
 import readline
+from pydantic import BaseModel
 
 import chromadb
 
@@ -20,7 +20,6 @@ from nodetool.metadata.types import (
 )
 from nodetool.workflows.base_node import (
     BaseNode,
-    get_node_class,
     get_registered_node_classes,
 )
 from nodetool.workflows.processing_context import ProcessingContext
@@ -49,143 +48,6 @@ def validate_schema(schema):
     except Exception as e:
         print(f"The schema is invalid. Error: {e}")
         return False
-
-
-class AddNodeTool(Tool):
-    """
-    Tool for creating a new node.
-    """
-
-    def __init__(self, node_class: type[BaseNode]):
-        self.node_class = node_class
-        self.name = "add_node_" + sanitize_node_name(node_class.get_node_type())
-        self.description = node_class.get_description()
-        self.input_schema = node_class.get_json_schema()
-        validate_schema(self.input_schema)
-
-    async def process(self, context: ProcessingContext, params: dict):
-        params["type"] = self.node_class.get_node_type()
-        return params
-
-
-class TutorialTool(Tool):
-    """
-    Tool for starting a tutorial.
-    """
-
-    def __init__(self, tutorials: list[str]):
-        self.name = "start_tutorial"
-        self.description = f"Start the tutorial with the given name."
-        self.input_schema = {
-            "type": "object",
-            "properties": {
-                "tutorial_name": {
-                    "type": "string",
-                    "description": "The name of the tutorial to start.",
-                    "enum": tutorials,
-                }
-            },
-            "required": ["tutorial_name"],
-        }
-
-    async def process(self, context: ProcessingContext, params: dict):
-        return params
-
-
-class WorkflowTool(Tool):
-    """
-    Tool for creating a new workflow.
-    """
-
-    def __init__(
-        self,
-        name: str,
-        description: str = "Creates a new workflow.",
-    ):
-        super().__init__(
-            name=name,
-            description=description,
-        )
-        self.input_schema = {
-            "type": "object",
-            "properties": {
-                "name": {"type": "string"},
-                "description": {"type": "string"},
-                "graph": {
-                    "type": "object",
-                    "properties": {
-                        "nodes": {
-                            "type": "array",
-                            "items": {
-                                "type": "object",
-                                "properties": {
-                                    "id": {"type": "string"},
-                                    "parent_id": {"type": "string"},
-                                    "name": {"type": "string"},
-                                    "type": {"type": "string"},
-                                    "data": {"type": "object"},
-                                    "ui_properties": {"type": "object"},
-                                },
-                                "required": ["name", "type", "data"],
-                            },
-                        },
-                        "edges": {
-                            "type": "array",
-                            "items": {
-                                "type": "object",
-                                "properties": {
-                                    "id": {"type": "string"},
-                                    "source": {"type": "string"},
-                                    "sourceHandle": {"type": "string"},
-                                    "target": {"type": "string"},
-                                    "targetHandle": {"type": "string"},
-                                    "ui_properties": {"type": "object"},
-                                },
-                                "required": [
-                                    "id",
-                                    "source",
-                                    "target",
-                                    "sourceHandle",
-                                    "targetHandle",
-                                ],
-                            },
-                        },
-                    },
-                    "required": ["nodes", "edges"],
-                },
-            },
-        }
-
-    async def process(self, context: ProcessingContext, params: dict):
-        """
-        Create a workflow
-
-        Args:
-            context (ProcessingContext): The processing context.
-            columns (Sequence[ColumnDef]): The columns of the record.
-            params (dict): The parameters of the workflow.
-        """
-        new_nodes = []
-        for node in params["graph"]["nodes"]:
-            if node["type"].startswith("nodetool.nodes."):
-                node["type"] = node["type"].replace("nodetool.nodes.", "")
-            node["type"] = node["type"].replace("__", ".")
-
-            node_class = get_node_class(node["type"])
-            if node_class is None:
-                raise ValueError(f"Unknown node type: {node['type']}")
-
-            i = node_class(**node["data"])
-            new_nodes.append(
-                {
-                    "id": i.id,
-                    "type": i.get_node_type(),
-                    "data": i.node_properties(),
-                    "ui_properties": i._ui_properties,
-                }
-            )
-
-        return params
 
 
 def get_collection(name) -> chromadb.Collection:
@@ -283,10 +145,17 @@ def get_example_collection():
     collection = get_collection("examples")
     if collection.count() == 0:
         index_examples(collection)
+
     return collection
 
 
-def search_documentation(query: str, n_results: int = 5) -> str:
+class SearchResult(BaseModel):
+    id: str
+    content: str
+    metadata: dict | None = None
+
+
+def search_documentation(query: str) -> list[SearchResult]:
     """
     Search the documentation for the given query string.
 
@@ -297,22 +166,21 @@ def search_documentation(query: str, n_results: int = 5) -> str:
     Returns:
         A string of the documentation for the given query.
     """
-    res = get_doc_collection().query(query_texts=[query], n_results=n_results)
-    if len(res["ids"]) == 0 or res["documents"] is None:
-        return ""
+    docs = get_doc_collection().query(query_texts=[query], n_results=10)
+    if len(docs["ids"]) == 0 or docs["documents"] is None:
+        return []
+    metadata = docs["metadatas"][0] if docs["metadatas"] else None
+    return [
+        SearchResult(
+            id=docs["ids"][0][i],
+            content=docs["documents"][0][i],
+            metadata=metadata[i] if metadata else None,  # type: ignore
+        )
+        for i in range(len(docs["ids"][0]))
+    ]
 
-    return "\n".join(
-        [
-            f"""
-            {res["documents"][0][i]}
-            {res["metadatas"][0][i] if res["metadatas"] else ""}
-            """
-            for i in range(len(res["ids"][0]))
-        ]
-    )
 
-
-def search_examples(query: str, n_results: int = 3):
+def search_examples(query: str) -> list[SearchResult]:
     """
     Search the examples for the given query string.
 
@@ -323,10 +191,23 @@ def search_examples(query: str, n_results: int = 3):
     Returns:
         A tuple of the ids and documents that match the query.
     """
-    res = get_example_collection().query(query_texts=[query], n_results=n_results)
+    res = get_example_collection().query(query_texts=[query], n_results=2)
     if len(res["ids"]) == 0 or res["documents"] is None:
-        return [], []
-    return res["ids"][0], res["documents"][0]
+        return []
+    return [
+        SearchResult(
+            id=res["ids"][0][i],
+            content=res["documents"][0][i],
+        )
+        for i in range(len(res["ids"][0]))
+    ]
+
+
+def search_docs(query: str) -> list[SearchResult]:
+    """
+    Search the documentation and examples for the given query string.
+    """
+    return search_documentation(query) + search_examples(query)
 
 
 """
@@ -472,14 +353,10 @@ def index_core_docs(collection: chromadb.Collection):
     )
 
 
-def prompt_for_help(
-    prompt: str,
-    docs_str: str,
-    examples: list[str],
-    available_tutorials: list[str],
-) -> str:
-    return f"""
+SYSTEM_PROMPT = """
 You're an AI assistant for Nodetool, a no-code AI workflow platform. 
+YOU ARE CONFIDENT AND KNOWLEDGEABLE.
+DO NOT QUESTION YOURSELF.
         
 NodeTool enables you to create custom AI workflows on your computer.
 
@@ -508,42 +385,300 @@ NodeTool enables you to create custom AI workflows on your computer.
 - **Asset Browser**: 
   Import and manage media assets.
   The assets can be used as input or output for nodes.
+  
+IMPORTANT NODES:
+- Preview Node: Renders any data as a preview, like images, videos, audio, documents, and more.
+- Input Nodes: These nodes take user input, like text, images, audio, video, and more.
+- Chat Input Node: This node takes user input from a chat interface, including audio, image or documents.
+- Constant Node: This node takes a constant value as input, like a string, number, or image.
+- Output Node: This node takes any data as input and displays it to the user.
+- Loop Node: This node takes list or dataframes and applies a sub graph to each element of the list.
+- Text Generation: There are many nodes from different providers for text generation, like OpenAI, Ollama, Google, Anthropic, and more.
+- Image Generation: There are many nodes from different providers for image generation, like OpenAI, Hugging Face, Replicate, and more.
 
+NODE HIERARCHY:
+ALWAYS use the documentation tool to find the correct node type.
+.
+├── aime
+│   ├── __init__.py
+│   ├── audio.py
+│   ├── image.py
+│   ├── text.py
+│   └── translate.py
+├── anthropic
+│   ├── __init__.py
+│   └── text.py
+├── apple
+│   ├── __init__.py
+│   ├── calendar.py
+│   ├── exportnotes.applescript
+│   ├── messages.py
+│   ├── notes.py
+│   └── speech.py
+├── chroma
+│   ├── __init__.py
+│   ├── chroma_node.py
+│   ├── collections.py
+│   ├── index.py
+│   └── query.py
+├── comfy
+│   ├── __init__.py
+│   ├── _for_testing.py
+│   ├── advanced
+│   │   ├── conditioning.py
+│   │   ├── loaders.py
+│   │   └── model.py
+│   ├── basic.py
+│   ├── conditioning.py
+│   ├── controlnet
+│   │   ├── __init__.py
+│   │   ├── faces_and_poses.py
+│   │   ├── line_extractors.py
+│   │   ├── normal_and_depth.py
+│   │   ├── others.py
+│   │   ├── semantic_segmentation.py
+│   │   └── t2i.py
+│   ├── enums.py
+│   ├── essentials
+│   │   ├── conditioning.py
+│   │   ├── image.py
+│   │   ├── mask.py
+│   │   ├── misc.py
+│   │   ├── sampling.py
+│   │   ├── segmentation.py
+│   │   └── text.py
+│   ├── flux.py
+│   ├── generate.py
+│   ├── image
+│   │   ├── __init__.py
+│   │   ├── animation.py
+│   │   ├── batch.py
+│   │   ├── transform.py
+│   │   └── upscaling.py
+│   ├── ipadapter.py
+│   ├── latent
+│   │   ├── __init__.py
+│   │   ├── advanced.py
+│   │   ├── batch.py
+│   │   ├── inpaint.py
+│   │   ├── stable_cascade.py
+│   │   ├── transform.py
+│   │   └── video.py
+│   ├── loaders.py
+│   ├── mask
+│   │   ├── __init__.py
+│   │   └── compositing.py
+│   └── sampling
+│       ├── __init__.py
+│       ├── guiders.py
+│       ├── noise.py
+│       ├── samplers.py
+│       ├── schedulers.py
+│       └── sigmas.py
+├── elevenlabs
+│   ├── __init__.py
+│   └── text_to_speech.py
+├── fal
+│   ├── __init__.py
+│   ├── fal_node.py
+│   ├── image_to_image.py
+│   ├── image_to_video.py
+│   ├── llm.py
+│   ├── speech_to_text.py
+│   ├── text_to_audio.py
+│   └── text_to_image.py
+├── google
+│   ├── __init__.py
+│   ├── agents.py
+│   ├── gemini.py
+│   └── mail.py
+├── huggingface
+│   ├── __init__.py
+│   ├── audio_classification.py
+│   ├── automatic_speech_recognition.py
+│   ├── depth_estimation.py
+│   ├── feature_extraction.py
+│   ├── fill_mask.py
+│   ├── huggingface_pipeline.py
+│   ├── image_classification.py
+│   ├── image_segmentation.py
+│   ├── image_to_image.py
+│   ├── lora.py
+│   ├── multimodal.py
+│   ├── object_detection.py
+│   ├── question_answering.py
+│   ├── ranking.py
+│   ├── sentence_similarity.py
+│   ├── stable_diffusion_base.py
+│   ├── summarization.py
+│   ├── text_classification.py
+│   ├── text_generation.py
+│   ├── text_to_audio.py
+│   ├── text_to_image.py
+│   ├── text_to_speech.py
+│   ├── text_to_text.py
+│   ├── token_classification.py
+│   ├── translation.py
+│   └── video.py
+├── lib
+│   ├── __init__.py
+│   ├── audio
+│   │   ├── __init__.py
+│   │   ├── audio_helpers.py
+│   │   ├── conversion.py
+│   │   ├── librosa
+│   │   │   ├── __init__.py
+│   │   │   ├── analysis.py
+│   │   │   └── segmentation.py
+│   │   ├── pedalboard.py
+│   │   ├── synthesis.py
+│   │   └── transform.py
+│   ├── data
+│   │   ├── __init__.py
+│   │   ├── langchain.py
+│   │   ├── llama_index.py
+│   │   ├── numpy
+│   │   │   └── __init__.py
+│   │   ├── pandas
+│   │   │   ├── __init__.py
+│   │   │   └── dataframe.py
+│   │   └── seaborn.py
+│   ├── file
+│   │   ├── __init__.py
+│   │   ├── docx.py
+│   │   ├── excel.py
+│   │   ├── markdown.py
+│   │   ├── markitdown.py
+│   │   ├── pandoc.py
+│   │   ├── pdfplumber.py
+│   │   └── pymupdf.py
+│   ├── image
+│   │   ├── __init__.py
+│   │   ├── grid.py
+│   │   ├── pillow
+│   │   │   ├── __init__.py
+│   │   │   ├── draw.py
+│   │   │   ├── enhance.py
+│   │   │   └── filter.py
+│   │   └── svg.py
+│   ├── json.py
+│   ├── ml
+│   │   ├── __init__.py
+│   │   ├── sklearn
+│   │   │   ├── __init__.py
+│   │   │   ├── cluster.py
+│   │   │   ├── compose.py
+│   │   │   ├── datasets.py
+│   │   │   ├── decomposition.py
+│   │   │   ├── ensemble.py
+│   │   │   ├── feature_selection.py
+│   │   │   ├── impute.py
+│   │   │   ├── inspection.py
+│   │   │   ├── linear_model.py
+│   │   │   ├── metrics.py
+│   │   │   ├── model_selection.py
+│   │   │   ├── naive_bayes.py
+│   │   │   ├── neighbors.py
+│   │   │   ├── preprocessing.py
+│   │   │   ├── svm.py
+│   │   │   ├── tree.py
+│   │   │   └── visualization.py
+│   │   └── statsmodels
+│   │       ├── __init__.py
+│   │       ├── discrete.py
+│   │       ├── glm.py
+│   │       ├── mixed.py
+│   │       ├── regression.py
+│   │       └── robust.py
+│   ├── network
+│   │   ├── __init__.py
+│   │   ├── beautifulsoup.py
+│   │   ├── http.py
+│   │   ├── imap.py
+│   │   └── rss.py
+│   └── ui
+│       ├── __init__.py
+│       └── tk.py
+├── nodetool
+│   ├── __init__.py
+│   ├── audio.py
+│   ├── boolean.py
+│   ├── code.py
+│   ├── constant.py
+│   ├── control.py
+│   ├── date.py
+│   ├── dictionary.py
+│   ├── group.py
+│   ├── image.py
+│   ├── input.py
+│   ├── list.py
+│   ├── math.py
+│   ├── os.py
+│   ├── output.py
+│   ├── text.py
+│   └── video.py
+├── ollama
+│   ├── __init__.py
+│   ├── agents.py
+│   └── text.py
+├── openai
+│   ├── __init__.py
+│   ├── agents.py
+│   ├── audio.py
+│   ├── image.py
+│   └── text.py
+└── replicate
+    ├── __init__.py
+    ├── audio
+    │   ├── __init__.py
+    │   ├── enhance.py
+    │   ├── generate.py
+    │   ├── separate.py
+    │   └── transcribe.py
+    ├── gencode.py
+    ├── image
+    │   ├── __init__.py
+    │   ├── analyze.py
+    │   ├── enhance.py
+    │   ├── face.py
+    │   ├── generate.py
+    │   ├── ocr.py
+    │   ├── process.py
+    │   └── upscale.py
+    ├── text
+    │   ├── __init__.py
+    │   └── generate.py
+    └── video
+        ├── __init__.py
+        ├── analyze.py
+        └── generate.py
 
 ## Use Cases 🎨
-
 - 🎨 **Personal Learning Assistant**: Create chatbots that read and explain your PDFs, e-books, or academic papers
 - 📝 **Note Summarization**: Extract key insights from Obsidian or Apple Notes
 - 🎤 **Voice Memo to Presentation**: Convert recorded ideas into documents
 - 🔧️ **Image Generation & Editing**: Create and modify images with advanced AI models
 - 🎵 **Audio Processing**: Generate and edit audio content with AI assistance
 - 🎬 **Video Creation**: Produce and manipulate video content using AI tools
-- 🔧 **Desktop Utilities**: Access NodeTool mini-apps from your system tray
-- 🗣️ **Siri Integration**: Extend Siri's capabilities with custom AI workflows
 - ⚡ **Automation**: Streamline repetitive tasks with AI-powered scripts
 
 Key Guidelines:
 - **Reference Valid Nodes:** When mentioning a node, only reference existing ones. Use the format [Node Type](/help/node_type) for clarity.
-- **Use Documentation Results:** Incorporate details from the documentation below to ensure your answers reflect the latest platform capabilities.
+- **Use Documentation Search:** Use the documentation search tool to find information about nodes.
+- **Use Example Search:** Use the example search tool to find examples of how to use nodes.
 - **Answer Precisely:** Be concise, clear, and creative in your responses. Utilize ASCII diagrams if they help explain complex workflows.
 - **Focus on Nodetool Features:** Emphasize the visual editor, asset management, model management, workflow execution, and keyboard shortcuts (for example, the help menu in the top right corner).
-- **Technical Queries:** For deeper technical issues, advise users to visit the forum for further assistance.
-- **Encourage Improvements:** Always be open to suggesting platform improvements where relevant.
 
 REFERENCE NODES:
 - Format any reference to a node as: [Node Type](/help/node_type)
 - Example node link: [Text Generation](/help/huggingface.text.TextGeneration)
 - DO NOT ADD http/domain to URLs.
 
-Use following relevant documentation to answer questions, pay attention to Aode_type and properties:
-{docs_str}
-
 HOW TO ANSWER QUESTIONS:
 - Explain any necessary Nodetool features
-- Explain the node types and their parameters
-- Do not mention any technology outside of Nodetool
-- Do not recommend workflows in detail, only high level concepts
-- Focus on explaining node features, not the broader context of AI
+- KEEP IT BRIEF
+- DO NOT OVERTHINK
+- BE CONCISE
 """
 
 
@@ -567,6 +702,30 @@ async def create_message(message: Message) -> Mapping[str, str | list[str]]:
     return ollama_message
 
 
+available_functions = {
+    "search_docs": search_docs,
+}
+
+
+def convert_results_to_json(obj: Any) -> str:
+    if isinstance(obj, BaseModel):
+        return obj.model_dump_json()
+    elif isinstance(obj, list):
+        return json.dumps([convert_results_to_json(item) for item in obj])
+    elif isinstance(obj, dict):
+        return json.dumps({k: convert_results_to_json(v) for k, v in obj.items()})
+    elif isinstance(obj, str):
+        return obj
+    elif isinstance(obj, bool):
+        return str(obj).lower()
+    elif isinstance(obj, int):
+        return str(obj)
+    elif isinstance(obj, float):
+        return str(obj)
+    else:
+        return json.dumps(obj)
+
+
 async def create_help_answer(
     messages: list[Message], available_tutorials: list[str]
 ) -> AsyncGenerator[str, None]:
@@ -574,69 +733,47 @@ async def create_help_answer(
 
     client = get_ollama_client()
 
-    prompt = str(messages[-1].content)
-
-    docs_str = search_documentation(prompt, 10)
-    # _, examples = search_examples(prompt)
-
-    print(docs_str)
-
-    system_message = ollama.Message(
-        role="system",
-        content=prompt_for_help(
-            prompt, docs_str=docs_str, examples=[], available_tutorials=[]
-        ),
-    )
+    system_message = ollama.Message(role="system", content=SYSTEM_PROMPT)
 
     ollama_messages = [await create_message(m) for m in messages]
+    all_messages = [system_message] + ollama_messages
 
     res = await client.chat(
-        model="llama3.2:1b",
-        messages=[system_message] + ollama_messages,
+        model="llama3.2:3b",
+        messages=all_messages,
         options={"num_ctx": 20000},
+        tools=[search_docs],
         stream=True,
     )
+
     async for part in res:
-        yield part.message.content or ""
+        if part.message.tool_calls:
+            for tool in part.message.tool_calls:
+                yield f"Calling tool: {tool.function.name}\n"
+                if function_to_call := available_functions.get(tool.function.name):
+                    results = function_to_call(**tool.function.arguments)
 
-    # system_message = Message(
+                    # Add tool results to messages
+                    all_messages.append(part.message)
+                    all_messages.append(
+                        {
+                            "role": "tool",
+                            "content": convert_results_to_json(results),
+                            "name": tool.function.name,
+                        }
+                    )
 
-
-#     role="system",
-#     content=system_prompt_for(prompt, docs_dict, examples, available_tutorials),
-# )
-# tools: list[Tool] = []
-# classes = [
-#     c for c in get_registered_node_classes() if c.get_node_type() in node_types
-# ]
-# model = FunctionModel(
-#     provider=Provider.OpenAI,
-#     name="gpt-4o-mini",
-# )
-# tools.append(TutorialTool(available_tutorials))
-
-# for node_class in classes[:10]:
-#     try:
-#         if node_class.get_node_type().startswith("replicate"):
-#             continue
-#         tools.append(AddNodeTool(node_class))
-#     except Exception as e:
-#         log.error(f"Error creating node tool: {e}")
-#         log.exception(e)
-
-# context = ProcessingContext("", "notoken")
-# answer = await process_messages(
-#     context=context,
-#     messages=[system_message] + messages,
-#     model=model,
-#     node_id="",
-#     tools=tools,
-# )
-
-# if answer.tool_calls:
-#     answer.tool_calls = await process_tool_calls(context, answer.tool_calls, tools)
-
-# return [answer]
+                    # Get final response with tool results
+                    final_res = await client.chat(
+                        model="deepseek-r1:7b",
+                        messages=all_messages,
+                        options={"num_ctx": 20000},
+                        stream=True,
+                    )
+                    async for chunk in final_res:
+                        yield chunk.message.content or ""
+        else:
+            yield part.message.content or ""
 
 
 async def test_chat():
