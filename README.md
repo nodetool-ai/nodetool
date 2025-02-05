@@ -1,6 +1,6 @@
 <h1 style="display: inline;">
   <img src="https://github.com/user-attachments/assets/823b1091-78cd-423f-9b41-14f33b787c7d" alt="NodeTool Logo" height="24" style="vertical-align: -30px;"/>
-  NodeTool - Your Personal Automation Platform
+  NodeTool - Build AI Apps
 </h1>
 
 ![Conda](https://github.com/nodetool-ai/nodetool/actions/workflows/conda.yaml/badge.svg)
@@ -10,60 +10,48 @@
 ![Docker](https://github.com/nodetool-ai/nodetool/actions/workflows/docker-publish.yaml/badge.svg)
 ![CodeQL](https://github.com/nodetool-ai/nodetool/actions/workflows/github-code-scanning/codeql/badge.svg)
 
-NodeTool enables you to create custom AI workflows on your computer.
+NodeTool enables you to build AI apps visually by creating workflows that run as mini-apps or chatbots.
 
 With NodeTool, you can:
 
-- **Build Privacy-First**: Keep your data local and secure with no need to send files to external servers
-- **Create Custom Solutions**: Design AI tools that work exactly the way you need them to
+- **Build AI Apps Visually**: Create custom applications through an intuitive visual workflow editor
+- **Deploy as Mini-Apps**: Turn your workflows into standalone applications accessible from your system tray
+- **Create Custom Chatbots**: Design specialized chat interfaces for specific tasks or domains
 - **Run Locally**: Utilize your own hardware to run open-source models via Ollama and access thousands of models via Hugging Face
-- **Integrate Seamlessly**: Connect AI workflows to your favorite apps and services
-- **Generate & Edit Media**: Create and manipulate images, audio, and video using state-of-the-art AI models
-- **Process Multiple Formats**: Work with text, images, audio, and video in a single unified interface
+- **Process Multiple Formats**: Work with text, images, audio, and video in a unified interface
 
 ![NodeTool](nodetool.png)
 
 ## Use Cases 🎨
 
-- 🎨 **Personal Learning Assistant**: Create chatbots that read and explain your PDFs, e-books, or academic papers
-- 📝 **Note Summarization**: Extract key insights from Obsidian or Apple Notes
-- 🎤 **Voice Memo to Presentation**: Convert recorded ideas into documents
-- 🔧️ **Image Generation & Editing**: Create and modify images with advanced AI models
-- 🎵 **Audio Processing**: Generate and edit audio content with AI assistance
-- 🎬 **Video Creation**: Produce and manipulate video content using AI tools
-- 🔧 **Desktop Utilities**: Access NodeTool mini-apps from your system tray
-- 🗣️ **Siri Integration**: Extend Siri's capabilities with custom AI workflows
-- ⚡ **Automation**: Streamline repetitive tasks with AI-powered scripts
+- 🤖 **Custom AI Apps**: Build specialized applications for specific tasks or domains
+- 💬 **Smart Chatbots**: Create chatbots that integrate with your data and tools
+- 🎨 **Creative Tools**: Design apps for image generation, editing, and creative workflows
+- 📝 **Document Processing**: Build apps that analyze, summarize, and extract insights from documents
+- 🎤 **Media Processing**: Create tools for audio and video generation and editing
+- 🔧 **Workflow Automation**: Design apps that streamline repetitive tasks with AI
+- 🗣️ **Voice Interfaces**: Build voice-enabled applications with Siri integration
+- ⚡ **API-Powered Tools**: Create apps that combine multiple AI services
 
 ## Features ✨
 
-Key features to automate your workflow:
+Key features for building AI applications:
 
-- **Visual Editor**: Build AI workflows visually—no coding required.
-- **Mini Apps**: Access NodeTool mini-apps from your system tray.
-- **Chat Apps**: Build chatbots that explain your PDFs, generate images, and more.
-- **Ollama Support**: Run local language models for chat.
-- **HuggingFace**: Run Transformers and Diffusers models locally.
-- **Model Manager**: Manage and download models from the Hugging Face Hub.
-- **Integration with AI Platforms**: Use models from OpenAI, Hugging Face, Anthropic, Ollama, and ComfyUI.
-- **ComfyUI Support**: Run ComfyUI nodes directly in NodeTool without extra installation.
-- **Asset Management**: Import and manage media assets easily.
-- **Multimodal Support**: Work with images, text, audio, and video together.
-- **API**: Call NodeTool API from your own scripts.
-- **Custom Nodes**: Enhance functionality with Python.
-- **Cross-Platform**: Available on Mac, Windows, and Linux.
+- **Visual Workflow Editor**: Design your app's logic visually—no coding required
+- **App Templates**: Start with pre-built templates for common use cases
+- **Mini-App Builder**: Package workflows as standalone desktop applications
+- **Chat Interface Builder**: Create custom chatbot interfaces
+- **Local Model Support**: Run Ollama and HuggingFace models locally
+- **AI Platform Integration**: Use models from OpenAI, Anthropic, and others
+- **Asset Management**: Import and manage media assets within your apps
+- **Multimodal Support**: Build apps that handle text, images, audio, and video
+- **API Access**: Integrate your apps with other tools via API
+- **Custom Extensions**: Add new capabilities with Python
+- **Cross-Platform**: Deploy your apps on Mac, Windows, and Linux
 
 ## Quickstart 🚀
 
-Download the latest release from our [Releases Page](https://github.com/nodetool-ai/nodetool/releases).
-
-## Where to Use NodeTool 🖥️
-
-NodeTool is designed for your local environment:
-
-- **Home Workstation**: Build AI tools for personal productivity or creative projects
-- **Lab or Office**: Deploy customized solutions for research and internal utilities
-- **On the Go**: Run lightweight workflows on laptops for portable AI assistance
+Release 0.6 is available soon! Stay tuned.
 
 ## Node Overview 🧩
 
