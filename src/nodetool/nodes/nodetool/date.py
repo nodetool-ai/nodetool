@@ -87,7 +87,7 @@ class AddTimeDelta(BaseNode):
     """
 
     input_datetime: Datetime = Field(
-        default=Datetime.from_datetime(datetime.now()), description="Starting datetime"
+        default=Datetime(), description="Starting datetime"
     )
     days: int = Field(
         ge=-365 * 10,
@@ -123,12 +123,8 @@ class DateDifference(BaseNode):
     - Measure durations
     """
 
-    start_date: Datetime = Field(
-        default=Datetime(), description="Start datetime"
-    )
-    end_date: Datetime = Field(
-        default=Datetime(), description="End datetime"
-    )
+    start_date: Datetime = Field(default=Datetime(), description="Start datetime")
+    end_date: Datetime = Field(default=Datetime(), description="End datetime")
 
     @classmethod
     def return_type(cls):
@@ -183,9 +179,7 @@ class GetWeekday(BaseNode):
     - Filter events by weekday
     """
 
-    input_datetime: Datetime = Field(
-        default=Datetime(), description="Input datetime"
-    )
+    input_datetime: Datetime = Field(default=Datetime(), description="Input datetime")
     as_name: bool = Field(
         default=True, description="Return weekday name instead of number (0-6)"
     )
@@ -237,9 +231,7 @@ class IsDateInRange(BaseNode):
     - Filter date-based data
     """
 
-    check_date: Datetime = Field(
-        default=Datetime(), description="Date to check"
-    )
+    check_date: Datetime = Field(default=Datetime(), description="Date to check")
     start_date: Datetime = Field(
         default=Datetime(),
         description="Start of date range",
@@ -276,9 +268,7 @@ class GetQuarter(BaseNode):
     - Quarterly analytics
     """
 
-    input_datetime: Datetime = Field(
-        default=Datetime(), description="Input datetime"
-    )
+    input_datetime: Datetime = Field(default=Datetime(), description="Input datetime")
 
     @classmethod
     def return_type(cls):
@@ -315,9 +305,7 @@ class DateToDatetime(BaseNode):
     date, datetime, convert
     """
 
-    input_date: Date = Field(
-        default=Date(), description="Date to convert"
-    )
+    input_date: Date = Field(default=Date(), description="Date to convert")
 
     async def process(self, context: ProcessingContext) -> Datetime:
         return Datetime.from_datetime(
@@ -434,9 +422,7 @@ class StartOfDay(BaseNode):
     datetime, day, start
     """
 
-    input_datetime: Datetime = Field(
-        default=Datetime.from_datetime(datetime.now()), description="Input datetime"
-    )
+    input_datetime: Datetime = Field(default=Datetime(), description="Input datetime")
 
     async def process(self, context: ProcessingContext) -> Datetime:
         dt = self.input_datetime.to_datetime()
@@ -451,9 +437,7 @@ class EndOfDay(BaseNode):
     datetime, day, end
     """
 
-    input_datetime: Datetime = Field(
-        default=Datetime.from_datetime(datetime.now()), description="Input datetime"
-    )
+    input_datetime: Datetime = Field(default=Datetime(), description="Input datetime")
 
     async def process(self, context: ProcessingContext) -> Datetime:
         dt = self.input_datetime.to_datetime()
@@ -468,9 +452,7 @@ class StartOfMonth(BaseNode):
     datetime, month, start
     """
 
-    input_datetime: Datetime = Field(
-        default=Datetime.from_datetime(datetime.now()), description="Input datetime"
-    )
+    input_datetime: Datetime = Field(default=Datetime(), description="Input datetime")
 
     async def process(self, context: ProcessingContext) -> Datetime:
         dt = self.input_datetime.to_datetime()
@@ -485,9 +467,7 @@ class EndOfMonth(BaseNode):
     datetime, month, end
     """
 
-    input_datetime: Datetime = Field(
-        default=Datetime.from_datetime(datetime.now()), description="Input datetime"
-    )
+    input_datetime: Datetime = Field(default=Datetime(), description="Input datetime")
 
     async def process(self, context: ProcessingContext) -> Datetime:
         dt = self.input_datetime.to_datetime()
@@ -505,9 +485,7 @@ class StartOfYear(BaseNode):
     datetime, year, start
     """
 
-    input_datetime: Datetime = Field(
-        default=Datetime.from_datetime(datetime.now()), description="Input datetime"
-    )
+    input_datetime: Datetime = Field(default=Datetime(), description="Input datetime")
 
     async def process(self, context: ProcessingContext) -> Datetime:
         dt = self.input_datetime.to_datetime()
@@ -522,9 +500,7 @@ class EndOfYear(BaseNode):
     datetime, year, end
     """
 
-    input_datetime: Datetime = Field(
-        default=Datetime.from_datetime(datetime.now()), description="Input datetime"
-    )
+    input_datetime: Datetime = Field(default=Datetime(), description="Input datetime")
 
     async def process(self, context: ProcessingContext) -> Datetime:
         dt = self.input_datetime.to_datetime()
@@ -541,9 +517,7 @@ class StartOfWeek(BaseNode):
     datetime, week, start
     """
 
-    input_datetime: Datetime = Field(
-        default=Datetime.from_datetime(datetime.now()), description="Input datetime"
-    )
+    input_datetime: Datetime = Field(default=Datetime(), description="Input datetime")
     start_monday: bool = Field(
         default=True, description="Consider Monday as start of week (False for Sunday)"
     )
@@ -564,9 +538,7 @@ class EndOfWeek(BaseNode):
     datetime, week, end
     """
 
-    input_datetime: Datetime = Field(
-        default=Datetime.from_datetime(datetime.now()), description="Input datetime"
-    )
+    input_datetime: Datetime = Field(default=Datetime(), description="Input datetime")
     start_monday: bool = Field(
         default=True, description="Consider Monday as start of week (False for Sunday)"
     )
