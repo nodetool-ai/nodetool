@@ -12,7 +12,7 @@ import { client } from "../stores/ApiClient";
 import { useStoreWithEqualityFn } from "zustand/traditional";
 import { shallow } from "zustand/shallow";
 import React from "react";
-import { debounce } from "lodash";
+import { debounce, omit } from "lodash";
 import { createErrorMessage } from "../utils/errorHandling";
 import { uuidv4 } from "../stores/uuidv4";
 
@@ -26,15 +26,16 @@ type WorkflowManagerState = {
   nodeStores: Record<string, NodeStore>;
   currentWorkflowId: string | null;
   loadingStates: Record<string, LoadingState>;
+  openWorkflows: WorkflowAttributes[];
   getCurrentLoadingState: () => LoadingState | undefined;
   getWorkflow: (workflowId: string) => Workflow | undefined;
   addWorkflow: (workflow: Workflow) => void;
   removeWorkflow: (workflowId: string) => void;
   getNodeStore: (workflowId: string) => NodeStore | undefined;
-  listWorkflows: () => WorkflowAttributes[];
   reorderWorkflows: (sourceIndex: number, targetIndex: number) => void;
   updateWorkflow: (workflow: WorkflowAttributes) => void;
   saveWorkflow: (workflow: Workflow) => Promise<void>;
+  getOpenWorkflows: () => WorkflowAttributes[];
   getCurrentWorkflow: () => Workflow | undefined;
   setCurrentWorkflowId: (workflowId: string) => void;
   fetchWorkflow: (workflowId: string) => Promise<void>;
@@ -50,7 +51,7 @@ type WorkflowManagerState = {
   update: (workflow: Workflow) => Promise<Workflow>;
   copy: (originalWorkflow: Workflow) => Promise<Workflow>;
   delete: (id: string) => Promise<void>;
-  saveExample: (id: string, workflow: Workflow) => Promise<any>;
+  saveExample: () => Promise<any>;
 };
 
 export type WorkflowManagerStore = UseBoundStore<
@@ -99,6 +100,7 @@ export const useWorkflowManager = <T,>(
 export const createWorkflowManagerStore = () =>
   create<WorkflowManagerState>()((set, get) => ({
     nodeStores: {},
+    openWorkflows: [],
     currentWorkflowId: storage.getCurrentWorkflow() || null,
     loadingStates: {},
     error: null,
@@ -222,9 +224,13 @@ export const createWorkflowManagerStore = () =>
       }
     },
 
-    saveExample: async (id: string, workflow: Workflow) => {
+    saveExample: async () => {
+      const workflow = get().getCurrentWorkflow();
+      if (!workflow) {
+        throw new Error("Workflow not found");
+      }
       const { data, error } = await client.PUT("/api/workflows/examples/{id}", {
-        params: { path: { id } },
+        params: { path: { id: workflow.id } },
         body: {
           name: workflow.name,
           description: workflow.description,
@@ -259,7 +265,7 @@ export const createWorkflowManagerStore = () =>
       }
       return workflow.getState().getWorkflow();
     },
-    listWorkflows: () => {
+    getOpenWorkflows: () => {
       return Object.values(get().nodeStores).map((store) => {
         return store.getState().workflow;
       });
@@ -282,6 +288,7 @@ export const createWorkflowManagerStore = () =>
       }
 
       set((state) => ({
+        openWorkflows: [...state.openWorkflows, omit(workflow, ["graph"])],
         nodeStores: {
           ...state.nodeStores,
           [workflow.id]: createNodeStore(workflow)
@@ -299,7 +306,8 @@ export const createWorkflowManagerStore = () =>
           state.loadingStates;
         return {
           nodeStores: remaining,
-          loadingStates: remainingLoadingStates
+          loadingStates: remainingLoadingStates,
+          openWorkflows: state.openWorkflows.filter((w) => w.id !== workflowId)
         };
       });
     },
@@ -320,7 +328,10 @@ export const createWorkflowManagerStore = () =>
         const [moved] = entries.splice(sourceIndex, 1);
         entries.splice(targetIndex, 0, moved);
         return {
-          nodeStores: Object.fromEntries(entries)
+          nodeStores: Object.fromEntries(entries),
+          openWorkflows: Object.values(get().nodeStores).map((store) => {
+            return store.getState().workflow;
+          })
         };
       });
     },
@@ -330,6 +341,11 @@ export const createWorkflowManagerStore = () =>
         return;
       }
       nodeStore.getState().setWorkflowAttributes(workflow);
+      set((state) => ({
+        openWorkflows: Object.values(state.nodeStores).map((store) => {
+          return store.getState().workflow;
+        })
+      }));
     },
     getLoadingState: (workflowId: string) => get().loadingStates[workflowId],
     setLoadingState: (workflowId: string, state: Partial<LoadingState>) => {

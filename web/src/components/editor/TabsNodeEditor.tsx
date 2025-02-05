@@ -172,7 +172,7 @@ const styles = (theme: any) =>
 
 const TabsNodeEditor = () => {
   const {
-    listWorkflows,
+    openWorkflows,
     getWorkflow,
     removeWorkflow,
     reorderWorkflows,
@@ -180,7 +180,7 @@ const TabsNodeEditor = () => {
     currentWorkflowId,
     loadingStates
   } = useWorkflowManager((state) => ({
-    listWorkflows: state.listWorkflows,
+    openWorkflows: state.openWorkflows,
     getWorkflow: state.getWorkflow,
     removeWorkflow: state.removeWorkflow,
     reorderWorkflows: state.reorderWorkflows,
@@ -201,10 +201,11 @@ const TabsNodeEditor = () => {
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
 
+  console.log(openWorkflows);
+
   const workflows = useMemo(() => {
-    const workflows = listWorkflows();
     const loadingWorkflows = Object.keys(loadingStates)
-      .filter((id) => !workflows.some((w) => w.id === id))
+      .filter((id) => !openWorkflows.some((w) => w.id === id))
       .map(
         (id) =>
           ({
@@ -219,8 +220,8 @@ const TabsNodeEditor = () => {
             graph: { nodes: [], edges: [] }
           } as Workflow)
       );
-    return [...workflows, ...loadingWorkflows];
-  }, [listWorkflows, loadingStates]);
+    return [...openWorkflows, ...loadingWorkflows];
+  }, [openWorkflows, loadingStates]);
 
   const handleClose = useCallback(
     (workflowId: string) => {
@@ -267,16 +268,15 @@ const TabsNodeEditor = () => {
       e.preventDefault();
       const sourceId = e.dataTransfer.getData("text/plain");
       if (sourceId !== targetId && dropTarget) {
-        const workflows = listWorkflows();
-        const sourceIndex = workflows.findIndex((w) => w.id === sourceId);
-        const targetIndex = workflows.findIndex((w) => w.id === targetId);
+        const sourceIndex = openWorkflows.findIndex((w) => w.id === sourceId);
+        const targetIndex = openWorkflows.findIndex((w) => w.id === targetId);
         const finalTargetIndex =
           dropTarget.position === "right" ? targetIndex + 1 : targetIndex;
         reorderWorkflows(sourceIndex, finalTargetIndex);
       }
       setDropTarget(null);
     },
-    [dropTarget, listWorkflows, reorderWorkflows]
+    [dropTarget, openWorkflows, reorderWorkflows]
   );
 
   const handleDoubleClick = useCallback((workflowId: string) => {
@@ -357,7 +357,7 @@ const TabsNodeEditor = () => {
     checkScrollability();
     window.addEventListener("resize", checkScrollability);
     return () => window.removeEventListener("resize", checkScrollability);
-  }, [listWorkflows, checkScrollability]);
+  }, [checkScrollability]);
 
   useEffect(() => {
     const tabsElement = tabsRef.current;

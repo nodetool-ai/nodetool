@@ -173,7 +173,6 @@ const WorkflowList = () => {
       refetchOnReconnect: false
     }
   );
-  const listWorkflows = useWorkflowManager((state) => state.listWorkflows);
 
   const workflows = useMemo(() => {
     if (filterValue === "") return data?.workflows || [];
@@ -269,7 +268,7 @@ const WorkflowList = () => {
           selectedWorkflowsCount={selectedWorkflows.length}
           onBulkDelete={() => {
             setWorkflowsToDelete(
-              listWorkflows().filter((w) => selectedWorkflows.includes(w.id))
+              workflows.filter((w) => selectedWorkflows.includes(w.id))
             );
             setIsDeleteDialogOpen(true);
           }}

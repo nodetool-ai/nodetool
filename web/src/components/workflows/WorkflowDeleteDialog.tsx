@@ -16,9 +16,9 @@ const WorkflowDeleteDialog: FC<WorkflowDeleteDialogProps> = ({
   onClose,
   workflowsToDelete
 }) => {
-  const { removeWorkflow, listWorkflows } = useWorkflowManager((state) => ({
+  const { removeWorkflow, openWorkflows } = useWorkflowManager((state) => ({
     removeWorkflow: state.removeWorkflow,
-    listWorkflows: state.listWorkflows
+    openWorkflows: state.openWorkflows
   }));
   const currentWorkflowId = useWorkflowManager(
     (state) => state.currentWorkflowId
@@ -39,7 +39,7 @@ const WorkflowDeleteDialog: FC<WorkflowDeleteDialogProps> = ({
           currentWorkflowId &&
           workflowsToDelete.some((w) => w.id === currentWorkflowId)
         ) {
-          const nextWorkflow = listWorkflows().find(
+          const nextWorkflow = openWorkflows.find(
             (w) => !workflowsToDelete.some((y) => y.id === w.id)
           );
           if (nextWorkflow) {
@@ -57,7 +57,7 @@ const WorkflowDeleteDialog: FC<WorkflowDeleteDialogProps> = ({
     workflowsToDelete,
     queryClient,
     currentWorkflowId,
-    listWorkflows,
+    openWorkflows,
     navigate,
     onClose,
     removeWorkflow
