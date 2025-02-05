@@ -124,38 +124,24 @@ class ChatInput(InputNode):
         history = self.value[:-1]
 
         last_message = self.value[-1] if self.value else None
+        text = ""
+        image = ImageRef()
+        audio = AudioRef()
+        video = VideoRef()
+        document = DocumentRef()
         if last_message and last_message.content:
-            text = (
-                last_message.content[0].text
-                if isinstance(last_message.content[0], MessageTextContent)
-                else ""
-            )
-            image = (
-                last_message.content[0].image
-                if isinstance(last_message.content[0], MessageImageContent)
-                else None
-            )
-            audio = (
-                last_message.content[0].audio
-                if isinstance(last_message.content[0], MessageAudioContent)
-                else None
-            )
-            video = (
-                last_message.content[0].video
-                if isinstance(last_message.content[0], MessageVideoContent)
-                else None
-            )
-            document = (
-                last_message.content[0].document
-                if isinstance(last_message.content[0], MessageDocumentContent)
-                else None
-            )
-        else:
-            text = ""
-            image = ImageRef()
-            audio = AudioRef()
-            video = VideoRef()
-            document = DocumentRef()
+            # Check all content items, taking the first instance of each type
+            for content in last_message.content:
+                if isinstance(content, MessageTextContent):
+                    text = content.text
+                elif isinstance(content, MessageImageContent):
+                    image = content.image
+                elif isinstance(content, MessageAudioContent):
+                    audio = content.audio
+                elif isinstance(content, MessageVideoContent):
+                    video = content.video
+                elif isinstance(content, MessageDocumentContent):
+                    document = content.document
 
         return {
             "history": history,
