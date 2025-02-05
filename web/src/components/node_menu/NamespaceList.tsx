@@ -592,7 +592,7 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
     searchResults,
     allSearchMatches,
     hoveredNode,
-    getCurrentNodes
+    filterNodes
   } = useNodeMenuStore((state) => ({
     searchTerm: state.searchTerm,
     highlightedNamespaces: state.highlightedNamespaces,
@@ -602,8 +602,10 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
     hoveredNode: state.hoveredNode,
     selectedInputType: state.selectedInputType,
     selectedOutputType: state.selectedOutputType,
-    getCurrentNodes: state.getCurrentNodes
+    filterNodes: state.filterNodes
   }));
+
+  const allMetadata = useMetadataStore((state) => state.getAllMetadata());
 
   const selectedPathString = useMemo(
     () => selectedPath.join("."),
@@ -635,9 +637,8 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
   }, [namespaceTree]);
 
   const currentNodes = useMemo(() => {
-    const nodes = getCurrentNodes();
-    return nodes;
-  }, [getCurrentNodes]);
+    return filterNodes(allMetadata);
+  }, [allMetadata, filterNodes]);
 
   const totalNodes = useMetadataStore((state) => state.getAllMetadata()).length;
 
