@@ -206,6 +206,16 @@ class TypeMetadata(BaseModel):
                     "type": "string",
                     "enum": self.values,
                 }
+        if self.type == "tuple":
+            return {
+                "type": "array",
+                "items": [t.get_json_schema() for t in self.type_args],
+            }
+
+        if self.type == "object":
+            return {
+                "type": "object",
+            }
 
         python_type = self.get_python_type()
         if issubclass(python_type, BaseModel):

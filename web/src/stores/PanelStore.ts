@@ -120,12 +120,22 @@ export const usePanelStore = create<ResizePanelState>()((set, get) => ({
     const { panel } = get();
 
     if (panel.activeView === view) {
-      set((state) => ({
-        panel: {
-          ...state.panel,
-          isVisible: !state.panel.isVisible
-        }
-      }));
+      if (!panel.isVisible && panel.panelSize < MIN_PANEL_SIZE) {
+        set((state) => ({
+          panel: {
+            ...state.panel,
+            panelSize: MIN_PANEL_SIZE,
+            isVisible: true
+          }
+        }));
+      } else {
+        set((state) => ({
+          panel: {
+            ...state.panel,
+            isVisible: !state.panel.isVisible
+          }
+        }));
+      }
     } else {
       set((state) => ({
         panel: {

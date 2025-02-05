@@ -208,8 +208,6 @@ const PanelLeft: React.FC = () => {
     handlePanelToggle
   } = useResizePanel("left");
 
-  console.log("isVisible", isVisible);
-
   useCombo(["1"], handlePanelToggle, false);
 
   const activeView =
