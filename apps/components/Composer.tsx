@@ -1,4 +1,4 @@
-import React, { useCallback, useRef } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import {
   Box,
   Flex,
@@ -10,8 +10,13 @@ import {
 import { FileUploadRoot, FileUploadTrigger } from "./ui/file-upload";
 import { FileUploadList } from "./ui/file-upload";
 import { HiUpload } from "react-icons/hi";
+import { FaMicrophone, FaStop } from "react-icons/fa";
+import AudioInput from "./AudioInput";
 
 interface ComposerProps {
+  handleAudioChange: (
+    audioRef: { type: "audio"; data: Uint8Array } | null
+  ) => void;
   onSubmit: (message: string) => void;
   disabled: boolean;
   droppedFiles: File[];
@@ -33,9 +38,14 @@ export const Composer: React.FC<ComposerProps> = ({
   disabled,
   droppedFiles,
   setDroppedFiles,
+  handleAudioChange,
   className,
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [showAudioInput, setShowAudioInput] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
 
   const handleSubmit = useCallback(() => {
     if (!textareaRef.current) return;
@@ -61,75 +71,130 @@ export const Composer: React.FC<ComposerProps> = ({
     console.log(changes);
   }, []);
 
-  return (
-    <HStack
-      className={className ? `composer-root ${className}` : "composer-root"}
-      p={4}
-      gap={4}
-    >
-      <Box width={droppedFiles.length > 0 ? "40%" : "10%"}>
-        <FileUploadRoot onFileChange={handleFileChange} maxFiles={3}>
-          <HStack>
-            <FileUploadTrigger asChild>
-              <Button size="sm" variant="ghost" colorScheme="gray">
-                <HiUpload />
-              </Button>
-            </FileUploadTrigger>
-            <FileUploadList />
-          </HStack>
-        </FileUploadRoot>
-      </Box>
+  const startRecording = useCallback(async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      chunksRef.current = [];
 
-      <Box
-        width="100%"
-        boxShadow="sm"
-        borderRadius="lg"
-        bg="bg"
-        border="1px solid"
-        borderColor="border"
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          chunksRef.current.push(e.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(chunksRef.current, { type: "audio/webm" });
+        const reader = new FileReader();
+        reader.readAsArrayBuffer(blob);
+        reader.onloadend = () => {
+          handleAudioChange({
+            type: "audio",
+            data: new Uint8Array(reader.result as ArrayBuffer),
+          });
+        };
+        stream.getTracks().forEach((track) => track.stop());
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+    } catch (err) {
+      console.error("Error accessing microphone:", err);
+    }
+  }, [handleAudioChange]);
+
+  const stopRecording = useCallback(() => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  }, [isRecording]);
+
+  return (
+    <>
+      {showAudioInput && (
+        <Box mb={4}>
+          <AudioInput onChange={handleAudioChange} />
+        </Box>
+      )}
+      <HStack
+        className={className ? `composer-root ${className}` : "composer-root"}
+        p={4}
+        gap={4}
       >
-        <Flex position="relative" alignItems="flex-end">
-          <Textarea
-            ref={textareaRef}
-            placeholder="Write a message..."
-            flex="1"
-            bg="transparent"
-            border="none"
-            color="text"
-            fontSize="sm"
-            resize="none"
-            minH="24px"
-            maxH="200px"
-            p={4}
-            _placeholder={{
-              color: "textGray",
-            }}
-            onKeyDown={handleKeyDown}
-            rows={1}
-            css={{
-              "&::-webkit-scrollbar": {
-                display: "none",
-              },
-            }}
-          />
-          <IconButton
-            aria-label="Send message"
-            onClick={handleSubmit}
-            disabled={disabled}
-            variant="ghost"
-            color="text"
-            _hover={{
-              color: "text",
-              bg: "buttonHover",
-            }}
-            position="absolute"
-            right={2}
-            bottom={2}
-          >
-            <SendIcon />
-          </IconButton>
-        </Flex>
-      </Box>
-    </HStack>
+        <Box width={droppedFiles.length > 0 ? "40%" : "10%"}>
+          <FileUploadRoot onFileChange={handleFileChange} maxFiles={3}>
+            <HStack>
+              <FileUploadTrigger asChild>
+                <Button size="sm" variant="ghost" colorScheme="gray">
+                  <HiUpload />
+                </Button>
+              </FileUploadTrigger>
+              <IconButton
+                aria-label={isRecording ? "Stop recording" : "Start recording"}
+                onClick={isRecording ? stopRecording : startRecording}
+                variant={isRecording ? "solid" : "ghost"}
+                size="sm"
+              >
+                {isRecording ? <FaStop color="red" /> : <FaMicrophone />}
+              </IconButton>
+              <FileUploadList />
+            </HStack>
+          </FileUploadRoot>
+        </Box>
+
+        <Box
+          width="100%"
+          boxShadow="sm"
+          borderRadius="lg"
+          bg="bg"
+          border="1px solid"
+          borderColor="border"
+        >
+          <Flex position="relative" alignItems="flex-end">
+            <Textarea
+              ref={textareaRef}
+              placeholder="Write a message..."
+              flex="1"
+              bg="transparent"
+              border="none"
+              color="text"
+              fontSize="sm"
+              resize="none"
+              minH="24px"
+              maxH="200px"
+              p={4}
+              _placeholder={{
+                color: "textGray",
+              }}
+              onKeyDown={handleKeyDown}
+              rows={1}
+              css={{
+                "&::-webkit-scrollbar": {
+                  display: "none",
+                },
+              }}
+            />
+            <IconButton
+              aria-label="Send message"
+              onClick={handleSubmit}
+              disabled={disabled}
+              variant="ghost"
+              color="text"
+              _hover={{
+                color: "text",
+                bg: "buttonHover",
+              }}
+              position="absolute"
+              right={2}
+              bottom={2}
+            >
+              <SendIcon />
+            </IconButton>
+          </Flex>
+        </Box>
+      </HStack>
+    </>
   );
 };

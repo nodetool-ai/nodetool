@@ -66,7 +66,7 @@ export interface MessageImageContent {
   type: "image_url";
   image: {
     type: "image";
-    uri: string;
+    uri?: string;
     asset_id?: string | null;
     data?: unknown;
   };
@@ -76,7 +76,7 @@ export interface MessageAudioContent {
   type: "audio";
   audio: {
     type: "audio";
-    uri: string;
+    uri?: string;
     asset_id?: string | null;
     data?: unknown;
   };
@@ -86,7 +86,7 @@ export interface MessageVideoContent {
   type: "video";
   video: {
     type: "video";
-    uri: string;
+    uri?: string;
     asset_id?: string | null;
     data?: unknown;
   };
@@ -96,9 +96,9 @@ export interface MessageDocumentContent {
   type: "document";
   document: {
     type: "document";
-    uri: string;
+    uri?: string;
     asset_id?: string | null;
-    data?: unknown;
+    data?: Uint8Array;
   };
 }
 
