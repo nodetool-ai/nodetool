@@ -126,9 +126,9 @@ declare module "slate" {
 }
 
 const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
-  const className = `comment-node ${props.data.collapsed ? "collapsed " : ""}${
-    props.selected ? "selected" : ""
-  }`.trim();
+  const className = `node-drag-handle comment-node ${
+    props.data.collapsed ? "collapsed " : ""
+  }${props.selected ? "selected" : ""}`.trim();
   const { updateNodeData } = useNodes((state) => ({
     updateNodeData: state.updateNodeData
   }));
@@ -136,16 +136,12 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const [color, setColor] = useState(
     props.data.properties.comment_color || ThemeNodes.palette.c_bg_comment
   );
-  const [headline, setHeadline] = useState(
-    props.data.properties.headline || ""
-  );
   const [value, setValue] = useState<Descendant[]>(() => {
     return Array.isArray(props.data.properties.comment) &&
       props.data.properties.comment.length > 0
       ? props.data.properties.comment
       : [{ type: "paragraph", children: [{ text: "" }] }];
   });
-  const headerInputRef = useRef<HTMLInputElement>(null);
 
   const handleChange = useCallback(
     (newValue: Descendant[]) => {
@@ -160,25 +156,6 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         });
       }, 500)({
         comment: newValue
-      });
-    },
-    [props.data, props.id, updateNodeData]
-  );
-
-  const handleHeadlineChange = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      const newHeadline = event.target.value;
-      setHeadline(newHeadline);
-      debounce((newData) => {
-        updateNodeData(props.id, {
-          ...props.data,
-          properties: {
-            ...props.data.properties,
-            ...newData
-          }
-        });
-      }, 500)({
-        headline: newHeadline
       });
     },
     [props.data, props.id, updateNodeData]
