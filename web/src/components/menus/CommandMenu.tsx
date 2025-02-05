@@ -104,13 +104,7 @@ const WorkflowCommands = memo(function WorkflowCommands() {
         Auto Layout
       </Command.Item>
       {isDevelopment && (
-        <Command.Item
-          onSelect={() =>
-            executeAndClose(() =>
-              saveExample(currentWorkflow.id, getWorkflow())
-            )
-          }
-        >
+        <Command.Item onSelect={() => executeAndClose(() => saveExample())}>
           Save as Example
         </Command.Item>
       )}
