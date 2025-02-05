@@ -16,24 +16,24 @@ import { DEFAULT_MODEL } from "../../config/constants";
 const HelpChat: React.FC = () => {
   const { messages, isLoading, sendMessage, setMessages } = useChatStore();
   const { isInTutorial, getStep, nextStep } = useTutorialStore();
-  const { state } = useWorkflowRunnner();
+  // const { state } = useWorkflowRunnner();
   const step = getStep();
-  const { startTutorial } = useTutorialStore();
-  const loadHuggingFaceModels = useModelStore(
-    (state) => state.loadHuggingFaceModels
-  );
-  const loadLlamaModels = useModelStore((state) => state.loadLlamaModels);
+  // const { startTutorial } = useTutorialStore();
+  // const loadHuggingFaceModels = useModelStore(
+  //   (state) => state.loadHuggingFaceModels
+  // );
+  // const loadLlamaModels = useModelStore((state) => state.loadLlamaModels);
   const { startDownload, openDialog } = useModelDownloadStore();
 
-  const { data: huggingfaceModels } = useQuery({
-    queryKey: ["huggingfaceModels"],
-    queryFn: loadHuggingFaceModels
-  });
+  // const { data: huggingfaceModels } = useQuery({
+  //   queryKey: ["huggingfaceModels"],
+  //   queryFn: loadHuggingFaceModels
+  // });
 
-  const { data: llamaModels } = useQuery({
-    queryKey: ["llamaModels"],
-    queryFn: loadLlamaModels
-  });
+  // const { data: llamaModels } = useQuery({
+  //   queryKey: ["llamaModels"],
+  //   queryFn: loadLlamaModels
+  // });
 
   const { data: ollamaModelInfo, isLoading: isLoadingOllamaModel } = useQuery({
     queryKey: ["ollamaModel", DEFAULT_MODEL],
@@ -86,10 +86,13 @@ const HelpChat: React.FC = () => {
       className="help-chat"
       style={{
         margin: ".5em",
-        height: "calc(100% - 4em)",
+        height: "calc(100vh - 5em)",
+        minHeight: "300px",
+        maxHeight: "100%",
         width: "100%",
         display: "flex",
-        flexDirection: "column"
+        flexDirection: "column",
+        overflow: "hidden"
       }}
     >
       <ChatHeader

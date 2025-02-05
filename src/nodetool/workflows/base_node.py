@@ -432,12 +432,16 @@ class BaseNode(BaseModel):
         Returns a JSON schema for the node.
         Used as tool description for agents.
         """
-        return {
-            "type": "object",
-            "properties": {
-                prop.name: prop.get_json_schema() for prop in cls.properties()
-            },
-        }
+        try:
+            return {
+                "type": "object",
+                "properties": {
+                    prop.name: prop.get_json_schema() for prop in cls.properties()
+                },
+            }
+        except Exception as e:
+            log.error(f"Error getting JSON schema for {cls.__name__}: {e}")
+            return {}
 
     def assign_property(self, name: str, value: Any):
         """
