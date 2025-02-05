@@ -409,127 +409,130 @@ const ChatView = ({
     [key: string]: boolean;
   }>({});
 
-  const MessageView = useCallback((msg: Message) => {
-    let messageClass = "chat-message";
-    if (msg.role === "user") {
-      messageClass += " user";
-    } else if (msg.role === "assistant") {
-      messageClass += " assistant";
-    }
+  const MessageView = useCallback(
+    (msg: Message) => {
+      let messageClass = "chat-message";
+      if (msg.role === "user") {
+        messageClass += " user";
+      } else if (msg.role === "assistant") {
+        messageClass += " assistant";
+      }
 
-    const toggleThought = (key: string) => {
-      setLoadingThoughts((prev) => ({ ...prev, [key]: true }));
+      const toggleThought = (key: string) => {
+        setLoadingThoughts((prev) => ({ ...prev, [key]: true }));
 
-      setTimeout(() => {
-        setExpandedThoughts((prev) => ({
-          ...prev,
-          [key]: !prev[key]
-        }));
-        setLoadingThoughts((prev) => ({ ...prev, [key]: false }));
-      }, 500);
-    };
+        setTimeout(() => {
+          setExpandedThoughts((prev) => ({
+            ...prev,
+            [key]: !prev[key]
+          }));
+          setLoadingThoughts((prev) => ({ ...prev, [key]: false }));
+        }, 500);
+      };
 
-    const renderContent = (content: string, index: number) => {
-      const thoughtMatch = content.match(/<think>([\s\S]*?)(<\/think>|$)/s);
-      if (thoughtMatch) {
-        const key = `thought-${index}`;
-        const isExpanded = expandedThoughts[key];
-        const hasClosingTag = thoughtMatch[2] === "</think>";
-        const textBeforeThought = content.split("<think>")[0];
-        const textAfterThought = hasClosingTag
-          ? content.split("</think>").pop() || ""
-          : "";
+      const renderContent = (content: string, index: number) => {
+        const thoughtMatch = content.match(/<think>([\s\S]*?)(<\/think>|$)/s);
+        if (thoughtMatch) {
+          const key = `thought-${index}`;
+          const isExpanded = expandedThoughts[key];
+          const hasClosingTag = thoughtMatch[2] === "</think>";
+          const textBeforeThought = content.split("<think>")[0];
+          const textAfterThought = hasClosingTag
+            ? content.split("</think>").pop() || ""
+            : "";
 
-        return (
-          <>
-            {textBeforeThought && (
-              <MarkdownRenderer content={textBeforeThought} />
-            )}
-            <div>
-              <Button
-                size="small"
-                onClick={() => toggleThought(key)}
-                css={css`
-                  text-transform: none;
-                  color: inherit;
-                  opacity: 0.7;
-                  &:hover {
-                    opacity: 1;
-                  }
-                  display: flex;
-                  align-items: center;
-                  gap: 8px;
-                `}
-              >
-                {!hasClosingTag ? (
-                  <>
-                    <div
-                      css={css`
-                        width: 8px;
-                        height: 8px;
-                        border-radius: 50%;
-                        background-color: currentColor;
-                        animation: ${pulse} 1.5s ease-in-out infinite;
-                      `}
-                    />
-                    Show thought
-                  </>
-                ) : (
-                  `${isExpanded ? "Hide thought" : "Show thought"}`
-                )}
-              </Button>
-              {isExpanded && (
-                <div
+          return (
+            <>
+              {textBeforeThought && (
+                <MarkdownRenderer content={textBeforeThought} />
+              )}
+              <div>
+                <Button
+                  size="small"
+                  onClick={() => toggleThought(key)}
                   css={css`
-                    margin-left: 1em;
-                    margin-top: 0.5em;
-                    padding: 0.5em;
-                    background: rgba(0, 0, 0, 0.2);
-                    border-radius: 4px;
+                    text-transform: none;
+                    color: inherit;
+                    opacity: 0.7;
+                    &:hover {
+                      opacity: 1;
+                    }
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
                   `}
                 >
-                  <MarkdownRenderer content={thoughtMatch[1]} />
-                </div>
-              )}
-              {textAfterThought && (
-                <MarkdownRenderer content={textAfterThought} />
-              )}
-            </div>
-          </>
-        );
-      }
-      return <MarkdownRenderer content={content} />;
-    };
+                  {!hasClosingTag ? (
+                    <>
+                      <div
+                        css={css`
+                          width: 8px;
+                          height: 8px;
+                          border-radius: 50%;
+                          background-color: currentColor;
+                          animation: ${pulse} 1.5s ease-in-out infinite;
+                        `}
+                      />
+                      Show thought
+                    </>
+                  ) : (
+                    `${isExpanded ? "Hide thought" : "Show thought"}`
+                  )}
+                </Button>
+                {isExpanded && (
+                  <div
+                    css={css`
+                      margin-left: 1em;
+                      margin-top: 0.5em;
+                      padding: 0.5em;
+                      background: rgba(0, 0, 0, 0.2);
+                      border-radius: 4px;
+                    `}
+                  >
+                    <MarkdownRenderer content={thoughtMatch[1]} />
+                  </div>
+                )}
+                {textAfterThought && (
+                  <MarkdownRenderer content={textAfterThought} />
+                )}
+              </div>
+            </>
+          );
+        }
+        return <MarkdownRenderer content={content} />;
+      };
 
-    const content = msg.content as
-      | Array<MessageTextContent | MessageImageContent>
-      | string;
-    return (
-      <li className={messageClass} key={msg.id}>
-        {typeof msg.content === "string" &&
-          renderContent(
-            msg.content,
-            typeof msg.id === "string" ? parseInt(msg.id) || 0 : 0
-          )}
-        {Array.isArray(content) &&
-          content.map((c: MessageContent, i: number) => {
-            if (c.type === "text") {
-              return renderContent(c.text || "", i);
-            } else if (c.type === "image_url") {
-              return <OutputRenderer key={i} value={c.image} />;
-            } else if (c.type === "audio") {
-              return <OutputRenderer key={i} value={c.audio} />;
-            } else if (c.type === "video") {
-              return <OutputRenderer key={i} value={c.video} />;
-            } else if (c.type === "document") {
-              return <OutputRenderer key={i} value={c.document} />;
-            } else {
-              return <></>;
-            }
-          })}
-      </li>
-    );
-  }, []);
+      const content = msg.content as
+        | Array<MessageTextContent | MessageImageContent>
+        | string;
+      return (
+        <li className={messageClass} key={msg.id}>
+          {typeof msg.content === "string" &&
+            renderContent(
+              msg.content,
+              typeof msg.id === "string" ? parseInt(msg.id) || 0 : 0
+            )}
+          {Array.isArray(content) &&
+            content.map((c: MessageContent, i: number) => {
+              if (c.type === "text") {
+                return renderContent(c.text || "", i);
+              } else if (c.type === "image_url") {
+                return <OutputRenderer key={i} value={c.image} />;
+              } else if (c.type === "audio") {
+                return <OutputRenderer key={i} value={c.audio} />;
+              } else if (c.type === "video") {
+                return <OutputRenderer key={i} value={c.video} />;
+              } else if (c.type === "document") {
+                return <OutputRenderer key={i} value={c.document} />;
+              } else {
+                return <></>;
+              }
+            })}
+        </li>
+      );
+    },
+    [expandedThoughts]
+  );
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();

@@ -102,7 +102,7 @@ const CollectionList = () => {
         event.preventDefault();
         setDragOverCollection(null);
         const files = Array.from(event.dataTransfer.files).map((file) => ({
-          // @ts-expect-error
+          // @ts-expect-error - Electron's File object includes a 'path' property that isn't in the standard File interface
           path: file.path,
           mime_type: file.type
         }));

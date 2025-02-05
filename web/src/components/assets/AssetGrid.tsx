@@ -374,7 +374,6 @@ const AssetGrid: React.FC<AssetGridProps> = ({
       maxItemSize,
       currentFolder,
       selectedAssetIds,
-      selectedAssets,
       uploadFiles,
       isHorizontal,
       itemSpacing,
