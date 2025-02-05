@@ -20,6 +20,7 @@ import { useRemoveFromGroup } from "../../hooks/nodes/useRemoveFromGroup";
 import { Node } from "@xyflow/react";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useNavigate } from "react-router-dom";
+import { useNodes } from "../../contexts/NodeContext";
 
 const NodeContextMenu: React.FC = () => {
   const menuPosition = useContextMenuStore((state) => state.menuPosition);
@@ -28,7 +29,7 @@ const NodeContextMenu: React.FC = () => {
   );
   const nodeId = useContextMenuStore((state) => state.nodeId);
   const { getNode } = useReactFlow();
-  const node = nodeId !== null ? getNode(nodeId) : null;
+  const node = nodeId ? getNode(nodeId) : null;
   const nodeData = node?.data as NodeData;
   const removeFromGroup = useRemoveFromGroup();
   const metadata = useMetadataStore((state) =>
@@ -39,6 +40,9 @@ const NodeContextMenu: React.FC = () => {
     (state) => state.addNotification
   );
   const navigate = useNavigate();
+  const { updateNodeData } = useNodes((state) => ({
+    updateNodeData: state.updateNodeData
+  }));
 
   //copy metadata to clipboard
   const handleCopyMetadataToClipboard = useCallback(() => {
@@ -101,7 +105,11 @@ const NodeContextMenu: React.FC = () => {
       )}
       <ContextMenuItem
         onClick={() => {
-          console.log("Edit Comment");
+          if (nodeId) {
+            updateNodeData(nodeId, {
+              title: "Click to edit"
+            });
+          }
         }}
         label="Edit Comment"
         IconComponent={<EditIcon />}
