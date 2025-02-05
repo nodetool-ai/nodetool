@@ -20,7 +20,7 @@ With NodeTool, you can:
 - **Run Locally**: Utilize your own hardware to run open-source models via Ollama and access thousands of models via Hugging Face
 - **Process Multiple Formats**: Work with text, images, audio, and video in a unified interface
 
-![NodeTool](nodetool.png)
+![NodeTool](screenshot.png)
 
 ## Use Cases 🎨
 
