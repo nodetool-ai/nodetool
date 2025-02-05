@@ -49,12 +49,6 @@ const namespaceStyles = (theme: any) =>
       margin: "0 1em .5em ",
       justifyContent: "flex-end"
     },
-    ".clear-namespace": {
-      padding: "0",
-      width: ".5em",
-      height: "1em",
-      color: theme.palette.c_gray4
-    },
     ".list-box": {
       display: "flex",
       flexDirection: "row",
@@ -234,11 +228,11 @@ const namespaceStyles = (theme: any) =>
       }
     },
     ".node:hover": {
-      backgroundColor: theme.palette.c_gray2
+      backgroundColor: theme.palette.c_gray1
     },
     ".node.focused": {
       color: theme.palette.c_hl1,
-      backgroundColor: theme.palette.c_gray2,
+      backgroundColor: theme.palette.c_gray1,
       borderRadius: "3px",
       boxShadow: "inset 1px 1px 2px #00000044"
     },
