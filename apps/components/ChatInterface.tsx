@@ -52,6 +52,32 @@ const LoadingDots = styled.div`
   }
 `;
 
+const fileToData = async (file: File): Promise<Uint8Array> => {
+  const buffer = await file.arrayBuffer();
+  return new Uint8Array(buffer);
+};
+
+const createMediaContent = async (
+  file: File,
+  messageType: "image_url" | "audio" | "video" | "document",
+  mediaType: "image" | "audio" | "video" | "document"
+): Promise<MessageContent> => {
+  // @ts-expect-error
+  const isElectron = !!file.path;
+
+  // @ts-expect-error
+  return {
+    type: messageType,
+    [mediaType]: {
+      type: mediaType,
+      ...(isElectron
+        ? // @ts-expect-error
+          { uri: `file://${file.path}` }
+        : { data: await fileToData(file) }),
+    },
+  };
+};
+
 const ChatInterface: React.FC<ChatInterfaceProps> = ({ workflowId, token }) => {
   // const userBgColor = useColorModeValue("gray.100", "gray.900");
   // const assistantBgColor = useColorModeValue("gray.200", "gray.800");
@@ -95,40 +121,23 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ workflowId, token }) => {
         });
       }
 
-      const messageFiles = droppedFiles.map((file): MessageContent => {
-        if (file.type.startsWith("image/")) {
+      const messageFiles = await Promise.all(
+        droppedFiles.map(async (file): Promise<MessageContent> => {
+          if (file.type.startsWith("image/")) {
+            return createMediaContent(file, "image_url", "image");
+          } else if (file.type.startsWith("audio/")) {
+            return createMediaContent(file, "audio", "audio");
+          } else if (file.type.startsWith("video/")) {
+            return createMediaContent(file, "video", "video");
+          } else if (file.type.startsWith("application/pdf")) {
+            return createMediaContent(file, "document", "document");
+          }
           return {
-            type: "image_url",
-            image: {
-              type: "image",
-              // @ts-expect-error
-              uri: "file://" + file.path,
-            },
+            type: "text",
+            text: file.name,
           };
-        } else if (file.type.startsWith("audio/")) {
-          return {
-            type: "audio",
-            audio: {
-              type: "audio",
-              // @ts-expect-error
-              uri: "file://" + file.path,
-            },
-          };
-        } else if (file.type.startsWith("video/")) {
-          return {
-            type: "video",
-            video: {
-              type: "video",
-              // @ts-ignore
-              uri: "file://" + file.path,
-            },
-          };
-        }
-        return {
-          type: "text",
-          text: file.name,
-        };
-      });
+        })
+      );
 
       messageContents.push(...messageFiles);
 
@@ -256,6 +265,30 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ workflowId, token }) => {
     }
   };
 
+  const handleAudioChange = useCallback(
+    async (audioRef: { type: "audio"; data: Uint8Array } | null) => {
+      if (audioRef) {
+        console.log("audioRef", audioRef);
+        const messageContents: MessageContent[] = [
+          {
+            type: "audio",
+            audio: audioRef,
+          },
+        ];
+
+        sendMessage({
+          type: "message",
+          role: "user",
+          content: messageContents,
+          name: "",
+          workflow_id: workflowId,
+          auth_token: token,
+        });
+      }
+    },
+    [workflowId, token, sendMessage]
+  );
+
   return (
     <Box h="100%">
       <Flex direction="column" h="calc(100% - 120px)" overflow="hidden">
@@ -335,11 +368,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ workflowId, token }) => {
           </ProgressRoot>
         )}
       </Flex>
+
       <Composer
         onSubmit={handleSubmit}
         disabled={disabled}
         droppedFiles={droppedFiles}
         setDroppedFiles={setDroppedFiles}
+        handleAudioChange={handleAudioChange}
       />
     </Box>
   );
