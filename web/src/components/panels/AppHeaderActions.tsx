@@ -92,6 +92,13 @@ const styles = (theme: any) =>
       },
       "&.disabled": {
         opacity: 0.5
+      },
+      "&.running": {
+        "& svg": {
+          animation:
+            "spin 2s linear infinite, rainbow-rotate 3s linear infinite",
+          color: theme.palette.c_hl1
+        }
       }
     },
     ".stop-workflow": {
@@ -127,6 +134,14 @@ const styles = (theme: any) =>
     ".connecting-status": {
       animation: "pulse 1.5s infinite ease-in-out",
       color: theme.palette.c_hl1
+    },
+    "@keyframes rainbow-rotate": {
+      "0%": { filter: "hue-rotate(0deg)" },
+      "100%": { filter: "hue-rotate(360deg)" }
+    },
+    "@keyframes spin": {
+      "0%": { transform: "rotate(0deg)" },
+      "100%": { transform: "rotate(360deg)" }
     }
   });
 
@@ -305,9 +320,10 @@ const RunWorkflowButton = memo(function RunWorkflowButton() {
       <Button
         size="large"
         className={`action-button run-stop-button run-workflow ${
-          isWorkflowRunning ? "disabled" : ""
+          isWorkflowRunning ? "running" : ""
         }`}
         onClick={handleRun}
+        disabled={isWorkflowRunning}
         tabIndex={-1}
       >
         {state === "connecting" || state === "connected" ? (
@@ -321,8 +337,8 @@ const RunWorkflowButton = memo(function RunWorkflowButton() {
             </span>
             <PlayArrow />
           </>
-        ) : state === "running" ? (
-          <CircularProgress size={20} />
+        ) : isWorkflowRunning ? (
+          <CircularProgress size={20} color="inherit" />
         ) : (
           <PlayArrow />
         )}
