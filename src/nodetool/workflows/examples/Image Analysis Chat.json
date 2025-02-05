@@ -1,0 +1,235 @@
+{
+  "id": "a3b1d004e14e11ef80f1000035b07413",
+  "access": "public",
+  "created_at": "2025-02-05T18:13:15.317865",
+  "updated_at": "2025-02-05T18:13:15.317876",
+  "name": "Image Analysis Chat",
+  "description": "Analyze images and extract information using a chat interface",
+  "tags": [
+    "chat",
+    "image",
+    "start"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": "/examples/chatbot.png",
+  "graph": {
+    "nodes": [
+      {
+        "id": "1",
+        "parent_id": null,
+        "type": "nodetool.input.ChatInput",
+        "data": {
+          "label": "Chat Message",
+          "name": "message",
+          "description": "",
+          "value": {
+            "type": "message",
+            "id": null,
+            "auth_token": null,
+            "workflow_id": null,
+            "graph": null,
+            "thread_id": null,
+            "user_id": null,
+            "tool_call_id": null,
+            "role": "",
+            "name": "",
+            "content": null,
+            "tool_calls": null,
+            "created_at": null
+          }
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 50,
+            "y": 50
+          },
+          "zIndex": 0,
+          "width": 187,
+          "title": "Input from a chat message.",
+          "selectable": true
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "3",
+        "parent_id": null,
+        "type": "nodetool.output.StringOutput",
+        "data": {
+          "label": "Response",
+          "name": "response",
+          "description": ""
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 486,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 185,
+          "title": "Send chat response.",
+          "selectable": true
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "4",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "headline": "Chatbot",
+          "comment": [
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": ""
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "Image Analysis Chat",
+                  "bold": true,
+                  "size": "+"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "bold": true,
+                  "text": ""
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "bold": true,
+                  "text": "Chat Input:"
+                },
+                {
+                  "text": " Accepts user inputs, including text, images, and other formats, to initiate the workflow. Images can be passed as part of the input for further processing."
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "Ollama: ",
+                  "bold": true
+                },
+                {
+                  "text": "Uses the llama3.2-vision:11b model, which is capable of processing both text and images. For images, it extracts visual information and combines it with textual input to generate a relevant response or output."
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "String Output:",
+                  "bold": true
+                },
+                {
+                  "text": " Outputs the final response, which could be text-based insights, descriptions, or analysis derived from the combination of text and image input. This completes the workflow for the user."
+                }
+              ]
+            }
+          ]
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 44,
+            "y": -212
+          },
+          "zIndex": 0,
+          "width": 707,
+          "height": 196,
+          "selectable": true
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "5",
+        "parent_id": null,
+        "type": "ollama.text.Ollama",
+        "data": {
+          "model": {
+            "type": "llama_model",
+            "repo_id": "llama3.2-vision:11b"
+          },
+          "system_prompt": "You are an assistant.",
+          "context_window": 4096,
+          "temperature": 0.7,
+          "top_k": 50,
+          "top_p": 0.95,
+          "keep_alive": 300,
+          "num_predict": 10000
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 297,
+            "y": 75
+          },
+          "zIndex": 0,
+          "width": 159,
+          "title": "Reads messages, including image, and generates an answer.",
+          "selectable": true
+        },
+        "dynamic_properties": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "6455bc39-8451-47de-af1a-84840124deee",
+        "source": "1",
+        "sourceHandle": "text",
+        "target": "5",
+        "targetHandle": "prompt",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "a617f28c-ba10-4493-bacf-4911fe9e1621",
+        "source": "1",
+        "sourceHandle": "history",
+        "target": "5",
+        "targetHandle": "messages",
+        "ui_properties": {
+          "className": "list"
+        }
+      },
+      {
+        "id": "e4a8cddc-c09c-4007-a74a-99a340cfb428",
+        "source": "5",
+        "sourceHandle": "output",
+        "target": "3",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "6456",
+        "source": "1",
+        "sourceHandle": "image",
+        "target": "5",
+        "targetHandle": "image",
+        "ui_properties": null
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null
+}
