@@ -1,8 +1,8 @@
 {
-  "id": "audio_to_image",
+  "id": "01ddcf16e35711ef80af000038478aae",
   "access": "public",
-  "created_at": "2025-01-09T09:19:22.110513",
-  "updated_at": "2025-01-09T09:19:22.110537",
+  "created_at": "2025-02-05T15:50:13.803221",
+  "updated_at": "2025-02-05T15:50:13.803234",
   "name": "Audio To Image",
   "description": "Generate images from spoken descriptions using speech recognition",
   "tags": [
@@ -15,23 +15,6 @@
   "graph": {
     "nodes": [
       {
-        "id": "6",
-        "parent_id": null,
-        "type": "nodetool.workflows.base_node.Preview",
-        "data": {},
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 740,
-            "y": 50
-          },
-          "zIndex": 0,
-          "width": 432,
-          "height": 500,
-          "selectable": true
-        }
-      },
-      {
         "id": "11",
         "parent_id": null,
         "type": "nodetool.workflows.base_node.Comment",
@@ -42,7 +25,9 @@
               "type": "paragraph",
               "children": [
                 {
-                  "text": "* Record your speech into the Audio node using the Record feature"
+                  "text": "Audio To Image",
+                  "size": "+",
+                  "bold": "B"
                 }
               ]
             },
@@ -50,7 +35,7 @@
               "type": "paragraph",
               "children": [
                 {
-                  "text": "* Run the workflow"
+                  "text": ""
                 }
               ]
             },
@@ -58,23 +43,173 @@
               "type": "paragraph",
               "children": [
                 {
-                  "text": "* Look at the preview result"
+                  "text": "This workflow converts an audio description into an image through the following steps:"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "\t1.\t"
+                },
+                {
+                  "text": "Audio Input:",
+                  "bold": true
+                },
+                {
+                  "text": " The user records or uploads an audio file."
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "\t2.\t"
+                },
+                {
+                  "text": "Whisper",
+                  "bold": true
+                },
+                {
+                  "text": ": Transcribes the audio into text using an automatic speech recognition model."
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "\t3.\t"
+                },
+                {
+                  "text": "Stable Diffusion: ",
+                  "bold": true
+                },
+                {
+                  "text": "Uses the transcribed text as a prompt to generate an image."
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "\t4.\t"
+                },
+                {
+                  "text": "Image Output: ",
+                  "bold": true
+                },
+                {
+                  "text": "Displays the generated image to the user."
+                }
+              ]
+            }
+          ],
+          "title": [
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "Audio To Image",
+                  "size": "+",
+                  "bold": "B"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "size": "+",
+                  "bold": "B",
+                  "text": ""
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "This workflow converts an audio description into an image through the following steps:"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "\t1.\t"
+                },
+                {
+                  "text": "Audio Input: ",
+                  "bold": true
+                },
+                {
+                  "text": "The user records or uploads an audio file."
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "\t2.\t"
+                },
+                {
+                  "text": "Whisper: ",
+                  "bold": true
+                },
+                {
+                  "text": "Transcribes the audio into text using an automatic speech recognition model."
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "\t3.\t"
+                },
+                {
+                  "text": "Stable Diffusion:",
+                  "bold": true
+                },
+                {
+                  "text": " Uses the transcribed text as a prompt to generate an image."
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "\t4.\tI"
+                },
+                {
+                  "text": "mage Output: ",
+                  "bold": true
+                },
+                {
+                  "text": "Displays the generated image to the user."
                 }
               ]
             }
           ]
         },
         "ui_properties": {
-          "selected": false,
           "position": {
-            "x": 52,
-            "y": -14
+            "x": 42,
+            "y": -135
           },
           "zIndex": 0,
-          "width": 470,
-          "height": 106,
+          "width": 697,
+          "height": 151,
           "selectable": true
-        }
+        },
+        "dynamic_properties": {}
       },
       {
         "id": "13",
@@ -109,15 +244,16 @@
           "enable_cpu_offload": false
         },
         "ui_properties": {
-          "selected": false,
           "position": {
-            "x": 510,
-            "y": 183
+            "x": 443,
+            "y": 50
           },
           "zIndex": 0,
           "width": 200,
+          "title": "Generates an image from the transcribed text.",
           "selectable": true
-        }
+        },
+        "dynamic_properties": {}
       },
       {
         "id": "14",
@@ -133,49 +269,65 @@
           "timestamps": "none"
         },
         "ui_properties": {
-          "selected": false,
           "position": {
-            "x": 280,
-            "y": 174
+            "x": 213,
+            "y": 53
           },
           "zIndex": 0,
           "width": 200,
+          "title": "Transcribes audio file to text.",
           "selectable": true
-        }
+        },
+        "dynamic_properties": {}
       },
       {
         "id": "15",
         "parent_id": null,
-        "type": "nodetool.constant.Audio",
+        "type": "nodetool.input.AudioInput",
         "data": {
+          "name": "description",
+          "description": "",
           "value": {
+            "type": "audio",
             "uri": "",
-            "type": "audio"
+            "asset_id": null,
+            "data": null
           }
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 50,
-            "y": 233
+            "y": 68
           },
           "zIndex": 0,
-          "width": 200,
+          "width": 133,
+          "title": "Records the user voice as audio file.",
           "selectable": true
-        }
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "16",
+        "parent_id": null,
+        "type": "nodetool.output.ImageOutput",
+        "data": {
+          "name": "image",
+          "description": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 673,
+            "y": 101
+          },
+          "zIndex": 0,
+          "width": 134,
+          "title": "Displays the generated image.",
+          "selectable": true
+        },
+        "dynamic_properties": {}
       }
     ],
     "edges": [
-      {
-        "id": "39781355-f211-4883-bde4-859973f7731d",
-        "source": "13",
-        "sourceHandle": "output",
-        "target": "6",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "image"
-        }
-      },
       {
         "id": "fa76cf2f-55cc-433a-b738-c4ba79e283de",
         "source": "14",
@@ -187,13 +339,21 @@
         }
       },
       {
-        "id": "909f3c44-2cf8-4c75-959e-8c4b4cc176e6",
+        "id": "39781356",
         "source": "15",
         "sourceHandle": "output",
         "target": "14",
         "targetHandle": "audio",
+        "ui_properties": null
+      },
+      {
+        "id": "39781357",
+        "source": "13",
+        "sourceHandle": "output",
+        "target": "16",
+        "targetHandle": "value",
         "ui_properties": {
-          "className": "audio"
+          "className": "image"
         }
       }
     ]
