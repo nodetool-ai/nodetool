@@ -39,6 +39,10 @@ const namespaceStyles = (theme: any) =>
       flexDirection: "column",
       marginTop: "20px"
     },
+    "& h4": {
+      fontSize: "1em",
+      color: theme.palette.c_hl1
+    },
     ".info-box": {
       position: "absolute",
       right: "0",
@@ -137,7 +141,6 @@ const namespaceStyles = (theme: any) =>
     ".explanation": {
       overflowY: "scroll",
       fontFamily: theme.fontFamily1,
-      fontSize: theme.fontSizeNormal,
       color: theme.palette.c_gray5,
       fontWeight: "300",
       margin: "0",
@@ -147,7 +150,6 @@ const namespaceStyles = (theme: any) =>
       color: theme.palette.c_hl1,
       margin: " 0 0 0.3em",
       padding: "0",
-      fontSize: theme.fontSizeNormal,
       fontWeight: "300"
     },
     ".explanation ul": {
@@ -155,8 +157,6 @@ const namespaceStyles = (theme: any) =>
       paddingInlineStart: "1em",
       margin: 0,
       "& li": {
-        fontFamily: theme.fontFamily1,
-        fontSize: theme.fontSizeNormal,
         margin: "0.25em 0",
         padding: "0"
       }
@@ -437,7 +437,7 @@ const NoSelectionContent = memo(function NoSelectionContent({
         </>
       ) : (
         <div className="explanation">
-          <h5>Node Search</h5>
+          <h4>Node Search</h4>
           <ul>
             <li>
               Browse through available nodes by selecting namespaces from the
@@ -456,10 +456,10 @@ const NoSelectionContent = memo(function NoSelectionContent({
       <Typography variant="h4" sx={{ margin: "1em 0 0 0" }}>
         Let us know what&apos;s missing
       </Typography>
-      <p>
+      <Typography variant="body1" sx={{ margin: "1em 0 0 0" }}>
         We&apos;re always looking to improve Nodetool and welcome any
         suggestions!
-      </p>
+      </Typography>
       <ul className="no-results">
         <li>
           Join our{" "}
