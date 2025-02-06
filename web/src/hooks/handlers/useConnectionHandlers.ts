@@ -31,6 +31,9 @@ export default function useConnectionHandlers() {
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
+  const { updateNodeData } = useNodes((state) => ({
+    updateNodeData: state.updateNodeData
+  }));
   const { connecting, startConnecting, endConnecting } = useConnectionStore(
     (state) => ({
       connecting: state.connecting,
@@ -98,9 +101,7 @@ export default function useConnectionHandlers() {
   );
 
   /* CONNECT END */
-  // called after onConnect
   const onConnectEnd = useCallback(
-    // open contextMenu for input/output
     (event: any) => {
       const { connectDirection, connectNodeId, connectHandleId, connectType } =
         useConnectionStore.getState();
@@ -114,7 +115,7 @@ export default function useConnectionHandlers() {
         !targetIsGroup &&
         !targetIsPane;
 
-      // targetIsNode: try to auto-connect
+      // targetIsNode: try to auto-connect or create dynamic property
       if (!connectionCreated.current && targetIsNode) {
         const nodeId = event.target.closest(".react-flow__node").dataset.id;
         const node = findNode(nodeId);
@@ -127,6 +128,34 @@ export default function useConnectionHandlers() {
           console.warn(`Metadata for node type ${node.type} not found`);
           return;
         }
+
+        // Handle dynamic properties case
+        if (nodeMetadata.is_dynamic && connectDirection === "source") {
+          const newConnection = {
+            source: connectNodeId || "",
+            sourceHandle: connectHandleId || "",
+            target: nodeId,
+            targetHandle: connectHandleId // Use the same handle name for the dynamic property
+          };
+
+          // Create the dynamic property
+          const dynamicProps = node.data?.dynamic_properties || {};
+          if (!dynamicProps[connectHandleId || ""]) {
+            const updatedProps = {
+              ...dynamicProps,
+              [connectHandleId || ""]: ""
+            };
+            updateNodeData(nodeId, {
+              dynamic_properties: updatedProps
+            });
+          }
+
+          handleOnConnect(newConnection);
+          endConnecting();
+          return;
+        }
+
+        // Original auto-connect logic
         if (connectDirection === "source") {
           const possibleInputs = nodeMetadata.properties.filter(
             (prop) =>
@@ -250,7 +279,8 @@ export default function useConnectionHandlers() {
       edges,
       handleOnConnect,
       addNotification,
-      openContextMenu
+      openContextMenu,
+      updateNodeData
     ]
   );
 
