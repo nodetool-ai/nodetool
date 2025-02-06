@@ -154,7 +154,7 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
           property={{
             name,
             type: {
-              type: "str",
+              type: "any",
               type_args: [],
               optional: false
             }
