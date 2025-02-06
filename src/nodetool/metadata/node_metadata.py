@@ -27,7 +27,7 @@ class NodeMetadata(BaseModel):
 
 
 NODE_METADATA_PATH = (
-    "nodes.json" if Environment.is_production() else "nodes_production.json"
+    "nodes_production.json" if Environment.is_production() else "nodes.json"
 )
 
 
