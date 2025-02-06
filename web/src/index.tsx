@@ -93,12 +93,7 @@ function getRoutes() {
     },
     {
       path: "/welcome",
-      element: (
-        <ThemeProvider theme={ThemeNodetool}>
-          <CssBaseline />
-          <Welcome />
-        </ThemeProvider>
-      )
+      element: <Welcome />
     },
     {
       path: "/oauth/callback",
@@ -106,12 +101,7 @@ function getRoutes() {
     },
     {
       path: "/login",
-      element: (
-        <ThemeProvider theme={ThemeNodetool}>
-          <CssBaseline />
-          <Login />
-        </ThemeProvider>
-      )
+      element: <Login />
     },
     {
       path: "/editor",
@@ -121,11 +111,8 @@ function getRoutes() {
       path: "assets",
       element: (
         <ProtectedRoute>
-          <ThemeProvider theme={ThemeNodetool}>
-            <CssBaseline />
-            <AppHeader />
-            <AssetExplorer />
-          </ThemeProvider>
+          <AppHeader />
+          <AssetExplorer />
         </ProtectedRoute>
       )
     },
@@ -133,11 +120,8 @@ function getRoutes() {
       path: "examples",
       element: (
         <ProtectedRoute>
-          <ThemeProvider theme={ThemeNodetool}>
-            <CssBaseline />
-            <AppHeader />
-            <ExampleGrid />
-          </ThemeProvider>
+          <AppHeader />
+          <ExampleGrid />
         </ProtectedRoute>
       )
     },
@@ -145,11 +129,8 @@ function getRoutes() {
       path: "models",
       element: (
         <ProtectedRoute>
-          <ThemeProvider theme={ThemeNodetool}>
-            <CssBaseline />
-            <AppHeader />
-            <ModelsManager />
-          </ThemeProvider>
+          <AppHeader />
+          <ModelsManager />
         </ProtectedRoute>
       )
     },
@@ -158,22 +139,17 @@ function getRoutes() {
       element: (
         <ProtectedRoute>
           <FetchCurrentWorkflow>
-            <ThemeProvider theme={ThemeNodetool}>
-              <CssBaseline />
-              <AppHeader />
-            </ThemeProvider>
-            <ThemeProvider theme={ThemeNodes}>
-              <div
-                style={{
-                  display: "flex",
-                  width: "100%",
-                  height: "calc(100vh - 64px)"
-                }}
-              >
-                <PanelLeft />
-                <TabsNodeEditor />
-              </div>
-            </ThemeProvider>
+            <AppHeader />
+            <div
+              style={{
+                display: "flex",
+                width: "100%",
+                height: "calc(100vh - 64px)"
+              }}
+            >
+              <PanelLeft />
+              <TabsNodeEditor />
+            </div>
           </FetchCurrentWorkflow>
         </ProtectedRoute>
       )
@@ -182,11 +158,8 @@ function getRoutes() {
       path: "editor/start",
       element: (
         <ProtectedRoute>
-          <ThemeProvider theme={ThemeNodetool}>
-            <CssBaseline />
-            <AppHeader />
-            <OpenOrCreateDialog />
-          </ThemeProvider>
+          <AppHeader />
+          <OpenOrCreateDialog />
         </ProtectedRoute>
       )
     }
@@ -242,9 +215,12 @@ const AppWrapper = () => {
   return (
     <React.StrictMode>
       <QueryClientProvider client={queryClient}>
-        <WorkflowManagerProvider>
-          <RouterProvider router={router} />
-        </WorkflowManagerProvider>
+        <ThemeProvider theme={ThemeNodetool}>
+          <CssBaseline />
+          <WorkflowManagerProvider>
+            <RouterProvider router={router} />
+          </WorkflowManagerProvider>
+        </ThemeProvider>
       </QueryClientProvider>
     </React.StrictMode>
   );

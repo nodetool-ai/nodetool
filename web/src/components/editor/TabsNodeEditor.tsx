@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { css } from "@emotion/react";
+import { css, ThemeProvider } from "@emotion/react";
 import { ReactFlowProvider, useStore } from "@xyflow/react";
 import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
@@ -15,6 +15,8 @@ import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import TabHeader from "./TabHeader";
 import { createPortal } from "react-dom";
 import { generateCSS } from "../themes/GenerateCSS";
+import { Box } from "@mui/material";
+import ThemeNodes from "../themes/ThemeNodes";
 
 const styles = (theme: any) =>
   css({
@@ -89,12 +91,6 @@ const styles = (theme: any) =>
       borderBottom: "none",
       boxSizing: "border-box",
 
-      "& .dirty-indicator": {
-        color: theme.palette.c_hl1,
-        fontSize: "0.8em",
-        marginLeft: "5px"
-      },
-
       "& .close-icon": {
         opacity: 0.4,
         transition: "all 0.1s ease-in-out",
@@ -128,7 +124,8 @@ const styles = (theme: any) =>
     "& .editor-container": {
       flex: 1,
       position: "relative",
-      borderTop: "none"
+      borderTop: "none",
+      overflow: "hidden"
     },
     ".status-message-container": {
       position: "absolute",
@@ -200,8 +197,6 @@ const TabsNodeEditor = () => {
   const [showScrollButtons, setShowScrollButtons] = useState(false);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
-
-  console.log(openWorkflows);
 
   const workflows = useMemo(() => {
     const loadingWorkflows = Object.keys(loadingStates)
@@ -369,68 +364,80 @@ const TabsNodeEditor = () => {
   }, [checkScrollability]);
 
   return (
-    <div css={styles}>
-      <div className="tabs-container">
-        <button
-          className="scroll-button"
-          onClick={handleScrollLeft}
-          disabled={!canScrollLeft}
-          data-hidden={!showScrollButtons}
-        >
-          <ChevronLeftIcon />
-        </button>
-        <div className="tabs" ref={tabsRef} onWheel={handleWheel}>
-          {workflows.map((workflow) => (
-            <TabHeader
-              key={workflow.id}
-              workflow={workflow}
-              isActive={workflow.id === currentWorkflowId}
-              isEditing={editingWorkflowId === workflow.id}
-              dropTarget={dropTarget}
-              onNavigate={handleNavigate}
-              onDoubleClick={handleDoubleClick}
-              onClose={handleClose}
-              onDragStart={handleDragStart}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-              onNameChange={handleNameChange}
-              onKeyDown={handleKeyDown}
-            />
-          ))}
+    <ThemeProvider theme={ThemeNodes}>
+      <div css={styles}>
+        <div className="tabs-container">
+          <button
+            className="scroll-button"
+            onClick={handleScrollLeft}
+            disabled={!canScrollLeft}
+            data-hidden={!showScrollButtons}
+          >
+            <ChevronLeftIcon />
+          </button>
+          <div className="tabs" ref={tabsRef} onWheel={handleWheel}>
+            {workflows.map((workflow) => (
+              <TabHeader
+                key={workflow.id}
+                workflow={workflow}
+                isActive={workflow.id === currentWorkflowId}
+                isEditing={editingWorkflowId === workflow.id}
+                dropTarget={dropTarget}
+                onNavigate={handleNavigate}
+                onDoubleClick={handleDoubleClick}
+                onClose={handleClose}
+                onDragStart={handleDragStart}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                onNameChange={handleNameChange}
+                onKeyDown={handleKeyDown}
+              />
+            ))}
+          </div>
+          <button
+            className="scroll-button"
+            onClick={handleScrollRight}
+            disabled={!canScrollRight}
+            data-hidden={!showScrollButtons}
+          >
+            <ChevronRightIcon />
+          </button>
         </div>
-        <button
-          className="scroll-button"
-          onClick={handleScrollRight}
-          disabled={!canScrollRight}
-          data-hidden={!showScrollButtons}
-        >
-          <ChevronRightIcon />
-        </button>
+        <div className="editor-container" css={generateCSS}>
+          {workflows.map((workflow) =>
+            currentWorkflowId === workflow.id ? (
+              <Box
+                key={workflow.id}
+                sx={{
+                  overflow: "hidden",
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  width: "100%",
+                  height: "100%"
+                }}
+              >
+                <ReactFlowProvider>
+                  <NodeProvider workflowId={workflow.id}>
+                    {createPortal(
+                      <div className="actions-container">
+                        <AppHeaderActions />
+                      </div>,
+                      document.body
+                    )}
+                    <div className="status-message-container">
+                      <StatusMessage />
+                    </div>
+                    <NodeEditor workflowId={workflow.id} />
+                  </NodeProvider>
+                </ReactFlowProvider>
+              </Box>
+            ) : null
+          )}
+        </div>
       </div>
-      <div className="editor-container" css={generateCSS}>
-        {workflows.map((workflow) =>
-          currentWorkflowId === workflow.id ? (
-            <div key={workflow.id}>
-              <ReactFlowProvider>
-                <NodeProvider workflowId={workflow.id}>
-                  {createPortal(
-                    <div className="actions-container">
-                      <AppHeaderActions />
-                    </div>,
-                    document.body
-                  )}
-                  <div className="status-message-container">
-                    <StatusMessage />
-                  </div>
-                  <NodeEditor workflowId={workflow.id} />
-                </NodeProvider>
-              </ReactFlowProvider>
-            </div>
-          ) : null
-        )}
-      </div>
-    </div>
+    </ThemeProvider>
   );
 };
 
