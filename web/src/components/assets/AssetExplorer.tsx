@@ -49,16 +49,10 @@ const styles = (theme: any) =>
     },
     ".asset-explorer .file-upload-button": {
       position: "absolute",
-      top: "-15px !important",
-      left: "0 !important",
-      right: "0 !important",
-      margin: "0 auto ",
+      top: "-48px",
+      marginRight: "auto",
       height: "fit-content ",
       width: "fit-content"
-    },
-    ".asset-explorer .file-upload-button button": {
-      padding: "1em .5em",
-      fontSize: theme.fontSizeNormal
     }
   });
 
