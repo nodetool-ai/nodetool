@@ -75,7 +75,7 @@ const styles = (theme: any) =>
     },
     ".node-menu-button": {
       "& svg": {
-        fill: `${theme.palette.c_hl1}66`
+        fill: `${theme.palette.c_hl1}cc`
       },
       "&:hover svg": {
         fill: `${theme.palette.c_hl1}ff`
