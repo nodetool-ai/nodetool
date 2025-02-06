@@ -5,6 +5,7 @@ from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.metadata.types import DocumentRef
 import pymupdf
+import pymupdf4llm
 
 
 class ExtractPlainText(BaseNode):
@@ -183,3 +184,42 @@ class ExtractTables(BaseNode):
                 all_tables.append(table_data)
 
         return all_tables
+
+
+class ExtractMarkdown(BaseNode):
+    """
+    Convert PDF to Markdown format using pymupdf4llm.
+    pdf, markdown, convert
+
+    Use cases:
+    - Convert PDF documents to markdown format
+    - Preserve document structure in markdown
+    - Create editable markdown from PDFs
+    """
+
+    pdf: DocumentRef = Field(
+        default=DocumentRef(),
+        description="The PDF document to convert to markdown",
+    )
+    start_page: int = Field(
+        default=0, description="First page to extract (0-based index)"
+    )
+    end_page: int = Field(
+        default=-1, description="Last page to extract (-1 for last page)"
+    )
+
+    async def process(self, context: ProcessingContext) -> str:
+
+        pdf_data = await context.asset_to_bytes(self.pdf)
+
+        doc = pymupdf.open(stream=pdf_data, filetype="pdf")
+
+        md_text = pymupdf4llm.to_markdown(doc)
+
+        # If page range is specified, split and extract relevant pages
+        if self.start_page != 0 or self.end_page != -1:
+            pages = md_text.split("\f")  # Split by form feed character
+            end = self.end_page if self.end_page != -1 else len(pages) - 1
+            md_text = "\f".join(pages[self.start_page : end + 1])
+
+        return md_text
