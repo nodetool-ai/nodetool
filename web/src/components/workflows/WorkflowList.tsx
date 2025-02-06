@@ -15,11 +15,7 @@ import {
 import { client } from "../../stores/ApiClient";
 import { createErrorMessage } from "../../utils/errorHandling";
 import { isEqual } from "lodash";
-import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useQuery } from "@tanstack/react-query";
-
-const tile_width = "200px";
-const tile_height = "200px";
 
 const styles = (theme: any) =>
   css({
@@ -64,16 +60,6 @@ const styles = (theme: any) =>
     ".filter": {
       width: "20em"
     },
-    ".image-placeholder": {
-      width: tile_width,
-      height: tile_height,
-      overflow: "hidden",
-      position: "relative",
-      backgroundColor: theme.palette.c_gray2,
-      display: "flex",
-      justifyContent: "center",
-      alignItems: "center"
-    },
     ".loading-indicator": {
       display: "flex",
       justifyContent: "center",
@@ -86,7 +72,8 @@ const styles = (theme: any) =>
       paddingTop: "0.5em"
     },
     ".name": {
-      lineHeight: "1.8em",
+      fontSize: theme.fontSizeSmall,
+      lineHeight: "1em",
       color: theme.palette.c_gray8
     },
     ".date": {
@@ -101,17 +88,6 @@ const styles = (theme: any) =>
       gap: "0",
       height: "2em",
       margin: "0"
-    },
-    ".workflow-buttons": {
-      display: "flex",
-      flexDirection: "row",
-      gap: "1em",
-      justifyContent: "flex-start",
-      margin: "2em 2em",
-      alignItems: "center"
-    },
-    ".workflow-buttons .MuiToggleButton-root[aria-pressed='false']": {
-      color: theme.palette.c_gray4
     },
     ".explanations": {
       margin: "-.5em 1em -1em 2em",
@@ -130,6 +106,12 @@ const styles = (theme: any) =>
         fontSize: "1.2rem",
         color: theme.palette.c_white
       }
+    },
+    ".duplicate-button svg": {
+      fontSize: "1.5em"
+    },
+    ".delete-button svg": {
+      fontSize: "1.5em"
     }
   });
 

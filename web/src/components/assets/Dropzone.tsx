@@ -23,27 +23,18 @@ const styles = (theme: any) =>
       opacity: 1
     },
     ".file-upload-button": {
-      position: "absolute",
       zIndex: 1,
       height: "fit-content",
       display: "flex",
       justifyContent: "center",
       alignItems: "center",
-      top: "-32px",
-      left: "1em",
       padding: "0 .5em",
-      margin: ".5em 0",
+      right: "48px",
+      margin: "0",
       border: "none",
       outline: "none",
       borderRadius: "5px",
       transition: "background 0.2s"
-    },
-    ".file-upload-button:hover": {
-      background: theme.palette.c_gray0
-    },
-    ".file-upload-button button": {
-      fontSize: theme.fontSizeSmaller,
-      border: "none"
     }
   });
 

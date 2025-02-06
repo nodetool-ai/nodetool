@@ -37,6 +37,7 @@ const styles = (theme: any) =>
     },
     ".dropzone": {
       display: "flex",
+      outline: "none",
       flexDirection: "column",
       position: "relative",
       flexGrow: 1,
@@ -49,7 +50,6 @@ const styles = (theme: any) =>
       width: "calc(100% - 90px)",
       left: "80px",
       bottom: "25px",
-
       display: "flex",
       flexDirection: "column",
       gap: "0.25em",
@@ -64,7 +64,8 @@ const styles = (theme: any) =>
     },
     ".current-folder": {
       display: "block",
-      fontSize: ThemeNodetool.fontSizeSmall,
+      left: "0",
+      fontSize: ThemeNodetool.fontSizeNormal,
       color: theme.palette.c_gray5,
       margin: "2em 0 0 0"
     },
@@ -137,11 +138,7 @@ const styles = (theme: any) =>
     },
     ".header-info": {
       display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-      padding: "0.5em",
-      fontSize: ThemeNodetool.fontSizeSmall,
-      color: theme.palette.c_gray5
+      fontSize: ThemeNodetool.fontSizeSmall
     },
     ".file-info": {
       display: "flex",
@@ -203,11 +200,11 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   }));
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const [containerWidth, setContainerWidth] = React.useState(0);
+  // const [containerWidth, setContainerWidth] = React.useState(0);
 
-  useResizeObserver(containerRef, (entry) => {
-    setContainerWidth(entry.contentRect.width);
-  });
+  // useResizeObserver(containerRef, (entry) => {
+  //   setContainerWidth(entry.contentRect.width);
+  // });
 
   const { uploadAsset, isUploading } = useAssetUpload();
 
@@ -288,26 +285,24 @@ const AssetGrid: React.FC<AssetGridProps> = ({
             onClose={() => setOpenAsset(null)}
           />
         )}
-        {containerWidth > 200 && <AssetActionsMenu maxItemSize={maxItemSize} />}
-        {containerWidth > 300 && (
-          <div className="header-info">
-            <div className="selected-asset-info">
-              <Typography variant="body1" className="selected-info">
-                {selectedAssetIds.length > 0 && (
-                  <>
-                    {selectedAssetIds.length}{" "}
-                    {selectedAssetIds.length === 1 ? "item " : "items "}
-                    selected
-                  </>
-                )}
-              </Typography>
-            </div>
-            <Typography className="current-folder">
-              <span className="folder-slash">/</span>
-              {currentFolder && `${currentFolder.name}`}
+        <AssetActionsMenu maxItemSize={maxItemSize} />
+        <div className="header-info">
+          <div className="selected-asset-info">
+            <Typography variant="body1" className="selected-info">
+              {selectedAssetIds.length > 0 && (
+                <>
+                  {selectedAssetIds.length}{" "}
+                  {selectedAssetIds.length === 1 ? "item " : "items "}
+                  selected
+                </>
+              )}
             </Typography>
           </div>
-        )}
+          {/* <Typography className="current-folder">
+            <span className="folder-slash">/</span>
+            {currentFolder && `${currentFolder.name}`}
+          </Typography> */}
+        </div>
         <Dropzone onDrop={uploadFiles}>
           <div
             style={{
@@ -317,14 +312,12 @@ const AssetGrid: React.FC<AssetGridProps> = ({
               flexDirection: isHorizontal ? "row" : "column"
             }}
           >
-            {containerWidth > 200 && (
-              <div
-                className="folder-list-container"
-                style={{ flexShrink: 0, position: "relative" }}
-              >
-                <FolderList isHorizontal={isHorizontal} />
-              </div>
-            )}
+            <div
+              className="folder-list-container"
+              style={{ flexShrink: 0, position: "relative" }}
+            >
+              <FolderList isHorizontal={isHorizontal} />
+            </div>
             <div
               style={{
                 flexGrow: 1,
@@ -370,7 +363,6 @@ const AssetGrid: React.FC<AssetGridProps> = ({
       error,
       openAsset,
       sortedAssets,
-      containerWidth,
       maxItemSize,
       currentFolder,
       selectedAssetIds,

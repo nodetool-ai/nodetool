@@ -4,7 +4,6 @@ import { Drawer, IconButton, Tooltip, Box, Button } from "@mui/material";
 import CodeIcon from "@mui/icons-material/Code";
 import ChatIcon from "@mui/icons-material/Chat";
 import { useResizePanel } from "../../hooks/handlers/useResizePanel";
-import "../../styles/panel.css";
 import HelpChat from "../assistants/HelpChat";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { isEqual } from "lodash";
@@ -18,6 +17,48 @@ import CollectionList from "../collections/CollectionList";
 
 const styles = (theme: any) =>
   css({
+    ".panel-left": {
+      direction: "ltr",
+      position: "absolute",
+      overflowX: "hidden",
+      overflowY: "auto",
+      width: "100%",
+      padding: "0.5em",
+      top: "50px",
+      height: "calc(-45px + 100vh)"
+    },
+
+    ".panel-button": {
+      position: "absolute",
+      zIndex: 1200,
+      left: "unset",
+      right: "unset",
+      width: "40px",
+      height: "calc(100vh - 75px)",
+      backgroundColor: "transparent",
+      border: 0,
+      borderRadius: 0,
+      top: "75px",
+      cursor: "e-resize",
+      transition: "background-color 0.3s ease",
+
+      "& svg": {
+        fontSize: "0.8em !important",
+        color: "var(--c_gray5)",
+        opacity: 0,
+        marginLeft: "1px",
+        transition: "all 0.5s ease"
+      },
+
+      "&:hover": {
+        backgroundColor: "#33333344",
+        "& svg": {
+          opacity: 1,
+          fontSize: "1em !important"
+        }
+      }
+    },
+
     ".panel-container": {
       flexShrink: 0,
       position: "relative"
