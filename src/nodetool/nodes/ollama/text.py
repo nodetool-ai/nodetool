@@ -52,7 +52,7 @@ class Ollama(BaseNode):
         description="The context window size to use for the model.",
     )
     num_predict: int = Field(
-        default=128,
+        default=4096,
         ge=1,
         le=10000,
         description="The number of tokens to predict.",

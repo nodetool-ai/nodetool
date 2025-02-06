@@ -182,8 +182,6 @@ class DataGenerator(BaseNode):
         )
         content = str(res["message"]["content"])
 
-        print(content)
-
         # find the first [ and the last ]
         start = content.find("[")
         end = content.rfind("]")
@@ -2794,3 +2792,119 @@ User's original question: {self.prompt}""",
         )
 
         return str(interpretation_res["message"]["content"])
+
+
+class DataExtractor(BaseNode):
+    """
+    LLM Agent to extract structured data from text based on a provided JSON schema.
+    llm, data extraction, text analysis
+
+    Use cases:
+    - Extract specific fields from unstructured text
+    - Convert text to structured data formats
+    - Information extraction from documents
+    - Named entity recognition with specific schema
+    """
+
+    model: LlamaModel = Field(
+        default=LlamaModel(), description="The Llama model to use."
+    )
+    context_window: int = Field(
+        default=4096,
+        ge=1,
+        le=4096 * 2,
+        description="The context window size to use for the model.",
+    )
+    system_prompt: str = Field(
+        default="",
+        description="The system prompt to use for the model.",
+    )
+    text: str = Field(
+        default="",
+        description="The text to extract data from",
+    )
+    json_schema: dict = Field(
+        default={},
+        description="The JSON schema that defines the structure of the output. Must be an object type.",
+    )
+    temperature: float = Field(
+        default=0.2,
+        ge=0.0,
+        le=2.0,
+        description="The temperature to use for sampling.",
+    )
+    top_k: int = Field(
+        default=50,
+        ge=1,
+        le=100,
+        description="The number of highest probability tokens to keep for top-k sampling.",
+    )
+    top_p: float = Field(
+        default=0.95,
+        ge=0.0,
+        le=1.0,
+        description="The cumulative probability cutoff for nucleus/top-p sampling.",
+    )
+    keep_alive: int = Field(
+        default="300",
+        description="The number of seconds to keep the model alive.",
+    )
+
+    @classmethod
+    def get_basic_fields(cls) -> list[str]:
+        return ["model", "text", "json_schema"]
+
+    def validate_schema(self, schema: dict) -> None:
+        """Validate that the provided schema is an object type"""
+        if not isinstance(schema, dict):
+            raise ValueError("Schema must be a dictionary")
+
+        schema_type = schema.get("type")
+        if schema_type != "object":
+            raise ValueError("Schema must have type 'object'")
+
+    async def process(self, context: ProcessingContext) -> dict:
+        # Validate schema
+        self.validate_schema(self.json_schema)
+
+        res = await context.run_prediction(
+            node_id=self._id,
+            provider=Provider.Ollama,
+            model=self.model.repo_id,
+            params={
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": self.system_prompt,
+                    },
+                    {
+                        "role": "user",
+                        "content": self.text,
+                    },
+                ],
+                "format": self.json_schema,
+                "options": {
+                    "temperature": self.temperature,
+                    "top_k": self.top_k,
+                    "top_p": self.top_p,
+                    "keep_alive": self.keep_alive,
+                    "stream": False,
+                    "num_predict": 4096,
+                    "num_ctx": self.context_window,
+                },
+            },
+        )
+
+        content = str(res["message"]["content"])
+
+        # Extract JSON content
+        start = content.find("{")
+        end = content.rfind("}")
+
+        if start == -1 or end == -1:
+            raise ValueError(
+                f"No valid JSON data found in the response: {content[:1000]}"
+            )
+
+        content = content[start : end + 1]
+        return json.loads(content)

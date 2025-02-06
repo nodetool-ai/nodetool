@@ -6725,6 +6725,22 @@ files = [
 ]
 
 [[package]]
+name = "pymupdf4llm"
+version = "0.0.17"
+description = "PyMuPDF Utilities for LLM/RAG"
+optional = false
+python-versions = "*"
+groups = ["main"]
+markers = "python_version <= \"3.11\" or python_version >= \"3.12\""
+files = [
+    {file = "pymupdf4llm-0.0.17-py3-none-any.whl", hash = "sha256:26de9996945f15e3ca507908f80dc18a959f5b5214bb2e302c7f7034089665a0"},
+    {file = "pymupdf4llm-0.0.17.tar.gz", hash = "sha256:27287ef9fe0217cf37841a3ef2bcf70da2553c43d95ea39b664a6de6485678c3"},
+]
+
+[package.dependencies]
+pymupdf = ">=1.24.10"
+
+[[package]]
 name = "pynacl"
 version = "1.5.0"
 description = "Python binding to the Networking and Cryptography (NaCl) library"
@@ -10104,4 +10120,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.10"
-content-hash = "77613268290ed62f40f8412d95e7715bbb8840d5d1a4d85789561193e509c12e"
+content-hash = "2e48d43449963a3c868bd36c274d7d1df30c5e21cfc74572e102f01cc66faa43"
