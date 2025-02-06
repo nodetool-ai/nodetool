@@ -1,6 +1,4 @@
-import base64
-from enum import EnumMeta, Enum
-from typing import Set
+from enum import Enum
 import functools
 import importlib
 import re
@@ -459,6 +457,8 @@ class BaseNode(BaseModel):
             This method handles type conversion for enums, lists, and objects with 'model_validate' method.
         """
         prop = self.find_property(name)
+        assert prop is not None, f"Property {name} not found"
+
         python_type = prop.type.get_python_type()
         type_args = prop.type.type_args
 
@@ -685,10 +685,7 @@ class BaseNode(BaseModel):
         if name in class_properties:
             return class_properties[name]
         elif name in self._dynamic_properties:
-            return Property(
-                name=name,
-                type=type_metadata(type(self._dynamic_properties[name])),
-            )
+            return Property(name=name, type=TypeMetadata(type="any"))
         else:
             raise ValueError(f"Property {name} does not exist")
 
