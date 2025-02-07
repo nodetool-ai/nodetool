@@ -93,11 +93,30 @@ export default function useConnectionHandlers() {
   /* ON CONNECT */
   const handleOnConnect = useCallback(
     (connection: Connection) => {
-      connectionCreated.current = true;
-      devLog("Connection Created", connection);
-      onConnect(connection);
+      const { source, sourceHandle, target, targetHandle } = connection;
+      const sourceNode = findNode(source);
+      const targetNode = findNode(target);
+      if (!sourceNode || !targetNode) {
+        return;
+      }
+      const sourceMetadata = getMetadata(sourceNode.type || "");
+      const targetMetadata = getMetadata(targetNode.type || "");
+      const sourceHandleMetadata = sourceMetadata?.outputs.find(
+        (prop) => prop.name === sourceHandle
+      );
+      const targetHandleMetadata = targetMetadata?.properties.find(
+        (prop) => prop.name === targetHandle
+      );
+      if (!sourceHandleMetadata || !targetHandleMetadata) {
+        return;
+      }
+      if (isConnectable(sourceHandleMetadata.type, targetHandleMetadata.type)) {
+        connectionCreated.current = true;
+        devLog("Connection Created", connection);
+        onConnect(connection);
+      }
     },
-    [connectionCreated, onConnect]
+    [findNode, getMetadata, onConnect]
   );
 
   /* CONNECT END */
