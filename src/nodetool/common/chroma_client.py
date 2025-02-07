@@ -7,6 +7,9 @@ from nodetool.common.environment import Environment
 from chromadb.utils.embedding_functions.ollama_embedding_function import (
     OllamaEmbeddingFunction,
 )
+from chromadb.utils.embedding_functions.sentence_transformer_embedding_function import (
+    SentenceTransformerEmbeddingFunction,
+)
 from langchain_text_splitters import (
     RecursiveCharacterTextSplitter,
 )
@@ -90,13 +93,18 @@ def get_collection(name: str) -> chromadb.Collection:
     collection = client.get_collection(name=name)
     ollama_url = Environment.get("OLLAMA_API_URL")
 
-    embedding_function = OllamaEmbeddingFunction(
-        url=f"{ollama_url}/api/embeddings",
-        model_name=collection.metadata["embedding_model"],
-    )
-    embedding_function._session = httpx.Client(
-        timeout=httpx.Timeout(300),
-    )
+    if collection.metadata and collection.metadata["embedding_model"]:
+        embedding_function = OllamaEmbeddingFunction(
+            url=f"{ollama_url}/api/embeddings",
+            model_name=collection.metadata["embedding_model"],
+        )
+        embedding_function._session = httpx.Client(
+            timeout=httpx.Timeout(300),
+        )
+    else:
+        embedding_function = SentenceTransformerEmbeddingFunction(
+            model_name="all-MiniLM-L6-v2",
+        )
 
     return client.get_collection(
         name=name, embedding_function=embedding_function  # type: ignore

@@ -10,7 +10,7 @@ interface ChatStore {
   setMessages: (messages: Message[]) => void;
   addMessages: (messages: Message[]) => void;
   setIsLoading: (isLoading: boolean) => void;
-  sendMessage: (message: Message) => Promise<void>;
+  sendMessage: (message: Message, model: string) => Promise<void>;
 }
 
 export const useChatStore = create<ChatStore>((set, get) => ({
@@ -20,7 +20,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   addMessages: (newMessages) =>
     set((state) => ({ messages: [...state.messages, ...newMessages] })),
   setIsLoading: (isLoading) => set({ isLoading }),
-  sendMessage: async (message: Message) => {
+  sendMessage: async (message: Message, model: string) => {
     set({ isLoading: true });
     const messages = get().messages.concat(message);
     get().addMessages([message]);
@@ -41,7 +41,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         },
         body: JSON.stringify({
           messages,
-          available_tutorials: Object.keys(tutorials)
+          model
         })
       });
 

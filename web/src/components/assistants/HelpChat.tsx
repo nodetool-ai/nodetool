@@ -1,85 +1,61 @@
-import React, { useCallback, useEffect } from "react";
+import React, { useCallback } from "react";
 import ChatView from "./ChatView";
 import { useChatStore } from "../../stores/ChatStore";
-import { Box, Typography, Button, Tooltip } from "@mui/material";
+import { Box, Typography, Button, Stack } from "@mui/material";
 import { useTutorialStore } from "../../stores/TutorialStore";
-import useWorkflowRunnner from "../../stores/WorkflowRunner";
-import { tutorials } from "../../stores/TutorialStore";
-import useModelStore from "../../stores/ModelStore";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { fetchOllamaModelInfo } from "../hugging_face/ModelUtils";
+import { useQueryClient } from "@tanstack/react-query";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
-import { isProduction } from "../../stores/ApiClient";
 import { ChatHeader } from "./chat/ChatHeader";
 import { DEFAULT_MODEL } from "../../config/constants";
+import LlamaModelSelect from "../properties/LlamaModelSelect";
+
+const CONVERSATION_STARTERS = [
+  {
+    title: "Models",
+    prompt: "Tell me about the different AI models I can use"
+  },
+  {
+    title: "Assets",
+    prompt: "How do I work with assets in Nodetool?"
+  },
+  {
+    title: "Workflow Basics",
+    prompt: "What are the basics of creating workflows?"
+  },
+  {
+    title: "Keyboard Shortcuts",
+    prompt: "What keyboard shortcuts are available?"
+  }
+];
 
 const HelpChat: React.FC = () => {
   const { messages, isLoading, sendMessage, setMessages } = useChatStore();
-  const { isInTutorial, getStep, nextStep } = useTutorialStore();
-  // const { state } = useWorkflowRunnner();
-  const step = getStep();
-  // const { startTutorial } = useTutorialStore();
-  // const loadHuggingFaceModels = useModelStore(
-  //   (state) => state.loadHuggingFaceModels
-  // );
-  // const loadLlamaModels = useModelStore((state) => state.loadLlamaModels);
-  const { startDownload, openDialog } = useModelDownloadStore();
-
-  // const { data: huggingfaceModels } = useQuery({
-  //   queryKey: ["huggingfaceModels"],
-  //   queryFn: loadHuggingFaceModels
-  // });
-
-  // const { data: llamaModels } = useQuery({
-  //   queryKey: ["llamaModels"],
-  //   queryFn: loadLlamaModels
-  // });
-
-  const { data: ollamaModelInfo, isLoading: isLoadingOllamaModel } = useQuery({
-    queryKey: ["ollamaModel", DEFAULT_MODEL],
-    queryFn: () => fetchOllamaModelInfo(DEFAULT_MODEL)
-  });
-
+  const [selectedModel, setSelectedModel] = React.useState(DEFAULT_MODEL);
   const handleResetChat = useCallback(() => {
     setMessages([]);
     useTutorialStore.getState().endTutorial();
   }, [setMessages]);
 
-  const handleDownloadModel = useCallback(() => {
-    startDownload(DEFAULT_MODEL, "llama_model");
-    openDialog();
-  }, [startDownload, openDialog]);
-
-  const isModelAvailable = isProduction || Boolean(ollamaModelInfo);
-  const { downloads } = useModelDownloadStore();
-  const isDownloading = downloads[DEFAULT_MODEL]?.status === "running";
+  const handleModelChange = useCallback((model: any) => {
+    setSelectedModel(model.repo_id);
+  }, []);
 
   const queryClient = useQueryClient();
 
-  useEffect(() => {
-    const downloadStatus = downloads[DEFAULT_MODEL]?.status;
-    if (downloadStatus === "completed") {
-      queryClient.invalidateQueries({
-        queryKey: ["ollamaModel", DEFAULT_MODEL]
-      });
-    }
-  }, [downloads, queryClient]);
-
-  // useEffect(() => {
-  //   if (isInTutorial) {
-  //     if (
-  //       step?.isCompleted({
-  //         nodes,
-  //         edges,
-  //         workflowState: state,
-  //         huggingfaceModels: huggingfaceModels || [],
-  //         llamaModels: llamaModels || []
-  //       })
-  //     ) {
-  //       nextStep();
-  //     }
-  //   }
-  // }, [step, isInTutorial, nextStep, state, huggingfaceModels, llamaModels]);
+  const handleStarterClick = useCallback(
+    (prompt: string) => {
+      sendMessage(
+        {
+          type: "message",
+          name: "user",
+          role: "user",
+          content: prompt
+        },
+        selectedModel
+      );
+    },
+    [sendMessage, selectedModel]
+  );
 
   return (
     <div
@@ -103,120 +79,62 @@ const HelpChat: React.FC = () => {
         description="Help Chat"
       />
 
-      {/* {messages.length === 0 && isModelAvailable && (
-        <Box sx={{ mb: 2, px: 2 }}>
-          <Typography
-            variant="h4"
-            sx={{
-              fontSize: "1.25rem",
-              fontWeight: 500,
-              mb: 2
-            }}
-          >
-            Hello
-          </Typography>
-          <Typography sx={{ mb: 3 }}>
-            Ask me anything about Nodetool's features, or get started with one
-            of these interactive tutorials:
-          </Typography>
-          <Box
-            sx={{
-              display: "flex",
-              flexDirection: "column",
-              gap: 1.5
-            }}
-          >
-            {Object.keys(tutorials).map((name) => (
-              <Tooltip
-                key={name}
-                title={`Start the ${name} tutorial`}
-                arrow
-                placement="right"
-              >
-                <Button
-                  variant="contained"
-                  component="a"
-                  href=""
-                  onClick={(e) => {
-                    e.preventDefault();
-                    startTutorial(name);
-                  }}
-                  tabIndex={-1}
-                  sx={{
-                    textTransform: "none",
-                    py: 1.5,
-                    px: 2.5,
-                    borderRadius: 2,
-                    backgroundColor: "rgba(80, 230, 180, 0.15)",
-                    color: "rgb(80, 230, 180)",
-                    fontWeight: 500,
-                    justifyContent: "flex-start",
-                    "&:hover": {
-                      backgroundColor: "rgba(80, 230, 180, 0.25)",
-                      transform: "translateY(-2px)",
-                      transition: "all 0.2s ease-in-out"
-                    }
-                  }}
-                >
-                  <Box
-                    component="span"
-                    sx={{
-                      mr: 1.5,
-                      display: "flex",
-                      alignItems: "center"
-                    }}
-                  >
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 16 16"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path d="M4 3.5V12.5L12 8L4 3.5Z" fill="currentColor" />
-                    </svg>
-                  </Box>
-                  {name}
-                </Button>
-              </Tooltip>
-            ))}
-          </Box>
+      <Box sx={{ px: 2, py: 1, display: "flex", alignItems: "center", gap: 1 }}>
+        <Typography variant="body2" color="text.secondary">
+          Model:
+        </Typography>
+        <Box sx={{ flexGrow: 1 }}>
+          <LlamaModelSelect
+            value={selectedModel}
+            onChange={handleModelChange}
+          />
         </Box>
-      )} */}
+      </Box>
 
-      {isLoadingOllamaModel ? (
-        <Typography>Checking model availability...</Typography>
-      ) : isDownloading ? (
-        <Typography>Downloading model...</Typography>
-      ) : !isModelAvailable ? (
-        <Box sx={{ mb: 2 }}>
-          <Typography>
-            You need to download the {DEFAULT_MODEL} model to use the Help Chat.
-          </Typography>
-          <Tooltip
-            title="Download the AI model to enable chat assistance features"
-            arrow
-          >
-            <Button
-              variant="outlined"
-              onClick={handleDownloadModel}
-              sx={{ mt: 1 }}
-              tabIndex={-1}
-            >
-              Download {DEFAULT_MODEL} Model
-            </Button>
-          </Tooltip>
-        </Box>
-      ) : (
-        <ChatView
-          status={isLoading ? "loading" : "connected"}
-          messages={messages}
-          sendMessage={sendMessage}
-          currentNodeName={null}
-          progress={0}
-          total={0}
-        />
+      {messages.length === 0 && (
+        <Stack spacing={1} sx={{ px: 2, py: 1 }}>
+          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+            <Stack direction="column" spacing={1}>
+              {CONVERSATION_STARTERS.slice(
+                0,
+                Math.ceil(CONVERSATION_STARTERS.length / 2)
+              ).map((starter) => (
+                <Button
+                  key={starter.title}
+                  variant="outlined"
+                  size="small"
+                  onClick={() => handleStarterClick(starter.prompt)}
+                >
+                  {starter.prompt}
+                </Button>
+              ))}
+            </Stack>
+            <Stack direction="column" spacing={1}>
+              {CONVERSATION_STARTERS.slice(
+                Math.ceil(CONVERSATION_STARTERS.length / 2)
+              ).map((starter) => (
+                <Button
+                  key={starter.title}
+                  variant="outlined"
+                  size="small"
+                  onClick={() => handleStarterClick(starter.prompt)}
+                >
+                  {starter.prompt}
+                </Button>
+              ))}
+            </Stack>
+          </Stack>
+        </Stack>
       )}
+
+      <ChatView
+        status={isLoading ? "loading" : "connected"}
+        messages={messages}
+        sendMessage={(message) => sendMessage(message, selectedModel)}
+        currentNodeName={null}
+        progress={0}
+        total={0}
+      />
     </div>
   );
 };
