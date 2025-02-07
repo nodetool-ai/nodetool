@@ -2,7 +2,6 @@ import asyncio
 import json
 import os
 from typing import Any, AsyncGenerator, Mapping
-import PIL
 import ollama
 import readline
 from pydantic import BaseModel
@@ -13,9 +12,7 @@ from nodetool.providers.ollama.ollama_service import get_ollama_client
 from nodetool.chat.tools import Tool, sanitize_node_name
 from nodetool.common.environment import Environment
 from nodetool.metadata.types import (
-    ImageRef,
     Message,
-    MessageImageContent,
     MessageTextContent,
 )
 from nodetool.workflows.base_node import (
@@ -25,6 +22,8 @@ from nodetool.workflows.base_node import (
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.workflows.examples import load_examples
 from jsonschema import validators
+from chromadb.api.types import IncludeEnum
+from transformers import AutoTokenizer
 
 
 doc_folder = os.path.join(os.path.dirname(__file__), "docs")
@@ -74,6 +73,7 @@ def get_collection(name) -> chromadb.Collection:
     return client.get_or_create_collection(
         name=name,
         embedding_function=embedding_function,  # type: ignore
+        metadata={"embedding_model": "all-MiniLM-L6-v2"},
     )
 
 
@@ -155,29 +155,92 @@ class SearchResult(BaseModel):
     metadata: dict | None = None
 
 
-def search_documentation(query: str) -> list[SearchResult]:
+def semantic_search_documentation(
+    query: str,
+) -> list[SearchResult]:
     """
-    Search the documentation for the given query string.
+    Perform semantic search on documentation using embeddings.
 
     Args:
         query: The query to search for.
-        n_results: The number of results to return.
 
     Returns:
-        A string of the documentation for the given query.
+        A list of search results from semantic matching.
     """
-    docs = get_doc_collection().query(query_texts=[query], n_results=10)
-    if len(docs["ids"]) == 0 or docs["documents"] is None:
-        return []
-    metadata = docs["metadatas"][0] if docs["metadatas"] else None
-    return [
-        SearchResult(
-            id=docs["ids"][0][i],
-            content=docs["documents"][0][i],
-            metadata=metadata[i] if metadata else None,  # type: ignore
-        )
-        for i in range(len(docs["ids"][0]))
-    ]
+    n_results = 10
+    collection = get_doc_collection()
+    results = collection.query(
+        query_texts=[query],
+        n_results=n_results,
+        include=[IncludeEnum.documents, IncludeEnum.distances],
+    )
+
+    search_results = []
+    if results["documents"]:
+        for i, doc in enumerate(results["documents"][0]):
+            # metadata = results["metadatas"][0][i] if results["metadatas"] else None
+            search_results.append(
+                SearchResult(
+                    id=results["ids"][0][i],
+                    content=doc,
+                    # metadata=metadata,  # type: ignore
+                )
+            )
+    return search_results
+
+
+def node_properties(node_type: str) -> dict:
+    """
+    Get the properties of a node.
+    """
+    collection = get_doc_collection()
+    results = collection.query(
+        query_texts=[node_type],
+        n_results=1,
+        include=[IncludeEnum.documents, IncludeEnum.metadatas],
+    )
+    if results["documents"]:
+        return results["metadatas"][0][0]  # type: ignore
+    return {}
+
+
+def keyword_search_documentation(query: str) -> list[SearchResult]:
+    """
+    Perform keyword search on documentation using token matching.
+
+    Args:
+        query: The query to search for.
+
+    Returns:
+        A list of search results from keyword matching.
+    """
+    n_results = 10
+    collection = get_doc_collection()
+    query_tokens = preprocess_text(query)
+    if len(query_tokens) > 1:
+        where_document = {"$or": [{"$contains": token} for token in query_tokens]}
+    else:
+        where_document = {"$contains": query_tokens[0]}
+
+    results = collection.query(
+        query_texts=[query],
+        n_results=n_results,
+        where_document=where_document,  # type: ignore
+        include=[IncludeEnum.documents, IncludeEnum.distances],
+    )
+
+    search_results = []
+    if results["documents"]:
+        for i, doc in enumerate(results["documents"][0]):
+            # metadata = results["metadatas"][0][i] if results["metadatas"] else None
+            search_results.append(
+                SearchResult(
+                    id=results["ids"][0][i],
+                    content=doc,
+                    # metadata=metadata,  # type: ignore
+                )
+            )
+    return search_results
 
 
 def search_examples(query: str) -> list[SearchResult]:
@@ -201,13 +264,6 @@ def search_examples(query: str) -> list[SearchResult]:
         )
         for i in range(len(res["ids"][0]))
     ]
-
-
-def search_docs(query: str) -> list[SearchResult]:
-    """
-    Search the documentation and examples for the given query string.
-    """
-    return search_documentation(query) + search_examples(query)
 
 
 """
@@ -396,263 +452,6 @@ IMPORTANT NODES:
 - Text Generation: There are many nodes from different providers for text generation, like OpenAI, Ollama, Google, Anthropic, and more.
 - Image Generation: There are many nodes from different providers for image generation, like OpenAI, Hugging Face, Replicate, and more.
 
-NODE HIERARCHY:
-ALWAYS use the documentation tool to find the correct node type.
-.
-├── aime
-│   ├── __init__.py
-│   ├── audio.py
-│   ├── image.py
-│   ├── text.py
-│   └── translate.py
-├── anthropic
-│   ├── __init__.py
-│   └── text.py
-├── apple
-│   ├── __init__.py
-│   ├── calendar.py
-│   ├── exportnotes.applescript
-│   ├── messages.py
-│   ├── notes.py
-│   └── speech.py
-├── chroma
-│   ├── __init__.py
-│   ├── chroma_node.py
-│   ├── collections.py
-│   ├── index.py
-│   └── query.py
-├── comfy
-│   ├── __init__.py
-│   ├── _for_testing.py
-│   ├── advanced
-│   │   ├── conditioning.py
-│   │   ├── loaders.py
-│   │   └── model.py
-│   ├── basic.py
-│   ├── conditioning.py
-│   ├── controlnet
-│   │   ├── __init__.py
-│   │   ├── faces_and_poses.py
-│   │   ├── line_extractors.py
-│   │   ├── normal_and_depth.py
-│   │   ├── others.py
-│   │   ├── semantic_segmentation.py
-│   │   └── t2i.py
-│   ├── enums.py
-│   ├── essentials
-│   │   ├── conditioning.py
-│   │   ├── image.py
-│   │   ├── mask.py
-│   │   ├── misc.py
-│   │   ├── sampling.py
-│   │   ├── segmentation.py
-│   │   └── text.py
-│   ├── flux.py
-│   ├── generate.py
-│   ├── image
-│   │   ├── __init__.py
-│   │   ├── animation.py
-│   │   ├── batch.py
-│   │   ├── transform.py
-│   │   └── upscaling.py
-│   ├── ipadapter.py
-│   ├── latent
-│   │   ├── __init__.py
-│   │   ├── advanced.py
-│   │   ├── batch.py
-│   │   ├── inpaint.py
-│   │   ├── stable_cascade.py
-│   │   ├── transform.py
-│   │   └── video.py
-│   ├── loaders.py
-│   ├── mask
-│   │   ├── __init__.py
-│   │   └── compositing.py
-│   └── sampling
-│       ├── __init__.py
-│       ├── guiders.py
-│       ├── noise.py
-│       ├── samplers.py
-│       ├── schedulers.py
-│       └── sigmas.py
-├── elevenlabs
-│   ├── __init__.py
-│   └── text_to_speech.py
-├── fal
-│   ├── __init__.py
-│   ├── fal_node.py
-│   ├── image_to_image.py
-│   ├── image_to_video.py
-│   ├── llm.py
-│   ├── speech_to_text.py
-│   ├── text_to_audio.py
-│   └── text_to_image.py
-├── google
-│   ├── __init__.py
-│   ├── agents.py
-│   ├── gemini.py
-│   └── mail.py
-├── huggingface
-│   ├── __init__.py
-│   ├── audio_classification.py
-│   ├── automatic_speech_recognition.py
-│   ├── depth_estimation.py
-│   ├── feature_extraction.py
-│   ├── fill_mask.py
-│   ├── huggingface_pipeline.py
-│   ├── image_classification.py
-│   ├── image_segmentation.py
-│   ├── image_to_image.py
-│   ├── lora.py
-│   ├── multimodal.py
-│   ├── object_detection.py
-│   ├── question_answering.py
-│   ├── ranking.py
-│   ├── sentence_similarity.py
-│   ├── stable_diffusion_base.py
-│   ├── summarization.py
-│   ├── text_classification.py
-│   ├── text_generation.py
-│   ├── text_to_audio.py
-│   ├── text_to_image.py
-│   ├── text_to_speech.py
-│   ├── text_to_text.py
-│   ├── token_classification.py
-│   ├── translation.py
-│   └── video.py
-├── lib
-│   ├── __init__.py
-│   ├── audio
-│   │   ├── __init__.py
-│   │   ├── audio_helpers.py
-│   │   ├── conversion.py
-│   │   ├── librosa
-│   │   │   ├── __init__.py
-│   │   │   ├── analysis.py
-│   │   │   └── segmentation.py
-│   │   ├── pedalboard.py
-│   │   ├── synthesis.py
-│   │   └── transform.py
-│   ├── data
-│   │   ├── __init__.py
-│   │   ├── langchain.py
-│   │   ├── llama_index.py
-│   │   ├── numpy
-│   │   │   └── __init__.py
-│   │   ├── pandas
-│   │   │   ├── __init__.py
-│   │   │   └── dataframe.py
-│   │   └── seaborn.py
-│   ├── file
-│   │   ├── __init__.py
-│   │   ├── docx.py
-│   │   ├── excel.py
-│   │   ├── markdown.py
-│   │   ├── markitdown.py
-│   │   ├── pandoc.py
-│   │   ├── pdfplumber.py
-│   │   └── pymupdf.py
-│   ├── image
-│   │   ├── __init__.py
-│   │   ├── grid.py
-│   │   ├── pillow
-│   │   │   ├── __init__.py
-│   │   │   ├── draw.py
-│   │   │   ├── enhance.py
-│   │   │   └── filter.py
-│   │   └── svg.py
-│   ├── json.py
-│   ├── ml
-│   │   ├── __init__.py
-│   │   ├── sklearn
-│   │   │   ├── __init__.py
-│   │   │   ├── cluster.py
-│   │   │   ├── compose.py
-│   │   │   ├── datasets.py
-│   │   │   ├── decomposition.py
-│   │   │   ├── ensemble.py
-│   │   │   ├── feature_selection.py
-│   │   │   ├── impute.py
-│   │   │   ├── inspection.py
-│   │   │   ├── linear_model.py
-│   │   │   ├── metrics.py
-│   │   │   ├── model_selection.py
-│   │   │   ├── naive_bayes.py
-│   │   │   ├── neighbors.py
-│   │   │   ├── preprocessing.py
-│   │   │   ├── svm.py
-│   │   │   ├── tree.py
-│   │   │   └── visualization.py
-│   │   └── statsmodels
-│   │       ├── __init__.py
-│   │       ├── discrete.py
-│   │       ├── glm.py
-│   │       ├── mixed.py
-│   │       ├── regression.py
-│   │       └── robust.py
-│   ├── network
-│   │   ├── __init__.py
-│   │   ├── beautifulsoup.py
-│   │   ├── http.py
-│   │   ├── imap.py
-│   │   └── rss.py
-│   └── ui
-│       ├── __init__.py
-│       └── tk.py
-├── nodetool
-│   ├── __init__.py
-│   ├── audio.py
-│   ├── boolean.py
-│   ├── code.py
-│   ├── constant.py
-│   ├── control.py
-│   ├── date.py
-│   ├── dictionary.py
-│   ├── group.py
-│   ├── image.py
-│   ├── input.py
-│   ├── list.py
-│   ├── math.py
-│   ├── os.py
-│   ├── output.py
-│   ├── text.py
-│   └── video.py
-├── ollama
-│   ├── __init__.py
-│   ├── agents.py
-│   └── text.py
-├── openai
-│   ├── __init__.py
-│   ├── agents.py
-│   ├── audio.py
-│   ├── image.py
-│   └── text.py
-└── replicate
-    ├── __init__.py
-    ├── audio
-    │   ├── __init__.py
-    │   ├── enhance.py
-    │   ├── generate.py
-    │   ├── separate.py
-    │   └── transcribe.py
-    ├── gencode.py
-    ├── image
-    │   ├── __init__.py
-    │   ├── analyze.py
-    │   ├── enhance.py
-    │   ├── face.py
-    │   ├── generate.py
-    │   ├── ocr.py
-    │   ├── process.py
-    │   └── upscale.py
-    ├── text
-    │   ├── __init__.py
-    │   └── generate.py
-    └── video
-        ├── __init__.py
-        ├── analyze.py
-        └── generate.py
-
 ## Use Cases 🎨
 - 🎨 **Personal Learning Assistant**: Create chatbots that read and explain your PDFs, e-books, or academic papers
 - 📝 **Note Summarization**: Extract key insights from Obsidian or Apple Notes
@@ -668,6 +467,51 @@ Key Guidelines:
 - **Use Example Search:** Use the example search tool to find examples of how to use nodes.
 - **Answer Precisely:** Be concise, clear, and creative in your responses. Utilize ASCII diagrams if they help explain complex workflows.
 - **Focus on Nodetool Features:** Emphasize the visual editor, asset management, model management, workflow execution, and keyboard shortcuts (for example, the help menu in the top right corner).
+
+HOW TO USE SEARCH TOOLS:
+
+1. Semantic Search Documentation:
+   - Use semantic_search_documentation() for meaning-based searches
+   - Best for conceptual queries and finding related content
+   - Example queries:
+     - "How to generate images?" -> semantic_search_documentation("image generation")
+     - "What nodes can generate text?" -> semantic_search_documentation("text generation")
+   - Parameters:
+     - query: str - Your search query
+
+2. Keyword Search Documentation:
+   - Use keyword_search_documentation() for exact word matches
+   - Best for finding specific node types or features
+   - Example queries:
+     - "What is GPT?" -> keyword_search_documentation("GPT")
+     - "How to use Pandas?" -> keyword_search_documentation("Pandas")
+   - Parameters:
+     - query: str - Your search query
+
+3. Example Search:
+   - Use search_examples() to find relevant workflow examples
+   - Best for finding example workflows and use cases
+   - Example queries:
+     - "How to build a chatbot?" -> search_examples("chatbot")
+     - "How to build a text to speech workflow?" -> search_examples("text to speech")
+   - Parameters:
+     - query: str - Your search query
+     
+4. Node Properties:
+   - Use node_properties() to get the properties of a node
+   - Best for finding node properties and use cases
+   - Example queries:
+     - "What are the inputs of the Ollama node?" -> node_properties("Ollama")
+     - "What is the output of the ImagePreview node?" -> node_properties("ImagePreview")
+   - Parameters:
+     - node_type: str - The type of the node
+
+When a user asks a question:
+1. First try semantic search to understand the topic
+2. If looking for specific nodes/features, use keyword search
+3. For implementation examples, use example search
+4. For details about a node, use node_properties
+5. Combine the results to provide a comprehensive answer
 
 REFERENCE NODES:
 - Format any reference to a node as: [Node Type](/help/node_type)
@@ -703,7 +547,10 @@ async def create_message(message: Message) -> Mapping[str, str | list[str]]:
 
 
 available_functions = {
-    "search_docs": search_docs,
+    "semantic_search_documentation": semantic_search_documentation,
+    "keyword_search_documentation": keyword_search_documentation,
+    "search_examples": search_examples,
+    "node_properties": node_properties,
 }
 
 
@@ -727,7 +574,7 @@ def convert_results_to_json(obj: Any) -> str:
 
 
 async def create_help_answer(
-    messages: list[Message], available_tutorials: list[str]
+    messages: list[Message], model: str
 ) -> AsyncGenerator[str, None]:
     assert len(messages) > 0
 
@@ -739,41 +586,48 @@ async def create_help_answer(
     all_messages = [system_message] + ollama_messages
 
     res = await client.chat(
-        model="llama3.2:3b",
+        model=model,
         messages=all_messages,
         options={"num_ctx": 20000},
-        tools=[search_docs],
+        tools=list(available_functions.values()),
         stream=True,
     )
 
     async for part in res:
         if part.message.tool_calls:
+            # Create tasks for all tool calls
+            tasks = []
             for tool in part.message.tool_calls:
                 yield f"Calling tool: {tool.function.name}\n"
                 if function_to_call := available_functions.get(tool.function.name):
-                    results = function_to_call(**tool.function.arguments)
-
-                    # Add tool results to messages
-                    all_messages.append(part.message)
-                    all_messages.append(
-                        {
-                            "role": "tool",
-                            "content": convert_results_to_json(results),
-                            "name": tool.function.name,
-                        }
+                    task = asyncio.create_task(
+                        asyncio.to_thread(function_to_call, **tool.function.arguments)
                     )
+                    tasks.append((tool.function.name, task))
 
-                    # Get final response with tool results
-                    final_res = await client.chat(
-                        model="deepseek-r1:7b",
-                        messages=all_messages,
-                        options={"num_ctx": 20000},
-                        stream=True,
-                    )
-                    async for chunk in final_res:
-                        yield chunk.message.content or ""
-        else:
-            yield part.message.content or ""
+            # Wait for all tasks to complete
+            for name, task in tasks:
+                results = await task
+                all_messages.append(part.message)
+                all_messages.append(
+                    {
+                        "role": "tool",
+                        "content": convert_results_to_json(results),
+                        "name": name,
+                    }
+                )
+
+    # Get final response with tool results
+    final_res = await client.chat(
+        model="llama3.2:3b",
+        messages=all_messages,
+        options={"num_ctx": 20000},
+        stream=True,
+    )
+    async for chunk in final_res:
+        yield chunk.message.content or ""
+    else:
+        yield part.message.content or ""
 
 
 async def test_chat():
@@ -793,7 +647,7 @@ async def test_chat():
 
             messages.append(Message(role="user", content=user_input))
 
-            async for chunk in create_help_answer(messages, available_tutorials=[]):
+            async for chunk in create_help_answer(messages, model="llama3.2:3b"):
                 print(chunk, end="", flush=True)
             print()
 

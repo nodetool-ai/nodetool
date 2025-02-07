@@ -60,14 +60,14 @@ def ensure_alternating_roles(messages):
 
 class HelpRequest(BaseModel):
     messages: list[Message]
-    available_tutorials: list[str]
+    model: str
 
 
 @router.post("/help")
 async def help(req: HelpRequest) -> StreamingResponse:
     async def generate():
         messages = ensure_alternating_roles(req.messages)
-        async for part in create_help_answer(messages, req.available_tutorials):
+        async for part in create_help_answer(messages, req.model):
             yield part
 
     return StreamingResponse(generate(), media_type="text/plain")
