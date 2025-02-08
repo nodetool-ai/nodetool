@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+import re
 from typing import Any, AsyncGenerator, Mapping
 import ollama
 import readline
@@ -23,7 +24,6 @@ from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.workflows.examples import load_examples
 from jsonschema import validators
 from chromadb.api.types import IncludeEnum
-from transformers import AutoTokenizer
 
 
 doc_folder = os.path.join(os.path.dirname(__file__), "docs")
@@ -216,7 +216,11 @@ def keyword_search_documentation(query: str) -> list[SearchResult]:
     """
     n_results = 10
     collection = get_doc_collection()
-    query_tokens = preprocess_text(query)
+
+    pattern = r"[ ,.!?\-_=|]+"
+    query_tokens = [
+        token.strip() for token in re.split(pattern, query) if token.strip()
+    ]
     if len(query_tokens) > 1:
         where_document = {"$or": [{"$contains": token} for token in query_tokens]}
     else:
