@@ -9,7 +9,7 @@ export interface ServerState {
 
 let mainWindow: BrowserWindow | null = null;
 
-let serverState: ServerState = {
+const serverState: ServerState = {
   isStarted: false,
   bootMsg: "Initializing...",
   initialURL: "http://127.0.0.1:8000",

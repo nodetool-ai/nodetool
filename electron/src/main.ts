@@ -7,7 +7,6 @@ import {
   BrowserWindow,
   Tray,
   Menu,
-  IpcMainInvokeEvent,
 } from "electron";
 import { createWindow, forceQuit, handleActivation } from "./window";
 import { setupAutoUpdater } from "./updater";
@@ -19,9 +18,7 @@ import {
   updateCondaEnvironment,
 } from "./python";
 import { installCondaEnvironment } from "./installer";
-import { LOG_FILE } from "./logger";
 import { emitBootMessage } from "./events";
-import fs from "fs";
 import { createTray } from "./tray";
 import { createWorkflowWindow } from "./workflow-window";
 import { initializeIpcHandlers } from "./ipc";
@@ -30,8 +27,6 @@ import { initializeIpcHandlers } from "./ipc";
  * Global application state flags and objects
  */
 let isAppQuitting = false;
-let tray: Tray | null = null;
-let contextMenu: Menu | null = null;
 let mainWindow: BrowserWindow | null = null;
 
 /**
@@ -197,4 +192,4 @@ process.on(
     forceQuit(`Unhandled Promise Rejection: ${errorMessage}`);
   }
 );
-export { mainWindow };
+export { mainWindow, isAppQuitting };
