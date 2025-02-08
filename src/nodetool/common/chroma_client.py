@@ -89,6 +89,9 @@ def get_collection(name: str) -> chromadb.Collection:
     Returns:
         The collection.
     """
+    if not name:
+        raise ValueError("Collection name cannot be empty")
+
     client = get_chroma_client()
     collection = client.get_collection(name=name)
     ollama_url = Environment.get("OLLAMA_API_URL")
