@@ -131,13 +131,14 @@ async def update_collection(
     collection = client.get_collection(name=name)
     metadata = collection.metadata.copy()
     metadata.update(req.metadata or {})
+
     if workflow_id := metadata.get("workflow"):
         workflow = Workflow.get(workflow_id)
         if not workflow:
             raise HTTPException(status_code=404, detail="Workflow not found")
 
         # Validate workflow input nodes
-        graph = workflow.get_graph()
+        graph = workflow.graph
         collection_input, file_input = find_input_nodes(graph)
         if not collection_input:
             raise HTTPException(
@@ -249,7 +250,7 @@ def default_ingestion_workflow(
     )
 
 
-def find_input_nodes(graph) -> tuple[str | None, str | None]:
+def find_input_nodes(graph: dict) -> tuple[str | None, str | None]:
     """Find the collection input and file input node names from a workflow graph.
 
     Args:
@@ -261,14 +262,14 @@ def find_input_nodes(graph) -> tuple[str | None, str | None]:
     collection_input = None
     file_input = None
 
-    for node in graph.nodes:
-        if node.type == "nodetool.input.CollectionInput":
-            collection_input = node.data["name"]
-        elif node.type in (
+    for node in graph["nodes"]:
+        if node["type"] == "nodetool.input.CollectionInput":
+            collection_input = node["data"]["name"]
+        elif node["type"] in (
             "nodetool.input.FileInput",
             "nodetool.input.DocumentFileInput",
         ):
-            file_input = node.data["name"]
+            file_input = node["data"]["name"]
 
     return collection_input, file_input
 
@@ -293,7 +294,7 @@ async def index(
         req.graph = workflow.graph
         req.params = {}
 
-        collection_input, file_input = find_input_nodes(req.graph)
+        collection_input, file_input = find_input_nodes(req.graph.model_dump())
         if collection_input:
             req.params[collection_input] = Collection(name=name)
         if file_input:
@@ -303,6 +304,8 @@ async def index(
             if msg.get("type") == "job_update":
                 if msg.get("status") == "completed":
                     break
+                elif msg.get("status") == "failed":
+                    return IndexResponse(path=file.path, error=msg.get("error"))
     else:
         default_ingestion_workflow(collection, file.path, file.mime_type)
 
