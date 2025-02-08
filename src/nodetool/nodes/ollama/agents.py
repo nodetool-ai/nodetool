@@ -12,6 +12,7 @@ from nodetool.metadata.types import (
     ChartData,
     DataSeries,
     DataframeRef,
+    JSONRef,
     LlamaModel,
     Provider,
     RecordType,
@@ -2815,16 +2816,16 @@ class DataExtractor(BaseNode):
         le=4096 * 2,
         description="The context window size to use for the model.",
     )
-    system_prompt: str = Field(
-        default="",
-        description="The system prompt to use for the model.",
-    )
     text: str = Field(
         default="",
         description="The text to extract data from",
     )
-    json_schema: dict = Field(
-        default={},
+    system_prompt: str = Field(
+        default="",
+        description="The system prompt to use for the model.",
+    )
+    json_schema: JSONRef = Field(
+        default=JSONRef(),
         description="The JSON schema that defines the structure of the output. Must be an object type.",
     )
     temperature: float = Field(
@@ -2852,20 +2853,27 @@ class DataExtractor(BaseNode):
 
     @classmethod
     def get_basic_fields(cls) -> list[str]:
-        return ["model", "text", "json_schema"]
+        return ["model", "text", "json_schema", "system_prompt"]
 
     def validate_schema(self, schema: dict) -> None:
         """Validate that the provided schema is an object type"""
         if not isinstance(schema, dict):
-            raise ValueError("Schema must be a dictionary")
+            raise ValueError("Schema must be a dictionary", schema)
 
         schema_type = schema.get("type")
         if schema_type != "object":
             raise ValueError("Schema must have type 'object'")
 
     async def process(self, context: ProcessingContext) -> dict:
-        # Validate schema
-        self.validate_schema(self.json_schema)
+        if self.json_schema.data is None:
+            raise ValueError("Schema is not set")
+
+        try:
+            json_schema = json.loads(self.json_schema.data)
+        except Exception as e:
+            raise ValueError("Invalid JSON schema", e)
+
+        self.validate_schema(json_schema)
 
         res = await context.run_prediction(
             node_id=self._id,
@@ -2882,7 +2890,7 @@ class DataExtractor(BaseNode):
                         "content": self.text,
                     },
                 ],
-                "format": self.json_schema,
+                "format": json_schema,
                 "options": {
                     "temperature": self.temperature,
                     "top_k": self.top_k,
@@ -2896,6 +2904,8 @@ class DataExtractor(BaseNode):
         )
 
         content = str(res["message"]["content"])
+
+        print(content)
 
         # Extract JSON content
         start = content.find("{")

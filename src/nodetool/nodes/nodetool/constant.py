@@ -4,7 +4,7 @@ from typing import Any, Literal
 from pydantic import Field
 from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
-from nodetool.metadata.types import AudioRef, Datetime, DocumentRef
+from nodetool.metadata.types import AudioRef, Datetime, DocumentRef, JSONRef
 from nodetool.metadata.types import Date as DateType
 from nodetool.metadata.types import DataframeRef as DataFrameRef
 from nodetool.metadata.types import ImageRef
@@ -234,3 +234,14 @@ class DateTime(BaseNode):
             tzinfo=self.tzinfo,
             utc_offset=self.utc_offset,
         )
+
+
+class JSON(Constant):
+    """Represents a JSON constant in the workflow.
+    json, object, dictionary
+    """
+
+    value: JSONRef = JSONRef()
+
+    async def process(self, context: ProcessingContext) -> JSONRef:
+        return self.value
