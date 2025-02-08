@@ -1,4 +1,4 @@
-import { Autocomplete, SxProps, TextField } from "@mui/material";
+import { Autocomplete, SxProps, TextField, Typography } from "@mui/material";
 import { WorkflowList } from "../../stores/ApiTypes";
 import { useQuery } from "@tanstack/react-query";
 import { memo } from "react";
@@ -31,6 +31,10 @@ const WorkflowSelect = (props: WorkflowSelectProps) => {
   const selectedWorkflow = data?.workflows?.find(
     (w) => w.id === props.value?.id
   );
+
+  if (error) {
+    return <Typography>{error.message}</Typography>;
+  }
 
   return (
     <Autocomplete
