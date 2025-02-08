@@ -60,7 +60,7 @@ const VideoInput = ({ onChange, className }: VideoInputProps) => {
       accept={{ "video/*": [".mp4", ".mov", ".avi", ".webm"] }}
     >
       <HStack width="100%">
-        <FileUploadTrigger asChild>
+        <FileUploadTrigger>
           <Button size="sm" variant="ghost" colorScheme="gray">
             <HiUpload />
           </Button>

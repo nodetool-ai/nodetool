@@ -78,15 +78,13 @@ const DocumentInput = ({ onChange, className }: DocumentInputProps) => {
     >
       <FileUploadRoot onFileChange={handleFileChange} maxFiles={1} width="100%">
         <HStack width="100%">
-          <FileUploadTrigger asChild>
+          <FileUploadTrigger>
             <Button size="sm" variant="ghost" colorScheme="gray">
               <HiUpload />
             </Button>
           </FileUploadTrigger>
           <FileUploadList />
-          {!file && (
-            <FileUploadDropzone width="100%" label="Drop your document here" />
-          )}
+          {!file && <FileUploadDropzone label="Drop your document here" />}
         </HStack>
       </FileUploadRoot>
 

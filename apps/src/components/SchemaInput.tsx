@@ -10,7 +10,8 @@ import {
   SelectTrigger,
   SelectValueText,
 } from "./ui/select";
-import { JSONSchema } from "../src/types/workflow";
+
+import { JSONSchema } from "../types/workflow";
 import AudioInput from "./AudioInput";
 import { createListCollection } from "@chakra-ui/react";
 import ImageInput from "./ImageInput";

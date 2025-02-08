@@ -8,7 +8,7 @@ import "./ChatInterface.css";
 // import { useColorModeValue } from "./ui/color-mode";
 import useChatStore from "../stores/ChatStore";
 import { Button } from "./ui/button";
-import { MessageContent } from "../src/types/workflow";
+import { MessageContent } from "../types/workflow";
 import { ImageDisplay } from "./ImageDisplay";
 import { AudioPlayer } from "./AudioPlayer";
 import { VideoPlayer } from "./VideoPlayer";
@@ -65,6 +65,7 @@ const createMediaContent = async (
   // @ts-expect-error file.path is not defined in the browser
   const isElectron = !!file.path;
 
+  // @ts-expect-error tsc is not happy with the type of the messageType
   return {
     type: messageType,
     [mediaType]: {
@@ -151,7 +152,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ workflowId, token }) => {
       setDroppedFiles([]);
       setDisabled(true);
     },
-    [droppedFiles, sendMessage, workflowId, token]
+    [droppedFiles, sendMessage, workflowId, token, setDroppedFiles]
   );
 
   // Add state for tracking expanded thoughts

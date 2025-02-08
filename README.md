@@ -6,7 +6,7 @@
 ![Conda](https://github.com/nodetool-ai/nodetool/actions/workflows/conda.yaml/badge.svg)
 ![Release](https://github.com/nodetool-ai/nodetool/actions/workflows/release.yaml/badge.svg)
 ![Tests](https://github.com/nodetool-ai/nodetool/actions/workflows/test.yml/badge.svg)
-![Type Check](https://github.com/nodetool-ai/nodetool/actions/workflows/typecheck.yml/badge.svg)
+![Lint](https://github.com/nodetool-ai/nodetool/actions/workflows/lint.yml/badge.svg)
 ![Docker](https://github.com/nodetool-ai/nodetool/actions/workflows/docker-publish.yaml/badge.svg)
 ![CodeQL](https://github.com/nodetool-ai/nodetool/actions/workflows/github-code-scanning/codeql/badge.svg)
 

@@ -4,32 +4,18 @@ import type { CollectionItem } from "@chakra-ui/react";
 import { Select as ChakraSelect, Portal } from "@chakra-ui/react";
 import { CloseButton } from "./close-button";
 import * as React from "react";
-import { useTheme } from "next-themes";
 
 interface SelectTriggerProps extends ChakraSelect.ControlProps {
   clearable?: boolean;
-  className?: string;
 }
 
 export const SelectTrigger = React.forwardRef<
   HTMLButtonElement,
   SelectTriggerProps
 >(function SelectTrigger(props, ref) {
-  const { children, clearable, className, ...rest } = props;
-  const { resolvedTheme } = useTheme();
-  const currentTheme = resolvedTheme || "light";
-
+  const { children, clearable, ...rest } = props;
   return (
-    <ChakraSelect.Control
-      className={className ? `select-control ${className}` : "select-control"}
-      bg={currentTheme === "dark" ? "buttonBg.dark" : "buttonBg.light"}
-      borderColor={currentTheme === "dark" ? "border-dark" : "border-light"}
-      color={currentTheme === "dark" ? "text-dark" : "text-light"}
-      _hover={{
-        borderColor: "primary",
-      }}
-      {...rest}
-    >
+    <ChakraSelect.Control {...rest}>
       <ChakraSelect.Trigger ref={ref}>{children}</ChakraSelect.Trigger>
       <ChakraSelect.IndicatorGroup>
         {clearable && <SelectClearTrigger />}
@@ -59,30 +45,17 @@ const SelectClearTrigger = React.forwardRef<
 interface SelectContentProps extends ChakraSelect.ContentProps {
   portalled?: boolean;
   portalRef?: React.RefObject<HTMLElement>;
-  className?: string;
 }
 
 export const SelectContent = React.forwardRef<
   HTMLDivElement,
   SelectContentProps
 >(function SelectContent(props, ref) {
-  const { portalled = true, portalRef, className, ...rest } = props;
-  const { resolvedTheme } = useTheme();
-  const currentTheme = resolvedTheme || "light";
-
+  const { portalled = true, portalRef, ...rest } = props;
   return (
     <Portal disabled={!portalled} container={portalRef}>
       <ChakraSelect.Positioner>
-        <ChakraSelect.Content
-          {...rest}
-          ref={ref}
-          className={
-            className ? `select-content ${className}` : "select-content"
-          }
-          bg={currentTheme === "dark" ? "buttonBg.dark" : "buttonBg.light"}
-          borderColor={currentTheme === "dark" ? "border-dark" : "border-light"}
-          color={currentTheme === "dark" ? "text-dark" : "text-light"}
-        />
+        <ChakraSelect.Content {...rest} ref={ref} />
       </ChakraSelect.Positioner>
     </Portal>
   );
