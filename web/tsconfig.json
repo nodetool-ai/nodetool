@@ -17,8 +17,12 @@
     "jsx": "react-jsx"
   },
   "include": [
-    "src/**/*",
+    "src",
     "eslint.config.mjs"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
   ],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
