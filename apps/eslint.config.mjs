@@ -35,7 +35,8 @@ export default [
         ecmaFeatures: {
           jsx: true,
         },
-        projectService: true,
+        tsconfigRootDir: __dirname,
+        project: ["./tsconfig.json"],
       },
     },
 
