@@ -35,6 +35,7 @@ import Close from "@mui/icons-material/Close";
 import Edit from "@mui/icons-material/Edit";
 import { css } from "@emotion/react";
 import { useNodes } from "../../contexts/NodeContext";
+import JSONProperty from "../properties/JSONProperty";
 
 export type PropertyProps = {
   property: Property;
@@ -101,6 +102,8 @@ function handleAdvancedDataTypes(
       return VideoProperty;
     case "collection":
       return CollectionProperty;
+    case "json":
+      return JSONProperty;
     case "document":
       return DocumentProperty;
     case "enum":
