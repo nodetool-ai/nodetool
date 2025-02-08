@@ -17,7 +17,7 @@ const webPath: string = app.isPackaged
   : path.join(__dirname, "..", "..", "web", "dist");
 const appsPath: string = app.isPackaged
   ? path.join(process.resourcesPath, "apps")
-  : path.join(__dirname, "..", "..", "apps", "build");
+  : path.join(__dirname, "..", "..", "apps", "dist");
 
 const PID_FILE_PATH: string = path.join(app.getPath("userData"), "server.pid");
 const LAUNCHD_SERVICE_NAME: string = "ai.nodetool.server";
