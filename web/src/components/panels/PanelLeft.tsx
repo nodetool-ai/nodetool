@@ -120,6 +120,22 @@ const styles = (theme: any) =>
         }
       }
     },
+    ".help-chat": {
+      "& .MuiButton-root": {
+        whiteSpace: "normal",
+        wordWrap: "break-word",
+        textTransform: "none",
+        maxWidth: "160px",
+        borderColor: theme.palette.c_gray5,
+        color: theme.palette.c_gray5,
+        margin: "0.5em",
+        padding: "0.5em 1em",
+        "&:hover": {
+          borderColor: theme.palette.c_hl1,
+          color: theme.palette.c_hl1
+        }
+      }
+    },
     ".panel-content": {
       display: "flex",
       flex: 1,
