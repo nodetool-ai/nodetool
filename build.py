@@ -371,7 +371,6 @@ class Build:
                 "cairo",
                 "x264",
                 "x265",
-                "libvpx",
                 "aom",
                 "libopus",
                 "libvorbis",
