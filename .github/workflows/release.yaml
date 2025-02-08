@@ -102,10 +102,10 @@ jobs:
           npm ci
           npm run build
 
-      - name: Build Mini Apps
+      - name: Build Apps
         shell: bash -l {0}
         run: |
-          cd electron/apps
+          cd apps
           npm ci
           npm run build
 
