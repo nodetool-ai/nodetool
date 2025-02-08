@@ -21,12 +21,8 @@ import { updateTrayMenu } from "./tray";
 import { LOG_FILE } from "./logger";
 import { createWorkflowWindow } from "./workflow-window";
 
-interface ServerState {
-  initialURL: string;
-}
-
 let nodeToolBackendProcess: ChildProcess | null = null;
-let recentServerMessages: string[] = [];
+const recentServerMessages: string[] = [];
 const MAX_RECENT_MESSAGES: number = 5;
 
 async function isPortAvailable(port: number): Promise<boolean> {

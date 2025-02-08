@@ -5,9 +5,9 @@ import {
   createReadStream,
 } from "fs";
 import StreamZip from "node-stream-zip";
-// @ts-ignore
+// @ts-expect-error types not available
 import tar from "tar-fs";
-// @ts-ignore
+// @ts-expect-error types not available
 import gunzip from "gunzip-maybe";
 import { dialog } from "electron";
 import { getCondaEnvUrl, getDefaultInstallLocation } from "./python";
@@ -339,7 +339,7 @@ async function installCondaEnvironment(): Promise<void> {
 
 async function promptForInstallLocation(): Promise<string> {
   let downloadSize: string;
-  let installedSize = getEnvironmentSize();
+  const installedSize = getEnvironmentSize();
   try {
     const sizeInBytes = await getCondaEnvSize();
     downloadSize = formatBytes(sizeInBytes);

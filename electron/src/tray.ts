@@ -1,7 +1,7 @@
 import { Tray, Menu, app, BrowserWindow, dialog, shell } from "electron";
 import path from "path";
 import { logMessage, LOG_FILE } from "./logger";
-// @ts-ignore
+// @ts-expect-error types not available
 import WebSocket from "ws";
 import { createWorkflowWindow } from "./workflow-window";
 import { getMainWindow } from "./state";

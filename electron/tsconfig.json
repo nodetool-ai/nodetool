@@ -11,17 +11,21 @@
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "allowJs": true,
-    "moduleDetection": "force"
+    "moduleDetection": "force",
+    "outDir": "dist-electron",
+    "esModuleInterop": true
   },
   "include": [
-    "src/**/*.ts",
-    "src/**/*.d.ts",
-    "index.ts",
+    "src",
+    "vite.config.ts",
+    "eslint.config.mjs",
     "preload.ts",
     "preload-workflow.ts"
   ],
   "exclude": [
     "node_modules",
-    "dist"
+    "dist",
+    "dist-electron",
+    "out"
   ]
 } 

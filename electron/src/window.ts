@@ -2,8 +2,17 @@ import { BrowserWindow, app, session, dialog, WebContents } from "electron";
 import { setMainWindow, getMainWindow } from "./state";
 import path from "path";
 import { logMessage } from "./logger";
+import { isAppQuitting } from "./main";
 
-let isAppQuitting: boolean = false;
+declare global {
+  interface Window {
+    windowControls: {
+      close: () => void;
+      minimize: () => void;
+      maximize: () => void;
+    };
+  }
+}
 
 /**
  * Creates the main application window
@@ -38,7 +47,7 @@ function createWindow(): BrowserWindow {
   window.setBackgroundColor("#111111");
 
   // Load the index.html
-  window.loadFile(path.join(__dirname, "..", "dist", "index.html"));
+  window.loadFile(path.join("dist", "index.html"));
 
   window.webContents.on("before-input-event", (event, input) => {
     if (

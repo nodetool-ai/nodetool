@@ -1,4 +1,4 @@
-import { IntervalRef } from "./src/types";
+import { IntervalRef } from "./types";
 
 const logElement = document.getElementById("log")!;
 const bootMessage = document.getElementById("boot-message")!;

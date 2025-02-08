@@ -11,13 +11,6 @@ export const LOG_FILE: string = path.join(
   "nodetool.log"
 );
 
-function cleanLogMessage(message: string): string {
-  const ansiRegex =
-    /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g;
-  const controlRegex = /[\x00-\x1F\x7F-\x9F]/g;
-  return message.replace(ansiRegex, "").replace(controlRegex, "");
-}
-
 export async function logMessage(
   message: string,
   level: LogLevel = "info"
@@ -29,11 +22,9 @@ export async function logMessage(
 
     emitServerLog(message.trim());
 
-    await fs
-      .appendFile(LOG_FILE, cleanLogMessage(fullMessage) + "\n")
-      .catch((err) => {
-        console.error("Failed to write to log file:", err);
-      });
+    await fs.appendFile(LOG_FILE, fullMessage + "\n").catch((err) => {
+      console.error("Failed to write to log file:", err);
+    });
   } catch (error) {
     console.error(`Error in log function: ${(error as Error).message}`);
   }

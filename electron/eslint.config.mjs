@@ -17,9 +17,7 @@ export default [
   ...fixupConfigRules(
     compat.extends(
       "eslint:recommended",
-      "plugin:react/recommended",
-      "plugin:@typescript-eslint/recommended",
-      "plugin:react-hooks/recommended"
+      "plugin:@typescript-eslint/recommended"
     )
   ),
   {
@@ -46,26 +44,10 @@ export default [
     },
 
     rules: {
-      "react/react-in-jsx-scope": "off",
-      "react/prop-types": "off",
-
-      "react/no-unknown-property": [
-        "error",
-        {
-          ignore: ["css"],
-        },
-      ],
-
       "@typescript-eslint/no-explicit-any": "off",
       "@typescript-eslint/explicit-module-boundary-types": "off",
       "@typescript-eslint/no-unused-vars": "off",
-
       "no-console": "off",
-      "react/jsx-uses-react": "off",
-      "react/jsx-uses-vars": "warn",
-      "react/jsx-no-target-blank": "warn",
-      "react-hooks/rules-of-hooks": "error",
-      "react-hooks/exhaustive-deps": "warn",
     },
   },
 ];
