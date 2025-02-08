@@ -5,6 +5,9 @@ from nodetool.metadata.types import (
     Collection,
     DocumentRef,
     ImageRef,
+    LlamaModel,
+    NPArray,
+    Provider,
     TextChunk,
 )
 from nodetool.nodes.chroma.chroma_node import ChromaNode
@@ -15,10 +18,11 @@ import numpy as np
 from pydantic import Field
 from typing import List
 
-
 import PIL.Image
 import numpy as np
 from pydantic import Field
+
+from enum import Enum
 
 
 # class IndexFolder(ChromaNode):
@@ -125,6 +129,39 @@ class IndexImages(ChromaNode):
             collection.add(ids=image_ids, images=image_arrays)
 
 
+class IndexEmbedding(ChromaNode):
+    """
+    Index a list of embeddings.
+    """
+
+    collection: Collection = Field(
+        default=Collection(), description="The collection to index"
+    )
+    embedding: NPArray = Field(default=NPArray(), description="The embedding to index")
+    id: str = Field(default="", description="The ID to associate with the embedding")
+    metadata: dict = Field(
+        default_factory=dict, description="The metadata to associate with the embedding"
+    )
+
+    @classmethod
+    def required_inputs(cls):
+        return ["embedding", "id"]
+
+    async def process(self, context: ProcessingContext):
+        if self.id.strip() == "":
+            raise ValueError("The ID cannot be empty")
+
+        if self.embedding.is_empty():
+            raise ValueError("The embedding cannot be empty")
+
+        collection = get_collection(self.collection.name)
+        collection.add(
+            ids=[self.id],
+            embeddings=[self.embedding.to_numpy()],
+            metadatas=[self.metadata or {}],
+        )
+
+
 class IndexImage(ChromaNode):
     """
     Index a single image asset.
@@ -135,6 +172,9 @@ class IndexImage(ChromaNode):
         default=Collection(), description="The collection to index"
     )
     image: ImageRef = Field(default=ImageRef(), description="Image asset to index")
+    metadata: dict = Field(
+        default_factory=dict, description="The metadata to associate with the image"
+    )
 
     @classmethod
     def required_inputs(cls):
@@ -144,37 +184,17 @@ class IndexImage(ChromaNode):
         if self.image.document_id is None:
             raise ValueError("document_id cannot be None")
 
-        if not self.image.asset_id and not self.image.uri.startswith("file://"):
-            raise ValueError("The image needs to be an asset or a local file")
+        if not self.image.asset_id and not self.image.uri:
+            raise ValueError("The image needs to have an asset_id or uri")
 
         document_id = self.image.document_id
         collection = get_collection(self.collection.name)
         image = await context.image_to_pil(self.image)
-        collection.add(ids=[document_id], images=[np.array(image)])
-
-
-class IndexDocument(ChromaNode):
-    """
-    Index a single document asset.
-    chroma, embedding, collection, RAG, index, text
-    """
-
-    collection: Collection = Field(
-        default=Collection(), description="The collection to index"
-    )
-    document: DocumentRef = Field(
-        default=DocumentRef(), description="Document asset to index"
-    )
-
-    @classmethod
-    def required_inputs(cls):
-        return ["collection"]
-
-    async def process(self, context: ProcessingContext):
-        if self.document.document_id is None:
-            raise ValueError("The document needs to be an asset or a local file")
-
-        collection = get_collection(self.collection.name)
+        collection.add(
+            ids=[document_id],
+            images=[np.array(image)],
+            metadatas=[self.metadata or {}],
+        )
 
 
 class IndexTextChunk(ChromaNode):
@@ -189,6 +209,10 @@ class IndexTextChunk(ChromaNode):
     text_chunk: TextChunk = Field(
         default=TextChunk(), description="Text chunk to index"
     )
+    metadata: dict = Field(
+        default_factory=dict,
+        description="The metadata to associate with the text chunk",
+    )
 
     @classmethod
     def required_inputs(cls):
@@ -200,7 +224,9 @@ class IndexTextChunk(ChromaNode):
 
         collection = get_collection(self.collection.name)
         collection.add(
-            ids=[self.text_chunk.get_document_id()], documents=[self.text_chunk.text]
+            ids=[self.text_chunk.get_document_id()],
+            documents=[self.text_chunk.text],
+            metadatas=[self.metadata or {}],
         )
 
 
@@ -238,6 +264,103 @@ class IndexTextChunks(ChromaNode):
         collection.add(ids=doc_ids, documents=texts)
 
 
+class EmbeddingAggregation(Enum):
+    MEAN = "mean"
+    MAX = "max"
+    MIN = "min"
+    SUM = "sum"
+
+
+class IndexAggregatedText(ChromaNode):
+    """
+    Index multiple text chunks at once with aggregated embeddings from Ollama.
+    chroma, embedding, collection, RAG, index, text, chunk, batch, ollama
+    """
+
+    collection: Collection = Field(
+        default=Collection(), description="The collection to index"
+    )
+    document: str = Field(default="", description="The document to index")
+    document_id: str = Field(
+        default="", description="The document ID to associate with the text"
+    )
+    metadata: dict = Field(
+        default_factory=dict, description="The metadata to associate with the text"
+    )
+    text_chunks: list[TextChunk | str] = Field(
+        default_factory=list, description="List of text chunks to index"
+    )
+    context_window: int = Field(
+        default=4096,
+        ge=1,
+        description="The context window size to use for the model",
+    )
+    aggregation: EmbeddingAggregation = Field(
+        default=EmbeddingAggregation.MEAN,
+        description="The aggregation method to use for the embeddings.",
+    )
+
+    @classmethod
+    def required_inputs(cls):
+        return ["document", "text_chunks"]
+
+    async def process(self, context: ProcessingContext):
+        if not self.document_id.strip():
+            raise ValueError("The document ID cannot be empty")
+
+        if not self.document.strip():
+            raise ValueError("The document cannot be empty")
+
+        if not self.text_chunks:
+            raise ValueError("The text chunks cannot be empty")
+
+        collection = get_collection(self.collection.name)
+
+        model = collection.metadata.get("embedding_model")
+        if not model:
+            raise ValueError("The collection does not have an embedding model")
+
+        # Extract document IDs and texts from chunks
+        texts = [
+            chunk.text if isinstance(chunk, TextChunk) else chunk
+            for chunk in self.text_chunks
+        ]
+
+        # Calculate embeddings for each chunk
+        predictions = []
+        for text in texts:
+            prediction = await context.run_prediction(
+                node_id=self._id,
+                provider=Provider.Ollama,
+                model=model,
+                params={
+                    "prompt": text,
+                    "options": {"num_ctx": self.context_window},
+                },
+            )
+            predictions.append(prediction)
+        embeddings = [pred["embedding"] for pred in predictions]
+
+        # Aggregate embeddings based on selected method
+        if self.aggregation == EmbeddingAggregation.MEAN:
+            aggregated_embedding = np.mean(embeddings, axis=0)
+        elif self.aggregation == EmbeddingAggregation.MAX:
+            aggregated_embedding = np.max(embeddings, axis=0)
+        elif self.aggregation == EmbeddingAggregation.MIN:
+            aggregated_embedding = np.min(embeddings, axis=0)
+        elif self.aggregation == EmbeddingAggregation.SUM:
+            aggregated_embedding = np.sum(embeddings, axis=0)
+        else:
+            raise ValueError(f"Invalid aggregation method: {self.aggregation}")
+
+        collection.add(
+            ids=[self.document_id],
+            documents=[self.document],
+            embeddings=[aggregated_embedding],
+            metadatas=[self.metadata] if self.metadata else None,
+        )
+
+
 class IndexString(ChromaNode):
     """
     Index a string with a Document ID to a collection.
@@ -253,6 +376,9 @@ class IndexString(ChromaNode):
     text: str = Field(default="", description="Text content to index")
     document_id: str = Field(
         default="", description="Document ID to associate with the text content"
+    )
+    metadata: dict = Field(
+        default_factory=dict, description="The metadata to associate with the text"
     )
 
     @classmethod
