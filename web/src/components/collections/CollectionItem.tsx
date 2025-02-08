@@ -97,8 +97,8 @@ const CollectionItem = ({
   const [isEditingWorkflow, setIsEditingWorkflow] = useState(false);
 
   const updateMutation = useMutation({
-    mutationFn: (workflowId: string) =>
-      client.PUT("/api/collections/{name}", {
+    mutationFn: async (workflowId: string) => {
+      const { data, error } = await client.PUT("/api/collections/{name}", {
         params: {
           path: {
             name: collection.name
@@ -109,7 +109,14 @@ const CollectionItem = ({
             workflow: workflowId
           }
         }
-      }),
+      });
+
+      if (error) {
+        throw new Error(error.detail?.[0]?.msg || "Unknown error");
+      }
+
+      return data;
+    },
     onSuccess: () => {
       addNotification({
         alert: true,
@@ -132,8 +139,9 @@ const CollectionItem = ({
       (value: { type: "workflow"; id: string }) => {
         updateMutation.mutate(value.id);
         setIsEditingWorkflow(false);
+        queryClient.invalidateQueries({ queryKey: ["collections"] });
       },
-    [updateMutation]
+    [updateMutation, queryClient]
   );
 
   return (
