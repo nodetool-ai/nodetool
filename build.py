@@ -433,9 +433,9 @@ class Build:
         # )
 
         # Upload requirements.txt with version number to S3
-        requirements_versioned_name = f"requirements-{version}.txt"
-        requirements_versioned_path = self.BUILD_DIR / requirements_versioned_name
-        shutil.copy(PROJECT_ROOT / "requirements.txt", requirements_versioned_path)
+        # requirements_versioned_name = f"requirements-{version}.txt"
+        # requirements_versioned_path = self.BUILD_DIR / requirements_versioned_name
+        # shutil.copy(PROJECT_ROOT / "requirements.txt", requirements_versioned_path)
 
         # logger.info(f"Uploading {requirements_versioned_name}")
         # self.run_command(
