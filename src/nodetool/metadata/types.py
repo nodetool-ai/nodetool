@@ -1362,6 +1362,11 @@ class Collection(BaseType):
     name: str = ""
 
 
+class JSONRef(AssetRef):
+    type: Literal["json"] = "json"
+    data: str | None = None
+
+
 class SVGRef(AssetRef):
     """A reference to an SVG asset."""
 
