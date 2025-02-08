@@ -40,7 +40,16 @@ class TestModel(DBModel):
 @pytest.fixture
 def db_adapter():
     adapter = SQLiteAdapter(
-        ":memory:", TestModel.db_fields(), TestModel.get_table_schema()
+        ":memory:",
+        TestModel.db_fields(),
+        TestModel.get_table_schema(),
+        indexes=[
+            dict(
+                name="age_index",
+                columns=["age"],
+                unique=False,
+            )
+        ],
     )
     yield adapter
     adapter.connection.close()

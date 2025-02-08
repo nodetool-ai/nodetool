@@ -48,6 +48,13 @@ class TestModel(DBModel):
             ),
             fields=TestModel.db_fields(),
             table_schema=TestModel.get_table_schema(),
+            indexes=[
+                dict(
+                    name="age_index",
+                    columns=["age"],
+                    unique=False,
+                )
+            ],
         )
 
 

@@ -1,7 +1,16 @@
 import pytest
 import numpy as np
 from nodetool.workflows.processing_context import ProcessingContext
-from nodetool.metadata.types import AudioRef, DataframeRef, ImageRef, TextRef, VideoRef
+from nodetool.metadata.types import (
+    AudioRef,
+    DataframeRef,
+    ImageRef,
+    VideoRef,
+    JSONRef,
+    DocumentRef,
+    Date as DateType,
+    Datetime as DatetimeType,
+)
 from nodetool.nodes.nodetool.constant import (
     Audio,
     Bool,
@@ -12,8 +21,11 @@ from nodetool.nodes.nodetool.constant import (
     List,
     Float,
     String,
-    Text,
     Video,
+    JSON,
+    Document,
+    Date,
+    DateTime,
 )
 
 
@@ -30,8 +42,11 @@ from nodetool.nodes.nodetool.constant import (
         List,
         Float,
         String,
-        Text,
         Video,
+        JSON,
+        Document,
+        Date,
+        DateTime,
     ],
 )
 async def test_constant_node(context: ProcessingContext, node_class):
@@ -61,10 +76,16 @@ async def test_constant_node(context: ProcessingContext, node_class):
             assert isinstance(result, float)
         elif node_class == String:
             assert isinstance(result, str)
-        elif node_class == Text:
-            assert isinstance(result, TextRef)
         elif node_class == Video:
             assert isinstance(result, VideoRef)
+        elif node_class == JSON:
+            assert isinstance(result, JSONRef)
+        elif node_class == Document:
+            assert isinstance(result, DocumentRef)
+        elif node_class == Date:
+            assert isinstance(result, DateType)
+        elif node_class == DateTime:
+            assert isinstance(result, DatetimeType)
 
     except Exception as e:
         pytest.fail(f"Error processing {node_class.__name__}: {str(e)}")
