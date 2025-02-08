@@ -3,6 +3,8 @@ from llama_index.core.node_parser import (
     HTMLNodeParser,
     JSONNodeParser,
 )
+import langchain_core.documents
+import langchain_text_splitters
 from llama_index.core.schema import Document, TextNode
 from llama_index.embeddings.ollama import OllamaEmbedding
 from pydantic import Field
@@ -10,56 +12,6 @@ from nodetool.workflows.base_node import BaseNode
 from nodetool.metadata.types import LlamaModel, TextChunk
 from nodetool.workflows.processing_context import ProcessingContext
 from typing import List
-
-
-class SentenceSplitter(BaseNode):
-    """
-    Splits text into chunks of a minimum length.
-    text, split, sentences
-
-    Use cases:
-    - Splitting text into manageable chunks for processing
-    - Creating traceable units for analysis or storage
-    - Preparing text for language model processing
-    """
-
-    text: str = Field(title="Text", default="")
-    min_length: int = Field(title="Minimum Length", default=10)
-    source_id: str = Field(title="Source ID", default="")
-    chunk_size: int = Field(title="Chunk Size", default=1000)
-    chunk_overlap: int = Field(title="Chunk Overlap", default=200)
-
-    @classmethod
-    def get_title(cls):
-        return "Split Sentences"
-
-    async def process(self, context: ProcessingContext) -> list[TextChunk]:
-        from langchain_text_splitters import RecursiveCharacterTextSplitter
-        from langchain_core.documents import Document
-
-        assert self.source_id, "document_id is required"
-
-        separators = ["\n\n", "\n", ".", "?", "!", " ", ""]
-
-        splitter = RecursiveCharacterTextSplitter(
-            chunk_size=self.chunk_size,
-            chunk_overlap=self.chunk_overlap,
-            separators=separators,
-            length_function=len,
-            is_separator_regex=False,
-            add_start_index=True,
-        )
-
-        docs = splitter.split_documents([Document(page_content=self.text)])
-
-        return [
-            TextChunk(
-                text=doc.page_content,
-                source_id=self.source_id,
-                start_index=doc.metadata["start_index"],
-            )
-            for doc in docs
-        ]
 
 
 class SemanticSplitter(BaseNode):
