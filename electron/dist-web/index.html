@@ -57,7 +57,9 @@
         src: url("./assets/Inter-Bold.woff2") format("woff2");
       }
     </style>
-    <link rel="stylesheet" href="src/index.css" />
+    <script type="module" crossorigin src="./assets/index.js"></script>
+    <link rel="modulepreload" crossorigin href="./assets/main.js">
+    <link rel="stylesheet" crossorigin href="./assets/index.css">
   </head>
   <body>
     <div id="boot-message">
@@ -252,6 +254,5 @@
       <div id="log"></div>
     </div>
 
-    <script type="module" src="src/index.ts"></script>
   </body>
 </html>

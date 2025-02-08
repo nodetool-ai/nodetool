@@ -7,8 +7,8 @@
     },
     "files": [
         "assets/**/*",
-        "build/**/*",
-        "dist-electron/**/*"
+        "dist-electron/**/*",
+        "dist-web/**/*"
     ],
     "extraResources": [
         {

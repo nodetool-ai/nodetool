@@ -8,27 +8,27 @@ export default defineConfig({
     electron([
       {
         entry: "src/main.ts",
-        // vite: {
-        //   build: {
-        //     outDir: "dist-electron",
-        //     emptyOutDir: true,
-        //     rollupOptions: {
-        //       output: {
-        //         format: "cjs",
-        //         entryFileNames: "[name].js",
-        //       },
-        //     },
-        //   },
-        // },
+        vite: {
+          build: {
+            outDir: "dist-electron",
+            emptyOutDir: true,
+            rollupOptions: {
+              output: {
+                format: "cjs",
+                entryFileNames: "[name].js",
+              },
+            },
+          },
+        },
       },
       {
-        entry: "preload.ts",
+        entry: "src/preload.ts",
         onstart(options) {
           options.reload();
         },
       },
       {
-        entry: "preload-workflow.ts",
+        entry: "src/preload-workflow.ts",
         onstart(options) {
           options.reload();
         },
@@ -37,14 +37,15 @@ export default defineConfig({
   ],
   build: {
     sourcemap: true,
-    outDir: "dist",
+    outDir: "dist-web",
     emptyOutDir: true,
     rollupOptions: {
       input: {
         index: resolve(__dirname, "index.html"),
+        main: resolve(__dirname, "src/index.ts"),
       },
       output: {
-        format: "cjs",
+        format: "es",
         entryFileNames: "assets/[name].js",
         chunkFileNames: "assets/[name].js",
         assetFileNames: "assets/[name].[ext]",

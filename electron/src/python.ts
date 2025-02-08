@@ -7,10 +7,9 @@ import * as path from "path";
 
 import {
   getPythonPath,
-  getPipPath,
-  saveUserRequirements,
-  getRequirementsPath,
   getProcessEnv,
+  getUVPath,
+  requirementsPath,
 } from "./config";
 import { logMessage, LOG_FILE } from "./logger";
 import { checkPermissions } from "./utils";
@@ -32,39 +31,6 @@ interface ValidationResult {
 interface PermissionResult {
   accessible: boolean;
   error?: string;
-}
-
-/**
- * Check if installed packages match requirements
- */
-async function checkPythonPackages(): Promise<boolean> {
-  try {
-    // In development, we don't need to check for updates
-    if (!app.isPackaged) {
-      return true;
-    }
-
-    const VERSION = app.getVersion();
-    const requirementsURL = `https://packages.nodetool.ai/requirements-${VERSION}.txt`;
-
-    emitBootMessage(`Downloading requirements...`);
-    logMessage(`Downloading requirements from ${requirementsURL}`);
-
-    const remoteRequirements = await downloadToString(requirementsURL);
-    const localRequirements = await fs.readFile(getRequirementsPath(), "utf8");
-
-    if (localRequirements === remoteRequirements) {
-      emitBootMessage("No updates needed");
-      logMessage("Requirements are up to date");
-      return false;
-    }
-
-    saveUserRequirements(remoteRequirements);
-    return true;
-  } catch (error: any) {
-    logMessage(`Failed to check Python packages: ${error.message}`, "error");
-    throw error;
-  }
 }
 
 /**
@@ -120,42 +86,16 @@ async function isCondaEnvironmentInstalled(): Promise<boolean> {
  */
 async function updateCondaEnvironment(): Promise<void> {
   try {
-    if (!app.isPackaged) {
-      return;
-    }
+    emitBootMessage(`Updating python packages...`);
 
-    const installNeeded = await checkPythonPackages();
-
-    if (!installNeeded) {
-      logMessage("No packages to update");
-      emitBootMessage("No packages to update");
-      return;
-    }
-
-    const { response } = await dialog.showMessageBox({
-      type: "question",
-      buttons: ["Update", "Cancel"],
-      defaultId: 0,
-      title: "Python Package Updates",
-      message: "Python package updates are available",
-      detail: "Would you like to update the Python packages now?",
-    });
-
-    if (response === 1) {
-      logMessage("Package update cancelled by user");
-      emitBootMessage("Update cancelled");
-      return;
-    }
-
-    emitBootMessage(`Updating packages...`);
-    logMessage("Updating packages...");
-
-    const pipExecutable = getPipPath();
+    const uvExecutable = getUVPath();
     const installCommand: string[] = [
-      pipExecutable,
+      uvExecutable,
+      "pip",
       "install",
+      "--system",
       "-r",
-      getRequirementsPath(),
+      requirementsPath,
     ];
 
     if (process.platform !== "darwin") {
@@ -187,14 +127,14 @@ async function runPipCommand(command: string[]): Promise<void> {
   updateProcess.stdout?.on("data", (data: Buffer) => {
     const message = data.toString().trim();
     if (message) {
-      logMessage(`Pip update: ${message}`);
+      logMessage(message);
     }
   });
 
   updateProcess.stderr?.on("data", (data: Buffer) => {
     const message = data.toString().trim();
     if (message) {
-      logMessage(`Pip update error: ${message}`, "error");
+      logMessage(message);
     }
   });
 
@@ -279,6 +219,19 @@ function getEnvironmentSize(): string {
   }
 }
 
+function getDownloadSize(): string {
+  switch (process.platform) {
+    case "darwin":
+      return "1 GB";
+    case "linux":
+      return "2 GB";
+    case "win32":
+      return "2 GB";
+    default:
+      return "unknown";
+  }
+}
+
 /**
  * Get the default installation location based on platform
  */
@@ -326,11 +279,10 @@ function getCondaEnvUrl(): string {
     throw new Error("Unsupported platform");
   }
 
-  return `https://packages.nodetool.ai/${fileName}`;
+  return `https://github.com/nodetool-ai/nodetool/releases/download/v${VERSION}/${fileName}`;
 }
 
 export {
-  checkPythonPackages,
   verifyApplicationPaths,
   isCondaEnvironmentInstalled,
   updateCondaEnvironment,
@@ -338,5 +290,6 @@ export {
   getCondaEnvUrl,
   getCondaEnvSize,
   getEnvironmentSize,
+  getDownloadSize,
   getDefaultInstallLocation,
 };

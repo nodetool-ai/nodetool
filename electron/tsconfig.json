@@ -19,12 +19,13 @@
     "src",
     "vite.config.ts",
     "eslint.config.mjs",
-    "preload.ts",
-    "preload-workflow.ts"
+    "src/preload.ts",
+    "src/preload-workflow.ts"
   ],
   "exclude": [
     "node_modules",
     "dist",
+    "dist-web",
     "dist-electron",
     "out"
   ]

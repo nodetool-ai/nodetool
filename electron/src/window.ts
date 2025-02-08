@@ -47,7 +47,7 @@ function createWindow(): BrowserWindow {
   window.setBackgroundColor("#111111");
 
   // Load the index.html
-  window.loadFile(path.join("dist", "index.html"));
+  window.loadFile(path.join("dist-web", "index.html"));
 
   window.webContents.on("before-input-event", (event, input) => {
     if (
