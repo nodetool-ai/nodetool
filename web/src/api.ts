@@ -887,7 +887,11 @@ export interface paths {
          * @description Get a specific collection by name
          */
         get: operations["get_api_collections__name__get"];
-        put?: never;
+        /**
+         * Update Collection
+         * @description Update a collection
+         */
+        put: operations["update_collection_api_collections__name__put"];
         post?: never;
         /**
          * Delete Collection
@@ -1103,6 +1107,15 @@ export interface components {
             /** Count */
             count: number;
         };
+        /** CollectionModify */
+        CollectionModify: {
+            /** Name */
+            name?: string | null;
+            /** Metadata */
+            metadata?: {
+                [key: string]: string;
+            } | null;
+        };
         /** CollectionResponse */
         CollectionResponse: {
             /** Name */
@@ -1111,6 +1124,8 @@ export interface components {
             count: number;
             /** Metadata */
             metadata: Record<string, never>;
+            /** Workflow Name */
+            workflow_name?: string | null;
         };
         /** ColumnDef */
         ColumnDef: {
@@ -1273,11 +1288,11 @@ export interface components {
              *       "type": "datetime",
              *       "year": 2025,
              *       "month": 2,
-             *       "day": 1,
-             *       "hour": 9,
-             *       "minute": 32,
-             *       "second": 18,
-             *       "microsecond": 60573,
+             *       "day": 8,
+             *       "hour": 8,
+             *       "minute": 15,
+             *       "second": 9,
+             *       "microsecond": 945369,
              *       "tzinfo": "UTC",
              *       "utc_offset": 0
              *     }
@@ -2293,8 +2308,8 @@ export interface components {
         HelpRequest: {
             /** Messages */
             messages: components["schemas"]["Message-Input"][];
-            /** Available Tutorials */
-            available_tutorials: string[];
+            /** Model */
+            model: string;
         };
         /** HuggingFaceModel */
         HuggingFaceModel: {
@@ -5798,6 +5813,45 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CollectionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_collection_api_collections__name__put: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                name: string;
+            };
+            cookie?: {
+                auth_cookie?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CollectionModify"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
