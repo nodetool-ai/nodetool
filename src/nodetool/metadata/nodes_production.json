@@ -15015,6 +15015,54 @@
     "is_dynamic": false
   },
   {
+    "title": "JSON",
+    "description": "Represents a JSON constant in the workflow.\n    json, object, dictionary",
+    "namespace": "nodetool.constant",
+    "node_type": "nodetool.constant.JSON",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "value",
+        "type": {
+          "type": "json",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "json",
+          "uri": "",
+          "asset_id": null,
+          "data": null
+        },
+        "title": "Value",
+        "description": null,
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "json",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "value"
+    ],
+    "is_dynamic": false
+  },
+  {
     "title": "If",
     "description": "Conditionally executes one of two branches based on a condition.\n    control, flow, condition, logic, else, true, false, switch, toggle, flow-control\n\n    Use cases:\n    - Branch workflow based on conditions\n    - Handle different cases in data processing\n    - Implement decision logic",
     "namespace": "nodetool.control",
@@ -19360,6 +19408,94 @@
     "is_dynamic": false
   },
   {
+    "title": "Document File Input",
+    "description": "Document file input for workflows.\n    input, parameter, document, text\n\n    Use cases:\n    - Load text documents for processing\n    - Analyze document content\n    - Extract text for NLP tasks\n    - Index documents for search",
+    "namespace": "nodetool.input",
+    "node_type": "nodetool.input.DocumentFileInput",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "name",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Name",
+        "description": "The parameter name for the workflow.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "description",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Description",
+        "description": "The description for this input node.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "value",
+        "type": {
+          "type": "file_path",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "file_path",
+          "path": ""
+        },
+        "title": "Value",
+        "description": "The path to the document file.",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "document",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "document",
+        "stream": false
+      },
+      {
+        "type": {
+          "type": "file_path",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "path",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "name",
+      "value"
+    ],
+    "is_dynamic": false
+  },
+  {
     "title": "Group Input",
     "description": "Generic group input for loops.\n    input, group, collection, loop\n\n    Use cases:\n    - provides input for a loop\n    - iterates over a group of items",
     "namespace": "nodetool.input",
@@ -19456,6 +19592,83 @@
       {
         "type": {
           "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "name",
+      "value"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Collection Input",
+    "description": "Collection input for workflows.\n    input, parameter, collection, chroma\n\n    Use cases:\n    - Select a vector database collection\n    - Specify target collection for indexing\n    - Choose collection for similarity search",
+    "namespace": "nodetool.input",
+    "node_type": "nodetool.input.CollectionInput",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "name",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Name",
+        "description": "The parameter name for the workflow.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "description",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Description",
+        "description": "The description for this input node.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "value",
+        "type": {
+          "type": "collection",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "collection",
+          "name": ""
+        },
+        "title": "Value",
+        "description": "The collection to use as input.",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "collection",
           "optional": false,
           "values": null,
           "type_args": [],
@@ -67935,121 +68148,6 @@
     "is_dynamic": false
   },
   {
-    "title": "Split Sentences",
-    "description": "Splits text into chunks of a minimum length.\n    text, split, sentences\n\n    Use cases:\n    - Splitting text into manageable chunks for processing\n    - Creating traceable units for analysis or storage\n    - Preparing text for language model processing",
-    "namespace": "lib.data.llama_index",
-    "node_type": "lib.data.llama_index.SentenceSplitter",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "text",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Text",
-        "description": null,
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "min_length",
-        "type": {
-          "type": "int",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": 10,
-        "title": "Minimum Length",
-        "description": null,
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "source_id",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Source ID",
-        "description": null,
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "chunk_size",
-        "type": {
-          "type": "int",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": 1000,
-        "title": "Chunk Size",
-        "description": null,
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "chunk_overlap",
-        "type": {
-          "type": "int",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": 200,
-        "title": "Chunk Overlap",
-        "description": null,
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "list",
-          "optional": false,
-          "values": null,
-          "type_args": [
-            {
-              "type": "text_chunk",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [
-      "text",
-      "min_length",
-      "source_id",
-      "chunk_size",
-      "chunk_overlap"
-    ],
-    "is_dynamic": false
-  },
-  {
     "title": "Semantic Splitter",
     "description": "Split text semantically.\n    chroma, embedding, collection, RAG, index, text, markdown, semantic",
     "namespace": "lib.data.llama_index",
@@ -68361,7 +68459,7 @@
         "max": null
       },
       {
-        "name": "source_id",
+        "name": "document_id",
         "type": {
           "type": "str",
           "optional": false,
@@ -68370,8 +68468,8 @@
           "type_name": null
         },
         "default": "",
-        "title": "Document ID",
-        "description": null,
+        "title": "Document Id",
+        "description": "Document ID to associate with the text",
         "min": null,
         "max": null
       },
@@ -68458,7 +68556,7 @@
     "recommended_models": [],
     "basic_fields": [
       "text",
-      "source_id",
+      "document_id",
       "chunk_size",
       "chunk_overlap",
       "separators"
@@ -68488,7 +68586,7 @@
         "max": null
       },
       {
-        "name": "source_id",
+        "name": "document_id",
         "type": {
           "type": "str",
           "optional": false,
@@ -68497,8 +68595,8 @@
           "type_name": null
         },
         "default": "",
-        "title": "Document ID",
-        "description": null,
+        "title": "Document Id",
+        "description": "Document ID to associate with the text",
         "min": null,
         "max": null
       },
@@ -68654,7 +68752,7 @@
     "recommended_models": [],
     "basic_fields": [
       "text",
-      "source_id",
+      "document_id",
       "headers_to_split_on",
       "strip_headers",
       "return_each_line",
@@ -121886,6 +121984,116 @@
     "is_dynamic": false
   },
   {
+    "title": "Aggregate Embeddings",
+    "description": "Aggregate embeddings into a single vector.\n\n    Use cases:\n    - Power semantic search capabilities\n    - Enable text clustering and categorization\n    - Support recommendation systems\n    - Detect semantic anomalies or outliers\n    - Measure text diversity or similarity\n    - Aid in text classification tasks",
+    "namespace": "ollama.text",
+    "node_type": "ollama.text.AggregateEmbeddings",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "model",
+        "type": {
+          "type": "llama_model",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "llama_model",
+          "name": "",
+          "repo_id": "",
+          "modified_at": "",
+          "size": 0,
+          "digest": "",
+          "details": {}
+        },
+        "title": "Model",
+        "description": null,
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "chunks",
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "str",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": [],
+        "title": "Chunks",
+        "description": "The chunks of text to embed.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "context_window",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 4096,
+        "title": "Context Window",
+        "description": "The context window size to use for the model.",
+        "min": 1.0,
+        "max": null
+      },
+      {
+        "name": "aggregation",
+        "type": {
+          "type": "enum",
+          "optional": false,
+          "values": [
+            "mean",
+            "max",
+            "min",
+            "sum"
+          ],
+          "type_args": [],
+          "type_name": "nodetool.nodes.ollama.text.EmbeddingAggregation"
+        },
+        "default": "mean",
+        "title": "Aggregation",
+        "description": "The aggregation method to use for the embeddings.",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "np_array",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "model",
+      "chunks"
+    ],
+    "is_dynamic": false
+  },
+  {
     "title": "Embedding",
     "description": "Generate vector representations of text for semantic similarity.\n    embeddings, semantic analysis, text similarity, search, clustering\n\n    Use cases:\n    - Power semantic search capabilities\n    - Enable text clustering and categorization\n    - Support recommendation systems\n    - Detect semantic anomalies or outliers\n    - Measure text diversity or similarity\n    - Aid in text classification tasks",
     "namespace": "ollama.text",
@@ -121943,21 +122151,6 @@
         "title": "Context Window",
         "description": "The context window size to use for the model.",
         "min": 1.0,
-        "max": null
-      },
-      {
-        "name": "chunk_size",
-        "type": {
-          "type": "int",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": 4096,
-        "title": "Chunk Size",
-        "description": "The size of the chunks to split the input into",
-        "min": 64.0,
         "max": null
       }
     ],
@@ -123411,21 +123604,6 @@
         "max": 8192.0
       },
       {
-        "name": "system_prompt",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "System Prompt",
-        "description": "The system prompt to use for the model.",
-        "min": null,
-        "max": null
-      },
-      {
         "name": "text",
         "type": {
           "type": "str",
@@ -123441,15 +123619,35 @@
         "max": null
       },
       {
-        "name": "json_schema",
+        "name": "system_prompt",
         "type": {
-          "type": "dict",
+          "type": "str",
           "optional": false,
           "values": null,
           "type_args": [],
           "type_name": null
         },
-        "default": {},
+        "default": "",
+        "title": "System Prompt",
+        "description": "The system prompt to use for the model.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "json_schema",
+        "type": {
+          "type": "json",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "json",
+          "uri": "",
+          "asset_id": null,
+          "data": null
+        },
         "title": "Json Schema",
         "description": "The JSON schema that defines the structure of the output. Must be an object type.",
         "min": null,
@@ -123534,7 +123732,8 @@
     "basic_fields": [
       "model",
       "text",
-      "json_schema"
+      "json_schema",
+      "system_prompt"
     ],
     "is_dynamic": false
   },
@@ -123830,11 +124029,11 @@
             "type": "datetime",
             "year": 2025,
             "month": 2,
-            "day": 6,
-            "hour": 23,
-            "minute": 41,
-            "second": 12,
-            "microsecond": 572104,
+            "day": 8,
+            "hour": 0,
+            "minute": 28,
+            "second": 27,
+            "microsecond": 284280,
             "tzinfo": "UTC",
             "utc_offset": 0.0
           },
