@@ -376,31 +376,32 @@ class Build:
                 "libvorbis",
                 "lame",
                 "pandoc",
+                "uv",
                 "-y",
                 "--channel",
                 "conda-forge",
             ]
         )
 
-        # Get correct path for pip executable
-        pip_exe = "pip.exe" if self.platform == "windows" else "pip"
-        scripts_dir = "Scripts" if self.platform == "windows" else "bin"
+        # # Get correct path for pip executable
+        # pip_exe = "pip.exe" if self.platform == "windows" else "pip"
+        # scripts_dir = "Scripts" if self.platform == "windows" else "bin"
 
-        # Install requirements directly in conda env
-        pip_install_command = [
-            str(self.ENV_DIR / scripts_dir / pip_exe),
-            "install",
-            "-r",
-            str(PROJECT_ROOT / "requirements.txt"),
-        ]
+        # # Install requirements directly in conda env
+        # pip_install_command = [
+        #     str(self.ENV_DIR / scripts_dir / pip_exe),
+        #     "install",
+        #     "-r",
+        #     str(PROJECT_ROOT / "requirements.txt"),
+        # ]
 
-        # Add PyTorch CUDA index for non-Darwin platforms
-        if self.platform != "darwin":
-            pip_install_command.extend(
-                ["--extra-index-url", "https://download.pytorch.org/whl/cu121"]
-            )
+        # # Add PyTorch CUDA index for non-Darwin platforms
+        # if self.platform != "darwin":
+        #     pip_install_command.extend(
+        #         ["--extra-index-url", "https://download.pytorch.org/whl/cu121"]
+        #     )
 
-        self.run_command(pip_install_command)
+        # self.run_command(pip_install_command)
 
         # Pack the environment
         ext = "zip" if self.platform == "windows" else "tar.gz"
