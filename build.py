@@ -376,7 +376,6 @@ class Build:
                 "libopus",
                 "libvorbis",
                 "lame",
-                "libfdk-aac",
                 "pandoc",
                 "-y",
                 "--channel",
