@@ -85,7 +85,7 @@ const RenderNodes: React.FC<RenderNodesProps> = ({ nodes }) => {
   );
 
   const { selectedPath } = useNodeMenuStore((state) => ({
-    selectedPath: state.selectedPath.join(".") + "."
+    selectedPath: state.selectedPath.join(".")
   }));
 
   const renderGroup = useCallback(
@@ -110,7 +110,9 @@ const RenderNodes: React.FC<RenderNodesProps> = ({ nodes }) => {
                     component="div"
                     className="namespace-text"
                   >
-                    {namespace.replaceAll(selectedPath, "")}
+                    {selectedPath.length > 0
+                      ? namespace.replaceAll(selectedPath + ".", "")
+                      : namespace}
                   </Typography>
                   {nodesInNamespace.map((node) => (
                     <div key={node.node_type}>
