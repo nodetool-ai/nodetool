@@ -1,5 +1,4 @@
-import { Select } from "@mui/material";
-import MenuItem from "@mui/material/MenuItem";
+import { Autocomplete, SxProps, TextField } from "@mui/material";
 import { WorkflowList } from "../../stores/ApiTypes";
 import { useQuery } from "@tanstack/react-query";
 import { memo } from "react";
@@ -7,9 +6,14 @@ import { isEqual } from "lodash";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 
 interface WorkflowSelectProps {
-  id: string;
+  id?: string;
   value?: { id: string };
+  label?: string;
+  loading?: boolean;
+  open?: boolean;
   onChange: (value: { type: "workflow"; id: string }) => void;
+  onBlur?: () => void;
+  sx?: SxProps;
 }
 
 const WorkflowSelect = (props: WorkflowSelectProps) => {
@@ -24,41 +28,35 @@ const WorkflowSelect = (props: WorkflowSelectProps) => {
     }
   });
 
+  const selectedWorkflow = data?.workflows?.find(
+    (w) => w.id === props.value?.id
+  );
+
   return (
-    <Select
+    <Autocomplete
       id={props.id}
-      labelId={props.id}
-      name=""
-      value={props.value?.id || ""}
-      variant="standard"
-      onChange={(e) =>
+      value={selectedWorkflow || null}
+      options={data?.workflows || []}
+      getOptionLabel={(option) => option.name}
+      loading={props.loading || isLoading}
+      sx={props.sx}
+      open={props.open}
+      onBlur={props.onBlur}
+      onChange={(_, newValue) => {
         props.onChange({
           type: "workflow",
-          id: e.target.value
-        })
-      }
-      className="mui-select nodrag"
-      disableUnderline={true}
-      MenuProps={{
-        anchorOrigin: {
-          vertical: "bottom",
-          horizontal: "left"
-        },
-        transformOrigin: {
-          vertical: "top",
-          horizontal: "left"
-        }
+          id: newValue?.id || ""
+        });
       }}
-    >
-      {isLoading && <MenuItem disabled>Loading...</MenuItem>}
-      {error && <MenuItem disabled>Error: {error.message}</MenuItem>}
-      {data?.workflows &&
-        data.workflows.map((workflow) => (
-          <MenuItem key={workflow.id} value={workflow.id}>
-            {workflow.name}
-          </MenuItem>
-        ))}
-    </Select>
+      renderInput={(params) => (
+        <TextField
+          {...params}
+          variant="outlined"
+          label={selectedWorkflow ? selectedWorkflow.name : props.label}
+        />
+      )}
+      className="mui-select"
+    />
   );
 };
 
