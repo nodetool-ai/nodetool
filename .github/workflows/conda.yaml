@@ -39,7 +39,7 @@ jobs:
           python build.py pack
 
       - name: Upload Conda Environment
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: conda-environments
           path: |
