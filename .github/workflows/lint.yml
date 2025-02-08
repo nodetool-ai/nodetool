@@ -72,7 +72,7 @@ jobs:
           npx eslint .
 
   mini-apps:
-    name: Mini Apps Lint
+    name: Apps Lint
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -80,10 +80,10 @@ jobs:
 
       - name: Install mini apps dependencies
         run: |
-          cd electron/apps
+          cd apps
           npm ci
 
       - name: Run ESLint
         run: |
-          cd electron/apps
+          cd apps
           npx eslint .
