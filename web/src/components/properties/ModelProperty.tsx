@@ -4,12 +4,21 @@ import ComfyModelSelect from "./ComfyModelSelect";
 import LlamaModelSelect from "./LlamaModelSelect";
 import HuggingFaceModelSelect from "./HuggingFaceModelSelect";
 import { isEqual } from "lodash";
-import { memo } from "react";
+import { memo, useMemo } from "react";
 import OpenAIModelSelect from "./OpenAIModelSelect";
+import { useNodes } from "../../contexts/NodeContext";
 
 const ModelProperty = (props: PropertyProps) => {
   const id = `folder-${props.property.name}-${props.propertyIndex}`;
   const modelType = props.property.type.type;
+  const edges = useNodes((state) => state.edges);
+  const isConnected = useMemo(() => {
+    return edges.some(
+      (edge) =>
+        edge.target === props.nodeId &&
+        edge.targetHandle === props.property.name
+    );
+  }, [edges, props.nodeId, props.property.name]);
 
   const renderModelSelect = () => {
     if (modelType.startsWith("comfy.")) {
@@ -55,7 +64,7 @@ const ModelProperty = (props: PropertyProps) => {
         description={props.property.description}
         id={id}
       />
-      {renderModelSelect()}
+      {!isConnected && renderModelSelect()}
     </div>
   );
 };
