@@ -22,6 +22,10 @@
             "to": "web"
         },
         {
+            "from": "../apps/dist",
+            "to": "apps"
+        },
+        {
             "from": "../src",
             "to": "src"
         }
