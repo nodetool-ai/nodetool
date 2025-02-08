@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValueText,
 } from "./ui/select";
-import { JSONSchema } from "../types/workflow";
+import { JSONSchema } from "../src/types/workflow";
 import AudioInput from "./AudioInput";
 import { createListCollection } from "@chakra-ui/react";
 import ImageInput from "./ImageInput";
@@ -97,7 +97,7 @@ export const SchemaInput: React.FC<SchemaInputProps> = ({
           />
         );
 
-      case "object":
+      case "object": {
         const typeEnum = schema.properties?.type?.enum;
         if (Array.isArray(typeEnum)) {
           if (typeEnum.includes("audio")) {
@@ -114,6 +114,7 @@ export const SchemaInput: React.FC<SchemaInputProps> = ({
           }
         }
         return null;
+      }
 
       case "string":
         if (schema.maxLength && schema.maxLength > 100) {

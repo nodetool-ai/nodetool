@@ -6,11 +6,11 @@ export default defineConfig({
   base: "./",
   plugins: [react()],
   build: {
-    outDir: "build",
+    outDir: "dist",
     sourcemap: true,
     rollupOptions: {
       input: {
-        index: resolve(__dirname, "index.html"),
+        index: resolve(__dirname, "src/index.html"),
       },
       output: {
         entryFileNames: "[name].js",

@@ -87,13 +87,15 @@ export const useWorkflowRunner = create<WorkflowRunnerState>((set, get) => ({
               get().disconnect();
               break;
             case "failed":
-              const error = new Error(data.error);
-              set({ error });
-              get().addNotification({
-                type: "error",
-                content: `Job failed: ${data.error}`,
-              });
-              get().disconnect();
+              {
+                const error = new Error(data.error);
+                set({ error });
+                get().addNotification({
+                  type: "error",
+                  content: `Job failed: ${data.error}`,
+                });
+                get().disconnect();
+              }
               break;
             case "queued":
               set({

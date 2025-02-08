@@ -179,7 +179,7 @@ const AudioInput: React.FC<AudioInputProps> = ({ onChange, className }) => {
     return () => {
       wavesurfer.destroy();
     };
-  }, []);
+  }, [onChange]);
 
   useEffect(() => {
     fetchAudioDevices();

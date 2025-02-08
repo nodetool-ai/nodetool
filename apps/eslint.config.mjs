@@ -1,5 +1,4 @@
 import { fixupConfigRules } from "@eslint/compat";
-import globals from "globals";
 import tsParser from "@typescript-eslint/parser";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
