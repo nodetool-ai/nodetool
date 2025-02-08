@@ -22,6 +22,7 @@ from nodetool.metadata.types import ImageRef
 from nodetool.metadata.types import TextRef
 from nodetool.workflows.base_node import BaseNode, InputNode
 from nodetool.metadata.types import VideoRef
+from nodetool.metadata.types import Collection
 
 
 class FloatInput(InputNode):
@@ -257,6 +258,34 @@ class PathInput(InputNode):
         return self.value
 
 
+class DocumentFileInput(InputNode):
+    """
+    Document file input for workflows.
+    input, parameter, document, text
+
+    Use cases:
+    - Load text documents for processing
+    - Analyze document content
+    - Extract text for NLP tasks
+    - Index documents for search
+    """
+
+    value: FilePath = Field(FilePath(), description="The path to the document file.")
+
+    @classmethod
+    def return_type(cls):
+        return {
+            "document": DocumentRef,
+            "path": FilePath,
+        }
+
+    async def process(self, context: ProcessingContext):
+        return {
+            "document": DocumentRef(uri=f"file://{self.value.path}"),
+            "path": self.value,
+        }
+
+
 class GroupInput(BaseNode):
     """
     Generic group input for loops.
@@ -297,4 +326,23 @@ class EnumInput(InputNode):
             return self.value
         if self.value not in valid_options:
             return valid_options[0]
+        return self.value
+
+
+class CollectionInput(InputNode):
+    """
+    Collection input for workflows.
+    input, parameter, collection, chroma
+
+    Use cases:
+    - Select a vector database collection
+    - Specify target collection for indexing
+    - Choose collection for similarity search
+    """
+
+    value: Collection = Field(
+        Collection(), description="The collection to use as input."
+    )
+
+    async def process(self, context: ProcessingContext) -> Collection:
         return self.value
