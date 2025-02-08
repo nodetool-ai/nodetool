@@ -338,9 +338,6 @@ class Build:
         logger.info("Packing conda environment")
         version = self.get_version()
 
-        s3_endpoint_url = os.getenv("S3_PACKAGES_ENDPOINT_URL")
-        assert s3_endpoint_url, "S3_PACKAGES_ENDPOINT_URL not set"
-
         # Install conda-pack
         self.run_command(["conda", "install", "conda-pack", "-y"])
 
@@ -419,6 +416,8 @@ class Build:
 
         logger.info(f"Environment packed successfully to {output_name}")
 
+        # s3_endpoint_url = os.getenv("S3_PACKAGES_ENDPOINT_URL")
+        # assert s3_endpoint_url, "S3_PACKAGES_ENDPOINT_URL not set"
         # # Upload the packed environment to S3
         # logger.info(f"Uploading {output_name} to s3://nodetool-packages/")
         # self.run_command(
