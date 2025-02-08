@@ -94,7 +94,6 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   const {
     nodes,
     edges,
-    onConnect,
     onNodesChange,
     onEdgesChange,
     onEdgeUpdate,
@@ -103,7 +102,6 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   } = useNodes((state) => ({
     nodes: state.nodes,
     edges: state.edges,
-    onConnect: state.onConnect,
     onNodesChange: state.onNodesChange,
     onEdgesChange: state.onEdgesChange,
     onEdgeUpdate: state.onEdgeUpdate,
@@ -116,19 +114,11 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
 
   const { handleOnConnect, onConnectStart, onConnectEnd } =
     useConnectionHandlers();
-  /* OPTIONS */
+
   const proOptions = {
     //https://reactflow.dev/docs/guides/remove-attribution/
     hideAttribution: true
   };
-
-  const triggerOnConnect = useCallback(
-    (connection: Connection) => {
-      onConnect(connection);
-      handleOnConnect(connection);
-    },
-    [onConnect, handleOnConnect]
-  );
 
   const connecting = useConnectionStore((state) => state.connecting);
 
@@ -373,11 +363,10 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
         // TODO: fix edge mouse enter and leave
         // Performance issue when hovering over edges
         // triggering edge changes
-        // onEdgeMouseEnter={onEdgeMouseEnter}
         // onEdgeMouseLeave={onEdgeMouseLeave}
         onEdgeContextMenu={onEdgeContextMenu}
         connectionMode={ConnectionMode.Strict}
-        onConnect={triggerOnConnect}
+        onConnect={handleOnConnect}
         onConnectStart={onConnectStart}
         onConnectEnd={onConnectEnd}
         onReconnect={onEdgeUpdate}
