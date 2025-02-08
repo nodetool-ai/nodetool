@@ -675,8 +675,10 @@ export const createNodeStore = (
               defaults[key] = properties[key];
             }
           }
+          const nodeId = get().generateNodeId();
+          useResultsStore.getState().clearResults(nodeId);
           return {
-            id: get().generateNodeId(),
+            id: nodeId,
             type: metadata.node_type,
             data: {
               properties: defaults,
