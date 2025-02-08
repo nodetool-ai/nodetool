@@ -10,6 +10,7 @@ from nodetool.metadata.types import DataframeRef as DataFrameRef
 from nodetool.metadata.types import ImageRef
 from nodetool.metadata.types import TextRef
 from nodetool.metadata.types import VideoRef
+from datetime import date
 
 
 class Constant(BaseNode):
@@ -196,9 +197,9 @@ class Date(BaseNode):
     date, make, create
     """
 
-    year: int = Field(default=0, description="Year of the date")
-    month: int = Field(default=0, description="Month of the date")
-    day: int = Field(default=0, description="Day of the date")
+    year: int = Field(default=1900, description="Year of the date")
+    month: int = Field(default=1, description="Month of the date")
+    day: int = Field(default=1, description="Day of the date")
 
     async def process(self, context: ProcessingContext) -> DateType:
         return DateType.from_date(date(self.year, self.month, self.day))  # type: ignore
@@ -210,16 +211,14 @@ class DateTime(BaseNode):
     datetime, make, create
     """
 
-    year: int = Field(default=0, description="Year of the datetime")
-    month: int = Field(default=0, description="Month of the datetime")
-    day: int = Field(default=0, description="Day of the datetime")
+    year: int = Field(default=1900, description="Year of the datetime")
+    month: int = Field(default=1, description="Month of the datetime")
+    day: int = Field(default=1, description="Day of the datetime")
     hour: int = Field(default=0, description="Hour of the datetime")
     minute: int = Field(default=0, description="Minute of the datetime")
     second: int = Field(default=0, description="Second of the datetime")
     microsecond: int = Field(default=0, description="Microsecond of the datetime")
-    tzinfo: str = Field(
-        default=datetime.now().tzname(), description="Timezone of the datetime"
-    )
+    tzinfo: str = Field(default="UTC", description="Timezone of the datetime")
     utc_offset: int = Field(default=0, description="UTC offset of the datetime")
 
     async def process(self, context: ProcessingContext) -> Datetime:
