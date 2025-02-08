@@ -20,9 +20,10 @@ class RecursiveTextSplitter(BaseNode):
     """
 
     text: str = Field(title="Text", default="")
-    source_id: str = Field(title="Document ID", default="")
+    document_id: str = Field(
+        default="", description="Document ID to associate with the text"
+    )
     chunk_size: int = Field(
-        title="Chunk Size",
         default=1000,
         description="Maximum size of each chunk in characters",
     )
@@ -44,8 +45,6 @@ class RecursiveTextSplitter(BaseNode):
         from langchain_text_splitters import RecursiveCharacterTextSplitter
         from langchain_core.documents import Document
 
-        assert self.source_id, "document_id is required"
-
         splitter = RecursiveCharacterTextSplitter(
             chunk_size=self.chunk_size,
             chunk_overlap=self.chunk_overlap,
@@ -60,7 +59,7 @@ class RecursiveTextSplitter(BaseNode):
         return [
             TextChunk(
                 text=doc.page_content,
-                source_id=self.source_id,
+                source_id=self.document_id,
                 start_index=doc.metadata["start_index"],
             )
             for doc in docs
@@ -79,7 +78,9 @@ class MarkdownSplitter(BaseNode):
     """
 
     text: str = Field(title="Markdown Text", default="")
-    source_id: str = Field(title="Document ID", default="")
+    document_id: str = Field(
+        default="", description="Document ID to associate with the text"
+    )
     headers_to_split_on: list[tuple[str, str]] = Field(
         default=[
             ("#", "Header 1"),
@@ -136,7 +137,7 @@ class MarkdownSplitter(BaseNode):
         return [
             TextChunk(
                 text=doc.page_content,
-                source_id=self.source_id,
+                source_id=self.document_id,
                 start_index=doc.metadata["start_index"],
             )
             for doc in splits
