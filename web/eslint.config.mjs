@@ -23,7 +23,12 @@ export default [
     )
   ),
   {
-    ignores: ["src/api.ts"],
+    ignores: [
+      "src/api.ts",
+      "eslint.config.mjs",
+      "jest.config.js",
+      "vite.config.ts"
+    ],
     languageOptions: {
       parser: tsParser,
       ecmaVersion: 2021,
