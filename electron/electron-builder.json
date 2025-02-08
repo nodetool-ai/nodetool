@@ -75,6 +75,7 @@
                 ]
             }
         ],
+        "icon": "resources/icon.ico",
         "azureSignOptions": {
             "endpoint": "https://weu.codesigning.azure.net",
             "codeSigningAccountName": "Nodetool",
