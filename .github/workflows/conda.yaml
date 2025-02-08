@@ -30,10 +30,19 @@ jobs:
 
       - name: Pack Conda Environment
         shell: bash -l {0}
-        env:
-          S3_PACKAGES_ENDPOINT_URL: ${{ secrets.S3_PACKAGES_ENDPOINT_URL }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.S3_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.S3_SECRET_ACCESS_KEY }}
-          AWS_REGION: auto
+        # env:
+        #   S3_PACKAGES_ENDPOINT_URL: ${{ secrets.S3_PACKAGES_ENDPOINT_URL }}
+        #   AWS_ACCESS_KEY_ID: ${{ secrets.S3_ACCESS_KEY_ID }}
+        #   AWS_SECRET_ACCESS_KEY: ${{ secrets.S3_SECRET_ACCESS_KEY }}
+        #   AWS_REGION: auto
         run: |
           python build.py pack
+
+      - name: Upload Conda Environment
+        uses: actions/upload-artifact@v3
+        with:
+          name: conda-environments
+          path: |
+            build/conda-env-*.tar.gz
+            build/conda-env-*.zip
+            build/requirements-*.txt
