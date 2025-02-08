@@ -1,14 +1,22 @@
 import {
   ListItem,
-  ListItemText,
   Typography,
   IconButton,
   CircularProgress,
-  LinearProgress
+  LinearProgress,
+  Tooltip
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { CollectionResponse } from "../../stores/ApiTypes";
-import { UseMutationResult } from "@tanstack/react-query";
+import {
+  UseMutationResult,
+  useMutation,
+  useQueryClient
+} from "@tanstack/react-query";
+import WorkflowSelect from "./WorkflowSelect";
+import { useCallback, useState } from "react";
+import { client } from "../../stores/ApiClient";
+import { useNotificationStore } from "../../stores/NotificationStore";
 interface CollectionItemProps {
   collection: CollectionResponse;
   isElectron: boolean;
@@ -26,6 +34,53 @@ interface CollectionItemProps {
   deleteMutation: UseMutationResult<void, Error, string>;
 }
 
+const IndexingProgress = ({
+  indexProgress
+}: {
+  indexProgress: CollectionItemProps["indexProgress"];
+}) => {
+  if (!indexProgress) return null;
+
+  return (
+    <>
+      <LinearProgress
+        sx={{
+          ml: 2,
+          width: 100,
+          display: "inline-block",
+          verticalAlign: "middle"
+        }}
+        variant="determinate"
+        value={(indexProgress.current / indexProgress.total) * 100}
+      />
+      <br />
+      <CircularProgress size={16} sx={{ ml: 1, verticalAlign: "middle" }} />
+      <Typography variant="caption" sx={{ ml: 1 }}>
+        Indexing {indexProgress.current}&nbsp;of&nbsp;
+        {indexProgress.total} documents
+        {indexProgress.current > 0 && (
+          <>
+            {" "}
+            • ETA:{" "}
+            {(() => {
+              const elapsed = Date.now() - indexProgress.startTime;
+              const avgTimePerItem = elapsed / indexProgress.current;
+              const remainingItems =
+                indexProgress.total - indexProgress.current;
+              const etaSeconds = Math.round(
+                (avgTimePerItem * remainingItems) / 1000
+              );
+              return etaSeconds < 60
+                ? `${etaSeconds}s`
+                : `${Math.round(etaSeconds / 60)}m ${etaSeconds % 60}s`;
+            })()}
+          </>
+        )}
+      </Typography>
+    </>
+  );
+};
+
 const CollectionItem = ({
   collection,
   isElectron,
@@ -37,6 +92,50 @@ const CollectionItem = ({
   onDragLeave,
   deleteMutation
 }: CollectionItemProps) => {
+  const { addNotification } = useNotificationStore();
+  const queryClient = useQueryClient();
+  const [isEditingWorkflow, setIsEditingWorkflow] = useState(false);
+
+  const updateMutation = useMutation({
+    mutationFn: (workflowId: string) =>
+      client.PUT("/api/collections/{name}", {
+        params: {
+          path: {
+            name: collection.name
+          }
+        },
+        body: {
+          metadata: {
+            workflow: workflowId
+          }
+        }
+      }),
+    onSuccess: () => {
+      addNotification({
+        alert: true,
+        type: "success",
+        content: "Collection updated successfully"
+      });
+      queryClient.invalidateQueries({ queryKey: ["collections"] });
+    },
+    onError: (error) => {
+      addNotification({
+        alert: true,
+        type: "error",
+        content: `Failed to update collection: ${error.message}`
+      });
+    }
+  });
+
+  const onWorkflowChange = useCallback(
+    (collection: CollectionResponse) =>
+      (value: { type: "workflow"; id: string }) => {
+        updateMutation.mutate(value.id);
+        setIsEditingWorkflow(false);
+      },
+    [updateMutation]
+  );
+
   return (
     <ListItem
       component="div"
@@ -44,7 +143,7 @@ const CollectionItem = ({
       onDragOver={(e) => onDragOver(e)}
       onDragLeave={onDragLeave}
       sx={{
-        borderBottom: "1px solid #666",
+        borderBottom: "1px solid rgba(255, 255, 255, 0.12)",
         cursor: isElectron ? "copy" : "default",
         "&:hover": {
           backgroundColor: isElectron ? "action.hover" : "transparent"
@@ -59,87 +158,132 @@ const CollectionItem = ({
               color: "primary.main"
             }
           }),
-        transition: "all 0.2s"
+        transition: "all 0.2s",
+        display: "flex",
+        flexDirection: "column",
+        gap: 2,
+        py: 2.5,
+        px: 3
       }}
       secondaryAction={
-        <IconButton
-          edge="end"
-          aria-label="delete"
-          onClick={() => onDelete(collection.name)}
-          disabled={deleteMutation.isPending}
-        >
-          {deleteMutation.isPending &&
-          deleteMutation.variables === collection.name ? (
-            <CircularProgress size={20} />
-          ) : (
-            <DeleteIcon />
-          )}
-        </IconButton>
+        <Tooltip title="Delete this collection">
+          <span>
+            <IconButton
+              edge="end"
+              aria-label="delete"
+              onClick={() => onDelete(collection.name)}
+              disabled={deleteMutation.isPending}
+              sx={{ mt: 1 }}
+            >
+              {deleteMutation.isPending &&
+              deleteMutation.variables === collection.name ? (
+                <CircularProgress size={20} />
+              ) : (
+                <DeleteIcon />
+              )}
+            </IconButton>
+          </span>
+        </Tooltip>
       }
     >
-      <ListItemText
-        primary={
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "12px",
+          width: "100%"
+        }}
+      >
+        <Tooltip title={`Collection: ${collection.name}`}>
           <Typography
             variant="body1"
-            sx={{ fontWeight: 600, color: "primary.main" }}
+            sx={{
+              fontWeight: 600,
+              color: "primary.main",
+              fontSize: "1.1rem",
+              flexShrink: 0,
+              maxWidth: "150px",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap"
+            }}
           >
             {collection.name}
-            {indexProgress?.collection === collection.name && (
-              <>
-                <LinearProgress
-                  sx={{
-                    ml: 2,
-                    width: 100,
-                    display: "inline-block",
-                    verticalAlign: "middle"
-                  }}
-                  variant="determinate"
-                  value={(indexProgress.current / indexProgress.total) * 100}
-                />
-                <br />
-                <CircularProgress
-                  size={16}
-                  sx={{ ml: 1, verticalAlign: "middle" }}
-                />
-                <Typography variant="caption" sx={{ ml: 1 }}>
-                  Indexing {indexProgress.current}&nbsp;of&nbsp;
-                  {indexProgress.total} documents
-                  {indexProgress.current > 0 && (
-                    <>
-                      {" "}
-                      • ETA:{" "}
-                      {(() => {
-                        const elapsed = Date.now() - indexProgress.startTime;
-                        const avgTimePerItem = elapsed / indexProgress.current;
-                        const remainingItems =
-                          indexProgress.total - indexProgress.current;
-                        const etaSeconds = Math.round(
-                          (avgTimePerItem * remainingItems) / 1000
-                        );
-                        return etaSeconds < 60
-                          ? `${etaSeconds}s`
-                          : `${Math.round(etaSeconds / 60)}m ${
-                              etaSeconds % 60
-                            }s`;
-                      })()}
-                    </>
-                  )}
-                </Typography>
-              </>
-            )}
           </Typography>
-        }
-        secondary={
+        </Tooltip>
+        {indexProgress?.collection === collection.name && (
+          <IndexingProgress indexProgress={indexProgress} />
+        )}
+      </div>
+
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "12px",
+          width: "100%"
+        }}
+      >
+        <Tooltip title="Number of documents in this collection">
           <Typography
-            variant="body1"
-            sx={{ color: "text.secondary", fontSize: "0.8em" }}
+            variant="body2"
+            sx={{
+              color: "text.secondary",
+              fontSize: "0.8em",
+              flexShrink: 0
+            }}
           >
-            {collection.metadata?.embedding_model}
-            <br />
             {collection.count} items
           </Typography>
-        }
-      />
+        </Tooltip>
+        <Tooltip title="Model used for embedding documents">
+          <Typography
+            variant="caption"
+            sx={{
+              color: "text.secondary",
+              fontSize: "0.8em",
+              flexShrink: 1,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap"
+            }}
+          >
+            {collection.metadata?.embedding_model}
+          </Typography>
+        </Tooltip>
+        {isEditingWorkflow ? (
+          <WorkflowSelect
+            onChange={onWorkflowChange(collection)}
+            label="Workflow"
+            value={collection.metadata?.workflow}
+            loading={updateMutation.isPending}
+            open={isEditingWorkflow}
+            onBlur={() => setIsEditingWorkflow(false)}
+            sx={{
+              minWidth: "120px",
+              maxWidth: "120px"
+            }}
+          />
+        ) : (
+          <Tooltip title="Click to change the ingestion workflow for this collection">
+            <Typography
+              variant="body2"
+              sx={{
+                color: "text.secondary",
+                fontSize: "0.8em",
+                cursor: "pointer",
+                flexShrink: 1,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap"
+              }}
+              onClick={() => setIsEditingWorkflow(true)}
+            >
+              {collection.workflow_name || "No workflow"}
+            </Typography>
+          </Tooltip>
+        )}
+      </div>
     </ListItem>
   );
 };
