@@ -1,4 +1,5 @@
 import asyncio
+from enum import Enum
 from typing import Mapping
 from ollama import ChatResponse
 from pydantic import Field, validator
@@ -172,6 +173,73 @@ class Ollama(BaseNode):
         return "".join(parts)
 
 
+class EmbeddingAggregation(Enum):
+    MEAN = "mean"
+    MAX = "max"
+    MIN = "min"
+    SUM = "sum"
+
+
+class AggregateEmbeddings(BaseNode):
+    """
+    Aggregate embeddings into a single vector.
+
+    Use cases:
+    - Power semantic search capabilities
+    - Enable text clustering and categorization
+    - Support recommendation systems
+    - Detect semantic anomalies or outliers
+    - Measure text diversity or similarity
+    - Aid in text classification tasks
+    """
+
+    model: LlamaModel = Field(title="Model", default=LlamaModel())
+    chunks: list[str] = Field(
+        title="Chunks",
+        default=[],
+        description="The chunks of text to embed.",
+    )
+    context_window: int = Field(
+        default=4096,
+        ge=1,
+        description="The context window size to use for the model.",
+    )
+    aggregation: EmbeddingAggregation = Field(
+        default=EmbeddingAggregation.MEAN,
+        description="The aggregation method to use for the embeddings.",
+    )
+
+    @classmethod
+    def get_basic_fields(cls) -> list[str]:
+        return ["model", "chunks"]
+
+    async def process(self, context: ProcessingContext) -> NPArray:
+        import numpy as np
+
+        embeddings = []
+        for chunk in self.chunks:
+            res = await context.run_prediction(
+                node_id=self._id,
+                provider=Provider.Ollama,
+                model=self.model.repo_id,
+                params={"prompt": chunk, "options": {"num_ctx": self.context_window}},
+            )
+            embeddings.append(res["embedding"])
+
+        if self.aggregation == EmbeddingAggregation.MEAN:
+            aggregation = np.mean(embeddings, axis=0)
+        elif self.aggregation == EmbeddingAggregation.MAX:
+            aggregation = np.max(embeddings, axis=0)
+        elif self.aggregation == EmbeddingAggregation.MIN:
+            aggregation = np.min(embeddings, axis=0)
+        elif self.aggregation == EmbeddingAggregation.SUM:
+            aggregation = np.sum(embeddings, axis=0)
+        else:
+            raise ValueError(f"Invalid aggregation method: {self.aggregation}")
+
+        return NPArray.from_numpy(aggregation)
+
+
 class Embedding(BaseNode):
     """
     Generate vector representations of text for semantic similarity.
@@ -193,34 +261,16 @@ class Embedding(BaseNode):
         ge=1,
         description="The context window size to use for the model.",
     )
-    chunk_size: int = Field(
-        title="Chunk Size",
-        default=4096,
-        ge=64,
-        description="The size of the chunks to split the input into",
-    )
 
     @classmethod
     def get_basic_fields(cls) -> list[str]:
         return ["model", "input"]
 
     async def process(self, context: ProcessingContext) -> NPArray:
-        import numpy as np
-
-        # chunk the input into smaller pieces
-        chunks = [
-            self.input[i : i + self.chunk_size]
-            for i in range(0, len(self.input), self.chunk_size)
-        ]
-        embeddings = []
-        for chunk in chunks:
-            res = await context.run_prediction(
-                node_id=self._id,
-                provider=Provider.Ollama,
-                model=self.model.repo_id,
-                params={"prompt": chunk, "options": {"num_ctx": self.context_window}},
-            )
-            embeddings.append(res["embedding"])
-
-        avg = np.mean(embeddings, axis=0)
-        return NPArray.from_numpy(avg)
+        res = await context.run_prediction(
+            node_id=self._id,
+            provider=Provider.Ollama,
+            model=self.model.repo_id,
+            params={"prompt": self.input, "options": {"num_ctx": self.context_window}},
+        )
+        return NPArray.from_numpy(res["embedding"])
