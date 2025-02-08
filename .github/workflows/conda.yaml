@@ -41,8 +41,7 @@ jobs:
       - name: Upload Conda Environment
         uses: actions/upload-artifact@v4
         with:
-          name: conda-environments
+          name: conda-${{ matrix.os }}
           path: |
             build/conda-env-*.tar.gz
             build/conda-env-*.zip
-          overwrite: true
