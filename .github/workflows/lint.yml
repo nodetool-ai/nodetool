@@ -1,4 +1,4 @@
-name: Type Check
+name: Lint
 
 on:
   push:
@@ -15,8 +15,8 @@ on:
       - "electron/**"
 
 jobs:
-  web-type-check:
-    name: Web TypeScript Check
+  web-type:
+    name: Web Lint
     runs-on: ubuntu-latest
 
     steps:
@@ -38,8 +38,13 @@ jobs:
           cd web
           npx tsc --noEmit
 
-  electron-type-check:
-    name: Electron TypeScript Check
+      - name: Run ESLint
+        run: |
+          cd web
+          npx eslint .
+
+  electron-type:
+    name: Electron Lint
     runs-on: ubuntu-latest
 
     steps:
@@ -61,8 +66,13 @@ jobs:
           cd electron
           npm run typecheck
 
-  mini-apps-type-check:
-    name: Mini Apps TypeScript Check
+      - name: Run ESLint
+        run: |
+          cd electron
+          npx eslint .
+
+  mini-apps:
+    name: Mini Apps Lint
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -73,7 +83,7 @@ jobs:
           cd electron/apps
           npm ci
 
-      - name: Run TypeScript type check
+      - name: Run ESLint
         run: |
           cd electron/apps
-          npm ci
+          npx eslint .

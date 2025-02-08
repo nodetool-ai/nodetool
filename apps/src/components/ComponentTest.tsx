@@ -42,9 +42,6 @@ import { VideoPlayer } from "./VideoPlayer";
 import DocumentInput from "./DocumentInput";
 import { SchemaInput } from "./SchemaInput";
 import { Composer } from "./Composer";
-import { Provider } from "./ui/provider";
-import apps_theme from "../src/styles/theme/apps_theme";
-import ChatInterface from "./ChatInterface";
 
 // Sample schema for SchemaInput
 const sampleSchema = {
@@ -221,7 +218,7 @@ export function ComponentTest({ className }: ComponentTestProps) {
               <VStack align="stretch" gap={4}>
                 <HStack gap={4}>
                   <DialogRoot>
-                    <DialogTrigger asChild>
+                    <DialogTrigger>
                       <Button>Open Dialog</Button>
                     </DialogTrigger>
                     <DialogContent>Dialog Content</DialogContent>
@@ -317,6 +314,7 @@ export function ComponentTest({ className }: ComponentTestProps) {
                   disabled={false}
                   droppedFiles={[]}
                   setDroppedFiles={console.log}
+                  handleAudioChange={console.log}
                 />
               </Box>
             </Section>

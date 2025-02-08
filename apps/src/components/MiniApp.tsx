@@ -10,7 +10,7 @@ import {
 } from "@chakra-ui/react";
 import { ProgressRoot, ProgressValueText, ProgressBar } from "./ui/progress";
 import { useWorkflowRunner } from "../stores/WorkflowRunner";
-import { JSONSchema } from "../src/types/workflow";
+import { JSONSchema } from "../types/workflow";
 import { ImageDisplay } from "./ImageDisplay";
 import { AudioPlayer } from "./AudioPlayer";
 import { VideoPlayer } from "./VideoPlayer";

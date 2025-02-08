@@ -129,7 +129,7 @@ export const Composer: React.FC<ComposerProps> = ({
         <Box width={droppedFiles.length > 0 ? "40%" : "10%"}>
           <FileUploadRoot onFileChange={handleFileChange} maxFiles={3}>
             <HStack>
-              <FileUploadTrigger asChild>
+              <FileUploadTrigger>
                 <Button size="sm" variant="ghost" colorScheme="gray">
                   <HiUpload />
                 </Button>
