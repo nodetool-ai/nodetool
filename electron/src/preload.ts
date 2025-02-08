@@ -22,7 +22,7 @@ import {
   IpcResponse,
   ServerState,
   UpdateProgressData,
-} from "./src/types.d";
+} from "./types.d";
 import { UpdateInfo } from "electron-updater";
 
 type IpcHandler<T extends keyof IpcRequest> = (

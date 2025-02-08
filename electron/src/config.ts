@@ -18,6 +18,9 @@ const webPath: string = app.isPackaged
 const appsPath: string = app.isPackaged
   ? path.join(process.resourcesPath, "apps")
   : path.join(__dirname, "..", "..", "apps", "dist");
+const requirementsPath: string = app.isPackaged
+  ? path.join(resourcesPath, "requirements.txt")
+  : path.join(__dirname, "..", "..", "requirements.txt");
 
 const PID_FILE_PATH: string = path.join(app.getPath("userData"), "server.pid");
 const LAUNCHD_SERVICE_NAME: string = "ai.nodetool.server";
@@ -42,21 +45,10 @@ const getCondaEnvPath = (): string => {
   return condaPath;
 };
 
-const getRequirementsPath = (): string => {
-  const userRequirements: string = path.join(userDataPath, "requirements.txt");
-  const defaultRequirements: string = path.join(
-    resourcesPath,
-    "requirements.txt"
-  );
-
-  try {
-    // Synchronously check if user requirements exists
-    fs.accessSync(userRequirements);
-    return userRequirements;
-  } catch {
-    return defaultRequirements;
-  }
-};
+const getUVPath = (): string =>
+  process.platform === "win32"
+    ? path.join(getCondaEnvPath(), "Scripts", "uv.exe")
+    : path.join(getCondaEnvPath(), "bin", "uv");
 
 const getPythonPath = (): string =>
   process.platform === "win32"
@@ -119,9 +111,9 @@ const getProcessEnv = (): ProcessEnv => {
 
 export {
   getCondaEnvPath,
-  getRequirementsPath,
   getPythonPath,
   getPipPath,
+  getUVPath,
   getCondaUnpackPath,
   saveUserRequirements,
   getProcessEnv,
@@ -131,4 +123,5 @@ export {
   PLIST_PATH,
   webPath,
   appsPath,
+  requirementsPath,
 };

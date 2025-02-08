@@ -131,10 +131,14 @@ app.on("ready", async () => {
   await initializeIpcHandlers();
   await checkMediaPermissions();
 
+  // Create window first
   mainWindow = createWindow();
-
-  await initialize();
   await createTray();
+
+  // Wait for window to be ready before initializing
+  mainWindow.once("ready-to-show", async () => {
+    await initialize();
+  });
 
   // Check for --run argument or environment variable
   const runIndex = process.argv.indexOf("--run");

@@ -10,10 +10,13 @@ import tar from "tar-fs";
 // @ts-expect-error types not available
 import gunzip from "gunzip-maybe";
 import { dialog } from "electron";
-import { getCondaEnvUrl, getDefaultInstallLocation } from "./python";
+import {
+  getCondaEnvUrl,
+  getDefaultInstallLocation,
+  updateCondaEnvironment,
+} from "./python";
 
-import { getCondaEnvSize } from "./python";
-import { getEnvironmentSize } from "./python";
+import { getEnvironmentSize, getDownloadSize } from "./python";
 import { logMessage } from "./logger";
 import path from "path";
 import { updateSetting } from "./settings";
@@ -326,6 +329,8 @@ async function installCondaEnvironment(): Promise<void> {
     logMessage(`Removing downloaded archive: ${archivePath}`);
     await fs.unlink(archivePath);
 
+    await updateCondaEnvironment();
+
     logMessage("Python environment installation completed successfully");
     emitBootMessage("Python environment is ready");
   } catch (error: any) {
@@ -338,21 +343,9 @@ async function installCondaEnvironment(): Promise<void> {
 }
 
 async function promptForInstallLocation(): Promise<string> {
-  let downloadSize: string;
+  const downloadSize = getDownloadSize();
   const installedSize = getEnvironmentSize();
-  try {
-    const sizeInBytes = await getCondaEnvSize();
-    downloadSize = formatBytes(sizeInBytes);
-  } catch (error: any) {
-    logMessage(`Failed to get download size: ${error.message}`, "warn");
-    downloadSize = getEnvironmentSize();
-  }
-
   const defaultLocation = getDefaultInstallLocation();
-
-  logMessage(`Default location: ${defaultLocation}`);
-  logMessage(`Download size: ${downloadSize}`);
-  logMessage(`Installed size: ${installedSize}`);
 
   // Create a promise that will be resolved when the user makes a selection
   return new Promise<string>((resolve, reject) => {
