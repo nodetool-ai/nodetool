@@ -2,7 +2,6 @@
 import { css } from "@emotion/react";
 
 import React, { useCallback, useEffect, useRef, useMemo, memo } from "react";
-import useResizeObserver from "@react-hook/resize-observer";
 import { Box, Divider, Typography } from "@mui/material";
 
 import AudioPlayer from "../audio/AudioPlayer";
@@ -364,7 +363,6 @@ const AssetGrid: React.FC<AssetGridProps> = ({
       openAsset,
       sortedAssets,
       maxItemSize,
-      currentFolder,
       selectedAssetIds,
       uploadFiles,
       isHorizontal,
