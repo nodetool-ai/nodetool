@@ -8,7 +8,6 @@
     "files": [
         "assets/**/*",
         "build/**/*",
-        "dist/**/*",
         "dist-electron/**/*"
     ],
     "extraResources": [
