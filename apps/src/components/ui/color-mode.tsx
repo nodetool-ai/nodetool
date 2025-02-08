@@ -47,11 +47,12 @@ export const ColorModeButton = React.forwardRef<
       onClick={toggleTheme}
       variant="ghost"
       aria-label={`Switch to ${currentTheme === "light" ? "dark" : "light"} mode`}
-      children={<ColorModeIcon />}
       className={
         className ? `color-mode-button ${className}` : "color-mode-button"
       }
       {...rest}
-    />
+    >
+      <ColorModeIcon />
+    </IconButton>
   );
 });

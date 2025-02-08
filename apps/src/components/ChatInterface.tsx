@@ -8,7 +8,7 @@ import "./ChatInterface.css";
 // import { useColorModeValue } from "./ui/color-mode";
 import useChatStore from "../stores/ChatStore";
 import { Button } from "./ui/button";
-import { MessageContent } from "../types/workflow";
+import { MessageContent } from "../src/types/workflow";
 import { ImageDisplay } from "./ImageDisplay";
 import { AudioPlayer } from "./AudioPlayer";
 import { VideoPlayer } from "./VideoPlayer";
@@ -62,16 +62,15 @@ const createMediaContent = async (
   messageType: "image_url" | "audio" | "video" | "document",
   mediaType: "image" | "audio" | "video" | "document"
 ): Promise<MessageContent> => {
-  // @ts-expect-error
+  // @ts-expect-error file.path is not defined in the browser
   const isElectron = !!file.path;
 
-  // @ts-expect-error
   return {
     type: messageType,
     [mediaType]: {
       type: mediaType,
       ...(isElectron
-        ? // @ts-expect-error
+        ? // @ts-expect-error file.path is not defined in the browser
           { uri: `file://${file.path}` }
         : { data: await fileToData(file) }),
     },
@@ -96,7 +95,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ workflowId, token }) => {
 
   useEffect(() => {
     connect(workflowId);
-  }, []);
+  }, [connect, workflowId]);
 
   const [disabled, setDisabled] = useState(false);
 
@@ -152,7 +151,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ workflowId, token }) => {
       setDroppedFiles([]);
       setDisabled(true);
     },
-    [droppedFiles]
+    [droppedFiles, sendMessage, workflowId, token]
   );
 
   // Add state for tracking expanded thoughts

@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { WindowControls } from "./WindowControls";
-import { JSONSchema, Workflow } from "../types/workflow";
+import { JSONSchema, Workflow } from "../src/types/workflow";
 import { Box, Heading, Text, Flex } from "@chakra-ui/react";
 import ChatInterface from "./ChatInterface";
 import { MiniApp } from "./MiniApp";

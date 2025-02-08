@@ -57,7 +57,7 @@ const DocumentInput = ({ onChange, className }: DocumentInputProps) => {
         onChange(null);
       }
     },
-    [onChange]
+    [onChange, pdfUrl]
   );
 
   const handleClear = useCallback(() => {

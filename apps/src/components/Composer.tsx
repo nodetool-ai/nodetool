@@ -66,10 +66,13 @@ export const Composer: React.FC<ComposerProps> = ({
     [handleSubmit]
   );
 
-  const handleFileChange = useCallback((changes: any) => {
-    setDroppedFiles(changes.acceptedFiles);
-    console.log(changes);
-  }, []);
+  const handleFileChange = useCallback(
+    (changes: any) => {
+      setDroppedFiles(changes.acceptedFiles);
+      console.log(changes);
+    },
+    [setDroppedFiles]
+  );
 
   const startRecording = useCallback(async () => {
     try {

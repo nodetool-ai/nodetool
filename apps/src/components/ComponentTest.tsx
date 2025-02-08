@@ -43,7 +43,7 @@ import DocumentInput from "./DocumentInput";
 import { SchemaInput } from "./SchemaInput";
 import { Composer } from "./Composer";
 import { Provider } from "./ui/provider";
-import apps_theme from "../styles/theme/apps_theme";
+import apps_theme from "../src/styles/theme/apps_theme";
 import ChatInterface from "./ChatInterface";
 
 // Sample schema for SchemaInput
