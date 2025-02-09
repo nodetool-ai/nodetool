@@ -1,6 +1,41 @@
+/** @jsxImportSource @emotion/react */
+import { css } from "@emotion/react";
 import React, { memo } from "react";
 import { Box } from "@mui/material";
 import { isEqual } from "lodash";
+
+const styles = (theme: any) =>
+  css({
+    position: "relative",
+    display: "flex",
+    flexDirection: "column",
+    border: `1px solid ${theme.palette.c_gray3}40`,
+    backgroundColor: `${theme.palette.c_gray1}80`,
+    borderRadius: 20,
+    overflow: "hidden",
+    margin: 0,
+    padding: 0,
+    transition: "all 0.3s ease-out",
+    backdropFilter: "blur(16px)",
+    boxShadow: `
+      0 4px 24px -1px rgba(0, 0, 0, 0.2),
+      0 0 1px 0 rgba(255, 255, 255, 0.3) inset
+    `,
+    cursor: "default",
+    width: "400px",
+    maxHeight: "600px",
+    height: "500px",
+
+    "&.minimized": {
+      width: "120px",
+      height: "60px",
+      backgroundColor: theme.palette.c_gray1
+    },
+
+    "&.closed": {
+      pointerEvents: "none"
+    }
+  });
 
 interface ChatContainerProps {
   isMinimized: boolean;
@@ -14,28 +49,10 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
   children
 }) => (
   <Box
-    className="workflow-chat-container"
-    sx={{
-      position: "relative",
-      width: isMinimized ? "120px" : "400px",
-      maxHeight: "600px",
-      height: isMinimized ? "56px" : "500px",
-      transform: "translate(0, 0)",
-      display: "flex",
-      flexDirection: "column",
-      backgroundColor: isOpen ? "rgba(8, 8, 8, 0.9)" : "rgba(16, 16, 16, 0.5)",
-      boxShadow: isOpen
-        ? "0 0 32px rgba(0, 0, 0, 0.3)"
-        : "0 0 16px rgba(0, 0, 0, 0.2)",
-      borderRadius: 8,
-      overflow: "hidden",
-      m: 0,
-      p: 0,
-      transition: "all 0.3s ease-out",
-      backdropFilter: "blur(10px)",
-      pointerEvents: isOpen ? "auto" : "none",
-      cursor: "default"
-    }}
+    css={styles}
+    className={`workflow-chat-container ${isMinimized ? "minimized" : ""} ${
+      !isOpen ? "closed" : ""
+    }`}
   >
     {children}
   </Box>

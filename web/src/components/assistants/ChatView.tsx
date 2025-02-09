@@ -54,9 +54,11 @@ const styles = (theme: any) =>
       fontSize: theme.fontSizeBig
     },
     ".messages li.user": {
+      width: "60%",
+      marginLeft: "auto",
       color: theme.palette.c_gray6,
-      backgroundColor: "rgba(0,0,0, 0.9)",
-      borderRight: "2px solid" + theme.palette.c_gray3
+      backgroundColor: theme.palette.c_gray3,
+      borderRadius: "20px"
     },
     ".messages li .markdown": {
       padding: 0
@@ -87,7 +89,7 @@ const styles = (theme: any) =>
       height: "2px"
     },
     ".chat-window .chat-header h6": {
-      marginTop: "14px",
+      marginTop: "10px",
       marginLeft: "10px"
     },
     ".chat-controls": {
@@ -101,12 +103,12 @@ const styles = (theme: any) =>
       position: "relative",
       height: "auto",
       width: "100%",
-      backgroundColor: theme.palette.c_gray1,
+      backgroundColor: theme.palette.c_gray2,
       border: "1px solid",
       borderColor: theme.palette.c_gray3,
       display: "flex",
       alignItems: "center",
-      borderRadius: ".5em",
+      borderRadius: "20px",
       boxShadow: "0 2px 6px rgba(0, 0, 0, 0.1)"
     },
     ".compose-message textarea": {
@@ -121,8 +123,8 @@ const styles = (theme: any) =>
       flexGrow: 1,
       outline: "none",
       border: "1px solid transparent",
-      borderRadius: ".5em",
-      padding: ".5em 1em",
+      borderRadius: "20px",
+      padding: "1em 1em",
       transition: "border 0.2s ease-in-out",
       "&::placeholder": {
         color: theme.palette.c_gray3
