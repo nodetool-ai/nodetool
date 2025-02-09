@@ -1353,7 +1353,7 @@
   },
   {
     "title": "Say Text",
-    "description": "Speak text using macOS's built-in text-to-speech via AppleScript\n    speech, automation, macos, accessibility\n\n    Use cases:\n    - Add voice notifications to workflows\n    - Create audio feedback\n    - Accessibility features",
+    "description": "Speak text using macOS's built-in text-to-speech\n    speech, automation, macos, accessibility\n\n    Use cases:\n    - Add voice notifications to workflows\n    - Create audio feedback\n    - Accessibility features",
     "namespace": "apple.speech",
     "node_type": "apple.speech.SayText",
     "layout": "default",
@@ -1384,7 +1384,7 @@
         },
         "default": 175,
         "title": "Rate",
-        "description": "Speaking rate (words per minute)",
+        "description": "Speaking rate (not implemented)",
         "min": null,
         "max": null
       }
@@ -128441,9 +128441,9 @@
             "month": 2,
             "day": 9,
             "hour": 23,
-            "minute": 8,
+            "minute": 21,
             "second": 15,
-            "microsecond": 913670,
+            "microsecond": 959802,
             "tzinfo": "UTC",
             "utc_offset": 0.0
           },
