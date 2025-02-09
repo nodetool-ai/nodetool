@@ -21,7 +21,13 @@ export default [
     )
   ),
   {
-    ignores: ["dist/**/*", "out/**/*", "vite.config.ts", "dist-electron/**/*"],
+    ignores: [
+      "dist/**/*",
+      "out/**/*",
+      "vite.config.ts",
+      "dist-electron/**/*",
+      "dist-web/**/*",
+    ],
   },
   {
     languageOptions: {
