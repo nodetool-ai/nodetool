@@ -32802,6 +32802,31 @@
     "is_dynamic": false
   },
   {
+    "title": "Paste Image From Clipboard",
+    "description": "Reads an image from the system clipboard on macOS.\n    clipboard, system, paste, image\n\n    Use cases:\n    - Capture screenshots from clipboard\n    - Process clipboard images\n    - Import clipboard content",
+    "namespace": "nodetool.os",
+    "node_type": "nodetool.os.PasteImageFromClipboard",
+    "layout": "default",
+    "properties": [],
+    "outputs": [
+      {
+        "type": {
+          "type": "image",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [],
+    "is_dynamic": false
+  },
+  {
     "title": "Image Composite Masked",
     "description": "The Image Composite Masked node can be used to composite an image onto another image using a mask.",
     "namespace": "comfy.image",
@@ -128318,10 +128343,10 @@
             "year": 2025,
             "month": 2,
             "day": 9,
-            "hour": 15,
-            "minute": 40,
-            "second": 36,
-            "microsecond": 114449,
+            "hour": 18,
+            "minute": 8,
+            "second": 54,
+            "microsecond": 216159,
             "tzinfo": "UTC",
             "utc_offset": 0.0
           },

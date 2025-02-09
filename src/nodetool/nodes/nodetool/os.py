@@ -30,6 +30,7 @@ from nodetool.workflows.processing_context import ProcessingContext
 import io
 import shlex
 import subprocess
+import pyperclip
 
 
 class GetEnvironmentVariable(BaseNode):
@@ -103,51 +104,7 @@ class CopyTextToClipboard(BaseNode):
     text: str = Field(default="", description="Text to copy to clipboard")
 
     async def process(self, context: ProcessingContext) -> None:
-        escaped_text = shlex.quote(self.text)
-
-        if os.name == "posix":
-            if "darwin" in os.uname().sysname.lower():  # macOS
-                result = subprocess.run(
-                    ["sh", "-c", f"echo {escaped_text} | pbcopy"],
-                    capture_output=True,
-                    text=True,
-                )
-                if result.returncode != 0:
-                    raise RuntimeError(f"Failed to copy to clipboard: {result.stderr}")
-            else:  # Linux
-                if shutil.which("xclip"):
-                    result = subprocess.run(
-                        [
-                            "sh",
-                            "-c",
-                            f"echo {escaped_text} | xclip -selection clipboard",
-                        ],
-                        capture_output=True,
-                        text=True,
-                    )
-                    if result.returncode != 0:
-                        raise RuntimeError(
-                            f"Failed to copy to clipboard: {result.stderr}"
-                        )
-                elif shutil.which("xsel"):
-                    result = subprocess.run(
-                        ["sh", "-c", f"echo {escaped_text} | xsel --clipboard --input"],
-                        capture_output=True,
-                        text=True,
-                    )
-                    if result.returncode != 0:
-                        raise RuntimeError(
-                            f"Failed to copy to clipboard: {result.stderr}"
-                        )
-                else:
-                    raise RuntimeError(
-                        "No clipboard tool found. Please install xclip or xsel."
-                    )
-
-        elif os.name == "nt":  # Windows
-            subprocess.run(["clip"], input=self.text.encode(), check=True)
-        else:
-            raise RuntimeError("Unsupported operating system")
+        pyperclip.copy(self.text)
 
 
 class PasteTextFromClipboard(BaseNode):
@@ -161,37 +118,7 @@ class PasteTextFromClipboard(BaseNode):
     """
 
     async def process(self, context: ProcessingContext) -> str:
-        if os.name == "posix":
-            if "darwin" in os.uname().sysname.lower():  # macOS
-                return subprocess.check_output(["pbpaste"]).decode().strip()
-            else:  # Linux
-                if shutil.which("xclip"):
-                    return (
-                        subprocess.check_output(
-                            ["xclip", "-selection", "clipboard", "-o"]
-                        )
-                        .decode()
-                        .strip()
-                    )
-                elif shutil.which("xsel"):
-                    return (
-                        subprocess.check_output(["xsel", "--clipboard", "--output"])
-                        .decode()
-                        .strip()
-                    )
-                else:
-                    raise RuntimeError(
-                        "No clipboard tool found. Please install xclip or xsel."
-                    )
-        elif os.name == "nt":  # Windows
-            result = subprocess.run(
-                ["powershell.exe", "-command", "Get-Clipboard"],
-                capture_output=True,
-                text=True,
-            )
-            return result.stdout.strip()
-        else:
-            raise RuntimeError("Unsupported operating system")
+        return pyperclip.paste()
 
 
 class CopyImageToClipboard(BaseNode):
@@ -211,33 +138,26 @@ class CopyImageToClipboard(BaseNode):
 
         if os.name == "posix":
             if "darwin" in os.uname().sysname.lower():  # macOS
-                # Convert image to PNG bytes
-                buffer = io.BytesIO()
-                image.save(buffer, format="PNG")
-                png_data = buffer.getvalue()
+                from AppKit import NSPasteboard, NSPasteboardTypeTIFF, NSImage
+                from PIL import Image
+                import io
 
-                with tempfile.NamedTemporaryFile(
-                    suffix=".png", delete=False
-                ) as tmp_file:
-                    tmp_file.write(png_data)
-                    tmp_path = tmp_file.name
+                # Convert PIL image to PNG bytes
+                png_buffer = io.BytesIO()
+                image.save(png_buffer, format="PNG")
+                png_data = png_buffer.getvalue()
 
-                # Escape the file path
-                escaped_path = shlex.quote(tmp_path)
-                result = subprocess.run(
-                    [
-                        "osascript",
-                        "-e",
-                        f'tell app "Finder" to set the clipboard to (POSIX file {escaped_path} as alias)',
-                    ],
-                    capture_output=True,
-                    text=True,
-                )
-                os.unlink(tmp_path)  # Clean up temp file
-                if result.returncode != 0:
-                    raise RuntimeError(
-                        f"Failed to copy image to clipboard: {result.stderr}"
-                    )
+                # Create NSImage from PNG data
+                nsdata = bytes(png_data)
+                nsimage = NSImage.alloc().initWithData_(nsdata)
+
+                if nsimage is None:
+                    raise RuntimeError("Failed to create NSImage from image data")
+
+                # Copy to pasteboard
+                pasteboard = NSPasteboard.generalPasteboard()
+                pasteboard.clearContents()
+                pasteboard.writeObjects_([nsimage])
 
             else:  # Linux
                 if shutil.which("xclip"):
@@ -1243,3 +1163,42 @@ class PathToString(BaseNode):
         if not self.file_path:
             raise ValueError("file_path cannot be empty")
         return self.file_path.path
+
+
+class PasteImageFromClipboard(BaseNode):
+    """
+    Reads an image from the system clipboard on macOS.
+    clipboard, system, paste, image
+
+    Use cases:
+    - Capture screenshots from clipboard
+    - Process clipboard images
+    - Import clipboard content
+    """
+
+    async def process(self, context: ProcessingContext) -> ImageRef:
+        if not "darwin" in os.uname().sysname.lower():
+            raise RuntimeError("This node only works on macOS")
+
+        from AppKit import NSPasteboard, NSImage
+        from PIL import Image
+        import io
+
+        # Get pasteboard and image
+        pasteboard = NSPasteboard.generalPasteboard()
+        nsimage = NSImage.alloc().initWithPasteboard_(pasteboard)
+
+        if nsimage is None:
+            raise RuntimeError("No image found on clipboard")
+
+        image_data = nsimage.TIFFRepresentation()
+        if image_data is None:
+            raise RuntimeError("Could not get image data from clipboard")
+
+        pil_image = Image.open(io.BytesIO(bytes(image_data)))
+
+        png_buffer = io.BytesIO()
+        pil_image.save(png_buffer, format="PNG")
+        png_data = png_buffer.getvalue()
+
+        return ImageRef(data=png_data)
