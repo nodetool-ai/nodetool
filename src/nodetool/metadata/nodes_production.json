@@ -68219,8 +68219,8 @@
         "default": 1,
         "title": "Buffer Size",
         "description": "Buffer size for semantic splitting",
-        "min": null,
-        "max": null
+        "min": 1.0,
+        "max": 100.0
       },
       {
         "name": "threshold",
@@ -68231,11 +68231,11 @@
           "type_args": [],
           "type_name": null
         },
-        "default": 5,
+        "default": 95,
         "title": "Threshold",
         "description": "Breakpoint percentile threshold for semantic splitting",
-        "min": null,
-        "max": null
+        "min": 0.0,
+        "max": 100.0
       }
     ],
     "outputs": [
@@ -124030,10 +124030,10 @@
             "year": 2025,
             "month": 2,
             "day": 9,
-            "hour": 0,
-            "minute": 21,
-            "second": 11,
-            "microsecond": 870585,
+            "hour": 12,
+            "minute": 32,
+            "second": 37,
+            "microsecond": 896068,
             "tzinfo": "UTC",
             "utc_offset": 0.0
           },
