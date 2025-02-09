@@ -235,12 +235,12 @@ const TabsNodeEditor = () => {
     [currentWorkflowId, workflows, navigate, removeWorkflow]
   );
 
-  const handleDragStart = (
-    e: DragEvent<HTMLDivElement>,
-    workflowId: string
-  ) => {
-    e.dataTransfer.setData("text/plain", workflowId);
-  };
+  const handleDragStart = useCallback(
+    (e: DragEvent<HTMLDivElement>, workflowId: string) => {
+      e.dataTransfer.setData("text/plain", workflowId);
+    },
+    []
+  );
 
   const handleDragOver = useCallback(
     (e: DragEvent<HTMLDivElement>, targetId: string) => {
