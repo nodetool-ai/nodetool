@@ -14,6 +14,7 @@ import { Box } from "@mui/material";
 import ThemeNodes from "../themes/ThemeNodes";
 import TabsBar from "./TabsBar";
 import KeyboardProvider from "../KeyboardProvider";
+import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 
 const styles = (theme: any) =>
   css({
@@ -210,21 +211,23 @@ const TabsNodeEditor = () => {
               }}
             >
               <ReactFlowProvider>
-                <KeyboardProvider active={currentWorkflowId === workflow.id}>
-                  <NodeProvider workflowId={workflow.id}>
-                    {currentWorkflowId === workflow.id &&
-                      createPortal(
-                        <div className="actions-container">
-                          <AppHeaderActions />
-                        </div>,
-                        document.body
-                      )}
-                    <div className="status-message-container">
-                      <StatusMessage />
-                    </div>
-                    <NodeEditor workflowId={workflow.id} />
-                  </NodeProvider>
-                </KeyboardProvider>
+                <ContextMenuProvider active={currentWorkflowId === workflow.id}>
+                  <KeyboardProvider active={currentWorkflowId === workflow.id}>
+                    <NodeProvider workflowId={workflow.id}>
+                      {currentWorkflowId === workflow.id &&
+                        createPortal(
+                          <div className="actions-container">
+                            <AppHeaderActions />
+                          </div>,
+                          document.body
+                        )}
+                      <div className="status-message-container">
+                        <StatusMessage />
+                      </div>
+                      <NodeEditor workflowId={workflow.id} />
+                    </NodeProvider>
+                  </KeyboardProvider>
+                </ContextMenuProvider>
               </ReactFlowProvider>
             </Box>
           ))}
