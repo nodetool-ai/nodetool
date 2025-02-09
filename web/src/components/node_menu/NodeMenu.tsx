@@ -206,25 +206,6 @@ const NodeMenu = memo(function NodeMenu({
     });
   });
 
-  // SET SELECTED TYPE FILTER
-  useEffect(() => {
-    if (!isMenuOpen) return;
-    setSelectedInputType("");
-    setSelectedOutputType("");
-    if (connectDirection === "source" && dropType) {
-      setSelectedInputType(dropType);
-    }
-    if (connectDirection === "target" && dropType) {
-      setSelectedOutputType(dropType);
-    }
-  }, [
-    isMenuOpen,
-    dropType,
-    connectDirection,
-    setSelectedInputType,
-    setSelectedOutputType
-  ]);
-
   if (!isMenuOpen) return null;
 
   return (
