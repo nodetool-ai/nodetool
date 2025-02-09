@@ -1,31 +1,19 @@
 /** @jsxImportSource @emotion/react */
-import React, { memo, useCallback, useMemo } from "react";
+import React, { memo } from "react";
 import { css } from "@emotion/react";
 
-import ThemeNodetool from "../themes/ThemeNodetool";
-import { useResizePanel } from "../../hooks/handlers/useResizePanel";
-
 // components
-import SettingsMenu from "../menus/SettingsMenu";
-import Help from "../content/Help/Help";
 import Alert from "../node_editor/Alert";
 import Logo from "../Logo";
-import OverallDownloadProgress from "../hugging_face/OverallDownloadProgress";
-import NotificationButton from "./NotificationButton";
-import KeyboardBackspaceIcon from "@mui/icons-material/KeyboardBackspace";
 
 // mui icons
-import QuestionMarkIcon from "@mui/icons-material/QuestionMark";
-import ExamplesIcon from "@mui/icons-material/AutoAwesome"; // Add this import
 
 // nodetool icons
-import { IconForType } from "../../config/data_types";
 
 // mui
 import {
   AppBar,
   Button,
-  Popover,
   Tooltip,
   Toolbar,
   Typography,
@@ -34,15 +22,12 @@ import {
 
 // hooks and stores
 import { useLocation, useNavigate } from "react-router-dom";
-import { useSettingsStore } from "../../stores/SettingsStore";
 import { useAppHeaderStore } from "../../stores/AppHeaderStore";
 
 // constants
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
-import { useEffect, useState } from "react";
-import SystemStatsDisplay from "./SystemStats";
-import { isProduction } from "../../stores/ApiClient";
-import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+import NavigationButtons from "./NavigationButtons";
+import RightSideButtons from "./RightSideButtons";
 
 const styles = (theme: any) =>
   css({
@@ -143,185 +128,9 @@ const styles = (theme: any) =>
     }
   });
 
-const BackToEditorButton = memo(function BackToEditorButton() {
-  const { currentWorkflowId } = useWorkflowManager((state) => ({
-    currentWorkflowId: state.currentWorkflowId
-  }));
-  const navigate = useNavigate();
-  return (
-    <Button
-      className="nav-button back-to-editor"
-      onClick={() => navigate(`/editor/${currentWorkflowId || ""}`)}
-      sx={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: "4px",
-        backgroundColor: "rgba(255, 255, 255, 0.05)",
-        "&:hover": {
-          backgroundColor: "rgba(255, 255, 255, 0.1)"
-        },
-        borderRadius: "4px",
-        padding: "6px 12px"
-      }}
-    >
-      <KeyboardBackspaceIcon sx={{ fontSize: "20px" }} />
-      <span>Back to Editor</span>
-    </Button>
-  );
-});
-
-const AppHeader: React.FC = React.memo(function AppHeader() {
+const AppHeader: React.FC = memo(function AppHeader() {
   const navigate = useNavigate();
   const path = useLocation().pathname;
-
-  const { helpOpen, handleCloseHelp, handleOpenHelp } = useAppHeaderStore();
-
-  const NavigationButtons = useMemo(
-    () => (
-      <Box className="nav-buttons">
-        <Tooltip title="Explore Examples" enterDelay={TOOLTIP_ENTER_DELAY}>
-          <Button
-            className={`nav-button ${path === "/examples" ? "active" : ""}`}
-            onClick={() => {
-              navigate("/examples");
-            }}
-            tabIndex={-1}
-            style={{
-              color: path.startsWith("/examples")
-                ? ThemeNodetool.palette.c_hl1
-                : ThemeNodetool.palette.c_white
-            }}
-          >
-            <ExamplesIcon />
-            Examples
-          </Button>
-        </Tooltip>
-
-        <Tooltip
-          title="View and manage Assets"
-          enterDelay={TOOLTIP_ENTER_DELAY}
-        >
-          <Button
-            className={`nav-button ${path === "/assets" ? "active" : ""}`}
-            onClick={() => {
-              navigate("/assets");
-            }}
-            tabIndex={-1}
-            style={{
-              color: path.startsWith("/assets")
-                ? ThemeNodetool.palette.c_hl1
-                : ThemeNodetool.palette.c_white
-            }}
-          >
-            <IconForType
-              iconName="asset"
-              showTooltip={false}
-              svgProps={{
-                fill: path.startsWith("/assets")
-                  ? ThemeNodetool.palette.c_hl1
-                  : ThemeNodetool.palette.c_white
-              }}
-              containerStyle={{
-                borderRadius: "0 0 3px 0",
-                marginLeft: "0.1em",
-                marginTop: "0"
-              }}
-              bgStyle={{
-                backgroundColor: "transparent",
-                width: "30px",
-                height: "20px"
-              }}
-            />
-            Assets
-          </Button>
-        </Tooltip>
-        <Tooltip title="Model Manager" enterDelay={TOOLTIP_ENTER_DELAY}>
-          <Button
-            className="command-icon"
-            onClick={() => navigate("/models")}
-            tabIndex={-1}
-            style={{
-              color: path.startsWith("/models")
-                ? ThemeNodetool.palette.c_hl1
-                : ThemeNodetool.palette.c_white
-            }}
-          >
-            <IconForType
-              iconName="model"
-              showTooltip={false}
-              svgProps={{
-                fill: path.startsWith("/models")
-                  ? ThemeNodetool.palette.c_hl1
-                  : ThemeNodetool.palette.c_white
-              }}
-              bgStyle={{
-                backgroundColor: "transparent",
-                width: "28px"
-              }}
-            />
-            Models
-          </Button>
-        </Tooltip>
-        {!path.startsWith("/editor") && (
-          <Tooltip title="Back to Editor" enterDelay={TOOLTIP_ENTER_DELAY}>
-            <BackToEditorButton />
-          </Tooltip>
-        )}
-      </Box>
-    ),
-    [path, navigate]
-  );
-
-  const RightSideButtons = useMemo(
-    () => (
-      <Box className="buttons-right">
-        {!isProduction && (
-          <>
-            <SystemStatsDisplay />
-            <OverallDownloadProgress />
-          </>
-        )}
-        <NotificationButton />
-        <Popover
-          open={helpOpen}
-          onClose={handleCloseHelp}
-          anchorReference="none"
-          style={{
-            position: "fixed",
-            width: "100%",
-            height: "100%",
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -50%)"
-          }}
-        >
-          <Help handleClose={handleCloseHelp} />
-        </Popover>
-        <Tooltip
-          enterDelay={TOOLTIP_ENTER_DELAY}
-          title={
-            <div style={{ textAlign: "center" }}>
-              <Typography variant="inherit">Help</Typography>
-            </div>
-          }
-        >
-          <Button
-            className="command-icon"
-            onClick={(e) => {
-              e.preventDefault();
-              handleOpenHelp();
-            }}
-            tabIndex={-1}
-          >
-            <QuestionMarkIcon />
-          </Button>
-        </Tooltip>
-        <SettingsMenu />
-      </Box>
-    ),
-    [helpOpen, handleCloseHelp, handleOpenHelp]
-  );
 
   return (
     <div css={styles} className="app-header">
@@ -359,10 +168,10 @@ const AppHeader: React.FC = React.memo(function AppHeader() {
               </Button>
             </Tooltip>
             <Box sx={{ flexGrow: 0.02 }} />
-            {NavigationButtons}
+            <NavigationButtons />
           </div>
           <Alert />
-          {RightSideButtons}
+          <RightSideButtons />
         </Toolbar>
       </AppBar>
     </div>
