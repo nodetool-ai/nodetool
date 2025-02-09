@@ -145,9 +145,6 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
     nodeId: state.nodeId
   }));
 
-  const [isFocused, setIsFocused] = useState(false);
-  const focusedNodeRef = useRef<HTMLDivElement>(null);
-  const currentHoveredNodeRef = useRef<NodeMetadata | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -338,7 +335,6 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
                 <div className="node-item-container">
                   <NodeItem
                     key={nodeMetadata.node_type}
-                    ref={isFocused ? focusedNodeRef : undefined}
                     node={nodeMetadata}
                     onDragStart={() => {}}
                     onClick={() => {

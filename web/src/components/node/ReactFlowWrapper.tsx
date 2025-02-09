@@ -396,7 +396,6 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({ workflowId }) => {
         <AxisMarker />
         <ContextMenus />
         <ConnectableNodes />
-        <HuggingFaceDownloadDialog />
       </ReactFlow>
     </div>
   );
