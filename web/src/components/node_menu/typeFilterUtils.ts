@@ -40,7 +40,7 @@ export function createConnectabilityMatrix(metadata: NodeMetadata[]) {
       matrix[hashType(inputType)][hashType(outputType)] = isConnectable(
         inputType,
         outputType,
-        false
+        true
       );
     });
   });
