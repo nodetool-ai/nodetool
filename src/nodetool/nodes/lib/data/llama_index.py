@@ -30,10 +30,16 @@ class SemanticSplitter(BaseNode):
     )
     text: str = Field(default="", description="Text content to split")
     buffer_size: int = Field(
-        default=1, description="Buffer size for semantic splitting"
+        default=1,
+        description="Buffer size for semantic splitting",
+        ge=1,
+        le=100,
     )
     threshold: int = Field(
-        default=5, description="Breakpoint percentile threshold for semantic splitting"
+        default=95,
+        description="Breakpoint percentile threshold for semantic splitting",
+        ge=0,
+        le=100,
     )
 
     async def process(self, context: ProcessingContext) -> list[TextChunk]:
