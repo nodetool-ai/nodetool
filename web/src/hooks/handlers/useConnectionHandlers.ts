@@ -96,7 +96,15 @@ export default function useConnectionHandlers() {
       const { source, sourceHandle, target, targetHandle } = connection;
       const sourceNode = findNode(source);
       const targetNode = findNode(target);
+      if (!targetHandle) {
+        return;
+      }
       if (!sourceNode || !targetNode) {
+        return;
+      }
+      if (targetNode.data.dynamic_properties[targetHandle] !== undefined) {
+        connectionCreated.current = true;
+        onConnect(connection);
         return;
       }
       const sourceMetadata = getMetadata(sourceNode.type || "");
@@ -118,7 +126,6 @@ export default function useConnectionHandlers() {
         )
       ) {
         connectionCreated.current = true;
-        devLog("Connection Created", connection);
         onConnect(connection);
       } else {
         addNotification({
