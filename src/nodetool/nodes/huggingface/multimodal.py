@@ -1,20 +1,16 @@
-import asyncio
-from enum import Enum
-from typing import Any
-
 from pydantic import Field
-import torch
 from nodetool.metadata.types import (
-    HFGOTOCR,
-    HFMiniCPM,
     ImageRef,
     HFVisualQuestionAnswering,
     HFImageToText,
-    HFMaskGeneration,
+    OCRResult,
 )
 from nodetool.nodes.huggingface.huggingface_pipeline import HuggingFacePipelineNode
 from nodetool.workflows.processing_context import ProcessingContext
-from transformers import AutoModel, AutoTokenizer
+import numpy as np
+from paddleocr import PaddleOCR
+
+from nodetool.workflows.types import NodeUpdate
 
 
 class ImageToText(HuggingFacePipelineNode):
@@ -248,99 +244,121 @@ class VisualQuestionAnswering(HuggingFacePipelineNode):
 #             generated_text += tok
 #         return generated_text
 
-
-class OCRType(str, Enum):
-    OCR = "ocr"
-    FORMAT = "format"
+from enum import Enum
 
 
-class GOTOCR(HuggingFacePipelineNode):
+class OCRLanguage(str, Enum):
+    # Latin script languages
+    ENGLISH = "en"
+    FRENCH = "fr"
+    GERMAN = "de"
+    SPANISH = "es"
+    ITALIAN = "it"
+    PORTUGUESE = "pt"
+    DUTCH = "nl"
+    POLISH = "pl"
+    ROMANIAN = "ro"
+    CROATIAN = "hr"
+    CZECH = "cs"
+    HUNGARIAN = "hu"
+    SLOVAK = "sk"
+    SLOVENIAN = "sl"
+    TURKISH = "tr"
+    VIETNAMESE = "vi"
+    INDONESIAN = "id"
+    MALAY = "ms"
+    LATIN = "la"
+
+    # Cyrillic script languages
+    RUSSIAN = "ru"
+    BULGARIAN = "bg"
+    UKRAINIAN = "uk"
+    BELARUSIAN = "be"
+    MONGOLIAN = "mn"
+
+    # CJK languages
+    CHINESE = "ch"
+    JAPANESE = "ja"
+    KOREAN = "ko"
+
+    # Arabic script languages
+    ARABIC = "ar"
+    PERSIAN = "fa"
+    URDU = "ur"
+
+    # Indic scripts
+    HINDI = "hi"
+    MARATHI = "mr"
+    NEPALI = "ne"
+    SANSKRIT = "sa"
+
+
+class PaddleOCRNode(HuggingFacePipelineNode):
     """
-    Performs OCR on images using the GOT-OCR model.
-    image, text, OCR, multimodal
+    Performs Optical Character Recognition (OCR) on images using PaddleOCR.
+    image, text, ocr, document
 
     Use cases:
     - Text extraction from images
     - Document digitization
-    - Image-based information retrieval
-    - Accessibility tools for visually impaired users
+    - Receipt/invoice processing
+    - Handwriting recognition
     """
 
-    model: HFGOTOCR = Field(
-        default=HFGOTOCR(),
-        title="Model ID on Huggingface",
-        description="The model ID to use for GOT-OCR",
-    )
     image: ImageRef = Field(
         default=ImageRef(),
-        title="Image",
+        title="Input Image",
         description="The image to perform OCR on",
     )
-    ocr_type: OCRType = Field(
-        default=OCRType.OCR,
-        title="OCR Type",
-        description="The type of OCR to perform",
-    )
-    ocr_box: str = Field(
-        default="",
-        title="OCR Box",
-        description="Bounding box for fine-grained OCR (optional)",
-    )
-    ocr_color: str = Field(
-        default="",
-        title="OCR Color",
-        description="Color for fine-grained OCR (optional)",
+    language: OCRLanguage = Field(
+        default=OCRLanguage.ENGLISH, description="Language code for OCR"
     )
 
-    _model: AutoModel | None = None
-    _tokenizer: AutoTokenizer | None = None
+    _ocr: PaddleOCR | None = None
+
+    def required_inputs(self):
+        return ["image"]
 
     @classmethod
-    def get_basic_fields(cls) -> list[str]:
-        return ["model", "image"]
-
-    @classmethod
-    def get_recommended_models(cls):
-        return [
-            HFGOTOCR(
-                repo_id="ucaslcl/GOT-OCR2_0",
-            ),
-        ]
+    def return_type(cls):
+        return {
+            "boxes": list[OCRResult],
+            "text": str,
+        }
 
     async def initialize(self, context: ProcessingContext):
-        self._tokenizer = await self.load_model(
-            context=context,
-            model_id=self.model.repo_id,
-            model_class=AutoTokenizer,
-            trust_remote_code=True,
+        context.post_message(
+            NodeUpdate(
+                node_id=self.id,
+                node_name="PaddleOCR",
+                status="downloading model",
+            )
         )
-        self._model = await self.load_model(
-            context=context,
-            model_id=self.model.repo_id,
-            model_class=AutoModel,
-            trust_remote_code=True,
-            low_cpu_mem_usage=True,
-            device_map="cuda",
-            use_safetensors=True,
-            pad_token_id=self._tokenizer.eos_token_id,  # type: ignore
-        )
-        self._model.eval()  # type: ignore
+        self._ocr = PaddleOCR(lang=self.language)
 
-    async def move_to_device(self, device: str):
-        self._model.to(device)  # type: ignore
+    async def process(self, context: ProcessingContext):
+        assert self._ocr is not None
+        image = await context.image_to_numpy(self.image)
 
-    async def process(self, context: ProcessingContext) -> str:
-        assert self._model is not None
-        assert self._tokenizer is not None
+        result = self._ocr.ocr(image)
 
-        image = await context.image_to_pil(self.image)
+        processed_results = []
+        for idx in range(len(result)):
+            res = result[idx]
+            for line in res:
+                (top_left, top_right, bottom_right, bottom_left), (text, score) = line
+                processed_results.append(
+                    OCRResult(
+                        text=text,
+                        score=float(score),
+                        top_left=top_left,
+                        top_right=top_right,
+                        bottom_right=bottom_right,
+                        bottom_left=bottom_left,
+                    )
+                )
 
-        kwargs = {
-            "ocr_type": self.ocr_type.value,
-            "ocr_color": self.ocr_color if self.ocr_color else None,
-            "images": [image],
+        return {
+            "boxes": processed_results,
+            "text": "\n".join([result.text for result in processed_results]),
         }
-        kwargs = {k: v for k, v in kwargs.items() if v is not None}
-        res = self._model.chat(self._tokenizer, **kwargs)  # type: ignore
-
-        return res

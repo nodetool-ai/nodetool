@@ -291,7 +291,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
         return <DataTable dataframe={value as DataframeRef} editable={false} />;
       case "np_array":
         return (
-          <div className="tensor nodrag nowheel">
+          <div className="tensor nodrag">
             {renderArrayPreview(value as NPArray)}
           </div>
         );
@@ -389,7 +389,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
       case "boolean": {
         const boolStr = String(value).toUpperCase();
         return (
-          <div className="output value nodrag nowheel" css={styles}>
+          <div className="output value nodrag" css={styles}>
             <ButtonGroup className="actions">
               <Tooltip
                 title="Copy to Clipboard"
@@ -433,7 +433,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
         );
       default:
         return (
-          <div className="output value nodrag nowheel" css={styles}>
+          <div className="output value nodrag" css={styles}>
             {value !== null && (
               <>
                 <ButtonGroup className="actions">
