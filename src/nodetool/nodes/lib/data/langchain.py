@@ -59,10 +59,10 @@ class RecursiveTextSplitter(BaseNode):
         return [
             TextChunk(
                 text=doc.page_content,
-                source_id=self.document_id,
+                source_id=f"{self.document_id}:{i}",
                 start_index=doc.metadata["start_index"],
             )
-            for doc in docs
+            for i, doc in enumerate(docs)
         ]
 
 

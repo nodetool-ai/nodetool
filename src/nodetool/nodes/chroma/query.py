@@ -49,16 +49,27 @@ class QueryImage(ChromaNode):
         assert result["metadatas"] is not None, "Metadatas are not returned"
         assert result["distances"] is not None, "Distances are not returned"
 
-        ids = [str(id) for id in result["ids"][0]]
-        documents = result["documents"][0]
-        metadatas = result["metadatas"][0]
-        distances = result["distances"][0]
+        # Create list of tuples to sort together
+        combined = list(
+            zip(
+                result["ids"][0],
+                result["documents"][0],
+                result["metadatas"][0],
+                result["distances"][0],
+            )
+        )
+        # Sort by ID
+        combined.sort(key=lambda x: str(x[0]))
+
+        # Unzip the sorted results
+        ids, documents, metadatas, distances = zip(*combined)
+        ids = [str(id) for id in ids]
 
         return {
             "ids": ids,
-            "documents": documents,
-            "metadatas": metadatas,
-            "distances": distances,
+            "documents": list(documents),
+            "metadatas": list(metadatas),
+            "distances": list(distances),
         }
 
 
@@ -91,14 +102,84 @@ class QueryText(ChromaNode):
         assert result["metadatas"] is not None, "Metadatas are not returned"
         assert result["distances"] is not None, "Distances are not returned"
 
-        ids = [str(id) for id in result["ids"][0]]
-        documents = result["documents"][0]
-        metadatas = result["metadatas"][0]
-        distances = result["distances"][0]
+        # Create list of tuples to sort together
+        combined = list(
+            zip(
+                result["ids"][0],
+                result["documents"][0],
+                result["metadatas"][0],
+                result["distances"][0],
+            )
+        )
+        # Sort by ID
+        combined.sort(key=lambda x: str(x[0]))
+
+        # Unzip the sorted results
+        ids, documents, metadatas, distances = zip(*combined)
+        ids = [str(id) for id in ids]
 
         return {
             "ids": ids,
-            "documents": documents,
-            "metadatas": metadatas,
-            "distances": distances,
+            "documents": list(documents),
+            "metadatas": list(metadatas),
+            "distances": list(distances),
         }
+
+
+class RemoveOverlap(ChromaNode):
+    """
+    Removes overlapping words between consecutive strings in a list.
+    Splits text into words and matches word sequences for more accurate overlap detection.
+    """
+
+    documents: list[str] = Field(
+        default_factory=list,
+        description="List of strings to process for overlap removal",
+    )
+    min_overlap_words: int = Field(
+        default=2,
+        description="Minimum number of words that must overlap to be considered",
+    )
+
+    @classmethod
+    def return_type(cls):
+        return {"documents": list[str]}
+
+    def _split_into_words(self, text: str) -> list[str]:
+        """Split text into words, preserving spacing."""
+        return text.split()
+
+    def _find_word_overlap(self, words1: list[str], words2: list[str]) -> int:
+        """Find the number of overlapping words between the end of words1 and start of words2."""
+        if len(words1) < self.min_overlap_words or len(words2) < self.min_overlap_words:
+            return 0
+
+        # Start with maximum possible overlap
+        max_check = min(len(words1), len(words2))
+
+        for overlap_size in range(max_check, self.min_overlap_words - 1, -1):
+            if words1[-overlap_size:] == words2[:overlap_size]:
+                return overlap_size
+        return 0
+
+    async def process(self, context: ProcessingContext):
+        if not self.documents:
+            return {"documents": []}
+
+        result = [self.documents[0]]
+
+        for i in range(1, len(self.documents)):
+            prev_words = self._split_into_words(result[-1])
+            curr_words = self._split_into_words(self.documents[i])
+
+            overlap_word_count = self._find_word_overlap(prev_words, curr_words)
+
+            if overlap_word_count > 0:
+                # Reconstruct the text without the overlapping words
+                new_text = " ".join(curr_words[overlap_word_count:])
+                if new_text:
+                    result.append(new_text)
+            else:
+                result.append(self.documents[i])
+
+        return {"documents": result}
