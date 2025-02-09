@@ -1,34 +1,17 @@
 {
-  "id": "chat_with_docs",
+  "id": "2d8a5a8ee41611efabc80000754e3f7a",
   "access": "public",
-  "created_at": "2024-12-30T23:40:18.807037",
-  "updated_at": "2024-12-30T23:40:18.807061",
+  "created_at": "2025-02-09T16:05:36.369972",
+  "updated_at": "2025-02-09T16:05:36.369980",
   "name": "Chat with Docs",
   "description": "Chat with your documents",
-  "tags": null,
+  "tags": [
+    "chat"
+  ],
   "thumbnail": null,
   "thumbnail_url": null,
   "graph": {
     "nodes": [
-      {
-        "id": "4",
-        "parent_id": null,
-        "type": "nodetool.workflows.base_node.Preview",
-        "data": {
-          "name": "list_documents_2024-12-27"
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 750,
-            "y": 50
-          },
-          "zIndex": 0,
-          "width": 404,
-          "height": 288,
-          "selectable": true
-        }
-      },
       {
         "id": "5",
         "parent_id": null,
@@ -55,13 +38,15 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 280,
-            "y": 437
+            "x": 50,
+            "y": 215
           },
           "zIndex": 0,
           "width": 197,
+          "title": "Get user chat message.",
           "selectable": true
-        }
+        },
+        "dynamic_properties": {}
       },
       {
         "id": "6",
@@ -74,39 +59,231 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 1021,
-            "y": 441
+            "x": 1181,
+            "y": 244
           },
           "zIndex": 0,
-          "width": 196,
+          "width": 275,
+          "title": "Send result back to chat.",
           "selectable": true
-        }
+        },
+        "dynamic_properties": {}
       },
       {
-        "id": "7",
+        "id": "8",
         "parent_id": null,
-        "type": "ollama.agents.QuestionAnswerAgent",
+        "type": "ollama.text.Ollama",
         "data": {
           "model": {
             "type": "llama_model",
-            "repo_id": "llama3.2:3b"
+            "repo_id": "deepseek-r1:7b"
           },
-          "context_window": 4096,
+          "image": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null
+          },
+          "system_prompt": "You are an assistant.",
+          "messages": [],
+          "context_window": 50000,
+          "num_predict": 4096,
           "temperature": 0.7,
           "top_k": 50,
           "top_p": 0.95,
-          "keep_alive": 0
+          "keep_alive": "300"
         },
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 765,
-            "y": 368
+            "x": 856,
+            "y": 210
           },
           "zIndex": 0,
-          "width": 197,
+          "width": 295,
+          "title": "Run local LLM to generate answer.",
           "selectable": true
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "9",
+        "parent_id": null,
+        "type": "nodetool.text.FormatText",
+        "data": {
+          "template": "You are an expert assistant answering a user question based on retrieved documents. \nYour response must be accurate, well-structured, and grounded in the provided sources.\n\n### User Question:\n{{ text }}\n\n### Relevant Information from Retrieved Documents\nThese snippets can be incomplete or out of context. Ignore information that is not relevant.\n{% for doc in documents %}\n=====================\n**Document {{ loop.index }}\n** {{ doc }}\n{% endfor %}\n\n### **Instructions for Answering:**\n1. Analyze the user question carefully.\n2. Extract key insights from the retrieved documents.\n3. If multiple documents provide different perspectives, synthesize the most relevant and accurate information.\n4. If the documents lack sufficient information, state what is missing instead of guessing.\n5. Present the answer in a clear, concise, and structured manner."
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 490,
+            "y": 50
+          },
+          "zIndex": 0,
+          "width": 336,
+          "title": "Insert document snippets into the prompt.",
+          "selectable": true
+        },
+        "dynamic_properties": {
+          "documents": "",
+          "text": ""
         }
+      },
+      {
+        "id": "11",
+        "parent_id": null,
+        "type": "chroma.query.HybridSearch",
+        "data": {
+          "collection": {
+            "type": "collection",
+            "name": "deepseek"
+          },
+          "n_results": 3,
+          "k_constant": 60,
+          "min_keyword_length": 3
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 307,
+            "y": 61
+          },
+          "zIndex": 0,
+          "width": 153,
+          "title": "Retrieve relevant documents from vector storage.",
+          "selectable": true
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "12",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": [
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "Chat with Docs",
+                  "bold": "B",
+                  "size": "+"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": ""
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "This workflow is designed to answer user questions accurately and efficiently using a hybrid search and a local LLM. "
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "Here\u2019s how it works:"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "\t1.\t"
+                },
+                {
+                  "text": "User Input: ",
+                  "bold": "B"
+                },
+                {
+                  "text": "The user submits a question or text query."
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "\t2.\t"
+                },
+                {
+                  "text": "Hybrid Search:",
+                  "bold": true
+                },
+                {
+                  "text": " Relevant documents are retrieved from a vector database to provide context for the query."
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "\t3.\t"
+                },
+                {
+                  "text": "Text Formatting: ",
+                  "bold": true
+                },
+                {
+                  "text": "The retrieved documents and user question are formatted into a structured prompt for the LLM."
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "\t4.\t"
+                },
+                {
+                  "text": "Ollama: ",
+                  "bold": true
+                },
+                {
+                  "text": "A local AI model processes the prompt, synthesizing information to generate an accurate and well-structured response."
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "\t5.\t"
+                },
+                {
+                  "text": "Output",
+                  "bold": true
+                },
+                {
+                  "text": ": The response is displayed back to the user in a clear format."
+                }
+              ]
+            }
+          ]
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 30,
+            "y": -236
+          },
+          "zIndex": 0,
+          "width": 930,
+          "height": 212,
+          "selectable": true
+        },
+        "dynamic_properties": {}
       }
     ],
     "edges": [
@@ -131,46 +308,6 @@
         }
       },
       {
-        "id": "090c73e9-9f4c-4eb9-97e6-fd0b63d32bb0",
-        "source": "3",
-        "sourceHandle": "documents",
-        "target": "7",
-        "targetHandle": "context",
-        "ui_properties": {
-          "className": "list"
-        }
-      },
-      {
-        "id": "35fe4d48-5b7c-4a81-a4d1-8e1b36400a80",
-        "source": "5",
-        "sourceHandle": "text",
-        "target": "7",
-        "targetHandle": "question",
-        "ui_properties": {
-          "className": "str"
-        }
-      },
-      {
-        "id": "ec95c8f4-fb04-45b1-ade5-e33a9af785b4",
-        "source": "7",
-        "sourceHandle": "output",
-        "target": "6",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "str"
-        }
-      },
-      {
-        "id": "770945",
-        "source": "3",
-        "sourceHandle": "documents",
-        "target": "4",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "list"
-        }
-      },
-      {
         "id": "2978e001-be09-4d68-ab8d-d25396e20181",
         "source": "5",
         "sourceHandle": "text",
@@ -179,6 +316,46 @@
         "ui_properties": {
           "className": "str"
         }
+      },
+      {
+        "id": "770948",
+        "source": "5",
+        "sourceHandle": "text",
+        "target": "9",
+        "targetHandle": "text",
+        "ui_properties": null
+      },
+      {
+        "id": "770949",
+        "source": "9",
+        "sourceHandle": "output",
+        "target": "8",
+        "targetHandle": "prompt",
+        "ui_properties": null
+      },
+      {
+        "id": "770950",
+        "source": "8",
+        "sourceHandle": "output",
+        "target": "6",
+        "targetHandle": "value",
+        "ui_properties": null
+      },
+      {
+        "id": "770953",
+        "source": "5",
+        "sourceHandle": "text",
+        "target": "11",
+        "targetHandle": "text",
+        "ui_properties": null
+      },
+      {
+        "id": "770954",
+        "source": "11",
+        "sourceHandle": "documents",
+        "target": "9",
+        "targetHandle": "documents",
+        "ui_properties": null
       }
     ]
   },
