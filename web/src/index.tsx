@@ -1,15 +1,12 @@
 /** @jsxImportSource @emotion/react */
 import React, { useEffect, useState } from "react";
 import ReactDOM from "react-dom/client";
-import { ReactFlowProvider, useStore } from "@xyflow/react";
 
 import {
-  LoaderFunctionArgs,
   Navigate,
   RouteObject,
   RouterProvider,
-  createBrowserRouter,
-  redirect
+  createBrowserRouter
 } from "react-router-dom";
 
 import ErrorBoundary from "./ErrorBoundary";
@@ -19,7 +16,6 @@ import PanelLeft from "./components/panels/PanelLeft";
 import { ThemeProvider } from "@emotion/react";
 import { CircularProgress, CssBaseline } from "@mui/material";
 import ThemeNodetool from "./components/themes/ThemeNodetool";
-import ThemeNodes from "./components/themes/ThemeNodes";
 
 import AppHeader from "./components/panels/AppHeader";
 import "@xyflow/react/dist/style.css";
@@ -28,7 +24,6 @@ import "./styles/vars.css";
 import "./styles/index.css";
 import "./styles/microtip.css";
 import "./styles/command_menu.css";
-import NodeMenu from "./components/node_menu/NodeMenu";
 import AssetExplorer from "./components/assets/AssetExplorer";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useAssetStore } from "./stores/AssetStore";
@@ -38,13 +33,12 @@ import ExampleGrid from "./components/workflows/ExampleGrid";
 import OpenOrCreateDialog from "./components/dialogs/OpenOrCreateDialog";
 import ProtectedRoute from "./components/ProtectedRoute";
 import useAuth from "./stores/useAuth";
-import { isProduction, pingWorker, useRemoteAuth } from "./stores/ApiClient";
+import { isProduction, useRemoteAuth } from "./stores/ApiClient";
 import { initKeyListeners } from "./stores/KeyPressedStore";
 import useRemoteSettingsStore from "./stores/RemoteSettingStore";
 import ModelsManager from "./components/hugging_face/ModelsManager";
 import useModelStore from "./stores/ModelStore";
 import { loadMetadata } from "./serverState/useMetadata";
-import { NodeProvider } from "./contexts/NodeContext";
 import TabsNodeEditor from "./components/editor/TabsNodeEditor";
 import Welcome from "./components/content/Welcome/Welcome";
 import { useSettingsStore } from "./stores/SettingsStore";

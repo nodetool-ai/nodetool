@@ -14,6 +14,7 @@ import WorkflowList from "../workflows/WorkflowList";
 import { IconForType } from "../../config/data_types";
 import { LeftPanelView, usePanelStore } from "../../stores/PanelStore";
 import CollectionList from "../collections/CollectionList";
+import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 
 const styles = (theme: any) =>
   css({
@@ -312,12 +313,14 @@ const PanelLeft: React.FC = () => {
         open={true}
       >
         <div className="panel-content">
-          <VerticalToolbar
-            activeView={activeView}
-            onViewChange={onViewChange}
-            handlePanelToggle={handlePanelToggle}
-          />
-          {isVisible && <PanelContent activeView={activeView} />}
+          <ContextMenuProvider>
+            <VerticalToolbar
+              activeView={activeView}
+              onViewChange={onViewChange}
+              handlePanelToggle={handlePanelToggle}
+            />
+            {isVisible && <PanelContent activeView={activeView} />}
+          </ContextMenuProvider>
         </div>
       </Drawer>
     </div>

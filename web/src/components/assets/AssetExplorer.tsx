@@ -5,6 +5,7 @@ import React from "react";
 import AssetGrid from "./AssetGrid";
 import { Box } from "@mui/material";
 import useAssets from "../../serverState/useAssets";
+import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 
 const styles = (theme: any) =>
   css({
@@ -61,12 +62,14 @@ const AssetExplorer: React.FC = () => {
   return (
     <div css={styles}>
       <Box className="asset-explorer">
-        <AssetGrid
-          maxItemSize={10}
-          itemSpacing={2}
-          isHorizontal={true}
-          sortedAssets={folderFiles}
-        />
+        <ContextMenuProvider>
+          <AssetGrid
+            maxItemSize={10}
+            itemSpacing={2}
+            isHorizontal={true}
+            sortedAssets={folderFiles}
+          />
+        </ContextMenuProvider>
       </Box>
     </div>
   );
