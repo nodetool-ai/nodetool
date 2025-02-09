@@ -13,6 +13,7 @@ import { generateCSS } from "../themes/GenerateCSS";
 import { Box } from "@mui/material";
 import ThemeNodes from "../themes/ThemeNodes";
 import TabsBar from "./TabsBar";
+import KeyboardProvider from "../KeyboardProvider";
 
 const styles = (theme: any) =>
   css({
@@ -195,36 +196,38 @@ const TabsNodeEditor = () => {
       <div css={styles}>
         <TabsBar workflows={workflows} />
         <div className="editor-container" css={generateCSS}>
-          {workflows.map((workflow) =>
-            currentWorkflowId === workflow.id ? (
-              <Box
-                key={workflow.id}
-                sx={{
-                  overflow: "hidden",
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  width: "100%",
-                  height: "100%"
-                }}
-              >
-                <ReactFlowProvider>
+          {workflows.map((workflow) => (
+            <Box
+              key={workflow.id}
+              sx={{
+                overflow: "hidden",
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                height: "100%",
+                display: currentWorkflowId === workflow.id ? "block" : "none"
+              }}
+            >
+              <ReactFlowProvider>
+                <KeyboardProvider active={currentWorkflowId === workflow.id}>
                   <NodeProvider workflowId={workflow.id}>
-                    {createPortal(
-                      <div className="actions-container">
-                        <AppHeaderActions />
-                      </div>,
-                      document.body
-                    )}
+                    {currentWorkflowId === workflow.id &&
+                      createPortal(
+                        <div className="actions-container">
+                          <AppHeaderActions />
+                        </div>,
+                        document.body
+                      )}
                     <div className="status-message-container">
                       <StatusMessage />
                     </div>
                     <NodeEditor workflowId={workflow.id} />
                   </NodeProvider>
-                </ReactFlowProvider>
-              </Box>
-            ) : null
-          )}
+                </KeyboardProvider>
+              </ReactFlowProvider>
+            </Box>
+          ))}
         </div>
       </div>
     </ThemeProvider>
