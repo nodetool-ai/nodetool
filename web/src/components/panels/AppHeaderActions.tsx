@@ -163,25 +163,6 @@ const useGlobalHotkeys = (callback: () => void) => {
   }, [handleKeyDown]);
 };
 
-// Create individual button components
-const CreateWorkflowButton = memo(function CreateWorkflowButton() {
-  const createNewWorkflow = useWorkflowManager((state) => state.createNew);
-  const navigate = useNavigate();
-
-  const handleCreate = useCallback(async () => {
-    const workflow = await createNewWorkflow();
-    navigate(`/editor/${workflow.id}`);
-  }, [createNewWorkflow, navigate]);
-
-  return (
-    <Tooltip title="Create new workflow" enterDelay={TOOLTIP_ENTER_DELAY}>
-      <Button className="action-button" onClick={handleCreate} tabIndex={-1}>
-        <NoteAddIcon />
-      </Button>
-    </Tooltip>
-  );
-});
-
 const NodeMenuButton = memo(function NodeMenuButton() {
   const { openNodeMenu, closeNodeMenu, isMenuOpen } = useNodeMenuStore(
     (state) => ({
@@ -423,7 +404,6 @@ const AppHeaderActions: React.FC = () => {
         <div className="actions" css={styles}>
           <>
             <NodeMenuButton />
-            <CreateWorkflowButton />
             <SaveWorkflowButton />
             <AutoLayoutButton autoLayout={autoLayout} />
             <RunWorkflowButton />
