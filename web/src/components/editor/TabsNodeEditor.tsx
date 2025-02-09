@@ -1,22 +1,18 @@
 /** @jsxImportSource @emotion/react */
 import { css, ThemeProvider } from "@emotion/react";
-import { ReactFlowProvider, useStore } from "@xyflow/react";
-import { useCallback, useEffect, useMemo, useState, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { ReactFlowProvider } from "@xyflow/react";
+import { useMemo } from "react";
 import NodeEditor from "../node_editor/NodeEditor";
-import { DragEvent, WheelEvent } from "react";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { NodeProvider } from "../../contexts/NodeContext";
 import StatusMessage from "../panels/StatusMessage";
 import AppHeaderActions from "../panels/AppHeaderActions";
 import { Workflow } from "../../stores/ApiTypes";
-import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
-import ChevronRightIcon from "@mui/icons-material/ChevronRight";
-import TabHeader from "./TabHeader";
 import { createPortal } from "react-dom";
 import { generateCSS } from "../themes/GenerateCSS";
 import { Box } from "@mui/material";
 import ThemeNodes from "../themes/ThemeNodes";
+import TabsBar from "./TabsBar";
 
 const styles = (theme: any) =>
   css({
@@ -168,36 +164,12 @@ const styles = (theme: any) =>
   });
 
 const TabsNodeEditor = () => {
-  const {
-    openWorkflows,
-    getWorkflow,
-    removeWorkflow,
-    reorderWorkflows,
-    updateWorkflow,
-    currentWorkflowId,
-    loadingStates
-  } = useWorkflowManager((state) => ({
-    openWorkflows: state.openWorkflows,
-    getWorkflow: state.getWorkflow,
-    removeWorkflow: state.removeWorkflow,
-    reorderWorkflows: state.reorderWorkflows,
-    updateWorkflow: state.updateWorkflow,
-    currentWorkflowId: state.currentWorkflowId,
-    loadingStates: state.loadingStates
-  }));
-  const navigate = useNavigate();
-  const [dropTarget, setDropTarget] = useState<{
-    id: string;
-    position: "left" | "right";
-  } | null>(null);
-  const [editingWorkflowId, setEditingWorkflowId] = useState<string | null>(
-    null
-  );
-  const tabsRef = useRef<HTMLDivElement>(null);
-  const [showScrollButtons, setShowScrollButtons] = useState(false);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(false);
-
+  const { openWorkflows, currentWorkflowId, loadingStates } =
+    useWorkflowManager((state) => ({
+      openWorkflows: state.openWorkflows,
+      currentWorkflowId: state.currentWorkflowId,
+      loadingStates: state.loadingStates
+    }));
   const workflows = useMemo(() => {
     const loadingWorkflows = Object.keys(loadingStates)
       .filter((id) => !openWorkflows.some((w) => w.id === id))
@@ -218,192 +190,10 @@ const TabsNodeEditor = () => {
     return [...openWorkflows, ...loadingWorkflows];
   }, [openWorkflows, loadingStates]);
 
-  const handleClose = useCallback(
-    (workflowId: string) => {
-      removeWorkflow(workflowId);
-      if (currentWorkflowId === workflowId) {
-        const remaining = workflows.filter(
-          (workflow) => workflow.id !== workflowId
-        );
-        if (remaining.length > 0) {
-          navigate(`/editor/${remaining[remaining.length - 1].id}`);
-        } else {
-          navigate("/editor");
-        }
-      }
-    },
-    [currentWorkflowId, workflows, navigate, removeWorkflow]
-  );
-
-  const handleDragStart = useCallback(
-    (e: DragEvent<HTMLDivElement>, workflowId: string) => {
-      e.dataTransfer.setData("text/plain", workflowId);
-    },
-    []
-  );
-
-  const handleDragOver = useCallback(
-    (e: DragEvent<HTMLDivElement>, targetId: string) => {
-      e.preventDefault();
-      const boundingRect = (e.target as HTMLElement).getBoundingClientRect();
-      const mouseX = e.clientX;
-      const position =
-        mouseX < boundingRect.left + boundingRect.width / 2 ? "left" : "right";
-      setDropTarget({ id: targetId, position });
-    },
-    []
-  );
-
-  const handleDragLeave = useCallback(() => {
-    setDropTarget(null);
-  }, []);
-
-  const handleDrop = useCallback(
-    (e: DragEvent<HTMLDivElement>, targetId: string) => {
-      e.preventDefault();
-      const sourceId = e.dataTransfer.getData("text/plain");
-      if (sourceId !== targetId && dropTarget) {
-        const sourceIndex = openWorkflows.findIndex((w) => w.id === sourceId);
-        const targetIndex = openWorkflows.findIndex((w) => w.id === targetId);
-        const finalTargetIndex =
-          dropTarget.position === "right" ? targetIndex + 1 : targetIndex;
-        reorderWorkflows(sourceIndex, finalTargetIndex);
-      }
-      setDropTarget(null);
-    },
-    [dropTarget, openWorkflows, reorderWorkflows]
-  );
-
-  const handleDoubleClick = useCallback((workflowId: string) => {
-    setEditingWorkflowId(workflowId);
-  }, []);
-
-  const handleNameChange = useCallback(
-    (workflowId: string, newName: string) => {
-      const workflow = getWorkflow(workflowId);
-      if (workflow) {
-        updateWorkflow({ ...workflow, name: newName });
-      }
-      setEditingWorkflowId(null);
-    },
-    [getWorkflow, updateWorkflow]
-  );
-
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent, workflowId: string, newName: string) => {
-      if (e.key === "Enter") {
-        handleNameChange(workflowId, newName);
-      } else if (e.key === "Escape") {
-        setEditingWorkflowId(null);
-      }
-    },
-    [handleNameChange, setEditingWorkflowId]
-  );
-
-  const checkScrollability = useCallback(() => {
-    if (tabsRef.current) {
-      const { scrollLeft, scrollWidth, clientWidth } = tabsRef.current;
-      setCanScrollLeft(scrollLeft > 0);
-      setCanScrollRight(scrollLeft < scrollWidth - clientWidth);
-      setShowScrollButtons(scrollWidth > clientWidth);
-    }
-  }, []);
-
-  const handleWheel = useCallback(
-    (e: WheelEvent<HTMLDivElement>) => {
-      const tabsContainer = e.currentTarget;
-      tabsContainer.scrollLeft += e.deltaY;
-      e.preventDefault();
-      checkScrollability();
-    },
-    [checkScrollability]
-  );
-
-  const handleScroll = useCallback(
-    (direction: "left" | "right") => {
-      if (tabsRef.current) {
-        const scrollAmount = 180;
-        const newScrollLeft =
-          tabsRef.current.scrollLeft +
-          (direction === "left" ? -scrollAmount : scrollAmount);
-        tabsRef.current.scrollTo({
-          left: newScrollLeft,
-          behavior: "smooth"
-        });
-        setTimeout(checkScrollability, 300);
-      }
-    },
-    [checkScrollability]
-  );
-
-  const handleNavigate = useCallback(
-    (id: string) => navigate(`/editor/${id}`),
-    [navigate]
-  );
-  const handleScrollLeft = useCallback(
-    () => handleScroll("left"),
-    [handleScroll]
-  );
-  const handleScrollRight = useCallback(
-    () => handleScroll("right"),
-    [handleScroll]
-  );
-  useEffect(() => {
-    checkScrollability();
-    window.addEventListener("resize", checkScrollability);
-    return () => window.removeEventListener("resize", checkScrollability);
-  }, [checkScrollability]);
-
-  useEffect(() => {
-    const tabsElement = tabsRef.current;
-    if (tabsElement) {
-      tabsElement.addEventListener("scroll", checkScrollability);
-      return () =>
-        tabsElement.removeEventListener("scroll", checkScrollability);
-    }
-  }, [checkScrollability]);
-
   return (
     <ThemeProvider theme={ThemeNodes}>
       <div css={styles}>
-        <div className="tabs-container">
-          <button
-            className="scroll-button"
-            onClick={handleScrollLeft}
-            disabled={!canScrollLeft}
-            data-hidden={!showScrollButtons}
-          >
-            <ChevronLeftIcon />
-          </button>
-          <div className="tabs" ref={tabsRef} onWheel={handleWheel}>
-            {workflows.map((workflow) => (
-              <TabHeader
-                key={workflow.id}
-                workflow={workflow}
-                isActive={workflow.id === currentWorkflowId}
-                isEditing={editingWorkflowId === workflow.id}
-                dropTarget={dropTarget}
-                onNavigate={handleNavigate}
-                onDoubleClick={handleDoubleClick}
-                onClose={handleClose}
-                onDragStart={handleDragStart}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                onNameChange={handleNameChange}
-                onKeyDown={handleKeyDown}
-              />
-            ))}
-          </div>
-          <button
-            className="scroll-button"
-            onClick={handleScrollRight}
-            disabled={!canScrollRight}
-            data-hidden={!showScrollButtons}
-          >
-            <ChevronRightIcon />
-          </button>
-        </div>
+        <TabsBar workflows={workflows} />
         <div className="editor-container" css={generateCSS}>
           {workflows.map((workflow) =>
             currentWorkflowId === workflow.id ? (
