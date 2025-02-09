@@ -110,13 +110,25 @@ export default function useConnectionHandlers() {
       if (!sourceHandleMetadata || !targetHandleMetadata) {
         return;
       }
-      if (isConnectable(sourceHandleMetadata.type, targetHandleMetadata.type)) {
+      if (
+        isConnectable(
+          sourceHandleMetadata.type,
+          targetHandleMetadata.type,
+          true
+        )
+      ) {
         connectionCreated.current = true;
         devLog("Connection Created", connection);
         onConnect(connection);
+      } else {
+        addNotification({
+          type: "warning",
+          alert: true,
+          content: "Cannot connect these types"
+        });
       }
     },
-    [findNode, getMetadata, onConnect]
+    [findNode, getMetadata, onConnect, addNotification]
   );
 
   /* CONNECT END */
