@@ -10,7 +10,6 @@ import useContextMenuStore from "../../stores/ContextMenuStore";
 import { isEqual } from "lodash";
 import { isConnectableCached } from "../node_menu/typeFilterUtils";
 import HandleTooltip from "../HandleTooltip";
-import { useNodes } from "../../contexts/NodeContext";
 
 export type PropertyFieldProps = {
   id: string;
@@ -55,7 +54,7 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
     state.isKeyPressed("Meta")
   );
   const { connectType, connectDirection, connectNodeId } = useConnectionStore();
-
+  const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
   const classConnectable = useMemo(() => {
     return connectType &&
       isConnectableCached(connectType, property.type) &&
@@ -68,20 +67,18 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
   const handleContextMenu = useCallback(
     (event: React.MouseEvent) => {
       event.preventDefault();
-      useContextMenuStore
-        .getState()
-        .openContextMenu(
-          "input-context-menu",
-          id,
-          event.clientX - 260,
-          event.clientY - 50,
-          "react-flow__pane",
-          property.type,
-          property.name,
-          property.description || undefined
-        );
+      openContextMenu(
+        "input-context-menu",
+        id,
+        event.clientX - 260,
+        event.clientY - 50,
+        "react-flow__pane",
+        property.type,
+        property.name,
+        property.description || undefined
+      );
     },
-    [id, property.description, property.name, property.type]
+    [id, openContextMenu, property.description, property.name, property.type]
   );
 
   return (
