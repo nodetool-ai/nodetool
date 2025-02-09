@@ -2586,6 +2586,81 @@
     "is_dynamic": false
   },
   {
+    "title": "Remove Overlap",
+    "description": "Removes overlapping words between consecutive strings in a list.\n    Splits text into words and matches word sequences for more accurate overlap detection.",
+    "namespace": "chroma.query",
+    "node_type": "chroma.query.RemoveOverlap",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "documents",
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "str",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Documents",
+        "description": "List of strings to process for overlap removal",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "min_overlap_words",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 2,
+        "title": "Min Overlap Words",
+        "description": "Minimum number of words that must overlap to be considered",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "str",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "documents",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "documents",
+      "min_overlap_words"
+    ],
+    "is_dynamic": false
+  },
+  {
     "title": "CLIPText Encode SDXLRefiner",
     "description": "Encodes text using CLIP for the SDXL refiner model.\n    clip, text, encode, sdxl, refiner\n\n    Use cases:\n    - Prepare text prompts for SDXL refiner model\n    - Incorporate aesthetic scores in text encoding\n    - Generate conditionings for high-resolution image refinement",
     "namespace": "comfy.advanced.conditioning",
@@ -16287,7 +16362,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": 0,
+        "default": 1900,
         "title": "Year",
         "description": "Year of the date",
         "min": null,
@@ -16302,7 +16377,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": 0,
+        "default": 1,
         "title": "Month",
         "description": "Month of the date",
         "min": null,
@@ -16317,7 +16392,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": 0,
+        "default": 1,
         "title": "Day",
         "description": "Day of the date",
         "min": null,
@@ -16362,7 +16437,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": 0,
+        "default": 1900,
         "title": "Year",
         "description": "Year of the datetime",
         "min": null,
@@ -16377,7 +16452,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": 0,
+        "default": 1,
         "title": "Month",
         "description": "Month of the datetime",
         "min": null,
@@ -16392,7 +16467,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": 0,
+        "default": 1,
         "title": "Day",
         "description": "Day of the datetime",
         "min": null,
@@ -16467,7 +16542,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": null,
+        "default": "UTC",
         "title": "Tzinfo",
         "description": "Timezone of the datetime",
         "min": null,
@@ -128048,11 +128123,11 @@
             "type": "datetime",
             "year": 2025,
             "month": 2,
-            "day": 8,
+            "day": 9,
             "hour": 0,
-            "minute": 28,
-            "second": 27,
-            "microsecond": 284280,
+            "minute": 21,
+            "second": 11,
+            "microsecond": 870585,
             "tzinfo": "UTC",
             "utc_offset": 0.0
           },

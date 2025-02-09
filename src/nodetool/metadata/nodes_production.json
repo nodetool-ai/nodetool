@@ -14784,7 +14784,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": 0,
+        "default": 1900,
         "title": "Year",
         "description": "Year of the date",
         "min": null,
@@ -14799,7 +14799,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": 0,
+        "default": 1,
         "title": "Month",
         "description": "Month of the date",
         "min": null,
@@ -14814,7 +14814,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": 0,
+        "default": 1,
         "title": "Day",
         "description": "Day of the date",
         "min": null,
@@ -14859,7 +14859,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": 0,
+        "default": 1900,
         "title": "Year",
         "description": "Year of the datetime",
         "min": null,
@@ -14874,7 +14874,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": 0,
+        "default": 1,
         "title": "Month",
         "description": "Month of the datetime",
         "min": null,
@@ -14889,7 +14889,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": 0,
+        "default": 1,
         "title": "Day",
         "description": "Day of the datetime",
         "min": null,
@@ -14964,7 +14964,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": null,
+        "default": "UTC",
         "title": "Tzinfo",
         "description": "Timezone of the datetime",
         "min": null,
@@ -124029,11 +124029,11 @@
             "type": "datetime",
             "year": 2025,
             "month": 2,
-            "day": 8,
+            "day": 9,
             "hour": 0,
-            "minute": 28,
-            "second": 27,
-            "microsecond": 284280,
+            "minute": 21,
+            "second": 11,
+            "microsecond": 870585,
             "tzinfo": "UTC",
             "utc_offset": 0.0
           },
