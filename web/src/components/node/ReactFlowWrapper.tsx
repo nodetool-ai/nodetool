@@ -6,7 +6,6 @@ import {
   Background,
   BackgroundVariant,
   ReactFlow,
-  Connection,
   SelectionMode,
   ConnectionMode,
   useViewport
@@ -43,7 +42,6 @@ import { isEqual } from "lodash";
 import ThemeNodes from "../themes/ThemeNodes";
 import AxisMarker from "../node_editor/AxisMarker";
 import ConnectionLine from "../node_editor/ConnectionLine";
-import NodeTitleEditor from "./NodeTitleEditor";
 import useSelect from "../../hooks/nodes/useSelect";
 import ConnectableNodes from "../context_menus/ConnectableNodes";
 import useMetadataStore from "../../stores/MetadataStore";
@@ -66,7 +64,6 @@ const fitViewOptions = {
 };
 
 interface ReactFlowWrapperProps {
-  reactFlowWrapper: React.RefObject<HTMLDivElement>;
   workflowId: string;
 }
 
@@ -87,10 +84,7 @@ const ContextMenus = memo(function ContextMenus() {
 });
 
 // Create a new component for the ReactFlow background
-const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
-  reactFlowWrapper,
-  workflowId
-}) => {
+const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({ workflowId }) => {
   const {
     nodes,
     edges,

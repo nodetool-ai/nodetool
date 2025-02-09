@@ -269,15 +269,21 @@
 .react-flow.zoomed-out .node-header .menu-button,
 .react-flow.zoomed-out .node-footer,
 .react-flow.zoomed-out .node-status,
+.react-flow.zoomed-out .node-resize-handle,
 .react-flow.zoomed-out .api-key-button,
+.react-flow.zoomed-out .title-container,
+.react-flow.zoomed-out .process-timer,
+.react-flow.zoomed-out .comment-node,
+.react-flow.zoomed-out .node-property-form,
+.react-flow.zoomed-out .react-flow__handle,
+.react-flow.zoomed-out .loop-node .inputs,
+.react-flow.zoomed-out .loop-node .outputs,
+.react-flow.zoomed-out .preview-node-content,
 .react-flow.zoomed-out .model-button {
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
-}
-
-.react-flow.zoomed-out .comment-node input {
-  font-size: 2.5em;
+  transition: opacity 0.3s ease-out, visibility 0.3s ease-out;
 }
 
 @keyframes gradientAnimation {

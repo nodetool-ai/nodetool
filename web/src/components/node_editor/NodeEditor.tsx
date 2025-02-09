@@ -38,9 +38,6 @@ interface NodeEditorProps {
 }
 
 const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId }) => {
-  /* REACTFLOW */
-  const reactFlowWrapper = useRef<HTMLDivElement | null>(null);
-
   /* USE STORE */
   const { isUploading } = useAssetUpload();
   const { missingModelFiles, missingModelRepos, clearMissingModels } = useNodes(
@@ -96,10 +93,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId }) => {
               <CircularProgress /> Uploading assets...
             </div>
           )}
-          <ReactFlowWrapper
-            workflowId={workflowId}
-            reactFlowWrapper={reactFlowWrapper}
-          />
+          <ReactFlowWrapper workflowId={workflowId} />
 
           <WorkflowChat workflow_id="default" />
           <NodeMenu focusSearchInput={true} />

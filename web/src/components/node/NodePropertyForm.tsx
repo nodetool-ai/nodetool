@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { Add } from "@mui/icons-material";
-import { TextField } from "@mui/material";
+import { Box, TextField } from "@mui/material";
 import { useState, useCallback, memo } from "react";
 import ThemeNodes from "../themes/ThemeNodes";
 import { isEqual } from "lodash";
@@ -28,7 +28,7 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
   );
 
   return (
-    <>
+    <Box className="node-property-form">
       {!showPropertyForm ? (
         <button
           onClick={() => setShowPropertyForm(true)}
@@ -75,7 +75,7 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
           })}
         />
       )}
-    </>
+    </Box>
   );
 };
 

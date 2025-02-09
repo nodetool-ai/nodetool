@@ -291,56 +291,60 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
           ? ThemeNodes.palette.c_node_bg_group
           : ThemeNodes.palette.c_node_bg
       }}
-      className={`preview-node ${hasParent ? "hasParent" : ""}`}
+      className={`preview-node node-drag-handle ${
+        hasParent ? "hasParent" : ""
+      }`}
     >
-      <Handle
-        style={{ top: "50%", backgroundColor: "white" }}
-        id="value"
-        type="target"
-        position={Position.Left}
-        isConnectable={true}
-      />
-      <>
-        <NodeResizeHandle minWidth={150} minHeight={150} />
-        <NodeHeader
-          id={props.id}
-          data={props.data}
-          hasParent={hasParent}
-          metadataTitle="Preview"
+      <div className="preview-node-content">
+        <Handle
+          style={{ top: "50%", backgroundColor: "white" }}
+          id="value"
+          type="target"
+          position={Position.Left}
+          isConnectable={true}
         />
-        <div className="actions">
-          <Tooltip title="Download">
-            <Button
-              onClick={handleDownload}
-              className="action-button download"
-              tabIndex={-1}
-            >
-              <FileDownloadIcon />
-            </Button>
-          </Tooltip>
-          <Tooltip title="Add to Assets">
-            <Button
-              onClick={handleAddToAssets}
-              className="action-button"
-              tabIndex={-1}
-            >
-              <AddIcon />
-            </Button>
-          </Tooltip>
-        </div>
-      </>
+        <>
+          <NodeResizeHandle minWidth={150} minHeight={150} />
+          <NodeHeader
+            id={props.id}
+            data={props.data}
+            hasParent={hasParent}
+            metadataTitle="Preview"
+          />
+          <div className="actions">
+            <Tooltip title="Download">
+              <Button
+                onClick={handleDownload}
+                className="action-button download"
+                tabIndex={-1}
+              >
+                <FileDownloadIcon />
+              </Button>
+            </Tooltip>
+            <Tooltip title="Add to Assets">
+              <Button
+                onClick={handleAddToAssets}
+                className="action-button"
+                tabIndex={-1}
+              >
+                <AddIcon />
+              </Button>
+            </Tooltip>
+          </div>
+        </>
 
-      {!result?.output && (
-        <Typography className="description">Preview any output</Typography>
-      )}
-      <Handle
-        style={{ top: "50%", backgroundColor: "white" }}
-        id="value"
-        type="target"
-        position={Position.Left}
-        isConnectable={true}
-      />
-      {memoizedOutputRenderer}
+        {!result?.output && (
+          <Typography className="description">Preview any output</Typography>
+        )}
+        <Handle
+          style={{ top: "50%", backgroundColor: "white" }}
+          id="value"
+          type="target"
+          position={Position.Left}
+          isConnectable={true}
+        />
+        {memoizedOutputRenderer}
+      </div>
     </Container>
   );
 };

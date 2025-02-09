@@ -231,16 +231,18 @@ const LoopNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       {/* {nodeHovered && (
         <div className="info">Hold SPACE key to move nodes out of the loop</div>
       )} */}
-      <NodeOutputs id={props.id} outputs={nodeMetadata.outputs} />
-      <Tooltip
-        title="Returns the data of the GroupOutput outside the loop."
-        placement="top"
-        enterDelay={TOOLTIP_ENTER_DELAY}
-        leaveDelay={TOOLTIP_LEAVE_DELAY}
-        enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
-      >
-        <div className="output-label">Output</div>
-      </Tooltip>
+      <div className="outputs">
+        <NodeOutputs id={props.id} outputs={nodeMetadata.outputs} />
+        <Tooltip
+          title="Returns the data of the GroupOutput outside the loop."
+          placement="top"
+          enterDelay={TOOLTIP_ENTER_DELAY}
+          leaveDelay={TOOLTIP_LEAVE_DELAY}
+          enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
+        >
+          <div className="output-label">Output</div>
+        </Tooltip>
+      </div>
       <NodeResizeHandle
         minWidth={400}
         minHeight={250}
