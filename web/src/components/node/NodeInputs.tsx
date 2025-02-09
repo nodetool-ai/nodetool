@@ -73,7 +73,7 @@ const NodeInput: React.FC<NodeInputProps> = memo(function NodeInput({
   const isBasicField = useMemo(() => {
     return basicFields?.includes(property.name);
   }, [basicFields, property.name]);
-  const isAdvancedField = !isBasicField;
+  const isAdvancedField = !isBasicField && !isDynamicProperty;
 
   if (isAdvancedField && !isConnected && !showAdvancedFields) {
     return null;
