@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css, ThemeProvider } from "@emotion/react";
 import { ReactFlowProvider } from "@xyflow/react";
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import NodeEditor from "../node_editor/NodeEditor";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { NodeProvider } from "../../contexts/NodeContext";
@@ -163,15 +163,41 @@ const styles = (theme: any) =>
           background: theme.palette.background.default
         }
       }
+    },
+    "& .new-workflow-button": {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      width: "30px",
+      height: "30px",
+      background: theme.palette.background.default,
+      border: `1px solid ${theme.palette.c_gray1}`,
+      borderBottom: "none",
+      color: theme.palette.c_gray5,
+      cursor: "pointer",
+      borderRadius: "5px 5px 0 0",
+      padding: 0,
+      marginLeft: "2px",
+      transition: "all 0.1s ease-in-out",
+
+      "&:hover": {
+        color: theme.palette.c_gray6,
+        background: theme.palette.c_gray1
+      },
+
+      "& svg": {
+        fontSize: "20px"
+      }
     }
   });
 
 const TabsNodeEditor = () => {
-  const { openWorkflows, currentWorkflowId, loadingStates } =
+  const { openWorkflows, currentWorkflowId, loadingStates, createNewWorkflow } =
     useWorkflowManager((state) => ({
       openWorkflows: state.openWorkflows,
       currentWorkflowId: state.currentWorkflowId,
-      loadingStates: state.loadingStates
+      loadingStates: state.loadingStates,
+      createNewWorkflow: state.createNew
     }));
   const workflows = useMemo(() => {
     const loadingWorkflows = Object.keys(loadingStates)
