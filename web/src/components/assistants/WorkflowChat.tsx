@@ -12,7 +12,6 @@ import { isEqual } from "lodash";
 
 interface WorkflowChatProps {
   workflow_id: string;
-  onClose?: () => void;
   isOpen?: boolean;
 }
 
@@ -149,7 +148,6 @@ const ChatControls: React.FC<{
 
 const WorkflowChat: React.FC<WorkflowChatProps> = ({
   workflow_id,
-  onClose,
   isOpen = true
 }) => {
   const [isMinimized, setIsMinimized] = useState(true);
