@@ -1,12 +1,8 @@
-import { create } from "zustand";
 import { NodeMetadata, TypeMetadata } from "./ApiTypes";
-import {
-  filterTypesByInputType,
-  filterTypesByOutputType
-} from "../components/node_menu/typeFilterUtils";
-import useMetadataStore from "./MetadataStore";
+import { useContext } from "react";
+import { ConnectableNodesContext } from "../providers/ConnectableNodesProvider";
 
-interface ConnectableNodesState {
+export interface ConnectableNodesState {
   nodeMetadata: NodeMetadata[];
   filterType: "input" | "output" | null;
   typeMetadata: TypeMetadata | null;
@@ -25,37 +21,20 @@ interface ConnectableNodesState {
   hideMenu: () => void;
 }
 
-const useConnectableNodesStore = create<ConnectableNodesState>((set, get) => ({
-  nodeMetadata: [],
-  filterType: null,
-  typeMetadata: null,
-  isVisible: false,
-  menuPosition: null,
-  sourceHandle: null,
-  targetHandle: null,
-  nodeId: null,
-  setSourceHandle: (sourceHandle) => set({ sourceHandle }),
-  setTargetHandle: (targetHandle) => set({ targetHandle }),
-  setNodeId: (nodeId) => set({ nodeId }),
-  setFilterType: (type) => set({ filterType: type }),
-  setTypeMetadata: (metadata) => set({ typeMetadata: metadata }),
-  showMenu: (position) => set({ isVisible: true, menuPosition: position }),
-  hideMenu: () => set({ isVisible: false, menuPosition: null }),
-
-  getConnectableNodes: () => {
-    const { filterType, typeMetadata } = get();
-    const metadata = useMetadataStore.getState().getAllMetadata();
-
-    if (!typeMetadata || !filterType) {
-      return [];
-    }
-
-    if (filterType === "input") {
-      return filterTypesByInputType(metadata, typeMetadata);
-    } else {
-      return filterTypesByOutputType(metadata, typeMetadata);
-    }
+export function useConnectableNodes(): ConnectableNodesState;
+export function useConnectableNodes<Selected>(
+  selector: (state: ConnectableNodesState) => Selected
+): Selected;
+export function useConnectableNodes<Selected>(
+  selector?: (state: ConnectableNodesState) => Selected
+) {
+  const context = useContext(ConnectableNodesContext);
+  if (!context) {
+    throw new Error(
+      "useConnectableNodes must be used within a ConnectableNodesProvider"
+    );
   }
-}));
+  return selector ? selector(context) : context;
+}
 
-export default useConnectableNodesStore;
+export default useConnectableNodes;

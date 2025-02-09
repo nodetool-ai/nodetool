@@ -15,6 +15,7 @@ import ThemeNodes from "../themes/ThemeNodes";
 import TabsBar from "./TabsBar";
 import KeyboardProvider from "../KeyboardProvider";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
+import { ConnectableNodesProvider } from "../../providers/ConnectableNodesProvider";
 
 const styles = (theme: any) =>
   css({
@@ -197,40 +198,45 @@ const TabsNodeEditor = () => {
       <div css={styles}>
         <TabsBar workflows={workflows} />
         <div className="editor-container" css={generateCSS}>
-          {workflows.map((workflow) => (
-            <Box
-              key={workflow.id}
-              sx={{
-                overflow: "hidden",
-                position: "absolute",
-                top: 0,
-                left: 0,
-                width: "100%",
-                height: "100%",
-                display: currentWorkflowId === workflow.id ? "block" : "none"
-              }}
-            >
-              <ReactFlowProvider>
-                <ContextMenuProvider active={currentWorkflowId === workflow.id}>
-                  <KeyboardProvider active={currentWorkflowId === workflow.id}>
-                    <NodeProvider workflowId={workflow.id}>
-                      {currentWorkflowId === workflow.id &&
-                        createPortal(
-                          <div className="actions-container">
-                            <AppHeaderActions />
-                          </div>,
-                          document.body
-                        )}
-                      <div className="status-message-container">
-                        <StatusMessage />
-                      </div>
-                      <NodeEditor workflowId={workflow.id} />
-                    </NodeProvider>
-                  </KeyboardProvider>
-                </ContextMenuProvider>
-              </ReactFlowProvider>
-            </Box>
-          ))}
+          {workflows.map((workflow) => {
+            const isActive = currentWorkflowId === workflow.id;
+            return (
+              <Box
+                key={workflow.id}
+                sx={{
+                  overflow: "hidden",
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  width: "100%",
+                  height: "100%",
+                  display: isActive ? "block" : "none"
+                }}
+              >
+                <ReactFlowProvider>
+                  <ContextMenuProvider active={isActive}>
+                    <ConnectableNodesProvider active={isActive}>
+                      <KeyboardProvider active={isActive}>
+                        <NodeProvider workflowId={workflow.id}>
+                          {isActive &&
+                            createPortal(
+                              <div className="actions-container">
+                                <AppHeaderActions />
+                              </div>,
+                              document.body
+                            )}
+                          <div className="status-message-container">
+                            <StatusMessage />
+                          </div>
+                          <NodeEditor workflowId={workflow.id} />
+                        </NodeProvider>
+                      </KeyboardProvider>
+                    </ConnectableNodesProvider>
+                  </ContextMenuProvider>
+                </ReactFlowProvider>
+              </Box>
+            );
+          })}
         </div>
       </div>
     </ThemeProvider>

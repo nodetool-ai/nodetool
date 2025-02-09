@@ -50,10 +50,10 @@ import Welcome from "./components/content/Welcome/Welcome";
 import { useSettingsStore } from "./stores/SettingsStore";
 import {
   FetchCurrentWorkflow,
-  useWorkflowManager,
   WorkflowManagerProvider
 } from "./contexts/WorkflowManagerContext";
 import KeyboardProvider from "./components/KeyboardProvider";
+import HuggingFaceDownloadDialog from "./components/hugging_face/HuggingFaceDownloadDialog";
 if (!isProduction) {
   useRemoteSettingsStore.getState().fetchSettings();
 }
@@ -221,6 +221,7 @@ const AppWrapper = () => {
           <WorkflowManagerProvider>
             <KeyboardProvider active={true}>
               <RouterProvider router={router} />
+              <HuggingFaceDownloadDialog />
             </KeyboardProvider>
           </WorkflowManagerProvider>
         </ThemeProvider>

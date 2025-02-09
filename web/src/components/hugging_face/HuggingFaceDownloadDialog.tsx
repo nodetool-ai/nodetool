@@ -28,6 +28,7 @@ const HuggingFaceDownloadDialog: React.FC = () => {
 
   return (
     <Dialog
+      className="download-dialog"
       open={isDialogOpen}
       onClose={closeDialog}
       maxWidth="md"
