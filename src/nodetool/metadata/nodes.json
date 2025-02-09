@@ -2661,6 +2661,200 @@
     "is_dynamic": false
   },
   {
+    "title": "Hybrid Search",
+    "description": "Hybrid search combining semantic and keyword-based search for better retrieval.\n    Uses reciprocal rank fusion to combine results from both methods.",
+    "namespace": "chroma.query",
+    "node_type": "chroma.query.HybridSearch",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "collection",
+        "type": {
+          "type": "collection",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "collection",
+          "name": ""
+        },
+        "title": "Collection",
+        "description": "The collection to query",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "text",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Text",
+        "description": "The text to query",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "n_results",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 5,
+        "title": "N Results",
+        "description": "The number of final results to return",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "k_constant",
+        "type": {
+          "type": "float",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 60.0,
+        "title": "K Constant",
+        "description": "Constant for reciprocal rank fusion (default: 60.0)",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "min_keyword_length",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 3,
+        "title": "Min Keyword Length",
+        "description": "Minimum length for keyword tokens",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "str",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "ids",
+        "stream": false
+      },
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "str",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "documents",
+        "stream": false
+      },
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "dict",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "metadatas",
+        "stream": false
+      },
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "float",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "distances",
+        "stream": false
+      },
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "float",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "scores",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "collection",
+      "text",
+      "n_results",
+      "k_constant",
+      "min_keyword_length"
+    ],
+    "is_dynamic": false
+  },
+  {
     "title": "CLIPText Encode SDXLRefiner",
     "description": "Encodes text using CLIP for the SDXL refiner model.\n    clip, text, encode, sdxl, refiner\n\n    Use cases:\n    - Prepare text prompts for SDXL refiner model\n    - Incorporate aesthetic scores in text encoding\n    - Generate conditionings for high-resolution image refinement",
     "namespace": "comfy.advanced.conditioning",
@@ -128124,10 +128318,10 @@
             "year": 2025,
             "month": 2,
             "day": 9,
-            "hour": 12,
-            "minute": 32,
-            "second": 37,
-            "microsecond": 896068,
+            "hour": 15,
+            "minute": 40,
+            "second": 36,
+            "microsecond": 114449,
             "tzinfo": "UTC",
             "utc_offset": 0.0
           },
