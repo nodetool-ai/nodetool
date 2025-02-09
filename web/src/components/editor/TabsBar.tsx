@@ -6,6 +6,7 @@ import TabHeader from "./TabHeader";
 import { WorkflowAttributes } from "../../stores/ApiTypes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useNavigate } from "react-router-dom";
+import AddIcon from "@mui/icons-material/Add";
 
 interface TabsBarProps {
   workflows: WorkflowAttributes[];
@@ -26,14 +27,16 @@ const TabsBar = ({ workflows }: TabsBarProps) => {
     reorderWorkflows,
     updateWorkflow,
     removeWorkflow,
-    currentWorkflowId
+    currentWorkflowId,
+    createNewWorkflow
   } = useWorkflowManager((state) => ({
     openWorkflows: state.openWorkflows,
     getWorkflow: state.getWorkflow,
     removeWorkflow: state.removeWorkflow,
     reorderWorkflows: state.reorderWorkflows,
     updateWorkflow: state.updateWorkflow,
-    currentWorkflowId: state.currentWorkflowId
+    currentWorkflowId: state.currentWorkflowId,
+    createNewWorkflow: state.createNew
   }));
   const [dropTarget, setDropTarget] = useState<{
     id: string;
@@ -171,6 +174,11 @@ const TabsBar = ({ workflows }: TabsBarProps) => {
     [handleScroll]
   );
 
+  const handleNewWorkflow = useCallback(async () => {
+    const newWorkflow = await createNewWorkflow();
+    navigate(`/editor/${newWorkflow.id}`);
+  }, [createNewWorkflow, navigate]);
+
   useEffect(() => {
     checkScrollability();
     window.addEventListener("resize", checkScrollability);
@@ -215,6 +223,13 @@ const TabsBar = ({ workflows }: TabsBarProps) => {
             onKeyDown={handleKeyDown}
           />
         ))}
+        <button
+          className="new-workflow-button"
+          onClick={handleNewWorkflow}
+          title="Create new workflow"
+        >
+          <AddIcon />
+        </button>
       </div>
       <button
         className="scroll-button"
