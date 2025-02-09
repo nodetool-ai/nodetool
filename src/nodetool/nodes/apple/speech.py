@@ -26,7 +26,7 @@ class SayText(BaseNode):
 
     async def process(self, context: ProcessingContext) -> bool:
         try:
-            synthesizer = AppKit.NSSpeechSynthesizer.alloc().init()
+            synthesizer = AppKit.NSSpeechSynthesizer.alloc().init()  # type: ignore
             synthesizer.startSpeakingString_(self.text)
             return True
         except Exception as e:

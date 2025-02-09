@@ -1352,6 +1352,220 @@
     "is_dynamic": false
   },
   {
+    "title": "Create Reminder",
+    "description": "Create reminders using macOS Reminders.app via PyObjC\n    reminders, automation, macos, productivity",
+    "namespace": "apple.reminders",
+    "node_type": "apple.reminders.CreateReminder",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "title",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Title",
+        "description": "Title of the reminder",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "due_date",
+        "type": {
+          "type": "datetime",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": null,
+        "title": "Due Date",
+        "description": "Due date for the reminder",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "list_name",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "Reminders",
+        "title": "List Name",
+        "description": "Name of the reminders list",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "notes",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Notes",
+        "description": "Additional notes for the reminder",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "priority",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 0,
+        "title": "Priority",
+        "description": "Priority (0-5)",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "any",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "title",
+      "due_date",
+      "list_name",
+      "notes",
+      "priority"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Capture Screen",
+    "description": "Capture screen content via PyObjC\n    screen, automation, macos, media",
+    "namespace": "apple.screen",
+    "node_type": "apple.screen.CaptureScreen",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "whole_screen",
+        "type": {
+          "type": "bool",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": true,
+        "title": "Whole Screen",
+        "description": "Capture the whole screen",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "x",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 0,
+        "title": "X",
+        "description": "X coordinate of the region to capture",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "y",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 0,
+        "title": "Y",
+        "description": "Y coordinate of the region to capture",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "width",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 1920,
+        "title": "Width",
+        "description": "Width of the region to capture",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "height",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 1080,
+        "title": "Height",
+        "description": "Height of the region to capture",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "image",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "whole_screen",
+      "x",
+      "y",
+      "width",
+      "height"
+    ],
+    "is_dynamic": false
+  },
+  {
     "title": "Say Text",
     "description": "Speak text using macOS's built-in text-to-speech\n    speech, automation, macos, accessibility\n\n    Use cases:\n    - Add voice notifications to workflows\n    - Create audio feedback\n    - Accessibility features",
     "namespace": "apple.speech",
@@ -128441,9 +128655,9 @@
             "month": 2,
             "day": 9,
             "hour": 23,
-            "minute": 21,
-            "second": 15,
-            "microsecond": 959802,
+            "minute": 29,
+            "second": 31,
+            "microsecond": 435294,
             "tzinfo": "UTC",
             "utc_offset": 0.0
           },
