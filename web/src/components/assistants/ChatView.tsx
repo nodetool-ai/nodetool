@@ -175,7 +175,7 @@ const styles = (theme: any) =>
       width: "10px",
       height: "10px",
       borderRadius: "50%",
-      backgroundColor: theme.palette.c_hl1,
+      backgroundColor: theme.palette.c_gray6,
       margin: "0 5px"
     },
     ".node-status": {
@@ -390,16 +390,12 @@ const ChatView = ({
     return (
       <div className="loading-container">
         <div className="loading-dots">
-          {[0, 1, 2].map((i) => (
-            <div
-              key={i}
-              className="dot"
-              css={css`
-                animation: ${bounce} 1.4s infinite ease-in-out;
-                animation-delay: ${i * 0.16}s;
-              `}
-            />
-          ))}
+          <div
+            className="dot"
+            css={css`
+              animation: ${pulse} 1.4s infinite ease-in-out;
+            `}
+          />
         </div>
       </div>
     );
