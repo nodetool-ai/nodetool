@@ -1,15 +1,14 @@
 from enum import Enum
-import subprocess
+import AppKit
 from pydantic import Field
 from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.metadata.types import TextRef
-from nodetool.nodes.apple.notes import escape_for_applescript
 
 
 class SayText(BaseNode):
     """
-    Speak text using macOS's built-in text-to-speech via AppleScript
+    Speak text using macOS's built-in text-to-speech
     speech, automation, macos, accessibility
 
     Use cases:
@@ -19,29 +18,17 @@ class SayText(BaseNode):
     """
 
     text: str = Field(default="", description="Text to be spoken")
-    rate: int = Field(default=175, description="Speaking rate (words per minute)")
+    rate: int = Field(default=175, description="Speaking rate (not implemented)")
 
     @classmethod
     def is_cacheable(cls) -> bool:
         return False
 
     async def process(self, context: ProcessingContext) -> bool:
-        text_content = escape_for_applescript(self.text)
-
-        script = f"""
-        tell application "System Events"
-            set speechRate to {self.rate}
-            say "{text_content}" speaking rate speechRate
-        end tell
-        """
-
         try:
-            result = subprocess.run(
-                ["osascript", "-e", script], check=True, capture_output=True, text=True
-            )
-            print(f"Subprocess output: {result.stdout}")
-            print(f"Subprocess error: {result.stderr}")
+            synthesizer = AppKit.NSSpeechSynthesizer.alloc().init()
+            synthesizer.startSpeakingString_(self.text)
             return True
-        except subprocess.CalledProcessError as e:
-            print(f"Subprocess failed with error: {e.stderr}")
+        except Exception as e:
+            print(f"Speech synthesis failed with error: {e}")
             return False
