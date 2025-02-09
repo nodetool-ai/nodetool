@@ -270,112 +270,6 @@ const AssetGrid: React.FC<AssetGridProps> = ({
 
   const { navigateToFolderId } = useAssets();
 
-  const memoizedContent = useMemo(
-    () => (
-      <Box css={styles} className="asset-grid-container" ref={containerRef}>
-        {error && (
-          <Typography sx={{ color: "red" }}>{error.message}</Typography>
-        )}
-        {openAsset && (
-          <AssetViewer
-            asset={openAsset}
-            sortedAssets={sortedAssets}
-            open={openAsset !== null}
-            onClose={() => setOpenAsset(null)}
-          />
-        )}
-        <AssetActionsMenu maxItemSize={maxItemSize} />
-        <div className="header-info">
-          <div className="selected-asset-info">
-            <Typography variant="body1" className="selected-info">
-              {selectedAssetIds.length > 0 && (
-                <>
-                  {selectedAssetIds.length}{" "}
-                  {selectedAssetIds.length === 1 ? "item " : "items "}
-                  selected
-                </>
-              )}
-            </Typography>
-          </div>
-          {/* <Typography className="current-folder">
-            <span className="folder-slash">/</span>
-            {currentFolder && `${currentFolder.name}`}
-          </Typography> */}
-        </div>
-        <Dropzone onDrop={uploadFiles}>
-          <div
-            style={{
-              height: "100%",
-              display: "flex",
-              margin: "0.5em",
-              flexDirection: isHorizontal ? "row" : "column"
-            }}
-          >
-            <div
-              className="folder-list-container"
-              style={{ flexShrink: 0, position: "relative" }}
-            >
-              <FolderList isHorizontal={isHorizontal} />
-            </div>
-            <div
-              style={{
-                flexGrow: 1,
-                minHeight: 0,
-                overflow: "auto",
-                paddingLeft: isHorizontal ? "1em" : ""
-              }}
-            >
-              <AssetGridContent
-                isHorizontal={isHorizontal}
-                itemSpacing={itemSpacing}
-                onDoubleClick={handleDoubleClick}
-              />
-            </div>
-          </div>
-        </Dropzone>
-        <Divider />
-        {currentAudioAsset && (
-          <AudioPlayer
-            fontSize="small"
-            alwaysShowControls={true}
-            source={currentAudioAsset?.get_url || ""}
-            filename={currentAudioAsset?.name}
-            height={30}
-            waveformHeight={30}
-            barHeight={1.0}
-            minimapHeight={20}
-            minimapBarHeight={1.0}
-            waveColor="#ddd"
-            progressColor="#666"
-            minPxPerSec={1}
-            playOnLoad={spaceKeyPressed}
-          />
-        )}
-        {openMenuType === "asset-item-context-menu" && <AssetItemContextMenu />}
-        <AssetDeleteConfirmation assets={selectedAssetIds} />
-        <AssetRenameConfirmation assets={selectedAssetIds} />
-        <AssetMoveToFolderConfirmation assets={selectedAssetIds} />
-        {isUploading && <AssetUploadOverlay />}
-      </Box>
-    ),
-    [
-      error,
-      openAsset,
-      sortedAssets,
-      maxItemSize,
-      selectedAssetIds,
-      uploadFiles,
-      isHorizontal,
-      itemSpacing,
-      handleDoubleClick,
-      currentAudioAsset,
-      spaceKeyPressed,
-      openMenuType,
-      isUploading,
-      setOpenAsset
-    ]
-  );
-
   if (selectedFolderId === null) {
     if (user) {
       navigateToFolderId(user?.id);
@@ -384,7 +278,91 @@ const AssetGrid: React.FC<AssetGridProps> = ({
     }
   }
 
-  return memoizedContent;
+  return (
+    <Box css={styles} className="asset-grid-container" ref={containerRef}>
+      {error && <Typography sx={{ color: "red" }}>{error.message}</Typography>}
+      {openAsset && (
+        <AssetViewer
+          asset={openAsset}
+          sortedAssets={sortedAssets}
+          open={openAsset !== null}
+          onClose={() => setOpenAsset(null)}
+        />
+      )}
+      <AssetActionsMenu maxItemSize={maxItemSize} />
+      <div className="header-info">
+        <div className="selected-asset-info">
+          <Typography variant="body1" className="selected-info">
+            {selectedAssetIds.length > 0 && (
+              <>
+                {selectedAssetIds.length}{" "}
+                {selectedAssetIds.length === 1 ? "item " : "items "}
+                selected
+              </>
+            )}
+          </Typography>
+        </div>
+        {/* <Typography className="current-folder">
+            <span className="folder-slash">/</span>
+            {currentFolder && `${currentFolder.name}`}
+          </Typography> */}
+      </div>
+      <Dropzone onDrop={uploadFiles}>
+        <div
+          style={{
+            height: "100%",
+            display: "flex",
+            margin: "0.5em",
+            flexDirection: isHorizontal ? "row" : "column"
+          }}
+        >
+          <div
+            className="folder-list-container"
+            style={{ flexShrink: 0, position: "relative" }}
+          >
+            <FolderList isHorizontal={isHorizontal} />
+          </div>
+          <div
+            style={{
+              flexGrow: 1,
+              minHeight: 0,
+              overflow: "auto",
+              paddingLeft: isHorizontal ? "1em" : ""
+            }}
+          >
+            <AssetGridContent
+              isHorizontal={isHorizontal}
+              itemSpacing={itemSpacing}
+              onDoubleClick={handleDoubleClick}
+            />
+          </div>
+        </div>
+      </Dropzone>
+      <Divider />
+      {currentAudioAsset && (
+        <AudioPlayer
+          fontSize="small"
+          alwaysShowControls={true}
+          source={currentAudioAsset?.get_url || ""}
+          filename={currentAudioAsset?.name}
+          height={30}
+          waveformHeight={30}
+          barHeight={1.0}
+          minimapHeight={20}
+          minimapBarHeight={1.0}
+          waveColor="#ddd"
+          progressColor="#666"
+          minPxPerSec={1}
+          playOnLoad={spaceKeyPressed}
+        />
+      )}
+      {openMenuType === "asset-item-context-menu" && <AssetItemContextMenu />}
+      <AssetDeleteConfirmation assets={selectedAssetIds} />
+      <AssetRenameConfirmation assets={selectedAssetIds} />
+      <AssetMoveToFolderConfirmation assets={selectedAssetIds} />
+      {isUploading && <AssetUploadOverlay />}
+    </Box>
+  );
 };
 
 export default memo(AssetGrid, isEqual);
