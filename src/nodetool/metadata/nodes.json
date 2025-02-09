@@ -1200,6 +1200,111 @@
     "is_dynamic": false
   },
   {
+    "title": "List Calendar Events",
+    "description": "List events from Apple Calendar within a specified date range\n    calendar, automation, macos, productivity\n\n    Use cases:\n    - Retrieve upcoming events\n    - Check schedule availability\n    - Export calendar events",
+    "namespace": "apple.calendar",
+    "node_type": "apple.calendar.ListCalendarEvents",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "start_date",
+        "type": {
+          "type": "datetime",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "datetime",
+          "year": 0,
+          "month": 0,
+          "day": 0,
+          "hour": 0,
+          "minute": 0,
+          "second": 0,
+          "microsecond": 0,
+          "tzinfo": "UTC",
+          "utc_offset": 0
+        },
+        "title": "Start Date",
+        "description": "Start date and time of the range",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "end_date",
+        "type": {
+          "type": "datetime",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "datetime",
+          "year": 0,
+          "month": 0,
+          "day": 0,
+          "hour": 0,
+          "minute": 0,
+          "second": 0,
+          "microsecond": 0,
+          "tzinfo": "UTC",
+          "utc_offset": 0
+        },
+        "title": "End Date",
+        "description": "End date and time of the range",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "calendar_name",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "Calendar",
+        "title": "Calendar Name",
+        "description": "Name of the calendar to search",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "calendar_event",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "start_date",
+      "end_date",
+      "calendar_name"
+    ],
+    "is_dynamic": false
+  },
+  {
     "title": "Send Message",
     "description": "Send messages using macOS Messages.app via AppleScript\n    messages, imessage, automation, macos, communication\n\n    Use cases:\n    - Send automated notifications via iMessage\n    - Integrate messaging into workflows\n    - Send workflow results to yourself or others",
     "namespace": "apple.messages",
@@ -128335,10 +128440,10 @@
             "year": 2025,
             "month": 2,
             "day": 9,
-            "hour": 22,
-            "minute": 34,
-            "second": 3,
-            "microsecond": 915166,
+            "hour": 23,
+            "minute": 8,
+            "second": 15,
+            "microsecond": 913670,
             "tzinfo": "UTC",
             "utc_offset": 0.0
           },

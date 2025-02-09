@@ -124,6 +124,10 @@ class Datetime(BaseType):
     tzinfo: str = "UTC"
     utc_offset: float = 0
 
+    @staticmethod
+    def from_timestamp(timestamp: float):
+        return Datetime.from_datetime(datetime.fromtimestamp(timestamp))
+
     def to_datetime(self):
         return datetime(
             year=self.year,
@@ -1660,3 +1664,15 @@ class LoraWeight(BaseType):
     type: Literal["lora_weight"] = "lora_weight"
     url: str = ""
     scale: float = 1.0
+
+
+class CalendarEvent(BaseType):
+    """Represents a calendar event with its properties."""
+
+    type: Literal["calendar_event"] = "calendar_event"
+    title: str = ""
+    start_date: Datetime = Datetime()
+    end_date: Datetime = Datetime()
+    calendar: str = ""
+    location: str = ""
+    notes: str = ""
