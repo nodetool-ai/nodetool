@@ -6,10 +6,10 @@ import {
 import { TypeMetadata } from "../stores/ApiTypes";
 
 export function ContextMenuProvider({
-  active,
+  active = true,
   children
 }: {
-  active: boolean;
+  active?: boolean;
   children: React.ReactNode;
 }) {
   const currentClickOutsideHandlerRef = useRef<
