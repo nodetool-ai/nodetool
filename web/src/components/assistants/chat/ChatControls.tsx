@@ -24,7 +24,6 @@ const ChatControls: React.FC<ChatControlsProps> = ({
       messagesCount={messages.length}
       title="Chat"
       icon={<ChatBubbleOutlineIcon sx={{ fontSize: "1.5em" }} />}
-      description="Chat"
     />
   );
 };

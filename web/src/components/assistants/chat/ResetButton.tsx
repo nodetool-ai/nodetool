@@ -1,6 +1,6 @@
 import React from "react";
-import { Button, Tooltip } from "@mui/material";
-
+import { IconButton, Tooltip } from "@mui/material";
+import RestartAltIcon from "@mui/icons-material/RestartAlt";
 interface ResetButtonProps {
   onClick: () => void;
   disabled?: boolean;
@@ -16,14 +16,13 @@ export const ResetButton: React.FC<ResetButtonProps> = ({
 }) => (
   <Tooltip title={tooltip}>
     <span>
-      <Button
+      <IconButton
         className="reset-chat-button"
-        variant="text"
         onClick={(e) => !disabled && onClick()}
         sx={{
-          p: 3,
+          p: 2,
+          mt: 2,
           color: "text.secondary",
-          fontSize: "0.8em",
           opacity: !disabled ? 1 : 0.5,
           "&:hover": {
             backgroundColor: !disabled ? "action.hover" : "transparent"
@@ -31,8 +30,8 @@ export const ResetButton: React.FC<ResetButtonProps> = ({
           ...sx
         }}
       >
-        Reset
-      </Button>
+        <RestartAltIcon fontSize="small" />
+      </IconButton>
     </span>
   </Tooltip>
 );

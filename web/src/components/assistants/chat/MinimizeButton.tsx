@@ -1,6 +1,6 @@
 import React from "react";
 import { IconButton } from "@mui/material";
-import UnfoldLessIcon from "@mui/icons-material/UnfoldLess";
+import MinimizeIcon from "@mui/icons-material/Minimize";
 
 interface MinimizeButtonProps {
   onClick: () => void;
@@ -24,6 +24,6 @@ export const MinimizeButton: React.FC<MinimizeButtonProps> = ({
       ...sx
     }}
   >
-    {isMinimized ? <></> : <UnfoldLessIcon fontSize="small" />}
+    {isMinimized ? <></> : <MinimizeIcon fontSize="small" />}
   </IconButton>
 );

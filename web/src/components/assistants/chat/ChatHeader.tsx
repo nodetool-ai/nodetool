@@ -33,11 +33,9 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
       position: "sticky",
       top: 0,
       zIndex: 1,
-      py: 2,
-      px: 2,
-      backdropFilter: "blur(8px)",
-      borderRadius: isMinimized ? "20px" : "12px 12px 0 0",
-      boxShadow: "0 1px 3px rgba(0,0,0,0.1)"
+      p: 0,
+      height: "28px",
+      borderRadius: isMinimized ? "20px" : "12px 12px 0 0"
     }}
   >
     {!isMinimized && onReset && (
@@ -49,7 +47,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
         onClick={onMinimize}
         sx={{
           color: "text.secondary",
-          padding: "0.5em 1em 0 1em",
+          padding: "1.5em 1em 0 1.5em",
           textAlign: "center",
           width: "100%",
           display: "flex",
