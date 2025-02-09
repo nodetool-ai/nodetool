@@ -36876,33 +36876,12 @@
     "is_dynamic": false
   },
   {
-    "title": "GOTOCR",
-    "description": "Performs OCR on images using the GOT-OCR model.\n    image, text, OCR, multimodal\n\n    Use cases:\n    - Text extraction from images\n    - Document digitization\n    - Image-based information retrieval\n    - Accessibility tools for visually impaired users",
+    "title": "Paddle OCR",
+    "description": "Performs Optical Character Recognition (OCR) on images using PaddleOCR.\n    image, text, ocr, document\n\n    Use cases:\n    - Text extraction from images\n    - Document digitization\n    - Receipt/invoice processing\n    - Handwriting recognition",
     "namespace": "huggingface.multimodal",
-    "node_type": "huggingface.multimodal.GOTOCR",
+    "node_type": "huggingface.multimodal.PaddleOCR",
     "layout": "default",
     "properties": [
-      {
-        "name": "model",
-        "type": {
-          "type": "hf.gotocr",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": {
-          "type": "hf.gotocr",
-          "repo_id": "",
-          "path": null,
-          "allow_patterns": null,
-          "ignore_patterns": null
-        },
-        "title": "Model ID on Huggingface",
-        "description": "The model ID to use for GOT-OCR",
-        "min": null,
-        "max": null
-      },
       {
         "name": "image",
         "type": {
@@ -36918,56 +36897,58 @@
           "asset_id": null,
           "data": null
         },
-        "title": "Image",
+        "title": "Input Image",
         "description": "The image to perform OCR on",
         "min": null,
         "max": null
       },
       {
-        "name": "ocr_type",
+        "name": "language",
         "type": {
           "type": "enum",
           "optional": false,
           "values": [
-            "ocr",
-            "format"
+            "en",
+            "fr",
+            "de",
+            "es",
+            "it",
+            "pt",
+            "nl",
+            "pl",
+            "ro",
+            "hr",
+            "cs",
+            "hu",
+            "sk",
+            "sl",
+            "tr",
+            "vi",
+            "id",
+            "ms",
+            "la",
+            "ru",
+            "bg",
+            "uk",
+            "be",
+            "mn",
+            "ch",
+            "ja",
+            "ko",
+            "ar",
+            "fa",
+            "ur",
+            "hi",
+            "mr",
+            "ne",
+            "sa"
           ],
           "type_args": [],
-          "type_name": "nodetool.nodes.huggingface.multimodal.OCRType"
+          "type_name": "nodetool.nodes.huggingface.multimodal.OCRLanguage"
         },
-        "default": "ocr",
-        "title": "OCR Type",
-        "description": "The type of OCR to perform",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "ocr_box",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "OCR Box",
-        "description": "Bounding box for fine-grained OCR (optional)",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "ocr_color",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "OCR Color",
-        "description": "Color for fine-grained OCR (optional)",
+        "default": "en",
+        "title": "Language",
+        "description": "Language code for OCR",
         "min": null,
         "max": null
       }
@@ -36975,29 +36956,40 @@
     "outputs": [
       {
         "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "ocr_result",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "boxes",
+        "stream": false
+      },
+      {
+        "type": {
           "type": "str",
           "optional": false,
           "values": null,
           "type_args": [],
           "type_name": null
         },
-        "name": "output",
+        "name": "text",
         "stream": false
       }
     ],
     "the_model_info": {},
-    "recommended_models": [
-      {
-        "type": "hf.gotocr",
-        "repo_id": "ucaslcl/GOT-OCR2_0",
-        "path": null,
-        "allow_patterns": null,
-        "ignore_patterns": null
-      }
-    ],
+    "recommended_models": [],
     "basic_fields": [
-      "model",
-      "image"
+      "image",
+      "language"
     ],
     "is_dynamic": false
   },
@@ -124030,10 +124022,10 @@
             "year": 2025,
             "month": 2,
             "day": 9,
-            "hour": 18,
-            "minute": 8,
-            "second": 54,
-            "microsecond": 216159,
+            "hour": 22,
+            "minute": 34,
+            "second": 3,
+            "microsecond": 915166,
             "tzinfo": "UTC",
             "utc_offset": 0.0
           },

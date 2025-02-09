@@ -1357,6 +1357,16 @@ class TextChunk(BaseType):
         return f"{self.source_id}:{self.start_index}"
 
 
+class OCRResult(BaseType):
+    type: Literal["ocr_result"] = "ocr_result"
+    text: str
+    score: float
+    top_left: tuple[int, int]
+    top_right: tuple[int, int]
+    bottom_right: tuple[int, int]
+    bottom_left: tuple[int, int]
+
+
 class Collection(BaseType):
     type: Literal["collection"] = "collection"
     name: str = ""
