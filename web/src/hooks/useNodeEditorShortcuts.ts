@@ -14,17 +14,13 @@ export const useNodeEditorShortcuts = () => {
   const reactFlowInstance = useReactFlow();
   /* USE STORE */
   const nodeHistory = useTemporalNodes((state) => state);
-  const { nodes, selectedNodes, setSelectedNodes, clearMissingModels } =
-    useNodes((state) => ({
-      nodes: state.nodes,
-      selectedNodes: state.getSelectedNodes(),
-      setSelectedNodes: state.setSelectedNodes,
-      clearMissingModels: state.clearMissingModels
-    }));
+  const { nodes, selectedNodes, setSelectedNodes } = useNodes((state) => ({
+    nodes: state.nodes,
+    selectedNodes: state.getSelectedNodes(),
+    setSelectedNodes: state.setSelectedNodes
+  }));
 
   const saveExample = useWorkflowManager((state) => state.saveExample);
-  /* STATE */
-  // const [openCommandMenu, setOpenCommandMenu] = useState(false);
 
   /* UTILS */
   const { handleCopy, handlePaste, handleCut } = useCopyPaste();

@@ -53,6 +53,7 @@ import {
   useWorkflowManager,
   WorkflowManagerProvider
 } from "./contexts/WorkflowManagerContext";
+import KeyboardProvider from "./components/KeyboardProvider";
 if (!isProduction) {
   useRemoteSettingsStore.getState().fetchSettings();
 }
@@ -218,7 +219,9 @@ const AppWrapper = () => {
         <ThemeProvider theme={ThemeNodetool}>
           <CssBaseline />
           <WorkflowManagerProvider>
-            <RouterProvider router={router} />
+            <KeyboardProvider active={true}>
+              <RouterProvider router={router} />
+            </KeyboardProvider>
           </WorkflowManagerProvider>
         </ThemeProvider>
       </QueryClientProvider>

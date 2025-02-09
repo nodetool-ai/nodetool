@@ -1,7 +1,14 @@
 import { create } from "zustand";
-import { useMemo, useEffect } from "react";
+import {
+  useMemo,
+  useEffect,
+  createContext,
+  useContext,
+  ReactNode
+} from "react";
 import { useStoreWithEqualityFn } from "zustand/traditional";
 import { shallow } from "zustand/shallow";
+import { KeyboardContext } from "../components/KeyboardProvider";
 
 interface ComboOptions {
   preventDefault?: boolean;
@@ -181,13 +188,14 @@ const initKeyListeners = () => {
 export const useKeyPressed = (selector: (state: KeyPressedState) => any) =>
   useStoreWithEqualityFn(useKeyPressedStore, selector, shallow);
 
-// Fix the useCombo hook
+// Update useCombo to import KeyboardContext from new location
 const useCombo = (
   combo: string[],
   callback: () => void,
   preventDefault: boolean = true,
   active: boolean = true
 ) => {
+  const keyboardActive = useContext(KeyboardContext);
   const memoizedCombo = useMemo(
     () =>
       combo
@@ -198,9 +206,16 @@ const useCombo = (
   );
 
   useEffect(() => {
-    registerComboCallback(memoizedCombo, { callback, preventDefault, active });
-    return () => unregisterComboCallback(memoizedCombo);
-  }, [memoizedCombo, callback, preventDefault, active]);
+    // Only register if both the keyboard context and the hook's active prop are true
+    if (keyboardActive && active) {
+      registerComboCallback(memoizedCombo, {
+        callback,
+        preventDefault,
+        active
+      });
+      return () => unregisterComboCallback(memoizedCombo);
+    }
+  }, [memoizedCombo, callback, preventDefault, active, keyboardActive]);
 };
 
 export { useKeyPressedStore, initKeyListeners, useCombo };
