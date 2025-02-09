@@ -14,13 +14,14 @@ import ThemeNodes from "../../components/themes/ThemeNodes";
 import ColorPicker from "../inputs/ColorPicker";
 import NodeResizeHandle from "./NodeResizeHandle";
 import { useNodes } from "../../contexts/NodeContext";
+import FormatButton from "./FormatButton";
 
-type CustomElement = {
+export type CustomElement = {
   type: "paragraph";
   children: CustomText[];
 };
 
-type CustomText = {
+export type CustomText = {
   text: string;
   bold?: boolean;
   italic?: boolean;
@@ -125,6 +126,31 @@ declare module "slate" {
   }
 }
 
+const renderLeaf = (props: any) => {
+  const style = { ...props.attributes.style };
+
+  if (props.leaf.bold) {
+    style.fontWeight = "bold";
+  }
+
+  if (props.leaf.size) {
+    switch (props.leaf.size) {
+      case "-":
+        style.fontSize = "1em";
+        break;
+      case "+":
+        style.fontSize = "1.5em";
+        break;
+    }
+  }
+
+  return (
+    <span {...props.attributes} style={style}>
+      {props.children}
+    </span>
+  );
+};
+
 const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const className = `node-drag-handle comment-node ${
     props.data.collapsed ? "collapsed " : ""
@@ -222,52 +248,6 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     [toggleMark]
   );
 
-  const renderLeaf = useCallback((props: any) => {
-    const style = { ...props.attributes.style };
-
-    if (props.leaf.bold) {
-      style.fontWeight = "bold";
-    }
-
-    if (props.leaf.size) {
-      switch (props.leaf.size) {
-        case "-":
-          style.fontSize = "1em";
-          break;
-        case "+":
-          style.fontSize = "1.5em";
-          break;
-      }
-    }
-
-    return (
-      <span {...props.attributes} style={style}>
-        {props.children}
-      </span>
-    );
-  }, []);
-
-  const FormatButton = ({
-    format,
-    label
-  }: {
-    format: keyof Omit<CustomText, "text">;
-    label: string;
-  }) => {
-    const active = isMarkActive(format);
-    return (
-      <button
-        className={`nodrag ${active ? "active" : ""}`}
-        onMouseDown={(event) => {
-          event.preventDefault();
-          toggleMark(format, label);
-        }}
-      >
-        {label}
-      </button>
-    );
-  };
-
   return (
     <Container
       style={{ backgroundColor: hexToRgba(color, 0.5) }}
@@ -275,10 +255,30 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       css={styles}
     >
       <div className="format-buttons">
-        <FormatButton format="bold" label="B" />
-        <FormatButton format="italic" label="I" />
-        <FormatButton format="size" label="-" />
-        <FormatButton format="size" label="+" />
+        <FormatButton
+          format="bold"
+          label="B"
+          isActive={isMarkActive("bold")}
+          onToggle={toggleMark}
+        />
+        <FormatButton
+          format="italic"
+          label="I"
+          isActive={isMarkActive("italic")}
+          onToggle={toggleMark}
+        />
+        <FormatButton
+          format="size"
+          label="-"
+          isActive={isMarkActive("size")}
+          onToggle={toggleMark}
+        />
+        <FormatButton
+          format="size"
+          label="+"
+          isActive={isMarkActive("size")}
+          onToggle={toggleMark}
+        />
       </div>
       <div className="text-editor" onClick={handleClick}>
         <Slate editor={editor} onChange={handleChange} initialValue={value}>
