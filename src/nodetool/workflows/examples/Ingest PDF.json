@@ -1,0 +1,332 @@
+{
+  "id": "78483f1ce4d611ef849100004ef921c4",
+  "access": "public",
+  "created_at": "2025-02-09T16:11:17.163412",
+  "updated_at": "2025-02-09T16:11:17.163421",
+  "name": "Ingest PDF",
+  "description": "",
+  "tags": [
+    "llm"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "2",
+        "parent_id": null,
+        "type": "lib.file.pymupdf.ExtractMarkdown",
+        "data": {
+          "start_page": 0,
+          "end_page": -1
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 263,
+            "y": 236
+          },
+          "zIndex": 0,
+          "width": 240,
+          "title": "Convert PDF to Markdown",
+          "selectable": true
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "8",
+        "parent_id": null,
+        "type": "nodetool.input.DocumentFileInput",
+        "data": {
+          "name": "document",
+          "description": "",
+          "value": {
+            "type": "file_path",
+            "path": "/Users/mg/Documents/1910.01108v4.pdf"
+          }
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 50,
+            "y": 50
+          },
+          "zIndex": 0,
+          "width": 153,
+          "title": "The document  to be ingested.",
+          "selectable": true
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "9",
+        "parent_id": null,
+        "type": "lib.data.langchain.RecursiveTextSplitter",
+        "data": {
+          "source_id": "",
+          "chunk_size": 800,
+          "chunk_overlap": 200,
+          "separators": [
+            "\n\n",
+            "\n",
+            "."
+          ]
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 563,
+            "y": 79
+          },
+          "zIndex": 0,
+          "width": 140,
+          "title": "Click to edit",
+          "selectable": true
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "10",
+        "parent_id": null,
+        "type": "nodetool.os.PathToString",
+        "data": {},
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 309.5,
+            "y": 90
+          },
+          "zIndex": 0,
+          "width": 147,
+          "selectable": true
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "11",
+        "parent_id": null,
+        "type": "nodetool.input.CollectionInput",
+        "data": {
+          "name": "collection",
+          "description": "",
+          "value": {
+            "type": "collection",
+            "name": "papers"
+          }
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 567,
+            "y": 332
+          },
+          "zIndex": 0,
+          "width": 134,
+          "title": "Mandatory input for ingestion.",
+          "selectable": true
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "12",
+        "parent_id": null,
+        "type": "chroma.index.IndexTextChunks",
+        "data": {},
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 763,
+            "y": 136
+          },
+          "zIndex": 0,
+          "width": 144,
+          "title": "Save to vector storage.",
+          "selectable": true
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "13",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": [
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "Ingest PDF",
+                  "bold": true,
+                  "size": "+"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "This workflow enables the ingestion of documents into a vector database for efficient retrieval and processing. Here\u2019s how it works:"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "\t1.\t"
+                },
+                {
+                  "text": "Document Input: ",
+                  "bold": true
+                },
+                {
+                  "text": "The user provides a document file (e.g., PDF) for ingestion."
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "\t2.\t"
+                },
+                {
+                  "text": "Extract Markdown:",
+                  "bold": true
+                },
+                {
+                  "text": " The PDF is converted into a Markdown text format for easier processing."
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "\t3.\t"
+                },
+                {
+                  "text": "Text Splitting: ",
+                  "bold": true
+                },
+                {
+                  "text": "The text is divided into smaller, overlapping chunks based on specified sizes, ensuring better indexing and retrieval."
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "\t4.\t"
+                },
+                {
+                  "text": "Collection Input:",
+                  "bold": true
+                },
+                {
+                  "text": " A collection name is passed to the workflow from the system."
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "\t5.\t"
+                },
+                {
+                  "text": "Indexing",
+                  "bold": true
+                },
+                {
+                  "text": ": The processed text chunks are indexed and stored in a vector database, enabling fast and accurate search functionality later."
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": ""
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "This setup is ideal for creating searchable repositories of document data."
+                }
+              ]
+            }
+          ]
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 48,
+            "y": -257
+          },
+          "zIndex": 0,
+          "width": 768,
+          "height": 200,
+          "selectable": true
+        },
+        "dynamic_properties": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "7",
+        "source": "8",
+        "sourceHandle": "document",
+        "target": "2",
+        "targetHandle": "pdf",
+        "ui_properties": null
+      },
+      {
+        "id": "12",
+        "source": "2",
+        "sourceHandle": "output",
+        "target": "9",
+        "targetHandle": "text",
+        "ui_properties": null
+      },
+      {
+        "id": "14",
+        "source": "8",
+        "sourceHandle": "path",
+        "target": "10",
+        "targetHandle": "file_path",
+        "ui_properties": null
+      },
+      {
+        "id": "15",
+        "source": "11",
+        "sourceHandle": "output",
+        "target": "12",
+        "targetHandle": "collection",
+        "ui_properties": null
+      },
+      {
+        "id": "16",
+        "source": "9",
+        "sourceHandle": "output",
+        "target": "12",
+        "targetHandle": "text_chunks",
+        "ui_properties": null
+      },
+      {
+        "id": "17",
+        "source": "10",
+        "sourceHandle": "output",
+        "target": "9",
+        "targetHandle": "document_id",
+        "ui_properties": null
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null
+}
