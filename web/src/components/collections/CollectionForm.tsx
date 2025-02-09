@@ -24,7 +24,7 @@ interface CollectionFormProps {
 const embeddingModels = [
   {
     id: "all-minilm:22m",
-    name: "All-MiniLM 22M"
+    name: "All-MiniLM 22M (recommended)"
   },
   {
     id: "all-minilm:33m",
