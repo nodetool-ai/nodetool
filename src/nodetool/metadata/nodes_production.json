@@ -124019,15 +124019,15 @@
           "subject": "",
           "date": {
             "type": "datetime",
-            "year": 2025,
-            "month": 2,
-            "day": 9,
-            "hour": 23,
-            "minute": 29,
-            "second": 31,
-            "microsecond": 435294,
+            "year": 0,
+            "month": 0,
+            "day": 0,
+            "hour": 0,
+            "minute": 0,
+            "second": 0,
+            "microsecond": 0,
             "tzinfo": "UTC",
-            "utc_offset": 0.0
+            "utc_offset": 0
           },
           "body": ""
         },
