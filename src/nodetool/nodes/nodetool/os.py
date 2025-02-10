@@ -80,6 +80,10 @@ class GetSystemInfo(BaseNode):
     - Platform-specific logic
     """
 
+    @classmethod
+    def is_cacheable(cls) -> bool:
+        return False
+
     async def process(self, context: ProcessingContext) -> dict:
         return {
             "name": os.name,
@@ -103,6 +107,10 @@ class CopyTextToClipboard(BaseNode):
 
     text: str = Field(default="", description="Text to copy to clipboard")
 
+    @classmethod
+    def is_cacheable(cls) -> bool:
+        return False
+
     async def process(self, context: ProcessingContext) -> None:
         pyperclip.copy(self.text)
 
@@ -116,6 +124,10 @@ class PasteTextFromClipboard(BaseNode):
     - Read clipboard content
     - Import external data
     """
+
+    @classmethod
+    def is_cacheable(cls) -> bool:
+        return False
 
     async def process(self, context: ProcessingContext) -> str:
         return pyperclip.paste()
@@ -133,12 +145,16 @@ class CopyImageToClipboard(BaseNode):
 
     image: ImageRef = Field(default=None, description="Image to copy to clipboard")
 
+    @classmethod
+    def is_cacheable(cls) -> bool:
+        return False
+
     async def process(self, context: ProcessingContext):
         image = await context.image_to_pil(self.image)
 
         if os.name == "posix":
             if "darwin" in os.uname().sysname.lower():  # macOS
-                from AppKit import NSPasteboard, NSPasteboardTypeTIFF, NSImage
+                from AppKit import NSPasteboard, NSPasteboardTypeTIFF, NSImage  # type: ignore
                 from PIL import Image
                 import io
 
@@ -210,6 +226,115 @@ class CopyImageToClipboard(BaseNode):
             raise RuntimeError("Unsupported operating system")
 
 
+class PasteImageFromClipboard(BaseNode):
+    """
+    Reads an image from the system clipboard.
+    clipboard, system, paste, image
+
+    Use cases:
+    - Capture screenshots from clipboard
+    - Process clipboard images
+    - Import clipboard content
+
+    Requires:
+    - Windows: Pillow
+    - macOS: Pillow, pyobjc-framework-Cocoa
+    - Linux: Pillow, xclip
+    """
+
+    @classmethod
+    def is_cacheable(cls) -> bool:
+        return False
+
+    async def process(self, context: ProcessingContext) -> ImageRef:
+        if os.name == "posix":
+            if "darwin" in os.uname().sysname.lower():  # macOS
+                from AppKit import NSPasteboard, NSImage  # type: ignore
+                from PIL import Image
+                import io
+
+                # Get pasteboard and image
+                pasteboard = NSPasteboard.generalPasteboard()
+                nsimage = NSImage.alloc().initWithPasteboard_(pasteboard)
+
+                if nsimage is None:
+                    raise RuntimeError("No image found on clipboard")
+
+                image_data = nsimage.TIFFRepresentation()
+                if image_data is None:
+                    raise RuntimeError("Could not get image data from clipboard")
+
+                pil_image = Image.open(io.BytesIO(bytes(image_data)))
+
+            else:  # Linux
+                if not shutil.which("xclip"):
+                    raise RuntimeError(
+                        "xclip is required for pasting images from clipboard on Linux"
+                    )
+
+                from PIL import Image
+                import subprocess
+                import tempfile
+
+                # Create a temporary file to store the clipboard image
+                with tempfile.NamedTemporaryFile(
+                    suffix=".png", delete=False
+                ) as tmp_file:
+                    try:
+                        # Get image from clipboard using xclip
+                        subprocess.run(
+                            [
+                                "xclip",
+                                "-selection",
+                                "clipboard",
+                                "-t",
+                                "image/png",
+                                "-o",
+                            ],
+                            stdout=tmp_file,
+                            check=True,
+                        )
+                        pil_image = Image.open(tmp_file.name)
+                    finally:
+                        os.unlink(tmp_file.name)
+
+        elif os.name == "nt":  # Windows
+            import win32clipboard
+            from PIL import Image
+            import io
+
+            win32clipboard.OpenClipboard()
+            try:
+                if not win32clipboard.IsClipboardFormatAvailable(win32clipboard.CF_DIB):
+                    raise RuntimeError("No image found on clipboard")
+
+                data = win32clipboard.GetClipboardData(win32clipboard.CF_DIB)
+
+                # Create a PIL image from the raw DIB data
+                stream = io.BytesIO()
+                # Add BMP header
+                stream.write(b"BM")
+                stream.write(len(data).to_bytes(4, "little"))  # File size
+                stream.write(b"\x00\x00\x00\x00")  # Reserved
+                stream.write(b"\x36\x00\x00\x00")  # Offset to pixel data
+                stream.write(data)  # DIB data
+                stream.seek(0)
+
+                pil_image = Image.open(stream)
+            finally:
+                win32clipboard.CloseClipboard()
+
+        else:
+            raise RuntimeError("Unsupported operating system")
+
+        # Convert the image to PNG format
+        png_buffer = io.BytesIO()
+        pil_image.save(png_buffer, format="PNG")
+        png_data = png_buffer.getvalue()
+
+        return ImageRef(data=png_data)
+
+
 class FileExists(BaseNode):
     """
     Check if a file or directory exists at the specified path.
@@ -219,6 +344,10 @@ class FileExists(BaseNode):
     - Validate file presence before processing
     - Implement conditional logic based on file existence
     """
+
+    @classmethod
+    def is_cacheable(cls) -> bool:
+        return False
 
     path: FilePath = Field(
         default=FilePath(), description="Path to check for existence"
@@ -240,6 +369,10 @@ class ListFiles(BaseNode):
     - Get files for batch processing
     - Filter files by extension or pattern
     """
+
+    @classmethod
+    def is_cacheable(cls) -> bool:
+        return False
 
     directory: FilePath = Field(
         default=FilePath(path="~"), description="Directory to scan"
@@ -338,6 +471,10 @@ class GetFileSize(BaseNode):
     files, metadata, size
     """
 
+    @classmethod
+    def is_cacheable(cls) -> bool:
+        return False
+
     path: FilePath = Field(default=FilePath(), description="Path to file")
 
     async def process(self, context: ProcessingContext) -> int:
@@ -351,6 +488,10 @@ class CreatedTime(BaseNode):
     Get file creation timestamp.
     files, metadata, created, time
     """
+
+    @classmethod
+    def is_cacheable(cls) -> bool:
+        return False
 
     path: FilePath = Field(default=FilePath(), description="Path to file")
 
@@ -366,6 +507,10 @@ class ModifiedTime(BaseNode):
     files, metadata, modified, time
     """
 
+    @classmethod
+    def is_cacheable(cls) -> bool:
+        return False
+
     path: FilePath = Field(default=FilePath(), description="Path to file")
 
     async def process(self, context: ProcessingContext) -> Datetime:
@@ -379,6 +524,10 @@ class AccessedTime(BaseNode):
     Get file last accessed timestamp.
     files, metadata, accessed, time
     """
+
+    @classmethod
+    def is_cacheable(cls) -> bool:
+        return False
 
     path: FilePath = Field(default=FilePath(), description="Path to file")
 
@@ -394,6 +543,10 @@ class IsFile(BaseNode):
     files, metadata, type
     """
 
+    @classmethod
+    def is_cacheable(cls) -> bool:
+        return False
+
     path: FilePath = Field(default=FilePath(), description="Path to check")
 
     async def process(self, context: ProcessingContext) -> bool:
@@ -406,6 +559,10 @@ class IsDirectory(BaseNode):
     Check if path is a directory.
     files, metadata, type
     """
+
+    @classmethod
+    def is_cacheable(cls) -> bool:
+        return False
 
     path: FilePath = Field(default=FilePath(), description="Path to check")
 
@@ -1165,40 +1322,53 @@ class PathToString(BaseNode):
         return self.file_path.path
 
 
-class PasteImageFromClipboard(BaseNode):
+class ShowNotification(BaseNode):
     """
-    Reads an image from the system clipboard on macOS.
-    clipboard, system, paste, image
+    Shows a system notification.
+    notification, system, alert
 
     Use cases:
-    - Capture screenshots from clipboard
-    - Process clipboard images
-    - Import clipboard content
+    - Alert user of completed tasks
+    - Show process status
+    - Display important messages
     """
 
-    async def process(self, context: ProcessingContext) -> ImageRef:
-        if not "darwin" in os.uname().sysname.lower():
-            raise RuntimeError("This node only works on macOS")
+    title: str = Field(default="", description="Title of the notification")
+    message: str = Field(default="", description="Content of the notification")
+    timeout: int = Field(
+        default=10,
+        description="How long the notification should stay visible (in seconds)",
+    )
 
-        from AppKit import NSPasteboard, NSImage
-        from PIL import Image
-        import io
+    @classmethod
+    def is_cacheable(cls) -> bool:
+        return False
 
-        # Get pasteboard and image
-        pasteboard = NSPasteboard.generalPasteboard()
-        nsimage = NSImage.alloc().initWithPasteboard_(pasteboard)
+    async def process(self, context: ProcessingContext) -> None:
+        if not self.title:
+            raise ValueError("title cannot be empty")
+        if not self.message:
+            raise ValueError("message cannot be empty")
 
-        if nsimage is None:
-            raise RuntimeError("No image found on clipboard")
+        if os.name == "posix" and "darwin" in os.uname().sysname.lower():  # macOS
+            # Escape single quotes in the title and message
+            escaped_title = self.title.replace("'", "'\"'\"'")
+            escaped_message = self.message.replace("'", "'\"'\"'")
 
-        image_data = nsimage.TIFFRepresentation()
-        if image_data is None:
-            raise RuntimeError("Could not get image data from clipboard")
+            cmd = [
+                "osascript",
+                "-e",
+                f'display notification "{escaped_message}" with title "{escaped_title}"',
+            ]
 
-        pil_image = Image.open(io.BytesIO(bytes(image_data)))
+            try:
+                subprocess.run(cmd, check=True, capture_output=True)
+            except subprocess.CalledProcessError as e:
+                raise RuntimeError(f"Failed to show notification: {e.stderr.decode()}")
 
-        png_buffer = io.BytesIO()
-        pil_image.save(png_buffer, format="PNG")
-        png_data = png_buffer.getvalue()
+        else:  # Windows and Linux
+            from plyer import notification
 
-        return ImageRef(data=png_data)
+            notification.notify(
+                title=self.title, message=self.message, timeout=self.timeout
+            )  # type: ignore
