@@ -221,7 +221,6 @@ const ColumnsManager: React.FC<ColumnsManagerProps> = ({
     <Grid container spacing={0} css={styles}>
       <div className="labels">
         <InputLabel className="label-name">Name</InputLabel>
-        <InputLabel className="label-description">Description</InputLabel>
         <InputLabel className="label-datatype">Data Type</InputLabel>
       </div>
       {localColumns.map((field, index) => (

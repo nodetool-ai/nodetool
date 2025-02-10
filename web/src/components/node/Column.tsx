@@ -13,6 +13,7 @@ interface ColumnProps {
   handleDescriptionChange: (index: number, description: string) => void;
   onDelete: () => void;
   validDataTypes: string[];
+  showDescription?: boolean;
 }
 
 const Column: React.FC<ColumnProps> = ({
@@ -23,7 +24,8 @@ const Column: React.FC<ColumnProps> = ({
   handleDataTypeChange,
   handleDescriptionChange,
   onDelete,
-  validDataTypes
+  validDataTypes,
+  showDescription = false
 }: ColumnProps) => (
   <div className="column" key={index}>
     <div className="item-name">
@@ -35,14 +37,16 @@ const Column: React.FC<ColumnProps> = ({
         onChange={(e) => handleNameChange(index, e.target.value)}
       />
     </div>
-    <div className="item-description">
-      <TextField
-        className="textfield"
-        margin="dense"
-        value={field.description}
-        onChange={(e) => handleDescriptionChange(index, e.target.value)}
-      />
-    </div>
+    {showDescription && (
+      <div className="item-description">
+        <TextField
+          className="textfield"
+          margin="dense"
+          value={field.description}
+          onChange={(e) => handleDescriptionChange(index, e.target.value)}
+        />
+      </div>
+    )}
 
     <div className="item-datatype">
       <Select
