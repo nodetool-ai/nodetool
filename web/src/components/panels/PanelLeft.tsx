@@ -24,9 +24,9 @@ const styles = (theme: any) =>
       overflowX: "hidden",
       overflowY: "auto",
       width: "100%",
-      padding: "0.5em",
-      top: "50px",
-      height: "calc(-45px + 100vh)"
+      padding: "0",
+      top: "48px",
+      height: "calc(-48px + 100vh)"
     },
 
     ".panel-button": {
@@ -65,7 +65,7 @@ const styles = (theme: any) =>
       position: "relative"
     },
     ".MuiDrawer-paper": {
-      boxShadow: "0 0 10px rgba(0, 0, 0, 0.3)",
+      // boxShadow: "0 0 10px rgba(0, 0, 0, 0.3)",
       width: "auto"
     },
     ".panel-tabs ": {
@@ -78,18 +78,17 @@ const styles = (theme: any) =>
       overflowY: "auto"
     },
     ".vertical-toolbar": {
+      width: "60px",
       display: "flex",
       flexDirection: "column",
       backgroundColor: "transparent",
       // borderRight: `1px solid ${theme.palette.divider}`,
-      "& button": {
-        marginRight: "10px"
-      },
+      boxShadow: "0 0 10px rgba(0, 0, 0, 0.3)",
       "& .MuiIconButton-root, .MuiButton-root": {
-        padding: "12px",
-        borderRadius: "2px",
+        padding: "18px",
+        borderRadius: "5px",
         position: "relative",
-        margin: "4px 10px 4px 0",
+        // margin: "4px 10px 4px 0",
         transition: "all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)",
 
         "&.active": {
@@ -230,13 +229,22 @@ const PanelContent = memo(function PanelContent({
       {activeView === "assets" && (
         <Box
           className="assets-container"
-          sx={{ width: "100%", height: "100%" }}
+          sx={{ width: "100%", height: "100%", margin: "0 20px" }}
         >
+          <h3>Assets</h3>
           <AssetGrid maxItemSize={5} />
         </Box>
       )}
       {activeView === "workflowGrid" && (
-        <Box sx={{ width: "100%", height: "100%", overflow: "auto" }}>
+        <Box
+          sx={{
+            width: "100%",
+            height: "100%",
+            overflow: "auto",
+            margin: "0 20px"
+          }}
+        >
+          <h3>Workflows</h3>
           <WorkflowList />
         </Box>
       )}
@@ -246,9 +254,10 @@ const PanelContent = memo(function PanelContent({
             width: "100%",
             height: "100%",
             overflow: "hidden auto",
-            padding: 5
+            margin: "0 20px"
           }}
         >
+          <h3>Collections</h3>
           <CollectionList />
         </Box>
       )}
