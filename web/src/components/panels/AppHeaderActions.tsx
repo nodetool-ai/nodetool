@@ -23,10 +23,11 @@ const styles = (theme: any) =>
   css({
     "&": {
       position: "absolute",
-      top: "5px",
+      top: "10px",
       zIndex: 10000,
       left: "50%",
-      transform: "translateX(-50%)"
+      transform: "translateX(-50%)",
+      backgroundColor: theme.palette.c_gray1
     },
     "&.actions": {
       fontSize: "12px",
@@ -45,8 +46,8 @@ const styles = (theme: any) =>
     },
     ".action-button": {
       flexShrink: 0,
-      height: "32px",
       width: "32px",
+      height: "24px",
       minWidth: "32px",
       padding: "4px",
       color: theme.palette.c_gray6,
@@ -85,7 +86,6 @@ const styles = (theme: any) =>
       backgroundColor: `${theme.palette.c_gray2}cc`,
       color: theme.palette.c_hl1,
       minWidth: "40px",
-      height: "24px",
       "&:hover": {
         boxShadow: `0 0 10px ${theme.palette.c_hl1}cc`,
         transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)"
