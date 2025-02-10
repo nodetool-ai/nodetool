@@ -2,7 +2,8 @@
 
 from datetime import datetime
 import time
-from fastapi import APIRouter, Depends, HTTPException, Body, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, Body, BackgroundTasks, Request
+from fastapi.responses import StreamingResponse
 from nodetool.common.websocket_updates import (
     CreateWorkflow,
     DeleteWorkflow,
@@ -17,6 +18,10 @@ from typing import Optional
 from nodetool.workflows.examples import load_examples, save_example
 from nodetool.workflows.read_graph import read_graph
 from nodetool.models.workflow import Workflow as WorkflowModel
+import base64
+from nodetool.workflows.http_stream_runner import HTTPStreamRunner
+from nodetool.workflows.run_job_request import RunJobRequest
+from nodetool.workflows.run_workflow import run_workflow
 
 
 log = Environment.get_logger()
@@ -229,3 +234,53 @@ async def save_example_workflow(
 
     saved_workflow = save_example(id, workflow)
     return saved_workflow
+
+
+@router.post("/{id}/run")
+async def run_workflow_by_id(
+    id: str,
+    job_request: RunJobRequest,
+    request: Request,
+    stream: bool = False,
+    user: User = Depends(current_user),
+):
+    """
+    Run a specific workflow by ID.
+    """
+    server_protocol = request.headers.get("x-forwarded-proto", "http")
+    server_host_name = request.headers.get("host", "localhost")
+    server_port = request.headers.get("x-server-port", "8000")
+
+    if job_request.api_url == "" or job_request.api_url is None:
+        job_request.api_url = f"{server_protocol}://{server_host_name}:{server_port}"
+
+    if job_request.auth_token == "":
+        job_request.auth_token = user.auth_token or ""
+
+    if stream:
+        runner = HTTPStreamRunner()
+        return StreamingResponse(
+            runner.run_job(job_request), media_type="application/x-ndjson"
+        )
+    else:
+        result = {}
+        async for msg in run_workflow(job_request):
+            if msg.get("type") == "job_update":
+                if msg.get("status") == "completed":
+                    result = msg.get("result", {})
+                    for key, value in result.items():
+                        if isinstance(value, dict) and value.get("data"):
+                            data = value.get("data")
+                            if isinstance(data, bytes):
+                                value["uri"] = (
+                                    f"data:application/octet-stream;base64,{base64.b64encode(data).decode('utf-8')}"
+                                )
+                            elif isinstance(data, list):
+                                # TODO: handle multiple assets
+                                value["uri"] = (
+                                    f"data:application/octet-stream;base64,{base64.b64encode(data[0]).decode('utf-8')}"
+                                )
+                            value["data"] = None
+                elif msg.get("status") == "failed":
+                    raise HTTPException(status_code=500, detail=msg.get("error"))
+        return result

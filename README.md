@@ -137,24 +137,28 @@ const workflows = await response.json();
 ##### HTTP API
 
 ```bash
-curl -X POST "http://localhost:8000/api/jobs/run" \
+curl -X POST "http://localhost:8000/api/workflows/<workflow_id>/run" \
 -H "Content-Type: application/json" \
 -d '{
-    "workflow_id": "your_workflow_id"
+    "params": {
+        "param_name": "param_value"
+    }
 }'
 ```
 
 ```javascript
-const response = await fetch("http://localhost:8000/api/jobs/run", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-  },
-  body: JSON.stringify({
-    workflow_id: workflowId,
-    params: params,
-  }),
-});
+const response = await fetch(
+  "http://localhost:8000/api/workflows/<workflow_id>/run",
+  {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      params: params,
+    }),
+  }
+);
 
 const outputs = await response.json();
 // outputs is an object with one property for each output node in the workflow
@@ -176,17 +180,18 @@ These updates include:
 The final result of the workflow is also streamed as a single job_update with the status "completed".
 
 ```javascript
-const response = await fetch("http://localhost:8000/api/jobs/run?stream=true", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    Authorization: "Bearer YOUR_API_TOKEN",
-  },
-  body: JSON.stringify({
-    workflow_id: workflowId,
-    params: params,
-  }),
-});
+const response = await fetch(
+  "http://localhost:8000/api/workflows/<workflow_id>/run?stream=true",
+  {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      params: params,
+    }),
+  }
+);
 
 const reader = response.body.getReader();
 const decoder = new TextDecoder();
@@ -276,7 +281,6 @@ socket.send(msgpack.encode({ command: "get_status" }));
 
 ### API Demo
 
-- Check out this simple [html page](api-demo.html).
 - Download the [html file](<(api-demo.html)>)
 - Open in a browser locally.
 - Select the endpoint, local or api.nodetool.ai (for alpha users)
