@@ -6,17 +6,11 @@ import {
   LinearProgress,
   Popover
 } from "@mui/material";
-import { useWebSocketUpdatesStore } from "../../stores/WebSocketUpdatesStore";
+import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 
 const SystemStatsDisplay: React.FC = () => {
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
-  const systemStats = useWebSocketUpdatesStore((state) => state.systemStats);
-  const connect = useWebSocketUpdatesStore((state) => state.connect);
-
-  // Connect to WebSocket when component mounts
-  React.useEffect(() => {
-    connect();
-  }, [connect]);
+  const systemStats = useWorkflowManager((state) => state.getSystemStats());
 
   const stats = useMemo(
     () => [

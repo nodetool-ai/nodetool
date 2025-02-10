@@ -47,10 +47,7 @@ export const NodeProvider: React.FC<{
   children: React.ReactNode;
   workflowId: string;
 }> = ({ children, workflowId }) => {
-  const { getNodeStore } = useWorkflowManager((state) => ({
-    getNodeStore: state.getNodeStore
-  }));
-  const store = getNodeStore(workflowId);
+  const store = useWorkflowManager((state) => state.getNodeStore(workflowId));
 
   if (!store) {
     return (

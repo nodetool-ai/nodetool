@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect } from "react";
 import { create, StoreApi, UseBoundStore } from "zustand";
 import { NodeStore } from "../stores/NodeStore";
 import {
+  SystemStats,
   Workflow,
   WorkflowAttributes,
   WorkflowRequest
@@ -16,6 +17,8 @@ import { debounce, omit } from "lodash";
 import { createErrorMessage } from "../utils/errorHandling";
 import { uuidv4 } from "../stores/uuidv4";
 import { QueryClient } from "@tanstack/react-query";
+import { createWebSocketUpdatesStore } from "../stores/WebSocketUpdatesStore";
+import { useNotificationStore } from "../stores/NotificationStore";
 
 type LoadingState = {
   isLoading: boolean;
@@ -28,7 +31,9 @@ type WorkflowManagerState = {
   currentWorkflowId: string | null;
   loadingStates: Record<string, LoadingState>;
   openWorkflows: WorkflowAttributes[];
-  queryClient: QueryClient | null;
+  queryClient: QueryClient;
+  systemStats: SystemStats | null;
+  getSystemStats: () => SystemStats | null;
   getCurrentLoadingState: () => LoadingState | undefined;
   getWorkflow: (workflowId: string) => Workflow | undefined;
   addWorkflow: (workflow: Workflow) => void;
@@ -54,6 +59,7 @@ type WorkflowManagerState = {
   copy: (originalWorkflow: Workflow) => Promise<Workflow>;
   delete: (id: string) => Promise<void>;
   saveExample: () => Promise<any>;
+  recentlySavedWorkflows: Record<string, number>;
 };
 
 export type WorkflowManagerStore = UseBoundStore<
@@ -83,7 +89,22 @@ const storage = {
       STORAGE_KEYS.OPEN_WORKFLOWS,
       JSON.stringify(workflowIds)
     );
-  }, 100)
+  }, 100),
+
+  // New functions for managing open workflows
+  addOpenWorkflow: (workflowId: string) => {
+    const currentWorkflows = storage.getOpenWorkflows();
+    if (!currentWorkflows.includes(workflowId)) {
+      const updatedWorkflows = [...currentWorkflows, workflowId];
+      storage.setOpenWorkflows(updatedWorkflows);
+    }
+  },
+
+  removeOpenWorkflow: (workflowId: string) => {
+    const currentWorkflows = storage.getOpenWorkflows();
+    const updatedWorkflows = currentWorkflows.filter((id) => id !== workflowId);
+    storage.setOpenWorkflows(updatedWorkflows);
+  }
 };
 
 export const useWorkflowManager = <T,>(
@@ -99,333 +120,380 @@ export const useWorkflowManager = <T,>(
   return useStoreWithEqualityFn(context, selector, shallow);
 };
 
-export const createWorkflowManagerStore = (queryClient: QueryClient) =>
-  create<WorkflowManagerState>()((set, get) => ({
-    nodeStores: {},
-    openWorkflows: [],
-    currentWorkflowId: storage.getCurrentWorkflow() || null,
-    loadingStates: {},
-    error: null,
-    queryClient: queryClient,
-    newWorkflow: () => {
-      const data: Workflow = {
-        id: "",
-        name: "New Workflow",
-        description: "",
-        access: "private",
-        thumbnail: "",
-        updated_at: new Date().toISOString(),
-        created_at: new Date().toISOString(),
-        graph: {
-          nodes: [],
-          edges: []
+export const createWorkflowManagerStore = (queryClient: QueryClient) => {
+  return create<WorkflowManagerState>()((set, get) => {
+    return {
+      nodeStores: {},
+      openWorkflows: [],
+      currentWorkflowId: storage.getCurrentWorkflow() || null,
+      loadingStates: {},
+      error: null,
+      queryClient: queryClient,
+      systemStats: null,
+      getSystemStats: () => get().systemStats,
+      setSystemStats: (stats: SystemStats) => set({ systemStats: stats }),
+      newWorkflow: () => {
+        const data: Workflow = {
+          id: "",
+          name: "New Workflow",
+          description: "",
+          access: "private",
+          thumbnail: "",
+          updated_at: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+          graph: {
+            nodes: [],
+            edges: []
+          }
+        };
+        return data;
+      },
+
+      createNew: async () => {
+        return await get().create(get().newWorkflow());
+      },
+
+      create: async (workflow: WorkflowRequest) => {
+        const { data, error } = await client.POST("/api/workflows/", {
+          body: workflow
+        });
+        if (error) {
+          throw createErrorMessage(error, "Failed to create workflow");
         }
-      };
-      return data;
-    },
 
-    createNew: async () => {
-      return await get().create(get().newWorkflow());
-    },
+        const workflowWithTags = {
+          ...data,
+          tags: workflow.tags || []
+        };
 
-    create: async (workflow: WorkflowRequest) => {
-      const { data, error } = await client.POST("/api/workflows/", {
-        body: workflow
-      });
-      if (error) {
-        throw createErrorMessage(error, "Failed to create workflow");
-      }
+        // Invalidate workflows queries
+        get().queryClient?.invalidateQueries({ queryKey: ["workflows"] });
 
-      const workflowWithTags = {
-        ...data,
-        tags: workflow.tags || []
-      };
+        return workflowWithTags;
+      },
 
-      // Invalidate workflows queries
-      get().queryClient?.invalidateQueries({ queryKey: ["workflows"] });
+      load: async (cursor?: string, limit?: number) => {
+        cursor = cursor || "";
+        const { data, error } = await client.GET("/api/workflows/", {
+          params: { query: { cursor, limit } }
+        });
+        if (error) {
+          throw createErrorMessage(error, "Failed to load workflows");
+        }
+        return data;
+      },
 
-      return workflowWithTags;
-    },
+      loadIDs: async (workflowIds: string[]) => {
+        const getWorkflow = get().getWorkflow;
+        const promises = workflowIds.map((id) => getWorkflow(id));
+        const workflows = await Promise.all(promises);
+        return workflows.filter((w) => w !== undefined) as Workflow[];
+      },
 
-    load: async (cursor?: string, limit?: number) => {
-      cursor = cursor || "";
-      const { data, error } = await client.GET("/api/workflows/", {
-        params: { query: { cursor, limit } }
-      });
-      if (error) {
-        throw createErrorMessage(error, "Failed to load workflows");
-      }
-      return data;
-    },
+      loadPublic: async (cursor?: string) => {
+        cursor = cursor || "";
+        const { data, error } = await client.GET("/api/workflows/public", {
+          params: { query: { cursor } }
+        });
+        if (error) {
+          throw error;
+        }
+        return data;
+      },
 
-    loadIDs: async (workflowIds: string[]) => {
-      const getWorkflow = get().getWorkflow;
-      const promises = workflowIds.map((id) => getWorkflow(id));
-      const workflows = await Promise.all(promises);
-      return workflows.filter((w) => w !== undefined) as Workflow[];
-    },
+      loadExamples: async () => {
+        const { data, error } = await client.GET("/api/workflows/examples", {});
+        if (error) {
+          throw createErrorMessage(error, "Failed to load examples");
+        }
+        return data;
+      },
 
-    loadPublic: async (cursor?: string) => {
-      cursor = cursor || "";
-      const { data, error } = await client.GET("/api/workflows/public", {
-        params: { query: { cursor } }
-      });
-      if (error) {
-        throw error;
-      }
-      return data;
-    },
+      update: async (workflow: Workflow) => {
+        if (workflow.id === "") {
+          console.warn("Cannot update workflow with empty ID");
+          return workflow;
+        }
+        const { error, data } = await client.PUT("/api/workflows/{id}", {
+          params: {
+            path: { id: workflow.id }
+          },
+          body: workflow
+        });
+        if (error) {
+          throw createErrorMessage(error, "Failed to update workflow");
+        }
 
-    loadExamples: async () => {
-      const { data, error } = await client.GET("/api/workflows/examples", {});
-      if (error) {
-        throw createErrorMessage(error, "Failed to load examples");
-      }
-      return data;
-    },
+        // Invalidate specific workflow and workflows list
+        get().queryClient?.invalidateQueries({ queryKey: ["workflows"] });
+        get().queryClient?.invalidateQueries({
+          queryKey: ["workflow", workflow.id]
+        });
 
-    update: async (workflow: Workflow) => {
-      if (workflow.id === "") {
-        console.warn("Cannot update workflow with empty ID");
-        return workflow;
-      }
-      const { error, data } = await client.PUT("/api/workflows/{id}", {
-        params: {
-          path: { id: workflow.id }
-        },
-        body: workflow
-      });
-      if (error) {
-        throw createErrorMessage(error, "Failed to update workflow");
-      }
+        return data;
+      },
 
-      // Invalidate specific workflow and workflows list
-      get().queryClient?.invalidateQueries({ queryKey: ["workflows"] });
-      get().queryClient?.invalidateQueries({
-        queryKey: ["workflow", workflow.id]
-      });
-
-      return data;
-    },
-
-    copy: async (originalWorkflow: Workflow) => {
-      const workflow = get().getWorkflow(originalWorkflow.id);
-      if (!workflow) {
-        throw new Error("Workflow not found");
-      }
-      const copiedWorkflow = {
-        id: uuidv4(),
-        name: workflow.name,
-        description: workflow.description,
-        thumbnail: workflow.thumbnail,
-        thumbnail_url: workflow.thumbnail_url,
-        tags: workflow.tags,
-        access: "private",
-        graph: JSON.parse(JSON.stringify(workflow.graph)),
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
-      return copiedWorkflow;
-    },
-
-    delete: async (id: string) => {
-      const { error } = await client.DELETE("/api/workflows/{id}", {
-        params: { path: { id } }
-      });
-      if (error) {
-        throw createErrorMessage(error, "Failed to delete workflow");
-      }
-
-      // Invalidate workflows queries and specific workflow
-      get().queryClient?.invalidateQueries({ queryKey: ["workflows"] });
-      get().queryClient?.invalidateQueries({ queryKey: ["workflow", id] });
-    },
-
-    saveExample: async () => {
-      const workflow = get().getCurrentWorkflow();
-      if (!workflow) {
-        throw new Error("Workflow not found");
-      }
-      const { data, error } = await client.PUT("/api/workflows/examples/{id}", {
-        params: { path: { id: workflow.id } },
-        body: {
+      copy: async (originalWorkflow: Workflow) => {
+        const workflow = get().getWorkflow(originalWorkflow.id);
+        if (!workflow) {
+          throw new Error("Workflow not found");
+        }
+        const copiedWorkflow = {
+          id: uuidv4(),
           name: workflow.name,
           description: workflow.description,
           thumbnail: workflow.thumbnail,
           thumbnail_url: workflow.thumbnail_url,
-          access: "public",
-          graph: workflow.graph
-        }
-      });
-
-      if (error) {
-        throw createErrorMessage(error, "Failed to save example");
-      }
-
-      return data;
-    },
-    getCurrentLoadingState: () => {
-      const currentWorkflowId = get().currentWorkflowId;
-      if (!currentWorkflowId) {
-        return undefined;
-      }
-      return get().loadingStates[currentWorkflowId];
-    },
-    setCurrentWorkflowId: (workflowId: string) => {
-      storage.setCurrentWorkflow(workflowId);
-      set({ currentWorkflowId: workflowId });
-    },
-    getCurrentWorkflow: () => {
-      const workflow = get().nodeStores[get().currentWorkflowId!];
-      if (!workflow) {
-        return undefined;
-      }
-      return workflow.getState().getWorkflow();
-    },
-    getOpenWorkflows: () => {
-      return Object.values(get().nodeStores).map((store) => {
-        return store.getState().workflow;
-      });
-    },
-    getWorkflow: (workflowId: string) => {
-      const workflow = get().nodeStores[workflowId];
-      if (!workflow) {
-        return undefined;
-      }
-      return workflow.getState().getWorkflow();
-    },
-    addWorkflow: (workflow: Workflow) => {
-      if (!workflow.id) {
-        return;
-      }
-      const openWorkflows = storage.getOpenWorkflows();
-      if (!openWorkflows.includes(workflow.id)) {
-        const updatedWorkflows = [...openWorkflows, workflow.id];
-        storage.setOpenWorkflows(updatedWorkflows);
-      }
-
-      set((state) => ({
-        openWorkflows: [...state.openWorkflows, omit(workflow, ["graph"])],
-        nodeStores: {
-          ...state.nodeStores,
-          [workflow.id]: createNodeStore(workflow)
-        }
-      }));
-    },
-    removeWorkflow: (workflowId: string) => {
-      const openWorkflows = storage.getOpenWorkflows();
-      const updatedWorkflows = openWorkflows.filter((id) => id !== workflowId);
-      storage.setOpenWorkflows(updatedWorkflows);
-
-      set((state) => {
-        const { [workflowId]: removed, ...remaining } = state.nodeStores;
-        const { [workflowId]: removedLoadingState, ...remainingLoadingStates } =
-          state.loadingStates;
-        return {
-          nodeStores: remaining,
-          loadingStates: remainingLoadingStates,
-          openWorkflows: state.openWorkflows.filter((w) => w.id !== workflowId)
+          tags: workflow.tags,
+          access: "private",
+          graph: JSON.parse(JSON.stringify(workflow.graph)),
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         };
-      });
-    },
+        return copiedWorkflow;
+      },
 
-    saveWorkflow: async (workflow: Workflow) => {
-      const { data, error } = await client.PUT("/api/workflows/{id}", {
-        params: { path: { id: workflow.id } },
-        body: workflow
-      });
-      if (error) {
-        throw createErrorMessage(error, "Failed to save workflow");
-      }
-
-      // Invalidate specific workflow and workflows list
-      get().queryClient?.invalidateQueries({ queryKey: ["workflows"] });
-      get().queryClient?.invalidateQueries({
-        queryKey: ["workflow", workflow.id]
-      });
-    },
-    getNodeStore: (workflowId: string) => get().nodeStores[workflowId],
-    reorderWorkflows: (sourceIndex: number, targetIndex: number) => {
-      set((state) => {
-        const entries = Object.entries(state.nodeStores);
-        const [moved] = entries.splice(sourceIndex, 1);
-        entries.splice(targetIndex, 0, moved);
-        return {
-          nodeStores: Object.fromEntries(entries),
-          openWorkflows: Object.values(get().nodeStores).map((store) => {
-            return store.getState().workflow;
-          })
-        };
-      });
-    },
-    updateWorkflow: (workflow: WorkflowAttributes) => {
-      const nodeStore = get().nodeStores[workflow.id];
-      if (!nodeStore) {
-        return;
-      }
-      nodeStore.getState().setWorkflowAttributes(workflow);
-      set((state) => ({
-        openWorkflows: Object.values(state.nodeStores).map((store) => {
-          return store.getState().workflow;
-        })
-      }));
-    },
-    getLoadingState: (workflowId: string) => get().loadingStates[workflowId],
-    setLoadingState: (workflowId: string, state: Partial<LoadingState>) => {
-      set((current) => ({
-        loadingStates: {
-          ...current.loadingStates,
-          [workflowId]: {
-            ...current.loadingStates[workflowId],
-            ...state
-          }
-        }
-      }));
-    },
-    fetchWorkflow: async (workflowId: string) => {
-      const state = get();
-      const nodeStore = state.getNodeStore(workflowId);
-      const loadingState = state.getLoadingState(workflowId);
-
-      // If no nodeStore exists, create one with empty workflow attributes
-      if (nodeStore || loadingState?.isLoading) {
-        return;
-      }
-
-      state.setLoadingState(workflowId, {
-        isLoading: true,
-        error: null,
-        data: null
-      });
-
-      try {
-        const { data, error } = await client.GET("/api/workflows/{id}", {
-          params: { path: { id: workflowId } }
+      delete: async (id: string) => {
+        const { error } = await client.DELETE("/api/workflows/{id}", {
+          params: { path: { id } }
         });
+        if (error) {
+          throw createErrorMessage(error, "Failed to delete workflow");
+        }
+
+        // Invalidate workflows queries and specific workflow
+        get().queryClient?.invalidateQueries({ queryKey: ["workflows"] });
+        get().queryClient?.invalidateQueries({ queryKey: ["workflow", id] });
+      },
+
+      saveExample: async () => {
+        const workflow = get().getCurrentWorkflow();
+        if (!workflow) {
+          throw new Error("Workflow not found");
+        }
+        const { data, error } = await client.PUT(
+          "/api/workflows/examples/{id}",
+          {
+            params: { path: { id: workflow.id } },
+            body: {
+              name: workflow.name,
+              description: workflow.description,
+              thumbnail: workflow.thumbnail,
+              thumbnail_url: workflow.thumbnail_url,
+              access: "public",
+              graph: workflow.graph
+            }
+          }
+        );
 
         if (error) {
+          throw createErrorMessage(error, "Failed to save example");
+        }
+
+        return data;
+      },
+      getCurrentLoadingState: () => {
+        const currentWorkflowId = get().currentWorkflowId;
+        if (!currentWorkflowId) {
+          return undefined;
+        }
+        return get().loadingStates[currentWorkflowId];
+      },
+      setCurrentWorkflowId: (workflowId: string) => {
+        storage.setCurrentWorkflow(workflowId);
+        set({ currentWorkflowId: workflowId });
+      },
+      getCurrentWorkflow: () => {
+        const workflow = get().nodeStores[get().currentWorkflowId!];
+        if (!workflow) {
+          return undefined;
+        }
+        return workflow.getState().getWorkflow();
+      },
+      getOpenWorkflows: () => {
+        return Object.values(get().nodeStores).map((store) => {
+          return store.getState().workflow;
+        });
+      },
+      getWorkflow: (workflowId: string) => {
+        const workflow = get().nodeStores[workflowId];
+        if (!workflow) {
+          return undefined;
+        }
+        return workflow.getState().getWorkflow();
+      },
+      addWorkflow: (workflow: Workflow) => {
+        if (!workflow.id) {
+          console.warn("Attempted to add workflow with no ID");
+          return;
+        }
+        const openWorkflows = storage.getOpenWorkflows();
+
+        if (!openWorkflows.includes(workflow.id)) {
+          const updatedWorkflows = [...openWorkflows, workflow.id];
+          storage.setOpenWorkflows(updatedWorkflows);
+        }
+
+        set((state) => {
+          const existingIndex = state.openWorkflows.findIndex(
+            (w) => w.id === workflow.id
+          );
+
+          let updatedOpenWorkflows;
+          if (existingIndex >= 0) {
+            updatedOpenWorkflows = [...state.openWorkflows];
+            updatedOpenWorkflows[existingIndex] = omit(workflow, ["graph"]);
+
+            if (state.nodeStores[workflow.id]) {
+              state.nodeStores[workflow.id].getState().setWorkflow(workflow);
+              return {
+                openWorkflows: updatedOpenWorkflows
+              };
+            }
+          } else {
+            updatedOpenWorkflows = [
+              ...state.openWorkflows,
+              omit(workflow, ["graph"])
+            ];
+          }
+
+          return {
+            openWorkflows: updatedOpenWorkflows,
+            nodeStores: {
+              ...state.nodeStores,
+              [workflow.id]: createNodeStore(workflow)
+            }
+          };
+        });
+      },
+      removeWorkflow: (workflowId: string) => {
+        storage.removeOpenWorkflow(workflowId);
+
+        set((state) => {
+          const { [workflowId]: removed, ...remaining } = state.nodeStores;
+          const {
+            [workflowId]: removedLoadingState,
+            ...remainingLoadingStates
+          } = state.loadingStates;
+          return {
+            nodeStores: remaining,
+            loadingStates: remainingLoadingStates,
+            openWorkflows: state.openWorkflows.filter(
+              (w) => w.id !== workflowId
+            )
+          };
+        });
+      },
+
+      saveWorkflow: async (workflow: Workflow) => {
+        // Mark this workflow as recently saved
+        // Mark this workflow as recently saved
+        set((state) => ({
+          recentlySavedWorkflows: {
+            ...state.recentlySavedWorkflows,
+            [workflow.id]: Date.now()
+          }
+        }));
+
+        const { data, error } = await client.PUT("/api/workflows/{id}", {
+          params: { path: { id: workflow.id } },
+          body: workflow
+        });
+        if (error) {
+          throw createErrorMessage(error, "Failed to save workflow");
+        }
+
+        // Invalidate specific workflow and workflows list
+        get().queryClient?.invalidateQueries({ queryKey: ["workflows"] });
+        get().queryClient?.invalidateQueries({
+          queryKey: ["workflow", workflow.id]
+        });
+      },
+      getNodeStore: (workflowId: string) => get().nodeStores[workflowId],
+      reorderWorkflows: (sourceIndex: number, targetIndex: number) => {
+        set((state) => {
+          const entries = Object.entries(state.nodeStores);
+          const [moved] = entries.splice(sourceIndex, 1);
+          entries.splice(targetIndex, 0, moved);
+          return {
+            nodeStores: Object.fromEntries(entries),
+            openWorkflows: Object.values(get().nodeStores).map((store) => {
+              return store.getState().workflow;
+            })
+          };
+        });
+      },
+      updateWorkflow: (workflow: WorkflowAttributes) => {
+        const nodeStore = get().nodeStores[workflow.id];
+        if (!nodeStore) {
+          return;
+        }
+        nodeStore.getState().setWorkflowAttributes(workflow);
+        set((state) => ({
+          openWorkflows: Object.values(state.nodeStores).map((store) => {
+            return store.getState().workflow;
+          })
+        }));
+      },
+      getLoadingState: (workflowId: string) => get().loadingStates[workflowId],
+      setLoadingState: (workflowId: string, state: Partial<LoadingState>) => {
+        set((current) => ({
+          loadingStates: {
+            ...current.loadingStates,
+            [workflowId]: {
+              ...current.loadingStates[workflowId],
+              ...state
+            }
+          }
+        }));
+      },
+      fetchWorkflow: async (workflowId: string) => {
+        const state = get();
+        const nodeStore = state.getNodeStore(workflowId);
+        const loadingState = state.getLoadingState(workflowId);
+
+        // If no nodeStore exists, create one with empty workflow attributes
+        if (nodeStore || loadingState?.isLoading) {
+          return;
+        }
+
+        state.setLoadingState(workflowId, {
+          isLoading: true,
+          error: null,
+          data: null
+        });
+
+        try {
+          const { data, error } = await client.GET("/api/workflows/{id}", {
+            params: { path: { id: workflowId } }
+          });
+
+          if (error) {
+            state.setLoadingState(workflowId, {
+              isLoading: false,
+              error: error as Error,
+              data: null
+            });
+          } else {
+            state.setLoadingState(workflowId, {
+              isLoading: false,
+              error: null,
+              data
+            });
+            state.addWorkflow(data);
+          }
+        } catch (error) {
           state.setLoadingState(workflowId, {
             isLoading: false,
             error: error as Error,
             data: null
           });
-        } else {
-          state.setLoadingState(workflowId, {
-            isLoading: false,
-            error: null,
-            data
-          });
-          state.addWorkflow(data);
         }
-      } catch (error) {
-        state.setLoadingState(workflowId, {
-          isLoading: false,
-          error: error as Error,
-          data: null
-        });
-      }
-    }
-  }));
+      },
+      recentlySavedWorkflows: {}
+    };
+  });
+};
 
 export const FetchCurrentWorkflow: React.FC<{
   children: React.ReactNode;
@@ -457,15 +525,60 @@ export const WorkflowManagerProvider: React.FC<{
 }> = ({ children, queryClient }) => {
   const [store] = useState(() => {
     const workflowManagerStore = createWorkflowManagerStore(queryClient);
+    return workflowManagerStore;
+  });
+
+  useEffect(() => {
+    // Create and connect WebSocket store
+    const webSocketUpdatesStore = createWebSocketUpdatesStore(
+      (workflow) => {
+        const recentlySaved =
+          store.getState().recentlySavedWorkflows[workflow.id];
+        const now = Date.now();
+
+        // Skip updates for workflows saved in the last 2 seconds
+        if (recentlySaved && now - recentlySaved < 2000) {
+          return;
+        }
+
+        store.getState().addWorkflow(workflow);
+        useNotificationStore.getState().addNotification({
+          type: "info",
+          alert: true,
+          content: `Updated workflow ${workflow.name}`
+        });
+      },
+      (workflowId) => {
+        store.getState().removeWorkflow(workflowId);
+        useNotificationStore.getState().addNotification({
+          type: "info",
+          alert: true,
+          content: `Removed workflow ${workflowId}`
+        });
+      },
+      (workflow) => {
+        store.getState().addWorkflow(workflow);
+        useNotificationStore.getState().addNotification({
+          type: "info",
+          alert: true,
+          content: `Added workflow ${workflow.name}`
+        });
+      }
+    );
+
+    webSocketUpdatesStore.getState().connect();
 
     // Restore previously open workflows
     const openWorkflows = storage.getOpenWorkflows();
     openWorkflows.forEach((workflowId: string) => {
-      workflowManagerStore.getState().fetchWorkflow(workflowId);
+      store.getState().fetchWorkflow(workflowId);
     });
 
-    return workflowManagerStore;
-  });
+    // Cleanup function to disconnect WebSocket when component unmounts
+    return () => {
+      webSocketUpdatesStore.getState().disconnect();
+    };
+  }, [store]);
 
   return (
     <WorkflowManagerContext.Provider value={store}>
