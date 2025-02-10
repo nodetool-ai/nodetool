@@ -37,7 +37,11 @@ const WorkflowFormModal = ({
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogContent sx={{ bgcolor: "background.paper" }}>
-        <WorkflowForm onSave={handleSave} workflow={workflow} />
+        <WorkflowForm
+          onSave={handleSave}
+          onCancel={onClose}
+          workflow={workflow}
+        />
       </DialogContent>
     </Dialog>
   );

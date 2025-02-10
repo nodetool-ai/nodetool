@@ -5,7 +5,6 @@ import { useCallback, useEffect, useState, useMemo, memo } from "react";
 import { ErrorOutlineRounded } from "@mui/icons-material";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 import WorkflowToolbar from "./WorkflowToolbar";
-import WorkflowGrid from "./WorkflowGrid";
 import WorkflowDeleteDialog from "./WorkflowDeleteDialog";
 import {
   Workflow,
@@ -16,49 +15,15 @@ import { client } from "../../stores/ApiClient";
 import { createErrorMessage } from "../../utils/errorHandling";
 import { isEqual } from "lodash";
 import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
+import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+import WorkflowListView from "./WorkflowListView";
+import WorkflowFormModal from "./WorkflowFormModal";
 
 const styles = (theme: any) =>
   css({
     "&": {
-      marginLeft: "20px"
-    },
-    ".tools": {
-      display: "flex",
-      flexDirection: "row",
-      gap: "1em",
-      alignItems: "center",
-      margin: "0"
-    },
-    ".tools button": {
-      fontSize: "0.7em",
-      borderColor: `${theme.palette.c_hl1}33`,
-      width: "3em",
-      height: "3em",
-      "&:hover": {
-        borderColor: theme.palette.c_hl1
-      },
-      "& svg": {
-        color: theme.palette.c_gray4
-      },
-      "&:hover svg": {
-        fill: theme.palette.c_hl1
-      }
-    },
-    ".tools .delete-selected-button": {
-      borderColor: `${theme.palette.c_hl1}33`,
-      color: theme.palette.c_hl1,
-      "&:hover": {
-        borderColor: theme.palette.c_hl1
-      },
-      "& svg": {
-        color: theme.palette.c_hl1
-      }
-    },
-    ".MuiOutlinedInput-root": {
-      fontSize: "20px"
-    },
-    ".filter": {
-      width: "20em"
+      marginLeft: "0px"
     },
     ".loading-indicator": {
       display: "flex",
@@ -68,19 +33,12 @@ const styles = (theme: any) =>
       height: "50vh",
       width: "100%"
     },
+    ".status": {
+      margin: "1em 1em 0 2em"
+    },
     ".workflow-items": {
       paddingTop: "0.5em"
     },
-    ".name": {
-      fontSize: theme.fontSizeSmall,
-      lineHeight: "1em",
-      color: theme.palette.c_gray8
-    },
-    ".date": {
-      fontSize: theme.fontSizeTiny,
-      color: theme.palette.c_gray5
-    },
-    ".status": { margin: "1em 1em 0 2em" },
     // Toggle category
     ".toggle-category": {
       display: "flex",
@@ -94,24 +52,6 @@ const styles = (theme: any) =>
       padding: 0,
       fontSize: theme.fontSizeSmall,
       color: theme.palette.c_gray5
-    },
-    ".workflow-header": {
-      display: "flex",
-      alignItems: "center",
-      gap: theme.spacing(2),
-      marginBottom: theme.spacing(3),
-      padding: theme.spacing(2, 0),
-      "& h3": {
-        margin: 0,
-        fontSize: "1.2rem",
-        color: theme.palette.c_white
-      }
-    },
-    ".duplicate-button svg": {
-      fontSize: "1.5em"
-    },
-    ".delete-button svg": {
-      fontSize: "1.5em"
     }
   });
 
@@ -144,6 +84,7 @@ const WorkflowList = () => {
   );
   const [selectedWorkflows, setSelectedWorkflows] = useState<string[]>([]);
   const pageSize = 200;
+  const [workflowToEdit, setWorkflowToEdit] = useState<Workflow | null>(null);
 
   const { data, isLoading, error, isError } = useQuery<WorkflowListType, Error>(
     {
@@ -213,16 +154,6 @@ const WorkflowList = () => {
 
   // DELETE WORKFLOW
   const onDelete = useCallback((workflow: Workflow) => {
-    // let workflowsToDelete;
-    // if (selectedWorkflows.includes(workflow.id)) {
-    //   // delete all selected workflows if the delete button is clicked on a selected workflow
-    //   workflowsToDelete = workflows.filter((w) =>
-    //     selectedWorkflows.includes(w.id)
-    //   );
-    // } else {
-    //   // only delete one to prevent accidental deletion of multiple workflows
-    //   workflowsToDelete = [workflow];
-    // }
     setWorkflowsToDelete([workflow]);
     setIsDeleteDialogOpen(true);
   }, []);
@@ -232,6 +163,55 @@ const WorkflowList = () => {
     return () => document.removeEventListener("click", onDeselect);
   }, [onDeselect]);
 
+  const navigate = useNavigate();
+  const { copyWorkflow, createWorkflow } = useWorkflowManager((state) => ({
+    copyWorkflow: state.copy,
+    createWorkflow: state.create
+  }));
+
+  const handleOpenWorkflow = useCallback(
+    (workflow: Workflow) => {
+      navigate("/editor/" + workflow.id);
+    },
+    [navigate]
+  );
+
+  const duplicateWorkflow = useCallback(
+    async (event: React.MouseEvent, workflow: Workflow) => {
+      event.stopPropagation();
+      const workflowRequest = await copyWorkflow(workflow);
+      const baseName = workflow.name.replace(/ \(\d+\)$/, "");
+      const existingNames = workflows
+        .filter((w) => w.name.startsWith(baseName))
+        .map((w) => w.name);
+      let highestNumber = 0;
+      const regex = new RegExp(`^${baseName} \\((\\d+)\\)$`);
+      existingNames.forEach((name) => {
+        const match = name.match(regex);
+        if (match && match[1]) {
+          const number = parseInt(match[1], 10);
+          if (number > highestNumber) {
+            highestNumber = number;
+          }
+        }
+      });
+      const newName = `${baseName} (${highestNumber + 1})`;
+      workflowRequest.name = newName.substring(0, 50);
+      const newWorkflow = await createWorkflow(workflowRequest);
+      navigate(`/editor/${newWorkflow.id}`);
+    },
+    [copyWorkflow, createWorkflow, workflows, navigate]
+  );
+
+  const finalWorkflows = useMemo(() => {
+    if (!selectedTag) return workflows;
+    return workflows.filter((wf) => wf.tags?.includes(selectedTag));
+  }, [workflows, selectedTag]);
+
+  const handleEdit = useCallback((workflow: Workflow) => {
+    setWorkflowToEdit(workflow);
+  }, []);
+
   return (
     <>
       <WorkflowDeleteDialog
@@ -239,6 +219,13 @@ const WorkflowList = () => {
         onClose={() => setIsDeleteDialogOpen(false)}
         workflowsToDelete={workflowsToDelete}
       />
+      {workflowToEdit && (
+        <WorkflowFormModal
+          open={!!workflowToEdit}
+          onClose={() => setWorkflowToEdit(null)}
+          workflow={workflowToEdit}
+        />
+      )}
       <div css={styles}>
         <WorkflowToolbar
           workflows={workflows}
@@ -270,14 +257,19 @@ const WorkflowList = () => {
             </div>
           )}
         </div>
-        <WorkflowGrid
-          selectedTag={selectedTag}
-          workflows={workflows}
-          onSelect={onSelect}
-          selectedWorkflows={selectedWorkflows}
-          showCheckboxes={showCheckboxes}
-          onDelete={onDelete}
-        />
+        <div className="workflow-items">
+          <WorkflowListView
+            workflows={finalWorkflows}
+            onOpenWorkflow={handleOpenWorkflow}
+            onDuplicateWorkflow={duplicateWorkflow}
+            onDelete={onDelete}
+            onEdit={handleEdit}
+            onSelect={onSelect}
+            selectedWorkflows={selectedWorkflows}
+            workflowCategory="user"
+            showCheckboxes={showCheckboxes}
+          />
+        </div>
       </div>
     </>
   );

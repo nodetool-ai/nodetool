@@ -135,15 +135,28 @@ const styles = (theme: any) =>
         fontWeight: 500,
         color: theme.palette.c_white
       }
+    },
+    ".button-container": {
+      display: "flex",
+      gap: theme.spacing(2),
+      marginTop: theme.spacing(2)
+    },
+    ".cancel-button": {
+      backgroundColor: "transparent",
+      color: theme.palette.c_gray6,
+      "&:hover": {
+        backgroundColor: theme.palette.c_gray2
+      }
     }
   });
 
 interface WorkflowFormProps {
   workflow: Workflow;
   onSave: () => void;
+  onCancel: () => void;
 }
 
-const WorkflowForm = ({ workflow, onSave }: WorkflowFormProps) => {
+const WorkflowForm = ({ workflow, onSave, onCancel }: WorkflowFormProps) => {
   const { update } = useWorkflowManager((state) => ({
     update: state.update
   }));
@@ -297,9 +310,14 @@ const WorkflowForm = ({ workflow, onSave }: WorkflowFormProps) => {
             <MenuItem value="private">Private</MenuItem>
           </Select>
         </FormControl>
-        <Button className="save-button" onClick={onSave}>
-          Save
-        </Button>
+        <div className="button-container">
+          <Button className="cancel-button" onClick={onCancel}>
+            Cancel
+          </Button>
+          <Button className="save-button" onClick={onSave}>
+            Save
+          </Button>
+        </div>
       </Box>
     </div>
   );

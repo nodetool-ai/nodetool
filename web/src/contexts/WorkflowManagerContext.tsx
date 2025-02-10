@@ -15,6 +15,7 @@ import React from "react";
 import { debounce, omit } from "lodash";
 import { createErrorMessage } from "../utils/errorHandling";
 import { uuidv4 } from "../stores/uuidv4";
+import { QueryClient } from "@tanstack/react-query";
 
 type LoadingState = {
   isLoading: boolean;
@@ -27,6 +28,7 @@ type WorkflowManagerState = {
   currentWorkflowId: string | null;
   loadingStates: Record<string, LoadingState>;
   openWorkflows: WorkflowAttributes[];
+  queryClient: QueryClient | null;
   getCurrentLoadingState: () => LoadingState | undefined;
   getWorkflow: (workflowId: string) => Workflow | undefined;
   addWorkflow: (workflow: Workflow) => void;
@@ -97,13 +99,14 @@ export const useWorkflowManager = <T,>(
   return useStoreWithEqualityFn(context, selector, shallow);
 };
 
-export const createWorkflowManagerStore = () =>
+export const createWorkflowManagerStore = (queryClient: QueryClient) =>
   create<WorkflowManagerState>()((set, get) => ({
     nodeStores: {},
     openWorkflows: [],
     currentWorkflowId: storage.getCurrentWorkflow() || null,
     loadingStates: {},
     error: null,
+    queryClient: queryClient,
     newWorkflow: () => {
       const data: Workflow = {
         id: "",
@@ -137,6 +140,9 @@ export const createWorkflowManagerStore = () =>
         ...data,
         tags: workflow.tags || []
       };
+
+      // Invalidate workflows queries
+      get().queryClient?.invalidateQueries({ queryKey: ["workflows"] });
 
       return workflowWithTags;
     },
@@ -192,6 +198,13 @@ export const createWorkflowManagerStore = () =>
       if (error) {
         throw createErrorMessage(error, "Failed to update workflow");
       }
+
+      // Invalidate specific workflow and workflows list
+      get().queryClient?.invalidateQueries({ queryKey: ["workflows"] });
+      get().queryClient?.invalidateQueries({
+        queryKey: ["workflow", workflow.id]
+      });
+
       return data;
     },
 
@@ -222,6 +235,10 @@ export const createWorkflowManagerStore = () =>
       if (error) {
         throw createErrorMessage(error, "Failed to delete workflow");
       }
+
+      // Invalidate workflows queries and specific workflow
+      get().queryClient?.invalidateQueries({ queryKey: ["workflows"] });
+      get().queryClient?.invalidateQueries({ queryKey: ["workflow", id] });
     },
 
     saveExample: async () => {
@@ -320,6 +337,12 @@ export const createWorkflowManagerStore = () =>
       if (error) {
         throw createErrorMessage(error, "Failed to save workflow");
       }
+
+      // Invalidate specific workflow and workflows list
+      get().queryClient?.invalidateQueries({ queryKey: ["workflows"] });
+      get().queryClient?.invalidateQueries({
+        queryKey: ["workflow", workflow.id]
+      });
     },
     getNodeStore: (workflowId: string) => get().nodeStores[workflowId],
     reorderWorkflows: (sourceIndex: number, targetIndex: number) => {
@@ -430,9 +453,10 @@ export const FetchCurrentWorkflow: React.FC<{
 
 export const WorkflowManagerProvider: React.FC<{
   children: React.ReactNode;
-}> = ({ children }) => {
+  queryClient: QueryClient;
+}> = ({ children, queryClient }) => {
   const [store] = useState(() => {
-    const workflowManagerStore = createWorkflowManagerStore();
+    const workflowManagerStore = createWorkflowManagerStore(queryClient);
 
     // Restore previously open workflows
     const openWorkflows = storage.getOpenWorkflows();

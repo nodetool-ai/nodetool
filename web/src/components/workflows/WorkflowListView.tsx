@@ -15,6 +15,7 @@ interface WorkflowListViewProps {
   onDuplicateWorkflow: (event: React.MouseEvent, workflow: Workflow) => void;
   onSelect: (workflow: Workflow) => void;
   onDelete: (workflow: Workflow) => void;
+  onEdit: (workflow: Workflow) => void;
   onScroll?: (event: React.UIEvent<HTMLDivElement>) => void;
   selectedWorkflows: string[] | null;
   workflowCategory: string;
@@ -28,11 +29,11 @@ const listStyles = (theme: any) =>
       flexDirection: "column",
       rowGap: "0px",
       alignItems: "flex-start",
-      margin: ".5em .5em 0 0",
-      maxHeight: "calc(100vh - 230px)",
+      margin: "0",
       overflow: "hidden auto"
     },
     ".workflow": {
+      height: "28px",
       padding: "0.25em .1em 0.25em 1em",
       display: "flex",
       flexDirection: "row",
@@ -45,7 +46,8 @@ const listStyles = (theme: any) =>
         margin: "0 1em 0.5em 0",
         padding: 0
       },
-      borderLeft: `2px solid transparent`
+      borderLeft: `2px solid transparent`,
+      position: "relative"
     },
     ".workflow.current": {
       backgroundColor: theme.palette.c_gray0,
@@ -66,28 +68,28 @@ const listStyles = (theme: any) =>
       objectFit: "cover"
     },
     ".name": {
-      fontSize: theme.fontSizeNormal,
+      fontSize: theme.fontSizeSmall,
       fontWeight: "lighter",
       margin: "0",
       lineHeight: "1.2em",
       color: theme.palette.c_white,
-      userSelect: "none"
+      userSelect: "none",
+      flex: "1"
     },
     ".date": {
-      paddingRight: "0.2em",
+      position: "absolute",
+      right: "0.5em",
       color: theme.palette.c_gray5,
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeSmaller,
-      right: "0",
       wordSpacing: "-0.1em",
       lineHeight: "2em",
       minWidth: "80px",
       userSelect: "none",
       textAlign: "right"
     },
-    ".duplicate-button, .delete-button": {
-      opacity: 0,
-      padding: "0"
+    ".workflow:hover .date": {
+      opacity: 0
     },
     ".workflow:hover .duplicate-button, .workflow:hover .delete-button": {
       opacity: 1
@@ -95,17 +97,30 @@ const listStyles = (theme: any) =>
     ".duplicate-button svg": {
       transform: "scale(0.7)"
     },
+    ".workflow:hover button": {
+      opacity: 1
+    },
     ".actions": {
+      position: "absolute",
+      right: "0.5em",
       display: "flex",
-      alignItems: "right",
-      minWidth: "48px",
-      marginLeft: "auto",
+      alignItems: "center",
+      justifyContent: "flex-end",
+      width: "100px",
       button: {
+        opacity: 0,
+        padding: "0",
         color: theme.palette.c_gray6,
         "&:hover": {
           backgroundColor: theme.palette.c_gray3
+        },
+        svg: {
+          fontSize: "1.5em"
         }
       }
+    },
+    ".workflow.alternate": {
+      backgroundColor: `${theme.palette.c_gray2}50`
     }
   });
 
@@ -116,6 +131,7 @@ const WorkflowListView: React.FC<WorkflowListViewProps> = ({
   onDuplicateWorkflow,
   onSelect,
   onDelete,
+  onEdit,
   onScroll,
   selectedWorkflows,
   showCheckboxes
@@ -124,8 +140,8 @@ const WorkflowListView: React.FC<WorkflowListViewProps> = ({
     (state) => state.currentWorkflowId
   );
 
-  const ITEM_HEIGHT = 38;
-  const CONTAINER_HEIGHT = window.innerHeight - 230;
+  const ITEM_HEIGHT = 28;
+  const CONTAINER_HEIGHT = window.innerHeight - 210;
 
   const Row = ({
     index,
@@ -147,6 +163,8 @@ const WorkflowListView: React.FC<WorkflowListViewProps> = ({
           onDuplicateWorkflow={onDuplicateWorkflow}
           onSelect={onSelect}
           onDelete={onDelete}
+          onEdit={onEdit}
+          isAlternate={index % 2 === 1}
         />
       </div>
     );
