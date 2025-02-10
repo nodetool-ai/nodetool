@@ -273,9 +273,7 @@ class Email(BaseType):
     id: str = Field(default="", description="Message ID")
     sender: str = Field(default="", description="Sender email address")
     subject: str = Field(default="", description="Email subject line")
-    date: Datetime = Field(
-        default=Datetime.from_datetime(datetime.now()), description="Email date"
-    )
+    date: Datetime = Field(default=Datetime(), description="Email date")
     body: str | TextRef = Field(default="", description="Email body content")
 
 

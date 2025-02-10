@@ -30971,6 +30971,31 @@
     "is_dynamic": false
   },
   {
+    "title": "Paste Image From Clipboard",
+    "description": "Reads an image from the system clipboard.\n    clipboard, system, paste, image\n\n    Use cases:\n    - Capture screenshots from clipboard\n    - Process clipboard images\n    - Import clipboard content\n\n    Requires:\n    - Windows: Pillow\n    - macOS: Pillow, pyobjc-framework-Cocoa\n    - Linux: Pillow, xclip",
+    "namespace": "nodetool.os",
+    "node_type": "nodetool.os.PasteImageFromClipboard",
+    "layout": "default",
+    "properties": [],
+    "outputs": [
+      {
+        "type": {
+          "type": "image",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [],
+    "is_dynamic": false
+  },
+  {
     "title": "File Exists",
     "description": "Check if a file or directory exists at the specified path.\n    files, check, exists\n\n    Use cases:\n    - Validate file presence before processing\n    - Implement conditional logic based on file existence",
     "namespace": "nodetool.os",
@@ -33121,28 +33146,66 @@
     "is_dynamic": false
   },
   {
-    "title": "Paste Image From Clipboard",
-    "description": "Reads an image from the system clipboard on macOS.\n    clipboard, system, paste, image\n\n    Use cases:\n    - Capture screenshots from clipboard\n    - Process clipboard images\n    - Import clipboard content",
+    "title": "Show Notification",
+    "description": "Shows a system notification.\n    notification, system, alert\n\n    Use cases:\n    - Alert user of completed tasks\n    - Show process status\n    - Display important messages",
     "namespace": "nodetool.os",
-    "node_type": "nodetool.os.PasteImageFromClipboard",
+    "node_type": "nodetool.os.ShowNotification",
     "layout": "default",
-    "properties": [],
-    "outputs": [
+    "properties": [
       {
+        "name": "title",
         "type": {
-          "type": "image",
+          "type": "str",
           "optional": false,
           "values": null,
           "type_args": [],
           "type_name": null
         },
-        "name": "output",
-        "stream": false
+        "default": "",
+        "title": "Title",
+        "description": "Title of the notification",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "message",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Message",
+        "description": "Content of the notification",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "timeout",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 10,
+        "title": "Timeout",
+        "description": "How long the notification should stay visible (in seconds)",
+        "min": null,
+        "max": null
       }
     ],
+    "outputs": [],
     "the_model_info": {},
     "recommended_models": [],
-    "basic_fields": [],
+    "basic_fields": [
+      "title",
+      "message",
+      "timeout"
+    ],
     "is_dynamic": false
   },
   {
@@ -128651,15 +128714,15 @@
           "subject": "",
           "date": {
             "type": "datetime",
-            "year": 2025,
-            "month": 2,
-            "day": 9,
-            "hour": 23,
-            "minute": 29,
-            "second": 31,
-            "microsecond": 435294,
+            "year": 0,
+            "month": 0,
+            "day": 0,
+            "hour": 0,
+            "minute": 0,
+            "second": 0,
+            "microsecond": 0,
             "tzinfo": "UTC",
-            "utc_offset": 0.0
+            "utc_offset": 0
           },
           "body": ""
         },
