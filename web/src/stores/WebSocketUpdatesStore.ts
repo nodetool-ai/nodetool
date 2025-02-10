@@ -1,5 +1,5 @@
-import { create } from "zustand";
-import { SystemStats } from "./ApiTypes";
+import { create, StoreApi, UseBoundStore } from "zustand";
+import { SystemStats, Workflow } from "./ApiTypes";
 import { BASE_URL } from "./ApiClient";
 
 interface WebSocketUpdatesState {
@@ -10,12 +10,19 @@ interface WebSocketUpdatesState {
   disconnect: () => void;
 }
 
-export const useWebSocketUpdatesStore = create<WebSocketUpdatesState>(
-  (set, get) => ({
+export type WebSocketUpdatesStore = UseBoundStore<
+  StoreApi<WebSocketUpdatesState>
+>;
+
+export const createWebSocketUpdatesStore = (
+  onWorkflowUpdate: (workflow: Workflow) => void,
+  onWorkflowDelete: (workflowId: string) => void,
+  onWorkflowCreate: (workflow: Workflow) => void
+) =>
+  create<WebSocketUpdatesState>((set, get) => ({
     systemStats: null,
     socket: null,
     isConnected: false,
-
     connect: () => {
       if (get().socket?.readyState === WebSocket.OPEN) {
         return;
@@ -51,6 +58,15 @@ export const useWebSocketUpdatesStore = create<WebSocketUpdatesState>(
             case "system_stats":
               set({ systemStats: data.stats });
               break;
+            case "update_workflow":
+              onWorkflowUpdate(data.workflow);
+              break;
+            case "delete_workflow":
+              onWorkflowDelete(data.id);
+              break;
+            case "create_workflow":
+              onWorkflowCreate(data.workflow);
+              break;
           }
         } catch (error) {
           console.error("WebSocket Updates: Error processing message:", error);
@@ -67,5 +83,4 @@ export const useWebSocketUpdatesStore = create<WebSocketUpdatesState>(
         set({ socket: null, isConnected: false });
       }
     }
-  })
-);
+  }));
