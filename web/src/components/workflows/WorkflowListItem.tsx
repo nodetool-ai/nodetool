@@ -4,6 +4,7 @@ import { Box, Button, Typography } from "@mui/material";
 import Checkbox from "@mui/material/Checkbox";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import DeleteIcon from "@mui/icons-material/Delete";
+import EditIcon from "@mui/icons-material/Edit";
 import { Workflow } from "../../stores/ApiTypes";
 import { relativeTime } from "../../utils/formatDateAndTime";
 import { isEqual } from "lodash";
@@ -12,22 +13,26 @@ interface WorkflowListItemProps {
   workflow: Workflow;
   isSelected: boolean;
   isCurrent: boolean;
+  isAlternate: boolean;
   showCheckboxes: boolean;
   onOpenWorkflow: (workflow: Workflow) => void;
   onDuplicateWorkflow: (event: React.MouseEvent, workflow: Workflow) => void;
   onSelect: (workflow: Workflow) => void;
   onDelete: (workflow: Workflow) => void;
+  onEdit: (workflow: Workflow) => void;
 }
 
 const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
   workflow,
   isSelected,
   isCurrent,
+  isAlternate,
   showCheckboxes,
   onOpenWorkflow,
   onDuplicateWorkflow,
   onSelect,
-  onDelete
+  onDelete,
+  onEdit
 }: WorkflowListItemProps) => {
   const addBreaks = (text: string) => {
     return text.replace(/([-_.])/g, "$1<wbr>");
@@ -39,7 +44,8 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
       className={
         "workflow list" +
         (isSelected ? " selected" : "") +
-        (isCurrent ? " current" : "")
+        (isCurrent ? " current" : "") +
+        (isAlternate ? " alternate" : "")
       }
       onContextMenu={(e) => {
         e.preventDefault();
@@ -65,15 +71,30 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
         className="name"
         dangerouslySetInnerHTML={{ __html: addBreaks(workflow.name) }}
       ></div>
-      <div className="actions">
+      <div className="date">
         <Typography
-          className="date"
           data-microtip-position="top"
           aria-label="Last modified"
           role="tooltip"
         >
           {relativeTime(workflow.updated_at)} <br />
         </Typography>
+      </div>
+      <div className="actions">
+        <Button
+          size="small"
+          className="edit-button"
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            onEdit(workflow);
+          }}
+          data-microtip-position="bottom"
+          aria-label="Edit"
+          role="tooltip"
+        >
+          <EditIcon />
+        </Button>
         <Button
           size="small"
           className="duplicate-button"
@@ -87,6 +108,7 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
         >
           <ContentCopyIcon />
         </Button>
+
         <Button
           size="small"
           className="delete-button"

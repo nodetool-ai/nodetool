@@ -1,3 +1,4 @@
+/** @jsxImportSource @emotion/react */
 import { FC, useCallback, useMemo } from "react";
 import { Button, Typography, Tooltip, Select, MenuItem } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
@@ -10,6 +11,7 @@ import { useNavigate } from "react-router-dom";
 import { Workflow } from "../../stores/ApiTypes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import DeleteIcon from "@mui/icons-material/Delete";
+import { css } from "@emotion/react";
 
 interface WorkflowToolbarProps {
   workflows: Workflow[];
@@ -21,6 +23,50 @@ interface WorkflowToolbarProps {
   selectedWorkflowsCount: number;
   onBulkDelete: () => void;
 }
+
+const styles = (theme: any) =>
+  css({
+    ".tools": {
+      display: "flex",
+      flexDirection: "row",
+      gap: "1em",
+      alignItems: "center",
+      margin: "0 10px"
+    },
+    ".tools button": {
+      fontSize: "0.7em",
+      borderColor: `${theme.palette.c_hl1}33`,
+      width: "3em",
+      height: "3em",
+      "&:hover": {
+        borderColor: theme.palette.c_hl1
+      },
+      "& svg": {
+        color: theme.palette.c_gray4
+      },
+      "&:hover svg": {
+        fill: theme.palette.c_hl1
+      }
+    },
+    ".tools .delete-selected-button": {
+      borderColor: `${theme.palette.c_hl1}33`,
+      color: theme.palette.c_hl1,
+      "&:hover": {
+        borderColor: theme.palette.c_hl1
+      },
+      "& svg": {
+        color: theme.palette.c_hl1
+      }
+    },
+    ".MuiOutlinedInput-root": {
+      fontSize: "20px"
+    },
+    ".filter": {
+      width: "130px",
+      height: "35px",
+      fontSize: theme.fontSizeSmall
+    }
+  });
 
 const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
   workflows,
@@ -55,10 +101,7 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
   );
 
   return (
-    <>
-      <div className="workflow-header">
-        <Typography variant="h3">Workflows</Typography>
-      </div>
+    <div css={styles}>
       <div className="tools">
         <Tooltip
           title={`${showCheckboxes ? "Hide" : "Show"} selection checkboxes`}
@@ -86,7 +129,7 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
 
         <Tooltip title="Filter workflows by tag">
           <Select
-            id="tag-filter"
+            className="filter"
             value={selectedTag}
             onChange={(e) => setSelectedTag(e.target.value)}
           >
@@ -117,7 +160,7 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
           </Tooltip>
         )}
       </div>
-    </>
+    </div>
   );
 };
 
