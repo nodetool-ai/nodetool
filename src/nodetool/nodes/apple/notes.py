@@ -120,11 +120,23 @@ class ReadNotes(BaseNode):
                 notes = []
                 for root, _, files in os.walk(temp_dir):
                     for file in files:
-                        print(file)
                         if file.endswith(".html"):
                             file_path = Path(root) / file
-                            with open(file_path, "r", encoding="utf-8") as f:
-                                content = f.read()
+                            # Try UTF-8 first, fall back to other encodings if needed
+                            content = None
+                            encodings = ["utf-8", "utf-16", "ascii", "iso-8859-1"]
+                            for encoding in encodings:
+                                try:
+                                    with open(file_path, "r", encoding=encoding) as f:
+                                        content = f.read()
+                                    break  # Successfully read the file, exit the loop
+                                except UnicodeError:
+                                    continue  # UnicodeError is a superclass of UnicodeDecodeError
+
+                            if content is None:
+                                raise Exception(
+                                    f"Failed to decode file {file_path} with any supported encoding"
+                                )
 
                             # Extract folder from path
                             relative_path = Path(root).relative_to(temp_dir)
