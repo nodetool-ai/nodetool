@@ -1,5 +1,5 @@
 from fastapi.testclient import TestClient
-from nodetool.types.workflow import WorkflowRequest
+from nodetool.types.workflow import WorkflowRequest, WorkflowList
 from nodetool.types.graph import Edge, Graph as APIGraph, Node
 from nodetool.types.workflow import (
     WorkflowList,
@@ -143,3 +143,29 @@ def test_delete_workflow(
     workflow.save()
     response = client.delete(f"/api/workflows/{workflow.id}", headers=headers)
     assert response.status_code == 200
+
+
+def test_run_workflow(client: TestClient, workflow: Workflow, headers: dict[str, str]):
+    workflow.save()
+
+    request = {
+        "workflow_id": workflow.id,
+        "job_type": "test",
+        "api_url": "http://localhost:8000",
+        "auth_token": "",
+    }
+
+    response = client.post(
+        f"/api/workflows/{workflow.id}/run", json=request, headers=headers
+    )
+    assert response.status_code == 200
+
+    # Test streaming response
+    response = client.post(
+        f"/api/workflows/{workflow.id}/run",
+        json=request,
+        params={"stream": True},
+        headers=headers,
+    )
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "application/x-ndjson"
