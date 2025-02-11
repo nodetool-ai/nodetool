@@ -40,8 +40,6 @@ async function checkPythonEnvironment(): Promise<void> {
 
   if (!hasCondaEnv) {
     await installCondaEnvironment();
-  } else {
-    await updateCondaEnvironment();
   }
 }
 
@@ -131,8 +129,8 @@ app.on("ready", async () => {
   await initializeIpcHandlers();
   await checkMediaPermissions();
 
-  // Create window first
   mainWindow = createWindow();
+
   await createTray();
 
   // Wait for window to be ready before initializing

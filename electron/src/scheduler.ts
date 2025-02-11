@@ -3,7 +3,6 @@ import * as path from "path";
 import { promises as fsPromises } from "fs";
 import { logMessage } from "./logger";
 import { exec } from "child_process";
-import { getPythonPath, srcPath } from "./config";
 
 const { chmod, stat } = fsPromises;
 
@@ -79,8 +78,6 @@ async function createLaunchAgent(
   workflowId: string,
   intervalMinutes: number
 ): Promise<void> {
-  const pythonPath: string = getPythonPath();
-  const binPath: string = path.dirname(pythonPath);
   const logPath: string = await getLaunchAgentLogPath(workflowId);
 
   const plistContent: string = `<?xml version="1.0" encoding="UTF-8"?>
@@ -91,19 +88,11 @@ async function createLaunchAgent(
     <string>${AGENT_LABEL}.${workflowId}</string>
     <key>ProgramArguments</key>
     <array>
-        <string>python</string>
-        <string>-m</string>
-        <string>nodetool.cli</string>
-        <string>run</string>
-        <string>${workflowId}</string>
+        <string>curl</string>
+        <string>-X</string>
+        <string>POST</string>
+        <string>http://localhost:8000/api/workflows/${workflowId}/run</string>
     </array>
-    <key>EnvironmentVariables</key>
-    <dict>
-        <key>PYTHONPATH</key>
-        <string>${srcPath}</string>
-        <key>PATH</key>
-        <string>${binPath}:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
-    </dict>
     <key>StartInterval</key>
     <integer>${intervalMinutes * 60}</integer>
     <key>RunAtLoad</key>
