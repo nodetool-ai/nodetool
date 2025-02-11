@@ -23,11 +23,6 @@ const requirementsPath: string = app.isPackaged
   : path.join(__dirname, "..", "..", "requirements.txt");
 
 const PID_FILE_PATH: string = path.join(app.getPath("userData"), "server.pid");
-const LAUNCHD_SERVICE_NAME: string = "ai.nodetool.server";
-const PLIST_PATH: string = path.join(
-  app.getPath("home"),
-  `Library/LaunchAgents/${LAUNCHD_SERVICE_NAME}.plist`
-);
 
 const getCondaEnvPath = (): string => {
   const settings = readSettings();
@@ -119,8 +114,6 @@ export {
   getProcessEnv,
   srcPath,
   PID_FILE_PATH,
-  LAUNCHD_SERVICE_NAME,
-  PLIST_PATH,
   webPath,
   appsPath,
   requirementsPath,

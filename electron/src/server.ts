@@ -6,8 +6,6 @@ import {
   getProcessEnv,
   srcPath,
   PID_FILE_PATH,
-  LAUNCHD_SERVICE_NAME,
-  PLIST_PATH,
   webPath,
   appsPath,
 } from "./config";
@@ -223,197 +221,12 @@ async function showOllamaInstallDialog(): Promise<void> {
   }
 }
 
-async function createLaunchdPlist(): Promise<void> {
-  const pythonPath = getPythonPath();
-  const binPath = path.dirname(pythonPath);
-  const logPath = path.join(app.getPath("logs"), "nodetool-server.log");
-  const errorLogPath = path.join(
-    app.getPath("logs"),
-    "nodetool-server-error.log"
-  );
-
-  try {
-    await fs.unlink(logPath).catch(() => {});
-    await fs.unlink(errorLogPath).catch(() => {});
-    logMessage("Cleaned up existing log files");
-  } catch (error) {
-    logMessage(
-      `Error cleaning up log files: ${(error as Error).message}`,
-      "warn"
-    );
-  }
-
-  await fs.mkdir(app.getPath("logs"), { recursive: true });
-  await fs.mkdir(path.dirname(logPath), { recursive: true });
-
-  const plistContent = `<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>Label</key>
-    <string>${LAUNCHD_SERVICE_NAME}</string>
-    <key>ProgramArguments</key>
-    <array>
-        <string>${pythonPath}</string>
-        <string>-m</string>
-        <string>nodetool.cli</string>
-        <string>serve</string>
-        <string>--port</string>
-        <string>8000</string>
-        <string>--static-folder</string>
-        <string>${webPath}</string>
-    </array>
-    <key>WorkingDirectory</key>
-    <string>${app.getAppPath()}</string>
-    <key>EnvironmentVariables</key>
-    <dict>
-        <key>PYTHONPATH</key>
-        <string>${srcPath}</string>
-        <key>PATH</key>
-        <string>${binPath}:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
-    </dict>
-    <key>RunAtLoad</key>
-    <true/>
-    <key>KeepAlive</key>
-    <true/>
-    <key>StandardOutPath</key>
-    <string>${logPath}</string>
-    <key>StandardErrorPath</key>
-    <string>${errorLogPath}</string>
-</dict>
-</plist>`;
-
-  await fs.writeFile(PLIST_PATH, plistContent);
-  await fs.chmod(PLIST_PATH, 0o644);
-}
-
-async function startServerWithLaunchd(): Promise<void> {
-  try {
-    await createLaunchdPlist();
-    logMessage("Starting server with launchd...");
-
-    const { stdout, stderr } = await new Promise<{
-      stdout: string;
-      stderr: string;
-    }>((resolve, reject) => {
-      console.log("launchctl", ["load", PLIST_PATH]);
-      const process = spawn("launchctl", ["load", PLIST_PATH]);
-      let stdout = "",
-        stderr = "";
-
-      process.stdout?.on("data", (data) => (stdout += data));
-      process.stderr?.on("data", (data) => (stderr += data));
-
-      process.on("close", (code) => {
-        if (code === 0) {
-          resolve({ stdout, stderr });
-        } else {
-          reject(
-            new Error(`launchctl load failed with code ${code}: ${stderr}`)
-          );
-        }
-      });
-    });
-
-    if (stderr) {
-      logMessage(`launchctl warning: ${stderr}`, "warn");
-    }
-
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
-    const isRunning = await isServerRunningViaLaunchd();
-    if (!isRunning) {
-      const logPath = path.join(app.getPath("logs"), "nodetool-server.log");
-      const errorLogPath = path.join(
-        app.getPath("logs"),
-        "nodetool-server-error.log"
-      );
-
-      try {
-        const serviceLog = await fs.readFile(logPath, "utf8");
-        const errorLog = await fs.readFile(errorLogPath, "utf8");
-
-        logMessage("=== Launchd Service Logs ===");
-        logMessage(serviceLog);
-        logMessage("=== Launchd Error Logs ===");
-        logMessage(errorLog);
-      } catch (logError) {
-        logMessage(
-          `Failed to read launchd logs: ${(logError as Error).message}`,
-          "error"
-        );
-      }
-
-      return;
-    }
-
-    logMessage("Server started successfully via launchd");
-    emitBootMessage("Server started, waiting for availability...");
-  } catch (error) {
-    logMessage(
-      `Failed to start server with launchd: ${
-        (error as Error).message
-      }. Falling back to direct Python server process`,
-      "warn"
-    );
-    await startServer();
-  }
-}
-
-async function stopServerWithLaunchd(): Promise<void> {
-  try {
-    await spawn("launchctl", ["remove", LAUNCHD_SERVICE_NAME]);
-    await fs.unlink(PLIST_PATH);
-  } catch (error) {
-    logMessage(
-      `Error stopping launchd service: ${(error as Error).message}`,
-      "error"
-    );
-  }
-}
-
-async function isServerRunningViaLaunchd(): Promise<boolean> {
-  try {
-    return new Promise<boolean>((resolve) => {
-      exec(
-        `launchctl list ${LAUNCHD_SERVICE_NAME}`,
-        (error, stdout, stderr) => {
-          if (!error && stdout && !stdout.includes("Could not find service")) {
-            logMessage("Server is running via launchd");
-            resolve(true);
-          } else {
-            exec(
-              `launchctl error ${LAUNCHD_SERVICE_NAME}`,
-              (errError, errStdout, errStderr) => {
-                if (errStdout) {
-                  logMessage(`Launchd service error: ${errStdout}`, "error");
-                }
-                logMessage("Server is not running via launchd");
-                resolve(false);
-              }
-            );
-          }
-        }
-      );
-    });
-  } catch (error) {
-    logMessage(
-      `Error checking launchd status: ${(error as Error).message}`,
-      "error"
-    );
-    return false;
-  }
-}
-
 async function isServerRunning(): Promise<boolean> {
-  if (process.platform === "darwin") {
-    return await isServerRunningViaLaunchd();
-  } else {
-    return nodeToolBackendProcess !== null;
-  }
+  return nodeToolBackendProcess !== null;
 }
 
 async function initializeBackendServer(): Promise<void> {
+  logMessage("Initializing backend server");
   try {
     try {
       const response = await fetch("http://127.0.0.1:8000/health");
@@ -430,8 +243,7 @@ async function initializeBackendServer(): Promise<void> {
       return startServer();
     }
 
-    const isRunning = await isServerRunningViaLaunchd();
-    if (isRunning) {
+    if (await isServerRunning()) {
       logMessage("Server already running, connecting...");
       await waitForServer();
       return;
@@ -519,6 +331,5 @@ export {
   initializeBackendServer,
   stopServer,
   webPath,
-  LAUNCHD_SERVICE_NAME,
   isServerRunning,
 };

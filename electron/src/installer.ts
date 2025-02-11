@@ -1,9 +1,4 @@
-import {
-  promises as fs,
-  constants,
-  createWriteStream,
-  createReadStream,
-} from "fs";
+import { promises as fs, constants, createReadStream } from "fs";
 import StreamZip from "node-stream-zip";
 // @ts-expect-error types not available
 import tar from "tar-fs";
