@@ -83,6 +83,9 @@ export interface Workflow {
   thumbnail_url: string;
   input_schema: JSONSchema;
   output_schema: JSONSchema;
+  shortcut?: string;
+  hide_ui: boolean;
+  receive_clipboard: boolean;
 }
 
 export interface WebSocketUpdate {

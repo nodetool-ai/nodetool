@@ -227,6 +227,8 @@ async function createTray(): Promise<Electron.Tray> {
   }
 
   registerExistingShortcuts();
+  await connectToWebSocketUpdates();
+  startHealthCheck();
 
   return trayInstance;
 }
@@ -578,4 +580,4 @@ function registerExistingShortcuts(): void {
   });
 }
 
-export { createTray, updateTrayMenu, startNodeToolService };
+export { createTray, updateTrayMenu, startNodeToolService, fetchWorkflows };
