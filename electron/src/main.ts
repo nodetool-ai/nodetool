@@ -5,24 +5,19 @@ import {
   shell,
   systemPreferences,
   BrowserWindow,
-  Tray,
-  Menu,
+  globalShortcut,
 } from "electron";
 import { createWindow, forceQuit, handleActivation } from "./window";
 import { setupAutoUpdater } from "./updater";
 import { logMessage } from "./logger";
 import { initializeBackendServer, stopServer, serverState } from "./server";
-import {
-  verifyApplicationPaths,
-  isCondaEnvironmentInstalled,
-  updateCondaEnvironment,
-} from "./python";
+import { verifyApplicationPaths, isCondaEnvironmentInstalled } from "./python";
 import { installCondaEnvironment } from "./installer";
 import { emitBootMessage } from "./events";
 import { createTray } from "./tray";
 import { createWorkflowWindow } from "./workflow-window";
 import { initializeIpcHandlers } from "./ipc";
-
+import { fetchWorkflows } from "./tray";
 /**
  * Global application state flags and objects
  */
@@ -48,27 +43,57 @@ async function checkPythonEnvironment(): Promise<void> {
  * @throws {Error} When critical permissions are missing
  */
 async function initialize(): Promise<void> {
-  logMessage("Electron app is ready");
-  emitBootMessage("Starting NodeTool Desktop...");
+  try {
+    // Verify paths and permissions
+    const validationResult = await verifyApplicationPaths();
+    if (validationResult.errors.length > 0) {
+      const errorMessage =
+        "Critical permission errors detected:\n\n" +
+        validationResult.errors.join("\n") +
+        "\n\nPlease ensure the application has proper permissions to these locations.";
 
-  const { valid, errors } = await verifyApplicationPaths();
-  if (!valid) {
-    const errorMessage =
-      "Critical permission errors detected:\n\n" +
-      errors.join("\n") +
-      "\n\nPlease ensure the application has proper permissions to these locations.";
+      dialog.showErrorBox("Permission Error", errorMessage);
+      app.quit();
+      return;
+    }
 
-    dialog.showErrorBox("Permission Error", errorMessage);
+    setupAutoUpdater();
+    await checkPythonEnvironment();
+
+    // Set up workflow shortcuts after server starts
+    emitBootMessage("Starting NodeTool server...");
+    await initializeBackendServer();
+    await setupWorkflowShortcuts();
+  } catch (error) {
+    logMessage(`Initialization error: ${error}`, "error");
+    dialog.showErrorBox(
+      "Initialization Error",
+      `Failed to initialize: ${error}`
+    );
     app.quit();
-    return;
   }
+}
 
-  setupAutoUpdater();
-
-  await checkPythonEnvironment();
-
-  emitBootMessage("Starting NodeTool server...");
-  await initializeBackendServer();
+// Add new function to set up workflow shortcuts
+async function setupWorkflowShortcuts(): Promise<void> {
+  try {
+    // Fetch workflows from the server
+    const workflows = await fetchWorkflows();
+    // Register shortcuts for workflows that have them configured
+    workflows.forEach((workflow: any) => {
+      if (workflow.shortcut) {
+        console.log("Setting up shortcut for workflow", workflow);
+        globalShortcut.register(workflow.shortcut, () => {
+          createWorkflowWindow(workflow.id);
+        });
+        logMessage(
+          `Registered shortcut ${workflow.shortcut} for workflow ${workflow.id}`
+        );
+      }
+    });
+  } catch (error) {
+    logMessage(`Error setting up workflow shortcuts: ${error}`, "error");
+  }
 }
 
 /**
@@ -194,4 +219,9 @@ process.on(
     forceQuit(`Unhandled Promise Rejection: ${errorMessage}`);
   }
 );
+
+app.on("will-quit", () => {
+  globalShortcut.unregisterAll();
+});
+
 export { mainWindow, isAppQuitting };
