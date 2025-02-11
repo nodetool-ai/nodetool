@@ -59,7 +59,10 @@ type WorkflowManagerState = {
   copy: (originalWorkflow: Workflow) => Promise<Workflow>;
   delete: (id: string) => Promise<void>;
   saveExample: () => Promise<any>;
-  recentlySavedWorkflows: Record<string, number>;
+  recentChanges: Record<
+    string,
+    { timestamp: number; action: "save" | "delete" }
+  >;
 };
 
 export type WorkflowManagerStore = UseBoundStore<
@@ -254,6 +257,14 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
       },
 
       delete: async (id: string) => {
+        // Mark this workflow as recently deleted
+        set((state) => ({
+          recentChanges: {
+            ...state.recentChanges,
+            [id]: { timestamp: Date.now(), action: "delete" }
+          }
+        }));
+
         const { error } = await client.DELETE("/api/workflows/{id}", {
           params: { path: { id } }
         });
@@ -387,11 +398,10 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
 
       saveWorkflow: async (workflow: Workflow) => {
         // Mark this workflow as recently saved
-        // Mark this workflow as recently saved
         set((state) => ({
-          recentlySavedWorkflows: {
-            ...state.recentlySavedWorkflows,
-            [workflow.id]: Date.now()
+          recentChanges: {
+            ...state.recentChanges,
+            [workflow.id]: { timestamp: Date.now(), action: "save" }
           }
         }));
 
@@ -490,7 +500,8 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           });
         }
       },
-      recentlySavedWorkflows: {}
+      recentlySavedWorkflows: {},
+      recentChanges: {}
     };
   });
 };
@@ -532,12 +543,14 @@ export const WorkflowManagerProvider: React.FC<{
     // Create and connect WebSocket store
     const webSocketUpdatesStore = createWebSocketUpdatesStore(
       (workflow) => {
-        const recentlySaved =
-          store.getState().recentlySavedWorkflows[workflow.id];
+        const recentChange = store.getState().recentChanges[workflow.id];
         const now = Date.now();
 
         // Skip updates for workflows saved in the last 2 seconds
-        if (recentlySaved && now - recentlySaved < 2000) {
+        if (
+          recentChange?.action === "save" &&
+          now - recentChange.timestamp < 2000
+        ) {
           return;
         }
 
@@ -549,6 +562,17 @@ export const WorkflowManagerProvider: React.FC<{
         });
       },
       (workflowId) => {
+        const recentChange = store.getState().recentChanges[workflowId];
+        const now = Date.now();
+
+        // Skip updates for workflows deleted in the last 2 seconds
+        if (
+          recentChange?.action === "delete" &&
+          now - recentChange.timestamp < 2000
+        ) {
+          return;
+        }
+
         store.getState().removeWorkflow(workflowId);
         useNotificationStore.getState().addNotification({
           type: "info",
