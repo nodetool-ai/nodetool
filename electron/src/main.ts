@@ -9,15 +9,22 @@ import {
 } from "electron";
 import { createWindow, forceQuit, handleActivation } from "./window";
 import { setupAutoUpdater } from "./updater";
+import { setupWorkflowShortcuts } from "./shortcuts";
 import { logMessage } from "./logger";
 import { initializeBackendServer, stopServer, serverState } from "./server";
-import { verifyApplicationPaths, isCondaEnvironmentInstalled } from "./python";
+import {
+  verifyApplicationPaths,
+  isCondaEnvironmentInstalled,
+  updateCondaEnvironment,
+} from "./python";
 import { installCondaEnvironment } from "./installer";
 import { emitBootMessage } from "./events";
 import { createTray } from "./tray";
 import { createWorkflowWindow } from "./workflow-window";
 import { initializeIpcHandlers } from "./ipc";
-import { fetchWorkflows } from "./tray";
+import { readSettings, writeSettings } from "./settings";
+import { connectToWebSocketUpdates } from "./api";
+
 /**
  * Global application state flags and objects
  */
@@ -58,12 +65,19 @@ async function initialize(): Promise<void> {
     }
 
     setupAutoUpdater();
-    await checkPythonEnvironment();
 
-    // Set up workflow shortcuts after server starts
-    emitBootMessage("Starting NodeTool server...");
+    // Check if conda update is pending
+    if (readSettings().updateConda) {
+      logMessage("Performing pending conda environment update");
+      await updateCondaEnvironment();
+      writeSettings({ updateConda: false });
+    } else {
+      await checkPythonEnvironment();
+    }
+
     await initializeBackendServer();
     await setupWorkflowShortcuts();
+    await connectToWebSocketUpdates();
   } catch (error) {
     logMessage(`Initialization error: ${error}`, "error");
     dialog.showErrorBox(
@@ -71,28 +85,6 @@ async function initialize(): Promise<void> {
       `Failed to initialize: ${error}`
     );
     app.quit();
-  }
-}
-
-// Add new function to set up workflow shortcuts
-async function setupWorkflowShortcuts(): Promise<void> {
-  try {
-    // Fetch workflows from the server
-    const workflows = await fetchWorkflows();
-    // Register shortcuts for workflows that have them configured
-    workflows.forEach((workflow: any) => {
-      if (workflow.shortcut) {
-        console.log("Setting up shortcut for workflow", workflow);
-        globalShortcut.register(workflow.shortcut, () => {
-          createWorkflowWindow(workflow.id);
-        });
-        logMessage(
-          `Registered shortcut ${workflow.shortcut} for workflow ${workflow.id}`
-        );
-      }
-    });
-  } catch (error) {
-    logMessage(`Error setting up workflow shortcuts: ${error}`, "error");
   }
 }
 
@@ -174,15 +166,23 @@ app.on("ready", async () => {
 });
 
 ipcMain.handle("update-installed", async () => {
-  logMessage("Update installed, updating Python environment");
-  await checkPythonEnvironment();
-});
+  logMessage("Update installed, marking conda environment for update");
+  // Store flag in user settings
+  writeSettings({ updateConda: true });
 
-interface SaveFileOptions {
-  buffer: Buffer;
-  defaultPath: string;
-  filters?: Array<{ name: string; extensions: string[] }>;
-}
+  // Show dialog informing user about restart
+  dialog
+    .showMessageBox({
+      type: "info",
+      title: "Update Installed",
+      message: "The application needs to restart to apply the update.",
+      buttons: ["Restart Now"],
+    })
+    .then(() => {
+      app.relaunch();
+      app.quit();
+    });
+});
 
 app.on("before-quit", (event) => {
   if (!isAppQuitting) {
@@ -193,10 +193,6 @@ app.on("before-quit", (event) => {
 
 app.on("window-all-closed", () => {
   logMessage("All windows closed");
-  if (process.platform !== "darwin") {
-    logMessage("Quitting app (not on macOS)");
-    app.quit();
-  }
 });
 
 app.on("activate", handleActivation);

@@ -72,6 +72,20 @@ export interface JSONSchema {
   $ref?: string;
 }
 
+export interface Node {
+  id: string;
+  type: string;
+  data: Record<string, any>;
+}
+
+export interface Edge {
+  id: string;
+  source: string;
+  target: string;
+  sourceHandle: string;
+  targetHandle: string;
+}
+
 export interface Workflow {
   id: string;
   name: string;
@@ -81,6 +95,10 @@ export interface Workflow {
   tags: string;
   thumbnail: string;
   thumbnail_url: string;
+  graph: {
+    nodes: Node[];
+    edges: Edge[];
+  };
   input_schema: JSONSchema;
   output_schema: JSONSchema;
   shortcut?: string;
@@ -90,8 +108,7 @@ export interface Workflow {
 
 export interface WebSocketUpdate {
   type: "delete_workflow" | "update_workflow" | "create_workflow";
-  id?: string;
-  workflow?: Workflow;
+  workflow: Workflow;
 }
 // IPC Channel names as const enum for type safety
 export enum IpcChannels {
