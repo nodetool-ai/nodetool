@@ -18,6 +18,7 @@ import DeleteButton from "../buttons/DeleteButton";
 import { useFileDrop } from "../../hooks/handlers/useFileDrop";
 import { Workflow } from "../../stores/ApiTypes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+import { useNotificationStore } from "../../stores/NotificationStore";
 
 const AVAILABLE_TAGS = [
   "image",
@@ -145,16 +146,18 @@ const styles = (theme: any) =>
 
 interface WorkflowFormProps {
   workflow: Workflow;
-  onSave: () => void;
-  onCancel: () => void;
+  onClose: () => void;
 }
 
-const WorkflowForm = ({ workflow, onSave, onCancel }: WorkflowFormProps) => {
-  const { update } = useWorkflowManager((state) => ({
-    update: state.update
-  }));
+const WorkflowForm = ({ workflow, onClose }: WorkflowFormProps) => {
   const [localWorkflow, setLocalWorkflow] = useState<Workflow>(workflow);
   const [isCapturing, setIsCapturing] = useState(false);
+  const { saveWorkflow } = useWorkflowManager((state) => ({
+    saveWorkflow: state.saveWorkflow
+  }));
+  const addNotification = useNotificationStore(
+    (state) => state.addNotification
+  );
 
   useEffect(() => {
     setLocalWorkflow(workflow || ({} as Workflow));
@@ -171,36 +174,38 @@ const WorkflowForm = ({ workflow, onSave, onCancel }: WorkflowFormProps) => {
     [setLocalWorkflow]
   );
 
-  const deleteThumbnail = useCallback(
-    (event: React.MouseEvent<HTMLButtonElement>) => {
-      event.stopPropagation();
-      const updatedWorkflow = { ...workflow, thumbnail: "", thumbnail_url: "" };
-      setLocalWorkflow(updatedWorkflow);
-    },
-    [workflow, setLocalWorkflow]
-  );
+  const handleSave = useCallback(async () => {
+    await saveWorkflow(localWorkflow);
+    addNotification({
+      type: "info",
+      alert: true,
+      content: "Workflow saved!",
+      dismissable: true
+    });
+    onClose();
+  }, [saveWorkflow, localWorkflow, addNotification]);
 
-  const { onDrop, onDragOver } = useFileDrop({
-    uploadAsset: true,
-    onChangeAsset: (asset) => {
-      const updatedWorkflow = {
-        ...workflow,
-        thumbnail: asset.id,
-        thumbnail_url: asset.get_url
-      };
-      setLocalWorkflow(updatedWorkflow);
-    },
-    type: "image"
-  });
+  // const deleteThumbnail = useCallback(
+  //   (event: React.MouseEvent<HTMLButtonElement>) => {
+  //     event.stopPropagation();
+  //     const updatedWorkflow = { ...workflow, thumbnail: "", thumbnail_url: "" };
+  //     setLocalWorkflow(updatedWorkflow);
+  //   },
+  //   [workflow, setLocalWorkflow]
+  // );
 
-  const tooltipAttributes = !workflow.thumbnail_url
-    ? {
-        role: "tooltip",
-        "data-microtip-position": "center",
-        "aria-label":
-          "Drop an image from the asset browser or from your file explorer (jpg, png)"
-      }
-    : {};
+  // const { onDrop, onDragOver } = useFileDrop({
+  //   uploadAsset: true,
+  //   onChangeAsset: (asset) => {
+  //     const updatedWorkflow = {
+  //       ...workflow,
+  //       thumbnail: asset.id,
+  //       thumbnail_url: asset.get_url
+  //     };
+  //     setLocalWorkflow(updatedWorkflow);
+  //   },
+  //   type: "image"
+  // });
 
   const handleTagChange = (_event: React.SyntheticEvent, newTags: string[]) => {
     const updatedWorkflow = {
@@ -314,7 +319,9 @@ const WorkflowForm = ({ workflow, onSave, onCancel }: WorkflowFormProps) => {
           />
         </FormControl>
         <FormControl fullWidth>
-          <FormLabel htmlFor="shortcut">Keyboard Shortcut</FormLabel>
+          <FormLabel htmlFor="shortcut">
+            Keyboard Shortcut for Running Workflow
+          </FormLabel>
           <OutlinedInput
             className="shortcut-input"
             fullWidth
@@ -364,10 +371,10 @@ const WorkflowForm = ({ workflow, onSave, onCancel }: WorkflowFormProps) => {
           </Box>
         </FormControl>
         <div className="button-container">
-          <Button className="cancel-button" onClick={onCancel}>
+          <Button className="cancel-button" onClick={onClose}>
             Cancel
           </Button>
-          <Button className="save-button" onClick={onSave}>
+          <Button className="save-button" onClick={handleSave}>
             Save
           </Button>
         </div>

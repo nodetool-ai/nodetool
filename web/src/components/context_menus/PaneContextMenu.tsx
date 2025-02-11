@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback } from "react";
 import { FitViewOptions, useReactFlow } from "@xyflow/react";
 
 import { Divider, Menu } from "@mui/material";
@@ -11,15 +11,19 @@ import FitScreenIcon from "@mui/icons-material/FitScreen";
 import AddCommentIcon from "@mui/icons-material/AddComment";
 import GroupWorkIcon from "@mui/icons-material/GroupWork";
 import LoopIcon from "@mui/icons-material/Loop";
+import TextFieldsIcon from "@mui/icons-material/TextFields";
+import NumbersIcon from "@mui/icons-material/Numbers";
+import ChatIcon from "@mui/icons-material/Chat";
+import ImageIcon from "@mui/icons-material/Image";
 //behaviours
 import { useCopyPaste } from "../../hooks/handlers/useCopyPaste";
 import { useClipboard } from "../../hooks/browser/useClipboard";
 import ThemeNodetool from "../themes/ThemeNodetool";
-import { useCallback } from "react";
 import { useCreateLoopNode } from "../../hooks/nodes/useCreateLoopNode";
 import useMetadataStore from "../../stores/MetadataStore";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import { useNodes } from "../../contexts/NodeContext";
+import { css, Theme } from "@emotion/react";
 
 interface PaneContextMenuProps {
   top?: number;
@@ -126,6 +130,25 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
     [createLoopNode, loopMetadata, reactFlowInstance, menuPosition]
   );
 
+  const addInputNode = useCallback(
+    (nodeType: string, event: React.MouseEvent | undefined) => {
+      if (!event) return;
+      const metadata = useMetadataStore
+        .getState()
+        .getMetadata(`nodetool.input.${nodeType}`);
+      if (metadata) {
+        const position = reactFlowInstance.screenToFlowPosition({
+          x: menuPosition?.x || event.clientX,
+          y: menuPosition?.y || event.clientY
+        });
+        const newNode = createNode(metadata, position);
+        addNode(newNode);
+      }
+      closeContextMenu();
+    },
+    [createNode, addNode, reactFlowInstance, menuPosition, closeContextMenu]
+  );
+
   if (!menuPosition) {
     return null;
   }
@@ -145,6 +168,9 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
           sx: {
             "& .MuiList-root": {
               padding: "0"
+            },
+            "& .MuiMenuItem-root": {
+              padding: "3px 15px"
             }
           }
         }
@@ -159,26 +185,16 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
         IconComponent={<SouthEastIcon />}
         tooltip={
           !isClipboardValid ? (
-            <span className="tooltip-1">
+            <span>
               Shift+V
               <br />
-              <span
-                className="attention"
-                style={{
-                  color: "#ccc",
-                  borderLeft: `2px solid ${ThemeNodetool.palette.c_attention}`,
-                  display: "block",
-                  padding: "0 .5em",
-                  marginTop: ".5em",
-                  lineHeight: "1.1em"
-                }}
-              >
+              <span className="attention">
                 no valid node data <br />
                 in clipboard
               </span>
             </span>
           ) : (
-            <span className="tooltip-1">Shift+V</span>
+            <span>Shift+V</span>
           )
         }
       />
@@ -193,6 +209,32 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
         IconComponent={<FitScreenIcon />}
         tooltip={"ALT+S | OPTION+S"}
       />
+      <Divider />
+      <ContextMenuItem
+        onClick={(e) => addInputNode("StringInput", e)}
+        label="String Input"
+        IconComponent={<TextFieldsIcon />}
+        tooltip="Add a string input node"
+      />
+      <ContextMenuItem
+        onClick={(e) => addInputNode("IntegerInput", e)}
+        label="Integer Input"
+        IconComponent={<NumbersIcon />}
+        tooltip="Add an integer input node"
+      />
+      <ContextMenuItem
+        onClick={(e) => addInputNode("ChatInput", e)}
+        label="Chat Input"
+        IconComponent={<ChatIcon />}
+        tooltip="Add a chat input node"
+      />
+      <ContextMenuItem
+        onClick={(e) => addInputNode("ImageInput", e)}
+        label="Image Input"
+        IconComponent={<ImageIcon />}
+        tooltip="Add an image input node"
+      />
+      <Divider />
       <ContextMenuItem
         onClick={(e) => {
           if (e) {

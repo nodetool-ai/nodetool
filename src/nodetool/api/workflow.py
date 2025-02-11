@@ -196,7 +196,10 @@ async def delete_workflow(
         raise HTTPException(status_code=404, detail="Workflow not found")
     workflow.delete()
 
-    background_tasks.add_task(websocket_updates.broadcast_update, DeleteWorkflow(id=id))
+    background_tasks.add_task(
+        websocket_updates.broadcast_update,
+        DeleteWorkflow(workflow=Workflow.from_model(workflow)),
+    )
 
 
 @router.put("/examples/{id}")
