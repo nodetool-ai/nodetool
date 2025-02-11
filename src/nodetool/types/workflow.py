@@ -26,6 +26,9 @@ class Workflow(BaseModel):
     graph: Graph
     input_schema: dict[str, Any] | None = None
     output_schema: dict[str, Any] | None = None
+    shortcut: str | None = None
+    hide_ui: bool | None = None
+    receive_clipboard: bool | None = None
 
     @classmethod
     def from_model(cls, workflow: WorkflowModel):
@@ -44,6 +47,9 @@ class Workflow(BaseModel):
             graph=api_graph,
             input_schema=get_input_schema(api_graph),
             output_schema=get_output_schema(api_graph),
+            shortcut=workflow.shortcut or None,
+            hide_ui=workflow.hide_ui,
+            receive_clipboard=workflow.receive_clipboard,
         )
 
 

@@ -142,23 +142,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/jobs/run": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Run */
-        post: operations["run_api_jobs_run_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/auth/oauth/login": {
         parameters: {
             query?: never;
@@ -663,6 +646,26 @@ export interface paths {
         /** Save Example Workflow */
         put: operations["save_example_workflow_api_workflows_examples__id__put"];
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workflows/{id}/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run Workflow By Id
+         * @description Run a specific workflow by ID.
+         */
+        post: operations["run_workflow_by_id_api_workflows__id__run_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1286,13 +1289,13 @@ export interface components {
              * @description Email date
              * @default {
              *       "type": "datetime",
-             *       "year": 2025,
-             *       "month": 2,
-             *       "day": 8,
-             *       "hour": 8,
-             *       "minute": 15,
-             *       "second": 9,
-             *       "microsecond": 945369,
+             *       "year": 0,
+             *       "month": 0,
+             *       "day": 0,
+             *       "hour": 0,
+             *       "minute": 0,
+             *       "second": 0,
+             *       "microsecond": 0,
              *       "tzinfo": "UTC",
              *       "utc_offset": 0
              *     }
@@ -3528,6 +3531,18 @@ export interface components {
             thumbnail?: string | null;
             /** Graph */
             graph?: Record<string, never>;
+            /** Shortcut */
+            shortcut?: string | null;
+            /**
+             * Hide Ui
+             * @default false
+             */
+            hide_ui: boolean | null;
+            /**
+             * Receive Clipboard
+             * @default false
+             */
+            receive_clipboard: boolean | null;
         };
         /** Workflow */
         "Workflow-Output": {
@@ -3554,6 +3569,12 @@ export interface components {
             input_schema?: Record<string, never> | null;
             /** Output Schema */
             output_schema?: Record<string, never> | null;
+            /** Shortcut */
+            shortcut?: string | null;
+            /** Hide Ui */
+            hide_ui?: boolean | null;
+            /** Receive Clipboard */
+            receive_clipboard?: boolean | null;
         };
         /** WorkflowList */
         WorkflowList: {
@@ -3975,45 +3996,6 @@ export interface operations {
     create_api_jobs__post: {
         parameters: {
             query?: never;
-            header?: {
-                authorization?: string | null;
-            };
-            path?: never;
-            cookie?: {
-                auth_cookie?: string | null;
-            };
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RunJobRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    run_api_jobs_run_post: {
-        parameters: {
-            query?: {
-                stream?: boolean;
-            };
             header?: {
                 authorization?: string | null;
             };
@@ -5176,6 +5158,47 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Workflow-Output"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    run_workflow_by_id_api_workflows__id__run_post: {
+        parameters: {
+            query?: {
+                stream?: boolean;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: {
+                auth_cookie?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RunJobRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
