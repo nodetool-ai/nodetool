@@ -170,10 +170,6 @@ function getRoutes() {
 const queryClient = new QueryClient();
 useAssetStore.getState().setQueryClient(queryClient);
 useModelStore.getState().setQueryClient(queryClient);
-
-const showWelcomeOnStartup =
-  useSettingsStore.getState().settings.showWelcomeOnStartup;
-
 const router = createBrowserRouter(getRoutes());
 const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement
@@ -212,7 +208,7 @@ const AppWrapper = () => {
       <QueryClientProvider client={queryClient}>
         <ThemeProvider theme={ThemeNodetool}>
           <CssBaseline />
-          <WorkflowManagerProvider>
+          <WorkflowManagerProvider queryClient={queryClient}>
             <KeyboardProvider active={true}>
               <RouterProvider router={router} />
               <HuggingFaceDownloadDialog />
