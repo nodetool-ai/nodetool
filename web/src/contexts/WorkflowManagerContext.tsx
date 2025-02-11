@@ -61,7 +61,7 @@ type WorkflowManagerState = {
   saveExample: () => Promise<any>;
   recentChanges: Record<
     string,
-    { timestamp: number; action: "save" | "delete" }
+    { timestamp: number; action: "save" | "delete" | "edit" }
   >;
 };
 
@@ -147,7 +147,9 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           graph: {
             nodes: [],
             edges: []
-          }
+          },
+          hide_ui: false,
+          receive_clipboard: false
         };
         return data;
       },
@@ -217,6 +219,13 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           console.warn("Cannot update workflow with empty ID");
           return workflow;
         }
+        // Mark this workflow as recently edited
+        set((state) => ({
+          recentChanges: {
+            ...state.recentChanges,
+            [workflow.id]: { timestamp: Date.now(), action: "edit" }
+          }
+        }));
         const { error, data } = await client.PUT("/api/workflows/{id}", {
           params: {
             path: { id: workflow.id }
@@ -251,7 +260,9 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           access: "private",
           graph: JSON.parse(JSON.stringify(workflow.graph)),
           created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
+          hide_ui: workflow.hide_ui,
+          receive_clipboard: workflow.receive_clipboard
         };
         return copiedWorkflow;
       },
@@ -500,7 +511,6 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           });
         }
       },
-      recentlySavedWorkflows: {},
       recentChanges: {}
     };
   });

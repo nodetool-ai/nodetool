@@ -4,12 +4,13 @@ import LayoutIcon from "@mui/icons-material/ViewModule";
 import SaveIcon from "@mui/icons-material/Save";
 import NoteAddIcon from "@mui/icons-material/NoteAdd";
 import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
+import EditIcon from "@mui/icons-material/Edit";
 
 import PlayArrow from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { css } from "@emotion/react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { memo, useCallback, useEffect } from "react";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import useWorkflowRunner from "../../stores/WorkflowRunner";
@@ -19,6 +20,8 @@ import { isEqual } from "lodash";
 import { useNodes } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import ControlPointIcon from "@mui/icons-material/ControlPoint";
+import { Workflow } from "../../stores/ApiTypes";
+
 const styles = (theme: any) =>
   css({
     "&": {
@@ -383,7 +386,37 @@ const RunAsAppButton = memo(function RunAsAppButton() {
   );
 });
 
-const AppHeaderActions: React.FC = () => {
+const EditWorkflowButton = memo(function EditWorkflowButton({
+  setWorkflowToEdit
+}: {
+  setWorkflowToEdit: (workflow: Workflow) => void;
+}) {
+  const { getWorkflow } = useNodes((state) => ({
+    getWorkflow: state.getWorkflow
+  }));
+
+  return (
+    <>
+      <Tooltip title="Edit Workflow Settings" enterDelay={TOOLTIP_ENTER_DELAY}>
+        <Button
+          className="action-button"
+          onClick={() => setWorkflowToEdit(getWorkflow())}
+          tabIndex={-1}
+        >
+          <EditIcon />
+        </Button>
+      </Tooltip>
+    </>
+  );
+});
+
+interface AppHeaderActionsProps {
+  setWorkflowToEdit: (workflow: Workflow) => void;
+}
+
+const AppHeaderActions: React.FC<AppHeaderActionsProps> = ({
+  setWorkflowToEdit
+}) => {
   const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
   const path = useLocation().pathname;
   const { autoLayout } = useNodes((state) => ({
@@ -404,6 +437,7 @@ const AppHeaderActions: React.FC = () => {
         <div className="actions" css={styles}>
           <>
             <NodeMenuButton />
+            <EditWorkflowButton setWorkflowToEdit={setWorkflowToEdit} />
             <SaveWorkflowButton />
             <AutoLayoutButton autoLayout={autoLayout} />
             <RunWorkflowButton />

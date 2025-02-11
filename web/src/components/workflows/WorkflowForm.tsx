@@ -6,12 +6,11 @@ import {
   OutlinedInput,
   FormLabel,
   Button,
-  Select,
-  MenuItem,
-  SelectChangeEvent,
   Typography,
   Autocomplete,
-  TextField
+  TextField,
+  Checkbox,
+  FormControlLabel
 } from "@mui/material";
 import { useCallback, useEffect, useState } from "react";
 import ThemeNodetool from "../themes/ThemeNodetool";
@@ -32,11 +31,12 @@ const AVAILABLE_TAGS = [
   "example"
 ];
 
+const MODIFIER_KEYS = ["Control", "Alt", "Shift", "Meta"];
+
 const styles = (theme: any) =>
   css({
     "&": {
-      marginLeft: "16px",
-      marginRight: "16px"
+      margin: theme.spacing(2)
     },
     ".thumbnail-img": {
       position: "relative",
@@ -61,41 +61,8 @@ const styles = (theme: any) =>
       right: "1px",
       backgroundColor: "#333333cc"
     },
-    ".save-button": {
-      backgroundColor: theme.palette.c_gray1,
-      border: "1px solid" + theme.palette.c_gray3,
-      color: theme.palette.c_hl1,
-      width: "100%",
-      "&:hover": {
-        border: "1px solid" + theme.palette.c_white
-      }
-    },
     "input, textarea, .MuiSelect-select": {
       fontFamily: theme.fontFamily1
-    },
-    ".save-text": {
-      color: theme.palette.c_gray6,
-      fontSize: theme.fontSizeSmall,
-      lineHeight: "1em"
-    },
-    '[role~="tooltip"][data-microtip-position|="center"]::after': {
-      position: "absolute",
-      top: "1em",
-      left: "1em",
-      textAlign: "center",
-      transform: "none",
-      backgroundColor: theme.palette.c_gray1,
-      color: theme.palette.c_white,
-      fontFamily: theme.fontFamily1,
-      fontSize: "1em",
-      lineHeight: "1.25em",
-      padding: ".5em",
-      display: "block",
-      maxWidth: "250px",
-      wordWrap: "break-word",
-      whiteSpace: "normal",
-      transition:
-        "all var(--microtip-transition-duration) var(--microtip-transition-easing) .5s"
     },
     ".tag-input": {
       marginBottom: theme.spacing(2),
@@ -138,14 +105,40 @@ const styles = (theme: any) =>
     },
     ".button-container": {
       display: "flex",
-      gap: theme.spacing(2),
-      marginTop: theme.spacing(2)
+      gap: theme.spacing(10),
+      marginTop: theme.spacing(5),
+      justifyContent: "space-between"
+    },
+    ".save-button": {
+      backgroundColor: theme.palette.c_gray1,
+      border: "1px solid" + theme.palette.c_gray3,
+      color: theme.palette.c_hl1,
+      width: "120px",
+      height: "40px",
+      "&.MuiButton-root": {
+        fontSize: theme.fontSizeNormal
+      },
+      "&:hover": {
+        border: "1px solid" + theme.palette.c_white
+      }
     },
     ".cancel-button": {
       backgroundColor: "transparent",
       color: theme.palette.c_gray6,
+      width: "120px",
+      height: "40px",
       "&:hover": {
         backgroundColor: theme.palette.c_gray2
+      }
+    },
+    ".shortcut-input": {
+      "& .MuiOutlinedInput-root": {
+        cursor: "pointer",
+        fontFamily: theme.fontFamily1,
+        color: theme.palette.c_white,
+        "&.Mui-focused": {
+          backgroundColor: theme.palette.c_gray2
+        }
       }
     }
   });
@@ -161,6 +154,7 @@ const WorkflowForm = ({ workflow, onSave, onCancel }: WorkflowFormProps) => {
     update: state.update
   }));
   const [localWorkflow, setLocalWorkflow] = useState<Workflow>(workflow);
+  const [isCapturing, setIsCapturing] = useState(false);
 
   useEffect(() => {
     setLocalWorkflow(workflow || ({} as Workflow));
@@ -175,17 +169,6 @@ const WorkflowForm = ({ workflow, onSave, onCancel }: WorkflowFormProps) => {
       }));
     },
     [setLocalWorkflow]
-  );
-
-  const handleSelectChange = useCallback(
-    (event: SelectChangeEvent) => {
-      const updatedWorkflow = {
-        ...workflow,
-        [event.target.name]: event.target.value
-      };
-      setLocalWorkflow(updatedWorkflow);
-    },
-    [workflow, setLocalWorkflow]
   );
 
   const deleteThumbnail = useCallback(
@@ -228,6 +211,38 @@ const WorkflowForm = ({ workflow, onSave, onCancel }: WorkflowFormProps) => {
     setLocalWorkflow(updatedWorkflow);
   };
 
+  const handleShortcutKeyDown = (event: React.KeyboardEvent) => {
+    event.preventDefault();
+
+    if (!isCapturing) return;
+
+    const pressedKey = event.key;
+    if (pressedKey === "Escape") {
+      setIsCapturing(false);
+      return;
+    }
+
+    // Skip if only modifier keys are pressed
+    if (MODIFIER_KEYS.includes(pressedKey)) return;
+
+    // Build the shortcut string
+    const parts = [];
+    if (event.ctrlKey) parts.push("CommandOrControl");
+    if (event.altKey) parts.push("Alt");
+    if (event.shiftKey) parts.push("Shift");
+    if (event.metaKey) parts.push("Meta");
+
+    // Add the main key
+    parts.push(pressedKey.length === 1 ? pressedKey.toUpperCase() : pressedKey);
+
+    const shortcut = parts.join("+");
+    setLocalWorkflow((prev) => ({
+      ...prev,
+      shortcut
+    }));
+    setIsCapturing(false);
+  };
+
   return (
     <div css={styles} className="workflow-form">
       <Box sx={{ pl: 2, pr: 2 }}>
@@ -265,7 +280,7 @@ const WorkflowForm = ({ workflow, onSave, onCancel }: WorkflowFormProps) => {
             }}
           />
         </FormControl>
-        <FormControl className="thumbnail">
+        {/* <FormControl className="thumbnail">
           <FormLabel htmlFor="thumbnail">Thumbnail</FormLabel>
           <Box
             className="thumbnail-img"
@@ -284,7 +299,7 @@ const WorkflowForm = ({ workflow, onSave, onCancel }: WorkflowFormProps) => {
               />
             )}
           </Box>
-        </FormControl>
+        </FormControl> */}
         <FormControl fullWidth>
           <FormLabel htmlFor="tags">Tags</FormLabel>
           <Autocomplete
@@ -298,17 +313,55 @@ const WorkflowForm = ({ workflow, onSave, onCancel }: WorkflowFormProps) => {
             )}
           />
         </FormControl>
-        <FormControl>
-          <FormLabel htmlFor="access">Access</FormLabel>
-          <Select
-            name="access"
-            value={localWorkflow.access}
-            onChange={handleSelectChange}
+        <FormControl fullWidth>
+          <FormLabel htmlFor="shortcut">Keyboard Shortcut</FormLabel>
+          <OutlinedInput
+            className="shortcut-input"
             fullWidth
-          >
-            <MenuItem value="public">Public</MenuItem>
-            <MenuItem value="private">Private</MenuItem>
-          </Select>
+            name="shortcut"
+            value={
+              isCapturing
+                ? "Press keys..."
+                : localWorkflow.shortcut || "Click to set shortcut"
+            }
+            onKeyDown={handleShortcutKeyDown}
+            onFocus={() => setIsCapturing(true)}
+            onBlur={() => setIsCapturing(false)}
+            readOnly
+          />
+        </FormControl>
+        <FormControl fullWidth sx={{ mt: 2 }}>
+          <FormLabel>UI Options</FormLabel>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 1, mt: 1 }}>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={localWorkflow.hide_ui || false}
+                  onChange={(e) =>
+                    setLocalWorkflow((prev) => ({
+                      ...prev,
+                      hide_ui: e.target.checked
+                    }))
+                  }
+                />
+              }
+              label="Hide UI when running workflow"
+            />
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={localWorkflow.receive_clipboard || false}
+                  onChange={(e) =>
+                    setLocalWorkflow((prev) => ({
+                      ...prev,
+                      receive_clipboard: e.target.checked
+                    }))
+                  }
+                />
+              }
+              label="Receive clipboard content"
+            />
+          </Box>
         </FormControl>
         <div className="button-container">
           <Button className="cancel-button" onClick={onCancel}>
