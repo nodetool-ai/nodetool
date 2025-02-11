@@ -22,7 +22,7 @@ class UpdateWorkflow(BaseModel):
 
 class DeleteWorkflow(BaseModel):
     type: Literal["delete_workflow"] = "delete_workflow"
-    id: str
+    workflow: Workflow
 
 
 class SystemStatsUpdate(BaseModel):

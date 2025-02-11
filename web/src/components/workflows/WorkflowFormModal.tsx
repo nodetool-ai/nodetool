@@ -16,32 +16,10 @@ const WorkflowFormModal = ({
   onClose,
   workflow
 }: WorkflowFormModalProps) => {
-  const { saveWorkflow } = useWorkflowManager((state) => ({
-    saveWorkflow: state.saveWorkflow
-  }));
-  const addNotification = useNotificationStore(
-    (state) => state.addNotification
-  );
-
-  const handleSave = useCallback(async () => {
-    await saveWorkflow(workflow);
-    addNotification({
-      type: "info",
-      alert: true,
-      content: "Workflow saved!",
-      dismissable: true
-    });
-    onClose();
-  }, [saveWorkflow, onClose, workflow, addNotification]);
-
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogContent sx={{ bgcolor: "background.paper" }}>
-        <WorkflowForm
-          onSave={handleSave}
-          onCancel={onClose}
-          workflow={workflow}
-        />
+        <WorkflowForm onClose={onClose} workflow={workflow} />
       </DialogContent>
     </Dialog>
   );
