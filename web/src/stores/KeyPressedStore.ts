@@ -1,11 +1,5 @@
 import { create } from "zustand";
-import {
-  useMemo,
-  useEffect,
-  createContext,
-  useContext,
-  ReactNode
-} from "react";
+import { useMemo, useEffect, useContext } from "react";
 import { useStoreWithEqualityFn } from "zustand/traditional";
 import { shallow } from "zustand/shallow";
 import { KeyboardContext } from "../components/KeyboardProvider";
@@ -113,7 +107,6 @@ let listenersInitialized = false;
 const initKeyListeners = () => {
   // Check if listeners are already initialized
   if (listenersInitialized) {
-    console.warn("Key listeners have already been initialized.");
     return () => {}; // Return a no-op cleanup function
   }
 
