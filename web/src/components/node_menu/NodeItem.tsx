@@ -2,7 +2,7 @@ import { memo, useCallback, useMemo, forwardRef } from "react";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { IconForType } from "../../config/data_types";
-import { Typography, Tooltip } from "@mui/material";
+import { Typography } from "@mui/material";
 import { highlightText as highlightTextUtil } from "../../utils/highlightText";
 
 interface NodeItemProps {
@@ -13,7 +13,7 @@ interface NodeItemProps {
 
 const NodeItem = memo(
   forwardRef<HTMLDivElement, NodeItemProps>(
-    ({ node, onDragStart, onClick }) => {
+    ({ node, onDragStart, onClick }, ref) => {
       const outputType =
         node.outputs.length > 0 ? node.outputs[0].type.type : "";
       const searchTerm = useNodeMenuStore((state) => state.searchTerm);
@@ -36,6 +36,7 @@ const NodeItem = memo(
 
       return (
         <div
+          ref={ref}
           className={`node ${isHovered ? "hovered" : ""}`}
           draggable
           onMouseEnter={onMouseEnter}

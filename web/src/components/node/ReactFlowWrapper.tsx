@@ -274,8 +274,6 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({ workflowId }) => {
     onNodeDrag
   } = useDragHandlers();
 
-  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
-
   /* VIEWPORT */
   const defaultViewport = useMemo(() => ({ x: 0, y: 0, zoom: 1.5 }), []);
   const reactFlowInstance = useReactFlow();
