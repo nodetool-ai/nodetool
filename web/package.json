@@ -30,7 +30,7 @@
     "@types/react-dom": "^18.3.1",
     "@types/uuid": "^10.0.0",
     "@vitejs/plugin-react": "^4.3.4",
-    "@xyflow/react": "^12.3.6",
+    "@xyflow/react": "^12.4.3",
     "axios": "^1.7.9",
     "browserslist-to-esbuild": "^2.1.1",
     "chroma-js": "^3.1.2",
