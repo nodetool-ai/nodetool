@@ -9,7 +9,6 @@ import {
   webPath,
   appsPath,
 } from "./config";
-import path from "path";
 import { forceQuit } from "./window";
 import { emitBootMessage, emitServerStarted, emitServerLog } from "./events";
 import { serverState } from "./state";

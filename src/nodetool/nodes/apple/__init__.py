@@ -4,3 +4,4 @@ import nodetool.nodes.apple.notes
 import nodetool.nodes.apple.reminders
 import nodetool.nodes.apple.screen
 import nodetool.nodes.apple.speech
+import nodetool.nodes.apple.dictionary

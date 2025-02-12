@@ -1625,6 +1625,73 @@
     "is_dynamic": false
   },
   {
+    "title": "Search Dictionary",
+    "description": "Search macOS Dictionary.app using Dictionary Services API\n    dictionary, automation, macos, reference\n\n    Use cases:\n    - Look up word definitions programmatically\n    - Check spelling and usage\n    - Access dictionary content in workflows",
+    "namespace": "apple.dictionary",
+    "node_type": "apple.dictionary.SearchDictionary",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "term",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Term",
+        "description": "Word or phrase to look up in the dictionary",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "max_results",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 1,
+        "title": "Max Results",
+        "description": "Maximum number of definitions to return",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "str",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "term",
+      "max_results"
+    ],
+    "is_dynamic": false
+  },
+  {
     "title": "Claude",
     "description": "Generate natural language responses using Claude AI models.\n    text, llm, chat, generation, anthropic\n\n    Use cases:\n    1. Generate creative writing based on prompts\n    2. Answer questions and provide explanations on various topics\n    3. Assist with tasks like summarization, translation, or code generation\n    4. Engage in multi-turn conversations with context retention\n    5. Analyze and describe images when provided as input",
     "namespace": "anthropic.text",
