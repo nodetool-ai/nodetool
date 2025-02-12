@@ -13,6 +13,7 @@ import { Asset } from "../../stores/ApiTypes";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useNodes } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+import { useNavigate } from "react-router-dom";
 
 export type FileHandlerResult = {
   success: boolean;
@@ -103,7 +104,6 @@ export const useFileHandlers = () => {
   const currentFolderId = useAssetGridStore((state) => state.currentFolderId);
   const { uploadAsset } = useAssetUpload();
   const createWorkflow = useWorkflowManager((state) => state.create);
-  const setWorkflow = useNodes((state) => state.setWorkflow);
   const { createNode, addNode, workflow } = useNodes((state) => ({
     createNode: state.createNode,
     addNode: state.addNode,
@@ -113,6 +113,7 @@ export const useFileHandlers = () => {
   const { user } = useAuth();
   const createDataframe = useCreateDataframe(createNode, addNode);
   const getMetadata = useMetadataStore((state) => state.getMetadata);
+  const navigate = useNavigate();
 
   const handleGenericFile = useCallback(
     async (file: File, position: XYPosition): Promise<FileHandlerResult> => {
@@ -182,7 +183,7 @@ export const useFileHandlers = () => {
               access: "private",
               comfy_workflow: workflow
             });
-            setWorkflow(createdWorkflow);
+            navigate(`/workflow/${createdWorkflow.id}`);
             return { success: true, data: createdWorkflow };
           } catch (error: any) {
             return {
@@ -200,7 +201,7 @@ export const useFileHandlers = () => {
         };
       }
     },
-    [createWorkflow, setWorkflow, handleGenericFile]
+    [createWorkflow, handleGenericFile, navigate]
   );
 
   const handleJsonFile = useCallback(
@@ -216,7 +217,7 @@ export const useFileHandlers = () => {
               access: "private",
               comfy_workflow: jsonData
             });
-            setWorkflow(createdWorkflow);
+            navigate(`/workflow/${createdWorkflow.id}`);
             return { success: true, data: createdWorkflow };
           } catch (error: any) {
             return {
@@ -232,7 +233,7 @@ export const useFileHandlers = () => {
               access: "private",
               graph: jsonData.graph
             });
-            setWorkflow(createdWorkflow);
+            navigate(`/workflow/${createdWorkflow.id}`);
             return { success: true, data: createdWorkflow };
           } catch (error: any) {
             return {
@@ -251,7 +252,7 @@ export const useFileHandlers = () => {
         };
       }
     },
-    [createWorkflow, setWorkflow, handleGenericFile]
+    [createWorkflow, handleGenericFile, navigate]
   );
 
   const handleCsvFile = useCallback(

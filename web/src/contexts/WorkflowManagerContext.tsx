@@ -42,7 +42,6 @@ type WorkflowManagerState = {
   reorderWorkflows: (sourceIndex: number, targetIndex: number) => void;
   updateWorkflow: (workflow: WorkflowAttributes) => void;
   saveWorkflow: (workflow: Workflow) => Promise<void>;
-  getOpenWorkflows: () => WorkflowAttributes[];
   getCurrentWorkflow: () => Workflow | undefined;
   setCurrentWorkflowId: (workflowId: string) => void;
   fetchWorkflow: (workflowId: string) => Promise<void>;
@@ -55,7 +54,6 @@ type WorkflowManagerState = {
   loadIDs: (workflowIds: string[]) => Promise<Workflow[]>;
   loadPublic: (cursor?: string) => Promise<any>;
   loadExamples: () => Promise<any>;
-  update: (workflow: Workflow) => Promise<Workflow>;
   copy: (originalWorkflow: Workflow) => Promise<Workflow>;
   delete: (id: string) => Promise<void>;
   saveExample: () => Promise<any>;
@@ -148,8 +146,9 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
             nodes: [],
             edges: []
           },
-          hide_ui: false,
-          receive_clipboard: false
+          settings: {
+            hide_ui: false
+          }
         };
         return data;
       },
@@ -214,37 +213,6 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         return data;
       },
 
-      update: async (workflow: Workflow) => {
-        if (workflow.id === "") {
-          console.warn("Cannot update workflow with empty ID");
-          return workflow;
-        }
-        // Mark this workflow as recently edited
-        set((state) => ({
-          recentChanges: {
-            ...state.recentChanges,
-            [workflow.id]: { timestamp: Date.now(), action: "edit" }
-          }
-        }));
-        const { error, data } = await client.PUT("/api/workflows/{id}", {
-          params: {
-            path: { id: workflow.id }
-          },
-          body: workflow
-        });
-        if (error) {
-          throw createErrorMessage(error, "Failed to update workflow");
-        }
-
-        // Invalidate specific workflow and workflows list
-        get().queryClient?.invalidateQueries({ queryKey: ["workflows"] });
-        get().queryClient?.invalidateQueries({
-          queryKey: ["workflow", workflow.id]
-        });
-
-        return data;
-      },
-
       copy: async (originalWorkflow: Workflow) => {
         const workflow = get().getWorkflow(originalWorkflow.id);
         if (!workflow) {
@@ -261,8 +229,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           graph: JSON.parse(JSON.stringify(workflow.graph)),
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
-          hide_ui: workflow.hide_ui,
-          receive_clipboard: workflow.receive_clipboard
+          settings: workflow.settings
         };
         return copiedWorkflow;
       },
@@ -332,11 +299,6 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         }
         return workflow.getState().getWorkflow();
       },
-      getOpenWorkflows: () => {
-        return Object.values(get().nodeStores).map((store) => {
-          return store.getState().workflow;
-        });
-      },
       getWorkflow: (workflowId: string) => {
         const workflow = get().nodeStores[workflowId];
         if (!workflow) {
@@ -367,7 +329,9 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
             updatedOpenWorkflows[existingIndex] = omit(workflow, ["graph"]);
 
             if (state.nodeStores[workflow.id]) {
-              state.nodeStores[workflow.id].getState().setWorkflow(workflow);
+              state.nodeStores[workflow.id].setState({
+                workflow: workflow
+              });
               return {
                 openWorkflows: updatedOpenWorkflows
               };
@@ -378,12 +342,13 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
               omit(workflow, ["graph"])
             ];
           }
+          const nodeStore = createNodeStore(workflow);
 
           return {
             openWorkflows: updatedOpenWorkflows,
             nodeStores: {
               ...state.nodeStores,
-              [workflow.id]: createNodeStore(workflow)
+              [workflow.id]: nodeStore
             }
           };
         });
@@ -424,6 +389,21 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           throw createErrorMessage(error, "Failed to save workflow");
         }
 
+        // Update the node store and openWorkflows with the saved workflow
+        set((state) => {
+          const nodeStore = state.nodeStores[workflow.id];
+          if (nodeStore) {
+            nodeStore.setState({
+              workflow: data
+            });
+          }
+          return {
+            openWorkflows: state.openWorkflows.map((w) =>
+              w.id === workflow.id ? omit(data, ["graph"]) : w
+            )
+          };
+        });
+
         // Invalidate specific workflow and workflows list
         get().queryClient?.invalidateQueries({ queryKey: ["workflows"] });
         get().queryClient?.invalidateQueries({
@@ -449,7 +429,9 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         if (!nodeStore) {
           return;
         }
-        nodeStore.getState().setWorkflowAttributes(workflow);
+        nodeStore.setState({
+          workflow: workflow
+        });
         set((state) => ({
           openWorkflows: Object.values(state.nodeStores).map((store) => {
             return store.getState().workflow;
@@ -484,31 +466,23 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           data: null
         });
 
-        try {
-          const { data, error } = await client.GET("/api/workflows/{id}", {
-            params: { path: { id: workflowId } }
-          });
+        const { data, error } = await client.GET("/api/workflows/{id}", {
+          params: { path: { id: workflowId } }
+        });
 
-          if (error) {
-            state.setLoadingState(workflowId, {
-              isLoading: false,
-              error: error as Error,
-              data: null
-            });
-          } else {
-            state.setLoadingState(workflowId, {
-              isLoading: false,
-              error: null,
-              data
-            });
-            state.addWorkflow(data);
-          }
-        } catch (error) {
+        if (error) {
           state.setLoadingState(workflowId, {
             isLoading: false,
             error: error as Error,
             data: null
           });
+        } else {
+          state.setLoadingState(workflowId, {
+            isLoading: false,
+            error: null,
+            data
+          });
+          state.addWorkflow(data);
         }
       },
       recentChanges: {}
