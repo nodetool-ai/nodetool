@@ -71,7 +71,7 @@ const namespaceStyles = (theme: any) =>
       maxWidth: "200px",
       width: "fit-content",
       height: "fit-content",
-      maxHeight: "calc(min(750px, 50vh))",
+      maxHeight: "calc(min(750px, 80vh))",
       paddingRight: "1em",
       paddingLeft: "1em",
       // paddingBottom: "3em",
