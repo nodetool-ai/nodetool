@@ -103,5 +103,11 @@
 			"dependsOn": ["lint: apps", "lint: web", "lint: electron"],
 			"group": "test"
 		},
+		{
+			"type": "npm",
+			"script": "openapi",
+			"path": "web",
+			"label": "openapi: web"
+		}
 	]
 }
