@@ -3531,13 +3531,8 @@ export interface components {
             thumbnail?: string | null;
             /** Graph */
             graph?: Record<string, never>;
-            /** Shortcut */
-            shortcut?: string | null;
-            /**
-             * Hide Ui
-             * @default false
-             */
-            hide_ui: boolean | null;
+            /** Settings */
+            settings?: Record<string, never> | null;
             /**
              * Receive Clipboard
              * @default false
@@ -3569,12 +3564,10 @@ export interface components {
             input_schema?: Record<string, never> | null;
             /** Output Schema */
             output_schema?: Record<string, never> | null;
-            /** Shortcut */
-            shortcut?: string | null;
-            /** Hide Ui */
-            hide_ui?: boolean | null;
-            /** Receive Clipboard */
-            receive_clipboard?: boolean | null;
+            /** Settings */
+            settings?: {
+                [key: string]: string | boolean | number | null;
+            } | null;
         };
         /** WorkflowList */
         WorkflowList: {
@@ -3615,6 +3608,10 @@ export interface components {
             graph?: components["schemas"]["Graph"] | null;
             /** Comfy Workflow */
             comfy_workflow?: Record<string, never> | null;
+            /** Settings */
+            settings?: {
+                [key: string]: string | boolean | number | null;
+            } | null;
         };
     };
     responses: never;
