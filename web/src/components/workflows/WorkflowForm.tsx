@@ -14,8 +14,6 @@ import {
 } from "@mui/material";
 import { useCallback, useEffect, useState } from "react";
 import ThemeNodetool from "../themes/ThemeNodetool";
-import DeleteButton from "../buttons/DeleteButton";
-import { useFileDrop } from "../../hooks/handlers/useFileDrop";
 import { Workflow } from "../../stores/ApiTypes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useNotificationStore } from "../../stores/NotificationStore";
@@ -243,7 +241,10 @@ const WorkflowForm = ({ workflow, onClose }: WorkflowFormProps) => {
     const shortcut = parts.join("+");
     setLocalWorkflow((prev) => ({
       ...prev,
-      shortcut
+      settings: {
+        ...(prev.settings || {}),
+        shortcut: shortcut
+      }
     }));
     setIsCapturing(false);
   };
@@ -329,7 +330,7 @@ const WorkflowForm = ({ workflow, onClose }: WorkflowFormProps) => {
             value={
               isCapturing
                 ? "Press keys..."
-                : localWorkflow.shortcut || "Click to set shortcut"
+                : localWorkflow.settings?.shortcut || "Click to set shortcut"
             }
             onKeyDown={handleShortcutKeyDown}
             onFocus={() => setIsCapturing(true)}
@@ -343,11 +344,14 @@ const WorkflowForm = ({ workflow, onClose }: WorkflowFormProps) => {
             <FormControlLabel
               control={
                 <Checkbox
-                  checked={localWorkflow.hide_ui || false}
+                  checked={Boolean(localWorkflow.settings?.hide_ui)}
                   onChange={(e) =>
                     setLocalWorkflow((prev) => ({
                       ...prev,
-                      hide_ui: e.target.checked
+                      settings: {
+                        ...(prev.settings || {}),
+                        hide_ui: e.target.checked
+                      }
                     }))
                   }
                 />
@@ -357,11 +361,14 @@ const WorkflowForm = ({ workflow, onClose }: WorkflowFormProps) => {
             <FormControlLabel
               control={
                 <Checkbox
-                  checked={localWorkflow.receive_clipboard || false}
+                  checked={Boolean(localWorkflow.settings?.receive_clipboard)}
                   onChange={(e) =>
                     setLocalWorkflow((prev) => ({
                       ...prev,
-                      receive_clipboard: e.target.checked
+                      settings: {
+                        ...(prev.settings || {}),
+                        receive_clipboard: e.target.checked
+                      }
                     }))
                   }
                 />

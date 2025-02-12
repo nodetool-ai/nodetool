@@ -101,9 +101,11 @@ export interface Workflow {
   };
   input_schema: JSONSchema;
   output_schema: JSONSchema;
-  shortcut?: string;
-  hide_ui: boolean;
-  receive_clipboard: boolean;
+  settings?: {
+    hide_ui: boolean;
+    receive_clipboard: boolean;
+    shortcut: string;
+  };
 }
 
 export interface WebSocketUpdate {

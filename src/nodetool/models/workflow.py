@@ -33,8 +33,7 @@ class Workflow(DBModel):
     description: str | None = DBField(default="")
     thumbnail: str | None = DBField(default=None)
     graph: dict = DBField(default_factory=dict)
-    shortcut: str | None = DBField(default=None)
-    hide_ui: bool | None = DBField(default=False)
+    settings: dict[str, Any] | None = DBField(default_factory=dict)
     receive_clipboard: bool | None = DBField(default=False)
 
     def before_save(self):
@@ -55,6 +54,7 @@ class Workflow(DBModel):
             tags=data.get("tags", []),
             description=data.get("description", ""),
             thumbnail=data.get("thumbnail", None),
+            settings=data.get("settings", {}),
             graph=data.get(
                 "graph",
                 {

@@ -4,6 +4,7 @@ from datetime import datetime
 import time
 from fastapi import APIRouter, Depends, HTTPException, Body, BackgroundTasks, Request
 from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
 from nodetool.common.websocket_updates import (
     CreateWorkflow,
     DeleteWorkflow,
@@ -171,6 +172,7 @@ async def update_workflow(
         workflow.thumbnail = workflow_request.thumbnail
     workflow.access = workflow_request.access
     workflow.graph = remove_connected_slots(workflow_request.graph).model_dump()
+    workflow.settings = workflow_request.settings
     workflow.updated_at = datetime.now()
     workflow.save()
     updated_workflow = Workflow.from_model(workflow)
@@ -239,10 +241,14 @@ async def save_example_workflow(
     return saved_workflow
 
 
+class RunWorkflowRequest(BaseModel):
+    params: dict
+
+
 @router.post("/{id}/run")
 async def run_workflow_by_id(
     id: str,
-    job_request: RunJobRequest,
+    run_workflow_request: RunWorkflowRequest,
     request: Request,
     stream: bool = False,
     user: User = Depends(current_user),
@@ -253,6 +259,14 @@ async def run_workflow_by_id(
     server_protocol = request.headers.get("x-forwarded-proto", "http")
     server_host_name = request.headers.get("host", "localhost")
     server_port = request.headers.get("x-server-port", "8000")
+
+    job_request = RunJobRequest(
+        workflow_id=id,
+        user_id=user.id,
+        params=run_workflow_request.params,
+    )
+
+    print(job_request)
 
     if job_request.api_url == "" or job_request.api_url is None:
         job_request.api_url = f"{server_protocol}://{server_host_name}:{server_port}"
