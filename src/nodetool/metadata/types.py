@@ -18,7 +18,11 @@ from nodetool.models.task import Task as TaskModel
 from nodetool.types.graph import Graph
 
 
-# Mapping of python types to their string representation
+#######################
+# Type Name Mappings
+#######################
+# Maps Python types to their string representations and vice versa
+
 TypeToName = {}
 NameToType = {}
 
@@ -59,6 +63,12 @@ add_type_names(
 )
 
 
+#######################
+# Base Types
+#######################
+# Core base classes that other types inherit from
+
+
 class BaseType(BaseModel):
     """
     This is the base class for all Nodetool types.
@@ -96,6 +106,17 @@ class BaseType(BaseModel):
         if type_name not in NameToType:
             raise ValueError(f"Unknown type name: {type_name}")
         return NameToType[type_name](**data)
+
+
+class Collection(BaseType):
+    type: Literal["collection"] = "collection"
+    name: str = ""
+
+
+#######################
+# Date and Time Types
+#######################
+# Types for handling dates, times, and timestamps
 
 
 class Date(BaseType):
@@ -159,6 +180,11 @@ class Datetime(BaseType):
             utc_offset=utc_offset.total_seconds() if utc_offset else 0,
         )
 
+
+#######################
+# Asset Reference Types
+#######################
+# Types for referencing different kinds of assets (files, models, etc.)
 
 asset_types = set()
 
@@ -268,64 +294,6 @@ class NodeRef(BaseType):
     id: str = ""
 
 
-class Email(BaseType):
-    type: Literal["email"] = "email"
-    id: str = Field(default="", description="Message ID")
-    sender: str = Field(default="", description="Sender email address")
-    subject: str = Field(default="", description="Email subject line")
-    date: Datetime = Field(default=Datetime(), description="Email date")
-    body: str | TextRef = Field(default="", description="Email body content")
-
-
-class EmailFlag(str, Enum):
-    SEEN = "SEEN"
-    UNSEEN = "UNSEEN"
-    ANSWERED = "ANSWERED"
-    UNANSWERED = "UNANSWERED"
-    FLAGGED = "FLAGGED"
-    UNFLAGGED = "UNFLAGGED"
-
-
-class LogicalOperator(str, Enum):
-    AND = "AND"
-    OR = "OR"
-    NOT = "NOT"
-
-
-class DateCriteria(str, Enum):
-    BEFORE = "BEFORE"
-    SINCE = "SINCE"
-    ON = "ON"
-
-
-class SearchCondition(BaseType):
-    type: Literal["search_condition"] = "search_condition"
-    field: str
-    value: str
-    operator: Optional[LogicalOperator] = LogicalOperator.AND
-
-
-class DateSearchCondition(BaseType):
-    type: Literal["date_search_condition"] = "date_search_condition"
-    criteria: DateCriteria
-    date: Datetime
-
-
-class EmailSearchCriteria(BaseType):
-    type: Literal["email_search_criteria"] = "email_search_criteria"
-    from_address: Optional[str] = None
-    to_address: Optional[str] = None
-    subject: Optional[str] = None
-    body: Optional[str] = None
-    cc: Optional[str] = None
-    bcc: Optional[str] = None
-    date_condition: Optional[DateSearchCondition] = None
-    flags: List[EmailFlag] = []
-    keywords: List[str] = []
-    folder: Optional[str] = None
-    text: Optional[str] = None
-
-
 class Provider(str, enum.Enum):
     AIME = "aime"
     OpenAI = "openai"
@@ -379,6 +347,11 @@ class OpenAIModel(BaseType):
     object: str = ""
     created: int = 0
     owned_by: str = ""
+
+
+#######################
+# Hugging Face Models
+#######################
 
 
 class HuggingFaceModel(BaseType):
@@ -732,6 +705,12 @@ def pipeline_tag_to_model_type(tag: str) -> str | None:
     return None
 
 
+#######################
+# ComfyUI Types
+#######################
+# Types for handling ComfyUI models
+
+
 model_file_types = set()
 
 
@@ -951,6 +930,32 @@ class REMBGSession(ComfyData):
     type: Literal["comfy.rembg_session"] = "comfy.rembg_session"
 
 
+#######################
+# Output and Data Types
+#######################
+# Types for handling various kinds of output data and results
+
+
+class OutputType(BaseModel):
+    """
+    This is the base class for all strucutred output types when a node
+    wants to return more than one output.
+    """
+
+    pass
+
+
+class ChatConversation(OutputType):
+    """
+    The result of a chat conversation.
+    """
+
+    messages: list[str] = Field(
+        default_factory=list, description="The messages in the conversation"
+    )
+    response: str = Field(default="", description="The response from the chat system")
+
+
 class Task(BaseType):
     type: Literal["task"] = "task"
     id: str = ""
@@ -1025,26 +1030,6 @@ def to_numpy(num: float | int | NPArray) -> np.ndarray:
         raise ValueError()
 
 
-class OutputType(BaseModel):
-    """
-    This is the base class for all strucutred output types when a node
-    wants to return more than one output.
-    """
-
-    pass
-
-
-class ChatConversation(OutputType):
-    """
-    The result of a chat conversation.
-    """
-
-    messages: list[str] = Field(
-        default_factory=list, description="The messages in the conversation"
-    )
-    response: str = Field(default="", description="The response from the chat system")
-
-
 ColumnType = Union[
     Literal["int"],
     Literal["float"],
@@ -1079,6 +1064,12 @@ class DataframeRef(AssetRef):
     type: Literal["dataframe"] = "dataframe"
     columns: list[ColumnDef] | None = None
     data: list[list[Any]] | None = None
+
+
+#######################
+# ML Types
+#######################
+# Types for handling different kinds of models
 
 
 class SKLearnModel(BaseType):
@@ -1131,6 +1122,18 @@ class Dataset(OutputType):
     target: DataframeRef = DataframeRef()
 
 
+class JSONRef(AssetRef):
+    type: Literal["json"] = "json"
+    data: str | None = None
+
+
+class SVGRef(AssetRef):
+    """A reference to an SVG asset."""
+
+    type: Literal["svg"] = "svg"
+    data: bytes | None = None
+
+
 def is_output_type(type):
     try:
         return issubclass(type, OutputType)
@@ -1165,6 +1168,12 @@ def asset_to_ref(asset: Asset):
         return AssetRef(asset_id=asset.id)
     else:
         raise ValueError(f"Unknown asset type: {asset.content_type}")
+
+
+#######################
+# Chat Types
+#######################
+# Types for handling chat messages
 
 
 class FunctionDefinition(BaseModel):
@@ -1339,6 +1348,12 @@ class Message(BaseType):
         )
 
 
+#######################
+# Result Types
+#######################
+# Types for handling results
+
+
 class AudioChunk(BaseType):
     """Represents a chunk of audio with metadata about its source"""
 
@@ -1369,21 +1384,10 @@ class OCRResult(BaseType):
     bottom_left: tuple[int, int]
 
 
-class Collection(BaseType):
-    type: Literal["collection"] = "collection"
-    name: str = ""
-
-
-class JSONRef(AssetRef):
-    type: Literal["json"] = "json"
-    data: str | None = None
-
-
-class SVGRef(AssetRef):
-    """A reference to an SVG asset."""
-
-    type: Literal["svg"] = "svg"
-    data: bytes | None = None
+#######################
+# Visualization Types
+#######################
+# Types for handling visualizations
 
 
 class SVGElement(BaseType):
@@ -1628,6 +1632,70 @@ class ChartConfigSchema(BaseModel):
     annot: bool = False
     fmt: str = ".2g"
     square: bool = False
+
+
+#######################
+# Email Types
+#######################
+# Types for handling email data
+
+
+class Email(BaseType):
+    type: Literal["email"] = "email"
+    id: str = Field(default="", description="Message ID")
+    sender: str = Field(default="", description="Sender email address")
+    subject: str = Field(default="", description="Email subject line")
+    date: Datetime = Field(default=Datetime(), description="Email date")
+    body: str | TextRef = Field(default="", description="Email body content")
+
+
+class EmailFlag(str, Enum):
+    SEEN = "SEEN"
+    UNSEEN = "UNSEEN"
+    ANSWERED = "ANSWERED"
+    UNANSWERED = "UNANSWERED"
+    FLAGGED = "FLAGGED"
+    UNFLAGGED = "UNFLAGGED"
+
+
+class LogicalOperator(str, Enum):
+    AND = "AND"
+    OR = "OR"
+    NOT = "NOT"
+
+
+class DateCriteria(str, Enum):
+    BEFORE = "BEFORE"
+    SINCE = "SINCE"
+    ON = "ON"
+
+
+class SearchCondition(BaseType):
+    type: Literal["search_condition"] = "search_condition"
+    field: str
+    value: str
+    operator: Optional[LogicalOperator] = LogicalOperator.AND
+
+
+class DateSearchCondition(BaseType):
+    type: Literal["date_search_condition"] = "date_search_condition"
+    criteria: DateCriteria
+    date: Datetime
+
+
+class EmailSearchCriteria(BaseType):
+    type: Literal["email_search_criteria"] = "email_search_criteria"
+    from_address: Optional[str] = None
+    to_address: Optional[str] = None
+    subject: Optional[str] = None
+    body: Optional[str] = None
+    cc: Optional[str] = None
+    bcc: Optional[str] = None
+    date_condition: Optional[DateSearchCondition] = None
+    flags: List[EmailFlag] = []
+    keywords: List[str] = []
+    folder: Optional[str] = None
+    text: Optional[str] = None
 
 
 class IMAPConnection(BaseType):
