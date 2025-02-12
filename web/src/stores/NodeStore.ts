@@ -108,8 +108,6 @@ export interface NodeStoreState {
   getModels: () => UnifiedModel[];
   setNodes: (nodes: Node<NodeData>[], setDirty?: boolean) => void;
   setEdges: (edges: Edge[]) => void;
-  setWorkflow: (workflow: Workflow) => void;
-  setWorkflowAttributes: (attributes: WorkflowAttributes) => void;
   getWorkflow: () => Workflow;
   getWorkflowIsDirty: () => boolean;
   setWorkflowDirty: (dirty: boolean) => void;
@@ -148,6 +146,49 @@ export type NodeStore = UseBoundStore<
   }
 >;
 
+const sanitizeGraph = (
+  nodes: Node<NodeData>[],
+  edges: Edge[],
+  metadata: Record<string, NodeMetadata>
+) => {
+  const nodeMap = new Map(nodes.map((node) => [node.id, node]));
+  const sanitizedNodes = nodes.map((node) => {
+    const sanitizedNode = { ...node };
+    if (sanitizedNode.parentId && !nodeMap.has(sanitizedNode.parentId)) {
+      devWarn(
+        `Node ${sanitizedNode.id} references non-existent parent ${sanitizedNode.parentId}. Removing parent reference.`
+      );
+      delete sanitizedNode.parentId;
+    }
+    return sanitizedNode;
+  });
+
+  const sanitizedEdges = edges.reduce((acc, edge) => {
+    const sourceNode = nodeMap.get(edge.source);
+    const targetNode = nodeMap.get(edge.target);
+    if (sourceNode && targetNode && sourceNode.type && targetNode.type) {
+      const sourceMetadata = metadata[sourceNode.type];
+      const targetMetadata = metadata[targetNode.type];
+      if (!sourceMetadata || !targetMetadata) {
+        acc.push(edge);
+      } else if (
+        sourceMetadata.outputs.some(
+          (output) => output.name === edge.sourceHandle
+        ) &&
+        (targetMetadata.is_dynamic ||
+          targetMetadata.properties.some(
+            (prop) => prop.name === edge.targetHandle
+          ))
+      ) {
+        acc.push(edge);
+      }
+    }
+    return acc;
+  }, [] as Edge[]);
+
+  return { nodes: sanitizedNodes, edges: sanitizedEdges };
+};
+
 /**
  * Creates a new node store instance with default values
  * Useful for testing or creating isolated stores
@@ -158,541 +199,476 @@ export const createNodeStore = (
 ) =>
   create<NodeStoreState>()(
     temporal(
-      (set, get) => ({
-        shouldAutoLayout: state?.shouldAutoLayout || false,
-        missingModelFiles: [],
-        missingModelRepos: [],
-        workflow: workflow
-          ? {
-              id: workflow.id,
-              name: workflow.name,
-              access: workflow.access,
-              description: workflow.description,
-              thumbnail: workflow.thumbnail,
-              updated_at: workflow.updated_at,
-              created_at: workflow.created_at
-            }
-          : {
-              id: "",
-              name: "",
-              access: "private",
-              description: "",
-              thumbnail: "",
-              updated_at: new Date().toISOString(),
-              created_at: new Date().toISOString()
-            },
-        workflowIsDirty: false,
-        nodes: workflow
-          ? workflow.graph.nodes.map((n: GraphNode) =>
+      (set, get) => {
+        const metadata = useMetadataStore.getState().metadata;
+        const nodeTypes = useMetadataStore.getState().nodeTypes;
+        const addNodeType = useMetadataStore.getState().addNodeType;
+        // const modelFiles = extractModelFiles(workflow.graph.nodes);
+        // setTimeout(() => {
+        //   tryCacheFiles(modelFiles).then((paths) => {
+        //     set({
+        //       missingModelFiles: paths.filter((m) => !m.downloaded)
+        //     });
+        //   });
+        //   const modelRepos = extractModelRepos(workflow.graph.nodes);
+        //   tryCacheRepos(modelRepos).then((repos) => {
+        //     set({
+        //       missingModelRepos: repos
+        //         .filter((r) => !r.downloaded)
+        //         .map((r) => r.repo_id)
+        //     });
+        //   });
+        // }, 1000);
+
+        const unsanitizedNodes = workflow
+          ? (workflow.graph?.nodes || []).map((n: GraphNode) =>
               graphNodeToReactFlowNode(workflow, n)
             )
-          : [],
-        edges: workflow
-          ? workflow.graph.edges.map((e: GraphEdge) =>
+          : [];
+        const unsanitizedEdges = workflow
+          ? (workflow.graph?.edges || []).map((e: GraphEdge) =>
               graphEdgeToReactFlowEdge(e)
             )
-          : [],
-        edgeUpdateSuccessful: false,
-        hoveredNodes: [],
-        shouldFitToScreen: state?.shouldFitToScreen || false,
-        connectionAttempted: false,
-        setConnectionAttempted: (value: boolean) =>
-          set({ connectionAttempted: value }),
-        setHoveredNodes: (ids: string[]) => set({ hoveredNodes: ids }),
-        generateNodeId: () => {
-          const highestId = get().nodes.reduce((acc, node) => {
-            const id = parseInt(node.id, 10);
-            return id > acc ? id : acc;
-          }, 0);
-          return (highestId + 1).toString();
-        },
-        generateNodeIds: (count: number) => {
-          const highestId = get().nodes.reduce((acc, node) => {
-            const id = parseInt(node.id, 10);
-            return isNaN(id) ? acc : Math.max(id, acc);
-          }, 0);
-          return Array.from({ length: count }, (_, i) =>
-            (highestId + i + 1).toString()
-          );
-        },
-        generateEdgeId: () => {
-          const highestId = get().edges.reduce((acc, edge) => {
-            const id = parseInt(edge.id, 10);
-            return id > acc ? id : acc;
-          }, 0);
-          return (highestId + 1).toString();
-        },
-        getInputEdges: (nodeId: string) =>
-          get().edges.filter((e) => e.target === nodeId),
-        getOutputEdges: (nodeId: string) =>
-          get().edges.filter((e) => e.source === nodeId),
-        getSelection: () => {
-          const nodes = get().nodes.filter((node) => node.selected);
-          const nodeIds = nodes.reduce((acc, node) => {
-            acc[node.id] = true;
-            return acc;
-          }, {} as Record<string, boolean>);
-          const edges = get().edges.filter(
-            (edge) => edge.source in nodeIds && edge.target in nodeIds
-          );
-          return { nodes, edges };
-        },
-        getSelectedNodes: () => get().nodes.filter((node) => node.selected),
-        setSelectedNodes: (nodes: Node<NodeData>[]) => {
-          set({
-            nodes: get().nodes.map((node) => ({
-              ...node,
-              selected: nodes.includes(node)
-            }))
-          });
-        },
-        getSelectedNodeIds: () =>
-          get()
-            .getSelectedNodes()
-            .map((node) => node.id),
-        setEdgeUpdateSuccessful: (value: boolean) =>
-          set({ edgeUpdateSuccessful: value }),
-        onNodesChange: (changes: NodeChange<Node<NodeData>>[]) => {
-          const nodes = applyNodeChanges(changes, get().nodes);
-          set({ nodes });
-        },
-        onEdgesChange: (changes: EdgeChange[]) => {
-          set({
-            edges: applyEdgeChanges(changes, get().edges)
-          });
-          get().setWorkflowDirty(true);
-        },
-        onEdgeUpdate: (oldEdge: Edge, newConnection: Connection) => {
-          const edge = get().edges.find((e) => e.id === oldEdge.id);
-          if (edge) {
-            const newEdge = {
-              ...edge,
-              source: newConnection.source,
-              target: newConnection.target,
-              sourceHandle: newConnection.sourceHandle || null,
-              targetHandle: newConnection.targetHandle || null
-            };
-            set({
-              edges: get().edges.map((e) => (e.id === oldEdge.id ? newEdge : e))
-            });
+          : [];
+
+        const { nodes: sanitizedNodes, edges: sanitizedEdges } = sanitizeGraph(
+          unsanitizedNodes,
+          unsanitizedEdges,
+          metadata
+        );
+
+        for (const node of sanitizedNodes) {
+          if (node.type && !nodeTypes[node.type]) {
+            addNodeType(node.type, PlaceholderNode);
           }
-        },
-        onConnect: (connection: Connection) => {
-          const newEdge = {
-            ...connection,
-            id: get().generateEdgeId(),
-            sourceHandle: connection.sourceHandle || null,
-            targetHandle: connection.targetHandle || null
-          } as Edge;
-          set({
-            edges: addEdge(
-              newEdge,
-              get().edges.map((edge) => ({
-                ...edge,
-                sourceHandle: edge.sourceHandle || null,
-                targetHandle: edge.targetHandle || null
-              }))
-            )
-          });
-        },
-        findNode: (id: string) => get().nodes.find((n) => n.id === id),
-        findEdge: (id: string) => get().edges.find((e) => e.id === id),
-        addNode: (node: Node<NodeData>) => {
-          if (get().findNode(node.id)) {
-            devWarn(`Node with id ${node.id} already exists`);
-            return;
-          }
-          node.data.dirty = true;
-          node.expandParent = true;
-          node.data.workflow_id = get().workflow.id;
-          set({ nodes: [...get().nodes, node], workflowIsDirty: true });
-        },
-        updateNode: (id: string, node: Partial<Node<NodeData>>) => {
-          set({
-            nodes: get().nodes.map((n) => (n.id === id ? { ...n, ...node } : n))
-          });
-        },
-        updateNodeData: (id: string, data: Partial<NodeData>) => {
-          set({
-            nodes: get().nodes.map((n) =>
-              n.id === id ? { ...n, data: { ...n.data, ...data } } : n
-            )
-          });
-        },
-        updateNodeProperties: (id: string, properties: any) => {
-          const workflow_id = get().workflow.id;
-          set({
-            nodes: get().nodes.map(
-              (node) =>
-                (node.id === id
-                  ? {
-                      ...node,
-                      data: {
-                        ...node.data,
-                        workflow_id,
-                        properties: { ...node.data.properties, ...properties }
-                      }
-                    }
-                  : node) as Node<NodeData>
-            )
-          });
-          get().setWorkflowDirty(true);
-        },
-        deleteNode: (id: string) => {
-          const nodeToDelete = get().findNode(id);
-          if (!nodeToDelete) {
-            devWarn(`Node with id ${id} not found`);
-            return;
-          }
-          const focusedElement = document.activeElement as HTMLElement;
-          if (
-            focusedElement.classList.contains("MuiInput-input") ||
-            focusedElement.tagName === "TEXTAREA"
-          ) {
-            return;
-          }
-          const nodes: Node<NodeData>[] = get()
-            .nodes.filter((node) => node.id !== id)
-            .map((node) => {
-              return {
-                ...node,
-                parentId: node.parentId === id ? undefined : node.parentId
-              };
-            });
-
-          useErrorStore.getState().clearErrors(id);
-          useResultsStore.getState().clearResults(id);
-
-          set({
-            nodes: nodes,
-            edges: get().edges.filter(
-              (edge) => edge.source !== id && edge.target !== id
-            )
-          });
-        },
-        deleteEdge: (id: string) => {
-          set({ edges: get().edges.filter((e) => e.id !== id) });
-        },
-        addEdge: (edge: Edge) => {
-          set({ edges: [...get().edges, edge] });
-        },
-        updateEdge: (edge: Edge) => {
-          set({
-            edges: [...get().edges.filter((e) => e.id !== edge.id), edge]
-          });
-        },
-        updateEdgeHandle: (
-          nodeId: string,
-          oldHandle: string,
-          newHandle: string
-        ) => {
-          set({
-            edges: get().edges.map((edge) =>
-              edge.target === nodeId && edge.targetHandle === oldHandle
-                ? { ...edge, targetHandle: newHandle }
-                : edge
-            )
-          });
-        },
-        getModels: () => {
-          const nodes = get().nodes;
-          return nodes.reduce((acc, node) => {
-            for (const key in node.data.properties) {
-              const property = node.data.properties[key];
-              if (property?.type && property?.repo_id) {
-                acc.push(property as UnifiedModel);
-              }
-            }
-            return acc;
-          }, [] as UnifiedModel[]);
-        },
-        setWorkflow: (workflow: Workflow) => {
-          const nodeTypes = useMetadataStore.getState().nodeTypes;
-          const addNodeType = useMetadataStore.getState().addNodeType;
-
-          const shouldAutoLayout = get().shouldAutoLayout;
-          const metadata = useMetadataStore.getState().metadata;
-
-          if (!metadata) {
-            throw new Error("Metadata not loaded");
-          }
-
-          const unsanitizedNodes = (workflow.graph?.nodes || []).map(
-            (n: GraphNode) => graphNodeToReactFlowNode(workflow, n)
-          );
-          const unsanitizedEdges = (workflow.graph?.edges || []).map(
-            (e: GraphEdge) => graphEdgeToReactFlowEdge(e)
-          );
-
-          const { nodes: sanitizedNodes, edges: sanitizedEdges } =
-            get().sanitizeGraph(unsanitizedNodes, unsanitizedEdges, metadata);
-
-          for (const node of sanitizedNodes) {
-            if (node.type && !nodeTypes[node.type]) {
-              addNodeType(node.type, PlaceholderNode);
-            }
-          }
-          // const modelFiles = extractModelFiles(workflow.graph.nodes);
-          // setTimeout(() => {
-          //   tryCacheFiles(modelFiles).then((paths) => {
-          //     set({
-          //       missingModelFiles: paths.filter((m) => !m.downloaded)
-          //     });
-          //   });
-          //   const modelRepos = extractModelRepos(workflow.graph.nodes);
-          //   tryCacheRepos(modelRepos).then((repos) => {
-          //     set({
-          //       missingModelRepos: repos
-          //         .filter((r) => !r.downloaded)
-          //         .map((r) => r.repo_id)
-          //     });
-          //   });
-          // }, 1000);
-
-          set({
-            workflow: workflow,
-            shouldAutoLayout: false,
-            edges: sanitizedEdges,
-            nodes: sanitizedNodes,
-            workflowIsDirty: false
-          });
-
-          if (shouldAutoLayout) {
-            setTimeout(() => {
-              get().autoLayout();
-            }, 100);
-          }
-        },
-        setWorkflowAttributes: (attributes: WorkflowAttributes) => {
-          set({ workflow: { ...get().workflow, ...attributes } });
-        },
-        getWorkflow: (): Workflow => {
-          const workflow = get().workflow;
-          const edges = get().edges;
-          const isHandleConnected = (nodeId: string, handle: string) => {
-            return edges.some(
-              (edge) => edge.target === nodeId && edge.targetHandle === handle
-            );
-          };
-          const unconnectedProperties = (node: Node<NodeData>) => {
-            const properties: Record<string, any> = {};
-            for (const name in node.data.properties) {
-              if (!isHandleConnected(node.id, name)) {
-                properties[name] = node.data.properties[name];
-              }
-            }
-            return properties;
-          };
-          const nodes = get().nodes.map((node) => {
-            return {
-              ...node,
-              data: {
-                ...node.data,
-                properties: unconnectedProperties(node)
-              }
-            };
-          });
-          return {
-            ...workflow,
-            graph: {
-              edges: edges.map(reactFlowEdgeToGraphEdge),
-              nodes: nodes.map(reactFlowNodeToGraphNode)
-            }
-          };
-        },
-        setWorkflowDirty: (dirty: boolean) => {
-          set({ workflowIsDirty: dirty });
-        },
-        autoLayout: async () => {
-          const allNodes = get().nodes;
-          let selectedNodes = allNodes.filter((node) => node.selected);
-          const edges = get().edges;
-          if (selectedNodes.length <= 1) {
-            selectedNodes = allNodes;
-          }
-          const layoutedNodes = await autoLayout(edges, selectedNodes);
-
-          const updatedNodes = allNodes.map((node) => {
-            const layoutedNode = layoutedNodes.find((n) => n.id === node.id);
-            if (layoutedNode) {
-              return {
-                ...node,
-                position: layoutedNode.position
-              };
-            }
-            return node;
-          });
-
-          get().setNodes(updatedNodes);
-          set({ shouldFitToScreen: true });
-        },
-        setShouldAutoLayout: (value: boolean) => {
-          set({ shouldAutoLayout: value });
-        },
-        clearMissingModels: () => {
-          set({ missingModelFiles: [] });
-        },
-        clearMissingRepos: () => {
-          set({ missingModelRepos: [] });
-        },
-        setShouldFitToScreen: (value: boolean) => {
-          set({ shouldFitToScreen: value });
-        },
-        setNodes: (nodes: Node<NodeData>[], setDirty: boolean = true) => {
-          if (setDirty) {
-            nodes.forEach((node) => {
-              node.data.dirty = true;
-              node.data.workflow_id = get().workflow.id;
-            });
-          }
-          set({ nodes });
-          get().setWorkflowDirty(true);
-        },
-        setEdges: (edges: Edge[]) => {
-          set({ edges });
-          get().setWorkflowDirty(true);
-        },
-        validateConnection: (
-          connection: Connection,
-          srcNode: Node<NodeData>,
-          targetNode: Node<NodeData>
-        ) => {
-          const srcMetadata = useMetadataStore
-            .getState()
-            .getMetadata(srcNode.type as string);
-          const targetMetadata = useMetadataStore
-            .getState()
-            .getMetadata(targetNode.type as string);
-          if (
-            !srcMetadata ||
-            !targetMetadata ||
-            !connection.sourceHandle ||
-            !connection.targetHandle
-          ) {
-            return false;
-          }
-          const edges = get().edges;
-          const existingConnection = edges.find(
-            (edge) =>
-              edge.source === connection.source &&
-              edge.sourceHandle === connection.sourceHandle &&
-              edge.target === connection.target &&
-              edge.targetHandle === connection.targetHandle
-          );
-          if (existingConnection) {
-            return false;
-          }
-          const srcHandle = connection.sourceHandle;
-          const srcOutput = srcMetadata?.outputs.find(
-            (output: OutputSlot) => output.name === srcHandle
-          );
-          const srcType = srcOutput?.type;
-          const targetHandle = connection.targetHandle;
-          const targetProperty = targetMetadata?.properties.find(
-            (property: Property) => property.name === targetHandle
-          );
-          const targetType = targetProperty?.type || {
-            type: "str",
-            optional: false,
-            type_args: []
-          };
-          return (
-            srcType !== undefined &&
-            targetType !== undefined &&
-            isConnectable(srcType, targetType)
-          );
-        },
-        sanitizeGraph: (
-          nodes: Node<NodeData>[],
-          edges: Edge[],
-          metadata: Record<string, NodeMetadata>
-        ) => {
-          const nodeMap = new Map(nodes.map((node) => [node.id, node]));
-          const sanitizedNodes = nodes.map((node) => {
-            const sanitizedNode = { ...node };
-            if (
-              sanitizedNode.parentId &&
-              !nodeMap.has(sanitizedNode.parentId)
-            ) {
-              devWarn(
-                `Node ${sanitizedNode.id} references non-existent parent ${sanitizedNode.parentId}. Removing parent reference.`
-              );
-              delete sanitizedNode.parentId;
-            }
-            return sanitizedNode;
-          });
-
-          const sanitizedEdges = edges.reduce((acc, edge) => {
-            const sourceNode = nodeMap.get(edge.source);
-            const targetNode = nodeMap.get(edge.target);
-            if (
-              sourceNode &&
-              targetNode &&
-              sourceNode.type &&
-              targetNode.type
-            ) {
-              const sourceMetadata = metadata[sourceNode.type];
-              const targetMetadata = metadata[targetNode.type];
-              if (!sourceMetadata || !targetMetadata) {
-                acc.push(edge);
-              } else if (
-                sourceMetadata.outputs.some(
-                  (output) => output.name === edge.sourceHandle
-                ) &&
-                (targetMetadata.is_dynamic ||
-                  targetMetadata.properties.some(
-                    (prop) => prop.name === edge.targetHandle
-                  ))
-              ) {
-                acc.push(edge);
-              }
-            }
-            return acc;
-          }, [] as Edge[]);
-
-          return { nodes: sanitizedNodes, edges: sanitizedEdges };
-        },
-        getWorkflowIsDirty: () => get().workflowIsDirty,
-        workflowJSON: () => {
-          const workflow = get().getWorkflow();
-          workflow.id = "";
-          return JSON.stringify(workflow, null, 2);
-        },
-        createNode: (
-          metadata: NodeMetadata,
-          position: XYPosition,
-          properties?: Record<string, any>
-        ): Node<NodeData> => {
-          const defaults = metadata.properties.reduce<Record<string, any>>(
-            (acc, property) => ({
-              ...acc,
-              [property.name]: property.default
-            }),
-            {}
-          );
-          if (properties) {
-            for (const key in properties) {
-              defaults[key] = properties[key];
-            }
-          }
-          const nodeId = get().generateNodeId();
-          useResultsStore.getState().clearResults(nodeId);
-          return {
-            id: nodeId,
-            type: metadata.node_type,
-            data: {
-              properties: defaults,
-              collapsed: false,
-              dirty: true,
-              selectable: true,
-              workflow_id: get().workflow.id,
-              dynamic_properties: {}
-            },
-            targetPosition: Position.Left,
-            position: position
-          };
         }
-      }),
+
+        return {
+          shouldAutoLayout: state?.shouldAutoLayout || false,
+          missingModelFiles: [],
+          missingModelRepos: [],
+          workflow: workflow
+            ? {
+                id: workflow.id,
+                name: workflow.name,
+                access: workflow.access,
+                description: workflow.description,
+                thumbnail: workflow.thumbnail,
+                tags: workflow.tags,
+                settings: workflow.settings,
+                updated_at: workflow.updated_at,
+                created_at: workflow.created_at
+              }
+            : {
+                id: "",
+                name: "",
+                access: "private",
+                description: "",
+                thumbnail: "",
+                tags: [],
+                settings: {},
+                updated_at: new Date().toISOString(),
+                created_at: new Date().toISOString()
+              },
+          workflowIsDirty: false,
+          nodes: sanitizedNodes,
+          edges: sanitizedEdges,
+          edgeUpdateSuccessful: false,
+          hoveredNodes: [],
+          shouldFitToScreen: state?.shouldFitToScreen || false,
+          connectionAttempted: false,
+          setConnectionAttempted: (value: boolean) =>
+            set({ connectionAttempted: value }),
+          setHoveredNodes: (ids: string[]) => set({ hoveredNodes: ids }),
+          generateNodeId: () => {
+            const highestId = get().nodes.reduce((acc, node) => {
+              const id = parseInt(node.id, 10);
+              return id > acc ? id : acc;
+            }, 0);
+            return (highestId + 1).toString();
+          },
+          generateNodeIds: (count: number) => {
+            const highestId = get().nodes.reduce((acc, node) => {
+              const id = parseInt(node.id, 10);
+              return isNaN(id) ? acc : Math.max(id, acc);
+            }, 0);
+            return Array.from({ length: count }, (_, i) =>
+              (highestId + i + 1).toString()
+            );
+          },
+          generateEdgeId: () => {
+            const highestId = get().edges.reduce((acc, edge) => {
+              const id = parseInt(edge.id, 10);
+              return id > acc ? id : acc;
+            }, 0);
+            return (highestId + 1).toString();
+          },
+          getInputEdges: (nodeId: string) =>
+            get().edges.filter((e) => e.target === nodeId),
+          getOutputEdges: (nodeId: string) =>
+            get().edges.filter((e) => e.source === nodeId),
+          getSelection: () => {
+            const nodes = get().nodes.filter((node) => node.selected);
+            const nodeIds = nodes.reduce((acc, node) => {
+              acc[node.id] = true;
+              return acc;
+            }, {} as Record<string, boolean>);
+            const edges = get().edges.filter(
+              (edge) => edge.source in nodeIds && edge.target in nodeIds
+            );
+            return { nodes, edges };
+          },
+          getSelectedNodes: () => get().nodes.filter((node) => node.selected),
+          setSelectedNodes: (nodes: Node<NodeData>[]) => {
+            set({
+              nodes: get().nodes.map((node) => ({
+                ...node,
+                selected: nodes.includes(node)
+              }))
+            });
+          },
+          getSelectedNodeIds: () =>
+            get()
+              .getSelectedNodes()
+              .map((node) => node.id),
+          setEdgeUpdateSuccessful: (value: boolean) =>
+            set({ edgeUpdateSuccessful: value }),
+          onNodesChange: (changes: NodeChange<Node<NodeData>>[]) => {
+            const nodes = applyNodeChanges(changes, get().nodes);
+            set({ nodes });
+          },
+          onEdgesChange: (changes: EdgeChange[]) => {
+            set({
+              edges: applyEdgeChanges(changes, get().edges)
+            });
+            get().setWorkflowDirty(true);
+          },
+          onEdgeUpdate: (oldEdge: Edge, newConnection: Connection) => {
+            const edge = get().edges.find((e) => e.id === oldEdge.id);
+            if (edge) {
+              const newEdge = {
+                ...edge,
+                source: newConnection.source,
+                target: newConnection.target,
+                sourceHandle: newConnection.sourceHandle || null,
+                targetHandle: newConnection.targetHandle || null
+              };
+              set({
+                edges: get().edges.map((e) =>
+                  e.id === oldEdge.id ? newEdge : e
+                )
+              });
+            }
+          },
+          onConnect: (connection: Connection) => {
+            const newEdge = {
+              ...connection,
+              id: get().generateEdgeId(),
+              sourceHandle: connection.sourceHandle || null,
+              targetHandle: connection.targetHandle || null
+            } as Edge;
+            set({
+              edges: addEdge(
+                newEdge,
+                get().edges.map((edge) => ({
+                  ...edge,
+                  sourceHandle: edge.sourceHandle || null,
+                  targetHandle: edge.targetHandle || null
+                }))
+              )
+            });
+          },
+          findNode: (id: string) => get().nodes.find((n) => n.id === id),
+          findEdge: (id: string) => get().edges.find((e) => e.id === id),
+          addNode: (node: Node<NodeData>) => {
+            if (get().findNode(node.id)) {
+              devWarn(`Node with id ${node.id} already exists`);
+              return;
+            }
+            node.data.dirty = true;
+            node.expandParent = true;
+            node.data.workflow_id = get().workflow.id;
+            set({ nodes: [...get().nodes, node], workflowIsDirty: true });
+          },
+          updateNode: (id: string, node: Partial<Node<NodeData>>) => {
+            set({
+              nodes: get().nodes.map((n) =>
+                n.id === id ? { ...n, ...node } : n
+              )
+            });
+          },
+          updateNodeData: (id: string, data: Partial<NodeData>) => {
+            set({
+              nodes: get().nodes.map((n) =>
+                n.id === id ? { ...n, data: { ...n.data, ...data } } : n
+              )
+            });
+          },
+          updateNodeProperties: (id: string, properties: any) => {
+            const workflow_id = get().workflow.id;
+            set({
+              nodes: get().nodes.map(
+                (node) =>
+                  (node.id === id
+                    ? {
+                        ...node,
+                        data: {
+                          ...node.data,
+                          workflow_id,
+                          properties: { ...node.data.properties, ...properties }
+                        }
+                      }
+                    : node) as Node<NodeData>
+              )
+            });
+            get().setWorkflowDirty(true);
+          },
+          deleteNode: (id: string) => {
+            const nodeToDelete = get().findNode(id);
+            if (!nodeToDelete) {
+              devWarn(`Node with id ${id} not found`);
+              return;
+            }
+            const focusedElement = document.activeElement as HTMLElement;
+            if (
+              focusedElement.classList.contains("MuiInput-input") ||
+              focusedElement.tagName === "TEXTAREA"
+            ) {
+              return;
+            }
+            const nodes: Node<NodeData>[] = get()
+              .nodes.filter((node) => node.id !== id)
+              .map((node) => {
+                return {
+                  ...node,
+                  parentId: node.parentId === id ? undefined : node.parentId
+                };
+              });
+
+            useErrorStore.getState().clearErrors(id);
+            useResultsStore.getState().clearResults(id);
+
+            set({
+              nodes: nodes,
+              edges: get().edges.filter(
+                (edge) => edge.source !== id && edge.target !== id
+              )
+            });
+          },
+          deleteEdge: (id: string) => {
+            set({ edges: get().edges.filter((e) => e.id !== id) });
+          },
+          addEdge: (edge: Edge) => {
+            set({ edges: [...get().edges, edge] });
+          },
+          updateEdge: (edge: Edge) => {
+            set({
+              edges: [...get().edges.filter((e) => e.id !== edge.id), edge]
+            });
+          },
+          updateEdgeHandle: (
+            nodeId: string,
+            oldHandle: string,
+            newHandle: string
+          ) => {
+            set({
+              edges: get().edges.map((edge) =>
+                edge.target === nodeId && edge.targetHandle === oldHandle
+                  ? { ...edge, targetHandle: newHandle }
+                  : edge
+              )
+            });
+          },
+          getModels: () => {
+            const nodes = get().nodes;
+            return nodes.reduce((acc, node) => {
+              for (const key in node.data.properties) {
+                const property = node.data.properties[key];
+                if (property?.type && property?.repo_id) {
+                  acc.push(property as UnifiedModel);
+                }
+              }
+              return acc;
+            }, [] as UnifiedModel[]);
+          },
+          getWorkflow: (): Workflow => {
+            const workflow = get().workflow;
+            const edges = get().edges;
+            const isHandleConnected = (nodeId: string, handle: string) => {
+              return edges.some(
+                (edge) => edge.target === nodeId && edge.targetHandle === handle
+              );
+            };
+            const unconnectedProperties = (node: Node<NodeData>) => {
+              const properties: Record<string, any> = {};
+              for (const name in node.data.properties) {
+                if (!isHandleConnected(node.id, name)) {
+                  properties[name] = node.data.properties[name];
+                }
+              }
+              return properties;
+            };
+            const nodes = get().nodes.map((node) => {
+              return {
+                ...node,
+                data: {
+                  ...node.data,
+                  properties: unconnectedProperties(node)
+                }
+              };
+            });
+            return {
+              ...workflow,
+              graph: {
+                edges: edges.map(reactFlowEdgeToGraphEdge),
+                nodes: nodes.map(reactFlowNodeToGraphNode)
+              }
+            };
+          },
+          setWorkflowDirty: (dirty: boolean) => {
+            set({ workflowIsDirty: dirty });
+          },
+          autoLayout: async () => {
+            const allNodes = get().nodes;
+            let selectedNodes = allNodes.filter((node) => node.selected);
+            const edges = get().edges;
+            if (selectedNodes.length <= 1) {
+              selectedNodes = allNodes;
+            }
+            const layoutedNodes = await autoLayout(edges, selectedNodes);
+
+            const updatedNodes = allNodes.map((node) => {
+              const layoutedNode = layoutedNodes.find((n) => n.id === node.id);
+              if (layoutedNode) {
+                return {
+                  ...node,
+                  position: layoutedNode.position
+                };
+              }
+              return node;
+            });
+
+            get().setNodes(updatedNodes);
+            set({ shouldFitToScreen: true });
+          },
+          setShouldAutoLayout: (value: boolean) => {
+            set({ shouldAutoLayout: value });
+          },
+          clearMissingModels: () => {
+            set({ missingModelFiles: [] });
+          },
+          clearMissingRepos: () => {
+            set({ missingModelRepos: [] });
+          },
+          setShouldFitToScreen: (value: boolean) => {
+            set({ shouldFitToScreen: value });
+          },
+          setNodes: (nodes: Node<NodeData>[], setDirty: boolean = true) => {
+            if (setDirty) {
+              nodes.forEach((node) => {
+                node.data.dirty = true;
+                node.data.workflow_id = get().workflow.id;
+              });
+            }
+            set({ nodes });
+            get().setWorkflowDirty(true);
+          },
+          setEdges: (edges: Edge[]) => {
+            set({ edges });
+            get().setWorkflowDirty(true);
+          },
+          validateConnection: (
+            connection: Connection,
+            srcNode: Node<NodeData>,
+            targetNode: Node<NodeData>
+          ) => {
+            const srcMetadata = useMetadataStore
+              .getState()
+              .getMetadata(srcNode.type as string);
+            const targetMetadata = useMetadataStore
+              .getState()
+              .getMetadata(targetNode.type as string);
+            if (
+              !srcMetadata ||
+              !targetMetadata ||
+              !connection.sourceHandle ||
+              !connection.targetHandle
+            ) {
+              return false;
+            }
+            const edges = get().edges;
+            const existingConnection = edges.find(
+              (edge) =>
+                edge.source === connection.source &&
+                edge.sourceHandle === connection.sourceHandle &&
+                edge.target === connection.target &&
+                edge.targetHandle === connection.targetHandle
+            );
+            if (existingConnection) {
+              return false;
+            }
+            const srcHandle = connection.sourceHandle;
+            const srcOutput = srcMetadata?.outputs.find(
+              (output: OutputSlot) => output.name === srcHandle
+            );
+            const srcType = srcOutput?.type;
+            const targetHandle = connection.targetHandle;
+            const targetProperty = targetMetadata?.properties.find(
+              (property: Property) => property.name === targetHandle
+            );
+            const targetType = targetProperty?.type || {
+              type: "str",
+              optional: false,
+              type_args: []
+            };
+            return (
+              srcType !== undefined &&
+              targetType !== undefined &&
+              isConnectable(srcType, targetType)
+            );
+          },
+          getWorkflowIsDirty: () => get().workflowIsDirty,
+          workflowJSON: () => {
+            const workflow = get().getWorkflow();
+            workflow.id = "";
+            return JSON.stringify(workflow, null, 2);
+          },
+          createNode: (
+            metadata: NodeMetadata,
+            position: XYPosition,
+            properties?: Record<string, any>
+          ): Node<NodeData> => {
+            const defaults = metadata.properties.reduce<Record<string, any>>(
+              (acc, property) => ({
+                ...acc,
+                [property.name]: property.default
+              }),
+              {}
+            );
+            if (properties) {
+              for (const key in properties) {
+                defaults[key] = properties[key];
+              }
+            }
+            const nodeId = get().generateNodeId();
+            useResultsStore.getState().clearResults(nodeId);
+            return {
+              id: nodeId,
+              type: metadata.node_type,
+              data: {
+                properties: defaults,
+                collapsed: false,
+                dirty: true,
+                selectable: true,
+                workflow_id: get().workflow.id,
+                dynamic_properties: {}
+              },
+              targetPosition: Position.Left,
+              position: position
+            };
+          }
+        };
+      },
       {
         limit: undo_limit,
         equality: customEquality,
