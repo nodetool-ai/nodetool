@@ -40,13 +40,13 @@ const styles = (theme: any) =>
       alignItems: "center",
       position: "relative",
       backgroundColor: theme.palette.c_gray1,
-      height: "48px",
-      minHeight: "48px",
-      padding: "0 16px",
+      height: "40px",
+      minHeight: "40px",
+      padding: "0 12px",
       border: "0"
     },
     ".nodetool-logo": {
-      margin: "1px 1em 0 0"
+      margin: "1px 0.75em 0 0"
     },
     button: {
       fontSize: "13px",
