@@ -26,7 +26,7 @@ const styles = (theme: any) =>
   css({
     "&": {
       position: "absolute",
-      top: "10px",
+      top: "8px",
       left: "50%",
       transform: "translateX(-50%)",
       backgroundColor: theme.palette.c_gray1
