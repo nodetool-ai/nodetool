@@ -119,9 +119,7 @@ const Logo = ({
       )}
       <div className="nt" onMouseEnter={handleMouseEnter} aria-hidden="true">
         <div className="nodetool" aria-hidden="true">
-          {singleLine ? (
-            "NODETOOL"
-          ) : (
+          {!singleLine && (
             <>
               {"NODE"}
               <br />

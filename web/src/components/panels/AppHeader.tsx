@@ -22,42 +22,24 @@ import {
 
 // hooks and stores
 import { useLocation, useNavigate } from "react-router-dom";
-import { useAppHeaderStore } from "../../stores/AppHeaderStore";
 
 // constants
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
-import NavigationButtons from "./NavigationButtons";
 import RightSideButtons from "./RightSideButtons";
 
 const styles = (theme: any) =>
   css({
     "&": {
       width: "100%",
-      // height: "40px",
-      // backgroundColor: "rgba(18, 18, 24, 0.95)",
-      backgroundColor: theme.palette.c_gray1,
       overflow: "visible"
-    },
-    ".app-bar": {
-      overflow: "visible",
-      boxShadow: "0 0 30px rgba(0, 0, 0, 0.2)",
-      zIndex: 10000,
-      "&::after": {
-        content: '""',
-        position: "absolute",
-        top: 0,
-        left: 0,
-        right: 0,
-        height: "1px",
-        background: "rgba(255, 255, 255, 0.05)"
-      }
     },
     ".toolbar": {
       overflow: "visible",
       display: "flex",
       justifyContent: "space-between",
       alignItems: "center",
-      position: "relative"
+      position: "relative",
+      backgroundColor: theme.palette.c_gray2
     },
     ".nodetool-logo": {
       margin: "1px 1.5em 0 0"
@@ -121,7 +103,7 @@ const styles = (theme: any) =>
       justifyContent: "flex-end",
       alignItems: "center",
       gap: 0,
-      background: theme.palette.c_gray1,
+      background: "transparent",
       borderRadius: "12px",
       paddingLeft: "1em",
       marginLeft: "auto",
@@ -135,46 +117,43 @@ const AppHeader: React.FC = memo(function AppHeader() {
 
   return (
     <div css={styles} className="app-header">
-      <AppBar position="static" className="app-bar">
-        <Toolbar variant="dense" className="toolbar">
-          <div className="navigate">
-            <Tooltip
-              enterDelay={TOOLTIP_ENTER_DELAY}
-              title={
-                <div style={{ textAlign: "center" }}>
-                  <Typography variant="inherit">Open Welcome Screen</Typography>
-                </div>
-              }
+      <Toolbar variant="dense" className="toolbar">
+        <div className="navigate">
+          <Tooltip
+            enterDelay={TOOLTIP_ENTER_DELAY}
+            title={
+              <div style={{ textAlign: "center" }}>
+                <Typography variant="inherit">Open Welcome Screen</Typography>
+              </div>
+            }
+          >
+            <Button
+              className="logo"
+              tabIndex={-1}
+              onClick={(e) => {
+                e.preventDefault();
+                navigate("/welcome");
+              }}
+              sx={{
+                lineHeight: "1em",
+                display: { xs: "none", sm: "block" }
+              }}
             >
-              <Button
-                className="logo"
-                tabIndex={-1}
-                onClick={(e) => {
-                  e.preventDefault();
-                  navigate("/welcome");
-                }}
-                sx={{
-                  lineHeight: "1em",
-                  display: { xs: "none", sm: "block" }
-                }}
-              >
-                <Logo
-                  width="80px"
-                  height="24px"
-                  fontSize="1em"
-                  borderRadius="20px"
-                  small={true}
-                  singleLine={true}
-                />
-              </Button>
-            </Tooltip>
-            <Box sx={{ flexGrow: 0.02 }} />
-            <NavigationButtons />
-          </div>
-          <Alert />
-          <RightSideButtons />
-        </Toolbar>
-      </AppBar>
+              <Logo
+                width="80px"
+                height="24px"
+                fontSize="1em"
+                borderRadius="20px"
+                small={true}
+                singleLine={true}
+              />
+            </Button>
+          </Tooltip>
+          <Box sx={{ flexGrow: 0.02 }} />
+        </div>
+        <Alert />
+        <RightSideButtons />
+      </Toolbar>
     </div>
   );
 });
