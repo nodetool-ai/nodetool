@@ -35,7 +35,7 @@ const styles = (theme: any) =>
       flexDirection: "column",
       flexWrap: "nowrap",
       gap: "0",
-      padding: "0 0 2em 0",
+      padding: "0",
       height: `calc(100% - ${RESIZE_HANDLE_HEIGHT}px)`,
       overflow: "hidden auto"
     },
@@ -113,13 +113,11 @@ const styles = (theme: any) =>
     // resize folder list
     ".resize-handle": {
       position: "absolute",
-      borderBottom: "5px solid" + theme.palette.c_gray1,
       bottom: 0,
       left: 0,
       right: 0,
       height: `${RESIZE_HANDLE_HEIGHT}px`,
       cursor: "ns-resize",
-      backgroundColor: theme.palette.c_gray2,
       transition: "background-color 0.2s ease",
       "&:hover, &.resizing": {
         backgroundColor: "#4c4c4c"
