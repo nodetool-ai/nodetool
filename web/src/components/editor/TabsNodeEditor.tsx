@@ -17,11 +17,16 @@ import KeyboardProvider from "../KeyboardProvider";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import { ConnectableNodesProvider } from "../../providers/ConnectableNodesProvider";
 import WorkflowFormModal from "../workflows/WorkflowFormModal";
+import AppHeader from "../panels/AppHeader";
 
 const styles = (theme: any) =>
   css({
+    position: "absolute",
+    top: 0,
+    left: "48px",
     display: "flex",
     flexDirection: "column",
+    width: "100%",
     height: "100%",
     flex: 1,
     minWidth: 0,
@@ -65,7 +70,7 @@ const styles = (theme: any) =>
     "& .tab.active": {
       color: theme.palette.c_white,
       textShadow: "0 0 2px rgba(0, 0, 0, 0.5)",
-      backgroundColor: theme.palette.c_editor_bg_color,
+      backgroundColor: theme.palette.c_gray2,
       borderBottom: "none",
       zIndex: 1
     },
@@ -81,7 +86,7 @@ const styles = (theme: any) =>
       flex: "0 0 auto",
       cursor: "pointer",
       color: theme.palette.c_gray5,
-      background: theme.palette.background.default,
+      background: theme.palette.c_gray1,
       borderRadius: "5px 5px 0 0",
       fontSize: theme.fontSizeNormal,
       transition: "all 0.1s ease-in-out",
@@ -255,18 +260,19 @@ const TabsNodeEditor = () => {
                       <ConnectableNodesProvider active={isActive}>
                         <KeyboardProvider active={isActive}>
                           <NodeProvider workflowId={workflow.id}>
-                            {isActive &&
-                              createPortal(
+                            {isActive && (
+                              <>
+                                <AppHeader />
                                 <div className="actions-container">
                                   <AppHeaderActions
                                     setWorkflowToEdit={setWorkflowToEdit}
                                   />
-                                </div>,
-                                document.body
-                              )}
-                            <div className="status-message-container">
-                              <StatusMessage />
-                            </div>
+                                </div>
+                                <div className="status-message-container">
+                                  <StatusMessage />
+                                </div>
+                              </>
+                            )}
                             <NodeEditor workflowId={workflow.id} />
                           </NodeProvider>
                         </KeyboardProvider>

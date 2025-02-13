@@ -15,9 +15,19 @@ import { IconForType } from "../../config/data_types";
 import { LeftPanelView, usePanelStore } from "../../stores/PanelStore";
 import CollectionList from "../collections/CollectionList";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
+import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import ThemeNodetool from "../themes/ThemeNodetool";
+import { useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import ExamplesIcon from "@mui/icons-material/AutoAwesome";
+import { Fullscreen } from "@mui/icons-material";
 
 const styles = (theme: any) =>
   css({
+    ".panel-container": {
+      flexShrink: 0,
+      position: "absolute"
+    },
     ".panel-left": {
       direction: "ltr",
       position: "absolute",
@@ -25,8 +35,8 @@ const styles = (theme: any) =>
       overflowY: "auto",
       width: "100%",
       padding: "0",
-      top: "48px",
-      height: "calc(-48px + 100vh)"
+      top: "35px",
+      height: "calc(-35px + 100vh)"
     },
 
     ".panel-button": {
@@ -58,11 +68,6 @@ const styles = (theme: any) =>
           fontSize: "1em !important"
         }
       }
-    },
-
-    ".panel-container": {
-      flexShrink: 0,
-      position: "relative"
     },
     ".MuiDrawer-paper": {
       // boxShadow: "0 0 10px rgba(0, 0, 0, 0.3)",
@@ -153,8 +158,27 @@ const VerticalToolbar = memo(function VerticalToolbar({
   onViewChange: (view: LeftPanelView) => void;
   handlePanelToggle: () => void;
 }) {
+  const navigate = useNavigate();
+  const path = useLocation().pathname;
+
   return (
     <div className="vertical-toolbar">
+      <Tooltip title="Explore Examples" enterDelay={TOOLTIP_ENTER_DELAY}>
+        <Button
+          className={`nav-button ${path === "/examples" ? "active" : ""}`}
+          onClick={() => {
+            navigate("/examples");
+          }}
+          tabIndex={-1}
+          style={{
+            color: path.startsWith("/examples")
+              ? ThemeNodetool.palette.c_hl1
+              : ThemeNodetool.palette.c_white
+          }}
+        >
+          <ExamplesIcon />
+        </Button>
+      </Tooltip>
       <Tooltip title="Workflows" placement="right">
         <IconButton
           onClick={() => onViewChange("workflowGrid")}
@@ -223,6 +247,9 @@ const PanelContent = memo(function PanelContent({
 }: {
   activeView: string;
 }) {
+  const navigate = useNavigate();
+  const path = useLocation().pathname;
+
   return (
     <>
       {activeView === "chat" && <HelpChat />}
@@ -231,6 +258,21 @@ const PanelContent = memo(function PanelContent({
           className="assets-container"
           sx={{ width: "100%", height: "100%", margin: "0 20px" }}
         >
+          <Tooltip title="Fullscreen" placement="right">
+            <Button
+              className={`${path === "/assets" ? "active" : ""}`}
+              onClick={() => {
+                navigate("/assets");
+              }}
+              tabIndex={-1}
+              style={{
+                float: "right",
+                margin: "15px 0 0 0"
+              }}
+            >
+              <Fullscreen />
+            </Button>
+          </Tooltip>
           <h3>Assets</h3>
           <AssetGrid maxItemSize={5} />
         </Box>
