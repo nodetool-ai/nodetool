@@ -39,73 +39,54 @@ const styles = (theme: any) =>
       justifyContent: "space-between",
       alignItems: "center",
       position: "relative",
-      backgroundColor: theme.palette.c_gray2
+      backgroundColor: theme.palette.c_gray1,
+      height: "48px",
+      minHeight: "48px",
+      padding: "0 16px",
+      border: "0"
     },
     ".nodetool-logo": {
-      margin: "1px 1.5em 0 0"
+      margin: "1px 1em 0 0"
     },
     button: {
-      fontSize: theme.fontSizeSmaller,
+      fontSize: "13px",
       color: theme.palette.c_white,
+      padding: "6px 12px",
+      minWidth: "auto",
+      borderRadius: "6px",
+      transition: "all 0.2s ease-out",
       "&:hover": {
-        backgroundColor: "rgba(255, 255, 255, 0.1)"
+        backgroundColor: "rgba(255, 255, 255, 0.05)"
       }
     },
     ".icon-container svg": {
       display: "block",
-      width: "20px",
+      width: "18px",
       height: "18px",
-      fontSize: theme.fontSizeSmall
+      fontSize: "18px"
     },
-    "button svg": {
-      display: "block",
-      padding: "0.1em"
-    },
-    ".command-icon svg": {
-      display: "block !important"
-    },
-    "button.logo:hover": {
-      backgroundColor: "transparent"
-    },
-    ".nav-buttons": {
-      width: "100%",
-      display: "flex",
-      flexDirection: "row",
-      justifyContent: "flex-start",
-      alignItems: "center",
-      gap: "0.1em",
-      "& button": {
-        lineHeight: "1.1em"
+    "button.logo": {
+      padding: "4px 8px",
+      "&:hover": {
+        backgroundColor: "transparent",
+        opacity: 0.8
       }
-    },
-    ".nav-button svg": {
-      marginRight: "0.2em"
-    },
-    "nav-button": {
-      flexShrink: 0,
-      minWidth: "5em",
-      "&.active": {
-        color: theme.palette.c_hl1
-      }
-    },
-    ".back-to-editor": {
-      marginLeft: "100px",
-      marginRight: "auto"
     },
     ".navigate": {
       display: "flex",
       alignItems: "center",
-      width: "100%"
+      flex: "1 1 auto",
+      gap: "8px"
     },
     ".buttons-right": {
       display: "flex",
       flexDirection: "row",
       justifyContent: "flex-end",
       alignItems: "center",
-      gap: 0,
+      gap: "4px",
       background: "transparent",
-      borderRadius: "12px",
-      paddingLeft: "1em",
+      borderRadius: "8px",
+      paddingLeft: "8px",
       marginLeft: "auto",
       flexShrink: 0
     }

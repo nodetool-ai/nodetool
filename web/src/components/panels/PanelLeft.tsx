@@ -26,7 +26,8 @@ const styles = (theme: any) =>
   css({
     ".panel-container": {
       flexShrink: 0,
-      position: "absolute"
+      position: "absolute",
+      backgroundColor: theme.palette.c_gray0
     },
     ".panel-left": {
       direction: "ltr",
@@ -71,7 +72,8 @@ const styles = (theme: any) =>
     },
     ".MuiDrawer-paper": {
       // boxShadow: "0 0 10px rgba(0, 0, 0, 0.3)",
-      width: "auto"
+      width: "auto",
+      backgroundColor: theme.palette.c_gray0
     },
     ".panel-tabs ": {
       minHeight: "2em"
@@ -87,17 +89,15 @@ const styles = (theme: any) =>
       display: "flex",
       flexDirection: "column",
       backgroundColor: "transparent",
-      // borderRight: `1px solid ${theme.palette.divider}`,
-      boxShadow: "0 0 10px rgba(0, 0, 0, 0.3)",
       "& .MuiIconButton-root, .MuiButton-root": {
         padding: "18px",
         borderRadius: "5px",
         position: "relative",
-        // margin: "4px 10px 4px 0",
         transition: "all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)",
 
         "&.active": {
           backgroundColor: `${theme.palette.action.selected}88`,
+          boxShadow: `0 0 15px ${theme.palette.primary.main}40`,
           "&::before": {
             content: '""',
             position: "absolute",
@@ -107,6 +107,16 @@ const styles = (theme: any) =>
             width: "3px",
             backgroundColor: theme.palette.primary.main,
             boxShadow: `0 0 10px ${theme.palette.primary.main}`
+          },
+          "&::after": {
+            content: '""',
+            position: "absolute",
+            left: 0,
+            top: 0,
+            right: 0,
+            bottom: 0,
+            background: `linear-gradient(135deg, ${theme.palette.primary.main}40, transparent)`,
+            borderRadius: "5px"
           }
         },
         "&:hover": {
@@ -160,12 +170,15 @@ const VerticalToolbar = memo(function VerticalToolbar({
 }) {
   const navigate = useNavigate();
   const path = useLocation().pathname;
+  const panelVisible = usePanelStore((state) => state.panel.isVisible);
 
   return (
     <div className="vertical-toolbar">
       <Tooltip title="Explore Examples" enterDelay={TOOLTIP_ENTER_DELAY}>
         <Button
-          className={`nav-button ${path === "/examples" ? "active" : ""}`}
+          className={`nav-button ${
+            path === "/examples" && panelVisible ? "active" : ""
+          }`}
           onClick={() => {
             navigate("/examples");
           }}
@@ -182,7 +195,9 @@ const VerticalToolbar = memo(function VerticalToolbar({
       <Tooltip title="Workflows" placement="right">
         <IconButton
           onClick={() => onViewChange("workflowGrid")}
-          className={activeView === "workflowGrid" ? "active" : ""}
+          className={
+            activeView === "workflowGrid" && panelVisible ? "active" : ""
+          }
         >
           <GridViewIcon />
         </IconButton>
@@ -190,7 +205,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
       <Tooltip title="Assets" placement="right">
         <Button
           onClick={() => onViewChange("assets")}
-          className={activeView === "assets" ? "active" : ""}
+          className={activeView === "assets" && panelVisible ? "active" : ""}
         >
           <IconForType
             iconName="asset"
@@ -212,7 +227,9 @@ const VerticalToolbar = memo(function VerticalToolbar({
       <Tooltip title="Collections" placement="right">
         <IconButton
           onClick={() => onViewChange("collections")}
-          className={activeView === "collections" ? "active" : ""}
+          className={
+            activeView === "collections" && panelVisible ? "active" : ""
+          }
         >
           <IconForType
             iconName="database"
@@ -226,7 +243,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
       <Tooltip title="Chat" placement="right">
         <IconButton
           onClick={() => onViewChange("chat")}
-          className={activeView === "chat" ? "active" : ""}
+          className={activeView === "chat" && panelVisible ? "active" : ""}
         >
           <ChatIcon />
         </IconButton>
@@ -256,7 +273,7 @@ const PanelContent = memo(function PanelContent({
       {activeView === "assets" && (
         <Box
           className="assets-container"
-          sx={{ width: "100%", height: "100%", margin: "0 20px" }}
+          sx={{ width: "100%", height: "100%" }}
         >
           <Tooltip title="Fullscreen" placement="right">
             <Button
