@@ -9,8 +9,8 @@ from nodetool.metadata.types import (
     Mask,
     NPArray,
 )
-from nodetool.common.comfy_node import MAX_RESOLUTION
-from nodetool.common.comfy_node import ComfyNode
+from nodetool.nodes.comfy.comfy_node import MAX_RESOLUTION
+from nodetool.nodes.comfy.comfy_node import ComfyNode
 import nodes
 import comfy_extras.nodes_mask
 import comfy_extras.nodes_mochi

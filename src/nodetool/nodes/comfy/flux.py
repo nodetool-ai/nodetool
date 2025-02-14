@@ -1,7 +1,7 @@
 import os
 from pydantic import Field
 from nodes import load_custom_node
-from nodetool.common.comfy_node import ComfyNode
+from nodetool.nodes.comfy.comfy_node import ComfyNode
 from nodetool.metadata.types import CLIP, Conditioning
 
 import comfy_extras.nodes_flux

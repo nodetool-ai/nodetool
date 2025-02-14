@@ -44,7 +44,7 @@ from nodetool.metadata.types import (
     StyleModel,
     StyleModelFile,
 )
-from nodetool.common.comfy_node import ComfyNode
+from nodetool.nodes.comfy.comfy_node import ComfyNode
 from nodetool.nodes.huggingface.lora import HF_LORA_SD_MODELS, HF_LORA_SDXL_MODELS
 from nodetool.nodes.huggingface.stable_diffusion_base import (
     HF_CLIP_MODELS,
@@ -62,7 +62,7 @@ from nodetool.nodes.huggingface.stable_diffusion_base import HF_CONTROLNET_MODEL
 from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
 from pydantic import Field
-from nodetool.common.comfy_node import ComfyNode, MAX_RESOLUTION
+from nodetool.nodes.comfy.comfy_node import ComfyNode, MAX_RESOLUTION
 
 
 class CheckpointLoaderSimple(ComfyNode):
@@ -147,9 +147,11 @@ class HuggingFaceCheckpointLoader(ComfyNode):
         assert self.model.path is not None, "Model path must be set."
 
         ckpt_path = try_to_load_from_cache(self.model.repo_id, self.model.path)
-        
+
         if ckpt_path is None:
-            raise ValueError(f"Checkpoint must be downloaded from Huggingface. {self.model.repo_id} {self.model.path}")
+            raise ValueError(
+                f"Checkpoint must be downloaded from Huggingface. {self.model.repo_id} {self.model.path}"
+            )
 
         unet, clip, vae, _ = comfy.sd.load_checkpoint_guess_config(
             ckpt_path,
@@ -256,7 +258,9 @@ class HuggingFaceCLIPVisionLoader(ComfyNode):
         clip_vision_path = try_to_load_from_cache(self.model.repo_id, self.model.path)
 
         if clip_vision_path is None:
-            raise ValueError(f"CLIP vision model must be downloaded from Huggingface. {self.model.repo_id} {self.model.path}")
+            raise ValueError(
+                f"CLIP vision model must be downloaded from Huggingface. {self.model.repo_id} {self.model.path}"
+            )
 
         clip_vision = comfy.clip_vision.load(clip_vision_path)
 
@@ -496,9 +500,11 @@ class HuggingFaceLoraLoader(ComfyNode):
 
         assert self.model.model is not None, "Model must be connected."
         assert self.clip.model is not None, "CLIP must be connected."
-        
+
         if lora_path is None:
-            raise ValueError(f"LoRA model must be downloaded from Huggingface. {self.lora.repo_id} {self.lora.path}")
+            raise ValueError(
+                f"LoRA model must be downloaded from Huggingface. {self.lora.repo_id} {self.lora.path}"
+            )
 
         lora = comfy.utils.load_torch_file(lora_path, safe_load=True)
 
@@ -616,7 +622,9 @@ class HuggingFaceVAELoader(ComfyNode):
         vae_path = try_to_load_from_cache(self.model.repo_id, self.model.path)
 
         if vae_path is None:
-            raise ValueError(f"VAE model must be downloaded from Huggingface. {self.model.repo_id} {self.model.path}")
+            raise ValueError(
+                f"VAE model must be downloaded from Huggingface. {self.model.repo_id} {self.model.path}"
+            )
 
         (vae,) = await self.call_comfy_node(context, nodes.VAELoader, vae_name=vae_path)
 
@@ -1012,7 +1020,9 @@ class HuggingFaceIPAdapterLoader(ComfyNode):
 
         ckpt_path = try_to_load_from_cache(self.ipadapter.repo_id, self.ipadapter.path)
 
-        assert ckpt_path is not None, "IPAdapter model must be downloaded from Huggingface."
+        assert (
+            ckpt_path is not None
+        ), "IPAdapter model must be downloaded from Huggingface."
 
         model = comfy.utils.load_torch_file(ckpt_path, safe_load=True)
 

@@ -1,5 +1,5 @@
 from typing import Any
-from nodetool.common.comfy_node import ComfyNode
+from nodetool.nodes.comfy.comfy_node import ComfyNode
 import nodetool.nodes.comfy.advanced
 import nodetool.nodes.comfy.advanced.conditioning
 import nodetool.nodes.comfy.advanced.loaders

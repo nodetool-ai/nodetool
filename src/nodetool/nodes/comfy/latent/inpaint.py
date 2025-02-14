@@ -1,6 +1,6 @@
 from pydantic import Field
 from nodetool.metadata.types import Latent, Mask
-from nodetool.common.comfy_node import ComfyNode
+from nodetool.nodes.comfy.comfy_node import ComfyNode
 import nodes
 
 

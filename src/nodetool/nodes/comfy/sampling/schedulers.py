@@ -1,6 +1,6 @@
 from pydantic import Field
 from nodetool.metadata.types import Latent, Sigmas, UNet
-from nodetool.common.comfy_node import ComfyNode
+from nodetool.nodes.comfy.comfy_node import ComfyNode
 from nodetool.nodes.comfy.sampling import SchedulerEnum
 
 import comfy_extras.nodes_custom_sampler

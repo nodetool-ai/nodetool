@@ -1,5 +1,5 @@
 from pydantic import Field
-from nodetool.common.comfy_node import ComfyNode, MAX_RESOLUTION
+from nodetool.nodes.comfy.comfy_node import ComfyNode, MAX_RESOLUTION
 from nodetool.metadata.types import Latent
 import comfy_extras.nodes_mochi
 

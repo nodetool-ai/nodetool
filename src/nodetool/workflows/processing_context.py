@@ -262,7 +262,7 @@ class ProcessingContext:
     def cache_result(self, node: BaseNode, result: Any, ttl: int = 3600):
         """Cache the result for a node."""
 
-        from nodetool.common.comfy_node import ComfyNode
+        from nodetool.nodes.comfy.comfy_node import ComfyNode
         import torch
 
         all_cacheable = all(out.type.is_cacheable_type() for out in node.outputs())

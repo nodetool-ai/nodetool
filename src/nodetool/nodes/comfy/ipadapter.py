@@ -15,7 +15,7 @@ from nodetool.metadata.types import (
     Mask,
     UNet,
 )
-from nodetool.common.comfy_node import ComfyNode
+from nodetool.nodes.comfy.comfy_node import ComfyNode
 from nodetool.nodes.huggingface.stable_diffusion_base import HF_IP_ADAPTER_MODELS
 from nodetool.workflows.processing_context import ProcessingContext
 

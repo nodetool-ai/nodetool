@@ -2,7 +2,7 @@ from typing import Literal
 
 from pydantic import Field
 from nodetool.metadata.types import UNet
-from nodetool.common.comfy_node import ComfyNode
+from nodetool.nodes.comfy.comfy_node import ComfyNode
 import comfy_extras.nodes_hypertile
 
 

@@ -1,5 +1,5 @@
 from typing import Any
-from nodetool.common.comfy_node import ComfyNode
+from nodetool.nodes.comfy.comfy_node import ComfyNode
 from nodetool.metadata.types import UNet, Latent
 from pydantic import Field
 from comfy_custom_nodes.ComfyUI_essentials import misc
