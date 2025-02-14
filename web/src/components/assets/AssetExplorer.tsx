@@ -3,18 +3,21 @@ import { css } from "@emotion/react";
 
 import React from "react";
 import AssetGrid from "./AssetGrid";
-import { Box } from "@mui/material";
+import { Box, Tooltip } from "@mui/material";
 import useAssets from "../../serverState/useAssets";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
-
+import BackToEditorButton from "../panels/BackToEditorButton";
+import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 const styles = (theme: any) =>
   css({
     "&": {
       position: "relative",
       display: "flex",
       width: "100%",
-      height: "calc(-120px + 100vh)",
-      padding: "1em 2em 1em 1em"
+      height: "100%",
+      top: "0",
+      left: "0",
+      padding: "0"
     },
     ".asset-explorer": {
       width: "100%"
@@ -63,6 +66,9 @@ const AssetExplorer: React.FC = () => {
     <div css={styles}>
       <Box className="asset-explorer">
         <ContextMenuProvider>
+          <Tooltip title="Back to Editor" enterDelay={TOOLTIP_ENTER_DELAY}>
+            <BackToEditorButton />
+          </Tooltip>
           <AssetGrid
             maxItemSize={10}
             itemSpacing={2}

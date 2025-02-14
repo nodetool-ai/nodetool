@@ -30,6 +30,8 @@ const styles = (theme: any) =>
   css({
     "&": {
       display: "flex",
+      marginTop: "30px",
+      marginLeft: "20px",
       flexDirection: "column",
       justifyContent: "flex-start",
       height: "100%"
@@ -135,10 +137,6 @@ const styles = (theme: any) =>
         display: "none"
       }
     },
-    ".header-info": {
-      display: "flex",
-      fontSize: ThemeNodetool.fontSizeSmall
-    },
     ".file-info": {
       display: "flex",
       flexDirection: "column",
@@ -149,6 +147,9 @@ const styles = (theme: any) =>
         whiteSpace: "nowrap",
         maxWidth: "200px"
       }
+    },
+    h3: {
+      margin: "0 0 0 20px"
     }
   });
 

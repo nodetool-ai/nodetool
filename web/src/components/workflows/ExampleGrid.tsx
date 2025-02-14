@@ -27,6 +27,7 @@ import {
 import ThemeNodetool from "../themes/ThemeNodetool";
 import { usePanelStore } from "../../stores/PanelStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+import BackToEditorButton from "../panels/BackToEditorButton";
 
 const styles = (theme: any) =>
   css({
@@ -372,6 +373,9 @@ const ExampleGrid = () => {
 
   return (
     <div className="workflow-grid" css={styles}>
+      <Tooltip title="Back to Editor" enterDelay={TOOLTIP_ENTER_DELAY}>
+        <BackToEditorButton />
+      </Tooltip>
       <Box className="tag-menu">
         <div className="button-row">
           <Tooltip
