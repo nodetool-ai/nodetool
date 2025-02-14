@@ -106,7 +106,6 @@ function getRoutes() {
       path: "assets",
       element: (
         <ProtectedRoute>
-          <AppHeader />
           <AssetExplorer />
         </ProtectedRoute>
       )
@@ -115,17 +114,7 @@ function getRoutes() {
       path: "examples",
       element: (
         <ProtectedRoute>
-          <AppHeader />
           <ExampleGrid />
-        </ProtectedRoute>
-      )
-    },
-    {
-      path: "models",
-      element: (
-        <ProtectedRoute>
-          <AppHeader />
-          <ModelsManager />
         </ProtectedRoute>
       )
     },
@@ -134,12 +123,11 @@ function getRoutes() {
       element: (
         <ProtectedRoute>
           <FetchCurrentWorkflow>
-            <AppHeader />
             <div
               style={{
                 display: "flex",
                 width: "100%",
-                height: "calc(100vh - 64px)"
+                height: "100%"
               }}
             >
               <PanelLeft />
@@ -153,7 +141,6 @@ function getRoutes() {
       path: "editor/start",
       element: (
         <ProtectedRoute>
-          <AppHeader />
           <OpenOrCreateDialog />
         </ProtectedRoute>
       )

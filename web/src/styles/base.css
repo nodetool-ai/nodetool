@@ -16,19 +16,20 @@ ul li {
 }
 
 #root .node-editor {
-  background: var(--c_gray1);
+  background: var(--c_gray2);
   margin: 0;
   padding: 0;
+  top: 0px;
   width: 100%;
-  height: calc(-34px + 100vh);
+  height: 100%;
   overflow: hidden;
-  position: relative;
+  /* position: relative; */
   display: block;
 }
 
 #root .MuiGrid2-root.MuiGrid2-container {
   width: 100%;
-  height: calc(100vh - 50px);
+  /* height: calc(100vh - 50px); */
   margin: 0;
 }
 
