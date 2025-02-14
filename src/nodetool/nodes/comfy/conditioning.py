@@ -13,11 +13,11 @@ from nodetool.metadata.types import (
     Mask,
     StyleModel,
 )
-from nodetool.common.comfy_node import MAX_RESOLUTION
-from nodetool.common.comfy_node import ComfyNode
+from nodetool.nodes.comfy.comfy_node import MAX_RESOLUTION
+from nodetool.nodes.comfy.comfy_node import ComfyNode
 from nodetool.workflows.processing_context import ProcessingContext
 from pydantic import Field
-from nodetool.common.comfy_node import ComfyNode, MAX_RESOLUTION
+from nodetool.nodes.comfy.comfy_node import ComfyNode, MAX_RESOLUTION
 from nodetool.metadata.types import ImageRef, Conditioning, Latent, VAE
 
 import nodes

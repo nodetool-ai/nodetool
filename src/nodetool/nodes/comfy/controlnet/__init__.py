@@ -1,7 +1,7 @@
 from pydantic import Field
 from nodetool.metadata.types import ImageRef
-from nodetool.common.comfy_node import MAX_RESOLUTION
-from nodetool.common.comfy_node import ComfyNode
+from nodetool.nodes.comfy.comfy_node import MAX_RESOLUTION
+from nodetool.nodes.comfy.comfy_node import ComfyNode
 
 
 class PreprocessImage(ComfyNode):

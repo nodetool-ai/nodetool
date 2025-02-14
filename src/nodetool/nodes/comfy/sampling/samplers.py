@@ -9,7 +9,7 @@ from nodetool.metadata.types import (
     Sigmas,
     UNet,
 )
-from nodetool.common.comfy_node import ComfyNode
+from nodetool.nodes.comfy.comfy_node import ComfyNode
 from nodetool.nodes.comfy.sampling import SamplerEnum
 
 import comfy_extras.nodes_custom_sampler

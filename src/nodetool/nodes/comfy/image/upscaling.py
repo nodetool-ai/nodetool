@@ -1,7 +1,7 @@
 from enum import Enum
 from pydantic import Field, validator
 from nodetool.metadata.types import ImageRef, UpscaleModel
-from nodetool.common.comfy_node import ComfyNode
+from nodetool.nodes.comfy.comfy_node import ComfyNode
 
 import nodes
 import comfy_extras.nodes_upscale_model

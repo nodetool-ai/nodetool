@@ -2,7 +2,7 @@ from enum import Enum
 from typing import Any
 from pydantic import Field
 from nodetool.metadata.types import ImageRef, ImageRef
-from nodetool.common.comfy_node import ComfyNode
+from nodetool.nodes.comfy.comfy_node import ComfyNode
 from nodetool.workflows.processing_context import ProcessingContext
 import comfy_extras.nodes_images
 

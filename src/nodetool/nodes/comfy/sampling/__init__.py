@@ -2,8 +2,8 @@ from enum import Enum
 import os
 from pydantic import Field
 from nodetool.metadata.types import Conditioning, Latent, UNet
-from nodetool.common.comfy_node import EnableDisable
-from nodetool.common.comfy_node import ComfyNode
+from nodetool.nodes.comfy.comfy_node import EnableDisable
+from nodetool.nodes.comfy.comfy_node import ComfyNode
 
 import nodes
 import comfy_extras.nodes_differential_diffusion

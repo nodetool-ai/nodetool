@@ -1,5 +1,5 @@
 from typing import Dict, List, Tuple, Any, Optional
-from nodetool.common.comfy_node import resolve_comfy_class
+from nodetool.nodes.comfy.comfy_node import resolve_comfy_class
 from nodetool.types.graph import Edge, Node
 from nodetool.workflows.base_node import get_node_class, get_comfy_class_by_name
 

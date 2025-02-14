@@ -1,5 +1,5 @@
 from pydantic import Field
-from nodetool.common.comfy_node import ComfyNode
+from nodetool.nodes.comfy.comfy_node import ComfyNode
 from nodetool.metadata.types import Conditioning, Guider, UNet
 
 import comfy_extras.nodes_custom_sampler

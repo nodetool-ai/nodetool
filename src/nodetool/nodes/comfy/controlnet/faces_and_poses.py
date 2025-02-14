@@ -2,9 +2,9 @@ from enum import Enum
 
 from pydantic import Field
 from nodetool.metadata.types import ImageRef
-from nodetool.common.comfy_node import DensePoseModel
+from nodetool.nodes.comfy.comfy_node import DensePoseModel
 
-from nodetool.common.comfy_node import ComfyNode, EnableDisable
+from nodetool.nodes.comfy.comfy_node import ComfyNode, EnableDisable
 from nodetool.nodes.comfy.controlnet import PreprocessImage
 import comfy_custom_nodes.comfyui_controlnet_aux.node_wrappers.densepose as densepose
 import comfy_custom_nodes.comfyui_controlnet_aux.node_wrappers.dwpose as dwpose

@@ -8,7 +8,7 @@ from pydantic import Field
 import torch
 import node_helpers
 from nodetool.metadata.types import ImageRef, Mask
-from nodetool.common.comfy_node import ComfyNode
+from nodetool.nodes.comfy.comfy_node import ComfyNode
 from nodetool.nodes.nodetool import constant
 from nodetool.workflows.processing_context import ProcessingContext
 import comfy_extras.nodes_mask

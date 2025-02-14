@@ -1,5 +1,5 @@
 from pydantic import Field
-from nodetool.common.comfy_node import ComfyNode
+from nodetool.nodes.comfy.comfy_node import ComfyNode
 from nodetool.metadata.types import Noise, UNet
 
 import comfy_extras.nodes_custom_sampler

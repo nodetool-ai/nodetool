@@ -2,7 +2,7 @@ from enum import Enum
 import numpy as np
 from pydantic import Field
 from nodetool.metadata.types import ImageRef, Mask
-from nodetool.common.comfy_node import MAX_RESOLUTION, EnableDisable
+from nodetool.nodes.comfy.comfy_node import MAX_RESOLUTION, EnableDisable
 from nodetool.nodes.comfy.controlnet import PreprocessImage
 from nodetool.workflows.base_node import add_comfy_classname
 import comfy_custom_nodes.comfyui_controlnet_aux.node_wrappers.leres as leres
