@@ -1,3 +1,13 @@
+/**
+ * NodeStore manages the state of the workflow editor's nodes and edges.
+ * It provides functionality for:
+ * - Managing nodes and their connections
+ * - Handling node/edge selection and updates
+ * - Workflow state management and serialization
+ * - Auto-layout capabilities
+ * - Undo/redo support via temporal state
+ */
+
 import { temporal } from "zundo";
 import type { TemporalState } from "zundo";
 import { create, StoreApi, UseBoundStore } from "zustand";
@@ -116,11 +126,6 @@ export interface NodeStoreState {
     srcNode: Node<NodeData>,
     targetNode: Node<NodeData>
   ) => boolean;
-  sanitizeGraph: (
-    nodes: Node<NodeData>[],
-    edges: Edge[],
-    metadata: Record<string, NodeMetadata>
-  ) => { nodes: Node<NodeData>[]; edges: Edge[] };
   workflowJSON: () => string;
   createNode: (
     metadata: NodeMetadata,
@@ -133,6 +138,7 @@ export interface NodeStoreState {
   workflowIsDirty: boolean;
   shouldFitToScreen: boolean;
   setShouldFitToScreen: (value: boolean) => void;
+  selectAllNodes: () => void;
 }
 
 export type PartializedNodeStore = Pick<
@@ -666,6 +672,14 @@ export const createNodeStore = (
               targetPosition: Position.Left,
               position: position
             };
+          },
+          selectAllNodes: () => {
+            set({
+              nodes: get().nodes.map((node) => ({
+                ...node,
+                selected: true
+              }))
+            });
           }
         };
       },

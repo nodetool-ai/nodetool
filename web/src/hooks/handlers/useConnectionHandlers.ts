@@ -3,7 +3,6 @@ import { OnConnectStartParams, Connection } from "@xyflow/react";
 import useConnectionStore from "../../stores/ConnectionStore";
 import { TypeName } from "../../stores/ApiTypes";
 import useContextMenuStore from "../../stores/ContextMenuStore";
-import { devLog } from "../../utils/DevLog";
 import { isConnectable } from "../../utils/TypeHandler";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import useMetadataStore from "../../stores/MetadataStore";

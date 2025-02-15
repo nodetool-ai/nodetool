@@ -1,3 +1,9 @@
+/**
+ * Store for managing node metadata, recommended models, and node types.
+ * Handles the global state for node-related metadata and configuration,
+ * including filtering based on Comfy settings.
+ */
+
 import { create } from "zustand";
 import { HuggingFaceModel, NodeMetadata } from "./ApiTypes";
 import { useSettingsStore } from "./SettingsStore";

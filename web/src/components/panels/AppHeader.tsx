@@ -83,11 +83,8 @@ const styles = (theme: any) =>
       flexDirection: "row",
       justifyContent: "flex-end",
       alignItems: "center",
-      gap: "4px",
       background: "transparent",
       borderRadius: "8px",
-      paddingLeft: "8px",
-      marginLeft: "auto",
       flexShrink: 0
     }
   });

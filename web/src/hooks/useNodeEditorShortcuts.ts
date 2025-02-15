@@ -9,18 +9,33 @@ import { useSurroundWithGroup } from "./nodes/useSurroundWithGroup";
 import { useDuplicateNodes } from "./useDuplicate";
 import useNodeMenuStore from "../stores/NodeMenuStore";
 import { useWorkflowManager } from "../contexts/WorkflowManagerContext";
-
+import { useNavigate } from "react-router-dom";
 export const useNodeEditorShortcuts = () => {
   const reactFlowInstance = useReactFlow();
   /* USE STORE */
   const nodeHistory = useTemporalNodes((state) => state);
-  const { nodes, selectedNodes, setSelectedNodes } = useNodes((state) => ({
-    nodes: state.nodes,
-    selectedNodes: state.getSelectedNodes(),
-    setSelectedNodes: state.setSelectedNodes
-  }));
+  const { nodes, selectedNodes, setSelectedNodes, selectAllNodes } = useNodes(
+    (state) => ({
+      nodes: state.nodes,
+      selectedNodes: state.getSelectedNodes(),
+      setSelectedNodes: state.setSelectedNodes,
+      selectAllNodes: state.selectAllNodes
+    })
+  );
 
-  const saveExample = useWorkflowManager((state) => state.saveExample);
+  const {
+    saveExample,
+    removeWorkflow,
+    getCurrentWorkflow,
+    openWorkflows,
+    createNewWorkflow
+  } = useWorkflowManager((state) => ({
+    saveExample: state.saveExample,
+    removeWorkflow: state.removeWorkflow,
+    getCurrentWorkflow: state.getCurrentWorkflow,
+    openWorkflows: state.openWorkflows,
+    createNewWorkflow: state.createNew
+  }));
 
   /* UTILS */
   const { handleCopy, handlePaste, handleCut } = useCopyPaste();
@@ -101,12 +116,38 @@ export const useNodeEditorShortcuts = () => {
     alignNodes({ arrangeSpacing: true });
   }, [alignNodes]);
 
+  const navigate = useNavigate();
+
+  const closeCurrentWorkflow = useCallback(() => {
+    const workflow = getCurrentWorkflow();
+    if (workflow) {
+      removeWorkflow(workflow.id);
+      const remaining = openWorkflows.filter((w) => w.id !== workflow.id);
+      if (remaining.length > 0) {
+        navigate(`/editor/${remaining[remaining.length - 1].id}`);
+      } else {
+        navigate("/editor");
+      }
+    }
+  }, [removeWorkflow, getCurrentWorkflow, openWorkflows, navigate]);
+
+  const handleNewWorkflow = useCallback(async () => {
+    const newWorkflow = await createNewWorkflow();
+    navigate(`/editor/${newWorkflow.id}`);
+  }, [createNewWorkflow, navigate]);
+
   useCombo([" "], handleOpenNodeMenu);
   useCombo(["f"], handleFitView);
   useCombo(["a"], handleAlign, selectedNodes.length > 0);
-  useCombo(["Control", "a"], handleAlignWithSpacing, selectedNodes.length > 0);
-  useCombo(["Meta", "a"], handleAlignWithSpacing, selectedNodes.length > 0);
 
+  useCombo(["Shift", "a"], handleAlignWithSpacing, selectedNodes.length > 0);
+
+  useCombo(["Control", "t"], handleNewWorkflow);
+  useCombo(["Meta", "t"], handleNewWorkflow);
+  useCombo(["Control", "w"], closeCurrentWorkflow);
+  useCombo(["Meta", "w"], closeCurrentWorkflow);
+  useCombo(["Control", "a"], selectAllNodes);
+  useCombo(["Meta", "a"], selectAllNodes);
   useCombo(["Control", "c"], handleCopy, false);
   useCombo(["Control", "v"], handlePaste, false);
   useCombo(["Control", "x"], handleCut);
