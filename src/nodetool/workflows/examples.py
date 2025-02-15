@@ -5,7 +5,6 @@ from datetime import datetime
 from typing import Any, List
 from nodetool.types.workflow import Workflow
 from nodetool.types.graph import Graph
-from nodetool.workflows.read_graph import read_graph
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)

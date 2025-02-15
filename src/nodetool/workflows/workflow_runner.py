@@ -88,11 +88,16 @@ def release_gpu_lock():
 
 
 def get_available_vram():
-    if torch.cuda.is_available():
-        return torch.cuda.get_device_properties(
-            0
-        ).total_memory - torch.cuda.memory_allocated(0)
-    return 0  # Return 0 if CUDA is not available
+    try:
+        import torch
+
+        if torch.cuda.is_available():
+            return torch.cuda.get_device_properties(
+                0
+            ).total_memory - torch.cuda.memory_allocated(0)
+    except ImportError:
+        pass
+    return 0  # Return 0 if CUDA is not available or torch not installed
 
 
 class WorkflowRunner:
@@ -126,20 +131,27 @@ class WorkflowRunner:
             job_id (str): Unique identifier for this workflow execution.
             device (str): The device to run the workflow on.
         """
-        import torch
-
         self.job_id = job_id
         self.status = "running"
         self.current_node: Optional[str] = None
         self.context: Optional[ProcessingContext] = None
+
         if device:
             self.device = device
         else:
-            if torch.cuda.is_available():
-                self.device = "cuda"
-            elif torch.backends.mps.is_available():
-                self.device = "mps"
-            else:
+            try:
+                import torch
+                import torch.cuda
+
+                if torch.cuda.is_available():
+                    self.device = "cuda"
+                elif (
+                    hasattr(torch.backends, "mps") and torch.backends.mps.is_available()
+                ):
+                    self.device = "mps"
+                else:
+                    self.device = "cpu"
+            except ImportError:
                 self.device = "cpu"
 
             log.info(f"Workflow runs on device: {self.device}")
@@ -513,9 +525,7 @@ class WorkflowRunner:
                     node.assign_property(name, value)
                 except Exception as e:
                     log.error(f"Error assigning property {name} to node {node.id}")
-                    raise ValueError(
-                        f"Error assigning property {name}: {str(e)}"
-                    )
+                    raise ValueError(f"Error assigning property {name}: {str(e)}")
 
             # Preprocess the node
             log.debug(f"Pre-processing node: {node.get_title()} ({node._id})")

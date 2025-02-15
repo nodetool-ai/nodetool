@@ -6831,7 +6831,7 @@
             "densepose_r101_fpn_dl.torchscript"
           ],
           "type_args": [],
-          "type_name": "nodetool.common.comfy_node.DensePoseModel"
+          "type_name": "nodetool.nodes.comfy.comfy_node.DensePoseModel"
         },
         "default": "densepose_r50_fpn_dl.torchscript",
         "title": "Model",
@@ -7059,7 +7059,7 @@
             "disable"
           ],
           "type_args": [],
-          "type_name": "nodetool.common.comfy_node.EnableDisable"
+          "type_name": "nodetool.nodes.comfy.comfy_node.EnableDisable"
         },
         "default": "enable",
         "title": "Detect Hand",
@@ -7077,7 +7077,7 @@
             "disable"
           ],
           "type_args": [],
-          "type_name": "nodetool.common.comfy_node.EnableDisable"
+          "type_name": "nodetool.nodes.comfy.comfy_node.EnableDisable"
         },
         "default": "enable",
         "title": "Detect Body",
@@ -7095,7 +7095,7 @@
             "disable"
           ],
           "type_args": [],
-          "type_name": "nodetool.common.comfy_node.EnableDisable"
+          "type_name": "nodetool.nodes.comfy.comfy_node.EnableDisable"
         },
         "default": "enable",
         "title": "Detect Face",
@@ -7546,7 +7546,7 @@
             "disable"
           ],
           "type_args": [],
-          "type_name": "nodetool.common.comfy_node.EnableDisable"
+          "type_name": "nodetool.nodes.comfy.comfy_node.EnableDisable"
         },
         "default": "disable",
         "title": "Boost",
@@ -8829,7 +8829,7 @@
             "disable"
           ],
           "type_args": [],
-          "type_name": "nodetool.common.comfy_node.EnableDisable"
+          "type_name": "nodetool.nodes.comfy.comfy_node.EnableDisable"
         },
         "default": "disable",
         "title": "Coarse",
@@ -9072,7 +9072,7 @@
             "disable"
           ],
           "type_args": [],
-          "type_name": "nodetool.common.comfy_node.EnableDisable"
+          "type_name": "nodetool.nodes.comfy.comfy_node.EnableDisable"
         },
         "default": "enable",
         "title": "Safe",
@@ -41638,124 +41638,6 @@
     "is_dynamic": false
   },
   {
-    "title": "Paddle OCR",
-    "description": "Performs Optical Character Recognition (OCR) on images using PaddleOCR.\n    image, text, ocr, document\n\n    Use cases:\n    - Text extraction from images\n    - Document digitization\n    - Receipt/invoice processing\n    - Handwriting recognition",
-    "namespace": "huggingface.multimodal",
-    "node_type": "huggingface.multimodal.PaddleOCR",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "image",
-        "type": {
-          "type": "image",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": {
-          "type": "image",
-          "uri": "",
-          "asset_id": null,
-          "data": null
-        },
-        "title": "Input Image",
-        "description": "The image to perform OCR on",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "language",
-        "type": {
-          "type": "enum",
-          "optional": false,
-          "values": [
-            "en",
-            "fr",
-            "de",
-            "es",
-            "it",
-            "pt",
-            "nl",
-            "pl",
-            "ro",
-            "hr",
-            "cs",
-            "hu",
-            "sk",
-            "sl",
-            "tr",
-            "vi",
-            "id",
-            "ms",
-            "la",
-            "ru",
-            "bg",
-            "uk",
-            "be",
-            "mn",
-            "ch",
-            "ja",
-            "ko",
-            "ar",
-            "fa",
-            "ur",
-            "hi",
-            "mr",
-            "ne",
-            "sa"
-          ],
-          "type_args": [],
-          "type_name": "nodetool.nodes.huggingface.multimodal.OCRLanguage"
-        },
-        "default": "en",
-        "title": "Language",
-        "description": "Language code for OCR",
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "list",
-          "optional": false,
-          "values": null,
-          "type_args": [
-            {
-              "type": "ocr_result",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
-          "type_name": null
-        },
-        "name": "boxes",
-        "stream": false
-      },
-      {
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "name": "text",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [
-      "image",
-      "language"
-    ],
-    "is_dynamic": false
-  },
-  {
     "title": "Object Detection",
     "description": "Detects and localizes objects in images.\n    image, object detection, bounding boxes, huggingface\n\n    Use cases:\n    - Identify and count objects in images\n    - Locate specific items in complex scenes\n    - Assist in autonomous vehicle vision systems\n    - Enhance security camera footage analysis",
     "namespace": "huggingface.object_detection",
@@ -53157,7 +53039,7 @@
             "disable"
           ],
           "type_args": [],
-          "type_name": "nodetool.common.comfy_node.EnableDisable"
+          "type_name": "nodetool.nodes.comfy.comfy_node.EnableDisable"
         },
         "default": "enable",
         "title": "Add Noise",
@@ -53364,7 +53246,7 @@
             "disable"
           ],
           "type_args": [],
-          "type_name": "nodetool.common.comfy_node.EnableDisable"
+          "type_name": "nodetool.nodes.comfy.comfy_node.EnableDisable"
         },
         "default": "disable",
         "title": "Return With Leftover Noise",
@@ -81430,6 +81312,124 @@
     "basic_fields": [
       "tiles",
       "columns"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Paddle OCR",
+    "description": "Performs Optical Character Recognition (OCR) on images using PaddleOCR.\n    image, text, ocr, document\n\n    Use cases:\n    - Text extraction from images\n    - Document digitization\n    - Receipt/invoice processing\n    - Handwriting recognition",
+    "namespace": "lib.image.ocr",
+    "node_type": "lib.image.ocr.PaddleOCR",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "image",
+        "type": {
+          "type": "image",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null
+        },
+        "title": "Input Image",
+        "description": "The image to perform OCR on",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "language",
+        "type": {
+          "type": "enum",
+          "optional": false,
+          "values": [
+            "en",
+            "fr",
+            "de",
+            "es",
+            "it",
+            "pt",
+            "nl",
+            "pl",
+            "ro",
+            "hr",
+            "cs",
+            "hu",
+            "sk",
+            "sl",
+            "tr",
+            "vi",
+            "id",
+            "ms",
+            "la",
+            "ru",
+            "bg",
+            "uk",
+            "be",
+            "mn",
+            "ch",
+            "ja",
+            "ko",
+            "ar",
+            "fa",
+            "ur",
+            "hi",
+            "mr",
+            "ne",
+            "sa"
+          ],
+          "type_args": [],
+          "type_name": "nodetool.nodes.lib.image.ocr.OCRLanguage"
+        },
+        "default": "en",
+        "title": "Language",
+        "description": "Language code for OCR",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "ocr_result",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "boxes",
+        "stream": false
+      },
+      {
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "name": "text",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "image",
+      "language"
     ],
     "is_dynamic": false
   },

@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 import psutil
-import torch
+import pynvml
 
 
 class SystemStats(BaseModel):
@@ -25,10 +25,17 @@ def get_system_stats() -> SystemStats:
 
     # VRAM usage (if GPU is available)
     vram_total = vram_used = vram_percent = None
-    if torch.cuda.is_available():
-        vram_total = torch.cuda.get_device_properties(0).total_memory / (1024**3)
-        vram_used = torch.cuda.memory_allocated(0) / (1024**3)
+    try:
+        pynvml.nvmlInit()
+        handle = pynvml.nvmlDeviceGetHandleByIndex(0)  # First GPU
+        info = pynvml.nvmlDeviceGetMemoryInfo(handle)
+
+        vram_total = float(info.total) / (1024**3)  # Convert to GB
+        vram_used = float(info.used) / (1024**3)
         vram_percent = (vram_used / vram_total) * 100
+        pynvml.nvmlShutdown()
+    except pynvml.NVMLError:
+        pass  # No NVIDIA GPU available or driver issues
 
     return SystemStats(
         cpu_percent=cpu_percent,
@@ -39,3 +46,6 @@ def get_system_stats() -> SystemStats:
         vram_used_gb=round(vram_used, 2) if vram_used is not None else None,
         vram_percent=round(vram_percent, 2) if vram_percent is not None else None,
     )
+
+
+print(get_system_stats())
