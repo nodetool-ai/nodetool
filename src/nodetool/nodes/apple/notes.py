@@ -79,9 +79,6 @@ class ReadNotes(BaseNode):
     - Get notes content for further processing
     """
 
-    search_term: str = Field(
-        default="", description="Optional search term to filter notes"
-    )
     note_limit: int = Field(
         default=10, description="Maximum number of notes to export (0 for unlimited)"
     )
@@ -152,12 +149,7 @@ class ReadNotes(BaseNode):
                                 "folder": folder,
                             }
 
-                            # Apply search filter if specified
-                            if not self.search_term or (
-                                self.search_term.lower() in note["title"].lower()
-                                or self.search_term.lower() in note["content"].lower()
-                            ):
-                                notes.append(note)
+                            notes.append(note)
 
                 return notes
 
