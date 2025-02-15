@@ -29,6 +29,7 @@ import {
   IpcEvents,
   IpcRequest,
   IpcResponse,
+  MenuEventData,
   PythonPackages,
   ServerState,
   UpdateProgressData,
@@ -92,10 +93,20 @@ function createInvokeHandler<T extends keyof IpcRequest>(
 function createEventHandler<T extends keyof IpcEvents>(
   channel: T
 ): IpcEventHandler<T> {
+  console.log("createEventHandler", channel);
   return (callback: (data: IpcEvents[T]) => void) => {
     ipcRenderer.on(channel as string, (_event, data: IpcEvents[T]) =>
       callback(data)
     );
+  };
+}
+
+function unregisterEventHandler<T extends keyof IpcEvents>(
+  channel: T,
+  callback: (data: any) => void
+): () => void {
+  return () => {
+    ipcRenderer.removeListener(channel as string, callback);
   };
 }
 
@@ -135,6 +146,10 @@ contextBridge.exposeInMainWorld("api", {
     createEventHandler(IpcChannels.UPDATE_AVAILABLE)(callback),
   onInstallLocationPrompt: (callback: (data: InstallLocationData) => void) =>
     createEventHandler(IpcChannels.INSTALL_LOCATION_PROMPT)(callback),
+  onMenuEvent: (callback: (data: MenuEventData) => void) =>
+    createEventHandler(IpcChannels.MENU_EVENT)(callback),
+  unregisterMenuEvent: (callback: (data: any) => void) =>
+    unregisterEventHandler(IpcChannels.MENU_EVENT, callback),
 
   // Direct message methods
   windowControls: {

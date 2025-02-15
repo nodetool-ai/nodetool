@@ -192,7 +192,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
           <ExamplesIcon />
         </Button>
       </Tooltip>
-      <Tooltip title="Workflows" placement="right">
+      <Tooltip title="Workflows (Key 1)" placement="right">
         <IconButton
           onClick={() => onViewChange("workflowGrid")}
           className={
@@ -202,7 +202,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
           <GridViewIcon />
         </IconButton>
       </Tooltip>
-      <Tooltip title="Assets" placement="right">
+      <Tooltip title="Assets (Key 2)" placement="right">
         <Button
           onClick={() => onViewChange("assets")}
           className={activeView === "assets" && panelVisible ? "active" : ""}
@@ -224,7 +224,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
           />
         </Button>
       </Tooltip>
-      <Tooltip title="Collections" placement="right">
+      <Tooltip title="Collections (Key 3)" placement="right">
         <IconButton
           onClick={() => onViewChange("collections")}
           className={
@@ -240,7 +240,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
           />
         </IconButton>
       </Tooltip>
-      <Tooltip title="Chat" placement="right">
+      <Tooltip title="Chat (Key 4)" placement="right">
         <IconButton
           onClick={() => onViewChange("chat")}
           className={activeView === "chat" && panelVisible ? "active" : ""}
@@ -334,7 +334,10 @@ const PanelLeft: React.FC = () => {
     handlePanelToggle
   } = useResizePanel("left");
 
-  useCombo(["1"], handlePanelToggle, false);
+  useCombo(["1"], () => handlePanelToggle("workflowGrid"), false);
+  useCombo(["2"], () => handlePanelToggle("assets"), false);
+  useCombo(["3"], () => handlePanelToggle("collections"), false);
+  useCombo(["4"], () => handlePanelToggle("chat"), false);
 
   const activeView =
     usePanelStore((state) => state.panel.activeView) || "workflowGrid";
@@ -385,7 +388,7 @@ const PanelLeft: React.FC = () => {
             <VerticalToolbar
               activeView={activeView}
               onViewChange={onViewChange}
-              handlePanelToggle={handlePanelToggle}
+              handlePanelToggle={() => handlePanelToggle(activeView)}
             />
             {isVisible && <PanelContent activeView={activeView} />}
           </ContextMenuProvider>

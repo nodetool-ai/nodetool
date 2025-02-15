@@ -49,21 +49,20 @@ const styles = (theme: any) =>
       margin: "1px 0.75em 0 0"
     },
     button: {
-      fontSize: "13px",
       color: theme.palette.c_white,
-      padding: "6px 12px",
+      padding: "5px 5px",
       minWidth: "auto",
       borderRadius: "6px",
       transition: "all 0.2s ease-out",
       "&:hover": {
         backgroundColor: "rgba(255, 255, 255, 0.05)"
+      },
+      svg: {
+        display: "block",
+        width: "18px",
+        height: "18px",
+        fontSize: "12px"
       }
-    },
-    ".icon-container svg": {
-      display: "block",
-      width: "18px",
-      height: "18px",
-      fontSize: "18px"
     },
     "button.logo": {
       padding: "4px 8px",
@@ -84,7 +83,6 @@ const styles = (theme: any) =>
       justifyContent: "flex-end",
       alignItems: "center",
       background: "transparent",
-      borderRadius: "8px",
       flexShrink: 0
     }
   });

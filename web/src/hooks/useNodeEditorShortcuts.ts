@@ -1,5 +1,4 @@
-import { useCallback, useState } from "react";
-import { useReactFlow, XYPosition } from "@xyflow/react";
+import { useCallback } from "react";
 import { useCombo } from "../stores/KeyPressedStore";
 import { getMousePosition } from "../utils/MousePosition";
 import { useNodes, useTemporalNodes } from "../contexts/NodeContext";
@@ -9,32 +8,41 @@ import { useSurroundWithGroup } from "./nodes/useSurroundWithGroup";
 import { useDuplicateNodes } from "./useDuplicate";
 import useNodeMenuStore from "../stores/NodeMenuStore";
 import { useWorkflowManager } from "../contexts/WorkflowManagerContext";
-import { useNavigate } from "react-router-dom";
-export const useNodeEditorShortcuts = () => {
-  const reactFlowInstance = useReactFlow();
+import { data, useNavigate } from "react-router-dom";
+import { useFitView } from "./useFitView";
+import { useMenuHandler } from "./useIpcRenderer";
+import { useReactFlow } from "@xyflow/react";
+import { useNotificationStore } from "../stores/NotificationStore";
+import { NodeData } from "../stores/NodeData";
+import { Node } from "@xyflow/react";
+
+const ControlOrMeta = navigator.userAgent.includes("Mac") ? "Meta" : "Control";
+
+export const useNodeEditorShortcuts = (active: boolean) => {
   /* USE STORE */
   const nodeHistory = useTemporalNodes((state) => state);
-  const { nodes, selectedNodes, setSelectedNodes, selectAllNodes } = useNodes(
-    (state) => ({
-      nodes: state.nodes,
-      selectedNodes: state.getSelectedNodes(),
-      setSelectedNodes: state.setSelectedNodes,
-      selectAllNodes: state.selectAllNodes
-    })
-  );
+  const { selectedNodes, selectAllNodes, setNodes } = useNodes((state) => ({
+    selectedNodes: state.getSelectedNodes(),
+    selectAllNodes: state.selectAllNodes,
+    setNodes: state.setNodes
+  }));
+
+  const reactFlow = useReactFlow();
 
   const {
     saveExample,
     removeWorkflow,
     getCurrentWorkflow,
     openWorkflows,
-    createNewWorkflow
+    createNewWorkflow,
+    saveWorkflow
   } = useWorkflowManager((state) => ({
     saveExample: state.saveExample,
     removeWorkflow: state.removeWorkflow,
     getCurrentWorkflow: state.getCurrentWorkflow,
     openWorkflows: state.openWorkflows,
-    createNewWorkflow: state.createNew
+    createNewWorkflow: state.createNew,
+    saveWorkflow: state.saveWorkflow
   }));
 
   /* UTILS */
@@ -62,51 +70,13 @@ export const useNodeEditorShortcuts = () => {
     }
   }, [surroundWithGroup, selectedNodes]);
 
-  const handleFitView = useCallback(() => {
-    if (selectedNodes.length) {
-      setTimeout(() => {
-        setSelectedNodes([]);
-      }, 1000);
-      const nodesById = nodes.reduce((acc, node) => {
-        const pos = {
-          x: node.position.x,
-          y: node.position.y
-        };
-        acc[node.id] = pos;
-        return acc;
-      }, {} as Record<string, XYPosition>);
-
-      const nodePositions = selectedNodes.map((node) => {
-        const parent = node.parentId ? nodesById[node.parentId] : null;
-        const parentPos = parent
-          ? { x: parent.x, y: parent.y }
-          : { x: 0, y: 0 };
-        return {
-          x: node.position.x + parentPos.x,
-          y: node.position.y + parentPos.y,
-          width: node.measured?.width || 0,
-          height: node.measured?.height || 0
-        };
-      });
-
-      const xMin = Math.min(...nodePositions.map((pos) => pos.x));
-      const xMax = Math.max(...nodePositions.map((pos) => pos.x + pos.width));
-      const yMin = Math.min(...nodePositions.map((pos) => pos.y));
-      const yMax = Math.max(...nodePositions.map((pos) => pos.y + pos.height));
-
-      const padding = 0;
-      const bounds = {
-        x: xMin - padding,
-        y: yMin - padding,
-        width: xMax - xMin + padding * 2,
-        height: yMax - yMin + padding * 2
-      };
-
-      reactFlowInstance.fitBounds(bounds, { duration: 1000, padding: 0.2 });
-    } else {
-      reactFlowInstance.fitView({ duration: 1000, padding: 0.1 });
-    }
-  }, [nodes, selectedNodes, setSelectedNodes, reactFlowInstance]);
+  const handleFitView = useFitView();
+  const handleZoomIn = useCallback(() => {
+    reactFlow.zoomIn({ duration: 200 });
+  }, [reactFlow]);
+  const handleZoomOut = useCallback(() => {
+    reactFlow.zoomOut({ duration: 200 });
+  }, [reactFlow]);
 
   const handleAlign = useCallback(() => {
     alignNodes({ arrangeSpacing: false });
@@ -136,40 +106,106 @@ export const useNodeEditorShortcuts = () => {
     navigate(`/editor/${newWorkflow.id}`);
   }, [createNewWorkflow, navigate]);
 
+  const handleSwitchTab = useCallback(
+    (direction: "prev" | "next") => {
+      const workflow = getCurrentWorkflow();
+      if (workflow) {
+        const currentIndex = openWorkflows.findIndex(
+          (w) => w.id === workflow.id
+        );
+        let newIndex;
+        if (direction === "prev") {
+          newIndex =
+            currentIndex <= 0 ? openWorkflows.length - 1 : currentIndex - 1;
+        } else {
+          newIndex =
+            currentIndex >= openWorkflows.length - 1 ? 0 : currentIndex + 1;
+        }
+        navigate(`/editor/${openWorkflows[newIndex].id}`);
+      }
+    },
+    [getCurrentWorkflow, openWorkflows, navigate]
+  );
+
+  const handleSwitchToTab = useCallback(
+    (index: number) => {
+      if (index < openWorkflows.length) {
+        navigate(`/editor/${openWorkflows[index].id}`);
+      }
+    },
+    [openWorkflows, navigate]
+  );
+
+  const addNotification = useNotificationStore(
+    (state) => state.addNotification
+  );
+
+  const handleSave = useCallback(async () => {
+    const workflow = getCurrentWorkflow();
+    if (workflow) {
+      await saveWorkflow(workflow);
+      addNotification({
+        content: `Workflow ${workflow.name} saved`,
+        type: "success",
+        alert: true
+      });
+    }
+  }, [saveWorkflow, getCurrentWorkflow, addNotification]);
+
+  // Define OS-specific tab switching shortcuts
+  const prevTabShortcut = navigator.userAgent.includes("Mac")
+    ? [ControlOrMeta, "Shift", "["]
+    : [ControlOrMeta, "PageUp"];
+  const nextTabShortcut = navigator.userAgent.includes("Mac")
+    ? [ControlOrMeta, "Shift", "]"]
+    : [ControlOrMeta, "PageDown"];
+
+  // Alternative Mac shortcuts
+  const altPrevTabShortcut = [ControlOrMeta, "Alt", "ArrowLeft"];
+  const altNextTabShortcut = [ControlOrMeta, "Alt", "ArrowRight"];
+
   useCombo([" "], handleOpenNodeMenu);
   useCombo(["f"], handleFitView);
+  useCombo([ControlOrMeta, "="], handleZoomIn);
+  useCombo([ControlOrMeta, "-"], handleZoomOut);
   useCombo(["a"], handleAlign, selectedNodes.length > 0);
 
   useCombo(["Shift", "a"], handleAlignWithSpacing, selectedNodes.length > 0);
 
-  useCombo(["Control", "t"], handleNewWorkflow);
-  useCombo(["Meta", "t"], handleNewWorkflow);
-  useCombo(["Control", "w"], closeCurrentWorkflow);
-  useCombo(["Meta", "w"], closeCurrentWorkflow);
-  useCombo(["Control", "a"], selectAllNodes);
-  useCombo(["Meta", "a"], selectAllNodes);
-  useCombo(["Control", "c"], handleCopy, false);
-  useCombo(["Control", "v"], handlePaste, false);
-  useCombo(["Control", "x"], handleCut);
-  useCombo(["Meta", "c"], handleCopy, false);
-  useCombo(["Meta", "v"], handlePaste, false);
-  useCombo(["Meta", "x"], handleCut);
+  useCombo([ControlOrMeta, "t"], handleNewWorkflow);
+  useCombo([ControlOrMeta, "w"], closeCurrentWorkflow);
+  useCombo([ControlOrMeta, "a"], selectAllNodes);
+  useCombo([ControlOrMeta, "c"], handleCopy, false);
+  useCombo([ControlOrMeta, "v"], handlePaste, false);
+  useCombo([ControlOrMeta, "x"], handleCut);
+  useCombo([ControlOrMeta, "s"], handleSave);
 
-  useCombo(["Control", "Shift", "e"], saveExample);
-  useCombo(["Meta", "Shift", "e"], saveExample);
+  useCombo([ControlOrMeta, "Shift", "e"], saveExample);
 
-  useCombo(["Control", "d"], duplicateNodes);
-  useCombo(["Control", "Shift", "d"], duplicateNodesVertical);
-  useCombo(["Meta", "d"], duplicateNodes);
-  useCombo(["Meta", "Shift", "d"], duplicateNodesVertical);
+  useCombo([ControlOrMeta, "d"], duplicateNodes);
+  useCombo([ControlOrMeta, "Shift", "d"], duplicateNodesVertical);
 
-  useCombo(["Control", "g"], handleGroup);
-  useCombo(["Meta", "g"], handleGroup);
+  useCombo([ControlOrMeta, "g"], handleGroup);
 
-  useCombo(["Control", "z"], nodeHistory.undo);
-  useCombo(["Control", "Shift", "z"], nodeHistory.redo);
-  useCombo(["Meta", "z"], nodeHistory.undo);
-  useCombo(["Meta", "Shift", "z"], nodeHistory.redo);
+  useCombo([ControlOrMeta, "z"], nodeHistory.undo);
+  useCombo([ControlOrMeta, "Shift", "z"], nodeHistory.redo);
+
+  // Tab switching shortcuts (primary and alternative)
+  useCombo(prevTabShortcut, () => handleSwitchTab("prev"));
+  useCombo(nextTabShortcut, () => handleSwitchTab("next"));
+  useCombo(altPrevTabShortcut, () => handleSwitchTab("prev"));
+  useCombo(altNextTabShortcut, () => handleSwitchTab("next"));
+
+  // Add number key shortcuts (1-9) for direct tab switching
+  useCombo([ControlOrMeta, "1"], () => handleSwitchToTab(0));
+  useCombo([ControlOrMeta, "2"], () => handleSwitchToTab(1));
+  useCombo([ControlOrMeta, "3"], () => handleSwitchToTab(2));
+  useCombo([ControlOrMeta, "4"], () => handleSwitchToTab(3));
+  useCombo([ControlOrMeta, "5"], () => handleSwitchToTab(4));
+  useCombo([ControlOrMeta, "6"], () => handleSwitchToTab(5));
+  useCombo([ControlOrMeta, "7"], () => handleSwitchToTab(6));
+  useCombo([ControlOrMeta, "8"], () => handleSwitchToTab(7));
+  useCombo([ControlOrMeta, "9"], () => handleSwitchToTab(8));
 
   // useCombo(
   //   ["Alt", "k"],
@@ -179,4 +215,141 @@ export const useNodeEditorShortcuts = () => {
   //   ["Meta", "k"],
   //   useCallback(() => setOpenCommandMenu(true), [setOpenCommandMenu])
   // );
+
+  const handleMenuEvent = useCallback(
+    (data: any) => {
+      if (!active) return;
+      console.log("menu-event", data);
+      switch (data.type) {
+        case "copy":
+          handleCopy();
+          break;
+        case "paste":
+          handlePaste();
+          break;
+        case "cut":
+          handleCut();
+          break;
+        case "selectAll":
+          selectAllNodes();
+          break;
+        case "undo":
+          nodeHistory.undo();
+          break;
+        case "redo":
+          nodeHistory.redo();
+          break;
+        case "close":
+          closeCurrentWorkflow();
+          break;
+        case "fitView":
+          handleFitView();
+          break;
+        case "newTab":
+          handleNewWorkflow();
+          break;
+        case "closeTab":
+          closeCurrentWorkflow();
+          break;
+        case "resetZoom":
+          reactFlow.setViewport({
+            x: 0,
+            y: 0,
+            zoom: 1
+          });
+          break;
+        case "zoomIn":
+          reactFlow.zoomIn();
+          break;
+        case "zoomOut":
+          reactFlow.zoomOut();
+          break;
+        case "prevTab":
+          handleSwitchTab("prev");
+          break;
+        case "nextTab":
+          handleSwitchTab("next");
+          break;
+        case "align":
+          alignNodes({ arrangeSpacing: false });
+          break;
+        case "alignWithSpacing":
+          alignNodes({ arrangeSpacing: true });
+          break;
+        case "saveWorkflow":
+          handleSave();
+          break;
+        case "duplicate":
+          duplicateNodes();
+          break;
+        case "duplicateVertical":
+          duplicateNodesVertical();
+          break;
+        case "group":
+          handleGroup();
+          break;
+        case "switchToTab":
+          handleSwitchToTab(data.index);
+          break;
+        default:
+          break;
+      }
+    },
+    [
+      active,
+      handleCopy,
+      handlePaste,
+      handleCut,
+      selectAllNodes,
+      nodeHistory,
+      closeCurrentWorkflow,
+      handleFitView,
+      handleNewWorkflow,
+      reactFlow,
+      handleSwitchTab,
+      alignNodes,
+      handleSave,
+      duplicateNodes,
+      duplicateNodesVertical,
+      handleGroup,
+      handleSwitchToTab
+    ]
+  );
+
+  useMenuHandler(handleMenuEvent);
+
+  const handleMoveNodes = useCallback(
+    (direction: { x?: number; y?: number }) => {
+      if (selectedNodes.length > 0) {
+        const updatedNodes = selectedNodes.map((node) => ({
+          ...node,
+          position: {
+            x: node.position.x + (direction.x || 0),
+            y: node.position.y + (direction.y || 0)
+          }
+        }));
+        setNodes((nodes: Node<NodeData>[]) =>
+          nodes.map(
+            (node: Node<NodeData>): Node<NodeData> =>
+              node.selected
+                ? {
+                    ...node,
+                    position: {
+                      x: node.position.x + (direction.x || 0),
+                      y: node.position.y + (direction.y || 0)
+                    }
+                  }
+                : node
+          )
+        );
+      }
+    },
+    [selectedNodes, reactFlow, nodeHistory]
+  );
+
+  // Add arrow key shortcuts
+  useCombo(["ArrowLeft"], () => handleMoveNodes({ x: -10 }));
+  useCombo(["ArrowRight"], () => handleMoveNodes({ x: 10 }));
+  useCombo(["ArrowUp"], () => handleMoveNodes({ y: -10 }));
+  useCombo(["ArrowDown"], () => handleMoveNodes({ y: 10 }));
 };

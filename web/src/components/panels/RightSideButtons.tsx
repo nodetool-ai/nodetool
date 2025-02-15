@@ -11,12 +11,10 @@ import NotificationButton from "./NotificationButton";
 import { isProduction } from "../../stores/ApiClient";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { IconForType } from "../../config/data_types";
-import { useNavigate } from "react-router-dom";
 import ModelsManager from "../hugging_face/ModelsManager";
 
 const RightSideButtons: React.FC = () => {
   const { helpOpen, handleCloseHelp, handleOpenHelp } = useAppHeaderStore();
-  const navigate = useNavigate();
 
   const [modelsOpen, setModelsOpen] = useState(false);
 

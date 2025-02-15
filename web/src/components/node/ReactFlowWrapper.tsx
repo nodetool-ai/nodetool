@@ -64,6 +64,7 @@ const fitViewOptions = {
 
 interface ReactFlowWrapperProps {
   workflowId: string;
+  active: boolean;
 }
 
 // Create a new component for context menus
@@ -83,7 +84,10 @@ const ContextMenus = memo(function ContextMenus() {
 });
 
 // Create a new component for the ReactFlow background
-const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({ workflowId }) => {
+const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
+  workflowId,
+  active
+}) => {
   const {
     nodes,
     edges,

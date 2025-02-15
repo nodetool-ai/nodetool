@@ -44,7 +44,7 @@ const styles = (theme: any) =>
       position: "relative"
     },
     ".sidebar": {
-      width: "20%",
+      width: "26%",
       minWidth: "200px",
       maxWidth: "350px",
       paddingRight: "2em",
@@ -124,7 +124,7 @@ const styles = (theme: any) =>
   });
 
 const ModelList: React.FC = () => {
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("list");
   const [deletingModels, setDeletingModels] = useState<Set<string>>(new Set());
   const [modelToDelete, setModelToDelete] = useState<string | null>(null);
   const queryClient = useQueryClient();

@@ -18,6 +18,7 @@ const styles = (theme: any) =>
       alignItems: "center",
       gap: "0.1em",
       margin: "0",
+      minWidth: "8em",
       padding: 0,
       overflow: "hidden"
     },

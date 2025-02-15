@@ -6,7 +6,6 @@ export type NodeData = {
   title?: string;
   color?: string;
   collapsed?: boolean;
-  dirty?: boolean;
   size?: {
     width: number;
     height: number;

@@ -3,6 +3,7 @@ import { autoUpdater, ProgressInfo, UpdateInfo } from "electron-updater";
 import log from "electron-log";
 import { logMessage } from "./logger";
 import { getMainWindow } from "./state";
+import { IpcChannels } from "./types.d";
 
 let updateAvailable: boolean = false;
 
@@ -40,7 +41,7 @@ function setupAutoUpdaterEvents(): void {
       const mainWindow = getMainWindow();
       if (mainWindow) {
         const releaseUrl = `https://github.com/nodetool-ai/nodetool/releases/tag/v${info.version}`;
-        mainWindow.webContents.send("update-available", {
+        mainWindow.webContents.send(IpcChannels.UPDATE_AVAILABLE, {
           version: info.version,
           releaseUrl,
         });
@@ -61,7 +62,7 @@ function setupAutoUpdaterEvents(): void {
     try {
       const mainWindow = getMainWindow();
       if (mainWindow) {
-        mainWindow.webContents.send("update-progress", progress);
+        mainWindow.webContents.send(IpcChannels.UPDATE_PROGRESS, progress);
       }
     } catch (err) {
       logMessage(
@@ -77,7 +78,7 @@ function setupAutoUpdaterEvents(): void {
 
       const mainWindow = getMainWindow();
       if (mainWindow) {
-        mainWindow.webContents.send("update-downloaded", info);
+        mainWindow.webContents.send(IpcChannels.UPDATE_AVAILABLE, info);
       }
     } catch (err) {
       logMessage(

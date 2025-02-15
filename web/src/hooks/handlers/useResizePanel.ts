@@ -1,6 +1,5 @@
 import { useCallback, useRef } from "react";
-import { usePanelStore } from "../../stores/PanelStore";
-
+import { LeftPanelView, usePanelStore } from "../../stores/PanelStore";
 const DEFAULT_PANEL_SIZE = 400;
 const MIN_DRAG_SIZE = 60;
 const MIN_PANEL_SIZE = DEFAULT_PANEL_SIZE;
@@ -99,6 +98,6 @@ export const useResizePanel = (panelPosition: "left" | "right" = "left") => {
     isVisible: panel.isVisible,
     isDragging: panel.isDragging || false,
     handleMouseDown,
-    handlePanelToggle: () => actions.handleViewChange(panel.activeView)
+    handlePanelToggle: (view: LeftPanelView) => actions.handleViewChange(view)
   };
 };

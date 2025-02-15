@@ -635,19 +635,18 @@ export const WorkflowManagerProvider: React.FC<{
   queryClient: QueryClient;
 }> = ({ children, queryClient }) => {
   const [store] = useState(() => {
+    console.log("Creating workflow manager store");
     const workflowManagerStore = createWorkflowManagerStore(queryClient);
     return workflowManagerStore;
   });
 
-  useEffect(() => {
-    // Create WebSocket store for receiving real-time workflow updates.
-    const webSocketUpdatesStore = createWebSocketUpdatesStore(
-      // Callback to handle workflow updates.
-      (workflow) => {
+  const [webSocketStore] = useState(() => {
+    return createWebSocketUpdatesStore({
+      // Callback to handle workflow updates
+      onWorkflowUpdate: (workflow) => {
         const recentChange = store.getState().recentChanges[workflow.id];
         const now = Date.now();
 
-        // Skip update if workflow was saved very recently.
         if (
           recentChange?.action === "save" &&
           now - recentChange.timestamp < 2000
@@ -662,12 +661,11 @@ export const WorkflowManagerProvider: React.FC<{
           content: `Updated workflow ${workflow.name}`
         });
       },
-      // Callback to handle workflow deletions.
-      (workflowId) => {
+      // Callback to handle workflow deletions
+      onWorkflowDelete: (workflowId) => {
         const recentChange = store.getState().recentChanges[workflowId];
         const now = Date.now();
 
-        // Skip removal if the deletion occurred very recently.
         if (
           recentChange?.action === "delete" &&
           now - recentChange.timestamp < 2000
@@ -682,8 +680,8 @@ export const WorkflowManagerProvider: React.FC<{
           content: `Removed workflow ${workflowId}`
         });
       },
-      // Callback to handle new workflow additions.
-      (workflow) => {
+      // Callback to handle new workflow additions
+      onWorkflowCreate: (workflow) => {
         store.getState().addWorkflow(workflow);
         useNotificationStore.getState().addNotification({
           type: "info",
@@ -691,22 +689,24 @@ export const WorkflowManagerProvider: React.FC<{
           content: `Added workflow ${workflow.name}`
         });
       }
-    );
+    });
+  });
 
-    // Connect to the WebSocket server.
-    webSocketUpdatesStore.getState().connect();
+  useEffect(() => {
+    // Connect to the WebSocket server
+    webSocketStore.getState().connect();
 
-    // Restore workflows that were previously open from localStorage.
+    // Restore workflows that were previously open from localStorage
     const openWorkflows = storage.getOpenWorkflows();
     openWorkflows.forEach((workflowId: string) => {
       store.getState().fetchWorkflow(workflowId);
     });
 
-    // Cleanup: disconnect WebSocket on component unmount.
+    // Cleanup: disconnect WebSocket on component unmount
     return () => {
-      webSocketUpdatesStore.getState().disconnect();
+      webSocketStore.getState().disconnect();
     };
-  }, [store]);
+  }, [store, webSocketStore]);
 
   return (
     <WorkflowManagerContext.Provider value={store}>
