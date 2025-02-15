@@ -10,7 +10,6 @@ from pydantic import BaseModel
 import chromadb
 
 from nodetool.providers.ollama.ollama_service import get_ollama_client
-from nodetool.chat.tools import Tool, sanitize_node_name
 from nodetool.common.environment import Environment
 from nodetool.metadata.types import (
     Message,
@@ -20,8 +19,6 @@ from nodetool.workflows.base_node import (
     BaseNode,
     get_registered_node_classes,
 )
-from nodetool.workflows.processing_context import ProcessingContext
-from nodetool.workflows.examples import load_examples
 from jsonschema import validators
 from chromadb.api.types import IncludeEnum
 
@@ -124,7 +121,7 @@ def index_examples(collection: chromadb.Collection):
     """
     Index the examples if they don't exist yet.
     """
-    print("Indexing examples")
+    from nodetool.workflows.examples import load_examples
 
     examples = load_examples()
     ids = [example.id for example in examples]

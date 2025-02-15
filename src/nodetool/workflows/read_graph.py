@@ -1,5 +1,4 @@
-from typing import Dict, List, Tuple, Any, Optional
-from nodetool.nodes.comfy.comfy_node import resolve_comfy_class
+from typing import Dict, List, Tuple, Any
 from nodetool.types.graph import Edge, Node
 from nodetool.workflows.base_node import get_node_class, get_comfy_class_by_name
 
@@ -195,6 +194,8 @@ def get_widget_names(class_name: str) -> List[str]:
     Returns:
         List[str]: A list of widget names for the node class.
     """
+    from nodetool.nodes.comfy.comfy_node import resolve_comfy_class
+
     node_class = resolve_comfy_class(class_name)
     if node_class:
         inputs = list(

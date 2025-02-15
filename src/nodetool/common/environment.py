@@ -564,7 +564,14 @@ class Environment(object):
 
     @classmethod
     def get_torch_device(cls):
-        import torch
+        """
+        Get the torch device.
+        Returns None if torch is not installed.
+        """
+        try:
+            import torch
+        except:
+            return None
 
         try:
             if torch.backends.mps.is_available():

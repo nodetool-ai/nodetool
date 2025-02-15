@@ -10,7 +10,6 @@ from pydantic.fields import FieldInfo
 
 from typing import Any, Callable, Type, TypeVar
 
-import torch
 from nodetool.types.graph import Edge
 from nodetool.common.environment import Environment
 from nodetool.metadata.type_metadata import TypeMetadata
@@ -41,6 +40,13 @@ from nodetool.metadata.utils import (
 )
 
 from nodetool.workflows.types import NodeUpdate
+
+try:
+    import torch
+
+    TORCH_AVAILABLE = True
+except ImportError:
+    TORCH_AVAILABLE = False
 
 """
 This module defines the core components and functionality for nodes in a workflow graph system.
@@ -564,7 +570,7 @@ class BaseNode(BaseModel):
 
         for o in self.outputs():
             value = result.get(o.name)
-            if isinstance(value, torch.Tensor):
+            if TORCH_AVAILABLE and isinstance(value, torch.Tensor):
                 continue
             elif isinstance(value, ComfyData):
                 res_for_update[o.name] = value.serialize()
@@ -947,7 +953,10 @@ class BaseNode(BaseModel):
         Default implementation calls the process method in inference mode.
         For training nodes, this method should be overridden.
         """
-        with torch.no_grad():
+        if TORCH_AVAILABLE:
+            with torch.no_grad():
+                return await self.process(context)
+        else:
             return await self.process(context)
 
     def requires_gpu(self) -> bool:

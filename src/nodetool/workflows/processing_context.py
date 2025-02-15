@@ -80,6 +80,14 @@ HTTP_HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/1"
 }
 
+# Move torch import inside a try/except block
+try:
+    import torch
+
+    TORCH_AVAILABLE = True
+except ImportError:
+    TORCH_AVAILABLE = False
+
 
 class ProcessingContext:
     """
@@ -927,23 +935,35 @@ class ProcessingContext:
         image = await self.image_to_pil(image_ref)
         return np.array(image)
 
-    async def image_to_tensor(self, image_ref: ImageRef) -> torch.Tensor:
+    async def image_to_tensor(self, image_ref: ImageRef) -> Any:
         """
         Converts the image to a tensor.
 
         Args:
             context (ProcessingContext): The processing context.
+
+        Raises:
+            ImportError: If torch is not installed
         """
+        if not TORCH_AVAILABLE:
+            raise ImportError("torch is required for image_to_tensor")
+
         image = await self.image_to_pil(image_ref)
         return torch.tensor(np.array(image)).float() / 255.0
 
-    async def image_to_torch_tensor(self, image_ref: ImageRef) -> torch.Tensor:
+    async def image_to_torch_tensor(self, image_ref: ImageRef) -> Any:
         """
         Converts the image to a tensor.
 
         Args:
             context (ProcessingContext): The processing context.
+
+        Raises:
+            ImportError: If torch is not installed
         """
+        if not TORCH_AVAILABLE:
+            raise ImportError("torch is required for image_to_torch_tensor")
+
         image = await self.image_to_pil(image_ref)
         return torch.tensor(np.array(image)).float() / 255.0
 
@@ -957,7 +977,7 @@ class ProcessingContext:
         buffer = await self.asset_to_io(image_ref)
         image = PIL.Image.open(buffer).convert("RGB")
         buffer = BytesIO()
-        image.save(buffer, "PNG")
+        image.save(buffer, format="PNG")
         return base64.b64encode(buffer.getvalue()).decode("utf-8")
 
     async def audio_to_audio_segment(self, audio_ref: AudioRef) -> AudioSegment:
@@ -1300,17 +1320,23 @@ class ProcessingContext:
 
     async def image_from_tensor(
         self,
-        image_tensor: torch.Tensor,
+        image_tensor: Any,  # Change type hint to Any since torch.Tensor may not be available
     ):
         """
         Creates an ImageRef from a tensor.
 
         Args:
-            image_tensor (torch.Tensor): The tensor.
+            image_tensor: The tensor.
 
         Returns:
             ImageRef: The ImageRef object.
+
+        Raises:
+            ImportError: If torch is not installed
         """
+        if not TORCH_AVAILABLE:
+            raise ImportError("torch is required for image_from_tensor")
+
         img = np.clip(255.0 * image_tensor.cpu().detach().numpy(), 0, 255).astype(
             np.uint8
         )

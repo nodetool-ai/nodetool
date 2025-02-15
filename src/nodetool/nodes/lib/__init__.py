@@ -19,6 +19,7 @@ import nodetool.nodes.lib.file.pandoc
 import nodetool.nodes.lib.file.pdfplumber
 import nodetool.nodes.lib.file.pymupdf
 import nodetool.nodes.lib.image.grid
+import nodetool.nodes.lib.image.ocr
 import nodetool.nodes.lib.image.pillow
 import nodetool.nodes.lib.image.pillow.draw
 import nodetool.nodes.lib.image.pillow.enhance

@@ -266,8 +266,6 @@ async def run_workflow_by_id(
         params=run_workflow_request.params,
     )
 
-    print(job_request)
-
     if job_request.api_url == "" or job_request.api_url is None:
         job_request.api_url = f"{server_protocol}://{server_host_name}:{server_port}"
 
