@@ -10,8 +10,6 @@ ENV DEBIAN_FRONTEND=noninteractive\
     LANG=C.UTF-8\
     VIRTUAL_ENV=/app/venv
 
-ENV PYTHONPATH="/app"
-
 RUN apt-get update && \
     apt-get upgrade -y && \
     apt-get install -y --no-install-recommends \
@@ -72,7 +70,7 @@ RUN apt-get update && \
 
 RUN pip3 install --upgrade pip
 
-COPY requirements.txt /app/
+COPY requirements /app/requirements
 
 RUN ln -s /usr/bin/python3 /usr/bin/python
 
@@ -80,7 +78,9 @@ RUN ln -s /usr/bin/python3 /usr/bin/python
 RUN python -m venv $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
-RUN --mount=type=cache,target=/root/.cache pip install -r requirements.txt
+RUN --mount=type=cache,target=/root/.cache pip install -r requirements/requirements.txt
+RUN --mount=type=cache,target=/root/.cache pip install -r requirements/requirements_ai.txt
+RUN --mount=type=cache,target=/root/.cache pip install -r requirements/requirements_data_science.txt
 
 RUN pip install ipython
 

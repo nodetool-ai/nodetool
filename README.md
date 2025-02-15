@@ -301,7 +301,7 @@ socket.send(msgpack.encode({ command: "get_status" }));
 ```bash
 conda create -n nodetool python=3.11
 conda activate nodetool
-conda install -c conda-forge ffmpeg libopus cairo
+conda install -c conda-forge ffmpeg cairo x264 x265 aom libopus libvorbis lame pandoc uv
 ```
 
 ### Install Python Dependencies
@@ -309,19 +309,25 @@ conda install -c conda-forge ffmpeg libopus cairo
 On macOS:
 
 ```bash
-pip install -r requirements.txt
+pip install -r requirements/requirements.txt
+pip install -r requirements/requirements_ai.txt
+pip install -r requirements/requirements_data_science.txt
 ```
 
 On Windows and Linux with CUDA 12.1:
 
 ```bash
-pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cu121
+pip install -r requirements/requirements.txt
+pip install -r requirements/requirements_ai.txt --extra-index-url https://download.pytorch.org/whl/cu121
+pip install -r requirements/requirements_data_science.txt
 ```
 
 On Windows and Linux without CUDA:
 
 ```bash
-pip install -r requirements.txt
+pip install -r requirements/requirements.txt
+pip install -r requirements/requirements_ai.txt
+pip install -r requirements/requirements_data_science.txt
 ```
 
 ### Run without Electron
@@ -344,14 +350,17 @@ Now, open your browser and navigate to `http://localhost:3000` to access the Nod
 
 ### Run with Electron
 
-Ensure you have the Conda environment activated.
+Ensure you have the Conda environment activated and the location is set in the settings file located at `~/.config/nodetool/settings.yaml` or `%APPDATA%/nodetool/settings.yaml` on Windows:
 
-Before running Electron, you need to build the frontend located in the `/web` directory:
+```yaml
+CONDA_ENV: /path/to/conda/environment # e.g. /Users/matthias/miniconda3/envs/nodetool
+```
+
+Before running Electron, you need to build the frontends located in the `/web` and `/apps` directories:
 
 ```bash
-cd web
-npm install
-npm run build
+cd web && npm install && npm run build && cd ..
+cd apps && npm install && npm run build && cd ..
 ```
 
 Once the build is complete, you can start the Electron app:
@@ -362,14 +371,14 @@ npm install
 npm start
 ```
 
-The Electron app starts the frontend and backend.
+The Electron app starts the frontend and backend automatically.
 
 ### Sync Dependencies
 
-Dependencies are managed via poetry in `pyproject.toml` and must be synced to `requirements.txt` using:
+Dependencies are managed via poetry in `pyproject.toml` and must be synced to the `requirements` directory using:
 
 ```bash
-poetry export -f requirements.txt --output requirements.txt --without-hashes
+python scripts/export_requirements.py
 ```
 
 ## Contributing 🤝
