@@ -1,3 +1,15 @@
+/**
+ * KeyPressedStore manages keyboard state and key combinations for the application.
+ *
+ * Features:
+ * - Tracks currently pressed keys and key press counts
+ * - Handles key combinations (combos) with customizable callbacks
+ * - Prevents key event handling in form inputs and specific UI elements
+ * - Provides hooks for key state management (useKeyPressed, useCombo)
+ * - Supports modifier keys (shift, control, alt, meta)
+ * - Implements keyboard event cleanup on window blur/focus
+ */
+
 import { create } from "zustand";
 import { useMemo, useEffect, useContext } from "react";
 import { useStoreWithEqualityFn } from "zustand/traditional";

@@ -1,3 +1,8 @@
+/**
+ * PanelStore manages the state and behavior of resizable panels in the application.
+ * It handles panel dimensions, visibility, dragging state, and view management using Zustand.
+ */
+
 import { create } from "zustand";
 
 export type LeftPanelView = "chat" | "assets" | "workflowGrid" | "collections";

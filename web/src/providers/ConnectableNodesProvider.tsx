@@ -1,3 +1,8 @@
+/**
+ * Provider component that manages the state and logic for connecting nodes in the flow editor.
+ * Handles node filtering, menu visibility, and connection metadata for the node connection interface.
+ */
+
 import { createContext, useState, useCallback, ReactNode } from "react";
 import { NodeMetadata, TypeMetadata } from "../stores/ApiTypes";
 import {

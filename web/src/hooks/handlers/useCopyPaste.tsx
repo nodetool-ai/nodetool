@@ -1,3 +1,9 @@
+/**
+ * Custom hook that provides copy, cut, and paste functionality for nodes and edges in the flow editor.
+ * Handles both single node and multi-node operations, preserves connections between copied nodes,
+ * and supports both Electron clipboard API and localStorage fallback for data persistence.
+ */
+
 import { getMousePosition } from "../../utils/MousePosition";
 import { useReactFlow, Edge, Node } from "@xyflow/react";
 import { uuidv4 } from "../../stores/uuidv4";
@@ -23,17 +29,8 @@ export const useCopyPaste = () => {
 
   const handleCopy = useCallback(
     async (nodeId?: string) => {
-      // const focusedElement = document.activeElement as HTMLElement;
-      // if (
-      //   (focusedElement.classList.contains("MuiInput-input") &&
-      //     !focusedElement.classList.contains("action")) ||
-      //   focusedElement.tagName === "TEXTAREA"
-      // ) {
-      //   return { nodesToCopy: [], connectedEdges: [] };
-      // }
       let nodesToCopy: Node[];
       if (nodeId && nodeId !== "") {
-        // Find the node with the given nodeId
         const node = nodes.find((node: any) => node.id === nodeId);
         nodesToCopy = node ? [node] : [];
       } else {
@@ -53,7 +50,12 @@ export const useCopyPaste = () => {
         edges: connectedEdges
       });
 
-      localStorage.setItem("copiedNodesData", serializedData);
+      // Use Electron's clipboard API if available, otherwise fallback to localStorage
+      if (window.api?.clipboardWriteText) {
+        await window.api.clipboardWriteText(serializedData);
+      } else {
+        localStorage.setItem("copiedNodesData", serializedData);
+      }
 
       return { nodesToCopy, connectedEdges };
     },
@@ -84,7 +86,18 @@ export const useCopyPaste = () => {
   const handlePaste = useCallback(async () => {
     let clipboardData: string | null = null;
 
-    clipboardData = localStorage.getItem("copiedNodesData");
+    // Try to get data from Electron's clipboard first, then fallback to localStorage
+    if (window.api?.clipboardReadText) {
+      try {
+        clipboardData = await window.api.clipboardReadText();
+      } catch (error) {
+        console.warn("Failed to read from Electron clipboard:", error);
+      }
+    }
+
+    if (!clipboardData) {
+      clipboardData = localStorage.getItem("copiedNodesData");
+    }
 
     if (!clipboardData) {
       console.warn("No valid data found in clipboard or localStorage");

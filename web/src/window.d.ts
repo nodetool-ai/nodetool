@@ -1,8 +1,17 @@
+interface WindowControls {
+  minimize: () => void;
+  maximize: () => void;
+  close: () => void;
+}
+
 declare global {
   interface Window {
     api: {
       runApp: (workflowId: string) => void;
+      clipboardWriteText: (text: string) => void;
+      clipboardReadText: () => string;
     };
+    windowControls?: WindowControls;
     process: {
       type: string;
       platform: string;
@@ -12,7 +21,7 @@ declare global {
         chrome: string;
       };
     };
-    electron: {
+    api: {
       ipcRenderer: {
         send: (channel: string, ...args: any[]) => void;
         on: (channel: string, listener: (...args: any[]) => void) => void;

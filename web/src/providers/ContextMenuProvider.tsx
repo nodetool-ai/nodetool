@@ -1,3 +1,9 @@
+/**
+ * ContextMenuProvider manages the state and behavior of context menus throughout the application.
+ * It provides functionality to open and close context menus, handle click-outside events,
+ * and maintain menu state including position, associated node, and metadata.
+ */
+
 import React, { useCallback, useState, useRef } from "react";
 import {
   ContextMenuContext,

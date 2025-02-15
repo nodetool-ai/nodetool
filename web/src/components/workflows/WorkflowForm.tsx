@@ -375,6 +375,23 @@ const WorkflowForm = ({ workflow, onClose }: WorkflowFormProps) => {
               }
               label="Receive clipboard content"
             />
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={Boolean(localWorkflow.settings?.write_clipboard)}
+                  onChange={(e) =>
+                    setLocalWorkflow((prev) => ({
+                      ...prev,
+                      settings: {
+                        ...(prev.settings || {}),
+                        write_clipboard: e.target.checked
+                      }
+                    }))
+                  }
+                />
+              }
+              label="Write output to clipboard"
+            />
           </Box>
         </FormControl>
         <div className="button-container">
