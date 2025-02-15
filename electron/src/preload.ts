@@ -2,14 +2,23 @@
  * Preload Script for NodeTool Electron Application
  *
  * This script serves as a secure bridge between the renderer process (web content)
- * and the main process of the Electron application. It exposes a limited set of
- * APIs to the renderer process, ensuring that only necessary and safe operations
- * are available to the web content.
+ * and the main process of the Electron application. It implements three core IPC
+ * (Inter-Process Communication) patterns:
  *
- * The exposed APIs allow the renderer to:
- * - Retrieve the current server state
- * - Listen for various events related to server status, boot messages, logs,
- *   update steps, and download progress
+ * 1. Request-Response Pattern (invoke/handle):
+ *    - Renderer calls api.method() -> returns Promise
+ *    - Main process handles request and sends response
+ *    Example: getServerState()
+ *
+ * 2. Event Pattern (on/emit):
+ *    - Main process emits events
+ *    - Renderer listens via api.onEvent(callback)
+ *    Example: onServerStarted()
+ *
+ * 3. Direct Message Pattern (send):
+ *    - Renderer sends one-way messages to main
+ *    - No response expected
+ *    Example: windowControls.close()
  */
 
 import { contextBridge, ipcRenderer, shell } from "electron";
@@ -20,27 +29,48 @@ import {
   IpcEvents,
   IpcRequest,
   IpcResponse,
+  PythonPackages,
   ServerState,
   UpdateProgressData,
 } from "./types.d";
 import { UpdateInfo } from "electron-updater";
 
+/**
+ * Type definitions for IPC handlers
+ *
+ * IpcHandler: Handles request-response pattern
+ * - T: The specific channel/method being called
+ * - Takes request data of type IpcRequest[T]
+ * - Returns promise of type IpcResponse[T]
+ */
 type IpcHandler<T extends keyof IpcRequest> = (
   data: IpcRequest[T]
 ) => Promise<IpcResponse[T]>;
 
+/**
+ * IpcEventHandler: Handles event pattern
+ * - T: The specific event channel
+ * - Takes callback function that handles event data
+ * - No return value (void)
+ */
 type IpcEventHandler<T extends keyof IpcEvents> = (
   callback: (data: IpcEvents[T]) => void
 ) => void;
 
 interface InstallLocationPrompt {
   defaultPath: string;
-  downloadSize: string;
-  installedSize: string;
 }
 
 /**
- * Type-safe wrapper for IPC invoke calls
+ * Creates type-safe wrapper for request-response pattern
+ *
+ * Usage in main process:
+ * ipcMain.handle(channel, async (event, data) => {
+ *   // Handle request and return response
+ * });
+ *
+ * Usage in renderer:
+ * const response = await window.api.method(data);
  */
 function createInvokeHandler<T extends keyof IpcRequest>(
   channel: T
@@ -49,7 +79,15 @@ function createInvokeHandler<T extends keyof IpcRequest>(
 }
 
 /**
- * Type-safe wrapper for IPC event listeners
+ * Creates type-safe wrapper for event pattern
+ *
+ * Usage in main process:
+ * mainWindow.webContents.send(channel, data);
+ *
+ * Usage in renderer:
+ * window.api.onEvent(data => {
+ *   // Handle event data
+ * });
  */
 function createEventHandler<T extends keyof IpcEvents>(
   channel: T
@@ -61,50 +99,30 @@ function createEventHandler<T extends keyof IpcEvents>(
   };
 }
 
-interface UpdateProgress {
-  componentName: string;
-  progress: number;
-  action: string;
-  eta?: string;
-}
-
-// Consolidate IPC types into a single interface
-interface IpcApi {
-  // Invoke methods (return promises)
-  getServerState(): Promise<ServerState>;
-  openLogFile(): Promise<void>;
-  selectInstallLocation(): Promise<string>;
-  selectCustomInstallLocation(): Promise<string>;
-  runApp(): Promise<void>;
-
-  // Event listeners
-  onServerStarted(callback: () => void): void;
-  onBootMessage(callback: (data: string) => void): void;
-  onServerLog(callback: (data: string) => void): void;
-  onUpdateProgress(callback: (data: UpdateProgress) => void): void;
-  onUpdateAvailable(callback: (data: UpdateInfo) => void): void;
-  onInstallLocationPrompt(
-    callback: (data: InstallLocationPrompt) => void
-  ): void;
-
-  // Window controls
-  windowControls: {
-    close(): void;
-    minimize(): void;
-    maximize(): void;
-  };
-}
-
+/**
+ * Expose the API to renderer process through contextBridge
+ * This creates the window.api object in the renderer
+ *
+ * Security:
+ * - Renderer can only access these specific methods
+ * - No direct access to Node.js or Electron APIs
+ * - All communication is type-safe and controlled
+ */
 contextBridge.exposeInMainWorld("api", {
+  // Request-response methods
   getServerState: () => ipcRenderer.invoke(IpcChannels.GET_SERVER_STATE),
+  clipboardWriteText: (text: string) =>
+    ipcRenderer.invoke(IpcChannels.CLIPBOARD_WRITE_TEXT, text),
+  clipboardReadText: () => ipcRenderer.invoke(IpcChannels.CLIPBOARD_READ_TEXT),
   openLogFile: () => ipcRenderer.invoke(IpcChannels.OPEN_LOG_FILE),
-  selectDefaultInstallLocation: () =>
-    ipcRenderer.invoke(IpcChannels.SELECT_DEFAULT_LOCATION),
-  selectCustomInstallLocation: () =>
-    ipcRenderer.invoke(IpcChannels.SELECT_CUSTOM_LOCATION),
+  selectDefaultInstallLocation: (packages: PythonPackages) =>
+    ipcRenderer.invoke(IpcChannels.SELECT_DEFAULT_LOCATION, packages),
+  selectCustomInstallLocation: (packages: PythonPackages) =>
+    ipcRenderer.invoke(IpcChannels.SELECT_CUSTOM_LOCATION, packages),
   runApp: (workflowId: string) =>
     ipcRenderer.invoke(IpcChannels.RUN_APP, workflowId),
 
+  // Event listeners
   onServerStarted: (callback: () => void) =>
     createEventHandler(IpcChannels.SERVER_STARTED)(callback),
   onBootMessage: (callback: (data: string) => void) =>
@@ -118,6 +136,7 @@ contextBridge.exposeInMainWorld("api", {
   onInstallLocationPrompt: (callback: (data: InstallLocationData) => void) =>
     createEventHandler(IpcChannels.INSTALL_LOCATION_PROMPT)(callback),
 
+  // Direct message methods
   windowControls: {
     close: () => ipcRenderer.send(IpcChannels.WINDOW_CLOSE),
     minimize: () => ipcRenderer.send(IpcChannels.WINDOW_MINIMIZE),

@@ -6,12 +6,7 @@ import { createWindow } from "./window";
 import { execSync } from "child_process";
 import { stopServer } from "./server";
 import { initializeBackendServer } from "./server";
-import {
-  connectToWebSocketUpdates,
-  fetchWorkflows,
-  isConnected,
-  runWorkflow,
-} from "./api";
+import { fetchWorkflows, isConnected, runWorkflow } from "./api";
 
 let trayInstance: Electron.Tray | null = null;
 
@@ -129,6 +124,19 @@ function focusNodeTool(): void {
 }
 
 async function updateTrayMenu(): Promise<void> {
+  // const menuTemplate: Electron.MenuItemConstructorOptions[] = [
+  //   {
+  //     label: "NodeTool",
+  //     submenu: [{ role: "quit" }],
+  //   },
+  //   {
+  //     label: "View",
+  //     submenu: [{ role: "toggleDevTools" }],
+  //   },
+  // ];
+  // const menu = Menu.buildFromTemplate(menuTemplate);
+  // Menu.setApplicationMenu(menu);
+
   if (!trayInstance) return;
 
   const statusIndicator = isConnected ? "🟢" : "🔴";

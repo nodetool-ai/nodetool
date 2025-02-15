@@ -1,6 +1,6 @@
 import { UpdateInfo } from "electron-updater";
 
-import { ipcMain, BrowserWindow } from "electron";
+import { ipcMain, BrowserWindow, clipboard } from "electron";
 import { getServerState, openLogFile, runApp } from "./server";
 import { dialog } from "electron";
 import { logMessage } from "./logger";
@@ -43,6 +43,17 @@ export function createIpcOnceHandler<T extends keyof IpcEvents>(
  */
 export function initializeIpcHandlers(): void {
   logMessage("Initializing IPC handlers", "info");
+
+  createIpcMainHandler(
+    IpcChannels.CLIPBOARD_WRITE_TEXT,
+    async (event, text) => {
+      clipboard.writeText(text);
+    }
+  );
+
+  createIpcMainHandler(IpcChannels.CLIPBOARD_READ_TEXT, async () => {
+    return clipboard.readText();
+  });
 
   // Server state handlers
   createIpcMainHandler(IpcChannels.GET_SERVER_STATE, async () => {

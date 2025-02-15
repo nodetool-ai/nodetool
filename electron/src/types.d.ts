@@ -2,6 +2,8 @@ declare global {
   export interface Window {
     api: {
       getServerState: () => Promise<ServerState>;
+      clipboardWriteText: (text: string) => void;
+      clipboardReadText: () => string;
       openLogFile: () => Promise<void>;
       openExternal: (url: string) => void;
       onUpdateProgress: (
@@ -17,14 +19,16 @@ declare global {
       onServerLog: (callback: (message: string) => void) => void;
       onUpdateAvailable: (callback: (info: UpdateInfo) => void) => void;
       onInstallLocationPrompt: (
-        callback: (data: {
-          defaultPath: string;
-          downloadSize: string;
-          installedSize: string;
-        }) => void
+        callback: (data: { defaultPath: string }) => void
       ) => void;
-      selectDefaultInstallLocation: () => Promise<void>;
-      selectCustomInstallLocation: () => Promise<void>;
+      selectDefaultInstallLocation: (modules: {
+        ai: boolean;
+        dataScience: boolean;
+      }) => Promise<void>;
+      selectCustomInstallLocation: (modules: {
+        ai: boolean;
+        dataScience: boolean;
+      }) => Promise<void>;
       windowControls: {
         close: () => void;
         minimize: () => void;
@@ -104,6 +108,7 @@ export interface Workflow {
   settings?: {
     hide_ui: boolean;
     receive_clipboard: boolean;
+    write_clipboard: boolean;
     shortcut: string;
   };
 }
@@ -130,19 +135,23 @@ export enum IpcChannels {
   WINDOW_MINIMIZE = "window-minimize",
   WINDOW_MAXIMIZE = "window-maximize",
   SAVE_FILE = "save-file",
+  CLIPBOARD_WRITE_TEXT = "clipboard-write-text",
+  CLIPBOARD_READ_TEXT = "clipboard-read-text",
 }
 
 // Request/Response types for each IPC channel
 export interface IpcRequest {
   [IpcChannels.GET_SERVER_STATE]: void;
   [IpcChannels.OPEN_LOG_FILE]: void;
-  [IpcChannels.SELECT_DEFAULT_LOCATION]: void;
-  [IpcChannels.SELECT_CUSTOM_LOCATION]: void;
+  [IpcChannels.SELECT_DEFAULT_LOCATION]: PythonPackages;
+  [IpcChannels.SELECT_CUSTOM_LOCATION]: PythonPackages;
   [IpcChannels.RUN_APP]: string;
   [IpcChannels.WINDOW_CLOSE]: void;
   [IpcChannels.WINDOW_MINIMIZE]: void;
   [IpcChannels.WINDOW_MAXIMIZE]: void;
   [IpcChannels.SAVE_FILE]: SaveFileOptions;
+  [IpcChannels.CLIPBOARD_WRITE_TEXT]: string;
+  [IpcChannels.CLIPBOARD_READ_TEXT]: void;
 }
 
 export interface IpcResponse {
@@ -155,6 +164,8 @@ export interface IpcResponse {
   [IpcChannels.WINDOW_MINIMIZE]: void;
   [IpcChannels.WINDOW_MAXIMIZE]: void;
   [IpcChannels.SAVE_FILE]: SaveFileResult;
+  [IpcChannels.CLIPBOARD_WRITE_TEXT]: void;
+  [IpcChannels.CLIPBOARD_READ_TEXT]: string;
 }
 
 // Event types for each IPC channel
@@ -165,16 +176,13 @@ export interface IpcEvents {
   [IpcChannels.UPDATE_PROGRESS]: UpdateProgressData;
   [IpcChannels.UPDATE_AVAILABLE]: UpdateInfo;
   [IpcChannels.INSTALL_LOCATION_PROMPT]: InstallLocationData;
-  [IpcChannels.SELECT_INSTALL_LOCATION]: string;
-  [IpcChannels.SELECT_CUSTOM_LOCATION]: void;
+  [IpcChannels.SELECT_INSTALL_LOCATION]: PythonPackages;
+  [IpcChannels.SELECT_CUSTOM_LOCATION]: PythonPackages;
 }
 
-// Shared interfaces
-export interface ServerState {
-  isStarted: boolean;
-  bootMsg: string;
-  logs: string[];
-  initialURL: string;
+export interface PythonPackages {
+  ai: boolean;
+  data_science: boolean;
 }
 
 export interface UpdateProgressData {

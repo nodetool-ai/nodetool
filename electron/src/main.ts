@@ -6,6 +6,7 @@ import {
   systemPreferences,
   BrowserWindow,
   globalShortcut,
+  Menu,
 } from "electron";
 import { createWindow, forceQuit, handleActivation } from "./window";
 import { setupAutoUpdater } from "./updater";
@@ -22,7 +23,6 @@ import { emitBootMessage } from "./events";
 import { createTray } from "./tray";
 import { createWorkflowWindow } from "./workflow-window";
 import { initializeIpcHandlers } from "./ipc";
-import { readSettings, writeSettings } from "./settings";
 import { connectToWebSocketUpdates } from "./api";
 
 /**
@@ -66,14 +66,11 @@ async function initialize(): Promise<void> {
 
     setupAutoUpdater();
 
+    // Check if conda environment is installed
+    await checkPythonEnvironment();
+
     // Check if conda update is pending
-    if (readSettings().updateConda) {
-      logMessage("Performing pending conda environment update");
-      await updateCondaEnvironment();
-      writeSettings({ updateConda: false });
-    } else {
-      await checkPythonEnvironment();
-    }
+    await updateCondaEnvironment();
 
     await initializeBackendServer();
     await setupWorkflowShortcuts();
@@ -167,8 +164,6 @@ app.on("ready", async () => {
 
 ipcMain.handle("update-installed", async () => {
   logMessage("Update installed, marking conda environment for update");
-  // Store flag in user settings
-  writeSettings({ updateConda: true });
 
   // Show dialog informing user about restart
   dialog

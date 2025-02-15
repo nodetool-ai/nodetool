@@ -377,16 +377,6 @@ ul li {
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.size-info {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  padding-top: 24px;
-  color: #bbb;
-  gap: 32px;
-}
-
 .location-options {
   display: flex;
   flex-direction: row;
@@ -435,4 +425,176 @@ ul li {
   font-size: 14px;
   color: #aaa;
   text-align: left;
+}
+.package-selection {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.package-card {
+  background: #1a1a1a;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.package-card.base {
+  border: 2px solid #4a9eff;
+  background: rgba(74, 158, 255, 0.1);
+}
+
+.package-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.package-header h4 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #fff;
+}
+
+.required-badge {
+  background: #4a9eff;
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
+.package-option {
+  display: flex;
+  gap: 1.5rem;
+  padding: 1.25rem;
+  background: #1a1a1a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: 0.75rem;
+}
+
+.package-option:hover {
+  background: #252525;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.package-content {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 2rem;
+}
+
+.package-info {
+  flex: 1;
+}
+
+.checkbox-wrapper {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  padding-top: 4px;
+}
+
+.checkbox-wrapper input[type="checkbox"] {
+  opacity: 0;
+  position: absolute;
+}
+
+.custom-checkbox {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #4a9eff;
+  border-radius: 4px;
+  display: inline-block;
+  position: relative;
+  transition: all 0.2s;
+  background: rgba(74, 158, 255, 0.1);
+}
+
+.custom-checkbox::after {
+  content: "";
+  position: absolute;
+  display: none;
+  left: 6px;
+  top: 2px;
+  width: 5px;
+  height: 10px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+input[type="checkbox"]:checked + .custom-checkbox {
+  background: #4a9eff;
+}
+
+input[type="checkbox"]:checked + .custom-checkbox::after {
+  display: block;
+}
+
+.size-tag {
+  font-size: 0.8rem;
+  color: #888;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+}
+
+.package-card ul {
+  margin: 0.5rem 0;
+  padding-left: 1.5rem;
+  flex: 1;
+}
+
+.package-card li {
+  margin: 0.5rem 0;
+  color: #bbb;
+}
+
+/* Add these new styles */
+body.server-starting {
+  background-color: transparent !important;
+}
+
+#boot-message.transparent {
+  background-color: rgba(34, 34, 34, 0.7);
+  backdrop-filter: blur(8px);
+}
+
+.flying-log {
+  position: fixed;
+  color: rgba(255, 255, 255, 0.3);
+  font-family: "Courier New", monospace;
+  font-size: 12px;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: -1;
+  animation: flyAcross 8s linear;
+}
+
+@keyframes flyAcross {
+  from {
+    transform: translateX(100vw) translateY(0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  to {
+    transform: translateX(-100vw) translateY(-100px);
+    opacity: 0;
+  }
 }

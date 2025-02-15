@@ -1,15 +1,18 @@
 import React from "react";
 import "./WindowControls.css";
 
-interface WindowControls {
-  minimize: () => void;
-  maximize: () => void;
-  close: () => void;
-}
+/**
+ * WindowControls component that provides window minimization, maximization,
+ * and closing functionality. Uses Electron's clipboard API for clipboard operations.
+ */
 
 declare global {
   interface Window {
-    windowControls?: WindowControls;
+    windowControls?: {
+      minimize: () => void;
+      maximize: () => void;
+      close: () => void;
+    };
   }
 }
 
