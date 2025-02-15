@@ -993,21 +993,6 @@
     "layout": "default",
     "properties": [
       {
-        "name": "search_term",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Search Term",
-        "description": "Optional search term to filter notes",
-        "min": null,
-        "max": null
-      },
-      {
         "name": "note_limit",
         "type": {
           "type": "int",
@@ -1062,7 +1047,6 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "search_term",
       "note_limit",
       "note_limit_per_folder"
     ],
@@ -30936,118 +30920,6 @@
       {
         "type": {
           "type": "dict",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [],
-    "is_dynamic": false
-  },
-  {
-    "title": "Copy Text To Clipboard",
-    "description": "Copies text to system clipboard.\n    clipboard, system, copy\n\n    Use cases:\n    - Copy text to clipboard\n    - Save output for external use",
-    "namespace": "nodetool.os",
-    "node_type": "nodetool.os.CopyTextToClipboard",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "text",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Text",
-        "description": "Text to copy to clipboard",
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [
-      "text"
-    ],
-    "is_dynamic": false
-  },
-  {
-    "title": "Paste Text From Clipboard",
-    "description": "Pastes text from system clipboard.\n    clipboard, system, paste\n\n    Use cases:\n    - Read clipboard content\n    - Import external data",
-    "namespace": "nodetool.os",
-    "node_type": "nodetool.os.PasteTextFromClipboard",
-    "layout": "default",
-    "properties": [],
-    "outputs": [
-      {
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [],
-    "is_dynamic": false
-  },
-  {
-    "title": "Copy Image To Clipboard",
-    "description": "Copies an image to system clipboard.\n    clipboard, system, copy, image\n\n    Use cases:\n    - Copy images to clipboard\n    - Share screenshots or processed images",
-    "namespace": "nodetool.os",
-    "node_type": "nodetool.os.CopyImageToClipboard",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "image",
-        "type": {
-          "type": "image",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": null,
-        "title": "Image",
-        "description": "Image to copy to clipboard",
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [
-      "image"
-    ],
-    "is_dynamic": false
-  },
-  {
-    "title": "Paste Image From Clipboard",
-    "description": "Reads an image from the system clipboard.\n    clipboard, system, paste, image\n\n    Use cases:\n    - Capture screenshots from clipboard\n    - Process clipboard images\n    - Import clipboard content\n\n    Requires:\n    - Windows: Pillow\n    - macOS: Pillow, pyobjc-framework-Cocoa\n    - Linux: Pillow, xclip",
-    "namespace": "nodetool.os",
-    "node_type": "nodetool.os.PasteImageFromClipboard",
-    "layout": "default",
-    "properties": [],
-    "outputs": [
-      {
-        "type": {
-          "type": "image",
           "optional": false,
           "values": null,
           "type_args": [],
