@@ -68,19 +68,12 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
   /**
    * Set the result for a node.
    * The result is stored in the results map.
-   * The dirty flag of the node is set to false.
    *
    * @param workflowId The id of the workflow.
    * @param nodeId The id of the node.
    * @param result The result to set.
    */
   setResult: (workflowId: string, nodeId: string, result: any) => {
-    // const findNode = useNodeStore.getState().findNode;
-    // const nodeData = findNode(nodeId)?.data;
-    // const updateNode = useNodeStore.getState().updateNodeData;
-    // if (nodeData) {
-    //   updateNode(nodeId, { ...nodeData, dirty: false });
-    // }
     const key = hashKey(workflowId, nodeId);
     set({ results: { ...get().results, [key]: result } });
   },

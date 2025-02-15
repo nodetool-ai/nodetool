@@ -10,15 +10,17 @@ interface WebSocketUpdatesState {
   disconnect: () => void;
 }
 
+interface WebSocketCallbacks {
+  onWorkflowUpdate: (workflow: Workflow) => void;
+  onWorkflowDelete: (workflowId: string) => void;
+  onWorkflowCreate: (workflow: Workflow) => void;
+}
+
 export type WebSocketUpdatesStore = UseBoundStore<
   StoreApi<WebSocketUpdatesState>
 >;
 
-export const createWebSocketUpdatesStore = (
-  onWorkflowUpdate: (workflow: Workflow) => void,
-  onWorkflowDelete: (workflowId: string) => void,
-  onWorkflowCreate: (workflow: Workflow) => void
-) =>
+export const createWebSocketUpdatesStore = (callbacks: WebSocketCallbacks) =>
   create<WebSocketUpdatesState>((set, get) => ({
     systemStats: null,
     socket: null,
@@ -59,13 +61,13 @@ export const createWebSocketUpdatesStore = (
               set({ systemStats: data.stats });
               break;
             case "update_workflow":
-              onWorkflowUpdate(data.workflow);
+              callbacks.onWorkflowUpdate(data.workflow);
               break;
             case "delete_workflow":
-              onWorkflowDelete(data.id);
+              callbacks.onWorkflowDelete(data.id);
               break;
             case "create_workflow":
-              onWorkflowCreate(data.workflow);
+              callbacks.onWorkflowCreate(data.workflow);
               break;
           }
         } catch (error) {

@@ -1,5 +1,6 @@
 import { BrowserWindow } from "electron";
-import { ServerState, getMainWindow, serverState } from "./state";
+import { getMainWindow, serverState } from "./state";
+import { IpcChannels, UpdateProgressData } from "./types.d";
 
 /**
  * Emit a boot message to the renderer process
@@ -9,7 +10,7 @@ function emitBootMessage(message: string): void {
   serverState.bootMsg = message;
   const mainWindow: BrowserWindow | null = getMainWindow();
   if (mainWindow) {
-    mainWindow.webContents.send("boot-message", message);
+    mainWindow.webContents.send(IpcChannels.BOOT_MESSAGE, message);
   }
 }
 
@@ -20,7 +21,7 @@ function emitServerStarted(): void {
   serverState.isStarted = true;
   const mainWindow: BrowserWindow | null = getMainWindow();
   if (mainWindow) {
-    mainWindow.webContents.send("server-started");
+    mainWindow.webContents.send(IpcChannels.SERVER_STARTED);
   }
 }
 
@@ -32,7 +33,7 @@ function emitServerLog(message: string): void {
   serverState.logs.push(message);
   const mainWindow: BrowserWindow | null = getMainWindow();
   if (mainWindow) {
-    mainWindow.webContents.send("server-log", message);
+    mainWindow.webContents.send(IpcChannels.SERVER_LOG, message);
   }
 }
 
@@ -58,12 +59,12 @@ function emitUpdateProgress(
 ): void {
   const mainWindow: BrowserWindow | null = getMainWindow();
   if (mainWindow) {
-    mainWindow.webContents.send("update-progress", {
+    mainWindow.webContents.send(IpcChannels.UPDATE_PROGRESS, {
       componentName,
       progress,
       action,
       eta,
-    } as UpdateProgressPayload);
+    } satisfies UpdateProgressData);
   }
 }
 

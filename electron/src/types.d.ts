@@ -113,6 +113,18 @@ export interface Workflow {
   };
 }
 
+export interface MenuEventData {
+  type:
+    | "cut"
+    | "copy"
+    | "paste"
+    | "selectAll"
+    | "undo"
+    | "redo"
+    | "close"
+    | "fitView";
+}
+
 export interface WebSocketUpdate {
   type: "delete_workflow" | "update_workflow" | "create_workflow";
   workflow: Workflow;
@@ -137,6 +149,7 @@ export enum IpcChannels {
   SAVE_FILE = "save-file",
   CLIPBOARD_WRITE_TEXT = "clipboard-write-text",
   CLIPBOARD_READ_TEXT = "clipboard-read-text",
+  MENU_EVENT = "menu-event",
 }
 
 // Request/Response types for each IPC channel
@@ -178,6 +191,7 @@ export interface IpcEvents {
   [IpcChannels.INSTALL_LOCATION_PROMPT]: InstallLocationData;
   [IpcChannels.SELECT_INSTALL_LOCATION]: PythonPackages;
   [IpcChannels.SELECT_CUSTOM_LOCATION]: PythonPackages;
+  [IpcChannels.MENU_EVENT]: MenuEventData;
 }
 
 export interface PythonPackages {

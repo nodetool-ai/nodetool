@@ -298,7 +298,10 @@ const TabsNodeEditor = () => {
                                 </div>
                               </>
                             )}
-                            <NodeEditor workflowId={workflow.id} />
+                            <NodeEditor
+                              workflowId={workflow.id}
+                              active={isActive}
+                            />
                           </NodeProvider>
                         </KeyboardProvider>
                       </ConnectableNodesProvider>

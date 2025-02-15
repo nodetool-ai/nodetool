@@ -393,7 +393,7 @@ async function promptForInstallLocation(): Promise<string> {
       return;
     }
 
-    mainWindow.webContents.send("install-location-prompt", {
+    mainWindow.webContents.send(IpcChannels.INSTALL_LOCATION_PROMPT, {
       defaultPath: defaultLocation,
       downloadSize,
       installedSize,

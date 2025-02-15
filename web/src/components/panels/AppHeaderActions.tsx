@@ -221,9 +221,6 @@ const SaveWorkflowButton = memo(function SaveWorkflowButton() {
     }
   }, [saveWorkflow, getCurrentWorkflow, addNotification]);
 
-  useCombo(["Alt+s"], handleSave);
-  useCombo(["Meta+s"], handleSave);
-
   return (
     <Tooltip title="Save workflow" enterDelay={TOOLTIP_ENTER_DELAY}>
       <Button className="action-button" onClick={handleSave} tabIndex={-1}>

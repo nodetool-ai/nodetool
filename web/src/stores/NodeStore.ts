@@ -116,7 +116,11 @@ export interface NodeStoreState {
     newHandle: string
   ) => void;
   getModels: () => UnifiedModel[];
-  setNodes: (nodes: Node<NodeData>[], setDirty?: boolean) => void;
+  setNodes: (
+    nodesOrCallback:
+      | Node<NodeData>[]
+      | ((nodes: Node<NodeData>[]) => Node<NodeData>[])
+  ) => void;
   setEdges: (edges: Edge[]) => void;
   getWorkflow: () => Workflow;
   getWorkflowIsDirty: () => boolean;
@@ -391,7 +395,6 @@ export const createNodeStore = (
               devWarn(`Node with id ${node.id} already exists`);
               return;
             }
-            node.data.dirty = true;
             node.expandParent = true;
             node.data.workflow_id = get().workflow.id;
             set({ nodes: [...get().nodes, node], workflowIsDirty: true });
@@ -569,14 +572,16 @@ export const createNodeStore = (
           setShouldFitToScreen: (value: boolean) => {
             set({ shouldFitToScreen: value });
           },
-          setNodes: (nodes: Node<NodeData>[], setDirty: boolean = true) => {
-            if (setDirty) {
-              nodes.forEach((node) => {
-                node.data.dirty = true;
-                node.data.workflow_id = get().workflow.id;
-              });
+          setNodes: (
+            nodesOrCallback:
+              | Node<NodeData>[]
+              | ((nodes: Node<NodeData>[]) => Node<NodeData>[])
+          ) => {
+            if (typeof nodesOrCallback === "function") {
+              set({ nodes: nodesOrCallback(get().nodes) });
+            } else {
+              set({ nodes: nodesOrCallback });
             }
-            set({ nodes });
             get().setWorkflowDirty(true);
           },
           setEdges: (edges: Edge[]) => {
@@ -664,7 +669,6 @@ export const createNodeStore = (
               data: {
                 properties: defaults,
                 collapsed: false,
-                dirty: true,
                 selectable: true,
                 workflow_id: get().workflow.id,
                 dynamic_properties: {}

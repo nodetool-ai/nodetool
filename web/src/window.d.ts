@@ -10,6 +10,8 @@ declare global {
       runApp: (workflowId: string) => void;
       clipboardWriteText: (text: string) => void;
       clipboardReadText: () => string;
+      onMenuEvent: (callback: (data: MenuEventData) => void) => void;
+      unregisterMenuEvent: (callback: (data: any) => void) => void;
     };
     windowControls?: WindowControls;
     process: {
@@ -21,12 +23,9 @@ declare global {
         chrome: string;
       };
     };
-    api: {
-      ipcRenderer: {
-        send: (channel: string, ...args: any[]) => void;
-        on: (channel: string, listener: (...args: any[]) => void) => void;
-        invoke: (channel: string, ...args: any[]) => Promise<any>;
-      };
+    electron?: {
+      on: (channel: string, listener: (...args: any[]) => void) => void;
+      off: (channel: string, listener: (...args: any[]) => void) => void;
     };
   }
 }

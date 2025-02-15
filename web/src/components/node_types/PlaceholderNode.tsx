@@ -16,7 +16,6 @@ interface PlaceholderNodeData extends Node<NodeData> {
   data: NodeData & {
     workflow_id?: string;
     collapsed?: boolean;
-    dirty?: boolean;
   };
 }
 
@@ -118,11 +117,10 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
   const className = useMemo(
     () =>
       `node-body ${props.data.collapsed ? "collapsed" : ""}
-      ${hasParent ? "has-parent" : ""}
-      ${props.data.dirty ? "dirty" : ""}`
+      ${hasParent ? "has-parent" : ""}`
         .replace(/\s+/g, " ")
         .trim(),
-    [props.data.collapsed, hasParent, props.data.dirty]
+    [props.data.collapsed, hasParent]
   );
   return (
     <Container css={styles} className={className}>

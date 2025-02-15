@@ -24,6 +24,7 @@ import { createTray } from "./tray";
 import { createWorkflowWindow } from "./workflow-window";
 import { initializeIpcHandlers } from "./ipc";
 import { connectToWebSocketUpdates } from "./api";
+import { buildMenu } from "./menu";
 
 /**
  * Global application state flags and objects
@@ -74,7 +75,9 @@ async function initialize(): Promise<void> {
 
     await initializeBackendServer();
     await setupWorkflowShortcuts();
-    await connectToWebSocketUpdates();
+    setTimeout(async () => {
+      await connectToWebSocketUpdates();
+    }, 10000);
   } catch (error) {
     logMessage(`Initialization error: ${error}`, "error");
     dialog.showErrorBox(
@@ -145,6 +148,7 @@ app.on("ready", async () => {
 
   mainWindow = createWindow();
 
+  await buildMenu();
   await createTray();
 
   // Wait for window to be ready before initializing

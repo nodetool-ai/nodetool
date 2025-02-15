@@ -1,5 +1,3 @@
-import { UpdateInfo } from "electron-updater";
-
 import { ipcMain, BrowserWindow, clipboard } from "electron";
 import { getServerState, openLogFile, runApp } from "./server";
 import { dialog } from "electron";

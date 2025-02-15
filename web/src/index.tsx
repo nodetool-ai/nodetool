@@ -48,6 +48,7 @@ import {
 } from "./contexts/WorkflowManagerContext";
 import KeyboardProvider from "./components/KeyboardProvider";
 import HuggingFaceDownloadDialog from "./components/hugging_face/HuggingFaceDownloadDialog";
+import { MenuProvider } from "./providers/MenuProvider";
 if (!isProduction) {
   useRemoteSettingsStore.getState().fetchSettings();
 }
@@ -195,12 +196,14 @@ const AppWrapper = () => {
       <QueryClientProvider client={queryClient}>
         <ThemeProvider theme={ThemeNodetool}>
           <CssBaseline />
-          <WorkflowManagerProvider queryClient={queryClient}>
-            <KeyboardProvider active={true}>
-              <RouterProvider router={router} />
-              <HuggingFaceDownloadDialog />
-            </KeyboardProvider>
-          </WorkflowManagerProvider>
+          <MenuProvider>
+            <WorkflowManagerProvider queryClient={queryClient}>
+              <KeyboardProvider active={true}>
+                <RouterProvider router={router} />
+                <HuggingFaceDownloadDialog />
+              </KeyboardProvider>
+            </WorkflowManagerProvider>
+          </MenuProvider>
         </ThemeProvider>
       </QueryClientProvider>
     </React.StrictMode>

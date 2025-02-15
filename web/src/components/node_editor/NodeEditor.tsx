@@ -35,9 +35,10 @@ declare global {
 
 interface NodeEditorProps {
   workflowId: string;
+  active: boolean;
 }
 
-const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId }) => {
+const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
   /* USE STORE */
   const { isUploading } = useAssetUpload();
   const { missingModelFiles, missingModelRepos, clearMissingModels } = useNodes(
@@ -47,7 +48,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId }) => {
       clearMissingModels: state.clearMissingModels
     })
   );
-  useNodeEditorShortcuts();
+  useNodeEditorShortcuts(active);
 
   // OPEN NODE MENU
   const {
@@ -93,8 +94,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId }) => {
               <CircularProgress /> Uploading assets...
             </div>
           )}
-          <ReactFlowWrapper workflowId={workflowId} />
-
+          <ReactFlowWrapper workflowId={workflowId} active={active} />
           <WorkflowChat workflow_id="default" />
           <NodeMenu focusSearchInput={true} />
         </>
