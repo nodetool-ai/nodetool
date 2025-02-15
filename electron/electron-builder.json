@@ -12,8 +12,8 @@
     ],
     "extraResources": [
         {
-            "from": "../requirements.txt",
-            "to": "requirements.txt"
+            "from": "../requirements",
+            "to": "requirements"
         },
         {
             "from": "../web/dist",
