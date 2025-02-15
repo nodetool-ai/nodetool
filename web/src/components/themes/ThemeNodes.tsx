@@ -122,8 +122,8 @@ const ThemeNodes: Theme = createTheme({
     c_bg_loop: "#305c9d17",
     c_bg_group: "#9bcfdb17",
     c_bg_comment: "#fff",
-    // c_editor_bg_color: "rgb(100, 100, 95)",
-    c_editor_bg_color: "#5b6265",
+    c_editor_bg_color: "rgb(100, 100, 100)",
+    // c_editor_bg_color: "#5b6265",
     c_editor_grid_color: "#333",
     c_editor_axis_color: "#5e5e5e",
 
