@@ -1,19 +1,8 @@
-import { BrowserWindow, app, session, dialog, WebContents } from "electron";
+import { BrowserWindow, session, dialog, WebContents } from "electron";
 import { setMainWindow, getMainWindow } from "./state";
 import path from "path";
 import { logMessage } from "./logger";
 import { isAppQuitting } from "./main";
-
-declare global {
-  interface Window {
-    windowControls: {
-      close: () => void;
-      minimize: () => void;
-      maximize: () => void;
-    };
-  }
-}
-
 /**
  * Creates the main application window
  * @returns {BrowserWindow} The created window instance
@@ -28,6 +17,7 @@ function createWindow(): BrowserWindow {
 
   // Create new window
   const window = new BrowserWindow({
+    autoHideMenuBar: true,
     width: 1500,
     height: 1000,
     frame: false,

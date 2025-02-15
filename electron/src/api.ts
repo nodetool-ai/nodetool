@@ -4,7 +4,7 @@ import { updateTrayMenu } from "./tray";
 import { WebSocketUpdate, Workflow } from "./types";
 import { globalShortcut } from "electron";
 import { createWorkflowWindow } from "./workflow-window";
-import { clipboard } from "electron";
+import { clipboard, nativeImage } from "electron";
 import { logMessage } from "./logger";
 import { registerWorkflowShortcut } from "./shortcuts";
 import { Notification } from "electron";
@@ -15,6 +15,12 @@ export let isConnected = false;
 function getInputNodes(workflow: Workflow, type: string) {
   return workflow.graph.nodes.filter((node) =>
     node.type.startsWith(`nodetool.input.${type}`)
+  );
+}
+
+function getOutputNodes(workflow: Workflow) {
+  return workflow.graph.nodes.filter((node) =>
+    node.type.startsWith(`nodetool.output`)
   );
 }
 
@@ -73,9 +79,23 @@ export async function runWorkflow(workflow: Workflow) {
         const result = await response.json();
         logMessage(result);
         logMessage(`Workflow completed successfully: ${workflow.name}`, "info");
+        if (workflow.settings?.write_clipboard) {
+          const outputNode = getOutputNodes(workflow)[0];
+          if (outputNode) {
+            const outputValue = result[outputNode.data.name];
+            if (outputNode.type === "nodetool.output.ImageOutput") {
+              const image = nativeImage.createFromBuffer(
+                Buffer.from(outputValue["uri"], "base64")
+              );
+              clipboard.writeImage(image);
+            } else {
+              clipboard.writeText(outputValue);
+            }
+          }
+        }
         new Notification({
           title: "Workflow Complete",
-          body: `Workflow executed successfully: ${result}`,
+          body: `Workflow executed successfully`,
         });
       } else {
         logMessage(

@@ -69,9 +69,13 @@ function readSettings(): Record<string, any> {
     }
 
     logMessage("Reading settings from " + settingsPath);
-
     const fileContents = fs.readFileSync(settingsPath, "utf8");
     settingsCache = (yaml.load(fileContents) as Record<string, any>) || {};
+
+    for (const key in settingsCache) {
+      logMessage(`${key}: ${settingsCache[key]}`);
+    }
+
     return settingsCache;
   } catch (error) {
     throw new Error(
@@ -132,4 +136,23 @@ function updateSetting(key: string, value: any): Record<string, any> {
   }
 }
 
-export { getAppConfigPath, readSettings, writeSettings, updateSetting };
+/**
+ * Updates multiple settings fields while preserving others
+ * @param {Object} settings - Settings object to update
+ * @throws {Error} If updating fails or key is invalid
+ */
+function updateSettings(settings: Record<string, any>): void {
+  try {
+    const currentSettings = readSettings();
+    const updatedSettings = {
+      ...currentSettings,
+      ...settings,
+    };
+
+    writeSettings(updatedSettings);
+  } catch (error) {
+    throw new Error(`Failed to update settings: ${error}`);
+  }
+}
+
+export { getAppConfigPath, readSettings, updateSetting, updateSettings };

@@ -119,99 +119,91 @@
     <div id="install-location-prompt" style="display: none">
       <div id="environment-info">
         <h3>NodeTool Setup</h3>
+
         <div class="info-details">
-          <p>
-            Nodetool comes with a complete Python environment that includes:
-          </p>
-          <ul>
-            <li>
-              <svg width="16" height="16" viewBox="0 0 24 24" stroke="#ff5733">
-                <path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                <path d="M9 12l2 2 4-4" />
-              </svg>
-              PyTorch for AI inference
-            </li>
-            <li>
-              <svg width="16" height="16" viewBox="0 0 24 24" stroke="#33ff57">
-                <path d="M19 9l-7 7-7-7" />
-                <rect x="4" y="4" width="16" height="16" rx="2" />
-              </svg>
-              CUDA support for GPU acceleration
-            </li>
-            <li>
-              <svg width="16" height="16" viewBox="0 0 24 24" stroke="#3357FF">
-                <path d="M4 19.5A2.5 2.5 0 016.5 17H20" />
-                <path
-                  d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"
-                />
-              </svg>
-              Statistics and machine learning libraries
-            </li>
-            <li>
-              <svg width="16" height="16" viewBox="0 0 24 24" stroke="#ff33a1">
-                <circle cx="12" cy="12" r="3" />
-                <path d="M19 12a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-              Audio, Video, and Image processing libraries
-            </li>
-            <li>
-              <svg width="16" height="16" viewBox="0 0 24 24" stroke="#33ffa1">
-                <path
-                  d="M12 2v6m0 8v6M4.93 4.93l4.24 4.24m5.66 5.66l4.24 4.24M2 12h6m8 0h6M4.93 19.07l4.24-4.24m5.66-5.66l4.24-4.24"
-                />
-              </svg>
-              Hugging Face Transformers and Diffusers
-            </li>
-            <li>
-              <svg width="16" height="16" viewBox="0 0 24 24" stroke="#a133ff">
-                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                <path d="M8.5 8.5h.01M12 8.5h3.5M8.5 12h7M8.5 15.5h7" />
-              </svg>
-              ComfyUI for AI image generation
-            </li>
-            <li>
-              <svg width="16" height="16" viewBox="0 0 24 24" stroke="#ffa133">
-                <path d="M20 7h-7M20 11h-9M20 15h-5M20 19h-7" />
-                <path d="M4 7h1M4 11h1M4 15h1M4 19h1" />
-              </svg>
-              Vector database for AI
-            </li>
-            <li>
-              <svg width="16" height="16" viewBox="0 0 24 24" stroke="#33ffa1">
-                <path
-                  d="M12 2v6m0 8v6M4.93 4.93l4.24 4.24m5.66 5.66l4.24 4.24M2 12h6m8 0h6M4.93 19.07l4.24-4.24m5.66-5.66l4.24-4.24"
-                />
-              </svg>
-              Support for PDF, DOCX, and other file formats
-            </li>
-          </ul>
-          <p class="info-note">
-            This "batteries included" approach ensures everything works
-            correctly without manual setup.
-          </p>
-          <div class="size-info">
-            <div>
-              <strong>Download size:</strong>
-              <span class="download-size"></span>
+          <p>Choose what you'd like to install:</p>
+
+          <div class="package-selection">
+            <!-- Base Package - Always included -->
+            <div class="package-card base">
+              <div class="package-header">
+                <h4>📦 Base Package</h4>
+                <span class="required-badge">Required</span>
+              </div>
+              <ul>
+                <li>Core AI Features (Ollama & External AI)</li>
+                <li>Media Processing (Audio, Video, Image)</li>
+                <li>Document Processing (PDF, DOCX, OCR)</li>
+              </ul>
+              <div class="size-info">
+                <span>Download: ~300MB</span>
+                <span>Install: ~2GB</span>
+              </div>
             </div>
-            <div>
-              <strong>Size after installation:</strong>
-              <span class="installed-size"></span>
+
+            <!-- Optional Packages -->
+            <div class="package-card optional">
+              <label class="package-option">
+                <div class="checkbox-wrapper">
+                  <input
+                    type="checkbox"
+                    name="ai-package"
+                    onchange="updateTotalSize()"
+                  />
+                  <span class="custom-checkbox"></span>
+                </div>
+                <div class="package-content">
+                  <div class="package-info">
+                    <div class="package-header">
+                      <h4>🧠 AI Package</h4>
+                      <span class="size-tag">~3.2GB</span>
+                    </div>
+                    <ul>
+                      <li>PyTorch + CUDA</li>
+                      <li>Hugging Face & Diffusers</li>
+                      <li>Stable Diffusion (ComfyUI)</li>
+                    </ul>
+                  </div>
+                </div>
+              </label>
+
+              <label class="package-option">
+                <div class="checkbox-wrapper">
+                  <input
+                    type="checkbox"
+                    name="data-science"
+                    onchange="updateTotalSize()"
+                  />
+                  <span class="custom-checkbox"></span>
+                </div>
+                <div class="package-content">
+                  <div class="package-info">
+                    <div class="package-header">
+                      <h4>📊 Data Science Package</h4>
+                      <span class="size-tag">~600MB</span>
+                    </div>
+                    <ul>
+                      <li>Scikit-learn & SciPy</li>
+                      <li>Statistical Analysis Tools</li>
+                    </ul>
+                  </div>
+                </div>
+              </label>
             </div>
           </div>
         </div>
-      </div>
-      <div class="prompt-content">
-        <p>Please select where you would like to install NodeTool:</p>
-        <div class="location-options">
-          <button class="location-button default-location">
-            <span>Default Location</span>
-            <span class="location-path"></span>
-          </button>
-          <button class="location-button custom-location">
-            <span>Custom Location</span>
-            <span>Choose your preferred directory</span>
-          </button>
+
+        <div class="prompt-content">
+          <p>Where would you like to install NodeTool?</p>
+          <div class="location-options">
+            <button class="location-button default-location">
+              <span>📁 Recommended Location</span>
+              <span class="location-path"></span>
+            </button>
+            <button class="location-button custom-location">
+              <span>🔍 Choose Different Location</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -253,6 +245,5 @@
       </div>
       <div id="log"></div>
     </div>
-
   </body>
 </html>

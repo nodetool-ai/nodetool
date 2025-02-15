@@ -14,7 +14,7 @@ import {
 import { getEnvironmentSize, getDownloadSize } from "./python";
 import { logMessage } from "./logger";
 import path from "path";
-import { updateSetting } from "./settings";
+import { updateSettings } from "./settings";
 import { emitBootMessage, emitUpdateProgress } from "./events";
 import os from "os";
 import { checkPermissions, fileExists } from "./utils";
@@ -24,7 +24,7 @@ import { spawn } from "child_process";
 import { downloadFile } from "./download";
 import { BrowserWindow } from "electron";
 
-import { IpcChannels } from "./types.d";
+import { IpcChannels, PythonPackages } from "./types.d";
 import { createIpcMainHandler } from "./ipc";
 /**
  * Format bytes to human readable size
@@ -342,14 +342,15 @@ async function promptForInstallLocation(): Promise<string> {
   const installedSize = getEnvironmentSize();
   const defaultLocation = getDefaultInstallLocation();
 
-  // Create a promise that will be resolved when the user makes a selection
   return new Promise<string>((resolve, reject) => {
-    // Use createIpcMainHandler instead of createIpcOnceHandler for these events
     createIpcMainHandler(
       IpcChannels.SELECT_DEFAULT_LOCATION,
-      async (_event) => {
+      async (_event, packages: PythonPackages) => {
         try {
-          await updateSetting("CONDA_ENV", defaultLocation);
+          await updateSettings({
+            CONDA_ENV: defaultLocation,
+            PYTHON_PACKAGES: packages,
+          });
           resolve(defaultLocation);
         } catch (error) {
           reject(error);
@@ -357,26 +358,33 @@ async function promptForInstallLocation(): Promise<string> {
       }
     );
 
-    createIpcMainHandler(IpcChannels.SELECT_CUSTOM_LOCATION, async () => {
-      try {
-        const { filePaths, canceled } = await dialog.showOpenDialog({
-          properties: ["openDirectory", "createDirectory"],
-          title: "Select Python Environment Location",
-          buttonLabel: "Select Folder",
-          defaultPath: defaultLocation,
-        });
+    createIpcMainHandler(
+      IpcChannels.SELECT_CUSTOM_LOCATION,
+      async (_event, modules: PythonPackages) => {
+        try {
+          const { filePaths, canceled } = await dialog.showOpenDialog({
+            properties: ["openDirectory", "createDirectory"],
+            title: "Select Python Environment Location",
+            buttonLabel: "Select Folder",
+            defaultPath: defaultLocation,
+          });
 
-        if (canceled || !filePaths?.[0]) {
-          reject(new Error("No installation location selected"));
+          if (canceled || !filePaths?.[0]) {
+            reject(new Error("No installation location selected"));
+            return;
+          }
+
+          const selectedPath = path.join(filePaths[0], "nodetool-python");
+          await updateSettings({
+            CONDA_ENV: selectedPath,
+            PYTHON_MODULES: modules,
+          });
+          resolve(selectedPath);
+        } catch (error) {
+          reject(error);
         }
-
-        const selectedPath = path.join(filePaths[0], "nodetool-python");
-        await updateSetting("CONDA_ENV", selectedPath);
-        resolve(selectedPath);
-      } catch (error) {
-        reject(error);
       }
-    });
+    );
 
     // Send the prompt data to the renderer process
     const mainWindow = BrowserWindow.getFocusedWindow();

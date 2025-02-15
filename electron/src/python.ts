@@ -16,6 +16,8 @@ import { checkPermissions } from "./utils";
 import { emitBootMessage } from "./events";
 import { IncomingMessage } from "http";
 import { downloadFromFile, getFileSizeFromUrl } from "./download";
+import { readSettings, updateSetting } from "./settings";
+import { PythonPackages } from "./types";
 
 interface PathCheck {
   path: string;
@@ -87,6 +89,12 @@ async function isCondaEnvironmentInstalled(): Promise<boolean> {
 async function updateCondaEnvironment(): Promise<void> {
   try {
     emitBootMessage(`Updating python packages...`);
+    const settings = readSettings();
+    const { ai, data_science: dataScience }: PythonPackages =
+      settings.PYTHON_PACKAGES || {
+        ai: false,
+        data_science: false,
+      };
 
     const uvExecutable = getUVPath();
     const installCommand: string[] = [
@@ -95,8 +103,22 @@ async function updateCondaEnvironment(): Promise<void> {
       "install",
       "--system",
       "-r",
-      requirementsPath,
+      path.join(requirementsPath, "requirements.txt"),
     ];
+
+    if (ai) {
+      installCommand.push(
+        "-r",
+        path.join(requirementsPath, "requirements_ai.txt")
+      );
+    }
+
+    if (dataScience) {
+      installCommand.push(
+        "-r",
+        path.join(requirementsPath, "requirements_data_science.txt")
+      );
+    }
 
     if (process.platform !== "darwin") {
       installCommand.push("--extra-index-url");

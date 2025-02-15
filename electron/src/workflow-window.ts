@@ -1,4 +1,4 @@
-import { BrowserWindow, app } from "electron";
+import { BrowserWindow, app, Menu } from "electron";
 import path from "path";
 
 // Map to store workflow windows
@@ -10,6 +10,9 @@ const workflowWindows = new Map<number, BrowserWindow>();
  * @returns The created window
  */
 function createWorkflowWindow(workflowId: string): BrowserWindow {
+  // Remove application menu
+  Menu.setApplicationMenu(null);
+
   const workflowWindow = new BrowserWindow({
     frame: false,
     titleBarStyle: "hidden",

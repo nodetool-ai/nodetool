@@ -291,36 +291,47 @@ function startIconAnimations(): void {
   }, 10 * 60000 + 2500);
 }
 
-window.api.onInstallLocationPrompt(
-  async ({ defaultPath, downloadSize, installedSize }) => {
-    const defaultLocationPath = document.querySelector(".location-path");
-    const sizeInfo = document.querySelector(".size-info");
+window.api.onInstallLocationPrompt(async ({ defaultPath }) => {
+  const defaultLocationPath = document.querySelector(".location-path");
+  const sizeInfo = document.querySelector(".size-info");
 
-    if (!defaultLocationPath || !sizeInfo) {
-      console.warn("Install location prompt elements not found");
-      return;
-    }
-
-    defaultLocationPath.textContent = defaultPath;
-    sizeInfo.textContent = `Download size: ${downloadSize}, Installed size: ${installedSize}`;
-    hideBootMessage();
-    showInstallLocationPrompt();
-
-    const defaultLocationButton = document.querySelector(".default-location");
-    const customLocationButton = document.querySelector(".custom-location");
-
-    if (defaultLocationButton && customLocationButton) {
-      defaultLocationButton.addEventListener("click", async () => {
-        await window.api.selectDefaultInstallLocation();
-        hideInstallLocationPrompt();
-        showBootMessage();
-      });
-
-      customLocationButton.addEventListener("click", async () => {
-        await window.api.selectCustomInstallLocation();
-        hideInstallLocationPrompt();
-        showBootMessage();
-      });
-    }
+  if (!defaultLocationPath || !sizeInfo) {
+    console.warn("Install location prompt elements not found");
+    return;
   }
-);
+
+  defaultLocationPath.textContent = defaultPath;
+  hideBootMessage();
+  showInstallLocationPrompt();
+
+  const defaultLocationButton = document.querySelector(".default-location");
+  const customLocationButton = document.querySelector(".custom-location");
+  const modules = {
+    ai: document.querySelector('input[name="ai-package"]') as HTMLInputElement,
+    dataScience: document.querySelector(
+      'input[name="data-science"]'
+    ) as HTMLInputElement,
+  };
+
+  if (defaultLocationButton && customLocationButton) {
+    defaultLocationButton.addEventListener("click", async () => {
+      const selectedModules = {
+        ai: modules.ai?.checked || false,
+        dataScience: modules.dataScience?.checked || false,
+      };
+      await window.api.selectDefaultInstallLocation(selectedModules);
+      hideInstallLocationPrompt();
+      showBootMessage();
+    });
+
+    customLocationButton.addEventListener("click", async () => {
+      const selectedModules = {
+        ai: modules.ai?.checked || false,
+        dataScience: modules.dataScience?.checked || false,
+      };
+      await window.api.selectCustomInstallLocation(selectedModules);
+      hideInstallLocationPrompt();
+      showBootMessage();
+    });
+  }
+});

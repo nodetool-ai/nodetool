@@ -19,8 +19,8 @@ const appsPath: string = app.isPackaged
   ? path.join(process.resourcesPath, "apps")
   : path.join(__dirname, "..", "..", "apps", "dist");
 const requirementsPath: string = app.isPackaged
-  ? path.join(resourcesPath, "requirements.txt")
-  : path.join(__dirname, "..", "..", "requirements.txt");
+  ? path.join(resourcesPath, "requirements")
+  : path.join(__dirname, "..", "..", "requirements");
 
 const PID_FILE_PATH: string = path.join(app.getPath("userData"), "server.pid");
 
@@ -60,19 +60,6 @@ const getCondaUnpackPath = (): string =>
     ? path.join(getCondaEnvPath(), "Scripts", "conda-unpack.exe")
     : path.join(getCondaEnvPath(), "bin", "conda-unpack");
 
-const saveUserRequirements = (requirements: string): boolean => {
-  logMessage(
-    `Saving user requirements to ${path.join(userDataPath, "requirements.txt")}`
-  );
-  try {
-    fs.writeFileSync(path.join(userDataPath, "requirements.txt"), requirements);
-    return true;
-  } catch (error) {
-    logMessage(`Failed to save user requirements: ${error}`);
-    return false;
-  }
-};
-
 interface ProcessEnv {
   [key: string]: string;
 }
@@ -110,7 +97,6 @@ export {
   getPipPath,
   getUVPath,
   getCondaUnpackPath,
-  saveUserRequirements,
   getProcessEnv,
   srcPath,
   PID_FILE_PATH,
