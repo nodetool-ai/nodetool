@@ -78,6 +78,11 @@ async function initialize(): Promise<void> {
     setTimeout(async () => {
       await connectToWebSocketUpdates();
     }, 10000);
+
+    // Request notification permissions
+    if (process.platform === "darwin") {
+      app.setActivationPolicy("accessory");
+    }
   } catch (error) {
     logMessage(`Initialization error: ${error}`, "error");
     dialog.showErrorBox(
