@@ -15,7 +15,7 @@ import { VideoPlayer } from "./VideoPlayer";
 import { Composer } from "./Composer";
 
 interface ChatInterfaceProps {
-  workflowId: string;
+  workflowId?: string;
   token: string;
 }
 
