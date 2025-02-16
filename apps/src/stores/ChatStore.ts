@@ -22,7 +22,7 @@ interface ChatState {
   currentNode: string;
   streamingMessage: string;
   // Actions
-  connect: (workflowId: string) => Promise<void>;
+  connect: (workflowId?: string) => Promise<void>;
   disconnect: () => void;
   sendMessage: (message: Message) => Promise<void>;
   resetMessages: () => void;
@@ -46,10 +46,10 @@ const useChatStore = create<ChatState>((set, get) => ({
   appendMessage: (message: Message) =>
     set((state) => ({ messages: [...state.messages, message] })),
 
-  connect: async (workflowId: string) => {
+  connect: async (workflowId?: string) => {
     get().disconnect();
 
-    set({ workflowId, status: "connecting" });
+    set({ workflowId: workflowId || null, status: "connecting" });
     const socket = new WebSocket(get().chatUrl);
 
     socket.onopen = () => {
