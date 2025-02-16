@@ -7,7 +7,7 @@ import { createWorkflowWindow } from "./workflow-window";
 import { clipboard, nativeImage } from "electron";
 import { logMessage } from "./logger";
 import { registerWorkflowShortcut } from "./shortcuts";
-import { Notification } from "electron";
+import { createWorkflowRunner } from "./WorkflowRunner";
 
 export let wsConnection: WebSocket | null = null;
 export let isConnected = false;
@@ -36,7 +36,6 @@ export async function runWorkflow(workflow: Workflow) {
     const image = clipboard.readImage();
     if (!image.isEmpty()) {
       logMessage("Found image in clipboard");
-      // Look for image input nodes
       const imageInputNodes = getInputNodes(workflow, "ImageInput");
       logMessage(`Found ${imageInputNodes.length} image input nodes`);
       if (imageInputNodes.length > 0) {
@@ -45,7 +44,10 @@ export async function runWorkflow(workflow: Workflow) {
         const dataUri = `data:image/png;base64,${image
           .toPNG()
           .toString("base64")}`;
-        params[inputNode.data.name] = dataUri;
+        params[inputNode.data.name] = {
+          type: "image",
+          uri: dataUri,
+        };
       }
     } else {
       // Fallback to text
@@ -63,58 +65,34 @@ export async function runWorkflow(workflow: Workflow) {
 
   if (workflow.settings?.hide_ui) {
     logMessage(`Running headless workflow: ${workflow.name}`);
-    try {
-      const response = await fetch(
-        `http://127.0.0.1:8000/api/workflows/${workflow.id}/run`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ params }),
-        }
-      );
+    const workflowRunner = createWorkflowRunner();
 
-      if (response.ok) {
-        const result = await response.json();
-        logMessage(result);
-        logMessage(`Workflow completed successfully: ${workflow.name}`, "info");
+    // The results will be handled through the WebSocket notifications
+    // If we need to write to clipboard, we can access the results from the store
+    workflowRunner.setState({
+      onComplete: (results: any[]) => {
+        logMessage(`Results: ${results}`);
+
         if (workflow.settings?.write_clipboard) {
-          const outputNode = getOutputNodes(workflow)[0];
-          if (outputNode) {
-            const outputValue = result[outputNode.data.name];
-            if (outputNode.type === "nodetool.output.ImageOutput") {
-              const image = nativeImage.createFromBuffer(
-                Buffer.from(outputValue["uri"], "base64")
-              );
-              clipboard.writeImage(image);
-            } else {
-              clipboard.writeText(outputValue);
+          if (results.length > 0) {
+            const outputNode = getOutputNodes(workflow)[0];
+            if (outputNode) {
+              const outputValue = results[results.length - 1];
+              if (outputNode.type === "nodetool.output.ImageOutput") {
+                const image = nativeImage.createFromBuffer(
+                  Buffer.from(outputValue.uri, "base64")
+                );
+                clipboard.writeImage(image);
+              } else {
+                clipboard.writeText(outputValue);
+              }
             }
           }
         }
-        new Notification({
-          title: "Workflow Complete",
-          body: `Workflow executed successfully`,
-        });
-      } else {
-        logMessage(
-          `Workflow execution failed: ${response.statusText}`,
-          "error"
-        );
-        new Notification({
-          title: "Workflow Error",
-          body: `Failed to execute workflow: ${response.statusText}`,
-        });
-      }
-    } catch (error) {
-      logMessage(
-        `Workflow execution error: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`,
-        "error"
-      );
-    }
+      },
+    });
+    await workflowRunner.getState().connect();
+    await workflowRunner.getState().run(workflow.id, params);
   } else {
     logMessage(`Opening workflow window for: ${workflow.name}`);
     createWorkflowWindow(workflow.id);
