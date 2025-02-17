@@ -6,7 +6,6 @@ from pydantic import Field
 from nodetool.metadata.types import Datetime, CalendarEvent
 from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
-from nodetool.nodes.apple.notes import escape_for_applescript
 
 
 class CreateCalendarEvent(BaseNode):
@@ -99,13 +98,11 @@ class ListCalendarEvents(BaseNode):
     - Export calendar events
     """
 
-    start_date: Datetime = Field(
-        default=Datetime(),
-        description="Start date and time of the range",
+    days_back: int = Field(
+        default=0, description="Number of days to look back from today", ge=0
     )
-    end_date: Datetime = Field(
-        default=Datetime(),
-        description="End date and time of the range",
+    days_forward: int = Field(
+        default=7, description="Number of days to look forward from today", ge=0
     )
     calendar_name: str = Field(
         default="Calendar", description="Name of the calendar to search"
@@ -113,13 +110,32 @@ class ListCalendarEvents(BaseNode):
 
     @classmethod
     def get_basic_fields(cls) -> list[str]:
-        return ["start_date", "end_date", "calendar_name"]
+        return ["days_back", "days_forward", "calendar_name"]
 
     @classmethod
     def is_cacheable(cls) -> bool:
         return False
 
     async def process(self, context: ProcessingContext) -> list[CalendarEvent]:
+        # Calculate start and end dates based on days_back and days_forward
+        now = datetime.now()
+        start_date_dt = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        start_date_dt = start_date_dt.fromtimestamp(
+            start_date_dt.timestamp() - (self.days_back * 86400)
+        )
+        end_date_dt = now.replace(hour=23, minute=59, second=59, microsecond=999999)
+        end_date_dt = end_date_dt.fromtimestamp(
+            end_date_dt.timestamp() + (self.days_forward * 86400)
+        )
+
+        # Convert to Foundation.NSDate
+        start_date = Foundation.NSDate.dateWithTimeIntervalSince1970_(  # type: ignore
+            start_date_dt.timestamp()
+        )
+        end_date = Foundation.NSDate.dateWithTimeIntervalSince1970_(  # type: ignore
+            end_date_dt.timestamp()
+        )
+
         # Get the event store
         event_store = EventKit.EKEventStore.alloc().init()  # type: ignore
 
@@ -140,13 +156,6 @@ class ListCalendarEvents(BaseNode):
             raise Exception(f"Calendar '{self.calendar_name}' not found")
 
         # Create date range predicate
-        start_date = Foundation.NSDate.dateWithTimeIntervalSince1970_(  # type: ignore
-            self.start_date.to_datetime().timestamp()
-        )
-        end_date = Foundation.NSDate.dateWithTimeIntervalSince1970_(  # type: ignore
-            self.end_date.to_datetime().timestamp()
-        )
-
         predicate = event_store.predicateForEventsWithStartDate_endDate_calendars_(
             start_date, end_date, [calendar]
         )

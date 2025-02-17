@@ -33,6 +33,11 @@ class EnumEncoder(json.JSONEncoder):
 
 node_classes = get_registered_node_classes()
 
+# write all node names to src/nodetool/metadata/node_names.txt
+with open("src/nodetool/metadata/node_names.txt", "w") as f:
+    for node_class in node_classes:
+        f.write(node_class.get_node_type() + "\n")
+
 # write metadata to src/nodetool/metadata/nodes.json
 with open("src/nodetool/metadata/nodes.json", "w") as f:
     json.dump(

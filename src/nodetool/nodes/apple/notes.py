@@ -5,7 +5,6 @@ from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.metadata.types import TextRef
 import tempfile
 import os
-import shutil
 from pathlib import Path
 
 
@@ -109,9 +108,6 @@ class ReadNotes(BaseNode):
                     capture_output=True,
                     text=True,
                 )
-
-                print(result.stdout)
-                print(result.stderr)
 
                 # Read and parse the exported notes
                 notes = []

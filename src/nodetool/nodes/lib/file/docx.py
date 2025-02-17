@@ -208,9 +208,13 @@ class SaveDocument(BaseNode):
         default=DocumentRef(), description="The document to write"
     )
     path: FilePath = Field(
-        default=FilePath(),
+        default=FilePath(), description="The folder to write the document to."
+    )
+
+    filename: str = Field(
+        default="",
         description="""
-        The path to write the document to.
+        The filename to write the document to.
         You can use time and date variables to create unique names:
         %Y - Year
         %m - Month
@@ -224,6 +228,6 @@ class SaveDocument(BaseNode):
     async def process(self, context: ProcessingContext):
         assert isinstance(self.document.data, Document), "Document is not connected"
         assert self.path.path, "Path is not set"
-        filename = datetime.now().strftime(self.path.path)
-        expanded_path = os.path.expanduser(filename)
+        filename = datetime.now().strftime(self.filename)
+        expanded_path = os.path.expanduser(os.path.join(self.path.path, filename))
         self.document.data.save(expanded_path)

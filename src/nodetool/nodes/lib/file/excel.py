@@ -180,10 +180,14 @@ class SaveWorkbook(BaseNode):
     workbook: ExcelRef = Field(
         default=ExcelRef(), description="The Excel workbook to save"
     )
-    filepath: FilePath = Field(
-        default=FilePath(),
+    folder: FilePath = Field(
+        default=FilePath(), description="The folder to save the file to."
+    )
+
+    filename: str = Field(
+        default="",
         description="""
-        Path where to save the file.
+        The filename to save the file to.
         You can use time and date variables to create unique names:
         %Y - Year
         %m - Month
@@ -199,9 +203,9 @@ class SaveWorkbook(BaseNode):
         assert isinstance(
             workbook, openpyxl.Workbook
         ), "Workbook is not an instance of openpyxl.Workbook"
-        assert self.filepath.path, "Path is not set"
-        filename = datetime.now().strftime(self.filepath.path)
-        expanded_path = os.path.expanduser(filename)
+        assert self.folder.path, "Path is not set"
+        filename = datetime.now().strftime(self.filename)
+        expanded_path = os.path.expanduser(os.path.join(self.folder.path, filename))
         workbook.save(expanded_path)
 
 
