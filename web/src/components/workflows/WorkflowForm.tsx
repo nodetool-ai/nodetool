@@ -139,6 +139,19 @@ const styles = (theme: any) =>
           backgroundColor: theme.palette.c_gray2
         }
       }
+    },
+    ".shortcut-input-container": {
+      position: "relative",
+      display: "flex",
+      alignItems: "center",
+      "& .clear-button": {
+        position: "absolute",
+        right: "8px",
+        color: theme.palette.c_gray6,
+        "&:hover": {
+          color: theme.palette.c_white
+        }
+      }
     }
   });
 
@@ -249,6 +262,16 @@ const WorkflowForm = ({ workflow, onClose }: WorkflowFormProps) => {
     setIsCapturing(false);
   };
 
+  const clearShortcut = useCallback(() => {
+    setLocalWorkflow((prev) => ({
+      ...prev,
+      settings: {
+        ...(prev.settings || {}),
+        shortcut: ""
+      }
+    }));
+  }, []);
+
   return (
     <div css={styles} className="workflow-form">
       <Box sx={{ pl: 2, pr: 2 }}>
@@ -323,20 +346,31 @@ const WorkflowForm = ({ workflow, onClose }: WorkflowFormProps) => {
           <FormLabel htmlFor="shortcut">
             Keyboard Shortcut for Running Workflow
           </FormLabel>
-          <OutlinedInput
-            className="shortcut-input"
-            fullWidth
-            name="shortcut"
-            value={
-              isCapturing
-                ? "Press keys..."
-                : localWorkflow.settings?.shortcut || "Click to set shortcut"
-            }
-            onKeyDown={handleShortcutKeyDown}
-            onFocus={() => setIsCapturing(true)}
-            onBlur={() => setIsCapturing(false)}
-            readOnly
-          />
+          <div className="shortcut-input-container">
+            <OutlinedInput
+              className="shortcut-input"
+              fullWidth
+              name="shortcut"
+              value={
+                isCapturing
+                  ? "Press keys..."
+                  : localWorkflow.settings?.shortcut || "Click to set shortcut"
+              }
+              onKeyDown={handleShortcutKeyDown}
+              onFocus={() => setIsCapturing(true)}
+              onBlur={() => setIsCapturing(false)}
+              readOnly
+            />
+            {localWorkflow.settings?.shortcut && (
+              <Button
+                className="clear-button"
+                onClick={clearShortcut}
+                size="small"
+              >
+                Clear
+              </Button>
+            )}
+          </div>
         </FormControl>
         <FormControl fullWidth sx={{ mt: 2 }}>
           <FormLabel>UI Options</FormLabel>
