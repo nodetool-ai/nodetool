@@ -16,7 +16,6 @@ import numpy as np
 from ollama import ChatResponse
 import pandas as pd
 from pydub import AudioSegment
-import torch
 from starlette.datastructures import URL
 
 from huggingface_hub.file_download import try_to_load_from_cache
@@ -80,7 +79,6 @@ HTTP_HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/1"
 }
 
-# Move torch import inside a try/except block
 try:
     import torch
 
@@ -269,22 +267,19 @@ class ProcessingContext:
 
     def cache_result(self, node: BaseNode, result: Any, ttl: int = 3600):
         """Cache the result for a node."""
-
-        from nodetool.nodes.comfy.comfy_node import ComfyNode
-        import torch
-
         all_cacheable = all(out.type.is_cacheable_type() for out in node.outputs())
 
         if all_cacheable:
             key = self.generate_node_cache_key(node)
 
-            # Move torch tensors to CPU before caching
-            if isinstance(result, dict):
-                for k, v in result.items():
-                    if isinstance(v, torch.Tensor):
-                        result[k] = v.cpu().detach()
-            elif isinstance(result, torch.Tensor):
-                result = result.cpu().detach()
+            # Move torch tensors to CPU before caching if torch is available
+            if TORCH_AVAILABLE:
+                if isinstance(result, dict):
+                    for k, v in result.items():
+                        if isinstance(v, torch.Tensor):
+                            result[k] = v.cpu().detach()
+                elif isinstance(result, torch.Tensor):
+                    result = result.cpu().detach()
 
             Environment.get_node_cache().set(key, result, ttl)
 

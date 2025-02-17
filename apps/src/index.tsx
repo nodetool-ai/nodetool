@@ -9,7 +9,7 @@ import { Box } from "@chakra-ui/react";
 const urlParams = new URLSearchParams(window.location.search);
 
 const workflowId = urlParams.get("workflow_id");
-const isGlobalChat = urlParams.get("global_chat") === "true";
+const isGlobalChat = urlParams.get("chat") === "true";
 const isTestPage = urlParams.get("test") === "true";
 
 const rootElement = document.getElementById("root");

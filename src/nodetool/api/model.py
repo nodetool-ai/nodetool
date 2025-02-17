@@ -17,7 +17,6 @@ from nodetool.metadata.types import (
     comfy_model_to_folder,
 )
 from huggingface_hub import try_to_load_from_cache
-from huggingface_hub import HfFileSystem
 from nodetool.api.utils import current_user
 from nodetool.models.user import User
 from fastapi import APIRouter, Depends
