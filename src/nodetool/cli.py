@@ -181,6 +181,14 @@ def serve(
 
 
 @click.command()
+def chat():
+    """Start the chat."""
+    from nodetool.chat.chat import chat_cli
+
+    asyncio.run(chat_cli())
+
+
+@click.command()
 @click.argument("workflow_id", type=str)
 def run(workflow_id: str):
     """Run a workflow from a file."""
@@ -210,6 +218,6 @@ def run(workflow_id: str):
 cli.add_command(worker)
 cli.add_command(serve)
 cli.add_command(run)
-
+cli.add_command(chat)
 if __name__ == "__main__":
     cli()
