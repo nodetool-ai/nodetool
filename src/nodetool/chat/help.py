@@ -9,6 +9,7 @@ from pydantic import BaseModel
 
 import chromadb
 
+from nodetool.common.settings import get_system_data_path
 from nodetool.providers.ollama.ollama_service import get_ollama_client
 from nodetool.common.environment import Environment
 from nodetool.metadata.types import (
@@ -57,7 +58,9 @@ def get_collection(name) -> chromadb.Collection:
     from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunction  # type: ignore
     from chromadb.config import DEFAULT_DATABASE, DEFAULT_TENANT
 
-    log.info(f"Using collection {name} from {Environment.get_chroma_path()}")
+    chroma_path = get_system_data_path("chroma-docs")
+
+    log.info(f"Using collection {name} from {chroma_path}")
 
     client = chromadb.PersistentClient(
         path=Environment.get_chroma_path(),

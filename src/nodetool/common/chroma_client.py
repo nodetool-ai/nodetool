@@ -163,3 +163,37 @@ def split_document(
         )
         for doc in splits
     ]
+
+
+def get_all_collections() -> List[chromadb.Collection]:
+    """
+    Get all collections from the ChromaDB instance.
+    Automatically handles embedding model selection for each collection.
+
+    Returns:
+        List[Collection]: List of ChromaDB collections with appropriate embedding functions
+    """
+    client = get_chroma_client()
+    collections = client.list_collections()
+
+    ollama_url = Environment.get("OLLAMA_API_URL")
+    result = []
+
+    for name in collections:
+        collection = client.get_collection(name)
+        if collection.metadata and collection.metadata.get("embedding_model"):
+            embedding_function = OllamaEmbeddingFunction(
+                url=f"{ollama_url}/api/embeddings",
+                model_name=collection.metadata["embedding_model"],
+            )
+            embedding_function._session = httpx.Client(
+                timeout=httpx.Timeout(300),
+            )
+        else:
+            embedding_function = SentenceTransformerEmbeddingFunction(
+                model_name="all-MiniLM-L6-v2",
+            )
+
+        result.append(client.get_collection(name, embedding_function))  # type: ignore
+
+    return result

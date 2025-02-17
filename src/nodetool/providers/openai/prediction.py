@@ -7,6 +7,7 @@ import pydub
 from openai.types.chat import ChatCompletion, ChatCompletionMessageParam
 
 from nodetool.common.environment import Environment
+from nodetool.metadata.types import OpenAIModel
 from nodetool.providers.openai.cost_calculation import calculate_cost
 from nodetool.providers.openai.cost_calculation import (
     calculate_cost_for_completion_usage,
@@ -15,6 +16,24 @@ from nodetool.providers.openai.cost_calculation import (
     calculate_cost_for_embedding_usage,
 )
 from nodetool.types.prediction import Prediction, PredictionResult
+
+
+async def get_openai_models():
+    env = Environment.get_environment()
+    api_key = env.get("OPENAI_API_KEY")
+    assert api_key, "OPENAI_API_KEY is not set"
+
+    client = openai.AsyncClient(api_key=api_key)
+    res = await client.models.list()
+    return [
+        OpenAIModel(
+            id=model.id,
+            object=model.object,
+            created=model.created,
+            owned_by=model.owned_by,
+        )
+        for model in res.data
+    ]
 
 
 async def create_embedding(prediction: Prediction, client: openai.AsyncClient):

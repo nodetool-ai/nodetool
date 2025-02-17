@@ -10,7 +10,6 @@ from nodetool.metadata.types import (
     FunctionModel,
     ImageRef,
     Message,
-    NodeRef,
     OpenAIModel,
     Provider,
     Provider,
@@ -18,7 +17,6 @@ from nodetool.metadata.types import (
     SeabornEstimator,
     SeabornPlotType,
     SeabornStatistic,
-    Task,
 )
 from nodetool.nodes.lib.audio.synthesis import (
     Envelope,
@@ -34,283 +32,21 @@ from nodetool.workflows.processing_context import ProcessingContext
 
 from pydantic import Field
 
-import matplotlib.pyplot as plt
-import io
 import pandas as pd
-from matplotlib.figure import Figure
 
 import json
 import json
-import uuid
 
-from typing import Any, Literal
+from typing import Literal
 from pydantic import Field
 from nodetool.chat.chat import (
     process_messages,
-    process_tool_calls,
 )
-from nodetool.chat.tools import ProcessNodeTool
 from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.metadata.types import Message
 
 import statsmodels.api as sm
-
-
-from enum import Enum
-
-
-class Agent(BaseNode):
-    """
-    Agent node to plan tasks to achieve a goal.
-    task planning, goal decomposition, workflow generation
-
-    Use cases:
-    - Breaking down complex goals into manageable tasks
-    - Creating dependency graphs for multi-step processes
-    - Generating workflows for automated task execution
-    """
-
-    goal: str = Field(
-        default="",
-        description="The user prompt",
-    )
-    max_tokens: int = Field(
-        default=4096,
-        ge=1,
-        le=100000,
-        description="The maximum number of tokens to generate.",
-    )
-    model: OpenAIModel = Field(
-        default=OpenAIModel(id="gpt-4o"),
-        description="The GPT model to use for generating tasks.",
-    )
-
-    async def process_messages_with_model(
-        self, messages: list[Message], context: ProcessingContext, **kwargs
-    ) -> Message:
-        """Helper method to process messages based on model type"""
-        return await process_messages(
-            context=context,
-            node_id=self._id,
-            model=FunctionModel(provider=Provider.OpenAI, name=self.model.id),
-            messages=messages,
-            **kwargs,
-        )
-
-    async def process(self, context: ProcessingContext) -> list[Task]:
-        # Validate model compatibility
-        thread_id = uuid.uuid4().hex
-        input_messages = [
-            Message(
-                role="system",
-                thread_id=thread_id,
-                content="""
-                Generate a full list of tasks to achieve the goal below.
-                Model the tasks as a directed acyclic graph (DAG) with dependencies.
-                Use given tools to create tasks and dependencies.
-                These tasks will be executed in order to achieve the goal.
-                The output of each task will be available to dependent tasks.
-                Tasks will be executed by specialized models and tools.
-                Describe each task in detail.
-                """,
-            ),
-            Message(
-                role="user",
-                thread_id=thread_id,
-                content=self.goal,
-            ),
-        ]
-
-        assistant_message = await self.process_messages_with_model(
-            messages=input_messages,
-            context=context,
-            max_completion_tokens=self.max_tokens,
-            response_format={
-                "type": "json_schema",
-                "json_schema": {
-                    "name": "tasks",
-                    "strict": True,
-                    "schema": {
-                        "type": "object",
-                        "properties": {
-                            "tasks": {
-                                "type": "array",
-                                "items": {
-                                    "type": "object",
-                                    "properties": {
-                                        "name": {"type": "string"},
-                                        "type": {
-                                            "type": "string",
-                                            "enum": ["text", "image"],
-                                        },
-                                        "instructions": {"type": "string"},
-                                        "dependencies": {
-                                            "type": "array",
-                                            "items": {"type": "string"},
-                                        },
-                                    },
-                                    "required": [
-                                        "name",
-                                        "type",
-                                        "instructions",
-                                        "dependencies",
-                                    ],
-                                    "additionalProperties": False,
-                                },
-                            }
-                        },
-                        "required": ["tasks"],
-                        "additionalProperties": False,
-                    },
-                },
-            },
-        )
-
-        tasks_data = json.loads(str(assistant_message.content)).get("tasks", [])
-
-        created_tasks = []
-        for task_data in tasks_data:
-            task = Task(
-                task_type=task_data["type"],
-                name=task_data["name"],
-                instructions=task_data["instructions"],
-                dependencies=task_data.get("dependencies", []),
-            )
-            created_tasks.append(task)
-
-        return created_tasks
-
-    @classmethod
-    def get_basic_fields(cls) -> list[str]:
-        return ["goal", "model"]
-
-
-class RunTasks(BaseNode):
-    """
-    Process a task using specified models and tools.
-    task execution, model integration, tool coordination
-
-    Use cases:
-    - Executing tasks defined by AgentNode
-    - Coordinating between different AI models and tools
-    - Generating outputs based on task instructions
-    """
-
-    tasks: list[Task] = Field(
-        default=[],
-        description="The task to process.",
-    )
-    image_nodes: list[NodeRef] = Field(
-        default_factory=list,
-        description="The image generation nodes to use.",
-    )
-    max_tokens: int = Field(
-        default=1000,
-        ge=1,
-        le=100000,
-        description="The maximum number of tokens to generate.",
-    )
-    model: OpenAIModel = Field(
-        default=OpenAIModel(id="o3-mini"),
-        description="The GPT model to use for processing tasks.",
-    )
-
-    def topological_sort(self, tasks: list[Task]) -> list[Task]:
-        """
-        Perform a topological sort on the tasks to determine the order of execution.
-        """
-        tasks_by_name = {task.name: task for task in tasks}
-        dependencies = {task.name: task.dependencies for task in tasks}
-
-        def visit(task_name, visited, stack):
-            if task_name in stack:
-                raise ValueError("Cycle detected in task dependencies")
-            if task_name not in visited:
-                stack.add(task_name)
-                for dep in dependencies[task_name]:
-                    visit(dep, visited, stack)
-                stack.remove(task_name)
-                visited.add(task_name)
-
-        visited = set()
-        sorted_tasks = []
-        for task_name in tasks_by_name:
-            visit(task_name, visited, set())
-        for task_name in visited:
-            sorted_tasks.append(tasks_by_name[task_name])
-
-        return sorted_tasks
-
-    async def process_task(
-        self,
-        thread_id: str,
-        task: Task,
-        tasks_by_name: dict[str, Task],
-        context: ProcessingContext,
-    ) -> str:
-        dependent_results = [
-            tasks_by_name[dep].result
-            for dep in task.dependencies
-            if dep in tasks_by_name
-        ]
-        input_messages = [
-            Message(
-                role="system",
-                content=f"""
-                You are a friendly assistant who helps with tasks.
-                Generate a response to the task insctructions below.
-                Follow the instructions carefully.
-                Use the given tools to generate the output.
-                Do not make more than one tool call per message.
-                These are the results from the dependencies:
-                {dependent_results}
-                """,
-            ),
-            Message(
-                role="user",
-                content=task.instructions,
-            ),
-        ]
-        tools = [ProcessNodeTool(node.id) for node in self.image_nodes]
-
-        assistant_message = await process_messages(
-            context=context,
-            node_id=self._id,
-            model=FunctionModel(provider=Provider.OpenAI, name=self.model.id),
-            tools=tools,
-            messages=input_messages,
-            max_completion_tokens=self.max_tokens,
-        )
-
-        if (
-            assistant_message.tool_calls is not None
-            and len(assistant_message.tool_calls) > 0
-        ):
-            tool_calls = await process_tool_calls(
-                context=context,
-                tool_calls=assistant_message.tool_calls,
-                tools=tools,
-            )
-            return tool_calls[0].result["output"]
-        else:
-            return str(assistant_message.content)
-
-    async def process(self, context: ProcessingContext) -> list[Any]:
-        thread_id = uuid.uuid4().hex
-        tasks = self.topological_sort(self.tasks)
-        for task in tasks:
-            task.result = await self.process_task(
-                thread_id=thread_id,
-                task=task,
-                tasks_by_name={task.name: task for task in self.tasks},
-                context=context,
-            )
-        return tasks
-
-    @classmethod
-    def get_basic_fields(cls) -> list[str]:
-        return ["tasks", "model"]
 
 
 class DataGenerator(BaseNode):
@@ -364,8 +100,6 @@ class DataGenerator(BaseNode):
         messages = [system_message, user_message]
 
         assistant_message = await process_messages(
-            context=context,
-            node_id=self._id,
             model=FunctionModel(provider=Provider.OpenAI, name=self.model.id),
             messages=messages,
             max_completion_tokens=self.max_tokens,
@@ -466,8 +200,6 @@ class ChainOfThought(BaseNode):
         ]
 
         assistant_message = await process_messages(
-            context=context,
-            node_id=self._id,
             model=FunctionModel(provider=Provider.OpenAI, name=self.model.id),
             messages=input_messages,
             max_completion_tokens=self.max_tokens,
@@ -576,8 +308,6 @@ class ProcessThought(BaseNode):
         ]
 
         assistant_message = await process_messages(
-            context=context,
-            node_id=self._id,
             model=FunctionModel(provider=Provider.OpenAI, name=self.model.id),
             messages=messages,
             max_completion_tokens=self.max_tokens,
@@ -723,8 +453,6 @@ class ChartGenerator(BaseNode):
         messages = [system_message, user_message]
 
         assistant_message = await process_messages(
-            context=context,
-            node_id=self._id,
             model=FunctionModel(provider=Provider.OpenAI, name=self.model.id),
             messages=messages,
             max_completion_tokens=self.max_tokens,
@@ -1054,8 +782,6 @@ Provide your response in JSON format.
 """
 
         parameter_message = await process_messages(
-            context=context,
-            node_id=self._id,
             model=FunctionModel(provider=Provider.OpenAI, name=self.model.id),
             messages=[
                 Message(
@@ -1156,8 +882,6 @@ User's original question: {self.prompt}
 """
 
         interpretation_message = await process_messages(
-            context=context,
-            node_id=self._id,
             model=FunctionModel(provider=Provider.OpenAI, name=self.model.id),
             messages=[
                 Message(
@@ -1228,8 +952,6 @@ class SynthesizerAgent(BaseNode):
         ]
 
         assistant_message = await process_messages(
-            context=context,
-            node_id=self._id,
             model=FunctionModel(provider=Provider.OpenAI, name=self.model.id),
             messages=messages,
             max_completion_tokens=self.max_tokens,
@@ -1477,8 +1199,6 @@ Extract the key insights and result from each step and synthesize them into a fi
         ]
 
         assistant_message = await process_messages(
-            context=context,
-            node_id=self._id,
             model=FunctionModel(provider=Provider.OpenAI, name=self.model.id),
             messages=messages,
             max_completion_tokens=self.max_tokens,
