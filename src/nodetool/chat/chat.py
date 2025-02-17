@@ -1,12 +1,33 @@
 import asyncio
-from datetime import datetime
+from enum import Enum
 import json
-import re
-from typing import Any, Sequence
+import traceback
+from typing import Any, AsyncGenerator, Sequence
 
+from ollama import ChatResponse
+import openai
 from pydantic import BaseModel
 from anthropic.types.message_param import MessageParam
-from nodetool.chat.tools import Tool
+from anthropic.types.tool_result_block_param import ToolResultBlockParam
+from anthropic.types.tool_use_block_param import ToolUseBlockParam
+from anthropic.types.text_block_param import TextBlockParam
+from anthropic.types.image_block_param import ImageBlockParam
+from anthropic.types.tool_param import ToolParam
+from nodetool.chat.tools import (
+    AddLabelTool,
+    BrowserTool,
+    ChromaHybridSearchTool,
+    ChromaTextSearchTool,
+    CreateAppleNoteTool,
+    ExtractPDFTablesTool,
+    ExtractPDFTextTool,
+    ConvertPDFToMarkdownTool,
+    ReadAppleNotesTool,
+    ScreenshotTool,
+    SearchEmailTool,
+    SearchFileTool,
+    Tool,
+)
 from openai.types.chat import (
     ChatCompletionMessageParam,
     ChatCompletionToolMessageParam,
@@ -17,12 +38,8 @@ from openai.types.chat import (
     ChatCompletionContentPartParam,
 )
 from openai.types.chat.chat_completion_message_tool_call_param import Function
+from nodetool.common.environment import Environment
 from nodetool.metadata.types import (
-    ChatAssistantMessageParam,
-    ChatMessageParam,
-    ChatSystemMessageParam,
-    ChatToolMessageParam,
-    ChatUserMessageParam,
     ColumnDef,
     FunctionModel,
     Message,
@@ -34,7 +51,16 @@ from nodetool.metadata.types import (
     MessageImageContent,
     MessageTextContent,
 )
+from nodetool.providers.ollama.ollama_service import (
+    get_ollama_client,
+    get_ollama_models,
+)
+from nodetool.providers.openai.prediction import get_openai_models
 from nodetool.workflows.processing_context import ProcessingContext
+from nodetool.chat.tools import ListDirectoryTool, ReadFileTool, WriteFileTool
+import anthropic
+import readline
+import os
 
 
 def json_schema_for_column(column: ColumnDef) -> dict:
@@ -111,69 +137,45 @@ def message_content_to_openai_content_part(
         raise ValueError(f"Unknown content type {content}")
 
 
-def convert_to_llama_format(messages: Sequence[ChatMessageParam]) -> str:
-    """
-    Convert OpenAI-style message list to Llama chat format.
-
-    Args:
-        messages (list[ChatMessageParam]): The list of messages to convert.
-
-    Returns:
-        str: The Llama chat format.
-    """
-    res = ""
-
-    for message in messages:
-        if isinstance(message, ChatSystemMessageParam):
-            res += f"[INST] {message.content} [/INST]\n"
-        elif isinstance(message, ChatUserMessageParam):
-            res += f"<human>: {message.content} </s>\n"
-        elif isinstance(message, ChatAssistantMessageParam):
-            res += f"<assistant>: {message.content} </s>\n"
-        else:
-            raise ValueError(f"Unknown message type {message}")
-
-    return res.strip()
-
-
 def convert_to_openai_message(
-    message: ChatMessageParam,
+    message: Message,
 ) -> ChatCompletionMessageParam:
     """
     Convert a message to an OpenAI message.
 
     Args:
-        message (ChatCompletionMessageParam): The message to convert.
+        message (Message): The message to convert.
 
     Returns:
         dict: The OpenAI message.
     """
-    if isinstance(message, ChatToolMessageParam):
+    if message.role == "tool":
         if isinstance(message.content, BaseModel):
             content = message.content.model_dump_json()
         else:
             content = json.dumps(message.content)
+        assert message.tool_call_id is not None, "Tool call ID must not be None"
         return ChatCompletionToolMessageParam(
             role=message.role,
             content=content,
             tool_call_id=message.tool_call_id,
         )
-    elif isinstance(message, ChatSystemMessageParam):
+    elif message.role == "system":
         return ChatCompletionSystemMessageParam(
-            role=message.role, content=message.content
+            role=message.role, content=str(message.content)
         )
-    elif isinstance(message, ChatUserMessageParam):
+    elif message.role == "user":
         assert message.content is not None, "User message content must not be None"
         if isinstance(message.content, str):
             content = message.content
-        else:
+        elif message.content is not None:
             content = [
                 message_content_to_openai_content_part(c) for c in message.content
             ]
-
+        else:
+            raise ValueError(f"Unknown message content type {type(message.content)}")
         return ChatCompletionUserMessageParam(role=message.role, content=content)
-    elif isinstance(message, ChatAssistantMessageParam):
-        assert message.tool_calls is not None, "Tool calls must not be None"
+    elif message.role == "assistant":
         tool_calls = [
             ChatCompletionMessageToolCallParam(
                 type="function",
@@ -183,116 +185,216 @@ def convert_to_openai_message(
                     arguments=json.dumps(tool_call.args, default=default_serializer),
                 ),
             )
-            for tool_call in message.tool_calls
+            for tool_call in message.tool_calls or []
         ]
+        if isinstance(message.content, str):
+            content = message.content
+        elif message.content is not None:
+            content = [
+                message_content_to_openai_content_part(c) for c in message.content
+            ]
+        else:
+            content = None
         if len(tool_calls) == 0:
             return ChatCompletionAssistantMessageParam(
-                role=message.role, content=message.content
+                role=message.role,
+                content=content,  # type: ignore
             )
-        return ChatCompletionAssistantMessageParam(
-            role=message.role, content=message.content, tool_calls=tool_calls
-        )
+        else:
+            return ChatCompletionAssistantMessageParam(
+                role=message.role, content=content, tool_calls=tool_calls  # type: ignore
+            )
     else:
-        raise ValueError(f"Unknown message type {message}")
+        raise ValueError(f"Unknown message role {message.role}")
+
+
+def get_openai_client():
+    env = Environment.get_environment()
+    api_key = env.get("OPENAI_API_KEY")
+    assert api_key, "OPENAI_API_KEY is not set"
+
+    return openai.AsyncClient(api_key=api_key)
+
+
+class Chunk(BaseModel):
+    content: str
+    done: bool
 
 
 async def create_openai_completion(
-    context: ProcessingContext,
     model: FunctionModel,
-    node_id: str,
-    messages: Sequence[ChatMessageParam],
+    messages: Sequence[Message],
     tools: Sequence[Tool] = [],
-    tool_choice: dict[str, Any] = {},
     **kwargs,
-) -> Message:
+):
     """
     Creates an OpenAI completion using the provided messages.
 
     Args:
-        context (ProcessingContext): The processing context.
         model (FunctionModel): The model to use for the completion.
-        node_id (str): The ID of the node that is making the request.
-        messages (list[ChatCompletionMessageParam]): Entire conversation history.
-        tools (list[ChatCompletionToolParam]): A list of tools to be used by the model.
-        tool_choice (str, optional): Enforce specific tool. Defaults to "auto".
+        messages (Sequence[Message]): Entire conversation history.
+        tools (Sequence[Tool], optional): A list of tools to be used by the model.
         **kwargs: Additional keyword arguments passed to openai API.
 
-    Returns:
-        Message: The message returned by the OpenAI API.
+    Yields:
+        Message: Streamed message chunks from the OpenAI API.
     """
+    # Convert system messages to user messages for O1 and O3 models
+    if model.name.startswith("o1") or model.name.startswith("o3"):
+        kwargs["max_completion_tokens"] = kwargs.pop("max_tokens", 1000)
+        kwargs.pop("temperature", None)
+        converted_messages = []
+        for msg in messages:
+            if msg.role == "system":
+                converted_messages.append(
+                    Message(
+                        role="user",
+                        content=f"Instructions: {msg.content}",
+                        thread_id=msg.thread_id,
+                    )
+                )
+            else:
+                converted_messages.append(msg)
+        messages = converted_messages
 
     if len(tools) > 0:
         kwargs["tools"] = [tool.tool_param() for tool in tools]
-        if len(tool_choice) > 0:
-            kwargs["tool_choice"] = {
-                "type": "function",
-                "function": {
-                    "name": tool_choice["name"],
-                },
-            }
 
     openai_messages = [convert_to_openai_message(m) for m in messages]
+    client = get_openai_client()
 
-    completion = await context.run_prediction(
+    completion = await client.chat.completions.create(
         model=model.name,
-        provider=Provider.OpenAI,
-        node_id=node_id,
-        params={"messages": openai_messages, **kwargs},
+        messages=openai_messages,
+        stream=True,
+        **kwargs,
     )
-    assert completion["choices"] is not None, "No completion content returned"
-    assert len(completion["choices"]) > 0, "No completion content returned"
-    assert (
-        completion["choices"][0]["message"] is not None
-    ), "No completion content returned"
 
-    response_message = completion["choices"][0]["message"]
-    tool_calls = []
+    current_tool_call = None
+    async for chunk in completion:
+        delta = chunk.choices[0].delta
 
-    if "tool_calls" in response_message and response_message["tool_calls"] is not None:
-        for tool_call in response_message["tool_calls"]:
-            tool_calls.append(
-                ToolCall(
-                    id=tool_call["id"],
-                    name=tool_call["function"]["name"],
-                    args=json.loads(tool_call["function"]["arguments"]),
-                )
+        if delta.content or chunk.choices[0].finish_reason == "stop":
+            yield Chunk(
+                content=delta.content or "",
+                done=chunk.choices[0].finish_reason == "stop",
             )
 
-    return Message(
-        role="assistant", content=response_message["content"], tool_calls=tool_calls
+        if chunk.choices[0].finish_reason == "tool_calls":
+            if current_tool_call:
+                yield ToolCall(
+                    id=current_tool_call["id"],
+                    name=current_tool_call["name"],
+                    args=json.loads(current_tool_call["args"]),
+                )
+            else:
+                raise ValueError("No tool call found")
+
+        if delta.tool_calls:
+            for tool_call in delta.tool_calls:
+                if tool_call.id:
+                    current_tool_call = {
+                        "id": tool_call.id,
+                        "name": tool_call.function.name if tool_call.function else "",
+                        "args": "",
+                    }
+                if tool_call.function and current_tool_call:
+                    if tool_call.function.arguments:
+                        current_tool_call["args"] += tool_call.function.arguments
+
+                assert (
+                    current_tool_call is not None
+                ), "Current tool call must not be None"
+
+
+def convert_to_anthropic_message(message: Message) -> MessageParam:
+    if message.role == "tool":
+        assert message.tool_call_id is not None, "Tool call ID must not be None"
+        return {
+            "role": "user",
+            "content": [
+                {
+                    "type": "tool_result",
+                    "tool_use_id": message.tool_call_id,
+                    "content": str(message.content),
+                }
+            ],
+        }
+    elif message.role == "system":
+        return {
+            "role": "assistant",
+            "content": str(message.content),
+        }
+    elif message.role == "user":
+        assert message.content is not None, "User message content must not be None"
+        if isinstance(message.content, str):
+            return {"role": "user", "content": message.content}
+        else:
+            content = []
+            for part in message.content:
+                if isinstance(part, MessageTextContent):
+                    content.append({"type": "text", "text": part.text})
+                elif isinstance(part, MessageImageContent):
+                    content.append(
+                        ImageBlockParam(
+                            type="image",
+                            source={
+                                "type": "base64",
+                                "media_type": "image/png",
+                                "data": part.image.uri,
+                            },
+                        )
+                    )
+            return {"role": "user", "content": content}
+    elif message.role == "assistant":
+        if isinstance(message.content, str):
+            return {"role": "assistant", "content": message.content}
+        else:
+            content = []
+            assert (
+                message.content is not None
+            ), "Assistant message content must not be None"
+            for part in message.content:
+                if isinstance(part, MessageTextContent):
+                    content.append({"type": "text", "text": part.text})
+            return {"role": "assistant", "content": content}
+    else:
+        raise ValueError(f"Unknown message role {message.role}")
+
+
+def get_anthropic_client():
+    env = Environment.get_environment()
+    api_key = env.get("ANTHROPIC_API_KEY")
+    assert api_key, "ANTHROPIC_API_KEY is not set"
+
+    return anthropic.AsyncAnthropic(
+        api_key=api_key,
+        default_headers={"anthropic-beta": "prompt-caching-2024-07-31"},
     )
 
 
 async def create_anthropic_completion(
-    context: ProcessingContext,
     model: FunctionModel,
-    node_id: str,
-    messages: Sequence[ChatMessageParam],
+    messages: Sequence[Message],
     tools: Sequence[Tool] = [],
-    tool_choice: dict[str, Any] = {},
     **kwargs,
-) -> Message:
+) -> AsyncGenerator[Chunk | ToolCall, Any]:
     """
-    Creates an anthropic completion by sending messages to the anthropic client.
+    Creates an anthropic completion using streaming messages API.
+    Handles message flow and tool calls according to Anthropic's format.
 
     Args:
-        context (ProcessingContext): The processing context.
-        model (FunctionModel): The model to use for generating the completion.
-        node_id (str): The ID of the node that is making the request.
-        messages (list[ChatCompletionMessageParam]): Entire conversation history.
-        tools (list[Tool], optional): The list of tools to use. Defaults to [].
-        tool_choice (dict[str, Any], optional): Enforce specific tool.
+        model (FunctionModel): The model to use for the completion.
+        messages (Sequence[Message]): Entire conversation history.
+        tools (Sequence[Tool], optional): The list of tools to use. Defaults to [].
         **kwargs: Additional keyword arguments passed to the anthropic client.
 
-    Returns:
-        Message: The message returned by the anthropic client.
-
-    Raises:
-        ValueError: If no completion content is returned.
+    Yields:
+        Chunk | ToolCall: Either a content chunk or a tool call request.
     """
 
-    def convert_message(message: ChatMessageParam) -> MessageParam:
-        if isinstance(message, ChatToolMessageParam):
+    def convert_message(message: Message) -> MessageParam:
+        if message.role == "tool":
             return {
                 "role": "tool",
                 "content": {
@@ -302,7 +404,7 @@ async def create_anthropic_completion(
                     "is_error": False,
                 },  # type: ignore
             }
-        elif isinstance(message, ChatSystemMessageParam):
+        elif message.role == "system":
             return {
                 "type": "text",
                 "text": message.content,
@@ -311,97 +413,135 @@ async def create_anthropic_completion(
         else:
             return {"role": message.role, "content": message.content}  # type: ignore
 
-    def convert_tool(tool: Tool) -> dict:
+    def convert_tool(tool: Tool) -> ToolParam:
         return {
             "name": tool.name,
             "description": tool.description,
             "input_schema": tool.input_schema,
         }
 
-    system_messages = [
-        message for message in messages if isinstance(message, ChatSystemMessageParam)
-    ]
-    messages = [
-        message
-        for message in messages
-        if not isinstance(message, ChatSystemMessageParam)
-        and not message.role == "tool"
-    ]
-    if len(tool_choice) > 0:
-        kwargs["tool_choice"] = tool_choice
-
-    completion = await context.run_prediction(
-        model=model.name,
-        provider=Provider.Anthropic,
-        node_id=node_id,
-        params={
-            "system": [convert_message(message) for message in system_messages],
-            "messages": [convert_message(message) for message in messages],
-            "tools": [convert_tool(tool) for tool in tools],
-            **kwargs,
-        },
+    system_messages = [message for message in messages if message.role == "system"]
+    system_message = (
+        str(system_messages[0].content)
+        if len(system_messages) > 0
+        else "You are a helpful assistant."
     )
-    assert completion["content"] is not None, "No completion content returned"
 
-    message = None
-    tool_calls = []
+    # Convert messages and tools to Anthropic format
+    anthropic_messages = [
+        convert_to_anthropic_message(msg) for msg in messages if msg.role != "system"
+    ]
 
-    for content in completion["content"]:
-        if content["type"] == "text":
-            message = Message(role="assistant", content=content["text"])
-        elif content["type"] == "tool_use":
-            tool_calls.append(
-                ToolCall(
-                    id=content["id"],
-                    name=content["name"],
-                    args=dict(content["input"]),
-                )
-            )
+    anthropic_tools: Sequence[ToolParam] = [convert_tool(tool) for tool in tools]
 
-    assert message is not None, "No completion content returned"
+    client = get_anthropic_client()
 
-    message.tool_calls = tool_calls
+    async with client.messages.stream(
+        model=model.name,
+        messages=anthropic_messages,
+        system=system_message,
+        tools=anthropic_tools,
+        max_tokens=kwargs.get("max_tokens", 4096),
+        **kwargs,
+    ) as stream:
+        current_tool_call = None
 
-    return message
+        async for event in stream:
+            if event.type == "content_block_delta":
+                if event.delta.type == "text_delta":
+                    yield Chunk(content=event.delta.text, done=False)
+                elif event.delta.type == "input_json_delta":
+                    # Accumulate tool call JSON
+                    if current_tool_call is None:
+                        current_tool_call = {
+                            "id": event.index,
+                            "name": "",
+                            "args": event.delta.partial_json,
+                        }
+                    else:
+                        current_tool_call["args"] += event.delta.partial_json
+
+            elif event.type == "content_block_stop":
+                if current_tool_call and current_tool_call["args"]:
+                    try:
+                        args = json.loads(current_tool_call["args"])
+                        yield ToolCall(
+                            id=str(current_tool_call["id"]),
+                            name=current_tool_call["name"],
+                            args=args,
+                        )
+                        current_tool_call = None
+                    except json.JSONDecodeError:
+                        pass  # Wait for complete JSON
+
+            elif event.type == "message_stop":
+                yield Chunk(content="", done=True)
 
 
-def parse_tool_calls(s) -> list[ToolCall]:
+def convert_to_ollama_message(
+    message: Message,
+) -> dict[str, Any]:
     """
-    Parse a tool call from a string.
-    Example: '[{"name": "create_record", "arguments": {"name": "John"}}]\n\n[{"name": "create_record", "arguments": {"name": "Jane"}}]\n\n[{"name": "create_record", "arguments": {"name": "Bob"}}]\n\n"
+    Convert a message to an Ollama message format.
+
+    Args:
+        message (Message): The message to convert.
+
+    Returns:
+        dict: The Ollama message with role and content fields.
     """
-    # Find the function call JSON strings
-    calls = re.findall(r"\[.*?\]", s)
-    res = []
-    for call in calls:
-        try:
-            parsed = json.loads(call)
-            for p in parsed:
-                res.append(ToolCall(name=p["name"], args=p["arguments"]))
-        except json.JSONDecodeError:
-            continue
-    return res
+    if message.role == "tool":
+        if isinstance(message.content, BaseModel):
+            content = message.content.model_dump_json()
+        else:
+            content = json.dumps(message.content)
+        return {"role": "assistant", "content": content}
+    elif message.role == "system":
+        return {"role": "system", "content": message.content}
+    elif message.role == "user":
+        assert message.content is not None, "User message content must not be None"
+        message_dict: dict[str, Any] = {"role": "user"}
+
+        if isinstance(message.content, str):
+            message_dict["content"] = message.content
+        else:
+            # Handle text content
+            text_parts = [
+                part.text
+                for part in message.content
+                if isinstance(part, MessageTextContent)
+            ]
+            message_dict["content"] = "\n".join(text_parts)
+
+            # Handle image content
+            image_parts = [
+                part.image.uri
+                for part in message.content
+                if isinstance(part, MessageImageContent)
+            ]
+            if image_parts:
+                message_dict["images"] = image_parts
+
+        return message_dict
+    elif message.role == "assistant":
+        return {"role": "assistant", "content": message.content or ""}
+    else:
+        raise ValueError(f"Unknown message role {message.role}")
 
 
 async def create_ollama_completion(
-    context: ProcessingContext,
     model: FunctionModel,
-    node_id: str,
-    messages: Sequence[ChatMessageParam],
+    messages: Sequence[Message],
     tools: Sequence[Tool] = [],
-    tool_choice: dict[str, Any] = {},
     **kwargs,
-) -> Message:
+):
     """
     Creates an Ollama completion by sending messages to the Ollama client.
 
     Args:
-        context (ProcessingContext): The processing context.
         model (FunctionModel): The model to use for generating the completion.
-        node_id (str): The ID of the node that is making the request.
-        messages (list[ChatCompletionMessageParam]): Entire conversation history.
+        messages (list[Message]): Entire conversation history.
         tools (list[Tool], optional): The list of tools to use. Defaults to [].
-        tool_choice (dict[str, Any], optional): Enforce specific tool.
         **kwargs: Additional keyword arguments passed to the Ollama client.
 
     Returns:
@@ -410,100 +550,28 @@ async def create_ollama_completion(
     Raises:
         ValueError: If no completion content is returned.
     """
+    ollama_messages = [convert_to_ollama_message(m) for m in messages]
 
     if len(tools) > 0:
-        # TODO: encode tool choice
-        tool_prompt = """[AVAILABLE_TOOLS]\n{}\n[/AVAILABLE_TOOLS]""".format(
-            json.dumps([tool.tool_param().model_dump() for tool in tools])
-        )
-        prompt = tool_prompt + convert_to_llama_format(messages)
-    else:
-        prompt = convert_to_llama_format(messages)
+        kwargs["tools"] = [tool.tool_param() for tool in tools]
 
-    print(f"******* [[PROMPT]] {prompt} *******")
+    client = get_ollama_client()
 
-    completion = await context.run_prediction(
-        node_id=node_id,
-        provider=Provider.Ollama,
-        model=model.name,
-        params={"raw": True, "prompt": prompt},
+    completion = await client.chat(
+        model=model.name, messages=ollama_messages, stream=True, **kwargs
     )
-    assert completion["response"] is not None, "No completion content returned"
 
-    if len(tools) > 0:
-        tool_calls = parse_tool_calls(completion["response"])
-        return Message(role="assistant", content="", tool_calls=tool_calls)
-    else:
-        return Message(role="assistant", content=completion["response"])
-
-
-async def create_completion(
-    context: ProcessingContext,
-    model: FunctionModel,
-    **kwargs,
-) -> Message:
-    if model.provider == Provider.OpenAI:
-        return await create_openai_completion(
-            context=context,
-            model=model,
-            **kwargs,
+    async for response in completion:
+        if response.message.tool_calls is not None:
+            for tool_call in response.message.tool_calls:
+                yield ToolCall(
+                    name=tool_call.function.name,
+                    args=dict(tool_call.function.arguments),
+                )
+        yield Chunk(
+            content=response.message.content or "",
+            done=response.done or False,
         )
-    elif model.provider == Provider.Anthropic:
-        return await create_anthropic_completion(
-            context=context,
-            model=model,
-            **kwargs,
-        )
-    elif model.provider == Provider.Ollama:
-        return await create_ollama_completion(
-            context=context,
-            model=model,
-            **kwargs,
-        )
-    else:
-        raise ValueError(f"Provider {model.provider} not supported")
-
-
-def message_param(message: Message) -> ChatMessageParam:
-    """
-    Converts a given message object to the corresponding ChatMessageParam object based on the message role.
-
-    Args:
-        message (Message): The message object to convert.
-
-    Returns:
-        ChatCompletionMessageParam: The converted ChatCompletionMessageParam object.
-
-    Raises:
-        ValueError: If the message role is unknown.
-        AssertionError: If the message content or tool call ID is not of the expected type.
-    """
-
-    if message.role == "assistant":
-        assert (
-            isinstance(message.content, str) or message.content is None
-        ), "Assistant message content must be a string or None"
-        return ChatAssistantMessageParam(
-            role="assistant", content=message.content, tool_calls=message.tool_calls
-        )
-    elif message.role == "tool":
-        assert message.tool_call_id is not None, "Tool message must have a tool call ID"
-        assert isinstance(message.content, str), "Tool message content must be a string"
-        return ChatToolMessageParam(
-            role="tool",
-            tool_call_id=message.tool_call_id,
-            content=message.content,
-        )
-    elif message.role == "system":
-        assert isinstance(
-            message.content, str
-        ), "System message content must be a string"
-        return ChatSystemMessageParam(role="system", content=message.content)
-    elif message.role == "user":
-        assert message.content is not None, "User message content must not be None"
-        return ChatUserMessageParam(role="user", content=message.content)
-    else:
-        raise ValueError(f"Unknown message role {message.role}")
 
 
 async def run_tool(
@@ -524,8 +592,6 @@ async def run_tool(
         ToolCall: The tool call object containing the function name, arguments, and response.
     """
 
-    print(f"******* [[TOOL]] {tool_call.name} *******")
-
     def find_tool(name):
         for tool in tools:
             if tool.name == name:
@@ -538,9 +604,6 @@ async def run_tool(
 
     result = await tool.process(context, tool_call.args)
 
-    content = json.dumps(result, default=default_serializer)
-    print(f"******* [[TOOL RESULT]] {result} *******")
-
     return ToolCall(
         id=tool_call.id,
         name=tool_call.name,
@@ -549,24 +612,13 @@ async def run_tool(
     )
 
 
-async def process_tool_calls(
+async def run_tools(
     context: ProcessingContext,
     tool_calls: Sequence[ToolCall],
     tools: Sequence[Tool],
 ) -> list[ToolCall]:
     """
-    Process tool calls in parallel.
-    Looks up the tool by name and executes the tool's process method.
-    It is required to call process_tool_responses if you want the chat model to respond to the tool calls.
-
-    Args:
-        context (ProcessingContext): The processing context.
-        tool_calls (list[ToolCall]): The list of tool calls.
-        columns (list[ColumnDef] | None, optional): The list of column definitions for the create_record tool. Defaults to None.
-
-    Returns:
-        Message: The assistant message.
-
+    Executes a list of tool calls in parallel.
     """
     return await asyncio.gather(
         *[
@@ -580,61 +632,12 @@ async def process_tool_calls(
     )
 
 
-async def process_tool_responses(
-    context: ProcessingContext,
-    model: FunctionModel,
-    node_id: str,
-    thread_id: str,
-    messages: list[Message],
-    tool_responses: Sequence[ToolCall],
-    **kwargs,
-):
-    """
-    Process tool responses by the given chat model.
-    This is used to let the chat model use the result from the tool calls to generate a response.
-
-    Args:
-        context (ProcessingContext): The processing context.
-        model (FunctionModel): The function model.
-        node_id (str): The node ID.
-        thread_id (str): The thread ID.
-        messages (list[Message]): The list of messages.
-        tool_responses (Sequence[ToolCall]): The sequence of tool responses.
-        **kwargs: Additional keyword arguments.
-
-    Returns:
-        The completion created.
-
-    """
-    messages_for_request = [message_param(message) for message in messages]
-
-    messages_for_request += [
-        ChatToolMessageParam(
-            role="tool",
-            tool_call_id=tool_call.id,
-            content=tool_call.result,
-        )
-        for tool_call in tool_responses
-    ]
-    return await create_completion(
-        context=context,
-        model=model,
-        node_id=node_id,
-        thread_id=thread_id,
-        messages=messages_for_request,
-        **kwargs,
-    )
-
-
-async def process_messages(
-    context: ProcessingContext,
+async def generate_messages(
     messages: Sequence[Message],
     model: FunctionModel,
-    node_id: str,
     tools: Sequence[Tool] = [],
-    tool_choice: dict[str, str] = {},
     **kwargs,
-) -> Message:
+) -> AsyncGenerator[Chunk | ToolCall, Any]:
     """
     Process a message by the given model.
     Creates a completion using the provided messages.
@@ -642,43 +645,254 @@ async def process_messages(
     Use process_tool_calls to execute the tool calls if needed.
 
     Args:
-        context (ProcessingContext): The processing context.
         messages (list[Message]): The messages in the thread.
         model (str): The model to use for the completion.
         provider (Provider): The API provider to use for the completion.
-        thread_id (str): The ID of the thread the message belongs to.
-        node_id (str): The ID of the node making the request.
         tools (list[Tool], optional): The tools to use for the completion. Defaults to [].
-        tool_choice (str, optional): Enforce specific tool. Defaults to "auto".
 
     Returns:
         tuple[Message, list[ToolCall]]: The assistant message and the tool calls.
     """
+    if model.provider == Provider.OpenAI:
+        async for chunk in create_openai_completion(
+            model=model,
+            messages=messages,
+            tools=tools,
+            **kwargs,
+        ):
+            yield chunk
+    elif model.provider == Provider.Ollama:
+        async for chunk in create_ollama_completion(
+            model=model,
+            messages=messages,
+            tools=tools,
+            **kwargs,
+        ):
+            yield chunk
+    elif model.provider == Provider.Anthropic:
+        async for chunk in create_anthropic_completion(
+            model=model,
+            messages=messages,
+            tools=tools,
+            **kwargs,
+        ):
+            yield chunk
+    else:
+        raise ValueError(f"Provider {model.provider} not supported")
 
-    # Convert system messages to user messages for O1 models
-    if model.name.startswith("o1") or model.name.startswith("o3"):
-        kwargs["max_completion_tokens"] = kwargs.pop("max_tokens", 1000)
-        kwargs.pop("temperature", None)
-        converted_messages = []
-        for msg in messages:
-            if msg.role == "system":
-                converted_messages.append(
-                    Message(
-                        role="user",
-                        content=f"Instructions: {msg.content}",
-                        thread_id=msg.thread_id,
-                    )
-                )
-            else:
-                converted_messages.append(msg)
-        messages = converted_messages
 
-    return await create_completion(
-        context=context,
-        model=model,
-        node_id=node_id,
-        messages=[message_param(message) for message in messages],
-        tools=tools,
-        tool_choice=tool_choice,
-        **kwargs,
+async def process_messages(
+    messages: Sequence[Message],
+    model: FunctionModel,
+    tools: Sequence[Tool] = [],
+    **kwargs,
+) -> Message:
+    """
+    Process messages and return a single accumulated response message.
+
+    Args:
+        messages (Sequence[Message]): The messages to process
+        model (FunctionModel): The model to use
+        tools (Sequence[Tool]): Available tools
+        **kwargs: Additional arguments passed to the model
+
+    Returns:
+        Message: The complete response message with content and tool calls
+    """
+    content = ""
+    tool_calls: list[ToolCall] = []
+
+    async for chunk in generate_messages(messages, model, tools, **kwargs):
+        if isinstance(chunk, Chunk):
+            content += chunk.content
+        elif isinstance(chunk, ToolCall):
+            tool_calls.append(chunk)
+
+    return Message(
+        role="assistant",
+        content=content if content else None,
+        tool_calls=tool_calls if tool_calls else None,
     )
+
+
+tools = [
+    SearchEmailTool(),
+    AddLabelTool(),
+    ListDirectoryTool(),
+    ReadFileTool(),
+    WriteFileTool(),
+    BrowserTool(),
+    ScreenshotTool(),
+    SearchFileTool(),
+    ChromaTextSearchTool(),
+    ChromaHybridSearchTool(),
+    ExtractPDFTablesTool(),
+    ExtractPDFTextTool(),
+    ConvertPDFToMarkdownTool(),
+    CreateAppleNoteTool(),
+    ReadAppleNotesTool(),
+]
+
+
+async def chat_cli():
+    """Readline-based chat CLI with history, completion and emacs shortcuts."""
+
+    import warnings
+
+    warnings.filterwarnings("ignore", category=UserWarning)
+
+    context = ProcessingContext(user_id="test", auth_token="test")
+    ollama_models = await get_ollama_models()
+    openai_models = await get_openai_models()
+
+    # Define default models for each provider
+    default_models = {
+        Provider.OpenAI: "gpt-4o",
+        Provider.Anthropic: "claude-3-5-sonnet-20241022",
+        Provider.Ollama: "llama3.2:3b",
+    }
+
+    provider = Provider.OpenAI
+    model = FunctionModel(name=default_models[provider], provider=provider)
+    messages: list[Message] = []
+
+    # Set up readline
+    histfile = os.path.join(os.path.expanduser("~"), ".nodetool_history")
+    try:
+        readline.read_history_file(histfile)
+    except FileNotFoundError:
+        pass
+
+    # Enable tab completion
+    COMMANDS = ["help", "quit", "exit", "provider", "model", "models", "clear"]
+    PROVIDERS = [p.value.lower() for p in Provider]
+
+    def completer(text, state):
+        if text.startswith("/"):
+            text = text[1:]
+            options = [f"/{cmd}" for cmd in COMMANDS if cmd.startswith(text)]
+        elif text.startswith("/model "):
+            model_text = text.split()[-1]
+            options = [
+                f"/model {m}" for m in ollama_models if m.name.startswith(model_text)
+            ]
+            options.extend(
+                [f"/model {m}" for m in openai_models if m.id.startswith(model_text)]
+            )
+        elif text.startswith("/provider "):
+            provider_text = text.split()[-1]
+            options = [
+                f"/provider {p}" for p in PROVIDERS if p.startswith(provider_text)
+            ]
+        else:
+            return None
+        return options[state] if state < len(options) else None
+
+    readline.set_completer(completer)
+    readline.parse_and_bind("tab: complete")
+
+    print("Chat CLI - Type /help for commands")
+
+    while True:
+        try:
+            user_input = input("> ").strip()
+            readline.write_history_file(histfile)
+
+            if user_input.startswith("/"):
+                cmd = user_input[1:].lower()
+                if cmd == "quit" or cmd == "exit":
+                    break
+                elif cmd == "help":
+                    print("Commands:")
+                    print("  /provider [openai|anthropic|ollama] - Set the provider")
+                    print("  /model [model_name] - Set the model")
+                    print("  /models - List available Ollama models")
+                    print("  /clear - Clear chat history")
+                    print("  /quit or /exit - Exit the chat")
+                    continue
+                elif cmd == "models":
+                    try:
+                        print("\nAvailable Ollama models:")
+                        for model_info in ollama_models:
+                            print(f"- {model_info.name}")
+                        print()
+                    except Exception as e:
+                        print(f"Error listing models: {e}")
+                    continue
+                elif cmd.startswith("provider "):
+                    provider_name = cmd.split()[1].capitalize()
+                    try:
+                        provider = Provider[provider_name]
+                        # Update model to default for new provider
+                        model = FunctionModel(
+                            name=default_models[provider], provider=provider
+                        )
+                        print(
+                            f"Provider set to {provider.value} with default model {default_models[provider]}"
+                        )
+                    except KeyError:
+                        print(
+                            f"Invalid provider. Choose from: {[p.value for p in Provider]}"
+                        )
+                    continue
+                elif cmd.startswith("model "):
+                    model_name = cmd.split()[1]
+                    model = FunctionModel(name=model_name, provider=provider)
+                    print(f"Model set to {model_name}")
+                    continue
+                elif cmd == "clear":
+                    messages = []
+                    print("Chat history cleared")
+                    continue
+                else:
+                    print("Unknown command. Type /help for available commands")
+                    continue
+
+            # Add user message
+            messages.append(Message(role="user", content=user_input))
+            loop_running = True
+            current_chunk = ""
+
+            while loop_running:
+                async for chunk in generate_messages(
+                    messages=messages,
+                    model=model,
+                    tools=tools,
+                ):
+                    if isinstance(chunk, Chunk):
+                        current_chunk += str(chunk.content)
+                        print(chunk.content, end="", flush=True)
+                        messages.append(
+                            Message(role="assistant", content=current_chunk)
+                        )
+                        if chunk.done:
+                            loop_running = False
+                            print("")
+
+                    if isinstance(chunk, ToolCall):
+                        print(f"Running {chunk.name} with {chunk.args}")
+                        tool_result = await run_tool(context, chunk, tools)
+                        # print(tool_result)
+                        messages.append(Message(role="assistant", tool_calls=[chunk]))
+                        messages.append(
+                            Message(
+                                role="tool",
+                                tool_call_id=tool_result.id,
+                                content=json.dumps(
+                                    tool_result.result, default=default_serializer
+                                ),
+                            )
+                        )
+
+        except KeyboardInterrupt:
+            return
+        except EOFError:
+            return
+        except Exception as e:
+            print(f"Error: {e}")
+            stacktrace = traceback.format_exc()
+            print(f"Stacktrace: {stacktrace}")
+
+
+if __name__ == "__main__":
+    asyncio.run(chat_cli())

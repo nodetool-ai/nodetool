@@ -8,13 +8,18 @@ from enum import Enum
 
 from fastapi import WebSocket
 
+from nodetool.chat import tools
+from nodetool.chat.chat import Chunk, generate_messages, run_tool
 from nodetool.metadata.types import (
     AudioRef,
     DataframeRef,
+    FunctionModel,
     ImageRef,
     Message,
     MessageAudioContent,
     MessageVideoContent,
+    Provider,
+    ToolCall,
     VideoRef,
 )
 from nodetool.metadata.types import MessageImageContent, MessageTextContent
@@ -22,6 +27,7 @@ from nodetool.workflows.run_job_request import RunJobRequest
 from nodetool.workflows.run_workflow import run_workflow
 from nodetool.workflows.workflow_runner import WorkflowRunner
 from nodetool.workflows.processing_context import ProcessingContext
+from nodetool.chat.chat import tools
 
 log = logging.getLogger(__name__)
 
@@ -79,10 +85,12 @@ class ChatWebSocketRunner:
                 self.chat_history.append(message)
 
                 # Process the message through the workflow
-                result = await self.process_messages()
+                if message.workflow_id:
+                    response_message = await self.process_messages_for_workflow()
+                else:
+                    response_message = await self.process_messages()
 
                 # Create a new message from the result
-                response_message = self.create_response_message(result)
 
                 # Add the response to chat history
                 self.chat_history.append(response_message)
@@ -98,7 +106,63 @@ class ChatWebSocketRunner:
                 # Optionally, you can decide whether to break the loop or continue
                 # break
 
-    async def process_messages(self) -> dict:
+    async def process_messages(self) -> Message:
+        last_message = self.chat_history[-1]
+
+        processing_context = ProcessingContext(
+            user_id=last_message.user_id or "",
+            auth_token=last_message.auth_token or "",
+        )
+
+        # Initialize an empty response message
+        response_message = Message(role="assistant")
+        content = ""
+
+        # Stream the response chunks
+        async for chunk in generate_messages(
+            messages=self.chat_history,
+            model=FunctionModel(
+                provider=Provider.Ollama,
+                name="llama3.2:3b",
+                repo_id="llama3.2:3b",
+            ),
+            tools=tools,
+        ):
+            if isinstance(chunk, Chunk):
+                content += chunk.content
+                # Send intermediate chunks to client
+                await self.send_message(
+                    {"type": "chunk", "content": chunk.content, "done": chunk.done}
+                )
+                if chunk.done:
+                    response_message.content = content
+            elif isinstance(chunk, ToolCall):
+                # Handle tool calls
+                await self.send_message(
+                    {"type": "tool_call", "tool_call": chunk.model_dump()}
+                )
+
+                # Process the tool call
+                tool_result = await run_tool(processing_context, chunk, tools)
+
+                # Add tool messages to chat history
+                self.chat_history.append(Message(role="assistant", tool_calls=[chunk]))
+                self.chat_history.append(
+                    Message(
+                        role="tool",
+                        tool_call_id=tool_result.id,
+                        content=tool_result.result,
+                    )
+                )
+
+                # Send tool result to client
+                await self.send_message(
+                    {"type": "tool_result", "result": tool_result.model_dump()}
+                )
+
+        return response_message
+
+    async def process_messages_for_workflow(self) -> Message:
         job_id = str(uuid.uuid4())
         last_message = self.chat_history[-1]
         assert last_message.workflow_id is not None, "Workflow ID is required"
@@ -118,7 +182,6 @@ class ChatWebSocketRunner:
         )
 
         log.info(f"Running workflow for {last_message.workflow_id}")
-        # Run the workflow
         result = {}
         async for update in run_workflow(
             request, workflow_runner, processing_context, use_thread=True
@@ -127,7 +190,7 @@ class ChatWebSocketRunner:
             if update["type"] == "job_update" and update["status"] == "completed":
                 result = update["result"]
 
-        return result
+        return self.create_response_message(result)
 
     def create_response_message(self, result: dict) -> Message:
         content = []

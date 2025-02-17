@@ -1223,40 +1223,6 @@ MessageContent = (
 )
 
 
-class ChatToolParam(BaseModel):
-    type: Literal["function"]
-    function: FunctionDefinition
-
-
-class ChatMessageParam(BaseModel):
-    role: str
-
-
-class ChatSystemMessageParam(ChatMessageParam):
-    role: Literal["system"]
-    content: str
-    name: Optional[str] = None
-
-
-class ChatUserMessageParam(ChatMessageParam):
-    role: Literal["user"]
-    content: str | list[MessageContent]
-    name: Optional[str] = None
-
-
-class ChatAssistantMessageParam(ChatMessageParam):
-    role: Literal["assistant"]
-    content: Optional[str] = None
-    name: Optional[str] = None
-    tool_calls: Optional[list] = None
-
-
-class ChatToolMessageParam(ChatMessageParam):
-    role: Literal["tool"]
-    content: Any
-    tool_call_id: str
-
-
 class Message(BaseType):
     """
     Abstract representation for a chat message.

@@ -3,10 +3,6 @@ from nodetool.types.prediction import Prediction, PredictionResult
 import anthropic
 
 
-def get_anthropic_client(api_key: str, use_async=True):
-    from anthropic import AsyncAnthropic
-
-
 async def run_anthropic(
     prediction: Prediction,
     env: dict[str, str],
