@@ -923,136 +923,6 @@
     "is_dynamic": false
   },
   {
-    "title": "Create Note",
-    "description": "Create a new note in Apple Notes via AppleScript\n    notes, automation, macos, productivity\n\n    Use cases:\n    - Automatically save information to Notes\n    - Create documentation or records\n    - Save workflow outputs as notes",
-    "namespace": "apple.notes",
-    "node_type": "apple.notes.CreateNote",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "title",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Title",
-        "description": "Title of the note",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "body",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Body",
-        "description": "Content of the note",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "folder",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "Notes",
-        "title": "Folder",
-        "description": "Notes folder to save to",
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [
-      "title",
-      "body",
-      "folder"
-    ],
-    "is_dynamic": false
-  },
-  {
-    "title": "Read Notes",
-    "description": "Read notes from Apple Notes via AppleScript using temporary files\n    notes, automation, macos, productivity\n\n    Use cases:\n    - Access your Apple Notes content programmatically\n    - Search through notes using keywords\n    - Get notes content for further processing",
-    "namespace": "apple.notes",
-    "node_type": "apple.notes.ReadNotes",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "note_limit",
-        "type": {
-          "type": "int",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": 10,
-        "title": "Note Limit",
-        "description": "Maximum number of notes to export (0 for unlimited)",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "note_limit_per_folder",
-        "type": {
-          "type": "int",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": 10,
-        "title": "Note Limit Per Folder",
-        "description": "Maximum notes per folder (0 for unlimited)",
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "list",
-          "optional": false,
-          "values": null,
-          "type_args": [
-            {
-              "type": "dict",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [
-      "note_limit",
-      "note_limit_per_folder"
-    ],
-    "is_dynamic": false
-  },
-  {
     "title": "Create Calendar Event",
     "description": "Create a new event in Apple Calendar via AppleScript\n    calendar, automation, macos, productivity\n\n    Use cases:\n    - Automate event creation\n    - Schedule meetings programmatically\n    - Create recurring events",
     "namespace": "apple.calendar",
@@ -1191,55 +1061,33 @@
     "layout": "default",
     "properties": [
       {
-        "name": "start_date",
+        "name": "days_back",
         "type": {
-          "type": "datetime",
+          "type": "int",
           "optional": false,
           "values": null,
           "type_args": [],
           "type_name": null
         },
-        "default": {
-          "type": "datetime",
-          "year": 0,
-          "month": 0,
-          "day": 0,
-          "hour": 0,
-          "minute": 0,
-          "second": 0,
-          "microsecond": 0,
-          "tzinfo": "UTC",
-          "utc_offset": 0
-        },
-        "title": "Start Date",
-        "description": "Start date and time of the range",
-        "min": null,
+        "default": 0,
+        "title": "Days Back",
+        "description": "Number of days to look back from today",
+        "min": 0.0,
         "max": null
       },
       {
-        "name": "end_date",
+        "name": "days_forward",
         "type": {
-          "type": "datetime",
+          "type": "int",
           "optional": false,
           "values": null,
           "type_args": [],
           "type_name": null
         },
-        "default": {
-          "type": "datetime",
-          "year": 0,
-          "month": 0,
-          "day": 0,
-          "hour": 0,
-          "minute": 0,
-          "second": 0,
-          "microsecond": 0,
-          "tzinfo": "UTC",
-          "utc_offset": 0
-        },
-        "title": "End Date",
-        "description": "End date and time of the range",
-        "min": null,
+        "default": 7,
+        "title": "Days Forward",
+        "description": "Number of days to look forward from today",
+        "min": 0.0,
         "max": null
       },
       {
@@ -1282,9 +1130,139 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "start_date",
-      "end_date",
+      "days_back",
+      "days_forward",
       "calendar_name"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Create Note",
+    "description": "Create a new note in Apple Notes via AppleScript\n    notes, automation, macos, productivity\n\n    Use cases:\n    - Automatically save information to Notes\n    - Create documentation or records\n    - Save workflow outputs as notes",
+    "namespace": "apple.notes",
+    "node_type": "apple.notes.CreateNote",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "title",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Title",
+        "description": "Title of the note",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "body",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Body",
+        "description": "Content of the note",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "folder",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "Notes",
+        "title": "Folder",
+        "description": "Notes folder to save to",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "title",
+      "body",
+      "folder"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Read Notes",
+    "description": "Read notes from Apple Notes via AppleScript using temporary files\n    notes, automation, macos, productivity\n\n    Use cases:\n    - Access your Apple Notes content programmatically\n    - Search through notes using keywords\n    - Get notes content for further processing",
+    "namespace": "apple.notes",
+    "node_type": "apple.notes.ReadNotes",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "note_limit",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 10,
+        "title": "Note Limit",
+        "description": "Maximum number of notes to export (0 for unlimited)",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "note_limit_per_folder",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 10,
+        "title": "Note Limit Per Folder",
+        "description": "Maximum notes per folder (0 for unlimited)",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "dict",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "note_limit",
+      "note_limit_per_folder"
     ],
     "is_dynamic": false
   },
@@ -78934,7 +78912,22 @@
           "path": ""
         },
         "title": "Path",
-        "description": "\n        The path to write the document to.\n        You can use time and date variables to create unique names:\n        %Y - Year\n        %m - Month\n        %d - Day\n        %H - Hour\n        %M - Minute\n        %S - Second\n        ",
+        "description": "The folder to write the document to.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "filename",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Filename",
+        "description": "\n        The filename to write the document to.\n        You can use time and date variables to create unique names:\n        %Y - Year\n        %m - Month\n        %d - Day\n        %H - Hour\n        %M - Minute\n        %S - Second\n        ",
         "min": null,
         "max": null
       }
@@ -78944,7 +78937,8 @@
     "recommended_models": [],
     "basic_fields": [
       "document",
-      "path"
+      "path",
+      "filename"
     ],
     "is_dynamic": false
   },
@@ -79345,7 +79339,7 @@
         "max": null
       },
       {
-        "name": "filepath",
+        "name": "folder",
         "type": {
           "type": "file_path",
           "optional": false,
@@ -79357,8 +79351,23 @@
           "type": "file_path",
           "path": ""
         },
-        "title": "Filepath",
-        "description": "\n        Path where to save the file.\n        You can use time and date variables to create unique names:\n        %Y - Year\n        %m - Month\n        %d - Day\n        %H - Hour\n        %M - Minute\n        %S - Second\n        ",
+        "title": "Folder",
+        "description": "The folder to save the file to.",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "filename",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Filename",
+        "description": "\n        The filename to save the file to.\n        You can use time and date variables to create unique names:\n        %Y - Year\n        %m - Month\n        %d - Day\n        %H - Hour\n        %M - Minute\n        %S - Second\n        ",
         "min": null,
         "max": null
       }
@@ -79368,7 +79377,8 @@
     "recommended_models": [],
     "basic_fields": [
       "workbook",
-      "filepath"
+      "folder",
+      "filename"
     ],
     "is_dynamic": false
   },
@@ -99575,213 +99585,6 @@
       "width",
       "height",
       "image"
-    ],
-    "is_dynamic": false
-  },
-  {
-    "title": "Agent",
-    "description": "Agent node to plan tasks to achieve a goal.\n    task planning, goal decomposition, workflow generation\n\n    Use cases:\n    - Breaking down complex goals into manageable tasks\n    - Creating dependency graphs for multi-step processes\n    - Generating workflows for automated task execution",
-    "namespace": "openai.agents",
-    "node_type": "openai.agents.Agent",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "goal",
-        "type": {
-          "type": "str",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": "",
-        "title": "Goal",
-        "description": "The user prompt",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "max_tokens",
-        "type": {
-          "type": "int",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": 4096,
-        "title": "Max Tokens",
-        "description": "The maximum number of tokens to generate.",
-        "min": 1.0,
-        "max": 100000.0
-      },
-      {
-        "name": "model",
-        "type": {
-          "type": "openai_model",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": {
-          "type": "openai_model",
-          "id": "gpt-4o",
-          "object": "",
-          "created": 0,
-          "owned_by": ""
-        },
-        "title": "Model",
-        "description": "The GPT model to use for generating tasks.",
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "list",
-          "optional": false,
-          "values": null,
-          "type_args": [
-            {
-              "type": "task",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [
-      "goal",
-      "model"
-    ],
-    "is_dynamic": false
-  },
-  {
-    "title": "Run Tasks",
-    "description": "Process a task using specified models and tools.\n    task execution, model integration, tool coordination\n\n    Use cases:\n    - Executing tasks defined by AgentNode\n    - Coordinating between different AI models and tools\n    - Generating outputs based on task instructions",
-    "namespace": "openai.agents",
-    "node_type": "openai.agents.RunTasks",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "tasks",
-        "type": {
-          "type": "list",
-          "optional": false,
-          "values": null,
-          "type_args": [
-            {
-              "type": "task",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
-          "type_name": null
-        },
-        "default": [],
-        "title": "Tasks",
-        "description": "The task to process.",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "image_nodes",
-        "type": {
-          "type": "list",
-          "optional": false,
-          "values": null,
-          "type_args": [
-            {
-              "type": "node",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
-          "type_name": null
-        },
-        "default": null,
-        "title": "Image Nodes",
-        "description": "The image generation nodes to use.",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "max_tokens",
-        "type": {
-          "type": "int",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": 1000,
-        "title": "Max Tokens",
-        "description": "The maximum number of tokens to generate.",
-        "min": 1.0,
-        "max": 100000.0
-      },
-      {
-        "name": "model",
-        "type": {
-          "type": "openai_model",
-          "optional": false,
-          "values": null,
-          "type_args": [],
-          "type_name": null
-        },
-        "default": {
-          "type": "openai_model",
-          "id": "o3-mini",
-          "object": "",
-          "created": 0,
-          "owned_by": ""
-        },
-        "title": "Model",
-        "description": "The GPT model to use for processing tasks.",
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "list",
-          "optional": false,
-          "values": null,
-          "type_args": [
-            {
-              "type": "any",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [
-      "tasks",
-      "model"
     ],
     "is_dynamic": false
   },
