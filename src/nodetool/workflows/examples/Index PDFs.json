@@ -148,7 +148,7 @@
       {
         "id": "21",
         "parent_id": "3",
-        "type": "nodetool.text.SentenceSplitter",
+        "type": "lib.data.langchain.SentenceSplitter",
         "data": {
           "min_length": 1024
         },

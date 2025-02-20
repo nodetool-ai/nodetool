@@ -112,7 +112,7 @@
       {
         "id": "31",
         "parent_id": null,
-        "type": "nodetool.list.JoinStrings",
+        "type": "nodetool.text.Join",
         "data": {
           "delimiter": "=== END OF MAIL ===\n\n\n\n\n"
         },
