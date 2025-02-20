@@ -114,9 +114,8 @@ class ChatWebSocketRunner:
             auth_token=last_message.auth_token or "",
         )
 
-        # Initialize an empty response message
-        response_message = Message(role="assistant")
         content = ""
+        tool_calls: list[ToolCall] = []
 
         # Stream the response chunks
         async for chunk in generate_messages(
@@ -135,9 +134,10 @@ class ChatWebSocketRunner:
                     {"type": "chunk", "content": chunk.content, "done": chunk.done}
                 )
                 if chunk.done:
-                    response_message.content = content
+                    break
             elif isinstance(chunk, ToolCall):
-                # Handle tool calls
+                tool_calls.append(chunk)
+                # Send tool call to client
                 await self.send_message(
                     {"type": "tool_call", "tool_call": chunk.model_dump()}
                 )
@@ -151,7 +151,7 @@ class ChatWebSocketRunner:
                     Message(
                         role="tool",
                         tool_call_id=tool_result.id,
-                        content=tool_result.result,
+                        content=json.dumps(tool_result.result),
                     )
                 )
 
@@ -160,7 +160,11 @@ class ChatWebSocketRunner:
                     {"type": "tool_result", "result": tool_result.model_dump()}
                 )
 
-        return response_message
+        return Message(
+            role="assistant",
+            content=content if content else None,
+            tool_calls=tool_calls if tool_calls else None,
+        )
 
     async def process_messages_for_workflow(self) -> Message:
         job_id = str(uuid.uuid4())
