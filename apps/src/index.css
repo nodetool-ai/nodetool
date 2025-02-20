@@ -1,17 +1,3 @@
-/* Reset
-html, body {
-  margin: 0;
-  padding: 0;
-  height: 100vh;
-}
-
 body {
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
+  -webkit-app-region: drag;
 }
-
-#root {
-  min-height: 100vh;
-  width: 100%;
-} */

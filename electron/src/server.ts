@@ -14,7 +14,7 @@ import { emitBootMessage, emitServerStarted, emitServerLog } from "./events";
 import { serverState } from "./state";
 import fs from "fs/promises";
 import net from "net";
-import { updateTrayMenu } from "./tray";
+import { updateTrayMenu, createTray } from "./tray";
 import { LOG_FILE } from "./logger";
 import { createWorkflowWindow } from "./workflow-window";
 
@@ -232,6 +232,7 @@ async function initializeBackendServer(): Promise<void> {
       if (response.ok) {
         logMessage("Server already running and healthy, connecting...");
         emitServerStarted();
+        await updateTrayMenu();
         return;
       }
     } catch (error) {
