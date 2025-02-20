@@ -52,8 +52,16 @@ const getPythonPath = (): string =>
 
 const getPipPath = (): string =>
   process.platform === "win32"
-    ? path.join(getCondaEnvPath(), "Scripts", "pip.exe")
-    : path.join(getCondaEnvPath(), "bin", "pip");
+    ? path.join(
+        getCondaEnvPath(),
+        "Scripts",
+        "pip.exe --index-strategy unsafe-best-match"
+      )
+    : path.join(
+        getCondaEnvPath(),
+        "bin",
+        "pip --index-strategy unsafe-best-match"
+      );
 
 const getCondaUnpackPath = (): string =>
   process.platform === "win32"
