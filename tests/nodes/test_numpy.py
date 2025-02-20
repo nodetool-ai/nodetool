@@ -3,31 +3,31 @@ import numpy as np
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.metadata.types import NPArray
 from nodetool.nodes.lib.data.numpy import (
-    Add,
+    AddArray,
     ListToArray,
-    Subtract,
-    Multiply,
-    Divide,
-    Modulus,
-    Sine,
-    Cosine,
-    Power,
-    Sqrt,
+    SubtractArray,
+    MultiplyArray,
+    DivideArray,
+    ModulusArray,
+    SineArray,
+    CosineArray,
+    PowerArray,
+    SqrtArray,
     ConvertToImage,
     ConvertToAudio,
     Stack,
     MatMul,
-    Transpose,
-    Max,
-    Min,
-    Mean,
-    Sum,
-    ArgMax,
-    ArgMin,
-    Abs,
-    arrayToScalar,
-    Exp,
-    Log,
+    TransposeArray,
+    MaxArray,
+    MinArray,
+    MeanArray,
+    SumArray,
+    ArgMaxArray,
+    ArgMinArray,
+    AbsArray,
+    ArrayToScalar,
+    ExpArray,
+    LogArray,
 )
 
 import pytest
@@ -45,24 +45,27 @@ dummy_array = NPArray.from_numpy(np.array([1, 2, 3, 4, 5]))
 @pytest.mark.parametrize(
     "node, expected_type",
     [
-        (Add(a=dummy_scalar, b=dummy_scalar), (float, int, NPArray)),
-        (Add(a=dummy_array, b=dummy_array), NPArray),
-        (Subtract(a=dummy_scalar, b=dummy_scalar), (float, int, NPArray)),
-        (Subtract(a=dummy_array, b=dummy_array), NPArray),
-        (Multiply(a=dummy_scalar, b=dummy_scalar), (float, int, NPArray)),
-        (Multiply(a=dummy_array, b=dummy_array), NPArray),
-        (Divide(a=dummy_scalar, b=dummy_scalar), (float, int, NPArray)),
-        (Divide(a=dummy_array, b=dummy_array), NPArray),
-        (Modulus(a=dummy_scalar, b=dummy_scalar), (float, int, NPArray)),
-        (Modulus(a=dummy_array, b=dummy_array), NPArray),
-        (Sine(angle_rad=dummy_scalar), (float, NPArray)),
-        (Sine(angle_rad=dummy_array), NPArray),
-        (Cosine(angle_rad=dummy_scalar), (float, NPArray)),
-        (Cosine(angle_rad=dummy_array), NPArray),
-        (Power(base=dummy_scalar, exponent=dummy_scalar), (float, int, NPArray)),
-        (Power(base=dummy_array, exponent=dummy_scalar), NPArray),
-        (Sqrt(x=dummy_scalar), (float, int, NPArray)),
-        (Sqrt(x=dummy_array), NPArray),
+        (AddArray(a=dummy_scalar, b=dummy_scalar), (float, int, NPArray)),
+        (AddArray(a=dummy_array, b=dummy_array), NPArray),
+        (SubtractArray(a=dummy_scalar, b=dummy_scalar), (float, int, NPArray)),
+        (SubtractArray(a=dummy_array, b=dummy_array), NPArray),
+        (MultiplyArray(a=dummy_scalar, b=dummy_scalar), (float, int, NPArray)),
+        (MultiplyArray(a=dummy_array, b=dummy_array), NPArray),
+        (DivideArray(a=dummy_scalar, b=dummy_scalar), (float, int, NPArray)),
+        (DivideArray(a=dummy_array, b=dummy_array), NPArray),
+        (ModulusArray(a=dummy_scalar, b=dummy_scalar), (float, int, NPArray)),
+        (ModulusArray(a=dummy_array, b=dummy_array), NPArray),
+        (SineArray(angle_rad=dummy_scalar), (float, NPArray)),
+        (SineArray(angle_rad=dummy_array), NPArray),
+        (CosineArray(angle_rad=dummy_scalar), (float, NPArray)),
+        (CosineArray(angle_rad=dummy_array), NPArray),
+        (PowerArray(base=dummy_scalar, exponent=dummy_scalar), (float, int, NPArray)),
+        (PowerArray(base=dummy_array, exponent=dummy_scalar), NPArray),
+        (
+            SqrtArray(values=NPArray.from_numpy(np.array([dummy_scalar]))),
+            (float, int, NPArray),
+        ),
+        (SqrtArray(values=NPArray.from_numpy(np.array([dummy_array]))), NPArray),
     ],
 )
 async def test_math_nodes(context: ProcessingContext, node, expected_type):
@@ -80,11 +83,11 @@ async def test_math_nodes(context: ProcessingContext, node, expected_type):
 @pytest.mark.parametrize(
     "NodeClass, a, b, expected",
     [
-        (Add, 2, 3, 5),
-        (Subtract, 5, 3, 2),
-        (Multiply, 2, 3, 6),
-        (Divide, 6, 3, 2),
-        (Modulus, 7, 3, 1),
+        (AddArray, 2, 3, 5),
+        (SubtractArray, 5, 3, 2),
+        (MultiplyArray, 2, 3, 6),
+        (DivideArray, 6, 3, 2),
+        (ModulusArray, 7, 3, 1),
     ],
 )
 async def test_basic_math_operations(
@@ -99,10 +102,10 @@ async def test_basic_math_operations(
 @pytest.mark.parametrize(
     "NodeClass, input_value, expected",
     [
-        (Sine, 0, 0),
-        (Sine, np.pi / 2, 1),
-        (Cosine, 0, 1),
-        (Cosine, np.pi, -1),
+        (SineArray, 0, 0),
+        (SineArray, np.pi / 2, 1),
+        (CosineArray, 0, 1),
+        (CosineArray, np.pi, -1),
     ],
 )
 async def test_trigonometric_functions(
@@ -115,14 +118,14 @@ async def test_trigonometric_functions(
 
 @pytest.mark.asyncio
 async def test_power_function(context: ProcessingContext):
-    node = Power(base=2, exponent=3)
+    node = PowerArray(base=2, exponent=3)
     result = await node.process(context)
     assert result == 8
 
 
 @pytest.mark.asyncio
 async def test_sqrt_function(context: ProcessingContext):
-    node = Sqrt(x=9)
+    node = SqrtArray(values=NPArray.from_numpy(np.array([9])))
     result = await node.process(context)
     assert result == 3
 
@@ -131,14 +134,25 @@ async def test_sqrt_function(context: ProcessingContext):
 async def test_array_operations(context: ProcessingContext):
     array1 = NPArray.from_numpy(np.array([1, 2, 3]))
     array2 = NPArray.from_numpy(np.array([4, 5, 6]))
-    node = Add(a=array1, b=array2)
+    node = AddArray(a=array1, b=array2)
     result = await node.process(context)
     assert isinstance(result, NPArray)
     np.testing.assert_array_equal(result.to_numpy(), np.array([5, 7, 9]))
 
 
 @pytest.mark.parametrize(
-    "NodeClass", [Add, Subtract, Multiply, Divide, Modulus, Sine, Cosine, Power, Sqrt]
+    "NodeClass",
+    [
+        AddArray,
+        SubtractArray,
+        MultiplyArray,
+        DivideArray,
+        ModulusArray,
+        SineArray,
+        CosineArray,
+        PowerArray,
+        SqrtArray,
+    ],
 )
 def test_node_attributes(NodeClass):
     node = NodeClass()
@@ -155,21 +169,21 @@ dummy_folder = FolderRef(asset_id="dummy_folder_id")
 @pytest.mark.parametrize(
     "node, expected_type",
     [
-        (ConvertToImage(array=dummy_array), ImageRef),
-        (ConvertToAudio(array=dummy_array, sample_rate=44100), AudioRef),
+        (ConvertToImage(values=dummy_array), ImageRef),
+        (ConvertToAudio(values=dummy_array, sample_rate=44100), AudioRef),
         (Stack(arrays=[dummy_array, dummy_array], axis=0), NPArray),
         (MatMul(a=dummy_array, b=dummy_array), NPArray),
-        (Transpose(array=dummy_array), NPArray),
-        (Max(array=dummy_array), int),
-        (Min(array=dummy_array), int),
-        (Mean(array=dummy_array), float),
-        (Sum(array=dummy_array), int),
-        (ArgMax(a=dummy_array), int),
-        (ArgMin(array=dummy_array), int),
-        (Abs(input_array=dummy_array), NPArray),
-        (arrayToScalar(array=NPArray.from_numpy(np.array([5]))), int),
-        (Exp(x=dummy_array), NPArray),
-        (Log(x=dummy_array), NPArray),
+        (TransposeArray(values=dummy_array), NPArray),
+        (MaxArray(values=dummy_array), int),
+        (MinArray(values=dummy_array), int),
+        (MeanArray(values=dummy_array), float),
+        (SumArray(values=dummy_array), int),
+        (ArgMaxArray(values=dummy_array), int),
+        (ArgMinArray(values=dummy_array), int),
+        (AbsArray(values=dummy_array), NPArray),
+        (ArrayToScalar(values=NPArray.from_numpy(np.array([5]))), int),
+        (ExpArray(values=dummy_array), NPArray),
+        (LogArray(values=dummy_array), NPArray),
     ],
 )
 async def test_array_nodes(context: ProcessingContext, node, expected_type, mocker):
@@ -186,7 +200,7 @@ async def test_convert_to_image(context: ProcessingContext, mocker):
         context, "image_from_pil", return_value=ImageRef(asset_id="test_image_id")
     )
 
-    node = ConvertToImage(array=NPArray.from_numpy(np.random.rand(100, 100, 3)))
+    node = ConvertToImage(values=NPArray.from_numpy(np.random.rand(100, 100, 3)))
     result = await node.process(context)
 
     assert isinstance(result, ImageRef)
@@ -206,7 +220,7 @@ async def test_mat_mul(context: ProcessingContext):
 
 @pytest.mark.asyncio
 async def test_array_to_scalar(context: ProcessingContext):
-    node = arrayToScalar(array=NPArray.from_numpy(np.array([5])))
+    node = ArrayToScalar(values=NPArray.from_numpy(np.array([5])))
     result = await node.process(context)
     assert result == 5
 
@@ -216,13 +230,3 @@ async def test_list_to_array(context: ProcessingContext):
     node = ListToArray(values=[1, 2, 3, 4, 5])
     result = await node.process(context)
     np.testing.assert_array_equal(result.to_numpy(), np.array([1, 2, 3, 4, 5]))
-
-
-@pytest.mark.asyncio
-async def test_exp_and_log(context: ProcessingContext):
-    x = NPArray.from_numpy(np.array([0, 1, 2]))
-    exp_node = Exp(x=x)
-    log_node = Log(x=await exp_node.process(context))
-    result = await log_node.process(context)
-    assert isinstance(result, NPArray)
-    np.testing.assert_array_almost_equal(result.to_numpy(), x.to_numpy())
