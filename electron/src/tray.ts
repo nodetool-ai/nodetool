@@ -6,6 +6,7 @@ import { createWindow } from "./window";
 import { execSync } from "child_process";
 import { stopServer } from "./server";
 import { initializeBackendServer } from "./server";
+import { createChatOverlayWindow } from "./workflow-window";
 import { fetchWorkflows, isConnected, runWorkflow } from "./api";
 
 let trayInstance: Electron.Tray | null = null;
@@ -139,6 +140,8 @@ async function updateTrayMenu(): Promise<void> {
 
   if (!trayInstance) return;
 
+  console.log("Updating tray menu...");
+
   const statusIndicator = isConnected ? "🟢" : "🔴";
   const workflows = await fetchWorkflows();
 
@@ -173,6 +176,10 @@ async function updateTrayMenu(): Promise<void> {
       label: "Show NodeTool",
       enabled: true,
       click: async () => focusNodeTool(),
+    },
+    {
+      label: "Show Chat Overlay",
+      click: () => createChatOverlayWindow(),
     },
     { type: "separator" },
     {

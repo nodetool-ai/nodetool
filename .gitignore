@@ -17,6 +17,7 @@ build/
 dist/
 electron/apps/build/
 electron/dist/
+electron/dist-web/
 electron/dist-electron/
 # Temporary build files
 .tmp/
