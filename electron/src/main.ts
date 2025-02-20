@@ -6,7 +6,6 @@ import {
   systemPreferences,
   BrowserWindow,
   globalShortcut,
-  Menu,
 } from "electron";
 import { createWindow, forceQuit, handleActivation } from "./window";
 import { setupAutoUpdater } from "./updater";
@@ -25,6 +24,7 @@ import { createWorkflowWindow } from "./workflow-window";
 import { initializeIpcHandlers } from "./ipc";
 import { connectToWebSocketUpdates } from "./api";
 import { buildMenu } from "./menu";
+import { createChatOverlayWindow } from "./workflow-window";
 
 /**
  * Global application state flags and objects
@@ -151,16 +151,10 @@ app.on("ready", async () => {
   await initializeIpcHandlers();
   await checkMediaPermissions();
 
-  mainWindow = createWindow();
-
   await buildMenu();
   await createTray();
 
   // Wait for window to be ready before initializing
-  mainWindow.once("ready-to-show", async () => {
-    await initialize();
-  });
-
   // Check for --run argument or environment variable
   const runIndex = process.argv.indexOf("--run");
   if (runIndex > -1 && process.argv[runIndex + 1]) {
@@ -169,6 +163,18 @@ app.on("ready", async () => {
     createWorkflowWindow(workflowId);
     return;
   }
+  console.log(process.argv);
+  const chatIndex = process.argv.indexOf("--chat");
+  if (chatIndex > -1) {
+    logMessage(`Running chat from command line`);
+    createChatOverlayWindow();
+    return;
+  }
+
+  mainWindow = createWindow();
+  mainWindow.once("ready-to-show", async () => {
+    await initialize();
+  });
 });
 
 ipcMain.handle("update-installed", async () => {
