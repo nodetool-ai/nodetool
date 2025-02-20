@@ -6,10 +6,12 @@ from nodetool.metadata.types import TextRef
 import tempfile
 import os
 from pathlib import Path
+from nodetool.nodes.apple import IS_MACOS
 
+if IS_MACOS:
+    from Foundation import NSObject  # type: ignore
 
 export_notes_script = Path(__file__).parent / "exportnotes.applescript"
-
 
 def escape_for_applescript(text: str) -> str:
     """Escape special characters for AppleScript strings."""
@@ -31,7 +33,6 @@ class CreateNote(BaseNode):
     - Create documentation or records
     - Save workflow outputs as notes
     """
-
     title: str = Field(default="", description="Title of the note")
     body: str = Field(default="", description="Content of the note")
     folder: str = Field(default="Notes", description="Notes folder to save to")
@@ -41,7 +42,8 @@ class CreateNote(BaseNode):
         return False
 
     async def process(self, context: ProcessingContext):
-        # Replace existing escaping with new function
+        if not IS_MACOS:
+            raise NotImplementedError("Notes functionality is only available on macOS")
         body_content = escape_for_applescript(self.body)
         title = escape_for_applescript(self.title)
 
@@ -66,30 +68,18 @@ class CreateNote(BaseNode):
         except subprocess.CalledProcessError as e:
             raise Exception(f"Failed to create note: {e.stderr}")
 
-
 class ReadNotes(BaseNode):
-    """
-    Read notes from Apple Notes via AppleScript using temporary files
-    notes, automation, macos, productivity
-
-    Use cases:
-    - Access your Apple Notes content programmatically
-    - Search through notes using keywords
-    - Get notes content for further processing
-    """
-
-    note_limit: int = Field(
-        default=10, description="Maximum number of notes to export (0 for unlimited)"
-    )
-    note_limit_per_folder: int = Field(
-        default=10, description="Maximum notes per folder (0 for unlimited)"
-    )
+    """Read notes from Apple Notes via AppleScript"""
+    note_limit: int = Field(default=10, description="Maximum number of notes to export")
+    note_limit_per_folder: int = Field(default=10, description="Maximum notes per folder")
 
     @classmethod
     def is_cacheable(cls) -> bool:
         return False
 
     async def process(self, context: ProcessingContext) -> list[dict]:
+        if not IS_MACOS:
+            raise NotImplementedError("Notes functionality is only available on macOS")
         with tempfile.TemporaryDirectory() as temp_dir:
             try:
                 # Pass arguments positionally to the AppleScript
