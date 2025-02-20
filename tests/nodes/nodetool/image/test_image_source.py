@@ -5,6 +5,7 @@ from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.metadata.types import ImageRef, NPArray
 from nodetool.nodes.lib.image.pillow.draw import Background, RenderText, GaussianNoise
 import PIL.Image
+from nodetool.nodes.lib.image.pillow.draw import TextFont, TextAlignment
 
 # Create a dummy ImageRef for testing
 buffer = BytesIO()
@@ -20,11 +21,11 @@ dummy_image = ImageRef(data=buffer.getvalue())
         (
             RenderText(
                 text="Test",
-                font=RenderText.TextFont.DejaVuSans,
-                x=0.5,
-                y=0.5,
+                font=TextFont.DejaVuSans,
+                x=0,
+                y=0,
                 size=24,
-                align=RenderText.TextAlignment.CENTER,
+                align=TextAlignment.CENTER,
                 image=dummy_image,
             ),
             ImageRef,
