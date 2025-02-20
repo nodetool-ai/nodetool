@@ -1,9 +1,7 @@
-import json
 from pydantic import BaseModel, Field
 import uuid
 
 from nodetool.types.graph import Graph, Node
-from nodetool.common.environment import Environment
 from nodetool.workflows.run_job_request import RunJobRequest
 from nodetool.workflows.run_workflow import run_workflow
 
@@ -51,7 +49,7 @@ def graph(*nodes):
     return Graph(nodes=nodes, edges=g.edges)
 
 
-async def run(graph: Graph, user_id: str = "1", auth_token: str = "token"):
+async def run_graph(graph: Graph, user_id: str = "1", auth_token: str = "token"):
     """
     Run the workflow with the given graph.
 
@@ -64,8 +62,31 @@ async def run(graph: Graph, user_id: str = "1", auth_token: str = "token"):
     req = RunJobRequest(user_id=user_id, auth_token=auth_token, graph=graph)
 
     res = None
-    async for str_msg in run_workflow(req):
-        msg = json.loads(str_msg)
-        if msg["type"] == "workflow_update":
+    async for msg in run_workflow(req):
+        if msg["type"] == "job_update" and msg["status"] == "completed":
             res = msg["result"]
+        elif msg["type"] == "job_update" and msg["status"] == "failed":
+            raise Exception(msg["error"])
+        elif msg["type"] == "error":
+            raise Exception(msg["error"])
     return res
+
+
+async def graph_result(example, return_first_output=True):
+    """
+    Helper function to run a graph and return its result.
+
+    Args:
+        example: The graph example to run
+        return_first_output: If True, returns the first output value. If False, returns all outputs.
+
+    Returns:
+        The result of running the graph
+    """
+    result = await run_graph(graph(example))
+    assert result is not None, "Result is None"
+    if return_first_output:
+        first_key = list(result.keys())[0]
+        return result[first_key]
+    else:
+        return result

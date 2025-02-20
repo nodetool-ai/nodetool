@@ -1,10 +1,11 @@
-from enum import EnumMeta
+from enum import Enum, EnumMeta
 import os
 import inspect
 import pkgutil
 from types import GenericAlias, UnionType
-from typing import Any, Optional, get_type_hints, Union, Tuple
+from typing import Any, Union
 import importlib
+import shutil
 
 from nodetool.metadata.utils import is_enum_type
 from nodetool.workflows.base_node import BaseNode
@@ -79,8 +80,6 @@ def field_default(default_value: Any, enum_name: str | None = None) -> str:
     """
     if default_value is None:
         return "None"
-    if isinstance(type(default_value), EnumMeta):
-        return f"{type(default_value).__name__}({repr(default_value.value)})"
     if enum_name is not None:
         return f"{enum_name}({repr(default_value)})"
     return repr(default_value)
@@ -99,20 +98,33 @@ def generate_class_source(node_cls: type[BaseNode]) -> str:
     """
     imports = ""
     class_body = f"class {node_cls.__name__}(GraphNode):\n"
+
+    # Add class docstring if it exists
+    if node_cls.__doc__:
+        class_body += f'    """{node_cls.__doc__}"""\n\n'
+
     fields = node_cls.inherited_fields()
     node_type = node_cls.get_node_type()
 
     for field_name, field_type in node_cls.field_types().items():
         if not field_name in fields:
             continue
-        if is_enum_type(field_type):
-            imports += f"from {field_type.__module__} import {field_type.__name__}\n"  # type: ignore
         field = fields[field_name]
-        new_field_type = f"{type_to_string(field_type)} | GraphNode | tuple[GraphNode, str]"  # type: ignore
-        field_def = f"Field(default={field_default(field.default)}, description={repr(field.description)})"
+        if is_enum_type(field_type):
+            imports += f"import {field_type.__module__}\n"
+            new_field_type = (
+                f"{field_type.__module__}.{node_cls.__name__}.{field_type.__name__}"
+            )
+            if isinstance(field.default, Enum):
+                field_def = f"Field(default={new_field_type}({repr(field.default.value)}), description={repr(field.description)})"
+            else:
+                field_def = f"Field(default={new_field_type}({repr(field.default)}), description={repr(field.description)})"
+        else:
+            new_field_type = f"{type_to_string(field_type)} | GraphNode | tuple[GraphNode, str]"  # type: ignore
+            field_def = f"Field(default={field_default(field.default)}, description={repr(field.description)})"
         class_body += f"    {field_name}: {new_field_type} = {field_def}\n"
 
-    class_body += "    @classmethod\n"
+    class_body += "\n    @classmethod\n"
     class_body += f'    def get_node_type(cls): return "{node_type}"\n'
 
     return imports + "\n" + class_body
@@ -130,11 +142,22 @@ def create_dsl_modules(source_root: str, target_root: str):
     target_root_module = importlib.import_module(target_root)
     target_root_path = str(target_root_module.__path__[0])
 
+    # Remove existing target directory
+    # shutil.rmtree(target_root_path)
+
     for _, module_name, _ in pkgutil.walk_packages(
         source_root_module.__path__, prefix=source_root_module.__name__ + "."
     ):
-        print(module_name)
         target_module_name: str = module_name.replace(source_root, target_root)
+        target_module_path = target_module_name.replace(
+            target_root_module.__name__ + ".", ""
+        ).replace(".", "/")
+
+        full_target_path = os.path.join(target_root_path, target_module_path)
+        print(f"Removing {full_target_path}")
+        if os.path.exists(full_target_path):
+            shutil.rmtree(full_target_path)
+
         module = importlib.import_module(module_name)
         source_code = ""
         for _, obj in inspect.getmembers(module, inspect.isclass):
@@ -145,17 +168,23 @@ def create_dsl_modules(source_root: str, target_root: str):
         if source_code == "":
             continue
 
-        target_module_path = target_module_name.replace(
-            target_root_module.__name__ + ".", ""
-        ).replace(".", "/")
+        # Check if the original module is an __init__.py file
+        if module.__file__.endswith("__init__.py"):  # type: ignore
+            target_path = os.path.join(
+                target_root_path, target_module_path, "__init__.py"
+            )
+        else:
+            target_path = os.path.join(target_root_path, target_module_path) + ".py"
 
-        target_path = os.path.join(target_root_path, target_module_path) + ".py"
         source_code = (
             "from pydantic import BaseModel, Field\n"
+            "import typing\n"
             "import nodetool.metadata.types\n"
             "from nodetool.metadata.types import *\n"
             "from nodetool.dsl.graph import GraphNode\n\n"
         ) + source_code
+
+        print(f"Writing {target_path}")
         create_python_module_file(target_path, source_code)
 
 
