@@ -57,7 +57,7 @@
       {
         "id": "32",
         "parent_id": null,
-        "type": "nodetool.list.JoinStrings",
+        "type": "nodetool.text.Join",
         "data": {
           "delimiter": ""
         },
