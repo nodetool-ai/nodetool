@@ -7,11 +7,8 @@ import {
   Button,
   HStack,
 } from "@chakra-ui/react";
-import { FileUploadRoot, FileUploadTrigger } from "./ui/file-upload";
-import { FileUploadList } from "./ui/file-upload";
 import { HiUpload } from "react-icons/hi";
 import { FaMicrophone, FaStop } from "react-icons/fa";
-import AudioInput from "./AudioInput";
 
 interface ComposerProps {
   handleAudioChange: (
@@ -115,89 +112,63 @@ export const Composer: React.FC<ComposerProps> = ({
   }, [isRecording]);
 
   return (
-    <>
-      {showAudioInput && (
-        <Box mb={4}>
-          <AudioInput onChange={handleAudioChange} />
-        </Box>
-      )}
-      <HStack
-        className={className ? `composer-root ${className}` : "composer-root"}
-        p={4}
-        gap={4}
+    <Box position="fixed" bottom={0} left={0} right={0} p={6}>
+      <Flex
+        maxW="48rem"
+        mx="auto"
+        bg="gray.800"
+        borderRadius="30px"
+        border="1px solid"
+        borderColor="gray.700"
+        position="relative"
       >
-        <Box width={droppedFiles.length > 0 ? "40%" : "10%"}>
-          <FileUploadRoot onFileChange={handleFileChange} maxFiles={3}>
-            <HStack>
-              <FileUploadTrigger>
-                <Button size="sm" variant="ghost" colorScheme="gray">
-                  <HiUpload />
-                </Button>
-              </FileUploadTrigger>
-              <IconButton
-                aria-label={isRecording ? "Stop recording" : "Start recording"}
-                onClick={isRecording ? stopRecording : startRecording}
-                variant={isRecording ? "solid" : "ghost"}
-                size="sm"
-              >
-                {isRecording ? <FaStop color="red" /> : <FaMicrophone />}
-              </IconButton>
-              <FileUploadList />
-            </HStack>
-          </FileUploadRoot>
-        </Box>
+        <Textarea
+          ref={textareaRef}
+          placeholder="Message ChatGPT..."
+          flex="1"
+          bg="transparent"
+          border="none"
+          color="white"
+          fontSize="sm"
+          resize="none"
+          minH="24px"
+          maxH="200px"
+          py={4}
+          px={6}
+          _placeholder={{
+            color: "gray.400",
+          }}
+          onKeyDown={handleKeyDown}
+          rows={1}
+          css={{
+            "&::-webkit-scrollbar": {
+              display: "none",
+            },
+          }}
+        />
 
-        <Box
-          width="100%"
-          boxShadow="sm"
-          borderRadius="lg"
-          bg="bg"
-          border="1px solid"
-          borderColor="border"
-        >
-          <Flex position="relative" alignItems="flex-end">
-            <Textarea
-              ref={textareaRef}
-              placeholder="Write a message..."
-              flex="1"
-              bg="transparent"
-              border="none"
-              color="text"
-              fontSize="sm"
-              resize="none"
-              minH="24px"
-              maxH="200px"
-              p={4}
-              _placeholder={{
-                color: "textGray",
-              }}
-              onKeyDown={handleKeyDown}
-              rows={1}
-              css={{
-                "&::-webkit-scrollbar": {
-                  display: "none",
-                },
-              }}
-            />
-            <IconButton
-              aria-label="Send message"
-              onClick={handleSubmit}
-              disabled={disabled}
-              variant="ghost"
-              color="text"
-              _hover={{
-                color: "text",
-                bg: "buttonHover",
-              }}
-              position="absolute"
-              right={2}
-              bottom={2}
-            >
-              <SendIcon />
-            </IconButton>
-          </Flex>
-        </Box>
-      </HStack>
-    </>
+        <HStack position="absolute" right={3} bottom={3}>
+          <IconButton
+            aria-label={isRecording ? "Stop recording" : "Start recording"}
+            onClick={isRecording ? stopRecording : startRecording}
+            variant="ghost"
+            size="xs"
+            borderRadius="30px"
+          >
+            {isRecording ? <FaStop color="red" /> : <FaMicrophone />}
+          </IconButton>
+          <IconButton
+            aria-label="Send message"
+            onClick={handleSubmit}
+            disabled={disabled}
+            variant="ghost"
+            size="xs"
+            borderRadius="30px"
+          >
+            <SendIcon />
+          </IconButton>
+        </HStack>
+      </Flex>
+    </Box>
   );
 };

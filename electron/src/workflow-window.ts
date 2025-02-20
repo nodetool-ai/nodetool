@@ -14,8 +14,8 @@ function createChatOverlayWindow(): BrowserWindow {
   const { width: screenWidth, height: screenHeight } =
     primaryDisplay.workAreaSize;
 
-  const windowWidth = 800; // You can adjust this width as needed
-  const windowHeight = 600; // You can adjust this height as needed
+  const windowWidth = 600;
+  const windowHeight = 400;
 
   const chatOverlayWindow = new BrowserWindow({
     frame: false,
@@ -25,13 +25,14 @@ function createChatOverlayWindow(): BrowserWindow {
     height: windowHeight,
     x: (screenWidth - windowWidth) / 2,
     y: screenHeight - windowHeight,
+    alwaysOnTop: true,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
       preload: path.join(__dirname, "preload-workflow.js"),
     },
   });
-
+  // chatOverlayWindow.webContents.openDevTools();
   chatOverlayWindow.loadURL(`${baseUrl}?chat=true`);
 
   return chatOverlayWindow;

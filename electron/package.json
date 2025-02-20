@@ -6,6 +6,7 @@
   "main": "dist-electron/main.js",
   "scripts": {
     "start": "electron .",
+    "chat": "electron . --chat",
     "build": "tsc && vite build && electron-builder",
     "vite:build": "vite build",
     "typecheck": "tsc --noEmit",

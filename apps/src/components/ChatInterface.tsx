@@ -291,7 +291,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ workflowId, token }) => {
 
   return (
     <Box h="100%">
-      <Flex direction="column" h="calc(100% - 120px)" overflow="hidden">
+      <Flex direction="column" h="calc(100% - 90px)" overflow="hidden">
         <Box flex="1" overflowY="auto">
           {messages.map((msg, index) => (
             <Box
