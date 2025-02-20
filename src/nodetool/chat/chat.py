@@ -495,7 +495,7 @@ def convert_to_ollama_message(
             content = message.content.model_dump_json()
         else:
             content = json.dumps(message.content)
-        return {"role": "assistant", "content": content}
+        return {"role": "tool", "content": content, "name": message.name}
     elif message.role == "system":
         return {"role": "system", "content": message.content}
     elif message.role == "user":
@@ -524,7 +524,19 @@ def convert_to_ollama_message(
 
         return message_dict
     elif message.role == "assistant":
-        return {"role": "assistant", "content": message.content or ""}
+        return {
+            "role": "assistant",
+            "content": message.content or "",
+            "tool_calls": [
+                {
+                    "function": {
+                        "name": tool_call.name,
+                        "arguments": tool_call.args,
+                    },
+                }
+                for tool_call in message.tool_calls or []
+            ],
+        }
     else:
         raise ValueError(f"Unknown message role {message.role}")
 
@@ -557,6 +569,7 @@ async def create_ollama_completion(
 
     client = get_ollama_client()
 
+    print(ollama_messages)
     completion = await client.chat(
         model=model.name, messages=ollama_messages, stream=True, **kwargs
     )
@@ -850,12 +863,14 @@ async def chat_cli():
 
             # Add user message
             messages.append(Message(role="user", content=user_input))
-            loop_running = True
             current_chunk = ""
+            unprocessed_messages = messages
 
-            while loop_running:
+            while unprocessed_messages:
+                messages_to_send = messages + unprocessed_messages
+                unprocessed_messages = []
                 async for chunk in generate_messages(
-                    messages=messages,
+                    messages=messages_to_send,
                     model=model,
                     tools=tools,
                 ):
@@ -866,18 +881,20 @@ async def chat_cli():
                             Message(role="assistant", content=current_chunk)
                         )
                         if chunk.done:
-                            loop_running = False
                             print("")
 
                     if isinstance(chunk, ToolCall):
                         print(f"Running {chunk.name} with {chunk.args}")
                         tool_result = await run_tool(context, chunk, tools)
                         # print(tool_result)
-                        messages.append(Message(role="assistant", tool_calls=[chunk]))
-                        messages.append(
+                        unprocessed_messages.append(
+                            Message(role="assistant", tool_calls=[chunk])
+                        )
+                        unprocessed_messages.append(
                             Message(
                                 role="tool",
                                 tool_call_id=tool_result.id,
+                                name=chunk.name,
                                 content=json.dumps(
                                     tool_result.result, default=default_serializer
                                 ),
