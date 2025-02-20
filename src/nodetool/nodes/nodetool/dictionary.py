@@ -19,9 +19,9 @@ class GetValue(BaseNode):
 
     _layout = "small"
 
-    dictionary: dict[(str, Any)] = {}
-    key: str = ""
-    default: Any = None
+    dictionary: dict[(str, Any)] = Field(default={})
+    key: str = Field(default="")
+    default: Any = Field(default=None)
 
     async def process(self, context: ProcessingContext) -> Any:
         return self.dictionary.get(self.key, self.default)
@@ -41,8 +41,8 @@ class Update(BaseNode):
     _layout = "small"
     _ = "new_pairs"
 
-    dictionary: dict[(str, Any)] = {}
-    new_pairs: dict[(str, Any)] = {}
+    dictionary: dict[(str, Any)] = Field(default={})
+    new_pairs: dict[(str, Any)] = Field(default={})
 
     async def process(self, context: ProcessingContext) -> dict[(str, Any)]:
         self.dictionary.update(self.new_pairs)
@@ -62,8 +62,8 @@ class Remove(BaseNode):
 
     _layout = "small"
 
-    dictionary: dict[(str, Any)] = {}
-    key: str = ""
+    dictionary: dict[(str, Any)] = Field(default={})
+    key: str = Field(default="")
 
     async def process(self, context: ProcessingContext) -> dict[(str, Any)]:
         if self.key in self.dictionary:
@@ -84,7 +84,7 @@ class ParseJSON(BaseNode):
 
     _layout = "small"
 
-    json_string: str = ""
+    json_string: str = Field(default="")
 
     async def process(self, context: ProcessingContext) -> dict[(str, Any)]:
         res = json.loads(self.json_string)
@@ -106,8 +106,8 @@ class Zip(BaseNode):
 
     _layout = "small"
 
-    keys: list[Any] = []
-    values: list[Any] = []
+    keys: list[Any] = Field(default=[])
+    values: list[Any] = Field(default=[])
 
     async def process(self, context: ProcessingContext) -> dict[Any, Any]:
         return dict(zip(self.keys, self.values, strict=False))
@@ -126,8 +126,8 @@ class Combine(BaseNode):
 
     _layout = "small"
 
-    dict_a: dict[(str, Any)] = {}
-    dict_b: dict[(str, Any)] = {}
+    dict_a: dict[(str, Any)] = Field(default={})
+    dict_b: dict[(str, Any)] = Field(default={})
 
     async def process(self, context: ProcessingContext) -> dict[(str, Any)]:
         return {**self.dict_a, **self.dict_b}
@@ -144,8 +144,8 @@ class Filter(BaseNode):
     - Prepare specific data subsets for processing
     """
 
-    dictionary: dict[(str, Any)] = {}
-    keys: list[str] = []
+    dictionary: dict[(str, Any)] = Field(default={})
+    keys: list[str] = Field(default=[])
 
     async def process(self, context: ProcessingContext) -> dict[(str, Any)]:
         return {

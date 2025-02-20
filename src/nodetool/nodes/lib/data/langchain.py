@@ -142,3 +142,53 @@ class MarkdownSplitter(BaseNode):
             )
             for doc in splits
         ]
+
+
+class SentenceSplitter(BaseNode):
+    """
+    Splits text into sentences using LangChain's SentenceTransformersTokenTextSplitter.
+    sentences, split, nlp
+
+    Use cases:
+    - Natural sentence-based text splitting
+    - Creating semantically meaningful chunks
+    - Processing text for sentence-level analysis
+    """
+
+    text: str = Field(title="Text", default="")
+    document_id: str = Field(
+        default="", description="Document ID to associate with the text"
+    )
+    chunk_size: int = Field(
+        default=40,
+        description="Maximum number of tokens per chunk",
+    )
+    chunk_overlap: int = Field(
+        default=5,
+        description="Number of tokens to overlap between chunks",
+    )
+
+    @classmethod
+    def get_title(cls):
+        return "Split into Sentences"
+
+    async def process(self, context: ProcessingContext) -> list[TextChunk]:
+        from langchain_text_splitters import SentenceTransformersTokenTextSplitter
+        from langchain_core.documents import Document
+
+        splitter = SentenceTransformersTokenTextSplitter(
+            chunk_size=self.chunk_size,
+            chunk_overlap=self.chunk_overlap,
+            add_start_index=True,
+        )
+
+        docs = splitter.split_documents([Document(page_content=self.text)])
+
+        return [
+            TextChunk(
+                text=doc.page_content,
+                source_id=f"{self.document_id}:{i}",
+                start_index=doc.metadata["start_index"],
+            )
+            for i, doc in enumerate(docs)
+        ]

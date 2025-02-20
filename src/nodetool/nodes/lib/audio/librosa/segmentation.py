@@ -102,7 +102,7 @@ class SaveAudioSegments(BaseNode):
     """
 
     segments: list[AudioRef] = Field(
-        default_factory=list, description="The list of audio segments to save."
+        default=[], description="The list of audio segments to save."
     )
     output_folder: FolderRef = Field(
         default=FolderRef(), description="The folder to save the audio segments in."

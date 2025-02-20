@@ -170,13 +170,12 @@ class VideoOutput(OutputNode):
         return self.value
 
 
-class TensorOutput(OutputNode):
+class ArrayOutput(OutputNode):
     """
-    Output node for generic tensor data.
-    tensor, array, numerical
+    Output node for generic array data.
+    array, numerical
 
     Use cases:
-    - Passing multi-dimensional data between nodes
     - Outputting results from machine learning models
     - Representing complex numerical data structures
     """

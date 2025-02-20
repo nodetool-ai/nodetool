@@ -89,14 +89,13 @@ class IndexImages(ChromaNode):
         default=Collection(), description="The collection to index"
     )
     images: list[ImageRef] = Field(
-        default_factory=list, description="List of image assets to index"
+        default=[], description="List of image assets to index"
     )
     upsert: bool = Field(default=False, description="Whether to upsert the images")
 
     @classmethod
     def required_inputs(cls):
         return [
-            "collection",
             "images",
         ]
 
@@ -140,7 +139,7 @@ class IndexEmbedding(ChromaNode):
     embedding: NPArray = Field(default=NPArray(), description="The embedding to index")
     id: str = Field(default="", description="The ID to associate with the embedding")
     metadata: dict = Field(
-        default_factory=dict, description="The metadata to associate with the embedding"
+        default={}, description="The metadata to associate with the embedding"
     )
 
     @classmethod
@@ -173,12 +172,8 @@ class IndexImage(ChromaNode):
     )
     image: ImageRef = Field(default=ImageRef(), description="Image asset to index")
     metadata: dict = Field(
-        default_factory=dict, description="The metadata to associate with the image"
+        default={}, description="The metadata to associate with the image"
     )
-
-    @classmethod
-    def required_inputs(cls):
-        return ["collection"]
 
     async def process(self, context: ProcessingContext):
         if self.image.document_id is None:
@@ -210,13 +205,9 @@ class IndexTextChunk(ChromaNode):
         default=TextChunk(), description="Text chunk to index"
     )
     metadata: dict = Field(
-        default_factory=dict,
+        default={},
         description="The metadata to associate with the text chunk",
     )
-
-    @classmethod
-    def required_inputs(cls):
-        return ["collection"]
 
     async def process(self, context: ProcessingContext):
         if not self.text_chunk.source_id.strip():
@@ -240,12 +231,8 @@ class IndexTextChunks(ChromaNode):
         default=Collection(), description="The collection to index"
     )
     text_chunks: List[TextChunk] = Field(
-        default_factory=list, description="List of text chunks to index"
+        default=[], description="List of text chunks to index"
     )
-
-    @classmethod
-    def required_inputs(cls):
-        return ["collection"]
 
     async def process(self, context: ProcessingContext):
         if not self.text_chunks:
@@ -285,10 +272,10 @@ class IndexAggregatedText(ChromaNode):
         default="", description="The document ID to associate with the text"
     )
     metadata: dict = Field(
-        default_factory=dict, description="The metadata to associate with the text"
+        default={}, description="The metadata to associate with the text"
     )
     text_chunks: list[TextChunk | str] = Field(
-        default_factory=list, description="List of text chunks to index"
+        default=[], description="List of text chunks to index"
     )
     context_window: int = Field(
         default=4096,
@@ -378,12 +365,8 @@ class IndexString(ChromaNode):
         default="", description="Document ID to associate with the text content"
     )
     metadata: dict = Field(
-        default_factory=dict, description="The metadata to associate with the text"
+        default={}, description="The metadata to associate with the text"
     )
-
-    @classmethod
-    def required_inputs(cls):
-        return ["collection"]
 
     async def process(self, context: ProcessingContext):
         if not self.document_id.strip():

@@ -161,7 +161,7 @@ class GetJSONPathList(BaseGetJSONPath):
     json, path, extract, array
     """
 
-    default: list = Field(default_factory=list)
+    default: list = Field(default=[])
 
     async def process(self, context: ProcessingContext) -> list:
         result = await self._extract_value()
@@ -174,7 +174,7 @@ class GetJSONPathDict(BaseGetJSONPath):
     json, path, extract, object
     """
 
-    default: dict = Field(default_factory=dict)
+    default: dict = Field(default={})
 
     async def process(self, context: ProcessingContext) -> dict:
         result = await self._extract_value()
@@ -246,7 +246,7 @@ class JSONTemplate(BaseNode):
         default="", description="JSON template string with $variable placeholders"
     )
     values: Dict[str, Any] = Field(
-        default_factory=dict,
+        default={},
         description="Dictionary of values to substitute into the template",
     )
 

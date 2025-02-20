@@ -299,7 +299,7 @@ class RecraftV3(FALNode):
         description="The style of the generated images. Vector images cost 2X as much.",
     )
     colors: List[ColorRef] = Field(
-        default_factory=list, description="An array of preferable colors"
+        default=[], description="An array of preferable colors"
     )
     style_id: str = Field(
         default="", description="The ID of the custom style reference (optional)"
@@ -542,7 +542,7 @@ class FluxLora(FALNode):
         description="The CFG scale to determine how closely the model follows the prompt",
     )
     loras: List[LoraWeight] = Field(
-        default_factory=list,
+        default=[],
         description="List of LoRA weights to use for image generation",
     )
     seed: int = Field(
@@ -589,10 +589,10 @@ class FluxLoraInpainting(FALNode):
 
     prompt: str = Field(default="", description="The prompt to generate an image from")
     image: ImageRef = Field(
-        default_factory=ImageRef, description="The input image to inpaint"
+        default=ImageRef(), description="The input image to inpaint"
     )
     mask: ImageRef = Field(
-        default_factory=ImageRef,
+        default=ImageRef(),
         description="The mask indicating areas to inpaint (white=inpaint, black=keep)",
     )
     num_inference_steps: int = Field(
@@ -609,7 +609,7 @@ class FluxLoraInpainting(FALNode):
         description="The strength to use for inpainting. 1.0 completely remakes the image while 0.0 preserves the original",
     )
     loras: List[LoraWeight] = Field(
-        default_factory=list,
+        default=[],
         description="List of LoRA weights to use for image generation",
     )
     seed: int = Field(
@@ -718,9 +718,7 @@ class FluxSubject(FALNode):
     """
 
     prompt: str = Field(default="", description="The prompt to generate an image from")
-    image: ImageRef = Field(
-        default_factory=ImageRef, description="The image of the subject"
-    )
+    image: ImageRef = Field(default=ImageRef(), description="The image of the subject")
     image_size: ImageSizePreset = Field(
         default=ImageSizePreset.SQUARE_HD,
         description="Either a preset size or a custom {width, height} dictionary",
@@ -1058,7 +1056,7 @@ class Recraft20B(FALNode):
         description="The style of the generated images. Vector images cost 2X as much.",
     )
     colors: List[ColorRef] = Field(
-        default_factory=list, description="An array of preferable colors"
+        default=[], description="An array of preferable colors"
     )
     style_id: str = Field(
         default="", description="The ID of the custom style reference (optional)"
@@ -1499,7 +1497,7 @@ class FastSDXL(FALNode):
         description="If true, the prompt will be expanded with additional prompts",
     )
     loras: List[LoraWeight] = Field(
-        default_factory=list, description="The list of LoRA weights to use"
+        default=[], description="The list of LoRA weights to use"
     )
 
     async def process(self, context: ProcessingContext) -> ImageRef:
@@ -1567,7 +1565,7 @@ class FluxLoraTTI(FALNode):
         default=7.5, description="How closely the model should stick to your prompt"
     )
     loras: List[LoraWeight] = Field(
-        default_factory=list,
+        default=[],
         description="List of LoRA weights to use for image generation",
     )
     prompt_weighting: bool = Field(
@@ -2194,7 +2192,7 @@ class Fooocus(FALNode):
         description="The size of the generated image (must be multiples of 8)",
     )
     loras: List[LoraWeight] = Field(
-        default_factory=list,
+        default=[],
         description="Up to 5 LoRAs that will be merged for generation",
     )
     refiner_model: RefinerModelEnum = Field(

@@ -14,7 +14,7 @@ class SaveAnimatedWEBP(ComfyNode):
 
     _comfy_class = comfy_extras.nodes_images.SaveAnimatedWEBP
     images: list[ImageRef] = Field(
-        default_factory=list, description="list of images to save as animated WEBP."
+        default=[], description="list of images to save as animated WEBP."
     )
     filename_prefix: str = Field(
         default="ComfyUI", description="Prefix for the filename."
@@ -41,7 +41,7 @@ class SaveAnimatedPNG(ComfyNode):
     _comfy_class = comfy_extras.nodes_images.SaveAnimatedPNG
 
     images: list[ImageRef] = Field(
-        default_factory=list, description="list of images to save as animated PNG."
+        default=[], description="list of images to save as animated PNG."
     )
     filename_prefix: str = Field(
         default="ComfyUI", description="Prefix for the filename."
@@ -50,7 +50,7 @@ class SaveAnimatedPNG(ComfyNode):
     compress_level: int = Field(default=4, description="PNG compression level.")
 
     hidden_fields: dict[str, Any] = Field(
-        default_factory=dict,
+        default={},
         description="Hidden fields like prompt and extra PNG information.",
     )
 

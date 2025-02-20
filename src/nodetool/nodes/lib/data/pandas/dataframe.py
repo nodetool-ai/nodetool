@@ -147,7 +147,7 @@ class AddColumn(BaseNode):
         description="The name of the new column to be added to the dataframe.",
     )
     values: list[Any] = Field(
-        default_factory=list,
+        default=[],
         description="A list of any type of elements which will be the new column's values.",
     )
 

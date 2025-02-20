@@ -13,6 +13,34 @@ import numpy as np
 from pydantic import Field
 
 
+class TextAlignment(str, Enum):
+    LEFT = "left"
+    CENTER = "center"
+    RIGHT = "right"
+
+
+class TextFont(str, Enum):
+    DejaVuSansBold = "DejaVuSans-Bold.ttf"
+    DejaVuSans = "DejaVuSans.ttf"
+    FreeSans = "FreeSans.ttf"
+    Arial = "Arial.ttf"
+    # Common Windows & Mac Fonts
+    TimesNewRoman = "Times New Roman.ttf"
+    Helvetica = "Helvetica.ttf"
+    Calibri = "Calibri.ttf"
+    Verdana = "Verdana.ttf"
+    Georgia = "Georgia.ttf"
+    CourierNew = "Courier New.ttf"
+    Impact = "Impact.ttf"
+    ComicSansMS = "Comic Sans MS.ttf"
+    Tahoma = "Tahoma.ttf"
+    SegoeUI = "Segoe UI.ttf"
+    # Mac-specific fonts
+    SFPro = "SF Pro.ttf"
+    Menlo = "Menlo.ttf"
+    Monaco = "Monaco.ttf"
+
+
 class Background(BaseNode):
     """
     The Background Node creates a blank background.
@@ -49,36 +77,10 @@ class RenderText(BaseNode):
     - Creating instructional images to guide the reader's view.
     """
 
-    class TextAlignment(str, Enum):
-        LEFT = "left"
-        CENTER = "center"
-        RIGHT = "right"
-
-    class TextFont(str, Enum):
-        DejaVuSansBold = "DejaVuSans-Bold.ttf"
-        DejaVuSans = "DejaVuSans.ttf"
-        FreeSans = "FreeSans.ttf"
-        Arial = "Arial.ttf"
-        # Common Windows & Mac Fonts
-        TimesNewRoman = "Times New Roman.ttf"
-        Helvetica = "Helvetica.ttf"
-        Calibri = "Calibri.ttf"
-        Verdana = "Verdana.ttf"
-        Georgia = "Georgia.ttf"
-        CourierNew = "Courier New.ttf"
-        Impact = "Impact.ttf"
-        ComicSansMS = "Comic Sans MS.ttf"
-        Tahoma = "Tahoma.ttf"
-        SegoeUI = "Segoe UI.ttf"
-        # Mac-specific fonts
-        SFPro = "SF Pro.ttf"
-        Menlo = "Menlo.ttf"
-        Monaco = "Monaco.ttf"
-
     text: str = Field(default="", description="The text to render.")
     font: TextFont = Field(default=TextFont.DejaVuSans, description="The font to use.")
-    x: float = Field(default=0, ge=0, le=1, description="The x coordinate.")
-    y: float = Field(default=0, ge=0, le=1, description="The y coordinate.")
+    x: int = Field(default=0, ge=0, description="The x coordinate.")
+    y: int = Field(default=0, ge=0, description="The y coordinate.")
     size: int = Field(default=12, ge=1, le=512, description="The font size.")
     color: ColorRef = Field(
         default=ColorRef(value="#000000"), description="The font color."
@@ -88,13 +90,15 @@ class RenderText(BaseNode):
 
     async def process(self, context: ProcessingContext) -> ImageRef:
         image = await context.image_to_pil(self.image)
-        x = int((image.width * self.x))
-        y = int((image.height * self.y))
         draw = PIL.ImageDraw.Draw(image)
         font_path = context.get_system_font_path(self.font.value)
         font = PIL.ImageFont.truetype(font_path, self.size)
         draw.text(
-            (x, y), self.text, font=font, fill=self.color.value, align=self.align.value
+            (self.x, self.y),
+            self.text,
+            font=font,
+            fill=self.color.value,
+            align=self.align.value,
         )
         return await context.image_from_pil(image)
 

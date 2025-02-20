@@ -306,7 +306,7 @@ class Document(BaseNode):
         return "SVG Document"
 
     content: str | SVGElement | list[SVGElement] = Field(
-        default_factory=list, description="SVG content"
+        default=[], description="SVG content"
     )
     width: int = Field(default=800, ge=1, le=4096, description="Document width")
     height: int = Field(default=600, ge=1, le=4096, description="Document height")
@@ -386,7 +386,7 @@ class SVGToImage(BaseNode):
         return "SVG to Image"
 
     content: str | SVGElement | list[SVGElement] = Field(
-        default_factory=list, description="SVG content"
+        default=[], description="SVG content"
     )
     width: int = Field(default=800, ge=1, le=4096, description="Document width")
     height: int = Field(default=600, ge=1, le=4096, description="Document height")

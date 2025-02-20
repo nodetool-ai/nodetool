@@ -66,9 +66,9 @@ class BinaryOperation(BaseNode):
         raise NotImplementedError()
 
 
-class Add(BinaryOperation):
+class AddArray(BinaryOperation):
     """
-    Performs addition on two inputs.
+    Performs addition on two arrays.
     math, plus, add, addition, sum, +
     """
 
@@ -76,9 +76,9 @@ class Add(BinaryOperation):
         return np.add(a, b)
 
 
-class Subtract(BinaryOperation):
+class SubtractArray(BinaryOperation):
     """
-    Subtracts the second input from the first.
+    Subtracts the second array from the first.
     math, minus, difference, -
     """
 
@@ -86,9 +86,9 @@ class Subtract(BinaryOperation):
         return np.subtract(a, b)
 
 
-class Multiply(BinaryOperation):
+class MultiplyArray(BinaryOperation):
     """
-    Multiplies two inputs.
+    Multiplies two arrays.
     math, product, times, *
     """
 
@@ -96,9 +96,9 @@ class Multiply(BinaryOperation):
         return np.multiply(a, b)
 
 
-class Divide(BinaryOperation):
+class DivideArray(BinaryOperation):
     """
-    Divides the first input by the second.
+    Divides the first array by the second.
     math, division, arithmetic, quotient, /
     """
 
@@ -106,7 +106,7 @@ class Divide(BinaryOperation):
         return np.divide(a, b)
 
 
-class Modulus(BinaryOperation):
+class ModulusArray(BinaryOperation):
     """
     Calculates the element-wise remainder of division.
     math, modulo, remainder, mod, %
@@ -121,7 +121,7 @@ class Modulus(BinaryOperation):
         return np.mod(a, b)
 
 
-class Sine(BaseNode):
+class SineArray(BaseNode):
     """
     Computes the sine of input angles in radians.
     math, trigonometry, sine, sin
@@ -141,7 +141,7 @@ class Sine(BaseNode):
         return await convert_output(context, res)
 
 
-class Cosine(BaseNode):
+class CosineArray(BaseNode):
     """
     Computes the cosine of input angles in radians.
     math, trigonometry, cosine, cos
@@ -161,9 +161,9 @@ class Cosine(BaseNode):
         return await convert_output(context, res)
 
 
-class Power(BaseNode):
+class PowerArray(BaseNode):
     """
-    Raises the base to the power of the exponent element-wise.
+    Raises the base array to the power of the exponent element-wise.
     math, exponentiation, power, pow, **
 
     Use cases:
@@ -185,9 +185,9 @@ class Power(BaseNode):
         return await convert_output(context, np.power(a, b))
 
 
-class Sqrt(BaseNode):
+class SqrtArray(BaseNode):
     """
-    Calculates the square root of the input element-wise.
+    Calculates the square root of the input array element-wise.
     math, square root, sqrt, √
 
     Use cases:
@@ -198,11 +198,11 @@ class Sqrt(BaseNode):
 
     _layout = "small"
 
-    x: int | float | NPArray = Field(title="Input", default=1.0)
+    values: NPArray = Field(default=NPArray(), description="Input array")
 
     async def process(self, context: ProcessingContext) -> float | int | NPArray:
         return await convert_output(
-            context, np.sqrt(to_numpy(self.x).astype(np.float32))
+            context, np.sqrt(to_numpy(self.values).astype(np.float32))
         )
 
 
@@ -212,7 +212,7 @@ class SaveArray(BaseNode):
     array, save, file, storage
     """
 
-    array: NPArray = Field(
+    values: NPArray = Field(
         NPArray(),
         description="The array to save.",
     )
@@ -239,7 +239,7 @@ class SaveArray(BaseNode):
 
     async def process(self, context: ProcessingContext) -> NPArray:
         filename = datetime.now().strftime(self.name)
-        array = self.array.to_numpy()
+        array = to_numpy(self.values)
         buffer = BytesIO()
         np.save(buffer, array)
         buffer.seek(0)
@@ -295,16 +295,16 @@ class ConvertToImage(BaseNode):
     - Convert model outputs back to viewable format
     """
 
-    array: NPArray = Field(
+    values: NPArray = Field(
         default=NPArray(),
         description="The input array to convert to an image. Should have either 1, 3, or 4 channels.",
     )
 
     async def process(self, context: ProcessingContext) -> ImageRef:
-        if self.array.is_empty():
+        if self.values.is_empty():
             raise ValueError("The input array is not connected.")
 
-        array_data = self.array.to_numpy()
+        array_data = to_numpy(self.values)
         if array_data.ndim not in [2, 3]:
             raise ValueError("The array should have 2 or 3 dimensions (HxW or HxWxC).")
         if (array_data.ndim == 3) and (array_data.shape[2] not in [1, 3, 4]):
@@ -327,7 +327,7 @@ class ConvertToAudio(BaseNode):
     - Output results of audio processing pipelinesr
     """
 
-    array: NPArray = Field(
+    values: NPArray = Field(
         default=NPArray(), description="The array to convert to an audio file."
     )
     sample_rate: int = Field(
@@ -335,7 +335,7 @@ class ConvertToAudio(BaseNode):
     )
 
     async def process(self, context: ProcessingContext) -> AudioRef:
-        audio = numpy_to_audio_segment(self.array.to_numpy(), self.sample_rate)
+        audio = numpy_to_audio_segment(to_numpy(self.values), self.sample_rate)
         return await context.audio_from_segment(audio)
 
 
@@ -350,7 +350,7 @@ class Stack(BaseNode):
     - Merge feature vectors for machine learning models
     """
 
-    arrays: list[NPArray] = []
+    arrays: list[NPArray] = Field(default=[], description="Arrays to stack")
     axis: int = Field(0, description="The axis to stack along.", ge=0)
 
     async def process(self, context: ProcessingContext) -> NPArray:
@@ -383,8 +383,8 @@ class MatMul(BaseNode):
     """
 
     _layout = "small"
-    a: NPArray = NPArray()
-    b: NPArray = NPArray()
+    a: NPArray = Field(default=NPArray(), description="First input array")
+    b: NPArray = Field(default=NPArray(), description="Second input array")
 
     async def process(self, context: ProcessingContext) -> NPArray:
         a = to_numpy(self.a)
@@ -392,7 +392,7 @@ class MatMul(BaseNode):
         return NPArray.from_numpy(np.matmul(a, b))
 
 
-class Transpose(BaseNode):
+class TransposeArray(BaseNode):
     """
     Transpose the dimensions of the input array.
     array, transpose, reshape, dimensions
@@ -404,13 +404,13 @@ class Transpose(BaseNode):
     """
 
     _layout = "small"
-    array: NPArray = NPArray()
+    values: NPArray = Field(default=NPArray(), description="Array to transpose")
 
     async def process(self, context: ProcessingContext) -> NPArray:
-        return NPArray.from_numpy(np.transpose(to_numpy(self.array)))
+        return NPArray.from_numpy(np.transpose(to_numpy(self.values)))
 
 
-class Max(BaseNode):
+class MaxArray(BaseNode):
     """
     Compute the maximum value along a specified axis of a array.
     array, maximum, reduction, statistics
@@ -421,18 +421,20 @@ class Max(BaseNode):
     - Determine highest scores across multiple categories
     """
 
-    array: NPArray = NPArray()
-    axis: int | None = None
+    values: NPArray = Field(default=NPArray(), description="Input array")
+    axis: int | None = Field(
+        default=None, description="Axis along which to compute maximum"
+    )
 
     async def process(self, context: ProcessingContext) -> NPArray | float | int:
-        res = np.max(to_numpy(self.array), axis=self.axis)
+        res = np.max(to_numpy(self.values), axis=self.axis)
         if res.size == 1:
             return res.item()
         else:
             return NPArray.from_numpy(res)
 
 
-class Min(BaseNode):
+class MinArray(BaseNode):
     """
     Calculate the minimum value along a specified axis of a array.
     array, minimum, reduction, statistics
@@ -443,18 +445,20 @@ class Min(BaseNode):
     - Determine minimum thresholds across categories
     """
 
-    array: NPArray = NPArray()
-    axis: int | None = None
+    values: NPArray = Field(default=NPArray(), description="Input array")
+    axis: int | None = Field(
+        default=None, description="Axis along which to compute minimum"
+    )
 
     async def process(self, context: ProcessingContext) -> NPArray | float | int:
-        res = np.min(to_numpy(self.array), axis=self.axis)
+        res = np.min(to_numpy(self.values), axis=self.axis)
         if res.size == 1:
             return res.item()
         else:
             return NPArray.from_numpy(res)
 
 
-class Mean(BaseNode):
+class MeanArray(BaseNode):
     """
     Compute the mean value along a specified axis of a array.
     array, average, reduction, statistics
@@ -465,18 +469,20 @@ class Mean(BaseNode):
     - Compute centroids in clustering algorithms
     """
 
-    array: NPArray = NPArray()
-    axis: int | None = None
+    values: NPArray = Field(default=NPArray(), description="Input array")
+    axis: int | None = Field(
+        default=None, description="Axis along which to compute mean"
+    )
 
     async def process(self, context: ProcessingContext) -> NPArray | float | int:
-        res = np.mean(to_numpy(self.array), axis=self.axis)
+        res = np.mean(to_numpy(self.values), axis=self.axis)
         if res.size == 1:
             return res.item()
         else:
             return NPArray.from_numpy(res)
 
 
-class Sum(BaseNode):
+class SumArray(BaseNode):
     """
     Calculate the sum of values along a specified axis of a array.
     array, summation, reduction, statistics
@@ -487,18 +493,20 @@ class Sum(BaseNode):
     - Calculate cumulative metrics in time series data
     """
 
-    array: NPArray = NPArray()
-    axis: int | None = None
+    values: NPArray = Field(default=NPArray(), description="Input array")
+    axis: int | None = Field(
+        default=None, description="Axis along which to compute sum"
+    )
 
     async def process(self, context: ProcessingContext) -> NPArray | float | int:
-        res = np.sum(to_numpy(self.array), axis=self.axis)
+        res = np.sum(to_numpy(self.values), axis=self.axis)
         if res.size == 1:
             return res.item()
         else:
             return NPArray.from_numpy(res)
 
 
-class ArgMax(BaseNode):
+class ArgMaxArray(BaseNode):
     """
     Find indices of maximum values along a specified axis of a array.
     array, argmax, index, maximum
@@ -509,18 +517,20 @@ class ArgMax(BaseNode):
     - Locate best-performing items in datasets
     """
 
-    a: NPArray = NPArray()
-    axis: int | None = None
+    values: NPArray = Field(default=NPArray(), description="Input array")
+    axis: int | None = Field(
+        default=None, description="Axis along which to find maximum indices"
+    )
 
     async def process(self, context: ProcessingContext) -> NPArray | int:
-        res = np.argmax(to_numpy(self.a), axis=self.axis)
+        res = np.argmax(to_numpy(self.values), axis=self.axis)
         if res.size == 1:
             return res.item()
         else:
             return NPArray.from_numpy(res)
 
 
-class ArgMin(BaseNode):
+class ArgMinArray(BaseNode):
     """
     Find indices of minimum values along a specified axis of a array.
     array, argmin, index, minimum
@@ -531,18 +541,20 @@ class ArgMin(BaseNode):
     - Determine least likely classes in classification tasks
     """
 
-    array: NPArray = NPArray()
-    axis: int | None = None
+    values: NPArray = Field(default=NPArray(), description="Input array")
+    axis: int | None = Field(
+        default=None, description="Axis along which to find minimum indices"
+    )
 
     async def process(self, context: ProcessingContext) -> NPArray | int:
-        res = np.argmin(to_numpy(self.array), axis=self.axis)
+        res = np.argmin(to_numpy(self.values), axis=self.axis)
         if res.size == 1:
             return res.item()
         else:
             return NPArray.from_numpy(res)
 
 
-class Abs(BaseNode):
+class AbsArray(BaseNode):
     """
     Compute the absolute value of each element in a array.
     array, absolute, magnitude
@@ -553,19 +565,20 @@ class Abs(BaseNode):
     - Implement activation functions in neural networks
     """
 
-    input_array: NPArray = Field(
-        description="The input array to compute the absolute values from."
+    values: NPArray = Field(
+        default=NPArray(),
+        description="The input array to compute the absolute values from.",
     )
 
     async def process(self, context: ProcessingContext) -> NPArray:
-        abs_array = np.abs(self.input_array.to_numpy())
+        abs_array = np.abs(to_numpy(self.values))
         if abs_array.size == 1:
             return abs_array.item()
         else:
             return NPArray.from_numpy(abs_array)
 
 
-class arrayToScalar(BaseNode):
+class ArrayToScalar(BaseNode):
     """
     Convert a single-element array to a scalar value.
     array, scalar, conversion, type
@@ -576,10 +589,10 @@ class arrayToScalar(BaseNode):
     - Simplify output for human-readable results
     """
 
-    array: NPArray = NPArray()
+    values: NPArray = Field(default=NPArray(), description="Array to convert to scalar")
 
     async def process(self, context: ProcessingContext) -> float | int:
-        return self.array.to_numpy().item()
+        return to_numpy(self.values).item()
 
 
 class ScalarToArray(BaseNode):
@@ -593,7 +606,9 @@ class ScalarToArray(BaseNode):
     - Initialize array values in workflows
     """
 
-    value: float | int = 0
+    value: float | int = Field(
+        default=0, description="Scalar value to convert to array"
+    )
 
     async def process(self, context: ProcessingContext) -> NPArray:
         return NPArray.from_numpy(np.array([self.value]))
@@ -610,10 +625,18 @@ class ListToArray(BaseNode):
     - Convert sequence data to array format
     """
 
-    values: list[Any] = []
+    values: list[Any] = Field(
+        default=[], description="List of values to convert to array"
+    )
 
     async def process(self, context: ProcessingContext) -> NPArray:
         return NPArray.from_numpy(np.array(self.values))
+
+
+class PlotType(str, Enum):
+    LINE = "line"
+    BAR = "bar"
+    SCATTER = "scatter"
 
 
 class PlotArray(BaseNode):
@@ -627,22 +650,19 @@ class PlotArray(BaseNode):
     - Debug array outputs in workflows
     """
 
-    class PlotType(str, Enum):
-        LINE = "line"
-        BAR = "bar"
-        SCATTER = "scatter"
-
-    array: NPArray = NPArray()
-    plot_type: PlotType = PlotType.LINE
+    values: NPArray = Field(default=NPArray(), description="Array to plot")
+    plot_type: PlotType = Field(
+        default=PlotType.LINE, description="Type of plot to create"
+    )
 
     async def process(self, context: ProcessingContext) -> ImageRef:
-        arr = self.array.to_numpy()
+        arr = to_numpy(self.values)
         sns.set_theme(style="darkgrid")
-        if self.plot_type == self.PlotType.LINE:
+        if self.plot_type == PlotType.LINE:
             plot = sns.lineplot(data=arr)
-        elif self.plot_type == self.PlotType.BAR:
+        elif self.plot_type == PlotType.BAR:
             plot = sns.barplot(data=arr)
-        elif self.plot_type == self.PlotType.SCATTER:
+        elif self.plot_type == PlotType.SCATTER:
             plot = sns.scatterplot(data=arr)
         else:
             raise ValueError(f"Invalid plot type: {self.plot_type}")
@@ -666,13 +686,13 @@ class ArrayToList(BaseNode):
     - Interface array data with non-array operations
     """
 
-    array: NPArray = NPArray()
+    values: NPArray = Field(default=NPArray(), description="Array to convert to list")
 
     async def process(self, context: ProcessingContext) -> list[Any]:
-        return self.array.to_numpy().tolist()
+        return to_numpy(self.values).tolist()
 
 
-class Exp(BaseNode):
+class ExpArray(BaseNode):
     """
     Calculate the exponential of each element in a array.
     array, exponential, math, activation
@@ -683,15 +703,15 @@ class Exp(BaseNode):
     - Transform data for certain statistical analyses
     """
 
-    x: int | float | NPArray = Field(title="Input", default=1.0)
+    values: NPArray = Field(default=NPArray(), description="Input array")
 
     async def process(self, context: ProcessingContext) -> float | int | NPArray:
         return await convert_output(
-            context, np.exp(to_numpy(self.x).astype(np.float32))
+            context, np.exp(to_numpy(self.values).astype(np.float32))
         )
 
 
-class Log(BaseNode):
+class LogArray(BaseNode):
     """
     Calculate the natural logarithm of each element in a array.
     array, logarithm, math, transformation
@@ -702,15 +722,15 @@ class Log(BaseNode):
     - Normalize data with large ranges
     """
 
-    x: int | float | NPArray = Field(title="Input", default=1.0)
+    values: NPArray = Field(default=NPArray(), description="Input array")
 
     async def process(self, context: ProcessingContext) -> float | int | NPArray:
         return await convert_output(
-            context, np.log(to_numpy(self.x).astype(np.float32))
+            context, np.log(to_numpy(self.values).astype(np.float32))
         )
 
 
-class Slice(BaseNode):
+class SliceArray(BaseNode):
     """
     Extract a slice of an array along a specified axis.
     array, slice, subset, index
@@ -721,20 +741,20 @@ class Slice(BaseNode):
     - Create sliding windows over sequential data
     """
 
-    array: NPArray = Field(default=NPArray(), description="The input array to slice")
+    values: NPArray = Field(default=NPArray(), description="The input array to slice")
     start: int = Field(default=0, description="Starting index (inclusive)")
     stop: int = Field(default=0, description="Ending index (exclusive)")
     step: int = Field(default=1, description="Step size between elements")
     axis: int = Field(default=0, description="Axis along which to slice")
 
     async def process(self, context: ProcessingContext) -> NPArray:
-        arr = self.array.to_numpy()
+        arr = to_numpy(self.values)
         slicing = [slice(None)] * arr.ndim
         slicing[self.axis] = slice(self.start, self.stop, self.step)
         return NPArray.from_numpy(arr[tuple(slicing)])
 
 
-class Index(BaseNode):
+class IndexArray(BaseNode):
     """
     Select specific indices from an array along a specified axis.
     array, index, select, subset
@@ -745,12 +765,14 @@ class Index(BaseNode):
     - Implement batch sampling operations
     """
 
-    array: NPArray = Field(description="The input array to index")
-    indices: str = Field(description="The comma separated indices to select")
+    values: NPArray = Field(default=NPArray(), description="The input array to index")
+    indices: str = Field(
+        default="", description="The comma separated indices to select"
+    )
     axis: int = Field(default=0, description="Axis along which to index")
 
     async def process(self, context: ProcessingContext) -> NPArray:
-        arr = self.array.to_numpy()
+        arr = to_numpy(self.values)
         idx = [slice(None)] * arr.ndim
         idx[self.axis] = np.array(map(int, self.indices.split(",")))  # type: ignore
         return NPArray.from_numpy(arr[tuple(idx)])
@@ -761,11 +783,11 @@ class Reshape1D(BaseNode):
     Reshape an array to a 1D shape without changing its data.
     """
 
-    array: NPArray = Field(description="The input array to reshape")
-    num_elements: int = Field(description="The number of elements")
+    values: NPArray = Field(default=NPArray(), description="The input array to reshape")
+    num_elements: int = Field(default=0, description="The number of elements")
 
     async def process(self, context: ProcessingContext) -> NPArray:
-        arr = self.array.to_numpy()
+        arr = to_numpy(self.values)
         return NPArray.from_numpy(arr.reshape(self.num_elements))
 
 
@@ -780,12 +802,12 @@ class Reshape2D(BaseNode):
     - Flatten or unflatten arrays
     """
 
-    array: NPArray = Field(description="The input array to reshape")
-    num_rows: int = Field(description="The number of rows")
-    num_cols: int = Field(description="The number of columns")
+    values: NPArray = Field(default=NPArray(), description="The input array to reshape")
+    num_rows: int = Field(default=0, description="The number of rows")
+    num_cols: int = Field(default=0, description="The number of columns")
 
     async def process(self, context: ProcessingContext) -> NPArray:
-        arr = self.array.to_numpy()
+        arr = to_numpy(self.values)
         return NPArray.from_numpy(arr.reshape(self.num_rows, self.num_cols))
 
 
@@ -794,13 +816,13 @@ class Reshape3D(BaseNode):
     Reshape an array to a 3D shape without changing its data.
     """
 
-    array: NPArray = Field(description="The input array to reshape")
-    num_rows: int = Field(description="The number of rows")
-    num_cols: int = Field(description="The number of columns")
-    num_depths: int = Field(description="The number of depths")
+    values: NPArray = Field(default=NPArray(), description="The input array to reshape")
+    num_rows: int = Field(default=0, description="The number of rows")
+    num_cols: int = Field(default=0, description="The number of columns")
+    num_depths: int = Field(default=0, description="The number of depths")
 
     async def process(self, context: ProcessingContext) -> NPArray:
-        arr = self.array.to_numpy()
+        arr = to_numpy(self.values)
         return NPArray.from_numpy(
             arr.reshape(self.num_rows, self.num_cols, self.num_depths)
         )
@@ -811,14 +833,14 @@ class Reshape4D(BaseNode):
     Reshape an array to a 4D shape without changing its data.
     """
 
-    array: NPArray = Field(description="The input array to reshape")
-    num_rows: int = Field(description="The number of rows")
-    num_cols: int = Field(description="The number of columns")
-    num_depths: int = Field(description="The number of depths")
-    num_channels: int = Field(description="The number of channels")
+    values: NPArray = Field(default=NPArray(), description="The input array to reshape")
+    num_rows: int = Field(default=0, description="The number of rows")
+    num_cols: int = Field(default=0, description="The number of columns")
+    num_depths: int = Field(default=0, description="The number of depths")
+    num_channels: int = Field(default=0, description="The number of channels")
 
     async def process(self, context: ProcessingContext) -> NPArray:
-        arr = self.array.to_numpy()
+        arr = to_numpy(self.values)
         return NPArray.from_numpy(
             arr.reshape(
                 self.num_rows, self.num_cols, self.num_depths, self.num_channels
@@ -826,7 +848,7 @@ class Reshape4D(BaseNode):
         )
 
 
-class Split(BaseNode):
+class SplitArray(BaseNode):
     """
     Split an array into multiple sub-arrays along a specified axis.
     array, split, divide, partition
@@ -837,11 +859,13 @@ class Split(BaseNode):
     - Separate multi-channel data
     """
 
-    array: NPArray = Field(description="The input array to split")
-    num_splits: int = Field(description="Number of equal splits to create", gt=0)
+    values: NPArray = Field(default=NPArray(), description="The input array to split")
+    num_splits: int = Field(
+        default=0, description="Number of equal splits to create", gt=0
+    )
     axis: int = Field(default=0, description="Axis along which to split")
 
     async def process(self, context: ProcessingContext) -> list[NPArray]:
-        arr = self.array.to_numpy()
+        arr = to_numpy(self.values)
         split_arrays = np.array_split(arr, self.num_splits, axis=self.axis)
         return [NPArray.from_numpy(split_arr) for split_arr in split_arrays]

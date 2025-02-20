@@ -31,7 +31,7 @@ class HTTPBaseNode(BaseNode):
         description="The URL to make the request to.",
     )
     headers: dict[str, str] = Field(
-        default_factory=dict,
+        default={},
         description="Optional headers to include in the request.",
     )
     auth: str | None = Field(default=None, description="Authentication credentials.")
@@ -310,7 +310,8 @@ class GetRequestBinary(HTTPBaseNode):
     async def process(self, context: ProcessingContext) -> bytes:
         res = await context.http_get(self.url, **self.get_request_kwargs())
         return res.content
-    
+
+
 class GetRequestDocument(HTTPBaseNode):
     """
     Perform an HTTP GET request and return a document
@@ -376,7 +377,7 @@ class FilterValidURLs(HTTPBaseNode):
         return "Filter Valid URLs"
 
     urls: list[str] = Field(
-        default_factory=list,
+        default=[],
         description="List of URLs to validate.",
     )
     max_concurrent_requests: int = Field(
@@ -436,7 +437,7 @@ class DownloadFiles(BaseNode):
     """
 
     urls: list[str] = Field(
-        default_factory=list,
+        default=[],
         description="List of URLs to download.",
     )
     output_folder: FilePath = Field(
@@ -444,7 +445,7 @@ class DownloadFiles(BaseNode):
         description="Local folder path where files will be saved.",
     )
     headers: dict[str, str] = Field(
-        default_factory=dict,
+        default={},
         description="Optional headers to include in the request.",
     )
     auth: str | None = Field(default=None, description="Authentication credentials.")
@@ -569,7 +570,7 @@ class JSONPostRequest(HTTPBaseNode):
         return "POST JSON"
 
     data: dict = Field(
-        default_factory=dict,
+        default={},
         description="The JSON data to send in the POST request.",
     )
 
@@ -601,7 +602,7 @@ class JSONPutRequest(HTTPBaseNode):
         return "PUT JSON"
 
     data: dict = Field(
-        default_factory=dict,
+        default={},
         description="The JSON data to send in the PUT request.",
     )
 
@@ -633,7 +634,7 @@ class JSONPatchRequest(HTTPBaseNode):
         return "PATCH JSON"
 
     data: dict = Field(
-        default_factory=dict,
+        default={},
         description="The JSON data to send in the PATCH request.",
     )
 

@@ -1152,11 +1152,11 @@ class ChainOfThoughtSummarizer(BaseNode):
     """
 
     steps: list[ThoughtStep] = Field(
-        default_factory=list,
+        default=[],
         description="The completed chain of thought steps with their results",
     )
     messages: list[Message] = Field(
-        default_factory=list,
+        default=[],
         description="The messages used to generate the chain of thought steps",
     )
     max_tokens: int = Field(

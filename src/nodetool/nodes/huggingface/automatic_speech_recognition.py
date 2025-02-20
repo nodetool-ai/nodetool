@@ -89,6 +89,17 @@ class WhisperLanguage(str, Enum):
     BENGALI = "bengali"
 
 
+class Task(str, Enum):
+    TRANSCRIBE = "transcribe"
+    TRANSLATE = "translate"
+
+
+class Timestamps(str, Enum):
+    NONE = "none"
+    WORD = "word"
+    SENTENCE = "sentence"
+
+
 class Whisper(HuggingFacePipelineNode):
     """
     Convert speech to text
@@ -112,15 +123,6 @@ class Whisper(HuggingFacePipelineNode):
     - https://github.com/openai/whisper
     - https://platform.openai.com/docs/guides/speech-to-text/supported-languages
     """
-
-    class Task(str, Enum):
-        TRANSCRIBE = "transcribe"
-        TRANSLATE = "translate"
-
-    class Timestamps(str, Enum):
-        NONE = "none"
-        WORD = "word"
-        SENTENCE = "sentence"
 
     model: HFAutomaticSpeechRecognition = Field(
         default=HFAutomaticSpeechRecognition(),
@@ -202,9 +204,9 @@ class Whisper(HuggingFacePipelineNode):
 
         processor = AutoProcessor.from_pretrained(self.model.repo_id)
 
-        if self.task == Whisper.Task.TRANSCRIBE:
+        if self.task == Task.TRANSCRIBE:
             pipeline_task = "automatic-speech-recognition"
-        elif self.task == Whisper.Task.TRANSLATE:
+        elif self.task == Task.TRANSLATE:
             pipeline_task = "translation"
         else:
             pipeline_task = "automatic-speech-recognition"
@@ -235,9 +237,7 @@ class Whisper(HuggingFacePipelineNode):
 
         pipeline_kwargs = {
             "return_timestamps": (
-                self.timestamps.value
-                if self.timestamps != self.Timestamps.NONE
-                else None
+                self.timestamps.value if self.timestamps != Timestamps.NONE else None
             ),
             "chunk_length_s": 30.0,
             "generate_kwargs": {
@@ -256,7 +256,7 @@ class Whisper(HuggingFacePipelineNode):
         text = result.get("text", "")
 
         chunks = []
-        if self.timestamps != self.Timestamps.NONE:
+        if self.timestamps != Timestamps.NONE:
             raw_chunks = result.get("chunks", [])
             SEGMENT_LENGTH = 30.0  # Whisper's default segment length in seconds
 

@@ -25,7 +25,7 @@ class ExecutePython(BaseNode):
     )
 
     inputs: Dict[str, Any] = Field(
-        default_factory=dict,
+        default={},
         description="Input variables available to the code as locals.",
     )
 
@@ -99,7 +99,7 @@ class EvaluateExpression(BaseNode):
     )
 
     variables: Dict[str, Any] = Field(
-        default_factory=dict, description="Variables available to the expression"
+        default={}, description="Variables available to the expression"
     )
 
     async def process(self, context: ProcessingContext) -> Any:

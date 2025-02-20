@@ -9,9 +9,6 @@ from nodetool.metadata.types import (
     MessageVideoContent,
     asset_to_ref,
 )
-from nodetool.models.asset import Asset
-from nodetool.metadata.types import FolderRef
-from nodetool.metadata.types import AssetRef
 from nodetool.metadata.types import (
     MessageImageContent,
     MessageTextContent,

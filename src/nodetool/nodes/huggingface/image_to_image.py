@@ -475,6 +475,10 @@ class StableDiffusionImg2ImgNode(StableDiffusionBaseNode):
         )
 
 
+class StableDiffusionControlNetModel(str, Enum):
+    INPAINT = "lllyasviel/control_v11p_sd15_inpaint"
+
+
 class StableDiffusionControlNetInpaintNode(StableDiffusionBaseNode):
     """
     Performs inpainting on images using Stable Diffusion with ControlNet guidance.
@@ -485,9 +489,6 @@ class StableDiffusionControlNetInpaintNode(StableDiffusionBaseNode):
     - Fill in missing parts of images guided by control images
     - Modify specific areas of images while preserving the rest and maintaining structure
     """
-
-    class StableDiffusionControlNetModel(str, Enum):
-        INPAINT = "lllyasviel/control_v11p_sd15_inpaint"
 
     controlnet: StableDiffusionControlNetModel = Field(
         default=StableDiffusionControlNetModel.INPAINT,
