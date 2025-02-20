@@ -8,7 +8,7 @@ import pymupdf
 import pymupdf4llm
 
 
-class ExtractPlainText(BaseNode):
+class ExtractText(BaseNode):
     """
     Extract plain text from a PDF document using PyMuPDF.
     pdf, text, extract

@@ -1,19 +1,15 @@
 from nodetool.common.chroma_client import get_collection
 from nodetool.metadata.types import (
-    AssetRef,
     Collection,
-    FolderRef,
     ImageRef,
-    TextRef,
 )
 from nodetool.nodes.chroma.chroma_node import ChromaNode
 from nodetool.workflows.processing_context import ProcessingContext
 
-
-import PIL.Image
 import numpy as np
 from pydantic import Field
 import re
+from chromadb.api.types import IncludeEnum
 
 
 class QueryImage(ChromaNode):
@@ -134,7 +130,7 @@ class RemoveOverlap(ChromaNode):
     """
 
     documents: list[str] = Field(
-        default_factory=list,
+        default=[],
         description="List of strings to process for overlap removal",
     )
     min_overlap_words: int = Field(
@@ -320,7 +316,11 @@ class HybridSearch(ChromaNode):
         semantic_results = collection.query(
             query_texts=[self.text],
             n_results=self.n_results * 2,  # Get more results for better fusion
-            include=["documents", "metadatas", "distances"],
+            include=[
+                IncludeEnum.documents,
+                IncludeEnum.metadatas,
+                IncludeEnum.distances,
+            ],
         )
 
         # Perform keyword search if we have valid keywords
@@ -330,7 +330,11 @@ class HybridSearch(ChromaNode):
                 query_texts=[self.text],
                 n_results=self.n_results * 2,
                 where_document=keyword_query,
-                include=["documents", "metadatas", "distances"],
+                include=[
+                    IncludeEnum.documents,
+                    IncludeEnum.metadatas,
+                    IncludeEnum.distances,
+                ],
             )
         else:
             keyword_results = semantic_results  # Fall back to semantic only
@@ -344,7 +348,7 @@ class HybridSearch(ChromaNode):
 
         # Combine results using reciprocal rank fusion
         ids, documents, metadatas, distances, scores = self._reciprocal_rank_fusion(
-            semantic_results, keyword_results
+            dict(semantic_results), dict(keyword_results)
         )
 
         return {

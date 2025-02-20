@@ -58,7 +58,7 @@ class Slice(BaseNode):
     - Extract every nth element
     """
 
-    values: list[Any] = Field(default_factory=list)
+    values: list[Any] = Field(default=[])
     start: int = Field(default=0)
     stop: int = Field(default=0)
     step: int = Field(default=1)
@@ -78,8 +78,8 @@ class SelectElements(BaseNode):
     - Create a new list from selected indices
     """
 
-    values: list[Any] = Field(default_factory=list)
-    indices: list[int] = Field(default_factory=list)
+    values: list[Any] = Field(default=[])
+    indices: list[int] = Field(default=[])
 
     async def process(self, context: ProcessingContext) -> list[Any]:
         return [self.values[index] for index in self.indices]
@@ -96,7 +96,7 @@ class GetElement(BaseNode):
     - Extract the first or last element
     """
 
-    values: list[Any] = Field(default_factory=list)
+    values: list[Any] = Field(default=[])
     index: int = Field(default=0)
 
     async def process(self, context: ProcessingContext) -> Any:
@@ -183,7 +183,7 @@ class SaveList(BaseNode):
     - Generate line-separated output
     """
 
-    values: list[Any] = Field(default_factory=list, description="The list to save.")
+    values: list[Any] = Field(default=[])
     name: str = Field(
         title="Name",
         default="text.txt",
@@ -230,6 +230,11 @@ class Randomize(BaseNode):
         return shuffled
 
 
+class SortOrder(str, Enum):
+    ASCENDING = "ascending"
+    DESCENDING = "descending"
+
+
 class Sort(BaseNode):
     """
     Sorts the elements of a list in ascending or descending order.
@@ -241,15 +246,11 @@ class Sort(BaseNode):
     - Rank items based on their values
     """
 
-    class SortOrder(str, Enum):
-        ASCENDING = "ascending"
-        DESCENDING = "descending"
-
     values: list[Any] = []
     order: SortOrder = SortOrder.ASCENDING
 
     async def process(self, context: ProcessingContext) -> list[Any]:
-        return sorted(self.values, reverse=(self.order == self.SortOrder.DESCENDING))
+        return sorted(self.values, reverse=(self.order == SortOrder.DESCENDING))
 
 
 class FilterDicts(BaseNode):
@@ -307,9 +308,7 @@ class FilterDicts(BaseNode):
     - Clean data by removing unwanted entries
     """
 
-    values: list[dict] = Field(
-        default_factory=list, description="The list of dictionaries to filter."
-    )
+    values: list[dict] = Field(default=[])
     condition: str = Field(
         default="",
         description="""
@@ -344,6 +343,15 @@ class FilterDicts(BaseNode):
         return filtered_df.to_dict("records")
 
 
+class FilterType(str, Enum):
+    CONTAINS = "contains"
+    STARTS_WITH = "starts_with"
+    ENDS_WITH = "ends_with"
+    LENGTH_GREATER = "length_greater"
+    LENGTH_LESS = "length_less"
+    EXACT_LENGTH = "exact_length"
+
+
 class FilterStrings(BaseNode):
     """
     Filters a list of strings based on various criteria.
@@ -356,17 +364,7 @@ class FilterStrings(BaseNode):
     - Filter strings using regex patterns
     """
 
-    class FilterType(str, Enum):
-        CONTAINS = "contains"
-        STARTS_WITH = "starts_with"
-        ENDS_WITH = "ends_with"
-        LENGTH_GREATER = "length_greater"
-        LENGTH_LESS = "length_less"
-        EXACT_LENGTH = "exact_length"
-
-    values: list[str] = Field(
-        default_factory=list, description="The list of strings to filter."
-    )
+    values: list[str] = Field(default=[])
     filter_type: FilterType = Field(
         default=FilterType.CONTAINS, description="The type of filter to apply"
     )
@@ -382,9 +380,9 @@ class FilterStrings(BaseNode):
             raise ValueError("Input must be a list of strings")
 
         if self.filter_type in [
-            self.FilterType.LENGTH_GREATER,
-            self.FilterType.LENGTH_LESS,
-            self.FilterType.EXACT_LENGTH,
+            FilterType.LENGTH_GREATER,
+            FilterType.LENGTH_LESS,
+            FilterType.EXACT_LENGTH,
         ]:
             try:
                 length_criteria = int(self.criteria)
@@ -393,26 +391,36 @@ class FilterStrings(BaseNode):
 
         filtered = []
         for item in self.values:
-            if self.filter_type == self.FilterType.CONTAINS:
+            if self.filter_type == FilterType.CONTAINS:
                 if self.criteria in item:
                     filtered.append(item)
-            elif self.filter_type == self.FilterType.STARTS_WITH:
+            elif self.filter_type == FilterType.STARTS_WITH:
                 if item.startswith(self.criteria):
                     filtered.append(item)
-            elif self.filter_type == self.FilterType.ENDS_WITH:
+            elif self.filter_type == FilterType.ENDS_WITH:
                 if item.endswith(self.criteria):
                     filtered.append(item)
-            elif self.filter_type == self.FilterType.LENGTH_GREATER:
+            elif self.filter_type == FilterType.LENGTH_GREATER:
                 if len(item) > length_criteria:
                     filtered.append(item)
-            elif self.filter_type == self.FilterType.LENGTH_LESS:
+            elif self.filter_type == FilterType.LENGTH_LESS:
                 if len(item) < length_criteria:
                     filtered.append(item)
-            elif self.filter_type == self.FilterType.EXACT_LENGTH:
+            elif self.filter_type == FilterType.EXACT_LENGTH:
                 if len(item) == length_criteria:
                     filtered.append(item)
 
         return filtered
+
+
+class FilterNumberType(str, Enum):
+    GREATER_THAN = "greater_than"
+    LESS_THAN = "less_than"
+    EQUAL_TO = "equal_to"
+    EVEN = "even"
+    ODD = "odd"
+    POSITIVE = "positive"
+    NEGATIVE = "negative"
 
 
 class FilterNumbers(BaseNode):
@@ -426,20 +434,9 @@ class FilterNumbers(BaseNode):
     - Filter positive/negative numbers
     """
 
-    class FilterType(str, Enum):
-        GREATER_THAN = "greater_than"
-        LESS_THAN = "less_than"
-        EQUAL_TO = "equal_to"
-        EVEN = "even"
-        ODD = "odd"
-        POSITIVE = "positive"
-        NEGATIVE = "negative"
-
-    values: list[float] = Field(
-        default_factory=list, description="The list of numbers to filter."
-    )
-    filter_type: FilterType = Field(
-        default=FilterType.GREATER_THAN, description="The type of filter to apply"
+    values: list[float] = Field(default=[])
+    filter_type: FilterNumberType = Field(
+        default=FilterNumberType.GREATER_THAN, description="The type of filter to apply"
     )
     value: float | None = Field(
         default=None,
@@ -454,31 +451,31 @@ class FilterNumbers(BaseNode):
 
         filtered = []
         for item in self.values:
-            if self.filter_type == self.FilterType.GREATER_THAN:
+            if self.filter_type == FilterNumberType.GREATER_THAN:
                 if self.value is None:
                     raise ValueError("Value must be specified for greater_than filter")
                 if item > self.value:
                     filtered.append(item)
-            elif self.filter_type == self.FilterType.LESS_THAN:
+            elif self.filter_type == FilterNumberType.LESS_THAN:
                 if self.value is None:
                     raise ValueError("Value must be specified for less_than filter")
                 if item < self.value:
                     filtered.append(item)
-            elif self.filter_type == self.FilterType.EQUAL_TO:
+            elif self.filter_type == FilterNumberType.EQUAL_TO:
                 if self.value is None:
                     raise ValueError("Value must be specified for equal_to filter")
                 if item == self.value:
                     filtered.append(item)
-            elif self.filter_type == self.FilterType.EVEN:
+            elif self.filter_type == FilterNumberType.EVEN:
                 if isinstance(item, int) and item % 2 == 0:
                     filtered.append(item)
-            elif self.filter_type == self.FilterType.ODD:
+            elif self.filter_type == FilterNumberType.ODD:
                 if isinstance(item, int) and item % 2 != 0:
                     filtered.append(item)
-            elif self.filter_type == self.FilterType.POSITIVE:
+            elif self.filter_type == FilterNumberType.POSITIVE:
                 if item > 0:
                     filtered.append(item)
-            elif self.filter_type == self.FilterType.NEGATIVE:
+            elif self.filter_type == FilterNumberType.NEGATIVE:
                 if item < 0:
                     filtered.append(item)
 
@@ -496,7 +493,7 @@ class FilterNumberRange(BaseNode):
     - Implement range-based filtering
     """
 
-    values: list[float] = Field(default_factory=list)
+    values: list[float] = Field(default=[])
     min_value: float = Field(default=0)
     max_value: float = Field(default=0)
     inclusive: bool = Field(default=True)
@@ -524,9 +521,7 @@ class FilterRegex(BaseNode):
     - Advanced text pattern matching
     """
 
-    values: list[str] = Field(
-        default_factory=list, description="The list of strings to filter."
-    )
+    values: list[str] = Field(default=[])
     pattern: str = Field(
         default="", description="The regular expression pattern to match against."
     )
@@ -571,9 +566,7 @@ class FilterNone(BaseNode):
     - Remove placeholder values
     """
 
-    values: list[Any] = Field(
-        default_factory=list, description="The list to filter None values from."
-    )
+    values: list[Any] = Field(default=[])
 
     async def process(self, context: ProcessingContext) -> list[Any]:
         return [x for x in self.values if x is not None]
@@ -600,9 +593,7 @@ class FilterDictsByValue(BaseNode):
         LENGTH_LESS = "length_less"
         EXACT_LENGTH = "exact_length"
 
-    values: list[dict] = Field(
-        default_factory=list, description="The list of dictionaries to filter."
-    )
+    values: list[dict] = Field(default=[])
     key: str = Field(default="", description="The dictionary key to check")
     filter_type: FilterType = Field(
         default=FilterType.CONTAINS, description="The type of filter to apply"
@@ -675,12 +666,16 @@ class FilterDictsByRange(BaseNode):
     - Filter data sets based on numeric criteria
     """
 
-    values: list[dict] = Field(
-        default_factory=list, description="The list of dictionaries to filter."
+    values: list[dict] = Field(default=[])
+    key: str = Field(
+        default="", description="The dictionary key to check for the range"
     )
-    key: str = Field(description="The dictionary key to check for the range")
-    min_value: float = Field(description="The minimum value (inclusive) of the range")
-    max_value: float = Field(description="The maximum value (inclusive) of the range")
+    min_value: float = Field(
+        default=0, description="The minimum value (inclusive) of the range"
+    )
+    max_value: float = Field(
+        default=0, description="The maximum value (inclusive) of the range"
+    )
     inclusive: bool = Field(
         default=True,
         description="If True, includes the min and max values in the results",
@@ -711,6 +706,16 @@ class FilterDictsByRange(BaseNode):
         return filtered
 
 
+class FilterDictNumberType(str, Enum):
+    GREATER_THAN = "greater_than"
+    LESS_THAN = "less_than"
+    EQUAL_TO = "equal_to"
+    EVEN = "even"
+    ODD = "odd"
+    POSITIVE = "positive"
+    NEGATIVE = "negative"
+
+
 class FilterDictsByNumber(BaseNode):
     """
     Filters a list of dictionaries based on numeric values for a specified key.
@@ -722,18 +727,9 @@ class FilterDictsByNumber(BaseNode):
     - Filter entries with positive/negative numbers
     """
 
-    class FilterType(str, Enum):
-        GREATER_THAN = "greater_than"
-        LESS_THAN = "less_than"
-        EQUAL_TO = "equal_to"
-        EVEN = "even"
-        ODD = "odd"
-        POSITIVE = "positive"
-        NEGATIVE = "negative"
-
-    values: list[dict] = Field(default_factory=list)
+    values: list[dict] = Field(default=[])
     key: str = Field(default="")
-    filter_type: FilterType = Field(default=FilterType.GREATER_THAN)
+    filter_type: FilterDictNumberType = Field(default=FilterDictNumberType.GREATER_THAN)
     value: float | None = Field(default=None)
 
     async def process(self, context: ProcessingContext) -> list[dict]:
@@ -751,31 +747,31 @@ class FilterDictsByNumber(BaseNode):
             if not isinstance(num, (int, float)):
                 continue
 
-            if self.filter_type == self.FilterType.GREATER_THAN:
+            if self.filter_type == FilterDictNumberType.GREATER_THAN:
                 if self.value is None:
                     raise ValueError("Value must be specified for greater_than filter")
                 if num > self.value:
                     filtered.append(item)
-            elif self.filter_type == self.FilterType.LESS_THAN:
+            elif self.filter_type == FilterDictNumberType.LESS_THAN:
                 if self.value is None:
                     raise ValueError("Value must be specified for less_than filter")
                 if num < self.value:
                     filtered.append(item)
-            elif self.filter_type == self.FilterType.EQUAL_TO:
+            elif self.filter_type == FilterDictNumberType.EQUAL_TO:
                 if self.value is None:
                     raise ValueError("Value must be specified for equal_to filter")
                 if num == self.value:
                     filtered.append(item)
-            elif self.filter_type == self.FilterType.EVEN:
+            elif self.filter_type == FilterDictNumberType.EVEN:
                 if isinstance(num, int) and num % 2 == 0:
                     filtered.append(item)
-            elif self.filter_type == self.FilterType.ODD:
+            elif self.filter_type == FilterDictNumberType.ODD:
                 if isinstance(num, int) and num % 2 != 0:
                     filtered.append(item)
-            elif self.filter_type == self.FilterType.POSITIVE:
+            elif self.filter_type == FilterDictNumberType.POSITIVE:
                 if num > 0:
                     filtered.append(item)
-            elif self.filter_type == self.FilterType.NEGATIVE:
+            elif self.filter_type == FilterDictNumberType.NEGATIVE:
                 if num < 0:
                     filtered.append(item)
 
@@ -793,7 +789,7 @@ class FilterDictsRegex(BaseNode):
     - Advanced text pattern matching across dictionary values
     """
 
-    values: list[dict] = Field(default_factory=list)
+    values: list[dict] = Field(default=[])
     key: str = Field(default="")
     pattern: str = Field(default="")
     full_match: bool = Field(default=False)
@@ -839,8 +835,8 @@ class Intersection(BaseNode):
     - Filter for matching elements
     """
 
-    list1: list[Any] = Field(default_factory=list)
-    list2: list[Any] = Field(default_factory=list)
+    list1: list[Any] = Field(default=[])
+    list2: list[Any] = Field(default=[])
 
     async def process(self, context: ProcessingContext) -> list[Any]:
         return list(set(self.list1).intersection(set(self.list2)))
@@ -857,8 +853,8 @@ class Union(BaseNode):
     - Create comprehensive set of items
     """
 
-    list1: list[Any] = Field(default_factory=list)
-    list2: list[Any] = Field(default_factory=list)
+    list1: list[Any] = Field(default=[])
+    list2: list[Any] = Field(default=[])
 
     async def process(self, context: ProcessingContext) -> list[Any]:
         return list(set(self.list1).union(set(self.list2)))
@@ -875,8 +871,8 @@ class Difference(BaseNode):
     - Identify distinct elements
     """
 
-    list1: list[Any] = Field(default_factory=list)
-    list2: list[Any] = Field(default_factory=list)
+    list1: list[Any] = Field(default=[])
+    list2: list[Any] = Field(default=[])
 
     async def process(self, context: ProcessingContext) -> list[Any]:
         return list(set(self.list1).difference(set(self.list2)))
@@ -893,7 +889,7 @@ class Chunk(BaseNode):
     - Creating sublists of fixed size
     """
 
-    values: list[Any] = Field(default_factory=list)
+    values: list[Any] = Field(default=[])
     chunk_size: int = Field(default=1, gt=0)
 
     async def process(self, context: ProcessingContext) -> list[list[Any]]:
@@ -901,6 +897,15 @@ class Chunk(BaseNode):
             self.values[i : i + self.chunk_size]
             for i in range(0, len(self.values), self.chunk_size)
         ]
+
+
+class TransformType(str, Enum):
+    TO_INT = "to_int"
+    TO_FLOAT = "to_float"
+    TO_STRING = "to_string"
+    UPPERCASE = "uppercase"
+    LOWERCASE = "lowercase"
+    STRIP = "strip"
 
 
 class Transform(BaseNode):
@@ -914,30 +919,20 @@ class Transform(BaseNode):
     - Mathematical operations
     """
 
-    class TransformType(str, Enum):
-        TO_INT = "to_int"
-        TO_FLOAT = "to_float"
-        TO_STRING = "to_string"
-        UPPERCASE = "uppercase"
-        LOWERCASE = "lowercase"
-        STRIP = "strip"
-
-    values: list[Any] = Field(
-        default_factory=list, description="The list of values to transform"
-    )
+    values: list[Any] = Field(default=[])
     transform_type: TransformType = Field(default=TransformType.TO_STRING)
 
     async def process(self, context: ProcessingContext) -> list[Any]:
         try:
-            if self.transform_type == self.TransformType.TO_INT:
+            if self.transform_type == TransformType.TO_INT:
                 return [int(x) for x in self.values]
-            elif self.transform_type == self.TransformType.TO_FLOAT:
+            elif self.transform_type == TransformType.TO_FLOAT:
                 return [float(x) for x in self.values]
-            elif self.transform_type == self.TransformType.TO_STRING:
+            elif self.transform_type == TransformType.TO_STRING:
                 return [str(x) for x in self.values]
-            elif self.transform_type == self.TransformType.UPPERCASE:
+            elif self.transform_type == TransformType.UPPERCASE:
                 return [str(x).upper() for x in self.values]
-            elif self.transform_type == self.TransformType.LOWERCASE:
+            elif self.transform_type == TransformType.LOWERCASE:
                 return [str(x).lower() for x in self.values]
             else:  # STRIP
                 return [str(x).strip() for x in self.values]
@@ -955,7 +950,7 @@ class Sum(BaseNode):
     - Add up all elements in a list
     """
 
-    values: list[float] = Field(default_factory=list)
+    values: list[float] = Field(default=[])
 
     async def process(self, context: ProcessingContext) -> float:
         if not self.values:
@@ -975,7 +970,7 @@ class Average(BaseNode):
     - Calculate mean of numeric data
     """
 
-    values: list[float] = Field(default_factory=list)
+    values: list[float] = Field(default=[])
 
     async def process(self, context: ProcessingContext) -> float:
         if not self.values:
@@ -995,7 +990,7 @@ class Minimum(BaseNode):
     - Get smallest number in dataset
     """
 
-    values: list[float] = Field(default_factory=list)
+    values: list[float] = Field(default=[])
 
     async def process(self, context: ProcessingContext) -> float:
         if not self.values:
@@ -1015,7 +1010,7 @@ class Maximum(BaseNode):
     - Get largest number in dataset
     """
 
-    values: list[float] = Field(default_factory=list)
+    values: list[float] = Field(default=[])
 
     async def process(self, context: ProcessingContext) -> float:
         if not self.values:
@@ -1035,7 +1030,7 @@ class Product(BaseNode):
     - Calculate compound values
     """
 
-    values: list[float] = Field(default_factory=list)
+    values: list[float] = Field(default=[])
 
     async def process(self, context: ProcessingContext) -> float:
         if not self.values:
@@ -1056,17 +1051,9 @@ class MapField(BaseNode):
     - Collect values for a particular key across multiple dictionaries
     """
 
-    values: list[dict | object] = Field(
-        default_factory=list,
-        description="The list of dictionaries or objects to extract from",
-    )
-    field: str = Field(
-        default="", description="The dictionary key or object field to extract"
-    )
-    default: Any = Field(
-        default=None,
-        description="Default value if field is missing (None if not specified)",
-    )
+    values: list[dict | object] = Field(default=[])
+    field: str = Field(default="")
+    default: Any = Field(default=None)
 
     async def process(self, context: ProcessingContext) -> list[Any]:
         if not isinstance(self.values, list) or not all(
@@ -1124,9 +1111,7 @@ class MapTemplate(BaseNode):
         - "{{ name|upper }}"
         """,
     )
-    values: list[dict[str, Any] | object] = Field(
-        default_factory=list, description="List of values to format the template with"
-    )
+    values: list[dict[str, Any] | object] = Field(default=[])
 
     async def process(self, context: ProcessingContext) -> list[str]:
         from jinja2 import Environment, BaseLoader
@@ -1173,12 +1158,8 @@ class Flatten(BaseNode):
     [[1, [2, 3]], [4, [5, 6]]] -> [1, 2, 3, 4, 5, 6]
     """
 
-    values: list[Any] = Field(
-        default_factory=list, description="The nested list structure to flatten"
-    )
-    max_depth: int = Field(
-        default=-1, description="Maximum depth to flatten (-1 for unlimited)", ge=-1
-    )
+    values: list[Any] = Field(default=[])
+    max_depth: int = Field(default=-1, ge=-1)
 
     def _flatten(self, lst: list[Any], current_depth: int = 0) -> list[Any]:
         result = []

@@ -1,10 +1,31 @@
 from pydantic import Field
-from nodetool.common.chroma_client import get_collection
+from nodetool.common.chroma_client import get_collection, get_chroma_client
 from nodetool.metadata.types import (
     Collection,
+    LlamaModel,
 )
 from nodetool.nodes.chroma.chroma_node import ChromaNode
 from nodetool.workflows.processing_context import ProcessingContext
+
+
+class GetOrCreateCollection(ChromaNode):
+    """
+    Get or create a collection.
+    chroma, embedding, collection, RAG, get, create
+    """
+
+    name: str = Field(default="", description="The name of the collection to create")
+    embedding_model: LlamaModel = Field(
+        default=LlamaModel(), description="The embedding model to use"
+    )
+
+    async def process(self, context: ProcessingContext) -> Collection:
+        client = get_chroma_client()
+        client.get_or_create_collection(
+            name=self.name,
+            metadata={"embedding_model": self.embedding_model.repo_id},
+        )
+        return Collection(name=self.name)
 
 
 class Count(ChromaNode):
@@ -32,9 +53,7 @@ class GetDocuments(ChromaNode):
         default=Collection(), description="The collection to get"
     )
 
-    ids: list[str] = Field(
-        default_factory=list, description="The ids of the documents to get"
-    )
+    ids: list[str] = Field(default=[], description="The ids of the documents to get")
     limit: int = Field(default=100, description="The limit of the documents to get")
     offset: int = Field(default=0, description="The offset of the documents to get")
 

@@ -120,10 +120,6 @@ class GmailSearch(BaseNode):
         default=DateFilter.SINCE_ONE_DAY,
         description="Date filter to search for",
     )
-    flags: EmailFlag = Field(
-        default_factory=list,
-        description="Email status flags to search for",
-    )
     keywords: str = Field(
         default="",
         description="Custom keywords or labels to search for",
@@ -161,7 +157,6 @@ class GmailSearch(BaseNode):
             subject=self.subject.strip() if self.subject.strip() else None,
             body=self.body.strip() if self.body.strip() else None,
             date_condition=get_date_condition(self.date_filter),
-            flags=[self.flags] if self.flags else [],
             keywords=(
                 [
                     k.strip()
@@ -186,7 +181,7 @@ class MoveToArchive(BaseNode):
     """
 
     message_ids: List[str] = Field(
-        default_factory=list,
+        default=[],
         description="List of message IDs to archive",
     )
 

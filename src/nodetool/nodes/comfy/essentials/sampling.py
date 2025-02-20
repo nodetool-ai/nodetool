@@ -193,7 +193,7 @@ class SamplerSelectHelper(ComfyNode):
 
     _comfy_class = sampling.SamplerSelectHelper
     samplers: List[bool] = Field(
-        default_factory=list, description="List of boolean flags for samplers"
+        default=[], description="List of boolean flags for samplers"
     )
 
     @classmethod
@@ -214,7 +214,7 @@ class SchedulerSelectHelper(ComfyNode):
 
     _comfy_class = sampling.SchedulerSelectHelper
     schedulers: List[bool] = Field(
-        default_factory=list, description="List of boolean flags for schedulers"
+        default=[], description="List of boolean flags for schedulers"
     )
 
     @classmethod

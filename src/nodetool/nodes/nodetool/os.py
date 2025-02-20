@@ -452,7 +452,7 @@ class SaveCSVFile(BaseNode):
     """
 
     data: list[dict] = Field(
-        default_factory=list, description="list of dictionaries to write to CSV"
+        default=[], description="list of dictionaries to write to CSV"
     )
     folder: FolderPath = Field(
         default=FolderPath(), description="Folder where the file will be saved"
@@ -494,7 +494,7 @@ class SaveCSVDataframeFile(BaseNode):
     """
 
     dataframe: DataframeRef = Field(
-        default_factory=DataframeRef, description="DataFrame to write to CSV"
+        default=DataframeRef(), description="DataFrame to write to CSV"
     )
     folder: FolderPath = Field(
         default=FolderPath(), description="Folder where the file will be saved"
@@ -852,9 +852,7 @@ class FilterFileNames(BaseNode):
     - Select files by extension
     """
 
-    filenames: list[str] = Field(
-        default_factory=list, description="list of filenames to filter"
-    )
+    filenames: list[str] = Field(default=[], description="list of filenames to filter")
     pattern: str = Field(
         default="*", description="Pattern to filter by (e.g. *.txt, data_*.csv)"
     )
@@ -929,9 +927,7 @@ class JoinPaths(BaseNode):
     - Create cross-platform paths
     """
 
-    paths: list[str] = Field(
-        default_factory=list, description="Path components to join"
-    )
+    paths: list[str] = Field(default=[], description="Path components to join")
 
     async def process(self, context: ProcessingContext) -> FilePath:
         return FilePath(path=os.path.join(*self.paths))

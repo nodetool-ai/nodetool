@@ -131,7 +131,7 @@ class GridSearchNode(BaseNode):
     )
     X: NPArray = Field(default=NPArray(), description="Training features")
     y: NPArray = Field(default=NPArray(), description="Training target values")
-    param_grid: Dict[str, List[Any]] = Field(
+    param_grid: dict[str, List[Any]] = Field(
         default={},
         description="Dictionary with parameters names (string) as keys and lists of parameter settings to try",
     )

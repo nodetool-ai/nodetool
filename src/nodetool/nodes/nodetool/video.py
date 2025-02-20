@@ -164,7 +164,7 @@ class CreateVideo(BaseNode):
     """
 
     frames: list[ImageRef] = Field(
-        default_factory=list, description="The frames to combine into a video."
+        default=[], description="The frames to combine into a video."
     )
     fps: float = Field(default=30, description="The FPS of the output video.")
 

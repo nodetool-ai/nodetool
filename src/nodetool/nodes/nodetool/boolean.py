@@ -25,8 +25,12 @@ class ConditionalSwitch(BaseNode):
     """
 
     condition: bool = Field(default=None, description="The condition to check")
-    if_true: Any = Field(default=None, description="The value to return if the condition is true")
-    if_false: Any = Field(default=None, description="The value to return if the condition is false")
+    if_true: Any = Field(
+        default=None, description="The value to return if the condition is true"
+    )
+    if_false: Any = Field(
+        default=None, description="The value to return if the condition is false"
+    )
 
     async def process(self, context: ProcessingContext) -> Any:
         return self.if_true if self.condition else self.if_false
@@ -97,7 +101,7 @@ class Compare(BaseNode):
 
     Use cases:
     - Implement decision points in workflows
-    - Filter data based on specific criteria    
+    - Filter data based on specific criteria
     - Create dynamic thresholds or limits
     """
 
@@ -154,7 +158,7 @@ class IsIn(BaseNode):
 
     value: Any = Field(default=None, description="The value to check for membership")
     options: list[Any] = Field(
-        default_factory=list, description="The list of options to check against"
+        default=[], description="The list of options to check against"
     )
 
     async def process(self, context: ProcessingContext) -> bool:
@@ -173,7 +177,9 @@ class All(BaseNode):
     - Validate multiple criteria simultaneously
     """
 
-    values: list[bool] = Field(default_factory=list, description="List of boolean values to check")
+    values: list[bool] = Field(
+        default=[], description="List of boolean values to check"
+    )
 
     async def process(self, context: ProcessingContext) -> bool:
         return all(self.values)
@@ -190,7 +196,9 @@ class Some(BaseNode):
     - Create flexible validation rules
     """
 
-    values: list[bool] = Field(default_factory=list, description="List of boolean values to check")
+    values: list[bool] = Field(
+        default=[], description="List of boolean values to check"
+    )
 
     async def process(self, context: ProcessingContext) -> bool:
         return any(self.values)

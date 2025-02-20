@@ -127,9 +127,7 @@ class ImageListToBatch(ComfyNode):
 
     _comfy_class = image.ImageListToBatch
 
-    image: List[ImageRef] = Field(
-        default_factory=list, description="List of input images"
-    )
+    image: List[ImageRef] = Field(default=[], description="List of input images")
 
     @classmethod
     def return_type(cls):

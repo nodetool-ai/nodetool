@@ -15,7 +15,7 @@ class Loop(GroupNode):
     - Loop over a list of items and process the nodes inside the group
     """
 
-    input: Any = Field(default_factory=list, description="The input data to loop over.")
+    input: Any = Field(default=[], description="The input data to loop over.")
 
     async def process(self, context: ProcessingContext) -> Any:
         raise NotImplementedError()

@@ -53,7 +53,7 @@ class Join(BaseNode):
     - Assembling formatted text from array elements
     """
 
-    strings: list[str] = Field(default_factory=list)
+    strings: list[str] = Field(default=[])
     separator: str = Field(default="")
 
     @classmethod

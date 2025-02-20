@@ -8291,7 +8291,7 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": [],
         "title": "Image",
         "description": "List of input images",
         "min": null,
@@ -12829,7 +12829,7 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": [],
         "title": "Samplers",
         "description": "List of boolean flags for samplers",
         "min": null,
@@ -12880,7 +12880,7 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": [],
         "title": "Schedulers",
         "description": "List of boolean flags for schedulers",
         "min": null,
@@ -13904,7 +13904,7 @@
   },
   {
     "title": "Compare",
-    "description": "Compares two values using a specified comparison operator.\n    compare, condition, logic\n\n    Use cases:\n    - Implement decision points in workflows\n    - Filter data based on specific criteria    \n    - Create dynamic thresholds or limits",
+    "description": "Compares two values using a specified comparison operator.\n    compare, condition, logic\n\n    Use cases:\n    - Implement decision points in workflows\n    - Filter data based on specific criteria\n    - Create dynamic thresholds or limits",
     "namespace": "nodetool.boolean",
     "node_type": "nodetool.boolean.Compare",
     "layout": "default",
@@ -14066,7 +14066,7 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": [],
         "title": "Options",
         "description": "The list of options to check against",
         "min": null,
@@ -14118,7 +14118,7 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": [],
         "title": "Values",
         "description": "List of boolean values to check",
         "min": null,
@@ -14169,7 +14169,7 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": [],
         "title": "Values",
         "description": "List of boolean values to check",
         "min": null,
@@ -17735,7 +17735,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": null,
+        "default": [],
         "title": "Input",
         "description": "The input data to loop over.",
         "min": null,
@@ -19844,7 +19844,7 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": [],
         "title": "Values",
         "description": null,
         "min": null,
@@ -19951,7 +19951,7 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": [],
         "title": "Values",
         "description": null,
         "min": null,
@@ -19974,7 +19974,7 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": [],
         "title": "Indices",
         "description": null,
         "min": null,
@@ -20034,7 +20034,7 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": [],
         "title": "Values",
         "description": null,
         "min": null,
@@ -20377,9 +20377,9 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": [],
         "title": "Values",
-        "description": "The list to save.",
+        "description": null,
         "min": null,
         "max": null
       },
@@ -20581,9 +20581,9 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": [],
         "title": "Values",
-        "description": "The list of dictionaries to filter.",
+        "description": null,
         "min": null,
         "max": null
       },
@@ -20656,9 +20656,9 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": [],
         "title": "Values",
-        "description": "The list of strings to filter.",
+        "description": null,
         "min": null,
         "max": null
       },
@@ -20754,9 +20754,9 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": [],
         "title": "Values",
-        "description": "The list of numbers to filter.",
+        "description": null,
         "min": null,
         "max": null
       },
@@ -20775,7 +20775,7 @@
             "negative"
           ],
           "type_args": [],
-          "type_name": "nodetool.nodes.nodetool.list.FilterType"
+          "type_name": "nodetool.nodes.nodetool.list.FilterNumberType"
         },
         "default": "greater_than",
         "title": "Filter Type",
@@ -20868,7 +20868,7 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": [],
         "title": "Values",
         "description": null,
         "min": null,
@@ -20975,9 +20975,9 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": [],
         "title": "Values",
-        "description": "The list of strings to filter.",
+        "description": null,
         "min": null,
         "max": null
       },
@@ -21066,9 +21066,9 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": [],
         "title": "Values",
-        "description": "The list to filter None values from.",
+        "description": null,
         "min": null,
         "max": null
       }
@@ -21125,9 +21125,9 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": [],
         "title": "Values",
-        "description": "The list of dictionaries to filter.",
+        "description": null,
         "min": null,
         "max": null
       },
@@ -21241,9 +21241,9 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": [],
         "title": "Values",
-        "description": "The list of dictionaries to filter.",
+        "description": null,
         "min": null,
         "max": null
       },
@@ -21256,7 +21256,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": null,
+        "default": "",
         "title": "Key",
         "description": "The dictionary key to check for the range",
         "min": null,
@@ -21271,7 +21271,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": null,
+        "default": 0,
         "title": "Min Value",
         "description": "The minimum value (inclusive) of the range",
         "min": null,
@@ -21286,7 +21286,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": null,
+        "default": 0,
         "title": "Max Value",
         "description": "The maximum value (inclusive) of the range",
         "min": null,
@@ -21364,7 +21364,7 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": [],
         "title": "Values",
         "description": null,
         "min": null,
@@ -21400,7 +21400,7 @@
             "negative"
           ],
           "type_args": [],
-          "type_name": "nodetool.nodes.nodetool.list.FilterType"
+          "type_name": "nodetool.nodes.nodetool.list.FilterDictNumberType"
         },
         "default": "greater_than",
         "title": "Filter Type",
@@ -21494,7 +21494,7 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": [],
         "title": "Values",
         "description": null,
         "min": null,
@@ -21601,7 +21601,7 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": [],
         "title": "List1",
         "description": null,
         "min": null,
@@ -21624,7 +21624,7 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": [],
         "title": "List2",
         "description": null,
         "min": null,
@@ -21684,7 +21684,7 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": [],
         "title": "List1",
         "description": null,
         "min": null,
@@ -21707,7 +21707,7 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": [],
         "title": "List2",
         "description": null,
         "min": null,
@@ -21767,7 +21767,7 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": [],
         "title": "List1",
         "description": null,
         "min": null,
@@ -21790,7 +21790,7 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": [],
         "title": "List2",
         "description": null,
         "min": null,
@@ -21850,7 +21850,7 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": [],
         "title": "Values",
         "description": null,
         "min": null,
@@ -21933,9 +21933,9 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": [],
         "title": "Values",
-        "description": "The list of values to transform",
+        "description": null,
         "min": null,
         "max": null
       },
@@ -22015,7 +22015,7 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": [],
         "title": "Values",
         "description": null,
         "min": null,
@@ -22066,7 +22066,7 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": [],
         "title": "Values",
         "description": null,
         "min": null,
@@ -22117,7 +22117,7 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": [],
         "title": "Values",
         "description": null,
         "min": null,
@@ -22168,7 +22168,7 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": [],
         "title": "Values",
         "description": null,
         "min": null,
@@ -22219,7 +22219,7 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": [],
         "title": "Values",
         "description": null,
         "min": null,
@@ -22285,9 +22285,9 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": [],
         "title": "Values",
-        "description": "The list of dictionaries or objects to extract from",
+        "description": null,
         "min": null,
         "max": null
       },
@@ -22302,7 +22302,7 @@
         },
         "default": "",
         "title": "Field",
-        "description": "The dictionary key or object field to extract",
+        "description": null,
         "min": null,
         "max": null
       },
@@ -22317,7 +22317,7 @@
         },
         "default": null,
         "title": "Default",
-        "description": "Default value if field is missing (None if not specified)",
+        "description": null,
         "min": null,
         "max": null
       }
@@ -22421,9 +22421,9 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": [],
         "title": "Values",
-        "description": "List of values to format the template with",
+        "description": null,
         "min": null,
         "max": null
       }
@@ -22481,9 +22481,9 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": [],
         "title": "Values",
-        "description": "The nested list structure to flatten",
+        "description": null,
         "min": null,
         "max": null
       },
@@ -22498,7 +22498,7 @@
         },
         "default": -1,
         "title": "Max Depth",
-        "description": "Maximum depth to flatten (-1 for unlimited)",
+        "description": null,
         "min": -1.0,
         "max": null
       }
@@ -24150,10 +24150,10 @@
     "is_dynamic": false
   },
   {
-    "title": "Tensor Output",
-    "description": "Output node for generic tensor data.\n    tensor, array, numerical\n\n    Use cases:\n    - Passing multi-dimensional data between nodes\n    - Outputting results from machine learning models\n    - Representing complex numerical data structures",
+    "title": "Array Output",
+    "description": "Output node for generic array data.\n    array, numerical\n\n    Use cases:\n    - Outputting results from machine learning models\n    - Representing complex numerical data structures",
     "namespace": "nodetool.output",
-    "node_type": "nodetool.output.TensorOutput",
+    "node_type": "nodetool.output.ArrayOutput",
     "layout": "default",
     "properties": [
       {
@@ -24785,7 +24785,7 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": [],
         "title": "Strings",
         "description": null,
         "min": null,
@@ -26887,7 +26887,7 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": [],
         "title": "Frames",
         "description": "The frames to combine into a video.",
         "min": null,
@@ -28989,7 +28989,7 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": [],
         "title": "Images",
         "description": "list of images to save as animated WEBP.",
         "min": null,
@@ -29108,7 +29108,7 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": [],
         "title": "Images",
         "description": "list of images to save as animated PNG.",
         "min": null,
@@ -29183,7 +29183,7 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": {},
         "title": "Hidden Fields",
         "description": "Hidden fields like prompt and extra PNG information.",
         "min": null,
@@ -50966,7 +50966,7 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": [],
         "title": "Loras",
         "description": "List of LoRA models to apply",
         "min": null,
@@ -51360,7 +51360,7 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": [],
         "title": "Loras",
         "description": "List of LoRA models to apply",
         "min": null,
@@ -51747,7 +51747,7 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": [],
         "title": "Loras",
         "description": "List of LoRA models to apply",
         "min": null,
@@ -51798,7 +51798,7 @@
   },
   {
     "title": "Control Net",
-    "description": "Generates images using Stable Diffusion with ControlNet for additional image control. Supports optional high-resolution upscaling while maintaining the same ControlNet strength.\n    image, controlnet, generative, stable diffusion, high-resolution, SD\n    \n    Use cases:\n    - Generating images with specific structural guidance\n    - Creating images that follow edge maps or depth information\n    - Producing variations of images while maintaining certain features\n    - Enhancing image generation with additional control signals\n    - Creating high-resolution images with consistent controlled features",
+    "description": "Generates images using Stable Diffusion with ControlNet for additional image control. Supports optional high-resolution upscaling while maintaining the same ControlNet strength.\n    image, controlnet, generative, stable diffusion, high-resolution, SD\n\n    Use cases:\n    - Generating images with specific structural guidance\n    - Creating images that follow edge maps or depth information\n    - Producing variations of images while maintaining certain features\n    - Enhancing image generation with additional control signals\n    - Creating high-resolution images with consistent controlled features",
     "namespace": "comfy.basic",
     "node_type": "comfy.basic.ControlNet",
     "layout": "default",
@@ -52078,7 +52078,7 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": [],
         "title": "Loras",
         "description": "List of LoRA models to apply",
         "min": null,
@@ -53589,7 +53589,7 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": [],
         "title": "Colors",
         "description": "An array of preferable colors",
         "min": null,
@@ -54196,7 +54196,7 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": [],
         "title": "Loras",
         "description": "List of LoRA weights to use for image generation",
         "min": null,
@@ -54286,7 +54286,12 @@
           "type_args": [],
           "type_name": null
         },
-        "default": null,
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null
+        },
         "title": "Image",
         "description": "The input image to inpaint",
         "min": null,
@@ -54301,7 +54306,12 @@
           "type_args": [],
           "type_name": null
         },
-        "default": null,
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null
+        },
         "title": "Mask",
         "description": "The mask indicating areas to inpaint (white=inpaint, black=keep)",
         "min": null,
@@ -54369,7 +54379,7 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": [],
         "title": "Loras",
         "description": "List of LoRA weights to use for image generation",
         "min": null,
@@ -54587,7 +54597,12 @@
           "type_args": [],
           "type_name": null
         },
-        "default": null,
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null
+        },
         "title": "Image",
         "description": "The image of the subject",
         "min": null,
@@ -55439,7 +55454,7 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": [],
         "title": "Colors",
         "description": "An array of preferable colors",
         "min": null,
@@ -56590,7 +56605,7 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": [],
         "title": "Loras",
         "description": "The list of LoRA weights to use",
         "min": null,
@@ -56748,7 +56763,7 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": [],
         "title": "Loras",
         "description": "List of LoRA weights to use for image generation",
         "min": null,
@@ -58258,7 +58273,7 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": [],
         "title": "Loras",
         "description": "Up to 5 LoRAs that will be merged for generation",
         "min": null,
@@ -64981,7 +64996,7 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": [],
         "title": "Segments",
         "description": "The list of audio segments to save.",
         "min": null,
@@ -68636,6 +68651,105 @@
     "is_dynamic": false
   },
   {
+    "title": "Split into Sentences",
+    "description": "Splits text into sentences using LangChain's SentenceTransformersTokenTextSplitter.\n    sentences, split, nlp\n\n    Use cases:\n    - Natural sentence-based text splitting\n    - Creating semantically meaningful chunks\n    - Processing text for sentence-level analysis",
+    "namespace": "lib.data.langchain",
+    "node_type": "lib.data.langchain.SentenceSplitter",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "text",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Text",
+        "description": null,
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "document_id",
+        "type": {
+          "type": "str",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": "",
+        "title": "Document Id",
+        "description": "Document ID to associate with the text",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "chunk_size",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 40,
+        "title": "Chunk Size",
+        "description": "Maximum number of tokens per chunk",
+        "min": null,
+        "max": null
+      },
+      {
+        "name": "chunk_overlap",
+        "type": {
+          "type": "int",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": 5,
+        "title": "Chunk Overlap",
+        "description": "Number of tokens to overlap between chunks",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "text_chunk",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "text",
+      "document_id",
+      "chunk_size",
+      "chunk_overlap"
+    ],
+    "is_dynamic": false
+  },
+  {
     "title": "Binary Operation",
     "description": "",
     "namespace": "lib.data.numpy",
@@ -68761,10 +68875,10 @@
     "is_dynamic": false
   },
   {
-    "title": "Add",
-    "description": "Performs addition on two inputs.\n    math, plus, add, addition, sum, +",
+    "title": "Add Array",
+    "description": "Performs addition on two arrays.\n    math, plus, add, addition, sum, +",
     "namespace": "lib.data.numpy",
-    "node_type": "lib.data.numpy.Add",
+    "node_type": "lib.data.numpy.AddArray",
     "layout": "small",
     "properties": [
       {
@@ -68886,10 +69000,10 @@
     "is_dynamic": false
   },
   {
-    "title": "Subtract",
-    "description": "Subtracts the second input from the first.\n    math, minus, difference, -",
+    "title": "Subtract Array",
+    "description": "Subtracts the second array from the first.\n    math, minus, difference, -",
     "namespace": "lib.data.numpy",
-    "node_type": "lib.data.numpy.Subtract",
+    "node_type": "lib.data.numpy.SubtractArray",
     "layout": "small",
     "properties": [
       {
@@ -69011,10 +69125,10 @@
     "is_dynamic": false
   },
   {
-    "title": "Multiply",
-    "description": "Multiplies two inputs.\n    math, product, times, *",
+    "title": "Multiply Array",
+    "description": "Multiplies two arrays.\n    math, product, times, *",
     "namespace": "lib.data.numpy",
-    "node_type": "lib.data.numpy.Multiply",
+    "node_type": "lib.data.numpy.MultiplyArray",
     "layout": "small",
     "properties": [
       {
@@ -69136,10 +69250,10 @@
     "is_dynamic": false
   },
   {
-    "title": "Divide",
-    "description": "Divides the first input by the second.\n    math, division, arithmetic, quotient, /",
+    "title": "Divide Array",
+    "description": "Divides the first array by the second.\n    math, division, arithmetic, quotient, /",
     "namespace": "lib.data.numpy",
-    "node_type": "lib.data.numpy.Divide",
+    "node_type": "lib.data.numpy.DivideArray",
     "layout": "small",
     "properties": [
       {
@@ -69261,10 +69375,10 @@
     "is_dynamic": false
   },
   {
-    "title": "Modulus",
+    "title": "Modulus Array",
     "description": "Calculates the element-wise remainder of division.\n    math, modulo, remainder, mod, %\n\n    Use cases:\n    - Implementing cyclic behaviors\n    - Checking for even/odd numbers\n    - Limiting values to a specific range",
     "namespace": "lib.data.numpy",
-    "node_type": "lib.data.numpy.Modulus",
+    "node_type": "lib.data.numpy.ModulusArray",
     "layout": "small",
     "properties": [
       {
@@ -69386,10 +69500,10 @@
     "is_dynamic": false
   },
   {
-    "title": "Sine",
+    "title": "Sine Array",
     "description": "Computes the sine of input angles in radians.\n    math, trigonometry, sine, sin\n\n    Use cases:\n    - Calculating vertical components in physics\n    - Generating smooth periodic functions\n    - Audio signal processing",
     "namespace": "lib.data.numpy",
-    "node_type": "lib.data.numpy.Sine",
+    "node_type": "lib.data.numpy.SineArray",
     "layout": "small",
     "properties": [
       {
@@ -69466,10 +69580,10 @@
     "is_dynamic": false
   },
   {
-    "title": "Cosine",
+    "title": "Cosine Array",
     "description": "Computes the cosine of input angles in radians.\n    math, trigonometry, cosine, cos\n\n    Use cases:\n    - Calculating horizontal components in physics\n    - Creating circular motions\n    - Phase calculations in signal processing",
     "namespace": "lib.data.numpy",
-    "node_type": "lib.data.numpy.Cosine",
+    "node_type": "lib.data.numpy.CosineArray",
     "layout": "small",
     "properties": [
       {
@@ -69546,10 +69660,10 @@
     "is_dynamic": false
   },
   {
-    "title": "Power",
-    "description": "Raises the base to the power of the exponent element-wise.\n    math, exponentiation, power, pow, **\n\n    Use cases:\n    - Calculating compound interest\n    - Implementing polynomial functions\n    - Applying non-linear transformations to data",
+    "title": "Power Array",
+    "description": "Raises the base array to the power of the exponent element-wise.\n    math, exponentiation, power, pow, **\n\n    Use cases:\n    - Calculating compound interest\n    - Implementing polynomial functions\n    - Applying non-linear transformations to data",
     "namespace": "lib.data.numpy",
-    "node_type": "lib.data.numpy.Power",
+    "node_type": "lib.data.numpy.PowerArray",
     "layout": "small",
     "properties": [
       {
@@ -69671,46 +69785,31 @@
     "is_dynamic": false
   },
   {
-    "title": "Sqrt",
-    "description": "Calculates the square root of the input element-wise.\n    math, square root, sqrt, \u221a\n\n    Use cases:\n    - Normalizing data\n    - Calculating distances in Euclidean space\n    - Finding intermediate values in binary search",
+    "title": "Sqrt Array",
+    "description": "Calculates the square root of the input array element-wise.\n    math, square root, sqrt, \u221a\n\n    Use cases:\n    - Normalizing data\n    - Calculating distances in Euclidean space\n    - Finding intermediate values in binary search",
     "namespace": "lib.data.numpy",
-    "node_type": "lib.data.numpy.Sqrt",
+    "node_type": "lib.data.numpy.SqrtArray",
     "layout": "small",
     "properties": [
       {
-        "name": "x",
+        "name": "values",
         "type": {
-          "type": "union",
+          "type": "np_array",
           "optional": false,
           "values": null,
-          "type_args": [
-            {
-              "type": "int",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            },
-            {
-              "type": "float",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            },
-            {
-              "type": "np_array",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
+          "type_args": [],
           "type_name": null
         },
-        "default": 1.0,
-        "title": "Input",
-        "description": null,
+        "default": {
+          "type": "np_array",
+          "value": null,
+          "dtype": "<i8",
+          "shape": [
+            1
+          ]
+        },
+        "title": "Values",
+        "description": "Input array",
         "min": null,
         "max": null
       }
@@ -69753,7 +69852,7 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "x"
+      "values"
     ],
     "is_dynamic": false
   },
@@ -69765,7 +69864,7 @@
     "layout": "default",
     "properties": [
       {
-        "name": "array",
+        "name": "values",
         "type": {
           "type": "np_array",
           "optional": false,
@@ -69781,7 +69880,7 @@
             1
           ]
         },
-        "title": "Array",
+        "title": "Values",
         "description": "The array to save.",
         "min": null,
         "max": null
@@ -69838,7 +69937,7 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "array",
+      "values",
       "folder",
       "name"
     ],
@@ -69900,7 +69999,7 @@
     "layout": "default",
     "properties": [
       {
-        "name": "array",
+        "name": "values",
         "type": {
           "type": "np_array",
           "optional": false,
@@ -69916,7 +70015,7 @@
             1
           ]
         },
-        "title": "Array",
+        "title": "Values",
         "description": "The input array to convert to an image. Should have either 1, 3, or 4 channels.",
         "min": null,
         "max": null
@@ -69938,7 +70037,7 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "array"
+      "values"
     ],
     "is_dynamic": false
   },
@@ -69950,7 +70049,7 @@
     "layout": "default",
     "properties": [
       {
-        "name": "array",
+        "name": "values",
         "type": {
           "type": "np_array",
           "optional": false,
@@ -69966,7 +70065,7 @@
             1
           ]
         },
-        "title": "Array",
+        "title": "Values",
         "description": "The array to convert to an audio file.",
         "min": null,
         "max": null
@@ -70003,7 +70102,7 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "array",
+      "values",
       "sample_rate"
     ],
     "is_dynamic": false
@@ -70034,7 +70133,7 @@
         },
         "default": [],
         "title": "Arrays",
-        "description": null,
+        "description": "Arrays to stack",
         "min": null,
         "max": null
       },
@@ -70100,7 +70199,7 @@
           ]
         },
         "title": "A",
-        "description": null,
+        "description": "First input array",
         "min": null,
         "max": null
       },
@@ -70122,7 +70221,7 @@
           ]
         },
         "title": "B",
-        "description": null,
+        "description": "Second input array",
         "min": null,
         "max": null
       }
@@ -70149,14 +70248,14 @@
     "is_dynamic": false
   },
   {
-    "title": "Transpose",
+    "title": "Transpose Array",
     "description": "Transpose the dimensions of the input array.\n    array, transpose, reshape, dimensions\n\n    Use cases:\n    - Convert row vectors to column vectors\n    - Rearrange data for compatibility with other operations\n    - Implement certain linear algebra operations",
     "namespace": "lib.data.numpy",
-    "node_type": "lib.data.numpy.Transpose",
+    "node_type": "lib.data.numpy.TransposeArray",
     "layout": "small",
     "properties": [
       {
-        "name": "array",
+        "name": "values",
         "type": {
           "type": "np_array",
           "optional": false,
@@ -70172,8 +70271,8 @@
             1
           ]
         },
-        "title": "Array",
-        "description": null,
+        "title": "Values",
+        "description": "Array to transpose",
         "min": null,
         "max": null
       }
@@ -70194,19 +70293,19 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "array"
+      "values"
     ],
     "is_dynamic": false
   },
   {
-    "title": "Max",
+    "title": "Max Array",
     "description": "Compute the maximum value along a specified axis of a array.\n    array, maximum, reduction, statistics\n\n    Use cases:\n    - Find peak values in time series data\n    - Implement max pooling in neural networks\n    - Determine highest scores across multiple categories",
     "namespace": "lib.data.numpy",
-    "node_type": "lib.data.numpy.Max",
+    "node_type": "lib.data.numpy.MaxArray",
     "layout": "default",
     "properties": [
       {
-        "name": "array",
+        "name": "values",
         "type": {
           "type": "np_array",
           "optional": false,
@@ -70222,8 +70321,8 @@
             1
           ]
         },
-        "title": "Array",
-        "description": null,
+        "title": "Values",
+        "description": "Input array",
         "min": null,
         "max": null
       },
@@ -70253,7 +70352,7 @@
         },
         "default": null,
         "title": "Axis",
-        "description": null,
+        "description": "Axis along which to compute maximum",
         "min": null,
         "max": null
       }
@@ -70296,20 +70395,20 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "array",
+      "values",
       "axis"
     ],
     "is_dynamic": false
   },
   {
-    "title": "Min",
+    "title": "Min Array",
     "description": "Calculate the minimum value along a specified axis of a array.\n    array, minimum, reduction, statistics\n\n    Use cases:\n    - Find lowest values in datasets\n    - Implement min pooling in neural networks\n    - Determine minimum thresholds across categories",
     "namespace": "lib.data.numpy",
-    "node_type": "lib.data.numpy.Min",
+    "node_type": "lib.data.numpy.MinArray",
     "layout": "default",
     "properties": [
       {
-        "name": "array",
+        "name": "values",
         "type": {
           "type": "np_array",
           "optional": false,
@@ -70325,8 +70424,8 @@
             1
           ]
         },
-        "title": "Array",
-        "description": null,
+        "title": "Values",
+        "description": "Input array",
         "min": null,
         "max": null
       },
@@ -70356,7 +70455,7 @@
         },
         "default": null,
         "title": "Axis",
-        "description": null,
+        "description": "Axis along which to compute minimum",
         "min": null,
         "max": null
       }
@@ -70399,20 +70498,20 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "array",
+      "values",
       "axis"
     ],
     "is_dynamic": false
   },
   {
-    "title": "Mean",
+    "title": "Mean Array",
     "description": "Compute the mean value along a specified axis of a array.\n    array, average, reduction, statistics\n\n    Use cases:\n    - Calculate average values in datasets\n    - Implement mean pooling in neural networks\n    - Compute centroids in clustering algorithms",
     "namespace": "lib.data.numpy",
-    "node_type": "lib.data.numpy.Mean",
+    "node_type": "lib.data.numpy.MeanArray",
     "layout": "default",
     "properties": [
       {
-        "name": "array",
+        "name": "values",
         "type": {
           "type": "np_array",
           "optional": false,
@@ -70428,8 +70527,8 @@
             1
           ]
         },
-        "title": "Array",
-        "description": null,
+        "title": "Values",
+        "description": "Input array",
         "min": null,
         "max": null
       },
@@ -70459,7 +70558,7 @@
         },
         "default": null,
         "title": "Axis",
-        "description": null,
+        "description": "Axis along which to compute mean",
         "min": null,
         "max": null
       }
@@ -70502,20 +70601,20 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "array",
+      "values",
       "axis"
     ],
     "is_dynamic": false
   },
   {
-    "title": "Sum",
+    "title": "Sum Array",
     "description": "Calculate the sum of values along a specified axis of a array.\n    array, summation, reduction, statistics\n\n    Use cases:\n    - Compute total values across categories\n    - Implement sum pooling in neural networks\n    - Calculate cumulative metrics in time series data",
     "namespace": "lib.data.numpy",
-    "node_type": "lib.data.numpy.Sum",
+    "node_type": "lib.data.numpy.SumArray",
     "layout": "default",
     "properties": [
       {
-        "name": "array",
+        "name": "values",
         "type": {
           "type": "np_array",
           "optional": false,
@@ -70531,8 +70630,8 @@
             1
           ]
         },
-        "title": "Array",
-        "description": null,
+        "title": "Values",
+        "description": "Input array",
         "min": null,
         "max": null
       },
@@ -70562,7 +70661,7 @@
         },
         "default": null,
         "title": "Axis",
-        "description": null,
+        "description": "Axis along which to compute sum",
         "min": null,
         "max": null
       }
@@ -70605,20 +70704,20 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "array",
+      "values",
       "axis"
     ],
     "is_dynamic": false
   },
   {
-    "title": "Arg Max",
+    "title": "Arg Max Array",
     "description": "Find indices of maximum values along a specified axis of a array.\n    array, argmax, index, maximum\n\n    Use cases:\n    - Determine winning classes in classification tasks\n    - Find peaks in signal processing\n    - Locate best-performing items in datasets",
     "namespace": "lib.data.numpy",
-    "node_type": "lib.data.numpy.ArgMax",
+    "node_type": "lib.data.numpy.ArgMaxArray",
     "layout": "default",
     "properties": [
       {
-        "name": "a",
+        "name": "values",
         "type": {
           "type": "np_array",
           "optional": false,
@@ -70634,8 +70733,8 @@
             1
           ]
         },
-        "title": "A",
-        "description": null,
+        "title": "Values",
+        "description": "Input array",
         "min": null,
         "max": null
       },
@@ -70665,7 +70764,7 @@
         },
         "default": null,
         "title": "Axis",
-        "description": null,
+        "description": "Axis along which to find maximum indices",
         "min": null,
         "max": null
       }
@@ -70701,20 +70800,20 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "a",
+      "values",
       "axis"
     ],
     "is_dynamic": false
   },
   {
-    "title": "Arg Min",
+    "title": "Arg Min Array",
     "description": "Find indices of minimum values along a specified axis of a array.\n    array, argmin, index, minimum\n\n    Use cases:\n    - Locate lowest-performing items in datasets\n    - Find troughs in signal processing\n    - Determine least likely classes in classification tasks",
     "namespace": "lib.data.numpy",
-    "node_type": "lib.data.numpy.ArgMin",
+    "node_type": "lib.data.numpy.ArgMinArray",
     "layout": "default",
     "properties": [
       {
-        "name": "array",
+        "name": "values",
         "type": {
           "type": "np_array",
           "optional": false,
@@ -70730,8 +70829,8 @@
             1
           ]
         },
-        "title": "Array",
-        "description": null,
+        "title": "Values",
+        "description": "Input array",
         "min": null,
         "max": null
       },
@@ -70761,7 +70860,7 @@
         },
         "default": null,
         "title": "Axis",
-        "description": null,
+        "description": "Axis along which to find minimum indices",
         "min": null,
         "max": null
       }
@@ -70797,20 +70896,20 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "array",
+      "values",
       "axis"
     ],
     "is_dynamic": false
   },
   {
-    "title": "Abs",
+    "title": "Abs Array",
     "description": "Compute the absolute value of each element in a array.\n    array, absolute, magnitude\n\n    Use cases:\n    - Calculate magnitudes of complex numbers\n    - Preprocess data for certain algorithms\n    - Implement activation functions in neural networks",
     "namespace": "lib.data.numpy",
-    "node_type": "lib.data.numpy.Abs",
+    "node_type": "lib.data.numpy.AbsArray",
     "layout": "default",
     "properties": [
       {
-        "name": "input_array",
+        "name": "values",
         "type": {
           "type": "np_array",
           "optional": false,
@@ -70818,8 +70917,15 @@
           "type_args": [],
           "type_name": null
         },
-        "default": null,
-        "title": "Input Array",
+        "default": {
+          "type": "np_array",
+          "value": null,
+          "dtype": "<i8",
+          "shape": [
+            1
+          ]
+        },
+        "title": "Values",
         "description": "The input array to compute the absolute values from.",
         "min": null,
         "max": null
@@ -70841,19 +70947,19 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "input_array"
+      "values"
     ],
     "is_dynamic": false
   },
   {
-    "title": "array To Scalar",
+    "title": "Array To Scalar",
     "description": "Convert a single-element array to a scalar value.\n    array, scalar, conversion, type\n\n    Use cases:\n    - Extract final results from array computations\n    - Prepare values for non-array operations\n    - Simplify output for human-readable results",
     "namespace": "lib.data.numpy",
-    "node_type": "lib.data.numpy.arrayToScalar",
+    "node_type": "lib.data.numpy.ArrayToScalar",
     "layout": "default",
     "properties": [
       {
-        "name": "array",
+        "name": "values",
         "type": {
           "type": "np_array",
           "optional": false,
@@ -70869,8 +70975,8 @@
             1
           ]
         },
-        "title": "Array",
-        "description": null,
+        "title": "Values",
+        "description": "Array to convert to scalar",
         "min": null,
         "max": null
       }
@@ -70906,7 +71012,7 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "array"
+      "values"
     ],
     "is_dynamic": false
   },
@@ -70943,7 +71049,7 @@
         },
         "default": 0,
         "title": "Value",
-        "description": null,
+        "description": "Scalar value to convert to array",
         "min": null,
         "max": null
       }
@@ -70994,7 +71100,7 @@
         },
         "default": [],
         "title": "Values",
-        "description": null,
+        "description": "List of values to convert to array",
         "min": null,
         "max": null
       }
@@ -71027,7 +71133,7 @@
     "layout": "default",
     "properties": [
       {
-        "name": "array",
+        "name": "values",
         "type": {
           "type": "np_array",
           "optional": false,
@@ -71043,8 +71149,8 @@
             1
           ]
         },
-        "title": "Array",
-        "description": null,
+        "title": "Values",
+        "description": "Array to plot",
         "min": null,
         "max": null
       },
@@ -71063,7 +71169,7 @@
         },
         "default": "line",
         "title": "Plot Type",
-        "description": null,
+        "description": "Type of plot to create",
         "min": null,
         "max": null
       }
@@ -71084,7 +71190,7 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "array",
+      "values",
       "plot_type"
     ],
     "is_dynamic": false
@@ -71097,7 +71203,7 @@
     "layout": "default",
     "properties": [
       {
-        "name": "array",
+        "name": "values",
         "type": {
           "type": "np_array",
           "optional": false,
@@ -71113,8 +71219,8 @@
             1
           ]
         },
-        "title": "Array",
-        "description": null,
+        "title": "Values",
+        "description": "Array to convert to list",
         "min": null,
         "max": null
       }
@@ -71143,193 +71249,19 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "array"
+      "values"
     ],
     "is_dynamic": false
   },
   {
-    "title": "Exp",
+    "title": "Exp Array",
     "description": "Calculate the exponential of each element in a array.\n    array, exponential, math, activation\n\n    Use cases:\n    - Implement exponential activation functions\n    - Calculate growth rates in scientific models\n    - Transform data for certain statistical analyses",
     "namespace": "lib.data.numpy",
-    "node_type": "lib.data.numpy.Exp",
+    "node_type": "lib.data.numpy.ExpArray",
     "layout": "default",
     "properties": [
       {
-        "name": "x",
-        "type": {
-          "type": "union",
-          "optional": false,
-          "values": null,
-          "type_args": [
-            {
-              "type": "int",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            },
-            {
-              "type": "float",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            },
-            {
-              "type": "np_array",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
-          "type_name": null
-        },
-        "default": 1.0,
-        "title": "Input",
-        "description": null,
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "union",
-          "optional": false,
-          "values": null,
-          "type_args": [
-            {
-              "type": "float",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            },
-            {
-              "type": "int",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            },
-            {
-              "type": "np_array",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [
-      "x"
-    ],
-    "is_dynamic": false
-  },
-  {
-    "title": "Log",
-    "description": "Calculate the natural logarithm of each element in a array.\n    array, logarithm, math, transformation\n\n    Use cases:\n    - Implement log transformations on data\n    - Calculate entropy in information theory\n    - Normalize data with large ranges",
-    "namespace": "lib.data.numpy",
-    "node_type": "lib.data.numpy.Log",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "x",
-        "type": {
-          "type": "union",
-          "optional": false,
-          "values": null,
-          "type_args": [
-            {
-              "type": "int",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            },
-            {
-              "type": "float",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            },
-            {
-              "type": "np_array",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
-          "type_name": null
-        },
-        "default": 1.0,
-        "title": "Input",
-        "description": null,
-        "min": null,
-        "max": null
-      }
-    ],
-    "outputs": [
-      {
-        "type": {
-          "type": "union",
-          "optional": false,
-          "values": null,
-          "type_args": [
-            {
-              "type": "float",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            },
-            {
-              "type": "int",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            },
-            {
-              "type": "np_array",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
-          "type_name": null
-        },
-        "name": "output",
-        "stream": false
-      }
-    ],
-    "the_model_info": {},
-    "recommended_models": [],
-    "basic_fields": [
-      "x"
-    ],
-    "is_dynamic": false
-  },
-  {
-    "title": "Slice",
-    "description": "Extract a slice of an array along a specified axis.\n    array, slice, subset, index\n\n    Use cases:\n    - Extract specific time periods from time series data\n    - Select subset of features from datasets\n    - Create sliding windows over sequential data",
-    "namespace": "lib.data.numpy",
-    "node_type": "lib.data.numpy.Slice",
-    "layout": "default",
-    "properties": [
-      {
-        "name": "array",
+        "name": "values",
         "type": {
           "type": "np_array",
           "optional": false,
@@ -71345,7 +71277,151 @@
             1
           ]
         },
-        "title": "Array",
+        "title": "Values",
+        "description": "Input array",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "union",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "float",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            },
+            {
+              "type": "int",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            },
+            {
+              "type": "np_array",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "values"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Log Array",
+    "description": "Calculate the natural logarithm of each element in a array.\n    array, logarithm, math, transformation\n\n    Use cases:\n    - Implement log transformations on data\n    - Calculate entropy in information theory\n    - Normalize data with large ranges",
+    "namespace": "lib.data.numpy",
+    "node_type": "lib.data.numpy.LogArray",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "values",
+        "type": {
+          "type": "np_array",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "np_array",
+          "value": null,
+          "dtype": "<i8",
+          "shape": [
+            1
+          ]
+        },
+        "title": "Values",
+        "description": "Input array",
+        "min": null,
+        "max": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": {
+          "type": "union",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "float",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            },
+            {
+              "type": "int",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            },
+            {
+              "type": "np_array",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "name": "output",
+        "stream": false
+      }
+    ],
+    "the_model_info": {},
+    "recommended_models": [],
+    "basic_fields": [
+      "values"
+    ],
+    "is_dynamic": false
+  },
+  {
+    "title": "Slice Array",
+    "description": "Extract a slice of an array along a specified axis.\n    array, slice, subset, index\n\n    Use cases:\n    - Extract specific time periods from time series data\n    - Select subset of features from datasets\n    - Create sliding windows over sequential data",
+    "namespace": "lib.data.numpy",
+    "node_type": "lib.data.numpy.SliceArray",
+    "layout": "default",
+    "properties": [
+      {
+        "name": "values",
+        "type": {
+          "type": "np_array",
+          "optional": false,
+          "values": null,
+          "type_args": [],
+          "type_name": null
+        },
+        "default": {
+          "type": "np_array",
+          "value": null,
+          "dtype": "<i8",
+          "shape": [
+            1
+          ]
+        },
+        "title": "Values",
         "description": "The input array to slice",
         "min": null,
         "max": null
@@ -71427,7 +71503,7 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "array",
+      "values",
       "start",
       "stop",
       "step",
@@ -71436,14 +71512,14 @@
     "is_dynamic": false
   },
   {
-    "title": "Index",
+    "title": "Index Array",
     "description": "Select specific indices from an array along a specified axis.\n    array, index, select, subset\n\n    Use cases:\n    - Extract specific samples from a dataset\n    - Select particular features or dimensions\n    - Implement batch sampling operations",
     "namespace": "lib.data.numpy",
-    "node_type": "lib.data.numpy.Index",
+    "node_type": "lib.data.numpy.IndexArray",
     "layout": "default",
     "properties": [
       {
-        "name": "array",
+        "name": "values",
         "type": {
           "type": "np_array",
           "optional": false,
@@ -71451,8 +71527,15 @@
           "type_args": [],
           "type_name": null
         },
-        "default": null,
-        "title": "Array",
+        "default": {
+          "type": "np_array",
+          "value": null,
+          "dtype": "<i8",
+          "shape": [
+            1
+          ]
+        },
+        "title": "Values",
         "description": "The input array to index",
         "min": null,
         "max": null
@@ -71466,7 +71549,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": null,
+        "default": "",
         "title": "Indices",
         "description": "The comma separated indices to select",
         "min": null,
@@ -71504,7 +71587,7 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "array",
+      "values",
       "indices",
       "axis"
     ],
@@ -71518,7 +71601,7 @@
     "layout": "default",
     "properties": [
       {
-        "name": "array",
+        "name": "values",
         "type": {
           "type": "np_array",
           "optional": false,
@@ -71526,8 +71609,15 @@
           "type_args": [],
           "type_name": null
         },
-        "default": null,
-        "title": "Array",
+        "default": {
+          "type": "np_array",
+          "value": null,
+          "dtype": "<i8",
+          "shape": [
+            1
+          ]
+        },
+        "title": "Values",
         "description": "The input array to reshape",
         "min": null,
         "max": null
@@ -71541,7 +71631,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": null,
+        "default": 0,
         "title": "Num Elements",
         "description": "The number of elements",
         "min": null,
@@ -71564,7 +71654,7 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "array",
+      "values",
       "num_elements"
     ],
     "is_dynamic": false
@@ -71577,7 +71667,7 @@
     "layout": "default",
     "properties": [
       {
-        "name": "array",
+        "name": "values",
         "type": {
           "type": "np_array",
           "optional": false,
@@ -71585,8 +71675,15 @@
           "type_args": [],
           "type_name": null
         },
-        "default": null,
-        "title": "Array",
+        "default": {
+          "type": "np_array",
+          "value": null,
+          "dtype": "<i8",
+          "shape": [
+            1
+          ]
+        },
+        "title": "Values",
         "description": "The input array to reshape",
         "min": null,
         "max": null
@@ -71600,7 +71697,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": null,
+        "default": 0,
         "title": "Num Rows",
         "description": "The number of rows",
         "min": null,
@@ -71615,7 +71712,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": null,
+        "default": 0,
         "title": "Num Cols",
         "description": "The number of columns",
         "min": null,
@@ -71638,7 +71735,7 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "array",
+      "values",
       "num_rows",
       "num_cols"
     ],
@@ -71652,7 +71749,7 @@
     "layout": "default",
     "properties": [
       {
-        "name": "array",
+        "name": "values",
         "type": {
           "type": "np_array",
           "optional": false,
@@ -71660,8 +71757,15 @@
           "type_args": [],
           "type_name": null
         },
-        "default": null,
-        "title": "Array",
+        "default": {
+          "type": "np_array",
+          "value": null,
+          "dtype": "<i8",
+          "shape": [
+            1
+          ]
+        },
+        "title": "Values",
         "description": "The input array to reshape",
         "min": null,
         "max": null
@@ -71675,7 +71779,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": null,
+        "default": 0,
         "title": "Num Rows",
         "description": "The number of rows",
         "min": null,
@@ -71690,7 +71794,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": null,
+        "default": 0,
         "title": "Num Cols",
         "description": "The number of columns",
         "min": null,
@@ -71705,7 +71809,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": null,
+        "default": 0,
         "title": "Num Depths",
         "description": "The number of depths",
         "min": null,
@@ -71728,7 +71832,7 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "array",
+      "values",
       "num_rows",
       "num_cols",
       "num_depths"
@@ -71743,7 +71847,7 @@
     "layout": "default",
     "properties": [
       {
-        "name": "array",
+        "name": "values",
         "type": {
           "type": "np_array",
           "optional": false,
@@ -71751,8 +71855,15 @@
           "type_args": [],
           "type_name": null
         },
-        "default": null,
-        "title": "Array",
+        "default": {
+          "type": "np_array",
+          "value": null,
+          "dtype": "<i8",
+          "shape": [
+            1
+          ]
+        },
+        "title": "Values",
         "description": "The input array to reshape",
         "min": null,
         "max": null
@@ -71766,7 +71877,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": null,
+        "default": 0,
         "title": "Num Rows",
         "description": "The number of rows",
         "min": null,
@@ -71781,7 +71892,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": null,
+        "default": 0,
         "title": "Num Cols",
         "description": "The number of columns",
         "min": null,
@@ -71796,7 +71907,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": null,
+        "default": 0,
         "title": "Num Depths",
         "description": "The number of depths",
         "min": null,
@@ -71811,7 +71922,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": null,
+        "default": 0,
         "title": "Num Channels",
         "description": "The number of channels",
         "min": null,
@@ -71834,7 +71945,7 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "array",
+      "values",
       "num_rows",
       "num_cols",
       "num_depths",
@@ -71843,14 +71954,14 @@
     "is_dynamic": false
   },
   {
-    "title": "Split",
+    "title": "Split Array",
     "description": "Split an array into multiple sub-arrays along a specified axis.\n    array, split, divide, partition\n\n    Use cases:\n    - Divide datasets into training/validation splits\n    - Create batches from large arrays\n    - Separate multi-channel data",
     "namespace": "lib.data.numpy",
-    "node_type": "lib.data.numpy.Split",
+    "node_type": "lib.data.numpy.SplitArray",
     "layout": "default",
     "properties": [
       {
-        "name": "array",
+        "name": "values",
         "type": {
           "type": "np_array",
           "optional": false,
@@ -71858,8 +71969,15 @@
           "type_args": [],
           "type_name": null
         },
-        "default": null,
-        "title": "Array",
+        "default": {
+          "type": "np_array",
+          "value": null,
+          "dtype": "<i8",
+          "shape": [
+            1
+          ]
+        },
+        "title": "Values",
         "description": "The input array to split",
         "min": null,
         "max": null
@@ -71873,7 +71991,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": null,
+        "default": 0,
         "title": "Num Splits",
         "description": "Number of equal splits to create",
         "min": null,
@@ -71919,7 +72037,7 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "array",
+      "values",
       "num_splits",
       "axis"
     ],
@@ -72282,7 +72400,7 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": [],
         "title": "Values",
         "description": "A list of any type of elements which will be the new column's values.",
         "min": null,
@@ -75412,7 +75530,7 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": [],
         "title": "Extra Args",
         "description": "Additional pandoc arguments",
         "min": null,
@@ -75579,7 +75697,7 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": [],
         "title": "Extra Args",
         "description": "Additional pandoc arguments",
         "min": null,
@@ -76007,10 +76125,10 @@
     "is_dynamic": false
   },
   {
-    "title": "Extract Plain Text",
+    "title": "Extract Text",
     "description": "Extract plain text from a PDF document using PyMuPDF.\n    pdf, text, extract\n\n    Use cases:\n    - Extract raw text content from PDFs\n    - Convert PDF documents to plain text\n    - Prepare text for further processing",
     "namespace": "lib.file.pymupdf",
-    "node_type": "lib.file.pymupdf.ExtractPlainText",
+    "node_type": "lib.file.pymupdf.ExtractText",
     "layout": "default",
     "properties": [
       {
@@ -77014,7 +77132,7 @@
       {
         "name": "x",
         "type": {
-          "type": "float",
+          "type": "int",
           "optional": false,
           "values": null,
           "type_args": [],
@@ -77024,12 +77142,12 @@
         "title": "X",
         "description": "The x coordinate.",
         "min": 0.0,
-        "max": 1.0
+        "max": null
       },
       {
         "name": "y",
         "type": {
-          "type": "float",
+          "type": "int",
           "optional": false,
           "values": null,
           "type_args": [],
@@ -77039,7 +77157,7 @@
         "title": "Y",
         "description": "The y coordinate.",
         "min": 0.0,
-        "max": 1.0
+        "max": null
       },
       {
         "name": "size",
@@ -79791,7 +79909,7 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": [],
         "title": "Content",
         "description": "SVG content",
         "min": null,
@@ -80027,7 +80145,7 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": [],
         "title": "Content",
         "description": "SVG content",
         "min": null,
@@ -80939,7 +81057,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": null,
+        "default": [],
         "title": "Default",
         "description": null,
         "min": null,
@@ -81014,7 +81132,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": null,
+        "default": {},
         "title": "Default",
         "description": null,
         "min": null,
@@ -81239,7 +81357,7 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": {},
         "title": "Values",
         "description": "Dictionary of values to substitute into the template",
         "min": null,
@@ -92456,7 +92574,7 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": {},
         "title": "Headers",
         "description": "Optional headers to include in the request.",
         "min": null,
@@ -92561,7 +92679,7 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": {},
         "title": "Headers",
         "description": "Optional headers to include in the request.",
         "min": null,
@@ -92682,7 +92800,7 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": {},
         "title": "Headers",
         "description": "Optional headers to include in the request.",
         "min": null,
@@ -92803,7 +92921,7 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": {},
         "title": "Headers",
         "description": "Optional headers to include in the request.",
         "min": null,
@@ -92908,7 +93026,7 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": {},
         "title": "Headers",
         "description": "Optional headers to include in the request.",
         "min": null,
@@ -93213,7 +93331,7 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": {},
         "title": "Headers",
         "description": "Optional headers to include in the request.",
         "min": null,
@@ -93318,7 +93436,7 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": {},
         "title": "Headers",
         "description": "Optional headers to include in the request.",
         "min": null,
@@ -93423,7 +93541,7 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": {},
         "title": "Headers",
         "description": "Optional headers to include in the request.",
         "min": null,
@@ -93559,7 +93677,7 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": {},
         "title": "Headers",
         "description": "Optional headers to include in the request.",
         "min": null,
@@ -93612,7 +93730,7 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": [],
         "title": "Urls",
         "description": "List of URLs to validate.",
         "min": null,
@@ -93690,7 +93808,7 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": [],
         "title": "Urls",
         "description": "List of URLs to download.",
         "min": null,
@@ -93735,7 +93853,7 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": {},
         "title": "Headers",
         "description": "Optional headers to include in the request.",
         "min": null,
@@ -93884,7 +94002,7 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": {},
         "title": "Headers",
         "description": "Optional headers to include in the request.",
         "min": null,
@@ -93929,7 +94047,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": null,
+        "default": {},
         "title": "Data",
         "description": "The JSON data to send in the POST request.",
         "min": null,
@@ -94005,7 +94123,7 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": {},
         "title": "Headers",
         "description": "Optional headers to include in the request.",
         "min": null,
@@ -94050,7 +94168,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": null,
+        "default": {},
         "title": "Data",
         "description": "The JSON data to send in the PUT request.",
         "min": null,
@@ -94126,7 +94244,7 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": {},
         "title": "Headers",
         "description": "Optional headers to include in the request.",
         "min": null,
@@ -94171,7 +94289,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": null,
+        "default": {},
         "title": "Data",
         "description": "The JSON data to send in the PATCH request.",
         "min": null,
@@ -94247,7 +94365,7 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": {},
         "title": "Headers",
         "description": "Optional headers to include in the request.",
         "min": null,
@@ -95656,7 +95774,7 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": [],
         "title": "Steps",
         "description": "The completed chain of thought steps with their results",
         "min": null,
@@ -95679,7 +95797,7 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": [],
         "title": "Messages",
         "description": "The messages used to generate the chain of thought steps",
         "min": null,
@@ -123643,28 +123761,6 @@
         "max": null
       },
       {
-        "name": "flags",
-        "type": {
-          "type": "enum",
-          "optional": false,
-          "values": [
-            "SEEN",
-            "UNSEEN",
-            "ANSWERED",
-            "UNANSWERED",
-            "FLAGGED",
-            "UNFLAGGED"
-          ],
-          "type_args": [],
-          "type_name": "nodetool.metadata.types.EmailFlag"
-        },
-        "default": null,
-        "title": "Flags",
-        "description": "Email status flags to search for",
-        "min": null,
-        "max": null
-      },
-      {
         "name": "keywords",
         "type": {
           "type": "str",
@@ -123786,7 +123882,7 @@
           ],
           "type_name": null
         },
-        "default": null,
+        "default": [],
         "title": "Message Ids",
         "description": "List of message IDs to archive",
         "min": null,

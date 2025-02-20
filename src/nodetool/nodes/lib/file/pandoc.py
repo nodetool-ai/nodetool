@@ -102,9 +102,7 @@ class ConvertFile(BaseNode):
     output_format: OutputFormat = Field(
         default=OutputFormat.PDF, description="Output format"
     )
-    extra_args: list[str] = Field(
-        default_factory=list, description="Additional pandoc arguments"
-    )
+    extra_args: list[str] = Field(default=[], description="Additional pandoc arguments")
 
     async def process(self, context: ProcessingContext) -> str:
         assert self.input_path.path, "Input path is not set"
@@ -134,9 +132,7 @@ class ConvertText(BaseNode):
     content: str = Field(description="Text content to convert")
     input_format: InputFormat = Field(description="Input format")
     output_format: OutputFormat = Field(description="Output format")
-    extra_args: list[str] = Field(
-        default_factory=list, description="Additional pandoc arguments"
-    )
+    extra_args: list[str] = Field(default=[], description="Additional pandoc arguments")
 
     async def process(self, context: ProcessingContext) -> str:
         return pypandoc.convert_text(
