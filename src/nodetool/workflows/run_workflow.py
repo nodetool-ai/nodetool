@@ -88,9 +88,9 @@ async def run_workflow(
         except Exception as e:
             log.exception(e)
             run_task.cancel()
-            yield Error(error=str(e))
+            yield JobUpdate(job_id=runner.job_id, status="failed", error=str(e))
 
         exception = run_task.exception()
         if exception:
             log.exception(exception)
-            yield Error(error=str(exception))
+            yield JobUpdate(job_id=runner.job_id, status="failed", error=str(exception))
