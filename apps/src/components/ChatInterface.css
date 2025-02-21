@@ -1,3 +1,7 @@
+.chat-interface-container {
+  background: transparent;
+}
+
 /* Chat interface semantic classes */
 .chat-container {
   display: flex;
@@ -40,7 +44,7 @@
   left: 0;
   right: 0;
   width: 100%;
-  border-radius: 2rem;
+  border-radius: 5rem;
   margin: 1rem;
   width: calc(100% - 2rem);
 }
