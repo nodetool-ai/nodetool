@@ -172,6 +172,8 @@ class TypeMetadata(BaseModel):
             return {"type": "boolean"}
         if self.type == "str":
             return {"type": "string"}
+        if self.type == "bytes":
+            return {"type": "string", "format": "binary"}
         if self.type == "text":
             return {"type": "string"}
         if self.type == "tensor":
