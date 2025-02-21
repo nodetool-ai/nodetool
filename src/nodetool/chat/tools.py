@@ -1,6 +1,10 @@
 from datetime import datetime, timedelta
 from nodetool.nodes.apple.notes import CreateNote, ReadNotes
-from nodetool.workflows.base_node import BaseNode, get_node_class
+from nodetool.workflows.base_node import (
+    BaseNode,
+    get_node_class,
+    get_registered_node_classes,
+)
 from nodetool.workflows.processing_context import ProcessingContext
 from typing import Any, List, Dict
 import os
@@ -1223,6 +1227,111 @@ class ReadAppleNotesTool(Tool):
             return {
                 "notes": notes,
                 "count": len(notes),
+            }
+        except Exception as e:
+            return {"error": str(e)}
+
+
+node_classes = get_registered_node_classes()
+
+
+class FindNodeTool(Tool):
+    def __init__(self):
+        super().__init__(
+            name="find_node",
+            description="Find a node in the node library",
+        )
+        self.input_schema = {
+            "type": "object",
+            "properties": {
+                "node_name": {
+                    "type": "string",
+                    "description": "Name of the node to find",
+                },
+            },
+        }
+
+    async def process(self, context: ProcessingContext, params: dict) -> dict:
+        query = params["node_name"]
+        for node_class in node_classes:
+            if query in node_class.__name__:
+                return {
+                    "node_class": node_class,
+                    "description": node_class.get_description(),
+                    "node_type": node_class.get_node_type(),
+                    "properties": node_class.properties(),
+                }
+
+        return {"error": "Node not found"}
+
+
+class SemanticDocSearchTool(Tool):
+    def __init__(self):
+        super().__init__(
+            name="semantic_doc_search",
+            description="Search documentation using semantic similarity",
+        )
+        self.input_schema = {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "The text to search for in the documentation",
+                },
+            },
+            "required": ["query"],
+        }
+
+    async def process(self, context: ProcessingContext, params: dict) -> Any:
+        try:
+            from nodetool.chat.help import semantic_search_documentation
+
+            results = semantic_search_documentation(params["query"])
+            return {
+                "results": [
+                    {
+                        "id": result.id,
+                        "content": result.content,
+                        "metadata": result.metadata,
+                    }
+                    for result in results
+                ]
+            }
+        except Exception as e:
+            return {"error": str(e)}
+
+
+class KeywordDocSearchTool(Tool):
+    def __init__(self):
+        super().__init__(
+            name="keyword_doc_search",
+            description="Search documentation using keyword matching",
+        )
+        self.input_schema = {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "The text to search for in the documentation",
+                },
+            },
+            "required": ["query"],
+        }
+
+    async def process(self, context: ProcessingContext, params: dict) -> Any:
+        try:
+            from nodetool.chat.help import keyword_search_documentation
+
+            results = keyword_search_documentation(params["query"])
+            return {
+                "results": [
+                    {
+                        "id": result.id,
+                        "content": result.content,
+                        "metadata": result.metadata,
+                    }
+                    for result in results
+                ]
             }
         except Exception as e:
             return {"error": str(e)}

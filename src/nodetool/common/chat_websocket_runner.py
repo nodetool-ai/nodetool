@@ -27,7 +27,7 @@ from nodetool.workflows.run_job_request import RunJobRequest
 from nodetool.workflows.run_workflow import run_workflow
 from nodetool.workflows.workflow_runner import WorkflowRunner
 from nodetool.workflows.processing_context import ProcessingContext
-from nodetool.chat.chat import tools
+from nodetool.chat.chat import AVAILABLE_CHAT_TOOLS
 
 log = logging.getLogger(__name__)
 
@@ -125,7 +125,7 @@ class ChatWebSocketRunner:
                 name="llama3.2:3b",
                 repo_id="llama3.2:3b",
             ),
-            tools=tools,
+            tools=AVAILABLE_CHAT_TOOLS,
         ):
             if isinstance(chunk, Chunk):
                 content += chunk.content
@@ -143,7 +143,9 @@ class ChatWebSocketRunner:
                 )
 
                 # Process the tool call
-                tool_result = await run_tool(processing_context, chunk, tools)
+                tool_result = await run_tool(
+                    processing_context, chunk, AVAILABLE_CHAT_TOOLS
+                )
 
                 # Add tool messages to chat history
                 self.chat_history.append(Message(role="assistant", tool_calls=[chunk]))
