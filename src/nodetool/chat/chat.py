@@ -8,9 +8,6 @@ from ollama import ChatResponse
 import openai
 from pydantic import BaseModel
 from anthropic.types.message_param import MessageParam
-from anthropic.types.tool_result_block_param import ToolResultBlockParam
-from anthropic.types.tool_use_block_param import ToolUseBlockParam
-from anthropic.types.text_block_param import TextBlockParam
 from anthropic.types.image_block_param import ImageBlockParam
 from anthropic.types.tool_param import ToolParam
 from nodetool.chat.tools import (
@@ -22,10 +19,13 @@ from nodetool.chat.tools import (
     ExtractPDFTablesTool,
     ExtractPDFTextTool,
     ConvertPDFToMarkdownTool,
+    FindNodeTool,
+    KeywordDocSearchTool,
     ReadAppleNotesTool,
     ScreenshotTool,
     SearchEmailTool,
     SearchFileTool,
+    SemanticDocSearchTool,
     Tool,
 )
 from openai.types.chat import (
@@ -61,6 +61,27 @@ from nodetool.chat.tools import ListDirectoryTool, ReadFileTool, WriteFileTool
 import anthropic
 import readline
 import os
+
+
+AVAILABLE_CHAT_TOOLS = [
+    SearchEmailTool(),
+    AddLabelTool(),
+    ListDirectoryTool(),
+    ReadFileTool(),
+    WriteFileTool(),
+    BrowserTool(),
+    ScreenshotTool(),
+    SearchFileTool(),
+    ChromaTextSearchTool(),
+    ChromaHybridSearchTool(),
+    ExtractPDFTablesTool(),
+    ExtractPDFTextTool(),
+    ConvertPDFToMarkdownTool(),
+    CreateAppleNoteTool(),
+    ReadAppleNotesTool(),
+    SemanticDocSearchTool(),
+    KeywordDocSearchTool(),
+]
 
 
 def json_schema_for_column(column: ColumnDef) -> dict:
@@ -728,25 +749,6 @@ async def process_messages(
     )
 
 
-tools = [
-    SearchEmailTool(),
-    AddLabelTool(),
-    ListDirectoryTool(),
-    ReadFileTool(),
-    WriteFileTool(),
-    BrowserTool(),
-    ScreenshotTool(),
-    SearchFileTool(),
-    ChromaTextSearchTool(),
-    ChromaHybridSearchTool(),
-    ExtractPDFTablesTool(),
-    ExtractPDFTextTool(),
-    ConvertPDFToMarkdownTool(),
-    CreateAppleNoteTool(),
-    ReadAppleNotesTool(),
-]
-
-
 async def chat_cli():
     """Readline-based chat CLI with history, completion and emacs shortcuts."""
 
@@ -872,7 +874,7 @@ async def chat_cli():
                 async for chunk in generate_messages(
                     messages=messages_to_send,
                     model=model,
-                    tools=tools,
+                    tools=AVAILABLE_CHAT_TOOLS,
                 ):
                     if isinstance(chunk, Chunk):
                         current_chunk += str(chunk.content)
@@ -885,7 +887,9 @@ async def chat_cli():
 
                     if isinstance(chunk, ToolCall):
                         print(f"Running {chunk.name} with {chunk.args}")
-                        tool_result = await run_tool(context, chunk, tools)
+                        tool_result = await run_tool(
+                            context, chunk, AVAILABLE_CHAT_TOOLS
+                        )
                         # print(tool_result)
                         unprocessed_messages.append(
                             Message(role="assistant", tool_calls=[chunk])

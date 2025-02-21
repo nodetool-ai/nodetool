@@ -178,12 +178,12 @@ def semantic_search_documentation(
     search_results = []
     if results["documents"]:
         for i, doc in enumerate(results["documents"][0]):
-            # metadata = results["metadatas"][0][i] if results["metadatas"] else None
+            metadata = results["metadatas"][0][i] if results["metadatas"] else None
             search_results.append(
                 SearchResult(
                     id=results["ids"][0][i],
                     content=doc,
-                    # metadata=metadata,  # type: ignore
+                    metadata=metadata,  # type: ignore
                 )
             )
     return search_results
@@ -236,12 +236,12 @@ def keyword_search_documentation(query: str) -> list[SearchResult]:
     search_results = []
     if results["documents"]:
         for i, doc in enumerate(results["documents"][0]):
-            # metadata = results["metadatas"][0][i] if results["metadatas"] else None
+            metadata = results["metadatas"][0][i] if results["metadatas"] else None
             search_results.append(
                 SearchResult(
                     id=results["ids"][0][i],
                     content=doc,
-                    # metadata=metadata,  # type: ignore
+                    metadata=metadata,  # type: ignore
                 )
             )
     return search_results
@@ -663,7 +663,7 @@ async def test_chat():
 
 
 if __name__ == "__main__":
-    # index_core_docs(get_doc_collection())
-    # index_documentation(get_doc_collection())
-    # index_examples(get_example_collection())
+    index_core_docs(get_doc_collection())
+    index_documentation(get_doc_collection())
+    index_examples(get_example_collection())
     asyncio.run(test_chat())
