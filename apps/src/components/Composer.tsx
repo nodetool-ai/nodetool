@@ -124,7 +124,7 @@ export const Composer: React.FC<ComposerProps> = ({
       >
         <Textarea
           ref={textareaRef}
-          placeholder="Message ChatGPT..."
+          placeholder="Write a message..."
           flex="1"
           bg="transparent"
           border="none"
