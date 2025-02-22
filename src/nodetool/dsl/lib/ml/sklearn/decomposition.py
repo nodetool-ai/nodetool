@@ -17,9 +17,10 @@ class NMFNode(GraphNode):
     - Feature extraction for non-negative data
     """
 
+    NMFInit: typing.ClassVar[type] = nodetool.nodes.lib.ml.sklearn.decomposition.NMFNode.NMFInit
     X: NPArray | GraphNode | tuple[GraphNode, str] = Field(default=NPArray(type='np_array', value=None, dtype='<i8', shape=(1,)), description='Non-negative features for decomposition')
     n_components: int | GraphNode | tuple[GraphNode, str] = Field(default=2, description='Number of components')
-    init: nodetool.nodes.lib.ml.sklearn.decomposition.NMFNode.NMFInit = Field(default=nodetool.nodes.lib.ml.sklearn.decomposition.NMFNode.NMFInit('random'), description='Method for initialization')
+    init: nodetool.nodes.lib.ml.sklearn.decomposition.NMFNode.NMFInit = Field(default=NMFInit.RANDOM, description='Method for initialization')
     random_state: int | GraphNode | tuple[GraphNode, str] = Field(default=0, description='Random state for reproducibility')
     max_iter: int | GraphNode | tuple[GraphNode, str] = Field(default=200, description='Maximum number of iterations')
 

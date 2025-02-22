@@ -34,10 +34,11 @@ class BriaV1(GraphNode):
     Features exceptional image quality and commercial licensing safety.
     """
 
+    AspectRatio: typing.ClassVar[type] = nodetool.nodes.fal.text_to_image.BriaV1.AspectRatio
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The prompt to generate an image from')
     negative_prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The negative prompt to avoid certain elements in the generated image')
     num_images: int | GraphNode | tuple[GraphNode, str] = Field(default=4, description='How many images to generate. When using guidance, value is set to 1')
-    aspect_ratio: nodetool.nodes.fal.text_to_image.BriaV1.AspectRatio = Field(default=nodetool.nodes.fal.text_to_image.BriaV1.AspectRatio('1:1'), description='The aspect ratio of the image. Ignored when guidance is used')
+    aspect_ratio: nodetool.nodes.fal.text_to_image.BriaV1.AspectRatio = Field(default=AspectRatio.RATIO_1_1, description='The aspect ratio of the image. Ignored when guidance is used')
     num_inference_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=30, description='The number of iterations for refining the generated image')
     guidance_scale: float | GraphNode | tuple[GraphNode, str] = Field(default=5.0, description='How closely the model should stick to your prompt (CFG scale)')
     prompt_enhancement: bool | GraphNode | tuple[GraphNode, str] = Field(default=False, description='When true, enhances the prompt with more descriptive variations')
@@ -57,10 +58,11 @@ class BriaV1Fast(GraphNode):
     Features faster inference times while maintaining high image quality.
     """
 
+    AspectRatio: typing.ClassVar[type] = nodetool.nodes.fal.text_to_image.BriaV1Fast.AspectRatio
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The prompt to generate an image from')
     negative_prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The negative prompt to avoid certain elements in the generated image')
     num_images: int | GraphNode | tuple[GraphNode, str] = Field(default=4, description='How many images to generate. When using guidance, value is set to 1')
-    aspect_ratio: nodetool.nodes.fal.text_to_image.BriaV1Fast.AspectRatio = Field(default=nodetool.nodes.fal.text_to_image.BriaV1Fast.AspectRatio('1:1'), description='The aspect ratio of the image. Ignored when guidance is used')
+    aspect_ratio: nodetool.nodes.fal.text_to_image.BriaV1Fast.AspectRatio = Field(default=AspectRatio.RATIO_1_1, description='The aspect ratio of the image. Ignored when guidance is used')
     num_inference_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=8, description='The number of iterations for refining the generated image')
     guidance_scale: float | GraphNode | tuple[GraphNode, str] = Field(default=5.0, description='How closely the model should stick to your prompt (CFG scale)')
     prompt_enhancement: bool | GraphNode | tuple[GraphNode, str] = Field(default=False, description='When true, enhances the prompt with more descriptive variations')
@@ -86,10 +88,11 @@ class BriaV1HD(GraphNode):
     - Create legally safe visual assets
     """
 
+    AspectRatio: typing.ClassVar[type] = nodetool.nodes.fal.text_to_image.BriaV1HD.AspectRatio
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The prompt to generate an image from')
     negative_prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The negative prompt to avoid certain elements in the generated image')
     num_images: int | GraphNode | tuple[GraphNode, str] = Field(default=4, description='How many images to generate. When using guidance, value is set to 1')
-    aspect_ratio: nodetool.nodes.fal.text_to_image.BriaV1HD.AspectRatio = Field(default=nodetool.nodes.fal.text_to_image.BriaV1HD.AspectRatio('1:1'), description='The aspect ratio of the image. Ignored when guidance is used')
+    aspect_ratio: nodetool.nodes.fal.text_to_image.BriaV1HD.AspectRatio = Field(default=AspectRatio.RATIO_1_1, description='The aspect ratio of the image. Ignored when guidance is used')
     num_inference_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=30, description='The number of iterations for refining the generated image')
     guidance_scale: float | GraphNode | tuple[GraphNode, str] = Field(default=5.0, description='How closely the model should stick to your prompt (CFG scale)')
     prompt_enhancement: bool | GraphNode | tuple[GraphNode, str] = Field(default=False, description='When true, enhances the prompt with more descriptive variations')
@@ -123,16 +126,19 @@ class FastLCMDiffusion(GraphNode):
     enabling rapid and high-quality image generation.
     """
 
+    ModelNameFastLCM: typing.ClassVar[type] = nodetool.nodes.fal.text_to_image.FastLCMDiffusion.ModelNameFastLCM
+    ImageSizePreset: typing.ClassVar[type] = nodetool.nodes.fal.text_to_image.FastLCMDiffusion.ImageSizePreset
+    SafetyCheckerVersion: typing.ClassVar[type] = nodetool.nodes.fal.text_to_image.FastLCMDiffusion.SafetyCheckerVersion
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The prompt to generate an image from')
-    model_name: nodetool.nodes.fal.text_to_image.FastLCMDiffusion.ModelNameFastLCM = Field(default=nodetool.nodes.fal.text_to_image.FastLCMDiffusion.ModelNameFastLCM('stabilityai/stable-diffusion-xl-base-1.0'), description='The name of the model to use')
+    model_name: nodetool.nodes.fal.text_to_image.FastLCMDiffusion.ModelNameFastLCM = Field(default=ModelNameFastLCM.SDXL_BASE, description='The name of the model to use')
     negative_prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description="Use it to address details that you don't want in the image")
-    image_size: nodetool.nodes.fal.text_to_image.FastLCMDiffusion.ImageSizePreset = Field(default=nodetool.nodes.fal.text_to_image.FastLCMDiffusion.ImageSizePreset('square_hd'), description='The size of the generated image')
+    image_size: nodetool.nodes.fal.text_to_image.FastLCMDiffusion.ImageSizePreset = Field(default=ImageSizePreset.SQUARE_HD, description='The size of the generated image')
     num_inference_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=6, description='The number of inference steps to perform')
     guidance_scale: float | GraphNode | tuple[GraphNode, str] = Field(default=1.5, description='How closely the model should stick to your prompt')
     sync_mode: bool | GraphNode | tuple[GraphNode, str] = Field(default=True, description='If true, wait for image generation and upload before returning')
     num_images: int | GraphNode | tuple[GraphNode, str] = Field(default=1, description='The number of images to generate')
     enable_safety_checker: bool | GraphNode | tuple[GraphNode, str] = Field(default=True, description='If true, the safety checker will be enabled')
-    safety_checker_version: nodetool.nodes.fal.text_to_image.FastLCMDiffusion.SafetyCheckerVersion = Field(default=nodetool.nodes.fal.text_to_image.FastLCMDiffusion.SafetyCheckerVersion('v1'), description='The version of the safety checker to use')
+    safety_checker_version: nodetool.nodes.fal.text_to_image.FastLCMDiffusion.SafetyCheckerVersion = Field(default=SafetyCheckerVersion.V1, description='The version of the safety checker to use')
     expand_prompt: bool | GraphNode | tuple[GraphNode, str] = Field(default=False, description='If true, the prompt will be expanded with additional prompts')
     guidance_rescale: float | GraphNode | tuple[GraphNode, str] = Field(default=0.0, description='The rescale factor for the CFG')
     seed: int | GraphNode | tuple[GraphNode, str] = Field(default=-1, description='The same seed and prompt will output the same image every time')
@@ -149,8 +155,9 @@ class FastLightningSDXL(GraphNode):
     ultra-fast high-quality image generation.
     """
 
+    ImageSizePreset: typing.ClassVar[type] = nodetool.nodes.fal.text_to_image.FastLightningSDXL.ImageSizePreset
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The prompt to generate an image from')
-    image_size: nodetool.nodes.fal.text_to_image.FastLightningSDXL.ImageSizePreset = Field(default=nodetool.nodes.fal.text_to_image.FastLightningSDXL.ImageSizePreset('square_hd'), description='The size of the generated image')
+    image_size: nodetool.nodes.fal.text_to_image.FastLightningSDXL.ImageSizePreset = Field(default=ImageSizePreset.SQUARE_HD, description='The size of the generated image')
     num_inference_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=4, description='The number of inference steps to perform (1, 2, 4, or 8)')
     seed: int | GraphNode | tuple[GraphNode, str] = Field(default=-1, description='The same seed and prompt will output the same image every time')
     enable_safety_checker: bool | GraphNode | tuple[GraphNode, str] = Field(default=True, description='If true, the safety checker will be enabled')
@@ -168,9 +175,10 @@ class FastSDXL(GraphNode):
     while maintaining high-quality output.
     """
 
+    ImageSizePreset: typing.ClassVar[type] = nodetool.nodes.fal.text_to_image.FastSDXL.ImageSizePreset
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The prompt to generate an image from')
     negative_prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description="Use it to address details that you don't want in the image")
-    image_size: nodetool.nodes.fal.text_to_image.FastSDXL.ImageSizePreset = Field(default=nodetool.nodes.fal.text_to_image.FastSDXL.ImageSizePreset('square_hd'), description='The size of the generated image')
+    image_size: nodetool.nodes.fal.text_to_image.FastSDXL.ImageSizePreset = Field(default=ImageSizePreset.SQUARE_HD, description='The size of the generated image')
     num_inference_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=25, description='The number of inference steps to perform')
     guidance_scale: float | GraphNode | tuple[GraphNode, str] = Field(default=7.5, description='How closely the model should stick to your prompt (CFG scale)')
     num_images: int | GraphNode | tuple[GraphNode, str] = Field(default=1, description='The number of images to generate')
@@ -190,12 +198,13 @@ class FastSDXLControlNetCanny(GraphNode):
     Fast SDXL ControlNet Canny is a model that generates images using ControlNet with SDXL.
     """
 
+    ImageSizePreset: typing.ClassVar[type] = nodetool.nodes.fal.text_to_image.FastSDXLControlNetCanny.ImageSizePreset
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The prompt to generate an image from')
     control_image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The control image to use for generation')
     negative_prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description="Use it to address details that you don't want in the image")
     guidance_scale: float | GraphNode | tuple[GraphNode, str] = Field(default=7.5, description='How closely the model should stick to your prompt')
     num_inference_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=25, description='The number of inference steps to perform')
-    image_size: nodetool.nodes.fal.text_to_image.FastSDXLControlNetCanny.ImageSizePreset = Field(default=nodetool.nodes.fal.text_to_image.FastSDXLControlNetCanny.ImageSizePreset('square_hd'), description='The size of the generated image')
+    image_size: nodetool.nodes.fal.text_to_image.FastSDXLControlNetCanny.ImageSizePreset = Field(default=ImageSizePreset.SQUARE_HD, description='The size of the generated image')
     seed: int | GraphNode | tuple[GraphNode, str] = Field(default=-1, description='The same seed and prompt will output the same image every time')
     enable_safety_checker: bool | GraphNode | tuple[GraphNode, str] = Field(default=True, description='If true, the safety checker will be enabled')
 
@@ -212,10 +221,12 @@ class FastTurboDiffusion(GraphNode):
     Supports both SDXL Turbo and SD Turbo models for ultra-fast image generation.
     """
 
+    ModelNameEnum: typing.ClassVar[type] = nodetool.nodes.fal.text_to_image.FastTurboDiffusion.ModelNameEnum
+    ImageSizePreset: typing.ClassVar[type] = nodetool.nodes.fal.text_to_image.FastTurboDiffusion.ImageSizePreset
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The prompt to generate an image from')
-    model_name: nodetool.nodes.fal.text_to_image.FastTurboDiffusion.ModelNameEnum = Field(default=nodetool.nodes.fal.text_to_image.FastTurboDiffusion.ModelNameEnum('stabilityai/sdxl-turbo'), description='The name of the model to use')
+    model_name: nodetool.nodes.fal.text_to_image.FastTurboDiffusion.ModelNameEnum = Field(default=ModelNameEnum.SDXL_TURBO, description='The name of the model to use')
     negative_prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description="Use it to address details that you don't want in the image")
-    image_size: nodetool.nodes.fal.text_to_image.FastTurboDiffusion.ImageSizePreset = Field(default=nodetool.nodes.fal.text_to_image.FastTurboDiffusion.ImageSizePreset('square'), description='The size of the generated image')
+    image_size: nodetool.nodes.fal.text_to_image.FastTurboDiffusion.ImageSizePreset = Field(default=ImageSizePreset.SQUARE, description='The size of the generated image')
     num_inference_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=2, description='The number of inference steps to perform')
     guidance_scale: float | GraphNode | tuple[GraphNode, str] = Field(default=1.0, description='How closely the model should stick to your prompt')
     seed: int | GraphNode | tuple[GraphNode, str] = Field(default=-1, description='The same seed and prompt will output the same image every time')
@@ -234,8 +245,9 @@ class FluxDev(GraphNode):
     It is suitable for personal and commercial use.
     """
 
+    ImageSizePreset: typing.ClassVar[type] = nodetool.nodes.fal.text_to_image.FluxDev.ImageSizePreset
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The prompt to generate an image from')
-    image_size: nodetool.nodes.fal.text_to_image.FluxDev.ImageSizePreset = Field(default=nodetool.nodes.fal.text_to_image.FluxDev.ImageSizePreset('landscape_4_3'), description='Either a preset size or a custom {width, height} dictionary')
+    image_size: nodetool.nodes.fal.text_to_image.FluxDev.ImageSizePreset = Field(default=ImageSizePreset.LANDSCAPE_4_3, description='Either a preset size or a custom {width, height} dictionary')
     num_inference_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=28, description='The number of inference steps to perform')
     guidance_scale: float | GraphNode | tuple[GraphNode, str] = Field(default=3.5, description='The CFG (Classifier Free Guidance) scale is a measure of how close you want the model to stick to your prompt')
     num_images: int | GraphNode | tuple[GraphNode, str] = Field(default=1, description='The number of images to generate')
@@ -281,8 +293,9 @@ class FluxGeneral(GraphNode):
     - Design with precise control
     """
 
+    ImageSizePreset: typing.ClassVar[type] = nodetool.nodes.fal.text_to_image.FluxGeneral.ImageSizePreset
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The prompt to generate an image from')
-    image_size: nodetool.nodes.fal.text_to_image.FluxGeneral.ImageSizePreset = Field(default=nodetool.nodes.fal.text_to_image.FluxGeneral.ImageSizePreset('square_hd'), description='The size of the generated image')
+    image_size: nodetool.nodes.fal.text_to_image.FluxGeneral.ImageSizePreset = Field(default=ImageSizePreset.SQUARE_HD, description='The size of the generated image')
     num_inference_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=28, description='The number of inference steps to perform')
     guidance_scale: float | GraphNode | tuple[GraphNode, str] = Field(default=3.5, description='How closely the model should stick to your prompt (CFG scale)')
     real_cfg_scale: float | GraphNode | tuple[GraphNode, str] = Field(default=3.5, description='Classical CFG scale as in SD1.5, SDXL, etc.')
@@ -314,8 +327,9 @@ class FluxLora(GraphNode):
     - Design consistent visual identities
     """
 
+    ImageSizePreset: typing.ClassVar[type] = nodetool.nodes.fal.text_to_image.FluxLora.ImageSizePreset
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The prompt to generate an image from')
-    image_size: nodetool.nodes.fal.text_to_image.FluxLora.ImageSizePreset = Field(default=nodetool.nodes.fal.text_to_image.FluxLora.ImageSizePreset('landscape_4_3'), description='Either a preset size or a custom {width, height} dictionary')
+    image_size: nodetool.nodes.fal.text_to_image.FluxLora.ImageSizePreset = Field(default=ImageSizePreset.LANDSCAPE_4_3, description='Either a preset size or a custom {width, height} dictionary')
     num_inference_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=28, description='The number of inference steps to perform')
     guidance_scale: float | GraphNode | tuple[GraphNode, str] = Field(default=3.5, description='The CFG scale to determine how closely the model follows the prompt')
     loras: List | GraphNode | tuple[GraphNode, str] = Field(default=[], description='List of LoRA weights to use for image generation')
@@ -358,10 +372,12 @@ class FluxLoraTTI(GraphNode):
     personalization, specific styles, and brand identities.
     """
 
+    LoraModel: typing.ClassVar[type] = nodetool.nodes.fal.text_to_image.FluxLoraTTI.LoraModel
+    ImageSizePreset: typing.ClassVar[type] = nodetool.nodes.fal.text_to_image.FluxLoraTTI.ImageSizePreset
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The prompt to generate an image from')
     negative_prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description="Use it to address details that you don't want in the image")
-    model_name: nodetool.nodes.fal.text_to_image.FluxLoraTTI.LoraModel = Field(default=nodetool.nodes.fal.text_to_image.FluxLoraTTI.LoraModel('stabilityai/stable-diffusion-xl-base-1.0'), description='The base model to use for generation')
-    image_size: nodetool.nodes.fal.text_to_image.FluxLoraTTI.ImageSizePreset = Field(default=nodetool.nodes.fal.text_to_image.FluxLoraTTI.ImageSizePreset('square_hd'), description='The size of the generated image')
+    model_name: nodetool.nodes.fal.text_to_image.FluxLoraTTI.LoraModel = Field(default=LoraModel.SDXL_BASE, description='The base model to use for generation')
+    image_size: nodetool.nodes.fal.text_to_image.FluxLoraTTI.ImageSizePreset = Field(default=ImageSizePreset.SQUARE_HD, description='The size of the generated image')
     num_inference_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=30, description='The number of inference steps to perform')
     guidance_scale: float | GraphNode | tuple[GraphNode, str] = Field(default=7.5, description='How closely the model should stick to your prompt')
     loras: List | GraphNode | tuple[GraphNode, str] = Field(default=[], description='List of LoRA weights to use for image generation')
@@ -381,8 +397,9 @@ class FluxSchnell(GraphNode):
     from text in 1 to 4 steps, suitable for personal and commercial use.
     """
 
+    ImageSizePreset: typing.ClassVar[type] = nodetool.nodes.fal.text_to_image.FluxSchnell.ImageSizePreset
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The prompt to generate an image from')
-    image_size: nodetool.nodes.fal.text_to_image.FluxSchnell.ImageSizePreset = Field(default=nodetool.nodes.fal.text_to_image.FluxSchnell.ImageSizePreset('landscape_4_3'), description='Either a preset size or a custom {width, height} dictionary')
+    image_size: nodetool.nodes.fal.text_to_image.FluxSchnell.ImageSizePreset = Field(default=ImageSizePreset.LANDSCAPE_4_3, description='Either a preset size or a custom {width, height} dictionary')
     num_inference_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=4, description='The number of inference steps to perform')
     num_images: int | GraphNode | tuple[GraphNode, str] = Field(default=1, description='The number of images to generate')
     seed: int | GraphNode | tuple[GraphNode, str] = Field(default=-1, description='The same seed and prompt will output the same image every time')
@@ -407,9 +424,10 @@ class FluxSubject(GraphNode):
     - Create subject-based illustrations
     """
 
+    ImageSizePreset: typing.ClassVar[type] = nodetool.nodes.fal.text_to_image.FluxSubject.ImageSizePreset
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The prompt to generate an image from')
     image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The image of the subject')
-    image_size: nodetool.nodes.fal.text_to_image.FluxSubject.ImageSizePreset = Field(default=nodetool.nodes.fal.text_to_image.FluxSubject.ImageSizePreset('square_hd'), description='Either a preset size or a custom {width, height} dictionary')
+    image_size: nodetool.nodes.fal.text_to_image.FluxSubject.ImageSizePreset = Field(default=ImageSizePreset.SQUARE_HD, description='Either a preset size or a custom {width, height} dictionary')
     num_inference_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=8, description='The number of inference steps to perform')
     guidance_scale: float | GraphNode | tuple[GraphNode, str] = Field(default=3.5, description='The CFG scale to determine how closely the model follows the prompt')
     seed: int | GraphNode | tuple[GraphNode, str] = Field(default=-1, description='The same seed and prompt will output the same image every time')
@@ -434,8 +452,9 @@ class FluxV1Pro(GraphNode):
     - Generate professional visuals
     """
 
+    ImageSizePreset: typing.ClassVar[type] = nodetool.nodes.fal.text_to_image.FluxV1Pro.ImageSizePreset
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The prompt to generate an image from')
-    image_size: nodetool.nodes.fal.text_to_image.FluxV1Pro.ImageSizePreset = Field(default=nodetool.nodes.fal.text_to_image.FluxV1Pro.ImageSizePreset('square_hd'), description='Either a preset size or a custom {width, height} dictionary. Max dimension 14142')
+    image_size: nodetool.nodes.fal.text_to_image.FluxV1Pro.ImageSizePreset = Field(default=ImageSizePreset.SQUARE_HD, description='Either a preset size or a custom {width, height} dictionary. Max dimension 14142')
     guidance_scale: float | GraphNode | tuple[GraphNode, str] = Field(default=3.5, description='The CFG (Classifier Free Guidance) scale is a measure of how close you want the model to stick to your prompt when looking for a related image to show you.')
     num_inference_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=28, description='The number of inference steps to perform.')
     seed: int | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='The same seed and the same prompt given to the same version of the model will output the same image every time.')
@@ -452,8 +471,9 @@ class FluxV1ProNew(GraphNode):
     image quality while delivering significantly faster generation speeds.
     """
 
+    ImageSizePreset: typing.ClassVar[type] = nodetool.nodes.fal.text_to_image.FluxV1ProNew.ImageSizePreset
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The prompt to generate an image from')
-    image_size: nodetool.nodes.fal.text_to_image.FluxV1ProNew.ImageSizePreset = Field(default=nodetool.nodes.fal.text_to_image.FluxV1ProNew.ImageSizePreset('landscape_4_3'), description='Either a preset size or a custom {width, height} dictionary')
+    image_size: nodetool.nodes.fal.text_to_image.FluxV1ProNew.ImageSizePreset = Field(default=ImageSizePreset.LANDSCAPE_4_3, description='Either a preset size or a custom {width, height} dictionary')
     num_inference_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=28, description='The number of inference steps to perform')
     guidance_scale: float | GraphNode | tuple[GraphNode, str] = Field(default=3.5, description='The CFG scale to determine how closely the model follows the prompt')
     num_images: int | GraphNode | tuple[GraphNode, str] = Field(default=1, description='The number of images to generate')
@@ -473,8 +493,9 @@ class FluxV1ProUltra(GraphNode):
     composition, detail, and artistic fidelity.
     """
 
+    ImageSizePreset: typing.ClassVar[type] = nodetool.nodes.fal.text_to_image.FluxV1ProUltra.ImageSizePreset
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The prompt to generate an image from')
-    image_size: nodetool.nodes.fal.text_to_image.FluxV1ProUltra.ImageSizePreset = Field(default=nodetool.nodes.fal.text_to_image.FluxV1ProUltra.ImageSizePreset('square_hd'), description='Either a preset size or a custom {width, height} dictionary. Max dimension 14142')
+    image_size: nodetool.nodes.fal.text_to_image.FluxV1ProUltra.ImageSizePreset = Field(default=ImageSizePreset.SQUARE_HD, description='Either a preset size or a custom {width, height} dictionary. Max dimension 14142')
     guidance_scale: float | GraphNode | tuple[GraphNode, str] = Field(default=3.5, description='The CFG (Classifier Free Guidance) scale is a measure of how close you want the model to stick to your prompt when looking for a related image to show you.')
     num_inference_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=28, description='The number of inference steps to perform.')
     seed: int | GraphNode | tuple[GraphNode, str] = Field(default=-1, description='The same seed and the same prompt given to the same version of the model will output the same image every time.')
@@ -493,19 +514,22 @@ class Fooocus(GraphNode):
     for quality improvements.
     """
 
+    PerformanceEnum: typing.ClassVar[type] = nodetool.nodes.fal.text_to_image.Fooocus.PerformanceEnum
+    RefinerModelEnum: typing.ClassVar[type] = nodetool.nodes.fal.text_to_image.Fooocus.RefinerModelEnum
+    ControlTypeEnum: typing.ClassVar[type] = nodetool.nodes.fal.text_to_image.Fooocus.ControlTypeEnum
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The prompt to generate an image from')
     negative_prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description="Use it to address details that you don't want in the image")
     styles: List | GraphNode | tuple[GraphNode, str] = Field(default=['Fooocus Enhance', 'Fooocus V2', 'Fooocus Sharp'], description='The styles to apply to the generated image')
-    performance: nodetool.nodes.fal.text_to_image.Fooocus.PerformanceEnum = Field(default=nodetool.nodes.fal.text_to_image.Fooocus.PerformanceEnum('Extreme Speed'), description='You can choose Speed or Quality')
+    performance: nodetool.nodes.fal.text_to_image.Fooocus.PerformanceEnum = Field(default=PerformanceEnum.EXTREME_SPEED, description='You can choose Speed or Quality')
     guidance_scale: float | GraphNode | tuple[GraphNode, str] = Field(default=4.0, description='How closely the model should stick to your prompt')
     sharpness: float | GraphNode | tuple[GraphNode, str] = Field(default=2.0, description='Higher value means image and texture are sharper')
     aspect_ratio: str | GraphNode | tuple[GraphNode, str] = Field(default='1024x1024', description='The size of the generated image (must be multiples of 8)')
     loras: List | GraphNode | tuple[GraphNode, str] = Field(default=[], description='Up to 5 LoRAs that will be merged for generation')
-    refiner_model: nodetool.nodes.fal.text_to_image.Fooocus.RefinerModelEnum = Field(default=nodetool.nodes.fal.text_to_image.Fooocus.RefinerModelEnum('None'), description='Refiner model to use (SDXL or SD 1.5)')
+    refiner_model: nodetool.nodes.fal.text_to_image.Fooocus.RefinerModelEnum = Field(default=RefinerModelEnum.NONE, description='Refiner model to use (SDXL or SD 1.5)')
     refiner_switch: float | GraphNode | tuple[GraphNode, str] = Field(default=0.8, description='Switch point for refiner (0.4 for SD1.5 realistic, 0.667 for SD1.5 anime, 0.8 for XL)')
     seed: int | GraphNode | tuple[GraphNode, str] = Field(default=-1, description='The same seed and prompt will output the same image every time')
     control_image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Reference image for generation')
-    control_type: nodetool.nodes.fal.text_to_image.Fooocus.ControlTypeEnum = Field(default=nodetool.nodes.fal.text_to_image.Fooocus.ControlTypeEnum('PyraCanny'), description='The type of image control')
+    control_type: nodetool.nodes.fal.text_to_image.Fooocus.ControlTypeEnum = Field(default=ControlTypeEnum.PYRA_CANNY, description='The type of image control')
     control_image_weight: float | GraphNode | tuple[GraphNode, str] = Field(default=1.0, description='Strength of the control image influence')
     control_image_stop_at: float | GraphNode | tuple[GraphNode, str] = Field(default=1.0, description='When to stop applying control image influence')
     enable_safety_checker: bool | GraphNode | tuple[GraphNode, str] = Field(default=True, description='If false, the safety checker will be disabled')
@@ -522,8 +546,9 @@ class HyperSDXL(GraphNode):
     while maintaining high-quality output and ultra-fast generation speeds.
     """
 
+    ImageSizePreset: typing.ClassVar[type] = nodetool.nodes.fal.text_to_image.HyperSDXL.ImageSizePreset
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The prompt to generate an image from')
-    image_size: nodetool.nodes.fal.text_to_image.HyperSDXL.ImageSizePreset = Field(default=nodetool.nodes.fal.text_to_image.HyperSDXL.ImageSizePreset('square_hd'), description='The size of the generated image')
+    image_size: nodetool.nodes.fal.text_to_image.HyperSDXL.ImageSizePreset = Field(default=ImageSizePreset.SQUARE_HD, description='The size of the generated image')
     num_inference_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=1, description='The number of inference steps to perform (1, 2, or 4)')
     sync_mode: bool | GraphNode | tuple[GraphNode, str] = Field(default=True, description='If true, wait for image generation and upload before returning')
     num_images: int | GraphNode | tuple[GraphNode, str] = Field(default=1, description='The number of images to generate')
@@ -551,10 +576,12 @@ class IdeogramV2(GraphNode):
     - Create brand assets and logos
     """
 
+    AspectRatio: typing.ClassVar[type] = nodetool.nodes.fal.text_to_image.IdeogramV2.AspectRatio
+    IdeogramStyle: typing.ClassVar[type] = nodetool.nodes.fal.text_to_image.IdeogramV2.IdeogramStyle
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The prompt to generate an image from')
-    aspect_ratio: nodetool.nodes.fal.text_to_image.IdeogramV2.AspectRatio = Field(default=nodetool.nodes.fal.text_to_image.IdeogramV2.AspectRatio('1:1'), description='The aspect ratio of the generated image.')
+    aspect_ratio: nodetool.nodes.fal.text_to_image.IdeogramV2.AspectRatio = Field(default=AspectRatio.RATIO_1_1, description='The aspect ratio of the generated image.')
     expand_prompt: bool | GraphNode | tuple[GraphNode, str] = Field(default=True, description='Whether to expand the prompt with MagicPrompt functionality.')
-    style: nodetool.nodes.fal.text_to_image.IdeogramV2.IdeogramStyle = Field(default=nodetool.nodes.fal.text_to_image.IdeogramV2.IdeogramStyle('auto'), description='The style of the generated image.')
+    style: nodetool.nodes.fal.text_to_image.IdeogramV2.IdeogramStyle = Field(default=IdeogramStyle.AUTO, description='The style of the generated image.')
     negative_prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='A negative prompt to avoid in the generated image.')
     seed: int | GraphNode | tuple[GraphNode, str] = Field(default=-1, description='Seed for the random number generator.')
 
@@ -571,10 +598,12 @@ class IdeogramV2Turbo(GraphNode):
     and logos with enhanced speed while maintaining Ideogram's signature quality.
     """
 
+    AspectRatio: typing.ClassVar[type] = nodetool.nodes.fal.text_to_image.IdeogramV2Turbo.AspectRatio
+    IdeogramStyle: typing.ClassVar[type] = nodetool.nodes.fal.text_to_image.IdeogramV2Turbo.IdeogramStyle
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The prompt to generate an image from')
-    aspect_ratio: nodetool.nodes.fal.text_to_image.IdeogramV2Turbo.AspectRatio = Field(default=nodetool.nodes.fal.text_to_image.IdeogramV2Turbo.AspectRatio('1:1'), description='The aspect ratio of the generated image.')
+    aspect_ratio: nodetool.nodes.fal.text_to_image.IdeogramV2Turbo.AspectRatio = Field(default=AspectRatio.RATIO_1_1, description='The aspect ratio of the generated image.')
     expand_prompt: bool | GraphNode | tuple[GraphNode, str] = Field(default=True, description='Whether to expand the prompt with MagicPrompt functionality.')
-    style: nodetool.nodes.fal.text_to_image.IdeogramV2Turbo.IdeogramStyle = Field(default=nodetool.nodes.fal.text_to_image.IdeogramV2Turbo.IdeogramStyle('auto'), description='The style of the generated image.')
+    style: nodetool.nodes.fal.text_to_image.IdeogramV2Turbo.IdeogramStyle = Field(default=IdeogramStyle.AUTO, description='The style of the generated image.')
     negative_prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='A negative prompt to avoid in the generated image.')
     seed: int | GraphNode | tuple[GraphNode, str] = Field(default=-1, description='Seed for the random number generator.')
 
@@ -589,12 +618,13 @@ class IllusionDiffusion(GraphNode):
     Illusion Diffusion is a model that creates illusions conditioned on an input image.
     """
 
+    ImageSizePreset: typing.ClassVar[type] = nodetool.nodes.fal.text_to_image.IllusionDiffusion.ImageSizePreset
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The prompt to generate an image from')
     negative_prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description="Use it to address details that you don't want in the image")
     image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Input image URL for conditioning the generation')
     guidance_scale: float | GraphNode | tuple[GraphNode, str] = Field(default=7.5, description='How closely the model should stick to your prompt')
     num_inference_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=40, description='The number of inference steps to perform')
-    image_size: nodetool.nodes.fal.text_to_image.IllusionDiffusion.ImageSizePreset = Field(default=nodetool.nodes.fal.text_to_image.IllusionDiffusion.ImageSizePreset('square_hd'), description='The size of the generated image')
+    image_size: nodetool.nodes.fal.text_to_image.IllusionDiffusion.ImageSizePreset = Field(default=ImageSizePreset.SQUARE_HD, description='The size of the generated image')
     seed: int | GraphNode | tuple[GraphNode, str] = Field(default=-1, description='The same seed and prompt will output the same image every time')
 
     @classmethod
@@ -610,10 +640,12 @@ class LCMDiffusion(GraphNode):
     with minimal inference steps.
     """
 
+    ModelNameLCM: typing.ClassVar[type] = nodetool.nodes.fal.text_to_image.LCMDiffusion.ModelNameLCM
+    ImageSizePreset: typing.ClassVar[type] = nodetool.nodes.fal.text_to_image.LCMDiffusion.ImageSizePreset
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The prompt to generate an image from')
-    model: nodetool.nodes.fal.text_to_image.LCMDiffusion.ModelNameLCM = Field(default=nodetool.nodes.fal.text_to_image.LCMDiffusion.ModelNameLCM('sdv1-5'), description='The model to use for generating the image')
+    model: nodetool.nodes.fal.text_to_image.LCMDiffusion.ModelNameLCM = Field(default=ModelNameLCM.SD_1_5, description='The model to use for generating the image')
     negative_prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description="Use it to address details that you don't want in the image")
-    image_size: nodetool.nodes.fal.text_to_image.LCMDiffusion.ImageSizePreset = Field(default=nodetool.nodes.fal.text_to_image.LCMDiffusion.ImageSizePreset('square'), description='The size of the generated image')
+    image_size: nodetool.nodes.fal.text_to_image.LCMDiffusion.ImageSizePreset = Field(default=ImageSizePreset.SQUARE, description='The size of the generated image')
     num_inference_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=4, description='The number of inference steps to perform')
     guidance_scale: float | GraphNode | tuple[GraphNode, str] = Field(default=1.0, description='How closely the model should stick to your prompt')
     enable_safety_checker: bool | GraphNode | tuple[GraphNode, str] = Field(default=True, description='If true, the safety checker will be enabled')
@@ -631,8 +663,9 @@ class LumaPhoton(GraphNode):
     change in the cost of high-quality image generation, optimized for creatives.
     """
 
+    AspectRatioLuma: typing.ClassVar[type] = nodetool.nodes.fal.text_to_image.LumaPhoton.AspectRatioLuma
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The prompt to generate an image from')
-    aspect_ratio: nodetool.nodes.fal.text_to_image.LumaPhoton.AspectRatioLuma = Field(default=nodetool.nodes.fal.text_to_image.LumaPhoton.AspectRatioLuma('1:1'), description='The aspect ratio of the generated image')
+    aspect_ratio: nodetool.nodes.fal.text_to_image.LumaPhoton.AspectRatioLuma = Field(default=AspectRatioLuma.RATIO_1_1, description='The aspect ratio of the generated image')
 
     @classmethod
     def get_node_type(cls): return "fal.text_to_image.LumaPhoton"
@@ -646,8 +679,9 @@ class LumaPhotonFlash(GraphNode):
     bringing a step-function change in the cost of high-quality image generation with faster inference times.
     """
 
+    AspectRatioLuma: typing.ClassVar[type] = nodetool.nodes.fal.text_to_image.LumaPhotonFlash.AspectRatioLuma
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The prompt to generate an image from')
-    aspect_ratio: nodetool.nodes.fal.text_to_image.LumaPhotonFlash.AspectRatioLuma = Field(default=nodetool.nodes.fal.text_to_image.LumaPhotonFlash.AspectRatioLuma('1:1'), description='The aspect ratio of the generated image')
+    aspect_ratio: nodetool.nodes.fal.text_to_image.LumaPhotonFlash.AspectRatioLuma = Field(default=AspectRatioLuma.RATIO_1_1, description='The aspect ratio of the generated image')
 
     @classmethod
     def get_node_type(cls): return "fal.text_to_image.LumaPhotonFlash"
@@ -668,10 +702,11 @@ class OmniGenV1(GraphNode):
     - Combine multiple images creatively
     """
 
+    ImageSizePreset: typing.ClassVar[type] = nodetool.nodes.fal.text_to_image.OmniGenV1.ImageSizePreset
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The prompt to generate an image from')
     input_image_1: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The first input image to use for generation')
     input_image_2: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The second input image to use for generation')
-    image_size: nodetool.nodes.fal.text_to_image.OmniGenV1.ImageSizePreset = Field(default=nodetool.nodes.fal.text_to_image.OmniGenV1.ImageSizePreset('square_hd'), description='The size of the generated image')
+    image_size: nodetool.nodes.fal.text_to_image.OmniGenV1.ImageSizePreset = Field(default=ImageSizePreset.SQUARE_HD, description='The size of the generated image')
     num_inference_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=50, description='The number of inference steps to perform')
     guidance_scale: float | GraphNode | tuple[GraphNode, str] = Field(default=3.0, description='How closely the model should stick to your prompt')
     img_guidance_scale: float | GraphNode | tuple[GraphNode, str] = Field(default=1.6, description='How closely the model should stick to your input image')
@@ -691,8 +726,9 @@ class PlaygroundV25(GraphNode):
     for text-to-image generation.
     """
 
+    ImageSizePreset: typing.ClassVar[type] = nodetool.nodes.fal.text_to_image.PlaygroundV25.ImageSizePreset
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The prompt to generate an image from')
-    image_size: nodetool.nodes.fal.text_to_image.PlaygroundV25.ImageSizePreset = Field(default=nodetool.nodes.fal.text_to_image.PlaygroundV25.ImageSizePreset('square_hd'), description='The size of the generated image')
+    image_size: nodetool.nodes.fal.text_to_image.PlaygroundV25.ImageSizePreset = Field(default=ImageSizePreset.SQUARE_HD, description='The size of the generated image')
     num_inference_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=30, description='The number of inference steps to perform')
     guidance_scale: float | GraphNode | tuple[GraphNode, str] = Field(default=7.5, description='How closely the model should stick to your prompt')
     seed: int | GraphNode | tuple[GraphNode, str] = Field(default=-1, description='The same seed and prompt will output the same image every time')
@@ -718,9 +754,11 @@ class Recraft20B(GraphNode):
     - Generate commercial content
     """
 
+    ImageSizePreset: typing.ClassVar[type] = nodetool.nodes.fal.text_to_image.Recraft20B.ImageSizePreset
+    StylePreset: typing.ClassVar[type] = nodetool.nodes.fal.text_to_image.Recraft20B.StylePreset
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The prompt to generate an image from')
-    image_size: nodetool.nodes.fal.text_to_image.Recraft20B.ImageSizePreset = Field(default=nodetool.nodes.fal.text_to_image.Recraft20B.ImageSizePreset('square_hd'), description='Either a preset size or a custom {width, height} dictionary')
-    style: nodetool.nodes.fal.text_to_image.Recraft20B.StylePreset = Field(default=nodetool.nodes.fal.text_to_image.Recraft20B.StylePreset('realistic_image'), description='The style of the generated images. Vector images cost 2X as much.')
+    image_size: nodetool.nodes.fal.text_to_image.Recraft20B.ImageSizePreset = Field(default=ImageSizePreset.SQUARE_HD, description='Either a preset size or a custom {width, height} dictionary')
+    style: nodetool.nodes.fal.text_to_image.Recraft20B.StylePreset = Field(default=StylePreset.REALISTIC_IMAGE, description='The style of the generated images. Vector images cost 2X as much.')
     colors: List | GraphNode | tuple[GraphNode, str] = Field(default=[], description='An array of preferable colors')
     style_id: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The ID of the custom style reference (optional)')
 
@@ -737,9 +775,11 @@ class RecraftV3(GraphNode):
     image, text
     """
 
+    ImageSizePreset: typing.ClassVar[type] = nodetool.nodes.fal.text_to_image.RecraftV3.ImageSizePreset
+    StylePreset: typing.ClassVar[type] = nodetool.nodes.fal.text_to_image.RecraftV3.StylePreset
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The prompt to generate an image from')
-    image_size: nodetool.nodes.fal.text_to_image.RecraftV3.ImageSizePreset = Field(default=nodetool.nodes.fal.text_to_image.RecraftV3.ImageSizePreset('square_hd'), description='Either a preset size or a custom {width, height} dictionary. Max dimension 14142')
-    style: nodetool.nodes.fal.text_to_image.RecraftV3.StylePreset = Field(default=nodetool.nodes.fal.text_to_image.RecraftV3.StylePreset('realistic_image'), description='The style of the generated images. Vector images cost 2X as much.')
+    image_size: nodetool.nodes.fal.text_to_image.RecraftV3.ImageSizePreset = Field(default=ImageSizePreset.SQUARE_HD, description='Either a preset size or a custom {width, height} dictionary. Max dimension 14142')
+    style: nodetool.nodes.fal.text_to_image.RecraftV3.StylePreset = Field(default=StylePreset.REALISTIC_IMAGE, description='The style of the generated images. Vector images cost 2X as much.')
     colors: List | GraphNode | tuple[GraphNode, str] = Field(default=[], description='An array of preferable colors')
     style_id: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The ID of the custom style reference (optional)')
 
@@ -762,9 +802,10 @@ class SanaV1(GraphNode):
     - Generate precise text-aligned visuals
     """
 
+    ImageSizePreset: typing.ClassVar[type] = nodetool.nodes.fal.text_to_image.SanaV1.ImageSizePreset
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The prompt to generate an image from')
     negative_prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description="Use it to address details that you don't want in the image")
-    image_size: nodetool.nodes.fal.text_to_image.SanaV1.ImageSizePreset = Field(default=nodetool.nodes.fal.text_to_image.SanaV1.ImageSizePreset('square_hd'), description='The size of the generated image')
+    image_size: nodetool.nodes.fal.text_to_image.SanaV1.ImageSizePreset = Field(default=ImageSizePreset.SQUARE_HD, description='The size of the generated image')
     num_inference_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=18, description='The number of inference steps to perform')
     guidance_scale: float | GraphNode | tuple[GraphNode, str] = Field(default=5.0, description='How closely the model should stick to your prompt')
     num_images: int | GraphNode | tuple[GraphNode, str] = Field(default=1, description='The number of images to generate')
@@ -783,13 +824,14 @@ class StableCascade(GraphNode):
     latent space while maintaining high quality output.
     """
 
+    ImageSizePreset: typing.ClassVar[type] = nodetool.nodes.fal.text_to_image.StableCascade.ImageSizePreset
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The prompt to generate an image from')
     negative_prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description="Use it to address details that you don't want in the image")
     first_stage_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=20, description='Number of steps to run the first stage for')
     second_stage_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=10, description='Number of steps to run the second stage for')
     guidance_scale: float | GraphNode | tuple[GraphNode, str] = Field(default=4.0, description='How closely the model should stick to your prompt')
     second_stage_guidance_scale: float | GraphNode | tuple[GraphNode, str] = Field(default=4.0, description='Guidance scale for the second stage of generation')
-    image_size: nodetool.nodes.fal.text_to_image.StableCascade.ImageSizePreset = Field(default=nodetool.nodes.fal.text_to_image.StableCascade.ImageSizePreset('square_hd'), description='The size of the generated image')
+    image_size: nodetool.nodes.fal.text_to_image.StableCascade.ImageSizePreset = Field(default=ImageSizePreset.SQUARE_HD, description='The size of the generated image')
     seed: int | GraphNode | tuple[GraphNode, str] = Field(default=-1, description='The same seed and prompt will output the same image every time')
     enable_safety_checker: bool | GraphNode | tuple[GraphNode, str] = Field(default=True, description='If true, the safety checker will be enabled')
 
@@ -805,11 +847,12 @@ class StableDiffusionV35Large(GraphNode):
     improved performance in image quality, typography, complex prompt understanding, and resource-efficiency.
     """
 
+    ImageSizePreset: typing.ClassVar[type] = nodetool.nodes.fal.text_to_image.StableDiffusionV35Large.ImageSizePreset
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The prompt to generate an image from')
     negative_prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description="Use it to address details that you don't want in the image")
     num_inference_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=28, description='The number of inference steps to perform')
     guidance_scale: float | GraphNode | tuple[GraphNode, str] = Field(default=3.5, description='How closely the model should stick to your prompt')
-    image_size: nodetool.nodes.fal.text_to_image.StableDiffusionV35Large.ImageSizePreset = Field(default=nodetool.nodes.fal.text_to_image.StableDiffusionV35Large.ImageSizePreset('landscape_4_3'), description='The size of the generated image')
+    image_size: nodetool.nodes.fal.text_to_image.StableDiffusionV35Large.ImageSizePreset = Field(default=ImageSizePreset.LANDSCAPE_4_3, description='The size of the generated image')
     seed: int | GraphNode | tuple[GraphNode, str] = Field(default=-1, description='The same seed and prompt will output the same image every time')
     enable_safety_checker: bool | GraphNode | tuple[GraphNode, str] = Field(default=True, description='If true, the safety checker will be enabled')
 
@@ -825,10 +868,11 @@ class StableDiffusionV3Medium(GraphNode):
     that improves image quality, typography, prompt understanding, and efficiency.
     """
 
+    ImageSizePreset: typing.ClassVar[type] = nodetool.nodes.fal.text_to_image.StableDiffusionV3Medium.ImageSizePreset
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The prompt to generate an image from')
     negative_prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The negative prompt to generate an image from')
     prompt_expansion: bool | GraphNode | tuple[GraphNode, str] = Field(default=False, description='If set to true, prompt will be upsampled with more details')
-    image_size: nodetool.nodes.fal.text_to_image.StableDiffusionV3Medium.ImageSizePreset = Field(default=nodetool.nodes.fal.text_to_image.StableDiffusionV3Medium.ImageSizePreset('square_hd'), description='The size of the generated image')
+    image_size: nodetool.nodes.fal.text_to_image.StableDiffusionV3Medium.ImageSizePreset = Field(default=ImageSizePreset.SQUARE_HD, description='The size of the generated image')
     num_inference_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=28, description='The number of inference steps to perform')
     guidance_scale: float | GraphNode | tuple[GraphNode, str] = Field(default=5.0, description='How closely the model should stick to your prompt (CFG scale)')
     num_images: int | GraphNode | tuple[GraphNode, str] = Field(default=1, description='The number of images to generate')

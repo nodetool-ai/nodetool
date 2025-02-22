@@ -67,9 +67,10 @@ class DiffusionEdge_Preprocessor(GraphNode):
     Preprocesses an image for diffusion edge detection.
     """
 
+    DiffusionEdge_Preprocessor_Environment: typing.ClassVar[type] = nodetool.nodes.comfy.controlnet.line_extractors.DiffusionEdge_Preprocessor.DiffusionEdge_Preprocessor_Environment
     image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The image to preprocess.')
     resolution: int | GraphNode | tuple[GraphNode, str] = Field(default=512, description='The width of the image to generate.')
-    environment: nodetool.nodes.comfy.controlnet.line_extractors.DiffusionEdge_Preprocessor.DiffusionEdge_Preprocessor_Environment = Field(default=nodetool.nodes.comfy.controlnet.line_extractors.DiffusionEdge_Preprocessor.DiffusionEdge_Preprocessor_Environment('indoor'), description='The environment to use.')
+    environment: nodetool.nodes.comfy.controlnet.line_extractors.DiffusionEdge_Preprocessor.DiffusionEdge_Preprocessor_Environment = Field(default=DiffusionEdge_Preprocessor_Environment.INDOOR, description='The environment to use.')
     patch_batch_size: int | GraphNode | tuple[GraphNode, str] = Field(default=4, description='The patch batch size to use.')
 
     @classmethod
@@ -83,9 +84,10 @@ class HEDPreprocessor(GraphNode):
     Preprocesses an image for HED lineart.
     """
 
+    SafeMode: typing.ClassVar[type] = nodetool.nodes.comfy.controlnet.line_extractors.HEDPreprocessor.SafeMode
     image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The image to preprocess.')
     resolution: int | GraphNode | tuple[GraphNode, str] = Field(default=512, description='The width of the image to generate.')
-    safe: nodetool.nodes.comfy.controlnet.line_extractors.HEDPreprocessor.SafeMode = Field(default=nodetool.nodes.comfy.controlnet.line_extractors.HEDPreprocessor.SafeMode('enable'), description='Whether to use safe mode.')
+    safe: nodetool.nodes.comfy.controlnet.line_extractors.HEDPreprocessor.SafeMode = Field(default=SafeMode.enable, description='Whether to use safe mode.')
 
     @classmethod
     def get_node_type(cls): return "comfy.controlnet.line_extractors.HEDPreprocessor"
@@ -94,9 +96,10 @@ class HEDPreprocessor(GraphNode):
 import nodetool.nodes.comfy.comfy_node
 
 class LineartPreprocessor(GraphNode):
+    EnableDisable: typing.ClassVar[type] = nodetool.nodes.comfy.comfy_node.LineartPreprocessor.EnableDisable
     image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The image to preprocess.')
     resolution: int | GraphNode | tuple[GraphNode, str] = Field(default=512, description='The width of the image to generate.')
-    coarse: nodetool.nodes.comfy.comfy_node.LineartPreprocessor.EnableDisable = Field(default=nodetool.nodes.comfy.comfy_node.LineartPreprocessor.EnableDisable('disable'), description='Whether to use coarse lineart.')
+    coarse: nodetool.nodes.comfy.comfy_node.LineartPreprocessor.EnableDisable = Field(default=EnableDisable.DISABLE, description='Whether to use coarse lineart.')
 
     @classmethod
     def get_node_type(cls): return "comfy.controlnet.line_extractors.LineartPreprocessor"
@@ -137,9 +140,10 @@ class PiDiNetPreprocessor(GraphNode):
     Preprocesses an image for PiDiNet lineart.
     """
 
+    EnableDisable: typing.ClassVar[type] = nodetool.nodes.comfy.comfy_node.PiDiNetPreprocessor.EnableDisable
     image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The image to preprocess.')
     resolution: int | GraphNode | tuple[GraphNode, str] = Field(default=512, description='The width of the image to generate.')
-    safe: nodetool.nodes.comfy.comfy_node.PiDiNetPreprocessor.EnableDisable = Field(default=nodetool.nodes.comfy.comfy_node.PiDiNetPreprocessor.EnableDisable('enable'), description=None)
+    safe: nodetool.nodes.comfy.comfy_node.PiDiNetPreprocessor.EnableDisable = Field(default=EnableDisable.ENABLE, description=None)
 
     @classmethod
     def get_node_type(cls): return "comfy.controlnet.line_extractors.PiDiNetPreprocessor"

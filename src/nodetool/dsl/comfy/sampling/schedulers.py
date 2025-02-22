@@ -12,8 +12,9 @@ class BasicScheduler(GraphNode):
     It allows selection of different scheduler types and control over steps and denoising.
     """
 
+    SchedulerEnum: typing.ClassVar[type] = nodetool.nodes.comfy.sampling.BasicScheduler.SchedulerEnum
     model: UNet | GraphNode | tuple[GraphNode, str] = Field(default=UNet(type='comfy.unet', name='', model=None), description='The model to use.')
-    scheduler: nodetool.nodes.comfy.sampling.BasicScheduler.SchedulerEnum = Field(default=nodetool.nodes.comfy.sampling.BasicScheduler.SchedulerEnum('normal'), description='The scheduler name.')
+    scheduler: nodetool.nodes.comfy.sampling.BasicScheduler.SchedulerEnum = Field(default=SchedulerEnum.NORMAL, description='The scheduler name.')
     steps: int | GraphNode | tuple[GraphNode, str] = Field(default=20, description='The number of steps.')
     denoise: float | GraphNode | tuple[GraphNode, str] = Field(default=1.0, description='The denoising factor.')
 

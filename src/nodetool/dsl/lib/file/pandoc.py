@@ -18,9 +18,11 @@ class ConvertFile(GraphNode):
     - Create publication-ready documents
     """
 
+    InputFormat: typing.ClassVar[type] = nodetool.nodes.lib.file.pandoc.ConvertFile.InputFormat
+    OutputFormat: typing.ClassVar[type] = nodetool.nodes.lib.file.pandoc.ConvertFile.OutputFormat
     input_path: FilePath | GraphNode | tuple[GraphNode, str] = Field(default=FilePath(type='file_path', path=''), description='Path to the input file')
-    input_format: nodetool.nodes.lib.file.pandoc.ConvertFile.InputFormat = Field(default=nodetool.nodes.lib.file.pandoc.ConvertFile.InputFormat('markdown'), description='Input format')
-    output_format: nodetool.nodes.lib.file.pandoc.ConvertFile.OutputFormat = Field(default=nodetool.nodes.lib.file.pandoc.ConvertFile.OutputFormat('pdf'), description='Output format')
+    input_format: nodetool.nodes.lib.file.pandoc.ConvertFile.InputFormat = Field(default=InputFormat.MARKDOWN, description='Input format')
+    output_format: nodetool.nodes.lib.file.pandoc.ConvertFile.OutputFormat = Field(default=OutputFormat.PDF, description='Output format')
     extra_args: list[str] | GraphNode | tuple[GraphNode, str] = Field(default=[], description='Additional pandoc arguments')
 
     @classmethod
@@ -41,9 +43,11 @@ class ConvertText(GraphNode):
     - Process text snippets in different formats
     """
 
+    InputFormat: typing.ClassVar[type] = nodetool.nodes.lib.file.pandoc.ConvertText.InputFormat
+    OutputFormat: typing.ClassVar[type] = nodetool.nodes.lib.file.pandoc.ConvertText.OutputFormat
     content: str | GraphNode | tuple[GraphNode, str] = Field(default=PydanticUndefined, description='Text content to convert')
-    input_format: nodetool.nodes.lib.file.pandoc.ConvertText.InputFormat = Field(default=nodetool.nodes.lib.file.pandoc.ConvertText.InputFormat(PydanticUndefined), description='Input format')
-    output_format: nodetool.nodes.lib.file.pandoc.ConvertText.OutputFormat = Field(default=nodetool.nodes.lib.file.pandoc.ConvertText.OutputFormat(PydanticUndefined), description='Output format')
+    input_format: nodetool.nodes.lib.file.pandoc.ConvertText.InputFormat = Field(default=InputFormat(PydanticUndefined), description='Input format')
+    output_format: nodetool.nodes.lib.file.pandoc.ConvertText.OutputFormat = Field(default=OutputFormat(PydanticUndefined), description='Output format')
     extra_args: list[str] | GraphNode | tuple[GraphNode, str] = Field(default=[], description='Additional pandoc arguments')
 
     @classmethod

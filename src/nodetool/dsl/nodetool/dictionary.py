@@ -128,10 +128,11 @@ class ReduceDictionaries(GraphNode):
     - Combine multiple data points into a single structure
     """
 
+    ConflictResolution: typing.ClassVar[type] = nodetool.nodes.nodetool.dictionary.ReduceDictionaries.ConflictResolution
     dictionaries: list[dict[str, Any]] | GraphNode | tuple[GraphNode, str] = Field(default=[], description='List of dictionaries to be reduced')
     key_field: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The field to use as the key in the resulting dictionary')
     value_field: str | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='Optional field to use as the value. If not specified, the entire dictionary (minus the key field) will be used as the value.')
-    conflict_resolution: nodetool.nodes.nodetool.dictionary.ReduceDictionaries.ConflictResolution = Field(default=nodetool.nodes.nodetool.dictionary.ReduceDictionaries.ConflictResolution('first'), description='How to handle conflicts when the same key appears multiple times')
+    conflict_resolution: nodetool.nodes.nodetool.dictionary.ReduceDictionaries.ConflictResolution = Field(default=ConflictResolution.FIRST, description='How to handle conflicts when the same key appears multiple times')
 
     @classmethod
     def get_node_type(cls): return "nodetool.dictionary.ReduceDictionaries"

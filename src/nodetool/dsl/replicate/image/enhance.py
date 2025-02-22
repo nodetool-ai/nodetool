@@ -56,6 +56,7 @@ import nodetool.nodes.replicate.image.enhance
 class Supir_V0F(GraphNode):
     """Practicing Model Scaling for Photo-Realistic Image Restoration In the Wild. This is the SUPIR-v0F model and does NOT use LLaVA-13b."""
 
+    Color_fix_type: typing.ClassVar[type] = nodetool.nodes.replicate.image.enhance.Supir_V0F.Color_fix_type
     seed: int | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='Random seed. Leave blank to randomize the seed')
     image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Low quality input image.')
     s_cfg: float | GraphNode | tuple[GraphNode, str] = Field(default=7.5, description=' Classifier-free guidance scale for prompts.')
@@ -69,7 +70,7 @@ class Supir_V0F(GraphNode):
     s_stage2: float | GraphNode | tuple[GraphNode, str] = Field(default=1, description='Control Strength of Stage2.')
     edm_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=50, description='Number of steps for EDM Sampling Schedule.')
     linear_CFG: bool | GraphNode | tuple[GraphNode, str] = Field(default=False, description="Linearly (with sigma) increase CFG from 'spt_linear_CFG' to s_cfg.")
-    color_fix_type: nodetool.nodes.replicate.image.enhance.Supir_V0F.Color_fix_type = Field(default=nodetool.nodes.replicate.image.enhance.Supir_V0F.Color_fix_type('Wavelet'), description='Color Fixing Type..')
+    color_fix_type: nodetool.nodes.replicate.image.enhance.Supir_V0F.Color_fix_type = Field(default=Color_fix_type.WAVELET, description='Color Fixing Type..')
     spt_linear_CFG: float | GraphNode | tuple[GraphNode, str] = Field(default=1, description='Start point of linearly increasing CFG.')
     linear_s_stage2: bool | GraphNode | tuple[GraphNode, str] = Field(default=False, description="Linearly (with sigma) increase s_stage2 from 'spt_linear_s_stage2' to s_stage2.")
     spt_linear_s_stage2: float | GraphNode | tuple[GraphNode, str] = Field(default=0, description='Start point of linearly increasing s_stage2.')
@@ -83,6 +84,7 @@ import nodetool.nodes.replicate.image.enhance
 class Supir_V0Q(GraphNode):
     """Practicing Model Scaling for Photo-Realistic Image Restoration In the Wild. This is the SUPIR-v0Q model and does NOT use LLaVA-13b."""
 
+    Color_fix_type: typing.ClassVar[type] = nodetool.nodes.replicate.image.enhance.Supir_V0Q.Color_fix_type
     seed: int | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='Random seed. Leave blank to randomize the seed')
     image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Low quality input image.')
     s_cfg: float | GraphNode | tuple[GraphNode, str] = Field(default=7.5, description=' Classifier-free guidance scale for prompts.')
@@ -96,7 +98,7 @@ class Supir_V0Q(GraphNode):
     s_stage2: float | GraphNode | tuple[GraphNode, str] = Field(default=1, description='Control Strength of Stage2.')
     edm_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=50, description='Number of steps for EDM Sampling Schedule.')
     linear_CFG: bool | GraphNode | tuple[GraphNode, str] = Field(default=False, description="Linearly (with sigma) increase CFG from 'spt_linear_CFG' to s_cfg.")
-    color_fix_type: nodetool.nodes.replicate.image.enhance.Supir_V0Q.Color_fix_type = Field(default=nodetool.nodes.replicate.image.enhance.Supir_V0Q.Color_fix_type('Wavelet'), description='Color Fixing Type..')
+    color_fix_type: nodetool.nodes.replicate.image.enhance.Supir_V0Q.Color_fix_type = Field(default=Color_fix_type.WAVELET, description='Color Fixing Type..')
     spt_linear_CFG: float | GraphNode | tuple[GraphNode, str] = Field(default=1, description='Start point of linearly increasing CFG.')
     linear_s_stage2: bool | GraphNode | tuple[GraphNode, str] = Field(default=False, description="Linearly (with sigma) increase s_stage2 from 'spt_linear_s_stage2' to s_stage2.")
     spt_linear_s_stage2: float | GraphNode | tuple[GraphNode, str] = Field(default=0, description='Start point of linearly increasing s_stage2.')

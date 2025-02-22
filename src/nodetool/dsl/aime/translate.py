@@ -12,8 +12,10 @@ class SeamlessCommunication(GraphNode):
     Translates text from one language to another using the AIME API.
     """
 
-    src_lang: nodetool.nodes.aime.translate.SeamlessCommunication.Language = Field(default=nodetool.nodes.aime.translate.SeamlessCommunication.Language('deu'), description=None)
-    tgt_lang: nodetool.nodes.aime.translate.SeamlessCommunication.Language = Field(default=nodetool.nodes.aime.translate.SeamlessCommunication.Language('eng'), description=None)
+    Language: typing.ClassVar[type] = nodetool.nodes.aime.translate.SeamlessCommunication.Language
+    Language: typing.ClassVar[type] = nodetool.nodes.aime.translate.SeamlessCommunication.Language
+    src_lang: nodetool.nodes.aime.translate.SeamlessCommunication.Language = Field(default=Language.GERMAN, description=None)
+    tgt_lang: nodetool.nodes.aime.translate.SeamlessCommunication.Language = Field(default=Language.ENGLISH, description=None)
     generate_audio: bool | GraphNode | tuple[GraphNode, str] = Field(default=True, description=None)
     text_input: str | GraphNode | tuple[GraphNode, str] = Field(default='', description=None)
 

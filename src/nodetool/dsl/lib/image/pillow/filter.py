@@ -140,8 +140,9 @@ class GetChannel(GraphNode):
     - Enhance or reduce visibility of certain colors
     """
 
+    ChannelEnum: typing.ClassVar[type] = nodetool.nodes.lib.image.pillow.filter.GetChannel.ChannelEnum
     image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The image to get the channel from.')
-    channel: nodetool.nodes.lib.image.pillow.filter.GetChannel.ChannelEnum = Field(default=nodetool.nodes.lib.image.pillow.filter.GetChannel.ChannelEnum('R'), description=None)
+    channel: nodetool.nodes.lib.image.pillow.filter.GetChannel.ChannelEnum = Field(default=ChannelEnum.RED, description=None)
 
     @classmethod
     def get_node_type(cls): return "lib.image.pillow.filter.GetChannel"

@@ -120,10 +120,11 @@ class ConditioningSetMask(GraphNode):
     The Conditioning (Set Mask) node can be used to limit a conditioning to a specified mask. Together with the Conditioning (Combine) node this can be used to add more control over the composition of the final image.
     """
 
+    SetConditioningAreaEnum: typing.ClassVar[type] = nodetool.nodes.comfy.conditioning.ConditioningSetMask.SetConditioningAreaEnum
     conditioning: Conditioning | GraphNode | tuple[GraphNode, str] = Field(default=Conditioning(type='comfy.conditioning', data=None), description='The conditioning to modify.')
     mask: Mask | GraphNode | tuple[GraphNode, str] = Field(default=Mask(type='comfy.mask', data=None), description='The mask to use for setting the conditioning.')
     strength: float | GraphNode | tuple[GraphNode, str] = Field(default=1.0, description='The strength of the conditioning within the mask.')
-    set_cond_area: nodetool.nodes.comfy.conditioning.ConditioningSetMask.SetConditioningAreaEnum = Field(default=nodetool.nodes.comfy.conditioning.ConditioningSetMask.SetConditioningAreaEnum('default'), description='Method to determine the area for setting conditioning.')
+    set_cond_area: nodetool.nodes.comfy.conditioning.ConditioningSetMask.SetConditioningAreaEnum = Field(default=SetConditioningAreaEnum.DEFAULT, description='Method to determine the area for setting conditioning.')
 
     @classmethod
     def get_node_type(cls): return "comfy.conditioning.ConditioningSetMask"

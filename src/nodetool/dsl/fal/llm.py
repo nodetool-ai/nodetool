@@ -20,9 +20,10 @@ class AnyLLM(GraphNode):
     - Assist with problem-solving tasks
     """
 
+    ModelEnum: typing.ClassVar[type] = nodetool.nodes.fal.llm.AnyLLM.ModelEnum
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The prompt to send to the language model')
     system_prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='Optional system prompt to provide context or instructions')
-    model: nodetool.nodes.fal.llm.AnyLLM.ModelEnum = Field(default=nodetool.nodes.fal.llm.AnyLLM.ModelEnum('google/gemini-flash-1.5'), description='The language model to use for the completion')
+    model: nodetool.nodes.fal.llm.AnyLLM.ModelEnum = Field(default=ModelEnum.GEMINI_FLASH, description='The language model to use for the completion')
 
     @classmethod
     def get_node_type(cls): return "fal.llm.AnyLLM"

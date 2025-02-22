@@ -32,13 +32,15 @@ class GmailSearch(GraphNode):
     - Filter emails by subject, sender, or date
     """
 
+    DateFilter: typing.ClassVar[type] = nodetool.nodes.google.mail.GmailSearch.DateFilter
+    GmailFolder: typing.ClassVar[type] = nodetool.nodes.google.mail.GmailSearch.GmailFolder
     from_address: str | GraphNode | tuple[GraphNode, str] = Field(default='', description="Sender's email address to search for")
     to_address: str | GraphNode | tuple[GraphNode, str] = Field(default='', description="Recipient's email address to search for")
     subject: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='Text to search for in email subject')
     body: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='Text to search for in email body')
-    date_filter: nodetool.nodes.google.mail.GmailSearch.DateFilter = Field(default=nodetool.nodes.google.mail.GmailSearch.DateFilter('SINCE_ONE_DAY'), description='Date filter to search for')
+    date_filter: nodetool.nodes.google.mail.GmailSearch.DateFilter = Field(default=DateFilter.SINCE_ONE_DAY, description='Date filter to search for')
     keywords: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='Custom keywords or labels to search for')
-    folder: nodetool.nodes.google.mail.GmailSearch.GmailFolder = Field(default=nodetool.nodes.google.mail.GmailSearch.GmailFolder('INBOX'), description='Email folder to search in')
+    folder: nodetool.nodes.google.mail.GmailSearch.GmailFolder = Field(default=GmailFolder.INBOX, description='Email folder to search in')
     text: str | GraphNode | tuple[GraphNode, str] = Field(default=None, description='General text to search for anywhere in the email')
     max_results: int | GraphNode | tuple[GraphNode, str] = Field(default=50, description='Maximum number of emails to return')
 

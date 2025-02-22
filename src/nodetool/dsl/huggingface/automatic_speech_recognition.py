@@ -56,11 +56,14 @@ class Whisper(GraphNode):
     - https://platform.openai.com/docs/guides/speech-to-text/supported-languages
     """
 
+    Task: typing.ClassVar[type] = nodetool.nodes.huggingface.automatic_speech_recognition.Whisper.Task
+    WhisperLanguage: typing.ClassVar[type] = nodetool.nodes.huggingface.automatic_speech_recognition.Whisper.WhisperLanguage
+    Timestamps: typing.ClassVar[type] = nodetool.nodes.huggingface.automatic_speech_recognition.Whisper.Timestamps
     model: HFAutomaticSpeechRecognition | GraphNode | tuple[GraphNode, str] = Field(default=HFAutomaticSpeechRecognition(type='hf.automatic_speech_recognition', repo_id='', path=None, allow_patterns=None, ignore_patterns=None), description='The model ID to use for the speech recognition.')
     audio: AudioRef | GraphNode | tuple[GraphNode, str] = Field(default=AudioRef(type='audio', uri='', asset_id=None, data=None), description='The input audio to transcribe.')
-    task: nodetool.nodes.huggingface.automatic_speech_recognition.Whisper.Task = Field(default=nodetool.nodes.huggingface.automatic_speech_recognition.Whisper.Task('transcribe'), description="The task to perform: 'transcribe' for speech-to-text or 'translate' for speech translation.")
-    language: nodetool.nodes.huggingface.automatic_speech_recognition.Whisper.WhisperLanguage = Field(default=nodetool.nodes.huggingface.automatic_speech_recognition.Whisper.WhisperLanguage('auto_detect'), description='The language of the input audio. If not specified, the model will attempt to detect it automatically.')
-    timestamps: nodetool.nodes.huggingface.automatic_speech_recognition.Whisper.Timestamps = Field(default=nodetool.nodes.huggingface.automatic_speech_recognition.Whisper.Timestamps('none'), description='The type of timestamps to return for the generated text.')
+    task: nodetool.nodes.huggingface.automatic_speech_recognition.Whisper.Task = Field(default=Task.TRANSCRIBE, description="The task to perform: 'transcribe' for speech-to-text or 'translate' for speech translation.")
+    language: nodetool.nodes.huggingface.automatic_speech_recognition.Whisper.WhisperLanguage = Field(default=WhisperLanguage.NONE, description='The language of the input audio. If not specified, the model will attempt to detect it automatically.')
+    timestamps: nodetool.nodes.huggingface.automatic_speech_recognition.Whisper.Timestamps = Field(default=Timestamps.NONE, description='The type of timestamps to return for the generated text.')
 
     @classmethod
     def get_node_type(cls): return "huggingface.automatic_speech_recognition.Whisper"

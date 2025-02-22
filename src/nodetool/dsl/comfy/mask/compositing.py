@@ -24,11 +24,12 @@ class PorterDuffImageComposite(GraphNode):
     The Porter-Duff Image Composite node can be used to combine two images using various compositing modes. This allows for complex image blending operations, useful for creating layered effects or combining multiple image elements.
     """
 
+    PorterDuffModeEnum: typing.ClassVar[type] = nodetool.nodes.comfy.mask.compositing.PorterDuffImageComposite.PorterDuffModeEnum
     source: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The source image.')
     source_alpha: Mask | GraphNode | tuple[GraphNode, str] = Field(default=Mask(type='comfy.mask', data=None), description='The source alpha (mask).')
     destination: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The destination image.')
     destination_alpha: Mask | GraphNode | tuple[GraphNode, str] = Field(default=Mask(type='comfy.mask', data=None), description='The destination alpha (mask).')
-    mode: nodetool.nodes.comfy.mask.compositing.PorterDuffImageComposite.PorterDuffModeEnum = Field(default=nodetool.nodes.comfy.mask.compositing.PorterDuffImageComposite.PorterDuffModeEnum('DST'), description='The Porter-Duff compositing mode to use.')
+    mode: nodetool.nodes.comfy.mask.compositing.PorterDuffImageComposite.PorterDuffModeEnum = Field(default=PorterDuffModeEnum.DST, description='The Porter-Duff compositing mode to use.')
 
     @classmethod
     def get_node_type(cls): return "comfy.mask.compositing.PorterDuffImageComposite"

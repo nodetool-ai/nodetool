@@ -70,8 +70,9 @@ class ImageToMask(GraphNode):
     The Convert Image yo Mask node can be used to convert a specific channel of an image into a mask.
     """
 
+    ChannelEnum: typing.ClassVar[type] = nodetool.nodes.comfy.mask.ImageToMask.ChannelEnum
     image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The image to extract the mask.')
-    channel: nodetool.nodes.comfy.mask.ImageToMask.ChannelEnum = Field(default=nodetool.nodes.comfy.mask.ImageToMask.ChannelEnum('red'), description='The channel to use for the mask.')
+    channel: nodetool.nodes.comfy.mask.ImageToMask.ChannelEnum = Field(default=ChannelEnum.RED, description='The channel to use for the mask.')
 
     @classmethod
     def get_node_type(cls): return "comfy.mask.ImageToMask"
@@ -96,11 +97,12 @@ class MaskComposite(GraphNode):
     The Mask Composite node can be used to paste one mask into another.
     """
 
+    OperationEnum: typing.ClassVar[type] = nodetool.nodes.comfy.mask.MaskComposite.OperationEnum
     destination: Mask | GraphNode | tuple[GraphNode, str] = Field(default=Mask(type='comfy.mask', data=None), description='The destination mask.')
     source: Mask | GraphNode | tuple[GraphNode, str] = Field(default=Mask(type='comfy.mask', data=None), description='The source mask.')
     x: int | GraphNode | tuple[GraphNode, str] = Field(default=0, description='The x position.')
     y: int | GraphNode | tuple[GraphNode, str] = Field(default=0, description='The y position.')
-    operation: nodetool.nodes.comfy.mask.MaskComposite.OperationEnum = Field(default=nodetool.nodes.comfy.mask.MaskComposite.OperationEnum('multiply'), description='The operation to use.')
+    operation: nodetool.nodes.comfy.mask.MaskComposite.OperationEnum = Field(default=OperationEnum.MULTIPLY, description='The operation to use.')
 
     @classmethod
     def get_node_type(cls): return "comfy.mask.MaskComposite"

@@ -21,8 +21,9 @@ class Embedding(GraphNode):
     - Measuring text similarity and diversity
     """
 
+    EmbeddingModel: typing.ClassVar[type] = nodetool.nodes.openai.text.Embedding.EmbeddingModel
     input: str | GraphNode | tuple[GraphNode, str] = Field(default='', description=None)
-    model: nodetool.nodes.openai.text.Embedding.EmbeddingModel = Field(default=nodetool.nodes.openai.text.Embedding.EmbeddingModel('text-embedding-3-small'), description=None)
+    model: nodetool.nodes.openai.text.Embedding.EmbeddingModel = Field(default=EmbeddingModel.TEXT_EMBEDDING_3_SMALL, description=None)
     chunk_size: int | GraphNode | tuple[GraphNode, str] = Field(default=4096, description=None)
 
     @classmethod

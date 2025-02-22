@@ -20,6 +20,8 @@ class ControlNet(GraphNode):
     - Creating high-resolution images with consistent controlled features
     """
 
+    Scheduler: typing.ClassVar[type] = nodetool.nodes.comfy.enums.ControlNet.Scheduler
+    Sampler: typing.ClassVar[type] = nodetool.nodes.comfy.enums.ControlNet.Sampler
     model: HFStableDiffusion | GraphNode | tuple[GraphNode, str] = Field(default=HFStableDiffusion(type='hf.stable_diffusion', repo_id='', path=None, allow_patterns=None, ignore_patterns=None), description='The model to use.')
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The prompt to use.')
     negative_prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The negative prompt to use.')
@@ -28,8 +30,8 @@ class ControlNet(GraphNode):
     num_inference_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=30, description=None)
     width: int | GraphNode | tuple[GraphNode, str] = Field(default=768, description=None)
     height: int | GraphNode | tuple[GraphNode, str] = Field(default=768, description=None)
-    scheduler: nodetool.nodes.comfy.enums.ControlNet.Scheduler = Field(default=nodetool.nodes.comfy.enums.ControlNet.Scheduler('exponential'), description=None)
-    sampler: nodetool.nodes.comfy.enums.ControlNet.Sampler = Field(default=nodetool.nodes.comfy.enums.ControlNet.Sampler('euler_ancestral'), description=None)
+    scheduler: nodetool.nodes.comfy.enums.ControlNet.Scheduler = Field(default=Scheduler.exponential, description=None)
+    sampler: nodetool.nodes.comfy.enums.ControlNet.Sampler = Field(default=Sampler.euler_ancestral, description=None)
     input_image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Input image for img2img (optional)')
     mask_image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Mask image for img2img (optional)')
     grow_mask_by: int | GraphNode | tuple[GraphNode, str] = Field(default=6, description=None)
@@ -57,6 +59,8 @@ class Flux(GraphNode):
     - Producing images with specific artistic styles
     """
 
+    Scheduler: typing.ClassVar[type] = nodetool.nodes.comfy.enums.Flux.Scheduler
+    Sampler: typing.ClassVar[type] = nodetool.nodes.comfy.enums.Flux.Sampler
     model: HFFlux | GraphNode | tuple[GraphNode, str] = Field(default=HFFlux(type='hf.flux', repo_id='', path=None, allow_patterns=None, ignore_patterns=None), description='The model to use.')
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The prompt to use.')
     negative_prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The negative prompt to use.')
@@ -67,8 +71,8 @@ class Flux(GraphNode):
     guidance_scale: float | GraphNode | tuple[GraphNode, str] = Field(default=1.0, description=None)
     seed: int | GraphNode | tuple[GraphNode, str] = Field(default=0, description=None)
     denoise: float | GraphNode | tuple[GraphNode, str] = Field(default=1.0, description=None)
-    scheduler: nodetool.nodes.comfy.enums.Flux.Scheduler = Field(default=nodetool.nodes.comfy.enums.Flux.Scheduler('simple'), description=None)
-    sampler: nodetool.nodes.comfy.enums.Flux.Sampler = Field(default=nodetool.nodes.comfy.enums.Flux.Sampler('euler'), description=None)
+    scheduler: nodetool.nodes.comfy.enums.Flux.Scheduler = Field(default=Scheduler.simple, description=None)
+    sampler: nodetool.nodes.comfy.enums.Flux.Sampler = Field(default=Sampler.euler, description=None)
 
     @classmethod
     def get_node_type(cls): return "comfy.basic.Flux"
@@ -88,6 +92,8 @@ class FluxFP8(GraphNode):
     - Producing images with specific artistic styles
     """
 
+    Scheduler: typing.ClassVar[type] = nodetool.nodes.comfy.enums.FluxFP8.Scheduler
+    Sampler: typing.ClassVar[type] = nodetool.nodes.comfy.enums.FluxFP8.Sampler
     model: HFFlux | GraphNode | tuple[GraphNode, str] = Field(default=HFFlux(type='hf.flux', repo_id='', path=None, allow_patterns=None, ignore_patterns=None), description='The model to use.')
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The prompt to use.')
     negative_prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The negative prompt to use.')
@@ -98,8 +104,8 @@ class FluxFP8(GraphNode):
     guidance_scale: float | GraphNode | tuple[GraphNode, str] = Field(default=1.0, description=None)
     seed: int | GraphNode | tuple[GraphNode, str] = Field(default=0, description=None)
     denoise: float | GraphNode | tuple[GraphNode, str] = Field(default=1.0, description=None)
-    scheduler: nodetool.nodes.comfy.enums.FluxFP8.Scheduler = Field(default=nodetool.nodes.comfy.enums.FluxFP8.Scheduler('simple'), description=None)
-    sampler: nodetool.nodes.comfy.enums.FluxFP8.Sampler = Field(default=nodetool.nodes.comfy.enums.FluxFP8.Sampler('euler'), description=None)
+    scheduler: nodetool.nodes.comfy.enums.FluxFP8.Scheduler = Field(default=Scheduler.simple, description=None)
+    sampler: nodetool.nodes.comfy.enums.FluxFP8.Sampler = Field(default=Sampler.euler, description=None)
 
     @classmethod
     def get_node_type(cls): return "comfy.basic.FluxFP8"
@@ -148,6 +154,8 @@ class StableDiffusion(GraphNode):
     - Creating high-resolution images from lower resolution inputs
     """
 
+    Scheduler: typing.ClassVar[type] = nodetool.nodes.comfy.enums.StableDiffusion.Scheduler
+    Sampler: typing.ClassVar[type] = nodetool.nodes.comfy.enums.StableDiffusion.Sampler
     model: HFStableDiffusion | GraphNode | tuple[GraphNode, str] = Field(default=HFStableDiffusion(type='hf.stable_diffusion', repo_id='', path=None, allow_patterns=None, ignore_patterns=None), description='The model to use.')
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The prompt to use.')
     negative_prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The negative prompt to use.')
@@ -156,8 +164,8 @@ class StableDiffusion(GraphNode):
     num_inference_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=30, description=None)
     width: int | GraphNode | tuple[GraphNode, str] = Field(default=768, description=None)
     height: int | GraphNode | tuple[GraphNode, str] = Field(default=768, description=None)
-    scheduler: nodetool.nodes.comfy.enums.StableDiffusion.Scheduler = Field(default=nodetool.nodes.comfy.enums.StableDiffusion.Scheduler('exponential'), description=None)
-    sampler: nodetool.nodes.comfy.enums.StableDiffusion.Sampler = Field(default=nodetool.nodes.comfy.enums.StableDiffusion.Sampler('euler_ancestral'), description=None)
+    scheduler: nodetool.nodes.comfy.enums.StableDiffusion.Scheduler = Field(default=Scheduler.exponential, description=None)
+    sampler: nodetool.nodes.comfy.enums.StableDiffusion.Sampler = Field(default=Sampler.euler_ancestral, description=None)
     input_image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Input image for img2img (optional)')
     mask_image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Mask image for img2img (optional)')
     grow_mask_by: int | GraphNode | tuple[GraphNode, str] = Field(default=6, description=None)
@@ -184,6 +192,8 @@ class StableDiffusion3(GraphNode):
     - Producing images with improved composition and understanding
     """
 
+    Scheduler: typing.ClassVar[type] = nodetool.nodes.comfy.enums.StableDiffusion3.Scheduler
+    Sampler: typing.ClassVar[type] = nodetool.nodes.comfy.enums.StableDiffusion3.Sampler
     model: HFStableDiffusion3 | GraphNode | tuple[GraphNode, str] = Field(default=HFStableDiffusion3(type='hf.stable_diffusion_3', repo_id='', path=None, allow_patterns=None, ignore_patterns=None), description='The model to use.')
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The prompt to use.')
     negative_prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The negative prompt to use.')
@@ -192,8 +202,8 @@ class StableDiffusion3(GraphNode):
     num_inference_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=20, description=None)
     width: int | GraphNode | tuple[GraphNode, str] = Field(default=768, description=None)
     height: int | GraphNode | tuple[GraphNode, str] = Field(default=768, description=None)
-    scheduler: nodetool.nodes.comfy.enums.StableDiffusion3.Scheduler = Field(default=nodetool.nodes.comfy.enums.StableDiffusion3.Scheduler('exponential'), description=None)
-    sampler: nodetool.nodes.comfy.enums.StableDiffusion3.Sampler = Field(default=nodetool.nodes.comfy.enums.StableDiffusion3.Sampler('euler_ancestral'), description=None)
+    scheduler: nodetool.nodes.comfy.enums.StableDiffusion3.Scheduler = Field(default=Scheduler.exponential, description=None)
+    sampler: nodetool.nodes.comfy.enums.StableDiffusion3.Sampler = Field(default=Sampler.euler_ancestral, description=None)
     input_image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Input image for img2img (optional)')
     mask_image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Mask image for img2img (optional)')
     grow_mask_by: int | GraphNode | tuple[GraphNode, str] = Field(default=6, description=None)
@@ -218,6 +228,8 @@ class StableDiffusionXL(GraphNode):
     - Producing images with improved composition and understanding
     """
 
+    Scheduler: typing.ClassVar[type] = nodetool.nodes.comfy.enums.StableDiffusionXL.Scheduler
+    Sampler: typing.ClassVar[type] = nodetool.nodes.comfy.enums.StableDiffusionXL.Sampler
     model: HFStableDiffusionXL | GraphNode | tuple[GraphNode, str] = Field(default=HFStableDiffusionXL(type='hf.stable_diffusion_xl', repo_id='', path=None, allow_patterns=None, ignore_patterns=None), description='The model to use.')
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The prompt to use.')
     negative_prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The negative prompt to use.')
@@ -226,8 +238,8 @@ class StableDiffusionXL(GraphNode):
     num_inference_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=30, description=None)
     width: int | GraphNode | tuple[GraphNode, str] = Field(default=768, description=None)
     height: int | GraphNode | tuple[GraphNode, str] = Field(default=768, description=None)
-    scheduler: nodetool.nodes.comfy.enums.StableDiffusionXL.Scheduler = Field(default=nodetool.nodes.comfy.enums.StableDiffusionXL.Scheduler('exponential'), description=None)
-    sampler: nodetool.nodes.comfy.enums.StableDiffusionXL.Sampler = Field(default=nodetool.nodes.comfy.enums.StableDiffusionXL.Sampler('euler_ancestral'), description=None)
+    scheduler: nodetool.nodes.comfy.enums.StableDiffusionXL.Scheduler = Field(default=Scheduler.exponential, description=None)
+    sampler: nodetool.nodes.comfy.enums.StableDiffusionXL.Sampler = Field(default=Sampler.euler_ancestral, description=None)
     input_image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Input image for img2img (optional)')
     mask_image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Mask image for img2img (optional)')
     grow_mask_by: int | GraphNode | tuple[GraphNode, str] = Field(default=6, description=None)

@@ -41,9 +41,10 @@ class CogVideoX(GraphNode):
     - Generate motion sequences
     """
 
+    VideoSize: typing.ClassVar[type] = nodetool.nodes.fal.image_to_video.CogVideoX.VideoSize
     image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The image to transform into a video')
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='A description of the desired video motion and style')
-    video_size: nodetool.nodes.fal.image_to_video.CogVideoX.VideoSize = Field(default=nodetool.nodes.fal.image_to_video.CogVideoX.VideoSize('landscape_16_9'), description='The size/aspect ratio of the generated video')
+    video_size: nodetool.nodes.fal.image_to_video.CogVideoX.VideoSize = Field(default=VideoSize.LANDSCAPE_16_9, description='The size/aspect ratio of the generated video')
     negative_prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='Distorted, discontinuous, Ugly, blurry, low resolution, motionless, static, disfigured, disconnected limbs, Ugly faces, incomplete arms', description='What to avoid in the generated video')
     num_inference_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=50, description='Number of denoising steps (higher = better quality but slower)')
     guidance_scale: float | GraphNode | tuple[GraphNode, str] = Field(default=7.0, description='How closely to follow the prompt (higher = more faithful but less creative)')
@@ -95,9 +96,10 @@ class HaiperImageToVideo(GraphNode):
     - Create visual effects
     """
 
+    VideoDuration: typing.ClassVar[type] = nodetool.nodes.fal.image_to_video.HaiperImageToVideo.VideoDuration
     image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The image to transform into a video')
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='A description of the desired video motion and style')
-    duration: nodetool.nodes.fal.image_to_video.HaiperImageToVideo.VideoDuration = Field(default=nodetool.nodes.fal.image_to_video.HaiperImageToVideo.VideoDuration(4), description='The duration of the generated video in seconds')
+    duration: nodetool.nodes.fal.image_to_video.HaiperImageToVideo.VideoDuration = Field(default=VideoDuration.FOUR_SECONDS, description='The duration of the generated video in seconds')
     prompt_enhancer: bool | GraphNode | tuple[GraphNode, str] = Field(default=True, description="Whether to use the model's prompt enhancer")
     seed: int | GraphNode | tuple[GraphNode, str] = Field(default=-1, description='The same seed will output the same video every time')
 
@@ -121,10 +123,12 @@ class KlingVideo(GraphNode):
     - Create visual presentations
     """
 
+    KlingDuration: typing.ClassVar[type] = nodetool.nodes.fal.image_to_video.KlingVideo.KlingDuration
+    AspectRatio: typing.ClassVar[type] = nodetool.nodes.fal.image_to_video.KlingVideo.AspectRatio
     image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The image to transform into a video')
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='A description of the desired video motion and style')
-    duration: nodetool.nodes.fal.image_to_video.KlingVideo.KlingDuration = Field(default=nodetool.nodes.fal.image_to_video.KlingVideo.KlingDuration('5'), description='The duration of the generated video')
-    aspect_ratio: nodetool.nodes.fal.image_to_video.KlingVideo.AspectRatio = Field(default=nodetool.nodes.fal.image_to_video.KlingVideo.AspectRatio('16:9'), description='The aspect ratio of the generated video frame')
+    duration: nodetool.nodes.fal.image_to_video.KlingVideo.KlingDuration = Field(default=KlingDuration.FIVE_SECONDS, description='The duration of the generated video')
+    aspect_ratio: nodetool.nodes.fal.image_to_video.KlingVideo.AspectRatio = Field(default=AspectRatio.RATIO_16_9, description='The aspect ratio of the generated video frame')
 
     @classmethod
     def get_node_type(cls): return "fal.image_to_video.KlingVideo"
@@ -146,10 +150,12 @@ class KlingVideoPro(GraphNode):
     - Generate premium visual content
     """
 
+    KlingDuration: typing.ClassVar[type] = nodetool.nodes.fal.image_to_video.KlingVideoPro.KlingDuration
+    AspectRatio: typing.ClassVar[type] = nodetool.nodes.fal.image_to_video.KlingVideoPro.AspectRatio
     image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The image to transform into a video')
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='A description of the desired video motion and style')
-    duration: nodetool.nodes.fal.image_to_video.KlingVideoPro.KlingDuration = Field(default=nodetool.nodes.fal.image_to_video.KlingVideoPro.KlingDuration('5'), description='The duration of the generated video')
-    aspect_ratio: nodetool.nodes.fal.image_to_video.KlingVideoPro.AspectRatio = Field(default=nodetool.nodes.fal.image_to_video.KlingVideoPro.AspectRatio('16:9'), description='The aspect ratio of the generated video frame')
+    duration: nodetool.nodes.fal.image_to_video.KlingVideoPro.KlingDuration = Field(default=KlingDuration.FIVE_SECONDS, description='The duration of the generated video')
+    aspect_ratio: nodetool.nodes.fal.image_to_video.KlingVideoPro.AspectRatio = Field(default=AspectRatio.RATIO_16_9, description='The aspect ratio of the generated video frame')
 
     @classmethod
     def get_node_type(cls): return "fal.image_to_video.KlingVideoPro"
@@ -195,9 +201,10 @@ class LumaDreamMachine(GraphNode):
     - Produce video content
     """
 
+    AspectRatio: typing.ClassVar[type] = nodetool.nodes.fal.image_to_video.LumaDreamMachine.AspectRatio
     image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The image to transform into a video')
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='A description of the desired video motion and style')
-    aspect_ratio: nodetool.nodes.fal.image_to_video.LumaDreamMachine.AspectRatio = Field(default=nodetool.nodes.fal.image_to_video.LumaDreamMachine.AspectRatio('16:9'), description='The aspect ratio of the generated video')
+    aspect_ratio: nodetool.nodes.fal.image_to_video.LumaDreamMachine.AspectRatio = Field(default=AspectRatio.RATIO_16_9, description='The aspect ratio of the generated video')
     loop: bool | GraphNode | tuple[GraphNode, str] = Field(default=False, description='Whether the video should loop (end blends with beginning)')
     end_image: nodetool.metadata.types.ImageRef | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='Optional image to blend the end of the video with')
 
@@ -264,12 +271,14 @@ class SadTalker(GraphNode):
     - Generate facial expressions
     """
 
+    FaceModelResolution: typing.ClassVar[type] = nodetool.nodes.fal.image_to_video.SadTalker.FaceModelResolution
+    PreprocessType: typing.ClassVar[type] = nodetool.nodes.fal.image_to_video.SadTalker.PreprocessType
     image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The source image to animate')
     audio: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='URL of the audio file to drive the animation')
-    face_model_resolution: nodetool.nodes.fal.image_to_video.SadTalker.FaceModelResolution = Field(default=nodetool.nodes.fal.image_to_video.SadTalker.FaceModelResolution('256'), description='Resolution of the face model')
+    face_model_resolution: nodetool.nodes.fal.image_to_video.SadTalker.FaceModelResolution = Field(default=FaceModelResolution.RESOLUTION_256, description='Resolution of the face model')
     expression_scale: float | GraphNode | tuple[GraphNode, str] = Field(default=1.0, description='Scale of the expression (1.0 = normal)')
     still_mode: bool | GraphNode | tuple[GraphNode, str] = Field(default=False, description="Reduce head motion (works with preprocess 'full')")
-    preprocess: nodetool.nodes.fal.image_to_video.SadTalker.PreprocessType = Field(default=nodetool.nodes.fal.image_to_video.SadTalker.PreprocessType('crop'), description='Type of image preprocessing to apply')
+    preprocess: nodetool.nodes.fal.image_to_video.SadTalker.PreprocessType = Field(default=PreprocessType.CROP, description='Type of image preprocessing to apply')
 
     @classmethod
     def get_node_type(cls): return "fal.image_to_video.SadTalker"

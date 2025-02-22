@@ -37,10 +37,11 @@ class Chart(GraphNode):
     - Explore relationships between variables
     """
 
+    PlotType: typing.ClassVar[type] = nodetool.nodes.lib.data.pandas.dataframe.Chart.PlotType
     dataframe: DataframeRef | GraphNode | tuple[GraphNode, str] = Field(default=DataframeRef(type='dataframe', uri='', asset_id=None, data=None, columns=None), description='The input dataframe.')
     x_column: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The name of the x column to be used in the plot.')
     y_column: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The name of the y column to be used in the plot.')
-    plot_type: nodetool.nodes.lib.data.pandas.dataframe.Chart.PlotType = Field(default=nodetool.nodes.lib.data.pandas.dataframe.Chart.PlotType('line'), description="The type of plot to be created. Can be 'line', 'bar', or 'scatter'.")
+    plot_type: nodetool.nodes.lib.data.pandas.dataframe.Chart.PlotType = Field(default=PlotType.LINE, description="The type of plot to be created. Can be 'line', 'bar', or 'scatter'.")
 
     @classmethod
     def get_node_type(cls): return "lib.data.pandas.dataframe.Chart"

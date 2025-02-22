@@ -145,7 +145,8 @@ class Gradient(GraphNode):
     - Define reusable gradient definitions
     """
 
-    gradient_type: nodetool.nodes.lib.image.svg.Gradient.GradientType = Field(default=nodetool.nodes.lib.image.svg.Gradient.GradientType('linearGradient'), description='Type of gradient')
+    GradientType: typing.ClassVar[type] = nodetool.nodes.lib.image.svg.Gradient.GradientType
+    gradient_type: nodetool.nodes.lib.image.svg.Gradient.GradientType = Field(default=GradientType.LINEAR, description='Type of gradient')
     x1: float | GraphNode | tuple[GraphNode, str] = Field(default=0, description='Start X position (linear) or center X (radial)')
     y1: float | GraphNode | tuple[GraphNode, str] = Field(default=0, description='Start Y position (linear) or center Y (radial)')
     x2: float | GraphNode | tuple[GraphNode, str] = Field(default=100, description='End X position (linear) or radius X (radial)')
@@ -261,13 +262,14 @@ class Text(GraphNode):
     - Generate dynamic text content in SVGs
     """
 
+    SVGTextAnchor: typing.ClassVar[type] = nodetool.nodes.lib.image.svg.Text.SVGTextAnchor
     text: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='Text content')
     x: int | GraphNode | tuple[GraphNode, str] = Field(default=0, description='X coordinate')
     y: int | GraphNode | tuple[GraphNode, str] = Field(default=0, description='Y coordinate')
     font_family: str | GraphNode | tuple[GraphNode, str] = Field(default='Arial', description='Font family')
     font_size: int | GraphNode | tuple[GraphNode, str] = Field(default=16, description='Font size')
     fill: ColorRef | GraphNode | tuple[GraphNode, str] = Field(default=ColorRef(type='color', value='#000000'), description='Text color')
-    text_anchor: nodetool.nodes.lib.image.svg.Text.SVGTextAnchor = Field(default=nodetool.nodes.lib.image.svg.Text.SVGTextAnchor('start'), description='Text anchor position')
+    text_anchor: nodetool.nodes.lib.image.svg.Text.SVGTextAnchor = Field(default=SVGTextAnchor.START, description='Text anchor position')
 
     @classmethod
     def get_node_type(cls): return "lib.image.svg.Text"

@@ -12,13 +12,14 @@ class IndexAggregatedText(GraphNode):
     chroma, embedding, collection, RAG, index, text, chunk, batch, ollama
     """
 
+    EmbeddingAggregation: typing.ClassVar[type] = nodetool.nodes.chroma.index.IndexAggregatedText.EmbeddingAggregation
     collection: Collection | GraphNode | tuple[GraphNode, str] = Field(default=Collection(type='collection', name=''), description='The collection to index')
     document: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The document to index')
     document_id: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The document ID to associate with the text')
     metadata: dict | GraphNode | tuple[GraphNode, str] = Field(default={}, description='The metadata to associate with the text')
     text_chunks: list[nodetool.metadata.types.TextChunk | str] | GraphNode | tuple[GraphNode, str] = Field(default=[], description='List of text chunks to index')
     context_window: int | GraphNode | tuple[GraphNode, str] = Field(default=4096, description='The context window size to use for the model')
-    aggregation: nodetool.nodes.chroma.index.IndexAggregatedText.EmbeddingAggregation = Field(default=nodetool.nodes.chroma.index.IndexAggregatedText.EmbeddingAggregation('mean'), description='The aggregation method to use for the embeddings.')
+    aggregation: nodetool.nodes.chroma.index.IndexAggregatedText.EmbeddingAggregation = Field(default=EmbeddingAggregation.MEAN, description='The aggregation method to use for the embeddings.')
 
     @classmethod
     def get_node_type(cls): return "chroma.index.IndexAggregatedText"

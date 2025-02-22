@@ -9,7 +9,8 @@ import nodetool.nodes.replicate.image.analyze
 class Blip(GraphNode):
     """Generate image captions"""
 
-    task: nodetool.nodes.replicate.image.analyze.Blip.Task = Field(default=nodetool.nodes.replicate.image.analyze.Blip.Task('image_captioning'), description='Choose a task.')
+    Task: typing.ClassVar[type] = nodetool.nodes.replicate.image.analyze.Blip.Task
+    task: nodetool.nodes.replicate.image.analyze.Blip.Task = Field(default=Task.IMAGE_CAPTIONING, description='Choose a task.')
     image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Input image')
     caption: str | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='Type caption for the input image for image text matching task.')
     question: str | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='Type question for the input image for visual question answering task.')
@@ -49,9 +50,11 @@ import nodetool.nodes.replicate.image.analyze
 class ClipInterrogator(GraphNode):
     """The CLIP Interrogator is a prompt engineering tool that combines OpenAI's CLIP and Salesforce's BLIP to optimize text prompts to match a given image. Use the resulting prompts with text-to-image models like Stable Diffusion to create cool art!"""
 
-    mode: nodetool.nodes.replicate.image.analyze.ClipInterrogator.Mode = Field(default=nodetool.nodes.replicate.image.analyze.ClipInterrogator.Mode('best'), description='Prompt mode (best takes 10-20 seconds, fast takes 1-2 seconds).')
+    Mode: typing.ClassVar[type] = nodetool.nodes.replicate.image.analyze.ClipInterrogator.Mode
+    Clip_model_name: typing.ClassVar[type] = nodetool.nodes.replicate.image.analyze.ClipInterrogator.Clip_model_name
+    mode: nodetool.nodes.replicate.image.analyze.ClipInterrogator.Mode = Field(default=Mode.BEST, description='Prompt mode (best takes 10-20 seconds, fast takes 1-2 seconds).')
     image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Input image')
-    clip_model_name: nodetool.nodes.replicate.image.analyze.ClipInterrogator.Clip_model_name = Field(default=nodetool.nodes.replicate.image.analyze.ClipInterrogator.Clip_model_name('ViT-L-14/openai'), description='Choose ViT-L for Stable Diffusion 1, ViT-H for Stable Diffusion 2, or ViT-bigG for Stable Diffusion XL.')
+    clip_model_name: nodetool.nodes.replicate.image.analyze.ClipInterrogator.Clip_model_name = Field(default=Clip_model_name.VIT_L_14_OPENAI, description='Choose ViT-L for Stable Diffusion 1, ViT-H for Stable Diffusion 2, or ViT-bigG for Stable Diffusion XL.')
 
     @classmethod
     def get_node_type(cls): return "replicate.image.analyze.ClipInterrogator"
@@ -107,7 +110,8 @@ import nodetool.nodes.replicate.image.analyze
 class SDXLClipInterrogator(GraphNode):
     """CLIP Interrogator for SDXL optimizes text prompts to match a given image"""
 
-    mode: nodetool.nodes.replicate.image.analyze.SDXLClipInterrogator.Mode = Field(default=nodetool.nodes.replicate.image.analyze.SDXLClipInterrogator.Mode('best'), description='Prompt Mode: fast takes 1-2 seconds, best takes 15-25 seconds.')
+    Mode: typing.ClassVar[type] = nodetool.nodes.replicate.image.analyze.SDXLClipInterrogator.Mode
+    mode: nodetool.nodes.replicate.image.analyze.SDXLClipInterrogator.Mode = Field(default=Mode.BEST, description='Prompt Mode: fast takes 1-2 seconds, best takes 15-25 seconds.')
     image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Input image')
 
     @classmethod

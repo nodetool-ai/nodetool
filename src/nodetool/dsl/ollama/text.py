@@ -19,10 +19,11 @@ class AggregateEmbeddings(GraphNode):
     - Aid in text classification tasks
     """
 
+    EmbeddingAggregation: typing.ClassVar[type] = nodetool.nodes.ollama.text.AggregateEmbeddings.EmbeddingAggregation
     model: LlamaModel | GraphNode | tuple[GraphNode, str] = Field(default=LlamaModel(type='llama_model', name='', repo_id='', modified_at='', size=0, digest='', details={}), description=None)
     chunks: list[str] | GraphNode | tuple[GraphNode, str] = Field(default=[], description='The chunks of text to embed.')
     context_window: int | GraphNode | tuple[GraphNode, str] = Field(default=4096, description='The context window size to use for the model.')
-    aggregation: nodetool.nodes.ollama.text.AggregateEmbeddings.EmbeddingAggregation = Field(default=nodetool.nodes.ollama.text.AggregateEmbeddings.EmbeddingAggregation('mean'), description='The aggregation method to use for the embeddings.')
+    aggregation: nodetool.nodes.ollama.text.AggregateEmbeddings.EmbeddingAggregation = Field(default=EmbeddingAggregation.MEAN, description='The aggregation method to use for the embeddings.')
 
     @classmethod
     def get_node_type(cls): return "ollama.text.AggregateEmbeddings"

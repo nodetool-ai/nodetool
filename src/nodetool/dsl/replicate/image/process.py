@@ -9,8 +9,9 @@ import nodetool.nodes.replicate.image.process
 class DD_Color(GraphNode):
     """Towards Photo-Realistic Image Colorization via Dual Decoders"""
 
+    Model_size: typing.ClassVar[type] = nodetool.nodes.replicate.image.process.DD_Color.Model_size
     image: str | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='Grayscale input image.')
-    model_size: nodetool.nodes.replicate.image.process.DD_Color.Model_size = Field(default=nodetool.nodes.replicate.image.process.DD_Color.Model_size('large'), description='Choose the model size.')
+    model_size: nodetool.nodes.replicate.image.process.DD_Color.Model_size = Field(default=Model_size.LARGE, description='Choose the model size.')
 
     @classmethod
     def get_node_type(cls): return "replicate.image.process.DD_Color"
@@ -21,13 +22,14 @@ import nodetool.nodes.replicate.image.process
 class Magic_Style_Transfer(GraphNode):
     """Restyle an image with the style of another one. I strongly suggest to upscale the results with Clarity AI"""
 
+    Scheduler: typing.ClassVar[type] = nodetool.nodes.replicate.image.process.Magic_Style_Transfer.Scheduler
     seed: int | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='Random seed. Leave blank to randomize the seed')
     image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Input image')
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='An astronaut riding a rainbow unicorn', description='Input prompt')
     ip_image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Input image for img2img or inpaint mode')
     ip_scale: float | GraphNode | tuple[GraphNode, str] = Field(default=0.3, description='IP Adapter strength.')
     strength: float | GraphNode | tuple[GraphNode, str] = Field(default=0.9, description='When img2img is active, the denoising strength. 1 means total destruction of the input image.')
-    scheduler: nodetool.nodes.replicate.image.process.Magic_Style_Transfer.Scheduler = Field(default=nodetool.nodes.replicate.image.process.Magic_Style_Transfer.Scheduler('K_EULER'), description='scheduler')
+    scheduler: nodetool.nodes.replicate.image.process.Magic_Style_Transfer.Scheduler = Field(default=Scheduler.K_EULER, description='scheduler')
     lora_scale: float | GraphNode | tuple[GraphNode, str] = Field(default=0.9, description='LoRA additive scale. Only applicable on trained models.')
     num_outputs: int | GraphNode | tuple[GraphNode, str] = Field(default=1, description='Number of images to output')
     lora_weights: str | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='Replicate LoRA weights to use. Leave blank to use the default weights.')

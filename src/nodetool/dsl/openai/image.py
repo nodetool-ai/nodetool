@@ -21,10 +21,13 @@ class Dall_E(GraphNode):
     5. Explore artistic ideas and styles programmatically
     """
 
+    Size: typing.ClassVar[type] = nodetool.nodes.openai.image.Dall_E.Size
+    Quality: typing.ClassVar[type] = nodetool.nodes.openai.image.Dall_E.Quality
+    Style: typing.ClassVar[type] = nodetool.nodes.openai.image.Dall_E.Style
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The prompt to use.')
-    size: nodetool.nodes.openai.image.Dall_E.Size = Field(default=nodetool.nodes.openai.image.Dall_E.Size('1024x1024'), description='The size of the image to generate.')
-    quality: nodetool.nodes.openai.image.Dall_E.Quality = Field(default=nodetool.nodes.openai.image.Dall_E.Quality('standard'), description='The quality of the image to generate.')
-    style: nodetool.nodes.openai.image.Dall_E.Style = Field(default=nodetool.nodes.openai.image.Dall_E.Style('natural'), description='The style to use.')
+    size: nodetool.nodes.openai.image.Dall_E.Size = Field(default=Size._1024x1024, description='The size of the image to generate.')
+    quality: nodetool.nodes.openai.image.Dall_E.Quality = Field(default=Quality.standard, description='The quality of the image to generate.')
+    style: nodetool.nodes.openai.image.Dall_E.Style = Field(default=Style.natural, description='The style to use.')
 
     @classmethod
     def get_node_type(cls): return "openai.image.Dall_E"

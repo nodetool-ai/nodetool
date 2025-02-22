@@ -18,8 +18,9 @@ class PaddleOCRNode(GraphNode):
     - Handwriting recognition
     """
 
+    OCRLanguage: typing.ClassVar[type] = nodetool.nodes.lib.image.ocr.PaddleOCRNode.OCRLanguage
     image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The image to perform OCR on')
-    language: nodetool.nodes.lib.image.ocr.PaddleOCRNode.OCRLanguage = Field(default=nodetool.nodes.lib.image.ocr.PaddleOCRNode.OCRLanguage('en'), description='Language code for OCR')
+    language: nodetool.nodes.lib.image.ocr.PaddleOCRNode.OCRLanguage = Field(default=OCRLanguage.ENGLISH, description='Language code for OCR')
 
     @classmethod
     def get_node_type(cls): return "lib.image.ocr.PaddleOCR"

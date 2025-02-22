@@ -402,8 +402,9 @@ class PlotArray(GraphNode):
     - Debug array outputs in workflows
     """
 
+    PlotType: typing.ClassVar[type] = nodetool.nodes.lib.data.numpy.PlotArray.PlotType
     values: NPArray | GraphNode | tuple[GraphNode, str] = Field(default=NPArray(type='np_array', value=None, dtype='<i8', shape=(1,)), description='Array to plot')
-    plot_type: nodetool.nodes.lib.data.numpy.PlotArray.PlotType = Field(default=nodetool.nodes.lib.data.numpy.PlotArray.PlotType('line'), description='Type of plot to create')
+    plot_type: nodetool.nodes.lib.data.numpy.PlotArray.PlotType = Field(default=PlotType.LINE, description='Type of plot to create')
 
     @classmethod
     def get_node_type(cls): return "lib.data.numpy.PlotArray"

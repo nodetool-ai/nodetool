@@ -11,13 +11,14 @@ class IPAdapterApply(GraphNode):
     The IPAdapter Apply node can be used to apply an IPAdapter to a model.
     """
 
+    WeightTypeEnum: typing.ClassVar[type] = nodetool.nodes.comfy.ipadapter.IPAdapterApply.WeightTypeEnum
     ipadapter: IPAdapter | GraphNode | tuple[GraphNode, str] = Field(default=IPAdapter(type='comfy.ip_adapter', name='', model=None), description='The IPAdapter to apply.')
     clip_vision: CLIPVision | GraphNode | tuple[GraphNode, str] = Field(default=CLIPVision(type='comfy.clip_vision', name='', model=None), description='The CLIP vision to use.')
     image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The image to use.')
     model: UNet | GraphNode | tuple[GraphNode, str] = Field(default=UNet(type='comfy.unet', name='', model=None), description='The model to apply the IPAdapter to.')
     weight: float | GraphNode | tuple[GraphNode, str] = Field(default=1.0, description='The weight of the application.')
     noise: float | GraphNode | tuple[GraphNode, str] = Field(default=0.0, description='The amount of noise to apply.')
-    weight_type: nodetool.nodes.comfy.ipadapter.IPAdapterApply.WeightTypeEnum = Field(default=nodetool.nodes.comfy.ipadapter.IPAdapterApply.WeightTypeEnum('original'), description='The type of weight to apply.')
+    weight_type: nodetool.nodes.comfy.ipadapter.IPAdapterApply.WeightTypeEnum = Field(default=WeightTypeEnum.ORIGINAL, description='The type of weight to apply.')
     start_at: float | GraphNode | tuple[GraphNode, str] = Field(default=0.0, description='The starting point for applying the IPAdapter.')
     end_at: float | GraphNode | tuple[GraphNode, str] = Field(default=1.0, description='The ending point for applying the IPAdapter.')
     unfold_batch: bool | GraphNode | tuple[GraphNode, str] = Field(default=False, description='Whether to unfold the batch during the application.')
@@ -34,13 +35,14 @@ class IPAdapterApplyEncoded(GraphNode):
     The IPAdapter Apply Encoded node can be used to apply an encoded IPAdapter to a model.
     """
 
+    WeightTypeEnum: typing.ClassVar[type] = nodetool.nodes.comfy.ipadapter.IPAdapterApplyEncoded.WeightTypeEnum
     ipadapter: IPAdapter | GraphNode | tuple[GraphNode, str] = Field(default=IPAdapter(type='comfy.ip_adapter', name='', model=None), description='The IPAdapter to apply.')
     clip_vision: CLIPVision | GraphNode | tuple[GraphNode, str] = Field(default=CLIPVision(type='comfy.clip_vision', name='', model=None), description='The CLIP vision to use.')
     image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The image to use.')
     model: UNet | GraphNode | tuple[GraphNode, str] = Field(default=UNet(type='comfy.unet', name='', model=None), description='The model to apply the IPAdapter to.')
     weight: float | GraphNode | tuple[GraphNode, str] = Field(default=1.0, description='The weight of the application.')
     noise: float | GraphNode | tuple[GraphNode, str] = Field(default=0.0, description='The amount of noise to apply.')
-    weight_type: nodetool.nodes.comfy.ipadapter.IPAdapterApplyEncoded.WeightTypeEnum = Field(default=nodetool.nodes.comfy.ipadapter.IPAdapterApplyEncoded.WeightTypeEnum('original'), description='The type of weight to apply.')
+    weight_type: nodetool.nodes.comfy.ipadapter.IPAdapterApplyEncoded.WeightTypeEnum = Field(default=WeightTypeEnum.ORIGINAL, description='The type of weight to apply.')
     start_at: float | GraphNode | tuple[GraphNode, str] = Field(default=0.0, description='The starting point for applying the IPAdapter.')
     end_at: float | GraphNode | tuple[GraphNode, str] = Field(default=1.0, description='The ending point for applying the IPAdapter.')
     unfold_batch: bool | GraphNode | tuple[GraphNode, str] = Field(default=False, description='Whether to unfold the batch during the application.')
@@ -107,9 +109,11 @@ class PrepImageForClipVision(GraphNode):
     The Prep Image For Clip Vision node can be used to prepare an image for use with a CLIPVision model.
     """
 
+    InterpolationMethod: typing.ClassVar[type] = nodetool.nodes.comfy.ipadapter.PrepImageForClipVision.InterpolationMethod
+    CropPosition: typing.ClassVar[type] = nodetool.nodes.comfy.ipadapter.PrepImageForClipVision.CropPosition
     image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The image to prepare.')
-    interpolation: nodetool.nodes.comfy.ipadapter.PrepImageForClipVision.InterpolationMethod = Field(default=nodetool.nodes.comfy.ipadapter.PrepImageForClipVision.InterpolationMethod('LANCZOS'), description='The interpolation method to use.')
-    crop_position: nodetool.nodes.comfy.ipadapter.PrepImageForClipVision.CropPosition = Field(default=nodetool.nodes.comfy.ipadapter.PrepImageForClipVision.CropPosition('center'), description='The crop position to use.')
+    interpolation: nodetool.nodes.comfy.ipadapter.PrepImageForClipVision.InterpolationMethod = Field(default=InterpolationMethod.LANCZOS, description='The interpolation method to use.')
+    crop_position: nodetool.nodes.comfy.ipadapter.PrepImageForClipVision.CropPosition = Field(default=CropPosition.CENTER, description='The crop position to use.')
     sharpening: float | GraphNode | tuple[GraphNode, str] = Field(default=0.0, description='The amount of sharpening to apply.')
 
     @classmethod

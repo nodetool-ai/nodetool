@@ -19,8 +19,10 @@ class TortoiseTTS(GraphNode):
     - Create character voices
     """
 
-    voice: nodetool.nodes.aime.audio.TortoiseTTS.VoiceType = Field(default=nodetool.nodes.aime.audio.TortoiseTTS.VoiceType('train_grace'), description=None)
-    preset: nodetool.nodes.aime.audio.TortoiseTTS.PresetType = Field(default=nodetool.nodes.aime.audio.TortoiseTTS.PresetType('standard'), description=None)
+    VoiceType: typing.ClassVar[type] = nodetool.nodes.aime.audio.TortoiseTTS.VoiceType
+    PresetType: typing.ClassVar[type] = nodetool.nodes.aime.audio.TortoiseTTS.PresetType
+    voice: nodetool.nodes.aime.audio.TortoiseTTS.VoiceType = Field(default=VoiceType.TRAIN_GRACE, description=None)
+    preset: nodetool.nodes.aime.audio.TortoiseTTS.PresetType = Field(default=PresetType.STANDARD, description=None)
     text_input: str | GraphNode | tuple[GraphNode, str] = Field(default='', description=None)
 
     @classmethod

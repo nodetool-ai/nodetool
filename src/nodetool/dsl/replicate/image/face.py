@@ -31,9 +31,10 @@ import nodetool.nodes.replicate.image.face
 class FaceToMany(GraphNode):
     """Turn a face into 3D, emoji, pixel art, video game, claymation or toy"""
 
+    Style: typing.ClassVar[type] = nodetool.nodes.replicate.image.face.FaceToMany.Style
     seed: int | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='Fix the random seed for reproducibility')
     image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='An image of a person to be converted')
-    style: nodetool.nodes.replicate.image.face.FaceToMany.Style = Field(default=nodetool.nodes.replicate.image.face.FaceToMany.Style('3D'), description='Style to convert to')
+    style: nodetool.nodes.replicate.image.face.FaceToMany.Style = Field(default=Style._3D, description='Style to convert to')
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='a person', description=None)
     lora_scale: float | GraphNode | tuple[GraphNode, str] = Field(default=1, description='How strong the LoRA will be')
     custom_lora_url: str | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='URL to a Replicate custom LoRA. Must be in the format https://replicate.delivery/pbxt/[id]/trained_model.tar or https://pbxt.replicate.delivery/[id]/trained_model.tar')
@@ -76,15 +77,18 @@ import nodetool.nodes.replicate.image.face
 class InstantId(GraphNode):
     """Make realistic images of real people instantly"""
 
+    Scheduler: typing.ClassVar[type] = nodetool.nodes.replicate.image.face.InstantId.Scheduler
+    Sdxl_weights: typing.ClassVar[type] = nodetool.nodes.replicate.image.face.InstantId.Sdxl_weights
+    Output_format: typing.ClassVar[type] = nodetool.nodes.replicate.image.face.InstantId.Output_format
     seed: int | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='Random seed. Leave blank to randomize the seed')
     image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Input face image')
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='a person', description='Input prompt')
-    scheduler: nodetool.nodes.replicate.image.face.InstantId.Scheduler = Field(default=nodetool.nodes.replicate.image.face.InstantId.Scheduler('EulerDiscreteScheduler'), description='Scheduler')
+    scheduler: nodetool.nodes.replicate.image.face.InstantId.Scheduler = Field(default=Scheduler.EULERDISCRETESCHEDULER, description='Scheduler')
     enable_lcm: bool | GraphNode | tuple[GraphNode, str] = Field(default=False, description='Enable Fast Inference with LCM (Latent Consistency Models) - speeds up inference steps, trade-off is the quality of the generated image. Performs better with close-up portrait face images')
     pose_image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='(Optional) reference pose image')
     num_outputs: int | GraphNode | tuple[GraphNode, str] = Field(default=1, description='Number of images to output')
-    sdxl_weights: nodetool.nodes.replicate.image.face.InstantId.Sdxl_weights = Field(default=nodetool.nodes.replicate.image.face.InstantId.Sdxl_weights('stable-diffusion-xl-base-1.0'), description='Pick which base weights you want to use')
-    output_format: nodetool.nodes.replicate.image.face.InstantId.Output_format = Field(default=nodetool.nodes.replicate.image.face.InstantId.Output_format('webp'), description='Format of the output images')
+    sdxl_weights: nodetool.nodes.replicate.image.face.InstantId.Sdxl_weights = Field(default=Sdxl_weights.STABLE_DIFFUSION_XL_BASE_1_0, description='Pick which base weights you want to use')
+    output_format: nodetool.nodes.replicate.image.face.InstantId.Output_format = Field(default=Output_format.WEBP, description='Format of the output images')
     pose_strength: float | GraphNode | tuple[GraphNode, str] = Field(default=0.4, description='Openpose ControlNet strength, effective only if `enable_pose_controlnet` is true')
     canny_strength: float | GraphNode | tuple[GraphNode, str] = Field(default=0.3, description='Canny ControlNet strength, effective only if `enable_canny_controlnet` is true')
     depth_strength: float | GraphNode | tuple[GraphNode, str] = Field(default=0.5, description='Depth ControlNet strength, effective only if `enable_depth_controlnet` is true')
@@ -149,10 +153,11 @@ import nodetool.nodes.replicate.image.face
 class PhotoMaker(GraphNode):
     """Create photos, paintings and avatars for anyone in any style within seconds."""
 
+    Style_name: typing.ClassVar[type] = nodetool.nodes.replicate.image.face.PhotoMaker.Style_name
     seed: int | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='Seed. Leave blank to use a random number')
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='A photo of a person img', description="Prompt. Example: 'a photo of a man/woman img'. The phrase 'img' is the trigger word.")
     num_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=20, description='Number of sample steps')
-    style_name: nodetool.nodes.replicate.image.face.PhotoMaker.Style_name = Field(default=nodetool.nodes.replicate.image.face.PhotoMaker.Style_name('Photographic (Default)'), description="Style template. The style template will add a style-specific prompt and negative prompt to the user's prompt.")
+    style_name: nodetool.nodes.replicate.image.face.PhotoMaker.Style_name = Field(default=Style_name.PHOTOGRAPHIC__DEFAULT, description="Style template. The style template will add a style-specific prompt and negative prompt to the user's prompt.")
     input_image: str | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='The input image, for example a photo of your face.')
     num_outputs: int | GraphNode | tuple[GraphNode, str] = Field(default=1, description='Number of output images')
     input_image2: str | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='Additional input image (optional)')
@@ -172,10 +177,11 @@ import nodetool.nodes.replicate.image.face
 class PhotoMakerStyle(GraphNode):
     """Create photos, paintings and avatars for anyone in any style within seconds.  (Stylization version)"""
 
+    Style_name: typing.ClassVar[type] = nodetool.nodes.replicate.image.face.PhotoMakerStyle.Style_name
     seed: int | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='Seed. Leave blank to use a random number')
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='A photo of a person img', description="Prompt. Example: 'a photo of a man/woman img'. The phrase 'img' is the trigger word.")
     num_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=20, description='Number of sample steps')
-    style_name: nodetool.nodes.replicate.image.face.PhotoMakerStyle.Style_name = Field(default=nodetool.nodes.replicate.image.face.PhotoMakerStyle.Style_name('(No style)'), description="Style template. The style template will add a style-specific prompt and negative prompt to the user's prompt.")
+    style_name: nodetool.nodes.replicate.image.face.PhotoMakerStyle.Style_name = Field(default=Style_name.NO_STYLE, description="Style template. The style template will add a style-specific prompt and negative prompt to the user's prompt.")
     input_image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The input image, for example a photo of your face.')
     num_outputs: int | GraphNode | tuple[GraphNode, str] = Field(default=1, description='Number of output images')
     input_image2: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Additional input image (optional)')
