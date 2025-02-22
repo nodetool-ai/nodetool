@@ -106,19 +106,27 @@ def generate_class_source(node_cls: type[BaseNode]) -> str:
     fields = node_cls.inherited_fields()
     node_type = node_cls.get_node_type()
 
+    # First, add enum types as class attributes
+    for field_name, field_type in node_cls.field_types().items():
+        if not field_name in fields:
+            continue
+        if is_enum_type(field_type):
+            imports += f"import {field_type.__module__}\n"
+            class_body += f"    {field_type.__name__}: typing.ClassVar[type] = {field_type.__module__}.{node_cls.__name__}.{field_type.__name__}\n"
+
+    # Then add the fields
     for field_name, field_type in node_cls.field_types().items():
         if not field_name in fields:
             continue
         field = fields[field_name]
         if is_enum_type(field_type):
-            imports += f"import {field_type.__module__}\n"
             new_field_type = (
                 f"{field_type.__module__}.{node_cls.__name__}.{field_type.__name__}"
             )
             if isinstance(field.default, Enum):
-                field_def = f"Field(default={new_field_type}({repr(field.default.value)}), description={repr(field.description)})"
+                field_def = f"Field(default={field_type.__name__}.{field.default.name}, description={repr(field.description)})"
             else:
-                field_def = f"Field(default={new_field_type}({repr(field.default)}), description={repr(field.description)})"
+                field_def = f"Field(default={field_type.__name__}({repr(field.default)}), description={repr(field.description)})"
         else:
             new_field_type = f"{type_to_string(field_type)} | GraphNode | tuple[GraphNode, str]"  # type: ignore
             field_def = f"Field(default={field_default(field.default)}, description={repr(field.description)})"
