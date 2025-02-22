@@ -315,7 +315,7 @@ async def test_save_array_node(context: ProcessingContext, user: User):
     folder = Asset.create(user.id, "test", "folder")
     node = SaveArray(
         name="TestArray",
-        array=NPArray.from_numpy(np.array([1, 2, 3], dtype=np.float32)),
+        values=NPArray.from_numpy(np.array([1, 2, 3], dtype=np.float32)),
         folder=FolderRef(asset_id=folder.id),
     )
     result = await node.process(context)

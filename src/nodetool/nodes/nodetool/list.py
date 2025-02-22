@@ -230,11 +230,6 @@ class Randomize(BaseNode):
         return shuffled
 
 
-class SortOrder(str, Enum):
-    ASCENDING = "ascending"
-    DESCENDING = "descending"
-
-
 class Sort(BaseNode):
     """
     Sorts the elements of a list in ascending or descending order.
@@ -246,11 +241,15 @@ class Sort(BaseNode):
     - Rank items based on their values
     """
 
+    class SortOrder(str, Enum):
+        ASCENDING = "ascending"
+        DESCENDING = "descending"
+
     values: list[Any] = []
     order: SortOrder = SortOrder.ASCENDING
 
     async def process(self, context: ProcessingContext) -> list[Any]:
-        return sorted(self.values, reverse=(self.order == SortOrder.DESCENDING))
+        return sorted(self.values, reverse=(self.order == self.SortOrder.DESCENDING))
 
 
 class FilterDicts(BaseNode):
@@ -343,15 +342,6 @@ class FilterDicts(BaseNode):
         return filtered_df.to_dict("records")
 
 
-class FilterType(str, Enum):
-    CONTAINS = "contains"
-    STARTS_WITH = "starts_with"
-    ENDS_WITH = "ends_with"
-    LENGTH_GREATER = "length_greater"
-    LENGTH_LESS = "length_less"
-    EXACT_LENGTH = "exact_length"
-
-
 class FilterStrings(BaseNode):
     """
     Filters a list of strings based on various criteria.
@@ -363,6 +353,14 @@ class FilterStrings(BaseNode):
     - Filter strings by prefix/suffix
     - Filter strings using regex patterns
     """
+
+    class FilterType(str, Enum):
+        CONTAINS = "contains"
+        STARTS_WITH = "starts_with"
+        ENDS_WITH = "ends_with"
+        LENGTH_GREATER = "length_greater"
+        LENGTH_LESS = "length_less"
+        EXACT_LENGTH = "exact_length"
 
     values: list[str] = Field(default=[])
     filter_type: FilterType = Field(
@@ -380,9 +378,9 @@ class FilterStrings(BaseNode):
             raise ValueError("Input must be a list of strings")
 
         if self.filter_type in [
-            FilterType.LENGTH_GREATER,
-            FilterType.LENGTH_LESS,
-            FilterType.EXACT_LENGTH,
+            self.FilterType.LENGTH_GREATER,
+            self.FilterType.LENGTH_LESS,
+            self.FilterType.EXACT_LENGTH,
         ]:
             try:
                 length_criteria = int(self.criteria)
@@ -391,36 +389,26 @@ class FilterStrings(BaseNode):
 
         filtered = []
         for item in self.values:
-            if self.filter_type == FilterType.CONTAINS:
+            if self.filter_type == self.FilterType.CONTAINS:
                 if self.criteria in item:
                     filtered.append(item)
-            elif self.filter_type == FilterType.STARTS_WITH:
+            elif self.filter_type == self.FilterType.STARTS_WITH:
                 if item.startswith(self.criteria):
                     filtered.append(item)
-            elif self.filter_type == FilterType.ENDS_WITH:
+            elif self.filter_type == self.FilterType.ENDS_WITH:
                 if item.endswith(self.criteria):
                     filtered.append(item)
-            elif self.filter_type == FilterType.LENGTH_GREATER:
+            elif self.filter_type == self.FilterType.LENGTH_GREATER:
                 if len(item) > length_criteria:
                     filtered.append(item)
-            elif self.filter_type == FilterType.LENGTH_LESS:
+            elif self.filter_type == self.FilterType.LENGTH_LESS:
                 if len(item) < length_criteria:
                     filtered.append(item)
-            elif self.filter_type == FilterType.EXACT_LENGTH:
+            elif self.filter_type == self.FilterType.EXACT_LENGTH:
                 if len(item) == length_criteria:
                     filtered.append(item)
 
         return filtered
-
-
-class FilterNumberType(str, Enum):
-    GREATER_THAN = "greater_than"
-    LESS_THAN = "less_than"
-    EQUAL_TO = "equal_to"
-    EVEN = "even"
-    ODD = "odd"
-    POSITIVE = "positive"
-    NEGATIVE = "negative"
 
 
 class FilterNumbers(BaseNode):
@@ -433,6 +421,15 @@ class FilterNumbers(BaseNode):
     - Filter even/odd numbers
     - Filter positive/negative numbers
     """
+
+    class FilterNumberType(str, Enum):
+        GREATER_THAN = "greater_than"
+        LESS_THAN = "less_than"
+        EQUAL_TO = "equal_to"
+        EVEN = "even"
+        ODD = "odd"
+        POSITIVE = "positive"
+        NEGATIVE = "negative"
 
     values: list[float] = Field(default=[])
     filter_type: FilterNumberType = Field(
@@ -451,31 +448,31 @@ class FilterNumbers(BaseNode):
 
         filtered = []
         for item in self.values:
-            if self.filter_type == FilterNumberType.GREATER_THAN:
+            if self.filter_type == self.FilterNumberType.GREATER_THAN:
                 if self.value is None:
                     raise ValueError("Value must be specified for greater_than filter")
                 if item > self.value:
                     filtered.append(item)
-            elif self.filter_type == FilterNumberType.LESS_THAN:
+            elif self.filter_type == self.FilterNumberType.LESS_THAN:
                 if self.value is None:
                     raise ValueError("Value must be specified for less_than filter")
                 if item < self.value:
                     filtered.append(item)
-            elif self.filter_type == FilterNumberType.EQUAL_TO:
+            elif self.filter_type == self.FilterNumberType.EQUAL_TO:
                 if self.value is None:
                     raise ValueError("Value must be specified for equal_to filter")
                 if item == self.value:
                     filtered.append(item)
-            elif self.filter_type == FilterNumberType.EVEN:
+            elif self.filter_type == self.FilterNumberType.EVEN:
                 if isinstance(item, int) and item % 2 == 0:
                     filtered.append(item)
-            elif self.filter_type == FilterNumberType.ODD:
+            elif self.filter_type == self.FilterNumberType.ODD:
                 if isinstance(item, int) and item % 2 != 0:
                     filtered.append(item)
-            elif self.filter_type == FilterNumberType.POSITIVE:
+            elif self.filter_type == self.FilterNumberType.POSITIVE:
                 if item > 0:
                     filtered.append(item)
-            elif self.filter_type == FilterNumberType.NEGATIVE:
+            elif self.filter_type == self.FilterNumberType.NEGATIVE:
                 if item < 0:
                     filtered.append(item)
 
@@ -706,16 +703,6 @@ class FilterDictsByRange(BaseNode):
         return filtered
 
 
-class FilterDictNumberType(str, Enum):
-    GREATER_THAN = "greater_than"
-    LESS_THAN = "less_than"
-    EQUAL_TO = "equal_to"
-    EVEN = "even"
-    ODD = "odd"
-    POSITIVE = "positive"
-    NEGATIVE = "negative"
-
-
 class FilterDictsByNumber(BaseNode):
     """
     Filters a list of dictionaries based on numeric values for a specified key.
@@ -726,6 +713,15 @@ class FilterDictsByNumber(BaseNode):
     - Filter records with even/odd numeric values
     - Filter entries with positive/negative numbers
     """
+
+    class FilterDictNumberType(str, Enum):
+        GREATER_THAN = "greater_than"
+        LESS_THAN = "less_than"
+        EQUAL_TO = "equal_to"
+        EVEN = "even"
+        ODD = "odd"
+        POSITIVE = "positive"
+        NEGATIVE = "negative"
 
     values: list[dict] = Field(default=[])
     key: str = Field(default="")
@@ -747,31 +743,31 @@ class FilterDictsByNumber(BaseNode):
             if not isinstance(num, (int, float)):
                 continue
 
-            if self.filter_type == FilterDictNumberType.GREATER_THAN:
+            if self.filter_type == self.FilterDictNumberType.GREATER_THAN:
                 if self.value is None:
                     raise ValueError("Value must be specified for greater_than filter")
                 if num > self.value:
                     filtered.append(item)
-            elif self.filter_type == FilterDictNumberType.LESS_THAN:
+            elif self.filter_type == self.FilterDictNumberType.LESS_THAN:
                 if self.value is None:
                     raise ValueError("Value must be specified for less_than filter")
                 if num < self.value:
                     filtered.append(item)
-            elif self.filter_type == FilterDictNumberType.EQUAL_TO:
+            elif self.filter_type == self.FilterDictNumberType.EQUAL_TO:
                 if self.value is None:
                     raise ValueError("Value must be specified for equal_to filter")
                 if num == self.value:
                     filtered.append(item)
-            elif self.filter_type == FilterDictNumberType.EVEN:
+            elif self.filter_type == self.FilterDictNumberType.EVEN:
                 if isinstance(num, int) and num % 2 == 0:
                     filtered.append(item)
-            elif self.filter_type == FilterDictNumberType.ODD:
+            elif self.filter_type == self.FilterDictNumberType.ODD:
                 if isinstance(num, int) and num % 2 != 0:
                     filtered.append(item)
-            elif self.filter_type == FilterDictNumberType.POSITIVE:
+            elif self.filter_type == self.FilterDictNumberType.POSITIVE:
                 if num > 0:
                     filtered.append(item)
-            elif self.filter_type == FilterDictNumberType.NEGATIVE:
+            elif self.filter_type == self.FilterDictNumberType.NEGATIVE:
                 if num < 0:
                     filtered.append(item)
 
@@ -899,15 +895,6 @@ class Chunk(BaseNode):
         ]
 
 
-class TransformType(str, Enum):
-    TO_INT = "to_int"
-    TO_FLOAT = "to_float"
-    TO_STRING = "to_string"
-    UPPERCASE = "uppercase"
-    LOWERCASE = "lowercase"
-    STRIP = "strip"
-
-
 class Transform(BaseNode):
     """
     Applies a transformation to each element in a list.
@@ -919,20 +906,28 @@ class Transform(BaseNode):
     - Mathematical operations
     """
 
+    class TransformType(str, Enum):
+        TO_INT = "to_int"
+        TO_FLOAT = "to_float"
+        TO_STRING = "to_string"
+        UPPERCASE = "uppercase"
+        LOWERCASE = "lowercase"
+        STRIP = "strip"
+
     values: list[Any] = Field(default=[])
     transform_type: TransformType = Field(default=TransformType.TO_STRING)
 
     async def process(self, context: ProcessingContext) -> list[Any]:
         try:
-            if self.transform_type == TransformType.TO_INT:
+            if self.transform_type == self.TransformType.TO_INT:
                 return [int(x) for x in self.values]
-            elif self.transform_type == TransformType.TO_FLOAT:
+            elif self.transform_type == self.TransformType.TO_FLOAT:
                 return [float(x) for x in self.values]
-            elif self.transform_type == TransformType.TO_STRING:
+            elif self.transform_type == self.TransformType.TO_STRING:
                 return [str(x) for x in self.values]
-            elif self.transform_type == TransformType.UPPERCASE:
+            elif self.transform_type == self.TransformType.UPPERCASE:
                 return [str(x).upper() for x in self.values]
-            elif self.transform_type == TransformType.LOWERCASE:
+            elif self.transform_type == self.TransformType.LOWERCASE:
                 return [str(x).lower() for x in self.values]
             else:  # STRIP
                 return [str(x).strip() for x in self.values]

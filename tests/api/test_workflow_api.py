@@ -148,22 +148,15 @@ def test_delete_workflow(
 def test_run_workflow(client: TestClient, workflow: Workflow, headers: dict[str, str]):
     workflow.save()
 
-    request = {
-        "workflow_id": workflow.id,
-        "job_type": "test",
-        "api_url": "http://localhost:8000",
-        "auth_token": "",
-    }
-
     response = client.post(
-        f"/api/workflows/{workflow.id}/run", json=request, headers=headers
+        f"/api/workflows/{workflow.id}/run", json={}, headers=headers
     )
     assert response.status_code == 200
 
     # Test streaming response
     response = client.post(
         f"/api/workflows/{workflow.id}/run",
-        json=request,
+        json={},
         params={"stream": True},
         headers=headers,
     )

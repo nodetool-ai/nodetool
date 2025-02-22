@@ -13,34 +13,6 @@ import numpy as np
 from pydantic import Field
 
 
-class TextAlignment(str, Enum):
-    LEFT = "left"
-    CENTER = "center"
-    RIGHT = "right"
-
-
-class TextFont(str, Enum):
-    DejaVuSansBold = "DejaVuSans-Bold.ttf"
-    DejaVuSans = "DejaVuSans.ttf"
-    FreeSans = "FreeSans.ttf"
-    Arial = "Arial.ttf"
-    # Common Windows & Mac Fonts
-    TimesNewRoman = "Times New Roman.ttf"
-    Helvetica = "Helvetica.ttf"
-    Calibri = "Calibri.ttf"
-    Verdana = "Verdana.ttf"
-    Georgia = "Georgia.ttf"
-    CourierNew = "Courier New.ttf"
-    Impact = "Impact.ttf"
-    ComicSansMS = "Comic Sans MS.ttf"
-    Tahoma = "Tahoma.ttf"
-    SegoeUI = "Segoe UI.ttf"
-    # Mac-specific fonts
-    SFPro = "SF Pro.ttf"
-    Menlo = "Menlo.ttf"
-    Monaco = "Monaco.ttf"
-
-
 class Background(BaseNode):
     """
     The Background Node creates a blank background.
@@ -76,6 +48,32 @@ class RenderText(BaseNode):
     - Adding custom captions to photographs.
     - Creating instructional images to guide the reader's view.
     """
+
+    class TextAlignment(str, Enum):
+        LEFT = "left"
+        CENTER = "center"
+        RIGHT = "right"
+
+    class TextFont(str, Enum):
+        DejaVuSansBold = "DejaVuSans-Bold.ttf"
+        DejaVuSans = "DejaVuSans.ttf"
+        FreeSans = "FreeSans.ttf"
+        Arial = "Arial.ttf"
+        # Common Windows & Mac Fonts
+        TimesNewRoman = "Times New Roman.ttf"
+        Helvetica = "Helvetica.ttf"
+        Calibri = "Calibri.ttf"
+        Verdana = "Verdana.ttf"
+        Georgia = "Georgia.ttf"
+        CourierNew = "Courier New.ttf"
+        Impact = "Impact.ttf"
+        ComicSansMS = "Comic Sans MS.ttf"
+        Tahoma = "Tahoma.ttf"
+        SegoeUI = "Segoe UI.ttf"
+        # Mac-specific fonts
+        SFPro = "SF Pro.ttf"
+        Menlo = "Menlo.ttf"
+        Monaco = "Monaco.ttf"
 
     text: str = Field(default="", description="The text to render.")
     font: TextFont = Field(default=TextFont.DejaVuSans, description="The font to use.")
