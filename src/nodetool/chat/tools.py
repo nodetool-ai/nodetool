@@ -924,13 +924,21 @@ def parse_email_message(msg_data: tuple) -> Dict[str, Any]:
 
     # Get body content
     body = ""
-    if email_body.is_multipart():
-        for part in email_body.walk():
-            if part.get_content_type() == "text/plain":
-                body = part.get_payload(decode=True).decode()  # type: ignore
-                break
-    else:
-        body = email_body.get_payload(decode=True).decode()  # type: ignore
+    try:
+        if email_body.is_multipart():
+            for part in email_body.walk():
+                if part.get_content_type() == "text/plain":
+                    body = part.get_payload(decode=True)
+                    break
+        else:
+            body = email_body.get_payload(decode=True)
+
+        # Try UTF-8 first
+        body = body.decode("utf-8")  # type: ignore
+    except UnicodeDecodeError:
+        body = body.decode("latin1")  # type: ignore
+    except Exception:
+        body = body.decode("utf-8", errors="replace")  # type: ignore
 
     return {
         "id": msg_data[0][0].decode(),
@@ -951,41 +959,14 @@ class SearchEmailTool(Tool):
         self.input_schema = {
             "type": "object",
             "properties": {
-                "from_address": {
-                    "type": "string",
-                    "description": "Sender's email address to search for",
-                },
-                "to_address": {
-                    "type": "string",
-                    "description": "Recipient's email address to search for",
-                },
                 "subject": {
                     "type": "string",
                     "description": "Text to search for in email subject",
                 },
-                "date_filter": {
-                    "type": "string",
-                    "enum": [
-                        "SINCE_ONE_HOUR",
-                        "SINCE_ONE_DAY",
-                        "SINCE_ONE_WEEK",
-                        "SINCE_ONE_MONTH",
-                        "SINCE_ONE_YEAR",
-                    ],
-                    "description": "Date filter to search for",
-                    "default": "SINCE_ONE_DAY",
-                },
-                "folder": {
-                    "type": "string",
-                    "enum": [
-                        "INBOX",
-                        "[Gmail]/Sent Mail",
-                        "[Gmail]/Drafts",
-                        "[Gmail]/Spam",
-                        "[Gmail]/Trash",
-                    ],
-                    "description": "Email folder to search in",
-                    "default": "INBOX",
+                "since_hours_ago": {
+                    "type": "integer",
+                    "description": "Number of hours ago to search for",
+                    "default": 6,
                 },
                 "text": {
                     "type": "string",
@@ -1005,33 +986,21 @@ class SearchEmailTool(Tool):
 
             try:
                 # Select folder
-                folder = params.get("folder", "INBOX")
-                imap.select(folder)
+                imap.select("INBOX")
 
                 # Build search criteria using Gmail's search syntax
                 search_criteria = []
 
-                if params.get("from_address"):
-                    search_criteria.append(f'FROM "{params["from_address"]}"')
-                if params.get("to_address"):
-                    search_criteria.append(f'TO "{params["to_address"]}"')
                 if params.get("subject"):
                     search_criteria.append(f'SUBJECT "{params["subject"]}"')
                 if params.get("text"):
                     search_criteria.append(f'BODY "{params["text"]}"')
 
                 # Add date filter
-                date_filter = params.get("date_filter", "SINCE_ONE_DAY")
-                date_deltas = {
-                    "SINCE_ONE_HOUR": timedelta(hours=1),
-                    "SINCE_ONE_DAY": timedelta(days=1),
-                    "SINCE_ONE_WEEK": timedelta(weeks=1),
-                    "SINCE_ONE_MONTH": timedelta(days=30),
-                    "SINCE_ONE_YEAR": timedelta(days=365),
-                }
-                since_date = (datetime.now() - date_deltas[date_filter]).strftime(
-                    "%d-%b-%Y"
-                )
+                since_date = (
+                    datetime.now()
+                    - timedelta(hours=int(params.get("since_hours_ago", 6)))
+                ).strftime("%d-%b-%Y")
                 search_criteria.append(f"SINCE {since_date}")
 
                 # Combine search criteria
@@ -1039,20 +1008,28 @@ class SearchEmailTool(Tool):
 
                 # Perform search with UTF-8 encoding
                 _, message_numbers = imap.uid("search", None, search_string)  # type: ignore
+
+                if not message_numbers or not message_numbers[0]:
+                    return {
+                        "results": [],
+                        "count": 0,
+                        "message": "No emails found matching the criteria",
+                    }
+
                 email_ids = message_numbers[0].split()
 
                 # Reverse the order to get newest first
                 email_ids = list(reversed(email_ids))
 
                 # Limit results
-                max_results = min(len(email_ids), params.get("max_results", 50))
+                max_results = min(len(email_ids), int(params.get("max_results") or 50))
                 results = []
 
                 for i in range(max_results):
                     _, msg_data = imap.uid("fetch", email_ids[i], "(RFC822)")  # type: ignore
                     results.append(parse_email_message(msg_data))  # type: ignore
 
-                return results
+                return {"results": results, "count": len(results)}
 
             finally:
                 imap.logout()

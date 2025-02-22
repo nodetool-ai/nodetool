@@ -6,8 +6,9 @@ import { createWindow } from "./window";
 import { execSync } from "child_process";
 import { stopServer } from "./server";
 import { initializeBackendServer } from "./server";
-import { createChatOverlayWindow } from "./workflow-window";
-import { fetchWorkflows, isConnected, runWorkflow } from "./api";
+import { createChatOverlayWindow } from "./workflowWindow";
+import { fetchWorkflows, isConnected } from "./api";
+import { runWorkflow } from "./workflowExecution";
 
 let trayInstance: Electron.Tray | null = null;
 

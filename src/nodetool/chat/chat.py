@@ -83,6 +83,8 @@ AVAILABLE_CHAT_TOOLS = [
     KeywordDocSearchTool(),
 ]
 
+AVAILABLE_CHAT_TOOLS_BY_NAME = {tool.name: tool for tool in AVAILABLE_CHAT_TOOLS}
+
 
 def json_schema_for_column(column: ColumnDef) -> dict:
     """

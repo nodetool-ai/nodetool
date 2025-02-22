@@ -1260,6 +1260,11 @@ class Message(BaseType):
     The unique identifier of the user who sent the message.
     """
 
+    tools: list[str] | None = None
+    """
+    The list of tools that the user has selected to use.
+    """
+
     tool_call_id: str | None = None
     """
     The unique identifier of the tool call associated with the message.

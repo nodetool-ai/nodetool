@@ -3,10 +3,12 @@ import { create } from "zustand";
 // @ts-expect-error types not available
 import WebSocket from "ws";
 import { Notification } from "electron";
+import { Workflow } from "./types";
 
 const WORKER_URL = "ws://127.0.0.1:8000/predict";
 
 interface WorkflowRunnerState {
+  workflow: Workflow | null;
   socket: WebSocket | null;
   state: "idle" | "connecting" | "connected" | "running" | "error";
   progress: { current: number; total: number } | null;
@@ -24,7 +26,7 @@ interface WorkflowRunnerState {
   // Actions
   connect: () => Promise<void>;
   onComplete: (results: any[]) => void;
-  run: (workflowId: string, params: Record<string, any>) => Promise<any>;
+  run: (workflow: Workflow, params: Record<string, any>) => Promise<any>;
   disconnect: () => void;
   addNotification: (notification: {
     type: "error" | "info";
@@ -37,6 +39,7 @@ export const createWorkflowRunner = () =>
   create<WorkflowRunnerState>((set, get) => ({
     socket: null,
     state: "idle",
+    workflow: null,
     progress: null,
     chunks: [],
     onComplete: () => {},
@@ -72,6 +75,12 @@ export const createWorkflowRunner = () =>
           ) as any;
           console.log("data", data);
 
+          if (data.type === "node_update") {
+            set({
+              statusMessage: `${data.node_name} ${data.status}`,
+            });
+          }
+
           if (data.type === "job_update") {
             set({
               state:
@@ -79,6 +88,11 @@ export const createWorkflowRunner = () =>
                   ? "running"
                   : "idle",
               statusMessage: `Job ${data.status}`,
+            });
+
+            get().addNotification({
+              type: "info",
+              content: `${get().workflow?.name} ${data.status}`,
             });
 
             if (data.job_id) {
@@ -89,7 +103,7 @@ export const createWorkflowRunner = () =>
               case "completed":
                 get().addNotification({
                   type: "info",
-                  content: "Job completed",
+                  content: `Workflow ${get().workflow?.name} completed`,
                 });
                 set({ statusMessage: "Job completed" });
                 get().disconnect();
@@ -101,22 +115,11 @@ export const createWorkflowRunner = () =>
                   set({ error });
                   get().addNotification({
                     type: "error",
-                    content: `Job failed: ${data.error}`,
+                    content: `Workflow ${get().workflow?.name} failed: ${
+                      data.error
+                    }`,
                   });
                   get().disconnect();
-                }
-                break;
-              case "queued":
-                set({
-                  statusMessage: "Worker is booting (may take a 15 seconds)...",
-                });
-                break;
-              case "running":
-                if (data.message) {
-                  get().addNotification({
-                    type: "info",
-                    content: data.message,
-                  });
                 }
                 break;
             }
@@ -162,7 +165,7 @@ export const createWorkflowRunner = () =>
       }
     },
 
-    run: async (workflowId: string, params: Record<string, any>) => {
+    run: async (workflow: Workflow, params: Record<string, any>) => {
       if (!get().socket || get().state !== "connected") {
         await get().connect();
       }
@@ -173,11 +176,12 @@ export const createWorkflowRunner = () =>
         progress: null,
         statusMessage: null,
         notifications: [],
+        workflow: workflow,
       });
 
       const request = {
         type: "run_job_request",
-        workflow_id: workflowId,
+        workflow_id: workflow.id,
         job_type: "workflow",
         auth_token: "local_token",
         params: params,
@@ -199,7 +203,7 @@ export const createWorkflowRunner = () =>
 
       get().addNotification({
         type: "info",
-        content: "Job started",
+        content: `Running ${workflow.name}`,
       });
     },
 
@@ -209,7 +213,7 @@ export const createWorkflowRunner = () =>
 
       // Create native Electron notification with more options
       new Notification({
-        title: notification.type.toUpperCase(),
+        title: "Nodetool",
         body: notification.content,
         silent: false,
         urgency: notification.type === "error" ? "critical" : "normal",

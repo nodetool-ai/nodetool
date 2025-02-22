@@ -20,11 +20,11 @@ import {
 import { installCondaEnvironment } from "./installer";
 import { emitBootMessage } from "./events";
 import { createTray } from "./tray";
-import { createWorkflowWindow } from "./workflow-window";
+import { createWorkflowWindow } from "./workflowWindow";
 import { initializeIpcHandlers } from "./ipc";
 import { connectToWebSocketUpdates } from "./api";
 import { buildMenu } from "./menu";
-import { createChatOverlayWindow } from "./workflow-window";
+import { createChatOverlayWindow } from "./workflowWindow";
 
 /**
  * Global application state flags and objects

@@ -27,7 +27,7 @@ from nodetool.workflows.run_job_request import RunJobRequest
 from nodetool.workflows.run_workflow import run_workflow
 from nodetool.workflows.workflow_runner import WorkflowRunner
 from nodetool.workflows.processing_context import ProcessingContext
-from nodetool.chat.chat import AVAILABLE_CHAT_TOOLS
+from nodetool.chat.chat import AVAILABLE_CHAT_TOOLS_BY_NAME
 
 log = logging.getLogger(__name__)
 
@@ -115,57 +115,70 @@ class ChatWebSocketRunner:
         )
 
         content = ""
-        tool_calls: list[ToolCall] = []
+        unprocessed_messages = []
+
+        if last_message.tools:
+            selected_tools = [
+                AVAILABLE_CHAT_TOOLS_BY_NAME[name] for name in last_message.tools
+            ]
+        else:
+            selected_tools = []
 
         # Stream the response chunks
-        async for chunk in generate_messages(
-            messages=self.chat_history,
-            model=FunctionModel(
-                provider=Provider.Ollama,
-                name="llama3.2:3b",
-                repo_id="llama3.2:3b",
-            ),
-            tools=AVAILABLE_CHAT_TOOLS,
-        ):
-            if isinstance(chunk, Chunk):
-                content += chunk.content
-                # Send intermediate chunks to client
-                await self.send_message(
-                    {"type": "chunk", "content": chunk.content, "done": chunk.done}
-                )
-                if chunk.done:
-                    break
-            elif isinstance(chunk, ToolCall):
-                tool_calls.append(chunk)
-                # Send tool call to client
-                await self.send_message(
-                    {"type": "tool_call", "tool_call": chunk.model_dump()}
-                )
+        while True:
+            messages_to_send = self.chat_history + unprocessed_messages
+            unprocessed_messages = []
 
-                # Process the tool call
-                tool_result = await run_tool(
-                    processing_context, chunk, AVAILABLE_CHAT_TOOLS
-                )
-
-                # Add tool messages to chat history
-                self.chat_history.append(Message(role="assistant", tool_calls=[chunk]))
-                self.chat_history.append(
-                    Message(
-                        role="tool",
-                        tool_call_id=tool_result.id,
-                        content=json.dumps(tool_result.result),
+            async for chunk in generate_messages(
+                messages=messages_to_send,
+                model=FunctionModel(
+                    provider=Provider.Ollama,
+                    name="llama3.2:3b",
+                    repo_id="llama3.2:3b",
+                ),
+                tools=selected_tools,
+            ):
+                if isinstance(chunk, Chunk):
+                    content += chunk.content
+                    # Send intermediate chunks to client
+                    await self.send_message(
+                        {"type": "chunk", "content": chunk.content, "done": chunk.done}
                     )
-                )
+                elif isinstance(chunk, ToolCall):
+                    # Send tool call to client
+                    await self.send_message(
+                        {"type": "tool_call", "tool_call": chunk.model_dump()}
+                    )
 
-                # Send tool result to client
-                await self.send_message(
-                    {"type": "tool_result", "result": tool_result.model_dump()}
-                )
+                    # Process the tool call
+                    tool_result = await run_tool(
+                        processing_context, chunk, selected_tools
+                    )
+
+                    # Add tool messages to unprocessed messages
+                    unprocessed_messages.append(
+                        Message(role="assistant", tool_calls=[chunk])
+                    )
+                    unprocessed_messages.append(
+                        Message(
+                            role="tool",
+                            tool_call_id=tool_result.id,
+                            content=json.dumps(tool_result.result),
+                        )
+                    )
+
+                    # Send tool result to client
+                    await self.send_message(
+                        {"type": "tool_result", "result": tool_result.model_dump()}
+                    )
+
+            # If no more unprocessed messages, we're done
+            if not unprocessed_messages:
+                break
 
         return Message(
             role="assistant",
             content=content if content else None,
-            tool_calls=tool_calls if tool_calls else None,
         )
 
     async def process_messages_for_workflow(self) -> Message:

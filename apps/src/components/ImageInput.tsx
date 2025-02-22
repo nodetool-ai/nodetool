@@ -59,14 +59,12 @@ const ImageInput = ({ onChange, className }: ImageInputProps) => {
       width="100%"
     >
       <HStack width="100%">
-        <FileUploadTrigger asChild>
+        <FileUploadTrigger>
           <Button size="sm" variant="ghost" colorScheme="gray">
             <HiUpload />
           </Button>
         </FileUploadTrigger>
-        {!file && (
-          <FileUploadDropzone width="100%" label="Drop your image here" />
-        )}
+        {!file && <FileUploadDropzone label="Drop your image here" />}
         {file && (
           <Box position="relative" width="100%">
             <img

@@ -4,8 +4,8 @@ import path from "path";
 // Map to store workflow windows
 const workflowWindows = new Map<number, BrowserWindow>();
 
-const appPort = app.isPackaged ? 8000 : 5173;
-const baseUrl = `http://127.0.0.1:${appPort}${
+export const appPort = app.isPackaged ? 8000 : 5173;
+export const baseUrl = `http://127.0.0.1:${appPort}${
   app.isPackaged ? "/apps" : ""
 }/index.html`;
 
@@ -50,6 +50,8 @@ function createWorkflowWindow(workflowId: string): BrowserWindow {
   const workflowWindow = new BrowserWindow({
     frame: false,
     titleBarStyle: "hidden",
+    transparent: true,
+    alwaysOnTop: true,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,

@@ -16,7 +16,7 @@ import fs from "fs/promises";
 import net from "net";
 import { updateTrayMenu, createTray } from "./tray";
 import { LOG_FILE } from "./logger";
-import { createWorkflowWindow } from "./workflow-window";
+import { createWorkflowWindow } from "./workflowWindow";
 
 let nodeToolBackendProcess: ChildProcess | null = null;
 const recentServerMessages: string[] = [];
