@@ -421,7 +421,10 @@ class WorkflowRunner:
 
         while retries < MAX_RETRIES:
             try:
-                await self.process_node_with_inputs(context, node, inputs)
+                if isinstance(node, GroupNode):
+                    await self.run_group_node(node, context)
+                else:
+                    await self.process_node_with_inputs(context, node, inputs)
                 break
             except Exception as e:
                 is_cuda_oom = TORCH_AVAILABLE and isinstance(
@@ -584,89 +587,100 @@ class WorkflowRunner:
             f"{node.get_title()} ({node._id}) processing time: {datetime.now() - started_at}"
         )
 
-    # async def process_subgraph(
-    #     self, context: ProcessingContext, group_node: GroupNode, inputs: dict[str, Any]
-    # ) -> Any:
-    #     """
-    #     Processes a subgraph contained within a GroupNode.
+    async def run_group_node(self, group_node: GroupNode, context: ProcessingContext):
+        """
+        Executes a GroupNode, which represents a subgraph within the main workflow.
 
-    #     Args:
-    #         context (ProcessingContext): Manages the execution state and inter-node communication.
-    #         group_node (GroupNode): The GroupNode containing the subgraph.
-    #         inputs (dict[str, Any]): Input data for the subgraph.
+        Args:
+            group_node (GroupNode): The GroupNode to be executed.
+            context (ProcessingContext): Manages the execution state and inter-node communication.
+        """
+        log.info(f"Running group node: {group_node.get_title()} ({group_node._id})")
+        group_inputs = context.get_node_inputs(group_node._id)
 
-    #     Returns:
-    #         Any: The result of the subgraph execution.
+        result = await self.process_subgraph(context, group_node, group_inputs)
 
-    #     Raises:
-    #         ValueError: If the GroupNode has no input nodes or if the input data is invalid.
+        context.set_result(group_node._id, result)
 
-    #     Note:
-    #         - Handles special input types like DataframeRef.
-    #         - Executes the subgraph for each item in the input data.
-    #         - Collects and returns results from output nodes.
-    #         - Marks all nodes in the subgraph as processed.
-    #     """
-    #     log.info(f"Processing subgraph for group node: {group_node._id}")
-    #     child_nodes = [
-    #         node for node in context.graph.nodes if node.parent_id == group_node._id
-    #     ]
-    #     input_nodes = [n for n in child_nodes if isinstance(n, GroupInput)]
-    #     output_nodes = [n for n in child_nodes if isinstance(n, GroupOutput)]
+    async def process_subgraph(
+        self, context: ProcessingContext, group_node: GroupNode, inputs: dict[str, Any]
+    ) -> Any:
+        """
+        Processes a subgraph contained within a GroupNode.
 
-    #     if group_node.get_node_type() == "nodetool.group.Loop":
-    #         if len(input_nodes) == 0:
-    #             raise ValueError("Loop node must have at least one input node.")
+        Args:
+            context (ProcessingContext): Manages the execution state and inter-node communication.
+            group_node (GroupNode): The GroupNode containing the subgraph.
+            inputs (dict[str, Any]): Input data for the subgraph.
 
-    #         input = inputs.get("input", [])
+        Returns:
+            Any: The result of the subgraph execution.
 
-    #         if isinstance(input, DataframeRef):
-    #             df = await context.dataframe_to_pandas(input)
-    #             df_dict = df.to_dict(orient="index")
-    #             input = []
-    #             for index, row in df_dict.items():
-    #                 row["index"] = index
-    #                 input.append(row)
-    #         elif isinstance(input, list):
-    #             pass
-    #         elif isinstance(input, dict):
-    #             input = list([{"key": k, "value": v} for k, v in input.items()])
-    #         else:
-    #             raise ValueError(
-    #                 f"Input data must be a list or dataframe but got: {type(input)}"
-    #             )
+        Raises:
+            ValueError: If the GroupNode has no input nodes or if the input data is invalid.
 
-    #         # Run the subgraph for each item in the input data.
-    #         results = {node._id: [] for node in output_nodes}
-    #         for i in range(len(input)):
-    #             sub_context = context.copy()
-    #             # passing global graph for lookups
-    #             # set the result of the input node
-    #             for input_node in input_nodes:
-    #                 input_node._value = input[i]
+        Note:
+            - Handles special input types like DataframeRef.
+            - Executes the subgraph for each item in the input data.
+            - Collects and returns results from output nodes.
+            - Marks all nodes in the subgraph as processed.
+        """
+        log.info(f"Processing subgraph for group node: {group_node._id}")
+        child_nodes = [
+            node for node in context.graph.nodes if node.parent_id == group_node._id
+        ]
+        input_nodes = [n for n in child_nodes if isinstance(n, GroupInput)]
+        output_nodes = [n for n in child_nodes if isinstance(n, GroupOutput)]
 
-    #             graph = Graph(nodes=child_nodes, edges=context.graph.edges)
-    #             await self.process_graph(sub_context, graph, parent_id=group_node._id)
+        if group_node.get_node_type() == "nodetool.group.Loop":
+            if len(input_nodes) == 0:
+                raise ValueError("Loop node must have at least one input node.")
 
-    #             # Get the result of the subgraph and add it to the results.
-    #             for output_node in output_nodes:
-    #                 results[output_node._id].append(output_node.input)
+            input = inputs.get("input", [])
 
-    #         # Mark the nodes as processed.
-    #         for n in child_nodes:
-    #             context.processed_nodes.add(n._id)
+            if isinstance(input, DataframeRef):
+                df = await context.dataframe_to_pandas(input)
+                df_dict = df.to_dict(orient="index")
+                input = []
+                for index, row in df_dict.items():
+                    row["index"] = index
+                    input.append(row)
+            elif isinstance(input, list):
+                pass
+            elif isinstance(input, dict):
+                input = list([{"key": k, "value": v} for k, v in input.items()])
+            else:
+                raise ValueError(
+                    f"Input data must be a list or dataframe but got: {type(input)}"
+                )
 
-    #         if len(results) > 1:
-    #             log.warning("Multiple output nodes are not fully supported.")
+            # Run the subgraph for each item in the input data.
+            results = {node._id: [] for node in output_nodes}
+            for i in range(len(input)):
+                sub_context = context.copy()
+                # passing global graph for lookups
+                # set the result of the input node
+                for input_node in input_nodes:
+                    input_node._value = input[i]
 
-    #     else:
-    #         # regular group nodes will execute children on top level
-    #         results = {}
+                graph = Graph(nodes=child_nodes, edges=context.graph.edges)
+                await self.process_graph(sub_context, graph, parent_id=group_node._id)
 
-    #     if len(results) == 0:
-    #         return {}
-    #     else:
-    #         return {"output": results[output_nodes[0]._id]}
+                # Get the result of the subgraph and add it to the results.
+                for output_node in output_nodes:
+                    results[output_node._id].append(output_node.input)
+
+            if len(results) > 1:
+                log.warning("Multiple output nodes are not fully supported.")
+
+        else:
+            # regular group nodes will execute children on top level
+            results = {}
+
+        if len(results) == 0:
+            return {}
+        else:
+            return {"output": results[output_nodes[0]._id]}
 
     def log_vram_usage(self, message=""):
         if TORCH_AVAILABLE and torch.cuda.is_available():
