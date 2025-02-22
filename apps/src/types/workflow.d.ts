@@ -121,6 +121,7 @@ export interface Message {
   name: string;
   content?: string | MessageContent[] | null;
   tool_calls?: any[] | null;
+  tools?: string[] | null;
   created_at?: string | null;
 }
 

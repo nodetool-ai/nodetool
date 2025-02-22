@@ -2474,6 +2474,8 @@ export interface components {
             thread_id?: string | null;
             /** User Id */
             user_id?: string | null;
+            /** Tools */
+            tools?: string[] | null;
             /** Tool Call Id */
             tool_call_id?: string | null;
             /**
@@ -2515,6 +2517,8 @@ export interface components {
             thread_id?: string | null;
             /** User Id */
             user_id?: string | null;
+            /** Tools */
+            tools?: string[] | null;
             /** Tool Call Id */
             tool_call_id?: string | null;
             /**
@@ -3087,6 +3091,11 @@ export interface components {
              * @default false
              */
             explicit_types: boolean | null;
+        };
+        /** RunWorkflowRequest */
+        RunWorkflowRequest: {
+            /** Params */
+            params: Record<string, never>;
         };
         /**
          * SVGElement
@@ -5185,7 +5194,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["RunJobRequest"];
+                "application/json": components["schemas"]["RunWorkflowRequest"];
             };
         };
         responses: {

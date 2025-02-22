@@ -1,7 +1,8 @@
 import { globalShortcut, dialog } from "electron";
 import { logMessage } from "./logger";
-import { fetchWorkflows, runWorkflow } from "./api";
+import { fetchWorkflows } from "./api";
 import { Workflow } from "./types";
+import { runWorkflow } from "./workflowExecution";
 
 const registerWorkflowShortcut = async (workflow: Workflow) => {
   const shortcut = workflow.settings?.shortcut;

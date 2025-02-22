@@ -1,24 +1,15 @@
 import React, { useCallback, useRef, useState } from "react";
-import {
-  Box,
-  Flex,
-  Textarea,
-  IconButton,
-  Button,
-  HStack,
-} from "@chakra-ui/react";
-import { HiUpload } from "react-icons/hi";
-import { FaMicrophone, FaStop } from "react-icons/fa";
+import { Box, Flex, Textarea, IconButton, HStack } from "@chakra-ui/react";
+import { FaMicrophone, FaStop, FaEnvelope, FaGlobe } from "react-icons/fa";
+import { FaTimes } from "react-icons/fa";
+import useChatStore from "../stores/ChatStore";
+import { Tooltip } from "./ui/tooltip";
 
 interface ComposerProps {
   handleAudioChange: (
     audioRef: { type: "audio"; data: Uint8Array } | null
   ) => void;
   onSubmit: (message: string) => void;
-  disabled: boolean;
-  droppedFiles: File[];
-  setDroppedFiles: (files: File[]) => void;
-  className?: string;
 }
 
 const SendIcon = () => (
@@ -32,26 +23,29 @@ const SendIcon = () => (
 
 export const Composer: React.FC<ComposerProps> = ({
   onSubmit,
-  disabled,
-  droppedFiles,
-  setDroppedFiles,
   handleAudioChange,
-  className,
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const [showAudioInput, setShowAudioInput] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
-
+  const {
+    status,
+    selectedTools,
+    setSelectedTools,
+    droppedFiles,
+    setDroppedFiles,
+  } = useChatStore();
   const handleSubmit = useCallback(() => {
     if (!textareaRef.current) return;
     const message = textareaRef.current.value.trim();
     if (message || droppedFiles.length > 0) {
       onSubmit(message);
       textareaRef.current.value = "";
+      setDroppedFiles([]);
+      setSelectedTools([]);
     }
-  }, [onSubmit, droppedFiles]);
+  }, [onSubmit, droppedFiles, setDroppedFiles, setSelectedTools]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -111,6 +105,33 @@ export const Composer: React.FC<ComposerProps> = ({
     }
   }, [isRecording]);
 
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      const files = Array.from(e.dataTransfer.files).filter((file) =>
+        file.type.startsWith("image/")
+      );
+      setDroppedFiles([...droppedFiles, ...files]);
+    },
+    [droppedFiles, setDroppedFiles]
+  );
+
+  const tools = [
+    { id: "search_email", icon: FaEnvelope, label: "Search Email" },
+    { id: "browser_control", icon: FaGlobe, label: "Browser Control" },
+  ];
+
+  const toggleTool = useCallback(
+    (toolId: string) => {
+      setSelectedTools(
+        selectedTools.includes(toolId)
+          ? selectedTools.filter((id: string) => id !== toolId)
+          : [...selectedTools, toolId]
+      );
+    },
+    [selectedTools, setSelectedTools]
+  );
+
   return (
     <Box position="fixed" bottom={0} left={0} right={0} p={6}>
       <Flex
@@ -121,7 +142,42 @@ export const Composer: React.FC<ComposerProps> = ({
         border="1px solid"
         borderColor="gray.700"
         position="relative"
+        onDrop={handleDrop}
+        onDragOver={(e) => e.preventDefault()}
       >
+        {droppedFiles.length > 0 && (
+          <HStack position="absolute" top={-12} left={0} overflowX="auto" p={2}>
+            {droppedFiles.map((file, index) => (
+              <Box key={index} position="relative">
+                <img
+                  src={URL.createObjectURL(file)}
+                  alt="preview"
+                  style={{
+                    height: "40px",
+                    width: "40px",
+                    objectFit: "cover",
+                    borderRadius: "4px",
+                  }}
+                />
+                <IconButton
+                  aria-label="Remove image"
+                  size="xs"
+                  position="absolute"
+                  top={-2}
+                  right={-2}
+                  borderRadius="full"
+                  variant="ghost"
+                  onClick={() =>
+                    setDroppedFiles(droppedFiles.filter((_, i) => i !== index))
+                  }
+                >
+                  <FaTimes />
+                </IconButton>
+              </Box>
+            ))}
+          </HStack>
+        )}
+
         <Textarea
           ref={textareaRef}
           placeholder="Write a message..."
@@ -148,25 +204,75 @@ export const Composer: React.FC<ComposerProps> = ({
         />
 
         <HStack position="absolute" right={3} bottom={3}>
-          <IconButton
-            aria-label={isRecording ? "Stop recording" : "Start recording"}
-            onClick={isRecording ? stopRecording : startRecording}
-            variant="ghost"
-            size="xs"
-            borderRadius="30px"
+          {tools.map((tool) => (
+            <Tooltip
+              key={tool.id}
+              content={tool.label}
+              contentProps={{
+                bg: "gray.800",
+                color: "white",
+                borderColor: "gray.700",
+              }}
+            >
+              <IconButton
+                key={tool.id}
+                aria-label={tool.label}
+                onClick={() => toggleTool(tool.id)}
+                variant="ghost"
+                size="xs"
+                borderRadius="full"
+                bg={
+                  selectedTools.includes(tool.id) ? "blue.500" : "transparent"
+                }
+                _hover={{
+                  bg: selectedTools.includes(tool.id)
+                    ? "blue.600"
+                    : "whiteAlpha.200",
+                }}
+              >
+                <tool.icon />
+              </IconButton>
+            </Tooltip>
+          ))}
+          <Tooltip
+            content={isRecording ? "Stop recording" : "Start recording"}
+            contentProps={{
+              bg: "gray.800",
+              color: "white",
+              borderColor: "gray.700",
+            }}
           >
-            {isRecording ? <FaStop color="red" /> : <FaMicrophone />}
-          </IconButton>
-          <IconButton
-            aria-label="Send message"
-            onClick={handleSubmit}
-            disabled={disabled}
-            variant="ghost"
-            size="xs"
-            borderRadius="30px"
+            <IconButton
+              aria-label={isRecording ? "Stop recording" : "Start recording"}
+              onClick={isRecording ? stopRecording : startRecording}
+              variant="ghost"
+              size="xs"
+              bg={isRecording ? "red.500" : "transparent"}
+              borderRadius="full"
+            >
+              {isRecording ? <FaStop color="red" /> : <FaMicrophone />}
+            </IconButton>
+          </Tooltip>
+          <Tooltip
+            content="Send message"
+            contentProps={{
+              bg: "gray.800",
+              color: "white",
+              borderColor: "gray.700",
+            }}
           >
-            <SendIcon />
-          </IconButton>
+            <IconButton
+              aria-label="Send message"
+              onClick={handleSubmit}
+              disabled={status === "loading"}
+              variant="ghost"
+              bg={status === "loading" ? "gray.500" : "transparent"}
+              size="xs"
+              borderRadius="full"
+            >
+              <SendIcon />
+            </IconButton>
+          </Tooltip>
         </HStack>
       </Flex>
     </Box>

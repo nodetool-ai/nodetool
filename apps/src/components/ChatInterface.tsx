@@ -62,18 +62,12 @@ const createMediaContent = async (
   messageType: "image_url" | "audio" | "video" | "document",
   mediaType: "image" | "audio" | "video" | "document"
 ): Promise<MessageContent> => {
-  // @ts-expect-error file.path is not defined in the browser
-  const isElectron = !!file.path;
-
   // @ts-expect-error tsc is not happy with the type of the messageType
   return {
     type: messageType,
     [mediaType]: {
       type: mediaType,
-      ...(isElectron
-        ? // @ts-expect-error file.path is not defined in the browser
-          { uri: `file://${file.path}` }
-        : { data: await fileToData(file) }),
+      data: await fileToData(file),
     },
   };
 };
@@ -92,13 +86,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ workflowId, token }) => {
     progress,
     sendMessage,
     setDroppedFiles,
+    selectedTools,
   } = useChatStore();
 
   useEffect(() => {
     connect(workflowId);
   }, [connect, workflowId]);
-
-  const [disabled, setDisabled] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -148,11 +141,18 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ workflowId, token }) => {
         name: "",
         workflow_id: workflowId,
         auth_token: token,
+        tools: selectedTools,
       });
       setDroppedFiles([]);
-      setDisabled(true);
     },
-    [droppedFiles, sendMessage, workflowId, token, setDroppedFiles]
+    [
+      droppedFiles,
+      sendMessage,
+      workflowId,
+      token,
+      setDroppedFiles,
+      selectedTools,
+    ]
   );
 
   // Add state for tracking expanded thoughts
@@ -186,7 +186,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ workflowId, token }) => {
   ) => {
     switch (content.type) {
       case "text": {
-        const thoughtMatch = content.text.match(
+        const thoughtMatch = content.text?.match(
           /<think>([\s\S]*?)(<\/think>|$)/s
         );
         if (thoughtMatch) {
@@ -369,13 +369,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ workflowId, token }) => {
         )}
       </Flex>
 
-      <Composer
-        onSubmit={handleSubmit}
-        disabled={disabled}
-        droppedFiles={droppedFiles}
-        setDroppedFiles={setDroppedFiles}
-        handleAudioChange={handleAudioChange}
-      />
+      <Composer onSubmit={handleSubmit} handleAudioChange={handleAudioChange} />
     </Box>
   );
 };

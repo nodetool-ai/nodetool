@@ -19,6 +19,7 @@ interface ChatState {
   socket: WebSocket | null;
   chatUrl: string;
   droppedFiles: File[];
+  selectedTools: string[];
   currentNode: string;
   streamingMessage: string;
   // Actions
@@ -28,6 +29,7 @@ interface ChatState {
   resetMessages: () => void;
   appendMessage: (message: Message) => void;
   setDroppedFiles: (files: File[]) => void;
+  setSelectedTools: (tools: string[]) => void;
 }
 
 const useChatStore = create<ChatState>((set, get) => ({
@@ -43,6 +45,7 @@ const useChatStore = create<ChatState>((set, get) => ({
   socket: null,
   chatUrl: "ws://127.0.0.1:8000/chat",
   droppedFiles: [],
+  selectedTools: [],
   appendMessage: (message: Message) =>
     set((state) => ({ messages: [...state.messages, message] })),
 
@@ -64,6 +67,7 @@ const useChatStore = create<ChatState>((set, get) => ({
 
       if (data.type === "message") {
         set((state) => ({
+          streamingMessage: "",
           messages: [...state.messages, data],
           status: "connected",
           progress: { current: 0, total: 0 },
@@ -99,13 +103,20 @@ const useChatStore = create<ChatState>((set, get) => ({
             statusMessage: `${data.node_name} ${data.status}`,
           });
         }
+      } else if (data.type === "chunk") {
+        set({
+          status: "loading",
+          streamingMessage: get().streamingMessage + data.content,
+        });
       } else if (data.type === "node_progress") {
         if (data.chunk.length > 0) {
           set({
+            status: "loading",
             streamingMessage: get().streamingMessage + data.chunk,
           });
         } else {
           set({
+            status: "loading",
             progress: {
               current: data.progress,
               total: data.total,
@@ -160,6 +171,7 @@ const useChatStore = create<ChatState>((set, get) => ({
 
   resetMessages: () => set({ messages: [] }),
   setDroppedFiles: (files) => set({ droppedFiles: files }),
+  setSelectedTools: (tools) => set({ selectedTools: tools }),
 }));
 
 export default useChatStore;
