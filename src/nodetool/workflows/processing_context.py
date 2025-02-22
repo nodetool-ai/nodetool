@@ -140,7 +140,6 @@ class ProcessingContext:
         self.workflow_id = workflow_id
         self.graph = graph
         self.results = results if results else {}
-        self.processed_nodes = set()
         self.message_queue = message_queue if message_queue else asyncio.Queue()
         self.device = device
         self.variables: dict[str, Any] = variables if variables else {}

@@ -7,6 +7,9 @@ from typing import Any, Optional
 from collections import deque
 import random
 
+from pydantic import BaseModel
+
+from nodetool.metadata.type_metadata import TypeMetadata
 from nodetool.metadata.types import DataframeRef
 from nodetool.model_manager import ModelManager
 from nodetool.nodes.nodetool.control import If
@@ -111,27 +114,41 @@ def get_available_vram():
     return 0
 
 
+class Message(BaseModel):
+    sender: BaseNode
+    target: BaseNode
+    slot: str
+
+
 class WorkflowRunner:
     """
-    Executes a directed acyclic graph (DAG) of computational nodes with parallel processing and result caching.
+    A workflow execution engine that processes directed acyclic graphs (DAGs) of computational nodes.
+
+    The WorkflowRunner handles the execution of complex workflows by managing node dependencies,
+    parallel processing, GPU resource allocation, and result caching. It supports both CPU and
+    GPU-based computations, with automatic device selection based on availability.
 
     Key Features:
-    1. Topological Execution: Processes nodes in an order that respects their dependencies.
-    2. Parallel Processing: Executes independent nodes concurrently within each topological level.
-    3. Result Caching: Stores and retrieves node outputs to optimize repeated executions.
-    4. Special Node Handling: Supports both regular nodes and GroupNodes (e.g., loop nodes).
-    5. Resource Management: Allocates appropriate computational resources (e.g., GPU) based on node requirements.
-    6. Progress Tracking: Provides real-time updates on individual node and overall workflow status.
-    7. Error Handling: Captures and reports exceptions during node execution.
+        - Parallel execution of independent nodes
+        - GPU resource management with ordered locking mechanism
+        - Result caching for cacheable nodes
+        - Error handling and retry logic for GPU out-of-memory situations
+        - Progress tracking and status updates
+        - Support for both regular nodes and group nodes (subgraphs)
 
     Attributes:
-        job_id (str): Unique identifier for the current workflow execution.
-        status (str): Current state of the workflow. Possible values: "running", "completed", "cancelled", "error".
-        current_node (Optional[str]): Identifier of the node currently being processed, or None if no node is active.
+        job_id (str): Unique identifier for the workflow execution
+        status (str): Current status of the workflow ("running", "completed", "cancelled", or "error")
+        current_node (Optional[str]): ID of the node currently being processed
+        context (Optional[ProcessingContext]): Execution context for managing state and communication
+        messages (deque[Message]): Queue of messages for inter-node communication
+        device (str): Computing device to use ("cpu", "cuda", or "mps")
 
-    Note:
-        - This class does not handle the definition of the workflow graph. The graph must be provided externally.
-        - The class relies on an external ProcessingContext for managing execution state and inter-node communication.
+    Example:
+        ```python
+        runner = WorkflowRunner(job_id="123")
+        await runner.run(request, context)
+        ```
     """
 
     def __init__(self, job_id: str, device: str | None = None):
@@ -146,7 +163,7 @@ class WorkflowRunner:
         self.status = "running"
         self.current_node: Optional[str] = None
         self.context: Optional[ProcessingContext] = None
-
+        self.messages: deque[Message] = deque()
         if device:
             self.device = device
         else:
@@ -362,89 +379,49 @@ class WorkflowRunner:
             - Checks for cancellation before processing each level.
         """
         log.info(f"Processing graph (parent_id: {parent_id})")
-        sorted_nodes = graph.topological_sort(parent_id)
-        for level in sorted_nodes:
-            log.debug(f"Processing level: {level}")
-            nodes = [graph.find_node(i) for i in level if i]
 
-            # Filter out nodes in inactive branches of If nodes
-            active_nodes = [
-                node
-                for node in nodes
-                if node and not self._is_in_inactive_branch(node, graph)
-            ]
+        # find all nodes that don't have any incoming edges
+        nodes = [
+            node
+            for node in graph.nodes
+            if not any(e.target == node.id for e in graph.edges)
+        ]
 
-            await asyncio.gather(
-                *[self.process_node(context, node) for node in active_nodes]
-            )
+        await asyncio.gather(*[self.process_node(context, node, {}) for node in nodes])
 
-    def _is_in_inactive_branch(self, node: BaseNode, graph: Graph) -> bool:
-        """
-        Recursively checks if a node is in an inactive branch of any parent If nodes.
+        while self.messages:
+            message = self.messages.popleft()
+            node = message.target
+            inputs = context.get_node_inputs(node.id)
 
-        Args:
-            node (BaseNode): The node to check
-            graph (Graph): The workflow graph
+            # if all inputs have values, process the node
+            # if not, the node will be processed when all inputs are available
+            if all(inputs.values()):
+                await self.process_node(context, node, inputs)
 
-        Returns:
-            bool: True if node is in an inactive branch, False otherwise
-        """
-
-        def check_branch(current_node: BaseNode) -> bool:
-            incoming_edges = [e for e in graph.edges if e.target == current_node.id]
-
-            for edge in incoming_edges:
-                source_node = graph.find_node(edge.source)
-                if not source_node:
-                    continue
-
-                # Check if current source is an If node
-                if isinstance(source_node, If):
-                    condition = source_node.condition
-                    if (edge.sourceHandle == "if_true" and not condition) or (
-                        edge.sourceHandle == "if_false" and condition
-                    ):
-                        return True
-
-                # Recursively check the source node's branch
-                if check_branch(source_node):
-                    return True
-
-            return False
-
-        return check_branch(node)
-
-    async def process_node(self, context: ProcessingContext, node: BaseNode):
+    async def process_node(
+        self,
+        context: ProcessingContext,
+        node: BaseNode,
+        inputs: dict[str, Any],
+    ):
         """
         Processes a single node in the workflow graph.
 
         Args:
             context (ProcessingContext): Manages the execution state and inter-node communication.
             node (BaseNode): The node to be processed.
-
-        Note:
-            - Skips nodes that have already been processed in a subgraph.
-            - Handles special processing for GroupNodes.
-            - Posts node status updates (running, completed, error) to the context.
+            inputs (dict[str, Any]): The inputs for the node.
         """
         log.info(f"Processing node: {node.get_title()} ({node._id})")
 
         self.current_node = node._id
 
-        if node._id in context.processed_nodes:
-            log.info(
-                f"Node {node.get_title()} ({node._id}) already processed, skipping"
-            )
-            return
-
         retries = 0
 
         while retries < MAX_RETRIES:
             try:
-                if isinstance(node, GroupNode):
-                    await self.run_group_node(node, context)
-                else:
-                    await self.process_regular_node(context, node)
+                await self.process_node_with_inputs(context, node, inputs)
                 break
             except Exception as e:
                 is_cuda_oom = TORCH_AVAILABLE and isinstance(
@@ -488,45 +465,21 @@ class WorkflowRunner:
                 else:
                     raise
 
-    async def run_group_node(self, group_node: GroupNode, context: ProcessingContext):
-        """
-        Executes a GroupNode, which represents a subgraph within the main workflow.
-
-        Args:
-            group_node (GroupNode): The GroupNode to be executed.
-            context (ProcessingContext): Manages the execution state and inter-node communication.
-
-        Post-conditions:
-            - Processes the subgraph contained within the GroupNode.
-            - Stores the result of the GroupNode execution in the context.
-            - Marks the GroupNode as processed in the context.
-
-        Note:
-            - Retrieves inputs for the GroupNode from the context.
-            - Calls process_subgraph to handle the execution of the subgraph.
-        """
-        log.info(f"Running group node: {group_node.get_title()} ({group_node._id})")
-        group_inputs = context.get_node_inputs(group_node._id)
-
-        result = await self.process_subgraph(context, group_node, group_inputs)
-
-        context.processed_nodes.add(group_node._id)
-        context.set_result(group_node._id, result)
-
-    async def process_regular_node(self, context: ProcessingContext, node: BaseNode):
+    async def process_node_with_inputs(
+        self, context: ProcessingContext, node: BaseNode, inputs: dict[str, Any]
+    ):
         """
         Process a regular node that is not a GroupNode.
 
         Args:
             context (ProcessingContext): The processing context.
             node (BaseNode): The node to process.
+            inputs (dict[str, Any]): The inputs for the node.
         """
         from datetime import datetime
 
         started_at = datetime.now()
         try:
-            # Get inputs for the node
-            inputs = context.get_node_inputs(node.id)
             log.debug(f"{node.get_title()} ({node._id}) inputs: {inputs}")
 
             # Assign input values to node properties
@@ -540,10 +493,6 @@ class WorkflowRunner:
             # Preprocess the node
             log.debug(f"Pre-processing node: {node.get_title()} ({node._id})")
             await node.pre_process(context)
-
-            node.send_update(
-                context, "running", result=None, properties=list(inputs.keys())
-            )
 
             # Check if the node is cacheable
             if node.is_cacheable():
@@ -565,6 +514,10 @@ class WorkflowRunner:
                     error_msg = f"Node {node.get_title()} ({node._id}) requires a GPU, but no GPU is available."
                     log.error(error_msg)
                     raise RuntimeError(error_msg)
+
+                node.send_update(
+                    context, "running", result=None, properties=list(inputs.keys())
+                )
 
                 if requires_gpu and self.device != "cpu":
                     await acquire_gpu_lock(node, context)
@@ -615,95 +568,105 @@ class WorkflowRunner:
             )
             raise
 
-        context.processed_nodes.add(node._id)
         context.set_result(node._id, result)
+        for key, value in result.items():
+            # find edge from node to key
+            edges = context.graph.find_edges(node.id, key)
+            for edge in edges:
+                target = context.graph.find_node(edge.target)
+                if target:
+                    self.messages.append(
+                        Message(sender=node, target=target, slot=edge.targetHandle)
+                    )
+                else:
+                    log.warning(f"Node {edge.target} not found")
         log.info(
             f"{node.get_title()} ({node._id}) processing time: {datetime.now() - started_at}"
         )
 
-    async def process_subgraph(
-        self, context: ProcessingContext, group_node: GroupNode, inputs: dict[str, Any]
-    ) -> Any:
-        """
-        Processes a subgraph contained within a GroupNode.
+    # async def process_subgraph(
+    #     self, context: ProcessingContext, group_node: GroupNode, inputs: dict[str, Any]
+    # ) -> Any:
+    #     """
+    #     Processes a subgraph contained within a GroupNode.
 
-        Args:
-            context (ProcessingContext): Manages the execution state and inter-node communication.
-            group_node (GroupNode): The GroupNode containing the subgraph.
-            inputs (dict[str, Any]): Input data for the subgraph.
+    #     Args:
+    #         context (ProcessingContext): Manages the execution state and inter-node communication.
+    #         group_node (GroupNode): The GroupNode containing the subgraph.
+    #         inputs (dict[str, Any]): Input data for the subgraph.
 
-        Returns:
-            Any: The result of the subgraph execution.
+    #     Returns:
+    #         Any: The result of the subgraph execution.
 
-        Raises:
-            ValueError: If the GroupNode has no input nodes or if the input data is invalid.
+    #     Raises:
+    #         ValueError: If the GroupNode has no input nodes or if the input data is invalid.
 
-        Note:
-            - Handles special input types like DataframeRef.
-            - Executes the subgraph for each item in the input data.
-            - Collects and returns results from output nodes.
-            - Marks all nodes in the subgraph as processed.
-        """
-        log.info(f"Processing subgraph for group node: {group_node._id}")
-        child_nodes = [
-            node for node in context.graph.nodes if node.parent_id == group_node._id
-        ]
-        input_nodes = [n for n in child_nodes if isinstance(n, GroupInput)]
-        output_nodes = [n for n in child_nodes if isinstance(n, GroupOutput)]
+    #     Note:
+    #         - Handles special input types like DataframeRef.
+    #         - Executes the subgraph for each item in the input data.
+    #         - Collects and returns results from output nodes.
+    #         - Marks all nodes in the subgraph as processed.
+    #     """
+    #     log.info(f"Processing subgraph for group node: {group_node._id}")
+    #     child_nodes = [
+    #         node for node in context.graph.nodes if node.parent_id == group_node._id
+    #     ]
+    #     input_nodes = [n for n in child_nodes if isinstance(n, GroupInput)]
+    #     output_nodes = [n for n in child_nodes if isinstance(n, GroupOutput)]
 
-        if group_node.get_node_type() == "nodetool.group.Loop":
-            if len(input_nodes) == 0:
-                raise ValueError("Loop node must have at least one input node.")
+    #     if group_node.get_node_type() == "nodetool.group.Loop":
+    #         if len(input_nodes) == 0:
+    #             raise ValueError("Loop node must have at least one input node.")
 
-            input = inputs.get("input", [])
+    #         input = inputs.get("input", [])
 
-            if isinstance(input, DataframeRef):
-                df = await context.dataframe_to_pandas(input)
-                df_dict = df.to_dict(orient="index")
-                input = []
-                for index, row in df_dict.items():
-                    row["index"] = index
-                    input.append(row)
-            elif isinstance(input, list):
-                pass
-            elif isinstance(input, dict):
-                input = list([{"key": k, "value": v} for k, v in input.items()])
-            else:
-                raise ValueError(
-                    f"Input data must be a list or dataframe but got: {type(input)}"
-                )
+    #         if isinstance(input, DataframeRef):
+    #             df = await context.dataframe_to_pandas(input)
+    #             df_dict = df.to_dict(orient="index")
+    #             input = []
+    #             for index, row in df_dict.items():
+    #                 row["index"] = index
+    #                 input.append(row)
+    #         elif isinstance(input, list):
+    #             pass
+    #         elif isinstance(input, dict):
+    #             input = list([{"key": k, "value": v} for k, v in input.items()])
+    #         else:
+    #             raise ValueError(
+    #                 f"Input data must be a list or dataframe but got: {type(input)}"
+    #             )
 
-            # Run the subgraph for each item in the input data.
-            results = {node._id: [] for node in output_nodes}
-            for i in range(len(input)):
-                sub_context = context.copy()
-                # passing global graph for lookups
-                # set the result of the input node
-                for input_node in input_nodes:
-                    input_node._value = input[i]
+    #         # Run the subgraph for each item in the input data.
+    #         results = {node._id: [] for node in output_nodes}
+    #         for i in range(len(input)):
+    #             sub_context = context.copy()
+    #             # passing global graph for lookups
+    #             # set the result of the input node
+    #             for input_node in input_nodes:
+    #                 input_node._value = input[i]
 
-                graph = Graph(nodes=child_nodes, edges=context.graph.edges)
-                await self.process_graph(sub_context, graph, parent_id=group_node._id)
+    #             graph = Graph(nodes=child_nodes, edges=context.graph.edges)
+    #             await self.process_graph(sub_context, graph, parent_id=group_node._id)
 
-                # Get the result of the subgraph and add it to the results.
-                for output_node in output_nodes:
-                    results[output_node._id].append(output_node.input)
+    #             # Get the result of the subgraph and add it to the results.
+    #             for output_node in output_nodes:
+    #                 results[output_node._id].append(output_node.input)
 
-            # Mark the nodes as processed.
-            for n in child_nodes:
-                context.processed_nodes.add(n._id)
+    #         # Mark the nodes as processed.
+    #         for n in child_nodes:
+    #             context.processed_nodes.add(n._id)
 
-            if len(results) > 1:
-                log.warning("Multiple output nodes are not fully supported.")
+    #         if len(results) > 1:
+    #             log.warning("Multiple output nodes are not fully supported.")
 
-        else:
-            # regular group nodes will execute children on top level
-            results = {}
+    #     else:
+    #         # regular group nodes will execute children on top level
+    #         results = {}
 
-        if len(results) == 0:
-            return {}
-        else:
-            return {"output": results[output_nodes[0]._id]}
+    #     if len(results) == 0:
+    #         return {}
+    #     else:
+    #         return {"output": results[output_nodes[0]._id]}
 
     def log_vram_usage(self, message=""):
         if TORCH_AVAILABLE and torch.cuda.is_available():

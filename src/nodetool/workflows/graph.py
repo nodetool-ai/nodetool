@@ -61,6 +61,16 @@ class Graph(BaseModel):
                 return node
         return None
 
+    def find_edges(self, source: str, source_handle: str) -> List[Edge]:
+        """
+        Find edges by their source and source_handle.
+        """
+        return [
+            edge
+            for edge in self.edges
+            if edge.source == source and edge.sourceHandle == source_handle
+        ]
+
     @classmethod
     def from_dict(cls, graph: dict[str, Any]):
         """
