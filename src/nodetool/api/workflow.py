@@ -4,7 +4,7 @@ from datetime import datetime
 import time
 from fastapi import APIRouter, Depends, HTTPException, Body, BackgroundTasks, Request
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from nodetool.common.websocket_updates import (
     CreateWorkflow,
     DeleteWorkflow,
@@ -15,7 +15,7 @@ from nodetool.types.graph import remove_connected_slots
 from nodetool.types.workflow import WorkflowList, Workflow, WorkflowRequest
 from nodetool.api.utils import current_user, User
 from nodetool.common.environment import Environment
-from typing import Optional
+from typing import Any, Optional
 from nodetool.workflows.examples import load_examples, save_example
 from nodetool.workflows.read_graph import read_graph
 from nodetool.models.workflow import Workflow as WorkflowModel
@@ -242,7 +242,7 @@ async def save_example_workflow(
 
 
 class RunWorkflowRequest(BaseModel):
-    params: dict
+    params: dict[str, Any] = Field(default={})
 
 
 @router.post("/{id}/run")
