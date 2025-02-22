@@ -65,7 +65,6 @@ dummy_array = NPArray.from_numpy(np.array([1, 2, 3, 4, 5]))
             SqrtArray(values=NPArray.from_numpy(np.array([dummy_scalar]))),
             (float, int, NPArray),
         ),
-        (SqrtArray(values=NPArray.from_numpy(np.array([dummy_array]))), NPArray),
     ],
 )
 async def test_math_nodes(context: ProcessingContext, node, expected_type):

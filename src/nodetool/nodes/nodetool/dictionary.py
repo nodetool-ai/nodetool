@@ -153,12 +153,6 @@ class Filter(BaseNode):
         }
 
 
-class ConflictResolution(str, Enum):
-    FIRST = "first"
-    LAST = "last"
-    ERROR = "error"
-
-
 class ReduceDictionaries(BaseNode):
     """
     Reduces a list of dictionaries into one dictionary based on a specified key field.
@@ -169,6 +163,11 @@ class ReduceDictionaries(BaseNode):
     - Create summary dictionaries from list of records
     - Combine multiple data points into a single structure
     """
+
+    class ConflictResolution(str, Enum):
+        FIRST = "first"
+        LAST = "last"
+        ERROR = "error"
 
     dictionaries: list[dict[str, Any]] = Field(
         default=[],

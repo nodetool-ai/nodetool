@@ -1,9 +1,7 @@
 import pytest
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.nodes.nodetool.boolean import (
-    BooleanOperation,
     LogicalOperator,
-    Comparison,
     Not,
     Compare,
     ConditionalSwitch,
@@ -19,29 +17,39 @@ from nodetool.nodes.nodetool.boolean import (
     "node, expected_result",
     [
         (
-            LogicalOperator(a=True, b=False, operation=BooleanOperation.AND),
+            LogicalOperator(
+                a=True, b=False, operation=LogicalOperator.BooleanOperation.AND
+            ),
             False,
         ),
         (
-            LogicalOperator(a=True, b=True, operation=BooleanOperation.OR),
+            LogicalOperator(
+                a=True, b=True, operation=LogicalOperator.BooleanOperation.OR
+            ),
             True,
         ),
         (
-            LogicalOperator(a=True, b=False, operation=BooleanOperation.XOR),
+            LogicalOperator(
+                a=True, b=False, operation=LogicalOperator.BooleanOperation.XOR
+            ),
             True,
         ),
         (
-            LogicalOperator(a=True, b=True, operation=BooleanOperation.NAND),
+            LogicalOperator(
+                a=True, b=True, operation=LogicalOperator.BooleanOperation.NAND
+            ),
             False,
         ),
         (
-            LogicalOperator(a=False, b=False, operation=BooleanOperation.NOR),
+            LogicalOperator(
+                a=False, b=False, operation=LogicalOperator.BooleanOperation.NOR
+            ),
             True,
         ),
         (Not(value=True), False),
-        (Compare(a=5, b=5, comparison=Comparison.EQUAL), True),
-        (Compare(a=5, b=3, comparison=Comparison.GREATER_THAN), True),
-        (Compare(a=5, b=7, comparison=Comparison.LESS_THAN), True),
+        (Compare(a=5, b=5, comparison=Compare.Comparison.EQUAL), True),
+        (Compare(a=5, b=3, comparison=Compare.Comparison.GREATER_THAN), True),
+        (Compare(a=5, b=7, comparison=Compare.Comparison.LESS_THAN), True),
         (ConditionalSwitch(condition=True, if_true=1, if_false=0), 1),
         (ConditionalSwitch(condition=False, if_true=1, if_false=0), 0),
         (IsNone(value=None), True),

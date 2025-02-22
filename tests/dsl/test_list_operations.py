@@ -13,12 +13,6 @@ from nodetool.dsl.nodetool.list import (
 )
 from nodetool.dsl.nodetool.output import StringOutput, ListOutput
 from nodetool.dsl.nodetool.text import Join
-from nodetool.nodes.nodetool.list import (
-    FilterNumberType,
-    FilterType,
-    SortOrder,
-    TransformType,
-)
 
 # Basic list operations
 basic_list_ops = StringOutput(
@@ -26,7 +20,7 @@ basic_list_ops = StringOutput(
     value=Join(
         strings=Sort(
             values=Append(values=["banana", "apple", "cherry"], value="date"),
-            order=SortOrder("ascending"),
+            order=Sort.SortOrder("ascending"),
         ),
         separator=", ",
     ),
@@ -37,9 +31,10 @@ list_transform = ListOutput(
     name="list_transform",
     value=FilterNumbers(
         values=Transform(
-            values=["1", "2", "3", "4", "5"], transform_type=TransformType("to_float")
+            values=["1", "2", "3", "4", "5"],
+            transform_type=Transform.TransformType("to_float"),
         ),
-        filter_type=FilterNumberType("greater_than"),
+        filter_type=FilterNumbers.FilterNumberType("greater_than"),
         value=2.5,
     ),
 )
@@ -81,7 +76,7 @@ dict_list_ops = ListOutput(
             {"name": "Charlie", "age": 35},
         ],
         key="name",
-        filter_type=FilterType("contains"),
+        filter_type=FilterDictsByValue.FilterType("contains"),
         criteria="Bob",
     ),
 )

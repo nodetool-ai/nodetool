@@ -2,27 +2,25 @@ import pytest
 from nodetool.dsl.graph import graph_result
 from nodetool.dsl.nodetool.boolean import (
     Compare,
-    Comparison,
     LogicalOperator,
     ConditionalSwitch,
     IsIn,
-    BooleanOperation,
 )
 from nodetool.dsl.nodetool.output import BooleanOutput, StringOutput
 
 # Basic comparison
 basic_comparison = BooleanOutput(
     name="basic_comparison",
-    value=Compare(a=5, b=3, comparison=Comparison(">")),
+    value=Compare(a=5, b=3, comparison=Compare.Comparison(">")),
 )
 
 # Logical operators
 logical_ops = BooleanOutput(
     name="logical_ops",
     value=LogicalOperator(
-        a=Compare(a=10, b=5, comparison=Comparison(">")),
-        b=Compare(a=20, b=15, comparison=Comparison(">")),
-        operation=BooleanOperation("and"),
+        a=Compare(a=10, b=5, comparison=Compare.Comparison(">")),
+        b=Compare(a=20, b=15, comparison=Compare.Comparison(">")),
+        operation=LogicalOperator.BooleanOperation("and"),
     ),
 )
 
@@ -30,7 +28,7 @@ logical_ops = BooleanOutput(
 conditional = StringOutput(
     name="conditional",
     value=ConditionalSwitch(
-        condition=Compare(a=42, b=42, comparison=Comparison("==")),
+        condition=Compare(a=42, b=42, comparison=Compare.Comparison("==")),
         if_true="Values are equal",
         if_false="Values are different",
     ),

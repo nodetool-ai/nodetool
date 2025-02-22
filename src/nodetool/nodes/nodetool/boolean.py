@@ -5,14 +5,6 @@ from nodetool.workflows.processing_context import ProcessingContext
 from typing import Any
 
 
-class BooleanOperation(str, Enum):
-    AND = "and"
-    OR = "or"
-    XOR = "xor"
-    NAND = "nand"
-    NOR = "nor"
-
-
 class ConditionalSwitch(BaseNode):
     """
     Performs a conditional check on a boolean input and returns a value based on the result.
@@ -47,6 +39,13 @@ class LogicalOperator(BaseNode):
     - Create advanced filters or triggers
     """
 
+    class BooleanOperation(str, Enum):
+        AND = "and"
+        OR = "or"
+        XOR = "xor"
+        NAND = "nand"
+        NOR = "nor"
+
     a: bool = Field(default=False, description="First boolean input")
     b: bool = Field(default=False, description="Second boolean input")
     operation: BooleanOperation = Field(
@@ -54,15 +53,15 @@ class LogicalOperator(BaseNode):
     )
 
     async def process(self, context: ProcessingContext) -> bool:
-        if self.operation == BooleanOperation.AND:
+        if self.operation == self.BooleanOperation.AND:
             return self.a and self.b
-        elif self.operation == BooleanOperation.OR:
+        elif self.operation == self.BooleanOperation.OR:
             return self.a or self.b
-        elif self.operation == BooleanOperation.XOR:
+        elif self.operation == self.BooleanOperation.XOR:
             return self.a ^ self.b
-        elif self.operation == BooleanOperation.NAND:
+        elif self.operation == self.BooleanOperation.NAND:
             return not (self.a and self.b)
-        elif self.operation == BooleanOperation.NOR:
+        elif self.operation == self.BooleanOperation.NOR:
             return not (self.a or self.b)
         else:
             raise ValueError(f"Unsupported operation: {self.operation}")
@@ -85,15 +84,6 @@ class Not(BaseNode):
         return not self.value
 
 
-class Comparison(str, Enum):
-    EQUAL = "=="
-    NOT_EQUAL = "!="
-    GREATER_THAN = ">"
-    LESS_THAN = "<"
-    GREATER_THAN_OR_EQUAL = ">="
-    LESS_THAN_OR_EQUAL = "<="
-
-
 class Compare(BaseNode):
     """
     Compares two values using a specified comparison operator.
@@ -105,6 +95,14 @@ class Compare(BaseNode):
     - Create dynamic thresholds or limits
     """
 
+    class Comparison(str, Enum):
+        EQUAL = "=="
+        NOT_EQUAL = "!="
+        GREATER_THAN = ">"
+        LESS_THAN = "<"
+        GREATER_THAN_OR_EQUAL = ">="
+        LESS_THAN_OR_EQUAL = "<="
+
     a: Any = Field(default=None, description="First value to compare")
     b: Any = Field(default=None, description="Second value to compare")
     comparison: Comparison = Field(
@@ -112,17 +110,17 @@ class Compare(BaseNode):
     )
 
     async def process(self, context: ProcessingContext) -> bool:
-        if self.comparison == Comparison.EQUAL:
+        if self.comparison == self.Comparison.EQUAL:
             return self.a == self.b
-        elif self.comparison == Comparison.NOT_EQUAL:
+        elif self.comparison == self.Comparison.NOT_EQUAL:
             return self.a != self.b
-        elif self.comparison == Comparison.GREATER_THAN:
+        elif self.comparison == self.Comparison.GREATER_THAN:
             return self.a > self.b
-        elif self.comparison == Comparison.LESS_THAN:
+        elif self.comparison == self.Comparison.LESS_THAN:
             return self.a < self.b
-        elif self.comparison == Comparison.GREATER_THAN_OR_EQUAL:
+        elif self.comparison == self.Comparison.GREATER_THAN_OR_EQUAL:
             return self.a >= self.b
-        elif self.comparison == Comparison.LESS_THAN_OR_EQUAL:
+        elif self.comparison == self.Comparison.LESS_THAN_OR_EQUAL:
             return self.a <= self.b
         else:
             raise ValueError(f"Unsupported comparison: {self.comparison}")

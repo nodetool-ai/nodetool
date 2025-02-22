@@ -12,9 +12,7 @@ from nodetool.dsl.lib.image.pillow.draw import (
     Background,
     GaussianNoise,
     RenderText,
-    TextAlignment,
 )
-from nodetool.nodes.lib.image.pillow.draw import TextFont
 from nodetool.dsl.nodetool.image import ColorRef
 from nodetool.dsl.nodetool.output import ImageOutput
 
@@ -40,8 +38,8 @@ text_on_image = ImageOutput(
         y=256,
         size=48,
         color=ColorRef(type="color", value="#000000"),
-        align=TextAlignment("center"),
-        font=TextFont("Verdana.ttf"),
+        align=RenderText.TextAlignment("center"),
+        font=RenderText.TextFont("Verdana.ttf"),
     ),
 )
 

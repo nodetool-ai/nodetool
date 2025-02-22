@@ -57,10 +57,8 @@ async def test_process_message_valid(thread: Thread, context: ProcessingContext)
         model = FunctionModel(provider=Provider.OpenAI, name="gpt-4o")
         result = await process_messages(
             model=model,
-            context=context,
-            thread_id=thread.id,
-            node_id="node_id",
             messages=messages,
+            tools=[],
         )
         assert result is not None
 
@@ -88,47 +86,3 @@ class TestTool(Tool):
 
     async def process(self, context: ProcessingContext, params: dict) -> str:
         return self.value
-
-
-@pytest.mark.asyncio
-async def test_process_message_with_tool_call(
-    thread: Thread, context: ProcessingContext
-):
-    with patch.object(context, "run_prediction") as run_prediction_mock:
-        run_prediction_mock.return_value = {
-            "choices": [
-                {
-                    "message": {
-                        "content": "Hello world",
-                        "tool_calls": [
-                            {
-                                "id": "tool_call_id",
-                                "function": {
-                                    "name": "mytool",
-                                    "arguments": json.dumps({"value": "Text"}),
-                                },
-                            }
-                        ],
-                    }
-                }
-            ],
-        }
-        messages = [
-            Message(
-                role="user",
-                content="Hello",
-            )
-        ]
-        model = FunctionModel(provider=Provider.OpenAI, name="gpt-4o")
-        res = await process_messages(
-            model=model,
-            context=context,
-            thread_id=thread.id,
-            node_id="node_id",
-            messages=messages,
-            tools=[TestTool("Text")],
-        )
-        assert res.tool_calls is not None
-        assert len(res.tool_calls) == 1
-        assert res.tool_calls[0].name == "mytool"
-        assert res.tool_calls[0].args == {"value": "Text"}

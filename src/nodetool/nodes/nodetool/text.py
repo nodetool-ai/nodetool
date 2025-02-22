@@ -760,14 +760,6 @@ class HasLength(BaseNode):
         return True
 
 
-class TiktokenEncoding(str, Enum):
-    """Available tiktoken encodings"""
-
-    CL100K_BASE = "cl100k_base"  # GPT-4, GPT-3.5
-    P50K_BASE = "p50k_base"  # GPT-3
-    R50K_BASE = "r50k_base"  # GPT-2
-
-
 class CountTokens(BaseNode):
     """
     Counts the number of tokens in text using tiktoken.
@@ -778,6 +770,13 @@ class CountTokens(BaseNode):
     - Estimating API costs
     - Managing token budgets in text processing
     """
+
+    class TiktokenEncoding(str, Enum):
+        """Available tiktoken encodings"""
+
+        CL100K_BASE = "cl100k_base"  # GPT-4, GPT-3.5
+        P50K_BASE = "p50k_base"  # GPT-3
+        R50K_BASE = "r50k_base"  # GPT-2
 
     text: str = Field(title="Text", default="")
     encoding: TiktokenEncoding = Field(
