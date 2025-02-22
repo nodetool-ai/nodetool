@@ -11,8 +11,9 @@ class CLIPLoader(GraphNode):
     Loads a CLIP model.
     """
 
+    CLIPTypeEnum: typing.ClassVar[type] = nodetool.nodes.comfy.loaders.CLIPLoader.CLIPTypeEnum
     clip_name: CLIPFile | GraphNode | tuple[GraphNode, str] = Field(default=CLIPFile(type='comfy.clip_file', name=''), description='The name of the CLIP to load.')
-    type: nodetool.nodes.comfy.loaders.CLIPLoader.CLIPTypeEnum = Field(default=nodetool.nodes.comfy.loaders.CLIPLoader.CLIPTypeEnum('stable_diffusion'), description='The type of the CLIP model to load.')
+    type: nodetool.nodes.comfy.loaders.CLIPLoader.CLIPTypeEnum = Field(default=CLIPTypeEnum.STABLE_DIFFUSION, description='The type of the CLIP model to load.')
 
     @classmethod
     def get_node_type(cls): return "comfy.loaders.CLIPLoader"
@@ -73,9 +74,10 @@ class DualCLIPLoader(GraphNode):
     Loads a dual CLIP model.
     """
 
+    DualCLIPEnum: typing.ClassVar[type] = nodetool.nodes.comfy.loaders.DualCLIPLoader.DualCLIPEnum
     clip_name1: CLIPFile | GraphNode | tuple[GraphNode, str] = Field(default=CLIPFile(type='comfy.clip_file', name=''), description='The name of the CLIP to load.')
     clip_name2: CLIPFile | GraphNode | tuple[GraphNode, str] = Field(default=CLIPFile(type='comfy.clip_file', name=''), description='The name of the CLIP to load.')
-    type: nodetool.nodes.comfy.loaders.DualCLIPLoader.DualCLIPEnum = Field(default=nodetool.nodes.comfy.loaders.DualCLIPLoader.DualCLIPEnum('sdxl'), description='The type of the dual CLIP model to load.')
+    type: nodetool.nodes.comfy.loaders.DualCLIPLoader.DualCLIPEnum = Field(default=DualCLIPEnum.SDXL, description='The type of the dual CLIP model to load.')
 
     @classmethod
     def get_node_type(cls): return "comfy.loaders.DualCLIPLoader"
@@ -100,8 +102,9 @@ class HuggingFaceCLIPLoader(GraphNode):
     Loads a CLIP model from Huggingface.
     """
 
+    CLIPTypeEnum: typing.ClassVar[type] = nodetool.nodes.comfy.loaders.HuggingFaceCLIPLoader.CLIPTypeEnum
     model: HFCLIP | GraphNode | tuple[GraphNode, str] = Field(default=HFCLIP(type='hf.clip', repo_id='', path=None, allow_patterns=None, ignore_patterns=None), description='The CLIP model to load.')
-    type: nodetool.nodes.comfy.loaders.HuggingFaceCLIPLoader.CLIPTypeEnum = Field(default=nodetool.nodes.comfy.loaders.HuggingFaceCLIPLoader.CLIPTypeEnum('stable_diffusion'), description='The type of the CLIP model to load.')
+    type: nodetool.nodes.comfy.loaders.HuggingFaceCLIPLoader.CLIPTypeEnum = Field(default=CLIPTypeEnum.STABLE_DIFFUSION, description='The type of the CLIP model to load.')
 
     @classmethod
     def get_node_type(cls): return "comfy.loaders.HuggingFaceCLIPLoader"
@@ -150,7 +153,8 @@ class HuggingFaceDualCLIPLoader(GraphNode):
     Loads a dual CLIP model from Huggingface.
     """
 
-    type: nodetool.nodes.comfy.loaders.HuggingFaceDualCLIPLoader.DualCLIPEnum = Field(default=nodetool.nodes.comfy.loaders.HuggingFaceDualCLIPLoader.DualCLIPEnum('sdxl'), description='The type of the dual CLIP model to load.')
+    DualCLIPEnum: typing.ClassVar[type] = nodetool.nodes.comfy.loaders.HuggingFaceDualCLIPLoader.DualCLIPEnum
+    type: nodetool.nodes.comfy.loaders.HuggingFaceDualCLIPLoader.DualCLIPEnum = Field(default=DualCLIPEnum.SDXL, description='The type of the dual CLIP model to load.')
     clip_model_1: HFCLIP | GraphNode | tuple[GraphNode, str] = Field(default=HFCLIP(type='hf.clip', repo_id='', path=None, allow_patterns=None, ignore_patterns=None), description='The first CLIP model to load.')
     clip_model_2: HFCLIP | GraphNode | tuple[GraphNode, str] = Field(default=HFCLIP(type='hf.clip', repo_id='', path=None, allow_patterns=None, ignore_patterns=None), description='The second CLIP model to load.')
 
@@ -205,8 +209,9 @@ class HuggingFaceUNetLoader(GraphNode):
     Loads a UNet model from Huggingface.
     """
 
+    WeightDataTypeEnum: typing.ClassVar[type] = nodetool.nodes.comfy.loaders.HuggingFaceUNetLoader.WeightDataTypeEnum
     model: HFUnet | GraphNode | tuple[GraphNode, str] = Field(default=HFUnet(type='hf.unet', repo_id='', path=None, allow_patterns=None, ignore_patterns=None), description='The UNet model to load.')
-    weight_dtype: nodetool.nodes.comfy.loaders.HuggingFaceUNetLoader.WeightDataTypeEnum = Field(default=nodetool.nodes.comfy.loaders.HuggingFaceUNetLoader.WeightDataTypeEnum('default'), description='The weight data type to use.')
+    weight_dtype: nodetool.nodes.comfy.loaders.HuggingFaceUNetLoader.WeightDataTypeEnum = Field(default=WeightDataTypeEnum.DEFAULT, description='The weight data type to use.')
 
     @classmethod
     def get_node_type(cls): return "comfy.loaders.HuggingFaceUNetLoader"
@@ -297,8 +302,9 @@ class UNETLoader(GraphNode):
     Loads a UNet model.
     """
 
+    WeightDataTypeEnum: typing.ClassVar[type] = nodetool.nodes.comfy.loaders.UNETLoader.WeightDataTypeEnum
     unet_name: UNetFile | GraphNode | tuple[GraphNode, str] = Field(default=UNetFile(type='comfy.unet_file', name=''), description='The name of the UNet model to load.')
-    weight_dtype: nodetool.nodes.comfy.loaders.UNETLoader.WeightDataTypeEnum = Field(default=nodetool.nodes.comfy.loaders.UNETLoader.WeightDataTypeEnum('default'), description='The weight data type to use.')
+    weight_dtype: nodetool.nodes.comfy.loaders.UNETLoader.WeightDataTypeEnum = Field(default=WeightDataTypeEnum.DEFAULT, description='The weight data type to use.')
 
     @classmethod
     def get_node_type(cls): return "comfy.loaders.UNETLoader"

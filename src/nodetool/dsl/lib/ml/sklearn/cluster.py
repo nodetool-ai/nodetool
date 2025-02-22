@@ -17,9 +17,10 @@ class AgglomerativeClusteringNode(GraphNode):
     - Document hierarchies
     """
 
+    AgglomerativeClusteringLinkage: typing.ClassVar[type] = nodetool.nodes.lib.ml.sklearn.cluster.AgglomerativeClusteringNode.AgglomerativeClusteringLinkage
     X: NPArray | GraphNode | tuple[GraphNode, str] = Field(default=NPArray(type='np_array', value=None, dtype='<i8', shape=(1,)), description='Features for clustering')
     n_clusters: int | GraphNode | tuple[GraphNode, str] = Field(default=2, description='Number of clusters')
-    linkage: nodetool.nodes.lib.ml.sklearn.cluster.AgglomerativeClusteringNode.AgglomerativeClusteringLinkage = Field(default=nodetool.nodes.lib.ml.sklearn.cluster.AgglomerativeClusteringNode.AgglomerativeClusteringLinkage('ward'), description="Linkage criterion: 'ward', 'complete', 'average', 'single'")
+    linkage: nodetool.nodes.lib.ml.sklearn.cluster.AgglomerativeClusteringNode.AgglomerativeClusteringLinkage = Field(default=AgglomerativeClusteringLinkage.WARD, description="Linkage criterion: 'ward', 'complete', 'average', 'single'")
     metric: str | GraphNode | tuple[GraphNode, str] = Field(default='euclidean', description='Metric used for distance computation')
 
     @classmethod

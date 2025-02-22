@@ -151,8 +151,9 @@ class FluxDevRedux(GraphNode):
     - Apply precise style modifications
     """
 
+    ImageSizePreset: typing.ClassVar[type] = nodetool.nodes.fal.text_to_image.FluxDevRedux.ImageSizePreset
     image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The input image to transform')
-    image_size: nodetool.nodes.fal.text_to_image.FluxDevRedux.ImageSizePreset = Field(default=nodetool.nodes.fal.text_to_image.FluxDevRedux.ImageSizePreset('landscape_4_3'), description='The size of the generated image')
+    image_size: nodetool.nodes.fal.text_to_image.FluxDevRedux.ImageSizePreset = Field(default=ImageSizePreset.LANDSCAPE_4_3, description='The size of the generated image')
     num_inference_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=28, description='The number of inference steps to perform')
     guidance_scale: float | GraphNode | tuple[GraphNode, str] = Field(default=3.5, description='How closely the model should stick to your prompt')
     seed: int | GraphNode | tuple[GraphNode, str] = Field(default=-1, description='The same seed will output the same image every time')
@@ -175,9 +176,10 @@ class FluxLoraCanny(GraphNode):
     - Produce consistent style variations
     """
 
+    ImageSizePreset: typing.ClassVar[type] = nodetool.nodes.fal.text_to_image.FluxLoraCanny.ImageSizePreset
     control_image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The control image to generate the Canny edge map from')
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The prompt to generate an image from')
-    image_size: nodetool.nodes.fal.text_to_image.FluxLoraCanny.ImageSizePreset = Field(default=nodetool.nodes.fal.text_to_image.FluxLoraCanny.ImageSizePreset('landscape_4_3'), description='The size of the generated image')
+    image_size: nodetool.nodes.fal.text_to_image.FluxLoraCanny.ImageSizePreset = Field(default=ImageSizePreset.LANDSCAPE_4_3, description='The size of the generated image')
     num_inference_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=28, description='The number of inference steps to perform')
     guidance_scale: float | GraphNode | tuple[GraphNode, str] = Field(default=3.5, description='How closely the model should stick to your prompt')
     seed: int | GraphNode | tuple[GraphNode, str] = Field(default=-1, description='The same seed will output the same image every time')
@@ -201,9 +203,10 @@ class FluxLoraDepth(GraphNode):
     - Generate images with controlled perspective
     """
 
+    ImageSizePreset: typing.ClassVar[type] = nodetool.nodes.fal.text_to_image.FluxLoraDepth.ImageSizePreset
     control_image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The control image to generate the depth map from')
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The prompt to generate an image from')
-    image_size: nodetool.nodes.fal.text_to_image.FluxLoraDepth.ImageSizePreset = Field(default=nodetool.nodes.fal.text_to_image.FluxLoraDepth.ImageSizePreset('landscape_4_3'), description='The size of the generated image')
+    image_size: nodetool.nodes.fal.text_to_image.FluxLoraDepth.ImageSizePreset = Field(default=ImageSizePreset.LANDSCAPE_4_3, description='The size of the generated image')
     num_inference_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=28, description='The number of inference steps to perform')
     guidance_scale: float | GraphNode | tuple[GraphNode, str] = Field(default=3.5, description='How closely the model should stick to your prompt')
     seed: int | GraphNode | tuple[GraphNode, str] = Field(default=-1, description='The same seed will output the same image every time')
@@ -227,9 +230,10 @@ class FluxProCanny(GraphNode):
     - Generate variations with consistent structure
     """
 
+    ImageSizePreset: typing.ClassVar[type] = nodetool.nodes.fal.text_to_image.FluxProCanny.ImageSizePreset
     control_image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The control image to generate the Canny edge map from')
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The prompt to generate an image from')
-    image_size: nodetool.nodes.fal.text_to_image.FluxProCanny.ImageSizePreset = Field(default=nodetool.nodes.fal.text_to_image.FluxProCanny.ImageSizePreset('landscape_4_3'), description='The size of the generated image')
+    image_size: nodetool.nodes.fal.text_to_image.FluxProCanny.ImageSizePreset = Field(default=ImageSizePreset.LANDSCAPE_4_3, description='The size of the generated image')
     num_inference_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=28, description='The number of inference steps to perform')
     guidance_scale: float | GraphNode | tuple[GraphNode, str] = Field(default=3.5, description='How closely the model should stick to your prompt')
     seed: int | GraphNode | tuple[GraphNode, str] = Field(default=-1, description='The same seed will output the same image every time')
@@ -253,9 +257,10 @@ class FluxProDepth(GraphNode):
     - Generate variations with consistent depth structure
     """
 
+    ImageSizePreset: typing.ClassVar[type] = nodetool.nodes.fal.text_to_image.FluxProDepth.ImageSizePreset
     control_image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The control image to generate the depth map from')
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The prompt to generate an image from')
-    image_size: nodetool.nodes.fal.text_to_image.FluxProDepth.ImageSizePreset = Field(default=nodetool.nodes.fal.text_to_image.FluxProDepth.ImageSizePreset('landscape_4_3'), description='The size of the generated image')
+    image_size: nodetool.nodes.fal.text_to_image.FluxProDepth.ImageSizePreset = Field(default=ImageSizePreset.LANDSCAPE_4_3, description='The size of the generated image')
     num_inference_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=28, description='The number of inference steps to perform')
     guidance_scale: float | GraphNode | tuple[GraphNode, str] = Field(default=3.5, description='How closely the model should stick to your prompt')
     seed: int | GraphNode | tuple[GraphNode, str] = Field(default=-1, description='The same seed will output the same image every time')
@@ -301,8 +306,9 @@ class FluxProRedux(GraphNode):
     - Generate style transfers
     """
 
+    ImageSizePreset: typing.ClassVar[type] = nodetool.nodes.fal.text_to_image.FluxProRedux.ImageSizePreset
     image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The input image to transform')
-    image_size: nodetool.nodes.fal.text_to_image.FluxProRedux.ImageSizePreset = Field(default=nodetool.nodes.fal.text_to_image.FluxProRedux.ImageSizePreset('landscape_4_3'), description='The size of the generated image')
+    image_size: nodetool.nodes.fal.text_to_image.FluxProRedux.ImageSizePreset = Field(default=ImageSizePreset.LANDSCAPE_4_3, description='The size of the generated image')
     num_inference_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=28, description='The number of inference steps to perform')
     guidance_scale: float | GraphNode | tuple[GraphNode, str] = Field(default=3.5, description='How closely the model should stick to your prompt')
     seed: int | GraphNode | tuple[GraphNode, str] = Field(default=-1, description='The same seed will output the same image every time')
@@ -324,8 +330,9 @@ class FluxProUltraRedux(GraphNode):
     - Process images with maximum control
     """
 
+    ImageSizePreset: typing.ClassVar[type] = nodetool.nodes.fal.text_to_image.FluxProUltraRedux.ImageSizePreset
     image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The input image to transform')
-    image_size: nodetool.nodes.fal.text_to_image.FluxProUltraRedux.ImageSizePreset = Field(default=nodetool.nodes.fal.text_to_image.FluxProUltraRedux.ImageSizePreset('landscape_4_3'), description='The size of the generated image')
+    image_size: nodetool.nodes.fal.text_to_image.FluxProUltraRedux.ImageSizePreset = Field(default=ImageSizePreset.LANDSCAPE_4_3, description='The size of the generated image')
     num_inference_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=28, description='The number of inference steps to perform')
     guidance_scale: float | GraphNode | tuple[GraphNode, str] = Field(default=3.5, description='How closely the model should stick to your prompt')
     seed: int | GraphNode | tuple[GraphNode, str] = Field(default=-1, description='The same seed will output the same image every time')
@@ -349,8 +356,9 @@ class FluxSchnellRedux(GraphNode):
     - Create image variations
     """
 
+    ImageSizePreset: typing.ClassVar[type] = nodetool.nodes.fal.text_to_image.FluxSchnellRedux.ImageSizePreset
     image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The input image to transform')
-    image_size: nodetool.nodes.fal.text_to_image.FluxSchnellRedux.ImageSizePreset = Field(default=nodetool.nodes.fal.text_to_image.FluxSchnellRedux.ImageSizePreset('landscape_4_3'), description='The size of the generated image')
+    image_size: nodetool.nodes.fal.text_to_image.FluxSchnellRedux.ImageSizePreset = Field(default=ImageSizePreset.LANDSCAPE_4_3, description='The size of the generated image')
     num_inference_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=4, description='The number of inference steps to perform')
     seed: int | GraphNode | tuple[GraphNode, str] = Field(default=-1, description='The same seed will output the same image every time')
     enable_safety_checker: bool | GraphNode | tuple[GraphNode, str] = Field(default=True, description='If true, the safety checker will be enabled')

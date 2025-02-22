@@ -19,7 +19,8 @@ class Claude(GraphNode):
     5. Analyze and describe images when provided as input
     """
 
-    model: nodetool.metadata.types.Claude.AnthropicModel = Field(default=nodetool.metadata.types.Claude.AnthropicModel('claude-3-5-sonnet-20240620'), description=None)
+    AnthropicModel: typing.ClassVar[type] = nodetool.metadata.types.Claude.AnthropicModel
+    model: nodetool.metadata.types.Claude.AnthropicModel = Field(default=AnthropicModel.claude_3_5_sonnet, description=None)
     system: str | GraphNode | tuple[GraphNode, str] = Field(default='You are a friendly assistant.', description=None)
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description=None)
     image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description=None)

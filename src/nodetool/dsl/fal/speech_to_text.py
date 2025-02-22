@@ -21,11 +21,14 @@ class Whisper(GraphNode):
     - Analyze multilingual audio content
     """
 
+    TaskEnum: typing.ClassVar[type] = nodetool.nodes.fal.speech_to_text.Whisper.TaskEnum
+    LanguageEnum: typing.ClassVar[type] = nodetool.nodes.fal.speech_to_text.Whisper.LanguageEnum
+    ChunkLevelEnum: typing.ClassVar[type] = nodetool.nodes.fal.speech_to_text.Whisper.ChunkLevelEnum
     audio: AudioRef | GraphNode | tuple[GraphNode, str] = Field(default=AudioRef(type='audio', uri='', asset_id=None, data=None), description='The audio file to transcribe')
-    task: nodetool.nodes.fal.speech_to_text.Whisper.TaskEnum = Field(default=nodetool.nodes.fal.speech_to_text.Whisper.TaskEnum('transcribe'), description='Task to perform on the audio file')
-    language: nodetool.nodes.fal.speech_to_text.Whisper.LanguageEnum = Field(default=nodetool.nodes.fal.speech_to_text.Whisper.LanguageEnum('en'), description='Language of the audio file. If not set, will be auto-detected')
+    task: nodetool.nodes.fal.speech_to_text.Whisper.TaskEnum = Field(default=TaskEnum.TRANSCRIBE, description='Task to perform on the audio file')
+    language: nodetool.nodes.fal.speech_to_text.Whisper.LanguageEnum = Field(default=LanguageEnum.EN, description='Language of the audio file. If not set, will be auto-detected')
     diarize: bool | GraphNode | tuple[GraphNode, str] = Field(default=False, description='Whether to perform speaker diarization')
-    chunk_level: nodetool.nodes.fal.speech_to_text.Whisper.ChunkLevelEnum = Field(default=nodetool.nodes.fal.speech_to_text.Whisper.ChunkLevelEnum('segment'), description='Level of detail for timestamp chunks')
+    chunk_level: nodetool.nodes.fal.speech_to_text.Whisper.ChunkLevelEnum = Field(default=ChunkLevelEnum.SEGMENT, description='Level of detail for timestamp chunks')
     num_speakers: int | GraphNode | tuple[GraphNode, str] = Field(default=1, description='Number of speakers in the audio. If not set, will be auto-detected')
     batch_size: int | GraphNode | tuple[GraphNode, str] = Field(default=64, description='Batch size for processing')
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='Optional prompt to guide the transcription')

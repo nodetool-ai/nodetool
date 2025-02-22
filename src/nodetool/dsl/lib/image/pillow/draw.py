@@ -66,13 +66,15 @@ class RenderText(GraphNode):
     - Creating instructional images to guide the reader's view.
     """
 
+    TextFont: typing.ClassVar[type] = nodetool.nodes.lib.image.pillow.draw.RenderText.TextFont
+    TextAlignment: typing.ClassVar[type] = nodetool.nodes.lib.image.pillow.draw.RenderText.TextAlignment
     text: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The text to render.')
-    font: nodetool.nodes.lib.image.pillow.draw.RenderText.TextFont = Field(default=nodetool.nodes.lib.image.pillow.draw.RenderText.TextFont('DejaVuSans.ttf'), description='The font to use.')
+    font: nodetool.nodes.lib.image.pillow.draw.RenderText.TextFont = Field(default=TextFont.DejaVuSans, description='The font to use.')
     x: int | GraphNode | tuple[GraphNode, str] = Field(default=0, description='The x coordinate.')
     y: int | GraphNode | tuple[GraphNode, str] = Field(default=0, description='The y coordinate.')
     size: int | GraphNode | tuple[GraphNode, str] = Field(default=12, description='The font size.')
     color: ColorRef | GraphNode | tuple[GraphNode, str] = Field(default=ColorRef(type='color', value='#000000'), description='The font color.')
-    align: nodetool.nodes.lib.image.pillow.draw.RenderText.TextAlignment = Field(default=nodetool.nodes.lib.image.pillow.draw.RenderText.TextAlignment('left'), description=None)
+    align: nodetool.nodes.lib.image.pillow.draw.RenderText.TextAlignment = Field(default=TextAlignment.LEFT, description=None)
     image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The image to render on.')
 
     @classmethod

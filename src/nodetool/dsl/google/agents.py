@@ -16,8 +16,9 @@ class ChainOfThought(GraphNode):
     - Providing detailed reasoning for decisions
     """
 
+    GeminiModel: typing.ClassVar[type] = nodetool.nodes.google.gemini.ChainOfThought.GeminiModel
     messages: list[Message] | GraphNode | tuple[GraphNode, str] = Field(default=[], description='The messages to analyze')
-    model: nodetool.nodes.google.gemini.ChainOfThought.GeminiModel = Field(default=nodetool.nodes.google.gemini.ChainOfThought.GeminiModel('gemini-2.0-flash-exp'), description=None)
+    model: nodetool.nodes.google.gemini.ChainOfThought.GeminiModel = Field(default=GeminiModel.Gemini2_0_Flash_Exp, description=None)
     temperature: float | GraphNode | tuple[GraphNode, str] = Field(default=0.0, description=None)
 
     @classmethod
@@ -36,7 +37,8 @@ class DataGenerator(GraphNode):
     - Creating a dataset for a data analysis
     """
 
-    model: nodetool.nodes.google.gemini.DataGenerator.GeminiModel = Field(default=nodetool.nodes.google.gemini.DataGenerator.GeminiModel('gemini-2.0-flash-exp'), description='The Gemini model to use')
+    GeminiModel: typing.ClassVar[type] = nodetool.nodes.google.gemini.DataGenerator.GeminiModel
+    model: nodetool.nodes.google.gemini.DataGenerator.GeminiModel = Field(default=GeminiModel.Gemini2_0_Flash_Exp, description='The Gemini model to use')
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The user prompt')
     image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Image to use for generation')
     audio: AudioRef | GraphNode | tuple[GraphNode, str] = Field(default=AudioRef(type='audio', uri='', asset_id=None, data=None), description='Audio to use for generation')
@@ -59,8 +61,9 @@ class GeminiAgent(GraphNode):
     - Planning multi-step processes
     """
 
+    GeminiModel: typing.ClassVar[type] = nodetool.nodes.google.gemini.GeminiAgent.GeminiModel
     goal: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The user prompt')
-    model: nodetool.nodes.google.gemini.GeminiAgent.GeminiModel = Field(default=nodetool.nodes.google.gemini.GeminiAgent.GeminiModel('gemini-2.0-flash-exp'), description='The Gemini model to use')
+    model: nodetool.nodes.google.gemini.GeminiAgent.GeminiModel = Field(default=GeminiModel.Gemini2_0_Flash_Exp, description='The Gemini model to use')
     temperature: float | GraphNode | tuple[GraphNode, str] = Field(default=0.0, description='Temperature for sampling')
 
     @classmethod
@@ -79,7 +82,8 @@ class SVGGenerator(GraphNode):
     - Creating custom icons and diagrams
     """
 
-    model: nodetool.nodes.google.gemini.SVGGenerator.GeminiModel = Field(default=nodetool.nodes.google.gemini.SVGGenerator.GeminiModel('gemini-2.0-flash-exp'), description='The Gemini model to use')
+    GeminiModel: typing.ClassVar[type] = nodetool.nodes.google.gemini.SVGGenerator.GeminiModel
+    model: nodetool.nodes.google.gemini.SVGGenerator.GeminiModel = Field(default=GeminiModel.Gemini2_0_Flash_Exp, description='The Gemini model to use')
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The user prompt for SVG generation')
     image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Image to use for generation')
     audio: AudioRef | GraphNode | tuple[GraphNode, str] = Field(default=AudioRef(type='audio', uri='', asset_id=None, data=None), description='Audio to use for generation')
@@ -101,7 +105,8 @@ class Summarizer(GraphNode):
     - Extracting main ideas from text
     """
 
-    model: nodetool.nodes.google.gemini.Summarizer.GeminiModel = Field(default=nodetool.nodes.google.gemini.Summarizer.GeminiModel('gemini-2.0-flash-exp'), description='The Gemini model to use')
+    GeminiModel: typing.ClassVar[type] = nodetool.nodes.google.gemini.Summarizer.GeminiModel
+    model: nodetool.nodes.google.gemini.Summarizer.GeminiModel = Field(default=GeminiModel.Gemini2_0_Flash_Exp, description='The Gemini model to use')
     text: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The text to summarize')
     max_words: int | GraphNode | tuple[GraphNode, str] = Field(default=150, description='Target maximum number of words for the summary')
     temperature: float | GraphNode | tuple[GraphNode, str] = Field(default=0.0, description='Temperature for sampling')

@@ -56,9 +56,10 @@ class AddParagraph(GraphNode):
     document, docx, text, format
     """
 
+    ParagraphAlignment: typing.ClassVar[type] = nodetool.nodes.lib.file.docx.AddParagraph.ParagraphAlignment
     document: DocumentRef | GraphNode | tuple[GraphNode, str] = Field(default=DocumentRef(type='document', uri='', asset_id=None, data=None), description='The document to add the paragraph to')
     text: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The paragraph text')
-    alignment: nodetool.nodes.lib.file.docx.AddParagraph.ParagraphAlignment = Field(default=nodetool.nodes.lib.file.docx.AddParagraph.ParagraphAlignment('LEFT'), description='Text alignment')
+    alignment: nodetool.nodes.lib.file.docx.AddParagraph.ParagraphAlignment = Field(default=ParagraphAlignment.LEFT, description='Text alignment')
     bold: bool | GraphNode | tuple[GraphNode, str] = Field(default=False, description='Make text bold')
     italic: bool | GraphNode | tuple[GraphNode, str] = Field(default=False, description='Make text italic')
     font_size: int | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='Font size in points')

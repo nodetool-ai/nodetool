@@ -151,14 +151,16 @@ class Oscillator(GraphNode):
     - Build complex sounds from basic waves
     """
 
-    waveform: nodetool.nodes.lib.audio.synthesis.Oscillator.OscillatorWaveform = Field(default=nodetool.nodes.lib.audio.synthesis.Oscillator.OscillatorWaveform('sine'), description='Type of waveform to generate (sine, square, sawtooth, triangle).')
+    OscillatorWaveform: typing.ClassVar[type] = nodetool.nodes.lib.audio.synthesis.Oscillator.OscillatorWaveform
+    PitchEnvelopeCurve: typing.ClassVar[type] = nodetool.nodes.lib.audio.synthesis.Oscillator.PitchEnvelopeCurve
+    waveform: nodetool.nodes.lib.audio.synthesis.Oscillator.OscillatorWaveform = Field(default=OscillatorWaveform.SINE, description='Type of waveform to generate (sine, square, sawtooth, triangle).')
     frequency: float | GraphNode | tuple[GraphNode, str] = Field(default=440.0, description='Frequency of the waveform in Hz.')
     amplitude: float | GraphNode | tuple[GraphNode, str] = Field(default=0.5, description='Amplitude of the waveform.')
     duration: float | GraphNode | tuple[GraphNode, str] = Field(default=1.0, description='Duration in seconds.')
     sample_rate: int | GraphNode | tuple[GraphNode, str] = Field(default=44100, description='Sampling rate in Hz.')
     pitch_envelope_amount: float | GraphNode | tuple[GraphNode, str] = Field(default=0.0, description='Amount of pitch envelope in semitones')
     pitch_envelope_time: float | GraphNode | tuple[GraphNode, str] = Field(default=0.5, description='Duration of pitch envelope in seconds')
-    pitch_envelope_curve: nodetool.nodes.lib.audio.synthesis.Oscillator.PitchEnvelopeCurve = Field(default=nodetool.nodes.lib.audio.synthesis.Oscillator.PitchEnvelopeCurve('linear'), description='Shape of pitch envelope (linear, exponential)')
+    pitch_envelope_curve: nodetool.nodes.lib.audio.synthesis.Oscillator.PitchEnvelopeCurve = Field(default=PitchEnvelopeCurve.LINEAR, description='Shape of pitch envelope (linear, exponential)')
 
     @classmethod
     def get_node_type(cls): return "lib.audio.synthesis.Oscillator"

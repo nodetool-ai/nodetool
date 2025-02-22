@@ -57,8 +57,9 @@ class LoadImageMask(GraphNode):
     Load an Image and extract a mask from it.
     """
 
+    ColorChannel: typing.ClassVar[type] = nodetool.nodes.comfy.image.LoadImageMask.ColorChannel
     image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The image to load.')
-    channel: nodetool.nodes.comfy.image.LoadImageMask.ColorChannel = Field(default=nodetool.nodes.comfy.image.LoadImageMask.ColorChannel('alpha'), description='The color channel to use.')
+    channel: nodetool.nodes.comfy.image.LoadImageMask.ColorChannel = Field(default=ColorChannel.ALPHA, description='The color channel to use.')
 
     @classmethod
     def get_node_type(cls): return "comfy.image.LoadImageMask"

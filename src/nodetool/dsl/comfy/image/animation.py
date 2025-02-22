@@ -27,12 +27,13 @@ class SaveAnimatedWEBP(GraphNode):
     Save a list of images as an animated WEBP.
     """
 
+    Enum: typing.ClassVar[type] = enum.SaveAnimatedWEBP.Enum
     images: list[ImageRef] | GraphNode | tuple[GraphNode, str] = Field(default=[], description='list of images to save as animated WEBP.')
     filename_prefix: str | GraphNode | tuple[GraphNode, str] = Field(default='ComfyUI', description='Prefix for the filename.')
     fps: float | GraphNode | tuple[GraphNode, str] = Field(default=6.0, description='Frames per second.')
     lossless: bool | GraphNode | tuple[GraphNode, str] = Field(default=True, description='Whether to use lossless compression.')
     quality: int | GraphNode | tuple[GraphNode, str] = Field(default=80, description='Quality of the WEBP.')
-    method: enum.SaveAnimatedWEBP.Enum = Field(default=enum.SaveAnimatedWEBP.Enum('default'), description='Compression method to use.')
+    method: enum.SaveAnimatedWEBP.Enum = Field(default=Enum('default'), description='Compression method to use.')
 
     @classmethod
     def get_node_type(cls): return "comfy.image.animation.SaveAnimatedWEBP"

@@ -130,11 +130,13 @@ class LatentUpscale(GraphNode):
     The Upscale Latent node can be used to resize latent images.
     """
 
+    UpScaleMethod: typing.ClassVar[type] = nodetool.nodes.comfy.latent.LatentUpscale.UpScaleMethod
+    CropMethod: typing.ClassVar[type] = nodetool.nodes.comfy.latent.LatentUpscale.CropMethod
     samples: Latent | GraphNode | tuple[GraphNode, str] = Field(default=Latent(type='comfy.latent', data=None), description='The latent samples to upscale.')
-    upscale_method: nodetool.nodes.comfy.latent.LatentUpscale.UpScaleMethod = Field(default=nodetool.nodes.comfy.latent.LatentUpscale.UpScaleMethod('nearest_exact'), description='The method to use for upscaling.')
+    upscale_method: nodetool.nodes.comfy.latent.LatentUpscale.UpScaleMethod = Field(default=UpScaleMethod.NEAREST_EXACT, description='The method to use for upscaling.')
     width: int | GraphNode | tuple[GraphNode, str] = Field(default=512, description='The target width after upscaling.')
     height: int | GraphNode | tuple[GraphNode, str] = Field(default=512, description='The target height after upscaling.')
-    crop: nodetool.nodes.comfy.latent.LatentUpscale.CropMethod = Field(default=nodetool.nodes.comfy.latent.LatentUpscale.CropMethod('disabled'), description='The method to use for cropping.')
+    crop: nodetool.nodes.comfy.latent.LatentUpscale.CropMethod = Field(default=CropMethod.DISABLED, description='The method to use for cropping.')
 
     @classmethod
     def get_node_type(cls): return "comfy.latent.LatentUpscale"
@@ -147,8 +149,9 @@ class LatentUpscaleBy(GraphNode):
     The Upscale Latent node can be used to resize latent images.
     """
 
+    UpScaleMethod: typing.ClassVar[type] = nodetool.nodes.comfy.latent.LatentUpscaleBy.UpScaleMethod
     samples: Latent | GraphNode | tuple[GraphNode, str] = Field(default=Latent(type='comfy.latent', data=None), description='The latent samples to upscale.')
-    upscale_method: nodetool.nodes.comfy.latent.LatentUpscaleBy.UpScaleMethod = Field(default=nodetool.nodes.comfy.latent.LatentUpscaleBy.UpScaleMethod('nearest_exact'), description='The method to use for upscaling.')
+    upscale_method: nodetool.nodes.comfy.latent.LatentUpscaleBy.UpScaleMethod = Field(default=UpScaleMethod.NEAREST_EXACT, description='The method to use for upscaling.')
     scale_by: float | GraphNode | tuple[GraphNode, str] = Field(default=1.5, description='The factor by which to scale.')
 
     @classmethod

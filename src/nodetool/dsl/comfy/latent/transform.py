@@ -27,8 +27,9 @@ class LatentFlip(GraphNode):
     The Latent Flip node can be used to flip latent samples either horizontally or vertically. This operation allows for mirror transformations in the latent space, which can create interesting variations of the generated images.
     """
 
+    FlipMethod: typing.ClassVar[type] = nodetool.nodes.comfy.latent.transform.LatentFlip.FlipMethod
     samples: Latent | GraphNode | tuple[GraphNode, str] = Field(default=Latent(type='comfy.latent', data=None), description='The latent samples to flip.')
-    flip_method: nodetool.nodes.comfy.latent.transform.LatentFlip.FlipMethod = Field(default=nodetool.nodes.comfy.latent.transform.LatentFlip.FlipMethod('y-axis: horizontally'), description='The method to use for flipping.')
+    flip_method: nodetool.nodes.comfy.latent.transform.LatentFlip.FlipMethod = Field(default=FlipMethod.HORIZONTAL, description='The method to use for flipping.')
 
     @classmethod
     def get_node_type(cls): return "comfy.latent.transform.LatentFlip"
@@ -41,8 +42,9 @@ class LatentRotate(GraphNode):
     The Latent Rotate node can be used to rotate latent samples by a specified degree. This allows for orientation adjustments in the latent space, which can be useful for aligning or reorienting generated images.
     """
 
+    Rotation: typing.ClassVar[type] = nodetool.nodes.comfy.latent.transform.LatentRotate.Rotation
     samples: Latent | GraphNode | tuple[GraphNode, str] = Field(default=Latent(type='comfy.latent', data=None), description='The latent samples to rotate.')
-    rotation: nodetool.nodes.comfy.latent.transform.LatentRotate.Rotation = Field(default=nodetool.nodes.comfy.latent.transform.LatentRotate.Rotation('none'), description='The degree of rotation to apply.')
+    rotation: nodetool.nodes.comfy.latent.transform.LatentRotate.Rotation = Field(default=Rotation.NONE, description='The degree of rotation to apply.')
 
     @classmethod
     def get_node_type(cls): return "comfy.latent.transform.LatentRotate"

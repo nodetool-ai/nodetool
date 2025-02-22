@@ -17,10 +17,11 @@ class ChartGenerator(GraphNode):
     - Converting data analysis requirements into visual representations
     """
 
+    SeabornPlotType: typing.ClassVar[type] = nodetool.metadata.types.ChartGenerator.SeabornPlotType
     model: LlamaModel | GraphNode | tuple[GraphNode, str] = Field(default=LlamaModel(type='llama_model', name='', repo_id='', modified_at='', size=0, digest='', details={}), description='The Llama model to use for chart generation.')
     context_window: int | GraphNode | tuple[GraphNode, str] = Field(default=4096, description='The context window size to use for the model.')
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='Natural language description of the desired chart')
-    plot_type: nodetool.metadata.types.ChartGenerator.SeabornPlotType = Field(default=nodetool.metadata.types.ChartGenerator.SeabornPlotType('line'), description='The type of plot to generate')
+    plot_type: nodetool.metadata.types.ChartGenerator.SeabornPlotType = Field(default=SeabornPlotType.LINE, description='The type of plot to generate')
     data: DataframeRef | GraphNode | tuple[GraphNode, str] = Field(default=DataframeRef(type='dataframe', uri='', asset_id=None, data=None, columns=None), description='The data to visualize')
     temperature: float | GraphNode | tuple[GraphNode, str] = Field(default=0.7, description='The temperature to use for sampling.')
     top_k: int | GraphNode | tuple[GraphNode, str] = Field(default=50, description='The number of highest probability tokens to keep for top-k sampling.')

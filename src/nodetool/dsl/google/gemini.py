@@ -12,7 +12,8 @@ class Gemini(GraphNode):
     google, llm, chat, vision, multimodal
     """
 
-    model: nodetool.nodes.google.gemini.Gemini.GeminiModel = Field(default=nodetool.nodes.google.gemini.Gemini.GeminiModel('gemini-1.5-pro'), description=None)
+    GeminiModel: typing.ClassVar[type] = nodetool.nodes.google.gemini.Gemini.GeminiModel
+    model: nodetool.nodes.google.gemini.Gemini.GeminiModel = Field(default=GeminiModel.Gemini1_5_Pro, description=None)
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description=None)
     messages: list[Message] | GraphNode | tuple[GraphNode, str] = Field(default=[], description='History of messages to send to the model.')
     image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Image to use for generation')

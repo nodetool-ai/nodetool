@@ -17,6 +17,7 @@ class PartialDependenceDisplayNode(GraphNode):
     - Feature relationship analysis
     """
 
+    PartialDependenceKind: typing.ClassVar[type] = nodetool.nodes.lib.ml.sklearn.inspection.PartialDependenceDisplayNode.PartialDependenceKind
     model: SKLearnModel | GraphNode | tuple[GraphNode, str] = Field(default=SKLearnModel(type='sklearn_model', model=None), description='Fitted sklearn model')
     X: NPArray | GraphNode | tuple[GraphNode, str] = Field(default=NPArray(type='np_array', value=None, dtype='<i8', shape=(1,)), description='Training data')
     features: tuple[Union] | GraphNode | tuple[GraphNode, str] = Field(default=PydanticUndefined, description='Features for which to create PDP. Can be indices for 1D or tuples for 2D')
@@ -24,7 +25,7 @@ class PartialDependenceDisplayNode(GraphNode):
     grid_resolution: int | GraphNode | tuple[GraphNode, str] = Field(default=100, description='Number of points in the grid')
     lower_percentile: float | GraphNode | tuple[GraphNode, str] = Field(default=0.05, description='Lower percentile to compute the feature values range')
     upper_percentile: float | GraphNode | tuple[GraphNode, str] = Field(default=0.95, description='Upper percentile to compute the feature values range')
-    kind: nodetool.nodes.lib.ml.sklearn.inspection.PartialDependenceDisplayNode.PartialDependenceKind = Field(default=nodetool.nodes.lib.ml.sklearn.inspection.PartialDependenceDisplayNode.PartialDependenceKind('average'), description='Kind of partial dependence result')
+    kind: nodetool.nodes.lib.ml.sklearn.inspection.PartialDependenceDisplayNode.PartialDependenceKind = Field(default=PartialDependenceKind.AVERAGE, description='Kind of partial dependence result')
 
     @classmethod
     def get_node_type(cls): return "lib.ml.sklearn.inspection.PartialDependenceDisplay"
@@ -43,10 +44,11 @@ class PartialDependenceNode(GraphNode):
     - Understanding feature relationships
     """
 
+    PartialDependenceKind: typing.ClassVar[type] = nodetool.nodes.lib.ml.sklearn.inspection.PartialDependenceNode.PartialDependenceKind
     model: SKLearnModel | GraphNode | tuple[GraphNode, str] = Field(default=SKLearnModel(type='sklearn_model', model=None), description='Fitted sklearn model')
     X: NPArray | GraphNode | tuple[GraphNode, str] = Field(default=NPArray(type='np_array', value=None, dtype='<i8', shape=(1,)), description='Training data')
     features: tuple[int] | GraphNode | tuple[GraphNode, str] = Field(default=PydanticUndefined, description='List of features for which to calculate PD. Each element can be an int for 1D PD or a list of 2 ints for 2D')
-    kind: nodetool.nodes.lib.ml.sklearn.inspection.PartialDependenceNode.PartialDependenceKind = Field(default=nodetool.nodes.lib.ml.sklearn.inspection.PartialDependenceNode.PartialDependenceKind('average'), description="Kind of partial dependence result: 'average' or 'individual'")
+    kind: nodetool.nodes.lib.ml.sklearn.inspection.PartialDependenceNode.PartialDependenceKind = Field(default=PartialDependenceKind.AVERAGE, description="Kind of partial dependence result: 'average' or 'individual'")
     grid_resolution: int | GraphNode | tuple[GraphNode, str] = Field(default=100, description='Number of equally spaced points in the grid')
 
     @classmethod

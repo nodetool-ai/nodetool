@@ -77,8 +77,9 @@ class CountTokens(GraphNode):
     - Managing token budgets in text processing
     """
 
+    TiktokenEncoding: typing.ClassVar[type] = nodetool.nodes.nodetool.text.CountTokens.TiktokenEncoding
     text: str | GraphNode | tuple[GraphNode, str] = Field(default='', description=None)
-    encoding: nodetool.nodes.nodetool.text.CountTokens.TiktokenEncoding = Field(default=nodetool.nodes.nodetool.text.CountTokens.TiktokenEncoding('cl100k_base'), description='The tiktoken encoding to use for token counting')
+    encoding: nodetool.nodes.nodetool.text.CountTokens.TiktokenEncoding = Field(default=TiktokenEncoding.CL100K_BASE, description='The tiktoken encoding to use for token counting')
 
     @classmethod
     def get_node_type(cls): return "nodetool.text.CountTokens"

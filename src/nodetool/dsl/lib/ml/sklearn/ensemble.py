@@ -42,6 +42,7 @@ class GradientBoostingRegressorNode(GraphNode):
     - Robust predictions
     """
 
+    GradientBoostingLoss: typing.ClassVar[type] = nodetool.nodes.lib.ml.sklearn.ensemble.GradientBoostingRegressorNode.GradientBoostingLoss
     X_train: NPArray | GraphNode | tuple[GraphNode, str] = Field(default=NPArray(type='np_array', value=None, dtype='<i8', shape=(1,)), description='Training features')
     y_train: NPArray | GraphNode | tuple[GraphNode, str] = Field(default=NPArray(type='np_array', value=None, dtype='<i8', shape=(1,)), description='Training target values')
     n_estimators: int | GraphNode | tuple[GraphNode, str] = Field(default=100, description='Number of boosting stages')
@@ -49,7 +50,7 @@ class GradientBoostingRegressorNode(GraphNode):
     max_depth: int | GraphNode | tuple[GraphNode, str] = Field(default=3, description='Maximum depth of the trees')
     min_samples_split: int | GraphNode | tuple[GraphNode, str] = Field(default=2, description='Minimum samples required to split a node')
     subsample: float | GraphNode | tuple[GraphNode, str] = Field(default=1.0, description='Fraction of samples used for fitting the trees')
-    loss: nodetool.nodes.lib.ml.sklearn.ensemble.GradientBoostingRegressorNode.GradientBoostingLoss = Field(default=nodetool.nodes.lib.ml.sklearn.ensemble.GradientBoostingRegressorNode.GradientBoostingLoss('squared_error'), description="Loss function to be optimized ('squared_error', 'absolute_error', 'huber', 'quantile')")
+    loss: nodetool.nodes.lib.ml.sklearn.ensemble.GradientBoostingRegressorNode.GradientBoostingLoss = Field(default=GradientBoostingLoss.SQUARED_ERROR, description="Loss function to be optimized ('squared_error', 'absolute_error', 'huber', 'quantile')")
     random_state: int | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='Random state for reproducibility')
 
     @classmethod
@@ -69,13 +70,14 @@ class RandomForestClassifierNode(GraphNode):
     - Robust to overfitting
     """
 
+    RandomForestCriterion: typing.ClassVar[type] = nodetool.nodes.lib.ml.sklearn.ensemble.RandomForestClassifierNode.RandomForestCriterion
     X_train: NPArray | GraphNode | tuple[GraphNode, str] = Field(default=NPArray(type='np_array', value=None, dtype='<i8', shape=(1,)), description='Training features')
     y_train: NPArray | GraphNode | tuple[GraphNode, str] = Field(default=NPArray(type='np_array', value=None, dtype='<i8', shape=(1,)), description='Training target values')
     n_estimators: int | GraphNode | tuple[GraphNode, str] = Field(default=100, description='Number of trees in the forest')
     max_depth: int | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='Maximum depth of the trees')
     min_samples_split: int | GraphNode | tuple[GraphNode, str] = Field(default=2, description='Minimum samples required to split a node')
     min_samples_leaf: int | GraphNode | tuple[GraphNode, str] = Field(default=1, description='Minimum samples required at a leaf node')
-    criterion: nodetool.nodes.lib.ml.sklearn.ensemble.RandomForestClassifierNode.RandomForestCriterion = Field(default=nodetool.nodes.lib.ml.sklearn.ensemble.RandomForestClassifierNode.RandomForestCriterion('gini'), description="Function to measure quality of split ('gini' or 'entropy')")
+    criterion: nodetool.nodes.lib.ml.sklearn.ensemble.RandomForestClassifierNode.RandomForestCriterion = Field(default=RandomForestCriterion.GINI, description="Function to measure quality of split ('gini' or 'entropy')")
     random_state: int | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='Random state for reproducibility')
 
     @classmethod
@@ -95,13 +97,14 @@ class RandomForestRegressorNode(GraphNode):
     - Robust predictions
     """
 
+    RandomForestLoss: typing.ClassVar[type] = nodetool.nodes.lib.ml.sklearn.ensemble.RandomForestRegressorNode.RandomForestLoss
     X_train: NPArray | GraphNode | tuple[GraphNode, str] = Field(default=NPArray(type='np_array', value=None, dtype='<i8', shape=(1,)), description='Training features')
     y_train: NPArray | GraphNode | tuple[GraphNode, str] = Field(default=NPArray(type='np_array', value=None, dtype='<i8', shape=(1,)), description='Training target values')
     n_estimators: int | GraphNode | tuple[GraphNode, str] = Field(default=100, description='Number of trees in the forest')
     max_depth: int | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='Maximum depth of the trees')
     min_samples_split: int | GraphNode | tuple[GraphNode, str] = Field(default=2, description='Minimum samples required to split a node')
     min_samples_leaf: int | GraphNode | tuple[GraphNode, str] = Field(default=1, description='Minimum samples required at a leaf node')
-    criterion: nodetool.nodes.lib.ml.sklearn.ensemble.RandomForestRegressorNode.RandomForestLoss = Field(default=nodetool.nodes.lib.ml.sklearn.ensemble.RandomForestRegressorNode.RandomForestLoss('squared_error'), description="Function to measure quality of split ('squared_error', 'absolute_error', 'friedman_mse', 'poisson')")
+    criterion: nodetool.nodes.lib.ml.sklearn.ensemble.RandomForestRegressorNode.RandomForestLoss = Field(default=RandomForestLoss.SQUARED_ERROR, description="Function to measure quality of split ('squared_error', 'absolute_error', 'friedman_mse', 'poisson')")
     random_state: int | GraphNode | tuple[GraphNode, str] = Field(default=0, description='Random state for reproducibility')
 
     @classmethod

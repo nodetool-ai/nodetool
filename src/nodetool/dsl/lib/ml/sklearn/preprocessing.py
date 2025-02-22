@@ -36,8 +36,9 @@ class NormalizerNode(GraphNode):
     - Preparing data for cosine similarity
     """
 
+    NormalizerNorm: typing.ClassVar[type] = nodetool.nodes.lib.ml.sklearn.preprocessing.NormalizerNode.NormalizerNorm
     X: NPArray | GraphNode | tuple[GraphNode, str] = Field(default=NPArray(type='np_array', value=None, dtype='<i8', shape=(1,)), description='Features to normalize')
-    norm: nodetool.nodes.lib.ml.sklearn.preprocessing.NormalizerNode.NormalizerNorm = Field(default=nodetool.nodes.lib.ml.sklearn.preprocessing.NormalizerNode.NormalizerNorm('max'), description="The norm to use: 'l1', 'l2', or 'max'")
+    norm: nodetool.nodes.lib.ml.sklearn.preprocessing.NormalizerNode.NormalizerNorm = Field(default=NormalizerNorm.MAX, description="The norm to use: 'l1', 'l2', or 'max'")
 
     @classmethod
     def get_node_type(cls): return "lib.ml.sklearn.preprocessing.Normalizer"

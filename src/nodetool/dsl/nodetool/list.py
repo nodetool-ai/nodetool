@@ -190,9 +190,10 @@ class FilterDictsByNumber(GraphNode):
     - Filter entries with positive/negative numbers
     """
 
+    FilterDictNumberType: typing.ClassVar[type] = nodetool.nodes.nodetool.list.FilterDictsByNumber.FilterDictNumberType
     values: list[dict] | GraphNode | tuple[GraphNode, str] = Field(default=[], description=None)
     key: str | GraphNode | tuple[GraphNode, str] = Field(default='', description=None)
-    filter_type: nodetool.nodes.nodetool.list.FilterDictsByNumber.FilterDictNumberType = Field(default=nodetool.nodes.nodetool.list.FilterDictsByNumber.FilterDictNumberType('greater_than'), description=None)
+    filter_type: nodetool.nodes.nodetool.list.FilterDictsByNumber.FilterDictNumberType = Field(default=FilterDictNumberType.GREATER_THAN, description=None)
     value: float | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description=None)
 
     @classmethod
@@ -234,9 +235,10 @@ class FilterDictsByValue(GraphNode):
     - Filter dictionaries by value patterns
     """
 
+    FilterType: typing.ClassVar[type] = nodetool.nodes.nodetool.list.FilterDictsByValue.FilterType
     values: list[dict] | GraphNode | tuple[GraphNode, str] = Field(default=[], description=None)
     key: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The dictionary key to check')
-    filter_type: nodetool.nodes.nodetool.list.FilterDictsByValue.FilterType = Field(default=nodetool.nodes.nodetool.list.FilterDictsByValue.FilterType('contains'), description='The type of filter to apply')
+    filter_type: nodetool.nodes.nodetool.list.FilterDictsByValue.FilterType = Field(default=FilterType.CONTAINS, description='The type of filter to apply')
     criteria: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The filtering criteria (text to match, type name, or length as string)')
 
     @classmethod
@@ -316,8 +318,9 @@ class FilterNumbers(GraphNode):
     - Filter positive/negative numbers
     """
 
+    FilterNumberType: typing.ClassVar[type] = nodetool.nodes.nodetool.list.FilterNumbers.FilterNumberType
     values: list[float] | GraphNode | tuple[GraphNode, str] = Field(default=[], description=None)
-    filter_type: nodetool.nodes.nodetool.list.FilterNumbers.FilterNumberType = Field(default=nodetool.nodes.nodetool.list.FilterNumbers.FilterNumberType('greater_than'), description='The type of filter to apply')
+    filter_type: nodetool.nodes.nodetool.list.FilterNumbers.FilterNumberType = Field(default=FilterNumberType.GREATER_THAN, description='The type of filter to apply')
     value: float | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='The comparison value (for greater_than, less_than, equal_to)')
 
     @classmethod
@@ -358,8 +361,9 @@ class FilterStrings(GraphNode):
     - Filter strings using regex patterns
     """
 
+    FilterType: typing.ClassVar[type] = nodetool.nodes.nodetool.list.FilterStrings.FilterType
     values: list[str] | GraphNode | tuple[GraphNode, str] = Field(default=[], description=None)
-    filter_type: nodetool.nodes.nodetool.list.FilterStrings.FilterType = Field(default=nodetool.nodes.nodetool.list.FilterStrings.FilterType('contains'), description='The type of filter to apply')
+    filter_type: nodetool.nodes.nodetool.list.FilterStrings.FilterType = Field(default=FilterType.CONTAINS, description='The type of filter to apply')
     criteria: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The filtering criteria (text to match or length as string)')
 
     @classmethod
@@ -680,8 +684,9 @@ class Sort(GraphNode):
     - Rank items based on their values
     """
 
+    SortOrder: typing.ClassVar[type] = nodetool.nodes.nodetool.list.Sort.SortOrder
     values: list[Any] | GraphNode | tuple[GraphNode, str] = Field(default=[], description=None)
-    order: nodetool.nodes.nodetool.list.Sort.SortOrder = Field(default=nodetool.nodes.nodetool.list.Sort.SortOrder('ascending'), description=None)
+    order: nodetool.nodes.nodetool.list.Sort.SortOrder = Field(default=SortOrder.ASCENDING, description=None)
 
     @classmethod
     def get_node_type(cls): return "nodetool.list.Sort"
@@ -717,8 +722,9 @@ class Transform(GraphNode):
     - Mathematical operations
     """
 
+    TransformType: typing.ClassVar[type] = nodetool.nodes.nodetool.list.Transform.TransformType
     values: list[Any] | GraphNode | tuple[GraphNode, str] = Field(default=[], description=None)
-    transform_type: nodetool.nodes.nodetool.list.Transform.TransformType = Field(default=nodetool.nodes.nodetool.list.Transform.TransformType('to_string'), description=None)
+    transform_type: nodetool.nodes.nodetool.list.Transform.TransformType = Field(default=TransformType.TO_STRING, description=None)
 
     @classmethod
     def get_node_type(cls): return "nodetool.list.Transform"

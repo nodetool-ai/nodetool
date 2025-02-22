@@ -39,10 +39,12 @@ class AddSubtitles(GraphNode):
     3. Create lyric videos for music content
     """
 
+    SubtitleTextFont: typing.ClassVar[type] = nodetool.nodes.nodetool.video.AddSubtitles.SubtitleTextFont
+    SubtitleTextAlignment: typing.ClassVar[type] = nodetool.nodes.nodetool.video.AddSubtitles.SubtitleTextAlignment
     video: VideoRef | GraphNode | tuple[GraphNode, str] = Field(default=VideoRef(type='video', uri='', asset_id=None, data=None, duration=None, format=None), description='The input video to add subtitles to.')
     chunks: list[AudioChunk] | GraphNode | tuple[GraphNode, str] = Field(default=[], description='Audio chunks to add as subtitles.')
-    font: nodetool.nodes.nodetool.video.AddSubtitles.SubtitleTextFont = Field(default=nodetool.nodes.nodetool.video.AddSubtitles.SubtitleTextFont('DejaVuSans.ttf'), description='The font to use.')
-    align: nodetool.nodes.nodetool.video.AddSubtitles.SubtitleTextAlignment = Field(default=nodetool.nodes.nodetool.video.AddSubtitles.SubtitleTextAlignment('bottom'), description='Vertical alignment of subtitles.')
+    font: nodetool.nodes.nodetool.video.AddSubtitles.SubtitleTextFont = Field(default=SubtitleTextFont.DejaVuSans, description='The font to use.')
+    align: nodetool.nodes.nodetool.video.AddSubtitles.SubtitleTextAlignment = Field(default=SubtitleTextAlignment.BOTTOM, description='Vertical alignment of subtitles.')
     font_size: int | GraphNode | tuple[GraphNode, str] = Field(default=24, description='The font size.')
     font_color: ColorRef | GraphNode | tuple[GraphNode, str] = Field(default=ColorRef(type='color', value='#FFFFFF'), description='The font color.')
 
@@ -401,9 +403,10 @@ class Transition(GraphNode):
     4. Smoothly transition between audio tracks of different video clips
     """
 
+    TransitionType: typing.ClassVar[type] = nodetool.nodes.nodetool.video.Transition.TransitionType
     video_a: VideoRef | GraphNode | tuple[GraphNode, str] = Field(default=VideoRef(type='video', uri='', asset_id=None, data=None, duration=None, format=None), description='The first video in the transition.')
     video_b: VideoRef | GraphNode | tuple[GraphNode, str] = Field(default=VideoRef(type='video', uri='', asset_id=None, data=None, duration=None, format=None), description='The second video in the transition.')
-    transition_type: nodetool.nodes.nodetool.video.Transition.TransitionType = Field(default=nodetool.nodes.nodetool.video.Transition.TransitionType('fade'), description='Type of transition effect')
+    transition_type: nodetool.nodes.nodetool.video.Transition.TransitionType = Field(default=TransitionType.fade, description='Type of transition effect')
     duration: float | GraphNode | tuple[GraphNode, str] = Field(default=1.0, description='Duration of the transition effect in seconds.')
 
     @classmethod

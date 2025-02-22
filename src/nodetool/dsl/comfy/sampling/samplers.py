@@ -16,7 +16,8 @@ class KSamplerSelect(GraphNode):
     - Testing model behavior with different sampling algorithms
     """
 
-    sampler_name: nodetool.nodes.comfy.sampling.KSamplerSelect.SamplerEnum = Field(default=nodetool.nodes.comfy.sampling.KSamplerSelect.SamplerEnum('ddim'), description='The name of the sampler.')
+    SamplerEnum: typing.ClassVar[type] = nodetool.nodes.comfy.sampling.KSamplerSelect.SamplerEnum
+    sampler_name: nodetool.nodes.comfy.sampling.KSamplerSelect.SamplerEnum = Field(default=SamplerEnum.DDIM, description='The name of the sampler.')
 
     @classmethod
     def get_node_type(cls): return "comfy.sampling.samplers.KSamplerSelect"
@@ -81,10 +82,12 @@ class SamplerDPMPP_2M_SDE(GraphNode):
     - Advanced noise control with GPU/CPU options
     """
 
-    solver_type: nodetool.nodes.comfy.sampling.samplers.SamplerDPMPP_2M_SDE.SolverTypeEnum = Field(default=nodetool.nodes.comfy.sampling.samplers.SamplerDPMPP_2M_SDE.SolverTypeEnum('midpoint'), description='The type of solver.')
+    SolverTypeEnum: typing.ClassVar[type] = nodetool.nodes.comfy.sampling.samplers.SamplerDPMPP_2M_SDE.SolverTypeEnum
+    DeviceEnum: typing.ClassVar[type] = nodetool.nodes.comfy.sampling.samplers.SamplerDPMPP_2M_SDE.DeviceEnum
+    solver_type: nodetool.nodes.comfy.sampling.samplers.SamplerDPMPP_2M_SDE.SolverTypeEnum = Field(default=SolverTypeEnum.MIDPOINT, description='The type of solver.')
     eta: float | GraphNode | tuple[GraphNode, str] = Field(default=1.0, description='The eta parameter.')
     s_noise: float | GraphNode | tuple[GraphNode, str] = Field(default=1.0, description='The scale noise factor.')
-    noise_device: nodetool.nodes.comfy.sampling.samplers.SamplerDPMPP_2M_SDE.DeviceEnum = Field(default=nodetool.nodes.comfy.sampling.samplers.SamplerDPMPP_2M_SDE.DeviceEnum('gpu'), description="The device for noise generation, either 'gpu' or 'cpu'.")
+    noise_device: nodetool.nodes.comfy.sampling.samplers.SamplerDPMPP_2M_SDE.DeviceEnum = Field(default=DeviceEnum.GPU, description="The device for noise generation, either 'gpu' or 'cpu'.")
 
     @classmethod
     def get_node_type(cls): return "comfy.sampling.samplers.SamplerDPMPP_2M_SDE"
@@ -102,10 +105,11 @@ class SamplerDPMPP_SDE(GraphNode):
     - Balancing quality and speed with custom parameters
     """
 
+    DeviceEnum: typing.ClassVar[type] = nodetool.nodes.comfy.sampling.samplers.SamplerDPMPP_SDE.DeviceEnum
     eta: float | GraphNode | tuple[GraphNode, str] = Field(default=1.0, description='The eta parameter.')
     s_noise: float | GraphNode | tuple[GraphNode, str] = Field(default=1.0, description='The scale noise factor.')
     r: float | GraphNode | tuple[GraphNode, str] = Field(default=0.5, description='The r parameter.')
-    noise_device: nodetool.nodes.comfy.sampling.samplers.SamplerDPMPP_SDE.DeviceEnum = Field(default=nodetool.nodes.comfy.sampling.samplers.SamplerDPMPP_SDE.DeviceEnum('gpu'), description="The device for noise generation, either 'gpu' or 'cpu'.")
+    noise_device: nodetool.nodes.comfy.sampling.samplers.SamplerDPMPP_SDE.DeviceEnum = Field(default=DeviceEnum.GPU, description="The device for noise generation, either 'gpu' or 'cpu'.")
 
     @classmethod
     def get_node_type(cls): return "comfy.sampling.samplers.SamplerDPMPP_SDE"

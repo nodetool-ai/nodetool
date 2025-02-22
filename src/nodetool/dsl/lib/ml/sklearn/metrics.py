@@ -106,9 +106,10 @@ class F1Node(GraphNode):
     - Balance between precision and recall
     """
 
+    ClassificationMetricsAverage: typing.ClassVar[type] = nodetool.nodes.lib.ml.sklearn.metrics.F1Node.ClassificationMetricsAverage
     y_true: NPArray | GraphNode | tuple[GraphNode, str] = Field(default=NPArray(type='np_array', value=None, dtype='<i8', shape=(1,)), description='Ground truth labels')
     y_pred: NPArray | GraphNode | tuple[GraphNode, str] = Field(default=NPArray(type='np_array', value=None, dtype='<i8', shape=(1,)), description='Predicted labels')
-    average: nodetool.nodes.lib.ml.sklearn.metrics.F1Node.ClassificationMetricsAverage = Field(default=nodetool.nodes.lib.ml.sklearn.metrics.F1Node.ClassificationMetricsAverage('binary'), description="Averaging strategy for multiclass: 'binary' (default), 'micro', 'macro', 'weighted'")
+    average: nodetool.nodes.lib.ml.sklearn.metrics.F1Node.ClassificationMetricsAverage = Field(default=ClassificationMetricsAverage.BINARY, description="Averaging strategy for multiclass: 'binary' (default), 'micro', 'macro', 'weighted'")
 
     @classmethod
     def get_node_type(cls): return "lib.ml.sklearn.metrics.F1"
@@ -162,9 +163,10 @@ class PrecisionNode(GraphNode):
     - Precision assessment
     """
 
+    ClassificationMetricsAverage: typing.ClassVar[type] = nodetool.nodes.lib.ml.sklearn.metrics.PrecisionNode.ClassificationMetricsAverage
     y_true: NPArray | GraphNode | tuple[GraphNode, str] = Field(default=NPArray(type='np_array', value=None, dtype='<i8', shape=(1,)), description='Ground truth labels')
     y_pred: NPArray | GraphNode | tuple[GraphNode, str] = Field(default=NPArray(type='np_array', value=None, dtype='<i8', shape=(1,)), description='Predicted labels')
-    average: nodetool.nodes.lib.ml.sklearn.metrics.PrecisionNode.ClassificationMetricsAverage = Field(default=nodetool.nodes.lib.ml.sklearn.metrics.PrecisionNode.ClassificationMetricsAverage('binary'), description="Averaging strategy for multiclass: 'binary' (default), 'micro', 'macro', 'weighted'")
+    average: nodetool.nodes.lib.ml.sklearn.metrics.PrecisionNode.ClassificationMetricsAverage = Field(default=ClassificationMetricsAverage.BINARY, description="Averaging strategy for multiclass: 'binary' (default), 'micro', 'macro', 'weighted'")
 
     @classmethod
     def get_node_type(cls): return "lib.ml.sklearn.metrics.Precision"
@@ -237,9 +239,10 @@ class RecallNode(GraphNode):
     - Recall assessment
     """
 
+    ClassificationMetricsAverage: typing.ClassVar[type] = nodetool.nodes.lib.ml.sklearn.metrics.RecallNode.ClassificationMetricsAverage
     y_true: NPArray | GraphNode | tuple[GraphNode, str] = Field(default=NPArray(type='np_array', value=None, dtype='<i8', shape=(1,)), description='Ground truth labels')
     y_pred: NPArray | GraphNode | tuple[GraphNode, str] = Field(default=NPArray(type='np_array', value=None, dtype='<i8', shape=(1,)), description='Predicted labels')
-    average: nodetool.nodes.lib.ml.sklearn.metrics.RecallNode.ClassificationMetricsAverage = Field(default=nodetool.nodes.lib.ml.sklearn.metrics.RecallNode.ClassificationMetricsAverage('binary'), description="Averaging strategy for multiclass: 'binary' (default), 'micro', 'macro', 'weighted'")
+    average: nodetool.nodes.lib.ml.sklearn.metrics.RecallNode.ClassificationMetricsAverage = Field(default=ClassificationMetricsAverage.BINARY, description="Averaging strategy for multiclass: 'binary' (default), 'micro', 'macro', 'weighted'")
 
     @classmethod
     def get_node_type(cls): return "lib.ml.sklearn.metrics.Recall"

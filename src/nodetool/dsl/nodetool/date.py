@@ -178,8 +178,9 @@ class FormatDateTime(GraphNode):
     - Prepare dates for different systems
     """
 
+    DateFormat: typing.ClassVar[type] = nodetool.nodes.nodetool.date.FormatDateTime.DateFormat
     input_datetime: Datetime | GraphNode | tuple[GraphNode, str] = Field(default=Datetime(type='datetime', year=0, month=0, day=0, hour=0, minute=0, second=0, microsecond=0, tzinfo='UTC', utc_offset=0), description='Datetime object to format')
-    output_format: nodetool.nodes.nodetool.date.FormatDateTime.DateFormat = Field(default=nodetool.nodes.nodetool.date.FormatDateTime.DateFormat('%B %d, %Y'), description='Desired output format')
+    output_format: nodetool.nodes.nodetool.date.FormatDateTime.DateFormat = Field(default=DateFormat.HUMAN_READABLE, description='Desired output format')
 
     @classmethod
     def get_node_type(cls): return "nodetool.date.FormatDateTime"
@@ -312,8 +313,9 @@ class ParseDate(GraphNode):
     date, parse, format
     """
 
+    DateFormat: typing.ClassVar[type] = nodetool.nodes.nodetool.date.ParseDate.DateFormat
     date_string: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The date string to parse')
-    input_format: nodetool.nodes.nodetool.date.ParseDate.DateFormat = Field(default=nodetool.nodes.nodetool.date.ParseDate.DateFormat('%Y-%m-%d'), description='Format of the input date string')
+    input_format: nodetool.nodes.nodetool.date.ParseDate.DateFormat = Field(default=DateFormat.ISO, description='Format of the input date string')
 
     @classmethod
     def get_node_type(cls): return "nodetool.date.ParseDate"
@@ -331,8 +333,9 @@ class ParseDateTime(GraphNode):
     - Convert between date formats
     """
 
+    DateFormat: typing.ClassVar[type] = nodetool.nodes.nodetool.date.ParseDateTime.DateFormat
     datetime_string: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The datetime string to parse')
-    input_format: nodetool.nodes.nodetool.date.ParseDateTime.DateFormat = Field(default=nodetool.nodes.nodetool.date.ParseDateTime.DateFormat('%Y-%m-%d'), description='Format of the input datetime string')
+    input_format: nodetool.nodes.nodetool.date.ParseDateTime.DateFormat = Field(default=DateFormat.ISO, description='Format of the input datetime string')
 
     @classmethod
     def get_node_type(cls): return "nodetool.date.ParseDateTime"

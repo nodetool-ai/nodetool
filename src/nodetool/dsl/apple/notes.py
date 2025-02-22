@@ -26,18 +26,10 @@ class CreateNote(GraphNode):
 
 
 class ReadNotes(GraphNode):
-    """
-    Read notes from Apple Notes via AppleScript using temporary files
-    notes, automation, macos, productivity
+    """Read notes from Apple Notes via AppleScript"""
 
-    Use cases:
-    - Access your Apple Notes content programmatically
-    - Search through notes using keywords
-    - Get notes content for further processing
-    """
-
-    note_limit: int | GraphNode | tuple[GraphNode, str] = Field(default=10, description='Maximum number of notes to export (0 for unlimited)')
-    note_limit_per_folder: int | GraphNode | tuple[GraphNode, str] = Field(default=10, description='Maximum notes per folder (0 for unlimited)')
+    note_limit: int | GraphNode | tuple[GraphNode, str] = Field(default=10, description='Maximum number of notes to export')
+    note_limit_per_folder: int | GraphNode | tuple[GraphNode, str] = Field(default=10, description='Maximum notes per folder')
 
     @classmethod
     def get_node_type(cls): return "apple.notes.ReadNotes"

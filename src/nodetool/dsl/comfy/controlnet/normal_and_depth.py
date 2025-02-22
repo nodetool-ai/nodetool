@@ -39,9 +39,10 @@ class DepthAnythingV2Preprocessor(GraphNode):
     Depth Anything V2 preprocessor.
     """
 
+    DepthAnythingModel: typing.ClassVar[type] = nodetool.nodes.comfy.controlnet.normal_and_depth.DepthAnythingV2Preprocessor.DepthAnythingModel
     image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The image to preprocess.')
     resolution: int | GraphNode | tuple[GraphNode, str] = Field(default=512, description='The width of the image to generate.')
-    ckpt_name: nodetool.nodes.comfy.controlnet.normal_and_depth.DepthAnythingV2Preprocessor.DepthAnythingModel = Field(default=nodetool.nodes.comfy.controlnet.normal_and_depth.DepthAnythingV2Preprocessor.DepthAnythingModel('depth_anything_v2_vits.pth'), description='The checkpoint name to use.')
+    ckpt_name: nodetool.nodes.comfy.controlnet.normal_and_depth.DepthAnythingV2Preprocessor.DepthAnythingModel = Field(default=DepthAnythingModel.DEPTH_ANYTHING_V2_VITS, description='The checkpoint name to use.')
 
     @classmethod
     def get_node_type(cls): return "comfy.controlnet.normal_and_depth.DepthAnythingV2Preprocessor"
@@ -64,11 +65,12 @@ class LeReSDepthMapPreprocessor(GraphNode):
     Preprocesses an image for LeReS depth map detection.
     """
 
+    EnableDisable: typing.ClassVar[type] = nodetool.nodes.comfy.comfy_node.LeReSDepthMapPreprocessor.EnableDisable
     image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The image to preprocess.')
     resolution: int | GraphNode | tuple[GraphNode, str] = Field(default=512, description='The width of the image to generate.')
     rm_nearest: float | GraphNode | tuple[GraphNode, str] = Field(default=0.0, description='The nearest depth to remove.')
     rm_background: float | GraphNode | tuple[GraphNode, str] = Field(default=0.0, description='The background depth to remove.')
-    boost: nodetool.nodes.comfy.comfy_node.LeReSDepthMapPreprocessor.EnableDisable = Field(default=nodetool.nodes.comfy.comfy_node.LeReSDepthMapPreprocessor.EnableDisable('disable'), description='Whether to boost the depth map.')
+    boost: nodetool.nodes.comfy.comfy_node.LeReSDepthMapPreprocessor.EnableDisable = Field(default=EnableDisable.DISABLE, description='Whether to boost the depth map.')
 
     @classmethod
     def get_node_type(cls): return "comfy.controlnet.normal_and_depth.LeReSDepthMapPreprocessor"
@@ -107,9 +109,10 @@ class MIDASNormalMapPreprocessor(GraphNode):
 import nodetool.nodes.comfy.controlnet.normal_and_depth
 
 class Metric3D_Depth_Map_Preprocessor(GraphNode):
+    Metric3D_Depth_Map_Backbone: typing.ClassVar[type] = nodetool.nodes.comfy.controlnet.normal_and_depth.Metric3D_Depth_Map_Preprocessor.Metric3D_Depth_Map_Backbone
     image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The image to preprocess.')
     resolution: int | GraphNode | tuple[GraphNode, str] = Field(default=512, description='The width of the image to generate.')
-    backbone: nodetool.nodes.comfy.controlnet.normal_and_depth.Metric3D_Depth_Map_Preprocessor.Metric3D_Depth_Map_Backbone = Field(default=nodetool.nodes.comfy.controlnet.normal_and_depth.Metric3D_Depth_Map_Preprocessor.Metric3D_Depth_Map_Backbone('vit-small'), description='The backbone to use.')
+    backbone: nodetool.nodes.comfy.controlnet.normal_and_depth.Metric3D_Depth_Map_Preprocessor.Metric3D_Depth_Map_Backbone = Field(default=Metric3D_Depth_Map_Backbone.VIT_SMALL, description='The backbone to use.')
     fx: int | GraphNode | tuple[GraphNode, str] = Field(default=1000, description='The fx to use.')
     fy: int | GraphNode | tuple[GraphNode, str] = Field(default=1000, description='The fy to use.')
 
@@ -137,9 +140,10 @@ class Zoe_DepthAnythingPreprocessor(GraphNode):
     Zoe depth anything preprocessor.
     """
 
+    ZoeDepthAnythingEnvironment: typing.ClassVar[type] = nodetool.nodes.comfy.controlnet.normal_and_depth.Zoe_DepthAnythingPreprocessor.ZoeDepthAnythingEnvironment
     image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The image to preprocess.')
     resolution: int | GraphNode | tuple[GraphNode, str] = Field(default=512, description='The width of the image to generate.')
-    environment: nodetool.nodes.comfy.controlnet.normal_and_depth.Zoe_DepthAnythingPreprocessor.ZoeDepthAnythingEnvironment = Field(default=nodetool.nodes.comfy.controlnet.normal_and_depth.Zoe_DepthAnythingPreprocessor.ZoeDepthAnythingEnvironment('indoor'), description='The environment to use.')
+    environment: nodetool.nodes.comfy.controlnet.normal_and_depth.Zoe_DepthAnythingPreprocessor.ZoeDepthAnythingEnvironment = Field(default=ZoeDepthAnythingEnvironment.INDOOR, description='The environment to use.')
 
     @classmethod
     def get_node_type(cls): return "comfy.controlnet.normal_and_depth.Zoe_DepthAnythingPreprocessor"

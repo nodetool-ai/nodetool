@@ -17,9 +17,10 @@ class GLMNode(GraphNode):
     - Complex regression analysis
     """
 
+    GLMFamily: typing.ClassVar[type] = nodetool.nodes.lib.ml.statsmodels.glm.GLMNode.GLMFamily
     X_train: NPArray | GraphNode | tuple[GraphNode, str] = Field(default=NPArray(type='np_array', value=None, dtype='<i8', shape=(1,)), description='Training features')
     y_train: NPArray | GraphNode | tuple[GraphNode, str] = Field(default=NPArray(type='np_array', value=None, dtype='<i8', shape=(1,)), description='Training target values')
-    family: nodetool.nodes.lib.ml.statsmodels.glm.GLMNode.GLMFamily = Field(default=nodetool.nodes.lib.ml.statsmodels.glm.GLMNode.GLMFamily('gaussian'), description='Error distribution family')
+    family: nodetool.nodes.lib.ml.statsmodels.glm.GLMNode.GLMFamily = Field(default=GLMFamily.GAUSSIAN, description='Error distribution family')
     link: GLMLink | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='Link function (if None, uses canonical link)')
     alpha: float | GraphNode | tuple[GraphNode, str] = Field(default=0.0, description='L2 regularization parameter')
     max_iter: int | GraphNode | tuple[GraphNode, str] = Field(default=100, description='Maximum number of iterations')

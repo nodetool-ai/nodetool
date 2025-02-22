@@ -17,9 +17,10 @@ class RLMNode(GraphNode):
     - Non-normal error distributions
     """
 
+    MEstimator: typing.ClassVar[type] = nodetool.nodes.lib.ml.statsmodels.robust.RLMNode.MEstimator
     X: NPArray | GraphNode | tuple[GraphNode, str] = Field(default=NPArray(type='np_array', value=None, dtype='<i8', shape=(1,)), description='Features/independent variables')
     y: NPArray | GraphNode | tuple[GraphNode, str] = Field(default=NPArray(type='np_array', value=None, dtype='<i8', shape=(1,)), description='Target/dependent variable')
-    M: nodetool.nodes.lib.ml.statsmodels.robust.RLMNode.MEstimator = Field(default=nodetool.nodes.lib.ml.statsmodels.robust.RLMNode.MEstimator('huber'), description="M-estimator ('huber', 'bisquare', etc.)")
+    M: nodetool.nodes.lib.ml.statsmodels.robust.RLMNode.MEstimator = Field(default=MEstimator.HUBER, description="M-estimator ('huber', 'bisquare', etc.)")
 
     @classmethod
     def get_node_type(cls): return "lib.ml.statsmodels.robust.RLM"

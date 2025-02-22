@@ -22,14 +22,18 @@ class TextToSpeech(GraphNode):
     - Generate voice content
     """
 
-    voice: nodetool.nodes.elevenlabs.text_to_speech.TextToSpeech.VoiceIDEnum = Field(default=nodetool.nodes.elevenlabs.text_to_speech.TextToSpeech.VoiceIDEnum('Aria (American female, expressive)'), description='Voice ID to be used for generation')
+    VoiceIDEnum: typing.ClassVar[type] = nodetool.nodes.elevenlabs.text_to_speech.TextToSpeech.VoiceIDEnum
+    ModelID: typing.ClassVar[type] = nodetool.nodes.elevenlabs.text_to_speech.TextToSpeech.ModelID
+    LanguageID: typing.ClassVar[type] = nodetool.nodes.elevenlabs.text_to_speech.TextToSpeech.LanguageID
+    TextNormalization: typing.ClassVar[type] = nodetool.nodes.elevenlabs.text_to_speech.TextToSpeech.TextNormalization
+    voice: nodetool.nodes.elevenlabs.text_to_speech.TextToSpeech.VoiceIDEnum = Field(default=VoiceIDEnum.ARIA, description='Voice ID to be used for generation')
     text: str | GraphNode | tuple[GraphNode, str] = Field(default='Hello, how are you?', description='The text to convert to speech')
-    tts_model_id: nodetool.nodes.elevenlabs.text_to_speech.TextToSpeech.ModelID = Field(default=nodetool.nodes.elevenlabs.text_to_speech.TextToSpeech.ModelID('eleven_monolingual_v1'), description='The TTS model to use for generation')
+    tts_model_id: nodetool.nodes.elevenlabs.text_to_speech.TextToSpeech.ModelID = Field(default=ModelID.MONOLINGUAL_V1, description='The TTS model to use for generation')
     voice_settings: dict | GraphNode | tuple[GraphNode, str] = Field(default=None, description='Optional voice settings to override defaults')
-    language_code: nodetool.nodes.elevenlabs.text_to_speech.TextToSpeech.LanguageID = Field(default=nodetool.nodes.elevenlabs.text_to_speech.TextToSpeech.LanguageID('none'), description='Language code to enforce (only works with Turbo v2.5)')
+    language_code: nodetool.nodes.elevenlabs.text_to_speech.TextToSpeech.LanguageID = Field(default=LanguageID.NONE, description='Language code to enforce (only works with Turbo v2.5)')
     optimize_streaming_latency: int | GraphNode | tuple[GraphNode, str] = Field(default=2, description='Latency optimization level (0-4). Higher values trade quality for speed')
     seed: int | GraphNode | tuple[GraphNode, str] = Field(default=-1, description='Seed for deterministic generation (0-4294967295). -1 means random')
-    text_normalization: nodetool.nodes.elevenlabs.text_to_speech.TextToSpeech.TextNormalization = Field(default=nodetool.nodes.elevenlabs.text_to_speech.TextToSpeech.TextNormalization('auto'), description='Controls text normalization behavior')
+    text_normalization: nodetool.nodes.elevenlabs.text_to_speech.TextToSpeech.TextNormalization = Field(default=TextNormalization.AUTO, description='Controls text normalization behavior')
     stability: float | GraphNode | tuple[GraphNode, str] = Field(default=0.5, description='Voice stability (0-1). Higher values make output more consistent, lower values more varied')
     similarity_boost: float | GraphNode | tuple[GraphNode, str] = Field(default=0.75, description='Similarity to original voice (0-1). Higher values make output closer to original voice')
     style: float | GraphNode | tuple[GraphNode, str] = Field(default=0.0, description='Speaking style emphasis (0-1). Higher values increase style expression')

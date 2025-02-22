@@ -18,11 +18,13 @@ class KNNClassifierNode(GraphNode):
     - Non-parametric classification
     """
 
+    KNNWeights: typing.ClassVar[type] = nodetool.nodes.lib.ml.sklearn.neighbors.KNNClassifierNode.KNNWeights
+    KNNMetric: typing.ClassVar[type] = nodetool.nodes.lib.ml.sklearn.neighbors.KNNClassifierNode.KNNMetric
     X_train: NPArray | GraphNode | tuple[GraphNode, str] = Field(default=NPArray(type='np_array', value=None, dtype='<i8', shape=(1,)), description='Training features')
     y_train: NPArray | GraphNode | tuple[GraphNode, str] = Field(default=NPArray(type='np_array', value=None, dtype='<i8', shape=(1,)), description='Training target values')
     n_neighbors: int | GraphNode | tuple[GraphNode, str] = Field(default=5, description='Number of neighbors')
-    weights: nodetool.nodes.lib.ml.sklearn.neighbors.KNNClassifierNode.KNNWeights = Field(default=nodetool.nodes.lib.ml.sklearn.neighbors.KNNClassifierNode.KNNWeights('uniform'), description="Weight function used in prediction ('uniform' or 'distance')")
-    metric: nodetool.nodes.lib.ml.sklearn.neighbors.KNNClassifierNode.KNNMetric = Field(default=nodetool.nodes.lib.ml.sklearn.neighbors.KNNClassifierNode.KNNMetric('euclidean'), description='Distance metric to use')
+    weights: nodetool.nodes.lib.ml.sklearn.neighbors.KNNClassifierNode.KNNWeights = Field(default=KNNWeights.UNIFORM, description="Weight function used in prediction ('uniform' or 'distance')")
+    metric: nodetool.nodes.lib.ml.sklearn.neighbors.KNNClassifierNode.KNNMetric = Field(default=KNNMetric.EUCLIDEAN, description='Distance metric to use')
     p: int | GraphNode | tuple[GraphNode, str] = Field(default=2, description='Power parameter for Minkowski metric (p=2 is Euclidean)')
 
     @classmethod
@@ -43,11 +45,13 @@ class KNNRegressorNode(GraphNode):
     - Continuous value prediction
     """
 
+    KNNWeights: typing.ClassVar[type] = nodetool.nodes.lib.ml.sklearn.neighbors.KNNRegressorNode.KNNWeights
+    KNNMetric: typing.ClassVar[type] = nodetool.nodes.lib.ml.sklearn.neighbors.KNNRegressorNode.KNNMetric
     X_train: NPArray | GraphNode | tuple[GraphNode, str] = Field(default=NPArray(type='np_array', value=None, dtype='<i8', shape=(1,)), description='Training features')
     y_train: NPArray | GraphNode | tuple[GraphNode, str] = Field(default=NPArray(type='np_array', value=None, dtype='<i8', shape=(1,)), description='Training target values')
     n_neighbors: int | GraphNode | tuple[GraphNode, str] = Field(default=5, description='Number of neighbors')
-    weights: nodetool.nodes.lib.ml.sklearn.neighbors.KNNRegressorNode.KNNWeights = Field(default=nodetool.nodes.lib.ml.sklearn.neighbors.KNNRegressorNode.KNNWeights('uniform'), description="Weight function used in prediction ('uniform' or 'distance')")
-    metric: nodetool.nodes.lib.ml.sklearn.neighbors.KNNRegressorNode.KNNMetric = Field(default=nodetool.nodes.lib.ml.sklearn.neighbors.KNNRegressorNode.KNNMetric('euclidean'), description='Distance metric to use')
+    weights: nodetool.nodes.lib.ml.sklearn.neighbors.KNNRegressorNode.KNNWeights = Field(default=KNNWeights.UNIFORM, description="Weight function used in prediction ('uniform' or 'distance')")
+    metric: nodetool.nodes.lib.ml.sklearn.neighbors.KNNRegressorNode.KNNMetric = Field(default=KNNMetric.EUCLIDEAN, description='Distance metric to use')
     p: int | GraphNode | tuple[GraphNode, str] = Field(default=2, description='Power parameter for Minkowski metric (p=2 is Euclidean)')
 
     @classmethod

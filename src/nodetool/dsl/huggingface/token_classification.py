@@ -18,9 +18,10 @@ class TokenClassification(GraphNode):
     - Information extraction from unstructured text
     """
 
+    AggregationStrategy: typing.ClassVar[type] = nodetool.nodes.huggingface.token_classification.TokenClassification.AggregationStrategy
     model: HFTokenClassification | GraphNode | tuple[GraphNode, str] = Field(default=HFTokenClassification(type='hf.token_classification', repo_id='', path=None, allow_patterns=None, ignore_patterns=None), description='The model ID to use for token classification')
     inputs: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The input text for token classification')
-    aggregation_strategy: nodetool.nodes.huggingface.token_classification.TokenClassification.AggregationStrategy = Field(default=nodetool.nodes.huggingface.token_classification.TokenClassification.AggregationStrategy('simple'), description='Strategy to aggregate tokens into entities')
+    aggregation_strategy: nodetool.nodes.huggingface.token_classification.TokenClassification.AggregationStrategy = Field(default=AggregationStrategy.SIMPLE, description='Strategy to aggregate tokens into entities')
 
     @classmethod
     def get_node_type(cls): return "huggingface.token_classification.TokenClassification"
