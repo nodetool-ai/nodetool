@@ -633,12 +633,6 @@ class ListToArray(BaseNode):
         return NPArray.from_numpy(np.array(self.values))
 
 
-class PlotType(str, Enum):
-    LINE = "line"
-    BAR = "bar"
-    SCATTER = "scatter"
-
-
 class PlotArray(BaseNode):
     """
     Create a plot visualization of array data.
@@ -650,6 +644,11 @@ class PlotArray(BaseNode):
     - Debug array outputs in workflows
     """
 
+    class PlotType(str, Enum):
+        LINE = "line"
+        BAR = "bar"
+        SCATTER = "scatter"
+
     values: NPArray = Field(default=NPArray(), description="Array to plot")
     plot_type: PlotType = Field(
         default=PlotType.LINE, description="Type of plot to create"
@@ -658,11 +657,11 @@ class PlotArray(BaseNode):
     async def process(self, context: ProcessingContext) -> ImageRef:
         arr = to_numpy(self.values)
         sns.set_theme(style="darkgrid")
-        if self.plot_type == PlotType.LINE:
+        if self.plot_type == self.PlotType.LINE:
             plot = sns.lineplot(data=arr)
-        elif self.plot_type == PlotType.BAR:
+        elif self.plot_type == self.PlotType.BAR:
             plot = sns.barplot(data=arr)
-        elif self.plot_type == PlotType.SCATTER:
+        elif self.plot_type == self.PlotType.SCATTER:
             plot = sns.scatterplot(data=arr)
         else:
             raise ValueError(f"Invalid plot type: {self.plot_type}")
