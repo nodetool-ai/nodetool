@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { WindowControls } from "./WindowControls";
-import { JSONSchema, Workflow } from "../types/workflow";
+import { Workflow } from "../types/workflow";
 import { Box, Heading, Text, Flex } from "@chakra-ui/react";
 import ChatInterface from "./ChatInterface";
 import { MiniApp } from "./MiniApp";
@@ -9,16 +9,6 @@ import { ColorModeButton } from "./ui/color-mode";
 
 interface AppProps {
   initialWorkflowId?: string;
-}
-
-/**
- * Checks if the workflow is a chat-based workflow
- * @param {JSONSchema} schema - The input schema to check
- * @returns {boolean} Whether this is a chat workflow
- */
-function isChatWorkflow(schema: JSONSchema) {
-  const firstProperty = Object.entries(schema.properties || {})[0];
-  return firstProperty && firstProperty[1].format === "chat";
 }
 
 export const App: React.FC<AppProps> = ({ initialWorkflowId }) => {
@@ -106,7 +96,7 @@ export const App: React.FC<AppProps> = ({ initialWorkflowId }) => {
           {workflow &&
             !loading &&
             !error &&
-            (isChatWorkflow(workflow.input_schema) ? (
+            (workflow.settings?.run_mode === "chat" ? (
               <Box h="100%" className="chat-interface-container">
                 <ChatInterface workflowId={workflow.id} token="local_token" />
               </Box>

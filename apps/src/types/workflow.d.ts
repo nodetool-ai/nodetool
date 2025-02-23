@@ -36,6 +36,10 @@ export interface Workflow {
   thumbnail_url: string;
   input_schema: JSONSchema;
   output_schema: JSONSchema;
+  settings: {
+    run_mode: "normal" | "app" | "chat" | "headless";
+    shortcut?: string;
+  };
 }
 
 export interface JobUpdate {

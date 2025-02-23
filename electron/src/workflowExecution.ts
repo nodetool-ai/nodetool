@@ -125,7 +125,7 @@ export async function runWorkflow(workflow: Workflow) {
   );
   let params: Record<string, any> = {};
 
-  if (workflow.settings?.hide_ui) {
+  if (workflow.settings?.run_mode === "headless") {
     logMessage(`Running headless workflow: ${workflow.name}`);
     // Try both clipboard inputs for headless workflows
     params = {
@@ -137,7 +137,7 @@ export async function runWorkflow(workflow: Workflow) {
     workflowRunner.setState({
       onComplete: (results: any[]) => {
         logMessage(`Results: ${results}`);
-        if (workflow.settings?.write_clipboard) {
+        if (workflow.settings?.run_mode === "headless") {
           writeResultToClipboard(workflow, results);
         }
       },

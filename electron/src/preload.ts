@@ -30,6 +30,7 @@ import {
   MenuEventData,
   PythonPackages,
   UpdateProgressData,
+  Workflow,
 } from "./types.d";
 
 import { UpdateInfo } from "electron-updater";
@@ -97,6 +98,12 @@ contextBridge.exposeInMainWorld("api", {
     ipcRenderer.invoke(IpcChannels.SELECT_CUSTOM_LOCATION, packages),
   runApp: (workflowId: string) =>
     ipcRenderer.invoke(IpcChannels.RUN_APP, workflowId),
+  onCreateWorkflow: (workflow: Workflow) =>
+    ipcRenderer.invoke(IpcChannels.ON_CREATE_WORKFLOW, workflow),
+  onUpdateWorkflow: (workflow: Workflow) =>
+    ipcRenderer.invoke(IpcChannels.ON_UPDATE_WORKFLOW, workflow),
+  onDeleteWorkflow: (workflow: Workflow) =>
+    ipcRenderer.invoke(IpcChannels.ON_DELETE_WORKFLOW, workflow),
 
   // Event listeners
   onServerStarted: (callback: () => void) =>
