@@ -16,7 +16,7 @@ class ConditionalSwitch(BaseNode):
     - Implement decision points in workflows
     """
 
-    condition: bool = Field(default=None, description="The condition to check")
+    condition: bool = Field(default=False, description="The condition to check")
     if_true: Any = Field(
         default=None, description="The value to return if the condition is true"
     )
