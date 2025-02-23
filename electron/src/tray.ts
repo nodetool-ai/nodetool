@@ -6,12 +6,24 @@ import { createWindow } from "./window";
 import { execSync } from "child_process";
 import { stopServer } from "./server";
 import { initializeBackendServer } from "./server";
-import { createChatOverlayWindow } from "./workflowWindow";
+import { createChatOverlayWindow } from "./chatWindow";
 import { fetchWorkflows, isConnected } from "./api";
 import { runWorkflow } from "./workflowExecution";
 
 let trayInstance: Electron.Tray | null = null;
 
+/**
+ * Module for managing the system tray functionality of the NodeTool application.
+ * Handles tray creation, menu updates, and tray-related events.
+ * @module tray
+ */
+
+/**
+ * Creates or recreates the system tray instance.
+ * Handles platform-specific setup (Windows/macOS) and icon initialization.
+ * @returns {Promise<Electron.Tray>} The created tray instance
+ * @throws {Error} If tray creation fails
+ */
 async function createTray(): Promise<Electron.Tray> {
   logMessage("Starting tray creation...", "info");
 
@@ -80,6 +92,11 @@ async function createTray(): Promise<Electron.Tray> {
   return trayInstance;
 }
 
+/**
+ * Sets up Windows-specific tray event handlers.
+ * Handles double-click, single-click, and right-click events.
+ * @param {Electron.Tray} tray - The tray instance to set up events for
+ */
 function setupWindowsTrayEvents(tray: Electron.Tray): void {
   tray.on("double-click", () => {
     const mainWindow = getMainWindow();
@@ -104,6 +121,10 @@ function setupWindowsTrayEvents(tray: Electron.Tray): void {
   });
 }
 
+/**
+ * Focuses the NodeTool window or creates a new one if none exists.
+ * Handles platform-specific window focusing behavior.
+ */
 function focusNodeTool(): void {
   const visibleWindows = BrowserWindow.getAllWindows().filter(
     (w) => !w.isDestroyed() && w.isVisible()
@@ -125,6 +146,11 @@ function focusNodeTool(): void {
   }
 }
 
+/**
+ * Updates the tray menu with current application state and available workflows.
+ * Includes service status, workflow list, and application controls.
+ * @returns {Promise<void>}
+ */
 async function updateTrayMenu(): Promise<void> {
   // const menuTemplate: Electron.MenuItemConstructorOptions[] = [
   //   {

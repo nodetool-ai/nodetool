@@ -1,5 +1,11 @@
 import { constants, promises as fs } from "fs";
 
+/**
+ * Result of file/directory permission check
+ * @interface PermissionResult
+ * @property {boolean} accessible - True if accessible, false otherwise
+ * @property {string | null} error - Error message if access fails, null otherwise
+ */
 interface PermissionResult {
   accessible: boolean;
   error: string | null;
@@ -31,6 +37,11 @@ async function checkPermissions(
   }
 }
 
+/**
+ * Check if a file exists
+ * @param {string} filePath - Path to check
+ * @returns {Promise<boolean>} True if file exists, false otherwise
+ */
 async function fileExists(filePath: string): Promise<boolean> {
   const { accessible } = await checkPermissions(filePath, constants.F_OK);
   return accessible;

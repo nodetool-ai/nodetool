@@ -9,35 +9,6 @@ export const baseUrl = `http://127.0.0.1:${appPort}${
   app.isPackaged ? "/apps" : ""
 }/index.html`;
 
-function createChatOverlayWindow(): BrowserWindow {
-  const primaryDisplay = screen.getPrimaryDisplay();
-  const { width: screenWidth, height: screenHeight } =
-    primaryDisplay.workAreaSize;
-
-  const windowWidth = 600;
-  const windowHeight = 400;
-
-  const chatOverlayWindow = new BrowserWindow({
-    frame: false,
-    titleBarStyle: "hidden",
-    transparent: true,
-    width: windowWidth,
-    height: windowHeight,
-    x: (screenWidth - windowWidth) / 2,
-    y: screenHeight - windowHeight,
-    alwaysOnTop: true,
-    webPreferences: {
-      nodeIntegration: false,
-      contextIsolation: true,
-      preload: path.join(__dirname, "preload-workflow.js"),
-    },
-  });
-  // chatOverlayWindow.webContents.openDevTools();
-  chatOverlayWindow.loadURL(`${baseUrl}?chat=true`);
-
-  return chatOverlayWindow;
-}
-
 /**
  * Creates a new frameless workflow window
  * @param workflowId - The workflow ID to create a window for
@@ -82,4 +53,4 @@ function isWorkflowWindow(window: BrowserWindow): boolean {
   return workflowWindows.has(window.id);
 }
 
-export { createWorkflowWindow, isWorkflowWindow, createChatOverlayWindow };
+export { createWorkflowWindow, isWorkflowWindow };

@@ -16,6 +16,11 @@ interface SimpleLogger {
   log: (message: string) => void;
 }
 
+/**
+ * Creates a simple logging interface that writes messages to a DOM element
+ * @param logElement - The HTML element where log messages will be appended
+ * @returns A SimpleLogger object with a log method
+ */
 function createSimpleLogger(logElement: HTMLElement): SimpleLogger {
   function log(message: string): void {
     const logLine = document.createElement("p");
@@ -28,6 +33,10 @@ function createSimpleLogger(logElement: HTMLElement): SimpleLogger {
   return { log };
 }
 
+/**
+ * Toggles the visibility of the log container
+ * Updates the toggle button text based on the expanded state
+ */
 function toggleLog(): void {
   logContainer.classList.toggle("expanded");
   const isExpanded = logContainer.classList.contains("expanded");
@@ -38,11 +47,22 @@ function toggleLog(): void {
 
 const simpleLogger = createSimpleLogger(logElement);
 
+/**
+ * Loads content with a timestamp parameter to prevent caching
+ * @param initialURL - The base URL to load
+ */
 function loadContentWithNoCaching(initialURL: string): void {
   const timestamp = new Date().getTime();
   window.location.href = `${initialURL}?nocache=${timestamp}`;
 }
 
+/**
+ * Updates the progress bar and related UI elements for an ongoing operation
+ * @param componentName - Name of the component being processed
+ * @param progress - Progress percentage (0-100)
+ * @param action - Current action being performed
+ * @param eta - Optional estimated time remaining
+ */
 function updateProgress(
   componentName: string,
   progress: number,
@@ -87,12 +107,21 @@ function updateProgress(
   }
 }
 
+/**
+ * Hides a DOM element by setting its display style to 'none'
+ * @param element - The element to hide
+ */
 function hideElement(element: HTMLElement | null): void {
   if (element) {
     element.style.display = "none";
   }
 }
 
+/**
+ * Shows a DOM element by setting its display style
+ * @param element - The element to show
+ * @param displayType - The display style value to use (defaults to 'block')
+ */
 function showElement(
   element: HTMLElement | null,
   displayType: string = "block"
@@ -144,6 +173,9 @@ function showLogs(): void {
   logToggle.innerHTML = "<span>▼ Hide Log</span>";
 }
 
+/**
+ * Initializes the application by checking server state and setting up the UI
+ */
 function initializeApp(): void {
   window.api
     .getServerState()
@@ -215,6 +247,10 @@ window.api.onUpdateAvailable((info) => {
   };
 });
 
+/**
+ * Generates a random grayscale color in hexadecimal format
+ * @returns A string representing a hex color code
+ */
 function getRandomGrayColor(): string {
   const grayValue = Math.floor(Math.random() * 100);
   return `#${grayValue.toString(16).padStart(2, "0").repeat(3)}`;

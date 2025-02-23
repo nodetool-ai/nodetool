@@ -6,8 +6,11 @@ import { emitUpdateProgress } from "./events";
 import { checkPermissions } from "./utils";
 import * as https from "https";
 import { IncomingMessage } from "http";
+
 /**
  * Get file size from URL using HEAD request
+ * @param url - The URL to get the file size from
+ * @returns The file size
  */
 async function getFileSizeFromUrl(url: string): Promise<number> {
   return new Promise((resolve, reject) => {
@@ -39,6 +42,8 @@ async function getFileSizeFromUrl(url: string): Promise<number> {
 
 /**
  * Download a file's contents directly to a string
+ * @param filePath - The path to the file to download
+ * @returns The file contents
  */
 async function downloadFromFile(filePath: string): Promise<string> {
   try {
@@ -51,6 +56,8 @@ async function downloadFromFile(filePath: string): Promise<string> {
 
 /**
  * Download a file from a URL with validation
+ * @param url - The URL to download the file from
+ * @param dest - The path to save the downloaded file
  */
 async function downloadFile(url: string, dest: string): Promise<void> {
   logMessage(`Downloading file from ${url} to ${dest}`);

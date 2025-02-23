@@ -27,26 +27,12 @@ import {
   InstallLocationData,
   IpcChannels,
   IpcEvents,
-  IpcRequest,
-  IpcResponse,
   MenuEventData,
   PythonPackages,
-  ServerState,
   UpdateProgressData,
 } from "./types.d";
-import { UpdateInfo } from "electron-updater";
 
-/**
- * Type definitions for IPC handlers
- *
- * IpcHandler: Handles request-response pattern
- * - T: The specific channel/method being called
- * - Takes request data of type IpcRequest[T]
- * - Returns promise of type IpcResponse[T]
- */
-type IpcHandler<T extends keyof IpcRequest> = (
-  data: IpcRequest[T]
-) => Promise<IpcResponse[T]>;
+import { UpdateInfo } from "electron-updater";
 
 /**
  * IpcEventHandler: Handles event pattern
@@ -57,27 +43,6 @@ type IpcHandler<T extends keyof IpcRequest> = (
 type IpcEventHandler<T extends keyof IpcEvents> = (
   callback: (data: IpcEvents[T]) => void
 ) => void;
-
-interface InstallLocationPrompt {
-  defaultPath: string;
-}
-
-/**
- * Creates type-safe wrapper for request-response pattern
- *
- * Usage in main process:
- * ipcMain.handle(channel, async (event, data) => {
- *   // Handle request and return response
- * });
- *
- * Usage in renderer:
- * const response = await window.api.method(data);
- */
-function createInvokeHandler<T extends keyof IpcRequest>(
-  channel: T
-): IpcHandler<T> {
-  return (data: IpcRequest[T]) => ipcRenderer.invoke(channel, data);
-}
 
 /**
  * Creates type-safe wrapper for event pattern
