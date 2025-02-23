@@ -33,10 +33,10 @@ import useRemoteSettingsStore from "../../../stores/RemoteSettingStore";
 import RemoteSettingsMenu from "../../menus/RemoteSettingsMenu";
 import ThemeNodetool from "../../themes/ThemeNodetool";
 import { UnifiedModel } from "../../../stores/ApiTypes";
-import { useModelDownloadStore } from "../../../stores/ModelDownloadStore";
 import ModelDownloadList from "../../hugging_face/ModelDownloadList";
 import { DEFAULT_MODEL } from "../../../config/constants";
 import { useNavigate } from "react-router-dom";
+import SettingsMenu from "../../menus/SettingsMenu";
 
 enum TabValue {
   Overview = 0,
@@ -119,7 +119,8 @@ const welcomeStyles = (theme: any) =>
       margin: ".5em 0"
     },
     ".MuiTypography-root": {
-      fontFamily: theme.fontFamily
+      fontFamily: theme.fontFamily,
+      lineHeight: "1.5em"
     },
     ".MuiListItemText-primary": {
       fontWeight: "bold"
@@ -313,11 +314,11 @@ function TabPanel(props: TabPanelProps) {
 
 const recommendedModels: UnifiedModel[] = [
   {
-    id: "SG161222/Realistic_Vision_V5.1_noVAE",
+    id: "SG161222/Realistic_Vision_V6.0",
     name: "Realistic Vision V6",
     type: "hf.stable_diffusion",
-    repo_id: "SG161222/Realistic_Vision_V5.1_noVAE",
-    path: "Realistic_Vision_V5.1_fp16-no-ema.safetensors"
+    repo_id: "SG161222/Realistic_Vision_V6.0",
+    path: "Realistic_Vision_V6.0_fp16.safetensors"
   },
   {
     id: "ai-forever/Real-ESRGAN",
@@ -333,6 +334,18 @@ const recommendedModels: UnifiedModel[] = [
     repo_id: DEFAULT_MODEL
   },
   {
+    id: "deepseek-r1:7b",
+    name: "DeepSeek R1 7B",
+    type: "llama_model",
+    repo_id: "deepseek-r1:7b"
+  },
+  {
+    id: "llama3.2-vision:11b",
+    name: "Llama 3.2 - Vision 11B",
+    type: "llama_model",
+    repo_id: "llama3.2-vision:11b"
+  },
+  {
     id: "nomic-embed-text",
     name: "Nomic Embed Text",
     type: "llama_model",
@@ -344,12 +357,6 @@ const recommendedModels: UnifiedModel[] = [
     type: "hf.automatic_speech_recognition",
     repo_id: "openai/whisper-small",
     allow_patterns: ["model.safetensors", "*.json", "*.txt"]
-  },
-  {
-    id: "llama3.2-vision:11b",
-    name: "Llama 3.2 - Vision 11B",
-    type: "llama_model",
-    repo_id: "llama3.2-vision:11b"
   }
 ];
 
@@ -662,7 +669,8 @@ const Welcome = () => {
                     </ul>
                   </Box>
                   <Typography variant="subtitle1" className="setup-list-title">
-                    2. Use Remote Models
+                    2. Use Remote Models, like OpenAI or Anthropic, configure
+                    them in the Settings.
                   </Typography>
                   <Box className="setup-list-content">
                     <ul>
@@ -684,8 +692,9 @@ const Welcome = () => {
                     requirements.
                   </Typography>
                   <Typography variant="body1" sx={{ mt: 1 }}>
-                    You can enter your API keys now or access them later via the{" "}
-                    <span className="fake-button">Settings</span> menu.
+                    You can enter the API keys in the
+                    <SettingsMenu buttonText="Settings Menu" />
+                    in the top right corner.
                   </Typography>
                 </Box>
 
@@ -699,14 +708,14 @@ const Welcome = () => {
                 >
                   <Typography variant="h2">Local Models</Typography>
                   <p>
-                    We recommend the following models for you to run examples on
-                    your own GPU.
+                    We recommend the following models, all of which run well on
+                    M1 Macs or smaller NVIDIA GPUs.
                   </p>
                   <ul>
                     <li>
                       <Typography variant="body1">
-                        <b>Realistc Vision V6</b> - A realistic image generation
-                        model.
+                        <b>Realistic Vision V6</b> - A realistic image
+                        generation model.
                       </Typography>
                     </li>
                     <li>
@@ -717,7 +726,31 @@ const Welcome = () => {
                     </li>
                     <li>
                       <Typography variant="body1">
-                        <b>Llama 3.2 3B</b> - A large language model.
+                        <b>Llama 3.2 3B</b> - The Llama 3.2 instruction-tuned
+                        text only models are optimized for multilingual dialogue
+                        use cases, including agentic retrieval and summarization
+                        tasks.
+                      </Typography>
+                    </li>
+                    <li>
+                      <Typography variant="body1">
+                        <b>DeepSeek R1 7B</b> - DeepSeek's first-generation of
+                        reasoning models with comparable performance to
+                        OpenAI-o1.
+                      </Typography>
+                    </li>
+                    <li>
+                      <Typography variant="body1">
+                        <b>Llama 3.2 - Vision</b> - The Llama 3.2-Vision
+                        instruction-tuned models are optimized for visual
+                        recognition, image reasoning, captioning, and answering
+                        general questions about an image.
+                      </Typography>
+                    </li>
+                    <li>
+                      <Typography variant="body1">
+                        <b>Nomic Embed Text</b> - A text embedding model that
+                        can be used to generate embeddings for text.
                       </Typography>
                     </li>
                     <li>
@@ -735,17 +768,6 @@ const Welcome = () => {
                   </ul>
 
                   <ModelDownloadList models={recommendedModels} />
-                </Box>
-
-                <Box
-                  sx={{
-                    flex: 2.6,
-                    backgroundColor: theme.palette.c_gray0,
-                    p: 4,
-                    borderRadius: ".2em"
-                  }}
-                >
-                  <RemoteSettingsMenu />
                 </Box>
               </Box>
             </Box>
