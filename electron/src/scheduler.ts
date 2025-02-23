@@ -1,3 +1,16 @@
+/**
+ * @module scheduler
+ * @description Manages macOS launch agents for scheduling workflow executions
+ *
+ * This module provides functionality to create, remove, and manage launch agents
+ * on macOS systems. It handles:
+ * - Creating LaunchAgent plist files for scheduled workflow execution
+ * - Managing workflow execution logs
+ * - Loading and unloading launch agents using launchctl
+ * - Retrieving currently scheduled workflows
+ * - Setting appropriate file permissions
+ */
+
 import { app, shell } from "electron";
 import * as path from "path";
 import { promises as fsPromises } from "fs";

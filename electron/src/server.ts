@@ -22,6 +22,21 @@ let nodeToolBackendProcess: ChildProcess | null = null;
 const recentServerMessages: string[] = [];
 const MAX_RECENT_MESSAGES: number = 5;
 
+/**
+ * Server Management Module
+ *
+ * This module handles the lifecycle and management of the NodeTool backend server.
+ * It provides functionality for starting, stopping, and monitoring the Python-based
+ * backend server process, including health checks, port availability verification,
+ * and process management. The module also handles Ollama AI service dependencies
+ * and server output logging.
+ */
+
+/**
+ * Checks if a specific port is available for use
+ * @param port - The port number to check
+ * @returns Promise resolving to true if port is available, false otherwise
+ */
 async function isPortAvailable(port: number): Promise<boolean> {
   return new Promise((resolve) => {
     const server = net
@@ -35,6 +50,9 @@ async function isPortAvailable(port: number): Promise<boolean> {
   });
 }
 
+/**
+ * Displays an error dialog when port 8000 is already in use and quits the application
+ */
 async function showPortInUseError(): Promise<void> {
   dialog.showErrorBox(
     "Port Already in Use",
@@ -43,6 +61,10 @@ async function showPortInUseError(): Promise<void> {
   app.quit();
 }
 
+/**
+ * Writes the server process ID to a file for process management
+ * @param pid - Process ID to write to file
+ */
 async function writePidFile(pid: number): Promise<void> {
   try {
     await fs.writeFile(PID_FILE_PATH, pid.toString());
@@ -55,6 +77,9 @@ async function writePidFile(pid: number): Promise<void> {
   }
 }
 
+/**
+ * Attempts to kill any existing server process using the stored PID
+ */
 async function killExistingServer(): Promise<void> {
   try {
     const pidContent = await fs.readFile(PID_FILE_PATH, "utf8");
@@ -103,6 +128,10 @@ async function killExistingServer(): Promise<void> {
   }
 }
 
+/**
+ * Starts the NodeTool backend server process
+ * Configures and spawns the Python-based server process with necessary arguments
+ */
 async function startServer(): Promise<void> {
   emitBootMessage("Configuring server environment...");
 
@@ -155,6 +184,11 @@ async function startServer(): Promise<void> {
   });
 }
 
+/**
+ * Handles server process output streams (stdout/stderr)
+ * Processes server messages, handles error conditions, and emits relevant events
+ * @param data - Buffer containing server output
+ */
 function handleServerOutput(data: Buffer): void {
   const output = data.toString().trim();
   if (output) {
@@ -192,6 +226,10 @@ function handleServerOutput(data: Buffer): void {
   emitServerLog(output);
 }
 
+/**
+ * Verifies if Ollama AI service is running and accessible
+ * @returns Promise resolving to true if Ollama is running, false otherwise
+ */
 async function ensureOllamaIsRunning(): Promise<boolean> {
   try {
     const response = await fetch("http://localhost:11434/api/version");
@@ -202,6 +240,9 @@ async function ensureOllamaIsRunning(): Promise<boolean> {
   }
 }
 
+/**
+ * Shows a dialog prompting user to install Ollama if not present
+ */
 async function showOllamaInstallDialog(): Promise<void> {
   const downloadUrl = "https://ollama.com/download";
   const response = await dialog.showMessageBox({
@@ -220,10 +261,18 @@ async function showOllamaInstallDialog(): Promise<void> {
   }
 }
 
+/**
+ * Checks if the backend server process is currently running
+ * @returns Promise resolving to true if server is running, false otherwise
+ */
 async function isServerRunning(): Promise<boolean> {
   return nodeToolBackendProcess !== null;
 }
 
+/**
+ * Initializes the backend server, performing necessary checks and startup procedures
+ * Handles server health checks, port availability, and process management
+ */
 async function initializeBackendServer(): Promise<void> {
   logMessage("Initializing backend server");
   try {
@@ -264,6 +313,11 @@ async function initializeBackendServer(): Promise<void> {
   }
 }
 
+/**
+ * Waits for the server to become available by polling the health endpoint
+ * @param timeout - Maximum time to wait in milliseconds (default: 30000)
+ * @throws Error if server doesn't become available within timeout period
+ */
 async function waitForServer(timeout: number = 30000): Promise<void> {
   const startTime = Date.now();
   while (Date.now() - startTime < timeout) {
@@ -283,6 +337,10 @@ async function waitForServer(timeout: number = 30000): Promise<void> {
   throw new Error("Server failed to become available");
 }
 
+/**
+ * Gracefully stops the backend server process
+ * Attempts SIGTERM first, followed by SIGKILL if necessary
+ */
 async function stopServer(): Promise<void> {
   logMessage("Initiating graceful shutdown");
 
@@ -313,14 +371,25 @@ async function stopServer(): Promise<void> {
   logMessage("Graceful shutdown complete");
 }
 
+/**
+ * Returns the current server state
+ * @returns Current server state object
+ */
 export function getServerState() {
   return serverState;
 }
 
+/**
+ * Opens the log file in the system's default file explorer
+ */
 export function openLogFile() {
   return shell.showItemInFolder(LOG_FILE);
 }
 
+/**
+ * Creates a new workflow window for a specific workflow
+ * @param workflowId - ID of the workflow to run
+ */
 export async function runApp(workflowId: string) {
   logMessage(`Running app with workflow ID: ${workflowId}`);
   createWorkflowWindow(workflowId);

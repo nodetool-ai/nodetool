@@ -2,6 +2,9 @@ import { Menu, shell } from "electron";
 import { IpcChannels } from "./types.d";
 import { getMainWindow } from "./state";
 
+/**
+ * Builds the application menu
+ */
 const buildMenu = () => {
   const mainWindow = getMainWindow();
   if (!mainWindow) {

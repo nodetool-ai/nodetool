@@ -7,6 +7,34 @@ import { IpcChannels } from "./types.d";
 
 let updateAvailable: boolean = false;
 
+/**
+ * Auto-updater Module
+ *
+ * This module handles automatic updates for the Nodetool application using electron-updater.
+ * It connects to GitHub releases to check for and download new versions of the application.
+ *
+ * Key Features:
+ * - Automatically checks for updates when the app starts
+ * - Downloads updates in the background
+ * - Notifies the user through the main window when updates are available
+ * - Provides download progress information
+ * - Handles update errors gracefully
+ *
+ * Update Process:
+ * 1. Checks GitHub releases for new versions
+ * 2. If an update is found, notifies the user with the new version and release URL
+ * 3. Downloads the update in the background, showing progress
+ * 4. Once downloaded, notifies the user that the update is ready
+ *
+ * Configuration:
+ * - Updates are only checked in packaged mode (not in development)
+ * - Updates are fetched from the nodetool-ai/nodetool GitHub repository
+ * - Update cache is stored in "nodetool-updater" directory
+ */
+
+/**
+ * Sets up the auto-updater
+ */
 function setupAutoUpdater(): void {
   if (!app.isPackaged) {
     logMessage("Skipping auto-updater in development mode");
@@ -29,6 +57,9 @@ function setupAutoUpdater(): void {
   setupAutoUpdaterEvents();
 }
 
+/**
+ * Sets up the auto-updater events
+ */
 function setupAutoUpdaterEvents(): void {
   autoUpdater.on("checking-for-update", () => {
     logMessage("Checking for updates...");

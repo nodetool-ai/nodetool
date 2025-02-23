@@ -23,15 +23,50 @@ interface WorkflowRunnerState {
     id: string;
   }[];
 
-  // Actions
+  /** Actions */
+
+  /**
+   * Establishes a WebSocket connection to the worker server
+   * @returns Promise that resolves when connection is established
+   * @throws Error if connection fails
+   */
   connect: () => Promise<void>;
+
+  /**
+   * Callback function executed when workflow execution completes
+   * @param results Array of workflow execution results
+   */
   onComplete: (results: any[]) => void;
+
+  /**
+   * Runs a workflow with the specified parameters
+   * @param workflow The workflow configuration to execute
+   * @param params Key-value pairs of workflow parameters
+   * @returns Promise that resolves with the workflow results
+   * @throws Error if WebSocket is not connected
+   */
   run: (workflow: Workflow, params: Record<string, any>) => Promise<any>;
+
+  /**
+   * Closes the WebSocket connection and resets state
+   */
   disconnect: () => void;
+
+  /**
+   * Adds a notification to the state and shows a native OS notification
+   * @param notification Object containing notification type and content
+   * @param notification.type Type of notification ('error' or 'info')
+   * @param notification.content Text content of the notification
+   */
   addNotification: (notification: {
     type: "error" | "info";
     content: string;
   }) => void;
+
+  /**
+   * Removes a notification from state by its ID
+   * @param id Unique identifier of the notification to remove
+   */
   removeNotification: (id: string) => void;
 }
 

@@ -4,13 +4,24 @@ import log from "electron-log";
 import { promises as fs } from "fs";
 import { emitServerLog } from "./events";
 
+/**
+ * The log level for the logger
+ */
 export type LogLevel = "info" | "warn" | "error";
 
+/**
+ * The path to the log file
+ */
 export const LOG_FILE: string = path.join(
   app.getPath("userData"),
   "nodetool.log"
 );
 
+/**
+ * Logs a message to the console and the log file
+ * @param message - The message to log
+ * @param level - The log level (default: "info")
+ */
 export async function logMessage(
   message: string,
   level: LogLevel = "info"

@@ -26,6 +26,40 @@ import { BrowserWindow } from "electron";
 
 import { IpcChannels, PythonPackages } from "./types.d";
 import { createIpcMainHandler } from "./ipc";
+
+/**
+ * Python Environment Installer Module
+ *
+ * This module handles the installation and updating of the Python environment for Nodetool.
+ * It manages downloading, extracting, and configuring the Conda environment with required packages.
+ *
+ * Key Features:
+ * - Downloads pre-built Conda environment from a configured URL
+ * - Supports both .zip (Windows) and .tar.gz (Unix) formats
+ * - Provides interactive installation location selection
+ * - Shows real-time progress for downloads and extraction
+ * - Handles environment unpacking and initialization
+ * - Manages Python package updates through pip
+ *
+ * Installation Process:
+ * 1. Prompts user for installation location
+ * 2. Downloads the pre-built Conda environment
+ * 3. Extracts the environment to the selected location
+ * 4. Runs conda-unpack to finalize the environment
+ * 5. Updates Python packages to their latest compatible versions
+ *
+ * Update Process:
+ * - Checks for package updates using pip
+ * - Updates packages while maintaining version compatibility
+ * - Shows progress during package installation
+ * - Handles update failures gracefully
+ *
+ * Configuration:
+ * - Environment URL is configured through getCondaEnvUrl()
+ * - Default install location is determined by getDefaultInstallLocation()
+ * - Package versions are managed through PYTHON_PACKAGES settings
+ */
+
 /**
  * Format bytes to human readable size
  */
@@ -61,6 +95,7 @@ function calculateExtractETA(
 
 /**
  * Run conda-unpack process
+ * @param destPath - The path to extract the conda environment to
  */
 async function runCondaUnpack(destPath: string): Promise<void> {
   emitBootMessage("Running conda-unpack (may take a few minutes)...");
@@ -120,6 +155,9 @@ async function runCondaUnpack(destPath: string): Promise<void> {
 
 /**
  * Extract the Python environment from a zip archive
+ * @param sourcePath - The path to the zip file
+ * @param destPath - The path to extract the zip file to
+ * @param extractFn - The function to use to extract the zip file
  */
 async function unpackEnvironment(
   sourcePath: string,
@@ -182,6 +220,9 @@ async function unpackEnvironment(
 }
 /**
  * Extract zip archive
+ * @param zipPath - The path to the zip file
+ * @param destPath - The path to extract the zip file to
+ * @param totalSize - The total size of the zip file
  */
 async function extractZip(
   zipPath: string,
@@ -230,6 +271,9 @@ async function extractZip(
 
 /**
  * Extract tar.gz archive
+ * @param tarPath - The path to the tar.gz file
+ * @param destPath - The path to extract the tar.gz file to
+ * @param totalSize - The total size of the tar.gz file
  */
 async function extractTarGz(
   tarPath: string,
@@ -265,6 +309,8 @@ async function extractTarGz(
 
 /**
  * Unpack Python environment from zip
+ * @param zipPath - The path to the zip file
+ * @param destPath - The path to extract the zip file to
  */
 async function unpackPythonEnvironment(
   zipPath: string,
@@ -275,6 +321,8 @@ async function unpackPythonEnvironment(
 
 /**
  * Unpack Python environment from tar.gz
+ * @param tarPath - The path to the tar.gz file
+ * @param destPath - The path to extract the tar.gz file to
  */
 async function unpackTarGzEnvironment(
   tarPath: string,
@@ -282,6 +330,7 @@ async function unpackTarGzEnvironment(
 ): Promise<void> {
   await unpackEnvironment(tarPath, destPath, extractTarGz);
 }
+
 /**
  * Install the Python environment
  */
@@ -337,6 +386,10 @@ async function installCondaEnvironment(): Promise<void> {
   }
 }
 
+/**
+ * Prompt for install location
+ * @returns The path to the install location
+ */
 async function promptForInstallLocation(): Promise<string> {
   const downloadSize = getDownloadSize();
   const installedSize = getEnvironmentSize();

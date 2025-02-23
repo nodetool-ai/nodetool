@@ -40,34 +40,37 @@ const getCondaEnvPath = (): string => {
   return condaPath;
 };
 
+/**
+ * Retrieves the path to the uv executable
+ * @returns {string} Path to uv executable
+ */
 const getUVPath = (): string =>
   process.platform === "win32"
     ? path.join(getCondaEnvPath(), "Scripts", "uv.exe")
     : path.join(getCondaEnvPath(), "bin", "uv");
 
+/**
+ * Retrieves the path to the Python executable
+ * @returns {string} Path to Python executable
+ */
 const getPythonPath = (): string =>
   process.platform === "win32"
     ? path.join(getCondaEnvPath(), "python.exe")
     : path.join(getCondaEnvPath(), "bin", "python");
 
-const getPipPath = (): string =>
-  process.platform === "win32"
-    ? path.join(
-        getCondaEnvPath(),
-        "Scripts",
-        "pip.exe --index-strategy unsafe-best-match"
-      )
-    : path.join(
-        getCondaEnvPath(),
-        "bin",
-        "pip --index-strategy unsafe-best-match"
-      );
-
+/**
+ * Retrieves the path to the conda-unpack executable
+ * @returns {string} Path to conda-unpack executable
+ */
 const getCondaUnpackPath = (): string =>
   process.platform === "win32"
     ? path.join(getCondaEnvPath(), "Scripts", "conda-unpack.exe")
     : path.join(getCondaEnvPath(), "bin", "conda-unpack");
 
+/**
+ * Retrieves the environment variables for the process
+ * @returns {ProcessEnv} Environment variables
+ */
 interface ProcessEnv {
   [key: string]: string;
 }
@@ -102,7 +105,6 @@ const getProcessEnv = (): ProcessEnv => {
 export {
   getCondaEnvPath,
   getPythonPath,
-  getPipPath,
   getUVPath,
   getCondaUnpackPath,
   getProcessEnv,

@@ -9,18 +9,10 @@ import { registerWorkflowShortcut } from "./shortcuts";
 export let wsConnection: WebSocket | null = null;
 export let isConnected = false;
 
-function getInputNodes(workflow: Workflow, type: string) {
-  return workflow.graph.nodes.filter((node) =>
-    node.type.startsWith(`nodetool.input.${type}`)
-  );
-}
-
-function getOutputNodes(workflow: Workflow) {
-  return workflow.graph.nodes.filter((node) =>
-    node.type.startsWith(`nodetool.output`)
-  );
-}
-
+/**
+ * Fetches workflows from the server
+ * @returns {Promise<Workflow[]>} Array of workflows
+ */
 export async function fetchWorkflows(): Promise<Workflow[]> {
   logMessage("Fetching workflows from server...");
   try {
@@ -44,6 +36,10 @@ export async function fetchWorkflows(): Promise<Workflow[]> {
   }
 }
 
+/**
+ * Connects to the WebSocket updates endpoint
+ * @returns {Promise<void>}
+ */
 export async function connectToWebSocketUpdates(): Promise<void> {
   logMessage("Initializing WebSocket connection...");
   if (wsConnection) {

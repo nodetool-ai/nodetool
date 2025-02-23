@@ -6,6 +6,25 @@ import fs from "fs";
 import { IpcChannels, IpcEvents, IpcResponse } from "./types.d";
 import { IpcRequest } from "./types.d";
 
+/**
+ * This module handles Inter-Process Communication (IPC) between the Electron main process
+ * and renderer processes. It provides type-safe wrappers for IPC handlers and initializes
+ * all IPC channels used by the application.
+ *
+ * Key features:
+ * - Type-safe IPC handler creation using TypeScript generics
+ * - Centralized initialization of all IPC channels
+ * - Handlers for:
+ *   - Clipboard operations (read/write)
+ *   - Server state management
+ *   - Application control (run, update)
+ *   - Window controls (close, minimize, maximize)
+ *   - File operations (save)
+ *
+ * The IPC system ensures secure and typed communication between the isolated renderer
+ * process and the privileged main process, following Electron's security best practices.
+ */
+
 export type IpcMainHandler<T extends keyof IpcRequest> = (
   event: Electron.IpcMainInvokeEvent,
   data: IpcRequest[T]

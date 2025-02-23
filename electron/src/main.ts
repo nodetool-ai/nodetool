@@ -1,3 +1,29 @@
+/**
+ * @fileoverview Main entry point for the Electron application.
+ *
+ * This module initializes and manages the core application lifecycle, including:
+ * - Application window management
+ * - Python/Conda environment setup and validation
+ * - System permissions handling
+ * - IPC (Inter-Process Communication) setup
+ * - Error handling and logging
+ * - Auto-updates
+ * - System tray integration
+ * - Global shortcuts
+ * - Backend server management
+ *
+ * The application follows a multi-process architecture typical of Electron apps,
+ * with this main process coordinating window creation, system integration, and
+ * background services.
+ *
+ * Key Features:
+ * - Handles application lifecycle events (ready, quit, activate)
+ * - Manages Python/Conda environment installation and updates
+ * - Implements permission checks for system resources (e.g., microphone)
+ * - Provides error handling and logging infrastructure
+ * - Supports command-line workflow execution (--run) and chat overlay (--chat)
+ */
+
 import {
   app,
   ipcMain,
@@ -24,7 +50,7 @@ import { createWorkflowWindow } from "./workflowWindow";
 import { initializeIpcHandlers } from "./ipc";
 import { connectToWebSocketUpdates } from "./api";
 import { buildMenu } from "./menu";
-import { createChatOverlayWindow } from "./workflowWindow";
+import { createChatOverlayWindow } from "./chatWindow";
 
 /**
  * Global application state flags and objects
