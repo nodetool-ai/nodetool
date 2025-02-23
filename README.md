@@ -18,21 +18,22 @@ NodeTool is a visual development platform that empowers users to build and deplo
 
 #### Key Highlights ✨
 
-- **Local Model Support** - Run AI models on your own hardware using Ollama and Hugging Face, ensuring privacy and cost efficiency
+- **Comprehensive AI Model Support** - Run models locally via Ollama and Hugging Face, or leverage cloud APIs from OpenAI, Anthropic, Replicate, and Fal.ai
+- **Built-in RAG Support** - Create powerful retrieval-augmented generation applications with integrated ChromaDB vector storage
+- **System-Wide Access** - Launch workflows and apps from the system tray, use global shortcuts, and transform clipboard content instantly
+- **Global Chat Overlay** - Access all your AI tools and workflows from a unified chat interface
 - **Visual Workflow Editor** - Design AI applications visually, without writing code
-- **Cross-Platform Deployment** - Deploy apps on Mac, Windows, and Linux as standalone desktop applications or chat interfaces
 - **Multimodal Capabilities** - Work with text, images, audio, and video in a unified platform
-- **Open-Source and Community-Driven** - Contribute to the project, report issues, and engage with the community
 
 ![NodeTool](screen.png)
 
 ### Why NodeTool? 💡
 
-NodeTool is designed to cater to a variety of users, including those interested in local LLM deployment, AI automation, and advanced technical workflows.
+NodeTool is designed to cater to a variety of users, including those interested in both local and cloud-based LLM deployment, AI automation, and advanced technical workflows.
 
 #### Key Benefits 🎯
 
-- **Privacy-First** - Run AI models locally to keep your data secure and avoid cloud dependency
+- **Flexible Model Deployment** - Choose between local models for privacy or powerful cloud APIs for state-of-the-art capabilities
 - **No-Code AI Development** - Build sophisticated AI applications using a visual editor, making AI accessible to non-programmers
 - **Automation Powerhouse** - Create workflows that automate repetitive tasks using multiple AI models and tools
 - **Community Engagement** - As an open-source project, NodeTool welcomes contributions and feedback from users
@@ -44,6 +45,7 @@ NodeTool is designed to cater to a variety of users, including those interested 
   - Build privacy-focused chatbots using locally hosted models
   - Create domain-specific assistants with your own data
   - Deploy multiple LLMs for different tasks via ollama
+  - Build RAG applications with integrated ChromaDB support
   - Fine-tune responses for your organization's needs
 
 - 🎨 **Automated Content Generation**
@@ -85,20 +87,46 @@ NodeTool is designed to cater to a variety of users, including those interested 
 Key features for building AI applications:
 
 - **Visual Workflow Editor**: Design your app's logic visually—no coding required
+- **Global Chat Overlay**: Access all your AI tools and workflows from a single chat interface.
+- **System Tray Integration**:
+  - Quick-access menu for all workflows and apps
+  - Configure and trigger global shortcuts
+  - Transform clipboard content with AI
+  - Access emails and notes applications
+  - Process local files and documents
 - **App Templates**: Start with pre-built templates for common use cases
 - **Mini-App Builder**: Package workflows as standalone desktop applications
 - **Chat Interface Builder**: Create custom chatbot interfaces
-- **Local Model Support**: Run Ollama and HuggingFace models locally
-- **AI Platform Integration**: Use models from OpenAI, Anthropic, and others
+- **Comprehensive Model Support**:
+  - Local models via Ollama and HuggingFace
+  - Cloud APIs from OpenAI, Anthropic, Replicate, and Fal.ai
+- **Vector Storage & RAG**:
+  - Built-in ChromaDB integration for vector storage
+  - Create sophisticated RAG applications
+  - Index and query documents, PDFs, and other text sources
+  - Combine with any supported LLM for enhanced responses
 - **Asset Management**: Import and manage media assets within your apps
 - **Multimodal Support**: Build apps that handle text, images, audio, and video
 - **API Access**: Integrate your apps with other tools via API
 - **Custom Extensions**: Add new capabilities with Python
 - **Cross-Platform**: Deploy your apps on Mac, Windows, and Linux
 
+### System Tray Integration 🔗
+
+NodeTool lives in your system tray, providing instant access to all your AI tools and workflows:
+
+- Quick-launch any workflow or app from the tray menu
+- Configure and trigger global shortcuts
+- Access the global chat overlay
+- Transform clipboard content with AI
+- Process files, emails, and notes
+- Monitor workflow status and notifications
+
+This system tray integration ensures your AI tools are always just a click or keystroke away, seamlessly integrating into your daily workflow.
+
 ### Global Chat Overlay 💬
 
-A standout feature of NodeTool is the Global Chat Overlay, which serves as a unified entry point for all your AI tools and workflows. This chat interface allows you to:
+A standout feature of NodeTool, accessible from the system tray, is the Global Chat Overlay, which serves as a unified entry point for all your AI tools and workflows. This chat interface allows you to:
 
 - Run powerful tools such as image generation, audio generation, and more
 - Access notes, documents, and other files
