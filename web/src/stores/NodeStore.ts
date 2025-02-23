@@ -291,27 +291,13 @@ export const createNodeStore = (
             set({ connectionAttempted: value }),
           setHoveredNodes: (ids: string[]) => set({ hoveredNodes: ids }),
           generateNodeId: () => {
-            const highestId = get().nodes.reduce((acc, node) => {
-              const id = parseInt(node.id, 10);
-              return id > acc ? id : acc;
-            }, 0);
-            return (highestId + 1).toString();
+            return crypto.randomUUID();
           },
           generateNodeIds: (count: number) => {
-            const highestId = get().nodes.reduce((acc, node) => {
-              const id = parseInt(node.id, 10);
-              return isNaN(id) ? acc : Math.max(id, acc);
-            }, 0);
-            return Array.from({ length: count }, (_, i) =>
-              (highestId + i + 1).toString()
-            );
+            return Array.from({ length: count }, () => crypto.randomUUID());
           },
           generateEdgeId: () => {
-            const highestId = get().edges.reduce((acc, edge) => {
-              const id = parseInt(edge.id, 10);
-              return id > acc ? id : acc;
-            }, 0);
-            return (highestId + 1).toString();
+            return crypto.randomUUID();
           },
           getInputEdges: (nodeId: string) =>
             get().edges.filter((e) => e.target === nodeId),

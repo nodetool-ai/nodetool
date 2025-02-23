@@ -9,7 +9,8 @@ from typing import Any, AsyncGenerator, Callable
 from anthropic import BaseModel
 from fastapi import WebSocket, WebSocketDisconnect
 from nodetool.common.environment import Environment
-from nodetool.types.graph import Node
+from nodetool.model_manager import ModelManager
+from nodetool.types.graph import Node, Graph
 from nodetool.types.job import JobUpdate
 from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
@@ -18,6 +19,8 @@ from nodetool.workflows.workflow_runner import WorkflowRunner
 from nodetool.api.types.wrap_primitive_types import wrap_primitive_types
 from nodetool.workflows.threaded_event_loop import ThreadedEventLoop
 from nodetool.workflows.types import Error, RunFunction
+import gc
+import torch
 
 log = Environment.get_logger()
 
@@ -41,12 +44,21 @@ The module supports:
 - Graceful connection and resource management
 """
 
+TORCH_AVAILABLE = False
+try:
+    import torch
+
+    TORCH_AVAILABLE = True
+except ImportError:
+    pass
+
 
 class CommandType(str, Enum):
     RUN_JOB = "run_job"
     CANCEL_JOB = "cancel_job"
     GET_STATUS = "get_status"
-    SET_MODE = "set_mode"  # New command type
+    SET_MODE = "set_mode"
+    CLEAR_MODELS = "clear_models"
 
 
 class WebSocketCommand(BaseModel):
@@ -314,6 +326,18 @@ class WebSocketRunner:
             "job_id": self.job_id,
         }
 
+    async def clear_models(self):
+        """
+        Clears unused models from the model manager.
+        """
+        if not Environment.is_production():
+            ModelManager.clear()
+            gc.collect()
+            if TORCH_AVAILABLE and torch.cuda.is_available():
+                torch.cuda.empty_cache()
+            return {"message": "Unused models cleared"}
+        return {"message": "Model clearing is disabled in production"}
+
     async def handle_command(self, command: WebSocketCommand):
         """
         Handles incoming WebSocket commands.
@@ -325,7 +349,9 @@ class WebSocketRunner:
             dict: A dictionary with the response to the command.
         """
         log.info(f"Handling command: {command.command}")
-        if command.command == CommandType.RUN_JOB:
+        if command.command == CommandType.CLEAR_MODELS:
+            return await self.clear_models()
+        elif command.command == CommandType.RUN_JOB:
             if self.event_loop:
                 log.warning("Attempted to start a job while another is running")
                 return {"error": "A job is already running"}
