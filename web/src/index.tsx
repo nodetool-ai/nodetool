@@ -17,7 +17,6 @@ import { ThemeProvider } from "@emotion/react";
 import { CircularProgress, CssBaseline } from "@mui/material";
 import ThemeNodetool from "./components/themes/ThemeNodetool";
 
-import AppHeader from "./components/panels/AppHeader";
 import "@xyflow/react/dist/style.css";
 import "@xyflow/react/dist/base.css";
 import "./styles/vars.css";
@@ -33,10 +32,9 @@ import ExampleGrid from "./components/workflows/ExampleGrid";
 import OpenOrCreateDialog from "./components/dialogs/OpenOrCreateDialog";
 import ProtectedRoute from "./components/ProtectedRoute";
 import useAuth from "./stores/useAuth";
-import { isProduction, useRemoteAuth } from "./stores/ApiClient";
+import { isLocalhost } from "./stores/ApiClient";
 import { initKeyListeners } from "./stores/KeyPressedStore";
 import useRemoteSettingsStore from "./stores/RemoteSettingStore";
-import ModelsManager from "./components/hugging_face/ModelsManager";
 import useModelStore from "./stores/ModelStore";
 import { loadMetadata } from "./serverState/useMetadata";
 import TabsNodeEditor from "./components/editor/TabsNodeEditor";
@@ -49,7 +47,8 @@ import {
 import KeyboardProvider from "./components/KeyboardProvider";
 import HuggingFaceDownloadDialog from "./components/hugging_face/HuggingFaceDownloadDialog";
 import { MenuProvider } from "./providers/MenuProvider";
-if (!isProduction) {
+
+if (isLocalhost) {
   useRemoteSettingsStore.getState().fetchSettings();
 }
 
@@ -59,7 +58,7 @@ const NavigateToStart = () => {
     (state) => state.settings.showWelcomeOnStartup
   );
 
-  if (useRemoteAuth === false) {
+  if (isLocalhost) {
     return showWelcomeOnStartup ? (
       <Navigate to="/welcome" replace={true} />
     ) : (
@@ -68,11 +67,7 @@ const NavigateToStart = () => {
   } else if (state === "init") {
     return <div>Loading...</div>;
   } else if (state === "logged_in") {
-    return showWelcomeOnStartup ? (
-      <Navigate to="/welcome" replace={true} />
-    ) : (
-      <Navigate to="/editor/start" replace={true} />
-    );
+    return <Navigate to="/editor/start" replace={true} />;
   } else if (state === "logged_out") {
     return <Navigate to="/login" replace={true} />;
   } else if (state === "error") {

@@ -8,7 +8,6 @@ export const isLocalhost =
   window.location.hostname === "localhost" ||
   window.location.hostname === "192.168.50.225";
 
-export const useRemoteAuth = !isLocalhost;
 export const isDevelopment = isLocalhost;
 export const isProduction = !isLocalhost;
 

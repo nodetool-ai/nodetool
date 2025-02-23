@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { client, useRemoteAuth } from "./ApiClient";
+import { client, isLocalhost } from "./ApiClient";
 import { OAuthAuthorizeRequest, User } from "./ApiTypes";
 import { devLog } from "../utils/DevLog";
 import { createErrorMessage } from "../utils/errorHandling";
@@ -47,7 +47,7 @@ export const useAuth = create<LoginStore>((set, get) => ({
    * If there is an error, it will set the state to "error".
    */
   initialize: async () => {
-    if (!useRemoteAuth) {
+    if (isLocalhost) {
       set({
         user: {
           id: "1",

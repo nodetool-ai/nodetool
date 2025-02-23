@@ -242,7 +242,11 @@ function TabPanel(props: TabPanelProps) {
   );
 }
 
-function SettingsMenu() {
+interface SettingsMenuProps {
+  buttonText?: string;
+}
+
+function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
   const { user, signout } = useAuth();
   const navigate = useNavigate();
   const {
@@ -314,6 +318,7 @@ function SettingsMenu() {
           onClick={handleClick}
         >
           <SettingsIcon />
+          {buttonText}
         </Button>
       </Tooltip>
       <Menu
