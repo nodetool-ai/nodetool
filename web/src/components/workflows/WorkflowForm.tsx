@@ -10,7 +10,8 @@ import {
   Autocomplete,
   TextField,
   Checkbox,
-  FormControlLabel
+  FormControlLabel,
+  MenuItem
 } from "@mui/material";
 import { useCallback, useEffect, useState } from "react";
 import ThemeNodetool from "../themes/ThemeNodetool";
@@ -194,7 +195,7 @@ const WorkflowForm = ({ workflow, onClose }: WorkflowFormProps) => {
       dismissable: true
     });
     onClose();
-  }, [saveWorkflow, localWorkflow, addNotification]);
+  }, [saveWorkflow, localWorkflow, addNotification, onClose]);
 
   // const deleteThumbnail = useCallback(
   //   (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -373,59 +374,26 @@ const WorkflowForm = ({ workflow, onClose }: WorkflowFormProps) => {
           </div>
         </FormControl>
         <FormControl fullWidth sx={{ mt: 2 }}>
-          <FormLabel>UI Options</FormLabel>
+          <FormLabel>Run Mode</FormLabel>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 1, mt: 1 }}>
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={Boolean(localWorkflow.settings?.hide_ui)}
-                  onChange={(e) =>
-                    setLocalWorkflow((prev) => ({
-                      ...prev,
-                      settings: {
-                        ...(prev.settings || {}),
-                        hide_ui: e.target.checked
-                      }
-                    }))
+            <TextField
+              select
+              value={localWorkflow.settings?.run_mode || "normal"}
+              onChange={(e) =>
+                setLocalWorkflow((prev) => ({
+                  ...prev,
+                  settings: {
+                    ...(prev.settings || {}),
+                    run_mode: e.target.value
                   }
-                />
+                }))
               }
-              label="Hide UI when running workflow"
-            />
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={Boolean(localWorkflow.settings?.receive_clipboard)}
-                  onChange={(e) =>
-                    setLocalWorkflow((prev) => ({
-                      ...prev,
-                      settings: {
-                        ...(prev.settings || {}),
-                        receive_clipboard: e.target.checked
-                      }
-                    }))
-                  }
-                />
-              }
-              label="Receive clipboard content"
-            />
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={Boolean(localWorkflow.settings?.write_clipboard)}
-                  onChange={(e) =>
-                    setLocalWorkflow((prev) => ({
-                      ...prev,
-                      settings: {
-                        ...(prev.settings || {}),
-                        write_clipboard: e.target.checked
-                      }
-                    }))
-                  }
-                />
-              }
-              label="Write output to clipboard"
-            />
+            >
+              <MenuItem value="normal">Normal</MenuItem>
+              <MenuItem value="app">App</MenuItem>
+              <MenuItem value="chat">Chat</MenuItem>
+              <MenuItem value="headless">Headless</MenuItem>
+            </TextField>
           </Box>
         </FormControl>
         <div className="button-container">

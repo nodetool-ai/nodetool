@@ -12,6 +12,9 @@ declare global {
       clipboardReadText: () => string;
       onMenuEvent: (callback: (data: MenuEventData) => void) => void;
       unregisterMenuEvent: (callback: (data: any) => void) => void;
+      onCreateWorkflow: (workflow: Workflow) => void;
+      onUpdateWorkflow: (workflow: Workflow) => void;
+      onDeleteWorkflow: (workflow: Workflow) => void;
     };
     windowControls?: WindowControls;
     process: {

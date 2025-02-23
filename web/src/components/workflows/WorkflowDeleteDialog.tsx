@@ -28,7 +28,9 @@ const WorkflowDeleteDialog: FC<WorkflowDeleteDialogProps> = ({
   const navigate = useNavigate();
   const handleDelete = useCallback(() => {
     Promise.all(
-      workflowsToDelete.map((workflow) => deleteWorkflow(workflow.id))
+      workflowsToDelete.map((workflow) =>
+        deleteWorkflow({ ...workflow, graph: { nodes: [], edges: [] } })
+      )
     )
       .then(() => {
         onClose();

@@ -48,7 +48,6 @@ import { emitBootMessage } from "./events";
 import { createTray } from "./tray";
 import { createWorkflowWindow } from "./workflowWindow";
 import { initializeIpcHandlers } from "./ipc";
-import { connectToWebSocketUpdates } from "./api";
 import { buildMenu } from "./menu";
 import { createChatOverlayWindow } from "./chatWindow";
 
@@ -104,9 +103,6 @@ async function initialize(): Promise<void> {
 
     await initializeBackendServer();
     await setupWorkflowShortcuts();
-    setTimeout(async () => {
-      await connectToWebSocketUpdates();
-    }, 10000);
 
     // Request notification permissions
     if (process.platform === "darwin") {

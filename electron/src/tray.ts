@@ -9,6 +9,7 @@ import { initializeBackendServer } from "./server";
 import { createChatOverlayWindow } from "./chatWindow";
 import { fetchWorkflows, isConnected } from "./api";
 import { runWorkflow } from "./workflowExecution";
+import { Workflow } from "./types";
 
 let trayInstance: Electron.Tray | null = null;
 
@@ -147,30 +148,37 @@ function focusNodeTool(): void {
 }
 
 /**
+ * Generates a consistent label for workflow menu items, including shortcut if available
+ * @param workflow The workflow to generate a label for
+ * @returns Formatted label string
+ */
+function getWorkflowLabel(workflow: Workflow): string {
+  return workflow.settings?.shortcut
+    ? `${workflow.name} (${workflow.settings.shortcut})`
+    : workflow.name;
+}
+
+/**
  * Updates the tray menu with current application state and available workflows.
  * Includes service status, workflow list, and application controls.
  * @returns {Promise<void>}
  */
 async function updateTrayMenu(): Promise<void> {
-  // const menuTemplate: Electron.MenuItemConstructorOptions[] = [
-  //   {
-  //     label: "NodeTool",
-  //     submenu: [{ role: "quit" }],
-  //   },
-  //   {
-  //     label: "View",
-  //     submenu: [{ role: "toggleDevTools" }],
-  //   },
-  // ];
-  // const menu = Menu.buildFromTemplate(menuTemplate);
-  // Menu.setApplicationMenu(menu);
-
   if (!trayInstance) return;
 
   console.log("Updating tray menu...");
 
   const statusIndicator = isConnected ? "🟢" : "🔴";
   const workflows = await fetchWorkflows();
+
+  // Separate workflows by run_mode
+  const appWorkflows = workflows.filter((w) => w.settings?.run_mode === "app");
+  const chatWorkflows = workflows.filter(
+    (w) => w.settings?.run_mode === "chat"
+  );
+  const headlessWorkflows = workflows.filter(
+    (w) => w.settings?.run_mode === "headless"
+  );
 
   const contextMenu = Menu.buildFromTemplate([
     {
@@ -210,14 +218,34 @@ async function updateTrayMenu(): Promise<void> {
     },
     { type: "separator" },
     {
-      label: "Workflows",
+      label: "Apps",
       submenu:
-        workflows.length > 0
-          ? workflows.map((workflow) => ({
-              label: workflow.name,
+        appWorkflows.length > 0
+          ? appWorkflows.map((workflow) => ({
+              label: getWorkflowLabel(workflow),
               click: () => runWorkflow(workflow),
             }))
-          : [{ label: "No workflows available", enabled: false }],
+          : [{ label: "No apps available", enabled: false }],
+    },
+    {
+      label: "Chat",
+      submenu:
+        chatWorkflows.length > 0
+          ? chatWorkflows.map((workflow) => ({
+              label: getWorkflowLabel(workflow),
+              click: () => runWorkflow(workflow),
+            }))
+          : [{ label: "No chat workflows available", enabled: false }],
+    },
+    {
+      label: "Headless",
+      submenu:
+        headlessWorkflows.length > 0
+          ? headlessWorkflows.map((workflow) => ({
+              label: getWorkflowLabel(workflow),
+              click: () => runWorkflow(workflow),
+            }))
+          : [{ label: "No headless workflows available", enabled: false }],
     },
     { type: "separator" },
     {

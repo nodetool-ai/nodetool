@@ -10,27 +10,12 @@ from nodetool.types.workflow import Workflow
 from nodetool.common.system_stats import get_system_stats
 
 
-class CreateWorkflow(BaseModel):
-    type: Literal["create_workflow"] = "create_workflow"
-    workflow: Workflow
-
-
-class UpdateWorkflow(BaseModel):
-    type: Literal["update_workflow"] = "update_workflow"
-    workflow: Workflow
-
-
-class DeleteWorkflow(BaseModel):
-    type: Literal["delete_workflow"] = "delete_workflow"
-    workflow: Workflow
-
-
 class SystemStatsUpdate(BaseModel):
     type: Literal["system_stats"] = "system_stats"
     stats: SystemStats
 
 
-WebSocketUpdate = CreateWorkflow | UpdateWorkflow | DeleteWorkflow | SystemStatsUpdate
+WebSocketUpdate = SystemStatsUpdate
 
 
 class WebSocketUpdates:

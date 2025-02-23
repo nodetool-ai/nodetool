@@ -29,7 +29,6 @@ import { createErrorMessage } from "../utils/errorHandling";
 import { uuidv4 } from "../stores/uuidv4";
 import { QueryClient } from "@tanstack/react-query";
 import { createWebSocketUpdatesStore } from "../stores/WebSocketUpdatesStore";
-import { useNotificationStore } from "../stores/NotificationStore";
 
 // -----------------------------------------------------------------
 // TYPES
@@ -71,12 +70,8 @@ type WorkflowManagerState = {
   loadPublic: (cursor?: string) => Promise<any>;
   loadExamples: () => Promise<any>;
   copy: (originalWorkflow: Workflow) => Promise<Workflow>;
-  delete: (id: string) => Promise<void>;
+  delete: (workflow: Workflow) => Promise<void>;
   saveExample: () => Promise<any>;
-  recentChanges: Record<
-    string,
-    { timestamp: number; action: "save" | "delete" | "edit" }
-  >;
 };
 
 // Defines the Zustand store type for workflow management.
@@ -145,8 +140,13 @@ const storage = {
 // CUSTOM HOOK
 // -----------------------------------------------------------------
 
-// Custom hook to allow components to access the WorkflowManager state.
-// The selector allows for fine-grained subscription and prevents unnecessary re-renders.
+/**
+ * Custom hook to access the WorkflowManager state.
+ * @template T The type of the selected state slice
+ * @param {function} selector Function to select a portion of the state
+ * @returns {T} The selected portion of the state
+ * @throws {Error} If used outside of WorkflowManagerProvider
+ */
 export const useWorkflowManager = <T,>(
   selector: (state: WorkflowManagerState) => T
 ) => {
@@ -164,9 +164,11 @@ export const useWorkflowManager = <T,>(
 // ZUSTAND STORE CREATION
 // -----------------------------------------------------------------
 
-// This factory function creates the Zustand store that will manage
-// workflow data, API calls, loading states, and local storage synchronization.
-// It also has methods for creating, updating, saving, deleting workflows, etc.
+/**
+ * Creates a new Zustand store for managing workflows.
+ * @param {QueryClient} queryClient The React Query client instance
+ * @returns {WorkflowManagerStore} The configured workflow manager store
+ */
 export const createWorkflowManagerStore = (queryClient: QueryClient) => {
   return create<WorkflowManagerState>()((set, get) => {
     return {
@@ -184,7 +186,10 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
       // Workflow Creation and API methods
       // ---------------------------------------------------------------------------------
 
-      // Creates a new workflow object with default properties.
+      /**
+       * Creates a new workflow with default properties.
+       * @returns {Workflow} A new workflow object with default values
+       */
       newWorkflow: () => {
         const data: Workflow = {
           id: "",
@@ -205,12 +210,20 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         return data;
       },
 
-      // Creates a new workflow by sending the default workflow object to the API.
+      /**
+       * Creates a new workflow via API call.
+       * @returns {Promise<Workflow>} The newly created workflow
+       */
       createNew: async () => {
         return await get().create(get().newWorkflow());
       },
 
-      // Creates a workflow based on the workflow request object.
+      /**
+       * Creates a workflow based on the provided request object.
+       * @param {WorkflowRequest} workflow The workflow request data
+       * @returns {Promise<Workflow>} The created workflow
+       * @throws {Error} If the API call fails
+       */
       create: async (workflow: WorkflowRequest) => {
         const { data, error } = await client.POST("/api/workflows/", {
           body: workflow
@@ -227,10 +240,18 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         // Refresh workflows query cache.
         get().queryClient?.invalidateQueries({ queryKey: ["workflows"] });
 
+        window.api.onCreateWorkflow(workflowWithTags);
+
         return workflowWithTags;
       },
 
-      // Loads workflows from the API with optional pagination.
+      /**
+       * Loads workflows with optional pagination.
+       * @param {string} [cursor] Pagination cursor
+       * @param {number} [limit] Number of workflows to load
+       * @returns {Promise<any>} The loaded workflows data
+       * @throws {Error} If the API call fails
+       */
       load: async (cursor?: string, limit?: number) => {
         cursor = cursor || "";
         const { data, error } = await client.GET("/api/workflows/", {
@@ -242,7 +263,11 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         return data;
       },
 
-      // Loads a list of workflows by their IDs.
+      /**
+       * Loads multiple workflows by their IDs.
+       * @param {string[]} workflowIds Array of workflow IDs to load
+       * @returns {Promise<Workflow[]>} Array of loaded workflows
+       */
       loadIDs: async (workflowIds: string[]) => {
         const getWorkflow = get().getWorkflow;
         const promises = workflowIds.map((id) => getWorkflow(id));
@@ -271,7 +296,12 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         return data;
       },
 
-      // Creates a copy of an existing workflow.
+      /**
+       * Creates a copy of an existing workflow.
+       * @param {Workflow} originalWorkflow The workflow to copy
+       * @returns {Promise<Workflow>} The copied workflow
+       * @throws {Error} If the original workflow is not found
+       */
       copy: async (originalWorkflow: Workflow) => {
         const workflow = get().getWorkflow(originalWorkflow.id);
         if (!workflow) {
@@ -293,26 +323,25 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         return copiedWorkflow;
       },
 
-      // Deletes a workflow.
-      delete: async (id: string) => {
-        // Record the deletion to handle possible race conditions with WebSocket updates.
-        set((state) => ({
-          recentChanges: {
-            ...state.recentChanges,
-            [id]: { timestamp: Date.now(), action: "delete" }
-          }
-        }));
-
+      /**
+       * Deletes a workflow by ID.
+       * @param {string} id The ID of the workflow to delete
+       * @returns {Promise<void>}
+       * @throws {Error} If the deletion fails
+       */
+      delete: async (workflow: Workflow) => {
         const { error } = await client.DELETE("/api/workflows/{id}", {
-          params: { path: { id } }
+          params: { path: { id: workflow.id } }
         });
         if (error) {
           throw createErrorMessage(error, "Failed to delete workflow");
         }
-
+        window.api.onDeleteWorkflow(workflow);
         // Invalidate cache for workflows and the specific workflow.
         get().queryClient?.invalidateQueries({ queryKey: ["workflows"] });
-        get().queryClient?.invalidateQueries({ queryKey: ["workflow", id] });
+        get().queryClient?.invalidateQueries({
+          queryKey: ["workflow", workflow.id]
+        });
       },
 
       // Saves the current workflow as an example.
@@ -356,7 +385,10 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         return get().loadingStates[currentWorkflowId];
       },
 
-      // Sets the current workflow id and syncs it to localStorage.
+      /**
+       * Sets the current workflow ID and syncs it to localStorage.
+       * @param {string} workflowId The ID of the workflow to set as current
+       */
       setCurrentWorkflowId: (workflowId: string) => {
         storage.setCurrentWorkflow(workflowId);
         set({ currentWorkflowId: workflowId });
@@ -384,7 +416,10 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
       // Handling Open Workflows and Node Stores
       // ---------------------------------------------------------------------------------
 
-      // Adds a workflow to the store and updates the list of open workflows.
+      /**
+       * Adds a workflow to the store and updates open workflows.
+       * @param {Workflow} workflow The workflow to add
+       */
       addWorkflow: (workflow: Workflow) => {
         if (!workflow.id) {
           console.warn("Attempted to add workflow with no ID");
@@ -435,7 +470,10 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         });
       },
 
-      // Removes a workflow from state and localStorage.
+      /**
+       * Removes a workflow from state and localStorage.
+       * @param {string} workflowId The ID of the workflow to remove
+       */
       removeWorkflow: (workflowId: string) => {
         storage.removeOpenWorkflow(workflowId);
 
@@ -455,16 +493,13 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         });
       },
 
-      // Saves a workflow by sending its data to the API, updating the store and invalidating queries.
+      /**
+       * Saves workflow changes to the API and updates local state.
+       * @param {Workflow} workflow The workflow to save
+       * @returns {Promise<void>}
+       * @throws {Error} If the save operation fails
+       */
       saveWorkflow: async (workflow: Workflow) => {
-        // Mark as recently saved to mitigate conflicts with WebSocket updates.
-        set((state) => ({
-          recentChanges: {
-            ...state.recentChanges,
-            [workflow.id]: { timestamp: Date.now(), action: "save" }
-          }
-        }));
-
         const { data, error } = await client.PUT("/api/workflows/{id}", {
           params: { path: { id: workflow.id } },
           body: workflow
@@ -472,6 +507,8 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         if (error) {
           throw createErrorMessage(error, "Failed to save workflow");
         }
+
+        window.api.onUpdateWorkflow(data);
 
         // Update node store and openWorkflows with the new data.
         set((state) => {
@@ -502,7 +539,11 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
       // Reordering and Updating Workflows
       // ---------------------------------------------------------------------------------
 
-      // Reorders workflows based on source and target indices.
+      /**
+       * Reorders workflows in the list.
+       * @param {number} sourceIndex Original position
+       * @param {number} targetIndex New position
+       */
       reorderWorkflows: (sourceIndex: number, targetIndex: number) => {
         set((state) => {
           const entries = Object.entries(state.nodeStores);
@@ -517,7 +558,10 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         });
       },
 
-      // Updates a workflow's properties in its node store and refreshes the openWorkflows list.
+      /**
+       * Updates a workflow's properties and refreshes the list.
+       * @param {WorkflowAttributes} workflow The workflow attributes to update
+       */
       updateWorkflow: (workflow: WorkflowAttributes) => {
         const nodeStore = get().nodeStores[workflow.id];
         if (!nodeStore) {
@@ -588,10 +632,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           });
           state.addWorkflow(data);
         }
-      },
-
-      // Tracks recent changes to workflows to help prevent conflicting updates.
-      recentChanges: {}
+      }
     };
   });
 };
@@ -600,8 +641,12 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
 // COMPONENTS
 // -----------------------------------------------------------------
 
-// React component that ensures the current workflow is fetched and set based on URL params.
-// It checks if the workflow is already loaded and fetches it if not.
+/**
+ * Component that ensures the current workflow is fetched based on URL params.
+ * @param {Object} props Component props
+ * @param {React.ReactNode} props.children Child components
+ * @returns {React.ReactNode}
+ */
 export const FetchCurrentWorkflow: React.FC<{
   children: React.ReactNode;
 }> = ({ children }) => {
@@ -630,6 +675,13 @@ export const FetchCurrentWorkflow: React.FC<{
 // Provider component that sets up the WorkflowManager store and supplies it via context.
 // It also sets up WebSocket connections to handle real-time workflow updates and
 // restores previously open workflows from localStorage.
+/**
+ * Provider component that sets up the WorkflowManager store and context.
+ * @param {Object} props Component props
+ * @param {React.ReactNode} props.children Child components
+ * @param {QueryClient} props.queryClient React Query client instance
+ * @returns {React.ReactNode}
+ */
 export const WorkflowManagerProvider: React.FC<{
   children: React.ReactNode;
   queryClient: QueryClient;
@@ -641,55 +693,7 @@ export const WorkflowManagerProvider: React.FC<{
   });
 
   const [webSocketStore] = useState(() => {
-    return createWebSocketUpdatesStore({
-      // Callback to handle workflow updates
-      onWorkflowUpdate: (workflow) => {
-        const recentChange = store.getState().recentChanges[workflow.id];
-        const now = Date.now();
-
-        if (
-          recentChange?.action === "save" &&
-          now - recentChange.timestamp < 2000
-        ) {
-          return;
-        }
-
-        store.getState().addWorkflow(workflow);
-        useNotificationStore.getState().addNotification({
-          type: "info",
-          alert: true,
-          content: `Updated workflow ${workflow.name}`
-        });
-      },
-      // Callback to handle workflow deletions
-      onWorkflowDelete: (workflowId) => {
-        const recentChange = store.getState().recentChanges[workflowId];
-        const now = Date.now();
-
-        if (
-          recentChange?.action === "delete" &&
-          now - recentChange.timestamp < 2000
-        ) {
-          return;
-        }
-
-        store.getState().removeWorkflow(workflowId);
-        useNotificationStore.getState().addNotification({
-          type: "info",
-          alert: true,
-          content: `Removed workflow ${workflowId}`
-        });
-      },
-      // Callback to handle new workflow additions
-      onWorkflowCreate: (workflow) => {
-        store.getState().addWorkflow(workflow);
-        useNotificationStore.getState().addNotification({
-          type: "info",
-          alert: true,
-          content: `Added workflow ${workflow.name}`
-        });
-      }
-    });
+    return createWebSocketUpdatesStore();
   });
 
   useEffect(() => {

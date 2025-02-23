@@ -1,5 +1,5 @@
 import { create, StoreApi, UseBoundStore } from "zustand";
-import { SystemStats, Workflow } from "./ApiTypes";
+import { SystemStats } from "./ApiTypes";
 import { BASE_URL } from "./ApiClient";
 
 interface WebSocketUpdatesState {
@@ -9,18 +9,11 @@ interface WebSocketUpdatesState {
   connect: () => void;
   disconnect: () => void;
 }
-
-interface WebSocketCallbacks {
-  onWorkflowUpdate: (workflow: Workflow) => void;
-  onWorkflowDelete: (workflowId: string) => void;
-  onWorkflowCreate: (workflow: Workflow) => void;
-}
-
 export type WebSocketUpdatesStore = UseBoundStore<
   StoreApi<WebSocketUpdatesState>
 >;
 
-export const createWebSocketUpdatesStore = (callbacks: WebSocketCallbacks) =>
+export const createWebSocketUpdatesStore = () =>
   create<WebSocketUpdatesState>((set, get) => ({
     systemStats: null,
     socket: null,
@@ -59,15 +52,6 @@ export const createWebSocketUpdatesStore = (callbacks: WebSocketCallbacks) =>
           switch (data.type) {
             case "system_stats":
               set({ systemStats: data.stats });
-              break;
-            case "update_workflow":
-              callbacks.onWorkflowUpdate(data.workflow);
-              break;
-            case "delete_workflow":
-              callbacks.onWorkflowDelete(data.id);
-              break;
-            case "create_workflow":
-              callbacks.onWorkflowCreate(data.workflow);
               break;
           }
         } catch (error) {

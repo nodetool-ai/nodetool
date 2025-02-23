@@ -14,6 +14,9 @@ declare global {
           eta?: string;
         }) => void
       ) => void;
+      onCreateWorkflow: (workflow: Workflow) => void;
+      onUpdateWorkflow: (workflow: Workflow) => void;
+      onDeleteWorkflow: (workflow: Workflow) => void;
       onServerStarted: (callback: () => void) => void;
       onBootMessage: (callback: (message: string) => void) => void;
       onServerLog: (callback: (message: string) => void) => void;
@@ -106,10 +109,8 @@ export interface Workflow {
   input_schema: JSONSchema;
   output_schema: JSONSchema;
   settings?: {
-    hide_ui: boolean;
-    receive_clipboard: boolean;
-    write_clipboard: boolean;
     shortcut: string;
+    run_mode: "normal" | "app" | "chat" | "headless";
   };
 }
 
@@ -125,10 +126,6 @@ export interface MenuEventData {
     | "fitView";
 }
 
-export interface WebSocketUpdate {
-  type: "delete_workflow" | "update_workflow" | "create_workflow";
-  workflow: Workflow;
-}
 // IPC Channel names as const enum for type safety
 export enum IpcChannels {
   GET_SERVER_STATE = "get-server-state",
@@ -146,10 +143,12 @@ export enum IpcChannels {
   WINDOW_CLOSE = "window-close",
   WINDOW_MINIMIZE = "window-minimize",
   WINDOW_MAXIMIZE = "window-maximize",
-  SAVE_FILE = "save-file",
   CLIPBOARD_WRITE_TEXT = "clipboard-write-text",
   CLIPBOARD_READ_TEXT = "clipboard-read-text",
   MENU_EVENT = "menu-event",
+  ON_CREATE_WORKFLOW = "on-create-workflow",
+  ON_UPDATE_WORKFLOW = "on-update-workflow",
+  ON_DELETE_WORKFLOW = "on-delete-workflow",
 }
 
 // Request/Response types for each IPC channel
@@ -162,9 +161,11 @@ export interface IpcRequest {
   [IpcChannels.WINDOW_CLOSE]: void;
   [IpcChannels.WINDOW_MINIMIZE]: void;
   [IpcChannels.WINDOW_MAXIMIZE]: void;
-  [IpcChannels.SAVE_FILE]: SaveFileOptions;
   [IpcChannels.CLIPBOARD_WRITE_TEXT]: string;
   [IpcChannels.CLIPBOARD_READ_TEXT]: void;
+  [IpcChannels.ON_CREATE_WORKFLOW]: Workflow;
+  [IpcChannels.ON_UPDATE_WORKFLOW]: Workflow;
+  [IpcChannels.ON_DELETE_WORKFLOW]: Workflow;
 }
 
 export interface IpcResponse {
@@ -176,9 +177,11 @@ export interface IpcResponse {
   [IpcChannels.WINDOW_CLOSE]: void;
   [IpcChannels.WINDOW_MINIMIZE]: void;
   [IpcChannels.WINDOW_MAXIMIZE]: void;
-  [IpcChannels.SAVE_FILE]: SaveFileResult;
   [IpcChannels.CLIPBOARD_WRITE_TEXT]: void;
   [IpcChannels.CLIPBOARD_READ_TEXT]: string;
+  [IpcChannels.ON_CREATE_WORKFLOW]: void;
+  [IpcChannels.ON_UPDATE_WORKFLOW]: void;
+  [IpcChannels.ON_DELETE_WORKFLOW]: void;
 }
 
 // Event types for each IPC channel
@@ -210,17 +213,4 @@ export interface InstallLocationData {
   defaultPath: string;
   downloadSize: string;
   installedSize: string;
-}
-
-export interface SaveFileOptions {
-  buffer: Uint8Array;
-  defaultPath: string;
-  filters?: { name: string; extensions: string[] }[];
-}
-
-export interface SaveFileResult {
-  success: boolean;
-  filePath?: string;
-  canceled?: boolean;
-  error?: string;
 }

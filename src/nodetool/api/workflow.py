@@ -5,12 +5,6 @@ import time
 from fastapi import APIRouter, Depends, HTTPException, Body, BackgroundTasks, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
-from nodetool.common.websocket_updates import (
-    CreateWorkflow,
-    DeleteWorkflow,
-    UpdateWorkflow,
-    websocket_updates,
-)
 from nodetool.types.graph import remove_connected_slots
 from nodetool.types.workflow import WorkflowList, Workflow, WorkflowRequest
 from nodetool.api.utils import current_user, User
@@ -71,9 +65,6 @@ async def create(
     else:
         raise HTTPException(status_code=400, detail="Invalid workflow")
 
-    background_tasks.add_task(
-        websocket_updates.broadcast_update, CreateWorkflow(workflow=workflow)
-    )
     return workflow
 
 
@@ -177,10 +168,6 @@ async def update_workflow(
     workflow.save()
     updated_workflow = Workflow.from_model(workflow)
 
-    background_tasks.add_task(
-        websocket_updates.broadcast_update, UpdateWorkflow(workflow=updated_workflow)
-    )
-
     return updated_workflow
 
 
@@ -198,15 +185,11 @@ async def delete_workflow(
         raise HTTPException(status_code=404, detail="Workflow not found")
     workflow.delete()
 
-    background_tasks.add_task(
-        websocket_updates.broadcast_update,
-        DeleteWorkflow(workflow=Workflow.from_model(workflow)),
-    )
-
 
 @router.put("/examples/{id}")
 async def save_example_workflow(
-    id: str, workflow_request: WorkflowRequest, user: User = Depends(current_user)
+    id: str,
+    workflow_request: WorkflowRequest,
 ) -> Workflow:
     if Environment.is_production():
         raise HTTPException(

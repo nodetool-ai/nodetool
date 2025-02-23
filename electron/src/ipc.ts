@@ -1,10 +1,10 @@
-import { ipcMain, BrowserWindow, clipboard } from "electron";
+import { ipcMain, BrowserWindow, clipboard, globalShortcut } from "electron";
 import { getServerState, openLogFile, runApp } from "./server";
-import { dialog } from "electron";
 import { logMessage } from "./logger";
-import fs from "fs";
 import { IpcChannels, IpcEvents, IpcResponse } from "./types.d";
 import { IpcRequest } from "./types.d";
+import { registerWorkflowShortcut } from "./shortcuts";
+import { updateTrayMenu } from "./tray";
 
 /**
  * This module handles Inter-Process Communication (IPC) between the Electron main process
@@ -74,11 +74,11 @@ export function initializeIpcHandlers(): void {
 
   // Server state handlers
   createIpcMainHandler(IpcChannels.GET_SERVER_STATE, async () => {
-    return await getServerState();
+    return getServerState();
   });
 
   createIpcMainHandler(IpcChannels.OPEN_LOG_FILE, async () => {
-    await openLogFile();
+    openLogFile();
   });
 
   // App control handlers
@@ -109,25 +109,32 @@ export function initializeIpcHandlers(): void {
     }
   });
 
-  // Add save file handler
   createIpcMainHandler(
-    IpcChannels.SAVE_FILE,
-    async (_event, { buffer, defaultPath, filters }) => {
-      try {
-        const { filePath, canceled } = await dialog.showSaveDialog({
-          defaultPath,
-          filters: filters || [{ name: "All Files", extensions: ["*"] }],
-        });
+    IpcChannels.ON_CREATE_WORKFLOW,
+    async (event, workflow) => {
+      logMessage(`Creating workflow: ${workflow.name}`);
+      registerWorkflowShortcut(workflow);
+      updateTrayMenu();
+    }
+  );
 
-        if (!canceled && filePath) {
-          await fs.promises.writeFile(filePath, Buffer.from(buffer));
-          return { success: true, filePath };
-        }
-        return { success: false, canceled: true };
-      } catch (error) {
-        logMessage(`Save file error: ${(error as Error).message}`, "error");
-        return { success: false, error: (error as Error).message };
+  createIpcMainHandler(
+    IpcChannels.ON_UPDATE_WORKFLOW,
+    async (event, workflow) => {
+      logMessage(`Updating workflow: ${workflow.name}`);
+      registerWorkflowShortcut(workflow);
+      updateTrayMenu();
+    }
+  );
+
+  createIpcMainHandler(
+    IpcChannels.ON_DELETE_WORKFLOW,
+    async (event, workflow) => {
+      logMessage(`Deleting workflow: ${workflow.name}`);
+      if (workflow.settings?.shortcut) {
+        globalShortcut.unregister(workflow.settings.shortcut);
       }
+      updateTrayMenu();
     }
   );
 }
