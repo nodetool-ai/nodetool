@@ -240,7 +240,9 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         // Refresh workflows query cache.
         get().queryClient?.invalidateQueries({ queryKey: ["workflows"] });
 
-        window.api.onCreateWorkflow(workflowWithTags);
+        if (window.api) {
+          window.api.onCreateWorkflow(workflowWithTags);
+        }
 
         return workflowWithTags;
       },
@@ -336,7 +338,9 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         if (error) {
           throw createErrorMessage(error, "Failed to delete workflow");
         }
-        window.api.onDeleteWorkflow(workflow);
+        if (window.api) {
+          window.api.onDeleteWorkflow(workflow);
+        }
         // Invalidate cache for workflows and the specific workflow.
         get().queryClient?.invalidateQueries({ queryKey: ["workflows"] });
         get().queryClient?.invalidateQueries({
@@ -508,7 +512,9 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           throw createErrorMessage(error, "Failed to save workflow");
         }
 
-        window.api.onUpdateWorkflow(data);
+        if (window.api) {
+          window.api.onUpdateWorkflow(data);
+        }
 
         // Update node store and openWorkflows with the new data.
         set((state) => {

@@ -28,6 +28,7 @@ from nodetool.types.chat import (
     TaskList,
     TaskUpdateRequest,
 )
+from nodetool.types.graph import Node
 from nodetool.types.job import Job, JobUpdate
 from nodetool.types.prediction import (
     Prediction,
@@ -143,6 +144,7 @@ class ProcessingContext:
         self.message_queue = message_queue if message_queue else asyncio.Queue()
         self.device = device
         self.variables: dict[str, Any] = variables if variables else {}
+        self.nodes: dict[str, BaseNode] = {}
         self.environment: dict[str, str] = (
             environment if environment else dict(os.environ)
         )
@@ -250,6 +252,19 @@ class ProcessingContext:
             key (str): The key of the asset.
         """
         return Environment.get_asset_storage().get_url(key)
+
+    def load_nodes(self, nodes: list[Node]):
+        """
+        Loads nodes into the runner.
+        """
+        result = []
+        for node in nodes:
+            if node.id in self.nodes:
+                result.append(self.nodes[node.id])
+            else:
+                self.nodes[node.id] = BaseNode.from_dict(node.model_dump())
+                result.append(self.nodes[node.id])
+        return result
 
     def generate_node_cache_key(
         self,

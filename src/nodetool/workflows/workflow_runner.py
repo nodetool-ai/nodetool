@@ -1,3 +1,36 @@
+"""
+Workflow execution engine for processing directed acyclic graphs (DAGs) of computational nodes.
+
+This module provides the core workflow execution functionality, handling parallel processing,
+resource management, and orchestration of computational nodes. It supports both CPU and 
+GPU-based computations with automatic device selection and memory management.
+
+Key Components:
+    - WorkflowRunner: Main execution engine that processes DAGs of nodes
+    - OrderedLock: GPU resource management with FIFO queuing
+    - Message: Inter-node communication model
+
+Features:
+    - Parallel execution of independent nodes
+    - GPU resource management with ordered locking
+    - Result caching for cacheable nodes
+    - Error handling and retry logic for GPU OOM situations
+    - Progress tracking and status updates
+    - Support for regular nodes and group nodes (subgraphs)
+    - Dynamic device selection (CPU/CUDA/MPS)
+    - Automatic VRAM management and cleanup
+
+Example:
+    ```python
+    runner = WorkflowRunner(job_id="123")
+    await runner.run(request, context)
+    ```
+
+Dependencies:
+    - Optional: torch, comfy (for GPU operations)
+    - Required: asyncio, pydantic, logging
+"""
+
 import asyncio
 from contextlib import contextmanager
 from datetime import datetime
@@ -187,14 +220,17 @@ class WorkflowRunner:
         """
         return self.status == "running"
 
-    async def run(self, req: RunJobRequest, context: ProcessingContext) -> None:
+    async def run(
+        self,
+        req: RunJobRequest,
+        context: ProcessingContext,
+    ):
         """
         Executes the entire workflow based on the provided request and context.
 
         Args:
             req (RunJobRequest): Contains the workflow graph and input parameters.
             context (ProcessingContext): Manages the execution state and inter-node communication.
-
         Raises:
             ValueError: If the graph is missing or if there's a mismatch between input parameters and graph input nodes.
 
@@ -207,16 +243,16 @@ class WorkflowRunner:
             - Manages GPU resources if required by the workflow.
         """
         log.info(f"Starting workflow execution for job_id: {self.job_id}")
-        assert req.graph is not None, "Graph is required"
 
         Environment.load_settings()
 
-        graph = Graph.from_dict(
-            {
-                "nodes": [node.model_dump() for node in req.graph.nodes],
-                "edges": [edge.model_dump() for edge in req.graph.edges],
-            }
+        assert req.graph is not None, "Graph is required"
+
+        graph = Graph(
+            nodes=context.load_nodes(req.graph.nodes),
+            edges=req.graph.edges,
         )
+
         self.context = context
         context.graph = graph
         context.device = self.device
@@ -251,7 +287,6 @@ class WorkflowRunner:
         with self.torch_context(context):
             try:
                 await self.validate_graph(context, graph)
-                await self.clear_unused_models(graph)
                 await self.initialize_graph(context, graph)
                 await self.process_graph(context, graph)
             except Exception as e:
@@ -322,16 +357,6 @@ class WorkflowRunner:
                     )
         if not is_valid:
             raise ValueError("Graph contains errors: " + "\n".join(errors))
-
-    async def clear_unused_models(self, graph: Graph):
-        """
-        Clears unused models from the model manager.
-        """
-        if not Environment.is_production():
-            ModelManager.clear_unused(node_ids=[node.id for node in graph.nodes])
-            gc.collect()
-            if TORCH_AVAILABLE and torch.cuda.is_available():
-                torch.cuda.empty_cache()
 
     async def initialize_graph(self, context: ProcessingContext, graph: Graph):
         """
