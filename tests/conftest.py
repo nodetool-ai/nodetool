@@ -55,6 +55,15 @@ def pil_to_bytes(image: PIL.Image.Image, format="PNG") -> bytes:
 
 
 def make_user(verified: bool = False) -> User:
+    """
+    Create and save a test user.
+
+    Args:
+        verified (bool, optional): Whether the user should be marked as verified. Defaults to False.
+
+    Returns:
+        User: The created user instance.
+    """
     user = User(
         id="1",
         email=uuid.uuid4().hex + "@a.de",
@@ -71,6 +80,14 @@ def make_user(verified: bool = False) -> User:
 
 
 def upload_test_image(image: Asset, width: int = 512, height: int = 512):
+    """
+    Upload a test image to the memory storage.
+
+    Args:
+        image (Asset): The asset to upload the image for.
+        width (int, optional): Width of the test image. Defaults to 512.
+        height (int, optional): Height of the test image. Defaults to 512.
+    """
     storage = Environment.get_asset_storage()
     assert isinstance(storage, MemoryStorage)
     img = PIL.Image.new("RGB", (width, height))
@@ -84,6 +101,19 @@ def make_image(
     width: int = 512,
     height: int = 512,
 ) -> Asset:
+    """
+    Create and upload a test image asset.
+
+    Args:
+        user (User): The user who owns the image.
+        workflow_id (str | None, optional): Associated workflow ID. Defaults to None.
+        parent_id (str | None, optional): Parent asset ID. Defaults to None.
+        width (int, optional): Width of the test image. Defaults to 512.
+        height (int, optional): Height of the test image. Defaults to 512.
+
+    Returns:
+        Asset: The created image asset.
+    """
     image = Asset.create(
         user_id=user.id,
         name="test_image",
@@ -101,6 +131,18 @@ def make_text(
     workflow_id: str | None = None,
     parent_id: str | None = None,
 ):
+    """
+    Create and upload a test text asset.
+
+    Args:
+        user (User): The user who owns the text asset.
+        content (str): The text content to upload.
+        workflow_id (str | None, optional): Associated workflow ID. Defaults to None.
+        parent_id (str | None, optional): Parent asset ID. Defaults to None.
+
+    Returns:
+        Asset: The created text asset.
+    """
     asset = Asset.create(
         user_id=user.id,
         name="test_text",
@@ -114,6 +156,16 @@ def make_text(
 
 
 def make_job(user: User, **kwargs):
+    """
+    Create a test job.
+
+    Args:
+        user (User): The user who owns the job.
+        **kwargs: Additional job attributes.
+
+    Returns:
+        Job: The created job instance.
+    """
     return Job.create(
         workflow_id=str(uuid.uuid4()),
         user_id=user.id,
@@ -184,6 +236,17 @@ def headers(user: User):
 
 
 def make_node(id, type: str, data: dict[str, Any]):
+    """
+    Create a node for workflow testing.
+
+    Args:
+        id: The node ID.
+        type (str): The node type identifier.
+        data (dict[str, Any]): Node configuration data.
+
+    Returns:
+        Node: The created node instance.
+    """
     return Node(id=id, type=type, data=data)
 
 
