@@ -1,3 +1,24 @@
+"""
+Hugging Face Cache Management Module
+
+This module provides functionality for managing and downloading files from Hugging Face repositories,
+with support for WebSocket-based progress tracking and caching. Key features include:
+
+- Checking for cached repository files
+- Downloading repository files with pattern filtering
+- Real-time download progress tracking via WebSockets
+- Multi-process download management
+- Download cancellation support
+
+The module uses a custom progress bar implementation that sends updates through a WebSocket
+connection, allowing clients to monitor download progress in real-time.
+
+Main Components:
+- DownloadState: Tracks the state of individual downloads
+- DownloadManager: Handles concurrent downloads and WebSocket communications
+- CustomTqdm: Modified progress bar for WebSocket integration
+"""
+
 import asyncio
 from dataclasses import dataclass, field
 from fnmatch import fnmatch

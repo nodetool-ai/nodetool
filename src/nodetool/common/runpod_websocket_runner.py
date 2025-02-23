@@ -1,3 +1,22 @@
+"""
+RunPod WebSocket Runner Module
+
+This module provides a WebSocket-based interface for running and managing jobs on RunPod's serverless
+infrastructure. It handles job execution, status monitoring, and real-time communication between
+the client and RunPod endpoints.
+
+Key Features:
+- Asynchronous WebSocket communication with binary (MessagePack) and text (JSON) modes
+- Job lifecycle management (run, cancel, status monitoring)
+- Real-time status updates and result streaming
+- Automatic resource cleanup and error handling
+- RunPod API integration with status mapping
+
+Usage:
+    runner = RunPodWebSocketRunner(endpoint_id="your-endpoint-id")
+    await runner.run(websocket)
+"""
+
 import asyncio
 import json
 import os

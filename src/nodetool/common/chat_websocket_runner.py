@@ -1,3 +1,28 @@
+"""
+WebSocket-based chat runner for handling real-time chat communications.
+
+This module provides a WebSocket implementation for managing chat sessions, supporting both
+binary (MessagePack) and text (JSON) message formats. It handles:
+
+- Real-time bidirectional communication for chat messages
+- Tool execution and streaming responses
+- Workflow processing with job updates
+- Support for various content types (text, images, audio, video)
+
+The main class ChatWebSocketRunner manages the WebSocket connection lifecycle and message
+processing, including:
+- Connection management
+- Message reception and parsing
+- Chat history tracking
+- Response streaming
+- Tool execution
+- Workflow processing
+
+Example:
+    runner = ChatWebSocketRunner()
+    await runner.run(websocket)
+"""
+
 import logging
 import traceback
 import uuid

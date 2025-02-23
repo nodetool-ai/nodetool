@@ -1,3 +1,26 @@
+"""
+Settings management module for nodetool application.
+
+This module provides functionality for managing application settings and secrets
+across different operating systems. It handles:
+
+- Loading/saving settings and secrets from YAML files
+- OS-specific file path resolution for configuration files
+- Environment variable fallbacks
+- Type-safe configuration via Pydantic models
+
+Key components:
+- SettingsModel: Application configuration settings
+- SecretsModel: Sensitive credentials and API keys
+- File locations:
+  - Linux/Mac: ~/.config/nodetool/
+  - Windows: %APPDATA%/nodetool/
+
+Usage:
+    settings, secrets = load_settings()
+    value = get_value("API_KEY", settings, secrets, default_env={})
+"""
+
 import os
 import yaml
 from pathlib import Path

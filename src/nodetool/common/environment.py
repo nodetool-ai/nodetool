@@ -42,6 +42,30 @@ DEFAULT_ENV = {
 
 NOT_GIVEN = object()
 
+"""
+Environment Configuration Management Module
+
+This module provides centralized configuration management for the Nodetool application through
+the Environment class. It handles loading and accessing configuration from multiple sources:
+
+- Environment variables
+- Settings file (settings.yaml)
+- Secrets file (secrets.yaml)
+- Default values
+
+Key Features:
+- Configuration hierarchy with environment variables taking precedence
+- Secure secrets management
+- Type-safe configuration access
+- Environment-aware behavior (development/production/test)
+- Service connection management (database, S3, memcache, etc.)
+- Resource initialization (logging, Sentry, storage adapters)
+
+The Environment class provides class methods to access all configuration values and
+initialize required services. It supports both local development with file-based
+storage and production deployment with cloud services.
+"""
+
 
 class Environment(object):
     """

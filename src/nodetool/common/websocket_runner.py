@@ -9,7 +9,9 @@ from typing import Any, AsyncGenerator, Callable
 from anthropic import BaseModel
 from fastapi import WebSocket, WebSocketDisconnect
 from nodetool.common.environment import Environment
+from nodetool.types.graph import Node
 from nodetool.types.job import JobUpdate
+from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.workflows.run_job_request import RunJobRequest
 from nodetool.workflows.workflow_runner import WorkflowRunner
@@ -18,6 +20,26 @@ from nodetool.workflows.threaded_event_loop import ThreadedEventLoop
 from nodetool.workflows.types import Error, RunFunction
 
 log = Environment.get_logger()
+
+"""
+WebSocket-based workflow execution manager for Node Tool.
+
+This module provides WebSocket communication and workflow execution management, enabling real-time
+bidirectional communication between clients and the workflow engine. It supports both binary 
+(MessagePack) and text (JSON) protocols for message exchange.
+
+Key components:
+- WebSocketRunner: Main class handling WebSocket connections and workflow execution
+- CommandType: Enum defining supported WebSocket commands (run_job, cancel_job, get_status, set_mode)
+- Message Processing: Utilities for processing and streaming workflow execution messages
+- Error Handling: Comprehensive error handling and status reporting
+
+The module supports:
+- Starting and canceling workflow jobs
+- Real-time status updates and message streaming
+- Dynamic switching between binary and text protocols
+- Graceful connection and resource management
+"""
 
 
 class CommandType(str, Enum):
@@ -139,6 +161,7 @@ class WebSocketRunner:
     job_id: str | None = None
     runner: WorkflowRunner | None = None
     mode: WebSocketMode = WebSocketMode.BINARY
+    nodes: dict[str, BaseNode] = {}
 
     def __init__(
         self,
@@ -195,23 +218,24 @@ class WebSocketRunner:
             self.runner = WorkflowRunner(job_id=self.job_id)
             log.info(f"WebSocketRunner: Starting job execution: {self.job_id}")
 
-            context = ProcessingContext(
-                user_id=req.user_id,
-                auth_token=req.auth_token,
-                workflow_id=req.workflow_id,
-                endpoint_url=self.websocket.url,
-                encode_assets_as_base64=self.mode == WebSocketMode.TEXT,
-            )
+            if self.context is None:
+                self.context = ProcessingContext(
+                    user_id=req.user_id,
+                    auth_token=req.auth_token,
+                    workflow_id=req.workflow_id,
+                    endpoint_url=self.websocket.url,
+                    encode_assets_as_base64=self.mode == WebSocketMode.TEXT,
+                )
             self.event_loop = ThreadedEventLoop()
 
             with self.event_loop as tel:
                 run_future = tel.run_coroutine(
-                    execute_workflow(context, self.runner, req)
+                    execute_workflow(self.context, self.runner, req)
                 )
 
                 try:
                     async for msg in process_workflow_messages(
-                        context=context,
+                        context=self.context,
                         runner=self.runner,
                         explicit_types=req.explicit_types or False,
                     ):

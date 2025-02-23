@@ -8,6 +8,21 @@ from random import randint
 from nodetool.models.condition_builder import ConditionBuilder
 from nodetool.models.database_adapter import DatabaseAdapter
 
+"""
+Database Model Base Classes and Utilities
+
+This module provides the core database modeling functionality, including:
+
+- DBModel: A base class for database models that extends Pydantic's BaseModel
+- Field decorators and utilities for defining database schemas
+- Index management functionality
+
+Key Components:
+- DBModel: Base class that provides CRUD operations, query capabilities, and index management
+- DBField: Field decorator for marking model attributes as database columns
+- DBIndex: Decorator for defining database indexes on models
+"""
+
 
 log = Environment.get_logger()
 

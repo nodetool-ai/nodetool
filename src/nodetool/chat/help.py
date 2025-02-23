@@ -1,3 +1,23 @@
+"""
+Nodetool Help System Module
+
+This module implements the help and documentation system for Nodetool, providing:
+- Documentation indexing and searching using ChromaDB for semantic search
+- Example workflow indexing and retrieval
+- Interactive chat-based help using LLMs
+- Core documentation management
+
+Key Components:
+- Documentation indexing with semantic and keyword search capabilities
+- Example workflow management and search
+- Node property lookup and validation
+- Interactive chat interface with tool-augmented responses
+
+The module uses ChromaDB for vector storage and retrieval, and integrates with
+Ollama for LLM-powered help responses. It supports both semantic and keyword-based
+searches across documentation and examples.
+"""
+
 import asyncio
 import json
 import os

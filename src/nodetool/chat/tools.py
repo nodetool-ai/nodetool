@@ -1,3 +1,49 @@
+"""
+Tools module providing various utility tools for interacting with files, services and APIs.
+
+This module contains a collection of Tool classes that provide different functionalities:
+
+File Operations:
+- ReadFileTool: Read contents of files
+- WriteFileTool: Write/append content to files  
+- ListDirectoryTool: List directory contents
+- SearchFileTool: Search files for text patterns
+- ExtractPDFTextTool: Extract text from PDFs
+- ExtractPDFTablesTool: Extract tables from PDFs
+- ConvertPDFToMarkdownTool: Convert PDFs to markdown
+
+Web & Browser:
+- BrowserTool: Control web browser automation
+- ScreenshotTool: Take browser screenshots
+
+Search & Database:
+- ChromaTextSearchTool: Semantic search in ChromaDB
+- ChromaHybridSearchTool: Combined semantic/keyword search
+- SemanticDocSearchTool: Search documentation semantically
+- KeywordDocSearchTool: Search documentation by keywords
+
+Email (Gmail):
+- SearchEmailTool: Search Gmail messages
+- ArchiveEmailTool: Archive Gmail messages
+- AddLabelTool: Add labels to Gmail messages
+
+Apple Notes:
+- CreateAppleNoteTool: Create notes in Apple Notes
+- ReadAppleNotesTool: Read from Apple Notes
+
+System:
+- ExecuteShellTool: Run shell commands
+- ProcessNodeTool: Process workflow nodes
+- TestTool: Tool for integration testing
+- FindNodeTool: Find nodes in node library
+
+Each tool inherits from the base Tool class and implements:
+- input_schema: JSON schema defining the tool's parameters
+- process(): Async method to execute the tool's functionality
+
+Tools are used by AI agents to perform operations and integrate with various services.
+"""
+
 from datetime import datetime, timedelta
 from nodetool.nodes.apple.notes import CreateNote, ReadNotes
 from nodetool.workflows.base_node import (
