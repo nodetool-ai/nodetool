@@ -7,8 +7,7 @@ on:
     paths:
       - "src/**"
       - "tests/**"
-      - "requirements.txt"
-      - "requirements.dev.txt"
+      - "requirements/**"
 
 jobs:
   test:
@@ -25,8 +24,10 @@ jobs:
           python-version: "3.11"
       - name: Install dependencies
         run: |
-          pip install -r requirements.txt
           pip install -r requirements.dev.txt
+          pip install -r requirements/requirements.txt
+          pip install -r requirements/requirements_ai.txt
+          pip install -r requirements/requirements_data_science.txt
 
       - name: Run Tests
         run: pytest tests/
