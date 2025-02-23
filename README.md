@@ -10,28 +10,75 @@
 ![Docker](https://github.com/nodetool-ai/nodetool/actions/workflows/docker-publish.yaml/badge.svg)
 ![CodeQL](https://github.com/nodetool-ai/nodetool/actions/workflows/github-code-scanning/codeql/badge.svg)
 
-NodeTool is a visual development platform that lets you create powerful AI applications that can be deployed as mini-apps or chatbots - no coding required.
+Welcome to NodeTool, an open-source platform designed to simplify the creation and deployment of AI applications without requiring coding expertise.
 
-With NodeTool, you can:
+### What is NodeTool? 🚀
 
-- **Build AI Apps Visually**: Create custom applications through an intuitive visual workflow editor
-- **Deploy as Mini-Apps**: Turn your workflows into standalone applications accessible from your system tray
-- **Create Custom Chatbots**: Design specialized chat interfaces for specific tasks or domains
-- **Run Locally**: Utilize your own hardware to run open-source models via Ollama and access thousands of models via Hugging Face
-- **Process Multiple Formats**: Work with text, images, audio, and video in a unified interface
+NodeTool is a visual development platform that empowers users to build and deploy AI applications through an intuitive, no-code interface. It supports a wide range of functionalities, from creating custom chatbots and mini-apps to automating complex workflows.
 
-![NodeTool](screenshot.png)
+#### Key Highlights ✨
+
+- **Local Model Support** - Run AI models on your own hardware using Ollama and Hugging Face, ensuring privacy and cost efficiency
+- **Visual Workflow Editor** - Design AI applications visually, without writing code
+- **Cross-Platform Deployment** - Deploy apps on Mac, Windows, and Linux as standalone desktop applications or chat interfaces
+- **Multimodal Capabilities** - Work with text, images, audio, and video in a unified platform
+- **Open-Source and Community-Driven** - Contribute to the project, report issues, and engage with the community
+
+![NodeTool](screen.png)
+
+### Why NodeTool? 💡
+
+NodeTool is designed to cater to a variety of users, including those interested in local LLM deployment, AI automation, and advanced technical workflows.
+
+#### Key Benefits 🎯
+
+- **Privacy-First** - Run AI models locally to keep your data secure and avoid cloud dependency
+- **No-Code AI Development** - Build sophisticated AI applications using a visual editor, making AI accessible to non-programmers
+- **Automation Powerhouse** - Create workflows that automate repetitive tasks using multiple AI models and tools
+- **Community Engagement** - As an open-source project, NodeTool welcomes contributions and feedback from users
 
 ## Use Cases 🎨
 
-- 🤖 **Custom AI Apps**: Build specialized applications for specific tasks or domains
-- 💬 **Smart Chatbots**: Create chatbots that integrate with your data and tools
-- 🎨 **Creative Tools**: Design apps for image generation, editing, and creative workflows
-- 📝 **Document Processing**: Build apps that analyze, summarize, and extract insights from documents
-- 🎤 **Media Processing**: Create tools for audio and video generation and editing
-- 🔧 **Workflow Automation**: Design apps that streamline repetitive tasks with AI
-- 🗣️ **Voice Interfaces**: Build voice-enabled applications with Siri integration
-- ⚡ **API-Powered Tools**: Create apps that combine multiple AI services
+- 🤖 **Local LLM Deployment**
+
+  - Build privacy-focused chatbots using locally hosted models
+  - Create domain-specific assistants with your own data
+  - Deploy multiple LLMs for different tasks via ollama
+  - Fine-tune responses for your organization's needs
+
+- 🎨 **Automated Content Generation**
+
+  - Design image generation workflows with Stable Diffusion
+  - Create automated blog post and social media content pipelines
+  - Build video editing and audio processing workflows
+  - Automate thumbnail and banner creation for content
+
+- 🎯 **Personal AI Assistant**
+
+  - Design privacy-first scheduling and task management tools
+  - Create note-taking systems with local LLM processing
+  - Build custom reminder and notification workflows
+  - Develop personal knowledge management systems
+
+- 📊 **AI-Powered Data Processing**
+
+  - Analyze and summarize large document collections
+  - Extract insights from business reports and research papers
+  - Create automated data visualization workflows
+  - Build custom data extraction and processing pipelines
+
+- 🔧 **Workflow Automation**
+
+  - Design apps that streamline repetitive tasks with AI
+  - Create automated testing and QA workflows
+  - Build custom code review and documentation assistants
+  - Develop automated data validation systems
+
+- 🗣️ **Voice and Chat Interfaces**
+  - Build voice-enabled applications with Siri integration
+  - Create multi-modal chatbots with image and audio support
+  - Design conversational interfaces for specific domains
+  - Develop custom voice assistants using local models
 
 ## Features ✨
 
@@ -48,6 +95,17 @@ Key features for building AI applications:
 - **API Access**: Integrate your apps with other tools via API
 - **Custom Extensions**: Add new capabilities with Python
 - **Cross-Platform**: Deploy your apps on Mac, Windows, and Linux
+
+### Global Chat Overlay 💬
+
+A standout feature of NodeTool is the Global Chat Overlay, which serves as a unified entry point for all your AI tools and workflows. This chat interface allows you to:
+
+- Run powerful tools such as image generation, audio generation, and more
+- Access notes, documents, and other files
+- Trigger any workflow you've created
+- Engage in AI chats for natural language interactions
+
+The global chat overlay provides a seamless and intuitive way to access your custom AI solutions, making it easier than ever to integrate AI into your daily workflow.
 
 ## Quickstart 🚀
 
