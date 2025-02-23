@@ -45,7 +45,6 @@ Tools are used by AI agents to perform operations and integrate with various ser
 """
 
 from datetime import datetime, timedelta
-from nodetool.nodes.apple.notes import CreateNote, ReadNotes
 from nodetool.workflows.base_node import (
     BaseNode,
     get_node_class,
@@ -1203,6 +1202,8 @@ class CreateAppleNoteTool(Tool):
         }
 
     async def process(self, context: ProcessingContext, params: dict) -> Any:
+        from nodetool.nodes.apple.notes import CreateNote, ReadNotes
+
         try:
             create_note = CreateNote(
                 title=params["title"],
@@ -1242,6 +1243,8 @@ class ReadAppleNotesTool(Tool):
 
     async def process(self, context: ProcessingContext, params: dict) -> Any:
         try:
+            from nodetool.nodes.apple.notes import ReadNotes
+
             read_notes = ReadNotes(
                 note_limit=params.get("note_limit", 10),
                 note_limit_per_folder=params.get("note_limit_per_folder", 10),
