@@ -1,3 +1,25 @@
+"""
+Chat module providing multi-provider chat functionality with tool integration.
+
+This module implements a chat interface that supports multiple AI providers (OpenAI, Anthropic, Ollama)
+and allows for tool-augmented conversations. It handles:
+
+- Message conversion between different provider formats
+- Streaming chat completions
+- Tool execution and integration
+- CLI interface for interactive chat
+- Provider-specific client management
+
+The module supports various content types including text and images, and provides
+a unified interface for handling tool calls across different providers.
+
+Key components:
+- Message conversion utilities for each provider
+- Streaming completion handlers
+- Tool execution framework
+- Interactive CLI with command history and tab completion
+"""
+
 import asyncio
 from enum import Enum
 import json
@@ -88,13 +110,19 @@ AVAILABLE_CHAT_TOOLS_BY_NAME = {tool.name: tool for tool in AVAILABLE_CHAT_TOOLS
 
 def json_schema_for_column(column: ColumnDef) -> dict:
     """
-    Create a JSON schema for a column.
+    Create a JSON schema for a database column definition.
+
+    Converts database column types to their corresponding JSON schema representations,
+    including type information and descriptions.
 
     Args:
-        column (ColumnDef): The column definition.
+        column (ColumnDef): Column definition containing name, type, and description
 
     Returns:
-        dict: The JSON schema for the column.
+        dict: JSON schema object with type and description fields
+
+    Raises:
+        ValueError: If the column data type is not supported
     """
     data_type = column.data_type
     description = column.description or ""
@@ -164,13 +192,20 @@ def convert_to_openai_message(
     message: Message,
 ) -> ChatCompletionMessageParam:
     """
-    Convert a message to an OpenAI message.
+    Convert an internal message format to OpenAI's chat completion format.
+
+    Handles conversion of different message roles (system, user, assistant, tool)
+    and content types (text, images, tool calls) to OpenAI's expected format.
 
     Args:
-        message (Message): The message to convert.
+        message (Message): Internal message object to convert
 
     Returns:
-        dict: The OpenAI message.
+        ChatCompletionMessageParam: OpenAI-formatted message
+
+    Raises:
+        ValueError: If message role is unknown or content format is invalid
+        AssertionError: If required fields are missing
     """
     if message.role == "tool":
         if isinstance(message.content, BaseModel):
@@ -251,16 +286,23 @@ async def create_openai_completion(
     **kwargs,
 ):
     """
-    Creates an OpenAI completion using the provided messages.
+    Create a streaming chat completion using OpenAI's API.
+
+    Handles message conversion, tool integration, and streaming response processing.
+    Automatically adapts system messages for O1/O3 models.
 
     Args:
-        model (FunctionModel): The model to use for the completion.
-        messages (Sequence[Message]): Entire conversation history.
-        tools (Sequence[Tool], optional): A list of tools to be used by the model.
-        **kwargs: Additional keyword arguments passed to openai API.
+        model (FunctionModel): Model configuration including name and provider
+        messages (Sequence[Message]): Conversation history
+        tools (Sequence[Tool], optional): Available tools for model use
+        **kwargs: Additional arguments passed to OpenAI's API
 
     Yields:
-        Message: Streamed message chunks from the OpenAI API.
+        Union[Chunk, ToolCall]: Either content chunks or tool call requests
+
+    Raises:
+        ValueError: If tool call processing fails
+        AssertionError: If tool call state is invalid
     """
     # Convert system messages to user messages for O1 and O3 models
     if model.name.startswith("o1") or model.name.startswith("o3"):
@@ -752,7 +794,27 @@ async def process_messages(
 
 
 async def chat_cli():
-    """Readline-based chat CLI with history, completion and emacs shortcuts."""
+    """
+    Interactive command-line chat interface with multi-provider support.
+
+    Provides:
+    - Command history with readline
+    - Tab completion for commands
+    - Provider switching
+    - Model selection
+    - Tool integration
+    - Error handling and graceful shutdown
+
+    Commands:
+    - /help: Show available commands
+    - /provider [name]: Switch provider
+    - /model [name]: Change model
+    - /models: List available models
+    - /clear: Clear chat history
+    - /quit or /exit: Exit the chat
+
+    The CLI maintains conversation history and supports emacs-style line editing.
+    """
 
     import warnings
 

@@ -1,3 +1,16 @@
+"""
+Worker API Client for interacting with the Nodetool worker service.
+
+This module provides a client interface for communicating with a Nodetool worker service
+over HTTP. It handles API requests for model management and system monitoring, including:
+- Querying installed HuggingFace models
+- Retrieving recommended models for installation
+- Fetching system statistics and resource usage
+
+The client uses httpx for async HTTP communication and provides typed responses using
+Pydantic models for data validation and serialization.
+"""
+
 import httpx
 
 from nodetool.common.huggingface_models import CachedModel

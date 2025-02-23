@@ -1,3 +1,20 @@
+"""
+System Statistics Module
+
+This module provides functionality to collect and report system resource usage statistics,
+including CPU, memory, and GPU VRAM (if available). It uses psutil for CPU and memory metrics
+and pynvml for NVIDIA GPU metrics.
+
+The module exposes:
+- SystemStats: A Pydantic model representing system resource usage
+- get_system_stats(): A function that collects current system statistics
+
+Example:
+    >>> stats = get_system_stats()
+    >>> print(stats.cpu_percent)  # prints current CPU usage percentage
+    >>> print(stats.memory_used_gb)  # prints used memory in GB
+"""
+
 from pydantic import BaseModel, Field
 import psutil
 import pynvml

@@ -1,3 +1,15 @@
+"""
+Hugging Face model management utilities for interacting with cached models and the Hugging Face API.
+
+This module provides functionality to:
+- Fetch and cache model information and READMEs from the Hugging Face API
+- Read and manage locally cached Hugging Face models
+- Determine model types based on model information and recommended models
+- Delete models from the local cache
+
+The module uses an in-memory cache for model information and READMEs to reduce API calls.
+"""
+
 import asyncio
 from datetime import datetime
 import httpx

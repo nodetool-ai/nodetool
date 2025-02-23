@@ -1,3 +1,25 @@
+"""
+ChromaDB Client Module
+
+This module provides utilities for interacting with ChromaDB, a vector database for storing and querying embeddings.
+It handles both local and remote ChromaDB instances, with support for:
+
+- Client initialization and configuration
+- Collection management with automatic embedding function selection
+- Document splitting and chunking
+- Multi-tenant support for remote instances
+- Integration with both Ollama and SentenceTransformer embedding models
+
+The module automatically configures embedding functions based on collection metadata and
+environment settings, defaulting to SentenceTransformer when no specific model is specified.
+
+Key Functions:
+    - get_chroma_client(): Initialize a ChromaDB client (local or remote)
+    - get_collection(): Retrieve a collection with appropriate embedding function
+    - split_document(): Split text into chunks for vector storage
+    - get_all_collections(): Retrieve all collections with configured embedding functions
+"""
+
 import chromadb
 from chromadb.config import Settings, DEFAULT_DATABASE, DEFAULT_TENANT
 from urllib.parse import urlparse
