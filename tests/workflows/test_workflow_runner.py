@@ -155,7 +155,7 @@ async def test_process_node_image_blend(user: User):
         "type": ImageOutput.get_node_type(),
         "data": {
             "name": "output",
-            "image": {"type": "image", "uri": "", "asset_id": None},
+            "value": {"type": "image", "uri": "", "asset_id": None},
         },
     }
 

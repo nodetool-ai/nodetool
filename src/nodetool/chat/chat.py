@@ -21,12 +21,10 @@ Key components:
 """
 
 import asyncio
-from enum import Enum
 import json
 import traceback
 from typing import Any, AsyncGenerator, Sequence
 
-from ollama import ChatResponse
 import openai
 from pydantic import BaseModel
 from anthropic.types.message_param import MessageParam
