@@ -558,13 +558,14 @@ class WorkflowRunner:
                         result = await node.process_with_gpu(context)
                         result = await node.convert_output(context, result)
                     finally:
-                        try:
-                            await node.move_to_device("cpu")
-                            self.log_vram_usage(
-                                f"Node {node.get_title()} ({node._id}) VRAM after move to cpu"
-                            )
-                        finally:
-                            release_gpu_lock()
+                        release_gpu_lock()
+                        # try:
+                        #     await node.move_to_device("cpu")
+                        #     self.log_vram_usage(
+                        #         f"Node {node.get_title()} ({node._id}) VRAM after move to cpu"
+                        #     )
+                        # finally:
+                        #     release_gpu_lock()
                 else:
                     result = await node.process(context)
                     result = await node.convert_output(context, result)
