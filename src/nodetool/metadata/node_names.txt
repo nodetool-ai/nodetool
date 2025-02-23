@@ -15,6 +15,7 @@ apple.screen.CaptureScreen
 apple.speech.SayText
 apple.dictionary.SearchDictionary
 anthropic.text.Claude
+chroma.collections.GetOrCreateCollection
 chroma.collections.Count
 chroma.collections.GetDocuments
 chroma.collections.Peek
