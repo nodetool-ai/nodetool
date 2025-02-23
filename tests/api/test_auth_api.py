@@ -12,6 +12,18 @@ from fastapi.testclient import TestClient
 
 
 def test_oauth_login(mocker, client: TestClient):
+    """
+    Test the OAuth login endpoint.
+
+    Tests that:
+    - The authorization URL is properly created
+    - The response contains the expected URL and state
+    - The response status code is correct
+
+    Args:
+        mocker: pytest mocker fixture
+        client: FastAPI TestClient instance
+    """
     # Test successful OAuth login
     mock_session = mocker.patch(
         "nodetool.api.auth.Environment.get_google_oauth2_session"
@@ -34,6 +46,19 @@ def test_oauth_login(mocker, client: TestClient):
 
 
 def test_oauth_callback(mocker, client: TestClient):
+    """
+    Test the OAuth callback endpoint.
+
+    Tests that:
+    - Token fetching works correctly
+    - User creation/retrieval functions properly
+    - Response contains expected user data and auth token
+    - User is properly stored in the database with verified status
+
+    Args:
+        mocker: pytest mocker fixture
+        client: FastAPI TestClient instance
+    """
     # Mock the OAuth2Session and get_user_email function
     mock_session = mocker.patch(
         "nodetool.api.auth.Environment.get_google_oauth2_session"
@@ -64,6 +89,15 @@ def test_oauth_callback(mocker, client: TestClient):
 
 
 def test_get_user_email(mocker):
+    """
+    Test the get_user_email utility function.
+
+    Tests that the function correctly extracts the email from
+    the OAuth provider's user info endpoint response.
+
+    Args:
+        mocker: pytest mocker fixture
+    """
     # Mock the OAuth2Session
     mock_session = mocker.MagicMock()
     mock_session.get.return_value.json.return_value = {"email": "test@example.com"}
