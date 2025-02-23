@@ -13,6 +13,10 @@ test_jpg = os.path.join(os.path.dirname(os.path.dirname(__file__)), "test.jpg")
 
 
 def test_index(client: TestClient, headers: dict[str, str], user: User):
+    """
+    Test the GET /api/assets endpoint.
+    Verifies that the endpoint returns a list of assets for the authenticated user.
+    """
     image = make_image(user)
     response = client.get("/api/assets", headers=headers)
     json = response.json()
@@ -23,6 +27,10 @@ def test_index(client: TestClient, headers: dict[str, str], user: User):
 
 @pytest.mark.asyncio
 async def test_delete(client: TestClient, headers: dict[str, str], user: User):
+    """
+    Test the DELETE /api/assets/{id} endpoint.
+    Verifies that the asset is deleted from both the database and storage.
+    """
     image = make_image(user)
     response = client.delete(f"/api/assets/{image.id}", headers=headers)
     assert response.status_code == 200
@@ -31,6 +39,10 @@ async def test_delete(client: TestClient, headers: dict[str, str], user: User):
 
 
 def test_pagination(client: TestClient, headers: dict[str, str], user: User):
+    """
+    Test pagination functionality of the GET /api/assets endpoint.
+    Verifies that assets are properly paginated with correct page sizes and cursor behavior.
+    """
     for _ in range(5):
         make_image(user)
     response = client.get("/api/assets", headers=headers, params={"page_size": 3})
@@ -46,6 +58,10 @@ def test_pagination(client: TestClient, headers: dict[str, str], user: User):
 
 
 def test_get(client: TestClient, headers: dict[str, str], user: User):
+    """
+    Test the GET /api/assets/{id} endpoint.
+    Verifies that a single asset can be retrieved by its ID.
+    """
     image = make_image(user)
     response = client.get(f"/api/assets/{image.id}", headers=headers)
     assert response.status_code == 200
@@ -53,6 +69,10 @@ def test_get(client: TestClient, headers: dict[str, str], user: User):
 
 
 def test_put(client: TestClient, headers: dict[str, str], user: User):
+    """
+    Test the PUT /api/assets/{id} endpoint.
+    Verifies that an asset's metadata can be updated successfully.
+    """
     image = make_image(user)
     response = client.put(
         f"/api/assets/{image.id}",
@@ -67,6 +87,10 @@ def test_put(client: TestClient, headers: dict[str, str], user: User):
 
 
 def test_create(client: TestClient, headers: dict[str, str], user: User):
+    """
+    Test the POST /api/assets endpoint.
+    Verifies that a new asset can be created with file upload and metadata.
+    """
     response = client.post(
         "/api/assets",
         files={"file": ("test.jpg", open(test_jpg, "rb"), "image/jpeg")},
