@@ -122,12 +122,7 @@ type NodeMenuProps = {
   focusSearchInput?: boolean;
 };
 
-// Add performance timing
-let menuOpenRequestTime: number | null = null;
-
-const NodeMenu = memo(function NodeMenu({
-  focusSearchInput = false
-}: NodeMenuProps) {
+const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
   const nodeRef = useRef<HTMLDivElement>(null);
 
   // Only subscribe to minimal state when closed
@@ -176,35 +171,36 @@ const NodeMenu = memo(function NodeMenu({
   const memoizedStyles = useMemo(() => treeStyles(ThemeNodetool), []);
 
   useCombo(["Escape"], closeNodeMenu);
-  useRenderLogger("NodeMenu", { isMenuOpen });
 
   // Start timing when menu opens
-  useEffect(() => {
-    if (isMenuOpen) {
-      menuOpenRequestTime = performance.now();
-    }
-  }, [isMenuOpen]);
+  // useEffect(() => {
+  //   if (isMenuOpen) {
+  //     menuOpenRequestTime = performance.now();
+  //   }
+  // }, [isMenuOpen]);
 
   // Log when menu is mounted and visible
-  useEffect(() => {
-    if (!isMenuOpen || !nodeRef.current) return;
+  // useEffect(() => {
+  //   if (!isMenuOpen || !nodeRef.current) return;
 
-    const startTime = menuOpenRequestTime || performance.now();
-    console.log(
-      `NodeMenu mount time: ${(performance.now() - startTime).toFixed(2)}ms`
-    );
+  //   const startTime = menuOpenRequestTime || performance.now();
+  //   console.log(
+  //     `NodeMenu mount time: ${(performance.now() - startTime).toFixed(2)}ms`
+  //   );
 
-    requestAnimationFrame(() => {
-      if (startTime) {
-        console.log(
-          `NodeMenu visual time: ${(performance.now() - startTime).toFixed(
-            2
-          )}ms`
-        );
-        menuOpenRequestTime = null;
-      }
-    });
-  });
+  //   requestAnimationFrame(() => {
+  //     if (startTime) {
+  //       console.log(
+  //         `NodeMenu visual time: ${(performance.now() - startTime).toFixed(
+  //           2
+  //         )}ms`
+  //       );
+  //       menuOpenRequestTime = null;
+  //     }
+  //   });
+  // });
+
+  console.log("isMenuOpen", isMenuOpen);
 
   if (!isMenuOpen) return null;
 
@@ -274,6 +270,6 @@ const NodeMenu = memo(function NodeMenu({
       </Box>
     </Draggable>
   );
-});
+};
 
-export default NodeMenu;
+export default memo(NodeMenu);

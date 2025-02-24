@@ -13,17 +13,12 @@ const RenderNamespaces: React.FC<RenderNamespacesProps> = ({
   tree,
   currentPath = []
 }) => {
-  const {
-    highlightedNamespaces,
-    selectedPath,
-    searchResults,
-    allSearchMatches
-  } = useNodeMenuStore((state) => ({
-    highlightedNamespaces: state.highlightedNamespaces,
-    selectedPath: state.selectedPath,
-    searchResults: state.searchResults,
-    allSearchMatches: state.allSearchMatches
-  }));
+  const { highlightedNamespaces, selectedPath, allSearchMatches } =
+    useNodeMenuStore((state) => ({
+      highlightedNamespaces: state.highlightedNamespaces,
+      selectedPath: state.selectedPath,
+      allSearchMatches: state.allSearchMatches
+    }));
 
   const memoizedTree = useMemo(
     () =>
@@ -84,4 +79,4 @@ const RenderNamespaces: React.FC<RenderNamespacesProps> = ({
   );
 };
 
-export default React.memo(RenderNamespaces, isEqual);
+export default React.memo(RenderNamespaces);

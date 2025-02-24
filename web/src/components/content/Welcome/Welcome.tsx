@@ -734,8 +734,8 @@ const Welcome = () => {
                     </li>
                     <li>
                       <Typography variant="body1">
-                        <b>DeepSeek R1 7B</b> - DeepSeek's first-generation of
-                        reasoning models with comparable performance to
+                        <b>DeepSeek R1 7B</b> - DeepSeek&apos;s first-generation
+                        of reasoning models with comparable performance to
                         OpenAI-o1.
                       </Typography>
                     </li>
