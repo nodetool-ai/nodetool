@@ -95,8 +95,12 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
             </div>
           )}
           <ReactFlowWrapper workflowId={workflowId} active={active} />
-          <WorkflowChat workflow_id="default" />
-          <NodeMenu focusSearchInput={true} />
+          {active && (
+            <>
+              <WorkflowChat workflow_id="default" />
+              <NodeMenu focusSearchInput={true} />
+            </>
+          )}
         </>
       </div>
     </>

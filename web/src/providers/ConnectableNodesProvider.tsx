@@ -35,16 +35,16 @@ export function ConnectableNodesProvider({
   const [nodeId, setNodeId] = useState<string | null>(null);
 
   const getConnectableNodes = useCallback(() => {
-    const metadata = useMetadataStore.getState().getAllMetadata();
+    const metadata = useMetadataStore.getState().metadata;
 
     if (!typeMetadata || !filterType) {
       return [];
     }
 
     if (filterType === "input") {
-      return filterTypesByInputType(metadata, typeMetadata);
+      return filterTypesByInputType(Object.values(metadata), typeMetadata);
     } else {
-      return filterTypesByOutputType(metadata, typeMetadata);
+      return filterTypesByOutputType(Object.values(metadata), typeMetadata);
     }
   }, [typeMetadata, filterType]);
 

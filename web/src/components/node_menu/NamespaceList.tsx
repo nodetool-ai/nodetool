@@ -504,7 +504,6 @@ const InfoBox = memo(function InfoBox({
   searchTerm,
   minSearchTermLength,
   selectedPathString,
-  currentNodes,
   searchResults,
   allSearchMatches,
   metadata,
@@ -513,7 +512,6 @@ const InfoBox = memo(function InfoBox({
   searchTerm: string;
   minSearchTermLength: number;
   selectedPathString: string;
-  currentNodes: NodeMetadata[];
   searchResults: NodeMetadata[];
   allSearchMatches: NodeMetadata[];
   metadata: NodeMetadata[];
@@ -525,7 +523,7 @@ const InfoBox = memo(function InfoBox({
         title={
           <div style={{ color: "#eee", fontSize: "1.25em" }}>
             {selectedPathString && (
-              <div>Current namespace: {currentNodes?.length} nodes</div>
+              <div>Current namespace: {searchResults?.length} nodes</div>
             )}
             {searchTerm.length > minSearchTermLength ? (
               <>
@@ -560,12 +558,7 @@ const InfoBox = memo(function InfoBox({
         <Typography className="result-info">
           {searchTerm.length > minSearchTermLength ? (
             <>
-              <span>
-                {searchTerm.length > minSearchTermLength
-                  ? searchResults.length
-                  : currentNodes?.length}
-              </span>{" "}
-              /{" "}
+              <span>{searchResults.length}</span> /{" "}
               <span>
                 {searchTerm.length > minSearchTermLength
                   ? allSearchMatches.length
@@ -573,7 +566,9 @@ const InfoBox = memo(function InfoBox({
               </span>
             </>
           ) : (
-            <span>{selectedPathString ? currentNodes.length : totalNodes}</span>
+            <span>
+              {selectedPathString ? searchResults.length : totalNodes}
+            </span>
           )}
           <span className="result-label">nodes</span>
         </Typography>
@@ -591,21 +586,16 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
     selectedPath,
     searchResults,
     allSearchMatches,
-    hoveredNode,
-    filterNodes
+    hoveredNode
   } = useNodeMenuStore((state) => ({
     searchTerm: state.searchTerm,
-    highlightedNamespaces: state.highlightedNamespaces,
     selectedPath: state.selectedPath,
     searchResults: state.searchResults,
     allSearchMatches: state.allSearchMatches,
-    hoveredNode: state.hoveredNode,
-    selectedInputType: state.selectedInputType,
-    selectedOutputType: state.selectedOutputType,
-    filterNodes: state.filterNodes
+    hoveredNode: state.hoveredNode
   }));
 
-  const allMetadata = useMetadataStore((state) => state.getAllMetadata());
+  const allMetadata = useMetadataStore((state) => state.metadata);
 
   const selectedPathString = useMemo(
     () => selectedPath.join("."),
@@ -636,11 +626,9 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
     return { enabledTree: enabled, disabledTree: disabled };
   }, [namespaceTree]);
 
-  const currentNodes = useMemo(() => {
-    return filterNodes(allMetadata);
-  }, [allMetadata, filterNodes]);
-
-  const totalNodes = useMetadataStore((state) => state.getAllMetadata()).length;
+  const totalNodes = useMemo(() => {
+    return Object.values(allMetadata).length;
+  }, [allMetadata]);
 
   const [isPanelCollapsed, setIsPanelCollapsed] = React.useState(false);
 
@@ -679,10 +667,10 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
             </div>
           </List>
         </div>
-        {currentNodes && currentNodes.length > 0 ? (
+        {searchResults && searchResults.length > 0 ? (
           <>
             <List className="node-list">
-              <RenderNodes nodes={currentNodes} />
+              <RenderNodes nodes={searchResults} />
             </List>
             <div className="node-info-container">
               {hoveredNode && <NodeInfo nodeMetadata={hoveredNode} />}
@@ -700,7 +688,6 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
         searchTerm={searchTerm}
         minSearchTermLength={minSearchTermLength}
         selectedPathString={selectedPathString}
-        currentNodes={currentNodes}
         searchResults={searchResults}
         allSearchMatches={allSearchMatches}
         metadata={metadata}
