@@ -5,7 +5,10 @@
   "updated_at": "2025-01-26T00:18:27.954328",
   "name": "Simple Chat",
   "description": "Basic chat interface using Deepseek R1 7B model",
-  "tags": ["chat", "start"],
+  "tags": [
+    "chat",
+    "start"
+  ],
   "thumbnail": null,
   "thumbnail_url": "/examples/android.png",
   "graph": {
@@ -130,7 +133,7 @@
           "temperature": 0.7,
           "top_k": 50,
           "top_p": 0.95,
-          "keep_alive": 0
+          "keep_alive": 300
         },
         "ui_properties": {
           "position": {

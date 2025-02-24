@@ -13719,7 +13719,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": null,
+        "default": false,
         "title": "Condition",
         "description": "The condition to check",
         "min": null,
@@ -121889,7 +121889,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": "300",
+        "default": 300,
         "title": "Keep Alive",
         "description": "The number of seconds to keep the model alive.",
         "min": null,

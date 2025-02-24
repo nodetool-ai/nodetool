@@ -2,7 +2,6 @@
 import { Button, Tooltip, CircularProgress, Box } from "@mui/material";
 import LayoutIcon from "@mui/icons-material/ViewModule";
 import SaveIcon from "@mui/icons-material/Save";
-import NoteAddIcon from "@mui/icons-material/NoteAdd";
 import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
 import EditIcon from "@mui/icons-material/Edit";
 
@@ -21,6 +20,7 @@ import { useNodes } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import ControlPointIcon from "@mui/icons-material/ControlPoint";
 import { Workflow } from "../../stores/ApiTypes";
+import { isLocalhost } from "../../stores/ApiClient";
 
 const styles = (theme: any) =>
   css({
@@ -438,7 +438,7 @@ const AppHeaderActions: React.FC<AppHeaderActionsProps> = ({
             <AutoLayoutButton autoLayout={autoLayout} />
             <RunWorkflowButton />
             <StopWorkflowButton />
-            <RunAsAppButton />
+            {!isLocalhost && <RunAsAppButton />}
           </>
         </div>
       )}

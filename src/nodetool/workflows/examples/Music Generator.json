@@ -88,7 +88,7 @@
           "temperature": 1,
           "top_k": 50,
           "top_p": 0.95,
-          "keep_alive": 0,
+          "keep_alive": 300,
           "columns": {
             "type": "record_type",
             "columns": [

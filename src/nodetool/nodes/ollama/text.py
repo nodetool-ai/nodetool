@@ -11,7 +11,6 @@ from nodetool.metadata.types import (
     MessageTextContent,
     Provider,
     NPArray,
-    TextRef,
 )
 from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
@@ -77,7 +76,7 @@ class Ollama(BaseNode):
         description="The cumulative probability cutoff for nucleus/top-p sampling.",
     )
     keep_alive: int = Field(
-        default="300",
+        default=300,
         description="The number of seconds to keep the model alive.",
     )
 

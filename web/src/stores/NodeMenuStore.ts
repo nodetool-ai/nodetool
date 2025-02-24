@@ -5,7 +5,6 @@ import Fuse, { IFuseOptions } from "fuse.js";
 import { filterDataByType } from "../components/node_menu/typeFilterUtils";
 import useMetadataStore from "./MetadataStore";
 import useRemoteSettingsStore from "./RemoteSettingStore";
-import { usePanelStore } from "./PanelStore";
 import { formatNodeDocumentation } from "./formatNodeDocumentation";
 import { fuseOptions, ExtendedFuseOptions } from "./fuseOptions";
 

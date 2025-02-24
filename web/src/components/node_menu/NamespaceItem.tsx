@@ -52,4 +52,4 @@ const NamespaceItem: React.FC<NamespaceItemProps> = ({
   );
 };
 
-export default React.memo(NamespaceItem, isEqual);
+export default React.memo(NamespaceItem);
