@@ -21,7 +21,6 @@ import useNamespaceTree from "../../hooks/useNamespaceTree";
 import SearchInput from "../search/SearchInput";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { isEqual } from "lodash";
-import { useRenderLogger } from "../../hooks/useRenderLogger";
 
 const treeStyles = (theme: any) =>
   css({
@@ -135,11 +134,8 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
   // Use lazy initialization for the rest of the state
   const {
     closeNodeMenu,
-    menuWidth,
     menuHeight,
     menuPosition,
-    dropType,
-    connectDirection,
     searchResults,
     selectedInputType,
     setSelectedInputType,
@@ -151,11 +147,8 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
     useNodeMenuStore,
     (state) => ({
       closeNodeMenu: state.closeNodeMenu,
-      menuWidth: state.menuWidth,
       menuHeight: state.menuHeight,
       menuPosition: state.menuPosition,
-      dropType: state.dropType,
-      connectDirection: state.connectDirection,
       searchResults: state.searchResults,
       selectedInputType: state.selectedInputType,
       setSelectedInputType: state.setSelectedInputType,
@@ -171,36 +164,6 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
   const memoizedStyles = useMemo(() => treeStyles(ThemeNodetool), []);
 
   useCombo(["Escape"], closeNodeMenu);
-
-  // Start timing when menu opens
-  // useEffect(() => {
-  //   if (isMenuOpen) {
-  //     menuOpenRequestTime = performance.now();
-  //   }
-  // }, [isMenuOpen]);
-
-  // Log when menu is mounted and visible
-  // useEffect(() => {
-  //   if (!isMenuOpen || !nodeRef.current) return;
-
-  //   const startTime = menuOpenRequestTime || performance.now();
-  //   console.log(
-  //     `NodeMenu mount time: ${(performance.now() - startTime).toFixed(2)}ms`
-  //   );
-
-  //   requestAnimationFrame(() => {
-  //     if (startTime) {
-  //       console.log(
-  //         `NodeMenu visual time: ${(performance.now() - startTime).toFixed(
-  //           2
-  //         )}ms`
-  //       );
-  //       menuOpenRequestTime = null;
-  //     }
-  //   });
-  // });
-
-  console.log("isMenuOpen", isMenuOpen);
 
   if (!isMenuOpen) return null;
 

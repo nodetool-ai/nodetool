@@ -18,6 +18,7 @@ import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import { ConnectableNodesProvider } from "../../providers/ConnectableNodesProvider";
 import WorkflowFormModal from "../workflows/WorkflowFormModal";
 import AppHeader from "../panels/AppHeader";
+import { useRenderLogger } from "../../hooks/useRenderLogger";
 
 const styles = (theme: any) =>
   css({
@@ -223,7 +224,7 @@ const styles = (theme: any) =>
   });
 
 const TabsNodeEditor = () => {
-  const { openWorkflows, currentWorkflowId, loadingStates, createNewWorkflow } =
+  const { openWorkflows, currentWorkflowId, loadingStates } =
     useWorkflowManager((state) => ({
       openWorkflows: state.openWorkflows,
       currentWorkflowId: state.currentWorkflowId,

@@ -174,11 +174,14 @@ const NodeCommands = memo(function NodeCommands() {
   });
 
   const groupedByCategory = useMemo(() => {
-    const metadata = useMetadataStore.getState().getAllMetadata();
-    return metadata.reduce<Record<string, NodeMetadata[]>>((acc, curr) => {
-      (acc[curr.namespace] = acc[curr.namespace] || []).push(curr);
-      return acc;
-    }, {});
+    const metadata = useMetadataStore.getState().metadata;
+    return Object.values(metadata).reduce<Record<string, NodeMetadata[]>>(
+      (acc, curr) => {
+        (acc[curr.namespace] = acc[curr.namespace] || []).push(curr);
+        return acc;
+      },
+      {}
+    );
   }, []);
 
   return (

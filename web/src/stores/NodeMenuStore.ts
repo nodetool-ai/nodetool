@@ -77,7 +77,6 @@ type NodeMenuStore = {
   groupedSearchResults: SearchResultGroup[];
 
   filterNodes: (nodes: NodeMetadata[]) => NodeMetadata[];
-  getCurrentNodes: () => NodeMetadata[];
 
   // Add new properties for search cancellation
   currentSearchId: number;
@@ -239,30 +238,36 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
   const filterNodes = (nodes: NodeMetadata[]) => {
     if (!nodes) return [];
 
+    const searchTerm = get().searchTerm;
+    const selectedPathString = get().selectedPath.join(".");
+    const selectedInputType = get().selectedInputType;
+    const selectedOutputType = get().selectedOutputType;
+
     const minSearchTermLength =
-      get().searchTerm.includes("+") ||
-      get().searchTerm.includes("-") ||
-      get().searchTerm.includes("*") ||
-      get().searchTerm.includes("/")
+      searchTerm.includes("+") ||
+      searchTerm.includes("-") ||
+      searchTerm.includes("*") ||
+      searchTerm.includes("/")
         ? 0
         : 1;
 
-    const filteredNodes = nodes
-      .filter((node) => {
-        // When searching or filtering by types, show all matching nodes
-        if (
-          get().searchTerm.length > minSearchTermLength ||
-          get().selectedInputType ||
-          get().selectedOutputType
-        ) {
-          return get().searchResults.some(
-            (result) =>
-              result.title === node.title && result.namespace === node.namespace
-          );
-        }
+    let filteredNodes = undefined;
 
-        // Otherwise filter by namespace selection
-        const selectedPathString = get().selectedPath.join(".");
+    // When searching or filtering by types, show all matching nodes
+    if (
+      searchTerm.length > minSearchTermLength ||
+      selectedInputType ||
+      selectedOutputType
+    ) {
+      filteredNodes = nodes.filter((node) => {
+        return get().searchResults.some(
+          (result) =>
+            result.title === node.title && result.namespace === node.namespace
+        );
+      });
+    } else {
+      // Otherwise filter by namespace selection
+      filteredNodes = nodes.filter((node) => {
         const isExactMatch = node.namespace === selectedPathString;
         const isDirectChild =
           node.namespace.startsWith(selectedPathString + ".") &&
@@ -276,15 +281,15 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
         return (
           isExactMatch || isDirectChild || (isRootNamespace && isDescendant)
         );
-      })
-      .sort((a, b) => {
-        const namespaceComparison = a.namespace.localeCompare(b.namespace);
-        return namespaceComparison !== 0
-          ? namespaceComparison
-          : a.title.localeCompare(b.title);
       });
+    }
 
-    return filteredNodes;
+    return filteredNodes.sort((a, b) => {
+      const namespaceComparison = a.namespace.localeCompare(b.namespace);
+      return namespaceComparison !== 0
+        ? namespaceComparison
+        : a.title.localeCompare(b.title);
+    });
   };
 
   return {
@@ -318,7 +323,6 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
         menuPosition: { x, y }
       });
     },
-
     searchTerm: "",
     setSearchTerm: (term) => {
       set({
@@ -343,18 +347,17 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
       if (searchId !== undefined && searchId !== get().currentSearchId) {
         return;
       }
-      console.log("performSearch", term);
 
-      const metadata = useMetadataStore.getState().getAllMetadata();
+      const metadata = useMetadataStore.getState().metadata;
       const secrets = useRemoteSettingsStore.getState().secrets;
 
-      if (metadata.length === 0) {
-        set({ searchResults: metadata, highlightedNamespaces: [] });
+      if (Object.keys(metadata).length === 0) {
+        set({ searchResults: [], highlightedNamespaces: [] });
         return;
       }
 
       // Filter out nodes in the "default" namespace
-      const filteredMetadata = metadata.filter((node) => {
+      const filteredMetadata = Object.values(metadata).filter((node) => {
         if (node.namespace === "default") return false;
 
         // Only filter by API keys during search or type filtering
@@ -543,8 +546,24 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
         maxPosY
       );
 
+      // Determine if search params have changed
+      const searchParamsChanged =
+        (params.searchTerm !== undefined &&
+          params.searchTerm !== get().searchTerm) ||
+        (params.dropType &&
+          params.connectDirection === "target" &&
+          params.dropType !== get().selectedInputType) ||
+        (params.dropType &&
+          params.connectDirection === "source" &&
+          params.dropType !== get().selectedOutputType) ||
+        (params.selectedPath &&
+          params.selectedPath.join(".") !== get().selectedPath.join("."));
+
+      console.log("searchParamsChanged", searchParamsChanged);
+
       set({
         isMenuOpen: true,
+        searchTerm: params.searchTerm || "",
         menuPosition: { x: constrainedX, y: constrainedY },
         dropType: params.dropType || "",
         connectDirection: params.connectDirection || null,
@@ -559,9 +578,12 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
             : ""
       });
 
-      setTimeout(() => {
-        get().performSearch(params.searchTerm || "");
-      }, 0);
+      // Only perform search if any search-related params changed
+      if (searchParamsChanged) {
+        setTimeout(() => {
+          get().performSearch(params.searchTerm || "");
+        }, 0);
+      }
     },
 
     closeNodeMenu: () => {
@@ -615,10 +637,6 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
     },
 
     filterNodes,
-    getCurrentNodes: () => {
-      const metadata = useMetadataStore.getState().getAllMetadata();
-      return filterNodes(metadata);
-    },
 
     // Add new properties for search cancellation
     currentSearchId: 0,

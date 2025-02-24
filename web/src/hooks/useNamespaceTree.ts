@@ -13,7 +13,7 @@ export interface NamespaceTree {
 }
 
 const useNamespaceTree = (): NamespaceTree => {
-  const metadata = useMetadataStore((state) => state.getAllMetadata());
+  const metadata = useMetadataStore((state) => state.metadata);
   const secrets = useRemoteSettingsStore((state) => state.secrets);
 
   // Check if an API key is set
@@ -66,7 +66,7 @@ const useNamespaceTree = (): NamespaceTree => {
 
   // Get unique namespaces and sort them (enabled first, then disabled)
   const uniqueNamespaces = useMemo(() => {
-    const namespaces = metadata
+    const namespaces = Object.values(metadata)
       .map((node) => node.namespace)
       .filter((namespace) => namespace !== "default")
       .filter(
